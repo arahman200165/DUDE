@@ -1,0 +1,17 @@
+@if (tools().length) {
+  <section class="mb-3">
+    <h2 class="mb-1.5 text-ui-sm font-semibold uppercase tracking-wider text-text-muted">{{ title() }}</h2>
+    <div class="flex gap-2 overflow-x-auto pb-1">
+      @for (tool of tools(); track tool.id) {
+        <a
+          [routerLink]="tool.route"
+          class="flex shrink-0 items-center gap-1.5 rounded-sm border px-2 py-1.5 text-xs hover:bg-panel-elevated"
+          [class]="'border-' + meta[tool.category].colorToken + '/40 bg-' + meta[tool.category].colorToken + '-wash text-' + meta[tool.category].colorToken + '-tint'"
+        >
+          <app-category-icon [category]="tool.category" class="h-3.5 w-3.5" [class]="'text-' + meta[tool.category].colorToken" />
+          {{ tool.shortTitle ?? tool.title }}
+        </a>
+      }
+    </div>
+  </section>
+}

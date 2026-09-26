@@ -9,6 +9,11 @@
     (input)="onQueryInput($event)"
   />
 
+  @if (!isFiltering()) {
+    <app-home-rail title="Recently Used" [tools]="recentTools()" />
+    <app-home-rail title="Favorites" [tools]="favorites.pinnedTools()" />
+  }
+
   @if (hasResults()) {
     <div class="grid grid-cols-4 gap-2">
       @for (category of categories(); track category) {

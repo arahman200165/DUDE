@@ -1,10 +1,9 @@
 import { AfterViewInit, Component, ElementRef, ViewChild, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
 import { CdkTrapFocus } from '@angular/cdk/a11y';
 import { CATEGORY_METADATA, ToolCategory, TOOL_CATEGORIES } from '../../shared/models/tool-category.model';
 import { ToolDefinition } from '../../shared/models/tool-definition.model';
 import { ToolRegistryService } from '../../core/registry/tool-registry.service';
-import { WorkspaceLayoutService } from '../../core/workspace/workspace-layout.service';
+import { ToolLauncherService } from '../../core/registry/tool-launcher.service';
 import { CommandPaletteService } from './command-palette.service';
 import { CategoryIcon } from '../../shared/components/category-icon/category-icon';
 
@@ -15,9 +14,8 @@ import { CategoryIcon } from '../../shared/components/category-icon/category-ico
 })
 export class CommandPalette implements AfterViewInit {
   private readonly registry = inject(ToolRegistryService);
-  private readonly router = inject(Router);
+  private readonly launcher = inject(ToolLauncherService);
   private readonly paletteService = inject(CommandPaletteService);
-  private readonly workspaceLayout = inject(WorkspaceLayoutService);
 
   @ViewChild('searchInput') private readonly searchInput?: ElementRef<HTMLInputElement>;
 
@@ -79,14 +77,7 @@ export class CommandPalette implements AfterViewInit {
   }
 
   protected open(tool: ToolDefinition): void {
-    // Inside the Workspace (DUDE_PRD.md §21 Phase 21 Item 4), "open a tool" means "open it as a
-    // tab" rather than navigating away from /workspace — this is the one tab-aware entry point
-    // (see shell/workspace/AGENTS.md).
-    if (this.router.url.startsWith('/workspace')) {
-      this.workspaceLayout.openTool(tool.id);
-    } else {
-      this.router.navigateByUrl(tool.route);
-    }
+    this.launcher.open(tool);
     this.paletteService.close();
   }
 }
