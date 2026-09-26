@@ -1,6 +1,24 @@
 !include "nsDialogs.nsh"
 !include "LogicLib.nsh"
 
+; BEGIN GENERATED FILE ASSOCIATIONS BITS
+!define DUDE_ALL_EXTENSION_MASK 16383
+; DUDE_ASSOC_BIT json 1
+; DUDE_ASSOC_BIT yaml 2
+; DUDE_ASSOC_BIT yml 4
+; DUDE_ASSOC_BIT xml 8
+; DUDE_ASSOC_BIT csv 16
+; DUDE_ASSOC_BIT md 32
+; DUDE_ASSOC_BIT txt 64
+; DUDE_ASSOC_BIT toml 128
+; DUDE_ASSOC_BIT ini 256
+; DUDE_ASSOC_BIT sql 512
+; DUDE_ASSOC_BIT js 1024
+; DUDE_ASSOC_BIT ts 2048
+; DUDE_ASSOC_BIT html 4096
+; DUDE_ASSOC_BIT css 8192
+; END GENERATED FILE ASSOCIATIONS BITS
+
 !ifndef BUILD_UNINSTALLER
 Var DudeCustomize
 Var DudePreset
@@ -27,6 +45,7 @@ Var DudeManualRadio
 Var DudeExplorerCheck
 Var DudeFoldersCheck
 Var DudeProtocolCheck
+; BEGIN GENERATED FILE ASSOCIATIONS VARS
 Var DudeExt0
 Var DudeExt1
 Var DudeExt2
@@ -41,6 +60,7 @@ Var DudeExt10
 Var DudeExt11
 Var DudeExt12
 Var DudeExt13
+; END GENERATED FILE ASSOCIATIONS VARS
 !endif
 
 !ifndef BUILD_UNINSTALLER
@@ -156,7 +176,7 @@ Function DudeApplyPreset
     StrCpy $DudeExplorer "1"
     StrCpy $DudeFolders "1"
     StrCpy $DudeProtocol "1"
-    StrCpy $DudeMask 16383
+    StrCpy $DudeMask ${DUDE_ALL_EXTENSION_MASK}
     StrCpy $DudeUpdates "auto-download"
   ${EndIf}
 FunctionEnd
@@ -383,6 +403,7 @@ Function DudeExplorerCreate
   ${EndIf}
   ${NSD_CreateLabel} 0 45u 100% 13u "Register these file types as Default Apps candidates:"
   Pop $0
+  ; BEGIN GENERATED FILE ASSOCIATIONS CHECKBOXES
   !insertmacro DudeExtensionCheckbox $DudeExt0 ".json" 61u 0 1
   !insertmacro DudeExtensionCheckbox $DudeExt1 ".yaml" 61u 52% 2
   !insertmacro DudeExtensionCheckbox $DudeExt2 ".yml" 74u 0 4
@@ -397,6 +418,7 @@ Function DudeExplorerCreate
   !insertmacro DudeExtensionCheckbox $DudeExt11 ".ts" 126u 52% 2048
   !insertmacro DudeExtensionCheckbox $DudeExt12 ".html" 139u 0 4096
   !insertmacro DudeExtensionCheckbox $DudeExt13 ".css" 139u 52% 8192
+; END GENERATED FILE ASSOCIATIONS CHECKBOXES
   nsDialogs::Show
 FunctionEnd
 
@@ -406,6 +428,7 @@ Function DudeExplorerLeave
     !insertmacro DudeReadCheck $DudeFoldersCheck $DudeFolders
     !insertmacro DudeReadCheck $DudeProtocolCheck $DudeProtocol
     StrCpy $DudeMask 0
+    ; BEGIN GENERATED FILE ASSOCIATIONS SAVE
     !insertmacro DudeSaveExtension $DudeExt0 1
     !insertmacro DudeSaveExtension $DudeExt1 2
     !insertmacro DudeSaveExtension $DudeExt2 4
@@ -420,6 +443,7 @@ Function DudeExplorerLeave
     !insertmacro DudeSaveExtension $DudeExt11 2048
     !insertmacro DudeSaveExtension $DudeExt12 4096
     !insertmacro DudeSaveExtension $DudeExt13 8192
+; END GENERATED FILE ASSOCIATIONS SAVE
   ${EndIf}
 FunctionEnd
 
@@ -446,17 +470,18 @@ FunctionEnd
   ${EndIf}
 !macroend
 
-!macro DudeRemoveExtension EXT
+!macro DudeRemoveExtension EXT BIT
   Push "${EXT}"
   Call DudeRemoveRegistration
 !macroend
 
-!macro DudeRemoveExtensionUn EXT
+!macro DudeRemoveExtensionUn EXT BIT
   Push "${EXT}"
   Call un.DudeRemoveRegistration
 !macroend
 
 !macro DudeForEachExtension ACTION
+  ; BEGIN GENERATED FILE ASSOCIATIONS ACTIVE
   !insertmacro ${ACTION} "json" 1
   !insertmacro ${ACTION} "yaml" 2
   !insertmacro ${ACTION} "yml" 4
@@ -471,6 +496,26 @@ FunctionEnd
   !insertmacro ${ACTION} "ts" 2048
   !insertmacro ${ACTION} "html" 4096
   !insertmacro ${ACTION} "css" 8192
+; END GENERATED FILE ASSOCIATIONS ACTIVE
+!macroend
+
+!macro DudeForEachKnownExtension ACTION
+  ; BEGIN GENERATED FILE ASSOCIATIONS KNOWN
+  !insertmacro ${ACTION} "json" 1
+  !insertmacro ${ACTION} "yaml" 2
+  !insertmacro ${ACTION} "yml" 4
+  !insertmacro ${ACTION} "xml" 8
+  !insertmacro ${ACTION} "csv" 16
+  !insertmacro ${ACTION} "md" 32
+  !insertmacro ${ACTION} "txt" 64
+  !insertmacro ${ACTION} "toml" 128
+  !insertmacro ${ACTION} "ini" 256
+  !insertmacro ${ACTION} "sql" 512
+  !insertmacro ${ACTION} "js" 1024
+  !insertmacro ${ACTION} "ts" 2048
+  !insertmacro ${ACTION} "html" 4096
+  !insertmacro ${ACTION} "css" 8192
+; END GENERATED FILE ASSOCIATIONS KNOWN
 !macroend
 
 !macro DudeRemoveProtocol
@@ -512,20 +557,7 @@ Function DudeRemoveRegistration
 FunctionEnd
 
 Function DudeRemoveAllRegistrations
-  !insertmacro DudeRemoveExtension json
-  !insertmacro DudeRemoveExtension yaml
-  !insertmacro DudeRemoveExtension yml
-  !insertmacro DudeRemoveExtension xml
-  !insertmacro DudeRemoveExtension csv
-  !insertmacro DudeRemoveExtension md
-  !insertmacro DudeRemoveExtension txt
-  !insertmacro DudeRemoveExtension toml
-  !insertmacro DudeRemoveExtension ini
-  !insertmacro DudeRemoveExtension sql
-  !insertmacro DudeRemoveExtension js
-  !insertmacro DudeRemoveExtension ts
-  !insertmacro DudeRemoveExtension html
-  !insertmacro DudeRemoveExtension css
+  !insertmacro DudeForEachKnownExtension DudeRemoveExtension
   DeleteRegKey SHELL_CONTEXT "Software\Classes\Directory\shell\OpenWithDUDE"
 FunctionEnd
 
@@ -582,22 +614,9 @@ Function un.DudeRemoveRegistration
 FunctionEnd
 
 Function un.DudeRemoveOptions
+  !insertmacro DudeForEachKnownExtension DudeRemoveExtensionUn
   Delete "$SMPROGRAMS\DUDE.lnk"
   Delete "$DESKTOP\DUDE.lnk"
-  !insertmacro DudeRemoveExtensionUn json
-  !insertmacro DudeRemoveExtensionUn yaml
-  !insertmacro DudeRemoveExtensionUn yml
-  !insertmacro DudeRemoveExtensionUn xml
-  !insertmacro DudeRemoveExtensionUn csv
-  !insertmacro DudeRemoveExtensionUn md
-  !insertmacro DudeRemoveExtensionUn txt
-  !insertmacro DudeRemoveExtensionUn ini
-  !insertmacro DudeRemoveExtensionUn toml
-  !insertmacro DudeRemoveExtensionUn sql
-  !insertmacro DudeRemoveExtensionUn js
-  !insertmacro DudeRemoveExtensionUn ts
-  !insertmacro DudeRemoveExtensionUn html
-  !insertmacro DudeRemoveExtensionUn css
   DeleteRegKey SHELL_CONTEXT "Software\Classes\Directory\shell\OpenWithDUDE"
   !insertmacro DudeRemoveProtocol
   DeleteRegValue SHELL_CONTEXT "Software\RegisteredApplications" "DUDE"
