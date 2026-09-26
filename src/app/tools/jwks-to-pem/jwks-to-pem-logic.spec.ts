@@ -67,3 +67,25 @@ describe('convertAllToPem', () => {
     expect(results.every((r) => r.ok)).toBe(true);
   });
 });
+
+describe('convertJwkToPem — cross-checked against an independent implementation', () => {
+  // DUDE_PRD.md §21 Phase 23 Item 3 -- makeJwk above generates its JWK with jose too, so
+  // converting it back with jose's exportSPKI never leaves jose's own code. This generates the
+  // JWK with Node's `crypto` module instead (a fully independent implementation), then confirms
+  // the PEM DUDE/jose produces round-trips through Node's own PEM importer back to the identical
+  // modulus/exponent.
+  it("converts a Node-crypto-generated JWK to a PEM Node's own crypto can re-import identically", async () => {
+    const { generateKeyPairSync } = await import('node:crypto');
+    const { publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+    const nodeJwk = publicKey.export({ format: 'jwk' }) as Record<string, unknown>;
+
+    const result = await convertJwkToPem(nodeJwk, 'RS256');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const { createPublicKey } = await import('node:crypto');
+    const reimported = createPublicKey(result.pem).export({ format: 'jwk' }) as Record<string, unknown>;
+    expect(reimported['n']).toBe(nodeJwk['n']);
+    expect(reimported['e']).toBe(nodeJwk['e']);
+  });
+});
