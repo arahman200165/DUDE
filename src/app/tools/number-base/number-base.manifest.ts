@@ -18,7 +18,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/number-base',
   load: () => import('./number-base').then((m) => m.NumberBase),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip and fuzz-tested (fast-check) against arbitrary-precision bigints across every base 2-36.',
+  },
   persistence: { input: 'local', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
 };

@@ -90,3 +90,13 @@ describe('round-trip property (DUDE_PRD.md §21 Phase 23 Item 4)', () => {
     );
   });
 });
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  it('parseInBase never throws for arbitrary text and integer input', () => {
+    fc.assert(
+      fc.property(fc.string(), fc.integer(), (input, base) => {
+        expect(() => parseInBase(input, base)).not.toThrow();
+      }),
+    );
+  });
+});
