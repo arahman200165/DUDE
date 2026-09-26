@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { decodeSecretData, encodeSecretData, toSecretDataYaml } from './k8s-secret-base64-logic';
 
 describe('encodeSecretData', () => {
@@ -35,5 +36,18 @@ describe('toSecretDataYaml', () => {
 
   it('returns an empty string for no fields', () => {
     expect(toSecretDataYaml([])).toBe('');
+  });
+});
+
+describe('round-trip property (DUDE_PRD.md §21 Phase 23 Item 4)', () => {
+  it('decodeSecretData(encodeSecretData(pairs)) recovers every value', () => {
+    fc.assert(
+      fc.property(fc.array(fc.record({ key: fc.string(), value: fc.string() })), (pairs) => {
+        const encoded = encodeSecretData(pairs);
+        const decoded = decodeSecretData(encoded);
+        expect(decoded.map((f) => f.value)).toEqual(pairs.map((p) => p.value));
+        expect(decoded.every((f) => f.error === undefined)).toBe(true);
+      }),
+    );
   });
 });

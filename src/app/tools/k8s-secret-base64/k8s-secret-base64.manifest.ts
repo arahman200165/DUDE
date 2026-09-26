@@ -10,7 +10,11 @@ export const manifest: ToolDefinition = {
   keywords: ['kubernetes', 'k8s', 'secret', 'base64', 'encode', 'decode'],
   route: '/tools/k8s-secret-base64',
   load: () => import('./k8s-secret-base64').then((m) => m.K8sSecretBase64),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'decodeSecretData(encodeSecretData(pairs)) recovers every value exactly for generated key/value arrays (fast-check property test), built on the already-verified base64 codec.',
+  },
   consequenceClass: ['secret-management'],
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
