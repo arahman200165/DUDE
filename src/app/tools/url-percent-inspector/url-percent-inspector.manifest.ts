@@ -18,7 +18,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/url-percent-inspector',
   load: () => import('./url-percent-inspector').then((m) => m.UrlPercentInspector),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip tested (fast-check): inspectPercentEncoding recovers the original string after encodeURIComponent, plus neverThrows fuzzing on arbitrary text.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   execution: { worker: 'none' },
   io: { accepts: ['text', 'url'], produces: ['json', 'text'] },

@@ -615,91 +615,91 @@
     "id": "mime-types",
     "category": "web",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 372,
     "notes": ""
   },
   {
     "id": "multipart-form-builder",
     "category": "web",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "CORE-ONLY",
-    "milestone": null,
+    "milestone": 372,
     "notes": ""
   },
   {
     "id": "punycode-converter",
     "category": "web",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": null,
+    "milestone": 372,
     "notes": ""
   },
   {
     "id": "query-string",
     "category": "web",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": null,
+    "milestone": 372,
     "notes": ""
   },
   {
     "id": "range-header-builder",
     "category": "web",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 372,
     "notes": ""
   },
   {
     "id": "url-inspector",
     "category": "web",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": null,
+    "milestone": 372,
     "notes": ""
   },
   {
     "id": "url-normalizer",
     "category": "web",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
-    "notes": ""
+    "milestone": 372,
+    "notes": "bug fixed: stripTrailingSlash only stripped one trailing slash (broke idempotence on multi-slash paths); changed to a while-loop in url-normalize.ts"
   },
   {
     "id": "url-percent-inspector",
     "category": "web",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": null,
+    "milestone": 372,
     "notes": ""
   },
   {
     "id": "url-safety-inspector",
     "category": "web",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 372,
     "notes": ""
   },
   {
     "id": "user-agent",
     "category": "web",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": null,
-    "notes": ""
+    "milestone": 372,
+    "notes": "no build function exists in source for a UA string, so the round-trip's encode side is a small test-local helper that plugs a version into a real-world Chrome/iOS UA template"
   },
   {
     "id": "aspect-ratio-calculator",

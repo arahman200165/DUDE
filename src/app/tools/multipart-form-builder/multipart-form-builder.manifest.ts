@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['multipart', 'form-data', 'boundary', 'file upload', 'content-type'],
   route: '/tools/multipart-form-builder',
   load: () => import('./multipart-form-builder').then((m) => m.MultipartFormBuilder),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check) pure core: buildMultipartBody/contentTypeHeader/generateBoundary never throw and always terminate with the closing boundary marker.',
+  },
   persistence: { input: 'none', preferences: 'none' },
   io: { accepts: ['text', 'file'], produces: ['text'] },
 };

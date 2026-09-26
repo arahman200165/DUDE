@@ -18,7 +18,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/query-string',
   load: () => import('./query-string').then((m) => m.QueryString),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip tested (fast-check): buildQueryString/parseQueryString recover the original ordered key/value pairs (including duplicate keys), plus neverThrows fuzzing on arbitrary text.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text', 'url', 'json'], produces: ['json', 'url', 'text'] },
 };

@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['range', 'content-range', 'header', 'bytes', 'partial content', '206'],
   route: '/tools/range-header-builder',
   load: () => import('./range-header-builder').then((m) => m.RangeHeaderBuilder),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): Range/Content-Range parse and build functions never throw on arbitrary input, checkRangeWarnings reports at most one warning per range, and buildRangeHeader is empty exactly when no valid range exists.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text', 'json'] },
 };

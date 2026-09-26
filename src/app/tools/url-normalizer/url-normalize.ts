@@ -54,8 +54,10 @@ export function normalizeUrl(raw: string, options: NormalizeOptions = DEFAULT_NO
     search = rebuilt.toString() === '' ? '' : `?${rebuilt.toString()}`;
   }
 
-  if (options.stripTrailingSlash && pathname.length > 1 && pathname.endsWith('/')) {
-    pathname = pathname.slice(0, -1);
+  if (options.stripTrailingSlash) {
+    while (pathname.length > 1 && pathname.endsWith('/')) {
+      pathname = pathname.slice(0, -1);
+    }
   }
 
   const cloned = new URL(url.href);

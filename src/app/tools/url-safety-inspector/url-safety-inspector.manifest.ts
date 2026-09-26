@@ -19,7 +19,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/url-safety-inspector',
   load: () => import('./url-safety-inspector').then((m) => m.UrlSafetyInspector),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): inspectUrlSafety never throws on arbitrary text, and every finding it reports for a valid URL has a known id and a non-empty message.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['url'], produces: ['json'] },
 };

@@ -19,7 +19,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/punycode-converter',
   load: () => import('./punycode-converter').then((m) => m.PunycodeConverter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip tested (fast-check): toASCII/toUnicode recover the original mixed-script domain over a curated Unicode charset, plus neverThrows fuzzing over arbitrary text in both directions.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'none' },
   io: { accepts: ['text', 'url'], produces: ['text', 'url'] },
