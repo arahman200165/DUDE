@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['cache-control', 'header', 'caching', 'max-age', 'no-store', 'no-cache'],
   route: '/tools/cache-control-builder',
   load: () => import('./cache-control-builder').then((m) => m.CacheControlBuilder),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): parse/build/warning-check never throw on arbitrary input, with warnings bounded to the tool\'s three known checks.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text', 'json'] },
 };

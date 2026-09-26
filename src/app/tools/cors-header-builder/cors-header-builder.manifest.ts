@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['cors', 'cross-origin', 'header', 'preflight', 'access-control', 'origin'],
   route: '/tools/cors-header-builder',
   load: () => import('./cors-header-builder').then((m) => m.CorsHeaderBuilder),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): header parse/build and preflight evaluation never throw on arbitrary input, with header text round-tripping and preflight allowed iff no reasons.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text', 'json'] },
 };

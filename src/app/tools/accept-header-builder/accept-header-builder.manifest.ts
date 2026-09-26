@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['accept', 'header', 'media type', 'content negotiation', 'q value', 'mime'],
   route: '/tools/accept-header-builder',
   load: () => import('./accept-header-builder').then((m) => m.AcceptHeaderBuilder),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): parse/build never throw on arbitrary input, and sortByPreference preserves length while sorting descending by q.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text', 'json'] },
 };

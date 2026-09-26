@@ -23,7 +23,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/curl-converter',
   load: () => import('./curl-converter').then((m) => m.CurlConverter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip and fuzz-tested (fast-check): buildCurlCommand/parseCurl recover a structurally-safe ParsedHttpRequest, plus neverThrows on arbitrary text for both parseCurl and the shell tokenizer.',
+  },
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text', 'json', 'http-response'], produces: ['json', 'text'] },
 };

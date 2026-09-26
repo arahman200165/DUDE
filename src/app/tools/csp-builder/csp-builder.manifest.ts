@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['csp', 'content-security-policy', 'header', 'security', 'xss', 'directive'],
   route: '/tools/csp-builder',
   load: () => import('./csp-builder').then((m) => m.CspBuilder),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): parse/build never throw on arbitrary input, whitespace/semicolon-free directives round-trip exactly, and warnings stay bounded per directive.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text', 'json'] },
 };

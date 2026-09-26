@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['http', 'header', 'headers', 'inspect', 'build', 'request', 'response'],
   route: '/tools/http-header-inspector',
   load: () => import('./http-header-inspector').then((m) => m.HttpHeaderInspector),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): parseHeaders/buildHeaders never throw and round-trip colon/newline-free pairs; describeHeader never throws and is case-insensitive.',
+  },
   persistence: { input: 'none', preferences: 'none' },
   io: { accepts: ['text', 'json'], produces: ['json', 'text'] },
 };

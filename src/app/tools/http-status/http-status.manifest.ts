@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['http', 'status', 'code', 'response', 'reference', '404', '500'],
   route: '/tools/http-status',
   load: () => import('./http-status').then((m) => m.HttpStatus),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): filterHttpStatusCodes never throws, an empty filter returns every entry correctly grouped/sorted, and a non-empty filter only returns matching entries.',
+  },
   persistence: { input: 'local', preferences: 'none' },
   io: { accepts: ['text'], produces: ['json'] },
 };

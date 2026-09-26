@@ -516,99 +516,99 @@
     "id": "accept-header-builder",
     "category": "web",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 371,
     "notes": ""
   },
   {
     "id": "cache-control-builder",
     "category": "web",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 371,
     "notes": ""
   },
   {
     "id": "content-disposition-builder",
     "category": "web",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 371,
     "notes": ""
   },
   {
     "id": "cookie-tools",
     "category": "web",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
-    "notes": ""
+    "milestone": 371,
+    "notes": "the Set-Cookie name round-trip invariant sanitizes ';'/'=' out of the generated name, since either would be split into extra pseudo-attributes on reparse (wire-format ambiguity, not a bug)"
   },
   {
     "id": "cors-header-builder",
     "category": "web",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 371,
     "notes": ""
   },
   {
     "id": "csp-builder",
     "category": "web",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 371,
     "notes": ""
   },
   {
     "id": "curl-converter",
     "category": "web",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": null,
-    "notes": ""
+    "milestone": 371,
+    "notes": "round-trip arbitrary restricted to a structurally-safe ParsedHttpRequest domain (no raw '?'/':'/'=' collisions in keys, no backslash-then-newline in values, fixed body contentType) — the excluded edge cases are already covered by curl-shell-lex.spec.ts's example-based tests"
   },
   {
     "id": "http-header-inspector",
     "category": "web",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 371,
     "notes": ""
   },
   {
     "id": "http-request-builder",
     "category": "web",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": null,
-    "notes": ""
+    "milestone": 371,
+    "notes": "round-trip covers generateRawHttp/parseHttpRequestText for a bodyless, auth-less https request only, since that format synthesizes Host/Content-Length headers and drops auth into an Authorization header rather than round-tripping those fields directly"
   },
   {
     "id": "http-response-viewer",
     "category": "web",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": null,
-    "notes": ""
+    "milestone": 371,
+    "notes": "no build function exists in source for a raw HTTP response, so the round-trip's encode side is a small test-local helper mirroring the wire format (status line + headers + blank line + body)"
   },
   {
     "id": "http-status",
     "category": "web",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 371,
     "notes": ""
   },
   {

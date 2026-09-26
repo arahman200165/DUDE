@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['cookie', 'set-cookie', 'samesite', 'secure', 'httponly', 'header'],
   route: '/tools/cookie-tools',
   load: () => import('./cookie-tools').then((m) => m.CookieTools),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): Cookie/Set-Cookie parse/build/warning-check never throw on arbitrary input, and a Set-Cookie name survives a build-then-reparse round trip.',
+  },
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text', 'json'] },
 };

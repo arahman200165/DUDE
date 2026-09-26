@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['http', 'request', 'builder', 'raw http', 'curl', 'export', 'convert'],
   route: '/tools/http-request-builder',
   load: () => import('./http-request-builder').then((m) => m.HttpRequestBuilder),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip and fuzz-tested (fast-check): generateRawHttp/parseHttpRequestText recover method/url/queryParams/headers for a bodyless, auth-less https request, plus neverThrows on arbitrary text.',
+  },
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text', 'json', 'url', 'http-response'], produces: ['json', 'text'] },
 };
