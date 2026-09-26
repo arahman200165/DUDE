@@ -1,0 +1,6 @@
+{
+  "hashCompute5MbSha256": 2000,
+  "hashComputeAllAlgorithms1Mb": 4000,
+  "textDiff10kLines": 4000,
+  "jsonFormat5MbPrettyPrint": 3000
+}
