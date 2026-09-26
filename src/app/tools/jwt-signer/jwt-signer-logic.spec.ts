@@ -88,3 +88,32 @@ describe('generateSigningKeyPair', () => {
     expect(JSON.parse(pair.publicKeyJwk).kty).toBe('EC');
   });
 });
+
+describe('signJwt — cross-checked against an independent HS256 implementation', () => {
+  // DUDE_PRD.md §21 Phase 23 Item 3 -- the HMAC test above signs with signJwt and verifies with
+  // jose's own jwtVerify, which never proves anything against a second, independent
+  // implementation. This recomputes the HMAC-SHA256 signature by hand with Node's `crypto`
+  // module (per RFC 7515 §5.1: HMAC over the raw compact-serialization header.payload bytes) and
+  // checks it matches the signature signJwt actually produced, byte for byte.
+  it("recomputes the signature with Node's crypto.createHmac and gets an identical result", async () => {
+    const result = await signJwt({
+      claimsJson: JSON.stringify({ sub: 'dave' }),
+      mode: 'hmac',
+      algorithm: 'HS256',
+      secret: 'independent-secret',
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const [header, payload, signature] = result.token.split('.');
+    const { createHmac } = await import('node:crypto');
+    const expectedSignature = createHmac('sha256', 'independent-secret')
+      .update(`${header}.${payload}`)
+      .digest('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+    expect(signature).toBe(expectedSignature);
+  });
+});

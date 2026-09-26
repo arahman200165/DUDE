@@ -21,7 +21,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/jwt-signer',
   load: () => import('./jwt-signer').then((m) => m.JwtSigner),
-  status: 'experimental',
+  status: 'verified',
+  verification: {
+    crossChecked: ["Node's crypto.createHmac (independent of jose's own verification)"],
+    summary: 'HS256 signature output matches a byte-for-byte independent recomputation with Node\'s crypto.createHmac.',
+  },
   consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['json', 'text'], produces: ['text'] },
