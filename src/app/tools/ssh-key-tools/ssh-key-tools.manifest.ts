@@ -20,7 +20,12 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/ssh-key-tools',
   load: () => import('./ssh-key-tools').then((m) => m.SshKeyTools),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    crossChecked: ['ssh-keygen -lf', 'ssh-keygen -E md5 -lf'],
+    summary:
+      'SHA256/MD5 fingerprints for Ed25519/RSA-2048/ECDSA-P256 keys matched byte-for-byte against real ssh-keygen output.',
+  },
   consequenceClass: ['crypto'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },

@@ -9,7 +9,12 @@ export const manifest: ToolDefinition = {
   keywords: ['pkcs12', 'pfx', 'p12', 'certificate', 'private key', 'keystore', 'bundle'],
   route: '/tools/pkcs12-inspector',
   load: () => import('./pkcs12-inspector').then((m) => m.Pkcs12Inspector),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    crossChecked: ['openssl pkcs12 -export (OpenSSL 3.x, PBES2/AES-256-CBC)'],
+    summary:
+      'Correctly extracts leaf/intermediate certs and friendlyName from a real openssl-generated .p12 using modern PBES2 encryption.',
+  },
   consequenceClass: ['crypto'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['file'], produces: ['json', 'text'] },

@@ -21,7 +21,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/x509-certificate-inspector',
   load: () => import('./x509-certificate-inspector').then((m) => m.X509CertificateInspector),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    crossChecked: ['openssl x509 -noout -fingerprint -sha1', 'openssl x509 -noout -fingerprint -sha256'],
+    summary: 'SHA-1/SHA-256 fingerprints for a real openssl-generated certificate matched exactly.',
+  },
   consequenceClass: ['crypto'],
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text', 'file'], produces: ['json'] },
