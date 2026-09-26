@@ -34,16 +34,23 @@ describe('buildOffsetGrid invariants', () => {
 });
 
 describe('comparePairwise invariants', () => {
-  it('is antisymmetric: swapping zones negates the gap', () => {
-    invariant(
-      ([zoneA, zoneB, atMs]: [string, string, number]) => {
-        const ab = comparePairwise({ zoneA, zoneB, atMs });
-        const ba = comparePairwise({ zoneA: zoneB, zoneB: zoneA, atMs });
-        if (!ab.ok || !ba.ok) throw new Error('expected both comparisons to succeed');
-        return { gapAB: ab.result.gapMinutes, gapBA: ba.result.gapMinutes };
-      },
-      fc.tuple(zoneArb, zoneArb, fc.integer({ min: Date.UTC(1990, 0, 1), max: Date.UTC(2060, 0, 1) })),
-      ({ gapAB, gapBA }) => gapAB === -gapBA,
-    );
-  });
+  // Each run does two comparePairwise calls, each searching for the next DST transition via
+  // luxon -- legitimately slow enough (not a bug) that 200 runs can exceed vitest's default 5s
+  // test timeout under parallel-suite CPU contention, so this test gets its own longer timeout.
+  it(
+    'is antisymmetric: swapping zones negates the gap',
+    () => {
+      invariant(
+        ([zoneA, zoneB, atMs]: [string, string, number]) => {
+          const ab = comparePairwise({ zoneA, zoneB, atMs });
+          const ba = comparePairwise({ zoneA: zoneB, zoneB: zoneA, atMs });
+          if (!ab.ok || !ba.ok) throw new Error('expected both comparisons to succeed');
+          return { gapAB: ab.result.gapMinutes, gapBA: ba.result.gapMinutes };
+        },
+        fc.tuple(zoneArb, zoneArb, fc.integer({ min: Date.UTC(1990, 0, 1), max: Date.UTC(2060, 0, 1) })),
+        ({ gapAB, gapBA }) => gapAB === -gapBA,
+      );
+    },
+    20000,
+  );
 });
