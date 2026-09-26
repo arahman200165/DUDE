@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['data uri', 'data url', 'base64', 'embed', 'rfc 2397', 'inline'],
   route: '/tools/data-uri-converter',
   load: () => import('./data-uri-converter').then((m) => m.DataUriConverter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip and fuzz-tested (fast-check) against arbitrary bytes and MIME types (RFC 2397).',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'none' },
   io: { accepts: ['file', 'text', 'bytes'], produces: ['text', 'file', 'bytes'] },

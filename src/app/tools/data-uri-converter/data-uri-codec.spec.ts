@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { decodeDataUri, generateDataUri } from './data-uri-codec';
 
@@ -39,5 +40,38 @@ describe('decodeDataUri', () => {
 
   it('rejects invalid base64 payload', () => {
     expect(decodeDataUri('data:text/plain;base64,***not valid***').ok).toBe(false);
+  });
+});
+
+describe('round-trip property (DUDE_PRD.md §21 Phase 23 Item 4)', () => {
+  // A valid, non-empty MIME token (RFC 2397 media type, no ';'/',' delimiter chars, which would
+  // otherwise ambiguously split the URI itself) -- not the string-content fuzz target.
+  const mimeType = fc
+    .array(fc.constantFrom(..."abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/-.+".split('')), {
+      minLength: 1,
+      maxLength: 20,
+    })
+    .map((chars) => chars.join(''));
+
+  it('decodeDataUri(generateDataUri(bytes, mime)) recovers the original bytes and MIME type', () => {
+    fc.assert(
+      fc.property(fc.uint8Array({ minLength: 0, maxLength: 64 }), mimeType, (bytes, mime) => {
+        const uri = generateDataUri(bytes, mime);
+        const decoded = decodeDataUri(uri);
+        expect(decoded.ok).toBe(true);
+        expect(decoded.ok && decoded.mimeType).toBe(mime);
+        expect(decoded.ok && Array.from(decoded.bytes)).toEqual(Array.from(bytes));
+      }),
+    );
+  });
+});
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  it('decodeDataUri never throws for arbitrary text input', () => {
+    fc.assert(
+      fc.property(fc.string(), (text) => {
+        expect(() => decodeDataUri(text)).not.toThrow();
+      }),
+    );
   });
 });
