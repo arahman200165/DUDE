@@ -1,5 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
+import { neverThrows } from '../../../testing/property-harness';
 import { EscapeMode, escapeText, unescapeText } from './escape-unescape';
 
 describe('JavaScript', () => {
@@ -130,20 +131,13 @@ describe('round-trip property (DUDE_PRD.md §21 Phase 23 Item 4)', () => {
 describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
   const modes: readonly EscapeMode[] = ['javascript', 'css', 'sql', 'shell', 'powershell', 'quoted-printable'];
   const modeArb = fc.constantFrom(...modes);
+  const textAndMode = fc.tuple(fc.string(), modeArb);
 
   it('escapeText never throws for arbitrary text input, in any mode', () => {
-    fc.assert(
-      fc.property(fc.string(), modeArb, (text, mode) => {
-        expect(() => escapeText(text, mode)).not.toThrow();
-      }),
-    );
+    neverThrows(([text, mode]) => escapeText(text, mode), textAndMode);
   });
 
   it('unescapeText never throws for arbitrary text input, in any mode', () => {
-    fc.assert(
-      fc.property(fc.string(), modeArb, (text, mode) => {
-        expect(() => unescapeText(text, mode)).not.toThrow();
-      }),
-    );
+    neverThrows(([text, mode]) => unescapeText(text, mode), textAndMode);
   });
 });

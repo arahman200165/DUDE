@@ -1,0 +1,2054 @@
+[
+  {
+    "id": "archive-tool",
+    "category": "encoding",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "barcode-generator",
+    "category": "encoding",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "barcode-reader",
+    "category": "encoding",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "base64-image-viewer",
+    "category": "encoding",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "color-blindness-simulator",
+    "category": "encoding",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "color-converter",
+    "category": "encoding",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "compression-lab",
+    "category": "encoding",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "contrast-checker",
+    "category": "encoding",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "file-base64",
+    "category": "encoding",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "gradient-generator",
+    "category": "encoding",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "hex-dump",
+    "category": "encoding",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "palette-generator",
+    "category": "encoding",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "qr-code-generator",
+    "category": "encoding",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "qr-code-scanner",
+    "category": "encoding",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "tailwind-color-matcher",
+    "category": "encoding",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "advanced-diff",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "ascii-art-generator",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "ascii-table",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "case-converter",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "diff",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "directory-diff",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "duplicate-finder",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "extract-columns",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "find-replace-text",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "invisible-char-scanner",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "keyword-frequency-analyzer",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "line-order-tools",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "line-prefix-numbering",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "lorem-ipsum-generator",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "slug-generator",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "smart-quotes-normalizer",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "soundex-metaphone",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "string-similarity-calculator",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "text-inspector",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "text-tokenizer-ngram",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "unicode-character-inspector",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "unicode-code-point-converter",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "unicode-normalization",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "unicode-table",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "whitespace-cleaner",
+    "category": "text",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "cron",
+    "category": "date-time",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "date-calculator",
+    "category": "date-time",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "dst-transition-explorer",
+    "category": "date-time",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "duration-formatter",
+    "category": "date-time",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "epoch-timeline-visualizer",
+    "category": "date-time",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "recurrence-rule",
+    "category": "date-time",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "relative-time-parser",
+    "category": "date-time",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "stopwatch-countdown",
+    "category": "date-time",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "timezone-converter",
+    "category": "date-time",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "timezone-offset-comparator",
+    "category": "date-time",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "unix-timestamp",
+    "category": "date-time",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "week-number-calculator",
+    "category": "date-time",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "bearer-token-builder",
+    "category": "security",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CROSSCHECK",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "file-hash",
+    "category": "security",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CROSSCHECK",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "password-generator",
+    "category": "security",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CROSSCHECK",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "password-strength-analyzer",
+    "category": "security",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CROSSCHECK",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "pem-der-inspector",
+    "category": "security",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CROSSCHECK",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "accept-header-builder",
+    "category": "web",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "cache-control-builder",
+    "category": "web",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "content-disposition-builder",
+    "category": "web",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "cookie-tools",
+    "category": "web",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "cors-header-builder",
+    "category": "web",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "csp-builder",
+    "category": "web",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "curl-converter",
+    "category": "web",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "http-header-inspector",
+    "category": "web",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "http-request-builder",
+    "category": "web",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "http-response-viewer",
+    "category": "web",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "http-status",
+    "category": "web",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "mime-types",
+    "category": "web",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "multipart-form-builder",
+    "category": "web",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "punycode-converter",
+    "category": "web",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "query-string",
+    "category": "web",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "range-header-builder",
+    "category": "web",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "url-inspector",
+    "category": "web",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "url-normalizer",
+    "category": "web",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "url-percent-inspector",
+    "category": "web",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "url-safety-inspector",
+    "category": "web",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "user-agent",
+    "category": "web",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "aspect-ratio-calculator",
+    "category": "documents",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "dpi-calculator",
+    "category": "documents",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "exif-viewer",
+    "category": "documents",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "image-compressor",
+    "category": "documents",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "image-cropper",
+    "category": "documents",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "image-format-converter",
+    "category": "documents",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "image-metadata-inspector",
+    "category": "documents",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "image-resizer",
+    "category": "documents",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "markdown",
+    "category": "documents",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "markdown-workspace",
+    "category": "documents",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "resolution-calculator",
+    "category": "documents",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "rich-text-editor",
+    "category": "documents",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "svg-viewer",
+    "category": "documents",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "avro-viewer",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "bson-viewer",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "cbor-viewer",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "create-table-generator",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "csv-cleaner",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "csv-dedupe",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "csv-delimiter-detector",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "csv-filter-sort",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "csv-join",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "csv-pivot",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "csv-stats",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "csv-viewer",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "ini-formatter",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "json",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "json-flatten",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "json-merge",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "json-patch-generate",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "json-patch-test",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "json-pointer",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "json-query",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "json-schema-validator",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "json-sort-keys",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "jsonl-viewer",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "msgpack-decoder",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "parquet-viewer",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "properties-parser",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "protobuf-decoder",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "resx-tool",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "schema-diff",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "structured-data-converter",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "toml-formatter",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "xml-csv",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "xml-formatter",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "xml-xpath",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "xml-xsd-validator",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "yaml-anchors",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "yaml-json",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "yaml-linter",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "yaml-merge",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "yaml-path",
+    "category": "data",
+    "subdomain": null,
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "border-radius-generator",
+    "category": "developer",
+    "subdomain": "css-generators",
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "box-shadow-generator",
+    "category": "developer",
+    "subdomain": "css-generators",
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "css-animation-builder",
+    "category": "developer",
+    "subdomain": "css-generators",
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "css-formatter",
+    "category": "developer",
+    "subdomain": "css-generators",
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "css-grid-playground",
+    "category": "developer",
+    "subdomain": "css-generators",
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "css-selector-tester",
+    "category": "developer",
+    "subdomain": "css-generators",
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "css-specificity-calculator",
+    "category": "developer",
+    "subdomain": "css-generators",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "css-transform-builder",
+    "category": "developer",
+    "subdomain": "css-generators",
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "cubic-bezier-editor",
+    "category": "developer",
+    "subdomain": "css-generators",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "dev-snippets-reference",
+    "category": "developer",
+    "subdomain": "css-generators",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "flexbox-playground",
+    "category": "developer",
+    "subdomain": "css-generators",
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "docker-compose-validator",
+    "category": "developer",
+    "subdomain": "git-docker-k8s",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "docker-run-compose-converter",
+    "category": "developer",
+    "subdomain": "git-docker-k8s",
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "dockerfile-linter",
+    "category": "developer",
+    "subdomain": "git-docker-k8s",
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "git-command-builder",
+    "category": "developer",
+    "subdomain": "git-docker-k8s",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "git-command-explainer",
+    "category": "developer",
+    "subdomain": "git-docker-k8s",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "git-diff",
+    "category": "developer",
+    "subdomain": "git-docker-k8s",
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "git-remote-inspector",
+    "category": "developer",
+    "subdomain": "git-docker-k8s",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "k8s-cronjob-tester",
+    "category": "developer",
+    "subdomain": "git-docker-k8s",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "k8s-manifest-diff",
+    "category": "developer",
+    "subdomain": "git-docker-k8s",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "k8s-manifest-validator",
+    "category": "developer",
+    "subdomain": "git-docker-k8s",
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "k8s-quantity-converter",
+    "category": "developer",
+    "subdomain": "git-docker-k8s",
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "k8s-resource-calculator",
+    "category": "developer",
+    "subdomain": "git-docker-k8s",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "cuid-generator",
+    "category": "developer",
+    "subdomain": "id-generators",
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "nanoid-generator",
+    "category": "developer",
+    "subdomain": "id-generators",
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "snowflake-id-tools",
+    "category": "developer",
+    "subdomain": "id-generators",
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "ulid-tools",
+    "category": "developer",
+    "subdomain": "id-generators",
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "uuid",
+    "category": "developer",
+    "subdomain": "id-generators",
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "bigint-calculator",
+    "category": "developer",
+    "subdomain": "math",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "expression-evaluator",
+    "category": "developer",
+    "subdomain": "math",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "matrix-calculator",
+    "category": "developer",
+    "subdomain": "math",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "number-theory-toolkit",
+    "category": "developer",
+    "subdomain": "math",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "range-generator",
+    "category": "developer",
+    "subdomain": "math",
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "statistics-calculator",
+    "category": "developer",
+    "subdomain": "math",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "binary-strings-extractor",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "binary-structure-inspector",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "bom-detector",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "branch-name-generator",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "byte-frequency-analyzer",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "chmod-converter",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "commit-message-validator",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "config-file-comparator",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "config-merge-tool",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "conventional-commit-builder",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "dependency-version-comparator",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "dom-tree-viewer",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "encoding-detector",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "env-diff",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "env-editor",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "env-json-converter",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "env-validator",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "file-entropy-analyzer",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "file-inspector",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "gitignore-generator",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "gitignore-tester",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "glob-tester",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "hex-diff",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "hex-editor",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "html-entity-explorer",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "html-formatter",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "html-jsx-converter",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "html-preview",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "js-playground",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "json-ld-tester",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "ksuid-tools",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "lockfile-inspector",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "meta-tag-generator",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "missing-env-var-detector",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "mock-data-studio",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "model-generator",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "numeric-representation-inspector",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "opengraph-preview",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "package-metadata-inspector",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "percentage-ratio-calculator",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "pixel-color-picker",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "programmer-calculator",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "python-playground",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "random-data-generator",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "scientific-notation-converter",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "semver-comparator",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "settings",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "stack-trace-formatter",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "template-renderer",
+    "category": "developer",
+    "subdomain": "misc",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "cidr-calculator",
+    "category": "developer",
+    "subdomain": "network-ip",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "error-code-reference",
+    "category": "developer",
+    "subdomain": "network-ip",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "file-type-detector",
+    "category": "developer",
+    "subdomain": "network-ip",
+    "status": "pending",
+    "recipe": "CORE-ONLY",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "git-url-parser",
+    "category": "developer",
+    "subdomain": "network-ip",
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "ip-address-inspector",
+    "category": "developer",
+    "subdomain": "network-ip",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "ipv4-integer-converter",
+    "category": "developer",
+    "subdomain": "network-ip",
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "ipv6-explorer",
+    "category": "developer",
+    "subdomain": "network-ip",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "mac-address-inspector",
+    "category": "developer",
+    "subdomain": "network-ip",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "subnet-calculator",
+    "category": "developer",
+    "subdomain": "network-ip",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "regex",
+    "category": "developer",
+    "subdomain": "regex",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "regex-benchmark",
+    "category": "developer",
+    "subdomain": "regex",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "regex-flavor-converter",
+    "category": "developer",
+    "subdomain": "regex",
+    "status": "pending",
+    "recipe": "ROUNDTRIP",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "regex-generator",
+    "category": "developer",
+    "subdomain": "regex",
+    "status": "pending",
+    "recipe": "GENERATOR",
+    "milestone": null,
+    "notes": ""
+  },
+  {
+    "id": "regex-visualizer",
+    "category": "developer",
+    "subdomain": "regex",
+    "status": "pending",
+    "recipe": "FUZZ",
+    "milestone": null,
+    "notes": ""
+  }
+]
