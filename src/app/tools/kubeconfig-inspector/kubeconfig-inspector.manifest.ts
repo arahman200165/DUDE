@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['kubernetes', 'k8s', 'kubeconfig', 'inspect', 'cluster', 'context'],
   route: '/tools/kubeconfig-inspector',
   load: () => import('./kubeconfig-inspector').then((m) => m.KubeconfigInspector),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested with arbitrary text (fast-check) -- never throws on malformed YAML.',
+  },
   consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['json'] },

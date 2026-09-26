@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { inspectKubeconfig, redactSecret } from './kubeconfig-inspector-logic';
 
 const KUBECONFIG = `
@@ -59,5 +60,15 @@ describe('redactSecret', () => {
 
   it('shows a prefix/suffix and length for a longer value', () => {
     expect(redactSecret('abcdefghijklmnop')).toBe('abcd…mnop (16 chars)');
+  });
+});
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  it('never throws for arbitrary text input', () => {
+    fc.assert(
+      fc.property(fc.string(), (input) => {
+        expect(() => inspectKubeconfig(input)).not.toThrow();
+      }),
+    );
   });
 });
