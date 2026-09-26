@@ -40,11 +40,11 @@ below until a Phase 27+ tool actually claims them.
 | [JWT Signer](https://arahman200165.github.io/DUDE/tools/jwt-signer) | Authentication | verified — HS256 signature output matches a byte-for-byte independent recomputation with Node's crypto.createHmac. |
 | [JWT Signature Verifier](https://arahman200165.github.io/DUDE/tools/jwt-verify) | Authentication | verified — Verifies a token signed by hand with Node's HMAC-SHA256, and rejects it when a single signature byte is flipped — not just a token jose signed and jose verified. |
 | [Kubernetes Base64 Secret Encoder / Decoder](https://arahman200165.github.io/DUDE/tools/k8s-secret-base64) | Secret Management | verified — decodeSecretData(encodeSecretData(pairs)) recovers every value exactly for generated key/value arrays (fast-check property test), built on the already-verified base64 codec. |
-| [kubeconfig Inspector](https://arahman200165.github.io/DUDE/tools/kubeconfig-inspector) | Authentication | stable |
-| [OAuth 2.0 Playground](https://arahman200165.github.io/DUDE/tools/oauth-playground) | Authentication | stable |
+| [kubeconfig Inspector](https://arahman200165.github.io/DUDE/tools/kubeconfig-inspector) | Authentication | verified — Fuzz-tested with arbitrary text (fast-check) -- never throws on malformed YAML. |
+| [OAuth 2.0 Playground](https://arahman200165.github.io/DUDE/tools/oauth-playground) | Authentication | verified — Callback URL/device-response/token-response inspection is fuzz-tested with arbitrary text (fast-check) -- never throws. |
 | [OAuth Scope Parser](https://arahman200165.github.io/DUDE/tools/oauth-scope-parser) | Authentication | verified — parseScopeString/buildScopeString round-trip and never-throws are checked with generated inputs (fast-check), not just hand-picked examples. |
-| [OAuth Token Inspector](https://arahman200165.github.io/DUDE/tools/oauth-token-inspector) | Authentication | stable |
-| [OpenID Connect Discovery Document Inspector](https://arahman200165.github.io/DUDE/tools/oidc-discovery-inspector) | Authentication | stable |
+| [OAuth Token Inspector](https://arahman200165.github.io/DUDE/tools/oauth-token-inspector) | Authentication | verified — Fuzz-tested with arbitrary text (fast-check) -- never throws; delegates JWT decoding to the already-verified JWT Debugger. |
+| [OpenID Connect Discovery Document Inspector](https://arahman200165.github.io/DUDE/tools/oidc-discovery-inspector) | Authentication | verified — Checks against the official OIDC Discovery 1.0 field list and is fuzz-tested with arbitrary text/JSON (fast-check) -- never throws. |
 | [PEM / DER Inspector & Converter](https://arahman200165.github.io/DUDE/tools/pem-der-inspector) | Crypto | stable |
 | [PKCE Generator](https://arahman200165.github.io/DUDE/tools/pkce-generator) | Authentication | verified — S256 code_challenge computation matches RFC 7636 Appendix B's official worked example exactly. |
 | [PKCE Verifier](https://arahman200165.github.io/DUDE/tools/pkce-verifier) | Authentication | verified — Verifier/challenge matching is checked against RFC 7636 Appendix B's official worked example. |
