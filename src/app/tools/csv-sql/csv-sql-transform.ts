@@ -82,18 +82,57 @@ function unquoteSqlValue(value: string): string {
   return value;
 }
 
-const INSERT_RE = /INSERT\s+INTO\s+\S+\s*\(([^)]*)\)\s*VALUES\s*\(([^;]*)\)\s*;?/gis;
+/**
+ * Finds the index of the ')' matching the '(' at `openIndex`, skipping over '...'-quoted
+ * strings (with ''-escaped quotes) so a literal ')' or ';' inside a quoted value -- e.g.
+ * `VALUES (NULL, ';')` -- doesn't get mistaken for the statement's own punctuation.
+ */
+function findMatchingParen(text: string, openIndex: number): number {
+  let depth = 0;
+  let inString = false;
+  for (let i = openIndex; i < text.length; i++) {
+    const char = text[i];
+    if (inString) {
+      if (char === "'" && text[i + 1] === "'") {
+        i++;
+      } else if (char === "'") {
+        inString = false;
+      }
+      continue;
+    }
+    if (char === "'") inString = true;
+    else if (char === '(') depth++;
+    else if (char === ')') {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+const INSERT_HEAD_RE = /INSERT\s+INTO\s+\S+\s*\(([^)]*)\)\s*VALUES\s*\(/gis;
 
 function sqlToCsv(input: string): CsvSqlResult {
   if (input.trim() === '') return { ok: false, error: { message: 'Enter some SQL INSERT statements.' } };
 
-  const statements = [...input.matchAll(INSERT_RE)];
+  const statements: { columns: string; valuesText: string }[] = [];
+  INSERT_HEAD_RE.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = INSERT_HEAD_RE.exec(input)) !== null) {
+    const openParenIndex = match.index + match[0].length - 1;
+    const closeParenIndex = findMatchingParen(input, openParenIndex);
+    if (closeParenIndex === -1) continue;
+
+    statements.push({ columns: match[1], valuesText: input.slice(openParenIndex + 1, closeParenIndex) });
+    INSERT_HEAD_RE.lastIndex = closeParenIndex + 1;
+  }
+
   if (statements.length === 0) {
     return { ok: false, error: { message: 'No INSERT INTO ... VALUES (...) statements found.' } };
   }
 
-  const columns = statements[0][1].split(',').map((column) => column.trim());
-  const rows = statements.map((match) => splitValues(match[2]).map(unquoteSqlValue));
+  const columns = statements[0].columns.split(',').map((column) => column.trim());
+  const rows = statements.map((statement) => splitValues(statement.valuesText).map(unquoteSqlValue));
 
   const output = Papa.unparse([columns, ...rows], { newline: '\n' });
   return { ok: true, output };

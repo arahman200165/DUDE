@@ -1,3 +1,5 @@
+import fc from 'fast-check';
+import Papa from 'papaparse';
 import { convertCsvSql } from './csv-sql-transform';
 
 describe('convertCsvSql', () => {
@@ -108,5 +110,37 @@ describe('convertCsvSql', () => {
 
     const backToCsv = toSql.ok ? convertCsvSql(toSql.output, 'sql-to-csv', 'users') : null;
     expect(backToCsv).toEqual({ ok: true, output: 'id,name\n1,Alice\n2,Bob' });
+  });
+});
+
+describe('round-trip property (DUDE_PRD.md §21 Phase 23 Item 4)', () => {
+  // Non-numeric-looking cell values only (see NUMERIC in csv-sql-transform.ts): a value that
+  // round-trips through SQL as an unquoted numeric literal loses the distinction between "1" and
+  // "1.0", which is a documented, deliberate lossy conversion, not a bug this property should
+  // flag.
+  const cellValue = fc.string().filter((s) => !/^-?\d+(\.\d+)?$/.test(s));
+
+  it('csv-to-sql -> sql-to-csv recovers the original cells for generated single-row CSV', () => {
+    fc.assert(
+      fc.property(cellValue, cellValue, (a, b) => {
+        const csv = Papa.unparse([['col_a', 'col_b'], [a, b]], { newline: '\n' });
+        const toSql = convertCsvSql(csv, 'csv-to-sql', 't');
+        expect(toSql.ok).toBe(true);
+        if (!toSql.ok) return;
+
+        const backToCsv = convertCsvSql(toSql.output, 'sql-to-csv', 't');
+        expect(backToCsv).toEqual({ ok: true, output: Papa.unparse([['col_a', 'col_b'], [a, b]], { newline: '\n' }) });
+      }),
+    );
+  });
+});
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  it('never throws for arbitrary text input, in any direction', () => {
+    fc.assert(
+      fc.property(fc.string(), fc.constantFrom<'csv-to-sql' | 'sql-to-csv' | 'json-to-sql'>('csv-to-sql', 'sql-to-csv', 'json-to-sql'), (input, direction) => {
+        expect(() => convertCsvSql(input, direction, 't')).not.toThrow();
+      }),
+    );
   });
 });

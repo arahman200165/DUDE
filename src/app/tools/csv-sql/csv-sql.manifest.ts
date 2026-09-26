@@ -9,7 +9,12 @@ export const manifest: ToolDefinition = {
   keywords: ['csv', 'sql', 'json', 'insert', 'convert', 'database'],
   route: '/tools/csv-sql',
   load: () => import('./csv-sql').then((m) => m.CsvSql),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary:
+      'CSV<->SQL round-trip property-tested and fuzz-tested (fast-check) -- caught and fixed a real parser bug where a quoted value containing a semicolon truncated the VALUES(...) capture.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text', 'table', 'json'], produces: ['text', 'table'] },
