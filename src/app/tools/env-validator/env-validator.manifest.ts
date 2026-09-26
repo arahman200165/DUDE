@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['env', 'dotenv', 'validate', 'environment variables'],
   route: '/tools/env-validator',
   load: () => import('./env-validator').then((m) => m.EnvValidator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested arbitrary environment and rule text for non-throwing validation results.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

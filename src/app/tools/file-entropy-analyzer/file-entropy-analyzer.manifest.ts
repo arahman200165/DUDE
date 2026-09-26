@@ -17,7 +17,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/file-entropy-analyzer',
   load: () => import('./file-entropy-analyzer').then((m) => m.FileEntropyAnalyzer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested arbitrary bytes for input-size preservation and entropy bounds.',
+  },
   persistence: { input: 'none', preferences: 'none' },
   execution: { worker: 'optional' },
   io: { accepts: ['file'], produces: ['json'] },

@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['env', 'dotenv', 'diff', 'compare', 'environment variables'],
   route: '/tools/env-diff',
   load: () => import('./env-diff').then((m) => m.EnvDiff),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested arbitrary .env document pairs for stable diff result shapes.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
 };

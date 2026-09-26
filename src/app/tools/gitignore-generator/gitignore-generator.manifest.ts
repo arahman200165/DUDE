@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['gitignore', 'git', 'generate', 'template', 'ignore'],
   route: '/tools/gitignore-generator',
   load: () => import('./gitignore-generator').then((m) => m.GitignoreGenerator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested arbitrary template id lists for non-throwing string output.',
+  },
   persistence: { input: 'local', preferences: 'local' },
   io: { accepts: ['json'], produces: ['text', 'file'] },
 };

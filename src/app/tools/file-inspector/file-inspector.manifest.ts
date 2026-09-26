@@ -17,7 +17,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/file-inspector',
   load: () => import('./file-inspector').then((m) => m.FileInspector),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested arbitrary bytes and metadata for preserved report fields and bounded samples/entropy.',
+  },
   persistence: { input: 'none', preferences: 'none' },
   execution: { worker: 'optional' },
   io: { accepts: ['file'], produces: ['json'] },

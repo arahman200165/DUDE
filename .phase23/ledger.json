@@ -1596,118 +1596,118 @@
     "id": "encoding-detector",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "blocked",
     "recipe": "CORE-ONLY",
-    "milestone": null,
-    "notes": ""
+    "milestone": 382,
+    "notes": "needs-browser-harness: tool delegates byte detection to a shared utility and exposes no pure core in its tool directory."
   },
   {
     "id": "env-diff",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 382,
     "notes": ""
   },
   {
     "id": "env-editor",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
-    "notes": ""
+    "milestone": 382,
+    "notes": "flagged: public behavior change; Bug fixed: escaped backslashes and carriage returns now round-trip through .env serialization."
   },
   {
     "id": "env-json-converter",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": null,
+    "milestone": 382,
     "notes": ""
   },
   {
     "id": "env-validator",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 382,
     "notes": ""
   },
   {
     "id": "file-entropy-analyzer",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "CORE-ONLY",
-    "milestone": null,
+    "milestone": 382,
     "notes": ""
   },
   {
     "id": "file-inspector",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "CORE-ONLY",
-    "milestone": null,
+    "milestone": 382,
     "notes": ""
   },
   {
     "id": "gitignore-generator",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "GENERATOR",
-    "milestone": null,
+    "milestone": 382,
     "notes": ""
   },
   {
     "id": "gitignore-tester",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 382,
     "notes": ""
   },
   {
     "id": "glob-tester",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 382,
     "notes": ""
   },
   {
     "id": "hex-diff",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "blocked",
     "recipe": "CORE-ONLY",
-    "milestone": null,
-    "notes": ""
+    "milestone": 382,
+    "notes": "needs-browser-harness: component delegates all byte-diff work to shared utilities and has no extracted pure core in its tool directory."
   },
   {
     "id": "hex-editor",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "CORE-ONLY",
-    "milestone": null,
+    "milestone": 382,
     "notes": ""
   },
   {
     "id": "html-entity-explorer",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "blocked",
     "recipe": "CORE-ONLY",
-    "milestone": null,
-    "notes": ""
+    "milestone": 382,
+    "notes": "needs-browser-harness: module initializes its entity table through document.createElement and cannot be imported in the property-test environment."
   },
   {
     "id": "html-formatter",

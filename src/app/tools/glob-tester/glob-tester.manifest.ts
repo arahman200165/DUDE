@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['glob', 'pattern', 'match', 'wildcard', 'test', 'paths', 'gitignore'],
   route: '/tools/glob-tester',
   load: () => import('./glob-tester').then((m) => m.GlobTester),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested arbitrary patterns and paths for non-throwing result shapes.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['json'] },
 };

@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['hex editor', 'byte editor', 'binary editor', 'edit bytes', 'patch file'],
   route: '/tools/hex-editor',
   load: () => import('./hex-editor').then((m) => m.HexEditor),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip-tested byte formatting and fuzz-tested byte edits and row chunking over arbitrary byte arrays.',
+  },
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['file'], produces: ['file'] },
 };

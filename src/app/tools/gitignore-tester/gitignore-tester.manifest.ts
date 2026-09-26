@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['gitignore', 'git', 'test', 'ignore', 'glob'],
   route: '/tools/gitignore-tester',
   load: () => import('./gitignore-tester').then((m) => m.GitignoreTester),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested arbitrary rules and paths for output count and boolean decisions.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['table'] },
 };

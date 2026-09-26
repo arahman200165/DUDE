@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['env', 'dotenv', 'json', 'convert', 'environment variables'],
   route: '/tools/env-json-converter',
   load: () => import('./env-json-converter').then((m) => m.EnvJsonConverter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip-tested valid .env pairs through JSON and fuzz-tested arbitrary text in both directions.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text', 'json'] },
 };
