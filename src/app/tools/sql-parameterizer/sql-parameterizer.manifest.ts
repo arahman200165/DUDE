@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['sql', 'parameterize', 'placeholder', 'prepared statement', 'bind variable'],
   route: '/tools/sql-parameterizer',
   load: () => import('./sql-parameterizer').then((m) => m.SqlParameterizer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested with arbitrary text across every dialect/param-style (fast-check) -- never throws.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text', 'json'] },
 };

@@ -1,4 +1,5 @@
-import { parameterizeSql } from './sql-parameterizer-logic';
+import fc from 'fast-check';
+import { parameterizeSql, SQL_PARAMETERIZER_DIALECTS, SQL_PARAM_STYLES } from './sql-parameterizer-logic';
 
 describe('parameterizeSql', () => {
   it('replaces literals with "?" placeholders and extracts their values in order', () => {
@@ -36,5 +37,20 @@ describe('parameterizeSql', () => {
 
   it('rejects invalid SQL', () => {
     expect(parameterizeSql('SELECT FROM WHERE', 'postgresql', 'question').ok).toBe(false);
+  });
+});
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  it('never throws for arbitrary text input, in any dialect/style', () => {
+    fc.assert(
+      fc.property(
+        fc.string(),
+        fc.constantFrom(...SQL_PARAMETERIZER_DIALECTS.map((d) => d.id)),
+        fc.constantFrom(...SQL_PARAM_STYLES.map((s) => s.id)),
+        (sql, dialect, style) => {
+          expect(() => parameterizeSql(sql, dialect, style)).not.toThrow();
+        },
+      ),
+    );
   });
 });
