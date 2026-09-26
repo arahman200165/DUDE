@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import fc from 'fast-check';
 import { parseDiscoveryDocument } from './oidc-discovery-inspector-logic';
 
 const COMPLETE_DOC = {
@@ -73,5 +74,23 @@ describe('parseDiscoveryDocument', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.findings.some((f) => f.severity === 'info' && f.message.includes('PKCE'))).toBe(true);
+  });
+});
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  it('never throws for arbitrary text input', () => {
+    fc.assert(
+      fc.property(fc.string(), (input) => {
+        expect(() => parseDiscoveryDocument(input)).not.toThrow();
+      }),
+    );
+  });
+
+  it('never throws for an arbitrary JSON object', () => {
+    fc.assert(
+      fc.property(fc.dictionary(fc.string(), fc.anything()), (doc) => {
+        expect(() => parseDiscoveryDocument(JSON.stringify(doc))).not.toThrow();
+      }),
+    );
   });
 });
