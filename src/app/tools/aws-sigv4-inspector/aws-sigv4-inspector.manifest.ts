@@ -20,7 +20,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/aws-sigv4-inspector',
   load: () => import('./aws-sigv4-inspector').then((m) => m.AwsSigv4Inspector),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    vectors: ["AWS's official SigV4 worked example (GET https://iam.amazonaws.com/, AKIDEXAMPLE)"],
+    summary: "Signature computation matches AWS's own documented worked example exactly, cross-checked independently via Node's crypto.",
+  },
   consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text', 'json'] },
