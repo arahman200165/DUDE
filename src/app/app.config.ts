@@ -7,6 +7,8 @@ import { TOOL_COMMAND_SOURCE_PROVIDERS } from './core/registry/tool-command-sour
 import { WORKSPACE_COMMAND_SOURCE_PROVIDERS } from './core/workspace/workspace-command-source';
 import { PROJECT_COMMAND_SOURCE_PROVIDERS } from './core/project/project-command-source';
 import { PIPELINE_COMMAND_SOURCE_PROVIDERS } from './core/pipeline/pipeline-command-source';
+import { NATIVE_COMMAND_SOURCE_PROVIDERS } from './core/platform/native-command-source';
+import { RECENTS_COMMAND_SOURCE_PROVIDERS } from './core/recents/recents-command-source';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -15,6 +17,8 @@ export const appConfig: ApplicationConfig = {
     ...WORKSPACE_COMMAND_SOURCE_PROVIDERS,
     ...PROJECT_COMMAND_SOURCE_PROVIDERS,
     ...PIPELINE_COMMAND_SOURCE_PROVIDERS,
+    ...NATIVE_COMMAND_SOURCE_PROVIDERS,
+    ...RECENTS_COMMAND_SOURCE_PROVIDERS,
     provideRouter(routes),
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode() && !isElectronRuntime(),
