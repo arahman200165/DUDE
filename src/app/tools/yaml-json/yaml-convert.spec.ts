@@ -1,7 +1,31 @@
+import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import fc from 'fast-check';
 import { convertYaml } from './yaml-convert';
 
 describe('convertYaml', () => {
+  it('converts the nested deployment-shaped golden corpus', () => {
+    const input = readFileSync(resolve(process.cwd(), 'src/app/tools/yaml-json/__fixtures__/service-deployment.yaml'), 'utf8');
+    const result = convertYaml(input, 'yaml-to-json', 2);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.error.message);
+    const parsed: unknown = JSON.parse(result.output);
+    expect(parsed).toEqual({
+      apiVersion: 'apps/v1',
+      kind: 'Deployment',
+      metadata: { name: 'workbench', labels: { app: 'workbench' } },
+      spec: {
+        replicas: 2,
+        selector: { matchLabels: { app: 'workbench' } },
+        template: {
+          metadata: { labels: { app: 'workbench' } },
+          spec: { containers: [{ name: 'web', image: 'example.invalid/workbench:1.2.3', ports: [{ name: 'http', containerPort: 8080 }] }] },
+        },
+      },
+    });
+  });
   it('converts YAML to pretty-printed JSON with a 2-space indent', () => {
     const result = convertYaml('a: 1\nb:\n  - 2\n  - 3\n', 'yaml-to-json', 2);
 

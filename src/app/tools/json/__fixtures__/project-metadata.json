@@ -1,0 +1,12 @@
+{
+  "name": "@dude/workbench",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "lint": "eslint ."
+  },
+  "keywords": ["developer", "offline", "tools"]
+}

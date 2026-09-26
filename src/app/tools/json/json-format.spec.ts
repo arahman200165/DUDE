@@ -1,7 +1,25 @@
+import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import fc from 'fast-check';
 import { processJson } from './json-format';
 
 describe('processJson', () => {
+  it('formats the package-manifest golden corpus without changing its values', () => {
+    const input = readFileSync(resolve(process.cwd(), 'src/app/tools/json/__fixtures__/project-metadata.json'), 'utf8');
+    const result = processJson(input, 'pretty', 2);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.error.message);
+    expect(JSON.parse(result.output)).toEqual({
+      name: '@dude/workbench',
+      private: true,
+      engines: { node: '>=22' },
+      scripts: { test: 'vitest run', lint: 'eslint .' },
+      keywords: ['developer', 'offline', 'tools'],
+    });
+    expect(result.output).toContain('\n  "engines": {');
+  });
   it('pretty-prints with a 2-space indent', () => {
     const result = processJson('{"a":1,"b":[2,3]}', 'pretty', 2);
 

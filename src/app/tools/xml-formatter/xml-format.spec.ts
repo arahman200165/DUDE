@@ -1,7 +1,22 @@
+import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import fc from 'fast-check';
 import { processXml } from './xml-format';
 
 describe('processXml', () => {
+  it('formats and validates the catalog golden corpus', () => {
+    const input = readFileSync(resolve(process.cwd(), 'src/app/tools/xml-formatter/__fixtures__/catalog.xml'), 'utf8');
+    const formatted = processXml(input, 'format', 2);
+
+    expect(formatted.ok).toBe(true);
+    if (!formatted.ok) throw new Error(formatted.error.message);
+    expect(formatted.output).toContain('<?xml version="1.0" encoding="UTF-8"?>');
+    expect(formatted.output).toContain('<book id="bk101">');
+    expect(formatted.output).toContain('<price currency="USD">44.95</price>');
+    expect(formatted.output).toContain('<title>Midnight Rain</title>');
+    expect(processXml(formatted.output, 'validate', 2)).toEqual({ ok: true, output: formatted.output });
+  });
   it('pretty-prints with a 2-space indent', () => {
     const result = processXml('<root><a>1</a><b><c>2</c></b></root>', 'format', 2);
 

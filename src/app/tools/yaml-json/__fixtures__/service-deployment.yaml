@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workbench
+  labels:
+    app: workbench
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: workbench
+  template:
+    metadata:
+      labels:
+        app: workbench
+    spec:
+      containers:
+        - name: web
+          image: example.invalid/workbench:1.2.3
+          ports:
+            - name: http
+              containerPort: 8080

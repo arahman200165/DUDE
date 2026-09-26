@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parseCertificateBytes, parseCertificateText } from './x509-logic';
 
@@ -36,6 +38,21 @@ const EXPECTED_SHA256 = 'a7:0d:41:fd:e1:e5:3f:3d:5d:fb:41:db:70:d6:22:1a:14:d2:0
 const EXPECTED_SERIAL = '689a74f8c7d0643458ef0a355e137ffc34db5b5e';
 
 describe('x509-logic', () => {
+  it('parses the real ISRG Root X1 DER golden corpus against Windows certificate-store values', async () => {
+    const bytes = readFileSync(resolve(process.cwd(), 'src/app/tools/x509-certificate-inspector/__fixtures__/isrg-root-x1.der'));
+    const result = await parseCertificateBytes(new Uint8Array(bytes));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.error);
+    const { fields } = result.certificate;
+    expect(result.certificate.fingerprintSha1).toBe('ca:bd:2a:79:a1:07:6a:31:f2:1d:25:36:35:cb:03:9d:43:29:a5:e8');
+    expect(result.certificate.fingerprintSha256).toBe('96:bc:ec:06:26:49:76:f3:74:60:77:9a:cf:28:c5:a7:cf:e8:a3:c0:aa:e1:1a:8f:fc:ee:05:c0:bd:df:08:c6');
+    expect(fields.serialNumber.toLowerCase()).toBe('008210cfb0d240e3594463e0bb63828b00');
+    expect(fields.subject).toEqual(expect.arrayContaining([expect.objectContaining({ shortName: 'CN', value: 'ISRG Root X1' })]));
+    expect(fields.issuer).toEqual(expect.arrayContaining([expect.objectContaining({ shortName: 'CN', value: 'ISRG Root X1' })]));
+    expect(fields.isCA).toBe(true);
+    expect(fields.keyUsage).toEqual(expect.arrayContaining(['keyCertSign', 'cRLSign']));
+  });
   it('parses a real openssl-generated certificate and matches its openssl fingerprints', async () => {
     const result = await parseCertificateText(TEST_CERT_PEM);
     expect(result.ok).toBe(true);
