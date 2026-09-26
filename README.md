@@ -33,6 +33,32 @@ The tools are the proof, not the point: DUDE is a **local-first, extensible deve
 | --- | --- |
 | ![DUDE deck, showing the sidebar and color-coded category grid](docs/screenshots/deck.jpg) | ![JSON Formatter tool, pretty-printing a sample JSON object](docs/screenshots/json-formatter.jpg) |
 
+## Desktop app
+
+Per `DUDE_PRD.md` §4.9, the Windows desktop app (`DUDE_PRD.md` §21 Phase 8) is the canonical DUDE workbench — the same Angular codebase, packaged as a standalone Electron app with native capabilities a browser sandbox can't offer.
+
+Download the latest installer from the repo's [GitHub Releases](https://github.com/arahman200165/DUDE/releases) page. The NSIS `.exe` offers Express presets (Minimal, Standard, Fully Integrated) or a Custom wizard for install scope/path, shortcuts, Explorer actions, and individual file-type registration. A resumable first-launch wizard covers desktop, update, notification, hotkey, AI, and collaboration settings; Settings can reopen it later. Windows requires default file apps to be confirmed in Default Apps settings after registration. Manual `.exe` reinstalls repeat both wizards with saved values, while silent auto-updates preserve choices. The MSIX uses its platform-managed setup. See [Windows setup and onboarding](docs/WINDOWS_SETUP.md) for the full preset matrix, file associations, and verification checklist. `.github/workflows/version-bump.yml` and `.github/workflows/release.yml` (separate from the GitHub Pages `deploy.yml`) automate the whole cut-a-release pipeline, running on a `windows-latest` CI runner.
+
+Don't want to install anything? **[→ Open the zero-install web companion](https://arahman200165.github.io/DUDE/)** — it runs the same tools directly in your browser, no download required, covering every capability that's safe to run in a browser sandbox (see [PWA & Offline](#pwa--offline) below for what works without a network connection).
+
+All 8 stages of the desktop-packaging phase are shipped:
+
+- **Native file access** — Directory Diff and Git Repo Browser use a native folder picker + live, re-scannable filesystem access instead of `<input webkitdirectory>`, via a sandboxed preload/IPC bridge.
+- **OS-level secret storage** — a `secure-local` persistence tier backed by Electron `safeStorage` (OS keychain).
+- **Local LLM proxy + AI regex features** — Regex Tester gains natural-language-to-regex generation and an AI-assisted explanation, backed by a localhost-only proxy to a user-configured OpenAI-compatible endpoint (base URL/model/key set in the new Settings tool); the existing rule-based explainer stays as the offline/web fallback.
+- **Desktop shell chrome** — a system tray (closing the window minimizes to it), launch-on-login, native notifications, and a global-hotkey clipboard quick-action registry (Base64 encode/decode, UUID generate, SHA-256 hash).
+- **Real-time collaboration** — Advanced Markdown Workspace can host or join a same-machine/LAN session (a local Yjs-based collab server, LAN-reachable by design with a required per-session code) or, via a self-hosted relay (`relay/`, ships with its own `Dockerfile` — DUDE itself never runs one for you), collaborate across networks.
+- **Auto-update + distribution** — every push to `master` automatically bumps the patch version, tags it, and cuts a new GitHub Release carrying an unsigned NSIS installer and an MSIX/appx package (`electron-builder.yml`); the running desktop app checks that release feed via `electron-updater`, uses your selected automatic-download, check-and-notify, or manual-check policy, and only installs it once you click "Restart & Install" — never silently. The MSIX currently ships with placeholder Microsoft Store package-identity values and isn't Store-submittable yet.
+
+```bash
+npm run electron:dev     # hot-reload desktop dev, points Electron at a live `ng serve`
+npm run electron:start   # full build -> compile -> launch, closest to a real install
+npm run electron:package # build -> compile -> electron-builder (NSIS + MSIX), local packaging
+npm run relay:dev        # run the standalone BYO collab relay locally
+```
+
+Electron's `BrowserWindow` loads the built app from a small local static server bound to `127.0.0.1` on an OS-assigned port (never an external interface), not `file://` — so the existing path-based routing works unchanged, with real SPA fallback instead of the GitHub Pages `404.html` trick. The renderer keeps `contextIsolation` on with no direct `nodeIntegration`; all native access is mediated through `electron/preload.ts`'s `contextBridge` bridge — see `electron/AGENTS.md` for that rule and `src/app/core/platform/` for the `PlatformService` tools/shell code can use to detect the desktop runtime. The one deliberate exception to the loopback-only rule is the local collab server, which binds `0.0.0.0` for LAN reachability, gated by a random per-session code.
+
 ## Tools
 
 276 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
@@ -412,28 +438,6 @@ npx http-server dist/dude/browser -p 8080
 ```
 
 Then open `http://localhost:8080`, let it load once, and use your browser DevTools' Network tab "Offline" toggle to verify the shell and any already-visited tool still work.
-
-## Desktop app
-
-DUDE also ships as a Windows Electron build (`DUDE_PRD.md` §21 Phase 8) — the same Angular codebase, packaged as a standalone desktop app. Per `DUDE_PRD.md` §4.9, the desktop app is now the canonical DUDE workbench; the web build remains a zero-install companion covering every capability that's safe to run in a browser sandbox. All 8 stages of the desktop-packaging phase are shipped:
-
-- **Native file access** — Directory Diff and Git Repo Browser use a native folder picker + live, re-scannable filesystem access instead of `<input webkitdirectory>`, via a sandboxed preload/IPC bridge.
-- **OS-level secret storage** — a `secure-local` persistence tier backed by Electron `safeStorage` (OS keychain).
-- **Local LLM proxy + AI regex features** — Regex Tester gains natural-language-to-regex generation and an AI-assisted explanation, backed by a localhost-only proxy to a user-configured OpenAI-compatible endpoint (base URL/model/key set in the new Settings tool); the existing rule-based explainer stays as the offline/web fallback.
-- **Desktop shell chrome** — a system tray (closing the window minimizes to it), launch-on-login, native notifications, and a global-hotkey clipboard quick-action registry (Base64 encode/decode, UUID generate, SHA-256 hash).
-- **Real-time collaboration** — Advanced Markdown Workspace can host or join a same-machine/LAN session (a local Yjs-based collab server, LAN-reachable by design with a required per-session code) or, via a self-hosted relay (`relay/`, ships with its own `Dockerfile` — DUDE itself never runs one for you), collaborate across networks.
-- **Auto-update + distribution** — every push to `master` automatically bumps the patch version, tags it, and cuts a new GitHub Release carrying an unsigned NSIS installer and an MSIX/appx package (`electron-builder.yml`); the running desktop app checks that release feed via `electron-updater`, uses your selected automatic-download, check-and-notify, or manual-check policy, and only installs it once you click "Restart & Install" — never silently. The MSIX currently ships with placeholder Microsoft Store package-identity values and isn't Store-submittable yet.
-
-```bash
-npm run electron:dev     # hot-reload desktop dev, points Electron at a live `ng serve`
-npm run electron:start   # full build -> compile -> launch, closest to a real install
-npm run electron:package # build -> compile -> electron-builder (NSIS + MSIX), local packaging
-npm run relay:dev        # run the standalone BYO collab relay locally
-```
-
-Electron's `BrowserWindow` loads the built app from a small local static server bound to `127.0.0.1` on an OS-assigned port (never an external interface), not `file://` — so the existing path-based routing works unchanged, with real SPA fallback instead of the GitHub Pages `404.html` trick. The renderer keeps `contextIsolation` on with no direct `nodeIntegration`; all native access is mediated through `electron/preload.ts`'s `contextBridge` bridge — see `electron/AGENTS.md` for that rule and `src/app/core/platform/` for the `PlatformService` tools/shell code can use to detect the desktop runtime. The one deliberate exception to the loopback-only rule is the local collab server, which binds `0.0.0.0` for LAN reachability, gated by a random per-session code.
-
-Download the latest installer from the repo's [GitHub Releases](https://github.com/arahman200165/DUDE/releases) page. The NSIS `.exe` offers Express presets (Minimal, Standard, Fully Integrated) or a Custom wizard for install scope/path, shortcuts, Explorer actions, and individual file-type registration. A resumable first-launch wizard covers desktop, update, notification, hotkey, AI, and collaboration settings; Settings can reopen it later. Windows requires default file apps to be confirmed in Default Apps settings after registration. Manual `.exe` reinstalls repeat both wizards with saved values, while silent auto-updates preserve choices. The MSIX uses its platform-managed setup. See [Windows setup and onboarding](docs/WINDOWS_SETUP.md) for the full preset matrix, file associations, and verification checklist. `.github/workflows/version-bump.yml` and `.github/workflows/release.yml` (separate from the GitHub Pages `deploy.yml`) automate the whole cut-a-release pipeline, running on a `windows-latest` CI runner.
 
 ## Adding a new tool
 
