@@ -11,8 +11,9 @@ export const manifest: ToolDefinition = {
   load: () => import('./ipv6-explorer').then((m) => m.Ipv6Explorer),
   status: 'verified',
   verification: {
+    vectors: ['RFC 5952 Sections 4.1 and 4.2.1?4.2.3 canonicalization examples'],
     propertyTested: true,
-    summary: 'Fuzz-tested generated 128-bit addresses and checked compressed/expanded forms preserve the parsed value with fixed-seed fast-check.',
+    summary: 'RFC 5952 canonicalization examples checked literally; fuzz-tested generated 128-bit addresses for value-preserving forms. Embedded IPv4 tails are inspected, not formatted as dotted decimal.',
   },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },

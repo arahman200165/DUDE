@@ -1,6 +1,11 @@
 import { exploreIpv6 } from './ipv6-explorer-logic';
 
 describe('exploreIpv6', () => {
+  it('matches RFC 5952 leading-zero, longest-run, and equal-run canonical forms', () => {
+    expect(exploreIpv6('2001:db8:0:0:1:0:0:1')?.compressed).toBe('2001:db8::1:0:0:1');
+    expect(exploreIpv6('2001:0:0:1:0:0:0:1')?.compressed).toBe('2001:0:0:1::1');
+    expect(exploreIpv6('2001:0db8::0001')?.compressed).toBe('2001:db8::1');
+  });
   it('reports the compressed and expanded forms', () => {
     const result = exploreIpv6('2001:0db8:0000:0000:0000:0000:0000:0001');
     expect(result?.compressed).toBe('2001:db8::1');

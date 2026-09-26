@@ -923,8 +923,8 @@
     "subdomain": null,
     "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": 375,
-    "notes": ""
+    "milestone": 401,
+    "notes": "RFC 4180 Section 2 vectors added. Papa Parse acceptance is permissive; no strict full-grammar validation claim."
   },
   {
     "id": "ini-formatter",
@@ -1058,8 +1058,8 @@
     "subdomain": null,
     "status": "verified",
     "recipe": "CORE-ONLY",
-    "milestone": 376,
-    "notes": ""
+    "milestone": 401,
+    "notes": "Official encoding guide 08 96 01 vector added. Decoding requires user schema; raw schema-free interpretation is unsupported."
   },
   {
     "id": "resx-tool",
@@ -1931,8 +1931,8 @@
     "subdomain": "network-ip",
     "status": "verified",
     "recipe": "FUZZ",
-    "milestone": 385,
-    "notes": ""
+    "milestone": 401,
+    "notes": "RFC 4632 Section 3.1 vector added. Scope remains IPv4 calculator; no IPv6 prefix handling or route aggregation."
   },
   {
     "id": "error-code-reference",
@@ -1985,8 +1985,8 @@
     "subdomain": "network-ip",
     "status": "verified",
     "recipe": "FUZZ",
-    "milestone": 385,
-    "notes": ""
+    "milestone": 401,
+    "notes": "RFC 5952 canonicalization vectors added. Embedded IPv4 notation is not reformatted as dotted decimal."
   },
   {
     "id": "mac-address-inspector",

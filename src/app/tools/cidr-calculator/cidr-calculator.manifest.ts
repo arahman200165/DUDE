@@ -11,8 +11,9 @@ export const manifest: ToolDefinition = {
   load: () => import('./cidr-calculator').then((m) => m.CidrCalculator),
   status: 'verified',
   verification: {
+    vectors: ['RFC 4632 Section 3.1 172.16.0.0/16 prefix and mask example'],
     propertyTested: true,
-    summary: 'Fuzz-tested arbitrary input handling and valid IPv4 prefix alignment/address-count invariants with fixed-seed fast-check.',
+    summary: 'RFC 4632 prefix/mask example checked against the calculated range; fuzz-tested IPv4 alignment and counts. IPv6 prefixes and route aggregation are outside this calculator.',
   },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },

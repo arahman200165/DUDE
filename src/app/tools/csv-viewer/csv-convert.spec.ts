@@ -1,6 +1,20 @@
 import { convertCsv, csvToJson, jsonToCsv, parseCsv } from './csv-convert';
 
 describe('parseCsv', () => {
+  it('parses RFC 4180 section 2 published records and quoting examples', () => {
+    expect(parseCsv('field_name,field_name,field_name\r\naaa,bbb,ccc\r\nzzz,yyy,xxx', ',', true)).toEqual({
+      ok: true,
+      table: { columns: ['field_name', 'field_name', 'field_name'], rows: [['aaa', 'bbb', 'ccc'], ['zzz', 'yyy', 'xxx']] },
+    });
+    expect(parseCsv('a,"b,b",c\r\n"d","e\r\nf","g"', ',', false)).toEqual({
+      ok: true,
+      table: { columns: ['Column 1', 'Column 2', 'Column 3'], rows: [['a', 'b,b', 'c'], ['d', 'e\r\nf', 'g']] },
+    });
+    expect(parseCsv('"aaa","b""bb","ccc"', ',', false)).toEqual({
+      ok: true,
+      table: { columns: ['Column 1', 'Column 2', 'Column 3'], rows: [['aaa', 'b"bb', 'ccc']] },
+    });
+  });
   it('parses a CSV table with a header row', () => {
     const result = parseCsv('name,age\nAlice,30\nBob,25', ',', true);
 

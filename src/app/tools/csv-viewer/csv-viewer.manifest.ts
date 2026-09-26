@@ -11,8 +11,9 @@ export const manifest: ToolDefinition = {
   load: () => import('./csv-viewer').then((m) => m.CsvViewer),
   status: 'verified',
   verification: {
+    vectors: ['RFC 4180 Section 2 record, quoted comma, CRLF field, and doubled-quote examples'],
     propertyTested: true,
-    summary: 'Property-tested with fast-check via the shared harness for arbitrary inputs and tool-specific invariants.',
+    summary: 'RFC 4180 Section 2 examples parsed to exact fields; arbitrary inputs and tool invariants property-tested. Parsing remains permissive and does not validate every RFC grammar restriction.',
   },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },

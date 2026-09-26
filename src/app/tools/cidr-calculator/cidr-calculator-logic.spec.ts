@@ -1,6 +1,12 @@
 import { calculateCidr } from './cidr-calculator-logic';
 
 describe('calculateCidr', () => {
+  it('calculates the RFC 4632 section 3.1 172.16.0.0/16 prefix and mask example', () => {
+    expect(calculateCidr('172.16.0.0/16')).toEqual({
+      network: '172.16.0.0', broadcast: '172.16.255.255', netmask: '255.255.0.0', prefixLength: 16,
+      firstUsable: '172.16.0.1', lastUsable: '172.16.255.254', totalAddresses: 65536, usableHosts: 65534,
+    });
+  });
   it('calculates a typical /24 network', () => {
     expect(calculateCidr('192.168.1.10/24')).toEqual({
       network: '192.168.1.0',

@@ -46,6 +46,10 @@ describe('parseProtoSchema', () => {
 });
 
 describe('decodeProtobufMessage', () => {
+  it('decodes the official Encoding guide Simple Message vector (08 96 01 => a: 150)', () => {
+    const { root } = protobuf.parse('syntax = "proto3"; message Test1 { int32 a = 1; }');
+    expect(decodeProtobufMessage(root, 'Test1', new Uint8Array([0x08, 0x96, 0x01]))).toEqual({ ok: true, value: { a: 150 } });
+  });
   it('decodes a message into a plain object', () => {
     const { root } = protobuf.parse(PERSON_SCHEMA);
     const bytes = encodePerson({ name: 'Alice', age: 30, tags: ['a', 'b'] });

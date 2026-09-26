@@ -10,8 +10,9 @@ export const manifest: ToolDefinition = {
   load: () => import('./protobuf-decoder').then((m) => m.ProtobufDecoder),
   status: 'verified',
   verification: {
+    vectors: ['Official Protocol Buffers Encoding guide Simple Message example: Test1.a = 150, bytes 08 96 01'],
     propertyTested: true,
-    summary: 'Property-tested with fast-check using core-only fuzz checks against arbitrary valid or malformed input.',
+    summary: 'Official Encoding guide varint message decoded from literal bytes; core fuzz checks cover valid and malformed input. A schema is required because wire bytes do not identify field names or types.',
   },
   persistence: { input: 'session', preferences: 'none' },
   execution: { worker: 'none' },
