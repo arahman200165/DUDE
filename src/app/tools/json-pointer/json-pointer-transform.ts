@@ -18,8 +18,8 @@ const ARRAY_INDEX = /^(0|[1-9]\d*)$/;
 
 export function resolveJsonPointer(jsonInput: string, pointer: string): JsonPointerResult {
   if (jsonInput.trim() === '') return { ok: false, error: { message: 'Enter some JSON.' } };
-  if (pointer === '') return { ok: false, error: { message: 'Enter a JSON Pointer, e.g. /a/b/0.' } };
-  if (!pointer.startsWith('/')) return { ok: false, error: { message: 'A JSON Pointer must start with "/".' } };
+  // RFC 6901 section 5 defines the empty pointer as the whole document.
+  if (pointer !== '' && !pointer.startsWith('/')) return { ok: false, error: { message: 'A JSON Pointer must start with "/".' } };
 
   let data: unknown;
   try {

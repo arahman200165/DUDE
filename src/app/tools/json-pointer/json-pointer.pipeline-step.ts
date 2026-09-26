@@ -2,13 +2,9 @@ import { PipelineStep, PipelineStepResult, PipelineValue } from '../../shared/mo
 import { resolveJsonPointer } from './json-pointer-transform';
 
 /**
- * Pipeline-step adapter for the JSON Pointer Tester tool. The pointer is a small config value
- * alongside the flowing JSON document (like `csv-viewer`'s delimiter), not a second document —
- * fixed to `/0` (the first element of a top-level array/object-with-numeric-keys) since RFC 6901
- * has no pointer that resolves "the whole document" other than the empty string, which this
- * tool's own `resolveJsonPointer` explicitly rejects. Until per-step params ship (DUDE_PRD.md §21
- * Item 2, v1.1), a pipeline step cannot select a different pointer, so this will fail predictably
- * for documents with no `/0` member.
+ * Pipeline-step adapter for the JSON Pointer Tester tool. The pointer is a config value
+ * alongside the flowing document. Until per-step parameters are available, this adapter
+ * retains its established /0 default; the resolver also supports RFC 6901 root pointers.
  */
 const DEFAULT_POINTER = '/0';
 

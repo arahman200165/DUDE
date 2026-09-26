@@ -1,3 +1,6 @@
+// The official MessagePack specification documents format families and first-byte
+// layouts, but publishes no complete byte-sequence/decoded-value examples. Keep
+// round-trip coverage separate; no known-answer vector is claimed in the manifest.
 import { encode } from '@msgpack/msgpack';
 import { decodeMsgpack } from './msgpack-decode';
 

@@ -10,8 +10,9 @@ export const manifest: ToolDefinition = {
   load: () => import('./json-pointer').then((m) => m.JsonPointer),
   status: 'verified',
   verification: {
+    vectors: ['RFC 6901 section 5 JSON Pointer examples, including the empty pointer, empty key, and escaped tokens'],
     propertyTested: true,
-    summary: 'Property-tested with fast-check using fuzz checks against arbitrary valid or malformed input.',
+    summary: 'RFC 6901 section 5 vectors plus fast-check fuzzing of valid and malformed pointers.',
   },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },

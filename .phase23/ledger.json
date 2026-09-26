@@ -987,7 +987,7 @@
     "status": "verified",
     "recipe": "FUZZ",
     "milestone": 376,
-    "notes": ""
+    "notes": "flagged: public behavior change; RFC 6901 empty pointer now resolves the whole JSON document instead of returning an input error."
   },
   {
     "id": "json-query",

@@ -10,6 +10,7 @@ export const manifest: ToolDefinition = {
   load: () => import('./json-patch-test').then((m) => m.JsonPatchTest),
   status: 'verified',
   verification: {
+    vectors: ['RFC 6902 Appendix A.1, A.2, A.14, and A.16 examples'],
     propertyTested: true,
     summary: 'Property-tested with fast-check using core-only fuzz checks against arbitrary valid or malformed input.',
   },

@@ -2,6 +2,16 @@ import { encode } from 'cbor-x';
 import { decodeCbor } from './cbor-decode';
 
 describe('decodeCbor', () => {
+  it('passes literal RFC 8949 Appendix A diagnostic examples', () => {
+    expect(decodeCbor(Uint8Array.of(0x00))).toEqual({ ok: true, value: 0 });
+    expect(decodeCbor(Uint8Array.of(0x18, 0x18))).toEqual({ ok: true, value: 24 });
+    expect(decodeCbor(Uint8Array.of(0x83, 0x01, 0x02, 0x03))).toEqual({ ok: true, value: [1, 2, 3] });
+    expect(decodeCbor(Uint8Array.of(0xa2, 0x01, 0x02, 0x03, 0x04))).toEqual({ ok: true, value: { '1': 2, '3': 4 } });
+    expect(decodeCbor(Uint8Array.of(0x82, 0x61, 0x61, 0xa1, 0x61, 0x62, 0x61, 0x63))).toEqual({
+      ok: true,
+      value: ['a', { b: 'c' }],
+    });
+  });
   it('decodes an encoded plain object', () => {
     const bytes = encode({ a: 1, b: 'hello' });
 

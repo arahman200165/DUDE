@@ -1,6 +1,33 @@
 import { testJsonPatch } from './json-patch-test-transform';
 
 describe('testJsonPatch', () => {
+  it('passes RFC 6902 Appendix A.1 object-add example', () => {
+    expect(testJsonPatch('{"foo":"bar"}', '[{"op":"add","path":"/baz","value":"qux"}]')).toEqual({
+      ok: true,
+      output: '{\n  "foo": "bar",\n  "baz": "qux"\n}',
+    });
+  });
+
+  it('passes RFC 6902 Appendix A.2 array-add example', () => {
+    expect(testJsonPatch('{"foo":["bar","baz"]}', '[{"op":"add","path":"/foo/1","value":"qux"}]')).toEqual({
+      ok: true,
+      output: '{\n  "foo": [\n    "bar",\n    "qux",\n    "baz"\n  ]\n}',
+    });
+  });
+
+  it('passes RFC 6902 Appendix A.14 tilde escape ordering test', () => {
+    expect(testJsonPatch('{"/":9,"~1":10}', '[{"op":"test","path":"/~01","value":10}]')).toEqual({
+      ok: true,
+      output: '{\n  "/": 9,\n  "~1": 10\n}',
+    });
+  });
+
+  it('passes RFC 6902 Appendix A.16 array append example', () => {
+    expect(testJsonPatch('{"foo":["bar"]}', '[{"op":"add","path":"/foo/-","value":["abc","def"]}]')).toEqual({
+      ok: true,
+      output: '{\n  "foo": [\n    "bar",\n    [\n      "abc",\n      "def"\n    ]\n  ]\n}',
+    });
+  });
   it('applies a replace operation', () => {
     const result = testJsonPatch('{"a":1}', '[{"op":"replace","path":"/a","value":2}]');
 

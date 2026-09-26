@@ -10,6 +10,7 @@ export const manifest: ToolDefinition = {
   load: () => import('./cbor-viewer').then((m) => m.CborViewer),
   status: 'verified',
   verification: {
+    vectors: ['RFC 8949 Appendix A Table 6 integer, array, map, and nested-value encodings'],
     propertyTested: true,
     summary: 'Property-tested with fast-check via the shared harness for arbitrary inputs and tool-specific invariants.',
   },
