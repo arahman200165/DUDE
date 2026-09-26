@@ -7,4 +7,5 @@ export type UnifiedRecentEntry =
   | { readonly kind: 'tool'; readonly toolId: string; readonly title: string; readonly at: string }
   | { readonly kind: 'pipeline'; readonly pipelineId: string; readonly title: string; readonly at: string }
   | { readonly kind: 'workspace-tab'; readonly toolId: string; readonly title: string; readonly at: string }
-  | { readonly kind: 'history'; readonly entryId: string; readonly toolId: string; readonly title: string; readonly at: string };
+  | { readonly kind: 'history'; readonly entryId: string; readonly toolId: string; readonly title: string; readonly at: string }
+  | { readonly kind: 'native-file'; readonly path: string; readonly title: string; readonly at: string };

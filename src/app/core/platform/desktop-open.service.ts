@@ -5,7 +5,7 @@ import { OnboardingService } from './onboarding.service';
 import { ToolRegistryService } from '../registry/tool-registry.service';
 import { writeStorageValue } from '../workspace/workspace-storage-bridge';
 import { NativeRecentsService } from '../native-recents/native-recents.service';
-import type { DesktopOpenItem } from './electron-bridge';
+import type { DesktopOpenItem, VoidResult } from './electron-bridge';
 
 @Injectable({ providedIn: 'root' })
 export class DesktopOpenService {
@@ -32,6 +32,15 @@ export class DesktopOpenService {
     const item = this.directory();
     this.directory.set(null);
     return item;
+  }
+
+  /** Native File Recent List "reopen" (DUDE_PRD.md §21 Phase 25 Item 5) -- re-resolves the file from
+   *  disk through the same bounded path a fresh Explorer-association open already takes; the result
+   *  arrives back through the ordinary `onItem` queue this service already flushes, never a cached
+   *  snapshot. */
+  async reopen(path: string): Promise<VoidResult> {
+    if (!this.platform.isDesktop()) return { ok: false, error: 'not-supported' };
+    return window.dude!.open.reopen(path);
   }
 
   private async flush(): Promise<void> {

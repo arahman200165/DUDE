@@ -4,6 +4,7 @@ import { ToolRegistryService } from '../registry/tool-registry.service';
 import { PipelineStoreService } from '../pipeline/pipeline-store.service';
 import { WorkspaceLayoutService } from '../workspace/workspace-layout.service';
 import { HistoryService } from '../history/history.service';
+import { NativeRecentsService } from '../native-recents/native-recents.service';
 import { UnifiedRecentEntry } from './unified-recents.model';
 import { mergeUnifiedRecents } from './unified-recents';
 
@@ -21,6 +22,7 @@ export class UnifiedRecentsService {
   private readonly pipelineStore = inject(PipelineStoreService);
   private readonly workspaceLayout = inject(WorkspaceLayoutService);
   private readonly history = inject(HistoryService);
+  private readonly nativeRecents = inject(NativeRecentsService);
 
   private toolTitle(toolId: string): string {
     return this.registry.getById(toolId)?.title ?? toolId;
@@ -48,6 +50,10 @@ export class UnifiedRecentsService {
       .recent()
       .map((e) => ({ kind: 'history' as const, entryId: e.id, toolId: e.toolId, title: this.toolTitle(e.toolId), at: e.createdAt }));
 
-    return mergeUnifiedRecents(toolEntries, pipelineEntries, workspaceEntries, historyEntries);
+    const nativeFileEntries: UnifiedRecentEntry[] = this.nativeRecents
+      .entries()
+      .map((e) => ({ kind: 'native-file' as const, path: e.path, title: e.name, at: e.openedAt }));
+
+    return mergeUnifiedRecents(toolEntries, pipelineEntries, workspaceEntries, historyEntries, nativeFileEntries);
   });
 }

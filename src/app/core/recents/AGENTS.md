@@ -3,15 +3,17 @@
 Framework layer for Unified Recents (`DUDE_PRD.md` §21 Phase 24 Item 13). Like the rest of `core/`,
 no file here ever names a specific tool by id.
 
-## A derived view, never a fifth source of truth
+## A derived view, never a redundant source of truth
 
-`UnifiedRecentsService` reads `UsageService`, `PipelineStoreService`, `WorkspaceLayoutService`, and
-`HistoryService` and merges them — it never records anything itself. This is deliberate: it's what
-lets "opened JWT Debugger" (from `UsageService`'s uniform, content-free, all-277-tools log) sit
-alongside a real content entry only for tools that separately opted into History
-(`historyEligible: true`), without conflating the two very different eligibility rules those two
-services already enforce. If a new activity source is ever added, extend `mergeUnifiedRecents`'s
-inputs here — never add a second recording call site.
+`UnifiedRecentsService` reads `UsageService`, `PipelineStoreService`, `WorkspaceLayoutService`,
+`HistoryService`, and (Phase 25 Item 5) `NativeRecentsService`, and merges them — it never records
+anything itself. This is deliberate: it's what lets "opened JWT Debugger" (from `UsageService`'s
+uniform, content-free, all-277-tools log) sit alongside a real content entry only for tools that
+separately opted into History (`historyEligible: true`), without conflating the two very different
+eligibility rules those two services already enforce. If a new activity source is ever added, extend
+`mergeUnifiedRecents`'s inputs here — never add a second recording call site. `NativeRecentsService`
+was a legitimate fifth input, not a violation of this rule, because a native-file open was genuinely
+new activity nothing else recorded — see `core/native-recents/AGENTS.md`.
 
 ## Why "workspace-tab" entries use the current time, not a real timestamp
 

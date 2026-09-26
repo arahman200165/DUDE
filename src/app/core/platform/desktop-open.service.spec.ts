@@ -28,6 +28,7 @@ describe('DesktopOpenService', () => {
           pickFile: async () => ({ canceled: true }),
           getPathForFile: () => '',
           enqueuePath: async () => ({ ok: true }),
+          reopen: async () => ({ ok: true }),
           onItem: (callback) => {
             deliver = callback;
             return () => {};
@@ -72,5 +73,19 @@ describe('DesktopOpenService', () => {
     await stable();
 
     expect(nativeRecents.entries()).toEqual([]);
+  });
+
+  it('reopen() calls through to the bridge on desktop and no-ops on web', async () => {
+    const { service } = withBridge();
+    const reopenSpy = vi.spyOn(window.dude!.open, 'reopen');
+
+    expect(await service.reopen('C:/notes.md')).toEqual({ ok: true });
+    expect(reopenSpy).toHaveBeenCalledWith('C:/notes.md');
+
+    Object.defineProperty(window, 'dude', { value: undefined, configurable: true });
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
+    const webService = TestBed.inject(DesktopOpenService);
+    expect(await webService.reopen('C:/notes.md')).toEqual({ ok: false, error: 'not-supported' });
   });
 });

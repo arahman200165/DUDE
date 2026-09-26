@@ -5,6 +5,7 @@ import { UnifiedRecentsService } from '../../../core/recents/unified-recents.ser
 import { ToolRegistryService } from '../../../core/registry/tool-registry.service';
 import { ToolLauncherService } from '../../../core/registry/tool-launcher.service';
 import { HistoryHandoffService } from '../../../core/history/history-handoff.service';
+import { DesktopOpenService } from '../../../core/platform/desktop-open.service';
 import { UnifiedRecentEntry } from '../../../core/recents/unified-recents.model';
 
 const KIND_LABELS: Record<UnifiedRecentEntry['kind'], string> = {
@@ -12,6 +13,7 @@ const KIND_LABELS: Record<UnifiedRecentEntry['kind'], string> = {
   pipeline: 'Pipeline',
   'workspace-tab': 'Open in Workspace',
   history: 'History',
+  'native-file': 'Native File',
 };
 
 /**
@@ -29,6 +31,7 @@ export class RecentsTab {
   private readonly registry = inject(ToolRegistryService);
   private readonly launcher = inject(ToolLauncherService);
   private readonly historyHandoff = inject(HistoryHandoffService);
+  private readonly desktopOpen = inject(DesktopOpenService);
   private readonly router = inject(Router);
 
   protected readonly entries = this.recents.entries;
@@ -43,6 +46,8 @@ export class RecentsTab {
         return `${entry.kind}:${entry.pipelineId}`;
       case 'history':
         return `${entry.kind}:${entry.entryId}`;
+      case 'native-file':
+        return `${entry.kind}:${entry.path}`;
     }
   }
 
@@ -59,6 +64,9 @@ export class RecentsTab {
         return;
       case 'history':
         await this.historyHandoff.open(entry.entryId);
+        return;
+      case 'native-file':
+        await this.desktopOpen.reopen(entry.path);
     }
   }
 }

@@ -79,7 +79,7 @@ describe('GlobalDropRouter', () => {
   it('sends an Explorer directory through the checked native path bridge', async () => {
     const enqueuePath = vi.fn().mockResolvedValue({ ok: true });
     Object.defineProperty(window, 'dude', { value: fakeElectronBridge({
-      open: { ready: () => {}, pickFile: async () => ({ canceled: true }), onItem: () => () => {}, getPathForFile: () => 'C:\\Dropped', enqueuePath },
+      open: { ready: () => {}, pickFile: async () => ({ canceled: true }), onItem: () => () => {}, getPathForFile: () => 'C:\\Dropped', enqueuePath, reopen: async () => ({ ok: true }) },
     }), configurable: true });
     TestBed.configureTestingModule({ providers: [
       { provide: PlatformService, useValue: { isDesktop: () => true } },

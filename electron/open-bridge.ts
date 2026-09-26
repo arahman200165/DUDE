@@ -69,6 +69,14 @@ export function registerOpenHandlers(window: BrowserWindow): void {
       return { ok: true };
     } catch { return { ok: false, error: 'directory-unavailable' }; }
   });
+  /** Native File Recent List "reopen" (Phase 25 Item 5) -- re-resolves from disk through the same
+   *  bounded `enqueueOpenPath` path every fresh open already takes; never replays cached content. */
+  ipcMain.handle('dude:open:reopen', async (event, value: unknown) => {
+    if (event.sender !== window.webContents) return { ok: false, error: 'unauthorized' };
+    if (typeof value !== 'string' || !value || value.length > 4096 || !isAbsolute(value)) return { ok: false, error: 'invalid-path' };
+    await enqueueOpenPath(value);
+    return { ok: true };
+  });
   window.webContents.on('did-start-loading', () => { rendererReady = false; });
   window.on('closed', () => { receiver = null; rendererReady = false; });
   ipcMain.handle('dude:preferences:setupRequest', async () => {

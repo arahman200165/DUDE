@@ -12,6 +12,8 @@ function keyOf(entry: UnifiedRecentEntry): string {
       return `workspace-tab:${entry.toolId}`;
     case 'history':
       return `history:${entry.entryId}`;
+    case 'native-file':
+      return `native-file:${entry.path}`;
   }
 }
 

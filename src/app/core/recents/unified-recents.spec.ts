@@ -14,6 +14,10 @@ function historyEntry(entryId: string, toolId: string, at: string): UnifiedRecen
   return { kind: 'history', entryId, toolId, title: toolId, at };
 }
 
+function nativeFile(path: string, at: string): UnifiedRecentEntry {
+  return { kind: 'native-file', path, title: path, at };
+}
+
 describe('mergeUnifiedRecents', () => {
   it('merges and sorts entries from multiple sources, most recent first', () => {
     const result = mergeUnifiedRecents(
@@ -55,5 +59,15 @@ describe('mergeUnifiedRecents', () => {
 
   it('returns an empty array for no sources', () => {
     expect(mergeUnifiedRecents()).toEqual([]);
+  });
+
+  it('dedupes a repeated native-file open by path, keeping the most recent', () => {
+    const result = mergeUnifiedRecents([
+      nativeFile('C:/notes.md', '2026-01-01T00:00:00.000Z'),
+      nativeFile('C:/notes.md', '2026-01-05T00:00:00.000Z'),
+    ]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].at).toBe('2026-01-05T00:00:00.000Z');
   });
 });

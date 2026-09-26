@@ -3,6 +3,8 @@ import { Router } from '@angular/router';
 import { vi } from 'vitest';
 import { RecentsTab } from './recents-tab';
 import { UsageService } from '../../../core/usage/usage.service';
+import { NativeRecentsService } from '../../../core/native-recents/native-recents.service';
+import { DesktopOpenService } from '../../../core/platform/desktop-open.service';
 import { TOOL_DEFINITIONS } from '../../../core/registry/tool-definitions';
 
 class FakeRouter {
@@ -50,5 +52,21 @@ describe('RecentsTab', () => {
     button.click();
 
     expect(router.navigateByUrl).toHaveBeenCalledWith(TOOL_DEFINITIONS[0].route);
+  });
+
+  it('shows a native-file entry and reopens it through DesktopOpenService on click', () => {
+    TestBed.inject(NativeRecentsService).record({ path: 'C:/notes.md', name: 'notes.md', extension: '.md', openedAt: '2026-01-01T00:00:00.000Z' });
+    const reopenSpy = vi.spyOn(TestBed.inject(DesktopOpenService), 'reopen').mockResolvedValue({ ok: true });
+
+    const fixture = TestBed.createComponent(RecentsTab);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('notes.md');
+    expect(fixture.nativeElement.textContent).toContain('Native File');
+
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector('button');
+    button.click();
+
+    expect(reopenSpy).toHaveBeenCalledWith('C:/notes.md');
   });
 });

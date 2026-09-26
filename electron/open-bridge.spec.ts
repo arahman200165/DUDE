@@ -33,3 +33,13 @@ describe('dropped directory path IPC', () => {
   });
 });
 
+describe('native recents "reopen" IPC', () => {
+  it('accepts only a checked absolute path from the current renderer', async () => {
+    const webContents = { on: vi.fn(), send: vi.fn() };
+    registerOpenHandlers({ webContents, on: vi.fn(), isDestroyed: () => false } as never);
+    const reopen = mock.handles.get('dude:open:reopen')!;
+    expect(await reopen({ sender: {} }, 'C:\\notes.md')).toEqual({ ok: false, error: 'unauthorized' });
+    expect(await reopen({ sender: webContents }, 'relative/path')).toEqual({ ok: false, error: 'invalid-path' });
+  });
+});
+

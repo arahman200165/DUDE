@@ -6,6 +6,7 @@ import { UnifiedRecentEntry } from './unified-recents.model';
 import { ToolRegistryService } from '../registry/tool-registry.service';
 import { ToolLauncherService } from '../registry/tool-launcher.service';
 import { HistoryHandoffService } from '../history/history-handoff.service';
+import { DesktopOpenService } from '../platform/desktop-open.service';
 
 const RECENTS_COMMAND_LIMIT = 10;
 
@@ -22,6 +23,7 @@ export class RecentsCommandSource implements CommandSource {
   private readonly registry = inject(ToolRegistryService);
   private readonly launcher = inject(ToolLauncherService);
   private readonly historyHandoff = inject(HistoryHandoffService);
+  private readonly desktopOpen = inject(DesktopOpenService);
   private readonly router = inject(Router);
 
   commands(): readonly PaletteCommand[] {
@@ -45,6 +47,8 @@ export class RecentsCommandSource implements CommandSource {
         return entry.pipelineId;
       case 'history':
         return entry.entryId;
+      case 'native-file':
+        return entry.path;
     }
   }
 
@@ -61,6 +65,9 @@ export class RecentsCommandSource implements CommandSource {
         return;
       case 'history':
         await this.historyHandoff.open(entry.entryId);
+        return;
+      case 'native-file':
+        await this.desktopOpen.reopen(entry.path);
     }
   }
 }
