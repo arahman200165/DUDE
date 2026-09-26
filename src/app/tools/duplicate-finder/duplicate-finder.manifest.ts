@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['duplicate', 'dedupe', 'lines', 'words', 'unique', 'remove duplicates'],
   route: '/tools/duplicate-finder',
   load: () => import('./duplicate-finder').then((m) => m.DuplicateFinder),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): removeDuplicateLines never grows the line count, is idempotent, and its output always passes findDuplicateLines with zero duplicates left.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['json', 'text'] },
 };

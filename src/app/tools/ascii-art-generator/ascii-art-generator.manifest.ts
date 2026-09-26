@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['ascii art', 'banner', 'figlet', 'text art', 'font'],
   route: '/tools/ascii-art-generator',
   load: () => import('./ascii-art-generator').then((m) => m.AsciiArtGenerator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested (fast-check) against renderAsciiArt: never throws for any curated font, is deterministic for a given text/font, and renders non-blank text as non-empty multi-line output across the whole font list.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

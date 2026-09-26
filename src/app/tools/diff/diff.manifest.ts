@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['diff', 'compare', 'text', 'changes', 'delta'],
   route: '/tools/diff',
   load: () => import('./diff').then((m) => m.Diff),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check) against computeLineDiff: never throws, summary counts always match the diff-line count, and identical text always diffs as all-equal.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'required' },
   io: { accepts: ['text'], produces: ['json'] },

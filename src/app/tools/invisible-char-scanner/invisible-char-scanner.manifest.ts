@@ -10,7 +10,11 @@ export const manifest: ToolDefinition = {
   keywords: ['invisible', 'zero-width', 'control character', 'c0', 'c1', 'scan', 'hidden', 'strip'],
   route: '/tools/invisible-char-scanner',
   load: () => import('./invisible-char-scanner').then((m) => m.InvisibleCharScanner),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): scanInvisibleChars/stripInvisibleChars never throw, and stripping every kind leaves no invisible characters for scanInvisibleChars to find.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['json'] },
 };

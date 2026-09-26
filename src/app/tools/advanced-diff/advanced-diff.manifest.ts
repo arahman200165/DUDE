@@ -32,7 +32,12 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/advanced-diff',
   load: () => import('./advanced-diff').then((m) => m.AdvancedDiff),
-  status: 'experimental',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary:
+      'Fuzz-tested (fast-check) against the pure diff-normalize/unified-diff core, plus an invariant proving hunk resolution reconstructs the exact original left/right text from the diff-hunks core.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'required' },
   io: { accepts: ['text', 'file'], produces: ['json', 'text', 'file'] },

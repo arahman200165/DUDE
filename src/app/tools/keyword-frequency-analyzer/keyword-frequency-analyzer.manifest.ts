@@ -10,7 +10,11 @@ export const manifest: ToolDefinition = {
   keywords: ['keyword', 'frequency', 'word count', 'stop words', 'analysis', 'tf'],
   route: '/tools/keyword-frequency-analyzer',
   load: () => import('./keyword-frequency-analyzer').then((m) => m.KeywordFrequencyAnalyzer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check) against computeKeywordFrequency: never throws, every entry meets the minimum length with a count of at least 1, and results are sorted by descending count.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['table'] },
 };

@@ -20,7 +20,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/line-prefix-numbering',
   load: () => import('./line-prefix-numbering').then((m) => m.LinePrefixNumbering),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip-tested (fast-check): removeLineNumbers(addLineNumbers(text)) recovers the original lines for recognized separators, plus fuzzing that the per-line transforms never throw.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

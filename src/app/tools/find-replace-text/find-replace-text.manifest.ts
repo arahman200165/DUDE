@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['find', 'replace', 'search', 'literal', 'case sensitive', 'whole word'],
   route: '/tools/find-replace-text',
   load: () => import('./find-replace-text').then((m) => m.FindReplaceText),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check) against findReplace: never throws, an empty search term is always a no-op, and matchCount is zero exactly when the output is unchanged.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

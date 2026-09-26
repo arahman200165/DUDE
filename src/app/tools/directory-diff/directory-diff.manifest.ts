@@ -10,7 +10,11 @@ export const manifest: ToolDefinition = {
   keywords: ['directory', 'folder', 'diff', 'compare', 'binary diff', 'hex', 'files'],
   route: '/tools/directory-diff',
   load: () => import('./directory-diff').then((m) => m.DirectoryDiff),
-  status: 'experimental',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check) against the pure diffDirectoryPayload core: never throws/rejects for arbitrary file lists, and diffing a payload against an identical copy of itself reports every entry as unchanged.',
+  },
   persistence: { input: 'none', preferences: 'none' },
   execution: { worker: 'required' },
   io: { accepts: ['file'], produces: ['json'] },

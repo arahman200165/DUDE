@@ -16,7 +16,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/case-converter',
   load: () => import('./case-converter').then((m) => m.CaseConverter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip-tested (fast-check): tokenize(convertCase(words, style)) recovers the original word list for every style but alternating, plus fuzzing that convertCase never throws.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };
