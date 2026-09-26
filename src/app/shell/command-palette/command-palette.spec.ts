@@ -3,6 +3,8 @@ import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { OverlayContainer } from '@angular/cdk/overlay';
 import { routes } from '../../core/routing/app.routes';
+import { TOOL_DEFINITIONS } from '../../core/registry/tool-definitions';
+import { TOOL_CATEGORIES } from '../../shared/models/tool-category.model';
 import { CommandPaletteService } from './command-palette.service';
 
 describe('CommandPalette', () => {
@@ -62,7 +64,16 @@ describe('CommandPalette', () => {
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     await stable();
 
-    expect(navigateSpy).toHaveBeenCalledWith('/tools/json');
+    // With an empty query the palette's default order is TOOL_DEFINITIONS' registration
+    // order grouped by category (TOOL_CATEGORIES order) — compute the expected first result
+    // the same way instead of hard-coding a tool id, which shifts whenever the (now
+    // alphabetically-generated, per Phase 22) registry order does.
+    const firstCategoryWithTools = TOOL_CATEGORIES.find((category) =>
+      TOOL_DEFINITIONS.some((tool) => tool.category === category),
+    )!;
+    const expectedFirstTool = TOOL_DEFINITIONS.find((tool) => tool.category === firstCategoryWithTools)!;
+
+    expect(navigateSpy).toHaveBeenCalledWith(expectedFirstTool.route);
     expect(document.querySelector('input')).toBeNull();
   });
 

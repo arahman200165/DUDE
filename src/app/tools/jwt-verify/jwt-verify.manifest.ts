@@ -1,0 +1,35 @@
+import type { ToolDefinition } from '../../shared/models/tool-definition.model';
+
+export const manifest: ToolDefinition = {
+  id: 'jwt-verify',
+  title: 'JWT Signature Verifier',
+  shortTitle: 'JWT Verify',
+  description:
+    'Verify a JWT signature locally against a shared secret or public key, or a fetched JWKS — with named presets for Auth0, Okta, Azure AD, and Google.',
+  category: 'security',
+  keywords: [
+    'jwt',
+    'verify',
+    'signature',
+    'jwk',
+    'jwks',
+    'hmac',
+    'rsa',
+    'ecdsa',
+    'ps256',
+    'auth',
+    'token',
+    'oidc',
+    'auth0',
+    'okta',
+    'azure ad',
+    'entra',
+    'google',
+  ],
+  route: '/tools/jwt-verify',
+  load: () => import('./jwt-verify').then((m) => m.JwtVerify),
+  status: 'experimental',
+  persistence: { input: 'none', preferences: 'local' },
+  network: { required: true, detail: 'JWKS / OIDC discovery' },
+  io: { accepts: ['text', 'url'], produces: ['json'] },
+};

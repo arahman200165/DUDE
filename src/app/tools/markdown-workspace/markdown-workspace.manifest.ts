@@ -1,0 +1,36 @@
+import type { ToolDefinition } from '../../shared/models/tool-definition.model';
+
+export const manifest: ToolDefinition = {
+  id: 'markdown-workspace',
+  desktopOpen: { extensions: ['.md'], inputKey: 'source' },
+  title: 'Advanced Markdown Workspace',
+  shortTitle: 'Markdown Workspace',
+  description:
+    'Markdown editor with GFM tables/task lists, front matter, table of contents, synced preview, style presets/custom CSS, and a sandboxed plugin API.',
+  category: 'documents',
+  keywords: [
+    'markdown',
+    'gfm',
+    'front matter',
+    'yaml',
+    'toc',
+    'table of contents',
+    'word count',
+    'tables',
+    'task list',
+    'theme',
+    'style',
+    'custom css',
+    'plugin',
+  ],
+  route: '/tools/markdown-workspace',
+  load: () => import('./markdown-workspace').then((m) => m.MarkdownWorkspace),
+  status: 'experimental',
+  persistence: { input: 'session', preferences: 'local' },
+  execution: { worker: 'optional' },
+  network: {
+    required: true,
+    detail: 'Link Checker: HEAD/GET per link, manual "Check links" button only',
+  },
+  io: { accepts: ['text'], produces: ['text', 'file'] },
+};

@@ -1,0 +1,27 @@
+import type { ToolDefinition } from '../../shared/models/tool-definition.model';
+
+export const manifest: ToolDefinition = {
+  id: 'chacha20-poly1305',
+  title: 'ChaCha20-Poly1305 Encrypt / Decrypt',
+  shortTitle: 'ChaCha20-Poly1305',
+  description:
+    'Encrypts or decrypts text with ChaCha20-Poly1305 or XChaCha20-Poly1305, using a passphrase-derived (PBKDF2) key.',
+  category: 'security',
+  keywords: [
+    'chacha20',
+    'poly1305',
+    'xchacha20',
+    'encrypt',
+    'decrypt',
+    'aead',
+    'pbkdf2',
+    'cipher',
+    'rfc 8439',
+  ],
+  route: '/tools/chacha20-poly1305',
+  load: () => import('./chacha20-poly1305').then((m) => m.Chacha20Poly1305),
+  status: 'stable',
+  persistence: { input: 'none', preferences: 'local' },
+  execution: { worker: 'optional' },
+  io: { accepts: ['text'], produces: ['text'] },
+};
