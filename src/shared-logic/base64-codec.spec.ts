@@ -2,6 +2,23 @@ import fc from 'fast-check';
 import { decodeBase64, encodeBase64 } from './base64-codec';
 
 describe('encodeBase64', () => {
+  it('matches the RFC 4648 section 10 Base64 test vectors', () => {
+    const vectors = [
+      ['', ''],
+      ['f', 'Zg=='],
+      ['fo', 'Zm8='],
+      ['foo', 'Zm9v'],
+      ['foob', 'Zm9vYg=='],
+      ['fooba', 'Zm9vYmE='],
+      ['foobar', 'Zm9vYmFy'],
+    ] as const;
+
+    for (const [input, expected] of vectors) {
+      expect(encodeBase64(input)).toEqual({ ok: true, value: expected });
+      expect(decodeBase64(expected)).toEqual({ ok: true, value: input });
+    }
+  });
+
   it('encodes plain ASCII text', () => {
     expect(encodeBase64('hello')).toEqual({ ok: true, value: 'aGVsbG8=' });
   });

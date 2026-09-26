@@ -2,6 +2,16 @@ import fc from 'fast-check';
 import { decodeUrl, encodeUrl } from './url-encode-codec';
 
 describe('encodeUrl', () => {
+  it('matches the RFC 2397 section 4 percent-escaped data URL example', () => {
+    expect(encodeUrl('data:,A brief note', 'full')).toEqual({
+      ok: true,
+      value: 'data:,A%20brief%20note',
+    });
+    expect(decodeUrl('data:,A%20brief%20note', 'full')).toEqual({
+      ok: true,
+      value: 'data:,A brief note',
+    });
+  });
   it('component mode escapes reserved characters like & and /', () => {
     expect(encodeUrl('a b&c/d', 'component')).toEqual({ ok: true, value: 'a%20b%26c%2Fd' });
   });

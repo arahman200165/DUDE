@@ -10,6 +10,7 @@ export const manifest: ToolDefinition = {
   load: () => import('./base64').then((m) => m.Base64Tool),
   status: 'verified',
   verification: {
+    vectors: ['RFC 4648 Section 10 Base64 test vectors'],
     propertyTested: true,
     summary: 'Round-trip and fuzz-tested (fast-check) against arbitrary Unicode text via the shared UTF-8-safe base64-codec.',
   },

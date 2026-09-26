@@ -10,6 +10,7 @@ export const manifest: ToolDefinition = {
   load: () => import('./url-encode').then((m) => m.UrlEncode),
   status: 'verified',
   verification: {
+    vectors: ['RFC 2397 Section 4 percent-escaped data URL example'],
     propertyTested: true,
     summary: 'Round-trip and fuzz-tested (fast-check) against arbitrary Unicode text, in both component and full variants.',
   },

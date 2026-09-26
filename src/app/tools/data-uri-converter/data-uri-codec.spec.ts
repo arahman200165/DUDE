@@ -14,6 +14,11 @@ describe('generateDataUri', () => {
 });
 
 describe('decodeDataUri', () => {
+  it('decodes the RFC 2397 section 4 plain-text data URL example', () => {
+    const decoded = decodeDataUri('data:,A%20brief%20note');
+    expect(decoded.ok && decoded.mimeType).toBe('text/plain');
+    expect(decoded.ok && new TextDecoder().decode(decoded.bytes)).toBe('A brief note');
+  });
   it('round-trips a generated base64 data URI', () => {
     const bytes = new TextEncoder().encode('café, 42 bytes-ish');
     const uri = generateDataUri(bytes, 'text/plain');

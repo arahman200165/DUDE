@@ -11,6 +11,7 @@ export const manifest: ToolDefinition = {
   load: () => import('./data-uri-converter').then((m) => m.DataUriConverter),
   status: 'verified',
   verification: {
+    vectors: ['RFC 2397 Section 4 plain-text data URL example'],
     propertyTested: true,
     summary: 'Round-trip and fuzz-tested (fast-check) against arbitrary bytes and MIME types (RFC 2397).',
   },

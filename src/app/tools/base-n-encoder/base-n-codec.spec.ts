@@ -32,6 +32,33 @@ describe('Base85 known vector', () => {
   });
 });
 
+describe('RFC 4648 section 10 known vectors', () => {
+  it('matches the published Base16 and Base32 test vectors', () => {
+    const vectors = [
+      ['f', '66', 'MY======'],
+      ['fo', '666F', 'MZXQ===='],
+      ['foo', '666F6F', 'MZXW6==='],
+      ['foob', '666F6F62', 'MZXW6YQ='],
+      ['fooba', '666F6F6261', 'MZXW6YTB'],
+      ['foobar', '666F6F626172', 'MZXW6YTBOI======'],
+    ] as const;
+
+    for (const [input, base16, base32] of vectors) {
+      const bytes = new TextEncoder().encode(input);
+      // RFC 4648 defines Base16 as case-insensitive; this codec emits lowercase.
+      expect(encodeBytes(bytes, 'base16').toUpperCase()).toBe(base16);
+      expect(encodeBytes(bytes, 'base32')).toBe(base32);
+      const decoded16 = decodeToBytes(base16, 'base16');
+      const decoded32 = decodeToBytes(base32, 'base32');
+      expect(decoded16.ok && Array.from(decoded16.value)).toEqual(Array.from(bytes));
+      expect(decoded32.ok && Array.from(decoded32.value)).toEqual(Array.from(bytes));
+    }
+  });
+});
+
+// RFC 4648 does not publish vectors for this tool's Binary, Base36, Base58,
+// Base62, Base85/ASCII85, or basE91 modes. Base32-HEX is also unsupported.
+
 describe('error handling', () => {
   it('rejects invalid characters per mode', () => {
     expect(decodeToBytes('zz', 'base16').ok).toBe(false);

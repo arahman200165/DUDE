@@ -24,6 +24,7 @@ export const manifest: ToolDefinition = {
   load: () => import('./uuid').then((m) => m.Uuid),
   status: 'verified',
   verification: {
+    vectors: ['RFC 9562 Appendix A UUIDv1/v3/v4/v5/v6/v7 vectors'],
     propertyTested: true,
     summary: 'Generator-tested (fast-check): generated UUID versions validate; v5 generation is deterministic for fixed namespace/name inputs.',
   },
