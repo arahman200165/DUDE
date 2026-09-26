@@ -23,7 +23,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/oauth-playground',
   load: () => import('./oauth-playground').then((m) => m.OAuthPlayground),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Callback URL/device-response/token-response inspection is fuzz-tested with arbitrary text (fast-check) -- never throws.',
+  },
   consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text', 'url'], produces: ['url', 'json'] },

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import fc from 'fast-check';
 import {
   buildAuthorizationCodeRequest,
   buildDeviceAuthorizationRequest,
@@ -191,5 +192,31 @@ describe('PKCE helpers', () => {
   it('computes a deterministic S256 challenge for a known verifier', async () => {
     const challenge = await computePkceChallenge('dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk');
     expect(challenge).toBe('E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM');
+  });
+});
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  it('inspectAuthorizationCallback never throws for arbitrary text', () => {
+    fc.assert(
+      fc.property(fc.string(), (input) => {
+        expect(() => inspectAuthorizationCallback(input)).not.toThrow();
+      }),
+    );
+  });
+
+  it('inspectDeviceAuthorizationResponse never throws for arbitrary text', () => {
+    fc.assert(
+      fc.property(fc.string(), (input) => {
+        expect(() => inspectDeviceAuthorizationResponse(input)).not.toThrow();
+      }),
+    );
+  });
+
+  it('inspectTokenResponse never throws for arbitrary text', () => {
+    fc.assert(
+      fc.property(fc.string(), (input) => {
+        expect(() => inspectTokenResponse(input)).not.toThrow();
+      }),
+    );
   });
 });
