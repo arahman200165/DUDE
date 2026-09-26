@@ -11,6 +11,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/html-preview',
   load: () => import('./html-preview').then((m) => m.HtmlPreview),
   status: 'experimental',
+  consequenceClass: ['code-execution'],
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'none' },
   network: { required: false },

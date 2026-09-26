@@ -10,6 +10,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/pkcs12-inspector',
   load: () => import('./pkcs12-inspector').then((m) => m.Pkcs12Inspector),
   status: 'stable',
+  consequenceClass: ['crypto'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['file'], produces: ['json', 'text'] },
 };

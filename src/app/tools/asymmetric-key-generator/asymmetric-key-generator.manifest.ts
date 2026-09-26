@@ -21,6 +21,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/asymmetric-key-generator',
   load: () => import('./asymmetric-key-generator').then((m) => m.AsymmetricKeyGenerator),
   status: 'stable',
+  consequenceClass: ['crypto'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['json'], produces: ['text', 'json'] },
 };

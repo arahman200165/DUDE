@@ -11,6 +11,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/pkce-verifier',
   load: () => import('./pkce-verifier').then((m) => m.PkceVerifier),
   status: 'stable',
+  consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['json'] },
 };

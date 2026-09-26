@@ -23,6 +23,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/jwt-claims-analyzer',
   load: () => import('./jwt-claims-analyzer').then((m) => m.JwtClaimsAnalyzer),
   status: 'stable',
+  consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['json'] },
 };

@@ -9,6 +9,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/jwt',
   load: () => import('./jwt').then((m) => m.Jwt),
   status: 'stable',
+  consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'none' },
   io: { accepts: ['text'], produces: ['json'] },
 };

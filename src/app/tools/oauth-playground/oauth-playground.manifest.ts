@@ -24,6 +24,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/oauth-playground',
   load: () => import('./oauth-playground').then((m) => m.OAuthPlayground),
   status: 'stable',
+  consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text', 'url'], produces: ['url', 'json'] },
 };

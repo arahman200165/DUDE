@@ -18,6 +18,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/pkce-generator',
   load: () => import('./pkce-generator').then((m) => m.PkceGenerator),
   status: 'stable',
+  consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['json'], produces: ['text'] },
 };

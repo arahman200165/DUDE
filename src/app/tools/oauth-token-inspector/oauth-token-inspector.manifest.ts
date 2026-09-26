@@ -19,6 +19,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/oauth-token-inspector',
   load: () => import('./oauth-token-inspector').then((m) => m.OAuthTokenInspector),
   status: 'stable',
+  consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['json'] },
 };

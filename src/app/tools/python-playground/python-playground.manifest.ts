@@ -19,6 +19,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/python-playground',
   load: () => import('./python-playground').then((m) => m.PythonPlayground),
   status: 'experimental',
+  consequenceClass: ['code-execution'],
   persistence: { input: 'user-choice', preferences: 'local' },
   execution: { worker: 'none' },
   network: { required: false },

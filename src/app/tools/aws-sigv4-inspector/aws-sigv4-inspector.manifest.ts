@@ -21,6 +21,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/aws-sigv4-inspector',
   load: () => import('./aws-sigv4-inspector').then((m) => m.AwsSigv4Inspector),
   status: 'stable',
+  consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text', 'json'] },
 };

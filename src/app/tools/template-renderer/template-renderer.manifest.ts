@@ -11,6 +11,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/template-renderer',
   load: () => import('./template-renderer').then((m) => m.TemplateRenderer),
   status: 'experimental',
+  consequenceClass: ['code-execution'],
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'required' },
   network: { required: false },

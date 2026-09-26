@@ -21,6 +21,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/chacha20-poly1305',
   load: () => import('./chacha20-poly1305').then((m) => m.Chacha20Poly1305),
   status: 'stable',
+  consequenceClass: ['crypto'],
   persistence: { input: 'none', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text'], produces: ['text'] },

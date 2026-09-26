@@ -4,6 +4,7 @@ import { TOOL_DEFINITIONS } from './tool-definitions';
 import { TOOL_CATEGORIES } from '../../shared/models/tool-category.model';
 import { DudeDataType } from '../../shared/models/tool-io.model';
 import { PersistencePolicy } from '../../shared/models/persistence-policy.model';
+import { ConsequenceClass } from '../../shared/models/tool-definition.model';
 
 // One authoritative structural-validation pass over the real registry (DUDE_PRD.md §21 Phase
 // 22 Item 3), consolidating what tool-registry.service.spec.ts's validateDefinitions (synthetic
@@ -19,6 +20,17 @@ const VALID_PERSISTENCE_POLICIES: readonly PersistencePolicy[] = [
   'secure-local',
 ];
 const VALID_STATUSES = ['experimental', 'stable', 'verified'];
+const VALID_CONSEQUENCE_CLASSES: readonly ConsequenceClass[] = [
+  'crypto',
+  'authentication',
+  'code-execution',
+  'filesystem-write',
+  'process-management',
+  'registry',
+  'network-scanning',
+  'database-write',
+  'secret-management',
+];
 
 describe('Tool conformance harness', () => {
   it('has at least one registered tool', () => {
@@ -73,6 +85,15 @@ describe('Tool conformance harness', () => {
             definition.verification?.summary,
             `${definition.id} is "verified" but has no verification.summary`,
           ).toBeTruthy();
+        }
+      });
+
+      it('declares valid consequence classes, when present', () => {
+        for (const consequenceClass of definition.consequenceClass ?? []) {
+          expect(
+            VALID_CONSEQUENCE_CLASSES,
+            `${definition.id} declares unknown consequence class "${consequenceClass}"`,
+          ).toContain(consequenceClass);
         }
       });
 

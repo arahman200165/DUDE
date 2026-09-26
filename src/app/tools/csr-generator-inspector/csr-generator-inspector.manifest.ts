@@ -11,6 +11,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/csr-generator-inspector',
   load: () => import('./csr-generator-inspector').then((m) => m.CsrGeneratorInspector),
   status: 'stable',
+  consequenceClass: ['crypto'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text', 'json'] },
 };

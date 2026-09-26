@@ -11,6 +11,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/jwks-viewer',
   load: () => import('./jwks-viewer').then((m) => m.JwksViewer),
   status: 'stable',
+  consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text', 'json'], produces: ['json'] },
 };

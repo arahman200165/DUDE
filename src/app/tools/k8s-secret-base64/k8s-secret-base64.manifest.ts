@@ -11,6 +11,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/k8s-secret-base64',
   load: () => import('./k8s-secret-base64').then((m) => m.K8sSecretBase64),
   status: 'stable',
+  consequenceClass: ['secret-management'],
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

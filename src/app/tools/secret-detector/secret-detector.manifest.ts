@@ -10,6 +10,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/secret-detector',
   load: () => import('./secret-detector').then((m) => m.SecretDetector),
   status: 'stable',
+  consequenceClass: ['secret-management'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text', 'json'] },
 };

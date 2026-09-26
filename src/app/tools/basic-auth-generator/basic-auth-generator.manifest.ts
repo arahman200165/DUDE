@@ -18,6 +18,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/basic-auth-generator',
   load: () => import('./basic-auth-generator').then((m) => m.BasicAuthGenerator),
   status: 'stable',
+  consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

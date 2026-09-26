@@ -22,6 +22,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/x509-certificate-inspector',
   load: () => import('./x509-certificate-inspector').then((m) => m.X509CertificateInspector),
   status: 'stable',
+  consequenceClass: ['crypto'],
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text', 'file'], produces: ['json'] },
 };

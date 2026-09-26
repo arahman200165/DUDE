@@ -21,6 +21,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/http-digest-auth-helper',
   load: () => import('./http-digest-auth-helper').then((m) => m.HttpDigestAuthHelper),
   status: 'stable',
+  consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

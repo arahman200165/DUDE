@@ -11,6 +11,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/bearer-token-builder',
   load: () => import('./bearer-token-builder').then((m) => m.BearerTokenBuilder),
   status: 'stable',
+  consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

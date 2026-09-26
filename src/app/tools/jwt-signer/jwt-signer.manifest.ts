@@ -22,6 +22,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/jwt-signer',
   load: () => import('./jwt-signer').then((m) => m.JwtSigner),
   status: 'experimental',
+  consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['json', 'text'], produces: ['text'] },
 };

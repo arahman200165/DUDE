@@ -11,6 +11,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/aes-encrypt-decrypt',
   load: () => import('./aes-encrypt-decrypt').then((m) => m.AesEncryptDecrypt),
   status: 'stable',
+  consequenceClass: ['crypto'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

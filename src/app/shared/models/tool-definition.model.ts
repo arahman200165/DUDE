@@ -28,6 +28,23 @@ export interface ToolVerificationMetadata {
   readonly summary?: string;
 }
 
+/**
+ * High-Consequence Tool Matrix (DUDE_PRD.md §21 Phase 23 Item 7). `filesystem-write`,
+ * `process-management`, `registry`, `network-scanning`, and `database-write` are reserved now
+ * even though no shipped tool uses them yet, so Phase 27+ native tools tag themselves against a
+ * stable, already-reviewed vocabulary from day one instead of inventing one per phase.
+ */
+export type ConsequenceClass =
+  | 'crypto'
+  | 'authentication'
+  | 'code-execution'
+  | 'filesystem-write'
+  | 'process-management'
+  | 'registry'
+  | 'network-scanning'
+  | 'database-write'
+  | 'secret-management';
+
 export interface ToolDefinition {
   readonly id: string;
   readonly title: string;
@@ -46,4 +63,5 @@ export interface ToolDefinition {
   readonly desktopOpen?: { readonly extensions?: readonly string[]; readonly inputKey?: string; readonly directory?: boolean };
   readonly status?: 'experimental' | 'stable' | 'verified';
   readonly verification?: ToolVerificationMetadata;
+  readonly consequenceClass?: readonly ConsequenceClass[];
 }

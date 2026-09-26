@@ -10,6 +10,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/jwks-to-pem',
   load: () => import('./jwks-to-pem').then((m) => m.JwksToPem),
   status: 'stable',
+  consequenceClass: ['crypto'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text', 'json'], produces: ['text'] },
 };

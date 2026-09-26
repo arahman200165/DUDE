@@ -18,6 +18,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/certificate-chain-tools',
   load: () => import('./certificate-chain-tools').then((m) => m.CertificateChainTools),
   status: 'stable',
+  consequenceClass: ['crypto'],
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['file', 'text'], produces: ['file', 'text', 'json'] },
 };

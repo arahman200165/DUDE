@@ -9,6 +9,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/hash',
   load: () => import('./hash').then((m) => m.Hash),
   status: 'stable',
+  consequenceClass: ['crypto'],
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'required' },
   io: { accepts: ['text'], produces: ['text'] },

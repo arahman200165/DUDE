@@ -21,6 +21,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/pem-der-inspector',
   load: () => import('./pem-der-inspector').then((m) => m.PemDerInspector),
   status: 'stable',
+  consequenceClass: ['crypto'],
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text', 'file'], produces: ['text', 'json'] },
 };

@@ -20,6 +20,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/jwt-expiration-visualizer',
   load: () => import('./jwt-expiration-visualizer').then((m) => m.JwtExpirationVisualizer),
   status: 'stable',
+  consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['json'] },
 };

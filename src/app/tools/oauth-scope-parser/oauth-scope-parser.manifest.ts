@@ -11,6 +11,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/oauth-scope-parser',
   load: () => import('./oauth-scope-parser').then((m) => m.OAuthScopeParser),
   status: 'stable',
+  consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['json'] },
 };

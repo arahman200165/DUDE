@@ -22,6 +22,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/js-playground',
   load: () => import('./js-playground').then((m) => m.JsPlayground),
   status: 'experimental',
+  consequenceClass: ['code-execution'],
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'required' },
   network: { required: false },

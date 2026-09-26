@@ -21,6 +21,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/ssh-key-tools',
   load: () => import('./ssh-key-tools').then((m) => m.SshKeyTools),
   status: 'stable',
+  consequenceClass: ['crypto'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

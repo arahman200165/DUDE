@@ -29,6 +29,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/jwt-verify',
   load: () => import('./jwt-verify').then((m) => m.JwtVerify),
   status: 'experimental',
+  consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   network: { required: true, detail: 'JWKS / OIDC discovery' },
   io: { accepts: ['text', 'url'], produces: ['json'] },

@@ -19,6 +19,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/oidc-discovery-inspector',
   load: () => import('./oidc-discovery-inspector').then((m) => m.OidcDiscoveryInspector),
   status: 'stable',
+  consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text', 'json'], produces: ['json'] },
 };

@@ -10,6 +10,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/kubeconfig-inspector',
   load: () => import('./kubeconfig-inspector').then((m) => m.KubeconfigInspector),
   status: 'stable',
+  consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['json'] },
 };

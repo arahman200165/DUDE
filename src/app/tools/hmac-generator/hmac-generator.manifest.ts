@@ -10,6 +10,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/hmac-generator',
   load: () => import('./hmac-generator').then((m) => m.HmacGenerator),
   status: 'stable',
+  consequenceClass: ['crypto'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };
