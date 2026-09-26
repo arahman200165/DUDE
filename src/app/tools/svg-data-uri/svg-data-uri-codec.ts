@@ -29,10 +29,14 @@ export type SvgDataUriDecodeResult = { readonly ok: true; readonly svg: string }
 const DATA_URI_PATTERN = /^data:image\/svg\+xml(;charset=[^;,]+)?(;base64)?,([\s\S]*)$/;
 
 export function decodeSvgDataUri(input: string): SvgDataUriDecodeResult {
-  const trimmed = input.trim();
-  if (trimmed === '') return { ok: false, error: 'Enter a data URI to decode.' };
+  if (input.trim() === '') return { ok: false, error: 'Enter a data URI to decode.' };
 
-  const match = trimmed.match(DATA_URI_PATTERN);
+  // Match the raw input first -- the urlEncoded form deliberately leaves literal spaces
+  // unescaped (see encodeSvgDataUri's %20 unescaping above), so blanket-trimming before matching
+  // would silently eat meaningful leading/trailing whitespace that's actually part of the SVG
+  // payload, not incidental copy-paste padding around the URI. Only fall back to a trimmed match
+  // for genuinely-padded input that doesn't match as-is.
+  const match = input.match(DATA_URI_PATTERN) ?? input.trim().match(DATA_URI_PATTERN);
   if (!match) return { ok: false, error: 'Not a valid "data:image/svg+xml" URI.' };
 
   const [, , isBase64, payload] = match;

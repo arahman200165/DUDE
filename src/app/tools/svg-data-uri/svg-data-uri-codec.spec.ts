@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { decodeSvgDataUri, encodeSvgDataUri } from './svg-data-uri-codec';
 
@@ -35,5 +36,45 @@ describe('decodeSvgDataUri', () => {
     const encoded = encodeSvgDataUri(SVG);
     const decoded = decodeSvgDataUri(encoded.base64Encoded);
     expect(decoded).toEqual({ ok: true, svg: SVG });
+  });
+});
+
+describe('round-trip property (DUDE_PRD.md §21 Phase 23 Item 4)', () => {
+  const wellFormedText = fc.string().filter((s) => !/[\uD800-\uDFFF]/.test(s) || /^(?:[^\uD800-\uDFFF]|[\uD800-\uDBFF][\uDC00-\uDFFF])*$/.test(s));
+
+  it('decodeSvgDataUri(encodeSvgDataUri(x).urlEncoded) === x for arbitrary well-formed text', () => {
+    fc.assert(
+      fc.property(wellFormedText, (svg) => {
+        const decoded = decodeSvgDataUri(encodeSvgDataUri(svg).urlEncoded);
+        expect(decoded).toEqual({ ok: true, svg });
+      }),
+    );
+  });
+
+  it('decodeSvgDataUri(encodeSvgDataUri(x).base64Encoded) === x for arbitrary well-formed text', () => {
+    fc.assert(
+      fc.property(wellFormedText, (svg) => {
+        const decoded = decodeSvgDataUri(encodeSvgDataUri(svg).base64Encoded);
+        expect(decoded).toEqual({ ok: true, svg });
+      }),
+    );
+  });
+});
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  it('encodeSvgDataUri never throws for arbitrary text input', () => {
+    fc.assert(
+      fc.property(fc.string(), (svg) => {
+        expect(() => encodeSvgDataUri(svg)).not.toThrow();
+      }),
+    );
+  });
+
+  it('decodeSvgDataUri never throws for arbitrary text input', () => {
+    fc.assert(
+      fc.property(fc.string(), (text) => {
+        expect(() => decodeSvgDataUri(text)).not.toThrow();
+      }),
+    );
   });
 });
