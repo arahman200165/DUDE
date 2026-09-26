@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['html', 'entity', 'entities', 'encode', 'decode', 'escape', 'unescape', 'amp', 'nbsp'],
   route: '/tools/html-entities',
   load: () => import('./html-entities').then((m) => m.HtmlEntities),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip and fuzz-tested (fast-check) against arbitrary well-formed text, in both plain and numeric-non-ASCII encode modes.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

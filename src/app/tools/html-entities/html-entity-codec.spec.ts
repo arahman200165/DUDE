@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { decodeHtmlEntities, encodeHtmlEntities } from './html-entity-codec';
 
 describe('decodeHtmlEntities', () => {
@@ -50,5 +51,38 @@ describe('encodeHtmlEntities', () => {
 
   it('handles empty input', () => {
     expect(encodeHtmlEntities('', false)).toBe('');
+  });
+});
+
+describe('round-trip property (DUDE_PRD.md §21 Phase 23 Item 4)', () => {
+  // Lone surrogates are not well-formed Unicode text and the DOM's own text APIs
+  // (textContent/innerHTML) normalize them inconsistently across engines -- excluded here as a
+  // platform limitation, not a bug in this thin wrapper.
+  const wellFormedText = fc.string().filter((s) => !/[\uD800-\uDFFF]/.test(s) || /^(?:[^\uD800-\uDFFF]|[\uD800-\uDBFF][\uDC00-\uDFFF])*$/.test(s));
+
+  it('decodeHtmlEntities(encodeHtmlEntities(x, false)) === x for arbitrary well-formed text', () => {
+    fc.assert(
+      fc.property(wellFormedText, (text) => {
+        expect(decodeHtmlEntities(encodeHtmlEntities(text, false))).toBe(text);
+      }),
+    );
+  });
+
+  it('decodeHtmlEntities(encodeHtmlEntities(x, true)) === x for arbitrary well-formed text', () => {
+    fc.assert(
+      fc.property(wellFormedText, (text) => {
+        expect(decodeHtmlEntities(encodeHtmlEntities(text, true))).toBe(text);
+      }),
+    );
+  });
+});
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  it('decodeHtmlEntities never throws for arbitrary text input', () => {
+    fc.assert(
+      fc.property(fc.string(), (text) => {
+        expect(() => decodeHtmlEntities(text)).not.toThrow();
+      }),
+    );
   });
 });
