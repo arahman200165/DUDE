@@ -22,8 +22,9 @@ export const manifest: ToolDefinition = {
   load: () => import('./pem-der-inspector').then((m) => m.PemDerInspector),
   status: 'verified',
   verification: {
+    crossChecked: ["Node's X509Certificate (OpenSSL-backed) accepts the checked-in ISRG Root X1 certificate and reports matching DER and subject"],
     propertyTested: true,
-    summary: 'Crosscheck-tested against real Node-crypto (OpenSSL)-generated RSA/EC/Ed25519 PEM keys with an independent base64 extractor, plus fast-check fuzzing.',
+    summary: 'Parses the checked-in ISRG Root X1 certificate as PEM and DER with matching bytes and ASN.1 structure, cross-checked by Node X509Certificate; also checks Node-crypto-generated RSA/EC/Ed25519 PEM keys and fast-check fuzzing.',
   },
   consequenceClass: ['crypto'],
   persistence: { input: 'session', preferences: 'local' },

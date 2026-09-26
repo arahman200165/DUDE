@@ -10,8 +10,9 @@ export const manifest: ToolDefinition = {
   load: () => import('./hex-text-converter').then((m) => m.HexTextConverter),
   status: 'verified',
   verification: {
+    vectors: ['RFC 4648 Section 10 Base16 test vectors (f, fo, foo, foob, fooba, foobar)'],
     propertyTested: true,
-    summary: 'Round-trip and fuzz-tested (fast-check) across all four encodings (ASCII, UTF-8, UTF-16 LE/BE) against arbitrary text.',
+    summary: 'Matches the RFC 4648 Base16 literal vectors and round-trip/fuzz-tested (fast-check) across ASCII, UTF-8, UTF-16 LE, and UTF-16 BE.',
   },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'none' },

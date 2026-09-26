@@ -1,3 +1,4 @@
+import { deflateRawSync, deflateSync, gunzipSync, gzipSync, inflateRawSync, inflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { compressBytes, computeStats, decompressBytes } from './compression-lab-transform';
 
@@ -11,6 +12,18 @@ describe('compressBytes / decompressBytes', () => {
 
     const decompressed = await decompressBytes(compressed, format);
     expect(new TextDecoder().decode(decompressed)).toBe(new TextDecoder().decode(SAMPLE));
+  });
+
+  it.each([
+    ['gzip', gzipSync, gunzipSync],
+    ['deflate', deflateSync, inflateSync],
+    ['deflate-raw', deflateRawSync, inflateRawSync],
+  ] as const)('cross-checks native %s streams against Node zlib', async (format, nodeCompress, nodeDecompress) => {
+    const nativeCompressed = await compressBytes(SAMPLE, format);
+    expect(Array.from(nodeDecompress(nativeCompressed))).toEqual(Array.from(SAMPLE));
+
+    const nodeCompressed = new Uint8Array(nodeCompress(SAMPLE));
+    expect(Array.from(await decompressBytes(nodeCompressed, format))).toEqual(Array.from(SAMPLE));
   });
 
   it('rejects garbage input when decompressing', async () => {

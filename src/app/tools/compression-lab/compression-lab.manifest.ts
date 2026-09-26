@@ -11,8 +11,9 @@ export const manifest: ToolDefinition = {
   load: () => import('./compression-lab').then((m) => m.CompressionLab),
   status: 'verified',
   verification: {
+    crossChecked: ["Node's built-in zlib gzip, deflate, and deflate-raw compressors/decompressors"],
     propertyTested: true,
-    summary: 'Round-trip property-tested (fast-check) for arbitrary bytes through gzip/deflate/deflate-raw (native Compression Streams API), plus an invariant test on computeStats.',
+    summary: 'Native gzip/deflate/deflate-raw streams interoperate with Node zlib in both directions; round-trip property-tested (fast-check) for arbitrary bytes, plus computeStats invariants.',
   },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text', 'file'], produces: ['file'] },

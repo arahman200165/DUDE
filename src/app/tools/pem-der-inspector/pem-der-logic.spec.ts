@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { X509Certificate } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import * as forge from 'node-forge';
 import { bytesToHex } from '../../shared/utils/byte-codec';
@@ -11,6 +14,31 @@ function samplePkcs8PrivateKeyPem(): string {
 }
 
 describe('pem-der-logic', () => {
+  it('parses the checked-in ISRG Root X1 certificate accepted by Node X509Certificate', () => {
+    const source = readFileSync(resolve(process.cwd(), 'src/app/tools/x509-certificate-inspector/__fixtures__/isrg-root-x1.der'));
+    const der = new Uint8Array(source.buffer, source.byteOffset, source.byteLength);
+    const pem = derToPem(der, 'CERTIFICATE');
+    const independentCertificate = new X509Certificate(pem);
+
+    expect(new Uint8Array(independentCertificate.raw)).toEqual(der);
+    expect(independentCertificate.subject).toContain('CN=ISRG Root X1');
+
+    const result = parsePemText(pem);
+    expect(result.ok).toBe(true);
+    if (!result.ok || result.kind !== 'pem') throw new Error('expected a parsed certificate PEM');
+    expect(result.blocks).toHaveLength(1);
+    expect(result.blocks[0].der).toEqual(der);
+    expect(result.blocks[0].tree.typeName).toBe('SEQUENCE');
+    expect(result.blocks[0].tree.children).toHaveLength(3);
+
+    const derResult = parseDerBytes(der);
+    expect(derResult.ok).toBe(true);
+    if (!derResult.ok || derResult.kind !== 'der') throw new Error('expected a parsed certificate DER');
+    expect(Array.from(derResult.der)).toEqual(Array.from(independentCertificate.raw));
+    expect(derResult.tree.typeName).toBe('SEQUENCE');
+    expect(derResult.tree.children).toHaveLength(3);
+  });
+
   it('parses a PEM block into a SEQUENCE-rooted ASN.1 tree', () => {
     const pem = samplePkcs8PrivateKeyPem();
     const result = parsePemText(pem);

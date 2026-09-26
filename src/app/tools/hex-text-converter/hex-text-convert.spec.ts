@@ -3,6 +3,18 @@ import { describe, expect, it } from 'vitest';
 import { convertHexText } from './hex-text-convert';
 
 describe('convertHexText', () => {
+  it.each([
+    ['f', '66'],
+    ['fo', '666f'],
+    ['foo', '666f6f'],
+    ['foob', '666f6f62'],
+    ['fooba', '666f6f6261'],
+    ['foobar', '666f6f626172'],
+  ])('matches RFC 4648 Section 10 Base16 vector %s', (text, hex) => {
+    expect(convertHexText(text, 'toHex', 'ascii')).toEqual({ ok: true, value: hex });
+    expect(convertHexText(hex, 'toText', 'ascii')).toEqual({ ok: true, value: text });
+  });
+
   it('encodes ASCII text to hex and back', () => {
     const toHex = convertHexText('Hi!', 'toHex', 'ascii');
     expect(toHex).toEqual({ ok: true, value: '486921' });

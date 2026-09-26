@@ -10,8 +10,10 @@ export const manifest: ToolDefinition = {
   load: () => import('./archive-tool').then((m) => m.ArchiveTool),
   status: 'verified',
   verification: {
+    vectors: ['Python zipfile and tarfile golden archives with exact paths and file contents'],
+    crossChecked: ['Python 3.13.14 standard-library zipfile and tarfile fixture corpus'],
     propertyTested: true,
-    summary: 'Round-trip property-tested (fast-check) for arbitrary entries through ZIP (fflate) and the hand-rolled USTAR TAR reader/writer; TAR reader also fuzz-tested against arbitrary bytes.',
+    summary: 'Extracts independently generated Python ZIP and USTAR TAR fixtures with exact expected paths and contents; round-trip property-tested (fast-check), with TAR extraction fuzz-tested against arbitrary bytes.',
   },
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['file'], produces: ['file'] },

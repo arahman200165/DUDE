@@ -20,8 +20,10 @@ export const manifest: ToolDefinition = {
   load: () => import('./image-metadata-inspector').then((m) => m.ImageMetadataInspector),
   status: 'verified',
   verification: {
+    vectors: ['Pillow-generated 37-by-23 RGB PNG golden fixture; exact IHDR metadata asserted'],
+    crossChecked: ['Pillow 12.3.0 (Python 3.13.14) generated and reopened the PNG fixture'],
     propertyTested: true,
-    summary: 'Fuzz-tested (fast-check) the pure PNG IHDR parser against arbitrary bytes (never throws, always returns null or a well-shaped record) and against synthesized well-formed IHDR chunks (exact field round-trip).',
+    summary: 'Matches IHDR metadata from an independently generated and Pillow-reopened RGB PNG fixture; fuzz-tested (fast-check) against arbitrary bytes and synthesized well-formed IHDR chunks.',
   },
   persistence: { input: 'none', preferences: 'none' },
   io: { accepts: ['file'], produces: ['json'] },
