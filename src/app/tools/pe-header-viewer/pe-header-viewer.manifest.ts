@@ -18,7 +18,12 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/pe-header-viewer',
   load: () => import('./pe-header-viewer').then((m) => m.PeHeaderViewer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    crossChecked: ['Python pefile 2024.8.26'],
+    summary:
+      'Golden-corpus test parses a real .NET apphost PE and matches machine/sections/imports read independently by pefile.',
+  },
   persistence: { input: 'none', preferences: 'none' },
   io: { accepts: ['file'], produces: ['json'] },
 };

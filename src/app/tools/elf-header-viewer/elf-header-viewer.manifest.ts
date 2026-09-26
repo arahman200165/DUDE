@@ -16,7 +16,12 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/elf-header-viewer',
   load: () => import('./elf-header-viewer').then((m) => m.ElfHeaderViewer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    crossChecked: ['Python pyelftools'],
+    summary:
+      'Golden-corpus test parses a real x86-64 ELF and matches segments/sections/dynamic symbols read independently by pyelftools.',
+  },
   persistence: { input: 'none', preferences: 'none' },
   io: { accepts: ['file'], produces: ['json'] },
 };

@@ -17,7 +17,12 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/macho-header-viewer',
   load: () => import('./macho-header-viewer').then((m) => m.MachoHeaderViewer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    crossChecked: ['Python lief 1.0.0'],
+    summary:
+      'Golden-corpus test parses a real ARM64 Mach-O and matches header/load commands/dylibs read independently by LIEF.',
+  },
   persistence: { input: 'none', preferences: 'none' },
   io: { accepts: ['file'], produces: ['json'] },
 };
