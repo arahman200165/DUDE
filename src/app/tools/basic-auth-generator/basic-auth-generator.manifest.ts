@@ -17,7 +17,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/basic-auth-generator',
   load: () => import('./basic-auth-generator').then((m) => m.BasicAuthGenerator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'decodeBasicAuthHeader(buildBasicAuthHeader(u, p)) recovers u/p exactly for any generated colon-free username and arbitrary password (fast-check property test).',
+  },
   consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },

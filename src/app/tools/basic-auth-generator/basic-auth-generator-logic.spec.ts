@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import fc from 'fast-check';
 import { buildBasicAuthHeader, decodeBasicAuthHeader } from './basic-auth-generator-logic';
 
 describe('buildBasicAuthHeader', () => {
@@ -59,5 +60,23 @@ describe('decodeBasicAuthHeader', () => {
 
   it('rejects empty input', () => {
     expect(decodeBasicAuthHeader('').ok).toBe(false);
+  });
+});
+
+describe('round-trip property (DUDE_PRD.md §21 Phase 23 Item 4)', () => {
+  it('decodeBasicAuthHeader(buildBasicAuthHeader(u, p)) recovers u and p for any colon-free username', () => {
+    fc.assert(
+      fc.property(
+        fc.string().filter((s) => s !== '' && !s.includes(':')),
+        fc.string(),
+        (username, password) => {
+          const built = buildBasicAuthHeader(username, password);
+          expect(built.ok).toBe(true);
+          if (!built.ok) return;
+          const decoded = decodeBasicAuthHeader(built.value);
+          expect(decoded).toEqual({ ok: true, value: { username, password } });
+        },
+      ),
+    );
   });
 });
