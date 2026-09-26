@@ -4,6 +4,7 @@ import { PlatformService } from './platform.service';
 import { OnboardingService } from './onboarding.service';
 import { ToolRegistryService } from '../registry/tool-registry.service';
 import { writeStorageValue } from '../workspace/workspace-storage-bridge';
+import { NativeRecentsService } from '../native-recents/native-recents.service';
 import type { DesktopOpenItem } from './electron-bridge';
 
 @Injectable({ providedIn: 'root' })
@@ -11,6 +12,7 @@ export class DesktopOpenService {
   private readonly platform = inject(PlatformService);
   private readonly onboarding = inject(OnboardingService);
   private readonly registry = inject(ToolRegistryService);
+  private readonly nativeRecents = inject(NativeRecentsService);
   private readonly router = inject(Router);
   private readonly pending = signal<readonly DesktopOpenItem[]>([]);
   readonly error = signal('');
@@ -50,6 +52,7 @@ export class DesktopOpenService {
           if (item.extension === '.html') sessionStorage.setItem('dude:desktop:html-preview-manual', 'true');
           if (item.extension === '.ts') sessionStorage.setItem('dude:desktop:typescript-notice', 'true');
           else if (item.extension === '.js') sessionStorage.removeItem('dude:desktop:typescript-notice');
+          this.nativeRecents.record({ path: item.path, name: item.name, extension: item.extension, openedAt: new Date().toISOString() });
         }
         await this.router.navigateByUrl('/', { skipLocationChange: true });
         await this.router.navigateByUrl(definition.route);
