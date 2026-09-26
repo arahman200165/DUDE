@@ -34,6 +34,17 @@ const bridge: DudeElectronBridge = {
       return () => ipcRenderer.removeListener('dude:menu:action', listener);
     },
   },
+  quickLauncher: {
+    ready: () => ipcRenderer.send('dude:quickLauncher:ready'),
+    onOpen: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, value: { compact: boolean }) => callback(value);
+      ipcRenderer.on('dude:quickLauncher:open', listener);
+      return () => ipcRenderer.removeListener('dude:quickLauncher:open', listener);
+    },
+    dismiss: () => ipcRenderer.invoke('dude:quickLauncher:dismiss'),
+    getHotkey: () => ipcRenderer.invoke('dude:quickLauncher:getHotkey'),
+    setHotkey: (accelerator) => ipcRenderer.invoke('dude:quickLauncher:setHotkey', accelerator),
+  },
   platform: { isDesktop: true },
   fs: {
     pickDirectory: () => ipcRenderer.invoke('dude:fs:pickDirectory'),

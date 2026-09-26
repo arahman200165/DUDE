@@ -16,6 +16,7 @@ import { initialWindowBounds, trackWindowBounds } from './window-state';
 import { enqueueCommandLine, registerOpenHandlers } from './open-bridge';
 import { enqueueDeepLinkArguments, extractDeepLinkArgument, registerDeepLinkHandlers } from './deep-link-bridge';
 import { registerNativeMenu } from './native-menu';
+import { registerQuickLauncherHotkey, registerQuickLauncherRenderer } from './quick-launcher';
 
 const DEV_SERVER_URL = process.env['DUDE_ELECTRON_DEV_SERVER_URL'];
 
@@ -64,6 +65,7 @@ async function createWindow(): Promise<void> {
   registerSmartPasteRenderer(window);
   registerUpdateHandlers(window);
   registerNativeMenu(window);
+  registerQuickLauncherRenderer(window);
 
   const baseUrl = await resolveWindowUrl();
   const destination = preferences.startupDestination === 'workspace' ? 'workspace' : '';
@@ -98,6 +100,7 @@ if (hasSingleInstanceLock) void app.whenReady().then(async () => {
   registerCollabHandlers();
   await registerHotkeyHandlers();
   await registerSmartPasteHotkey();
+  await registerQuickLauncherHotkey();
   return createWindow();
 });
 

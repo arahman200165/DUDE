@@ -45,6 +45,13 @@ export interface DudeElectronBridge {
     onAction(callback: (action: string) => void): () => void;
     setToolMenuData(tools: readonly NativeMenuToolInfo[]): Promise<VoidResult>;
   };
+  readonly quickLauncher: {
+    ready(): void;
+    onOpen(callback: (event: { readonly compact: boolean }) => void): () => void;
+    dismiss(): Promise<VoidResult>;
+    getHotkey(): Promise<string | null>;
+    setHotkey(accelerator: string | null): Promise<VoidResult>;
+  };
   readonly platform: {
     readonly isDesktop: true;
   };

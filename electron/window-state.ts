@@ -2,6 +2,7 @@ import { app, screen, type BrowserWindow, type Rectangle } from 'electron';
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { getDesktopPreferences } from './desktop-preferences';
+import { isQuickLauncherGeometry } from './quick-launcher';
 
 function path(): string { return join(app.getPath('userData'), 'window-bounds.json'); }
 
@@ -31,9 +32,11 @@ export async function initialWindowBounds(): Promise<Rectangle> {
 export function trackWindowBounds(window: BrowserWindow): void {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const persist = (): void => {
-    if (!getDesktopPreferences().rememberWindowBounds || window.isMaximized() || window.isMinimized()) return;
+    if (!getDesktopPreferences().rememberWindowBounds || window.isMaximized() || window.isMinimized() || isQuickLauncherGeometry(window)) return;
     if (timer) clearTimeout(timer);
-    timer = setTimeout(() => { void fs.writeFile(path(), JSON.stringify(window.getBounds()), 'utf8').catch(() => {}); }, 500);
+    timer = setTimeout(() => {
+      if (!isQuickLauncherGeometry(window)) void fs.writeFile(path(), JSON.stringify(window.getBounds()), 'utf8').catch(() => {});
+    }, 500);
   };
   window.on('resize', persist);
   window.on('move', persist);
