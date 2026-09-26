@@ -20,7 +20,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/asymmetric-key-generator',
   load: () => import('./asymmetric-key-generator').then((m) => m.AsymmetricKeyGenerator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    crossChecked: ['openssl pkey -text -noout', 'openssl dgst -sign / -verify round trip'],
+    summary: 'A generated RSA-2048 private key was independently loaded, signed, and verified by openssl, confirming standards-compliant PKCS#8 output.',
+  },
   consequenceClass: ['crypto'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['json'], produces: ['text', 'json'] },
