@@ -1,0 +1,19 @@
+@if (topSuggestion(); as suggestion) {
+  <div class="mb-3 flex items-center justify-between rounded-sm border border-accent/40 bg-accent/10 px-3 py-2">
+    <p class="text-ui text-text">
+      You've run
+      <span class="font-medium text-accent">{{ suggestionLabel() }}</span>
+      together {{ suggestion.occurrences }} times. Save it as a pipeline?
+    </p>
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        class="rounded-sm border border-accent/40 bg-accent/10 px-2 py-1 text-ui-sm text-accent hover:bg-accent/20"
+        (click)="saveAsPipeline()"
+      >
+        Save as pipeline
+      </button>
+      <button type="button" class="text-ui-sm text-text-muted hover:text-text" (click)="dismiss()">Dismiss</button>
+    </div>
+  </div>
+}

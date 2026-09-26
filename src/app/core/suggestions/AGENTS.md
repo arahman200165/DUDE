@@ -27,7 +27,19 @@ Requiring both tools to be pipeline-eligible would silently drop real, useful su
 ~52 pipeline-ineligible tools. Instead, pipeline eligibility is only a ranking *boost* — "these two
 can be formally chained into a saved pipeline, not just conceptually related."
 
-## Never call `PipelineStepRegistryService.ensureLoaded()` from here
+## Pipeline Suggestions only ever mounts on `/pipelines`, deliberately not on Home
+
+`PipelineSuggestionBanner` (`shell/pipelines/pipeline-suggestion-banner/`) does call
+`PipelineStepRegistryService.ensureLoaded()` in its constructor — unlike `RelatedToolsPanel`, this is
+fine, because the banner only ever mounts on `/pipelines`, the same scope `PipelineBuilder` itself
+already eagerly loads that registry for. The PRD's Item 10 wording ("DUDE may locally suggest...")
+also floated surfacing the top suggestion on Home — deliberately **not done**: Home is visited at
+least as often as any single tool page, so mounting anything that calls `ensureLoaded()` there would
+reintroduce the exact same ~225-extra-chunk-load regression Milestone 411 caught and fixed for
+`RelatedToolsPanel`. If Home surfacing is wanted later, it needs its own non-forcing read (like
+`RelatedToolsPanel`'s fix), not a second `ensureLoaded()` call site.
+
+## Never call `PipelineStepRegistryService.ensureLoaded()` from `RelatedToolsPanel`
 
 `RelatedToolsPanel` (`shared/components/related-tools-panel/`) reads
 `PipelineStepRegistryService.eligibleToolIds()` as-is and never calls its own `ensureLoaded()`. That

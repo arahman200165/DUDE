@@ -15,6 +15,7 @@ import { PipelineStepRegistryService } from '../../../core/pipeline/pipeline-ste
 import { UserScriptStoreService } from '../../../core/pipeline/user-script-store.service';
 import { runUserScriptStep } from '../../../core/pipeline/user-script-step';
 import { PipelineRunnerService } from '../../../core/pipeline/pipeline-runner.service';
+import { PipelineSuggestionHandoffService } from '../../../core/pipeline/pipeline-suggestion-handoff.service';
 import { PipelineRun } from '../../../core/pipeline/pipeline-run';
 import { canChain } from '../../../core/pipeline/pipeline-compatibility';
 import { validatePipelineChain } from '../../../core/pipeline/pipeline-validation';
@@ -42,6 +43,7 @@ export class PipelineBuilder {
   private readonly stepRegistry = inject(PipelineStepRegistryService);
   private readonly scriptStore = inject(UserScriptStoreService);
   private readonly runner = inject(PipelineRunnerService);
+  private readonly suggestionHandoff = inject(PipelineSuggestionHandoffService);
   private readonly sandboxHost = viewChild.required(CodeSandboxHost);
 
   protected readonly pipelineId = toSignal(this.route.paramMap.pipe(map((params) => params.get('id'))), {
@@ -134,7 +136,16 @@ export class PipelineBuilder {
   private initPipeline(): Pipeline {
     const id = this.route.snapshot.paramMap.get('id');
     const existing = id ? this.store.getById(id) : undefined;
-    return existing ?? createPipeline('Untitled pipeline');
+    if (existing) return existing;
+
+    // Pipeline Suggestions' "Save as pipeline" (DUDE_PRD.md §21 Phase 24 Item 10) hands off a
+    // suggested tool-id sequence via this one-shot, in-memory-only offer -- consumed at most once,
+    // exactly like Smart Paste's PasteHandoffService.
+    const suggested = this.suggestionHandoff.consume();
+    const pipeline = createPipeline('Untitled pipeline');
+    if (!suggested) return pipeline;
+
+    return { ...pipeline, steps: suggested.map((toolId) => createToolStep(toolId, this.registry.getById(toolId)?.title)) };
   }
 
   /** The type(s) available just before array index `insertAt` — null means "unfiltered" (the very first step). */

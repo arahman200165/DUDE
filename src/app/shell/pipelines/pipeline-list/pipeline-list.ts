@@ -3,10 +3,11 @@ import { NgTemplateOutlet } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { PipelineStoreService } from '../../../core/pipeline/pipeline-store.service';
 import { FavoritesService } from '../../../core/favorites/favorites.service';
+import { PipelineSuggestionBanner } from '../pipeline-suggestion-banner/pipeline-suggestion-banner';
 
 @Component({
   selector: 'app-pipeline-list',
-  imports: [RouterLink, NgTemplateOutlet],
+  imports: [RouterLink, NgTemplateOutlet, PipelineSuggestionBanner],
   templateUrl: './pipeline-list.html',
 })
 export class PipelineList {

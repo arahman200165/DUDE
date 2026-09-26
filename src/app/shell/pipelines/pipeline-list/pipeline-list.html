@@ -13,6 +13,7 @@
   </header>
 
   <div class="flex-1 overflow-auto p-3">
+    <app-pipeline-suggestion-banner />
     @if (pipelines().length === 0) {
       <p class="text-ui text-text-muted">
         No pipelines yet. Chain existing tools into a reusable workflow —
