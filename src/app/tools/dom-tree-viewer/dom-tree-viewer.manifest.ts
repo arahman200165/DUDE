@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['dom', 'html tree', 'dom viewer', 'html structure', 'element tree'],
   route: '/tools/dom-tree-viewer',
   load: () => import('./dom-tree-viewer').then((m) => m.DomTreeViewer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'DOM-backed properties verify generated element and text-node structure in parsed trees.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['json'] },
 };

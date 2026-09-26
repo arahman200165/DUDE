@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['html', 'formatter', 'minifier', 'pretty print', 'beautify', 'html minify'],
   route: '/tools/html-formatter',
   load: () => import('./html-formatter').then((m) => m.HtmlFormatter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'DOM-backed properties verify generated paragraph structure and text survive pretty and minified output reparsing.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

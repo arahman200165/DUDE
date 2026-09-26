@@ -16,7 +16,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/html-entity-explorer',
   load: () => import('./html-entity-explorer').then((m) => m.HtmlEntityExplorer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'DOM-backed properties verify every curated entity is searchable by name, character, decimal, and hexadecimal codepoint.',
+  },
   persistence: { input: 'local', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
 };

@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['html to jsx', 'jsx to html', 'react', 'className', 'htmlFor', 'jsx converter'],
   route: '/tools/html-jsx-converter',
   load: () => import('./html-jsx-converter').then((m) => m.HtmlJsxConverter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'DOM-backed properties verify generated HTML class attributes become JSX className with text preserved; both directions are fuzzed for typed results.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

@@ -1227,10 +1227,10 @@
     "id": "css-selector-tester",
     "category": "developer",
     "subdomain": "css-generators",
-    "status": "blocked",
-    "recipe": "CORE-ONLY",
-    "milestone": 378,
-    "notes": "needs-browser-harness: testSelector directly depends on document.createElement, innerHTML parsing, and querySelectorAll; no pure core to test."
+    "status": "verified",
+    "recipe": "FUZZ",
+    "milestone": 394,
+    "notes": ""
   },
   {
     "id": "css-specificity-calculator",
@@ -1587,10 +1587,10 @@
     "id": "dom-tree-viewer",
     "category": "developer",
     "subdomain": "misc",
-    "status": "blocked",
-    "recipe": "CORE-ONLY",
-    "milestone": 381,
-    "notes": "needs-browser-harness: buildDomTree directly uses document.createElement and has no extracted pure core suitable for the CORE-ONLY recipe."
+    "status": "verified",
+    "recipe": "FUZZ",
+    "milestone": 394,
+    "notes": ""
   },
   {
     "id": "encoding-detector",
@@ -1704,28 +1704,28 @@
     "id": "html-entity-explorer",
     "category": "developer",
     "subdomain": "misc",
-    "status": "blocked",
-    "recipe": "CORE-ONLY",
-    "milestone": 382,
-    "notes": "needs-browser-harness: module initializes its entity table through document.createElement and cannot be imported in the property-test environment."
+    "status": "verified",
+    "recipe": "FUZZ",
+    "milestone": 394,
+    "notes": ""
   },
   {
     "id": "html-formatter",
     "category": "developer",
     "subdomain": "misc",
-    "status": "blocked",
-    "recipe": "CORE-ONLY",
-    "milestone": 383,
-    "notes": "needs-browser-harness: transform depends on document.createElement and innerHTML, so CORE-ONLY has no trivial pure core."
+    "status": "verified",
+    "recipe": "FUZZ",
+    "milestone": 394,
+    "notes": ""
   },
   {
     "id": "html-jsx-converter",
     "category": "developer",
     "subdomain": "misc",
-    "status": "blocked",
-    "recipe": "CORE-ONLY",
-    "milestone": 383,
-    "notes": "needs-browser-harness: transform depends on document.createElement and innerHTML, so CORE-ONLY has no trivial pure core."
+    "status": "verified",
+    "recipe": "FUZZ",
+    "milestone": 394,
+    "notes": ""
   },
   {
     "id": "html-preview",
