@@ -6,7 +6,7 @@ Nested `AGENTS.md` files exist under `src/app/` (`core/`, `shell/`, `shared/`, `
 
 ## The one rule that matters most
 
-Adding or changing a tool must never require editing `src/app/shell/`, `src/app/core/routing/app.routes.ts`, or any other core/shell file. The sidebar, deck, search, command palette, and routes are all generated from `TOOL_DEFINITIONS` (`src/app/core/registry/tool-definitions.ts`). If following `ADDING_A_TOOL.md` ever forces a shell/core edit, that's an architecture bug — fix the architecture, don't route around it.
+Adding or changing a tool must never require editing `src/app/shell/`, `src/app/core/routing/app.routes.ts`, or any other core/shell file. Every tool owns its metadata in a colocated `<id>.manifest.ts` (`src/app/tools/<id>/`); `npm run generate:registry` assembles them into `TOOL_DEFINITIONS` (`src/app/core/registry/tool-definitions.ts`, generated — never hand-edited), from which the sidebar, deck, search, command palette, and routes are all generated. If following `ADDING_A_TOOL.md` ever forces a shell/core edit, that's an architecture bug — fix the architecture, don't route around it.
 
 **Read `ADDING_A_TOOL.md` before adding any tool.** It's the step-by-step recipe (file layout, registry entry, persistence/worker/network policy, verification), worked against the real `base64` tool.
 
@@ -16,7 +16,7 @@ Adding or changing a tool must never require editing `src/app/shell/`, `src/app/
 - **Dependency-minimal by default.** Prefer native Web APIs (`URLSearchParams`, `crypto.randomUUID`, `BigInt`, `Intl.*`, a detached `<textarea>` for HTML parsing) over libraries. Reach for a small library only for genuinely fiddly, easy-to-get-subtly-wrong logic (color-space math, unicode transliteration, cron math) — see `DUDE_PRD.md` §17 and the library list in `README.md`.
 - **Git history convention:** each tool ships as its own commit directly to `master`, no feature branches/PRs, message format `Milestone N: <Tool Name>`. Check `git log --oneline | grep -i milestone` for the current highest number before picking the next one. Framework-layer/doc-only changes get their own milestone numbers too.
 - **Testing posture:** "protect the framework, not chase coverage" (`DUDE_PRD.md` §18). Unit-test every tool's pure transform logic; don't add component/e2e tests just for coverage.
-- **Verify before calling a tool done:** run `ng serve` and confirm sidebar/search/command-palette (`Ctrl+K`) discovery; run `npm test`; after `ng build`, hard-navigate the production build's direct route (`/DUDE/tools/<id>`) to catch anything relying on client-side router state a fresh load wouldn't have.
+- **Verify before calling a tool done:** run `ng serve` and confirm sidebar/search/command-palette (`Ctrl+K`) discovery; run `npm test` and `npm run lint`; after `ng build`, hard-navigate the production build's direct route (`/DUDE/tools/<id>`) to catch anything relying on client-side router state a fresh load wouldn't have.
 
 ## Key docs
 

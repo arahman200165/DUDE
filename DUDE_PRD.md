@@ -1006,7 +1006,7 @@ Every feature and every originally-deferred capability across these 10 tools was
 
 The roadmap deliberately extends beyond what any single delivery phase covers.
 
-Phase 0 was the weekend commitment; it is complete. **Phases 1–21 are also complete.** Phase 8 established the Windows desktop track, and Phase 21 established the cross-tool workflow foundations. Everything from Phase 22 onward is proposed/horizon work, taken up as decided rather than on any fixed schedule.
+Phase 0 was the weekend commitment; it is complete. **Phases 1–22 are also complete.** Phase 8 established the Windows desktop track, Phase 21 established the cross-tool workflow foundations, and Phase 22 hardened the platform (distributed manifests, single-sourced metadata, structural validation, generated docs, dependency boundaries, chunk/cache budgets) for the next several hundred tools. Everything from Phase 23 onward is proposed/horizon work, taken up as decided rather than on any fixed schedule.
 
 From Phase 22 onward, the roadmap deliberately stops treating raw tool count as the primary measure of progress. Platform trust, correctness, composition, native capability, local/offline strength, automation safety, discoverability, and reuse across surfaces matter more.
 
@@ -1681,7 +1681,7 @@ This phase intentionally breaks from §4.7's "any single unit of work should be 
 
 ---
 
-## Phase 22 — Platform Hardening, Trust & Desktop-First Pivot
+## Phase 22 — Platform Hardening, Trust & Desktop-First Pivot (✅ Complete — shipped as Milestones 300–307: distributed tool manifests + registry codegen, ToolShell single-source-of-truth migration, registry structural validation + conformance harness, generated tool catalog documentation, shared-logic boundary audit, dependency boundary validation via ESLint, chunk/offline-cache budgeting, architecture documentation refresh)
 
 This is deliberately another framework-first phase. DUDE has already proven that it can add tools quickly; the next architectural risk is no longer insufficient breadth, but accumulated registry complexity, metadata drift, correctness confidence, bundle/cache growth, and the increasing consequences of native desktop capabilities.
 
