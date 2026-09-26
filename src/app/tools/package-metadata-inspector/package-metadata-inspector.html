@@ -1,4 +1,4 @@
-<app-tool-shell title="Package Metadata Inspector" status="stable" [networkRequired]="loading() || hasQueried()">
+<app-tool-shell [networkRequired]="loading() || hasQueried()">
   <div class="flex flex-col gap-3">
     <p class="text-ui text-text-muted">
       Looks up a package on its public registry. Maven Central is not supported — neither its search API nor its raw

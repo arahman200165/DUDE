@@ -1,4 +1,4 @@
-<app-tool-shell title="JWT Signature Verifier" status="experimental" [networkRequired]="mode() === 'jwks'">
+<app-tool-shell [networkRequired]="mode() === 'jwks'">
   <div class="flex flex-col gap-3">
     <div class="rounded-sm border border-warning/40 bg-warning/10 px-2 py-1.5 text-ui text-warning">
       Nothing typed here is ever saved. The HMAC and Public Key modes verify entirely offline. The JWKS mode

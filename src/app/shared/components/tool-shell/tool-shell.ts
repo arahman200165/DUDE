@@ -24,11 +24,20 @@ export class ToolShell implements OnDestroy {
   private readonly scratchpad = inject(ScratchpadService);
   private readonly history = inject(HistoryService);
 
-  readonly title = input.required<string>();
-  readonly status = input<'stable' | 'experimental'>('experimental');
-  readonly networkRequired = input(false);
+  /**
+   * Optional override for tools whose network need is a runtime condition rather than a
+   * static fact (e.g. only fetching when a particular panel is open) — when omitted, this
+   * resolves from the registered `ToolDefinition`'s `network.required` (DUDE_PRD.md §21
+   * Phase 22 Items 2/6: single source of truth, not duplicated at every call site).
+   */
+  readonly networkRequired = input<boolean | undefined>(undefined);
 
-  protected readonly showOfflineBadge = computed(() => this.networkRequired() && !this.connectivity.online());
+  protected readonly effectiveNetworkRequired = computed(
+    () => this.networkRequired() ?? this.definition()?.network?.required ?? false,
+  );
+  protected readonly showOfflineBadge = computed(
+    () => this.effectiveNetworkRequired() && !this.connectivity.online(),
+  );
 
   /**
    * Outside Workspace (a tool's own direct route), `hostContext` is `null` (the token's default)

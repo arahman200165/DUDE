@@ -7,7 +7,7 @@
       @if (categoryMeta(); as meta) {
         <app-category-icon [category]="category()!" class="h-4 w-4" [class]="'text-' + meta.colorToken" />
       }
-      <h1 class="text-sm font-semibold tracking-wide text-text">{{ title() }}</h1>
+      <h1 class="text-sm font-semibold tracking-wide text-text">{{ definition()?.title }}</h1>
     </div>
     <div class="flex items-center gap-2">
       <button
@@ -32,8 +32,12 @@
       <app-offline-badge [show]="showOfflineBadge()" />
       <span
         class="rounded border px-1.5 py-0.5 font-mono text-ui-xs uppercase tracking-wide"
-        [class]="status() === 'stable' ? 'border-success/40 bg-success/10 text-success' : 'border-warning/40 bg-warning/10 text-warning'"
-        >{{ status() }}</span
+        [class]="
+          definition()?.status === 'stable'
+            ? 'border-success/40 bg-success/10 text-success'
+            : 'border-warning/40 bg-warning/10 text-warning'
+        "
+        >{{ definition()?.status ?? 'experimental' }}</span
       >
     </div>
   </header>
