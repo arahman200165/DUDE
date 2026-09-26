@@ -24,6 +24,7 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/regex',
   load: () => import('./regex').then((m) => m.Regex),
+  desktopCapabilities: ['AI-assisted explain/generate via a local LLM proxy, no cloud key required'],
   status: 'verified',
   verification: {
     propertyTested: true,

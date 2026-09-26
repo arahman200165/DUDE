@@ -10,6 +10,7 @@ export const manifest: ToolDefinition = {
   keywords: ['git', 'repo', 'repository', 'commit', 'diff', 'log', 'history', 'version control'],
   route: '/tools/git-diff',
   load: () => import('./git-diff').then((m) => m.GitDiff),
+  desktopCapabilities: ['reads a real .git directory on disk, no upload/zip step'],
   status: 'verified',
   verification: {
     propertyTested: true,

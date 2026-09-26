@@ -97,6 +97,12 @@ describe('Tool conformance harness', () => {
         }
       });
 
+      it('declares non-empty desktopCapabilities strings, when present', () => {
+        for (const capability of definition.desktopCapabilities ?? []) {
+          expect(capability.trim().length, `${definition.id} declares a blank desktopCapabilities entry`).toBeGreaterThan(0);
+        }
+      });
+
       it('has a lazy load() function, never eagerly resolved', () => {
         expect(typeof definition.load).toBe('function');
       });

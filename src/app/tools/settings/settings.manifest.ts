@@ -18,6 +18,7 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/settings',
   nativeMenu: { preferences: true },
+  desktopCapabilities: ['launch on login, global hotkeys, clipboard quick-actions, native file associations'],
   load: () => import('./settings').then((m) => m.Settings),
   status: 'verified',
   verification: {

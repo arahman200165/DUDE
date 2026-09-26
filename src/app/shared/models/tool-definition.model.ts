@@ -66,4 +66,12 @@ export interface ToolDefinition {
   readonly status?: 'experimental' | 'stable' | 'verified';
   readonly verification?: ToolVerificationMetadata;
   readonly consequenceClass?: readonly ConsequenceClass[];
+  /**
+   * Desktop Capability Indicators (DUDE_PRD.md §21 Phase 25 Item 10) — free-string labels of what
+   * this tool does better on desktop (e.g. `'native filesystem access'`), deliberately loose like
+   * `ToolVerificationMetadata.vectors` since Phase 26's "Web Capability Matrix" may reshape this
+   * later. Distinct from `desktopOpen`, which is about *file types this tool can open*, not general
+   * desktop-only capability.
+   */
+  readonly desktopCapabilities?: readonly string[];
 }

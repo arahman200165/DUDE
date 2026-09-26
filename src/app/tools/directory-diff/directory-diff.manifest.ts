@@ -3,6 +3,7 @@ import type { ToolDefinition } from '../../shared/models/tool-definition.model';
 export const manifest: ToolDefinition = {
   id: 'directory-diff',
   desktopOpen: { directory: true },
+  desktopCapabilities: ['compares real folders on disk, not zipped/pasted file lists'],
   title: 'Directory Diff',
   description:
     'Compare two folders for added/removed/changed files, with a line diff for text files and a hex byte diff for binary files.',
