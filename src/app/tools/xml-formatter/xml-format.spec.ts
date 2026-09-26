@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { processXml } from './xml-format';
 
 describe('processXml', () => {
@@ -48,5 +49,15 @@ describe('processXml', () => {
   it('rejects malformed XML in validate mode too', () => {
     const result = processXml('<root><a></root>', 'validate', 2);
     expect(result.ok).toBe(false);
+  });
+});
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  it('never throws for arbitrary text input, in any mode', () => {
+    fc.assert(
+      fc.property(fc.string(), fc.constantFrom<'format' | 'minify' | 'validate'>('format', 'minify', 'validate'), (input, mode) => {
+        expect(() => processXml(input, mode, 2)).not.toThrow();
+      }),
+    );
   });
 });

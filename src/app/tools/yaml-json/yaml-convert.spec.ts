@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { convertYaml } from './yaml-convert';
 
 describe('convertYaml', () => {
@@ -45,5 +46,15 @@ describe('convertYaml', () => {
 
     const backToJson = toYaml.ok ? convertYaml(toYaml.output, 'yaml-to-json', 2) : null;
     expect(backToJson).toEqual({ ok: true, output: JSON.stringify(JSON.parse(json), null, '  ') });
+  });
+});
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  it('never throws for arbitrary text input, in either direction', () => {
+    fc.assert(
+      fc.property(fc.string(), fc.constantFrom<'yaml-to-json' | 'json-to-yaml'>('yaml-to-json', 'json-to-yaml'), (input, direction) => {
+        expect(() => convertYaml(input, direction, 2)).not.toThrow();
+      }),
+    );
   });
 });

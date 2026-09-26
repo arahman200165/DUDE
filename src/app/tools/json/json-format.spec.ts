@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { processJson } from './json-format';
 
 describe('processJson', () => {
@@ -55,5 +56,15 @@ describe('processJson', () => {
       expect(result.error.line).toBeGreaterThan(0);
       expect(result.error.column).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  it('never throws for arbitrary text input, in any mode', () => {
+    fc.assert(
+      fc.property(fc.string(), fc.constantFrom<'pretty' | 'minify' | 'validate'>('pretty', 'minify', 'validate'), (input, mode) => {
+        expect(() => processJson(input, mode, 2)).not.toThrow();
+      }),
+    );
   });
 });

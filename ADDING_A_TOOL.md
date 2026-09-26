@@ -178,6 +178,20 @@ it('decodeX(encodeX(x)) === x for any input', () => {
 
 See `base64-codec.spec.ts`, `url-encode-codec.spec.ts`, and `number-base-convert.spec.ts` for real examples. Don't force this onto a transform that isn't genuinely round-trip-capable (e.g. a lossy formatter, or one direction only) — it isn't a mandatory addition to every tool's spec.
 
+If the tool parses structured/untrusted input (JSON, YAML, XML, a config format, a binary format, a URL, an expression), add a `fast-check` fuzz case asserting the parse function never throws uncaught and always returns its typed `Result` — never semantic correctness, just crash-safety against adversarial input (DUDE_PRD.md §21 Phase 23 Item 5):
+
+```ts
+it('never throws for arbitrary text input', () => {
+  fc.assert(
+    fc.property(fc.string(), (input) => {
+      expect(() => parseThing(input)).not.toThrow();
+    }),
+  );
+});
+```
+
+See `json-format.spec.ts`, `yaml-convert.spec.ts`, and `xml-format.spec.ts` for real examples.
+
 ## 11. Verify search/sidebar/command palette discovery
 
 Run the app (`ng serve`) and confirm:
