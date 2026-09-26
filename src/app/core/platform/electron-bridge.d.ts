@@ -34,6 +34,7 @@ export interface DudeElectronBridge {
   readonly open: {
     ready(): void;
     pickFile(): Promise<{ readonly canceled: boolean }>;
+    getPathForFile(file: File): string;
     onItem(callback: (item: DesktopOpenItem) => void): () => void;
   };
   readonly deepLink: {

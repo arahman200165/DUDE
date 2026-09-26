@@ -17,6 +17,7 @@ import { enqueueCommandLine, registerOpenHandlers } from './open-bridge';
 import { enqueueDeepLinkArguments, extractDeepLinkArgument, registerDeepLinkHandlers } from './deep-link-bridge';
 import { registerNativeMenu } from './native-menu';
 import { registerQuickLauncherHotkey, registerQuickLauncherRenderer } from './quick-launcher';
+import { isAllowedRendererNavigation } from './navigation-guard';
 
 const DEV_SERVER_URL = process.env['DUDE_ELECTRON_DEV_SERVER_URL'];
 
@@ -68,6 +69,10 @@ async function createWindow(): Promise<void> {
   registerQuickLauncherRenderer(window);
 
   const baseUrl = await resolveWindowUrl();
+  window.webContents.on('will-navigate', (event, target) => {
+    if (!isAllowedRendererNavigation(target, baseUrl)) event.preventDefault();
+  });
+  window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   const destination = preferences.startupDestination === 'workspace' ? 'workspace' : '';
   await window.loadURL(new URL(destination, baseUrl).toString());
   checkForUpdatesOnStartup();

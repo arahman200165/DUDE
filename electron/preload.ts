@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { DudeElectronBridge, FileWatchEvent, DesktopOpenItem } from '../src/app/core/platform/electron-bridge';
 
 const bridge: DudeElectronBridge = {
@@ -11,6 +11,7 @@ const bridge: DudeElectronBridge = {
   open: {
     ready: () => ipcRenderer.send('dude:open:ready'),
     pickFile: () => ipcRenderer.invoke('dude:open:pickFile'),
+    getPathForFile: (file) => webUtils.getPathForFile(file),
     onItem: (callback) => {
       const listener = (_event: Electron.IpcRendererEvent, item: DesktopOpenItem) => callback(item);
       ipcRenderer.on('dude:open:item', listener);

@@ -25,6 +25,16 @@ describe('BrowserWindow security preferences', () => {
 });
 
 // Command-line protocol strings must never become BrowserWindow navigation targets.
+describe('navigation boundary', () => {
+  const mainSource = readFileSync(resolve(__dirname, 'main.ts'), 'utf-8');
+
+  it('guards all document navigations and denies new windows', () => {
+    expect(mainSource).toMatch(/webContents\.on\('will-navigate'/);
+    expect(mainSource).toMatch(/isAllowedRendererNavigation\(target, baseUrl\)/);
+    expect(mainSource).toMatch(/setWindowOpenHandler\(\(\) => \(\{ action: 'deny' \}\)\)/);
+  });
+});
+
 describe('deep-link argv boundary', () => {
   const mainSource = readFileSync(resolve(__dirname, 'main.ts'), 'utf-8');
 
