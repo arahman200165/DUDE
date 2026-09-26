@@ -1292,8 +1292,8 @@
     "subdomain": "git-docker-k8s",
     "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": 379,
-    "notes": ""
+    "milestone": 404,
+    "notes": "flagged: corrected mojibake in public tool title; generated registry and README refreshed."
   },
   {
     "id": "dockerfile-linter",
@@ -1310,8 +1310,8 @@
     "subdomain": "git-docker-k8s",
     "status": "verified",
     "recipe": "FUZZ",
-    "milestone": 379,
-    "notes": ""
+    "milestone": 404,
+    "notes": "flagged: corrected mojibake in public tool description; generated registry and README refreshed."
   },
   {
     "id": "git-command-explainer",
