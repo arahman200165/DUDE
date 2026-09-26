@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['hex', 'hexadecimal', 'text', 'ascii', 'utf-8', 'utf-16', 'encode', 'decode', 'bytes'],
   route: '/tools/hex-text-converter',
   load: () => import('./hex-text-converter').then((m) => m.HexTextConverter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip and fuzz-tested (fast-check) across all four encodings (ASCII, UTF-8, UTF-16 LE/BE) against arbitrary text.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
