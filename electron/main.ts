@@ -6,6 +6,7 @@ import { registerSecretsHandlers } from './secrets-bridge';
 import { registerLlmHandlers } from './llm-bridge';
 import { createTray, isAppQuitting, registerShellChromeHandlers } from './tray';
 import { registerHotkeyHandlers, unregisterAllHotkeys } from './hotkey-bridge';
+import { registerSmartPasteHotkey, registerSmartPasteRenderer } from './smart-paste-hotkey';
 import { registerNotificationHandlers } from './notifications-bridge';
 import { closeAllFileWatches, registerFileWatchHandlers } from './file-watch-bridge';
 import { registerCollabHandlers, stopCollabServerOnQuit } from './collab-bridge';
@@ -57,6 +58,7 @@ async function createWindow(): Promise<void> {
   trackWindowBounds(window);
   registerDesktopPreferencesHandlers(window);
   registerOpenHandlers(window);
+  registerSmartPasteRenderer(window);
   registerUpdateHandlers(window);
 
   const baseUrl = await resolveWindowUrl();
@@ -86,6 +88,7 @@ if (hasSingleInstanceLock) void app.whenReady().then(async () => {
   registerFileWatchHandlers();
   registerCollabHandlers();
   await registerHotkeyHandlers();
+  await registerSmartPasteHotkey();
   return createWindow();
 });
 

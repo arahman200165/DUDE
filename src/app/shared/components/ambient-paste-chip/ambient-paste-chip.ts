@@ -6,6 +6,7 @@ import { detectAmbientMatch, isEditablePasteTarget } from '../../../core/paste-d
 import { PasteHandoffService } from '../../../core/paste-detect/paste-handoff.service';
 import { ToolRegistryService } from '../../../core/registry/tool-registry.service';
 import { ToolLauncherService } from '../../../core/registry/tool-launcher.service';
+import { PlatformService } from '../../../core/platform/platform.service';
 
 /**
  * Ambient Smart Paste (DUDE_PRD.md §21 Phase 24 Item 2) — a global `paste` listener mounted once by
@@ -16,6 +17,10 @@ import { ToolLauncherService } from '../../../core/registry/tool-launcher.servic
  * independent consumer of the same detection machinery. Mounted globally (not gated to Home), it
  * can render while a Workspace panel is active, so opening a match goes through `ToolLauncherService`
  * rather than a plain route navigation.
+ *
+ * On desktop, this is also where the Desktop Global Smart Paste Hotkey (Item 3) surfaces its result
+ * — `electron/smart-paste-hotkey.ts` only ever focuses the window and hands over raw clipboard
+ * text; classification stays entirely renderer-side, reusing this exact same evaluation path.
  */
 @Component({
   selector: 'app-ambient-paste-chip',
@@ -26,6 +31,7 @@ export class AmbientPasteChip {
   private readonly handoff = inject(PasteHandoffService);
   private readonly launcher = inject(ToolLauncherService);
   private readonly router = inject(Router);
+  private readonly platform = inject(PlatformService);
 
   protected readonly match = signal<PasteDetectionMatch | null>(null);
   private lastText = '';
@@ -34,6 +40,12 @@ export class AmbientPasteChip {
     const listener = (event: ClipboardEvent) => this.onPaste(event);
     document.addEventListener('paste', listener);
     inject(DestroyRef).onDestroy(() => document.removeEventListener('paste', listener));
+
+    if (this.platform.isDesktop()) {
+      const unsubscribe = window.dude!.smartPaste.onTrigger((text) => this.evaluate(text));
+      inject(DestroyRef).onDestroy(unsubscribe);
+      window.dude!.smartPaste.ready();
+    }
   }
 
   private onPaste(event: ClipboardEvent): void {
@@ -47,6 +59,11 @@ export class AmbientPasteChip {
       return;
     }
 
+    this.evaluate(text);
+  }
+
+  private evaluate(text: string): void {
+    if (!text.trim()) return;
     const best = detectAmbientMatch(text, PASTE_DETECTORS, (id) => this.registry.getById(id));
     this.lastText = text;
     this.match.set(best);

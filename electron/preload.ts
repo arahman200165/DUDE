@@ -42,6 +42,16 @@ const bridge: DudeElectronBridge = {
     list: () => ipcRenderer.invoke('dude:quickActions:list'),
     setHotkey: (actionId, accelerator) => ipcRenderer.invoke('dude:quickActions:setHotkey', actionId, accelerator),
   },
+  smartPaste: {
+    ready: () => ipcRenderer.send('dude:smartPaste:ready'),
+    onTrigger: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, text: string) => callback(text);
+      ipcRenderer.on('dude:smartPaste:trigger', listener);
+      return () => ipcRenderer.removeListener('dude:smartPaste:trigger', listener);
+    },
+    getHotkey: () => ipcRenderer.invoke('dude:smartPaste:getHotkey'),
+    setHotkey: (accelerator) => ipcRenderer.invoke('dude:smartPaste:setHotkey', accelerator),
+  },
   notifications: {
     show: (title, body) => ipcRenderer.invoke('dude:notifications:show', title, body),
   },

@@ -7,6 +7,7 @@ import { PersistenceService } from '../../core/persistence/persistence.service';
 import { WorkspaceLayoutService } from '../../core/workspace/workspace-layout.service';
 import { ClearAllDataService } from '../../core/workspace/clear-all-data';
 import { ShellChromeService } from '../../core/platform/shell-chrome.service';
+import { SmartPasteHotkeyService } from '../../core/platform/smart-paste-hotkey.service';
 import type { DesktopPreferences, QuickActionInfo } from '../../core/platform/electron-bridge';
 import { DesktopPreferencesService } from '../../core/platform/desktop-preferences.service';
 import { OnboardingService } from '../../core/platform/onboarding.service';
@@ -15,6 +16,11 @@ const TOOL_ID = 'settings';
 const KEY_BASE_URL = 'llmBaseUrl';
 const KEY_MODEL = 'llmModel';
 const KEY_API_KEY = 'llmApiKey';
+/** Synthetic key into the shared `hotkeyDrafts`/`hotkeyErrors` maps -- the Desktop Global Smart
+ *  Paste Hotkey (DUDE_PRD.md §21 Phase 24 Item 3) is a sibling of, not one of, `quickActions()`'s
+ *  clipboard-transform list (see electron/smart-paste-hotkey.ts), so it reuses the same draft/error
+ *  UI shape under its own id rather than being folded into that array. */
+const SMART_PASTE_HOTKEY_ID = 'smart-paste-hotkey';
 
 type LoadStatus = 'loading' | 'idle';
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -43,6 +49,7 @@ type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 export class Settings {
   private readonly secureLocal = inject(SecureLocalService);
   private readonly shellChrome = inject(ShellChromeService);
+  private readonly smartPasteHotkey = inject(SmartPasteHotkeyService);
   protected readonly desktopPrefs = inject(DesktopPreferencesService);
   protected readonly onboarding = inject(OnboardingService);
   protected readonly desktopMessage = signal('');
@@ -92,10 +99,17 @@ export class Settings {
   }
 
   private async loadShellChrome(): Promise<void> {
-    const [launchOnLogin, quickActions] = await Promise.all([this.shellChrome.getLaunchOnLogin(), this.shellChrome.listQuickActions()]);
+    const [launchOnLogin, quickActions, smartPasteHotkey] = await Promise.all([
+      this.shellChrome.getLaunchOnLogin(),
+      this.shellChrome.listQuickActions(),
+      this.smartPasteHotkey.getHotkey(),
+    ]);
     this.launchOnLogin.set(launchOnLogin);
     this.quickActions.set(quickActions);
-    this.hotkeyDrafts.set(Object.fromEntries(quickActions.map((a) => [a.id, a.hotkey ?? ''])));
+    this.hotkeyDrafts.set({
+      ...Object.fromEntries(quickActions.map((a) => [a.id, a.hotkey ?? ''])),
+      [SMART_PASTE_HOTKEY_ID]: smartPasteHotkey ?? '',
+    });
   }
 
   protected async setDesktopPreference<K extends keyof DesktopPreferences>(key: K, value: DesktopPreferences[K]): Promise<void> {
@@ -147,6 +161,29 @@ export class Settings {
   protected clearHotkey(actionId: string): void {
     this.hotkeyDrafts.update((drafts) => ({ ...drafts, [actionId]: '' }));
     void this.saveHotkey(actionId);
+  }
+
+  protected readonly smartPasteHotkeyId = SMART_PASTE_HOTKEY_ID;
+
+  protected async saveSmartPasteHotkey(): Promise<void> {
+    const accelerator = this.hotkeyDrafts()[SMART_PASTE_HOTKEY_ID]?.trim() || null;
+    this.hotkeyErrors.update((errors) => ({ ...errors, [SMART_PASTE_HOTKEY_ID]: '' }));
+
+    const result = await this.smartPasteHotkey.setHotkey(accelerator);
+    if (!result.ok) {
+      this.hotkeyErrors.update((errors) => ({
+        ...errors,
+        [SMART_PASTE_HOTKEY_ID]: result.error === 'registration-failed' ? 'Could not register this hotkey — it may already be in use.' : result.error,
+      }));
+      return;
+    }
+
+    this.hotkeyDrafts.update((drafts) => ({ ...drafts, [SMART_PASTE_HOTKEY_ID]: accelerator ?? '' }));
+  }
+
+  protected clearSmartPasteHotkey(): void {
+    this.hotkeyDrafts.update((drafts) => ({ ...drafts, [SMART_PASTE_HOTKEY_ID]: '' }));
+    void this.saveSmartPasteHotkey();
   }
 
   protected onRelayUrlInput(event: Event): void {

@@ -63,6 +63,12 @@ export interface DudeElectronBridge {
     list(): Promise<readonly QuickActionInfo[]>;
     setHotkey(actionId: string, accelerator: string | null): Promise<VoidResult>;
   };
+  readonly smartPaste: {
+    ready(): void;
+    onTrigger(callback: (text: string) => void): () => void;
+    getHotkey(): Promise<string | null>;
+    setHotkey(accelerator: string | null): Promise<VoidResult>;
+  };
   readonly notifications: {
     show(title: string, body: string): Promise<VoidResult>;
   };

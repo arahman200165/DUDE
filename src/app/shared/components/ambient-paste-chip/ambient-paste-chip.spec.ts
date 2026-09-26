@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { vi } from 'vitest';
 import { AmbientPasteChip } from './ambient-paste-chip';
+import { fakeElectronBridge } from '../../../core/platform/testing/fake-electron-bridge';
 
 class FakeRouter {
   url = '/';
@@ -96,5 +97,40 @@ describe('AmbientPasteChip', () => {
 
     expect(router.navigateByUrl).toHaveBeenCalledWith('/tools/uuid');
     expect(fixture.nativeElement.textContent.trim()).toBe('');
+  });
+
+  describe('on desktop', () => {
+    const originalDude = window.dude;
+
+    afterEach(() => {
+      Object.defineProperty(window, 'dude', { value: originalDude, configurable: true });
+    });
+
+    it('signals readiness and shows a match delivered via the global hotkey trigger', () => {
+      let trigger: ((text: string) => void) | undefined;
+      Object.defineProperty(window, 'dude', {
+        value: fakeElectronBridge({
+          smartPaste: {
+            ready: vi.fn(),
+            onTrigger: (callback) => {
+              trigger = callback;
+              return () => {};
+            },
+            getHotkey: async () => null,
+            setHotkey: async () => ({ ok: true }),
+          },
+        }),
+        configurable: true,
+      });
+
+      const fixture = TestBed.createComponent(AmbientPasteChip);
+      fixture.detectChanges();
+
+      expect(window.dude!.smartPaste.ready).toHaveBeenCalled();
+      trigger?.(A_UUID);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).toContain('UUID');
+    });
   });
 });

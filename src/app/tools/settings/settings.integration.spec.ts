@@ -8,6 +8,7 @@ import { PersistenceService } from '../../core/persistence/persistence.service';
 import { WorkspaceLayoutService } from '../../core/workspace/workspace-layout.service';
 import { ClearAllDataService } from '../../core/workspace/clear-all-data';
 import { ShellChromeService } from '../../core/platform/shell-chrome.service';
+import { SmartPasteHotkeyService } from '../../core/platform/smart-paste-hotkey.service';
 import { DesktopPreferencesService } from '../../core/platform/desktop-preferences.service';
 import { OnboardingService } from '../../core/platform/onboarding.service';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
@@ -45,6 +46,7 @@ describe('Settings integration', () => {
         { provide: WorkspaceLayoutService, useValue: { reopenOnRestart } },
         { provide: ClearAllDataService, useValue: { clearAll } },
         { provide: ShellChromeService, useValue: { getLaunchOnLogin: vi.fn().mockResolvedValue(false), listQuickActions: vi.fn().mockResolvedValue([]) } },
+        { provide: SmartPasteHotkeyService, useValue: { getHotkey: vi.fn().mockResolvedValue(null), setHotkey: vi.fn().mockResolvedValue({ ok: true }) } },
         { provide: DesktopPreferencesService, useValue: { load: vi.fn().mockResolvedValue(undefined), current: signal({}), displays: signal([]) } },
         { provide: OnboardingService, useValue: { open: vi.fn() } },
       ],

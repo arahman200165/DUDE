@@ -37,6 +37,12 @@ export function fakeElectronBridge(overrides: Partial<DudeElectronBridge> = {}):
       list: async () => [],
       setHotkey: async () => ({ ok: true }),
     },
+    smartPaste: {
+      ready: () => {},
+      onTrigger: () => () => {},
+      getHotkey: async () => null,
+      setHotkey: async () => ({ ok: true }),
+    },
     notifications: {
       show: async () => ({ ok: true }),
     },
