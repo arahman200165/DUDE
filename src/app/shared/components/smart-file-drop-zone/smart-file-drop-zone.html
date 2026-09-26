@@ -1,0 +1,30 @@
+<app-file-drop label="Drop a file to see which tool can open it" (fileSelected)="onFileSelected($event)" />
+
+@if (droppedFileName(); as name) {
+  <div class="mt-2 flex flex-col gap-1.5">
+    <div class="flex items-center justify-between">
+      <p class="text-ui-xs text-text-muted">{{ name }}</p>
+      <button type="button" class="text-ui-xs text-text-muted hover:text-text" (click)="clear()">Clear</button>
+    </div>
+    @if (matches(); as m) {
+      @if (m.length) {
+        <div class="flex flex-wrap gap-2">
+          @for (match of m; track match.toolId) {
+            <button
+              type="button"
+              class="rounded-sm border border-accent/40 bg-accent/10 px-2 py-1 text-ui-sm text-accent hover:bg-accent/20"
+              [title]="match.reason"
+              (click)="open(match.toolId)"
+            >
+              {{ match.title }}
+            </button>
+          }
+        </div>
+      } @else {
+        <p class="text-ui-xs text-text-muted">No matching tool found for this file.</p>
+      }
+    } @else {
+      <p class="text-ui-xs text-text-muted">Checking file…</p>
+    }
+  </div>
+}

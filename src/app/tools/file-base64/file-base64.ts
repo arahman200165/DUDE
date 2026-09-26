@@ -8,6 +8,7 @@ import { PersistenceService } from '../../core/persistence/persistence.service';
 import { WorkerClientService } from '../../core/workers/worker-client.service';
 import { WorkerJob } from '../../core/workers/worker-job';
 import { downloadFile } from '../../shared/utils/download-file';
+import { FileDropHandoffService } from '../../core/file-drop-detect/file-drop-handoff.service';
 import { FileBase64DecodeResult, decodeBase64ToBytes, encodeFileToBase64 } from './file-base64-codec';
 import { FileBase64WorkerPayload, FileBase64WorkerResult } from './file-base64-worker-payload';
 import { FileSignature, sniffFileType } from './file-signature';
@@ -25,6 +26,7 @@ export type FileBase64Direction = 'encode' | 'decode';
 export class FileBase64 {
   private readonly persistence = inject(PersistenceService);
   private readonly workerClient = inject(WorkerClientService);
+  private readonly fileDropHandoff = inject(FileDropHandoffService);
 
   protected readonly direction = this.persistence.signal<FileBase64Direction>('file-base64', 'direction', 'local', 'encode');
   protected readonly downloadFilename = this.persistence.signal('file-base64', 'filename', 'local', 'download.bin');
@@ -68,6 +70,15 @@ export class FileBase64 {
   });
 
   constructor() {
+    // Smart File Drop hand-off (DUDE_PRD.md §21 Phase 24 Item 4) -- a proof-of-concept opt-in, same
+    // pattern as Smart Paste's per-tool `consume()` calls. A handed-off file always means "encode
+    // this," regardless of whatever direction was last persisted.
+    const droppedFile = this.fileDropHandoff.consume('file-base64');
+    if (droppedFile) {
+      this.direction.set('encode');
+      void this.onFileSelected(droppedFile);
+    }
+
     // Pushes a completed encode worker job's result into the persisted output signal.
     effect(() => {
       const result = this.job()?.result();
