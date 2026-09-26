@@ -28,7 +28,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/jwt-verify',
   load: () => import('./jwt-verify').then((m) => m.JwtVerify),
-  status: 'experimental',
+  status: 'verified',
+  verification: {
+    crossChecked: ["Node's crypto.createHmac (independent of jose's own signing)"],
+    summary: "Verifies a token signed by hand with Node's HMAC-SHA256, and rejects it when a single signature byte is flipped — not just a token jose signed and jose verified.",
+  },
   consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   network: { required: true, detail: 'JWKS / OIDC discovery' },

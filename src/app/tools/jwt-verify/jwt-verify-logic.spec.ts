@@ -156,3 +156,43 @@ describe('verifyJwt — general', () => {
     expect(result).toEqual({ ok: false, error: 'Enter a JWT.' });
   });
 });
+
+describe('verifyJwt — cross-checked against an independent HS256 implementation', () => {
+  // DUDE_PRD.md §21 Phase 23 Item 3 -- every other test in this file signs with `jose`'s own
+  // SignJWT and verifies with DUDE's jose-based verifyJwt, which never proves anything against a
+  // second, independent implementation. This token is built by hand with Node's `crypto` module
+  // (HMAC-SHA256 over the raw compact-serialization bytes, per RFC 7515 §5.1), never touching
+  // jose at all on the signing side.
+  it('verifies a token signed by hand with Node crypto.createHmac', async () => {
+    const { createHmac } = await import('node:crypto');
+    const base64url = (bytes: Uint8Array) =>
+      Buffer.from(bytes).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+    const header = base64url(new TextEncoder().encode(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));
+    const payload = base64url(new TextEncoder().encode(JSON.stringify({ sub: 'carol' })));
+    const signingInput = `${header}.${payload}`;
+    const signature = createHmac('sha256', 'independent-secret').update(signingInput).digest();
+    const token = `${signingInput}.${base64url(signature)}`;
+
+    const result = await verifyJwt({ token, mode: 'hmac', algorithm: 'HS256', secret: 'independent-secret' });
+
+    expect(result.ok).toBe(true);
+    expect(result.ok && (result.payload as { sub: string }).sub).toBe('carol');
+  });
+
+  it('rejects the same token with one signature byte flipped', async () => {
+    const { createHmac } = await import('node:crypto');
+    const base64url = (bytes: Uint8Array) =>
+      Buffer.from(bytes).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+    const header = base64url(new TextEncoder().encode(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));
+    const payload = base64url(new TextEncoder().encode(JSON.stringify({ sub: 'carol' })));
+    const signingInput = `${header}.${payload}`;
+    const signature = createHmac('sha256', 'independent-secret').update(signingInput).digest();
+    signature[0] ^= 0xff;
+    const token = `${signingInput}.${base64url(signature)}`;
+
+    const result = await verifyJwt({ token, mode: 'hmac', algorithm: 'HS256', secret: 'independent-secret' });
+    expect(result.ok).toBe(false);
+  });
+});
