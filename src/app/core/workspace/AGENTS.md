@@ -79,6 +79,14 @@ desync from whatever invariants the layout service enforces elsewhere (today: no
 `openTool`/`splitFocused` already assume about one-leaf-per-tool-id, since `apply` trusts its input
 completely — a template is authored data, not user-typed input needing validation).
 
+`apply()` also records the applied id into the store's own `recentlyAppliedIds` (most-recent-first,
+deduped, capped at `MAX_RECENTLY_APPLIED_TEMPLATES`) — Deck's "Recent Workspaces" rail
+(`DUDE_PRD.md` §21 Phase 25 Item 1) reads this back via `recentlyApplied(limit)`, which resolves ids
+through the live `templates()` list so a since-removed user template silently drops off rather than
+producing a dangling entry. This is a small, template-owned recency log, not a second Unified-Recents
+source — `core/recents/AGENTS.md`'s "never a fifth source of truth" rule is about that service's own
+four inputs, not every recency signal in the app.
+
 ## The governing privacy rule
 
 No part of this feature may cause a tool's content to outlive the `PersistencePolicy` that tool's own code

@@ -86,7 +86,7 @@ describe('Phase 24 store shapes never carry tool content', () => {
     TestBed.inject(WorkspaceTemplateService).saveCurrentAsTemplate('My Layout');
 
     const store = (await readStore('dude:v1:__workspace-templates__:userTemplates')) as { userTemplates: readonly unknown[] };
-    assertOnlyKeys(store, ['schemaVersion', 'userTemplates']);
+    assertOnlyKeys(store, ['schemaVersion', 'userTemplates', 'recentlyAppliedIds']);
     assertOnlyKeys(store.userTemplates, ['id', 'name', 'description', 'builtIn', 'panelTree', 'openTabs']);
     for (const template of store.userTemplates as { panelTree: unknown }[]) {
       assertOnlyKeys(template.panelTree, ['kind', 'nodeId', 'toolId', 'ratio', 'a', 'b']);

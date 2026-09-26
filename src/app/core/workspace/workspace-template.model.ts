@@ -35,21 +35,38 @@ function threeToolLayout(id: string, toolIds: readonly [string, string, string])
 
 export const WORKSPACE_TEMPLATE_STORE_SCHEMA_VERSION = 1;
 
+/** Most-recent-first, deduped-keep-latest, capped -- mirrors `UsageService.mostRecent`'s shape. */
+export const MAX_RECENTLY_APPLIED_TEMPLATES = 8;
+
 export interface WorkspaceTemplateStore {
   readonly schemaVersion: 1;
   readonly userTemplates: readonly WorkspaceTemplate[];
+  readonly recentlyAppliedIds: readonly string[];
 }
 
-export const EMPTY_WORKSPACE_TEMPLATE_STORE: WorkspaceTemplateStore = { schemaVersion: 1, userTemplates: [] };
+export const EMPTY_WORKSPACE_TEMPLATE_STORE: WorkspaceTemplateStore = {
+  schemaVersion: 1,
+  userTemplates: [],
+  recentlyAppliedIds: [],
+};
 
 /** Defensive parse: unrecognized/corrupt persisted data resets to an empty store rather than throwing. */
 export function migrateWorkspaceTemplateStore(raw: unknown): WorkspaceTemplateStore {
   if (!raw || typeof raw !== 'object') return EMPTY_WORKSPACE_TEMPLATE_STORE;
   const candidate = raw as Partial<WorkspaceTemplateStore>;
   if (candidate.schemaVersion === WORKSPACE_TEMPLATE_STORE_SCHEMA_VERSION && Array.isArray(candidate.userTemplates)) {
-    return { schemaVersion: 1, userTemplates: candidate.userTemplates };
+    return {
+      schemaVersion: 1,
+      userTemplates: candidate.userTemplates,
+      recentlyAppliedIds: Array.isArray(candidate.recentlyAppliedIds) ? candidate.recentlyAppliedIds : [],
+    };
   }
   return EMPTY_WORKSPACE_TEMPLATE_STORE;
+}
+
+/** Unshifts `id`, dedupes (keeping the newest position), caps at `MAX_RECENTLY_APPLIED_TEMPLATES`. */
+export function recordRecentlyAppliedTemplate(ids: readonly string[], id: string): readonly string[] {
+  return [id, ...ids.filter((existing) => existing !== id)].slice(0, MAX_RECENTLY_APPLIED_TEMPLATES);
 }
 
 export function createWorkspaceTemplate(name: string, panelTree: PanelNode | null, openTabs: readonly string[]): WorkspaceTemplate {

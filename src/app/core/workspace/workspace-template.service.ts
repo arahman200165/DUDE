@@ -7,6 +7,7 @@ import {
   WorkspaceTemplate,
   createWorkspaceTemplate,
   migrateWorkspaceTemplateStore,
+  recordRecentlyAppliedTemplate,
 } from './workspace-template.model';
 
 /**
@@ -40,6 +41,23 @@ export class WorkspaceTemplateService {
    */
   apply(template: WorkspaceTemplate): void {
     this.workspaceLayout.applyLayout(template.panelTree, template.openTabs);
+    this.store.set({ ...this.store(), recentlyAppliedIds: recordRecentlyAppliedTemplate(this.store().recentlyAppliedIds, template.id) });
+  }
+
+  /**
+   * Most-recently-*applied*-first, resolved back through `templates()` so a removed user template
+   * silently drops off rather than producing a dangling entry (Deck's "Recent Workspaces" rail,
+   * DUDE_PRD.md §21 Phase 25 Item 1).
+   */
+  recentlyApplied(limit: number): readonly WorkspaceTemplate[] {
+    const byId = new Map(this.templates().map((template) => [template.id, template]));
+    const resolved: WorkspaceTemplate[] = [];
+    for (const id of this.store().recentlyAppliedIds) {
+      const template = byId.get(id);
+      if (template) resolved.push(template);
+      if (resolved.length === limit) break;
+    }
+    return resolved;
   }
 
   saveCurrentAsTemplate(name: string): WorkspaceTemplate {

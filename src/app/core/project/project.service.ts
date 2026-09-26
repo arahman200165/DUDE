@@ -77,6 +77,14 @@ export class ProjectService {
     }));
   }
 
+  /** Most-recently-*activated*-first, capped at `limit` -- Deck's "Recent Projects" rail (Item 1). */
+  recentlyActivated(limit: number): readonly Project[] {
+    return this.projects()
+      .filter((project) => project.lastActivatedAt !== undefined)
+      .sort((a, b) => b.lastActivatedAt!.localeCompare(a.lastActivatedAt!))
+      .slice(0, limit);
+  }
+
   /**
    * Derived, not stored -- filters the live `UnifiedRecentsService` feed down to tool ids this
    * project's own open tabs actually reference, so "recent tools" never becomes a second,

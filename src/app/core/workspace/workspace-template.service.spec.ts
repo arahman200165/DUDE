@@ -56,6 +56,23 @@ describe('WorkspaceTemplateService', () => {
     expect(service.templates().some((t) => t.id === BUILT_IN_TEMPLATES[0].id)).toBe(true);
   });
 
+  it('recentlyApplied() tracks applied templates, most-recent first, deduped', () => {
+    const [a, b] = BUILT_IN_TEMPLATES;
+    service.apply(a);
+    service.apply(b);
+    service.apply(a); // re-applying moves it back to the front rather than duplicating
+
+    expect(service.recentlyApplied(10).map((t) => t.id)).toEqual([a.id, b.id]);
+  });
+
+  it('recentlyApplied() drops a since-removed user template rather than a dangling entry', () => {
+    const saved = service.saveCurrentAsTemplate('Temp');
+    service.apply(saved);
+    service.removeUserTemplate(saved.id);
+
+    expect(service.recentlyApplied(10).some((t) => t.id === saved.id)).toBe(false);
+  });
+
   it('survives a fresh service instance via persistence', async () => {
     const saved = service.saveCurrentAsTemplate('Persisted');
     await stable();

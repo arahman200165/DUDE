@@ -62,7 +62,13 @@ describe('migrateWorkspaceTemplateStore', () => {
     const valid: WorkspaceTemplateStore = {
       schemaVersion: 1,
       userTemplates: [createWorkspaceTemplate('Custom', null, ['json'])],
+      recentlyAppliedIds: [],
     };
     expect(migrateWorkspaceTemplateStore(valid)).toEqual(valid);
+  });
+
+  it('defaults recentlyAppliedIds to an empty array when missing from persisted data', () => {
+    const result = migrateWorkspaceTemplateStore({ schemaVersion: 1, userTemplates: [] });
+    expect(result.recentlyAppliedIds).toEqual([]);
   });
 });

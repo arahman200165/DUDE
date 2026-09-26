@@ -84,6 +84,19 @@ describe('ProjectService', () => {
     expect(recent.every((entry) => 'toolId' in entry && entry.toolId === 'base64')).toBe(true);
   });
 
+  it('recentlyActivated() returns only-ever-activated projects, most-recent first, capped', async () => {
+    const a = service.create('A');
+    const b = service.create('B');
+    service.create('Never Activated');
+
+    service.activate(a.id);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    service.activate(b.id);
+
+    expect(service.recentlyActivated(10).map((p) => p.id)).toEqual([b.id, a.id]);
+    expect(service.recentlyActivated(1).map((p) => p.id)).toEqual([b.id]);
+  });
+
   it('survives a fresh service instance via persistence', async () => {
     const project = service.create('Persisted');
     await stable();
