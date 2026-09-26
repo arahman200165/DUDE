@@ -1047,10 +1047,10 @@
     "id": "properties-parser",
     "category": "data",
     "subdomain": null,
-    "status": "blocked",
+    "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": 376,
-    "notes": "Property round-trip remains unsatisfied after two constrained arbitrary attempts; no source behavior change made."
+    "milestone": 392,
+    "notes": "Nonempty flat string maps round-trip structurally; empty maps are excluded because blank input is intentionally rejected. Shared property harness gains async support; no tool runtime behavior changed."
   },
   {
     "id": "protobuf-decoder",
@@ -1128,10 +1128,10 @@
     "id": "xml-xsd-validator",
     "category": "data",
     "subdomain": null,
-    "status": "blocked",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": 377,
-    "notes": "async property testing is unsupported by the shared property harness; existing example specs cover WASM validation."
+    "milestone": 392,
+    "notes": "Async property fuzzes arbitrary XML/XSD text and asserts typed result and issue shapes. Shared property harness gains deterministic async support; no public validation behavior changed."
   },
   {
     "id": "yaml-anchors",

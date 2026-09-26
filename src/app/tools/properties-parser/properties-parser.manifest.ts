@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['properties', 'java', 'parse', 'config', 'key value'],
   route: '/tools/properties-parser',
   load: () => import('./properties-parser').then((m) => m.PropertiesParser),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trips nonempty flat JSON string maps through Java properties formatting with arbitrary string values.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text', 'json'], produces: ['json', 'text'] },

@@ -10,7 +10,11 @@ export const manifest: ToolDefinition = {
   keywords: ['xml', 'xsd', 'schema', 'validate', 'libxml2', 'wasm'],
   route: '/tools/xml-xsd-validator',
   load: () => import('./xml-xsd-validator').then((m) => m.XmlXsdValidator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Resolves valid and malformed arbitrary XML and schema text to typed results; examples cover validation outcomes.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'none' },
   io: { accepts: ['text'], produces: ['text'] },

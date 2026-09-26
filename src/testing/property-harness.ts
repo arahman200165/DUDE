@@ -46,3 +46,18 @@ export function invariant<T, R>(fn: (value: T) => R, arb: fc.Arbitrary<T>, predi
     opts,
   );
 }
+
+/** Async counterpart to `neverThrows`; a rejection fails the property and resolved values can be shape-checked. */
+export function asyncNeverThrows<T>(
+  fn: (value: T) => Promise<unknown>,
+  arb: fc.Arbitrary<T>,
+  opts?: PropertyOptions & { readonly assertShape?: (result: unknown) => void },
+): Promise<void> {
+  return fc.assert(
+    fc.asyncProperty(arb, async (value) => {
+      const result = await fn(value);
+      opts?.assertShape?.(result);
+    }),
+    opts,
+  );
+}
