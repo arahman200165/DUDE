@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['rot13', 'rot47', 'cipher', 'rotate', 'caesar', 'obfuscate'],
   route: '/tools/rot-cipher',
   load: () => import('./rot-cipher-tool').then((m) => m.RotCipherTool),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Self-inverse property and fuzz-tested (fast-check) against arbitrary text, in both ROT13 and ROT47 modes.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
