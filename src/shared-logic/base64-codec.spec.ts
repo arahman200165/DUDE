@@ -46,3 +46,13 @@ describe('round-trip property (DUDE_PRD.md §21 Phase 23 Item 4)', () => {
     );
   });
 });
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  it('decodeBase64 never throws for arbitrary text input', () => {
+    fc.assert(
+      fc.property(fc.string(), (text) => {
+        expect(() => decodeBase64(text)).not.toThrow();
+      }),
+    );
+  });
+});

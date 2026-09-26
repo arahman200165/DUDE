@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['base64', 'encode', 'decode', 'encoding', 'utf-8'],
   route: '/tools/base64',
   load: () => import('./base64').then((m) => m.Base64Tool),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip and fuzz-tested (fast-check) against arbitrary Unicode text via the shared UTF-8-safe base64-codec.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };
