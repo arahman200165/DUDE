@@ -19,7 +19,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/chmod-converter',
   load: () => import('./chmod-converter').then((m) => m.ChmodConverter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-tripped generated permission bitsets through symbolic chmod notation.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
 };

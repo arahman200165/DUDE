@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['branch', 'name', 'git', 'generate', 'slug'],
   route: '/tools/branch-name-generator',
   load: () => import('./branch-name-generator').then((m) => m.BranchNameGenerator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzzed branch-name options for non-throwing string output within configured maximum length.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

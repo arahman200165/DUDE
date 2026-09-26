@@ -18,7 +18,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/dependency-version-comparator',
   load: () => import('./dependency-version-comparator').then((m) => m.DependencyVersionComparator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzzed arbitrary dependency lists, checking non-throwing output and sorted entry names.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['table'] },
 };

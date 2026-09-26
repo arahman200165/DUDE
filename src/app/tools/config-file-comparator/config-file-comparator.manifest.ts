@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['config', 'diff', 'compare', 'env', 'ini', 'properties'],
   route: '/tools/config-file-comparator',
   load: () => import('./config-file-comparator').then((m) => m.ConfigFileComparator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzzed arbitrary before/after text across env, INI, and properties parsing; asserted tagged results without throws.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

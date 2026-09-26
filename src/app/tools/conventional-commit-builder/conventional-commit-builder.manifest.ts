@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['conventional commits', 'commit', 'git', 'message', 'builder'],
   route: '/tools/conventional-commit-builder',
   load: () => import('./conventional-commit-builder').then((m) => m.ConventionalCommitBuilder),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzzed commit message options, checking non-throwing string output.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

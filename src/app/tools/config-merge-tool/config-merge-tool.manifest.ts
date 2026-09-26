@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['config', 'merge', 'env', 'ini', 'properties', 'yaml', 'json'],
   route: '/tools/config-merge-tool',
   load: () => import('./config-merge-tool').then((m) => m.ConfigMergeTool),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzzed lists of arbitrary config source text and formats, asserting tagged results without throws.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text', 'json'], produces: ['json'] },
 };
