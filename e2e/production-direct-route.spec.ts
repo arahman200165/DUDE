@@ -23,3 +23,20 @@ test('direct-navigating to the Smart Paste route resolves correctly', async ({ p
   await expect(page.getByRole('heading', { name: 'Smart Paste' })).toBeVisible();
   await expect(page.locator('app-sidebar')).toBeVisible();
 });
+
+
+test('verified tools remain discoverable through dashboard search and Ctrl+K', async ({ page }) => {
+  await page.goto('/DUDE/');
+  await page.locator('app-deck').getByPlaceholder(/Search tools/).fill('base64');
+  await expect(page.locator('app-deck').getByRole('link', { name: 'Base64 Encoder / Decoder' })).toBeVisible();
+
+  await page.keyboard.press('Control+k');
+  const palette = page.locator('app-command-palette');
+  await palette.getByPlaceholder(/Search tools/).fill('base64');
+  await palette.getByRole('button', { name: 'Base64 Encoder / Decoder' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Base64 Encoder / Decoder' })).toBeVisible();
+  const badge = page.locator('app-tool-shell header').getByText('verified', { exact: true });
+  await expect(badge).toHaveText('verified', { ignoreCase: true });
+  await expect(badge).toHaveAttribute('title', /Round-trip and fuzz-tested/);
+});
