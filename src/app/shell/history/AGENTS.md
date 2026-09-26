@@ -14,3 +14,10 @@ See `core/history/AGENTS.md` for the eligibility rule, exclusion categories, and
 `/history?tool=<id>`, read once in `HistoryPage`'s constructor to seed the tool filter — the one
 per-tool-aware entry point, resolved generically, same as the "View history" button being available
 on all 277 tools for free rather than requiring a per-tool retrofit.
+
+## Unified Recents (Phase 24 Item 13) extends this exception, not a new one
+
+`recents-tab/` and `HistoryPage`'s "History"/"Recents" tab toggle live inside this same sanctioned
+exception — Unified Recents is cross-tool activity infrastructure exactly like History itself, just
+a different derived view (`core/recents/UnifiedRecentsService`) over four already-existing stores,
+never a fifth recording mechanism. See `core/recents/AGENTS.md`.

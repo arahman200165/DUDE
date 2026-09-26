@@ -1,4 +1,28 @@
 <div class="flex h-full flex-col gap-3 p-3">
+  <div class="flex items-center gap-2 border-b border-border">
+    <button
+      type="button"
+      class="border-b-2 px-2 py-1 text-ui-sm"
+      [class]="activeTab() === 'history' ? 'border-accent text-text' : 'border-transparent text-text-muted hover:text-text'"
+      (click)="setActiveTab('history')"
+    >
+      History
+    </button>
+    <button
+      type="button"
+      class="border-b-2 px-2 py-1 text-ui-sm"
+      [class]="activeTab() === 'recents' ? 'border-accent text-text' : 'border-transparent text-text-muted hover:text-text'"
+      (click)="setActiveTab('recents')"
+    >
+      Recents
+    </button>
+  </div>
+
+  @if (activeTab() === 'recents') {
+    <div class="min-h-0 flex-1 overflow-y-auto">
+      <app-recents-tab />
+    </div>
+  } @else {
   <div class="flex flex-wrap items-center gap-2">
     <input
       type="text"
@@ -100,4 +124,5 @@
       </div>
     }
   </div>
+  }
 </div>

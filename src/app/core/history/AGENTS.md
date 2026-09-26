@@ -49,6 +49,14 @@ Retention (per-tool/global/age/size caps) lives in `history.model.ts` and is enf
 `HistoryService.clearAll()` is folded into `core/workspace/clear-all-data.ts#ClearAllDataService`,
 not into `PersistenceService` itself, which stays a localStorage/sessionStorage abstraction only.
 
+## Unified Recents reads `HistoryService.recent()`, never records a second copy
+
+`core/recents/UnifiedRecentsService` (Phase 24 Item 13) surfaces History entries alongside
+tool/pipeline/workspace-tab activity in one merged view — it only ever reads `history.recent()`
+reactively. History's own eligibility rules (opt-in `historyEligible`, exclusion categories above)
+are untouched and still fully govern what content-bearing entries exist at all; Unified Recents just
+renders whatever already passed that bar, with the same title/timestamp every History row has.
+
 ## Capture and restore
 
 `history-recorder.ts#recordHistoryOnDestroy` is called from `ToolShell.ngOnDestroy` — the one

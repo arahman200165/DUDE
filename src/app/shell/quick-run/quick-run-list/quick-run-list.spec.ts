@@ -34,8 +34,10 @@ describe('QuickRunList', () => {
   });
 
   // The first test to trigger PipelineStepRegistryService's ~225-dynamic-import cold load can run
-  // past Vitest's 5000ms default under full-suite resource contention -- a timing margin, not a
-  // correctness concern (isolated runs consistently finish in well under a second).
+  // well past Vitest's 5000ms default under full-suite resource contention (only the first call
+  // pays this cost -- ensureLoaded() memoizes the result, so every other test in this file, and
+  // every other spec file that reuses the same warm cache, is fast). A generous margin here is a
+  // timing accommodation, not a correctness concern -- isolated runs finish in well under a second.
   it(
     'lists text-accepting pipeline-eligible tools once loaded',
     async () => {
@@ -46,7 +48,7 @@ describe('QuickRunList', () => {
 
       expect(fixture.nativeElement.textContent).toContain('Base64 Encoder / Decoder');
     },
-    15000,
+    45000,
   );
 
   it('filters the list by search query', async () => {

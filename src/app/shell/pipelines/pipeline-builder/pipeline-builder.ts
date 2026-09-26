@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal, viewChild } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { DecimalPipe, NgTemplateOutlet } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -130,6 +130,19 @@ export class PipelineBuilder {
         this.registryReady.set(true);
       });
       void scriptsLoaded;
+    });
+
+    // Unified Recents (DUDE_PRD.md §21 Phase 24 Item 13) reads a pipeline's own `lastRunAt` --
+    // previously declared in the model but never actually populated anywhere. Persists once a run
+    // reaches a terminal state, not on every status tick. `persist()` itself reads/writes
+    // `this.pipeline`, so it must run `untracked` -- otherwise this effect would retrigger itself
+    // the instant its own `persist()` call updates the very signal it just read.
+    effect(() => {
+      const run = this.run();
+      if (!run) return;
+      const status = run.status();
+      if (status === 'idle' || status === 'running') return;
+      untracked(() => this.persist({ ...this.pipeline(), lastRunAt: new Date().toISOString(), lastRunStatus: status }));
     });
   }
 

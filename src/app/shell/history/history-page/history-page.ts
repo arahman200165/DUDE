@@ -7,14 +7,18 @@ import { HistoryHandoffService } from '../../../core/history/history-handoff.ser
 import { HistoryEntry } from '../../../core/history/history.model';
 import { CATEGORY_METADATA } from '../../../shared/models/tool-category.model';
 import { CategoryIcon } from '../../../shared/components/category-icon/category-icon';
+import { RecentsTab } from '../recents-tab/recents-tab';
+
+type HistoryTab = 'history' | 'recents';
 
 /**
  * `/history` route (DUDE_PRD.md §21 Phase 21 Item 5) — the fourth sanctioned shell/core exception.
- * See `shell/history/AGENTS.md`.
+ * See `shell/history/AGENTS.md`. The "Recents" tab (Phase 24 Item 13) extends this same exception
+ * rather than adding a new route.
  */
 @Component({
   selector: 'app-history-page',
-  imports: [CategoryIcon, DatePipe],
+  imports: [CategoryIcon, DatePipe, RecentsTab],
   templateUrl: './history-page.html',
 })
 export class HistoryPage {
@@ -23,6 +27,7 @@ export class HistoryPage {
   private readonly handoff = inject(HistoryHandoffService);
   protected readonly history = inject(HistoryService);
 
+  protected readonly activeTab = signal<HistoryTab>('history');
   protected readonly meta = CATEGORY_METADATA;
   protected readonly query = signal('');
   protected readonly toolFilter = signal<string | null>(this.route.snapshot.queryParamMap.get('tool'));
@@ -67,6 +72,10 @@ export class HistoryPage {
 
   protected toggleGroupByTool(): void {
     this.groupByTool.set(!this.groupByTool());
+  }
+
+  protected setActiveTab(tab: HistoryTab): void {
+    this.activeTab.set(tab);
   }
 
   protected async open(entryId: string): Promise<void> {
