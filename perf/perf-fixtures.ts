@@ -24,3 +24,10 @@ export function buildLargeJsonText(approxBytes: number): string {
   const records = Array.from({ length: count }, (_, i) => ({ id: i, name: `item-${i}`, active: i % 2 === 0, value: i * 1.5 }));
   return JSON.stringify(records);
 }
+
+/** Repeats a deterministic byte pattern without storing a large fixture in the repository. */
+export function buildBinary(size: number, seed = 0): Uint8Array {
+  const bytes = new Uint8Array(size);
+  for (let i = 0; i < size; i++) bytes[i] = (i * 31 + (i >>> 8) + seed) & 0xff;
+  return bytes;
+}

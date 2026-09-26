@@ -2,5 +2,8 @@
   "hashCompute5MbSha256": 2000,
   "hashComputeAllAlgorithms1Mb": 4000,
   "textDiff10kLines": 4000,
-  "jsonFormat5MbPrettyPrint": 3000
+  "jsonFormat5MbPrettyPrint": 3000,
+  "archiveExtract4MbZip": 5000,
+  "binaryParse16kFields": 5000,
+  "directoryDiff2kFiles": 10000
 }
