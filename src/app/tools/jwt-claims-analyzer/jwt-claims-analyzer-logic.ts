@@ -68,7 +68,7 @@ export function analyzeClaims(header: unknown, payload: unknown, now: Date = new
     }
   }
 
-  const approxBytes = JSON.stringify(header).length + JSON.stringify(payload).length;
+  const approxBytes = JSON.stringify(h).length + JSON.stringify(p).length;
   if (approxBytes > OVERSIZED_TOKEN_BYTES) {
     findings.push({
       severity: 'warning',

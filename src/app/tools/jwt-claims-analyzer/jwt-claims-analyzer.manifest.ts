@@ -22,7 +22,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/jwt-claims-analyzer',
   load: () => import('./jwt-claims-analyzer').then((m) => m.JwtClaimsAnalyzer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested with arbitrary JSON-shaped header/payload (fast-check) -- caught and fixed a real crash on non-object header/payload input.',
+  },
   consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['json'] },

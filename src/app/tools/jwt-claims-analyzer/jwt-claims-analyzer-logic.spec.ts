@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import fc from 'fast-check';
 import { analyzeClaims } from './jwt-claims-analyzer-logic';
 
 const NOW = new Date('2026-01-01T00:00:00Z');
@@ -66,5 +67,15 @@ describe('analyzeClaims', () => {
       NOW,
     );
     expect(findings).toHaveLength(0);
+  });
+});
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  it('never throws for arbitrary JSON-shaped header/payload', () => {
+    fc.assert(
+      fc.property(fc.anything(), fc.anything(), (header, payload) => {
+        expect(() => analyzeClaims(header, payload)).not.toThrow();
+      }),
+    );
   });
 });
