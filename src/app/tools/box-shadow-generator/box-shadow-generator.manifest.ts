@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['box-shadow', 'css shadow', 'drop shadow', 'inset shadow', 'css generator'],
   route: '/tools/box-shadow-generator',
   load: () => import('./box-shadow-generator').then((m) => m.BoxShadowGenerator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Generator-tested (fast-check): layer formatting matches list length, empty layers emit none, and declarations match.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
 };

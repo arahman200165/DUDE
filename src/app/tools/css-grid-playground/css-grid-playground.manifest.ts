@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['css grid', 'grid-template-columns', 'grid-column', 'grid-row', 'css generator'],
   route: '/tools/css-grid-playground',
   load: () => import('./css-grid-playground').then((m) => m.CssGridPlayground),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Generator-tested (fast-check): generated item placements correspond to HTML items and emitted CSS rules.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
 };

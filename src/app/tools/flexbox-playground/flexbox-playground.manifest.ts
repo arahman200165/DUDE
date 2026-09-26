@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['flexbox', 'flex', 'css flexbox', 'justify-content', 'align-items', 'css generator'],
   route: '/tools/flexbox-playground',
   load: () => import('./flexbox-playground').then((m) => m.FlexboxPlayground),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Generator-tested (fast-check): generated item settings produce matching HTML items and CSS rules.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
 };

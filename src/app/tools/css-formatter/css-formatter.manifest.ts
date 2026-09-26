@@ -10,7 +10,11 @@ export const manifest: ToolDefinition = {
   keywords: ['css', 'formatter', 'minifier', 'pretty print', 'beautify', 'css minify'],
   route: '/tools/css-formatter',
   load: () => import('./css-formatter').then((m) => m.CssFormatter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip tested (fast-check): minified CSS is idempotent; arbitrary input returns a typed result.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

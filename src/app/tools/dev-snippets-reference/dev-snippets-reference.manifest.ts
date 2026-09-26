@@ -24,7 +24,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/dev-snippets-reference',
   load: () => import('./dev-snippets-reference').then((m) => m.DevSnippetsReference),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): arbitrary queries filter matching entries into category groups without throwing.',
+  },
   persistence: { input: 'local', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
 };

@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['border-radius', 'css rounded corners', 'css generator'],
   route: '/tools/border-radius-generator',
   load: () => import('./border-radius-generator').then((m) => m.BorderRadiusGenerator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Generator-tested (fast-check): CSS radius values use valid units and declarations match their value.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

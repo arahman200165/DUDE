@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['css animation', 'keyframes', 'animation-timing-function', 'css generator'],
   route: '/tools/css-animation-builder',
   load: () => import('./css-animation-builder').then((m) => m.CssAnimationBuilder),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Generator-tested (fast-check): bounded animation settings and stops produce stable keyframes and shorthand CSS.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
 };

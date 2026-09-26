@@ -10,7 +10,11 @@ export const manifest: ToolDefinition = {
   keywords: ['css', 'specificity', 'selector', 'cascade', 'compare selectors'],
   route: '/tools/css-specificity-calculator',
   load: () => import('./css-specificity-calculator').then((m) => m.CssSpecificityCalculator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): selector lists split cleanly and arbitrary inputs return valid ranks without throwing.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['json'] },
 };

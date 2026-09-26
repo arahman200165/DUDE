@@ -15,7 +15,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/cubic-bezier-editor',
   load: () => import('./cubic-bezier-editor').then((m) => m.CubicBezierEditor),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): x-coordinate validation follows the unit interval and generated values do not throw.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
 };

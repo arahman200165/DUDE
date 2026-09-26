@@ -1182,99 +1182,99 @@
     "id": "border-radius-generator",
     "category": "developer",
     "subdomain": "css-generators",
-    "status": "pending",
+    "status": "verified",
     "recipe": "GENERATOR",
-    "milestone": null,
+    "milestone": 378,
     "notes": ""
   },
   {
     "id": "box-shadow-generator",
     "category": "developer",
     "subdomain": "css-generators",
-    "status": "pending",
+    "status": "verified",
     "recipe": "GENERATOR",
-    "milestone": null,
+    "milestone": 378,
     "notes": ""
   },
   {
     "id": "css-animation-builder",
     "category": "developer",
     "subdomain": "css-generators",
-    "status": "pending",
+    "status": "verified",
     "recipe": "GENERATOR",
-    "milestone": null,
+    "milestone": 378,
     "notes": ""
   },
   {
     "id": "css-formatter",
     "category": "developer",
     "subdomain": "css-generators",
-    "status": "pending",
+    "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": null,
+    "milestone": 378,
     "notes": ""
   },
   {
     "id": "css-grid-playground",
     "category": "developer",
     "subdomain": "css-generators",
-    "status": "pending",
+    "status": "verified",
     "recipe": "GENERATOR",
-    "milestone": null,
+    "milestone": 378,
     "notes": ""
   },
   {
     "id": "css-selector-tester",
     "category": "developer",
     "subdomain": "css-generators",
-    "status": "pending",
+    "status": "blocked",
     "recipe": "CORE-ONLY",
-    "milestone": null,
-    "notes": ""
+    "milestone": 378,
+    "notes": "needs-browser-harness: testSelector directly depends on document.createElement, innerHTML parsing, and querySelectorAll; no pure core to test."
   },
   {
     "id": "css-specificity-calculator",
     "category": "developer",
     "subdomain": "css-generators",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 378,
     "notes": ""
   },
   {
     "id": "css-transform-builder",
     "category": "developer",
     "subdomain": "css-generators",
-    "status": "pending",
+    "status": "verified",
     "recipe": "GENERATOR",
-    "milestone": null,
+    "milestone": 378,
     "notes": ""
   },
   {
     "id": "cubic-bezier-editor",
     "category": "developer",
     "subdomain": "css-generators",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 378,
     "notes": ""
   },
   {
     "id": "dev-snippets-reference",
     "category": "developer",
     "subdomain": "css-generators",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 378,
     "notes": ""
   },
   {
     "id": "flexbox-playground",
     "category": "developer",
     "subdomain": "css-generators",
-    "status": "pending",
+    "status": "verified",
     "recipe": "GENERATOR",
-    "milestone": null,
+    "milestone": 378,
     "notes": ""
   },
   {
