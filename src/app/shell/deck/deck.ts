@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CATEGORY_METADATA, ToolCategory, TOOL_CATEGORIES } from '../../shared/models/tool-category.model';
 import { ToolDefinition } from '../../shared/models/tool-definition.model';
+import { COMMAND_SOURCE } from '../../shared/models/command-source.model';
 import { ToolRegistryService } from '../../core/registry/tool-registry.service';
 import { UsageService } from '../../core/usage/usage.service';
 import { FavoritesService } from '../../core/favorites/favorites.service';
@@ -14,12 +15,24 @@ import { PinnedPipelinesRail } from './pinned-pipelines-rail/pinned-pipelines-ra
 import { HomePasteDropHero } from './home-paste-drop-hero/home-paste-drop-hero';
 import { RecentWorkspacesRail } from './recent-workspaces-rail/recent-workspaces-rail';
 import { RecentProjectsRail } from './recent-projects-rail/recent-projects-rail';
+import { CommandActionsRail } from './command-actions-rail/command-actions-rail';
 
 const RAIL_LIMIT = 8;
+/** `NativeCommandSource`'s own id prefix for a clipboard Quick Action, kept in sync there. */
+const QUICK_ACTION_ID_PREFIX = 'native:quick-action:';
 
 @Component({
   selector: 'app-deck',
-  imports: [RouterLink, CategoryIcon, HomeRail, PinnedPipelinesRail, HomePasteDropHero, RecentWorkspacesRail, RecentProjectsRail],
+  imports: [
+    RouterLink,
+    CategoryIcon,
+    HomeRail,
+    PinnedPipelinesRail,
+    HomePasteDropHero,
+    RecentWorkspacesRail,
+    RecentProjectsRail,
+    CommandActionsRail,
+  ],
   templateUrl: './deck.html',
 })
 export class Deck {
@@ -27,6 +40,7 @@ export class Deck {
   private readonly usage = inject(UsageService);
   private readonly workspaceTemplates = inject(WorkspaceTemplateService);
   private readonly projects = inject(ProjectService);
+  private readonly commandSources = inject(COMMAND_SOURCE);
   protected readonly favorites = inject(FavoritesService);
   protected readonly platform = inject(PlatformService);
 
@@ -44,6 +58,15 @@ export class Deck {
   /** Desktop-only (DUDE_PRD.md §21 Phase 25 Item 1) -- hidden entirely when empty, same precedent as Recently Used. */
   protected readonly recentWorkspaces = computed(() => this.workspaceTemplates.recentlyApplied(RAIL_LIMIT));
   protected readonly recentProjects = computed(() => this.projects.recentlyActivated(RAIL_LIMIT));
+
+  /**
+   * Both filtered views over the live `COMMAND_SOURCE` feed's `'native'`-kind commands (Item 4's
+   * `NativeCommandSource`) -- never a second hand-rolled action list. Clipboard Actions is exactly
+   * the per-quick-action commands; Native Capabilities is the small fixed set alongside them.
+   */
+  private readonly nativeCommands = computed(() => this.commandSources.flatMap((source) => source.commands()).filter((c) => c.kind === 'native'));
+  protected readonly clipboardActions = computed(() => this.nativeCommands().filter((c) => c.id.startsWith(QUICK_ACTION_ID_PREFIX)));
+  protected readonly nativeCapabilities = computed(() => this.nativeCommands().filter((c) => !c.id.startsWith(QUICK_ACTION_ID_PREFIX)));
 
   protected readonly isFiltering = computed(() => this.query().trim().length > 0);
 

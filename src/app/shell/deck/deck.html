@@ -20,6 +20,8 @@
     @if (platform.isDesktop()) {
       <app-recent-workspaces-rail [templates]="recentWorkspaces()" />
       <app-recent-projects-rail [projects]="recentProjects()" />
+      <app-command-actions-rail title="Clipboard Actions" [commands]="clipboardActions()" />
+      <app-command-actions-rail title="Native Capabilities" [commands]="nativeCapabilities()" />
     }
   }
 
