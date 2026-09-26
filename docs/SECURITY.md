@@ -51,6 +51,36 @@ The Windows desktop build (`DUDE_PRD.md` §21 Phase 8) adds a bundled local back
 - **The one deliberate exception:** the local collaboration server (Advanced Markdown Workspace's real-time editing, Phase 8 Stage 6) binds `0.0.0.0` so it's reachable over your LAN by design, and is gated by a random per-session code so joining requires knowing that code. A self-hosted BYO relay (Stage 7, `relay/`) extends this across networks, but is never a DUDE-operated service — you run your own instance and point your own desktop app at it.
 - The web app deployed to GitHub Pages has none of this backend — it remains the permanent, zero-install, fully browser-sandboxed entry point to DUDE.
 
+None of Phase 25's desktop-shell native capabilities below are per-tool metadata (`generate-security-doc.mjs`'s tables above don't cover them), so each gets its own hand-written disclosure:
+
+### Deep links (`dude://` protocol)
+
+The `dude://` custom protocol (open a tool, workspace template, project, or pipeline; run a pipeline or Quick Run) is registered at install time via NSIS, and in a dev/unpackaged run via `app.setAsDefaultProtocolClient`. The main process forwards only the raw, length-capped, scheme-checked URL string from the OS to the renderer — all parsing and routing happens renderer-side (`core/deep-link/`). A `dude://run/...` link can never execute a pipeline or Quick Run on its own; it always routes through the same in-app confirmation click (`PipelineConfirmationService`) a manually-triggered run would.
+
+### Native menu
+
+The application menu's Tools submenu is built from a renderer-pushed snapshot of the tool registry (id, title, route, category only) sent over IPC whenever it changes — the main process never imports tool metadata directly (see `electron/AGENTS.md`'s type-only process boundary). A menu click only ever navigates to an already-known tool id or one of a small fixed set of built-in actions (Open File, Preferences, Command Palette, standard Electron menu roles).
+
+### Quick Launcher
+
+The global-hotkey Quick Launcher reuses the single main `BrowserWindow` rather than creating a second one. It only resizes/repositions that window when it was already hidden to the tray, restoring the prior bounds on dismiss, and never touches window geometry while the window is visible/focused. Selecting a pipeline from the launcher goes through the same confirmation gate as a deep link.
+
+### Drag-and-drop routing
+
+Dropping a file or folder anywhere in the desktop window is matched against the tool registry's `desktopOpen` declarations using the same ranked matcher the existing Explorer-association open flow already uses (`core/file-drop-detect/`), then routed through the same bounded file-reading path (extension allow-list, size cap) — it is never a second, less-checked way to open a file. A dropped directory is resolved to a real path via Electron's own `webUtils.getPathForFile()`, then handed to one narrowly-scoped `dude:open:enqueuePath` IPC handler that re-validates the path itself before doing anything with it.
+
+### File-association registry writes
+
+Installing the desktop app can optionally register a fixed, generated list of file extensions (drawn from every tool's own `desktopOpen.extensions`) under `HKCU`/`HKLM\Software\Classes`, so Windows Explorer offers "Open with DUDE." This is opt-in at install time (a checkbox on the installer's Explorer-actions page) and every registered extension only ever points back at the same DUDE executable with a `--open-with-dude <path>` argument — no other registry keys are touched. Settings shows which extensions were registered as install-time candidates and links to Windows' own Default Apps settings to actually change them; DUDE has no mechanism of its own to change your OS-level default-app assignment after install.
+
+### Native File Recent List
+
+Only files opened through the `--open-with-dude`/Explorer-association flow are ever recorded — never a tool's own file input — and only as `{path, name, extension, openedAt}`, never file content. Reopening a recent file re-reads it from disk through the same bounded path a fresh open already takes; nothing is ever served from a cached copy. Settings offers an opt-out toggle, a per-entry remove, and a clear-all; opting out only stops future recordings and never retroactively deletes history already accumulated.
+
+### Crash/restart recovery
+
+A small on-disk marker (`crash-state.json`, under Electron's `userData` directory) records only whether the previous shutdown was clean, flipped at app quit — nothing else is written there. If DUDE detects it was restored after an unclean exit (a crash, a force-kill, an OS shutdown) and a workspace was open, a dismissible notice says so. Restoring that workspace only ever re-applies each tool's own already-persisted, already-locally-stored state — the identical path a clean quit's next launch already takes — and never re-runs a tool's own action (a fetch, a write, a delete).
+
 ## Third-party dependencies
 
 DUDE is library-forward by design (see `README.md`'s Tech stack section) rather than hand-rolling fiddly logic like color-space math or CRDT sync. Keeping that dependency surface current is an ongoing, automated process rather than a static list here (which would go stale immediately): every push and PR runs `npm audit --audit-level=high` against production dependencies, a weekly CodeQL scan analyzes the codebase for common vulnerability patterns, and Dependabot opens weekly update PRs for both npm packages and GitHub Actions. See `.github/workflows/deploy.yml`, `.github/workflows/codeql.yml`, and `.github/dependabot.yml`.
