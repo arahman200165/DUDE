@@ -13,7 +13,7 @@ import { ErrorPanel } from '../../../shared/components/error-panel/error-panel';
 /**
  * Quick Run (DUDE_PRD.md §21 Phase 24 Item 12, renamed from the PRD's "Quick Actions" to avoid
  * colliding with the already-shipped Electron feature of that name — see
- * `electron/hotkey-bridge.ts`) — the `/quick-run` route, a 6th sanctioned shell exception matching
+ * `electron/hotkey-bridge.ts`) — the `/quick-run` route, a 5th sanctioned shell exception matching
  * Smart Paste/Pipelines/Workspace/History's own-route precedent (see `shell/AGENTS.md`). Executes
  * via the exact same `PipelineStep.run(input)` contract Pipelines already uses — zero new execution
  * machinery, just a thinner, single-step, no-navigation shell around a call Pipelines makes today.

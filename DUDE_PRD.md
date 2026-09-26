@@ -10,7 +10,7 @@
 **Primary frontend framework:** Angular  
 **Primary audience:** The developer building and using it first; later, other developers  
 **Delivery horizon:** Framework and first 10 tools delivered in one weekend; ongoing roadmap-driven development from there, now extending through a deliberately long-horizon Phase 100  
-**Status:** V1 and Phases 1–21 shipped; Windows desktop packaging is real and shipped; Phase 22 is the next proposed consolidation phase; Phases 22–100 are roadmap/horizon work rather than a fixed schedule
+**Status:** V1 and Phases 1–24 shipped; Windows desktop packaging is real and shipped; Phase 25 is the next proposed phase; Phases 25–100 are roadmap/horizon work rather than a fixed schedule
 
 ---
 
@@ -56,7 +56,7 @@ The product then continued through **Phases 1–21, all of which are complete**.
 
 **Phase 8 (Downloadable Desktop App with a Bundled Backend) is complete** and is the turning point for the product hierarchy. Its eight shipped stages remain: Electron shell; native file access; OS-level secret storage; local LLM proxy + AI regex features; desktop shell chrome; local collab server; BYO relay server; auto-update + distribution. Those shipped details remain documented in §21 Phase 8.
 
-**Phase 21 (Cross-Tool Workflow Foundations) is also complete**. Phase 22 is therefore deliberately another framework-first phase: platform hardening, metadata/registry consolidation, trust, testing, cache/bundle control, and a formal desktop-first pivot before another large wave of native capability.
+**Phases 22–24 are also complete**: Phase 22 (Platform Hardening, Trust & Desktop-First Pivot) consolidated metadata/registry structure, trust, testing, and cache/bundle control; Phase 23 (Correctness, Verification & High-Consequence Tool Hardening) brought every one of the 277 tool manifests to a `verified` confidence tier; Phase 24 (Smart Entry, Discovery & Personal DUDE) turned Phase 21's Smart Paste/pipelines/workspaces/history into the primary paste-first, personalized entry experience — Recently Used, Favorites, Pinned Pipelines, Related-Tool and Pipeline Suggestions, Workspace Templates, Quick Run, and Unified Recents, all private-by-construction with no analytics or server telemetry.
 
 The roadmap is now one linear product horizon through **Phase 100**. Phases 22–26 consolidate platform structure, trust, discovery, desktop UX, and web/PWA efficiency; Phases 27–38 then establish the first major native/integration expansion across networking, live DNS/TLS, filesystem workflows, Windows/process tooling, local API/server development, live databases, containers, OS integration, AI-assisted utilities, theming, VS Code integration, and browser-extension integration. Later phases extend into cross-platform desktop, automation, Git/SSH/package/build/log/proxy/database/container/Kubernetes workflows, secrets/PKI, collaboration/workspaces/pipelines, plugins/extensions, CLI/SDK/headless automation, AI, project/code/runtime tooling, and a deliberately distant platform/ecosystem horizon.
 
@@ -1762,37 +1762,37 @@ Goal: transform “vibe coded” from a correctness caveat into merely the way t
 
 ---
 
-## Phase 24 — Smart Entry, Discovery & Personal DUDE
+## Phase 24 — Smart Entry, Discovery & Personal DUDE (✅ Complete — shipped as Milestones 407–420)
 
 Phase 21 shipped Smart Paste, pipelines, workspaces, Saved Sessions, and local history. This phase turns those capabilities into the primary user experience rather than advanced features hidden behind navigation.
 
-1. Paste-First Home Surface — the fastest path into DUDE becomes “paste/drop something,” with tool/category navigation remaining available for users who already know what they want.
+1. Paste-First Home Surface — the fastest path into DUDE becomes “paste/drop something,” with tool/category navigation remaining available for users who already know what they want. **✅ Shipped (Milestones 409, 415)**: Deck grows a "Give it to DUDE" hero (paste box + drop zone) above Recently Used/Favorites/Pinned-Pipelines rails, with the existing search+category grid demoted to a "Browse all tools" section below — fully preserved, not replaced.
 
-2. Ambient Smart Paste — optionally detect pasted content from appropriate shared input surfaces rather than requiring navigation to "/smart-paste".
+2. Ambient Smart Paste — optionally detect pasted content from appropriate shared input surfaces rather than requiring navigation to "/smart-paste". **✅ Shipped (Milestone 413)**: a global `paste` listener (`AmbientPasteChip`) reuses `PASTE_DETECTORS`/`detectShapes` unmodified via a stricter confidence floor, never firing on a paste already landing in an editable field.
 
-3. Desktop Global Smart Paste Hotkey — a system-wide shortcut opens DUDE with clipboard contents already classified, without permanently storing them.
+3. Desktop Global Smart Paste Hotkey — a system-wide shortcut opens DUDE with clipboard contents already classified, without permanently storing them. **✅ Shipped (Milestone 416, desktop-only)**: `electron/smart-paste-hotkey.ts`, a sibling to `hotkey-bridge.ts`'s clipboard `QUICK_ACTIONS` (not an edit to it, since its effect — focusing the window with classified clipboard content — is materially different). Classification stays 100% renderer-side.
 
-4. Smart File Drop — dropping a file into the desktop shell identifies likely applicable tools from extension, MIME type, signature bytes, and registered I/O capabilities.
+4. Smart File Drop — dropping a file identifies likely applicable tools from extension, MIME type, signature bytes, and registered I/O capabilities. **✅ Shipped (Milestones 414–415), on both desktop and web**: extension/MIME/signature-byte sniffing all work client-side on a dropped `File`, so this deliberately shipped on the web/PWA build too, not desktop-only as originally floated — see `core/file-drop-detect/AGENTS.md`.
 
-5. Local Usage Frequency — maintain private local usage counts to improve local ranking.
+5. Local Usage Frequency — maintain private local usage counts to improve local ranking. **✅ Shipped (Milestone 407)**: `UsageService`, uniform across all 277 tools (unlike History, no per-tool opt-in — see `core/usage/AGENTS.md`), recording only `{toolId, count, lastUsedAt}`.
 
-6. Recently Used Tools — first-class shell surface.
+6. Recently Used Tools — first-class shell surface. **✅ Shipped (Milestones 407, 409)**: a Deck rail sourced from `UsageService`.
 
-7. Favorites / Pinned Tools — first-class shell surface rather than an optional MVP enhancement.
+7. Favorites / Pinned Tools — first-class shell surface rather than an optional MVP enhancement. **✅ Shipped (Milestones 408–409)**: a star toggle in `ToolShell`'s header plus a Deck rail; a Home rail was judged sufficient for v1, no separate full-page route.
 
-8. Pinned Pipelines — frequently-used workflows appear beside tools.
+8. Pinned Pipelines — frequently-used workflows appear beside tools. **✅ Shipped (Milestones 408, 410)**: a pin toggle per pipeline row, a "Pinned" section atop the Pipelines list, and a matching Deck rail.
 
-9. Related-Tool Suggestions — output types and registry metadata drive contextual “next useful action” recommendations.
+9. Related-Tool Suggestions — output types and registry metadata drive contextual “next useful action” recommendations. **✅ Shipped (Milestone 411)**: ranks by `io.accepts`/`io.produces` overlap via the same `canChain` Pipelines already uses, boosted when both tools are pipeline-eligible. Caught and fixed during verification: the panel must never eagerly load the pipeline-step registry, since it mounts on every tool page — see `core/suggestions/AGENTS.md`.
 
-10. Pipeline Suggestions — after common sequential tool use, DUDE may locally suggest turning the repeated sequence into a saved pipeline.
+10. Pipeline Suggestions — after common sequential tool use, DUDE may locally suggest turning the repeated sequence into a saved pipeline. **✅ Shipped (Milestone 412)**: a pure scan of `UsageService`'s recent-open log for repeated, pipeline-eligible sequences within a rolling gap window, surfaced only on the Pipelines list (deliberately not on Home/Deck, for the same eager-load reason as Item 9).
 
-11. Workspace Templates — named arrangements such as “API Debugging,” “JWT/Auth,” “Data Cleanup,” “Certificate Inspection,” and user-defined templates.
+11. Workspace Templates — named arrangements such as “API Debugging,” “JWT/Auth,” “Data Cleanup,” “Certificate Inspection,” and user-defined templates. **✅ Shipped (Milestone 417)**: 4 curated built-in templates plus user-defined ones, all applied through one `WorkspaceLayoutService.applyLayout()` setter.
 
-12. Quick Actions — common transformations can run without navigating into the full tool workspace.
+12. Quick Actions — common transformations can run without navigating into the full tool workspace. **✅ Shipped (Milestone 418) as "Quick Run"** — renamed to avoid colliding with the already-shipped Electron feature of that name (`electron/hotkey-bridge.ts`, Phase 8 Stage 5's global-hotkey clipboard transforms, left unchanged). The `/quick-run` route executes via the exact same `PipelineStep.run(input)` contract Pipelines already uses, scoped to text-accepting steps only.
 
-13. Unified Recents — tools, pipelines, workspaces, local files where permissible, and sessions share one local recent-activity surface.
+13. Unified Recents — tools, pipelines, workspaces, local files where permissible, and sessions share one local recent-activity surface. **✅ Shipped (Milestone 419)**: a derived, read-only view (`UnifiedRecentsService`) merging `UsageService`, `PipelineStoreService`, `WorkspaceLayoutService`, and `HistoryService` — never a fifth recording mechanism — surfaced as a "Recents" tab inside `/history`.
 
-14. Private-by-Construction Usage Signals — none of the above requires analytics or server telemetry.
+14. Private-by-Construction Usage Signals — none of the above requires analytics or server telemetry. **✅ Verified (Milestone 420)**: a mechanical, key-allow-list audit spec over every new store's real persisted JSON (`core/usage/phase24-privacy-audit.spec.ts`), not just a documented claim — mirroring `tool-conformance.spec.ts`'s "checked, not just documented" precedent.
 
 Goal: the user should increasingly think “give this to DUDE” rather than “which one of DUDE's hundreds of tools should I manually find?”
 
@@ -3779,7 +3779,7 @@ As native, remote, plugin, automation, and destructive operations grow, capabili
 
 ## 25.9 Local Usage / Recents Service
 
-Phase 24 may record private local usage frequency, recents, favorites, pinned tools/pipelines, and related-tool signals. This must not require analytics or remote telemetry.
+**✅ Shipped in Phase 24** (Milestones 407–419): `core/usage/UsageService` (frequency + recents), `core/favorites/FavoritesService` (tools + pipelines), `core/suggestions/` (related-tool + pipeline suggestions), and `core/recents/UnifiedRecentsService` (a derived, read-only merge — never a fifth recording mechanism). All private-by-construction: no analytics, no remote telemetry, mechanically audited in Milestone 420.
 
 ## 25.10 Desktop Native-Service Boundary
 
