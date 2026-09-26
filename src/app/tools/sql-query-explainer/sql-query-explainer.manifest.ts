@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['sql', 'explain', 'query', 'select', 'join', 'plain english'],
   route: '/tools/sql-query-explainer',
   load: () => import('./sql-query-explainer').then((m) => m.SqlQueryExplainer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested with arbitrary text and a corpus of varied valid SELECT statements (fast-check) -- caught and fixed two real crashes on edge-case input.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };
