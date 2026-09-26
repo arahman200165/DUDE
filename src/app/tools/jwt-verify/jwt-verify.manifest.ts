@@ -30,6 +30,7 @@ export const manifest: ToolDefinition = {
   load: () => import('./jwt-verify').then((m) => m.JwtVerify),
   status: 'verified',
   verification: {
+    vectors: ['RFC 7515 Appendix A.2 RS256 JWS and its published RSA public key'],
     crossChecked: ["Node's crypto.createHmac (independent of jose's own signing)"],
     summary: "Verifies a token signed by hand with Node's HMAC-SHA256, and rejects it when a single signature byte is flipped — not just a token jose signed and jose verified.",
   },

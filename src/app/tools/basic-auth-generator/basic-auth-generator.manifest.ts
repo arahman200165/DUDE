@@ -19,6 +19,7 @@ export const manifest: ToolDefinition = {
   load: () => import('./basic-auth-generator').then((m) => m.BasicAuthGenerator),
   status: 'verified',
   verification: {
+    vectors: ['RFC 7617 Section 2 Aladdin/open sesame Authorization example'],
     propertyTested: true,
     summary: 'decodeBasicAuthHeader(buildBasicAuthHeader(u, p)) recovers u/p exactly for any generated colon-free username and arbitrary password (fast-check property test).',
   },

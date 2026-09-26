@@ -13,6 +13,25 @@ function buildToken(header: unknown, payload: unknown, signature = 'sig'): strin
 }
 
 describe('decodeJwt', () => {
+  it('decodes the published RFC 7515 Appendix A.2 compact JWS segments', () => {
+    // RFC 7515 Appendix A.2 publishes this exact compact RSA JWS. This tool
+    // only decodes it; signature authenticity is covered by jwt-verify.
+    const token = [
+      'eyJhbGciOiJSUzI1NiJ9',
+      'eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFtcGxlLmNvbS9pc19yb290Ijp0cnVlfQ',
+      'cC4hiUPoj9Eetdgtv3hF80EGrhuB__dzERat0XF9g2VtQgr9PJbu3XOiZj5RZmh7AAuHIm4Bh-0Qc_lF5YKt_O8W2Fp5jujGbds9uJdbF9CUAr7t1dnZcAcQjbKBYNX4BAynRFdiuB--f_nZLgrnbyTyWzO75vRK5h6xBArLIARNPvkSjtQBMHlb1L07Qe7K0GarZRmB_eSN9383LcOLn6_dO--xi12jzDwusC-eOkHWEsqtFZESc6BfI7noOPqvhJ1phCnvWh6IeYI2w9QOYEUipUTI8np6LbgGY9Fs98rqVt5AXLIhWkWywlVmtVrBp0igcN_IoypGlUPQGe77Rw',
+    ].join('.');
+
+    const result = decodeJwt(token, new Date('2012-01-01T00:00:00Z'));
+
+    expect(result).toEqual({
+      ok: true,
+      header: { alg: 'RS256' },
+      payload: { iss: 'joe', exp: 1300819380, 'http://example.com/is_root': true },
+      signature: 'cC4hiUPoj9Eetdgtv3hF80EGrhuB__dzERat0XF9g2VtQgr9PJbu3XOiZj5RZmh7AAuHIm4Bh-0Qc_lF5YKt_O8W2Fp5jujGbds9uJdbF9CUAr7t1dnZcAcQjbKBYNX4BAynRFdiuB--f_nZLgrnbyTyWzO75vRK5h6xBArLIARNPvkSjtQBMHlb1L07Qe7K0GarZRmB_eSN9383LcOLn6_dO--xi12jzDwusC-eOkHWEsqtFZESc6BfI7noOPqvhJ1phCnvWh6IeYI2w9QOYEUipUTI8np6LbgGY9Fs98rqVt5AXLIhWkWywlVmtVrBp0igcN_IoypGlUPQGe77Rw',
+      expiry: { kind: 'expired', expiresAt: new Date(1300819380 * 1000) },
+    });
+  });
   it('decodes a well-formed token', () => {
     const token = buildToken({ alg: 'HS256', typ: 'JWT' }, { sub: 'abc123' }, 'signature-segment');
 

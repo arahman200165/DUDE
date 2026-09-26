@@ -35,6 +35,19 @@ describe('parseJwksKeys', () => {
   });
 });
 
+describe('convertJwkToPem - RFC 7517 Appendix A.1 known-answer vector', () => {
+  it('exports the published RSA public JWK to PEM with identical modulus and exponent', async () => {
+    const jwk = { kty: 'RSA', n: '0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbISD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw', e: 'AQAB', alg: 'RS256', kid: '2011-04-29' };
+    const result = await convertJwkToPem(jwk, 'RS256');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const { createPublicKey } = await import('node:crypto');
+    const converted = createPublicKey(result.pem).export({ format: 'jwk' }) as Record<string, unknown>;
+    expect(converted['n']).toBe(jwk.n);
+    expect(converted['e']).toBe(jwk.e);
+  });
+});
+
 describe('convertJwkToPem', () => {
   it('converts an RSA JWK to a SPKI PEM public key', async () => {
     const jwk = await makeJwk('key-1');

@@ -3,7 +3,7 @@ import fc from 'fast-check';
 import { buildBasicAuthHeader, decodeBasicAuthHeader } from './basic-auth-generator-logic';
 
 describe('buildBasicAuthHeader', () => {
-  it('builds a standard-base64 Basic auth header', () => {
+  it('matches the RFC 7617 Section 2 Aladdin example exactly', () => {
     const result = buildBasicAuthHeader('Aladdin', 'open sesame');
     expect(result.ok).toBe(true);
     if (!result.ok) return;

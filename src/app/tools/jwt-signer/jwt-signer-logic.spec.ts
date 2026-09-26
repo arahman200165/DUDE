@@ -1,6 +1,7 @@
 import { jwtVerify, importJWK, base64url } from 'jose';
 import { generateSigningKeyPair, signJwt } from './jwt-signer-logic';
 
+// RFC 7515 Appendix A.1 signing is not claimed as a known-answer vector: signJwt serializes its own alg-only header and parsed claims, while the RFC vector fixes CRLF/spacing bytes and a raw-octet HMAC key.
 describe('signJwt — HMAC', () => {
   it('signs claims and produces a token verifiable with the same secret', async () => {
     const result = await signJwt({

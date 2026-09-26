@@ -9,6 +9,15 @@ async function makeJwk(kid: string) {
   return { ...jwk, kid, alg: 'RS256', use: 'sig' };
 }
 
+// RFC 7638 thumbprints are outside this viewer's behavior; it reports source JWK fields and importability only.
+describe('parseJwks - RFC 7517 Appendix A.1 known-answer vector', () => {
+  it('recognizes the published RS256 public key and key id as importable', async () => {
+    const jwk = { kty: 'RSA', n: '0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbISD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw', e: 'AQAB', alg: 'RS256', kid: '2011-04-29' };
+    const result = await parseJwks(JSON.stringify({ keys: [jwk] }));
+    expect(result).toEqual({ ok: true, keys: [{ raw: jwk, kty: 'RSA', alg: 'RS256', kid: '2011-04-29', importable: true, warnings: [] }] });
+  });
+});
+
 describe('parseJwks', () => {
   it('rejects empty input', async () => {
     const result = await parseJwks('');

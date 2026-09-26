@@ -12,6 +12,7 @@ export const manifest: ToolDefinition = {
   load: () => import('./jwks-viewer').then((m) => m.JwksViewer),
   status: 'verified',
   verification: {
+    vectors: ['RFC 7517 Appendix A.1 RSA public JWK importability and kid'],
     propertyTested: true,
     summary: 'Fuzz-tested with arbitrary text and arbitrary "keys" array entries (fast-check) -- never rejects/throws.',
   },

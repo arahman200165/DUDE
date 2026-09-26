@@ -10,6 +10,7 @@ export const manifest: ToolDefinition = {
   load: () => import('./jwt').then((m) => m.Jwt),
   status: 'verified',
   verification: {
+    vectors: ['RFC 7515 Appendix A.2 compact RS256 JWS segments'],
     propertyTested: true,
     summary: 'Fuzz-tested with arbitrary text and arbitrary three-segment tokens (fast-check) -- never throws on malformed input.',
   },
