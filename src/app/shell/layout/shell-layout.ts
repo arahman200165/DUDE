@@ -8,6 +8,7 @@ import { UpdateBadge } from '../../shared/components/update-badge/update-badge';
 import { Onboarding } from '../onboarding/onboarding';
 import { OnboardingService } from '../../core/platform/onboarding.service';
 import { DesktopOpenService } from '../../core/platform/desktop-open.service';
+import { DeepLinkService } from '../../core/deep-link/deep-link.service';
 import { AmbientPasteChip } from '../../shared/components/ambient-paste-chip/ambient-paste-chip';
 
 @Component({
@@ -20,6 +21,7 @@ export class ShellLayout {
   private readonly connectivity = inject(ConnectivityService);
   private readonly onboarding = inject(OnboardingService);
   protected readonly desktopOpen = inject(DesktopOpenService);
+  protected readonly deepLink = inject(DeepLinkService);
 
   constructor() { void this.onboarding.initialize(); }
 
