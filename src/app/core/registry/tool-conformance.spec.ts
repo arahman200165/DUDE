@@ -18,7 +18,7 @@ const VALID_PERSISTENCE_POLICIES: readonly PersistencePolicy[] = [
   'user-choice',
   'secure-local',
 ];
-const VALID_STATUSES = ['stable', 'experimental'];
+const VALID_STATUSES = ['experimental', 'stable', 'verified'];
 
 describe('Tool conformance harness', () => {
   it('has at least one registered tool', () => {
@@ -65,6 +65,15 @@ describe('Tool conformance harness', () => {
       it('declares a valid status', () => {
         expect(definition.status, `${definition.id} is missing a status`).toBeDefined();
         expect(VALID_STATUSES).toContain(definition.status);
+      });
+
+      it('declares a verification summary when status is "verified"', () => {
+        if (definition.status === 'verified') {
+          expect(
+            definition.verification?.summary,
+            `${definition.id} is "verified" but has no verification.summary`,
+          ).toBeTruthy();
+        }
       });
 
       it('has a lazy load() function, never eagerly resolved', () => {

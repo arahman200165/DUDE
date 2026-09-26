@@ -56,6 +56,22 @@ export class ToolShell implements OnDestroy {
   });
 
   /**
+   * Confidence-tier badge (DUDE_PRD.md §21 Phase 23 Item 1) — resolved here, once, rather than
+   * duplicated as an inline 3-way ternary in the template (mirrors `SecurityBadge`'s
+   * computed-in-.ts pattern). A missing `status` displays and styles as 'experimental', the
+   * least-confident tier, rather than silently defaulting to something stronger.
+   */
+  protected readonly statusBadge = computed(() => {
+    const status = this.definition()?.status ?? 'experimental';
+    const classes: Record<'experimental' | 'stable' | 'verified', string> = {
+      experimental: 'border-warning/40 bg-warning/10 text-warning',
+      stable: 'border-success/40 bg-success/10 text-success',
+      verified: 'border-accent/40 bg-accent/10 text-accent',
+    };
+    return { label: status, classes: classes[status] };
+  });
+
+  /**
    * Manual scratchpad capture (DUDE_PRD.md §21 Phase 21 Item 4) — works on every tool, everywhere,
    * independent of whether the Workspace tab/panel UI is in use at all. Sends the current text
    * selection if there is one, falling back to the tool's own description so a note is never
