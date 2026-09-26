@@ -20,6 +20,8 @@ read DUDE_PRD.md or the plan file.
   against Node `crypto` or another reference implementation, Tier-1 style.
   Round-trip alone is not enough.
 
+- INTEGRATION: Angular/service-driven tools without a meaningful pure transform. Use TestBed with isolated service mocks to exercise consequential UI flows and async boundaries; add fast-check properties over generated input/state sequences when they assert behavior across a useful range. Cover confirmation cancel and confirm paths for destructive UI. Do not claim property testing unless a generated property is included.
+
 The shared harness lives at `src/testing/property-harness.ts`:
 - `roundTrip(encode, decode, arb, opts?)`
 - `neverThrows(fn, arb, opts?)` (also asserts the return type/shape if given)

@@ -1902,10 +1902,10 @@
     "id": "settings",
     "category": "developer",
     "subdomain": "misc",
-    "status": "blocked",
-    "recipe": "FUZZ",
-    "milestone": 384,
-    "notes": "blocked: the tool is an Angular/service integration surface with no extracted pure transform for FUZZ testing."
+    "status": "verified",
+    "recipe": "INTEGRATION",
+    "milestone": 402,
+    "notes": "TestBed integration flows cover generated secure-local save/clear inputs, reopen toggle persistence, and clear-all cancel/confirm."
   },
   {
     "id": "stack-trace-formatter",

@@ -18,7 +18,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/settings',
   load: () => import('./settings').then((m) => m.Settings),
-  status: 'experimental',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Integration-tested with mocked secure-local storage: generated provider fields trim and save correctly, then all three keys clear; web toggle and clear-all confirmation flows are covered.',
+  },
   persistence: { input: 'secure-local', preferences: 'secure-local' },
   execution: { worker: 'none' },
   io: { accepts: ['json'], produces: ['json'] },
