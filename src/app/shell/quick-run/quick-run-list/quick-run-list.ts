@@ -7,6 +7,7 @@ import { ToolRegistryService } from '../../../core/registry/tool-registry.servic
 import { searchTools } from '../../../core/registry/tool-search';
 import { ToolLauncherService } from '../../../core/registry/tool-launcher.service';
 import { PipelineStepRegistryService } from '../../../core/pipeline/pipeline-step-registry.service';
+import { PipelineConfirmationService } from '../../../core/pipeline/pipeline-confirmation.service';
 import { CategoryIcon } from '../../../shared/components/category-icon/category-icon';
 import { ErrorPanel } from '../../../shared/components/error-panel/error-panel';
 
@@ -32,6 +33,8 @@ export class QuickRunList {
   private readonly registry = inject(ToolRegistryService);
   private readonly launcher = inject(ToolLauncherService);
   private readonly stepRegistry = inject(PipelineStepRegistryService);
+  private readonly confirmation = inject(PipelineConfirmationService);
+  private deepLinkRunPrompted = false;
   private readonly route = inject(ActivatedRoute);
 
   protected readonly meta = CATEGORY_METADATA;
@@ -51,7 +54,18 @@ export class QuickRunList {
     effect(() => {
       if (!this.registryReady()) return;
       const toolId = this.route.snapshot.queryParamMap.get('tool');
-      if (toolId && this.stepRegistry.get(toolId)?.accepts.includes('text')) this.select(toolId);
+      if (!toolId || !this.stepRegistry.get(toolId)?.accepts.includes('text')) return;
+      this.select(toolId);
+      if (this.route.snapshot.queryParamMap.get('confirmRun') !== '1' || this.deepLinkRunPrompted) return;
+      this.deepLinkRunPrompted = true;
+      const tool = this.registry.getById(toolId);
+      if (!tool) return;
+      const consequenceClasses = tool.consequenceClass ?? [];
+      this.confirmation.confirm({
+        name: `Quick Run: ${tool.title}`,
+        steps: [{ label: tool.title, definition: tool, consequenceClasses }],
+        consequenceClasses,
+      }, () => { void this.run(); });
     });
   }
 

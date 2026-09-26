@@ -1,3 +1,4 @@
+import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { vi } from 'vitest';
@@ -145,6 +146,26 @@ describe('QuickRunList', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Base64 Encoder / Decoder');
     expect(fixture.nativeElement.querySelector('textarea')).toBeTruthy();
+  });
+
+  it('waits for an explicit confirmation click before running a Quick Run deep link', async () => {
+    TestBed.overrideProvider(ActivatedRoute, {
+      useValue: { snapshot: { queryParamMap: { get: (key: string) => key === 'tool' ? 'base64' : key === 'confirmRun' ? '1' : null } } },
+    });
+    const fixture = TestBed.createComponent(QuickRunList);
+    fixture.detectChanges();
+    await flush();
+    fixture.detectChanges();
+    await TestBed.inject(ApplicationRef).whenStable();
+
+    const step = TestBed.inject(PipelineStepRegistryService).get('base64')!;
+    const run = vi.spyOn(step, 'run');
+    const dialog = document.querySelector('[role="dialog"]');
+    expect(dialog?.textContent).toContain('Quick Run: Base64 Encoder / Decoder');
+    expect(run).not.toHaveBeenCalled();
+
+    (dialog?.querySelector('button:last-child') as HTMLButtonElement).click();
+    expect(run).toHaveBeenCalledOnce();
   });
 
   it('ignores a ?tool= query param for a tool that is not text-eligible', async () => {

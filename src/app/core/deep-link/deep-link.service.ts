@@ -42,7 +42,18 @@ export class DeepLinkService {
         this.pending.update((items) => items.slice(1));
         const link = parseDudeDeepLink(raw);
         if (!link) { this.error.set('This DUDE link is invalid.'); continue; }
-        if (link.action === 'run') { this.error.set('Run links are not available yet.'); continue; }
+        if (link.action === 'run') {
+          if (link.target === 'pipeline') {
+            if (!this.pipelines.getById(link.id)) { this.error.set('The linked pipeline was not found.'); continue; }
+            await this.router.navigateByUrl('/', { skipLocationChange: true });
+            await this.router.navigate(['/pipelines', link.id], { queryParams: { confirmRun: '1' } });
+          } else {
+            if (!this.tools.getById(link.id)) { this.error.set('The linked tool was not found.'); continue; }
+            await this.router.navigateByUrl('/', { skipLocationChange: true });
+            await this.router.navigate(['/quick-run'], { queryParams: { tool: link.id, confirmRun: '1' } });
+          }
+          continue;
+        }
 
         if (link.target === 'tool') {
           const tool = this.tools.getById(link.id);
@@ -59,6 +70,7 @@ export class DeepLinkService {
           await this.router.navigateByUrl('/workspace');
         } else {
           if (!this.pipelines.getById(link.id)) { this.error.set('The linked pipeline was not found.'); continue; }
+          await this.router.navigateByUrl('/', { skipLocationChange: true });
           await this.router.navigate(['/pipelines', link.id]);
         }
       }

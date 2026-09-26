@@ -15,6 +15,7 @@ import { PipelineStepRegistryService } from '../../../core/pipeline/pipeline-ste
 import { UserScriptStoreService } from '../../../core/pipeline/user-script-store.service';
 import { runUserScriptStep } from '../../../core/pipeline/user-script-step';
 import { PipelineRunnerService } from '../../../core/pipeline/pipeline-runner.service';
+import { PipelineConfirmationService } from '../../../core/pipeline/pipeline-confirmation.service';
 import { PipelineSuggestionHandoffService } from '../../../core/pipeline/pipeline-suggestion-handoff.service';
 import { PipelineRun } from '../../../core/pipeline/pipeline-run';
 import { canChain } from '../../../core/pipeline/pipeline-compatibility';
@@ -43,6 +44,8 @@ export class PipelineBuilder {
   private readonly stepRegistry = inject(PipelineStepRegistryService);
   private readonly scriptStore = inject(UserScriptStoreService);
   private readonly runner = inject(PipelineRunnerService);
+  private readonly confirmation = inject(PipelineConfirmationService);
+  private deepLinkRunPrompted = false;
   private readonly suggestionHandoff = inject(PipelineSuggestionHandoffService);
   private readonly sandboxHost = viewChild.required(CodeSandboxHost);
 
@@ -130,6 +133,16 @@ export class PipelineBuilder {
         this.registryReady.set(true);
       });
       void scriptsLoaded;
+    });
+
+    // A run deep link opens this editor first. Resolving steps only prepares the preview; the
+    // runner is reachable solely from the confirmation dialog's explicit Run click.
+    effect(() => {
+      if (!this.registryReady() || this.deepLinkRunPrompted) return;
+      if (this.route.snapshot.queryParamMap.get('confirmRun') !== '1') return;
+      this.deepLinkRunPrompted = true;
+      if (!this.canRun()) return;
+      this.confirmation.confirm(this.confirmation.summarize(this.pipeline()), () => this.runPipeline());
     });
 
     // Unified Recents (DUDE_PRD.md §21 Phase 24 Item 13) reads a pipeline's own `lastRunAt` --
