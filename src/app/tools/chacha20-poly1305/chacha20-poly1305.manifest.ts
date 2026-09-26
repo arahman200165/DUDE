@@ -20,7 +20,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/chacha20-poly1305',
   load: () => import('./chacha20-poly1305').then((m) => m.Chacha20Poly1305),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    crossChecked: ["Node's crypto (pbkdf2Sync + createCipheriv('chacha20-poly1305'), OpenSSL-backed)"],
+    summary: "Decrypts ChaCha20-Poly1305 ciphertext built independently by Node's OpenSSL-backed crypto module, not just @noble/ciphers agreeing with itself.",
+  },
   consequenceClass: ['crypto'],
   persistence: { input: 'none', preferences: 'local' },
   execution: { worker: 'optional' },

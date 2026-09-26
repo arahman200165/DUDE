@@ -71,6 +71,24 @@ describe('chacha-cipher', () => {
     expect(result.ok).toBe(false);
     expect(result.ok || result.error).toMatch(/nonce length/i);
   });
+
+  // DUDE_PRD.md §21 Phase 23 Item 3 -- cross-checked against Node's `crypto` module (OpenSSL-
+  // backed, independent of @noble/ciphers' pure-JS ChaCha20-Poly1305 and of the browser's Web
+  // Crypto PBKDF2). Bundle built with a fixed salt/nonce via `pbkdf2Sync`/`createCipheriv`.
+  it('decrypts a chacha20poly1305 bundle built independently with pbkdf2Sync + createCipheriv', async () => {
+    const bundle = [
+      'chacha20poly1305',
+      '600000',
+      'AQIDBAUGBwgJCgsMDQ4PEA==',
+      'AAECAwQFBgcICQoL',
+      'WUlAJVF4djHB3ExK+OeJ/OcOBb4WcczZ8ToO1ZyQ7E6C3QKnqPBhJw2h',
+    ].join('.');
+
+    await expect(decryptChaCha(bundle, 'correct horse battery staple')).resolves.toEqual({
+      ok: true,
+      plaintext: 'DUDE cross-check plaintext',
+    });
+  });
 });
 
 function base64Flip(b64: string): string {
