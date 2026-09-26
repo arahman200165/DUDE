@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['ini', 'format', 'parse', 'config', 'sections'],
   route: '/tools/ini-formatter',
   load: () => import('./ini-formatter').then((m) => m.IniFormatter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested with fast-check via the shared harness for arbitrary inputs and tool-specific invariants.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text', 'json'], produces: ['json', 'text'] },

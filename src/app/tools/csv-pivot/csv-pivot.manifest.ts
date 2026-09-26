@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['csv', 'pivot', 'group by', 'aggregate', 'summarize'],
   route: '/tools/csv-pivot',
   load: () => import('./csv-pivot').then((m) => m.CsvPivot),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested with fast-check via the shared harness for arbitrary inputs and tool-specific invariants.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text', 'table'], produces: ['table'] },

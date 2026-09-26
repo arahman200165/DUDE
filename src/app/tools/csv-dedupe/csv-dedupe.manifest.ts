@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['csv', 'dedupe', 'deduplicate', 'unique', 'duplicate'],
   route: '/tools/csv-dedupe',
   load: () => import('./csv-dedupe').then((m) => m.CsvDedupe),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested with fast-check via the shared harness for arbitrary inputs and tool-specific invariants.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text', 'table'], produces: ['text', 'table'] },

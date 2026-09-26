@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['cbor', 'decode', 'binary', 'inspect'],
   route: '/tools/cbor-viewer',
   load: () => import('./cbor-viewer').then((m) => m.CborViewer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested with fast-check via the shared harness for arbitrary inputs and tool-specific invariants.',
+  },
   persistence: { input: 'none', preferences: 'none' },
   execution: { worker: 'none' },
   io: { accepts: ['file', 'bytes'], produces: ['json'] },

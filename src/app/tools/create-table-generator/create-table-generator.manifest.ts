@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['sql', 'create table', 'ddl', 'schema', 'generate', 'csv', 'json'],
   route: '/tools/create-table-generator',
   load: () => import('./create-table-generator').then((m) => m.CreateTableGenerator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested with fast-check via the shared harness for arbitrary inputs and tool-specific invariants.',
+  },
   persistence: { input: 'local', preferences: 'local' },
   io: { accepts: ['text', 'json'], produces: ['text'] },
 };

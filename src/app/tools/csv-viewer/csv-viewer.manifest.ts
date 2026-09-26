@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['csv', 'table', 'convert', 'json', 'tsv', 'spreadsheet'],
   route: '/tools/csv-viewer',
   load: () => import('./csv-viewer').then((m) => m.CsvViewer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested with fast-check via the shared harness for arbitrary inputs and tool-specific invariants.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text', 'json'], produces: ['table', 'json', 'text'] },

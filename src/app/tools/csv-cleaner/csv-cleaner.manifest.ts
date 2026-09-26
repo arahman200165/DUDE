@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['csv', 'clean', 'trim', 'whitespace', 'empty rows', 'normalize'],
   route: '/tools/csv-cleaner',
   load: () => import('./csv-cleaner').then((m) => m.CsvCleaner),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested with fast-check via the shared harness for arbitrary inputs and tool-specific invariants.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text', 'table'], produces: ['text', 'table'] },

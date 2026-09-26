@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['csv', 'tsv', 'delimiter', 'detect', 'separator'],
   route: '/tools/csv-delimiter-detector',
   load: () => import('./csv-delimiter-detector').then((m) => m.CsvDelimiterDetector),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested with fast-check via the shared harness for arbitrary inputs and tool-specific invariants.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text'], produces: ['table'] },

@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['csv', 'filter', 'sort', 'query', 'rows'],
   route: '/tools/csv-filter-sort',
   load: () => import('./csv-filter-sort').then((m) => m.CsvFilterSort),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested with fast-check via the shared harness for arbitrary inputs and tool-specific invariants.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text', 'table'], produces: ['table'] },

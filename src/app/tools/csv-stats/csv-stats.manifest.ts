@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['csv', 'statistics', 'stats', 'column', 'analysis', 'min', 'max', 'mean'],
   route: '/tools/csv-stats',
   load: () => import('./csv-stats').then((m) => m.CsvStats),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested with fast-check via the shared harness for arbitrary inputs and tool-specific invariants.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text', 'table'], produces: ['table'] },

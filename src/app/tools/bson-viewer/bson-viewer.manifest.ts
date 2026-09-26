@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['bson', 'mongodb', 'decode', 'binary', 'inspect'],
   route: '/tools/bson-viewer',
   load: () => import('./bson-viewer').then((m) => m.BsonViewer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested with fast-check via the shared harness for arbitrary inputs and tool-specific invariants.',
+  },
   persistence: { input: 'none', preferences: 'none' },
   execution: { worker: 'none' },
   io: { accepts: ['file', 'bytes'], produces: ['json'] },
