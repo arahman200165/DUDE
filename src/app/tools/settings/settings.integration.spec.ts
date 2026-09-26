@@ -46,7 +46,7 @@ describe('Settings integration', () => {
         { provide: PersistenceService, useValue: { signal: () => signal('') } },
         { provide: WorkspaceLayoutService, useValue: { reopenOnRestart } },
         { provide: ClearAllDataService, useValue: { clearAll } },
-        { provide: ShellChromeService, useValue: { getLaunchOnLogin: vi.fn().mockResolvedValue(false), listQuickActions: vi.fn().mockResolvedValue([]) } },
+        { provide: ShellChromeService, useValue: { getLaunchOnLogin: vi.fn().mockResolvedValue(false), listQuickActions: vi.fn().mockResolvedValue([]), getFileAssociations: vi.fn().mockResolvedValue({ candidateExtensions: ['.json'] }), openDefaultApps: vi.fn().mockResolvedValue({ ok: true }) } },
         { provide: SmartPasteHotkeyService, useValue: { getHotkey: vi.fn().mockResolvedValue(null), setHotkey: vi.fn().mockResolvedValue({ ok: true }) } },
         { provide: QuickLauncherService, useValue: { getHotkey: vi.fn().mockResolvedValue(null), setHotkey: vi.fn().mockResolvedValue({ ok: true }) } },
         { provide: DesktopPreferencesService, useValue: { load: vi.fn().mockResolvedValue(undefined), current: signal({}), displays: signal([]) } },
@@ -113,6 +113,20 @@ describe('Settings integration', () => {
       ),
       { numRuns: 50 },
     );
+    fixture.destroy();
+  });
+
+  it('labels registered file types as candidates and opens Windows Settings', async () => {
+    desktop = true;
+    const fixture = TestBed.createComponent(Settings);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('registered by the installer as candidates');
+    expect(fixture.nativeElement.textContent).toContain('.json');
+    const button = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find((item) => item.textContent?.includes('Change in Windows Settings'))!;
+    button.click();
+    await fixture.whenStable();
+    expect(TestBed.inject(ShellChromeService).openDefaultApps).toHaveBeenCalledOnce();
     fixture.destroy();
   });
 

@@ -35,6 +35,7 @@ export function fakeElectronBridge(overrides: Partial<DudeElectronBridge> = {}):
       getLaunchOnLogin: async () => false,
       setLaunchOnLogin: async () => ({ ok: true }),
       openDefaultApps: async () => ({ ok: true }),
+      getFileAssociations: async () => null,
     },
     quickActions: {
       list: async () => [],

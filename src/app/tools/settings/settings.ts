@@ -9,7 +9,7 @@ import { ClearAllDataService } from '../../core/workspace/clear-all-data';
 import { ShellChromeService } from '../../core/platform/shell-chrome.service';
 import { SmartPasteHotkeyService } from '../../core/platform/smart-paste-hotkey.service';
 import { QuickLauncherService } from '../../core/platform/quick-launcher.service';
-import type { DesktopPreferences, QuickActionInfo } from '../../core/platform/electron-bridge';
+import type { DesktopPreferences, FileAssociations, QuickActionInfo } from '../../core/platform/electron-bridge';
 import { DesktopPreferencesService } from '../../core/platform/desktop-preferences.service';
 import { OnboardingService } from '../../core/platform/onboarding.service';
 
@@ -85,6 +85,7 @@ export class Settings {
   protected readonly launchOnLogin = signal(false);
   protected readonly launchOnLoginError = signal('');
   protected readonly quickActions = signal<readonly QuickActionInfo[]>([]);
+  protected readonly fileAssociations = signal<FileAssociations | null>(null);
   protected readonly hotkeyDrafts = signal<Record<string, string>>({});
   protected readonly hotkeyErrors = signal<Record<string, string>>({});
 
@@ -102,14 +103,16 @@ export class Settings {
   }
 
   private async loadShellChrome(): Promise<void> {
-    const [launchOnLogin, quickActions, smartPasteHotkey, quickLauncherHotkey] = await Promise.all([
+    const [launchOnLogin, quickActions, smartPasteHotkey, quickLauncherHotkey, fileAssociations] = await Promise.all([
       this.shellChrome.getLaunchOnLogin(),
       this.shellChrome.listQuickActions(),
       this.smartPasteHotkey.getHotkey(),
       this.quickLauncher.getHotkey(),
+      this.shellChrome.getFileAssociations(),
     ]);
     this.launchOnLogin.set(launchOnLogin);
     this.quickActions.set(quickActions);
+    this.fileAssociations.set(fileAssociations);
     this.hotkeyDrafts.set({
       ...Object.fromEntries(quickActions.map((a) => [a.id, a.hotkey ?? ''])),
       [SMART_PASTE_HOTKEY_ID]: smartPasteHotkey ?? '',
@@ -130,6 +133,11 @@ export class Settings {
   protected async checkDesktopUpdates(): Promise<void> {
     const result = await window.dude!.update.checkForUpdates();
     this.desktopMessage.set(result.ok ? 'Update check completed.' : result.error);
+  }
+
+  protected async openWindowsDefaultApps(): Promise<void> {
+    const result = await this.shellChrome.openDefaultApps();
+    this.desktopMessage.set(result.ok ? 'Opened Windows Default Apps.' : result.error);
   }
 
   protected async toggleLaunchOnLogin(event: Event): Promise<void> {

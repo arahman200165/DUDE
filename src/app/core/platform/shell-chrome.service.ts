@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { PlatformService } from './platform.service';
-import type { QuickActionInfo, VoidResult } from './electron-bridge';
+import type { FileAssociations, QuickActionInfo, VoidResult } from './electron-bridge';
 
 /**
  * Renderer-side client for Stage 5's desktop shell chrome: launch-on-login,
@@ -30,6 +30,16 @@ export class ShellChromeService {
   async setQuickActionHotkey(actionId: string, accelerator: string | null): Promise<VoidResult> {
     if (!this.platform.isDesktop()) return { ok: false, error: 'not-supported' };
     return window.dude!.quickActions.setHotkey(actionId, accelerator);
+  }
+
+  async getFileAssociations(): Promise<FileAssociations | null> {
+    if (!this.platform.isDesktop()) return null;
+    return window.dude!.shell.getFileAssociations();
+  }
+
+  async openDefaultApps(): Promise<VoidResult> {
+    if (!this.platform.isDesktop()) return { ok: false, error: 'not-supported' };
+    return window.dude!.shell.openDefaultApps();
   }
 
   async notify(title: string, body: string): Promise<VoidResult> {

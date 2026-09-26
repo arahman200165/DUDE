@@ -79,6 +79,7 @@ export interface DudeElectronBridge {
     getLaunchOnLogin(): Promise<boolean>;
     setLaunchOnLogin(enabled: boolean): Promise<{ readonly ok: true }>;
     openDefaultApps(): Promise<VoidResult>;
+    getFileAssociations(): Promise<FileAssociations | null>;
   };
   readonly quickActions: {
     list(): Promise<readonly QuickActionInfo[]>;
@@ -119,6 +120,10 @@ export interface NativeMenuToolInfo {
   readonly title: string;
   readonly route: string;
   readonly category: string;
+}
+
+export interface FileAssociations {
+  readonly candidateExtensions: readonly string[];
 }
 
 export interface QuickActionInfo {

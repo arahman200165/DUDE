@@ -451,6 +451,17 @@ FunctionEnd
 
 !endif
 
+!macro DudeWriteAssociationJson EXT BIT
+  IntOp $0 $DudeMask & ${BIT}
+  ${If} $0 != 0
+    ${If} $2 == "1"
+      FileWrite $9 ","
+    ${EndIf}
+    FileWrite $9 "$\".${EXT}$\""
+    StrCpy $2 "1"
+  ${EndIf}
+!macroend
+
 !macro DudeAppendReview EXT BIT
   IntOp $3 $DudeMask & ${BIT}
   ${If} $3 != 0
@@ -595,6 +606,12 @@ Function DudeInstallOptions
   WriteRegStr SHELL_CONTEXT "Software\DUDE\Installer" "FileMask" "$DudeMask"
   WriteINIStr "$INSTDIR\setup-options.ini" "setup" "launchOnLogin" "$DudeLogin"
   WriteINIStr "$INSTDIR\setup-options.ini" "setup" "updateMode" "$DudeUpdates"
+  FileOpen $9 "$INSTDIR\file-associations.json" w
+  FileWrite $9 "{$\"schemaVersion$\":1,$\"candidateExtensions$\":["
+  StrCpy $2 "0"
+  !insertmacro DudeForEachExtension DudeWriteAssociationJson
+  FileWrite $9 "]}"
+  FileClose $9
   ${IfNot} ${Silent}
     System::Call 'kernel32::GetTickCount() i .r0'
     WriteINIStr "$INSTDIR\setup-request.ini" "setup" "request" "$0"
@@ -614,6 +631,7 @@ Function un.DudeRemoveRegistration
 FunctionEnd
 
 Function un.DudeRemoveOptions
+  Delete "$INSTDIR\file-associations.json"
   !insertmacro DudeForEachKnownExtension DudeRemoveExtensionUn
   Delete "$SMPROGRAMS\DUDE.lnk"
   Delete "$DESKTOP\DUDE.lnk"

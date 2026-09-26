@@ -74,6 +74,7 @@ const bridge: DudeElectronBridge = {
     getLaunchOnLogin: () => ipcRenderer.invoke('dude:shell:getLaunchOnLogin'),
     setLaunchOnLogin: (enabled) => ipcRenderer.invoke('dude:shell:setLaunchOnLogin', enabled),
     openDefaultApps: () => ipcRenderer.invoke('dude:shell:openDefaultApps'),
+    getFileAssociations: () => ipcRenderer.invoke('dude:shell:getFileAssociations'),
   },
   quickActions: {
     list: () => ipcRenderer.invoke('dude:quickActions:list'),

@@ -23,6 +23,8 @@ describe('ShellChromeService', () => {
 
     expect(await service.getLaunchOnLogin()).toBe(false);
     expect(await service.listQuickActions()).toEqual([]);
+    expect(await service.getFileAssociations()).toBeNull();
+    expect(await service.openDefaultApps()).toEqual({ ok: false, error: 'not-supported' });
     expect(await service.setLaunchOnLogin(true)).toEqual({ ok: false, error: 'not-supported' });
     expect(await service.setQuickActionHotkey('x', 'Ctrl+Alt+B')).toEqual({ ok: false, error: 'not-supported' });
     expect(await service.notify('t', 'b')).toEqual({ ok: false, error: 'not-supported' });
@@ -54,6 +56,7 @@ describe('ShellChromeService', () => {
       shell: {
         getLaunchOnLogin: async () => true,
         openDefaultApps: async () => ({ ok: true }),
+        getFileAssociations: async () => ({ candidateExtensions: ['.json'] }),
         setLaunchOnLogin: async (enabled) => {
           calls.push(enabled);
           return { ok: true };
@@ -64,5 +67,7 @@ describe('ShellChromeService', () => {
     expect(await service.getLaunchOnLogin()).toBe(true);
     expect(await service.setLaunchOnLogin(false)).toEqual({ ok: true });
     expect(calls).toEqual([false]);
+    expect(await service.getFileAssociations()).toEqual({ candidateExtensions: ['.json'] });
+    expect(await service.openDefaultApps()).toEqual({ ok: true });
   });
 });

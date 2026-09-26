@@ -1,5 +1,7 @@
 import { app, BrowserWindow, ipcMain, Menu, nativeImage, shell, Tray } from 'electron';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { promises as fs } from 'node:fs';
+import { parseFileAssociations } from './file-association-marker';
 
 /**
  * System tray + launch-on-login (Phase 8 Stage 5). Closing the main window
@@ -48,6 +50,14 @@ export function createTray(window: BrowserWindow): Tray {
 }
 
 export function registerShellChromeHandlers(): void {
+  ipcMain.handle('dude:shell:getFileAssociations', async () => {
+    try {
+      const marker = join(dirname(app.getPath('exe')), 'file-associations.json');
+      const stat = await fs.stat(marker);
+      if (stat.size > 4096) return null;
+      return parseFileAssociations(JSON.parse(await fs.readFile(marker, 'utf8')));
+    } catch { return null; }
+  });
   ipcMain.handle('dude:shell:openDefaultApps', async () => {
     try { await shell.openExternal('ms-settings:defaultapps'); return { ok: true }; }
     catch (error) { return { ok: false, error: error instanceof Error ? error.message : 'Could not open Windows Settings.' }; }
