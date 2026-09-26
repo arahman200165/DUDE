@@ -10,7 +10,11 @@ export const manifest: ToolDefinition = {
   keywords: ['aes', 'encrypt', 'decrypt', 'gcm', 'cbc', 'pbkdf2', 'cipher'],
   route: '/tools/aes-encrypt-decrypt',
   load: () => import('./aes-encrypt-decrypt').then((m) => m.AesEncryptDecrypt),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    crossChecked: ["Node's crypto (pbkdf2Sync + createCipheriv, OpenSSL-backed)"],
+    summary: 'Decrypts AES-256-GCM/CBC ciphertext built independently by Node\'s OpenSSL-backed crypto module, not just its own round-trip.',
+  },
   consequenceClass: ['crypto'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },

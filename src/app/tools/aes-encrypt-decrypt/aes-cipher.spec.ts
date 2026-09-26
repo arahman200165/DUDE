@@ -54,4 +54,41 @@ describe('aes-cipher', () => {
     expect(result.ok).toBe(false);
     expect(result.ok || result.error).toMatch(/unknown cipher mode/i);
   });
+
+  // DUDE_PRD.md §21 Phase 23 Item 3 -- cross-checked against Node's `crypto` module (a
+  // genuinely independent implementation from the browser's Web Crypto/BoringSSL: Node's
+  // `crypto` is OpenSSL-backed), not just DUDE's own encrypt/decrypt agreeing with itself.
+  // Bundles below were built with a fixed salt/iv via `pbkdf2Sync`/`createCipheriv`, so this
+  // exercises the exact same PBKDF2-HMAC-SHA256 key derivation and AES-GCM/CBC decryption
+  // decryptAes performs, against ciphertext DUDE's own code never touched.
+  describe('cross-checked against Node crypto (independent implementation)', () => {
+    const passphrase = 'correct horse battery staple';
+    const iterations = 600_000;
+    const saltB64 = 'AQIDBAUGBwgJCgsMDQ4PEA==';
+    const plaintext = 'DUDE cross-check plaintext';
+
+    it('decrypts an AES-256-GCM bundle built independently with pbkdf2Sync + createCipheriv', async () => {
+      const bundle = [
+        'AES-GCM',
+        String(iterations),
+        saltB64,
+        'AAECAwQFBgcICQoL',
+        'mF4J2q41mjDudoLklz0Z8twVIh0LuTJgI5vdcfQYi4AFIhzY8TZcbI41',
+      ].join('.');
+
+      await expect(decryptAes(bundle, passphrase)).resolves.toEqual({ ok: true, plaintext });
+    });
+
+    it('decrypts an AES-256-CBC bundle built independently with pbkdf2Sync + createCipheriv', async () => {
+      const bundle = [
+        'AES-CBC',
+        String(iterations),
+        saltB64,
+        'AAECAwQFBgcICQoLDA0ODw==',
+        '6ezCUno+uul7S4Z6cIAGhlRWpxkp4ZE3cW3UWCS7Oo4=',
+      ].join('.');
+
+      await expect(decryptAes(bundle, passphrase)).resolves.toEqual({ ok: true, plaintext });
+    });
+  });
 });
