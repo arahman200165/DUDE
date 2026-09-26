@@ -17,7 +17,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/dst-transition-explorer',
   load: () => import('./dst-transition-explorer').then((m) => m.DstTransitionExplorer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): neverThrows on arbitrary zone/year input, plus an invariant that every listed transition row has a real offset change and rows are date-ordered.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['table', 'json'] },
 };

@@ -17,7 +17,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/date-calculator',
   load: () => import('./date-calculator').then((m) => m.DateCalculator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): neverThrows on arbitrary input, plus invariants that addDays/daysBetween agree on elapsed calendar days and that weekday/weekend/business-day counts partition correctly.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['json'] },
 };

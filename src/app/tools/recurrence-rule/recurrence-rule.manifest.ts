@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['rrule', 'recurrence', 'recurring', 'ical', 'calendar', 'schedule', 'occurrence'],
   route: '/tools/recurrence-rule',
   load: () => import('./recurrence-rule').then((m) => m.RecurrenceRule),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): neverThrows on arbitrary input, plus an invariant that a daily rule yields min(COUNT, maxOccurrences, 500) chronologically-increasing occurrences.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['json'] },
 };

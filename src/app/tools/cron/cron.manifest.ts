@@ -10,7 +10,11 @@ export const manifest: ToolDefinition = {
   keywords: ['cron', 'crontab', 'schedule', 'next run', 'previous run', 'expression'],
   route: '/tools/cron',
   load: () => import('./cron').then((m) => m.Cron),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check) against arbitrary text and well-formed-but-arbitrary cron expressions, asserting strictly-ordered next/previous runs around a fixed `now`.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['json'] },
 };

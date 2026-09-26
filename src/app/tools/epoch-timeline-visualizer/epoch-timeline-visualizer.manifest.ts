@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['timeline', 'epoch', 'visualize', 'timestamp', 'range', 'plot', 'now'],
   route: '/tools/epoch-timeline-visualizer',
   load: () => import('./epoch-timeline-visualizer').then((m) => m.EpochTimelineVisualizer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): neverThrows on arbitrary input, plus invariants that the padded range always strictly contains a valid start/end or marker set.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['json'] },
 };

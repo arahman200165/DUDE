@@ -17,7 +17,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/timezone-converter',
   load: () => import('./timezone-converter').then((m) => m.TimezoneConverter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip-tested (fast-check): converting a UTC moment to a target IANA zone and back recovers the original wall-clock time; plus neverThrows on arbitrary input.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['json'] },
 };

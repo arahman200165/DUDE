@@ -1,0 +1,49 @@
+import fc from 'fast-check';
+import { describe, it } from 'vitest';
+import { invariant, neverThrows } from '../../../testing/property-harness';
+import { buildOffsetGrid, comparePairwise } from './timezone-offset-comparator-logic';
+
+const zoneArb = fc.constantFrom('America/New_York', 'Europe/London', 'Asia/Tokyo', 'Australia/Sydney', 'UTC', 'Asia/Kolkata');
+
+describe('buildOffsetGrid / comparePairwise fuzzing', () => {
+  it('buildOffsetGrid never throws for arbitrary zones/year', () => {
+    neverThrows(
+      ([zones, year]: [readonly string[], number]) => buildOffsetGrid({ zones, year }),
+      fc.tuple(fc.array(fc.string(), { maxLength: 5 }), fc.double()),
+    );
+  });
+
+  it('comparePairwise never throws for arbitrary input', () => {
+    neverThrows(
+      ([zoneA, zoneB, atMs]: [string, string, number]) => comparePairwise({ zoneA, zoneB, atMs }),
+      fc.tuple(fc.string(), fc.string(), fc.double()),
+    );
+  });
+});
+
+describe('buildOffsetGrid invariants', () => {
+  it('produces 12 well-formed monthly offsets per zone', () => {
+    invariant(
+      ([zones, year]: [readonly string[], number]) => buildOffsetGrid({ zones, year }),
+      fc.tuple(fc.array(zoneArb, { minLength: 1, maxLength: 4 }), fc.integer({ min: 1990, max: 2060 })),
+      (result) =>
+        result.ok &&
+        result.rows.every((row) => row.monthlyOffsets.length === 12 && row.monthlyOffsets.every((offset) => /^[+-]\d{2}:\d{2}$/.test(offset))),
+    );
+  });
+});
+
+describe('comparePairwise invariants', () => {
+  it('is antisymmetric: swapping zones negates the gap', () => {
+    invariant(
+      ([zoneA, zoneB, atMs]: [string, string, number]) => {
+        const ab = comparePairwise({ zoneA, zoneB, atMs });
+        const ba = comparePairwise({ zoneA: zoneB, zoneB: zoneA, atMs });
+        if (!ab.ok || !ba.ok) throw new Error('expected both comparisons to succeed');
+        return { gapAB: ab.result.gapMinutes, gapBA: ba.result.gapMinutes };
+      },
+      fc.tuple(zoneArb, zoneArb, fc.integer({ min: Date.UTC(1990, 0, 1), max: Date.UTC(2060, 0, 1) })),
+      ({ gapAB, gapBA }) => gapAB === -gapBA,
+    );
+  });
+});

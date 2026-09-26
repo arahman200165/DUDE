@@ -24,7 +24,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/unix-timestamp',
   load: () => import('./unix-timestamp').then((m) => m.UnixTimestamp),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip-tested (fast-check): converting to seconds/milliseconds and parsing back recovers the original value; plus neverThrows on arbitrary input across all units.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };
