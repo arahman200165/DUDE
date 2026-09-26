@@ -573,7 +573,7 @@
     "status": "verified",
     "recipe": "ROUNDTRIP",
     "milestone": 371,
-    "notes": "round-trip arbitrary restricted to a structurally-safe ParsedHttpRequest domain (no raw '?'/':'/'=' collisions in keys, no backslash-then-newline in values, fixed body contentType) â€” the excluded edge cases are already covered by curl-shell-lex.spec.ts's example-based tests"
+    "notes": "round-trip arbitrary restricted to a structurally-safe ParsedHttpRequest domain (no raw '?'/':'/'=' collisions in keys, no backslash-then-newline in values, fixed body contentType) \u00e2\u20ac\u201d the excluded edge cases are already covered by curl-shell-lex.spec.ts's example-based tests"
   },
   {
     "id": "http-header-inspector",
@@ -1830,99 +1830,99 @@
     "id": "package-metadata-inspector",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "blocked",
     "recipe": "FUZZ",
-    "milestone": null,
-    "notes": ""
+    "milestone": 384,
+    "notes": "blocked: network-only registry fetchers expose no synchronous pure transform; async fetch behavior is outside the FUZZ harness."
   },
   {
     "id": "percentage-ratio-calculator",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 384,
     "notes": ""
   },
   {
     "id": "pixel-color-picker",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "CORE-ONLY",
-    "milestone": null,
+    "milestone": 384,
     "notes": ""
   },
   {
     "id": "programmer-calculator",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 384,
     "notes": ""
   },
   {
     "id": "python-playground",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "CORE-ONLY",
-    "milestone": null,
+    "milestone": 384,
     "notes": ""
   },
   {
     "id": "random-data-generator",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "GENERATOR",
-    "milestone": null,
+    "milestone": 384,
     "notes": ""
   },
   {
     "id": "scientific-notation-converter",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": null,
+    "milestone": 384,
     "notes": ""
   },
   {
     "id": "semver-comparator",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 384,
     "notes": ""
   },
   {
     "id": "settings",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "blocked",
     "recipe": "FUZZ",
-    "milestone": null,
-    "notes": ""
+    "milestone": 384,
+    "notes": "blocked: the tool is an Angular/service integration surface with no extracted pure transform for FUZZ testing."
   },
   {
     "id": "stack-trace-formatter",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
-    "recipe": "ROUNDTRIP",
-    "milestone": null,
+    "status": "verified",
+    "recipe": "FUZZ",
+    "milestone": 384,
     "notes": ""
   },
   {
     "id": "template-renderer",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 384,
     "notes": ""
   },
   {

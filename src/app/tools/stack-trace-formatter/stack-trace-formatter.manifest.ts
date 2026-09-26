@@ -20,7 +20,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/stack-trace-formatter',
   load: () => import('./stack-trace-formatter').then((m) => m.StackTraceFormatter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested line preservation for explicit parsers and auto-detection on arbitrary text.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

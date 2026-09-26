@@ -18,7 +18,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/python-playground',
   load: () => import('./python-playground').then((m) => m.PythonPlayground),
-  status: 'experimental',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested the pure sandbox-event reducer for transcript and outcome shape.',
+  },
   consequenceClass: ['code-execution'],
   persistence: { input: 'user-choice', preferences: 'local' },
   execution: { worker: 'none' },

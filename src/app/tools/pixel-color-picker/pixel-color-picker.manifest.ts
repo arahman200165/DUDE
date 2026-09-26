@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['color', 'pixel', 'eyedropper', 'picker', 'image'],
   route: '/tools/pixel-color-picker',
   load: () => import('./pixel-color-picker').then((m) => m.PixelColorPicker),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested pure ImageData pixel sampling for channel bounds and out-of-range nulls.',
+  },
   persistence: { input: 'none', preferences: 'none' },
   io: { accepts: ['file'], produces: ['json'] },
 };

@@ -15,7 +15,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/scientific-notation-converter',
   load: () => import('./scientific-notation-converter').then((m) => m.ScientificNotationConverter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip tested bounded finite integers through scientific notation.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'none' },
   io: { accepts: ['text'], produces: ['text'] },

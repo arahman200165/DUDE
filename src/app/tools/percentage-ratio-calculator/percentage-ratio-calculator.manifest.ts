@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['percentage', 'percent', 'ratio', 'proportion', 'percent change', 'simplify ratio'],
   route: '/tools/percentage-ratio-calculator',
   load: () => import('./percentage-ratio-calculator').then((m) => m.PercentageRatioCalculator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested finite percent operations and equivalent BigInt ratio reduction.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'none' },
   io: { accepts: ['text'], produces: ['text'] },

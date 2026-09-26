@@ -10,7 +10,11 @@ export const manifest: ToolDefinition = {
   keywords: ['template', 'ejs', 'render', 'interpolation', 'sandbox'],
   route: '/tools/template-renderer',
   load: () => import('./template-renderer').then((m) => m.TemplateRenderer),
-  status: 'experimental',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested arbitrary template/context handling and valid JSON context embedding.',
+  },
   consequenceClass: ['code-execution'],
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'required' },
