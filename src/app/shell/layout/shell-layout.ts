@@ -10,6 +10,7 @@ import { OnboardingService } from '../../core/platform/onboarding.service';
 import { DesktopOpenService } from '../../core/platform/desktop-open.service';
 import { DeepLinkService } from '../../core/deep-link/deep-link.service';
 import { NativeMenuService } from '../../core/platform/native-menu.service';
+import { QuickLauncherService } from '../../core/platform/quick-launcher.service';
 import { AmbientPasteChip } from '../../shared/components/ambient-paste-chip/ambient-paste-chip';
 
 @Component({
@@ -23,6 +24,7 @@ export class ShellLayout {
   private readonly onboarding = inject(OnboardingService);
   protected readonly desktopOpen = inject(DesktopOpenService);
   protected readonly deepLink = inject(DeepLinkService);
+  protected readonly quickLauncher = inject(QuickLauncherService);
 
   constructor() { inject(NativeMenuService); void this.onboarding.initialize(); }
 

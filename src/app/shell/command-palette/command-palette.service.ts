@@ -1,12 +1,14 @@
 import { Injectable, inject } from '@angular/core';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
+import { Subject } from 'rxjs';
 import { CommandPalette } from './command-palette';
 
 @Injectable({ providedIn: 'root' })
 export class CommandPaletteService {
   private readonly overlay = inject(Overlay);
   private overlayRef: OverlayRef | null = null;
+  readonly closed = new Subject<'dismiss' | 'execute'>();
 
   open(): void {
     if (this.overlayRef) return;
@@ -24,9 +26,11 @@ export class CommandPaletteService {
     this.overlayRef = overlayRef;
   }
 
-  close(): void {
-    this.overlayRef?.dispose();
+  close(reason: 'dismiss' | 'execute' = 'dismiss'): void {
+    if (!this.overlayRef) return;
+    this.overlayRef.dispose();
     this.overlayRef = null;
+    this.closed.next(reason);
   }
 
   toggle(): void {

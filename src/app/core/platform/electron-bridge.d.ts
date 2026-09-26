@@ -48,7 +48,9 @@ export interface DudeElectronBridge {
   readonly quickLauncher: {
     ready(): void;
     onOpen(callback: (event: { readonly compact: boolean }) => void): () => void;
+    onDismissed(callback: () => void): () => void;
     dismiss(): Promise<VoidResult>;
+    promote(): Promise<VoidResult>;
     getHotkey(): Promise<string | null>;
     setHotkey(accelerator: string | null): Promise<VoidResult>;
   };

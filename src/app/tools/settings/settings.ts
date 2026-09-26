@@ -8,6 +8,7 @@ import { WorkspaceLayoutService } from '../../core/workspace/workspace-layout.se
 import { ClearAllDataService } from '../../core/workspace/clear-all-data';
 import { ShellChromeService } from '../../core/platform/shell-chrome.service';
 import { SmartPasteHotkeyService } from '../../core/platform/smart-paste-hotkey.service';
+import { QuickLauncherService } from '../../core/platform/quick-launcher.service';
 import type { DesktopPreferences, QuickActionInfo } from '../../core/platform/electron-bridge';
 import { DesktopPreferencesService } from '../../core/platform/desktop-preferences.service';
 import { OnboardingService } from '../../core/platform/onboarding.service';
@@ -21,6 +22,7 @@ const KEY_API_KEY = 'llmApiKey';
  *  clipboard-transform list (see electron/smart-paste-hotkey.ts), so it reuses the same draft/error
  *  UI shape under its own id rather than being folded into that array. */
 const SMART_PASTE_HOTKEY_ID = 'smart-paste-hotkey';
+const QUICK_LAUNCHER_HOTKEY_ID = 'quick-launcher-hotkey';
 
 type LoadStatus = 'loading' | 'idle';
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -50,6 +52,7 @@ export class Settings {
   private readonly secureLocal = inject(SecureLocalService);
   private readonly shellChrome = inject(ShellChromeService);
   private readonly smartPasteHotkey = inject(SmartPasteHotkeyService);
+  private readonly quickLauncher = inject(QuickLauncherService);
   protected readonly desktopPrefs = inject(DesktopPreferencesService);
   protected readonly onboarding = inject(OnboardingService);
   protected readonly desktopMessage = signal('');
@@ -99,16 +102,18 @@ export class Settings {
   }
 
   private async loadShellChrome(): Promise<void> {
-    const [launchOnLogin, quickActions, smartPasteHotkey] = await Promise.all([
+    const [launchOnLogin, quickActions, smartPasteHotkey, quickLauncherHotkey] = await Promise.all([
       this.shellChrome.getLaunchOnLogin(),
       this.shellChrome.listQuickActions(),
       this.smartPasteHotkey.getHotkey(),
+      this.quickLauncher.getHotkey(),
     ]);
     this.launchOnLogin.set(launchOnLogin);
     this.quickActions.set(quickActions);
     this.hotkeyDrafts.set({
       ...Object.fromEntries(quickActions.map((a) => [a.id, a.hotkey ?? ''])),
       [SMART_PASTE_HOTKEY_ID]: smartPasteHotkey ?? '',
+      [QUICK_LAUNCHER_HOTKEY_ID]: quickLauncherHotkey ?? '',
     });
   }
 
@@ -184,6 +189,27 @@ export class Settings {
   protected clearSmartPasteHotkey(): void {
     this.hotkeyDrafts.update((drafts) => ({ ...drafts, [SMART_PASTE_HOTKEY_ID]: '' }));
     void this.saveSmartPasteHotkey();
+  }
+
+  protected readonly quickLauncherHotkeyId = QUICK_LAUNCHER_HOTKEY_ID;
+
+  protected async saveQuickLauncherHotkey(): Promise<void> {
+    const accelerator = this.hotkeyDrafts()[QUICK_LAUNCHER_HOTKEY_ID]?.trim() || null;
+    this.hotkeyErrors.update((errors) => ({ ...errors, [QUICK_LAUNCHER_HOTKEY_ID]: '' }));
+    const result = await this.quickLauncher.setHotkey(accelerator);
+    if (!result.ok) {
+      this.hotkeyErrors.update((errors) => ({
+        ...errors,
+        [QUICK_LAUNCHER_HOTKEY_ID]: result.error === 'registration-failed' ? 'Could not register this hotkey; it may already be in use.' : result.error,
+      }));
+      return;
+    }
+    this.hotkeyDrafts.update((drafts) => ({ ...drafts, [QUICK_LAUNCHER_HOTKEY_ID]: accelerator ?? '' }));
+  }
+
+  protected clearQuickLauncherHotkey(): void {
+    this.hotkeyDrafts.update((drafts) => ({ ...drafts, [QUICK_LAUNCHER_HOTKEY_ID]: '' }));
+    void this.saveQuickLauncherHotkey();
   }
 
   protected onRelayUrlInput(event: Event): void {

@@ -69,6 +69,14 @@ describe('Quick Launcher main process', () => {
     expect(window.setBounds).not.toHaveBeenCalled();
     expect(mock.send).toHaveBeenLastCalledWith('dude:quickLauncher:open', { compact: false });
 
+    mock.visible = false;
+    triggerQuickLauncher();
+    expect(isQuickLauncherGeometry(window as never)).toBe(true);
+    expect(mock.handlers.get('dude:quickLauncher:promote')!({ sender: webContents })).toEqual({ ok: true });
+    expect(isQuickLauncherGeometry(window as never)).toBe(false);
+    expect(mock.visible).toBe(true);
+    expect(mock.bounds).toEqual(original);
+
     expect(await mock.handlers.get('dude:quickLauncher:setHotkey')!(null, 'Control+Alt+L')).toEqual({ ok: true });
     expect(mock.writeFile).toHaveBeenCalledWith(expect.stringContaining('quick-launcher-hotkey-binding.json'), JSON.stringify({ accelerator: 'Control+Alt+L' }), 'utf8');
     expect(mock.unregister).toHaveBeenCalledWith('CommandOrControl+Shift+Space');

@@ -9,6 +9,7 @@ import { WorkspaceLayoutService } from '../../core/workspace/workspace-layout.se
 import { ClearAllDataService } from '../../core/workspace/clear-all-data';
 import { ShellChromeService } from '../../core/platform/shell-chrome.service';
 import { SmartPasteHotkeyService } from '../../core/platform/smart-paste-hotkey.service';
+import { QuickLauncherService } from '../../core/platform/quick-launcher.service';
 import { DesktopPreferencesService } from '../../core/platform/desktop-preferences.service';
 import { OnboardingService } from '../../core/platform/onboarding.service';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
@@ -47,6 +48,7 @@ describe('Settings integration', () => {
         { provide: ClearAllDataService, useValue: { clearAll } },
         { provide: ShellChromeService, useValue: { getLaunchOnLogin: vi.fn().mockResolvedValue(false), listQuickActions: vi.fn().mockResolvedValue([]) } },
         { provide: SmartPasteHotkeyService, useValue: { getHotkey: vi.fn().mockResolvedValue(null), setHotkey: vi.fn().mockResolvedValue({ ok: true }) } },
+        { provide: QuickLauncherService, useValue: { getHotkey: vi.fn().mockResolvedValue(null), setHotkey: vi.fn().mockResolvedValue({ ok: true }) } },
         { provide: DesktopPreferencesService, useValue: { load: vi.fn().mockResolvedValue(undefined), current: signal({}), displays: signal([]) } },
         { provide: OnboardingService, useValue: { open: vi.fn() } },
       ],
@@ -111,6 +113,21 @@ describe('Settings integration', () => {
       ),
       { numRuns: 50 },
     );
+    fixture.destroy();
+  });
+
+  it('saves and clears the Quick Launcher hotkey in desktop Settings', async () => {
+    desktop = true;
+    const fixture = TestBed.createComponent(Settings);
+    await fixture.whenStable();
+    const component = fixture.componentInstance as any;
+    const quickLauncher = TestBed.inject(QuickLauncherService);
+    component['hotkeyDrafts'].update((drafts: Record<string, string>) => ({ ...drafts, 'quick-launcher-hotkey': ' Control+Alt+Space ' }));
+    await component['saveQuickLauncherHotkey']();
+    expect(quickLauncher.setHotkey).toHaveBeenCalledWith('Control+Alt+Space');
+    component['clearQuickLauncherHotkey']();
+    await fixture.whenStable();
+    expect(quickLauncher.setHotkey).toHaveBeenLastCalledWith(null);
     fixture.destroy();
   });
 

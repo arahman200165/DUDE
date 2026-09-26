@@ -41,7 +41,13 @@ const bridge: DudeElectronBridge = {
       ipcRenderer.on('dude:quickLauncher:open', listener);
       return () => ipcRenderer.removeListener('dude:quickLauncher:open', listener);
     },
+    onDismissed: (callback) => {
+      const listener = () => callback();
+      ipcRenderer.on('dude:quickLauncher:dismissed', listener);
+      return () => ipcRenderer.removeListener('dude:quickLauncher:dismissed', listener);
+    },
     dismiss: () => ipcRenderer.invoke('dude:quickLauncher:dismiss'),
+    promote: () => ipcRenderer.invoke('dude:quickLauncher:promote'),
     getHotkey: () => ipcRenderer.invoke('dude:quickLauncher:getHotkey'),
     setHotkey: (accelerator) => ipcRenderer.invoke('dude:quickLauncher:setHotkey', accelerator),
   },

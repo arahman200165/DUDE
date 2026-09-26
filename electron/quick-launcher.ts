@@ -42,18 +42,22 @@ function launcherBounds(): Rectangle {
   };
 }
 
-function dismissCompact(): void {
+function restoreCompact(hide: boolean): void {
   if (!receiver || !originalBounds) return;
   const bounds = originalBounds;
   originalBounds = null;
+  pendingOpen = null;
+  if (hide) receiver.webContents.send('dude:quickLauncher:dismissed');
   restoringGeometry = true;
   try {
-    if (receiver.isVisible()) receiver.hide();
+    if (hide && receiver.isVisible()) receiver.hide();
     receiver.setBounds(bounds);
   } finally {
     restoringGeometry = false;
   }
 }
+
+function dismissCompact(): void { restoreCompact(true); }
 
 export function isQuickLauncherGeometry(window: BrowserWindow): boolean {
   return receiver === window && (originalBounds !== null || restoringGeometry);
@@ -84,6 +88,11 @@ export function registerQuickLauncherRenderer(window: BrowserWindow): void {
   ipcMain.handle('dude:quickLauncher:dismiss', (event) => {
     if (event.sender !== window.webContents) return { ok: false, error: 'unauthorized' };
     dismissCompact();
+    return { ok: true };
+  });
+  ipcMain.handle('dude:quickLauncher:promote', (event) => {
+    if (event.sender !== window.webContents) return { ok: false, error: 'unauthorized' };
+    restoreCompact(false);
     return { ok: true };
   });
   window.on('blur', dismissCompact);

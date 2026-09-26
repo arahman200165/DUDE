@@ -98,7 +98,7 @@ export class CommandPalette implements AfterViewInit {
 
   protected open(command: PaletteCommand): void {
     void command.execute();
-    this.paletteService.close();
+    this.paletteService.close('execute');
   }
 
   /** The chip uses only cached pipeline step metadata; opening the palette never loads every tool. */
@@ -110,6 +110,6 @@ export class CommandPalette implements AfterViewInit {
     event.stopPropagation();
     if (!command.toolId) return;
     void this.router.navigate(['/quick-run'], { queryParams: { tool: command.toolId } });
-    this.paletteService.close();
+    this.paletteService.close('execute');
   }
 }
