@@ -10,7 +10,12 @@ export const manifest: ToolDefinition = {
   keywords: ['ksuid', 'generate', 'inspect', 'identifier', 'base62'],
   route: '/tools/ksuid-tools',
   load: () => import('./ksuid-tools').then((m) => m.KsuidTools),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested (fast-check) for core output shape and invariants.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text', 'json'] },
 };
+

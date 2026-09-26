@@ -1713,117 +1713,117 @@
     "id": "html-formatter",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "blocked",
     "recipe": "CORE-ONLY",
-    "milestone": null,
-    "notes": ""
+    "milestone": 383,
+    "notes": "needs-browser-harness: transform depends on document.createElement and innerHTML, so CORE-ONLY has no trivial pure core."
   },
   {
     "id": "html-jsx-converter",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "blocked",
     "recipe": "CORE-ONLY",
-    "milestone": null,
-    "notes": ""
+    "milestone": 383,
+    "notes": "needs-browser-harness: transform depends on document.createElement and innerHTML, so CORE-ONLY has no trivial pure core."
   },
   {
     "id": "html-preview",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "CORE-ONLY",
-    "milestone": null,
+    "milestone": 383,
     "notes": ""
   },
   {
     "id": "js-playground",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 383,
     "notes": ""
   },
   {
     "id": "json-ld-tester",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 383,
     "notes": ""
   },
   {
     "id": "ksuid-tools",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "GENERATOR",
-    "milestone": null,
+    "milestone": 383,
     "notes": ""
   },
   {
     "id": "lockfile-inspector",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "CORE-ONLY",
-    "milestone": null,
+    "milestone": 383,
     "notes": ""
   },
   {
     "id": "meta-tag-generator",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "GENERATOR",
-    "milestone": null,
+    "milestone": 383,
     "notes": ""
   },
   {
     "id": "missing-env-var-detector",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 383,
     "notes": ""
   },
   {
     "id": "mock-data-studio",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "GENERATOR",
-    "milestone": null,
+    "milestone": 383,
     "notes": ""
   },
   {
     "id": "model-generator",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "GENERATOR",
-    "milestone": null,
+    "milestone": 383,
     "notes": ""
   },
   {
     "id": "numeric-representation-inspector",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 383,
     "notes": ""
   },
   {
     "id": "opengraph-preview",
     "category": "developer",
     "subdomain": "misc",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 383,
     "notes": ""
   },
   {

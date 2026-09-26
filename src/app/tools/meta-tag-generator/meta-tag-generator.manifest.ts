@@ -9,7 +9,12 @@ export const manifest: ToolDefinition = {
   keywords: ['meta tags', 'seo', 'head tags', 'viewport', 'canonical', 'robots meta'],
   route: '/tools/meta-tag-generator',
   load: () => import('./meta-tag-generator').then((m) => m.MetaTagGenerator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested (fast-check) for core output shape and invariants.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
 };
+

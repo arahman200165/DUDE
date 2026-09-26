@@ -21,10 +21,15 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/js-playground',
   load: () => import('./js-playground').then((m) => m.JsPlayground),
-  status: 'experimental',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested (fast-check) for core output shape and invariants.',
+  },
   consequenceClass: ['code-execution'],
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'required' },
   network: { required: false },
   io: { accepts: ['text'], produces: ['text'] },
 };
+

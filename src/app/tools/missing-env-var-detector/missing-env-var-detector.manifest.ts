@@ -9,7 +9,12 @@ export const manifest: ToolDefinition = {
   keywords: ['env', 'environment variables', 'missing', 'detect', 'cross-check'],
   route: '/tools/missing-env-var-detector',
   load: () => import('./missing-env-var-detector').then((m) => m.MissingEnvVarDetector),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested (fast-check) for core output shape and invariants.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
 };
+

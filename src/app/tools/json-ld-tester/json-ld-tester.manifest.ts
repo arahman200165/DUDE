@@ -10,7 +10,12 @@ export const manifest: ToolDefinition = {
   keywords: ['json-ld', 'structured data', 'schema.org', 'rich results', 'seo'],
   route: '/tools/json-ld-tester',
   load: () => import('./json-ld-tester').then((m) => m.JsonLdTester),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested (fast-check) for core output shape and invariants.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text', 'json'], produces: ['json'] },
 };
+

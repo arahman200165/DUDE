@@ -22,7 +22,12 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/mock-data-studio',
   load: () => import('./mock-data-studio').then((m) => m.MockDataStudio),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested (fast-check) for core output shape and invariants.',
+  },
   persistence: { input: 'local', preferences: 'local' },
   io: { accepts: ['json'], produces: ['table', 'json', 'text', 'file'] },
 };
+

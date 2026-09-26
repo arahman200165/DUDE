@@ -10,10 +10,15 @@ export const manifest: ToolDefinition = {
   keywords: ['html', 'preview', 'live', 'sandbox', 'codepen', 'render', 'script', 'execute'],
   route: '/tools/html-preview',
   load: () => import('./html-preview').then((m) => m.HtmlPreview),
-  status: 'experimental',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested (fast-check) for core output shape and invariants.',
+  },
   consequenceClass: ['code-execution'],
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'none' },
   network: { required: false },
   io: { accepts: ['text'], produces: ['text'] },
 };
+

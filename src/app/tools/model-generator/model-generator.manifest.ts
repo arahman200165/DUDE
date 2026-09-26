@@ -25,7 +25,12 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/model-generator',
   load: () => import('./model-generator').then((m) => m.ModelGenerator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested (fast-check) for core output shape and invariants.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['json'], produces: ['text'] },
 };
+

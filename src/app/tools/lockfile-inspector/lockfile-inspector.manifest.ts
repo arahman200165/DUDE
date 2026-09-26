@@ -18,7 +18,12 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/lockfile-inspector',
   load: () => import('./lockfile-inspector').then((m) => m.LockfileInspector),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested (fast-check) for core output shape and invariants.',
+  },
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text', 'file'], produces: ['table'] },
 };
+

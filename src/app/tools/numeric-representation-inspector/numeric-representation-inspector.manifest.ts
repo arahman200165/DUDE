@@ -20,8 +20,13 @@ export const manifest: ToolDefinition = {
   route: '/tools/numeric-representation-inspector',
   load: () =>
     import('./numeric-representation-inspector').then((m) => m.NumericRepresentationInspector),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested (fast-check) for core output shape and invariants.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'none' },
   io: { accepts: ['text'], produces: ['json', 'text'] },
 };
+

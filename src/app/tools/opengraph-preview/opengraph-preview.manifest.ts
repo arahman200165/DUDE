@@ -9,7 +9,12 @@ export const manifest: ToolDefinition = {
   keywords: ['opengraph', 'og tags', 'twitter card', 'social preview', 'link preview'],
   route: '/tools/opengraph-preview',
   load: () => import('./opengraph-preview').then((m) => m.OpengraphPreview),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested (fast-check) for core output shape and invariants.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
 };
+
