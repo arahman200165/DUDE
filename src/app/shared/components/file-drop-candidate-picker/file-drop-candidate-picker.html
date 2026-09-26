@@ -1,0 +1,12 @@
+<div class="flex flex-wrap gap-2">
+  @for (match of matches(); track match.toolId) {
+    <button
+      type="button"
+      class="rounded-sm border border-accent/40 bg-accent/10 px-2 py-1 text-ui-sm text-accent hover:bg-accent/20"
+      [title]="match.reason"
+      (click)="selected.emit(match.toolId)"
+    >
+      {{ match.title }}
+    </button>
+  }
+</div>

@@ -12,6 +12,7 @@ const bridge: DudeElectronBridge = {
     ready: () => ipcRenderer.send('dude:open:ready'),
     pickFile: () => ipcRenderer.invoke('dude:open:pickFile'),
     getPathForFile: (file) => webUtils.getPathForFile(file),
+    enqueuePath: (path) => ipcRenderer.invoke('dude:open:enqueuePath', path),
     onItem: (callback) => {
       const listener = (_event: Electron.IpcRendererEvent, item: DesktopOpenItem) => callback(item);
       ipcRenderer.on('dude:open:item', listener);

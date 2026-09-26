@@ -7,6 +7,7 @@ import { FileDropHandoffService } from '../../../core/file-drop-detect/file-drop
 import { FILE_DROP_DETECTORS } from '../../../core/file-drop-detect/file-drop-detectors';
 import { detectFileDrop } from '../../../core/file-drop-detect/file-drop-detect';
 import { FileDropMatch } from '../../../core/file-drop-detect/file-drop-detectors.model';
+import { FileDropCandidatePicker } from '../file-drop-candidate-picker/file-drop-candidate-picker';
 
 /** Only a dominant format match opens automatically; generic fallbacks still need a choice. */
 export function confidentFileDropMatch(matches: readonly FileDropMatch[]): FileDropMatch | null {
@@ -16,6 +17,7 @@ export function confidentFileDropMatch(matches: readonly FileDropMatch[]): FileD
 
 @Component({
   selector: 'app-global-drop-router',
+  imports: [FileDropCandidatePicker],
   templateUrl: './global-drop-router.html',
 })
 export class GlobalDropRouter implements OnDestroy {
@@ -26,6 +28,8 @@ export class GlobalDropRouter implements OnDestroy {
   private readonly handoff = inject(FileDropHandoffService);
   readonly dragging = signal(false);
   readonly message = signal('');
+  readonly candidateFile = signal<File | null>(null);
+  readonly candidateMatches = signal<readonly FileDropMatch[]>([]);
   private sequence = 0;
 
   constructor() {
@@ -60,28 +64,65 @@ export class GlobalDropRouter implements OnDestroy {
     if (event.target instanceof Element && event.target.closest('app-file-drop')) return;
     const files = event.dataTransfer.files;
     if (files.length !== 1) {
-      this.message.set('Drop one file at a time.');
+      this.message.set('Drop one file or folder at a time.');
       return;
     }
-    void this.routeFile(files[0]);
+    const file = files[0];
+    const directory = event.dataTransfer.items?.[0]?.webkitGetAsEntry()?.isDirectory ?? false;
+    if (directory) void this.routeDirectory(file);
+    else void this.routeFile(file);
   };
+
+  private async routeDirectory(file: File): Promise<void> {
+    const sequence = ++this.sequence;
+    this.candidateFile.set(null);
+    this.candidateMatches.set([]);
+    try {
+      const path = window.dude!.open.getPathForFile(file);
+      if (!path) { this.message.set('Could not read the dropped folder path.'); return; }
+      await this.quickLauncher.promote();
+      if (sequence !== this.sequence) return;
+      const result = await window.dude!.open.enqueuePath(path);
+      if (sequence !== this.sequence) return;
+      this.message.set(result.ok ? '' : 'Could not open this folder.');
+    } catch {
+      if (sequence === this.sequence) this.message.set('Could not open this folder.');
+    }
+  }
 
   private async routeFile(file: File): Promise<void> {
     const sequence = ++this.sequence;
+    this.candidateFile.set(null);
+    this.candidateMatches.set([]);
     this.message.set('');
     try {
       const matches = await detectFileDrop(file, this.registry.getAll(), FILE_DROP_DETECTORS, (id) => this.registry.getById(id));
       if (sequence !== this.sequence) return;
       if (!matches.length) { this.message.set('No matching tool found for this file.'); return; }
+      this.candidateFile.set(file);
+      this.candidateMatches.set(matches);
       const match = confidentFileDropMatch(matches);
-      if (!match) { this.message.set('Several tools match this file. Drop it on Home to choose.'); return; }
-      const tool = this.registry.getById(match.toolId);
-      if (!tool) { this.message.set('The matching tool is unavailable.'); return; }
-      await this.quickLauncher.promote();
-      this.handoff.offer(tool.id, file);
-      this.launcher.open(tool);
+      if (match) await this.openCandidate(match.toolId);
     } catch {
       if (sequence === this.sequence) this.message.set('Could not inspect this file.');
     }
+  }
+
+  async openCandidate(toolId: string): Promise<void> {
+    const file = this.candidateFile();
+    if (!file || !this.candidateMatches().some((match) => match.toolId === toolId)) return;
+    const tool = this.registry.getById(toolId);
+    if (!tool) { this.message.set('The matching tool is unavailable.'); return; }
+    await this.quickLauncher.promote();
+    if (file !== this.candidateFile()) return;
+    this.handoff.offer(tool.id, file);
+    this.launcher.open(tool);
+    this.clearCandidates();
+  }
+
+  clearCandidates(): void {
+    ++this.sequence;
+    this.candidateFile.set(null);
+    this.candidateMatches.set([]);
   }
 }

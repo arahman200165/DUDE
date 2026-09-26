@@ -1,6 +1,15 @@
 @if (dragging()) {
   <div class="pointer-events-none fixed inset-2 z-[90] rounded border-2 border-dashed border-accent bg-accent/10" aria-hidden="true">
-    <span class="absolute left-1/2 top-5 -translate-x-1/2 rounded bg-panel px-3 py-1 text-ui text-accent">Drop a file to open it in DUDE</span>
+    <span class="absolute left-1/2 top-5 -translate-x-1/2 rounded bg-panel px-3 py-1 text-ui text-accent">Drop a file or folder to open it in DUDE</span>
+  </div>
+}
+@if (candidateFile(); as file) {
+  <div class="fixed bottom-4 right-4 z-[90] max-w-lg rounded border border-border bg-panel p-3 text-ui text-text shadow-lg" role="dialog" aria-label="Choose a tool for the dropped file">
+    <div class="mb-2 flex items-center justify-between gap-4">
+      <span class="truncate text-ui-sm">{{ file.name }}</span>
+      <button type="button" class="text-ui-xs text-text-muted hover:text-text" (click)="clearCandidates()">Clear</button>
+    </div>
+    <app-file-drop-candidate-picker [matches]="candidateMatches()" (selected)="openCandidate($event)" />
   </div>
 }
 @if (message()) {

@@ -1,5 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { FileDrop } from '../file-drop/file-drop';
+import { FileDropCandidatePicker } from '../file-drop-candidate-picker/file-drop-candidate-picker';
 import { ToolRegistryService } from '../../../core/registry/tool-registry.service';
 import { ToolLauncherService } from '../../../core/registry/tool-launcher.service';
 import { FileDropHandoffService } from '../../../core/file-drop-detect/file-drop-handoff.service';
@@ -16,7 +17,7 @@ import { FileDropMatch } from '../../../core/file-drop-detect/file-drop-detector
  */
 @Component({
   selector: 'app-smart-file-drop-zone',
-  imports: [FileDrop],
+  imports: [FileDrop, FileDropCandidatePicker],
   templateUrl: './smart-file-drop-zone.html',
 })
 export class SmartFileDropZone {

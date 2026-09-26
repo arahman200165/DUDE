@@ -60,6 +60,15 @@ export function registerOpenHandlers(window: BrowserWindow): void {
   receiver = window;
   ipcMain.on('dude:open:ready', () => { rendererReady = true; flush(); });
   ipcMain.handle('dude:open:pickFile', () => pickOpenFile(window));
+  ipcMain.handle('dude:open:enqueuePath', async (event, value: unknown) => {
+    if (event.sender !== window.webContents) return { ok: false, error: 'unauthorized' };
+    if (typeof value !== 'string' || !value || value.length > 4096 || !isAbsolute(value)) return { ok: false, error: 'invalid-path' };
+    try {
+      if (!(await fs.stat(value)).isDirectory()) return { ok: false, error: 'not-a-directory' };
+      await enqueueOpenPath(value);
+      return { ok: true };
+    } catch { return { ok: false, error: 'directory-unavailable' }; }
+  });
   window.webContents.on('did-start-loading', () => { rendererReady = false; });
   window.on('closed', () => { receiver = null; rendererReady = false; });
   ipcMain.handle('dude:preferences:setupRequest', async () => {
