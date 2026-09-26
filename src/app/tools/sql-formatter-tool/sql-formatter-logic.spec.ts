@@ -1,4 +1,5 @@
-import { formatSql } from './sql-formatter-logic';
+import fc from 'fast-check';
+import { formatSql, SQL_DIALECTS } from './sql-formatter-logic';
 
 describe('formatSql', () => {
   it('pretty-prints SQL across multiple lines', () => {
@@ -24,5 +25,20 @@ describe('formatSql', () => {
   it('formats Oracle PL/SQL without error', () => {
     const result = formatSql('select * from dual', 'plsql', 'format');
     expect(result.ok).toBe(true);
+  });
+});
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  it('never throws for arbitrary text input, in any dialect/mode', () => {
+    fc.assert(
+      fc.property(
+        fc.string(),
+        fc.constantFrom(...SQL_DIALECTS.map((d) => d.id)),
+        fc.constantFrom<'format' | 'minify'>('format', 'minify'),
+        (sql, dialect, mode) => {
+          expect(() => formatSql(sql, dialect, mode)).not.toThrow();
+        },
+      ),
+    );
   });
 });

@@ -10,7 +10,11 @@ export const manifest: ToolDefinition = {
   keywords: ['sql', 'format', 'minify', 'beautify', 'pretty-print'],
   route: '/tools/sql-formatter-tool',
   load: () => import('./sql-formatter-tool').then((m) => m.SqlFormatterTool),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested with arbitrary text across every dialect/mode (fast-check) -- never throws.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };
