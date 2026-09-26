@@ -12,6 +12,7 @@
   @if (!isFiltering()) {
     <app-home-rail title="Recently Used" [tools]="recentTools()" />
     <app-home-rail title="Favorites" [tools]="favorites.pinnedTools()" />
+    <app-pinned-pipelines-rail [pipelines]="favorites.pinnedPipelines()" />
   }
 
   @if (hasResults()) {

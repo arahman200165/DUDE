@@ -1,11 +1,12 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { PipelineStoreService } from '../../../core/pipeline/pipeline-store.service';
 import { FavoritesService } from '../../../core/favorites/favorites.service';
 
 @Component({
   selector: 'app-pipeline-list',
-  imports: [RouterLink],
+  imports: [RouterLink, NgTemplateOutlet],
   templateUrl: './pipeline-list.html',
 })
 export class PipelineList {
@@ -14,6 +15,14 @@ export class PipelineList {
   protected readonly favorites = inject(FavoritesService);
 
   protected readonly pipelines = this.store.pipelines;
+
+  /** Split, not filtered, so a pipeline moving in/out of Pinned never disappears from the list. */
+  protected readonly pinnedPipelines = computed(() =>
+    this.pipelines().filter((pipeline) => this.favorites.isPipelinePinned(pipeline.id)),
+  );
+  protected readonly unpinnedPipelines = computed(() =>
+    this.pipelines().filter((pipeline) => !this.favorites.isPipelinePinned(pipeline.id)),
+  );
 
   protected togglePin(id: string): void {
     this.favorites.togglePipeline(id);

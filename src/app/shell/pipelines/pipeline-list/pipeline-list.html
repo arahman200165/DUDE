@@ -19,39 +19,47 @@
         <a routerLink="/pipelines/new" class="text-accent hover:underline">create your first one</a>.
       </p>
     } @else {
+      @if (pinnedPipelines().length) {
+        <h2 class="mb-1.5 text-ui-sm font-semibold uppercase tracking-wider text-text-muted">Pinned</h2>
+        <ul class="mb-3 flex flex-col gap-2">
+          @for (pipeline of pinnedPipelines(); track pipeline.id) {
+            <ng-container *ngTemplateOutlet="pipelineRow; context: { $implicit: pipeline }" />
+          }
+        </ul>
+      }
       <ul class="flex flex-col gap-2">
-        @for (pipeline of pipelines(); track pipeline.id) {
-          <li class="flex items-center justify-between rounded-sm border border-border bg-panel-elevated px-3 py-2">
-            <a [routerLink]="['/pipelines', pipeline.id]" class="flex flex-col gap-0.5">
-              <span class="text-ui font-medium text-text">{{ pipeline.name }}</span>
-              <span class="text-ui-xs text-text-muted">
-                {{ pipeline.steps.length }} step{{ pipeline.steps.length === 1 ? '' : 's' }}
-                @if (pipeline.lastRunStatus) {
-                  · last run: {{ pipeline.lastRunStatus }}
-                }
-              </span>
-            </a>
-            <div class="flex items-center gap-2">
-              <button
-                type="button"
-                class="text-ui-sm"
-                [class]="favorites.isPipelinePinned(pipeline.id) ? 'text-accent' : 'text-text-muted hover:text-text'"
-                [attr.aria-pressed]="favorites.isPipelinePinned(pipeline.id)"
-                [title]="favorites.isPipelinePinned(pipeline.id) ? 'Unpin pipeline' : 'Pin pipeline'"
-                (click)="togglePin(pipeline.id)"
-              >
-                {{ favorites.isPipelinePinned(pipeline.id) ? '★' : '☆' }}
-              </button>
-              <button type="button" class="text-ui-sm text-text-muted hover:text-text" (click)="duplicate(pipeline.id)">
-                Duplicate
-              </button>
-              <button type="button" class="text-ui-sm text-text-muted hover:text-error" (click)="remove(pipeline.id, pipeline.name)">
-                Delete
-              </button>
-            </div>
-          </li>
+        @for (pipeline of unpinnedPipelines(); track pipeline.id) {
+          <ng-container *ngTemplateOutlet="pipelineRow; context: { $implicit: pipeline }" />
         }
       </ul>
     }
   </div>
 </section>
+
+<ng-template #pipelineRow let-pipeline>
+  <li class="flex items-center justify-between rounded-sm border border-border bg-panel-elevated px-3 py-2">
+    <a [routerLink]="['/pipelines', pipeline.id]" class="flex flex-col gap-0.5">
+      <span class="text-ui font-medium text-text">{{ pipeline.name }}</span>
+      <span class="text-ui-xs text-text-muted">
+        {{ pipeline.steps.length }} step{{ pipeline.steps.length === 1 ? '' : 's' }}
+        @if (pipeline.lastRunStatus) {
+          · last run: {{ pipeline.lastRunStatus }}
+        }
+      </span>
+    </a>
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        class="text-ui-sm"
+        [class]="favorites.isPipelinePinned(pipeline.id) ? 'text-accent' : 'text-text-muted hover:text-text'"
+        [attr.aria-pressed]="favorites.isPipelinePinned(pipeline.id)"
+        [title]="favorites.isPipelinePinned(pipeline.id) ? 'Unpin pipeline' : 'Pin pipeline'"
+        (click)="togglePin(pipeline.id)"
+      >
+        {{ favorites.isPipelinePinned(pipeline.id) ? '★' : '☆' }}
+      </button>
+      <button type="button" class="text-ui-sm text-text-muted hover:text-text" (click)="duplicate(pipeline.id)">Duplicate</button>
+      <button type="button" class="text-ui-sm text-text-muted hover:text-error" (click)="remove(pipeline.id, pipeline.name)">Delete</button>
+    </div>
+  </li>
+</ng-template>

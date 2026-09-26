@@ -7,12 +7,13 @@ import { UsageService } from '../../core/usage/usage.service';
 import { FavoritesService } from '../../core/favorites/favorites.service';
 import { CategoryIcon } from '../../shared/components/category-icon/category-icon';
 import { HomeRail } from './home-rail/home-rail';
+import { PinnedPipelinesRail } from './pinned-pipelines-rail/pinned-pipelines-rail';
 
 const RAIL_LIMIT = 8;
 
 @Component({
   selector: 'app-deck',
-  imports: [RouterLink, CategoryIcon, HomeRail],
+  imports: [RouterLink, CategoryIcon, HomeRail, PinnedPipelinesRail],
   templateUrl: './deck.html',
 })
 export class Deck {
