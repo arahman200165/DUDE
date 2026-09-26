@@ -10,7 +10,11 @@ export const manifest: ToolDefinition = {
   keywords: ['kubernetes', 'k8s', 'resources', 'requests', 'limits', 'cpu', 'memory'],
   route: '/tools/k8s-resource-calculator',
   load: () => import('./k8s-resource-calculator').then((m) => m.K8sResourceCalculator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested arbitrary YAML input for crash safety with fast-check.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
 };

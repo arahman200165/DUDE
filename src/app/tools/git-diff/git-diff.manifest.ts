@@ -10,7 +10,11 @@ export const manifest: ToolDefinition = {
   keywords: ['git', 'repo', 'repository', 'commit', 'diff', 'log', 'history', 'version control'],
   route: '/tools/git-diff',
   load: () => import('./git-diff').then((m) => m.GitDiff),
-  status: 'experimental',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested construction of the read-only in-memory filesystem core with arbitrary file contents via fast-check.',
+  },
   persistence: { input: 'none', preferences: 'none' },
   io: { accepts: ['file'], produces: ['json'] },
 };

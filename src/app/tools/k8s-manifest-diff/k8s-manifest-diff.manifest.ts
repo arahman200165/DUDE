@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['kubernetes', 'k8s', 'manifest', 'diff', 'compare', 'yaml'],
   route: '/tools/k8s-manifest-diff',
   load: () => import('./k8s-manifest-diff').then((m) => m.K8sManifestDiff),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested arbitrary YAML manifest pairs; invalid top-level scalars return a typed error.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
 };

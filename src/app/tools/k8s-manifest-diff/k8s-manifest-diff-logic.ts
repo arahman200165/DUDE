@@ -11,5 +11,11 @@ export function diffK8sManifests(before: string, after: string): K8sManifestDiff
   const afterParsed = parseK8sManifest(after);
   if (!afterParsed.ok) return { ok: false, error: `After: ${afterParsed.error}` };
 
+  for (const [label, value] of [['Before', beforeParsed.value], ['After', afterParsed.value]] as const) {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+      return { ok: false, error: `${label}: A Kubernetes manifest must be a YAML mapping at the top level.` };
+    }
+  }
+
   return { ok: true, diff: diffTrees(beforeParsed.value, afterParsed.value, { ignoreCase: false }) };
 }

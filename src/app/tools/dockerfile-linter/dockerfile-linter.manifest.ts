@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['docker', 'dockerfile', 'lint', 'format', 'container'],
   route: '/tools/dockerfile-linter',
   load: () => import('./dockerfile-linter').then((m) => m.DockerfileLinter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip tested parsed instruction semantics through formatting and fuzz-tested arbitrary Dockerfile text with fast-check.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
 };

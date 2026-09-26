@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['git', 'command', 'explain', 'flags', 'cli'],
   route: '/tools/git-command-explainer',
   load: () => import('./git-command-explainer').then((m) => m.GitCommandExplainer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested arbitrary Git command text for crash safety with fast-check.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
 };

@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['docker', 'compose', 'validate', 'yaml', 'container'],
   route: '/tools/docker-compose-validator',
   load: () => import('./docker-compose-validator').then((m) => m.DockerComposeValidator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested arbitrary YAML text for crash safety with fast-check.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text', 'json'] },
 };

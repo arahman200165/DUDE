@@ -573,7 +573,7 @@
     "status": "verified",
     "recipe": "ROUNDTRIP",
     "milestone": 371,
-    "notes": "round-trip arbitrary restricted to a structurally-safe ParsedHttpRequest domain (no raw '?'/':'/'=' collisions in keys, no backslash-then-newline in values, fixed body contentType) — the excluded edge cases are already covered by curl-shell-lex.spec.ts's example-based tests"
+    "notes": "round-trip arbitrary restricted to a structurally-safe ParsedHttpRequest domain (no raw '?'/':'/'=' collisions in keys, no backslash-then-newline in values, fixed body contentType) â€” the excluded edge cases are already covered by curl-shell-lex.spec.ts's example-based tests"
   },
   {
     "id": "http-header-inspector",
@@ -1281,108 +1281,108 @@
     "id": "docker-compose-validator",
     "category": "developer",
     "subdomain": "git-docker-k8s",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 379,
     "notes": ""
   },
   {
     "id": "docker-run-compose-converter",
     "category": "developer",
     "subdomain": "git-docker-k8s",
-    "status": "pending",
+    "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": null,
+    "milestone": 379,
     "notes": ""
   },
   {
     "id": "dockerfile-linter",
     "category": "developer",
     "subdomain": "git-docker-k8s",
-    "status": "pending",
+    "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": null,
+    "milestone": 379,
     "notes": ""
   },
   {
     "id": "git-command-builder",
     "category": "developer",
     "subdomain": "git-docker-k8s",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 379,
     "notes": ""
   },
   {
     "id": "git-command-explainer",
     "category": "developer",
     "subdomain": "git-docker-k8s",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 379,
     "notes": ""
   },
   {
     "id": "git-diff",
     "category": "developer",
     "subdomain": "git-docker-k8s",
-    "status": "pending",
+    "status": "verified",
     "recipe": "CORE-ONLY",
-    "milestone": null,
+    "milestone": 379,
     "notes": ""
   },
   {
     "id": "git-remote-inspector",
     "category": "developer",
     "subdomain": "git-docker-k8s",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 379,
     "notes": ""
   },
   {
     "id": "k8s-cronjob-tester",
     "category": "developer",
     "subdomain": "git-docker-k8s",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 379,
     "notes": ""
   },
   {
     "id": "k8s-manifest-diff",
     "category": "developer",
     "subdomain": "git-docker-k8s",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
-    "notes": ""
+    "milestone": 379,
+    "notes": "flagged: public behavior change; Bug fixed: reject parsed non-mapping YAML values before diffTrees to avoid uncaught null/scalar errors."
   },
   {
     "id": "k8s-manifest-validator",
     "category": "developer",
     "subdomain": "git-docker-k8s",
-    "status": "pending",
+    "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": null,
+    "milestone": 379,
     "notes": ""
   },
   {
     "id": "k8s-quantity-converter",
     "category": "developer",
     "subdomain": "git-docker-k8s",
-    "status": "pending",
+    "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": null,
+    "milestone": 379,
     "notes": ""
   },
   {
     "id": "k8s-resource-calculator",
     "category": "developer",
     "subdomain": "git-docker-k8s",
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 379,
     "notes": ""
   },
   {

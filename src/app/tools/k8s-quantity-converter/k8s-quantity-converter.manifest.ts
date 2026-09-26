@@ -10,7 +10,11 @@ export const manifest: ToolDefinition = {
   keywords: ['kubernetes', 'k8s', 'quantity', 'resource', 'convert', 'cpu', 'memory'],
   route: '/tools/k8s-quantity-converter',
   load: () => import('./k8s-quantity-converter').then((m) => m.K8sQuantityConverter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip tested supported quantities within formatter precision and fuzz-tested arbitrary quantity strings with fast-check.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['table'] },
 };

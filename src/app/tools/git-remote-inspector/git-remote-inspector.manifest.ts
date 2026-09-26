@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['git', 'remote', 'inspect', 'url', 'fetch', 'push'],
   route: '/tools/git-remote-inspector',
   load: () => import('./git-remote-inspector').then((m) => m.GitRemoteInspector),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested arbitrary git remote -v text for crash safety with fast-check.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['table'] },
 };
