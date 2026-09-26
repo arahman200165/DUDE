@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import fc from 'fast-check';
 import { generateKeyPair, exportJWK } from 'jose';
 import { parseJwks } from './jwks-viewer-logic';
 
@@ -71,5 +72,25 @@ describe('parseJwks', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.keys[0].warnings[0]).toContain('not a JSON object');
+  });
+});
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  it('never rejects for arbitrary text input', async () => {
+    await fc.assert(
+      fc.asyncProperty(fc.string(), async (text) => {
+        const result = await parseJwks(text);
+        expect(typeof result.ok).toBe('boolean');
+      }),
+    );
+  });
+
+  it('never rejects for an arbitrary JSON "keys" array of arbitrary entries', async () => {
+    await fc.assert(
+      fc.asyncProperty(fc.array(fc.anything()), async (keys) => {
+        const result = await parseJwks(JSON.stringify({ keys }));
+        expect(typeof result.ok).toBe('boolean');
+      }),
+    );
   });
 });
