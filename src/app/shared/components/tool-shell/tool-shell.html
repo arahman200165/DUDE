@@ -52,5 +52,8 @@
   </header>
   <div class="flex-1 overflow-auto p-3">
     <ng-content />
+    @if (definition(); as def) {
+      <app-related-tools-panel [current]="def" />
+    }
   </div>
 </section>

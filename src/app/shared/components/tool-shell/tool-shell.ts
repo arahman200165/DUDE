@@ -8,6 +8,7 @@ import { HistoryService } from '../../../core/history/history.service';
 import { recordHistoryOnDestroy } from '../../../core/history/history-recorder';
 import { UsageService } from '../../../core/usage/usage.service';
 import { FavoritesService } from '../../../core/favorites/favorites.service';
+import { RelatedToolsPanel } from '../related-tools-panel/related-tools-panel';
 import { CATEGORY_METADATA } from '../../models/tool-category.model';
 import { OfflineBadge } from '../offline-badge/offline-badge';
 import { CategoryIcon } from '../category-icon/category-icon';
@@ -15,7 +16,7 @@ import { SecurityBadge } from '../security-badge/security-badge';
 
 @Component({
   selector: 'app-tool-shell',
-  imports: [OfflineBadge, CategoryIcon, SecurityBadge, RouterLink],
+  imports: [OfflineBadge, CategoryIcon, SecurityBadge, RouterLink, RelatedToolsPanel],
   templateUrl: './tool-shell.html',
 })
 export class ToolShell implements OnDestroy {
