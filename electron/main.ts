@@ -40,11 +40,20 @@ async function resolveWindowUrl(): Promise<string> {
 async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
   markPerf('createWindow-start');
   const preferences = getDesktopPreferences();
-  const bounds = await initialWindowBounds();
+  // Neither depends on the other -- start both now instead of waiting on bounds resolution
+  // (reads window-bounds.json + queries connected displays) before even starting the static
+  // server, since window construction below only ever needs `bounds`.
+  const boundsPromise = initialWindowBounds();
+  const baseUrlPromise = resolveWindowUrl();
+  const bounds = await boundsPromise;
   markPerf('bounds-resolved');
+  const shouldShowOnLaunch =
+    !preferences.launchMinimized || process.argv.includes('--open-with-dude') || !!extractDeepLinkArgument(process.argv);
   const window = new BrowserWindow({
     ...bounds,
-    show: !preferences.launchMinimized || process.argv.includes('--open-with-dude') || !!extractDeepLinkArgument(process.argv),
+    // Created hidden and shown on 'ready-to-show' below instead of showing immediately, so the
+    // window never displays a blank/white frame before its first real paint.
+    show: false,
     webPreferences: {
       preload: join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -65,6 +74,11 @@ async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
     }
   });
 
+  window.once('ready-to-show', () => {
+    markPerf('ready-to-show');
+    if (shouldShowOnLaunch) window.show();
+  });
+
   createTray(window);
   trackWindowBounds(window);
   registerDesktopPreferencesHandlers(window);
@@ -76,7 +90,7 @@ async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
   registerQuickLauncherRenderer(window);
 
   markPerf('window-constructed');
-  const baseUrl = await resolveWindowUrl();
+  const baseUrl = await baseUrlPromise;
   markPerf('static-server-started');
   window.webContents.on('will-navigate', (event, target) => {
     if (!isAllowedRendererNavigation(target, baseUrl)) event.preventDefault();
@@ -116,11 +130,15 @@ if (hasSingleInstanceLock) void app.whenReady().then(async () => {
   registerNotificationHandlers();
   registerFileWatchHandlers();
   registerCollabHandlers();
-  await registerHotkeyHandlers();
-  await registerSmartPasteHotkey();
-  await registerQuickLauncherHotkey();
-  markPerf('hotkeys-registered');
-  return createWindow(wasRestoredAfterCrash);
+  // None of these three hotkey registrations depend on the window, and createWindow() doesn't
+  // depend on them either -- run all four concurrently instead of blocking window creation on
+  // hotkey setup finishing first.
+  await Promise.all([
+    registerHotkeyHandlers().then(() => markPerf('quick-actions-hotkeys-registered')),
+    registerSmartPasteHotkey().then(() => markPerf('smart-paste-hotkey-registered')),
+    registerQuickLauncherHotkey().then(() => markPerf('quick-launcher-hotkey-registered')),
+    createWindow(wasRestoredAfterCrash),
+  ]);
 });
 
 app.on('window-all-closed', () => {
