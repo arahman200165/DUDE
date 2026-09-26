@@ -33,6 +33,7 @@ export interface DudeElectronBridge {
   };
   readonly open: {
     ready(): void;
+    pickFile(): Promise<{ readonly canceled: boolean }>;
     onItem(callback: (item: DesktopOpenItem) => void): () => void;
   };
   readonly platform: {
@@ -61,6 +62,7 @@ export interface DudeElectronBridge {
   };
   readonly quickActions: {
     list(): Promise<readonly QuickActionInfo[]>;
+    run(actionId: string): Promise<VoidResult>;
     setHotkey(actionId: string, accelerator: string | null): Promise<VoidResult>;
   };
   readonly smartPaste: {

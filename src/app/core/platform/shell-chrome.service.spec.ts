@@ -32,6 +32,7 @@ describe('ShellChromeService', () => {
     const service = withBridge({
       quickActions: {
         list: async () => [{ id: 'uuid-generate-clipboard', label: 'Generate UUID to Clipboard', hotkey: null }],
+        run: async () => ({ ok: true }),
         setHotkey: async () => ({ ok: true }),
       },
     });
@@ -41,7 +42,7 @@ describe('ShellChromeService', () => {
 
   it('surfaces a hotkey registration failure', async () => {
     const service = withBridge({
-      quickActions: { list: async () => [], setHotkey: async () => ({ ok: false, error: 'registration-failed' }) },
+      quickActions: { list: async () => [], run: async () => ({ ok: true }), setHotkey: async () => ({ ok: false, error: 'registration-failed' }) },
     });
 
     expect(await service.setQuickActionHotkey('uuid-generate-clipboard', 'Ctrl+Alt+U')).toEqual({ ok: false, error: 'registration-failed' });

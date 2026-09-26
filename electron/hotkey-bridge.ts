@@ -103,6 +103,17 @@ export async function registerHotkeyHandlers(): Promise<void> {
     return QUICK_ACTIONS.map((action) => ({ id: action.id, label: action.label, hotkey: bindings.get(action.id) ?? null }));
   });
 
+  ipcMain.handle('dude:quickActions:run', async (_event, actionId: unknown): Promise<{ ok: true } | { ok: false; error: string }> => {
+    const action = typeof actionId === 'string' ? findAction(actionId) : undefined;
+    if (!action) return { ok: false, error: 'unknown-action' };
+    try {
+      await action.run();
+      return { ok: true };
+    } catch {
+      return { ok: false, error: 'action-failed' };
+    }
+  });
+
   ipcMain.handle(
     'dude:quickActions:setHotkey',
     async (_event, actionId: string, accelerator: string | null): Promise<{ ok: true } | { ok: false; error: string }> => {

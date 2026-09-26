@@ -1,4 +1,4 @@
-import { app, ipcMain, type BrowserWindow } from 'electron';
+import { app, dialog, ipcMain, type BrowserWindow } from 'electron';
 import { promises as fs } from 'node:fs';
 import { basename, dirname, extname, isAbsolute, join } from 'node:path';
 import { grantExternalDirectory } from './fs-bridge';
@@ -45,9 +45,21 @@ function flush(): void {
   while (queue.length) receiver.webContents.send('dude:open:item', queue.shift());
 }
 
+/** Uses the OS picker, then the same bounded file-opening path as Explorer associations. */
+export async function pickOpenFile(window: BrowserWindow): Promise<{ readonly canceled: boolean }> {
+  const result = await dialog.showOpenDialog(window, {
+    properties: ['openFile'],
+    filters: [{ name: 'Supported text files', extensions: [...TEXT_EXTENSIONS].map((extension) => extension.slice(1)) }],
+  });
+  if (result.canceled || !result.filePaths.length) return { canceled: true };
+  await enqueueOpenPath(result.filePaths[0]);
+  return { canceled: false };
+}
+
 export function registerOpenHandlers(window: BrowserWindow): void {
   receiver = window;
   ipcMain.on('dude:open:ready', () => { rendererReady = true; flush(); });
+  ipcMain.handle('dude:open:pickFile', () => pickOpenFile(window));
   window.webContents.on('did-start-loading', () => { rendererReady = false; });
   window.on('closed', () => { receiver = null; rendererReady = false; });
   ipcMain.handle('dude:preferences:setupRequest', async () => {

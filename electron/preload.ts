@@ -10,6 +10,7 @@ const bridge: DudeElectronBridge = {
   },
   open: {
     ready: () => ipcRenderer.send('dude:open:ready'),
+    pickFile: () => ipcRenderer.invoke('dude:open:pickFile'),
     onItem: (callback) => {
       const listener = (_event: Electron.IpcRendererEvent, item: DesktopOpenItem) => callback(item);
       ipcRenderer.on('dude:open:item', listener);
@@ -40,6 +41,7 @@ const bridge: DudeElectronBridge = {
   },
   quickActions: {
     list: () => ipcRenderer.invoke('dude:quickActions:list'),
+    run: (actionId) => ipcRenderer.invoke('dude:quickActions:run', actionId),
     setHotkey: (actionId, accelerator) => ipcRenderer.invoke('dude:quickActions:setHotkey', actionId, accelerator),
   },
   smartPaste: {
