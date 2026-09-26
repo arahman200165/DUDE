@@ -1,6 +1,12 @@
 import { buildCookieHeader, parseCookieHeader } from './cookie-header';
 
 describe('parseCookieHeader', () => {
+  it('matches RFC 6265 Section 3.1 multi-cookie request example', () => {
+    const parsed = parseCookieHeader('SID=31d4d96e407aad42; lang=en-US');
+    expect(parsed).toEqual([{ key: 'SID', value: '31d4d96e407aad42' }, { key: 'lang', value: 'en-US' }]);
+    expect(buildCookieHeader(parsed)).toBe('SID=31d4d96e407aad42; lang=en-US');
+  });
+
   it('splits a Cookie header into name/value pairs', () => {
     expect(parseCookieHeader('session=abc123; theme=dark')).toEqual([
       { key: 'session', value: 'abc123' },

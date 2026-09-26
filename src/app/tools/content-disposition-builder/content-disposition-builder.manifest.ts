@@ -11,6 +11,7 @@ export const manifest: ToolDefinition = {
   load: () => import('./content-disposition-builder').then((m) => m.ContentDispositionBuilder),
   status: 'verified',
   verification: {
+    vectors: ['RFC 6266 Section 5 EURO rates filename* UTF-8 example (parsed filename)'],
     propertyTested: true,
     summary: 'Fuzz-tested (fast-check): parse/build never throw on arbitrary input, and the disposition type always survives a build-then-reparse round trip.',
   },

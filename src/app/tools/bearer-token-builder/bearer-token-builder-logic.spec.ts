@@ -2,6 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { buildBearerHeader } from './bearer-token-builder-logic';
 
 describe('buildBearerHeader', () => {
+  it('matches RFC 6750 Section 2.1 Authorization example', () => {
+    expect(buildBearerHeader('mF_9.B5f-4.1JqM')).toEqual({
+      ok: true,
+      value: { header: 'Bearer mF_9.B5f-4.1JqM', warnings: [] },
+    });
+  });
+
   it('wraps a token in a Bearer header', () => {
     const result = buildBearerHeader('abc123.def456');
     expect(result.ok).toBe(true);

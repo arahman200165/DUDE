@@ -22,7 +22,7 @@ export const manifest: ToolDefinition = {
   status: 'verified',
   verification: {
     propertyTested: true,
-    summary: 'Round-trip tested (fast-check): toASCII/toUnicode recover the original mixed-script domain over a curated Unicode charset, plus neverThrows fuzzing over arbitrary text in both directions.',
+    summary: 'Round-trip tested (fast-check) for full IDNA domains. RFC 3492 §7.1 examples omit the xn-- ACE prefix and therefore are not exact vectors for this domain-level API.',
   },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'none' },

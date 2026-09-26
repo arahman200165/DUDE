@@ -1,6 +1,12 @@
 import { EMPTY_SET_COOKIE, buildSetCookieHeader, checkSetCookieWarnings, parseSetCookieHeader } from './set-cookie';
 
 describe('parseSetCookieHeader', () => {
+  it('matches RFC 6265 Section 3.1 SID cookie example', () => {
+    const parsed = parseSetCookieHeader('SID=31d4d96e407aad42; Path=/; Secure; HttpOnly');
+    expect(parsed).toEqual({ ...EMPTY_SET_COOKIE, name: 'SID', value: '31d4d96e407aad42', path: '/', secure: true, httpOnly: true });
+    expect(buildSetCookieHeader(parsed)).toBe('SID=31d4d96e407aad42; Path=/; Secure; HttpOnly');
+  });
+
   it('parses name/value plus every attribute', () => {
     const result = parseSetCookieHeader('session=abc123; Domain=example.com; Path=/; Max-Age=3600; Secure; HttpOnly; SameSite=Lax');
     expect(result).toEqual({

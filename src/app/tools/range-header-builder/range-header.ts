@@ -1,6 +1,6 @@
 /**
  * Pure, framework-free parse/build for the request `Range:` and response
- * `Content-Range:` headers (RFC 7233). A `ByteRange` uses `KeyValuePair`'s
+ * `Content-Range:` headers (RFC 9110). A `ByteRange` uses `KeyValuePair`'s
  * `{key,value}` shape (start -> key, end -> value) so a multi-range Range
  * header can drive `app-key-value-editor` directly; either side empty means
  * an open-ended range (`500-` = from 500 to end, `-500` = last 500 bytes).

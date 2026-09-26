@@ -11,6 +11,7 @@ export const manifest: ToolDefinition = {
   load: () => import('./range-header-builder').then((m) => m.RangeHeaderBuilder),
   status: 'verified',
   verification: {
+    vectors: ['RFC 9110 §14.1.2 bytes=0-0,-1; §14.4 Content-Range: bytes 0-499/1234'],
     propertyTested: true,
     summary: 'Fuzz-tested (fast-check): Range/Content-Range parse and build functions never throw on arbitrary input, checkRangeWarnings reports at most one warning per range, and buildRangeHeader is empty exactly when no valid range exists.',
   },

@@ -12,6 +12,7 @@ export const manifest: ToolDefinition = {
   load: () => import('./bearer-token-builder').then((m) => m.BearerTokenBuilder),
   status: 'verified',
   verification: {
+    vectors: ['RFC 6750 Section 2.1 Authorization: Bearer mF_9.B5f-4.1JqM'],
     propertyTested: true,
     summary: 'Fuzz- and crosscheck-tested (fast-check) against an independently-written RFC 6750 §2.1 b64token grammar regex.',
   },

@@ -473,7 +473,7 @@
     "subdomain": null,
     "status": "verified",
     "recipe": "CROSSCHECK",
-    "milestone": 370,
+    "milestone": 399,
     "notes": ""
   },
   {
@@ -536,7 +536,7 @@
     "subdomain": null,
     "status": "verified",
     "recipe": "FUZZ",
-    "milestone": 371,
+    "milestone": 399,
     "notes": ""
   },
   {
@@ -545,7 +545,7 @@
     "subdomain": null,
     "status": "verified",
     "recipe": "FUZZ",
-    "milestone": 371,
+    "milestone": 399,
     "notes": "the Set-Cookie name round-trip invariant sanitizes ';'/'=' out of the generated name, since either would be split into extra pseudo-attributes on reparse (wire-format ambiguity, not a bug)"
   },
   {
@@ -635,8 +635,8 @@
     "subdomain": null,
     "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": 372,
-    "notes": ""
+    "milestone": 399,
+    "notes": "RFC 3492 section 7.1 publishes raw Punycode payloads without the xn-- prefix, so no exact vector applies to this full-domain converter."
   },
   {
     "id": "query-string",
@@ -653,7 +653,7 @@
     "subdomain": null,
     "status": "verified",
     "recipe": "FUZZ",
-    "milestone": 372,
+    "milestone": 399,
     "notes": ""
   },
   {

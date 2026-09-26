@@ -11,6 +11,7 @@ export const manifest: ToolDefinition = {
   load: () => import('./cookie-tools').then((m) => m.CookieTools),
   status: 'verified',
   verification: {
+    vectors: ['RFC 6265 Section 3.1 SID Set-Cookie and SID/lang Cookie examples'],
     propertyTested: true,
     summary: 'Fuzz-tested (fast-check): Cookie/Set-Cookie parse/build/warning-check never throw on arbitrary input, and a Set-Cookie name survives a build-then-reparse round trip.',
   },

@@ -24,6 +24,13 @@ describe('buildContentDisposition', () => {
 });
 
 describe('parseContentDisposition', () => {
+  it('parses the RFC 6266 Section 5 EURO rates filename* example', () => {
+    expect(parseContentDisposition("attachment; filename*= UTF-8''%e2%82%ac%20rates")).toEqual({
+      type: 'attachment',
+      filename: '\u20ac rates',
+    });
+  });
+
   it('parses a simple attachment with an ASCII filename', () => {
     expect(parseContentDisposition('attachment; filename="report.pdf"')).toEqual({ type: 'attachment', filename: 'report.pdf' });
   });
