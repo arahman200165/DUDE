@@ -1,0 +1,79 @@
+<section class="flex h-full flex-col">
+  <header class="flex items-center justify-between border-b-2 border-border px-3 py-2">
+    <h1 class="text-sm font-semibold tracking-wide text-text">Projects</h1>
+    <div class="flex items-center gap-2">
+      <input
+        type="text"
+        class="w-56 rounded-sm border border-border bg-panel px-2 py-0.5 text-ui-sm text-text focus:outline-none focus:ring-1 focus:ring-accent"
+        placeholder="Save current workspace as…"
+        [value]="draftName()"
+        (input)="onDraftNameInput($event)"
+      />
+      <button
+        type="button"
+        class="rounded-sm border border-accent/40 bg-accent/10 px-2 py-1 text-ui-sm text-accent hover:bg-accent/20"
+        (click)="saveCurrentAsProject()"
+      >
+        + New project
+      </button>
+    </div>
+  </header>
+
+  <div class="flex-1 overflow-auto p-3">
+    @if (projects().length === 0) {
+      <p class="text-ui text-text-muted">
+        No projects yet. A project bundles your current workspace layout and pinned pipelines under one name
+        so you can jump back into a whole task at once.
+      </p>
+    } @else {
+      <ul class="flex flex-col gap-2">
+        @for (project of projects(); track project.id) {
+          <li class="flex items-center justify-between rounded-sm border border-border bg-panel-elevated px-3 py-2">
+            @if (renamingId() === project.id) {
+              <input
+                type="text"
+                class="w-56 rounded-sm border border-border bg-panel px-2 py-0.5 text-ui-sm text-text focus:outline-none focus:ring-1 focus:ring-accent"
+                [value]="renameDraft()"
+                (input)="onRenameDraftInput($event)"
+                (keydown.enter)="confirmRename()"
+                (keydown.escape)="cancelRename()"
+              />
+            } @else {
+              <div class="flex flex-col gap-0.5">
+                <span class="text-ui font-medium text-text">{{ project.name }}</span>
+                <span class="text-ui-xs text-text-muted">
+                  {{ project.openTabs.length }} tool{{ project.openTabs.length === 1 ? '' : 's' }}
+                  @if (project.pinnedPipelineIds.length) {
+                    · {{ project.pinnedPipelineIds.length }} pinned pipeline{{ project.pinnedPipelineIds.length === 1 ? '' : 's' }}
+                  }
+                  @if (project.lastActivatedAt) {
+                    · last opened {{ project.lastActivatedAt | date: 'short' }}
+                  }
+                </span>
+              </div>
+            }
+            <div class="flex items-center gap-2">
+              @if (renamingId() === project.id) {
+                <button type="button" class="text-ui-sm text-accent hover:underline" (click)="confirmRename()">Save</button>
+                <button type="button" class="text-ui-sm text-text-muted hover:text-text" (click)="cancelRename()">Cancel</button>
+              } @else {
+                <button
+                  type="button"
+                  class="rounded-sm border border-accent px-2 py-0.5 text-ui-xs text-accent hover:bg-accent/10"
+                  (click)="activate(project)"
+                >
+                  Open
+                </button>
+                <button type="button" class="text-ui-sm text-text-muted hover:text-text" (click)="saveLayoutInto(project)">
+                  Update layout
+                </button>
+                <button type="button" class="text-ui-sm text-text-muted hover:text-text" (click)="startRename(project)">Rename</button>
+                <button type="button" class="text-ui-sm text-text-muted hover:text-error" (click)="remove(project)">Delete</button>
+              }
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</section>
