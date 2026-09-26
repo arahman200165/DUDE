@@ -20,7 +20,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/http-digest-auth-helper',
   load: () => import('./http-digest-auth-helper').then((m) => m.HttpDigestAuthHelper),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    vectors: ['RFC 2617 §3.5 worked example (testrealm@host.com)'],
+    summary: 'HA1/HA2/response computation matches RFC 2617\'s official worked example exactly.',
+  },
   consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },

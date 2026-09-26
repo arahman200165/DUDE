@@ -10,7 +10,11 @@ export const manifest: ToolDefinition = {
   keywords: ['pkce', 'code verifier', 'code challenge', 'verify', 'oauth', 's256', 'rfc 7636'],
   route: '/tools/pkce-verifier',
   load: () => import('./pkce-verifier').then((m) => m.PkceVerifier),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    vectors: ["RFC 7636 Appendix B worked example"],
+    summary: 'Verifier/challenge matching is checked against RFC 7636 Appendix B\'s official worked example.',
+  },
   consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['json'] },

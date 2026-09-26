@@ -17,7 +17,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/pkce-generator',
   load: () => import('./pkce-generator').then((m) => m.PkceGenerator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    vectors: ["RFC 7636 Appendix B worked example"],
+    summary: 'S256 code_challenge computation matches RFC 7636 Appendix B\'s official worked example exactly.',
+  },
   consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['json'], produces: ['text'] },
