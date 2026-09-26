@@ -1724,7 +1724,7 @@ Goal: make tool #500 no more structurally dangerous to add than tool #50, while 
 
 ---
 
-## Phase 23 — Correctness, Verification & High-Consequence Tool Hardening (🚧 Framework complete, tool rollout in progress — shipped as Milestones 308-328)
+## Phase 23 — Correctness, Verification & High-Consequence Tool Hardening (Framework complete; Tier 5 rollout complete: 265/277 verified, 12 blocked; details in `.phase23/ledger.json`; Milestones 308-387)
 
 DUDE now handles cryptography, authentication material, certificates, binary formats, SQL, config files, archives, executable formats, arbitrary code, filesystem operations, and eventually live system state. Those tools need a stronger definition of “stable” than “the UI appears to work.”
 
