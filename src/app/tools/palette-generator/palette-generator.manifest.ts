@@ -18,7 +18,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/palette-generator',
   load: () => import('./palette-generator').then((m) => m.PaletteGenerator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested (fast-check): generatePalette returns the expected count of well-formed hex colors and is deterministic across every palette type and the full color space; fuzz-tested against arbitrary text input.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['json'] },
 };

@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['color', 'colour', 'hex', 'rgb', 'hsl', 'hsv', 'cmyk', 'convert', 'css color'],
   route: '/tools/color-converter',
   load: () => import('./color-converter').then((m) => m.ColorConverter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip property-tested (fast-check) against arbitrary RGB triples (hex and rgb() forms) via the colord-backed parseColor, plus fuzz-tested against arbitrary text input.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['json'] },
 };

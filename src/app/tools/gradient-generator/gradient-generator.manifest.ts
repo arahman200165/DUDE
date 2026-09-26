@@ -16,7 +16,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/gradient-generator',
   load: () => import('./gradient-generator').then((m) => m.GradientGenerator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested (fast-check): buildGradientCss produces the expected CSS gradient shape and generateGradient is deterministic across the full type/angle/shape/stops option space.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

@@ -17,7 +17,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/color-blindness-simulator',
   load: () => import('./color-blindness-simulator').then((m) => m.ColorBlindnessSimulator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested (fast-check): the per-pixel RGBA transform preserves buffer length and alpha for arbitrary pixel buffers/deficiency types, and never throws.',
+  },
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['file'], produces: ['file'] },
 };

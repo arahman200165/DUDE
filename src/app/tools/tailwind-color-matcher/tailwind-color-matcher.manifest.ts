@@ -17,7 +17,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/tailwind-color-matcher',
   load: () => import('./tailwind-color-matcher').then((m) => m.TailwindColorMatcher),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested (fast-check): findClosestTailwindColors returns exactly `limit` matches ranked by non-decreasing OKLab distance with well-formed classNames, deterministically, across the color space; fuzz-tested against arbitrary text input.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['json'] },
 };

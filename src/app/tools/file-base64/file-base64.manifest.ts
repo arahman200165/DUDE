@@ -21,7 +21,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/file-base64',
   load: () => import('./file-base64').then((m) => m.FileBase64),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip property-tested (fast-check) for arbitrary binary input through encodeFileToBase64/decodeBase64ToBytes; sniffFileType fuzz-tested and checked to recognize the PNG signature for arbitrary trailing bytes.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['file', 'text'], produces: ['text', 'file'] },

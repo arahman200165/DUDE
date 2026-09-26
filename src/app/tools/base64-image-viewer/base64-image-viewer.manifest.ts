@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['base64', 'image', 'data uri', 'preview', 'decode', 'encode', 'png', 'jpeg'],
   route: '/tools/base64-image-viewer',
   load: () => import('./base64-image-viewer').then((m) => m.Base64ImageViewer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip property-tested (fast-check) for arbitrary PNG-signed bytes through encodeBytesToBase64/parseBase64Image, plus fuzz-tested against arbitrary text input.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text', 'file'], produces: ['text', 'file'] },
 };

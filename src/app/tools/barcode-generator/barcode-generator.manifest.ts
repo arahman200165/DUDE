@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['barcode', 'ean', 'upc', 'code128', 'code39', 'generate'],
   route: '/tools/barcode-generator',
   load: () => import('./barcode-generator').then((m) => m.BarcodeGenerator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested (fast-check): computeCheckDigit always yields a value validateBarcodeValue accepts across EAN-13/UPC/EAN-8, plus fuzz-tested for any format/text combination.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['file'] },
 };

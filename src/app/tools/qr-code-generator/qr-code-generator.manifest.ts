@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['qr', 'qr code', 'generate', 'wifi', 'vcard', 'totp', 'otpauth'],
   route: '/tools/qr-code-generator',
   load: () => import('./qr-code-generator').then((m) => m.QrCodeGenerator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested (fast-check): the Wi-Fi, vCard, and otpauth:// (TOTP) payload builders produce well-formed, parseable output carrying every field verbatim, across the full option space.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['file'] },
 };

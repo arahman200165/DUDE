@@ -19,7 +19,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/contrast-checker',
   load: () => import('./contrast-checker').then((m) => m.ContrastChecker),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested (fast-check): contrastRatio stays within [1, 21] and is symmetric for arbitrary color pairs; checkContrast fuzz-tested against arbitrary text input.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['json'] },
 };

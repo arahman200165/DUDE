@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['qr', 'qr code', 'scan', 'decode', 'webcam', 'camera'],
   route: '/tools/qr-code-scanner',
   load: () => import('./qr-code-scanner').then((m) => m.QrCodeScanner),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): the jsQR-backed decodeQrFromImageData core never throws and always returns null or a string payload for arbitrary well-formed ImageData.',
+  },
   persistence: { input: 'none', preferences: 'none' },
   io: { accepts: ['file'], produces: ['text'] },
 };
