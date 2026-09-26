@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import fc from 'fast-check';
 import { inspectToken } from './oauth-token-inspector-logic';
 
 function toBase64Url(value: unknown): string {
@@ -62,5 +63,15 @@ describe('inspectToken', () => {
     expect(result.kind).toBe('opaque');
     if (result.kind !== 'opaque') return;
     expect(result.looksLikeBase64).toBe(true);
+  });
+});
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  it('never throws for arbitrary text input', () => {
+    fc.assert(
+      fc.property(fc.string(), (input) => {
+        expect(() => inspectToken(input)).not.toThrow();
+      }),
+    );
   });
 });

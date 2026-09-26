@@ -18,7 +18,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/oauth-token-inspector',
   load: () => import('./oauth-token-inspector').then((m) => m.OAuthTokenInspector),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested with arbitrary text (fast-check) -- never throws; delegates JWT decoding to the already-verified JWT Debugger.',
+  },
   consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['json'] },
