@@ -22,7 +22,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/uuid',
   load: () => import('./uuid').then((m) => m.Uuid),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Generator-tested (fast-check): generated UUID versions validate; v5 generation is deterministic for fixed namespace/name inputs.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text', 'json', 'file'] },
 };

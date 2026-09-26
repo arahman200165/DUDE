@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['bigint', 'arbitrary precision', 'big number', 'factorial', 'power', 'calculator'],
   route: '/tools/bigint-calculator',
   load: () => import('./bigint-calculator-tool').then((m) => m.BigintCalculatorTool),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): arbitrary precision addition, subtraction, and multiplication identities over bounded BigInts.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'none' },
   io: { accepts: ['text'], produces: ['text'] },

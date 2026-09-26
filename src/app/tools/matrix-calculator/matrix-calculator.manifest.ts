@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['matrix', 'determinant', 'inverse', 'transpose', 'linear algebra'],
   route: '/tools/matrix-calculator',
   load: () => import('./matrix-calculator').then((m) => m.MatrixCalculatorTool),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): adding a zero matrix preserves generated rectangular matrices.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text', 'table'], produces: ['text', 'table'] },

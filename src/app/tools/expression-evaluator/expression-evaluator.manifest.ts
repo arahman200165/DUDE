@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['expression', 'evaluator', 'calculator', 'math', 'formula', 'variables'],
   route: '/tools/expression-evaluator',
   load: () => import('./expression-evaluator').then((m) => m.ExpressionEvaluator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): arbitrary expression strings return a result object without throwing.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   execution: { worker: 'none' },
   io: { accepts: ['text'], produces: ['text'] },

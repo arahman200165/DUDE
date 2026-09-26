@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['range', 'sequence', 'generator', 'numbers', 'series'],
   route: '/tools/range-generator',
   load: () => import('./range-generator').then((m) => m.RangeGenerator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Generator-tested (fast-check): bounded ascending ranges contain the expected start, count, and step values.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'none' },
   io: { accepts: ['text'], produces: ['text', 'json'] },

@@ -20,7 +20,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/snowflake-id-tools',
   load: () => import('./snowflake-id-tools').then((m) => m.SnowflakeIdTools),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Generator-tested (fast-check): packed and inspected Twitter Snowflake timestamps, worker ids, and sequences.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text', 'json'] },
 };

@@ -19,7 +19,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/number-theory-toolkit',
   load: () => import('./number-theory-toolkit').then((m) => m.NumberTheoryToolkit),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): factor products reconstruct inputs with prime factors, and modular inverses satisfy their congruence.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'none' },
   io: { accepts: ['text'], produces: ['text'] },

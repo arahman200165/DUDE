@@ -10,7 +10,11 @@ export const manifest: ToolDefinition = {
   keywords: ['ulid', 'generate', 'inspect', 'identifier', 'monotonic', 'crockford', 'base32'],
   route: '/tools/ulid-tools',
   load: () => import('./ulid-tools').then((m) => m.UlidTools),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Generator-tested (fast-check): generated ULIDs match the format and decode to a valid timestamp/randomness field.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text', 'json'] },
 };

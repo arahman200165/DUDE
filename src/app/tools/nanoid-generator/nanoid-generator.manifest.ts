@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['nanoid', 'generate', 'identifier', 'random', 'alphabet'],
   route: '/tools/nanoid-generator',
   load: () => import('./nanoid-generator').then((m) => m.NanoidGenerator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Generator-tested (fast-check): requested count/size and custom-alphabet membership across supported sizes.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['json'], produces: ['text'] },
 };

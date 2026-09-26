@@ -18,7 +18,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/statistics-calculator',
   load: () => import('./statistics-calculator').then((m) => m.StatisticsCalculator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): count, sum, minimum, maximum, and range agree with generated input lists.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   execution: { worker: 'none' },
   io: { accepts: ['text'], produces: ['json', 'text'] },

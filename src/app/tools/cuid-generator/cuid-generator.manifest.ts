@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['cuid', 'cuid2', 'generate', 'identifier', 'collision-resistant'],
   route: '/tools/cuid-generator',
   load: () => import('./cuid-generator').then((m) => m.CuidGenerator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Generator-tested (fast-check): requested count/length and CUID2 validity across supported lengths.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['json'], produces: ['text'] },
 };
