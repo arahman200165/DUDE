@@ -10,6 +10,7 @@ import type { DudeElectronBridge } from '../electron-bridge';
 export function fakeElectronBridge(overrides: Partial<DudeElectronBridge> = {}): DudeElectronBridge {
   return {
     platform: { isDesktop: true },
+    deepLink: { ready: () => {}, onItem: () => () => {} },
     preferences: { get: async () => ({ closeToTray: true, launchMinimized: false, startupDestination: 'workspace', preferredDisplayId: null, rememberWindowBounds: true, updateMode: 'auto-download', notifyUpdates: true, notifyCollaboration: true }), set: async () => ({ ok: true, value: { closeToTray: true, launchMinimized: false, startupDestination: 'workspace', preferredDisplayId: null, rememberWindowBounds: true, updateMode: 'auto-download', notifyUpdates: true, notifyCollaboration: true } }), displays: async () => [], setupRequest: async () => null },
     open: { ready: () => {}, pickFile: async () => ({ canceled: true }), onItem: () => () => {} },
     fs: {

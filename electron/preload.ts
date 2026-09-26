@@ -17,6 +17,14 @@ const bridge: DudeElectronBridge = {
       return () => ipcRenderer.removeListener('dude:open:item', listener);
     },
   },
+  deepLink: {
+    ready: () => ipcRenderer.send('dude:deepLink:ready'),
+    onItem: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, url: string) => callback(url);
+      ipcRenderer.on('dude:deepLink:item', listener);
+      return () => ipcRenderer.removeListener('dude:deepLink:item', listener);
+    },
+  },
   platform: { isDesktop: true },
   fs: {
     pickDirectory: () => ipcRenderer.invoke('dude:fs:pickDirectory'),

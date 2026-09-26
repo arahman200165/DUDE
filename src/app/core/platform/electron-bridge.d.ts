@@ -36,6 +36,10 @@ export interface DudeElectronBridge {
     pickFile(): Promise<{ readonly canceled: boolean }>;
     onItem(callback: (item: DesktopOpenItem) => void): () => void;
   };
+  readonly deepLink: {
+    ready(): void;
+    onItem(callback: (url: string) => void): () => void;
+  };
   readonly platform: {
     readonly isDesktop: true;
   };

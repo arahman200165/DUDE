@@ -11,6 +11,7 @@ Var DudeLogin
 Var DudeUpdates
 Var DudeExplorer
 Var DudeFolders
+Var DudeProtocol
 Var DudeMask
 Var DudeMinimalRadio
 Var DudeStandardRadio
@@ -25,6 +26,7 @@ Var DudeNotifyRadio
 Var DudeManualRadio
 Var DudeExplorerCheck
 Var DudeFoldersCheck
+Var DudeProtocolCheck
 Var DudeExt0
 Var DudeExt1
 Var DudeExt2
@@ -87,6 +89,7 @@ Function DudeReviewCreate
   StrCpy $4 "No"
   StrCpy $5 "No"
   StrCpy $6 "No"
+  StrCpy $7 "No"
   ${If} $DudeStart == "1"
     StrCpy $3 "Yes"
   ${EndIf}
@@ -99,9 +102,12 @@ Function DudeReviewCreate
   ${If} $DudeFolders == "1"
     StrCpy $6 "Yes"
   ${EndIf}
+  ${If} $DudeProtocol == "1"
+    StrCpy $7 "Yes"
+  ${EndIf}
   ${NSD_CreateLabel} 0 65u 100% 13u "Start shortcut: $3    Desktop shortcut: $4"
   Pop $0
-  ${NSD_CreateLabel} 0 80u 100% 13u "Explorer action: $5    Folder action: $6"
+  ${NSD_CreateLabel} 0 80u 100% 13u "Explorer action: $5    Folder action: $6    Deep links: $7"
   Pop $0
   ${NSD_CreateLabel} 0 95u 100% 13u "Update mode: $DudeUpdates"
   Pop $0
@@ -136,17 +142,20 @@ Function DudeApplyPreset
   StrCpy $DudeUpdates "manual"
   StrCpy $DudeExplorer "0"
   StrCpy $DudeFolders "0"
+  StrCpy $DudeProtocol "0"
   StrCpy $DudeMask 0
   ${If} $DudePreset == "Standard"
     StrCpy $DudeDesktop "1"
     StrCpy $DudeExplorer "1"
     StrCpy $DudeFolders "1"
+    StrCpy $DudeProtocol "1"
     StrCpy $DudeUpdates "notify"
   ${ElseIf} $DudePreset == "Integrated"
     StrCpy $DudeDesktop "1"
     StrCpy $DudeLogin "1"
     StrCpy $DudeExplorer "1"
     StrCpy $DudeFolders "1"
+    StrCpy $DudeProtocol "1"
     StrCpy $DudeMask 16383
     StrCpy $DudeUpdates "auto-download"
   ${EndIf}
@@ -170,6 +179,10 @@ Function DudeLoadOptions
     ReadRegStr $DudeUpdates SHELL_CONTEXT "Software\DUDE\Installer" "UpdateMode"
     ReadRegStr $DudeExplorer SHELL_CONTEXT "Software\DUDE\Installer" "ExplorerAction"
     ReadRegStr $DudeFolders SHELL_CONTEXT "Software\DUDE\Installer" "FolderAction"
+    ReadRegStr $DudeProtocol SHELL_CONTEXT "Software\DUDE\Installer" "ProtocolEnabled"
+    ${If} $DudeProtocol == ""
+      StrCpy $DudeProtocol "0"
+    ${EndIf}
     ReadRegStr $DudeMask SHELL_CONTEXT "Software\DUDE\Installer" "FileMask"
   ${EndIf}
   StrCpy $DudePreviousPreset $DudePreset
@@ -363,22 +376,27 @@ Function DudeExplorerCreate
   ${If} $DudeFolders == "1"
     ${NSD_Check} $DudeFoldersCheck
   ${EndIf}
-  ${NSD_CreateLabel} 0 32u 100% 13u "Register these file types as Default Apps candidates:"
+  ${NSD_CreateCheckbox} 0 30u 100% 12u "Register dude:// links to open DUDE"
+  Pop $DudeProtocolCheck
+  ${If} $DudeProtocol == "1"
+    ${NSD_Check} $DudeProtocolCheck
+  ${EndIf}
+  ${NSD_CreateLabel} 0 45u 100% 13u "Register these file types as Default Apps candidates:"
   Pop $0
-  !insertmacro DudeExtensionCheckbox $DudeExt0 ".json" 48u 0 1
-  !insertmacro DudeExtensionCheckbox $DudeExt1 ".yaml" 48u 52% 2
-  !insertmacro DudeExtensionCheckbox $DudeExt2 ".yml" 61u 0 4
-  !insertmacro DudeExtensionCheckbox $DudeExt3 ".xml" 61u 52% 8
-  !insertmacro DudeExtensionCheckbox $DudeExt4 ".csv" 74u 0 16
-  !insertmacro DudeExtensionCheckbox $DudeExt5 ".md" 74u 52% 32
-  !insertmacro DudeExtensionCheckbox $DudeExt6 ".txt" 87u 0 64
-  !insertmacro DudeExtensionCheckbox $DudeExt7 ".toml" 87u 52% 128
-  !insertmacro DudeExtensionCheckbox $DudeExt8 ".ini" 100u 0 256
-  !insertmacro DudeExtensionCheckbox $DudeExt9 ".sql" 100u 52% 512
-  !insertmacro DudeExtensionCheckbox $DudeExt10 ".js" 113u 0 1024
-  !insertmacro DudeExtensionCheckbox $DudeExt11 ".ts" 113u 52% 2048
-  !insertmacro DudeExtensionCheckbox $DudeExt12 ".html" 126u 0 4096
-  !insertmacro DudeExtensionCheckbox $DudeExt13 ".css" 126u 52% 8192
+  !insertmacro DudeExtensionCheckbox $DudeExt0 ".json" 61u 0 1
+  !insertmacro DudeExtensionCheckbox $DudeExt1 ".yaml" 61u 52% 2
+  !insertmacro DudeExtensionCheckbox $DudeExt2 ".yml" 74u 0 4
+  !insertmacro DudeExtensionCheckbox $DudeExt3 ".xml" 74u 52% 8
+  !insertmacro DudeExtensionCheckbox $DudeExt4 ".csv" 87u 0 16
+  !insertmacro DudeExtensionCheckbox $DudeExt5 ".md" 87u 52% 32
+  !insertmacro DudeExtensionCheckbox $DudeExt6 ".txt" 100u 0 64
+  !insertmacro DudeExtensionCheckbox $DudeExt7 ".toml" 100u 52% 128
+  !insertmacro DudeExtensionCheckbox $DudeExt8 ".ini" 113u 0 256
+  !insertmacro DudeExtensionCheckbox $DudeExt9 ".sql" 113u 52% 512
+  !insertmacro DudeExtensionCheckbox $DudeExt10 ".js" 126u 0 1024
+  !insertmacro DudeExtensionCheckbox $DudeExt11 ".ts" 126u 52% 2048
+  !insertmacro DudeExtensionCheckbox $DudeExt12 ".html" 139u 0 4096
+  !insertmacro DudeExtensionCheckbox $DudeExt13 ".css" 139u 52% 8192
   nsDialogs::Show
 FunctionEnd
 
@@ -386,6 +404,7 @@ Function DudeExplorerLeave
   ${If} $DudeCustomize == "1"
     !insertmacro DudeReadCheck $DudeExplorerCheck $DudeExplorer
     !insertmacro DudeReadCheck $DudeFoldersCheck $DudeFolders
+    !insertmacro DudeReadCheck $DudeProtocolCheck $DudeProtocol
     StrCpy $DudeMask 0
     !insertmacro DudeSaveExtension $DudeExt0 1
     !insertmacro DudeSaveExtension $DudeExt1 2
@@ -454,7 +473,21 @@ FunctionEnd
   !insertmacro ${ACTION} "css" 8192
 !macroend
 
+!macro DudeRemoveProtocol
+  ReadRegStr $0 SHELL_CONTEXT "Software\Classes\dude\shell\open\command" ""
+  ${If} $0 == "$\"$INSTDIR\DUDE.exe$\" $\"%1$\""
+    DeleteRegKey SHELL_CONTEXT "Software\Classes\dude"
+  ${EndIf}
+!macroend
+
 !ifndef BUILD_UNINSTALLER
+!macro DudeRegisterProtocol
+  WriteRegStr SHELL_CONTEXT "Software\Classes\dude" "" "URL:DUDE Protocol"
+  WriteRegStr SHELL_CONTEXT "Software\Classes\dude" "URL Protocol" ""
+  WriteRegStr SHELL_CONTEXT "Software\Classes\dude\DefaultIcon" "" "$INSTDIR\DUDE.exe,0"
+  WriteRegStr SHELL_CONTEXT "Software\Classes\dude\shell\open\command" "" "$\"$INSTDIR\DUDE.exe$\" $\"%1$\""
+!macroend
+
 Function DudeRegisterCandidate
   Pop $1
   WriteRegStr SHELL_CONTEXT "Software\Classes\DUDE.$1" "" "DUDE $1 file"
@@ -506,6 +539,10 @@ Function DudeInstallOptions
     CreateShortCut "$DESKTOP\DUDE.lnk" "$INSTDIR\DUDE.exe"
   ${EndIf}
   Call DudeRemoveAllRegistrations
+  !insertmacro DudeRemoveProtocol
+  ${If} $DudeProtocol == "1"
+    !insertmacro DudeRegisterProtocol
+  ${EndIf}
   WriteRegStr SHELL_CONTEXT "Software\DUDE\Capabilities" "ApplicationName" "DUDE"
   WriteRegStr SHELL_CONTEXT "Software\DUDE\Capabilities" "ApplicationDescription" "Developer Utility Dashboard Engine"
   WriteRegStr SHELL_CONTEXT "Software\RegisteredApplications" "DUDE" "Software\DUDE\Capabilities"
@@ -522,6 +559,7 @@ Function DudeInstallOptions
   WriteRegStr SHELL_CONTEXT "Software\DUDE\Installer" "UpdateMode" "$DudeUpdates"
   WriteRegStr SHELL_CONTEXT "Software\DUDE\Installer" "ExplorerAction" "$DudeExplorer"
   WriteRegStr SHELL_CONTEXT "Software\DUDE\Installer" "FolderAction" "$DudeFolders"
+  WriteRegStr SHELL_CONTEXT "Software\DUDE\Installer" "ProtocolEnabled" "$DudeProtocol"
   WriteRegStr SHELL_CONTEXT "Software\DUDE\Installer" "FileMask" "$DudeMask"
   WriteINIStr "$INSTDIR\setup-options.ini" "setup" "launchOnLogin" "$DudeLogin"
   WriteINIStr "$INSTDIR\setup-options.ini" "setup" "updateMode" "$DudeUpdates"
@@ -561,6 +599,7 @@ Function un.DudeRemoveOptions
   !insertmacro DudeRemoveExtensionUn html
   !insertmacro DudeRemoveExtensionUn css
   DeleteRegKey SHELL_CONTEXT "Software\Classes\Directory\shell\OpenWithDUDE"
+  !insertmacro DudeRemoveProtocol
   DeleteRegValue SHELL_CONTEXT "Software\RegisteredApplications" "DUDE"
   DeleteRegKey SHELL_CONTEXT "Software\DUDE"
 FunctionEnd

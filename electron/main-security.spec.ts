@@ -23,3 +23,14 @@ describe('BrowserWindow security preferences', () => {
     }
   });
 });
+
+// Command-line protocol strings must never become BrowserWindow navigation targets.
+describe('deep-link argv boundary', () => {
+  const mainSource = readFileSync(resolve(__dirname, 'main.ts'), 'utf-8');
+
+  it('queues cold and second-instance arguments for renderer interpretation', () => {
+    expect(mainSource).toMatch(/enqueueDeepLinkArguments\(process\.argv\)/);
+    expect(mainSource).toMatch(/second-instance[\s\S]*enqueueDeepLinkArguments\(args\)/);
+    expect(mainSource).not.toMatch(/loadURL\(args|loadURL\(process\.argv/);
+  });
+});

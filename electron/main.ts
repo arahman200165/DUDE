@@ -1,5 +1,5 @@
 import { app, BrowserWindow } from 'electron';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { startStaticServer } from './static-server';
 import { registerFsHandlers } from './fs-bridge';
 import { registerSecretsHandlers } from './secrets-bridge';
@@ -14,6 +14,7 @@ import { checkForUpdatesOnStartup, registerUpdateHandlers } from './update-bridg
 import { getDesktopPreferences, loadDesktopPreferences, registerDesktopPreferencesHandlers } from './desktop-preferences';
 import { initialWindowBounds, trackWindowBounds } from './window-state';
 import { enqueueCommandLine, registerOpenHandlers } from './open-bridge';
+import { enqueueDeepLinkArguments, extractDeepLinkArgument, registerDeepLinkHandlers } from './deep-link-bridge';
 
 const DEV_SERVER_URL = process.env['DUDE_ELECTRON_DEV_SERVER_URL'];
 
@@ -36,7 +37,7 @@ async function createWindow(): Promise<void> {
   const bounds = await initialWindowBounds();
   const window = new BrowserWindow({
     ...bounds,
-    show: !preferences.launchMinimized || process.argv.includes('--open-with-dude'),
+    show: !preferences.launchMinimized || process.argv.includes('--open-with-dude') || !!extractDeepLinkArgument(process.argv),
     webPreferences: {
       preload: join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -58,6 +59,7 @@ async function createWindow(): Promise<void> {
   trackWindowBounds(window);
   registerDesktopPreferencesHandlers(window);
   registerOpenHandlers(window);
+  registerDeepLinkHandlers(window);
   registerSmartPasteRenderer(window);
   registerUpdateHandlers(window);
 
@@ -72,6 +74,7 @@ if (!hasSingleInstanceLock) app.quit();
 else {
   app.on('second-instance', (_event, args) => {
     enqueueCommandLine(args);
+    enqueueDeepLinkArguments(args);
     const window = BrowserWindow.getAllWindows()[0];
     if (window) { if (window.isMinimized()) window.restore(); window.show(); window.focus(); }
   });
@@ -80,6 +83,10 @@ else {
 if (hasSingleInstanceLock) void app.whenReady().then(async () => {
   await loadDesktopPreferences();
   enqueueCommandLine(process.argv);
+  enqueueDeepLinkArguments(process.argv);
+  if (!app.isPackaged && process.argv[1]) {
+    app.setAsDefaultProtocolClient('dude', process.execPath, [resolve(process.argv[1])]);
+  }
   registerFsHandlers();
   registerSecretsHandlers();
   registerLlmHandlers();
