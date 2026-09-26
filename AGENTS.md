@@ -23,3 +23,4 @@ Adding or changing a tool must never require editing `src/app/shell/`, `src/app/
 - `README.md` — architecture, tech stack, PWA/offline model, deployment.
 - `DUDE_PRD.md` — full product spec; §21 (Roadmap) maps every shipped and proposed tool to a phase and category.
 - `ADDING_A_TOOL.md` — the canonical add-a-tool recipe. Read it first for any tool work.
+- `SECURITY.md` — generated high-consequence tool matrix and network/native capability disclosure (`scripts/generate-security-doc.mjs`); never hand-edit its tables.
