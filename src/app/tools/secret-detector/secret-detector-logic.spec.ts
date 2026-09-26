@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { detectSecrets, redactMatch } from './secret-detector-logic';
 
 describe('detectSecrets', () => {
@@ -58,5 +59,17 @@ describe('redactMatch', () => {
 
   it('shows a prefix/suffix for a longer value', () => {
     expect(redactMatch('AKIAIOSFODNN7EXAMPLE')).toBe('AKIA…MPLE');
+  });
+});
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  it('never throws and completes quickly for arbitrary text, guarding against regex catastrophic backtracking', () => {
+    fc.assert(
+      fc.property(fc.string({ maxLength: 5000 }), (text) => {
+        const start = performance.now();
+        expect(() => detectSecrets(text)).not.toThrow();
+        expect(performance.now() - start).toBeLessThan(500);
+      }),
+    );
   });
 });

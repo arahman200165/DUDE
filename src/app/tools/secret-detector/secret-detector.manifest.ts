@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['secret', 'detect', 'credential', 'api key', 'token', 'entropy'],
   route: '/tools/secret-detector',
   load: () => import('./secret-detector').then((m) => m.SecretDetector),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested with generated text up to 5000 chars, asserting it never throws and never takes more than 500ms -- guards against regex catastrophic backtracking.',
+  },
   consequenceClass: ['secret-management'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text', 'json'] },
