@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['url', 'uri', 'encode', 'decode', 'percent-encoding', 'escape', 'unescape'],
   route: '/tools/url-encode',
   load: () => import('./url-encode').then((m) => m.UrlEncode),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip and fuzz-tested (fast-check) against arbitrary Unicode text, in both component and full variants.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

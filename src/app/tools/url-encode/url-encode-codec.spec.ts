@@ -59,3 +59,13 @@ describe('round-trip property (DUDE_PRD.md §21 Phase 23 Item 4)', () => {
     );
   });
 });
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  it('decodeUrl never throws for arbitrary text input, in either variant', () => {
+    fc.assert(
+      fc.property(fc.string(), fc.constantFrom('component', 'full') as fc.Arbitrary<'component' | 'full'>, (text, variant) => {
+        expect(() => decodeUrl(text, variant)).not.toThrow();
+      }),
+    );
+  });
+});
