@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { decodeJwt, decodeTemporalClaim } from './jwt-decode';
 
 function toBase64Url(value: unknown): string {
@@ -93,5 +94,23 @@ describe('decodeTemporalClaim', () => {
 
   it('returns null when the claim is not a number', () => {
     expect(decodeTemporalClaim({ exp: 'soon' }, 'exp')).toBeNull();
+  });
+});
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  it('never throws for arbitrary text input', () => {
+    fc.assert(
+      fc.property(fc.string(), (input) => {
+        expect(() => decodeJwt(input)).not.toThrow();
+      }),
+    );
+  });
+
+  it('never throws for a string shaped like a three-segment token with arbitrary segments', () => {
+    fc.assert(
+      fc.property(fc.string(), fc.string(), fc.string(), (a, b, c) => {
+        expect(() => decodeJwt(`${a}.${b}.${c}`)).not.toThrow();
+      }),
+    );
   });
 });

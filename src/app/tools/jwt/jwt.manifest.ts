@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['jwt', 'json web token', 'decode', 'auth', 'token', 'claims'],
   route: '/tools/jwt',
   load: () => import('./jwt').then((m) => m.Jwt),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested with arbitrary text and arbitrary three-segment tokens (fast-check) -- never throws on malformed input.',
+  },
   consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'none' },
   io: { accepts: ['text'], produces: ['json'] },
