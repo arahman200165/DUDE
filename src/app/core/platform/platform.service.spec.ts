@@ -44,4 +44,15 @@ describe('PlatformService', () => {
 
     expect(service.isDesktop()).toBe(false);
   });
+
+  it('reports wasRestoredAfterCrash from the bridge on desktop, false on web', () => {
+    Object.defineProperty(window, 'dude', { value: fakeElectronBridge({ platform: { isDesktop: true, wasRestoredAfterCrash: true } }), configurable: true });
+    TestBed.configureTestingModule({});
+    expect(TestBed.inject(PlatformService).wasRestoredAfterCrash).toBe(true);
+
+    Object.defineProperty(window, 'dude', { value: undefined, configurable: true });
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({});
+    expect(TestBed.inject(PlatformService).wasRestoredAfterCrash).toBe(false);
+  });
 });

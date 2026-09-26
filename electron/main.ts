@@ -18,6 +18,7 @@ import { enqueueDeepLinkArguments, extractDeepLinkArgument, registerDeepLinkHand
 import { registerNativeMenu } from './native-menu';
 import { registerQuickLauncherHotkey, registerQuickLauncherRenderer } from './quick-launcher';
 import { isAllowedRendererNavigation } from './navigation-guard';
+import { checkAndMarkLaunch } from './crash-detection';
 
 const DEV_SERVER_URL = process.env['DUDE_ELECTRON_DEV_SERVER_URL'];
 
@@ -35,7 +36,7 @@ async function resolveWindowUrl(): Promise<string> {
   return `http://127.0.0.1:${port}/`;
 }
 
-async function createWindow(): Promise<void> {
+async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
   const preferences = getDesktopPreferences();
   const bounds = await initialWindowBounds();
   const window = new BrowserWindow({
@@ -46,6 +47,9 @@ async function createWindow(): Promise<void> {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // A static, preload-computed flag (Phase 25 Item 6) -- passed this way (not IPC) so it's
+      // known synchronously at preload time, the same way `platform.isDesktop` already is.
+      additionalArguments: [`--dude-was-restored-after-crash=${wasRestoredAfterCrash}`],
     },
   });
 
@@ -91,6 +95,7 @@ else {
 
 if (hasSingleInstanceLock) void app.whenReady().then(async () => {
   await loadDesktopPreferences();
+  const wasRestoredAfterCrash = await checkAndMarkLaunch();
   enqueueCommandLine(process.argv);
   enqueueDeepLinkArguments(process.argv);
   if (!app.isPackaged && process.argv[1]) {
@@ -106,7 +111,7 @@ if (hasSingleInstanceLock) void app.whenReady().then(async () => {
   await registerHotkeyHandlers();
   await registerSmartPasteHotkey();
   await registerQuickLauncherHotkey();
-  return createWindow();
+  return createWindow(wasRestoredAfterCrash);
 });
 
 app.on('window-all-closed', () => {

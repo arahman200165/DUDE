@@ -20,4 +20,11 @@ export class PlatformService {
   private readonly isDesktopSignal = signal(isElectronRuntime());
 
   readonly isDesktop = this.isDesktopSignal.asReadonly();
+
+  /**
+   * A static, preload-computed flag (DUDE_PRD.md §21 Phase 25 Item 6) -- true only for the one
+   * launch immediately following an unclean exit (crash, force-kill, OS shutdown). Read once at
+   * construction, the same way `isElectronRuntime()` above is -- it never changes within a session.
+   */
+  readonly wasRestoredAfterCrash = isElectronRuntime() && window.dude!.platform.wasRestoredAfterCrash;
 }

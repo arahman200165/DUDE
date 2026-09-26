@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, Menu, nativeImage, shell, Tray } from 'ele
 import { dirname, join } from 'node:path';
 import { promises as fs } from 'node:fs';
 import { parseFileAssociations } from './file-association-marker';
+import { markCleanExit } from './crash-detection';
 
 /**
  * System tray + launch-on-login (Phase 8 Stage 5). Closing the main window
@@ -20,6 +21,7 @@ export function isAppQuitting(): boolean {
 
 app.on('before-quit', () => {
   isQuitting = true;
+  markCleanExit();
 });
 
 export function createTray(window: BrowserWindow): Tray {

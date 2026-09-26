@@ -59,6 +59,7 @@ export interface DudeElectronBridge {
   };
   readonly platform: {
     readonly isDesktop: true;
+    readonly wasRestoredAfterCrash: boolean;
   };
   readonly fs: {
     pickDirectory(): Promise<{ readonly canceled: true } | { readonly canceled: false; readonly rootPath: string; readonly rootName: string }>;

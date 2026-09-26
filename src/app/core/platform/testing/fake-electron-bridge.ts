@@ -9,7 +9,7 @@ import type { DudeElectronBridge } from '../electron-bridge';
  */
 export function fakeElectronBridge(overrides: Partial<DudeElectronBridge> = {}): DudeElectronBridge {
   return {
-    platform: { isDesktop: true },
+    platform: { isDesktop: true, wasRestoredAfterCrash: false },
     deepLink: { ready: () => {}, onItem: () => () => {} },
     menu: { ready: () => {}, onAction: () => () => {}, setToolMenuData: async () => ({ ok: true }) },
     quickLauncher: { ready: () => {}, onOpen: () => () => {}, onDismissed: () => () => {}, dismiss: async () => ({ ok: true }), promote: async () => ({ ok: true }), getHotkey: async () => null, setHotkey: async () => ({ ok: true }) },

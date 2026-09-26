@@ -1,6 +1,10 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { DudeElectronBridge, FileWatchEvent, DesktopOpenItem } from '../src/app/core/platform/electron-bridge';
 
+// A static flag baked in at preload time from `additionalArguments` (`main.ts`'s `createWindow`),
+// the same way `platform.isDesktop` below is a plain literal rather than an IPC round-trip.
+const wasRestoredAfterCrash = process.argv.includes('--dude-was-restored-after-crash=true');
+
 const bridge: DudeElectronBridge = {
   preferences: {
     get: () => ipcRenderer.invoke('dude:preferences:get'),
@@ -54,7 +58,7 @@ const bridge: DudeElectronBridge = {
     getHotkey: () => ipcRenderer.invoke('dude:quickLauncher:getHotkey'),
     setHotkey: (accelerator) => ipcRenderer.invoke('dude:quickLauncher:setHotkey', accelerator),
   },
-  platform: { isDesktop: true },
+  platform: { isDesktop: true, wasRestoredAfterCrash },
   fs: {
     pickDirectory: () => ipcRenderer.invoke('dude:fs:pickDirectory'),
     walk: (rootPath) => ipcRenderer.invoke('dude:fs:walk', rootPath),
