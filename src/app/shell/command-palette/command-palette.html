@@ -18,44 +18,49 @@
 
   <div class="overflow-y-auto p-2">
     @if (groupedResults().length) {
-      @for (group of groupedResults(); track group.category) {
+      @for (group of groupedResults(); track group.key) {
         <div class="mb-1.5 last:mb-0">
           <div class="flex items-center gap-1.5 px-1.5 py-1">
-            <span
-              class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
-              [class]="'bg-' + meta[group.category].colorToken + '/15'"
-            >
-              <app-category-icon
-                [category]="group.category"
-                class="h-3.5 w-3.5"
-                [class]="'text-' + meta[group.category].colorToken"
-              />
-            </span>
-            <span class="text-ui-sm font-semibold uppercase tracking-wider" [class]="'text-' + meta[group.category].colorToken">
-              {{ meta[group.category].label }}
+            @if (group.category; as category) {
+              <span
+                class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+                [class]="'bg-' + meta[category].colorToken + '/15'"
+              >
+                <app-category-icon
+                  [category]="category"
+                  class="h-3.5 w-3.5"
+                  [class]="'text-' + meta[category].colorToken"
+                />
+              </span>
+            }
+            <span class="text-ui-sm font-semibold uppercase tracking-wider"
+              [class]="group.category ? 'text-' + meta[group.category].colorToken : 'text-text-muted'">
+              {{ group.label }}
             </span>
           </div>
 
-          @for (tool of group.tools; track tool.id) {
+          @for (command of group.commands; track command.id) {
             <button
               type="button"
               class="flex w-full items-center gap-1.5 rounded-sm border-l-2 px-1.5 py-1 text-left text-xs hover:bg-panel-elevated"
               [class]="
-                isSelected(tool)
-                  ? 'border-l-accent bg-' + meta[group.category].colorToken + '/20 text-text'
-                  : 'border-l-transparent text-' + meta[group.category].colorToken + '-tint'
+                isSelected(command)
+                  ? 'border-l-accent bg-' + (group.category ? meta[group.category].colorToken : 'accent') + '/20 text-text'
+                  : 'border-l-transparent ' + (group.category ? 'text-' + meta[group.category].colorToken + '-tint' : 'text-text-muted')
               "
-              (click)="open(tool)"
+              (click)="open(command)"
             >
-              <span class="h-1 w-1 shrink-0 rounded-full" [class]="'bg-' + meta[group.category].colorToken"></span>
-              <span class="flex-1">{{ tool.title }}</span>
-              @if (canQuickRun(tool)) {
+              @if (group.category; as category) {
+                <span class="h-1 w-1 shrink-0 rounded-full" [class]="'bg-' + meta[category].colorToken"></span>
+              }
+              <span class="flex-1">{{ command.title }}</span>
+              @if (canQuickRun(command)) {
                 <span
                   class="shrink-0 rounded-sm border border-accent/40 px-1 text-ui-xs text-accent hover:bg-accent/10"
                   title="Quick Run"
-                  (click)="openQuickRun(tool, $event)"
+                  (click)="openQuickRun(command, $event)"
                 >
-                  ⚡
+                  &#9889;
                 </span>
               }
             </button>

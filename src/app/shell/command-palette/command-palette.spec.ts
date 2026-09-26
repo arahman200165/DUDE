@@ -6,6 +6,7 @@ import { routes } from '../../core/routing/app.routes';
 import { TOOL_DEFINITIONS } from '../../core/registry/tool-definitions';
 import { TOOL_CATEGORIES } from '../../shared/models/tool-category.model';
 import { CommandPaletteService } from './command-palette.service';
+import { TOOL_COMMAND_SOURCE_PROVIDERS } from '../../core/registry/tool-command-source';
 
 describe('CommandPalette', () => {
   let service: CommandPaletteService;
@@ -13,7 +14,7 @@ describe('CommandPalette', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideRouter(routes)],
+      providers: [provideRouter(routes), ...TOOL_COMMAND_SOURCE_PROVIDERS],
     });
     service = TestBed.inject(CommandPaletteService);
     router = TestBed.inject(Router);

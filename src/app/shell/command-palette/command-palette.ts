@@ -2,12 +2,23 @@ import { AfterViewInit, Component, ElementRef, ViewChild, computed, inject, sign
 import { Router } from '@angular/router';
 import { CdkTrapFocus } from '@angular/cdk/a11y';
 import { CATEGORY_METADATA, ToolCategory, TOOL_CATEGORIES } from '../../shared/models/tool-category.model';
-import { ToolDefinition } from '../../shared/models/tool-definition.model';
-import { ToolRegistryService } from '../../core/registry/tool-registry.service';
-import { ToolLauncherService } from '../../core/registry/tool-launcher.service';
+import { COMMAND_SOURCE, CommandKind, PaletteCommand } from '../../shared/models/command-source.model';
+import { COMMAND_KIND_LABEL, COMMAND_KIND_ORDER, searchCommands } from '../../core/registry/command-search';
 import { PipelineStepRegistryService } from '../../core/pipeline/pipeline-step-registry.service';
 import { CommandPaletteService } from './command-palette.service';
 import { CategoryIcon } from '../../shared/components/category-icon/category-icon';
+
+interface PaletteGroup {
+  readonly key: string;
+  readonly label: string;
+  readonly category?: ToolCategory;
+  readonly commands: readonly PaletteCommand[];
+}
+
+const GROUP_ORDER = [
+  ...TOOL_CATEGORIES.map((category) => `tool:${category}`),
+  ...COMMAND_KIND_ORDER.filter((kind) => kind !== 'tool'),
+];
 
 @Component({
   selector: 'app-command-palette',
@@ -15,8 +26,7 @@ import { CategoryIcon } from '../../shared/components/category-icon/category-ico
   templateUrl: './command-palette.html',
 })
 export class CommandPalette implements AfterViewInit {
-  private readonly registry = inject(ToolRegistryService);
-  private readonly launcher = inject(ToolLauncherService);
+  private readonly sources = inject(COMMAND_SOURCE);
   private readonly paletteService = inject(CommandPaletteService);
   private readonly router = inject(Router);
   private readonly stepRegistry = inject(PipelineStepRegistryService);
@@ -27,22 +37,28 @@ export class CommandPalette implements AfterViewInit {
   protected readonly query = signal('');
   protected readonly selectedIndex = signal(0);
 
-  private readonly results = computed(() => this.registry.search(this.query()));
+  private readonly results = computed(() => searchCommands(this.sources.flatMap((source) => source.commands()), this.query()));
 
-  protected readonly groupedResults = computed(() => {
-    const grouped = new Map<ToolCategory, ToolDefinition[]>();
-    for (const tool of this.results()) {
-      const bucket = grouped.get(tool.category) ?? [];
-      bucket.push(tool);
-      grouped.set(tool.category, bucket);
+  protected readonly groupedResults = computed<readonly PaletteGroup[]>(() => {
+    const grouped = new Map<string, PaletteCommand[]>();
+    for (const command of this.results()) {
+      const key = command.kind === 'tool' ? `tool:${command.category}` : command.kind;
+      const bucket = grouped.get(key) ?? [];
+      bucket.push(command);
+      grouped.set(key, bucket);
     }
-    return TOOL_CATEGORIES.filter((category) => grouped.has(category)).map((category) => ({
-      category,
-      tools: grouped.get(category)!,
-    }));
+    return GROUP_ORDER.filter((key) => grouped.has(key)).map((key) => {
+      const category = key.startsWith('tool:') ? key.slice(5) as ToolCategory : undefined;
+      return {
+        key,
+        label: category ? CATEGORY_METADATA[category].label : COMMAND_KIND_LABEL[key as CommandKind],
+        category,
+        commands: grouped.get(key)!,
+      };
+    });
   });
 
-  private readonly flatResults = computed(() => this.groupedResults().flatMap((group) => group.tools));
+  private readonly flatResults = computed(() => this.groupedResults().flatMap((group) => group.commands));
 
   ngAfterViewInit(): void {
     this.searchInput?.nativeElement.focus();
@@ -68,39 +84,32 @@ export class CommandPalette implements AfterViewInit {
   }
 
   protected onEnter(): void {
-    const tool = this.flatResults()[this.selectedIndex()];
-    if (tool) this.open(tool);
+    const command = this.flatResults()[this.selectedIndex()];
+    if (command) this.open(command);
   }
 
   protected onEscape(): void {
     this.paletteService.close();
   }
 
-  protected isSelected(tool: ToolDefinition): boolean {
-    return this.flatResults()[this.selectedIndex()]?.id === tool.id;
+  protected isSelected(command: PaletteCommand): boolean {
+    return this.flatResults()[this.selectedIndex()]?.id === command.id;
   }
 
-  protected open(tool: ToolDefinition): void {
-    this.launcher.open(tool);
+  protected open(command: PaletteCommand): void {
+    void command.execute();
     this.paletteService.close();
   }
 
-  /**
-   * Quick Run (DUDE_PRD.md §21 Phase 24 Item 12) only supports text-accepting pipeline steps — see
-   * `shell/quick-run/quick-run-list/quick-run-list.ts`'s own doc comment for why. Deliberately never
-   * calls `PipelineStepRegistryService.ensureLoaded()` here — the palette can open from any page via
-   * Ctrl+K, so forcing the eager ~225-chunk load on every open would be the same regression
-   * Milestone 411 caught for `RelatedToolsPanel` (see `core/suggestions/AGENTS.md`). This affordance
-   * simply doesn't appear until something else (visiting `/pipelines` or `/quick-run`) has already
-   * warmed the shared cache, then applies for free afterward.
-   */
-  protected canQuickRun(tool: ToolDefinition): boolean {
-    return this.stepRegistry.get(tool.id)?.accepts.includes('text') ?? false;
+  /** The chip uses only cached pipeline step metadata; opening the palette never loads every tool. */
+  protected canQuickRun(command: PaletteCommand): boolean {
+    return !!command.toolId && (this.stepRegistry.get(command.toolId)?.accepts.includes('text') ?? false);
   }
 
-  protected openQuickRun(tool: ToolDefinition, event: Event): void {
+  protected openQuickRun(command: PaletteCommand, event: Event): void {
     event.stopPropagation();
-    void this.router.navigate(['/quick-run'], { queryParams: { tool: tool.id } });
+    if (!command.toolId) return;
+    void this.router.navigate(['/quick-run'], { queryParams: { tool: command.toolId } });
     this.paletteService.close();
   }
 }

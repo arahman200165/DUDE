@@ -34,7 +34,7 @@ function rankOf(command: PaletteCommand, query: string): MatchRank {
   if (command.category && CATEGORY_METADATA[command.category].label.toLowerCase().includes(query)) {
     return MatchRank.Category;
   }
-  if (COMMAND_KIND_LABEL[command.kind].toLowerCase().includes(query)) return MatchRank.Category;
+  if (command.kind !== 'tool' && COMMAND_KIND_LABEL[command.kind].toLowerCase().includes(query)) return MatchRank.Category;
   return MatchRank.None;
 }
 

@@ -6,11 +6,12 @@ import { provideServiceWorker } from '@angular/service-worker';
 import { OverlayContainer } from '@angular/cdk/overlay';
 import { routes } from '../../core/routing/app.routes';
 import { CommandPaletteService } from '../command-palette/command-palette.service';
+import { TOOL_COMMAND_SOURCE_PROVIDERS } from '../../core/registry/tool-command-source';
 
 describe('ShellLayout — global Ctrl+K listener', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideRouter(routes), provideServiceWorker('ngsw-worker.js', { enabled: false })],
+      providers: [provideRouter(routes), provideServiceWorker('ngsw-worker.js', { enabled: false }), ...TOOL_COMMAND_SOURCE_PROVIDERS],
     });
   });
 
