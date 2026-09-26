@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['password', 'passphrase', 'generator', 'random', 'diceware', 'secure', 'csprng'],
   route: '/tools/password-generator',
   load: () => import('./password-generator').then((m) => m.PasswordGenerator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Crosscheck-tested (fast-check) against independently-built reference charset/wordlist/entropy-formula implementations.',
+  },
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['json'], produces: ['text'] },
 };

@@ -471,45 +471,45 @@
     "id": "bearer-token-builder",
     "category": "security",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "CROSSCHECK",
-    "milestone": null,
+    "milestone": 370,
     "notes": ""
   },
   {
     "id": "file-hash",
     "category": "security",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "CROSSCHECK",
-    "milestone": null,
+    "milestone": 370,
     "notes": ""
   },
   {
     "id": "password-generator",
     "category": "security",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "CROSSCHECK",
-    "milestone": null,
+    "milestone": 370,
     "notes": ""
   },
   {
     "id": "password-strength-analyzer",
     "category": "security",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "CROSSCHECK",
-    "milestone": null,
+    "milestone": 370,
     "notes": ""
   },
   {
     "id": "pem-der-inspector",
     "category": "security",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "CROSSCHECK",
-    "milestone": null,
+    "milestone": 370,
     "notes": ""
   },
   {

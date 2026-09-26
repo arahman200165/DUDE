@@ -20,7 +20,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/pem-der-inspector',
   load: () => import('./pem-der-inspector').then((m) => m.PemDerInspector),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Crosscheck-tested against real Node-crypto (OpenSSL)-generated RSA/EC/Ed25519 PEM keys with an independent base64 extractor, plus fast-check fuzzing.',
+  },
   consequenceClass: ['crypto'],
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text', 'file'], produces: ['text', 'json'] },

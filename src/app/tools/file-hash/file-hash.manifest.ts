@@ -20,7 +20,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/file-hash',
   load: () => import('./file-hash').then((m) => m.FileHash),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Crosscheck-tested (fast-check) against Node crypto\'s reference digests over arbitrary byte buffers for every shared algorithm.',
+  },
   persistence: { input: 'none', preferences: 'local' },
   execution: { worker: 'required' },
   io: { accepts: ['file'], produces: ['text'] },

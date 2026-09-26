@@ -10,7 +10,11 @@ export const manifest: ToolDefinition = {
   keywords: ['bearer token', 'authorization header', 'http auth', 'access token', 'rfc 6750'],
   route: '/tools/bearer-token-builder',
   load: () => import('./bearer-token-builder').then((m) => m.BearerTokenBuilder),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz- and crosscheck-tested (fast-check) against an independently-written RFC 6750 §2.1 b64token grammar regex.',
+  },
   consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },

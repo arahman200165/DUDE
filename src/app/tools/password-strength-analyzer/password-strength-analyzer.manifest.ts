@@ -10,7 +10,11 @@ export const manifest: ToolDefinition = {
   keywords: ['password', 'entropy', 'strength', 'security', 'brute force', 'crack time'],
   route: '/tools/password-strength-analyzer',
   load: () => import('./password-strength-analyzer').then((m) => m.PasswordStrengthAnalyzer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Crosscheck-tested (fast-check) against an independently-built reference charset-entropy calculator.',
+  },
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text', 'json'] },
 };
