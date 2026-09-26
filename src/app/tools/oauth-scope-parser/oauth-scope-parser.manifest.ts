@@ -10,7 +10,11 @@ export const manifest: ToolDefinition = {
   keywords: ['oauth', 'scope', 'scopes', 'openid', 'permissions', 'space delimited', 'oidc'],
   route: '/tools/oauth-scope-parser',
   load: () => import('./oauth-scope-parser').then((m) => m.OAuthScopeParser),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'parseScopeString/buildScopeString round-trip and never-throws are checked with generated inputs (fast-check), not just hand-picked examples.',
+  },
   consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['json'] },

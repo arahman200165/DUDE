@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import fc from 'fast-check';
 import { annotateKnownScopes, buildScopeString, parseScopeString } from './oauth-scope-parser-logic';
 
 describe('parseScopeString', () => {
@@ -61,5 +62,26 @@ describe('buildScopeString', () => {
 
   it('filters out blank entries', () => {
     expect(buildScopeString(['openid', '', 'profile'])).toBe('openid profile');
+  });
+});
+
+describe('round-trip property (DUDE_PRD.md §21 Phase 23 Item 4)', () => {
+  const nonBlankToken = fc.string().filter((s) => s.trim() !== '' && !/\s/.test(s));
+
+  it('parseScopeString(buildScopeString(scopes)).scopes recovers the first-occurrence-deduped list', () => {
+    fc.assert(
+      fc.property(fc.array(nonBlankToken), (scopes) => {
+        const deduped = [...new Set(scopes)];
+        expect(parseScopeString(buildScopeString(scopes)).scopes).toEqual(deduped);
+      }),
+    );
+  });
+
+  it('never throws for arbitrary text input', () => {
+    fc.assert(
+      fc.property(fc.string(), (input) => {
+        expect(() => parseScopeString(input)).not.toThrow();
+      }),
+    );
   });
 });
