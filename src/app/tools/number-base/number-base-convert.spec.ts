@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { formatInBase, parseInBase } from './number-base-convert';
 
 describe('parseInBase', () => {
@@ -77,5 +78,15 @@ describe('formatInBase', () => {
 
   it('returns an empty string for an out-of-range base', () => {
     expect(formatInBase(1n, 1)).toBe('');
+  });
+});
+
+describe('round-trip property (DUDE_PRD.md §21 Phase 23 Item 4)', () => {
+  it('parseInBase(formatInBase(x, base), base) === x for any bigint and base 2-36', () => {
+    fc.assert(
+      fc.property(fc.bigInt(), fc.integer({ min: 2, max: 36 }), (value, base) => {
+        expect(parseInBase(formatInBase(value, base), base)).toEqual({ ok: true, value });
+      }),
+    );
   });
 });

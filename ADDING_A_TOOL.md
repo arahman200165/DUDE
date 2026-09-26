@@ -159,6 +159,25 @@ Nothing to do beyond step 2. `buildToolRoutes()` (`src/app/core/registry/tool-ro
 
 A framework-free `.spec.ts` for the pure transform is the highest-value test (fast, no TestBed) — see `base64-codec.spec.ts`. Only add a component-level spec if there's real branching logic in the component itself (e.g. json's worker-threshold test, `src/app/tools/json/json.spec.ts`). Don't chase coverage for its own sake (PRD §18 — "ship first").
 
+If the transform is round-trip-capable (an `encode`/`decode` or `parse`/`format` pair, or any `f`/`f⁻¹`), add one `fast-check` property case alongside the example-based tests (DUDE_PRD.md §21 Phase 23 Item 4) — it catches the edge cases hand-picked examples miss:
+
+```ts
+import fc from 'fast-check';
+
+it('decodeX(encodeX(x)) === x for any input', () => {
+  fc.assert(
+    fc.property(fc.string(), (text) => {
+      const encoded = encodeX(text);
+      expect(encoded.ok).toBe(true);
+      if (!encoded.ok) return;
+      expect(decodeX(encoded.value)).toEqual({ ok: true, value: text });
+    }),
+  );
+});
+```
+
+See `base64-codec.spec.ts`, `url-encode-codec.spec.ts`, and `number-base-convert.spec.ts` for real examples. Don't force this onto a transform that isn't genuinely round-trip-capable (e.g. a lossy formatter, or one direction only) — it isn't a mandatory addition to every tool's spec.
+
 ## 11. Verify search/sidebar/command palette discovery
 
 Run the app (`ng serve`) and confirm:

@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { decodeUrl, encodeUrl } from './url-encode-codec';
 
 describe('encodeUrl', () => {
@@ -42,5 +43,19 @@ describe('decodeUrl', () => {
       ok: false,
       error: 'Invalid percent-encoding in this input.',
     });
+  });
+});
+
+describe('round-trip property (DUDE_PRD.md §21 Phase 23 Item 4)', () => {
+  it('decodeUrl(encodeUrl(x)) === x for both variants, for any well-formed Unicode text', () => {
+    fc.assert(
+      fc.property(fc.string(), fc.constantFrom('component', 'full') as fc.Arbitrary<'component' | 'full'>, (text, variant) => {
+        const encoded = encodeUrl(text, variant);
+        expect(encoded.ok).toBe(true);
+        if (!encoded.ok) return;
+        const decoded = decodeUrl(encoded.value, variant);
+        expect(decoded).toEqual({ ok: true, value: text });
+      }),
+    );
   });
 });
