@@ -15,6 +15,7 @@ import { getDesktopPreferences, loadDesktopPreferences, registerDesktopPreferenc
 import { initialWindowBounds, trackWindowBounds } from './window-state';
 import { enqueueCommandLine, registerOpenHandlers } from './open-bridge';
 import { enqueueDeepLinkArguments, extractDeepLinkArgument, registerDeepLinkHandlers } from './deep-link-bridge';
+import { registerNativeMenu } from './native-menu';
 
 const DEV_SERVER_URL = process.env['DUDE_ELECTRON_DEV_SERVER_URL'];
 
@@ -62,6 +63,7 @@ async function createWindow(): Promise<void> {
   registerDeepLinkHandlers(window);
   registerSmartPasteRenderer(window);
   registerUpdateHandlers(window);
+  registerNativeMenu(window);
 
   const baseUrl = await resolveWindowUrl();
   const destination = preferences.startupDestination === 'workspace' ? 'workspace' : '';

@@ -9,6 +9,7 @@ import { Onboarding } from '../onboarding/onboarding';
 import { OnboardingService } from '../../core/platform/onboarding.service';
 import { DesktopOpenService } from '../../core/platform/desktop-open.service';
 import { DeepLinkService } from '../../core/deep-link/deep-link.service';
+import { NativeMenuService } from '../../core/platform/native-menu.service';
 import { AmbientPasteChip } from '../../shared/components/ambient-paste-chip/ambient-paste-chip';
 
 @Component({
@@ -23,7 +24,7 @@ export class ShellLayout {
   protected readonly desktopOpen = inject(DesktopOpenService);
   protected readonly deepLink = inject(DeepLinkService);
 
-  constructor() { void this.onboarding.initialize(); }
+  constructor() { inject(NativeMenuService); void this.onboarding.initialize(); }
 
   protected readonly offline = computed(() => !this.connectivity.online());
 

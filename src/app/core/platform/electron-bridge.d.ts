@@ -40,6 +40,10 @@ export interface DudeElectronBridge {
     ready(): void;
     onItem(callback: (url: string) => void): () => void;
   };
+  readonly menu: {
+    ready(): void;
+    onAction(callback: (action: string) => void): () => void;
+  };
   readonly platform: {
     readonly isDesktop: true;
   };

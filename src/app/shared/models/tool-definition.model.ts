@@ -61,6 +61,8 @@ export interface ToolDefinition {
   readonly io: ToolIOCapabilities;
   /** Desktop Explorer file/folder opening, interpreted generically by the platform bridge. */
   readonly desktopOpen?: { readonly extensions?: readonly string[]; readonly inputKey?: string; readonly directory?: boolean };
+  /** Optional application-menu role; declared by the owning tool manifest. */
+  readonly nativeMenu?: { readonly preferences?: boolean };
   readonly status?: 'experimental' | 'stable' | 'verified';
   readonly verification?: ToolVerificationMetadata;
   readonly consequenceClass?: readonly ConsequenceClass[];

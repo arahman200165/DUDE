@@ -17,6 +17,7 @@ export const manifest: ToolDefinition = {
     'electron',
   ],
   route: '/tools/settings',
+  nativeMenu: { preferences: true },
   load: () => import('./settings').then((m) => m.Settings),
   status: 'verified',
   verification: {

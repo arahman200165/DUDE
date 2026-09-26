@@ -18,6 +18,16 @@ const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
  * `electron:dev`/`electron:start` unpacked launch path) — every call here is
  * caught so dev runs just no-op instead of crashing.
  */
+export async function checkForUpdates(): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    autoUpdater.autoDownload = getDesktopPreferences().updateMode === 'auto-download';
+    await autoUpdater.checkForUpdates();
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : 'Update check failed.' };
+  }
+}
+
 export function registerUpdateHandlers(window: BrowserWindow): void {
   autoUpdater.autoDownload = getDesktopPreferences().updateMode === 'auto-download';
 
@@ -45,15 +55,7 @@ export function registerUpdateHandlers(window: BrowserWindow): void {
     }
   });
 
-  ipcMain.handle('dude:update:check', async () => {
-    try {
-      autoUpdater.autoDownload = getDesktopPreferences().updateMode === 'auto-download';
-      await autoUpdater.checkForUpdates();
-      return { ok: true };
-    } catch (error) {
-      return { ok: false, error: error instanceof Error ? error.message : 'Update check failed.' };
-    }
-  });
+  ipcMain.handle('dude:update:check', checkForUpdates);
 
   ipcMain.handle('dude:update:download', async () => {
     try { await autoUpdater.downloadUpdate(); return { ok: true }; }
