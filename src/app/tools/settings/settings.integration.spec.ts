@@ -12,6 +12,8 @@ import { SmartPasteHotkeyService } from '../../core/platform/smart-paste-hotkey.
 import { QuickLauncherService } from '../../core/platform/quick-launcher.service';
 import { DesktopPreferencesService } from '../../core/platform/desktop-preferences.service';
 import { OnboardingService } from '../../core/platform/onboarding.service';
+import { NativeRecentsService } from '../../core/native-recents/native-recents.service';
+import { NativeRecentEntry } from '../../core/native-recents/native-recent.model';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
 
@@ -26,12 +28,20 @@ describe('Settings integration', () => {
   let secureLocal: { get: ReturnType<typeof vi.fn>; set: ReturnType<typeof vi.fn>; remove: ReturnType<typeof vi.fn> };
   let clearAll: ReturnType<typeof vi.fn>;
   let reopenOnRestart: ReturnType<typeof signal<boolean>>;
+  let nativeRecentsEnabled: ReturnType<typeof signal<boolean>>;
+  let nativeRecentEntries: ReturnType<typeof signal<readonly NativeRecentEntry[]>>;
+  let nativeRecentsRemove: ReturnType<typeof vi.fn>;
+  let nativeRecentsClearAll: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
     desktop = false;
     reopenOnRestart = signal(true);
+    nativeRecentsEnabled = signal(true);
+    nativeRecentEntries = signal([]);
+    nativeRecentsRemove = vi.fn();
+    nativeRecentsClearAll = vi.fn();
     secureLocal = {
       get: vi.fn().mockResolvedValue({ ok: true, value: null }),
       set: vi.fn().mockResolvedValue({ ok: true }),
@@ -51,6 +61,7 @@ describe('Settings integration', () => {
         { provide: QuickLauncherService, useValue: { getHotkey: vi.fn().mockResolvedValue(null), setHotkey: vi.fn().mockResolvedValue({ ok: true }) } },
         { provide: DesktopPreferencesService, useValue: { load: vi.fn().mockResolvedValue(undefined), current: signal({}), displays: signal([]) } },
         { provide: OnboardingService, useValue: { open: vi.fn() } },
+        { provide: NativeRecentsService, useValue: { enabled: nativeRecentsEnabled, entries: nativeRecentEntries, remove: nativeRecentsRemove, clearAll: nativeRecentsClearAll } },
       ],
     }).overrideComponent(Settings, {
       remove: { imports: [ToolShell, ErrorPanel] },
@@ -167,6 +178,35 @@ describe('Settings integration', () => {
     expect(clearAll).toHaveBeenCalledTimes(1);
     expect(fixture.nativeElement.textContent).toContain('Cleared.');
     confirmSpy.mockRestore();
+    fixture.destroy();
+  });
+
+  it('manages the Native File Recent List: toggling, removing one, and clearing all', async () => {
+    desktop = true;
+    nativeRecentEntries.set([{ path: 'C:/notes.md', name: 'notes.md', extension: '.md', openedAt: '2026-01-01T00:00:00.000Z' }]);
+    const fixture = TestBed.createComponent(Settings);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('notes.md');
+
+    const toggleLabel = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('label')).find((label) =>
+      label.textContent?.includes('Remember recently opened native files'),
+    )!;
+    const toggle = toggleLabel.querySelector('input[type="checkbox"]') as HTMLInputElement;
+    toggle.checked = false;
+    toggle.dispatchEvent(new Event('change'));
+    expect(nativeRecentsEnabled()).toBe(false);
+
+    const removeButton = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
+      .find((item) => item.textContent?.includes('Remove'))!;
+    removeButton.click();
+    expect(nativeRecentsRemove).toHaveBeenCalledWith('C:/notes.md');
+
+    const clearButton = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
+      .find((item) => item.textContent?.trim() === 'Clear all')!;
+    clearButton.click();
+    expect(nativeRecentsClearAll).toHaveBeenCalledOnce();
     fixture.destroy();
   });
 });

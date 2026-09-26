@@ -12,6 +12,7 @@ import { QuickLauncherService } from '../../core/platform/quick-launcher.service
 import type { DesktopPreferences, FileAssociations, QuickActionInfo } from '../../core/platform/electron-bridge';
 import { DesktopPreferencesService } from '../../core/platform/desktop-preferences.service';
 import { OnboardingService } from '../../core/platform/onboarding.service';
+import { NativeRecentsService } from '../../core/native-recents/native-recents.service';
 
 const TOOL_ID = 'settings';
 const KEY_BASE_URL = 'llmBaseUrl';
@@ -55,6 +56,7 @@ export class Settings {
   private readonly quickLauncher = inject(QuickLauncherService);
   protected readonly desktopPrefs = inject(DesktopPreferencesService);
   protected readonly onboarding = inject(OnboardingService);
+  protected readonly nativeRecents = inject(NativeRecentsService);
   protected readonly desktopMessage = signal('');
   private readonly persistence = inject(PersistenceService);
   private readonly clearAllData = inject(ClearAllDataService);
@@ -65,6 +67,18 @@ export class Settings {
 
   protected onReopenOnRestartToggle(event: Event): void {
     this.workspaceLayout.reopenOnRestart.set((event.target as HTMLInputElement).checked);
+  }
+
+  protected onNativeRecentsEnabledToggle(event: Event): void {
+    this.nativeRecents.enabled.set((event.target as HTMLInputElement).checked);
+  }
+
+  protected removeNativeRecent(path: string): void {
+    this.nativeRecents.remove(path);
+  }
+
+  protected clearNativeRecents(): void {
+    this.nativeRecents.clearAll();
   }
 
   protected async onClearAllLocalData(): Promise<void> {
