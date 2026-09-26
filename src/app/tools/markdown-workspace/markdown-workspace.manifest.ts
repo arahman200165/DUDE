@@ -25,7 +25,12 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/markdown-workspace',
   load: () => import('./markdown-workspace').then((m) => m.MarkdownWorkspace),
-  status: 'experimental',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary:
+      'Fuzz-tested (fast-check) the pure workspace core: computeStats, applyMarkdownInsertion, extractMarkdownLinks, and buildWorkspaceResult (including malformed YAML front matter) never throw on arbitrary text and keep their output shapes/bounds well-formed.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   network: {

@@ -9,7 +9,12 @@ export const manifest: ToolDefinition = {
   keywords: ['image', 'resize', 'scale', 'dimensions', 'canvas'],
   route: '/tools/image-resizer',
   load: () => import('./image-resizer').then((m) => m.ImageResizer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary:
+      'Fuzz-tested (fast-check) the pure computeResizedDimensions core across the full option space: never throws, always returns finite integer dimensions (zero only for a non-positive original size), and preserves aspect ratio when locked.',
+  },
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['file'], produces: ['file'] },
 };

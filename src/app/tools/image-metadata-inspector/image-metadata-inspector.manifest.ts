@@ -18,7 +18,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/image-metadata-inspector',
   load: () => import('./image-metadata-inspector').then((m) => m.ImageMetadataInspector),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check) the pure PNG IHDR parser against arbitrary bytes (never throws, always returns null or a well-shaped record) and against synthesized well-formed IHDR chunks (exact field round-trip).',
+  },
   persistence: { input: 'none', preferences: 'none' },
   io: { accepts: ['file'], produces: ['json'] },
 };

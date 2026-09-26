@@ -4,6 +4,7 @@ import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
 import { FileDrop } from '../../shared/components/file-drop/file-drop';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { downloadFile } from '../../shared/utils/download-file';
+import { computeSavingsPercent } from './image-compressor-savings';
 
 export type CompressFormat = 'jpeg' | 'webp' | 'png';
 
@@ -48,12 +49,7 @@ export class ImageCompressor {
   protected readonly resultSize = signal(0);
   protected readonly resultFilename = signal<string | null>(null);
 
-  protected readonly savingsPercent = computed(() => {
-    const original = this.originalSize();
-    const result = this.resultSize();
-    if (!original || !result) return null;
-    return Math.round((1 - result / original) * 100);
-  });
+  protected readonly savingsPercent = computed(() => computeSavingsPercent(this.originalSize(), this.resultSize()));
 
   protected onFileSelected(file: File): void {
     this.rejection.set(null);

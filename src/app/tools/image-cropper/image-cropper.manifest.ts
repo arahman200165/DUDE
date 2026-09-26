@@ -8,7 +8,12 @@ export const manifest: ToolDefinition = {
   keywords: ['image', 'crop', 'canvas'],
   route: '/tools/image-cropper',
   load: () => import('./image-cropper').then((m) => m.ImageCropper),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary:
+      'Fuzz-tested (fast-check) the pure crop-rect core: rectFromPoints/scaleRectToNatural/clampCropRect never throw across plausible and wildly out-of-range coordinates, and clampCropRect always keeps the rect within the source image bounds with non-negative size.',
+  },
   persistence: { input: 'none', preferences: 'none' },
   io: { accepts: ['file'], produces: ['file'] },
 };

@@ -26,7 +26,9 @@ const COLOR_TYPE_NAMES: Record<number, string> = {
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 
 function readUint32BE(bytes: Uint8Array, offset: number): number {
-  return (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
+  // `>>> 0` forces an unsigned interpretation -- without it, values with the high bit set
+  // (width/height >= 0x80000000) come back negative because `<<`/`|` operate on signed int32.
+  return ((bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3]) >>> 0;
 }
 
 export function parsePngIhdr(bytes: Uint8Array): PngIhdr | null {

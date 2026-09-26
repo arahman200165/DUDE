@@ -9,7 +9,12 @@ export const manifest: ToolDefinition = {
   keywords: ['aspect ratio', 'ratio calculator', 'simplify ratio', 'width height ratio'],
   route: '/tools/aspect-ratio-calculator',
   load: () => import('./aspect-ratio-calculator').then((m) => m.AspectRatioCalculator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary:
+      'Fuzz-tested (fast-check) the shared simplifyRatio/parseRatio/solveWidthForRatio/solveHeightForRatio core: never throws, preserves the width/height proportion, and a valid parsed ratio round-trips through the solve functions.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

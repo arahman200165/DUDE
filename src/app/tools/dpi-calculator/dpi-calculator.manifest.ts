@@ -9,7 +9,12 @@ export const manifest: ToolDefinition = {
   keywords: ['dpi', 'ppi', 'print resolution', 'pixel density', 'print size'],
   route: '/tools/dpi-calculator',
   load: () => import('./dpi-calculator').then((m) => m.DpiCalculator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary:
+      'Fuzz-tested (fast-check) the pure dpi-calculator-logic core: computeDpi/computePixelsForDpi/computePhysicalSizeForDpi never throw across signed and non-positive inputs, stay non-negative for positive inputs, and invert each other for a fixed DPI.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

@@ -18,7 +18,12 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/rich-text-editor',
   load: () => import('./rich-text-editor').then((m) => m.RichTextEditor),
-  status: 'experimental',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary:
+      'Fuzz-tested (fast-check) the pure sanitizeEditorHtml DOMPurify pass against arbitrary HTML-ish text: never throws, never lets a <script> tag/inline event handler/javascript: URL through, and is idempotent on its own output.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'none' },
   io: { accepts: ['text'], produces: ['text', 'file'] },

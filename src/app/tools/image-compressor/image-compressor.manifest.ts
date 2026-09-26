@@ -9,7 +9,12 @@ export const manifest: ToolDefinition = {
   keywords: ['image', 'compress', 'optimize', 'jpeg', 'webp', 'png', 'file size'],
   route: '/tools/image-compressor',
   load: () => import('./image-compressor').then((m) => m.ImageCompressor),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary:
+      'Fuzz-tested (fast-check) the pure computeSavingsPercent core (extracted from the component): never throws, returns null exactly when either size is falsy, and otherwise matches the exact percentage-reduction formula.',
+  },
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['file'], produces: ['file'] },
 };

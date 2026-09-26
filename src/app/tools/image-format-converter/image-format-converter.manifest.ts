@@ -9,7 +9,12 @@ export const manifest: ToolDefinition = {
   keywords: ['image', 'convert', 'png', 'jpeg', 'webp', 'avif', 'format'],
   route: '/tools/image-format-converter',
   load: () => import('./image-format-converter').then((m) => m.ImageFormatConverter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary:
+      'Fuzz-tested (fast-check) the pure format-mime core: replaceExtension never throws for arbitrary filenames/formats and always ends with the extension matching the requested output format.',
+  },
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['file'], produces: ['file'] },
 };
