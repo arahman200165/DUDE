@@ -19,6 +19,7 @@ import { registerNativeMenu } from './native-menu';
 import { registerQuickLauncherHotkey, registerQuickLauncherRenderer } from './quick-launcher';
 import { isAllowedRendererNavigation } from './navigation-guard';
 import { checkAndMarkLaunch } from './crash-detection';
+import { markPerf } from './perf-log';
 
 const DEV_SERVER_URL = process.env['DUDE_ELECTRON_DEV_SERVER_URL'];
 
@@ -37,8 +38,10 @@ async function resolveWindowUrl(): Promise<string> {
 }
 
 async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
+  markPerf('createWindow-start');
   const preferences = getDesktopPreferences();
   const bounds = await initialWindowBounds();
+  markPerf('bounds-resolved');
   const window = new BrowserWindow({
     ...bounds,
     show: !preferences.launchMinimized || process.argv.includes('--open-with-dude') || !!extractDeepLinkArgument(process.argv),
@@ -72,13 +75,16 @@ async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
   registerNativeMenu(window);
   registerQuickLauncherRenderer(window);
 
+  markPerf('window-constructed');
   const baseUrl = await resolveWindowUrl();
+  markPerf('static-server-started');
   window.webContents.on('will-navigate', (event, target) => {
     if (!isAllowedRendererNavigation(target, baseUrl)) event.preventDefault();
   });
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   const destination = preferences.startupDestination === 'workspace' ? 'workspace' : '';
   await window.loadURL(new URL(destination, baseUrl).toString());
+  markPerf('load-url-done');
   checkForUpdatesOnStartup();
 }
 
@@ -94,7 +100,9 @@ else {
 }
 
 if (hasSingleInstanceLock) void app.whenReady().then(async () => {
+  markPerf('app-ready');
   await loadDesktopPreferences();
+  markPerf('preferences-loaded');
   const wasRestoredAfterCrash = await checkAndMarkLaunch();
   enqueueCommandLine(process.argv);
   enqueueDeepLinkArguments(process.argv);
@@ -111,6 +119,7 @@ if (hasSingleInstanceLock) void app.whenReady().then(async () => {
   await registerHotkeyHandlers();
   await registerSmartPasteHotkey();
   await registerQuickLauncherHotkey();
+  markPerf('hotkeys-registered');
   return createWindow(wasRestoredAfterCrash);
 });
 
