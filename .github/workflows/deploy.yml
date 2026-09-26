@@ -43,6 +43,9 @@ jobs:
           git diff --exit-code -- src/app/core/registry/tool-definitions.ts README.md || \
             (echo '::error::tool-definitions.ts or README.md is stale — a <id>.manifest.ts changed without regenerating (npm run generate:registry) and committing the result.' && exit 1)
 
+      - name: Lint (dependency/platform boundaries)
+        run: npm run lint
+
       - name: Run tests
         run: npm test
 

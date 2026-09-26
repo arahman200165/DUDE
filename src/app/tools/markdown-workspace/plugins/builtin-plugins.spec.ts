@@ -2,7 +2,6 @@ import { BUILT_IN_PLUGINS, TABLE_FORMATTER_PLUGIN } from './builtin-plugins';
 
 /** Extracts the plugin's `run` function from its raw source the same way the sandboxed iframe would define it, without needing a real iframe. */
 function extractRun(source: string): (input: string) => string {
-  // eslint-disable-next-line @typescript-eslint/no-implied-eval
   return new Function(`${source}\nreturn run;`)() as (input: string) => string;
 }
 
