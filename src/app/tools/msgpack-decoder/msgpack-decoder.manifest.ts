@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['messagepack', 'msgpack', 'decode', 'binary', 'inspect'],
   route: '/tools/msgpack-decoder',
   load: () => import('./msgpack-decoder').then((m) => m.MsgpackDecoder),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested with fast-check using core-only fuzz checks against arbitrary valid or malformed input.',
+  },
   persistence: { input: 'none', preferences: 'none' },
   execution: { worker: 'none' },
   io: { accepts: ['file', 'bytes'], produces: ['json'] },

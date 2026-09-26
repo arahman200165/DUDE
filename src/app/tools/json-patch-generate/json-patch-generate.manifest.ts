@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['json patch', 'rfc 6902', 'diff', 'compare', 'generate'],
   route: '/tools/json-patch-generate',
   load: () => import('./json-patch-generate').then((m) => m.JsonPatchGenerate),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested with fast-check using generator output-shape checks against arbitrary valid or malformed input.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text', 'json'], produces: ['json'] },

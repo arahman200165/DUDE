@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['resx', '.net', 'resource', 'diff', 'merge', 'localization', 'i18n', 'token'],
   route: '/tools/resx-tool',
   load: () => import('./resx-tool').then((m) => m.ResxTool),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested with fast-check: arbitrary XML text returns a result without throwing.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'none' },
   io: { accepts: ['text'], produces: ['table', 'text'] },

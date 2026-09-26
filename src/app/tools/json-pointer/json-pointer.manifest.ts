@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['json pointer', 'rfc 6901', 'resolve', 'path', 'query'],
   route: '/tools/json-pointer',
   load: () => import('./json-pointer').then((m) => m.JsonPointer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested with fast-check using fuzz checks against arbitrary valid or malformed input.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text', 'json'], produces: ['json'] },

@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['protobuf', 'proto', 'decode', 'binary', 'inspect', 'grpc'],
   route: '/tools/protobuf-decoder',
   load: () => import('./protobuf-decoder').then((m) => m.ProtobufDecoder),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested with fast-check using core-only fuzz checks against arbitrary valid or malformed input.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   execution: { worker: 'none' },
   io: { accepts: ['file', 'bytes', 'text'], produces: ['json'] },

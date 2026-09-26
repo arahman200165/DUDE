@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['jsonpath', 'jmespath', 'query', 'json', 'filter', 'search'],
   route: '/tools/json-query',
   load: () => import('./json-query').then((m) => m.JsonQuery),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested with fast-check using fuzz checks against arbitrary valid or malformed input.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text', 'json'], produces: ['json'] },

@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['jsonl', 'ndjson', 'json lines', 'newline delimited', 'table', 'array'],
   route: '/tools/jsonl-viewer',
   load: () => import('./jsonl-viewer').then((m) => m.JsonlViewer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested with fast-check using fuzz checks against arbitrary valid or malformed input.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text', 'json'], produces: ['table', 'json'] },

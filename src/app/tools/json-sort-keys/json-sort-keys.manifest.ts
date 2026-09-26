@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['json', 'sort', 'keys', 'alphabetical', 'order', 'normalize'],
   route: '/tools/json-sort-keys',
   load: () => import('./json-sort-keys').then((m) => m.JsonSortKeys),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested with fast-check using fuzz checks against arbitrary valid or malformed input.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text', 'json'], produces: ['json'] },

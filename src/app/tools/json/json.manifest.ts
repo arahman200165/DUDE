@@ -21,7 +21,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/json',
   load: () => import('./json').then((m) => m.Json),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested with fast-check using round-trip checks against arbitrary valid or malformed input.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text', 'json'], produces: ['json', 'text'] },

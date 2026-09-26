@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['json', 'merge', 'combine', 'deep merge', 'merge patch', 'rfc 7396', 'union'],
   route: '/tools/json-merge',
   load: () => import('./json-merge').then((m) => m.JsonMerge),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested with fast-check using fuzz checks against arbitrary valid or malformed input.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text', 'json'], produces: ['json'] },

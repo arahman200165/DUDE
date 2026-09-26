@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['json patch', 'rfc 6902', 'apply', 'test', 'patch'],
   route: '/tools/json-patch-test',
   load: () => import('./json-patch-test').then((m) => m.JsonPatchTest),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested with fast-check using core-only fuzz checks against arbitrary valid or malformed input.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text', 'json'], produces: ['json'] },

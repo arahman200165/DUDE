@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['json', 'flatten', 'unflatten', 'dot notation', 'nested', 'path', 'keys'],
   route: '/tools/json-flatten',
   load: () => import('./json-flatten').then((m) => m.JsonFlatten),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Property-tested with fast-check using fuzz checks against arbitrary valid or malformed input.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['json', 'text'], produces: ['json', 'text'] },
