@@ -255,109 +255,109 @@
     "id": "lorem-ipsum-generator",
     "category": "text",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "GENERATOR",
-    "milestone": null,
+    "milestone": 368,
     "notes": ""
   },
   {
     "id": "slug-generator",
     "category": "text",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "GENERATOR",
-    "milestone": null,
+    "milestone": 368,
     "notes": ""
   },
   {
     "id": "smart-quotes-normalizer",
     "category": "text",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 368,
     "notes": ""
   },
   {
     "id": "soundex-metaphone",
     "category": "text",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 368,
     "notes": ""
   },
   {
     "id": "string-similarity-calculator",
     "category": "text",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 368,
     "notes": ""
   },
   {
     "id": "text-inspector",
     "category": "text",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
-    "notes": ""
+    "milestone": 368,
+    "notes": "property tests cover the pure logic only (text-metrics, readability, language-detect); grammar-check.ts is a networked LanguageTool API wrapper, out of scope per RECIPE.md"
   },
   {
     "id": "text-tokenizer-ngram",
     "category": "text",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 368,
     "notes": ""
   },
   {
     "id": "unicode-character-inspector",
     "category": "text",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 368,
     "notes": ""
   },
   {
     "id": "unicode-code-point-converter",
     "category": "text",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": null,
+    "milestone": 368,
     "notes": ""
   },
   {
     "id": "unicode-normalization",
     "category": "text",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 368,
     "notes": ""
   },
   {
     "id": "unicode-table",
     "category": "text",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
-    "notes": ""
+    "milestone": 368,
+    "notes": "fuzzed browse/search over a small-block subset (full curated block list is ~260k code points, too slow at 200 runs); exact-code-point search intentionally ignores block scope, so name-search invariant uses word-like queries only"
   },
   {
     "id": "whitespace-cleaner",
     "category": "text",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
-    "notes": ""
+    "milestone": 368,
+    "notes": "idempotence property excludes reindent: true, since reindent is a one-time width/style conversion by design, not meant to be idempotent when reapplied"
   },
   {
     "id": "cron",

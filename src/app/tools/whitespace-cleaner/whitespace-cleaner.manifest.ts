@@ -20,7 +20,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/whitespace-cleaner',
   load: () => import('./whitespace-cleaner').then((m) => m.WhitespaceCleaner),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): neverThrows, idempotence (reindent excluded, as it is a one-time width conversion by design), and line-ending correctness verified across the option space.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

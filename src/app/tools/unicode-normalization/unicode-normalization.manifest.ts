@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['unicode', 'normalize', 'nfc', 'nfd', 'nfkc', 'nfkd', 'compose', 'decompose'],
   route: '/tools/unicode-normalization',
   load: () => import('./unicode-normalization').then((m) => m.UnicodeNormalization),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): neverThrows plus the changed flag and idempotence of repeated normalization verified for arbitrary text across all four forms.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

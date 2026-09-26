@@ -18,7 +18,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/smart-quotes-normalizer',
   load: () => import('./smart-quotes-normalizer').then((m) => m.SmartQuotesNormalizer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): neverThrows for arbitrary text/options, plus idempotence verified in both directions across the option space.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

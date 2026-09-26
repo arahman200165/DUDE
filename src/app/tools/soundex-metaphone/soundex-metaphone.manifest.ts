@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['soundex', 'metaphone', 'phonetic', 'sounds like', 'pronunciation'],
   route: '/tools/soundex-metaphone',
   load: () => import('./soundex-metaphone').then((m) => m.SoundexMetaphone),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): neverThrows for arbitrary bulk input, plus the token-splitting/count invariant verified against the newline/comma tokenizer.',
+  },
   persistence: { input: 'session' },
   io: { accepts: ['text'], produces: ['table'] },
 };

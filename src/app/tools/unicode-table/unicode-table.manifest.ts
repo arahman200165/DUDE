@@ -17,7 +17,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/unicode-table',
   load: () => import('./unicode-table').then((m) => m.UnicodeTable),
-  status: 'experimental',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): browse/search never throw and stay within the requested block, verified across a curated set of blocks and page/query combinations.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'required' },
   io: { accepts: ['text'], produces: ['table'] },

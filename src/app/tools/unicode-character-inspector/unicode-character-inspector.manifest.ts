@@ -20,7 +20,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/unicode-character-inspector',
   load: () => import('./unicode-character-inspector').then((m) => m.UnicodeCharacterInspector),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): neverThrows plus code-point count/truncation-cap invariants and U+XXXX hex-formatting correctness, verified for arbitrary text.',
+  },
   persistence: { input: 'session' },
   io: { accepts: ['text'], produces: ['json'] },
 };

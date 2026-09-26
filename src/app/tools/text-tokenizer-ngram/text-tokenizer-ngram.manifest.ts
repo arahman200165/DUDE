@@ -10,7 +10,11 @@ export const manifest: ToolDefinition = {
   keywords: ['tokenize', 'tokens', 'n-gram', 'ngram', 'word split', 'sentence split'],
   route: '/tools/text-tokenizer-ngram',
   load: () => import('./text-tokenizer-ngram').then((m) => m.TextTokenizerNGram),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): tokenize segments verified to partition the input exactly, and generateNGrams counts verified to sum to the exact sliding-window count.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['json'] },
 };

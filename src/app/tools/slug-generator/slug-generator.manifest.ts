@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['slug', 'url', 'permalink', 'seo', 'transliterate', 'hyphenate'],
   route: '/tools/slug-generator',
   load: () => import('./slug-generator').then((m) => m.SlugGenerator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Generator-tested (fast-check): output format (lowercase alnum + separator, no stray separators), maxLength bound, and determinism verified across the option space.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

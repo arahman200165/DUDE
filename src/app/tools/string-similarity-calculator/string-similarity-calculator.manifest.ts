@@ -17,7 +17,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/string-similarity-calculator',
   load: () => import('./string-similarity-calculator').then((m) => m.StringSimilarityCalculator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): neverThrows plus [0,1] score bounds, self-comparison identity, and forward/backward symmetry verified for arbitrary string pairs.',
+  },
   persistence: { input: 'session' },
   io: { accepts: ['text'], produces: ['json'] },
 };

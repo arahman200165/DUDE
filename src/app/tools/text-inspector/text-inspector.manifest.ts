@@ -23,7 +23,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/text-inspector',
   load: () => import('./text-inspector').then((m) => m.TextInspector),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested (fast-check): text/readability metrics and language detection (the pure, non-networked logic) never throw and hold their count/shape invariants for arbitrary text.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   network: { required: true, detail: 'LanguageTool API' },
   io: { accepts: ['text'], produces: ['json'] },
