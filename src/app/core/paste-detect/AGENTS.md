@@ -18,6 +18,19 @@ Reuse the owning tool's existing pure-logic export (e.g. `inspectUuid`, `decodeJ
 
 Score by specificity, not just "did it parse": a structurally exact shape (UUID, ULID, a 3-segment JWT) should score high (0.85–0.95); a shape that many arbitrary strings could incidentally satisfy (a decimal integer, valid Base64 alphabet) should score low (0.35–0.5) so it only surfaces when nothing more specific matches for the same input. `detectShapes` (`paste-detect.ts`) ranks by score and returns the top few, not a single verdict — ambiguous input is expected to show multiple candidates.
 
+## Ambient Smart Paste (DUDE_PRD.md §21 Phase 24 Item 2) is a second consumer, not a parallel mechanism
+
+The original Phase 21 Item 3 amendment deliberately deferred ambient/global paste capture. It now
+ships as `ambient-paste.ts`'s `detectAmbientMatch`/`isEditablePasteTarget` plus
+`shared/components/ambient-paste-chip/`, a global `paste` listener mounted once by `ShellLayout`.
+This reuses `PASTE_DETECTORS`/`detectShapes` completely unmodified — the only new logic is a
+stricter confidence floor (`AMBIENT_CONFIDENCE_FLOOR`, since an uninvited floating suggestion has a
+higher false-positive cost than a page the user opened on purpose) and a guard against firing when
+the paste already has an obvious destination (an input/textarea/contenteditable target, or the
+`/smart-paste` page itself, which already does its own detection). Never duplicate the detector
+array or the ranking function for this — both `/smart-paste` and the ambient chip must always see
+identical shape recognition, differing only in threshold and trigger surface.
+
 ## Prefill
 
 `PasteHandoffService` is the one-shot, in-memory-only value hand-off used when the user picks a suggestion. It is intentionally not part of `PersistenceService` — see its own doc comment. The Smart Paste page calls `offer(toolId, value)` immediately before navigating; the target tool's component calls `consume(toolId)` once in its constructor. A tool with no `consume` call simply isn't paste-detection-eligible for prefill (still fine to have a detector for it — the suggestion would just navigate without prefilling).

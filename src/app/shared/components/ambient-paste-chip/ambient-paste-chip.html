@@ -1,0 +1,9 @@
+@if (match(); as m) {
+  <div class="pointer-events-auto flex items-center gap-2 rounded-sm border border-accent/40 bg-panel px-2.5 py-1.5 text-ui-sm shadow-lg">
+    <span class="text-text-muted">Looks like <span class="font-medium text-accent">{{ m.title }}</span> —</span>
+    <button type="button" class="rounded-sm border border-accent/40 bg-accent/10 px-1.5 py-0.5 text-ui-xs text-accent hover:bg-accent/20" (click)="open()">
+      Open
+    </button>
+    <button type="button" class="text-ui-xs text-text-muted hover:text-text" (click)="dismiss()">Dismiss</button>
+  </div>
+}

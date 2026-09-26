@@ -1,0 +1,70 @@
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
+import { PasteDetectionMatch } from '../../models/paste-detector.model';
+import { PASTE_DETECTORS } from '../../../core/paste-detect/paste-detectors';
+import { detectAmbientMatch, isEditablePasteTarget } from '../../../core/paste-detect/ambient-paste';
+import { PasteHandoffService } from '../../../core/paste-detect/paste-handoff.service';
+import { ToolRegistryService } from '../../../core/registry/tool-registry.service';
+import { ToolLauncherService } from '../../../core/registry/tool-launcher.service';
+
+/**
+ * Ambient Smart Paste (DUDE_PRD.md §21 Phase 24 Item 2) — a global `paste` listener mounted once by
+ * `ShellLayout`, picking up a shape match without requiring navigation to `/smart-paste`. Reuses
+ * `PASTE_DETECTORS`/`detectShapes` unmodified via `detectAmbientMatch` (a stricter confidence floor,
+ * see `core/paste-detect/ambient-paste.ts`) — this was the "ambient/global paste capture... deliberately
+ * deferred" note from the original Phase 21 Item 3 amendment, now picked back up as a second,
+ * independent consumer of the same detection machinery. Mounted globally (not gated to Home), it
+ * can render while a Workspace panel is active, so opening a match goes through `ToolLauncherService`
+ * rather than a plain route navigation.
+ */
+@Component({
+  selector: 'app-ambient-paste-chip',
+  templateUrl: './ambient-paste-chip.html',
+})
+export class AmbientPasteChip {
+  private readonly registry = inject(ToolRegistryService);
+  private readonly handoff = inject(PasteHandoffService);
+  private readonly launcher = inject(ToolLauncherService);
+  private readonly router = inject(Router);
+
+  protected readonly match = signal<PasteDetectionMatch | null>(null);
+  private lastText = '';
+
+  constructor() {
+    const listener = (event: ClipboardEvent) => this.onPaste(event);
+    document.addEventListener('paste', listener);
+    inject(DestroyRef).onDestroy(() => document.removeEventListener('paste', listener));
+  }
+
+  private onPaste(event: ClipboardEvent): void {
+    // A paste already landing in a text field has an obvious destination -- never nag there, and
+    // never double up with the dedicated page's own detection while already on it.
+    if (isEditablePasteTarget(event.target) || this.router.url.startsWith('/smart-paste')) return;
+
+    const text = event.clipboardData?.getData('text/plain') ?? '';
+    if (!text.trim()) {
+      this.match.set(null);
+      return;
+    }
+
+    const best = detectAmbientMatch(text, PASTE_DETECTORS, (id) => this.registry.getById(id));
+    this.lastText = text;
+    this.match.set(best);
+  }
+
+  protected open(): void {
+    const match = this.match();
+    if (!match) return;
+
+    const tool = this.registry.getById(match.toolId);
+    if (!tool) return;
+
+    this.handoff.offer(match.toolId, this.lastText);
+    this.launcher.open(tool);
+    this.match.set(null);
+  }
+
+  protected dismiss(): void {
+    this.match.set(null);
+  }
+}

@@ -8,10 +8,11 @@ import { UpdateBadge } from '../../shared/components/update-badge/update-badge';
 import { Onboarding } from '../onboarding/onboarding';
 import { OnboardingService } from '../../core/platform/onboarding.service';
 import { DesktopOpenService } from '../../core/platform/desktop-open.service';
+import { AmbientPasteChip } from '../../shared/components/ambient-paste-chip/ambient-paste-chip';
 
 @Component({
   selector: 'app-shell-layout',
-  imports: [RouterOutlet, Sidebar, OfflineBadge, UpdateBadge, Onboarding],
+  imports: [RouterOutlet, Sidebar, OfflineBadge, UpdateBadge, Onboarding, AmbientPasteChip],
   templateUrl: './shell-layout.html',
 })
 export class ShellLayout {
