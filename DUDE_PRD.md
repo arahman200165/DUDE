@@ -1724,35 +1724,39 @@ Goal: make tool #500 no more structurally dangerous to add than tool #50, while 
 
 ---
 
-## Phase 23 — Correctness, Verification & High-Consequence Tool Hardening
+## Phase 23 — Correctness, Verification & High-Consequence Tool Hardening (🚧 Framework complete, tool rollout in progress — shipped as Milestones 308-328)
 
 DUDE now handles cryptography, authentication material, certificates, binary formats, SQL, config files, archives, executable formats, arbitrary code, filesystem operations, and eventually live system state. Those tools need a stronger definition of “stable” than “the UI appears to work.”
 
-1. Tool Confidence Model — expand the current "stable" / "experimental" distinction into an explicit confidence model such as "experimental", "stable", and "verified", without implying formal certification.
+1. Tool Confidence Model — expand the current "stable" / "experimental" distinction into an explicit confidence model such as "experimental", "stable", and "verified", without implying formal certification. **✅ Shipped (Milestone 308)**: `ToolDefinition.status` now includes `'verified'`, with a `verification` metadata block (`vectors`/`crossChecked`/`propertyTested`/`summary`) and a conformance check requiring `summary` on any `verified` tool.
 
-2. Published Test Vectors — cryptography, encodings, JWT/JWS/JWK, UUID variants, certificates, checksums, protocol codecs, compression formats, and standardized binary formats should use official or widely accepted test vectors where available.
+2. Published Test Vectors — cryptography, encodings, JWT/JWS/JWK, UUID variants, certificates, checksums, protocol codecs, compression formats, and standardized binary formats should use official or widely accepted test vectors where available. **🚧 In progress**: Hash Generator (NIST/BLAKE/CRC/xxHash vectors), HMAC Generator (RFC 4231), PKCE Generator/Verifier (RFC 7636 Appendix B), HTTP Digest Auth Helper (RFC 2617 §3.5), and AWS SigV4 Inspector (AWS's official worked example) already had official vectors and were promoted; most other tools remain untested against published vectors.
 
-3. Reference-Implementation Cross-Checking — selected converters/parsers are tested against independent mature implementations so DUDE is not merely proving that its encoder and decoder agree with each other.
+3. Reference-Implementation Cross-Checking — selected converters/parsers are tested against independent mature implementations so DUDE is not merely proving that its encoder and decoder agree with each other. **🚧 In progress**: SSH Key Tools/X.509 Inspector/PKCS#12 Inspector/Certificate Chain Tools (Phase 12, vs. `ssh-keygen`/`openssl`), PE/ELF/Mach-O Header Viewers (vs. Python `pefile`/`pyelftools`/`lief`), AES/ChaCha20-Poly1305 (vs. Node's OpenSSL-backed `crypto`), CSR Generator & Inspector and Asymmetric Key Generator (vs. `openssl`) all cross-checked this phase.
 
-4. Property-Based Testing — round-trip-capable transformations receive generated tests such as decode(encode(x)) = x and parse(serialize(x)) preserving the documented semantics.
+4. Property-Based Testing — round-trip-capable transformations receive generated tests such as decode(encode(x)) = x and parse(serialize(x)) preserving the documented semantics. **✅ Framework shipped (Milestone 312)**: `fast-check` added; first wave on `base64-codec`, `url-encode-codec`, `number-base-convert`. Documented in `ADDING_A_TOOL.md` for future tools; not yet applied repo-wide.
 
-5. Parser Fuzzing — structured-data, archive, binary, certificate, URL, expression, and config parsers receive fuzz/property testing for malformed and adversarial input.
+5. Parser Fuzzing — structured-data, archive, binary, certificate, URL, expression, and config parsers receive fuzz/property testing for malformed and adversarial input. **✅ Framework shipped (Milestone 313)**: first wave on JSON/YAML/XML parsers (never-throws + typed-Result invariant). Not yet applied repo-wide.
 
-6. Golden Corpus Tests — maintain representative real-world samples for PE, ELF, Mach-O, certificates, JSON/YAML/XML, SQL, logs, Git data, archives, images, and other complex formats.
+6. Golden Corpus Tests — maintain representative real-world samples for PE, ELF, Mach-O, certificates, JSON/YAML/XML, SQL, logs, Git data, archives, images, and other complex formats. **✅ Framework shipped (Milestone 314)**: `__fixtures__/` convention; PE/ELF/Mach-O covered with real `dotnet publish`-produced binaries. SQL/archive/image corpora not yet added.
 
-7. High-Consequence Tool Matrix — explicitly identify crypto, authentication, code-execution, filesystem-write, process-management, registry, network-scanning, database-write, and secret-management tools as requiring stronger review.
+7. High-Consequence Tool Matrix — explicitly identify crypto, authentication, code-execution, filesystem-write, process-management, registry, network-scanning, database-write, and secret-management tools as requiring stronger review. **✅ Shipped (Milestone 309)**: `ConsequenceClass` on `ToolDefinition`; every shipped crypto/authentication/code-execution/secret-management tool tagged. The five native-capability classes are reserved for the Phase 27+ tools that will actually use them.
 
-8. Destructive-Action Harness — verify that every destructive desktop action has an explicit confirmation boundary and cannot be triggered merely by opening/importing data.
+8. Destructive-Action Harness — verify that every destructive desktop action has an explicit confirmation boundary and cannot be triggered merely by opening/importing data. **✅ Contract documented (Milestone 311)**: §5.2.1 spells out the two-step-confirm/no-incidental-trigger/tagging/test requirements. No enforcement component built yet since no `filesystem-write`/`process-management`/`registry`/`database-write` tool exists to enforce it against.
 
-9. Sandbox Regression Suite — continuously verify the Phase 6 arbitrary-code isolation assumptions and Electron "contextIsolation"/preload boundaries.
+9. Sandbox Regression Suite — continuously verify the Phase 6 arbitrary-code isolation assumptions and Electron "contextIsolation"/preload boundaries. **✅ Shipped (Milestone 315)**: real-browser Playwright tests for opaque-origin isolation and `Worker.terminate()`'s hard-stop guarantee; a separate `npm run test:electron` project covers `resolveWithinRoot`'s path-traversal guard and `main.ts`'s `webPreferences`.
 
-10. Performance Regression Corpus — retain large-input fixtures and performance baselines for expensive parsers, diffs, hashing, directory operations, archive tools, and binary viewers.
+10. Performance Regression Corpus — retain large-input fixtures and performance baselines for expensive parsers, diffs, hashing, directory operations, archive tools, and binary viewers. **✅ Shipped (Milestone 316)**: `perf/` (`npm run test:perf`) covers `computeHash`, `computeLineDiff`, `processJson` against procedurally generated large inputs, generously headroomed and opt-in (not a required release gate).
 
-11. Deterministic Test Fixtures — remove unnecessary time/network/randomness from correctness tests so failures remain reproducible.
+11. Deterministic Test Fixtures — remove unnecessary time/network/randomness from correctness tests so failures remain reproducible. **✅ Audited (Milestone 317)**: repo-wide scan for unseeded `Math.random()`/`Date.now()`/`new Date()`; fixed the two real cases found (password-generator's separator ambiguity, qr-decode's random noise).
 
-12. Capability-Specific Release Gates — a failure in security-critical infrastructure blocks release even if unrelated utility tests still pass.
+12. Capability-Specific Release Gates — a failure in security-critical infrastructure blocks release even if unrelated utility tests still pass. **✅ Shipped (Milestone 318)**: `scripts/check-high-consequence-gate.mjs` (`npm run test:high-consequence`) re-runs every high-consequence tool's specs as its own required, separately-labeled CI step.
 
-13. Security Documentation Generation — derive tool network capability, persistence policy, native privileges, and external-service usage from metadata where possible.
+13. Security Documentation Generation — derive tool network capability, persistence policy, native privileges, and external-service usage from metadata where possible. **✅ Shipped (Milestone 310)**: `scripts/generate-security-doc.mjs` generates `SECURITY.md`'s High-Consequence Tool Matrix and network/native-capability disclosure tables from manifest metadata.
+
+14. Verified Tool Badge — optionally expose the highest-confidence status to users, with a compact explanation of what was tested rather than making vague security claims. **✅ Shipped (Milestone 319)**: `ToolShell`'s status badge shows `verification.summary` as a tooltip for any `verified` tool.
+
+**Tool rollout status (Milestones 320-328):** 20 tools promoted to `verified` so far — the PE/ELF/Mach-O viewers, the Phase 12 crypto/PKI cluster (SSH keys, X.509, PKCS#12, certificate chains), Hash/HMAC generators, PKCE tools, HTTP Digest Auth, AWS SigV4 Inspector, and newly cross-checked AES/ChaCha20-Poly1305/CSR/Asymmetric Key Generator. The remaining ~15 tools in the crypto/authentication cluster (JWT/JWKS/OAuth/OIDC tools, `kubeconfig-inspector`, `secret-detector`, `k8s-secret-base64`) and the SQL/binary-format/general round-trip tiers remain at `stable`, to be promoted incrementally following the same checklist (`ADDING_A_TOOL.md`'s "Status & confidence tiers") rather than in one pass.
 
 14. Verified Tool Badge — optionally expose the highest-confidence status to users, with a compact explanation of what was tested rather than making vague security claims.
 
