@@ -285,6 +285,15 @@ These constraints survive roadmap growth unless the owner makes an explicit futu
 7. **Basic local developer utilities never become paywalled.** A future commercial model may charge for optional services or advanced organizational capabilities, but must not remove or artificially cripple formerly-local utility functionality to manufacture a paid tier.
 8. **DUDE does not become a conventional VS Code clone or source-code-IDE-first product.** Later editor, LSP, terminal, Git, project, and code-intelligence surfaces are allowed only in service of the broader developer-workbench model. The product identity remains “give this development problem/artifact/system to DUDE,” not “rebuild VS Code feature-for-feature.”
 
+## 5.2.1 Destructive-Action Contract
+
+Durable constraint #4 above is a principle; this is the concrete contract every future `filesystem-write`, `process-management`, `registry`, or `database-write` tool must implement (DUDE_PRD.md §21 Phase 23 Item 8 — none of these tool categories are shipped yet, so this is documented now, ready to be enforced against the first tool that claims one of them, rather than built as a component with no consumer):
+
+1. **Two-step confirmation.** A mutating action always has a distinct preview/dry-run step (what will change) and a separate, explicit confirm step (do it) — never a single click/keystroke that both previews and commits.
+2. **No incidental triggering.** Opening a file, importing data, running a detector, or otherwise inspecting input must never itself cause the destructive effect — the mutating action must be its own deliberate user gesture, reachable only after the preview step.
+3. **Consequence tagging.** The tool's manifest declares the relevant `ConsequenceClass` (`src/app/shared/models/tool-definition.model.ts`) so it's covered by the generated High-Consequence Tool Matrix (`SECURITY.md`) and any capability-specific release gate.
+4. **A confirmation-boundary test.** The tool's own spec asserts the destructive effect cannot fire without going through both steps above — this is the "Destructive-Action Harness" (Phase 23 Item 8) in practice: enforced per-tool at the point each such tool ships, not as a separate suite run against nothing.
+
 ## 5.3 Historical Exclusions Now Treated as Roadmap Territory
 
 The original exclusions are preserved here so none of their rationale disappears. Their status changes from “permanently impossible” to one of: shipped, proposed, conditionally gated, or unscheduled.

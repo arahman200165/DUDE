@@ -17,6 +17,7 @@ Adding or changing a tool must never require editing `src/app/shell/`, `src/app/
 - **Git history convention:** each tool ships as its own commit directly to `master`, no feature branches/PRs, message format `Milestone N: <Tool Name>`. Check `git log --oneline | grep -i milestone` for the current highest number before picking the next one. Framework-layer/doc-only changes get their own milestone numbers too.
 - **Testing posture:** "protect the framework, not chase coverage" (`DUDE_PRD.md` §18). Unit-test every tool's pure transform logic; don't add component/e2e tests just for coverage.
 - **Verify before calling a tool done:** run `ng serve` and confirm sidebar/search/command-palette (`Ctrl+K`) discovery; run `npm test` and `npm run lint`; after `ng build`, hard-navigate the production build's direct route (`/DUDE/tools/<id>`) to catch anything relying on client-side router state a fresh load wouldn't have.
+- **Destructive actions require the full contract, not just a confirm dialog.** Any tool that mutates the filesystem, a process, the registry, or a database must follow `DUDE_PRD.md` §5.2.1's Destructive-Action Contract (two-step preview/confirm, no incidental triggering, `ConsequenceClass` tagging, a confirmation-boundary test) before it ships.
 
 ## Key docs
 
