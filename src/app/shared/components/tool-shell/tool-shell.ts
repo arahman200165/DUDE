@@ -6,6 +6,7 @@ import { WORKSPACE_HOST_CONTEXT } from '../../../core/workspace/workspace-host-c
 import { ScratchpadService } from '../../../core/workspace/scratchpad.service';
 import { HistoryService } from '../../../core/history/history.service';
 import { recordHistoryOnDestroy } from '../../../core/history/history-recorder';
+import { UsageService } from '../../../core/usage/usage.service';
 import { CATEGORY_METADATA } from '../../models/tool-category.model';
 import { OfflineBadge } from '../offline-badge/offline-badge';
 import { CategoryIcon } from '../category-icon/category-icon';
@@ -23,6 +24,7 @@ export class ToolShell implements OnDestroy {
   private readonly hostContext = inject(WORKSPACE_HOST_CONTEXT);
   private readonly scratchpad = inject(ScratchpadService);
   private readonly history = inject(HistoryService);
+  private readonly usage = inject(UsageService);
 
   /**
    * Optional override for tools whose network need is a runtime condition rather than a
@@ -75,6 +77,17 @@ export class ToolShell implements OnDestroy {
     const title = status === 'verified' ? (definition?.verification?.summary ?? '') : '';
     return { label: status, classes: classes[status], title };
   });
+
+  /**
+   * Local Usage Frequency / Recently Used Tools (DUDE_PRD.md §21 Phase 24 Items 5/6) — the "open"
+   * counterpart to `ngOnDestroy`'s History capture below, recording only `{toolId, timestamp}`
+   * (never content) for every tool uniformly. Fires once per mount, correct whether reached via a
+   * direct route or a Workspace panel, since `definition()` already resolves either way.
+   */
+  constructor() {
+    const definition = this.definition();
+    if (definition) this.usage.recordOpen(definition.id);
+  }
 
   /**
    * Manual scratchpad capture (DUDE_PRD.md §21 Phase 21 Item 4) — works on every tool, everywhere,
