@@ -4,11 +4,17 @@ import { routes } from './core/routing/app.routes';
 import { provideServiceWorker } from '@angular/service-worker';
 import { isElectronRuntime } from './core/platform/platform.service';
 import { TOOL_COMMAND_SOURCE_PROVIDERS } from './core/registry/tool-command-source';
+import { WORKSPACE_COMMAND_SOURCE_PROVIDERS } from './core/workspace/workspace-command-source';
+import { PROJECT_COMMAND_SOURCE_PROVIDERS } from './core/project/project-command-source';
+import { PIPELINE_COMMAND_SOURCE_PROVIDERS } from './core/pipeline/pipeline-command-source';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     ...TOOL_COMMAND_SOURCE_PROVIDERS,
+    ...WORKSPACE_COMMAND_SOURCE_PROVIDERS,
+    ...PROJECT_COMMAND_SOURCE_PROVIDERS,
+    ...PIPELINE_COMMAND_SOURCE_PROVIDERS,
     provideRouter(routes),
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode() && !isElectronRuntime(),

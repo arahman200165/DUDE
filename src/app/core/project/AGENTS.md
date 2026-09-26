@@ -31,6 +31,13 @@ participation for free. Every persisted field is structural (ids, panel-tree sha
 identical in kind to what Workspace Templates and Favorites already persist safely under the same
 `local` policy.
 
+## Command Palette source (Phase 25 Item 4)
+
+`project-command-source.ts`'s `ProjectCommandSource` is one `CommandSource` registered via the
+multi-provider `COMMAND_SOURCE` token (`shared/models/command-source.model.ts`) -- one "Open
+Project: X" command per project, confirming before replacing a non-empty live layout exactly like
+`ProjectList.activate()` and Deck's `RecentProjectsRail`, so all three call sites share one rule.
+
 ## `activate()` mirrors `WorkspaceTemplateService.apply()` exactly
 
 `ProjectService.activate()` routes through `WorkspaceLayoutService.applyLayout()` — the one generic

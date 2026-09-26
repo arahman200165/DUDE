@@ -87,6 +87,15 @@ producing a dangling entry. This is a small, template-owned recency log, not a s
 source — `core/recents/AGENTS.md`'s "never a fifth source of truth" rule is about that service's own
 four inputs, not every recency signal in the app.
 
+## Command Palette source (Phase 25 Item 4)
+
+`workspace-command-source.ts`'s `WorkspaceCommandSource` is one `CommandSource` registered via the
+multi-provider `COMMAND_SOURCE` token (`shared/models/command-source.model.ts`) -- one "Apply
+Workspace: X" command per template (confirming before replacing a non-empty live layout, same rule
+as `TemplateGallery.apply()` and Deck's `RecentWorkspacesRail`) plus one "Save Current Workspace as
+Template…" command that prompts for a name inline, since the palette has no multi-step UI of its own
+to collect one.
+
 ## The governing privacy rule
 
 No part of this feature may cause a tool's content to outlive the `PersistencePolicy` that tool's own code

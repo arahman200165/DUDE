@@ -15,3 +15,7 @@ It is a **thin wrapper**, never a rewrite of the tool's existing pure transform.
 ## Execution and validation
 
 `pipeline-compatibility.ts` holds the pure `canChain(a, b)` check (`accepts`/`produces` intersection) that both the pipeline builder's live UI warnings and `PipelineRunnerService`'s pre-flight check call — one source of truth for "is this pipeline runnable," never duplicated.
+
+## Command Palette source (Phase 25 Item 4)
+
+`pipeline-command-source.ts`'s `PipelineCommandSource` is one `CommandSource` (`shared/models/command-source.model.ts`) registered via the multi-provider `COMMAND_SOURCE` token, alongside `ToolCommandSource`/`WorkspaceCommandSource`/`ProjectCommandSource`. It is deliberately navigate-only — opening the builder at `/pipelines/:id`, never running the pipeline — until a direct "run" command can go through `PipelineConfirmationService`'s confirmation gate (`core/pipeline/pipeline-confirmation.service.ts`), the same gate deep links already use.
