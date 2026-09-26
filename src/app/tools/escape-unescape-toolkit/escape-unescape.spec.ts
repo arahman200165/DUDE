@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { EscapeMode, escapeText, unescapeText } from './escape-unescape';
 
@@ -86,4 +87,63 @@ describe('every mode round-trips plain ASCII text', () => {
       expect(escaped.ok && unescapeText(escaped.value, mode)).toEqual({ ok: true, value: text });
     });
   }
+});
+
+describe('round-trip property (DUDE_PRD.md §21 Phase 23 Item 4)', () => {
+  // quoted-printable round-trips through TextEncoder (UTF-8), and javascript/css both round-trip a
+  // lone surrogate fine (JSON.stringify/CSS.escape both represent it as a \uXXXX-style escape) --
+  // but TextEncoder replaces a lone surrogate with U+FFFD, so only quoted-printable needs this filter.
+  const wellFormedText = fc.string().filter((s) => !/[\uD800-\uDFFF]/.test(s) || /^(?:[^\uD800-\uDFFF]|[\uD800-\uDBFF][\uDC00-\uDFFF])*$/.test(s));
+
+  const roundTrips = (mode: EscapeMode, text: string) => {
+    const escaped = escapeText(text, mode);
+    expect(escaped.ok).toBe(true);
+    if (!escaped.ok) return;
+    expect(unescapeText(escaped.value, mode)).toEqual({ ok: true, value: text });
+  };
+
+  it('round-trips through javascript for arbitrary text', () => {
+    fc.assert(fc.property(fc.string(), (text) => roundTrips('javascript', text)));
+  });
+
+  it('round-trips through css for arbitrary well-formed text', () => {
+    fc.assert(fc.property(wellFormedText, (text) => roundTrips('css', text)));
+  });
+
+  it('round-trips through sql for arbitrary text', () => {
+    fc.assert(fc.property(fc.string(), (text) => roundTrips('sql', text)));
+  });
+
+  it('round-trips through shell for arbitrary text', () => {
+    fc.assert(fc.property(fc.string(), (text) => roundTrips('shell', text)));
+  });
+
+  it('round-trips through powershell for arbitrary text', () => {
+    fc.assert(fc.property(fc.string(), (text) => roundTrips('powershell', text)));
+  });
+
+  it('round-trips through quoted-printable for arbitrary well-formed text', () => {
+    fc.assert(fc.property(wellFormedText, (text) => roundTrips('quoted-printable', text)));
+  });
+});
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  const modes: readonly EscapeMode[] = ['javascript', 'css', 'sql', 'shell', 'powershell', 'quoted-printable'];
+  const modeArb = fc.constantFrom(...modes);
+
+  it('escapeText never throws for arbitrary text input, in any mode', () => {
+    fc.assert(
+      fc.property(fc.string(), modeArb, (text, mode) => {
+        expect(() => escapeText(text, mode)).not.toThrow();
+      }),
+    );
+  });
+
+  it('unescapeText never throws for arbitrary text input, in any mode', () => {
+    fc.assert(
+      fc.property(fc.string(), modeArb, (text, mode) => {
+        expect(() => unescapeText(text, mode)).not.toThrow();
+      }),
+    );
+  });
 });

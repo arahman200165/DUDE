@@ -19,7 +19,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/escape-unescape-toolkit',
   load: () => import('./escape-unescape-toolkit').then((m) => m.EscapeUnescapeToolkit),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip and fuzz-tested (fast-check) against arbitrary text across all six escaping syntaxes (JavaScript, CSS, SQL, shell, PowerShell, quoted-printable).',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
