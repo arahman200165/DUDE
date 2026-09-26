@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['sql', 'dialect', 'convert', 'postgresql', 'mysql', 'mariadb', 'sqlite', 'sql server'],
   route: '/tools/sql-dialect-converter',
   load: () => import('./sql-dialect-converter').then((m) => m.SqlDialectConverter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested with arbitrary text across every dialect pair (fast-check) -- never throws.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

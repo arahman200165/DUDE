@@ -1,4 +1,5 @@
-import { convertSqlDialect } from './sql-dialect-converter-logic';
+import fc from 'fast-check';
+import { convertSqlDialect, SQL_CONVERTER_DIALECTS } from './sql-dialect-converter-logic';
 
 describe('convertSqlDialect', () => {
   it('converts MySQL backtick-quoting to PostgreSQL double-quoting', () => {
@@ -22,5 +23,16 @@ describe('convertSqlDialect', () => {
 
   it('rejects SQL that fails to parse under the source dialect', () => {
     expect(convertSqlDialect('SELECT FROM WHERE', 'mysql', 'postgresql').ok).toBe(false);
+  });
+});
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  it('never throws for arbitrary text input, across any dialect pair', () => {
+    const dialect = fc.constantFrom(...SQL_CONVERTER_DIALECTS.map((d) => d.id));
+    fc.assert(
+      fc.property(fc.string(), dialect, dialect, (sql, from, to) => {
+        expect(() => convertSqlDialect(sql, from, to)).not.toThrow();
+      }),
+    );
   });
 });
