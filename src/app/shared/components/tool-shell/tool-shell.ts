@@ -60,15 +60,20 @@ export class ToolShell implements OnDestroy {
    * duplicated as an inline 3-way ternary in the template (mirrors `SecurityBadge`'s
    * computed-in-.ts pattern). A missing `status` displays and styles as 'experimental', the
    * least-confident tier, rather than silently defaulting to something stronger.
+   *
+   * `verified`'s `title` surfaces `verification.summary` (Phase 23 Item 14's "Verified Tool
+   * Badge") — a compact explanation of what was actually tested, never a bare "trust us" claim.
    */
   protected readonly statusBadge = computed(() => {
-    const status = this.definition()?.status ?? 'experimental';
+    const definition = this.definition();
+    const status = definition?.status ?? 'experimental';
     const classes: Record<'experimental' | 'stable' | 'verified', string> = {
       experimental: 'border-warning/40 bg-warning/10 text-warning',
       stable: 'border-success/40 bg-success/10 text-success',
       verified: 'border-accent/40 bg-accent/10 text-accent',
     };
-    return { label: status, classes: classes[status] };
+    const title = status === 'verified' ? (definition?.verification?.summary ?? '') : '';
+    return { label: status, classes: classes[status], title };
   });
 
   /**

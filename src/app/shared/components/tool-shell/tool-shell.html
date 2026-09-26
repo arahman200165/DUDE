@@ -33,6 +33,7 @@
       <span
         class="rounded border px-1.5 py-0.5 font-mono text-ui-xs uppercase tracking-wide"
         [class]="statusBadge().classes"
+        [title]="statusBadge().title || null"
         >{{ statusBadge().label }}</span
       >
     </div>
