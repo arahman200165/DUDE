@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['cidr', 'ip', 'ipv4', 'subnet', 'network', 'netmask'],
   route: '/tools/cidr-calculator',
   load: () => import('./cidr-calculator').then((m) => m.CidrCalculator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested arbitrary input handling and valid IPv4 prefix alignment/address-count invariants with fixed-seed fast-check.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
 };

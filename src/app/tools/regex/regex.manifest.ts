@@ -24,7 +24,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/regex',
   load: () => import('./regex').then((m) => m.Regex),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested safe literal matches against native global RegExp results and arbitrary flags with fixed-seed fast-check.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'required' },
   io: { accepts: ['text'], produces: ['json'] },

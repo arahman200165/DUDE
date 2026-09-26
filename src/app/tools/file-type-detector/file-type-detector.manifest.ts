@@ -20,7 +20,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/file-type-detector',
   load: () => import('./file-type-detector').then((m) => m.FileTypeDetector),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested byte prefixes and metadata, including file-size and matched-hex prefix bounds, with fixed-seed fast-check.',
+  },
   persistence: { input: 'none', preferences: 'none' },
   io: { accepts: ['file'], produces: ['json'] },
 };

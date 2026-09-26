@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['regex', 'regexp', 'railroad diagram', 'visualize', 'syntax diagram', 'pattern'],
   route: '/tools/regex-visualizer',
   load: () => import('./regex-visualizer').then((m) => m.RegexVisualizer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested parse error handling and diagram creation for safe regex literals with fixed-seed fast-check.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   execution: { worker: 'none' },
   io: { accepts: ['text'], produces: ['text'] },

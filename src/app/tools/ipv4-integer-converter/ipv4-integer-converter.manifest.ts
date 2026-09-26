@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['ip', 'ipv4', 'integer', 'convert', 'network'],
   route: '/tools/ipv4-integer-converter',
   load: () => import('./ipv4-integer-converter').then((m) => m.Ipv4IntegerConverter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip tested every sampled unsigned 32-bit IPv4 integer with fixed-seed fast-check.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

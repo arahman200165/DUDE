@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['regex', 'regexp', 'generate', 'generator', 'examples', 'heuristic', 'pattern'],
   route: '/tools/regex-generator',
   load: () => import('./regex-generator').then((m) => m.RegexGenerator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Generator property-tested deterministic valid patterns against sampled examples with fixed-seed fast-check.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   execution: { worker: 'none' },
   io: { accepts: ['text'], produces: ['text'] },

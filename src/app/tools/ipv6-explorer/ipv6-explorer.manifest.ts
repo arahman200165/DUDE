@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['ip', 'ipv6', 'explore', 'compress', 'expand', 'network'],
   route: '/tools/ipv6-explorer',
   load: () => import('./ipv6-explorer').then((m) => m.Ipv6Explorer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested generated 128-bit addresses and checked compressed/expanded forms preserve the parsed value with fixed-seed fast-check.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
 };

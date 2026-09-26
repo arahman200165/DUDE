@@ -17,7 +17,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/regex-benchmark',
   load: () => import('./regex-benchmark').then((m) => m.RegexBenchmark),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested safe pattern timings and bounded-input error handling with fixed-seed fast-check.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'required' },
   io: { accepts: ['text'], produces: ['json'] },

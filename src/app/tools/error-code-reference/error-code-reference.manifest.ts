@@ -20,7 +20,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/error-code-reference',
   load: () => import('./error-code-reference').then((m) => m.ErrorCodeReference),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested arbitrary search input handling and category-scoped search results with fixed-seed fast-check.',
+  },
   persistence: { input: 'local', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
 };

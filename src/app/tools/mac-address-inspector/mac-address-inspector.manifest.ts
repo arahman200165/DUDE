@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['mac', 'address', 'oui', 'vendor', 'network', 'ethernet'],
   route: '/tools/mac-address-inspector',
   load: () => import('./mac-address-inspector').then((m) => m.MacAddressInspector),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested arbitrary text and checked normalization equivalence across four MAC address formats with fixed-seed fast-check.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
 };

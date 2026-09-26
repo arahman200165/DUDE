@@ -20,7 +20,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/regex-flavor-converter',
   load: () => import('./regex-flavor-converter').then((m) => m.RegexFlavorConverter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip tested simple literals through Python and JavaScript regex syntax with fixed-seed fast-check.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'none' },
   io: { accepts: ['text'], produces: ['text'] },

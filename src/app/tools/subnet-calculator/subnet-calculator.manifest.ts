@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['subnet', 'cidr', 'ip', 'ipv4', 'network', 'vlsm'],
   route: '/tools/subnet-calculator',
   load: () => import('./subnet-calculator').then((m) => m.SubnetCalculator),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested arbitrary inputs and verified generated child networks are aligned and contiguous with fixed-seed fast-check.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['table'] },
 };

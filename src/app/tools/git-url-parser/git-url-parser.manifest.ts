@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['git', 'url', 'remote', 'parse', 'ssh', 'scp'],
   route: '/tools/git-url-parser',
   load: () => import('./git-url-parser').then((m) => m.GitUrlParser),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip tested generated HTTP, HTTPS, SSH, and git remote URLs with fixed-seed fast-check.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text', 'url'], produces: ['json'] },
 };

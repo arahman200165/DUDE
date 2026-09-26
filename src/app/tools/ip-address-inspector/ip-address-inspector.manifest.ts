@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['ip', 'ipv4', 'ipv6', 'inspect', 'network', 'address'],
   route: '/tools/ip-address-inspector',
   load: () => import('./ip-address-inspector').then((m) => m.IpAddressInspector),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested arbitrary text and verified canonical IPv4/IPv6 forms preserve parsed addresses with fixed-seed fast-check.',
+  },
   persistence: { input: 'session', preferences: 'none' },
   io: { accepts: ['text'], produces: ['text'] },
 };
