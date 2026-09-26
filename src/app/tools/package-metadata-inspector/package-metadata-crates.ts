@@ -19,9 +19,10 @@ export async function fetchCratesIoMetadata(crateName: string): Promise<PackageL
     return { ok: false, error: response.status === 404 ? `"${crateName}" was not found on crates.io.` : `crates.io returned HTTP ${response.status}.` };
   }
 
-  const data = (await response.json()) as CratesIoResponse;
+  const data = ((await response.json()) ?? {}) as CratesIoResponse;
   const latestVersion = data.crate?.newest_version ?? '';
-  const latestVersionEntry = data.versions?.find((v) => v.num === latestVersion) ?? data.versions?.[0];
+  const versions = Array.isArray(data.versions) ? data.versions : [];
+  const latestVersionEntry = versions.find((v) => v && typeof v === 'object' && v.num === latestVersion) ?? versions[0];
 
   return {
     ok: true,

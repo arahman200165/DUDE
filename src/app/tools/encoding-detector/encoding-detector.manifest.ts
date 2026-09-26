@@ -9,7 +9,8 @@ export const manifest: ToolDefinition = {
   keywords: ['encoding', 'utf-8', 'utf-16', 'bom', 'byte order mark', 'charset', 'detect encoding'],
   route: '/tools/encoding-detector',
   load: () => import('./encoding-detector').then((m) => m.EncodingDetector),
-  status: 'stable',
+  status: 'verified',
+  verification: { propertyTested: true, summary: 'Property-tested detectEncoding over arbitrary byte arrays and all five supported BOM signatures.' },
   persistence: { input: 'none', preferences: 'none' },
   io: { accepts: ['file'], produces: ['json'] },
 };

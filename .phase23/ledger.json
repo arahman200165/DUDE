@@ -1596,10 +1596,10 @@
     "id": "encoding-detector",
     "category": "developer",
     "subdomain": "misc",
-    "status": "blocked",
+    "status": "verified",
     "recipe": "CORE-ONLY",
-    "milestone": 382,
-    "notes": "needs-browser-harness: tool delegates byte detection to a shared utility and exposes no pure core in its tool directory."
+    "milestone": 395,
+    "notes": ""
   },
   {
     "id": "env-diff",
@@ -1686,10 +1686,10 @@
     "id": "hex-diff",
     "category": "developer",
     "subdomain": "misc",
-    "status": "blocked",
+    "status": "verified",
     "recipe": "CORE-ONLY",
-    "milestone": 382,
-    "notes": "needs-browser-harness: component delegates all byte-diff work to shared utilities and has no extracted pure core in its tool directory."
+    "milestone": 395,
+    "notes": ""
   },
   {
     "id": "hex-editor",
@@ -1830,10 +1830,10 @@
     "id": "package-metadata-inspector",
     "category": "developer",
     "subdomain": "misc",
-    "status": "blocked",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": 384,
-    "notes": "blocked: network-only registry fetchers expose no synchronous pure transform; async fetch behavior is outside the FUZZ harness."
+    "milestone": 395,
+    "notes": "flagged: public behavior change; malformed successful registry JSON roots now return safe empty metadata, and malformed crates.io version lists are ignored instead of throwing."
   },
   {
     "id": "percentage-ratio-calculator",

@@ -19,7 +19,7 @@ export async function fetchNpmMetadata(packageName: string): Promise<PackageLook
     return { ok: false, error: response.status === 404 ? `"${packageName}" was not found on npm.` : `npm registry returned HTTP ${response.status}.` };
   }
 
-  const data = (await response.json()) as NpmRegistryResponse;
+  const data = ((await response.json()) ?? {}) as NpmRegistryResponse;
   const latestVersion = data['dist-tags']?.latest ?? '';
   const license = typeof data.license === 'string' ? data.license : (data.license?.type ?? null);
   const dependencyCount = latestVersion ? Object.keys(data.versions?.[latestVersion]?.dependencies ?? {}).length : null;

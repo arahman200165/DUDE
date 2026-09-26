@@ -22,7 +22,7 @@ export async function fetchPyPiMetadata(packageName: string): Promise<PackageLoo
     return { ok: false, error: response.status === 404 ? `"${packageName}" was not found on PyPI.` : `PyPI returned HTTP ${response.status}.` };
   }
 
-  const data = (await response.json()) as PyPiResponse;
+  const data = ((await response.json()) ?? {}) as PyPiResponse;
   const info = data.info ?? {};
   const license = info.license && info.license.trim() !== '' ? info.license : null;
 

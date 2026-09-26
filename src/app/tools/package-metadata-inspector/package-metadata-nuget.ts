@@ -30,7 +30,7 @@ export async function fetchNuGetMetadata(packageId: string): Promise<PackageLook
   let index: RegistrationIndex;
 
   try {
-    index = (await fetchJson(`https://api.nuget.org/v3/registration5-semver1/${encodeURIComponent(lowerId)}/index.json`)) as RegistrationIndex;
+    index = ((await fetchJson(`https://api.nuget.org/v3/registration5-semver1/${encodeURIComponent(lowerId)}/index.json`)) ?? {}) as RegistrationIndex;
   } catch (error) {
     const message = error instanceof Error ? error.message : '';
     if (message.includes('404')) return { ok: false, error: `"${packageId}" was not found on NuGet.` };
