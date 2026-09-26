@@ -21,7 +21,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/base-n-encoder',
   load: () => import('./base-n-encoder').then((m) => m.BaseNEncoder),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip and fuzz-tested (fast-check) across arbitrary bytes and every supported base -- includes the leading-zero-byte edge case and a canonical Adobe ASCII85 vector.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'none' },
   io: { accepts: ['text'], produces: ['text'] },

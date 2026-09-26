@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { BASE_N_MODES, BaseNMode, decodeToBytes, encodeBytes } from './base-n-codec';
 
@@ -43,5 +44,36 @@ describe('error handling', () => {
       expect(decodeToBytes('', id).ok).toBe(false);
       expect(decodeToBytes('   ', id).ok).toBe(false);
     }
+  });
+});
+
+describe('round-trip property (DUDE_PRD.md §21 Phase 23 Item 4)', () => {
+  const modeArb = fc.constantFrom(...BASE_N_MODES.map((m) => m.id));
+
+  it('decodeToBytes(encodeBytes(bytes, mode), mode) recovers the original bytes, for every mode', () => {
+    fc.assert(
+      fc.property(fc.uint8Array({ minLength: 0, maxLength: 64 }), modeArb, (bytes, mode) => {
+        const encoded = encodeBytes(bytes, mode);
+        const decoded = decodeToBytes(encoded, mode);
+        // Every mode's decoder rejects a blank string as "no input" rather than "zero bytes" --
+        // a documented, deliberate UX choice (see decodeNonEmpty/decodeBaseX/decodeBase85/decodeBase91
+        // above), not a round-trip bug, so the empty-bytes case is exempt from this property.
+        if (bytes.length === 0) return;
+        expect(decoded.ok).toBe(true);
+        expect(decoded.ok && Array.from(decoded.value)).toEqual(Array.from(bytes));
+      }),
+    );
+  });
+});
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  const modeArb = fc.constantFrom(...BASE_N_MODES.map((m) => m.id));
+
+  it('decodeToBytes never throws for arbitrary text input, in any mode', () => {
+    fc.assert(
+      fc.property(fc.string(), modeArb, (text, mode) => {
+        expect(() => decodeToBytes(text, mode)).not.toThrow();
+      }),
+    );
   });
 });
