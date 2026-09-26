@@ -44,3 +44,53 @@ test('Worker.terminate() actually stops a hung script within the execution budge
   await page.getByRole('button', { name: 'Clear', exact: true }).click();
   await expect(page.getByPlaceholder('Type JavaScript here…')).toHaveValue('');
 });
+
+test('HTML Preview CSP blocks an unallowlisted external script', async ({ page }) => {
+  await page.goto('/DUDE/tools/html-preview');
+  await expect(page.getByPlaceholder('Paste an HTML page here…')).toBeVisible();
+
+  await page.evaluate(() => {
+    window.addEventListener('message', (event) => {
+      if (event.data?.kind === 'csp-violation') {
+        (window as typeof window & { sandboxCspViolation?: string }).sandboxCspViolation = event.data.violatedDirective + '|' + event.data.blockedURI;
+      }
+    });
+  });
+  await page.getByPlaceholder('Paste an HTML page here…').fill(
+    '<script>window.addEventListener("securitypolicyviolation", event => parent.postMessage({kind:"csp-violation", violatedDirective:event.violatedDirective, blockedURI:event.blockedURI}, "*"))</script>' +
+    '<script src="https://example.invalid/unallowlisted.js"></script>',
+  );
+
+  // The real preview document reports the browser's CSP event across its
+  // opaque-origin boundary. Assert both the directive and blocked URL.
+  await expect.poll(() => page.evaluate(() =>
+    (window as typeof window & { sandboxCspViolation?: string }).sandboxCspViolation ?? '',
+  )).toBe('script-src-elem|https://example.invalid/unallowlisted.js');
+});
+
+test('destroying and recreating the Python sandbox recovers a suspended run', async ({ page }) => {
+  test.setTimeout(90_000);
+  // The E2E static server does not add the CORS header required by the opaque-origin iframe's module load.
+  await page.route('**/assets/vendor/pyodide/**', async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({ response, headers: { ...response.headers(), 'access-control-allow-origin': '*' } });
+  });
+  await page.goto('/DUDE/tools/python-playground');
+  await expect(page.getByRole('heading', { name: 'Python Playground' })).toBeVisible();
+  const frame = page.locator('app-python-sandbox-host iframe');
+  const originalFrame = await frame.elementHandle();
+  expect(originalFrame).not.toBeNull();
+
+  await page.getByPlaceholder('Type Python here…').fill('import asyncio\nawait asyncio.sleep(3600)');
+  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Stop' })).toBeEnabled({ timeout: 60_000 });
+  await page.getByRole('button', { name: 'Stop' }).click();
+  await expect(page.getByText('Stopped. The Python runtime will reload on the next run.')).toBeVisible();
+
+  // A cancellable run suspended in Python must discard its old iframe and let
+  // the host run code in a freshly initialized Pyodide realm.
+  await expect.poll(() => originalFrame!.evaluate((element) => element.isConnected)).toBe(false);
+  await page.getByPlaceholder('Type Python here…').fill('print("recovered")');
+  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await expect(page.getByText('recovered', { exact: true })).toBeVisible({ timeout: 60_000 });
+});
