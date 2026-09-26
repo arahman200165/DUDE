@@ -1,0 +1,17 @@
+@if (capabilities().length) {
+  @if (isDesktop()) {
+    <span
+      class="inline-flex items-center rounded border border-border px-1.5 py-0.5 font-mono text-ui-xs text-text-muted"
+      [title]="title()"
+    >
+      Desktop-enhanced
+    </span>
+  } @else {
+    <span
+      class="inline-flex items-center rounded border border-accent/40 bg-accent/10 px-1.5 py-0.5 font-mono text-ui-xs text-accent"
+      [title]="title()"
+    >
+      More capable on desktop
+    </span>
+  }
+}

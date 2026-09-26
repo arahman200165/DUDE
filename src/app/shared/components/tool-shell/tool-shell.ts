@@ -13,10 +13,11 @@ import { CATEGORY_METADATA } from '../../models/tool-category.model';
 import { OfflineBadge } from '../offline-badge/offline-badge';
 import { CategoryIcon } from '../category-icon/category-icon';
 import { SecurityBadge } from '../security-badge/security-badge';
+import { DesktopCapabilityBadge } from '../desktop-capability-badge/desktop-capability-badge';
 
 @Component({
   selector: 'app-tool-shell',
-  imports: [OfflineBadge, CategoryIcon, SecurityBadge, RouterLink, RelatedToolsPanel],
+  imports: [OfflineBadge, CategoryIcon, SecurityBadge, DesktopCapabilityBadge, RouterLink, RelatedToolsPanel],
   templateUrl: './tool-shell.html',
 })
 export class ToolShell implements OnDestroy {
