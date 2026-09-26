@@ -192,6 +192,8 @@ it('never throws for arbitrary text input', () => {
 
 See `json-format.spec.ts`, `yaml-convert.spec.ts`, and `xml-format.spec.ts` for real examples.
 
+If the tool parses a complex real-world binary/structured format (PE, ELF, Mach-O, a certificate, a container format), don't rely solely on a hand-synthesized minimal fixture built byte-by-byte in the spec — also add a **golden corpus** fixture (DUDE_PRD.md §21 Phase 23 Item 6): a real sample under `<id>/__fixtures__/`, read via `readFileSync(resolve(process.cwd(), 'src/app/tools/<id>/__fixtures__/<name>'))`, with expected field values taken from an independent reference tool/library — never derived by running DUDE's own parser and copying its output. `__fixtures__/` is never referenced by `angular.json`'s `assets` globs, so nothing there ships in the app bundle. Document the fixture's exact provenance (how it was produced) and the independent cross-check tool/command in a short `__fixtures__/README.md`. See `pe-header-viewer`, `elf-header-viewer`, and `macho-header-viewer` for real examples — all three fixtures are genuine binaries produced by `dotnet publish -r <rid>` (which fetches the real prebuilt apphost package for that platform, no cross-compiler needed) and cross-checked with `pefile`/`pyelftools`/`lief` respectively.
+
 ## 11. Verify search/sidebar/command palette discovery
 
 Run the app (`ng serve`) and confirm:

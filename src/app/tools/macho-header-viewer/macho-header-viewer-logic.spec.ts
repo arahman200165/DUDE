@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { MachOReport, parseMachOHeaders } from './macho-header-viewer-logic';
 
 function writeCString(bytes: Uint8Array, offset: number, text: string): void {
@@ -83,5 +85,29 @@ describe('parseMachOHeaders', () => {
 
   it('rejects a file too small to hold any magic number', () => {
     expect(parseMachOHeaders(new Uint8Array(2)).isMachO).toBe(false);
+  });
+});
+
+describe('golden corpus (DUDE_PRD.md §21 Phase 23 Item 6)', () => {
+  // Real ARM64 Mach-O (.NET's apphost launcher stub, cross-compiled from Windows), cross-checked
+  // against Python's `lief` rather than DUDE's own parser -- see __fixtures__/README.md for
+  // provenance and exact values.
+  it('parses a real .NET apphost executable', () => {
+    const bytes = readFileSync(
+      resolve(process.cwd(), 'src/app/tools/macho-header-viewer/__fixtures__/dotnet-apphost.macho'),
+    );
+    const report = parseMachOHeaders(new Uint8Array(bytes)) as MachOReport;
+
+    expect(report.isMachO).toBe(true);
+    expect(report.isFat).toBe(false);
+    expect(report.bitness).toBe('64-bit');
+    expect(report.endianness).toBe('little-endian');
+    expect(report.cpuType).toBe('ARM64');
+    expect(report.fileType).toBe('MH_EXECUTE (executable)');
+    expect(report.loadCommands).toHaveLength(19);
+    expect(report.dylibs).toEqual([
+      { name: '/usr/lib/libSystem.B.dylib', currentVersion: '1351.0.0', compatibilityVersion: '1.0.0' },
+      { name: '/usr/lib/libc++.1.dylib', currentVersion: '1900.180.0', compatibilityVersion: '1.0.0' },
+    ]);
   });
 });

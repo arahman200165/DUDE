@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { ElfReport, parseElfHeaders } from './elf-header-viewer-logic';
 
 function writeCString(bytes: Uint8Array, offset: number, text: string): number {
@@ -128,5 +130,69 @@ describe('parseElfHeaders', () => {
 
   it('rejects a file too small to hold an ELF header', () => {
     expect(parseElfHeaders(new Uint8Array(10)).isElf).toBe(false);
+  });
+});
+
+describe('golden corpus (DUDE_PRD.md §21 Phase 23 Item 6)', () => {
+  // Real x86-64 ELF (.NET's apphost launcher stub, cross-compiled from Windows), cross-checked
+  // against Python's `pyelftools` rather than DUDE's own parser -- see __fixtures__/README.md for
+  // provenance and exact values.
+  it('parses a real .NET apphost executable', () => {
+    const bytes = readFileSync(
+      resolve(process.cwd(), 'src/app/tools/elf-header-viewer/__fixtures__/dotnet-apphost.elf'),
+    );
+    const report = parseElfHeaders(new Uint8Array(bytes)) as ElfReport;
+
+    expect(report.isElf).toBe(true);
+    expect(report.bitness).toBe('64-bit');
+    expect(report.endianness).toBe('little-endian');
+    expect(report.type).toBe('DYN (shared object/PIE)');
+    expect(report.machine).toBe('x86-64');
+    expect(report.entryPoint).toBe('0x7190');
+
+    expect(report.programHeaders).toHaveLength(12);
+    expect(report.programHeaders[0]).toEqual({ type: 'PHDR', offset: '0x40', vaddr: '0x40', filesz: '0x2a0', memsz: '0x2a0' });
+    expect(report.programHeaders.filter((p) => p.type === 'LOAD')).toHaveLength(4);
+
+    expect(report.sectionHeaders.map((s) => s.name)).toEqual([
+      '',
+      '.interp',
+      '.note.ABI-tag',
+      '.note.gnu.build-id',
+      '.dynsym',
+      '.gnu.version',
+      '.gnu.version_r',
+      '.gnu.hash',
+      '.dynstr',
+      '.rela.dyn',
+      '.rela.plt',
+      '.rodata',
+      '.gcc_except_table',
+      '.eh_frame_hdr',
+      '.eh_frame',
+      '.text',
+      '.init',
+      '.fini',
+      '.plt',
+      '.tbss',
+      '.fini_array',
+      '.init_array',
+      '.data.rel.ro',
+      '.dynamic',
+      '.got',
+      '.got.plt',
+      '.relro_padding',
+      '.data',
+      '.tm_clone_table',
+      '.bss',
+      '.comment',
+      '.shstrtab',
+      '.gnu_debuglink',
+    ]);
+
+    // pyelftools reports 104 .dynsym entries; DUDE skips the mandatory leading null-name entry.
+    expect(report.dynamicSymbols).toHaveLength(103);
+    expect(report.dynamicSymbols.map((s) => s.name)).toContain('__libc_start_main');
+    expect(report.dynamicSymbols.map((s) => s.name)).toContain('strlen');
   });
 });

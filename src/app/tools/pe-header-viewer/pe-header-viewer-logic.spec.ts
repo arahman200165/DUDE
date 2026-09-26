@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { parsePeHeaders, PeReport } from './pe-header-viewer-logic';
 
 /** Builds a minimal, valid PE32+ (x64) executable with one ".text" section and no data directories. */
@@ -84,5 +86,43 @@ describe('parsePeHeaders', () => {
   it('formats a nonzero timestamp as an ISO date string', () => {
     const report = parsePeHeaders(buildMinimalPe()) as PeReport;
     expect(report.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+});
+
+describe('golden corpus (DUDE_PRD.md §21 Phase 23 Item 6)', () => {
+  // Real native x64 PE (.NET's apphost launcher stub), cross-checked against Python's `pefile`
+  // rather than DUDE's own parser -- see __fixtures__/README.md for provenance and exact values.
+  it('parses a real .NET apphost executable', () => {
+    const bytes = readFileSync(
+      resolve(process.cwd(), 'src/app/tools/pe-header-viewer/__fixtures__/dotnet-apphost.exe'),
+    );
+    const report = parsePeHeaders(new Uint8Array(bytes)) as PeReport;
+
+    expect(report.isPe).toBe(true);
+    expect(report.machine).toBe('x64 (AMD64)');
+    expect(report.numberOfSections).toBe(6);
+    expect(report.timestamp).toBe('2026-03-25T15:32:16.000Z');
+    expect(report.characteristics).toBe(0x0022);
+    expect(report.optionalHeaderMagic).toBe('PE32+');
+    expect(report.addressOfEntryPoint).toBe(0x13ba0);
+    expect(report.imageBase).toBe('0x140000000');
+    expect(report.subsystem).toBe('Windows CUI');
+    expect(report.sizeOfImage).toBe(184320);
+    expect(report.sizeOfHeaders).toBe(1024);
+    expect(report.sections.map((s) => s.name)).toEqual(['.text', '.rdata', '.data', '.pdata', '.reloc', '.rsrc']);
+    expect(report.importedDlls).toEqual([
+      'SHELL32.dll',
+      'ADVAPI32.dll',
+      'KERNEL32.dll',
+      'USER32.dll',
+      'api-ms-win-crt-runtime-l1-1-0.dll',
+      'api-ms-win-crt-heap-l1-1-0.dll',
+      'api-ms-win-crt-time-l1-1-0.dll',
+      'api-ms-win-crt-stdio-l1-1-0.dll',
+      'api-ms-win-crt-locale-l1-1-0.dll',
+      'api-ms-win-crt-string-l1-1-0.dll',
+      'api-ms-win-crt-convert-l1-1-0.dll',
+      'api-ms-win-crt-math-l1-1-0.dll',
+    ]);
   });
 });
