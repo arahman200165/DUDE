@@ -1,0 +1,6 @@
+@if (crashRecovery.visible()) {
+  <div class="fixed bottom-36 right-4 z-50 max-w-lg rounded border border-info/50 bg-panel p-3 text-ui text-info" role="alert">
+    DUDE didn't shut down cleanly last time — your workspace tabs have been restored.
+    <button type="button" class="ml-3 underline" (click)="crashRecovery.dismiss()">Dismiss</button>
+  </div>
+}

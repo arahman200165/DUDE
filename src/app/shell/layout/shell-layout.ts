@@ -13,10 +13,11 @@ import { NativeMenuService } from '../../core/platform/native-menu.service';
 import { QuickLauncherService } from '../../core/platform/quick-launcher.service';
 import { AmbientPasteChip } from '../../shared/components/ambient-paste-chip/ambient-paste-chip';
 import { GlobalDropRouter } from '../../shared/components/global-drop-router/global-drop-router';
+import { CrashRecoveryNotice } from '../../shared/components/crash-recovery-notice/crash-recovery-notice';
 
 @Component({
   selector: 'app-shell-layout',
-  imports: [RouterOutlet, Sidebar, OfflineBadge, UpdateBadge, Onboarding, AmbientPasteChip, GlobalDropRouter],
+  imports: [RouterOutlet, Sidebar, OfflineBadge, UpdateBadge, Onboarding, AmbientPasteChip, GlobalDropRouter, CrashRecoveryNotice],
   templateUrl: './shell-layout.html',
 })
 export class ShellLayout {

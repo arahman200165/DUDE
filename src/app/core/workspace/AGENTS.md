@@ -4,6 +4,17 @@ Framework layer for the Persistent Workspace/Scratchpad (`DUDE_PRD.md` §21 Phas
 foundation Persistent Local History (Item 5) builds on. Like the rest of `core/`, no file here ever names a
 specific tool by id.
 
+## Crash recovery needs no restore-path change (Phase 25 Item 6)
+
+Restoring workspace state after a crash reuses the exact same path a clean quit's next launch
+already takes -- `'__workspace__'`'s `local`-policy store survives a crash identically to a clean
+quit (see "Why there is no separate durable content tier" below), so there is nothing to add here.
+The one invariant worth stating explicitly: `WorkspaceStep.restore()` only ever re-hydrates a tool's
+own already-persisted fields via `workspace-storage-bridge.ts` -- it never re-invokes a tool's own
+action (a fetch, a write, a delete). Restoring a workspace after an unclean exit therefore cannot
+incidentally trigger a destructive action; `core/platform/crash-recovery.service.ts` only decides
+*whether to tell the user* restoration happened, never re-runs anything itself.
+
 ## The `<id>.workspace-step.ts` convention
 
 A workspace/history-eligible tool exposes itself by placing a file at
