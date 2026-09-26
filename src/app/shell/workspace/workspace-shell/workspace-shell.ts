@@ -4,15 +4,16 @@ import { CommandPaletteService } from '../../command-palette/command-palette.ser
 import { TabStrip } from '../tab-strip/tab-strip';
 import { PanelHost } from '../panel-host/panel-host';
 import { ScratchpadDrawer } from '../scratchpad-drawer/scratchpad-drawer';
+import { TemplateGallery } from '../template-gallery/template-gallery';
 
 /**
  * `/workspace` route root (DUDE_PRD.md §21 Phase 21 Item 4) — a sanctioned exception to
  * "nothing in shell/ hard-codes a tool ID", the third after `pipelines/`/`smart-paste/`. See
- * `shell/workspace/AGENTS.md`.
+ * `shell/workspace/AGENTS.md`. `TemplateGallery` (Phase 24 Item 11) extends this same exception.
  */
 @Component({
   selector: 'app-workspace-shell',
-  imports: [TabStrip, PanelHost, ScratchpadDrawer],
+  imports: [TabStrip, PanelHost, ScratchpadDrawer, TemplateGallery],
   templateUrl: './workspace-shell.html',
 })
 export class WorkspaceShell {

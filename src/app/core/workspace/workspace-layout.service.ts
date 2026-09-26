@@ -135,6 +135,16 @@ export class WorkspaceLayoutService {
     this.layout.set({ ...current, openTabs, panelTree, focusedNodeId: newLeaf.nodeId });
   }
 
+  /**
+   * Replaces the entire layout wholesale -- the one setter Workspace Templates (Phase 24 Item 11)
+   * applies through, so a template can never desync from the invariants already enforced here (one
+   * leaf per tool id is the template author's own responsibility; this does no further validation,
+   * exactly like `openTool`'s own trust of its caller).
+   */
+  applyLayout(panelTree: PanelNode | null, openTabs: readonly string[]): void {
+    this.layout.set({ schemaVersion: 1, openTabs, panelTree, focusedNodeId: null });
+  }
+
   /** Persists a drag-resize on the split with id `nodeId`. */
   setSplitRatio(nodeId: string, ratio: number): void {
     const current = this.layout();

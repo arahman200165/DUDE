@@ -60,6 +60,25 @@ begin with. No capture, no restore call, no IndexedDB write is needed for any of
 log of past snapshots, not a single current value) — not for Saved Sessions' relaunch case, which
 Milestone 291's layout store already covers completely.
 
+## Workspace Templates (Phase 24 Item 11)
+
+A template (`workspace-template.model.ts`) is exactly `WorkspaceLayout` minus `focusedNodeId` — tool
+ids and panel-tree shape, zero tool content, same as the layout store itself. `BUILT_IN_TEMPLATES`
+is curated data ("API Debugging," "JWT/Auth," "Data Cleanup," "Certificate Inspection"), mirroring
+`core/paste-detect/paste-detectors.ts`'s "data, not control flow" shape — its own model spec asserts
+every referenced tool id still resolves in the real registry, so a future tool rename/removal fails
+loudly here instead of silently producing a template with a dead leaf. User-defined templates
+persist under `'__workspace-templates__'`, the same synthetic-pseudo-tool-id pattern as
+`'__workspace__'`/`'__pipelines__'`.
+
+`WorkspaceTemplateService.apply()` always routes through `WorkspaceLayoutService.applyLayout()` — a
+thin, generic `(panelTree, openTabs) => void` setter that carries no template-specific knowledge —
+rather than a template service reaching into the layout store's internals directly. This keeps
+exactly one place that ever constructs a raw `WorkspaceLayout` object, so a template can never
+desync from whatever invariants the layout service enforces elsewhere (today: none beyond what
+`openTool`/`splitFocused` already assume about one-leaf-per-tool-id, since `apply` trusts its input
+completely — a template is authored data, not user-typed input needing validation).
+
 ## The governing privacy rule
 
 No part of this feature may cause a tool's content to outlive the `PersistencePolicy` that tool's own code

@@ -1,0 +1,60 @@
+<div class="flex flex-col border-b border-border bg-panel">
+  <button
+    type="button"
+    class="flex items-center justify-between px-3 py-1 text-ui-sm text-text-muted hover:bg-panel-elevated hover:text-text"
+    (click)="toggle()"
+  >
+    <span>{{ expanded() ? '▾' : '▸' }} Templates</span>
+    <span class="text-ui-xs">{{ templates().length }}</span>
+  </button>
+
+  @if (expanded()) {
+    <div class="flex flex-col gap-2 border-t border-border p-2">
+      <div class="flex flex-wrap gap-2">
+        @for (template of templates(); track template.id) {
+          <div class="flex flex-col gap-1 rounded-sm border border-border bg-panel-elevated p-2">
+            <span class="text-ui-sm font-medium text-text">{{ template.name }}</span>
+            @if (template.description) {
+              <span class="text-ui-xs text-text-muted">{{ template.description }}</span>
+            }
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                class="rounded-sm border border-accent px-2 py-0.5 text-ui-xs text-accent hover:bg-accent/10"
+                (click)="apply(template)"
+              >
+                Apply
+              </button>
+              @if (!template.builtIn) {
+                <button
+                  type="button"
+                  class="rounded-sm border border-border px-2 py-0.5 text-ui-xs text-text-muted hover:bg-panel hover:text-error"
+                  (click)="remove(template.id)"
+                >
+                  Delete
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="flex items-center gap-2 border-t border-border pt-2">
+        <input
+          type="text"
+          class="w-48 rounded-sm border border-border bg-panel px-2 py-0.5 text-ui-sm text-text focus:outline-none focus:ring-1 focus:ring-accent"
+          placeholder="Save current layout as…"
+          [value]="draftName()"
+          (input)="onDraftNameInput($event)"
+        />
+        <button
+          type="button"
+          class="rounded-sm border border-accent px-2 py-0.5 text-ui-xs text-accent hover:bg-accent/10"
+          (click)="saveCurrent()"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  }
+</div>
