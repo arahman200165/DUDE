@@ -19,18 +19,18 @@ below until a Phase 27+ tool actually claims them.
 
 | Tool | Consequence class | Status |
 | --- | --- | --- |
-| [AES Encrypt / Decrypt](https://arahman200165.github.io/DUDE/tools/aes-encrypt-decrypt) | Crypto | stable |
-| [Asymmetric Key Generator](https://arahman200165.github.io/DUDE/tools/asymmetric-key-generator) | Crypto | stable |
-| [AWS Signature V4 Inspector](https://arahman200165.github.io/DUDE/tools/aws-sigv4-inspector) | Authentication | stable |
+| [AES Encrypt / Decrypt](https://arahman200165.github.io/DUDE/tools/aes-encrypt-decrypt) | Crypto | verified — Decrypts AES-256-GCM/CBC ciphertext built independently by Node's OpenSSL-backed crypto module, not just its own round-trip. |
+| [Asymmetric Key Generator](https://arahman200165.github.io/DUDE/tools/asymmetric-key-generator) | Crypto | verified — A generated RSA-2048 private key was independently loaded, signed, and verified by openssl, confirming standards-compliant PKCS#8 output. |
+| [AWS Signature V4 Inspector](https://arahman200165.github.io/DUDE/tools/aws-sigv4-inspector) | Authentication | verified — Signature computation matches AWS's own documented worked example exactly, cross-checked independently via Node's crypto. |
 | [Basic Auth Header Generator](https://arahman200165.github.io/DUDE/tools/basic-auth-generator) | Authentication | stable |
 | [Bearer Token Builder](https://arahman200165.github.io/DUDE/tools/bearer-token-builder) | Authentication | stable |
-| [Certificate Chain Viewer & Builder](https://arahman200165.github.io/DUDE/tools/certificate-chain-tools) | Crypto | stable |
-| [ChaCha20-Poly1305 Encrypt / Decrypt](https://arahman200165.github.io/DUDE/tools/chacha20-poly1305) | Crypto | stable |
-| [CSR Generator & Inspector](https://arahman200165.github.io/DUDE/tools/csr-generator-inspector) | Crypto | stable |
-| [Hash Generator](https://arahman200165.github.io/DUDE/tools/hash) | Crypto | stable |
-| [HMAC Generator](https://arahman200165.github.io/DUDE/tools/hmac-generator) | Crypto | stable |
+| [Certificate Chain Viewer & Builder](https://arahman200165.github.io/DUDE/tools/certificate-chain-tools) | Crypto | verified — Chain validity for a real openssl-built leaf/intermediate/root chain matches openssl verify. |
+| [ChaCha20-Poly1305 Encrypt / Decrypt](https://arahman200165.github.io/DUDE/tools/chacha20-poly1305) | Crypto | verified — Decrypts ChaCha20-Poly1305 ciphertext built independently by Node's OpenSSL-backed crypto module, not just @noble/ciphers agreeing with itself. |
+| [CSR Generator & Inspector](https://arahman200165.github.io/DUDE/tools/csr-generator-inspector) | Crypto | verified — Parses a real openssl-generated CSR, correctly extracting subject/key-size/signature validity that openssl req -text independently confirms. |
+| [Hash Generator](https://arahman200165.github.io/DUDE/tools/hash) | Crypto | verified — Every one of the 15 supported algorithms is tested against its official published test vector, not just self round-trip. |
+| [HMAC Generator](https://arahman200165.github.io/DUDE/tools/hmac-generator) | Crypto | verified — HMAC-SHA1/256/384/512 match RFC 4231's official test vectors exactly. |
 | [HTML Preview](https://arahman200165.github.io/DUDE/tools/html-preview) | Code Execution | experimental |
-| [HTTP Digest Auth Helper](https://arahman200165.github.io/DUDE/tools/http-digest-auth-helper) | Authentication | stable |
+| [HTTP Digest Auth Helper](https://arahman200165.github.io/DUDE/tools/http-digest-auth-helper) | Authentication | verified — HA1/HA2/response computation matches RFC 2617's official worked example exactly. |
 | [JavaScript Playground](https://arahman200165.github.io/DUDE/tools/js-playground) | Code Execution | experimental |
 | [JWKS → Public Keys](https://arahman200165.github.io/DUDE/tools/jwks-to-pem) | Crypto | stable |
 | [JWKS Viewer](https://arahman200165.github.io/DUDE/tools/jwks-viewer) | Authentication | stable |
@@ -46,14 +46,14 @@ below until a Phase 27+ tool actually claims them.
 | [OAuth Token Inspector](https://arahman200165.github.io/DUDE/tools/oauth-token-inspector) | Authentication | stable |
 | [OpenID Connect Discovery Document Inspector](https://arahman200165.github.io/DUDE/tools/oidc-discovery-inspector) | Authentication | stable |
 | [PEM / DER Inspector & Converter](https://arahman200165.github.io/DUDE/tools/pem-der-inspector) | Crypto | stable |
-| [PKCE Generator](https://arahman200165.github.io/DUDE/tools/pkce-generator) | Authentication | stable |
-| [PKCE Verifier](https://arahman200165.github.io/DUDE/tools/pkce-verifier) | Authentication | stable |
-| [PKCS#12 / PFX Inspector](https://arahman200165.github.io/DUDE/tools/pkcs12-inspector) | Crypto | stable |
+| [PKCE Generator](https://arahman200165.github.io/DUDE/tools/pkce-generator) | Authentication | verified — S256 code_challenge computation matches RFC 7636 Appendix B's official worked example exactly. |
+| [PKCE Verifier](https://arahman200165.github.io/DUDE/tools/pkce-verifier) | Authentication | verified — Verifier/challenge matching is checked against RFC 7636 Appendix B's official worked example. |
+| [PKCS#12 / PFX Inspector](https://arahman200165.github.io/DUDE/tools/pkcs12-inspector) | Crypto | verified — Correctly extracts leaf/intermediate certs and friendlyName from a real openssl-generated .p12 using modern PBES2 encryption. |
 | [Python Playground](https://arahman200165.github.io/DUDE/tools/python-playground) | Code Execution | experimental |
 | [Secret Detector](https://arahman200165.github.io/DUDE/tools/secret-detector) | Secret Management | stable |
-| [SSH Key Generator & Inspector](https://arahman200165.github.io/DUDE/tools/ssh-key-tools) | Crypto | stable |
+| [SSH Key Generator & Inspector](https://arahman200165.github.io/DUDE/tools/ssh-key-tools) | Crypto | verified — SHA256/MD5 fingerprints for Ed25519/RSA-2048/ECDSA-P256 keys matched byte-for-byte against real ssh-keygen output. |
 | [Template Renderer](https://arahman200165.github.io/DUDE/tools/template-renderer) | Code Execution | experimental |
-| [X.509 Certificate Inspector](https://arahman200165.github.io/DUDE/tools/x509-certificate-inspector) | Crypto | stable |
+| [X.509 Certificate Inspector](https://arahman200165.github.io/DUDE/tools/x509-certificate-inspector) | Crypto | verified — SHA-1/SHA-256 fingerprints for a real openssl-generated certificate matched exactly. |
 
 ## Network-Capable Tools
 
