@@ -13,7 +13,7 @@ export interface RandomDataField {
   readonly key: string;
   readonly label: string;
   readonly group: string;
-  readonly generate: () => string;
+  readonly generate: (refDate?: Date) => string;
 }
 
 export const RANDOM_DATA_FIELDS: readonly RandomDataField[] = [
@@ -43,7 +43,7 @@ export const RANDOM_DATA_FIELDS: readonly RandomDataField[] = [
     generate: () => faker.internet.httpStatusCode().toString(),
   },
   { key: 'port', label: 'Port', group: 'Internet & Tech', generate: () => faker.internet.port().toString() },
-  { key: 'jwt', label: 'JWT', group: 'Internet & Tech', generate: () => faker.internet.jwt() },
+  { key: 'jwt', label: 'JWT', group: 'Internet & Tech', generate: (refDate) => faker.internet.jwt({ refDate }) },
 
   // Location
   { key: 'streetAddress', label: 'Street Address', group: 'Location', generate: () => faker.location.streetAddress() },
@@ -80,9 +80,9 @@ export const RANDOM_DATA_FIELDS: readonly RandomDataField[] = [
   { key: 'bitcoinAddress', label: 'Bitcoin Address', group: 'Finance', generate: () => faker.finance.bitcoinAddress() },
 
   // Date & time
-  { key: 'pastDate', label: 'Past Date', group: 'Date & Time', generate: () => faker.date.past().toISOString() },
-  { key: 'recentDate', label: 'Recent Date', group: 'Date & Time', generate: () => faker.date.recent().toISOString() },
-  { key: 'futureDate', label: 'Future Date', group: 'Date & Time', generate: () => faker.date.future().toISOString() },
+  { key: 'pastDate', label: 'Past Date', group: 'Date & Time', generate: (refDate) => faker.date.past({ refDate }).toISOString() },
+  { key: 'recentDate', label: 'Recent Date', group: 'Date & Time', generate: (refDate) => faker.date.recent({ refDate }).toISOString() },
+  { key: 'futureDate', label: 'Future Date', group: 'Date & Time', generate: (refDate) => faker.date.future({ refDate }).toISOString() },
   { key: 'weekday', label: 'Weekday', group: 'Date & Time', generate: () => faker.date.weekday() },
   { key: 'month', label: 'Month', group: 'Date & Time', generate: () => faker.date.month() },
 
@@ -177,10 +177,14 @@ export function generateRows(options: GenerateOptions): GenerateResult {
 
   if (options.seed !== undefined) faker.seed(options.seed);
 
+  // Faker's date and JWT generators also read the wall clock, which would
+  // make identical seeds produce different output over time.
+  const refDate = options.seed === undefined ? undefined : new Date('2020-01-01T00:00:00.000Z');
+
   const resolvedFields = fields as RandomDataField[];
   const rows: string[][] = [];
   for (let i = 0; i < options.rowCount; i++) {
-    rows.push(resolvedFields.map((field) => field.generate()));
+    rows.push(resolvedFields.map((field) => field.generate(refDate)));
   }
 
   return { ok: true, columns: resolvedFields.map((field) => field.label), rows };

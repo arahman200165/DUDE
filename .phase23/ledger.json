@@ -1877,8 +1877,8 @@
     "subdomain": "misc",
     "status": "verified",
     "recipe": "GENERATOR",
-    "milestone": 384,
-    "notes": ""
+    "milestone": 386,
+    "notes": "flagged: public behavior change; seeded date and JWT fields now use a fixed 2020-01-01 reference date for repeatable output."
   },
   {
     "id": "scientific-notation-converter",
