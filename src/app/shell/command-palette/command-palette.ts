@@ -1,9 +1,11 @@
 import { AfterViewInit, Component, ElementRef, ViewChild, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { CdkTrapFocus } from '@angular/cdk/a11y';
 import { CATEGORY_METADATA, ToolCategory, TOOL_CATEGORIES } from '../../shared/models/tool-category.model';
 import { ToolDefinition } from '../../shared/models/tool-definition.model';
 import { ToolRegistryService } from '../../core/registry/tool-registry.service';
 import { ToolLauncherService } from '../../core/registry/tool-launcher.service';
+import { PipelineStepRegistryService } from '../../core/pipeline/pipeline-step-registry.service';
 import { CommandPaletteService } from './command-palette.service';
 import { CategoryIcon } from '../../shared/components/category-icon/category-icon';
 
@@ -16,6 +18,8 @@ export class CommandPalette implements AfterViewInit {
   private readonly registry = inject(ToolRegistryService);
   private readonly launcher = inject(ToolLauncherService);
   private readonly paletteService = inject(CommandPaletteService);
+  private readonly router = inject(Router);
+  private readonly stepRegistry = inject(PipelineStepRegistryService);
 
   @ViewChild('searchInput') private readonly searchInput?: ElementRef<HTMLInputElement>;
 
@@ -78,6 +82,25 @@ export class CommandPalette implements AfterViewInit {
 
   protected open(tool: ToolDefinition): void {
     this.launcher.open(tool);
+    this.paletteService.close();
+  }
+
+  /**
+   * Quick Run (DUDE_PRD.md §21 Phase 24 Item 12) only supports text-accepting pipeline steps — see
+   * `shell/quick-run/quick-run-list/quick-run-list.ts`'s own doc comment for why. Deliberately never
+   * calls `PipelineStepRegistryService.ensureLoaded()` here — the palette can open from any page via
+   * Ctrl+K, so forcing the eager ~225-chunk load on every open would be the same regression
+   * Milestone 411 caught for `RelatedToolsPanel` (see `core/suggestions/AGENTS.md`). This affordance
+   * simply doesn't appear until something else (visiting `/pipelines` or `/quick-run`) has already
+   * warmed the shared cache, then applies for free afterward.
+   */
+  protected canQuickRun(tool: ToolDefinition): boolean {
+    return this.stepRegistry.get(tool.id)?.accepts.includes('text') ?? false;
+  }
+
+  protected openQuickRun(tool: ToolDefinition, event: Event): void {
+    event.stopPropagation();
+    void this.router.navigate(['/quick-run'], { queryParams: { tool: tool.id } });
     this.paletteService.close();
   }
 }

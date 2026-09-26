@@ -51,3 +51,13 @@ test mounting a real `ToolShell` route now raced 225 dynamic imports against its
 being caught and reverted. Leave the cache to warm up naturally whenever something that genuinely
 needs it (the Pipeline Builder's "add step" picker) loads it first — the boost then applies for free
 on every subsequent panel render, with zero cost to tool pages that never trigger it.
+
+**This bit a second time in Milestone 418.** `CommandPalette`'s "⚡ Quick Run" affordance
+(`shell/command-palette/command-palette.ts#canQuickRun`) also reads `stepRegistry.get(toolId)` as-is
+for the exact same reason: the palette opens from *any* page via Ctrl+K, so an `ensureLoaded()` call
+in its constructor broke 33 unrelated spec files (plus a genuine timeout in an unrelated file) before
+being caught and reverted the same way. The rule generalizes: **any component that can mount or
+construct from more than one deliberately-scoped route/action must never call
+`PipelineStepRegistryService.ensureLoaded()` itself** — only components confined to their own
+dedicated, occasional-visit route (`PipelineBuilder`, `PipelineSuggestionBanner`, `QuickRunList`) may.
+When in doubt, don't call it — read the cache as-is and let it warm up elsewhere.

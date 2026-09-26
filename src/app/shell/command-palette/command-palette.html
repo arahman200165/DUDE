@@ -48,7 +48,16 @@
               (click)="open(tool)"
             >
               <span class="h-1 w-1 shrink-0 rounded-full" [class]="'bg-' + meta[group.category].colorToken"></span>
-              {{ tool.title }}
+              <span class="flex-1">{{ tool.title }}</span>
+              @if (canQuickRun(tool)) {
+                <span
+                  class="shrink-0 rounded-sm border border-accent/40 px-1 text-ui-xs text-accent hover:bg-accent/10"
+                  title="Quick Run"
+                  (click)="openQuickRun(tool, $event)"
+                >
+                  ⚡
+                </span>
+              }
             </button>
           }
         </div>
