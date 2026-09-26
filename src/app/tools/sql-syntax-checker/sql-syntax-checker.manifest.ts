@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['sql', 'syntax', 'check', 'validate', 'lint', 'parse'],
   route: '/tools/sql-syntax-checker',
   load: () => import('./sql-syntax-checker').then((m) => m.SqlSyntaxChecker),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested with arbitrary text across every dialect (fast-check) -- never throws.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };
