@@ -12,10 +12,11 @@ import { DeepLinkService } from '../../core/deep-link/deep-link.service';
 import { NativeMenuService } from '../../core/platform/native-menu.service';
 import { QuickLauncherService } from '../../core/platform/quick-launcher.service';
 import { AmbientPasteChip } from '../../shared/components/ambient-paste-chip/ambient-paste-chip';
+import { GlobalDropRouter } from '../../shared/components/global-drop-router/global-drop-router';
 
 @Component({
   selector: 'app-shell-layout',
-  imports: [RouterOutlet, Sidebar, OfflineBadge, UpdateBadge, Onboarding, AmbientPasteChip],
+  imports: [RouterOutlet, Sidebar, OfflineBadge, UpdateBadge, Onboarding, AmbientPasteChip, GlobalDropRouter],
   templateUrl: './shell-layout.html',
 })
 export class ShellLayout {

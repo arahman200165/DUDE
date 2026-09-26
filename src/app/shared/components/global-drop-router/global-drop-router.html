@@ -1,0 +1,11 @@
+@if (dragging()) {
+  <div class="pointer-events-none fixed inset-2 z-[90] rounded border-2 border-dashed border-accent bg-accent/10" aria-hidden="true">
+    <span class="absolute left-1/2 top-5 -translate-x-1/2 rounded bg-panel px-3 py-1 text-ui text-accent">Drop a file to open it in DUDE</span>
+  </div>
+}
+@if (message()) {
+  <div class="fixed bottom-4 right-4 z-[90] max-w-sm rounded border border-border bg-panel p-3 text-ui text-text shadow-lg" role="status">
+    {{ message() }}
+    <button type="button" class="ml-2 text-accent underline" (click)="message.set('')">Dismiss</button>
+  </div>
+}

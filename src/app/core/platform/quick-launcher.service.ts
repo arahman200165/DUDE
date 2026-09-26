@@ -36,6 +36,14 @@ export class QuickLauncherService {
     window.dude!.quickLauncher.ready();
   }
 
+  async promote(): Promise<void> {
+    if (!this.compact()) return;
+    this.active = false;
+    this.compact.set(false);
+    this.palette.close();
+    await window.dude!.quickLauncher.promote();
+  }
+
   getHotkey(): Promise<string | null> {
     return this.platform.isDesktop() ? window.dude!.quickLauncher.getHotkey() : Promise.resolve(null);
   }
