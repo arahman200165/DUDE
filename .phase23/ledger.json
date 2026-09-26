@@ -21,10 +21,10 @@
     "id": "barcode-reader",
     "category": "encoding",
     "subdomain": null,
-    "status": "blocked",
+    "status": "verified",
     "recipe": "CORE-ONLY",
-    "milestone": 366,
-    "notes": "needs-browser-harness: component is a thin wrapper around @zxing/library's BrowserMultiFormatReader (camera stream / image URL decode) with no extracted pure core to property-test."
+    "milestone": 396,
+    "notes": "Chromium Playwright upload E2E decodes qrcode-package PNG fixture through the real @zxing/library browser image path; no property-test claim."
   },
   {
     "id": "base64-image-viewer",
