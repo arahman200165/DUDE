@@ -32,6 +32,16 @@
               </span>
             </a>
             <div class="flex items-center gap-2">
+              <button
+                type="button"
+                class="text-ui-sm"
+                [class]="favorites.isPipelinePinned(pipeline.id) ? 'text-accent' : 'text-text-muted hover:text-text'"
+                [attr.aria-pressed]="favorites.isPipelinePinned(pipeline.id)"
+                [title]="favorites.isPipelinePinned(pipeline.id) ? 'Unpin pipeline' : 'Pin pipeline'"
+                (click)="togglePin(pipeline.id)"
+              >
+                {{ favorites.isPipelinePinned(pipeline.id) ? '★' : '☆' }}
+              </button>
               <button type="button" class="text-ui-sm text-text-muted hover:text-text" (click)="duplicate(pipeline.id)">
                 Duplicate
               </button>

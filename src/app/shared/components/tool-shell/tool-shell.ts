@@ -7,6 +7,7 @@ import { ScratchpadService } from '../../../core/workspace/scratchpad.service';
 import { HistoryService } from '../../../core/history/history.service';
 import { recordHistoryOnDestroy } from '../../../core/history/history-recorder';
 import { UsageService } from '../../../core/usage/usage.service';
+import { FavoritesService } from '../../../core/favorites/favorites.service';
 import { CATEGORY_METADATA } from '../../models/tool-category.model';
 import { OfflineBadge } from '../offline-badge/offline-badge';
 import { CategoryIcon } from '../category-icon/category-icon';
@@ -25,6 +26,7 @@ export class ToolShell implements OnDestroy {
   private readonly scratchpad = inject(ScratchpadService);
   private readonly history = inject(HistoryService);
   private readonly usage = inject(UsageService);
+  protected readonly favorites = inject(FavoritesService);
 
   /**
    * Optional override for tools whose network need is a runtime condition rather than a
@@ -87,6 +89,17 @@ export class ToolShell implements OnDestroy {
   constructor() {
     const definition = this.definition();
     if (definition) this.usage.recordOpen(definition.id);
+  }
+
+  /** Favorites / Pinned Tools (DUDE_PRD.md §21 Phase 24 Item 7) — a star toggle beside the badges. */
+  protected readonly isPinned = computed(() => {
+    const definition = this.definition();
+    return definition ? this.favorites.isToolPinned(definition.id) : false;
+  });
+
+  protected togglePin(): void {
+    const definition = this.definition();
+    if (definition) this.favorites.toggleTool(definition.id);
   }
 
   /**

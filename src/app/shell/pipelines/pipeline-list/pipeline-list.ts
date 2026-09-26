@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { PipelineStoreService } from '../../../core/pipeline/pipeline-store.service';
+import { FavoritesService } from '../../../core/favorites/favorites.service';
 
 @Component({
   selector: 'app-pipeline-list',
@@ -10,8 +11,13 @@ import { PipelineStoreService } from '../../../core/pipeline/pipeline-store.serv
 export class PipelineList {
   private readonly store = inject(PipelineStoreService);
   private readonly router = inject(Router);
+  protected readonly favorites = inject(FavoritesService);
 
   protected readonly pipelines = this.store.pipelines;
+
+  protected togglePin(id: string): void {
+    this.favorites.togglePipeline(id);
+  }
 
   protected duplicate(id: string): void {
     const copy = this.store.duplicate(id);

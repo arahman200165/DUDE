@@ -10,6 +10,18 @@
       <h1 class="text-sm font-semibold tracking-wide text-text">{{ definition()?.title }}</h1>
     </div>
     <div class="flex items-center gap-2">
+      @if (definition(); as def) {
+        <button
+          type="button"
+          class="rounded border px-1.5 py-0.5 text-ui-xs"
+          [class]="isPinned() ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border text-text-muted hover:border-accent hover:text-accent'"
+          [title]="isPinned() ? 'Unpin from Favorites' : 'Pin to Favorites'"
+          [attr.aria-pressed]="isPinned()"
+          (click)="togglePin()"
+        >
+          {{ isPinned() ? '★' : '☆' }}
+        </button>
+      }
       <button
         type="button"
         class="rounded border border-border px-1.5 py-0.5 text-ui-xs text-text-muted hover:border-accent hover:text-accent"
