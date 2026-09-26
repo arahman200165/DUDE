@@ -14,6 +14,7 @@
     "prestart": "npm run generate:registry",
     "start": "ng serve",
     "build": "ng build",
+    "postbuild": "node scripts/check-cache-budget.mjs",
     "watch": "ng build --watch --configuration development",
     "pretest": "npm run generate:registry",
     "test": "ng test",
