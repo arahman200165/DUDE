@@ -100,21 +100,26 @@ describe('generatePassword', () => {
 });
 
 describe('generatePassphrase', () => {
+  // DUDE_PRD.md §21 Phase 23 Item 11 (deterministic test fixtures) -- these previously used '-'
+  // as both the join separator and the split-back-apart delimiter, but the EFF wordlist contains
+  // some hyphenated entries (e.g. "eyes-only"), so an unlucky random word could split into more
+  // parts than wordCount and flake. '|' cannot appear inside any wordlist entry, so it's an
+  // unambiguous delimiter regardless of which words are randomly chosen.
   it('produces the requested number of words joined by the separator', () => {
-    const passphrase = generatePassphrase({ wordCount: 5, separator: '-', capitalize: false, includeDigit: false });
-    expect(passphrase.split('-')).toHaveLength(5);
+    const passphrase = generatePassphrase({ wordCount: 5, separator: '|', capitalize: false, includeDigit: false });
+    expect(passphrase.split('|')).toHaveLength(5);
   });
 
   it('appends a trailing digit when requested', () => {
-    const passphrase = generatePassphrase({ wordCount: 4, separator: '-', capitalize: false, includeDigit: true });
-    const parts = passphrase.split('-');
+    const passphrase = generatePassphrase({ wordCount: 4, separator: '|', capitalize: false, includeDigit: true });
+    const parts = passphrase.split('|');
     expect(parts).toHaveLength(5);
     expect(parts.at(-1)).toMatch(/^[0-9]$/);
   });
 
   it('capitalizes each word when requested', () => {
-    const passphrase = generatePassphrase({ wordCount: 3, separator: '-', capitalize: true, includeDigit: false });
-    for (const word of passphrase.split('-')) {
+    const passphrase = generatePassphrase({ wordCount: 3, separator: '|', capitalize: true, includeDigit: false });
+    for (const word of passphrase.split('|')) {
       expect(word[0]).toBe(word[0].toUpperCase());
     }
   });
