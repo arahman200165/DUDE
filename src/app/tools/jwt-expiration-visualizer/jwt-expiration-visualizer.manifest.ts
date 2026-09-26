@@ -19,7 +19,11 @@ export const manifest: ToolDefinition = {
   ],
   route: '/tools/jwt-expiration-visualizer',
   load: () => import('./jwt-expiration-visualizer').then((m) => m.JwtExpirationVisualizer),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested with arbitrary JSON-shaped payloads and arbitrary numeric iat/nbf/exp values (fast-check) -- never throws.',
+  },
   consequenceClass: ['authentication'],
   persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['text'], produces: ['json'] },

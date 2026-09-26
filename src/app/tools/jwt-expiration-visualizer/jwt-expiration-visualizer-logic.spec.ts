@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import fc from 'fast-check';
 import { buildTimeline } from './jwt-expiration-visualizer-logic';
 
 const NOW = new Date('2026-01-01T00:00:00Z');
@@ -53,5 +54,23 @@ describe('buildTimeline', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.timeline.percentElapsed).toBe(100);
+  });
+});
+
+describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
+  it('never throws for arbitrary JSON-shaped payload', () => {
+    fc.assert(
+      fc.property(fc.anything(), (payload) => {
+        expect(() => buildTimeline(payload)).not.toThrow();
+      }),
+    );
+  });
+
+  it('never throws for a plausible-shaped payload with arbitrary numeric claims', () => {
+    fc.assert(
+      fc.property(fc.double(), fc.double(), fc.double(), (iat, nbf, exp) => {
+        expect(() => buildTimeline({ iat, nbf, exp })).not.toThrow();
+      }),
+    );
   });
 });
