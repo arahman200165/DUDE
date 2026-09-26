@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['yaml', 'lint', 'validate', 'syntax', 'error'],
   route: '/tools/yaml-linter',
   load: () => import('./yaml-linter').then((m) => m.YamlLinter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested arbitrary strings for non-throwing structured YAML lint results.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text'], produces: ['text'] },

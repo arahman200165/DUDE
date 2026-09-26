@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['yaml', 'anchor', 'alias', 'reference', 'merge key'],
   route: '/tools/yaml-anchors',
   load: () => import('./yaml-anchors').then((m) => m.YamlAnchors),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested generated scalar anchor and alias documents for alias discovery.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text'], produces: ['table'] },

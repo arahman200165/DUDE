@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['yaml', 'jsonpath', 'jmespath', 'query', 'path', 'filter'],
   route: '/tools/yaml-path',
   load: () => import('./yaml-path').then((m) => m.YamlPath),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested generated scalar YAML with JSONPath root queries for stable result shape.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text'], produces: ['json'] },

@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['xml', 'csv', 'convert', 'records', 'table'],
   route: '/tools/xml-csv',
   load: () => import('./xml-csv').then((m) => m.XmlCsv),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested generated safe flat CSV rows through XML conversion and back, preserving headers.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text', 'table'], produces: ['text', 'table'] },

@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['xml', 'xpath', 'query', 'test', 'dom'],
   route: '/tools/xml-xpath',
   load: () => import('./xml-xpath').then((m) => m.XmlXpath),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested generated XML text with XPath evaluation, asserting stable result shape.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'none' },
   io: { accepts: ['text'], produces: ['text'] },

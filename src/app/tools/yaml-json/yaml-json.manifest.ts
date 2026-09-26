@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['yaml', 'json', 'convert', 'yml', 'data'],
   route: '/tools/yaml-json',
   load: () => import('./yaml-json').then((m) => m.YamlJson),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip tested generated JSON-compatible values through YAML and back to JSON.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text', 'json'], produces: ['json', 'text'] },

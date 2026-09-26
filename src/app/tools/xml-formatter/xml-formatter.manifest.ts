@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['xml', 'format', 'validate', 'pretty', 'minify'],
   route: '/tools/xml-formatter',
   load: () => import('./xml-formatter').then((m) => m.XmlFormatter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested generated XML text through formatting and validation.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text'], produces: ['text'] },

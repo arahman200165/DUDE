@@ -1074,108 +1074,108 @@
     "id": "schema-diff",
     "category": "data",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 377,
     "notes": ""
   },
   {
     "id": "structured-data-converter",
     "category": "data",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": null,
+    "milestone": 377,
     "notes": ""
   },
   {
     "id": "toml-formatter",
     "category": "data",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": null,
+    "milestone": 377,
     "notes": ""
   },
   {
     "id": "xml-csv",
     "category": "data",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": null,
-    "notes": ""
+    "milestone": 377,
+    "notes": "CSV arbitrary constrained to safe unquoted cells after initial fixture escaped quotes incorrectly."
   },
   {
     "id": "xml-formatter",
     "category": "data",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": null,
+    "milestone": 377,
     "notes": ""
   },
   {
     "id": "xml-xpath",
     "category": "data",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 377,
     "notes": ""
   },
   {
     "id": "xml-xsd-validator",
     "category": "data",
     "subdomain": null,
-    "status": "pending",
+    "status": "blocked",
     "recipe": "FUZZ",
-    "milestone": null,
-    "notes": ""
+    "milestone": 377,
+    "notes": "async property testing is unsupported by the shared property harness; existing example specs cover WASM validation."
   },
   {
     "id": "yaml-anchors",
     "category": "data",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 377,
     "notes": ""
   },
   {
     "id": "yaml-json",
     "category": "data",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "ROUNDTRIP",
-    "milestone": null,
+    "milestone": 377,
     "notes": ""
   },
   {
     "id": "yaml-linter",
     "category": "data",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 377,
     "notes": ""
   },
   {
     "id": "yaml-merge",
     "category": "data",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 377,
     "notes": ""
   },
   {
     "id": "yaml-path",
     "category": "data",
     "subdomain": null,
-    "status": "pending",
+    "status": "verified",
     "recipe": "FUZZ",
-    "milestone": null,
+    "milestone": 377,
     "notes": ""
   },
   {

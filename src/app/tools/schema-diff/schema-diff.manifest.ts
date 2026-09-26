@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['sql', 'schema', 'diff', 'compare', 'create table', 'ddl'],
   route: '/tools/schema-diff',
   load: () => import('./schema-diff').then((m) => m.SchemaDiff),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested arbitrary valid SQLite table and column identifiers for stable, non-throwing schema diffs.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };

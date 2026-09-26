@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['json', 'yaml', 'xml', 'toml', 'csv', 'convert', 'universal', 'structured data'],
   route: '/tools/structured-data-converter',
   load: () => import('./structured-data-converter').then((m) => m.StructuredDataConverter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip tested generated JSON-compatible values through YAML and back to JSON.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'none' },
   io: { accepts: ['text', 'json'], produces: ['text', 'json'] },

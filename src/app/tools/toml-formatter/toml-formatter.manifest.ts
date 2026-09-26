@@ -9,7 +9,11 @@ export const manifest: ToolDefinition = {
   keywords: ['toml', 'format', 'validate', 'config'],
   route: '/tools/toml-formatter',
   load: () => import('./toml-formatter').then((m) => m.TomlFormatter),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Round-trip tested generated basic integer assignments through TOML formatting and validation.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text'], produces: ['text'] },

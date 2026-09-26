@@ -8,7 +8,11 @@ export const manifest: ToolDefinition = {
   keywords: ['yaml', 'merge', 'combine', 'deep merge'],
   route: '/tools/yaml-merge',
   load: () => import('./yaml-merge').then((m) => m.YamlMerge),
-  status: 'stable',
+  status: 'verified',
+  verification: {
+    propertyTested: true,
+    summary: 'Fuzz-tested generated scalar YAML values against empty overlays, preserving values.',
+  },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'optional' },
   io: { accepts: ['text'], produces: ['text'] },
