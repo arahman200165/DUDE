@@ -21,6 +21,8 @@
     "prebuild": "npm run generate:registry",
     "test:e2e": "ng build && playwright test --config=e2e/playwright.config.ts",
     "test:electron": "vitest run --config vitest.electron.config.mts",
+    "test:perf": "vitest run --config vitest.perf.config.mts",
+    "test:high-consequence": "node scripts/check-high-consequence-gate.mjs",
     "playwright:install": "playwright install chromium",
     "generate:registry": "node scripts/generate-tool-registry.mjs && node scripts/generate-readme-tools.mjs && node scripts/generate-security-doc.mjs",
     "generate:brand-assets": "node scripts/generate-brand-assets.mjs",

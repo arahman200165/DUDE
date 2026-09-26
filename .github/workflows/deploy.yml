@@ -40,14 +40,20 @@ jobs:
       - name: Verify generated registry/docs are up to date
         run: |
           npm run generate:registry
-          git diff --exit-code -- src/app/core/registry/tool-definitions.ts README.md || \
-            (echo '::error::tool-definitions.ts or README.md is stale — a <id>.manifest.ts changed without regenerating (npm run generate:registry) and committing the result.' && exit 1)
+          git diff --exit-code -- src/app/core/registry/tool-definitions.ts README.md SECURITY.md || \
+            (echo '::error::tool-definitions.ts, README.md, or SECURITY.md is stale — a <id>.manifest.ts changed without regenerating (npm run generate:registry) and committing the result.' && exit 1)
 
       - name: Lint (dependency/platform boundaries)
         run: npm run lint
 
       - name: Run tests
         run: npm test
+
+      - name: Capability-specific release gate (high-consequence tools)
+        run: npm run test:high-consequence
+
+      - name: Electron boundary tests
+        run: npm run test:electron
 
       - name: Build
         run: npm run build
