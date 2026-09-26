@@ -43,6 +43,7 @@ export interface DudeElectronBridge {
   readonly menu: {
     ready(): void;
     onAction(callback: (action: string) => void): () => void;
+    setToolMenuData(tools: readonly NativeMenuToolInfo[]): Promise<VoidResult>;
   };
   readonly platform: {
     readonly isDesktop: true;
@@ -100,6 +101,13 @@ export interface DudeElectronBridge {
     onUpdateDownloaded(callback: (info: { readonly version: string }) => void): () => void;
     onUpdateError(callback: (message: string) => void): () => void;
   };
+}
+
+export interface NativeMenuToolInfo {
+  readonly id: string;
+  readonly title: string;
+  readonly route: string;
+  readonly category: string;
 }
 
 export interface QuickActionInfo {

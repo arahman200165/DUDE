@@ -27,6 +27,7 @@ const bridge: DudeElectronBridge = {
   },
   menu: {
     ready: () => ipcRenderer.send('dude:menu:ready'),
+    setToolMenuData: (tools) => ipcRenderer.invoke('dude:menu:setToolMenuData', tools),
     onAction: (callback) => {
       const listener = (_event: Electron.IpcRendererEvent, action: string) => callback(action);
       ipcRenderer.on('dude:menu:action', listener);
