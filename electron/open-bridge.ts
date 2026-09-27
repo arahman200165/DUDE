@@ -1,6 +1,11 @@
 import { app, dialog, ipcMain, type BrowserWindow } from 'electron';
 import { promises as fs } from 'node:fs';
-import { basename, dirname, extname, isAbsolute, join } from 'node:path';
+// Pinned to `win32` explicitly (not the platform-ambient default export) -- this file only ever
+// runs inside the Windows-only Electron main process, so its path semantics must stay Windows'
+// regardless of which OS happens to run `npm test`/`npm run test:electron` (e.g. a Linux CI
+// runner treats 'C:\\...' as a relative POSIX path, not an absolute one).
+import { win32 as path } from 'node:path';
+const { basename, dirname, extname, isAbsolute, join } = path;
 import { grantExternalDirectory } from './fs-bridge';
 
 const TEXT_EXTENSIONS = new Set(['.json', '.yaml', '.yml', '.xml', '.csv', '.md', '.txt', '.toml', '.ini', '.sql', '.js', '.ts', '.html', '.css']);
