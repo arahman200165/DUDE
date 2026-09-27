@@ -109,6 +109,14 @@
       <h3 class="text-ui-sm font-semibold text-text">Make available offline</h3>
       <p class="text-ui text-text-muted">Download tools ahead of time so they open without a connection. You'll see the size before anything downloads.</p>
       <div class="flex flex-wrap items-center gap-2">
+        <select class="rounded-sm border border-border bg-panel px-2 py-0.5 text-ui" [value]="selectedTool()" (change)="onToolChange($event)" aria-label="Tool to cache">
+          @for (tool of tools; track tool.id) {
+            <option [value]="tool.id">{{ tool.title }}</option>
+          }
+        </select>
+        <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:border-accent hover:text-accent" (click)="previewTool()">
+          Cache tool…
+        </button>
         <select class="rounded-sm border border-border bg-panel px-2 py-0.5 text-ui" [value]="selectedCategory()" (change)="onCategoryChange($event)" aria-label="Category">
           @for (category of categories; track category.id) {
             <option [value]="category.id">{{ category.label }}</option>

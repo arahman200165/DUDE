@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-3b82f6.svg)](LICENSE)
 [![Security Policy](https://img.shields.io/badge/security-policy-informational)](docs/SECURITY.md)
 
-A dense, dark-mode-only, installable Progressive Web App that consolidates the small developer utilities you'd otherwise Google one at a time — JSON formatting, regex testing, JWT decoding, hashing, diffing, and more — into a single fast, offline-capable, keyboard-driven deck.
+A dense, dark-mode-only developer workbench for JSON, regex, JWT, hashing, diffing, and hundreds of other utilities. The Windows desktop app is the canonical experience; an installable, offline-capable web companion works without a download.
 
 **[→ Open the live app](https://arahman200165.github.io/DUDE/)**
 
@@ -19,9 +19,9 @@ A dense, dark-mode-only, installable Progressive Web App that consolidates the s
 
 DUDE is not a race to ship the most tools. It's a framework built to make adding **tool 36, 37, or 45** routine instead of architectural work — a new simple utility with existing transformation logic can be added in **under 30 minutes**, without touching navigation, routing, search, the command palette, persistence, or the PWA layer. Milestone 10's timed proof (see [`ADDING_A_TOOL.md`](ADDING_A_TOOL.md)) added a full tool, tests included, in **2 minutes 50 seconds** — a claim then validated at scale across Milestone 11's 8-tool batch, Milestone 12's structured-data batch, and Milestone 13's web/API batch, which added two new shared UI primitives (`app-copy-button`, `app-key-value-editor`) without touching the shell.
 
-Everything runs client-side. There's no backend, no accounts, no telemetry — your data never leaves the browser unless a tool explicitly tells you otherwise.
+Most transforms run locally in the browser or desktop renderer. Native desktop features use a bundled local backend; network-enabled tools disclose when they contact external services. DUDE has no account or telemetry service.
 
-- **Local-first** — every current tool works fully offline after the first load.
+- **Local-first** — browser-safe tools work offline once their code and optional runtimes are cached; network-dependent modes and desktop-only features are clearly marked.
 - **Dense, not decorative** — bold, functional color-coding by category and status, built for daily use, not for demos.
 - **Framework-first** — the registry, shell, persistence, and worker layers were built before the tools, so new tools are cheap and safe to add.
 
@@ -430,7 +430,7 @@ npm run test:e2e # Playwright, against a real production build: SPA-fallback rou
 npm run lint     # ESLint — dependency/platform boundary rules only (src/app/ <-> electron/ <-> src/shared-logic/)
 ```
 
-Testing follows a "protect the framework, not chase coverage" posture: every tool's pure transform logic is unit-tested, and the two Playwright specs specifically prove the two things a unit test can't — a deep tool link resolving correctly on GitHub Pages, and the cached shell surviving a real offline reload.
+Testing follows a "protect the framework, not chase coverage" posture: pure transforms have unit tests, registry-wide web/desktop parity compares pipeline steps, and Playwright exercises production routing, caching, sharing, bundle restore, and PWA behavior.
 
 ## Deployment
 
@@ -445,24 +445,17 @@ Live site: **[arahman200165.github.io/DUDE](https://arahman200165.github.io/DUDE
 
 ## PWA & Offline
 
-DUDE is an installable Progressive Web App with an offline-capable app shell.
+The GitHub Pages build is an installable PWA. Its small app shell is prefetched; tool chunks and optional Pyodide, sql.js, xmllint, and EJS runtimes download when first needed. The production build generates an `offline-map.json` for per-tool readiness, enforces an 800 kB shell-prefetch budget, and checks that every built asset belongs to a service-worker group.
 
-**What's cached:** after the first successful page load over a network connection, the Angular service worker (`@angular/service-worker`) caches the app shell (the entry bundle, stylesheet, and static assets like icons/manifest) upfront. Each tool's own lazy-loaded code (and any Worker it dispatches to) is fetched and cached only the first time you navigate to it, not upfront — see `ngsw-config.json`'s `"app"` (prefetch) vs. `"tool-chunks"` (lazy) asset groups.
+**Prepare for offline work:** open **Settings → Web & Offline**. It shows storage usage, persistence status, and cached runtime sizes. **Make available offline** previews the download size for a tool, a category, or all tools before fetching; progress can be cancelled. A previously visited tool can also be ready without using this action. Offline discovery dims uncached tools, and a direct load explains how to cache them. Network-dependent features still require a connection; the tool's other local modes remain available where supported. See [Security](docs/SECURITY.md) for network disclosures and the [capability matrix](#web-vs-desktop-capability-matrix) for desktop-only features.
 
-**What works offline:** once cached, the deck shell and any previously-visited local tool (e.g. JSON Formatter) launch and function fully offline — no network round-trip required. Four tools declare a network requirement: JWT Signature Verifier's JWKS/OIDC-discovery mode, Advanced Markdown Workspace's link-checker panel, Text Inspector's grammar-check mode (calls the public LanguageTool API), and Package Metadata Inspector's registry lookups (npm/PyPI/crates.io/NuGet). All four show a compact "Offline" badge in their header when the app has no connectivity, degrade gracefully, and never block the rest of the app from working — see [`docs/SECURITY.md`](docs/SECURITY.md) for exactly what each sends and when.
+**Install:** use **Install app** in Web & Offline when the browser offers it, or the browser's install control. The generated manifest provides shortcuts to common tools, supported file types, and a `web+dude` protocol handler where the browser supports them. The home deck offers a one-time install hint.
 
-**What does NOT work offline:** a tool (or the app itself) that has never been successfully loaded at least once while online cannot be launched offline — the service worker can only serve what it has previously cached.
+**Share and open in desktop:** a tool header can copy its bare route. Text-input tools also offer **Copy link with input**; the compressed text lives in the URL fragment and is limited to 8 KB. Anyone with that URL can read the input, so use the bare link for sensitive text. **Open in Desktop DUDE** launches a navigation-only `dude://` link and offers GitHub Releases if the app is not detected. No file or saved state crosses that link; state handoff belongs to Phase 59.
 
-**Update strategy:** DUDE checks for a new version whenever the page is (re)loaded, and additionally polls every 6 hours in the background so a tab left open for a long session still notices a new deployment. When a new version is ready, a small "Update available" prompt appears in the top-right corner of the shell. Updates are never applied silently or automatically — click "Reload" to activate the new version and refresh the page. Until you do, you keep using the version you loaded.
+**Manage caches:** Web & Offline can clear an optional runtime or repair the service-worker installation. Both actions preview the affected cache entries and require a separate Confirm. They leave saved inputs, preferences, workspaces, and pipelines intact. DUDE prompts before applying an available update; a stale or unrecoverable install offers repair.
 
-**Testing offline behavior locally:** the service worker is only active in production builds (`ng build`), not `ng serve`. To test:
-
-```bash
-npm run build
-npx http-server dist/dude/browser -p 8080
-```
-
-Then open `http://localhost:8080`, let it load once, and use your browser DevTools' Network tab "Offline" toggle to verify the shell and any already-visited tool still work.
+**Test locally:** the service worker is enabled in a production build, not `ng serve`. `npm run test:e2e` builds the app and runs Chromium against the same `/DUDE/` path and 404 fallback used on GitHub Pages. For manual inspection, run `npm run build`, then from `e2e/` run `node scripts/prepare-static-site.mjs` followed by `node scripts/static-server.mjs`, and open `http://localhost:4310/DUDE/`. DevTools Offline can then check cached and uncached routes.
 
 ## Adding a new tool
 

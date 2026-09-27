@@ -10,7 +10,7 @@
 **Primary frontend framework:** Angular  
 **Primary audience:** The developer building and using it first; later, other developers  
 **Delivery horizon:** Framework and first 10 tools delivered in one weekend; ongoing roadmap-driven development from there, now extending through a deliberately long-horizon Phase 100  
-**Status:** V1 and Phases 1–25 shipped; Windows desktop packaging is real and shipped; Phase 26 is the next proposed phase; Phases 26–100 are roadmap/horizon work rather than a fixed schedule
+**Status:** V1 and Phases 1–26 shipped; Windows desktop packaging is real and shipped; Phases 27–100 remain roadmap/horizon work rather than a fixed schedule
 
 ---
 
@@ -56,9 +56,9 @@ The product then continued through **Phases 1–21, all of which are complete**.
 
 **Phase 8 (Downloadable Desktop App with a Bundled Backend) is complete** and is the turning point for the product hierarchy. Its eight shipped stages remain: Electron shell; native file access; OS-level secret storage; local LLM proxy + AI regex features; desktop shell chrome; local collab server; BYO relay server; auto-update + distribution. Those shipped details remain documented in §21 Phase 8.
 
-**Phases 22–25 are also complete**: Phase 22 (Platform Hardening, Trust & Desktop-First Pivot) consolidated metadata/registry structure, trust, testing, and cache/bundle control; Phase 23 (Correctness, Verification & High-Consequence Tool Hardening) brought every one of the 277 tool manifests to a `verified` confidence tier; Phase 24 (Smart Entry, Discovery & Personal DUDE) turned Phase 21's Smart Paste/pipelines/workspaces/history into the primary paste-first, personalized entry experience — Recently Used, Favorites, Pinned Pipelines, Related-Tool and Pipeline Suggestions, Workspace Templates, Quick Run, and Unified Recents, all private-by-construction with no analytics or server telemetry; Phase 25 (Desktop-First Shell & Native Product Experience) finished that positioning change technically — Projects, a Desktop-Native Home, `dude://` deep links, a native OS menu, a six-source Command Palette, a Native File Recent List, crash/restart recovery, a Quick Launcher, native drag-and-drop routing, a generated file-association framework, Desktop Capability Indicators, desktop-first documentation, and a measured startup/parallelization pass — all shipped as Milestones 421–455.
+**Phases 22–26 are also complete**: Phase 22 (Platform Hardening, Trust & Desktop-First Pivot) consolidated metadata/registry structure, trust, testing, and cache/bundle control; Phase 23 (Correctness, Verification & High-Consequence Tool Hardening) brought every one of the 277 tool manifests to a `verified` confidence tier; Phase 24 (Smart Entry, Discovery & Personal DUDE) turned Phase 21's Smart Paste/pipelines/workspaces/history into the primary paste-first, personalized entry experience — Recently Used, Favorites, Pinned Pipelines, Related-Tool and Pipeline Suggestions, Workspace Templates, Quick Run, and Unified Recents, all private-by-construction with no analytics or server telemetry; Phase 25 (Desktop-First Shell & Native Product Experience) finished that positioning change technically — Projects, a Desktop-Native Home, `dude://` deep links, a native OS menu, a six-source Command Palette, a Native File Recent List, crash/restart recovery, a Quick Launcher, native drag-and-drop routing, a generated file-association framework, Desktop Capability Indicators, desktop-first documentation, and a measured startup/parallelization pass — all shipped as Milestones 421–455. Phase 26 (Web Companion & PWA Efficiency) added selective offline readiness, install/share/handoff flows, browser-safe pipeline and workspace support, and web/desktop parity tests, shipped as Milestones 482–488.
 
-The roadmap is now one linear product horizon through **Phase 100**. Phases 22–26 consolidate platform structure, trust, discovery, desktop UX, and web/PWA efficiency; Phases 27–38 then establish the first major native/integration expansion across networking, live DNS/TLS, filesystem workflows, Windows/process tooling, local API/server development, live databases, containers, OS integration, AI-assisted utilities, theming, VS Code integration, and browser-extension integration. Later phases extend into cross-platform desktop, automation, Git/SSH/package/build/log/proxy/database/container/Kubernetes workflows, secrets/PKI, collaboration/workspaces/pipelines, plugins/extensions, CLI/SDK/headless automation, AI, project/code/runtime tooling, and a deliberately distant platform/ecosystem horizon.
+The roadmap is now one linear product horizon through **Phase 100**. Completed Phases 22–26 consolidated platform structure, trust, discovery, desktop UX, and web/PWA efficiency; Phases 27–38 then establish the first major native/integration expansion across networking, live DNS/TLS, filesystem workflows, Windows/process tooling, local API/server development, live databases, containers, OS integration, AI-assisted utilities, theming, VS Code integration, and browser-extension integration. Later phases extend into cross-platform desktop, automation, Git/SSH/package/build/log/proxy/database/container/Kubernetes workflows, secrets/PKI, collaboration/workspaces/pipelines, plugins/extensions, CLI/SDK/headless automation, AI, project/code/runtime tooling, and a deliberately distant platform/ecosystem horizon.
 
 ---
 
@@ -229,7 +229,7 @@ Desktop is not conceptually defined as “the web app plus a few extra permissio
 
 This still implies a strict shared-core architecture. Transformation/domain logic should live in platform-neutral modules whenever reasonably possible, with thin adapters for Angular/browser APIs, Electron/native APIs, CLI, VS Code/IDE integrations, browser extensions, tests, SDKs, and future surfaces. The desktop and web builds must not fork the same deterministic tool logic into unrelated implementations.
 
-The web companion remains strategically important because a URL is the lowest-friction entry point into DUDE: no install, bookmarkable tool routes, PWA support, offline-safe local utilities, and easy sharing of tool locations. Phase 26 explicitly hardens that companion rather than treating it as a legacy build.
+The web companion remains strategically important because a URL is the lowest-friction entry point into DUDE: no install, bookmarkable tool routes, PWA support, offline-safe local utilities, and easy sharing of tool locations. Phase 26 hardened that companion with selective offline caching, share links, PWA installation, and navigation-only desktop handoff.
 
 Basic local developer utilities must never be paywalled behind the desktop app, an account, or a paid tier. They are the product's on-ramp, not an upsell surface.
 
@@ -361,7 +361,7 @@ These items are not failures of the original product and are handled by the road
 - WYSIWYG rich-text editor (§21 Phase 5, #36) — ✅ shipped.
 - Executable JavaScript playground, arbitrary HTML execution, arbitrary template execution, and sandboxed code runner (Phase 6) — ✅ shipped; see the amended standing security rule at §31.
 - Cross-tool I/O, pipelines, Smart Paste, workspace/Saved Sessions, and local history (Phase 21) — ✅ shipped.
-- Platform hardening/correctness/discovery/desktop shell/web efficiency (Phases 22–26) — next proposed consolidation wave.
+- Platform hardening/correctness/discovery/desktop shell/web efficiency (Phases 22–26) — completed consolidation wave.
 - Native networking, TLS, filesystem, Windows/process, API/server, database, container, OS-integration, AI, theming, and editor/browser integration work is tracked authoritatively in Phases 27–38.
 - Long-horizon additions through Phase 100 are roadmap directions, not a fixed commitment or schedule.
 
@@ -611,11 +611,11 @@ Hash routing is explicitly not the chosen approach.
 
 # 11. Web Companion PWA and Offline Model
 
-The web companion should remain installable as a PWA. Desktop installation is handled separately by the Electron distribution path; this section governs only browser/PWA behavior.
+The web companion is installable as a PWA. Desktop installation is handled separately by the Electron distribution path; this section governs only browser/PWA behavior.
 
 ## 11.1 Required PWA Behavior
 
-The original V1 requirement was simply to cache the application shell/static assets and keep local-only tools available offline after first load. As DUDE grows, the **standing PWA contract** is more selective; Phases 22 and 26 implement and harden this model rather than leaving it only as roadmap prose.
+The original V1 requirement was simply to cache the application shell/static assets and keep local-only tools available offline after first load. As DUDE grows, the **standing PWA contract** is more selective; Phases 22 and 26 implemented and hardened this model.
 
 - web app manifest;
 - service worker;
@@ -627,7 +627,10 @@ The original V1 requirement was simply to cache the application shell/static ass
 - Cache Storage footprint is measurable and, as the platform grows, subject to explicit budgets/inspection;
 - users can clear/repair optional cached runtimes without destroying unrelated local state where practical;
 - update strategy documented;
-- application can detect online/offline state.
+- application can detect online/offline state;
+- Web & Offline Settings shows storage and per-runtime cache status, supports storage persistence, and previews tool/category/all downloads before caching;
+- Clear Runtime and Repair installation require a separate confirmation and leave saved tool data intact;
+- uncached tools explain their offline state instead of failing with a blank screen.
 
 ## 11.2 Network-dependent tools
 
@@ -685,16 +688,14 @@ interface ToolDefinition {
   execution?: ToolExecutionPolicy;
   network?: ToolNetworkPolicy;
   status?: 'experimental' | 'stable' | 'verified';
-  io?: ToolIOContract;
-  platforms?: ToolPlatformAvailability;
-  capabilities?: ToolCapabilityDeclaration[];
+  io: ToolIOCapabilities;
+  capabilities?: readonly ToolCapability[];
+  pwaShortcut?: { order: number };
   documentation?: ToolDocumentationMetadata;
 }
 ```
 
-This is conceptual.
-
-The implementation can adjust names and exact typing. `io` is already real and required after Phase 21. Phase 22 is expected to make platform availability, capabilities, documentation metadata, and registry validation mechanically enforceable; Phase 23 adds the `verified` confidence tier. The direction is one canonical definition per tool, colocated in a tool/category manifest rather than metadata duplicated between registry, route, ToolShell, documentation, and component call sites.
+This abbreviated shape reflects the shipped manifest contract. `io` is required; `capabilities` uses the closed platform/runtime vocabulary from Phase 26, replacing the former `desktopCapabilities` strings and the conceptual `platforms` field. `pwaShortcut` feeds the generated web manifest. Other fields (verification, file input, settings, consequence class, and desktop opening) live in `tool-definition.model.ts`. Each tool owns one colocated manifest; registry, routes, ToolShell, generated documentation, and discovery read that definition.
 
 ## 12.2 Registry responsibilities
 
@@ -1820,7 +1821,7 @@ Finish the product-positioning change technically: desktop DUDE becomes the prim
 
 9. File Association Framework — tools can declare file types they can inspect while Windows remains in control of final default-app selection. **✅ Shipped (Milestones 437–438)**: the mechanism itself (manifest field, NSIS registry writes, `open-bridge.ts` parsing, matching) already shipped in an earlier phase; this item replaced hand-maintaining the NSIS extension list in four places with a generator (`scripts/generate-file-associations.mjs`, wired into `generate:registry`) and added in-app visibility — an install-time `file-associations.json` marker, read back over IPC and shown in Settings with a "Change in Windows Settings" link. Copy deliberately says "candidate," never "your default app," since the marker reflects the install-time choice, not live OS state.
 
-10. Desktop Capability Indicators — tools visibly communicate when desktop mode unlocks additional capabilities over the web companion. **✅ Shipped (Milestones 450–451)**: an optional `desktopCapabilities?: readonly string[]` field on `ToolDefinition` (free-string, deliberately loose like `verification.vectors`), distinct from `desktopOpen` (file types a tool can open, vs. what it does better on desktop); opted into by Directory Diff, Git Repo Browser, Advanced Markdown Workspace, Regex Tester, and Settings (Settings' declaration was dropped in Milestone 476 when it stopped being a tool). A `DesktopCapabilityBadge` in `ToolShell`'s header shows an upsell tone on web and a quiet confirmation on desktop, hidden entirely for a tool that declares none.
+10. Desktop Capability Indicators — tools visibly communicate when desktop mode unlocks additional capabilities over the web companion. **✅ Shipped (Milestones 450–451; superseded by Milestones 482 and 486)**: the initial free-string `desktopCapabilities` field and `DesktopCapabilityBadge` established the header indicator. Phase 26 replaced them with the closed `capabilities` vocabulary and `PlatformCapabilityBadge`, preserving the quiet desktop confirmation and adding explicit web fallback/unavailable states across discovery surfaces.
 
 11. Desktop-First Documentation — download/install/use-native-capability documentation becomes primary; GitHub Pages remains prominently linked as the zero-install option. **✅ Shipped (Milestones 452–453)**: README's Desktop section moved earlier (right after Screenshots, ahead of the Tools list) with its download/install content promoted ahead of the technical stage-by-stage bullets, plus an explicit cross-link to the zero-install web companion; `docs/SECURITY.md` gained hand-written disclosure subsections, styled like its existing "Camera access" section, for every native capability this phase added that the tool-metadata generator can't cover on its own: deep links, native menu, Quick Launcher, drag-and-drop routing, file-association registry writes, the Native File Recent List, and crash/restart recovery.
 
@@ -1830,28 +1831,27 @@ Goal: make installing DUDE produce a qualitatively better developer workflow, no
 
 ---
 
-## Phase 26 — Web Companion & PWA Efficiency
+## Phase 26 — Web Companion & PWA Efficiency (✅ Complete — shipped as Milestones 482–488)
 
-The web build remains important, but is now explicitly the portable, zero-install companion to the canonical desktop application.
+The web build remains the portable, zero-install companion to the canonical desktop application. The service worker stays stock Angular; desktop handoff only navigates to a target, while state/file/token handoff remains Phase 59 scope.
 
-1. Minimal Initial Shell Cache
-2. On-Demand Tool Chunk Caching
-3. On-Demand WASM Runtime Caching
-4. Cache Storage Budget / Inspector
-5. Clear Cached Runtimes / Repair Installation
-6. Web Capability Matrix
-7. Desktop-Only Feature Badges
-8. Open in Desktop DUDE Deep Link
-9. Install-as-PWA Support
-10. Offline Local Utility Support
-11. GitHub Pages Direct-Route Recovery
-12. Shareable Tool Routes
-13. Browser-Safe Pipeline Execution
-14. Browser-Safe Workspace Support
-15. Web/Desktop Parity Tests for Shared Tools
+1. Minimal Initial Shell Cache — **✅ Verified (Milestone 483)**: Phase 22 (Milestones 300–307) already delivered selective prefetch; M483 closed the EJS gap and added the asset-group coverage check.
+2. On-Demand Tool Chunk Caching — **✅ Verified (Milestone 483)**: Phase 22 (Milestones 300–307) delivered lazy tool chunks; M483 added readiness mapping and group-coverage checks.
+3. On-Demand WASM Runtime Caching — **✅ Verified (Milestone 483)**: Phase 22 (Milestones 300–307) delivered lazy Pyodide/sql.js/xmllint groups; M483 added EJS and per-runtime inspection.
+4. Cache Storage Budget / Inspector — **✅ Shipped (Milestone 483)**: budget checks, offline map, storage estimate/persistence, and group-size reporting.
+5. Clear Cached Runtimes / Repair Installation — **✅ Shipped (Milestone 483)**: two-step cache-only clear/repair, with a confirmation-boundary test.
+6. Web Capability Matrix — **✅ Shipped (Milestone 482)**: closed platform/runtime declarations drive the generated README/SECURITY tables and registry helpers.
+7. Desktop-Only Feature Badges — **✅ Shipped (Milestone 486)**: tool and control badges, Settings/palette indicators, and browser capability facets.
+8. Open in Desktop DUDE Deep Link — **✅ Shipped (Milestone 486)**: navigation-only tool/settings/pipeline/project/template links with an opt-in button and download fallback.
+9. Install-as-PWA Support — **✅ Shipped (Milestone 486)**: install prompt, generated manifest shortcuts, file/protocol handlers, and a one-time deck hint.
+10. Offline Local Utility Support — **✅ Shipped (Milestone 483)**: readiness indicators, explicit tool/category/all caching, graceful uncached and stale-load states.
+11. GitHub Pages Direct-Route Recovery — **✅ Shipped (Milestone 484)**: query/fragment fidelity through the 404 redirect and service-worker navigation fallback.
+12. Shareable Tool Routes — **✅ Shipped (Milestone 484)**: bare-route copy and capped, compressed `#in=` text-input links with policy-respecting prefill.
+13. Browser-Safe Pipeline Execution — **✅ Shipped (Milestone 485)**: offline/runtime gating, abort and worker offload, and intermediate size limits.
+14. Browser-Safe Workspace Support — **✅ Shipped (Milestone 485)**: bundle export/import, live multi-tab store sync, and capability-aware panel restore.
+15. Web/Desktop Parity Tests for Shared Tools — **✅ Shipped (Milestone 487)**: registry-wide pipeline parity, colocated golden fixtures, and web/native filesystem adapter cases with a coverage rule.
 
-Goal: preserve the exceptional convenience of a URL without allowing web-platform constraints to define the ceiling of the product.
-
+Goal achieved: preserve the convenience of a URL while keeping browser limits explicit and desktop capabilities available through deliberate handoff.
 ---
 
 ## Phase 27 — Networking Toolkit
@@ -2714,7 +2714,7 @@ Goal: let users share reusable DUDE workflows without requiring full plugins.
 7. Workspace-template handoff
 8. Return generated result to invoking browser extension where explicitly authorized
 
-Goal: make web, extension, and desktop surfaces feel like one product.
+Phase 26 already shipped navigation-only Open in Desktop links. Phase 59 owns state, file, token, result, and cross-surface workflow handoff. Goal: make web, extension, and desktop surfaces feel like one product.
 
 ---
 
@@ -3775,11 +3775,11 @@ Added in §21 Phase 8 Stage 1 as the seam every desktop-only stage conditions on
 
 Phase 22 adds build/CI validation for unique IDs/routes, valid categories, I/O declarations, persistence compatibility, pipeline/workspace adapters, lazy-loader existence, confidence/status values, platform availability, capability declarations, and documentation metadata.
 
-**✅ Extended in Phase 25** (Milestone 450): `desktopCapabilities` (an optional free-string array on `ToolDefinition`, distinct from `desktopOpen`) gained its own conformance-harness shape check — a declared entry must be a non-empty string, mirroring how every other optional metadata field here is checked, not just documented.
+**✅ Updated in Phase 26 (Milestone 482):** the conformance harness validates the closed `capabilities` platform/runtime vocabulary against actual native-service imports and runtime references. `desktopCapabilities` was removed.
 
 ## 25.8 Capability / Permission Service
 
-As native, remote, plugin, automation, and destructive operations grow, capabilities should be declared and checked through shared infrastructure rather than ad hoc booleans. This service should expose what a tool *can request*; execution still requires the appropriate user intent/confirmation.
+**✅ Platform capability catalog shipped (Milestone 482):** tool manifests declare native features and optional runtimes through a closed vocabulary; registry helpers, generated docs, badges, offline readiness, and pipeline gating consume it. This describes availability, not permission to execute an action. A broader permission service for future native, remote, plugin, and automation operations remains roadmap work; user intent and destructive-action confirmation still gate execution.
 
 ## 25.9 Local Usage / Recents Service
 
@@ -3933,7 +3933,8 @@ Performance work should remain pragmatic, but desktop scale, hundreds of tools, 
 - keep navigation responsive;
 - measure cold/warm desktop startup where native services are involved;
 - stream or lazily inspect large files/directories where practical instead of eagerly buffering by default;
-- keep optional runtimes (WASM, Pyodide, local models, language services, etc.) out of the critical startup path.
+- keep optional runtimes (WASM, Pyodide, local models, language services, etc.) out of the critical startup path;
+- map built tool chunks and runtimes to offline readiness, and let users pre-cache them with a size preview.
 
 ## Phase 22 hardening requirements
 
@@ -3941,7 +3942,7 @@ Performance work should remain pragmatic, but desktop scale, hundreds of tools, 
 - total offline Cache Storage budgeting, not merely initial JS size;
 - service-worker strategy audit so generic `*.js` matching does not accidentally prefetch every lazy tool/runtime;
 - dependency-boundary validation to stop large or platform-specific packages leaking into shared startup bundles;
-- explicit web-cache repair/clear tooling in Phase 26.
+- shipped web-cache repair/clear tooling (Phase 26, Milestone 483).
 
 ## Still pragmatic / not raw-goal driven
 
@@ -4009,8 +4010,8 @@ A documented build must create production-ready static assets for GitHub Pages/P
 CI should:
 
 1. install dependencies;
-2. run framework-critical tests;
-3. build the production web app;
+2. run framework-critical tests, including registry-wide web/desktop parity;
+3. build the production web app, generate its offline map, and check cache budget and asset-group coverage;
 4. prepare the GitHub Pages SPA fallback;
 5. publish static output.
 
@@ -4025,14 +4026,17 @@ Verify:
 - service worker registers;
 - installed PWA launches;
 - local-only/shared-core tools work offline after required caching;
-- browser-safe pipelines/workspaces continue to work as Phase 26 evolves;
-- desktop-only features are clearly badged rather than failing mysteriously.
+- browser-safe pipelines and workspaces load from a fresh route and honor offline readiness;
+- desktop-only features are clearly badged rather than failing mysteriously;
+- tool links preserve route, query, and fragment through 404 and service-worker recovery;
+- install manifest shortcuts, file handlers, and protocol handler resolve within the web app;
+- Web & Offline cache/repair actions preserve user data.
 
 ## 33.4 Shared-core web/desktop parity — permanent build invariant
 
 Whenever the same capability is declared available on both DUDE Desktop and DUDE Web, automated parity coverage should verify that the shared transformation/domain semantics remain equivalent. Platform adapters, file pickers, storage backends, native bridges, and shell presentation may legitimately differ; the deterministic operation must not silently fork into two incompatible implementations.
 
-Phase 26 establishes the dedicated web/desktop parity-testing work, but once that infrastructure exists the rule is permanent: **shared capabilities must continue to use the same core implementation and parity contract in subsequent releases.** A platform-specific implementation is acceptable only where the platform genuinely requires different behavior, and that difference must be explicit in capability metadata/tests rather than accidental drift.
+Phase 26 shipped registry-wide pipeline parity and web/native adapter parity for every declared fallback (Milestone 487). The rule is permanent: **shared capabilities must continue to use the same core implementation and parity contract in subsequent releases.** A platform-specific implementation is acceptable only where the platform genuinely requires different behavior, and that difference must be explicit in capability metadata/tests rather than accidental drift.
 
 ## 33.5 Future distribution
 
@@ -4294,7 +4298,7 @@ The original MVP deliberately rejected exhaustive coverage targets. The modern P
 
 - Phase 22 introduces registry/dependency/chunk/cache structural controls;
 - Phase 23 introduces vectors, independent cross-checks, property tests, fuzzing, golden corpora, destructive-action tests, sandbox regressions, performance fixtures, and capability-specific release gates;
-- Phase 26 establishes web/desktop parity infrastructure;
+- Phase 26 shipped registry-wide pipeline parity and filesystem-adapter parity;
 - §33 makes shared-core parity and desktop release verification standing build invariants;
 - Phase 36 expands appearance/accessibility controls;
 - Phase 92 introduces deliberate cross-browser CI at the universal-web horizon;

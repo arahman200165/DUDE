@@ -39,6 +39,8 @@ export class WebCompanionSettings {
 
   protected readonly formatBytes = formatBytes;
   protected readonly categories = TOOL_CATEGORIES.map((id) => ({ id, label: CATEGORY_METADATA[id].label }));
+  protected readonly tools = this.registry.getAll().map(({ id, title }) => ({ id, title })).sort((a, b) => a.title.localeCompare(b.title));
+  protected readonly selectedTool = signal(this.tools[0]?.id ?? '');
   protected readonly selectedCategory = signal<ToolCategory>(TOOL_CATEGORIES[0]);
 
   protected readonly pendingAction = signal<CacheActionPlan | null>(null);
@@ -89,6 +91,15 @@ export class WebCompanionSettings {
 
   protected previewRuntime(runtime: RuntimeId): void {
     this.previewDownload(RUNTIMES[runtime].label, this.readiness.planRuntime(runtime));
+  }
+
+  protected previewTool(): void {
+    const tool = this.tools.find((item) => item.id === this.selectedTool());
+    if (tool) this.previewDownload(tool.title, this.readiness.planTool(tool.id));
+  }
+
+  protected onToolChange(event: Event): void {
+    this.selectedTool.set((event.target as HTMLSelectElement).value);
   }
 
   protected previewCategory(): void {

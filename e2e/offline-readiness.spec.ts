@@ -45,6 +45,24 @@ test('offline, a never-visited tool explains itself and is dimmed; a visited one
   }
 });
 
+test('a selected tool can be cached before its first visit and opened offline', async ({ page, context }) => {
+  await waitForServiceWorker(page);
+  await page.goto('/DUDE/settings/web-companion');
+  await expect(page.locator('tr[data-runtime="sqljs"]')).toBeVisible();
+  await page.getByRole('combobox', { name: 'Tool to cache' }).selectOption('base64');
+  await page.getByRole('button', { name: 'Cache tool…' }).click();
+  await expect(page.getByTestId('download-preview')).toContainText('Base64 Encoder / Decoder');
+  await page.getByRole('button', { name: 'Download', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('available offline');
+  await context.setOffline(true);
+  try {
+    await page.goto('/DUDE/tools/base64');
+    await expect(page.getByRole('heading', { name: 'Base64 Encoder / Decoder' })).toBeVisible();
+  } finally {
+    await context.setOffline(false);
+  }
+});
+
 test('an optional WASM runtime is not prefetched, downloads on demand, and clears only after Confirm', async ({ page }) => {
   await waitForServiceWorker(page);
   expect(await cachedUrls(page, '/assets/vendor/sql\\.js/')).toEqual([]);
