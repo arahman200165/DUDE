@@ -10,7 +10,7 @@
 **Primary frontend framework:** Angular  
 **Primary audience:** The developer building and using it first; later, other developers  
 **Delivery horizon:** Framework and first 10 tools delivered in one weekend; ongoing roadmap-driven development from there, now extending through a deliberately long-horizon Phase 100  
-**Status:** V1 and Phases 1–24 shipped; Windows desktop packaging is real and shipped; Phase 25 is the next proposed phase; Phases 25–100 are roadmap/horizon work rather than a fixed schedule
+**Status:** V1 and Phases 1–25 shipped; Windows desktop packaging is real and shipped; Phase 26 is the next proposed phase; Phases 26–100 are roadmap/horizon work rather than a fixed schedule
 
 ---
 
@@ -35,7 +35,7 @@ The product is now:
 - local-first by default;
 - capable of public APIs, user-supplied API keys, local AI proxies, and later explicit integrations without making remote infrastructure mandatory;
 - resilient so a heavy tool cannot freeze the whole application;
-- bookmarkable through clean per-tool web URLs and, in the future, addressable through desktop deep links;
+- bookmarkable through clean per-tool web URLs and, on desktop, addressable through `dude://` deep links (Phase 25);
 - optimized today for Windows desktop plus desktop Chromium for the web companion;
 - extremely dense and utility-first;
 - easy to extend without changing the application shell;
@@ -56,7 +56,7 @@ The product then continued through **Phases 1–21, all of which are complete**.
 
 **Phase 8 (Downloadable Desktop App with a Bundled Backend) is complete** and is the turning point for the product hierarchy. Its eight shipped stages remain: Electron shell; native file access; OS-level secret storage; local LLM proxy + AI regex features; desktop shell chrome; local collab server; BYO relay server; auto-update + distribution. Those shipped details remain documented in §21 Phase 8.
 
-**Phases 22–24 are also complete**: Phase 22 (Platform Hardening, Trust & Desktop-First Pivot) consolidated metadata/registry structure, trust, testing, and cache/bundle control; Phase 23 (Correctness, Verification & High-Consequence Tool Hardening) brought every one of the 277 tool manifests to a `verified` confidence tier; Phase 24 (Smart Entry, Discovery & Personal DUDE) turned Phase 21's Smart Paste/pipelines/workspaces/history into the primary paste-first, personalized entry experience — Recently Used, Favorites, Pinned Pipelines, Related-Tool and Pipeline Suggestions, Workspace Templates, Quick Run, and Unified Recents, all private-by-construction with no analytics or server telemetry.
+**Phases 22–25 are also complete**: Phase 22 (Platform Hardening, Trust & Desktop-First Pivot) consolidated metadata/registry structure, trust, testing, and cache/bundle control; Phase 23 (Correctness, Verification & High-Consequence Tool Hardening) brought every one of the 277 tool manifests to a `verified` confidence tier; Phase 24 (Smart Entry, Discovery & Personal DUDE) turned Phase 21's Smart Paste/pipelines/workspaces/history into the primary paste-first, personalized entry experience — Recently Used, Favorites, Pinned Pipelines, Related-Tool and Pipeline Suggestions, Workspace Templates, Quick Run, and Unified Recents, all private-by-construction with no analytics or server telemetry; Phase 25 (Desktop-First Shell & Native Product Experience) finished that positioning change technically — Projects, a Desktop-Native Home, `dude://` deep links, a native OS menu, a six-source Command Palette, a Native File Recent List, crash/restart recovery, a Quick Launcher, native drag-and-drop routing, a generated file-association framework, Desktop Capability Indicators, desktop-first documentation, and a measured startup/parallelization pass — all shipped as Milestones 421–455.
 
 The roadmap is now one linear product horizon through **Phase 100**. Phases 22–26 consolidate platform structure, trust, discovery, desktop UX, and web/PWA efficiency; Phases 27–38 then establish the first major native/integration expansion across networking, live DNS/TLS, filesystem workflows, Windows/process tooling, local API/server development, live databases, containers, OS integration, AI-assisted utilities, theming, VS Code integration, and browser-extension integration. Later phases extend into cross-platform desktop, automation, Git/SSH/package/build/log/proxy/database/container/Kubernetes workflows, secrets/PKI, collaboration/workspaces/pipelines, plugins/extensions, CLI/SDK/headless automation, AI, project/code/runtime tooling, and a deliberately distant platform/ecosystem horizon.
 
@@ -1798,33 +1798,33 @@ Goal: the user should increasingly think “give this to DUDE” rather than “
 
 ---
 
-## Phase 25 — Desktop-First Shell & Native Product Experience
+## Phase 25 — Desktop-First Shell & Native Product Experience (✅ Complete — shipped as Milestones 421–455)
 
 Finish the product-positioning change technically: desktop DUDE becomes the primary experience rather than merely the web app inside Electron plus extra capabilities.
 
-1. Desktop-Native Home — prioritize recent workspaces, dropped files, clipboard actions, native capabilities, pipelines, and projects rather than presenting only the web deck.
+1. Desktop-Native Home — prioritize recent workspaces, dropped files, clipboard actions, native capabilities, pipelines, and projects rather than presenting only the web deck. **✅ Shipped (Milestones 421–422, 439–440)**: a minimal, deliberately non-IDE `Project` primitive (`core/project/` — a named panel-tree/tabs snapshot plus pinned pipeline ids, recent tools always derived live from `UnifiedRecentsService`, never a copy) and a `/projects` gallery; Deck grows a desktop-only block — a Recent Workspaces rail (the most-recently-*applied* Workspace Templates, a small applied-recency log added to `WorkspaceTemplateService` itself), a Recent Projects rail, a native "Open File…" button wired to the existing OS picker, and Clipboard Actions / Native Capabilities rails — both filtered views over the Command Palette's live `'native'`-kind commands (item 4), never a second hand-rolled action list.
 
-2. "dude://" Deep Links — tools, pipelines, workspace templates, and safe actions can be addressed through application deep links.
+2. "dude://" Deep Links — tools, pipelines, workspace templates, and safe actions can be addressed through application deep links. **✅ Shipped (Milestones 427–429)**: `dude://open/{tool|workspace-template|project|pipeline}/<id>` (pure navigation) and `dude://run/{pipeline|quick-run}/<id>` (navigates with a pending-confirmation flag; a link can never execute on its own — the same in-app Run click `PipelineConfirmationService` already requires is still mandatory). Registered via a custom NSIS macro at install time and `app.setAsDefaultProtocolClient` for dev; the main process forwards only the raw, length-capped, scheme-checked URL string, with all parsing and routing renderer-side (`core/deep-link/`).
 
-3. Native Menu System — File/Edit/View/Tools/Window/Help commands map cleanly onto DUDE concepts.
+3. Native Menu System — File/Edit/View/Tools/Window/Help commands map cleanly onto DUDE concepts. **✅ Shipped (Milestones 430–431)**: File (Open File/Folder, Preferences, Exit), Edit (pure `role:` passthrough), View (reload/zoom/devtools/fullscreen plus a "Command Palette" item), a registry-driven Tools submenu grouped by category — pushed from the renderer over IPC as a validated `{id,title,route,category}` snapshot, never a static list the main process hard-codes — Window, and Help (Check for Updates, Documentation, About).
 
-4. Command Palette Expansion — tools, pipelines, workspace/session commands, native operations, preferences, recent files, and extension commands share one launcher.
+4. Command Palette Expansion — tools, pipelines, workspace/session commands, native operations, preferences, recent files, and extension commands share one launcher. **✅ Shipped (Milestones 423–424, 441–443)**: a declared `CommandSource`/`COMMAND_SOURCE` multi-provider contract (`shared/models/command-source.model.ts`) rather than hard-coded shell branches, exactly as this document already anticipated — six sources feed one ranked, `CommandKind`-grouped result list: Tool (unchanged), Workspace (apply/save-as-template), Project (open), Pipeline (navigate-only for now, pending the confirmation gate for direct execution), Native (Check for Updates/Open File/Manage Secrets plus one command per registered clipboard Quick Action), Recents (top-N Unified Recents, reopening each by its own kind), and Preferences (Open Settings plus a couple of instant, no-form toggles). Extension commands remain explicitly out of scope — no plugin loader exists yet — but the `COMMAND_SOURCE` token is that later declared API.
 
-5. Native File Recent List — only for files explicitly opened with desktop DUDE and subject to clear privacy controls.
+5. Native File Recent List — only for files explicitly opened with desktop DUDE and subject to clear privacy controls. **✅ Shipped (Milestones 444–447)**: only files opened via the existing `--open-with-dude`/Explorer-association flow are ever recorded, as `{path, name, extension, openedAt}` only, never content; merged into Unified Recents as a legitimate fifth input, not a second recording mechanism; Settings offers an opt-out toggle (gates future recordings only, never retroactively purges), a per-entry remove, and a clear-all; reopening a recent re-resolves the file from disk through a new `dude:open:reopen` IPC handler that reuses the existing bounded size/extension checks rather than replaying a cached snapshot; a mechanical privacy-audit spec (mirroring Phase 24 item 14's pattern) asserts the persisted store never gains a content-bearing field.
 
-6. Crash/Restart Workspace Recovery — restore safe workspace layout without extending any individual tool beyond its declared persistence policy.
+6. Crash/Restart Workspace Recovery — restore safe workspace layout without extending any individual tool beyond its declared persistence policy. **✅ Shipped (Milestones 448–449)**: workspace restoration itself needed no new code — the existing `'__workspace__'` store already survives a crash identically to a clean quit. What shipped: a small `crash-state.json` marker under Electron's `userData` directory that detects an unclean exit, exposed to the renderer as a static, preload-computed `wasRestoredAfterCrash` flag (passed via `additionalArguments`, not IPC, so it's known synchronously); a dismissible notice appears only on the one launch immediately following an unclean exit, and only when there's an open workspace to report.
 
-7. Desktop Quick Launcher — a minimal global launcher can execute common safe operations without opening the entire main window first.
+7. Desktop Quick Launcher — a minimal global launcher can execute common safe operations without opening the entire main window first. **✅ Shipped (Milestones 432–433)**: reuses the single main `BrowserWindow` rather than a second one, resizing/repositioning it only when it was already hidden to the tray (restoring the prior bounds on dismiss); when the window is already visible/focused, the same global hotkey (default `Ctrl+Shift+Space`, rebindable in Settings) instead surfaces an in-window Command Palette overlay without touching window geometry at all.
 
-8. Native Drag-and-Drop Routing — dropped files/directories are offered directly to compatible tools according to registry I/O capabilities.
+8. Native Drag-and-Drop Routing — dropped files/directories are offered directly to compatible tools according to registry I/O capabilities. **✅ Shipped (Milestones 434–436)**: a global window-level drop handler (`shared/components/global-drop-router/`) reuses Phase 24's `detectFileDrop`/`rankFileDropCandidates` matcher unchanged (a dropped file gets the identical ranked, `io.accepts`-aware matching a Smart File Drop already did) — a confident single match auto-navigates, a tie surfaces a disambiguation picker; a dropped directory resolves to a real path via Electron's own `webUtils.getPathForFile()` and routes through a new, narrowly-scoped `dude:open:enqueuePath` handler. Chromium's default drag-drop file-navigation, previously live and unguarded, was hardened (`will-navigate`) as part of the same work.
 
-9. File Association Framework — tools can declare file types they can inspect while Windows remains in control of final default-app selection.
+9. File Association Framework — tools can declare file types they can inspect while Windows remains in control of final default-app selection. **✅ Shipped (Milestones 437–438)**: the mechanism itself (manifest field, NSIS registry writes, `open-bridge.ts` parsing, matching) already shipped in an earlier phase; this item replaced hand-maintaining the NSIS extension list in four places with a generator (`scripts/generate-file-associations.mjs`, wired into `generate:registry`) and added in-app visibility — an install-time `file-associations.json` marker, read back over IPC and shown in Settings with a "Change in Windows Settings" link. Copy deliberately says "candidate," never "your default app," since the marker reflects the install-time choice, not live OS state.
 
-10. Desktop Capability Indicators — tools visibly communicate when desktop mode unlocks additional capabilities over the web companion.
+10. Desktop Capability Indicators — tools visibly communicate when desktop mode unlocks additional capabilities over the web companion. **✅ Shipped (Milestones 450–451)**: an optional `desktopCapabilities?: readonly string[]` field on `ToolDefinition` (free-string, deliberately loose like `verification.vectors`), distinct from `desktopOpen` (file types a tool can open, vs. what it does better on desktop); opted into by Directory Diff, Git Repo Browser, Advanced Markdown Workspace, Regex Tester, and Settings. A `DesktopCapabilityBadge` in `ToolShell`'s header shows an upsell tone on web and a quiet confirmation on desktop, hidden entirely for a tool that declares none.
 
-11. Desktop-First Documentation — download/install/use-native-capability documentation becomes primary; GitHub Pages remains prominently linked as the zero-install option.
+11. Desktop-First Documentation — download/install/use-native-capability documentation becomes primary; GitHub Pages remains prominently linked as the zero-install option. **✅ Shipped (Milestones 452–453)**: README's Desktop section moved earlier (right after Screenshots, ahead of the Tools list) with its download/install content promoted ahead of the technical stage-by-stage bullets, plus an explicit cross-link to the zero-install web companion; `docs/SECURITY.md` gained hand-written disclosure subsections, styled like its existing "Camera access" section, for every native capability this phase added that the tool-metadata generator can't cover on its own: deep links, native menu, Quick Launcher, drag-and-drop routing, file-association registry writes, the Native File Recent List, and crash/restart recovery.
 
-12. Desktop Performance Pass — optimize cold start, warm start, tray restore, IPC initialization, and local backend startup.
+12. Desktop Performance Pass — optimize cold start, warm start, tray restore, IPC initialization, and local backend startup. **✅ Shipped (Milestones 454–455)**: dev-only, env-gated (`DUDE_PERF_LOG`) startup marks plus `scripts/measure-desktop-startup.mjs` — a manual local benchmark, never wired into CI, consistent with the existing `perf/` corpus's "reported, not gating" posture. Measured baseline cold start on the dev machine (~335ms, dominated by native `BrowserWindow` construction and the initial page load, not application code); parallelized the independent parts of `createWindow()` (bounds resolution alongside the static-server start; the three hotkey registrations alongside window creation instead of blocking it first) and switched the main window to `show:false` plus show-on-`ready-to-show`, eliminating the blank/white first-paint flash. Audited every always-on renderer service this phase added (native-menu, quick-launcher, deep-link, global-drop-router) — none do expensive constructor-time work.
 
 Goal: make installing DUDE produce a qualitatively better developer workflow, not simply a larger permission envelope.
 
@@ -2151,10 +2151,10 @@ Create the “why doesn't this work on my machine?” surface and the native con
 4. **Clipboard Monitor** — continuous monitoring, for example detecting/optionally offering to format copied JSON
 5. **Screen Ruler**
 6. **Live Pixel Color Picker** — screen-coordinate based, distinct from Phase 17's upload-image Pixel Color Picker
-7. **Context-Menu Actions** — e.g. “Hash file,” “Format JSON,” “Open with DUDE” from the OS shell
-8. **Global Keyboard Shortcuts** — system-wide, not merely in-app
-9. **System Tray Presence and Actions**
-10. **Drag-and-Drop File Handling / “Open With” Integration**
+7. **Context-Menu Actions** — e.g. “Hash file,” “Format JSON” as new Explorer right-click entries (distinct from “Open with DUDE,” already available today via Phase 25's File Association Framework, which registers DUDE as an Explorer “Open with” candidate per file extension)
+8. **Global Keyboard Shortcuts** — system-wide, not merely in-app (three fixed global hotkeys already exist and are independently rebindable: Phase 8 Stage 5's clipboard quick-actions, Phase 24's Smart Paste hotkey, and Phase 25's Quick Launcher hotkey; this item is about arbitrary user-defined global bindings beyond those three)
+9. **System Tray Presence and Actions** — already shipped in Phase 8 Stage 5 (`electron/tray.ts`); nothing left here unless a later item needs new tray behavior
+10. **Drag-and-Drop File Handling / “Open With” Integration** — in-window drop routing and Explorer “Open with” both already shipped (Phase 25 items 8–9); what remains is OS-shell-level drop targets (e.g. dropping a file onto DUDE's taskbar/desktop icon to launch-and-open, rather than dropping into an already-open window)
 11. **Batch Processing Across Dropped Files**
 12. **Multi-Window Workflows** — multiple DUDE windows/process-backed windows as genuine OS/window-management behavior, distinct from Phase 21's in-app tabs/panels
 13. **Local Secrets Vault** — general-purpose local secrets management built on the `secure-local`/OS-keychain tier shipped in Phase 8 Stage 3; not a hosted secret-storage service
@@ -3767,11 +3767,15 @@ Added in §21 Phase 8 Stage 1 as the seam every desktop-only stage conditions on
 - expose the result as a readonly `isDesktop` signal, same shape as the Connectivity Service's `online` signal;
 - stay tool-agnostic — a boolean primitive the shell or any tool can read, never a place for desktop-feature logic itself.
 
+**✅ Extended in Phase 25** (Milestone 448, crash/restart recovery): gained a second static, preload-computed flag, `wasRestoredAfterCrash` — true only for the one launch immediately following an unclean exit — read once at construction the same way `isDesktop` already is.
+
 ---
 
 ## 25.7 Metadata / Manifest Validation
 
 Phase 22 adds build/CI validation for unique IDs/routes, valid categories, I/O declarations, persistence compatibility, pipeline/workspace adapters, lazy-loader existence, confidence/status values, platform availability, capability declarations, and documentation metadata.
+
+**✅ Extended in Phase 25** (Milestone 450): `desktopCapabilities` (an optional free-string array on `ToolDefinition`, distinct from `desktopOpen`) gained its own conformance-harness shape check — a declared entry must be a non-empty string, mirroring how every other optional metadata field here is checked, not just documented.
 
 ## 25.8 Capability / Permission Service
 
@@ -3784,6 +3788,8 @@ As native, remote, plugin, automation, and destructive operations grow, capabili
 ## 25.10 Desktop Native-Service Boundary
 
 Electron preload/main-process services expose narrowly-scoped native primitives. Tool code should not gain broad Node/native access simply because it runs in the desktop product. The permission/capability surface should remain inspectable and testable.
+
+**Upheld through Phase 25**: every new preload/IPC surface that phase added (deep-link forwarding, the registry-driven native-menu snapshot, Quick Launcher hotkey/geometry control, the `dude:open:reopen`/`dude:open:enqueuePath` handlers, the crash-detection flag) stays a narrowly-scoped primitive validated on the main-process side, never a broad capability handed to the renderer wholesale.
 
 ---
 
@@ -3810,7 +3816,7 @@ The V1 palette was navigation-only. The following were deliberately deferred the
 - command aliases managed by users;
 - macros.
 
-Phase 25 now proposes a major palette expansion: tools, pipelines, workspaces/sessions, native operations, preferences, recent files, extension commands, and desktop quick actions in one launcher. Later plugin/IDE/automation phases may add commands through declared APIs rather than hard-coded shell branches.
+**✅ Shipped in Phase 25** (Milestones 423–424, 441–443): the proposed palette expansion, via a declared `CommandSource`/`COMMAND_SOURCE` multi-provider contract rather than hard-coded shell branches — tools, workspace templates, projects, pipelines (navigate-only), native operations, recent activity, and preferences all share one launcher today. Extension commands remain out of scope until a plugin loader exists; later plugin/IDE/automation phases can add commands through that same declared `CommandSource` API rather than a new mechanism.
 
 ---
 
