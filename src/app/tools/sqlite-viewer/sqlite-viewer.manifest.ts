@@ -16,4 +16,5 @@ export const manifest: ToolDefinition = {
   persistence: { input: 'none', preferences: 'none' },
   execution: { worker: 'none' },
   io: { accepts: ['file', 'bytes'], produces: ['table'] },
+  capabilities: [{ kind: 'runtime', runtime: 'sqljs' }],
 };

@@ -3,6 +3,8 @@ import { ToolCategory, TOOL_CATEGORIES } from '../../shared/models/tool-category
 import { ToolDefinition, ToolSettingsSection } from '../../shared/models/tool-definition.model';
 import { TOOL_DEFINITIONS } from './tool-definitions';
 import { searchTools } from './tool-search';
+import { platformCapabilities, runtimeCapabilities } from '../platform/capability-catalog';
+import { PlatformToolCapability, RuntimeId } from '../../shared/models/tool-capability.model';
 import { toRoutePath } from './tool-routes';
 
 /** A tool-contributed Settings section, flattened with its owning tool's id/title. */
@@ -82,5 +84,20 @@ export class ToolRegistryService {
 
   requiresNetwork(id: string): boolean {
     return this.getById(id)?.network?.required ?? false;
+  }
+
+  /** Declared native platform capabilities (Web Capability Matrix, Phase 26 Item 6). */
+  platformCapabilitiesOf(id: string): readonly PlatformToolCapability[] {
+    return platformCapabilities(this.getById(id)?.capabilities);
+  }
+
+  /** True when some declared feature of this tool is absent on the web companion. */
+  hasWebUnavailableFeature(id: string): boolean {
+    return this.platformCapabilitiesOf(id).some((capability) => capability.web === 'unavailable');
+  }
+
+  /** Optional runtime payloads (WASM/vendor) this tool needs before it can run offline. */
+  runtimesOf(id: string): readonly RuntimeId[] {
+    return runtimeCapabilities(this.getById(id)?.capabilities);
   }
 }

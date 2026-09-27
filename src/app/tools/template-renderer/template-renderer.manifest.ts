@@ -20,4 +20,5 @@ export const manifest: ToolDefinition = {
   execution: { worker: 'required' },
   network: { required: false },
   io: { accepts: ['text', 'json'], produces: ['text'] },
+  capabilities: [{ kind: 'runtime', runtime: 'ejs' }],
 };

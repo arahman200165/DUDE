@@ -3,7 +3,9 @@ import type { ToolDefinition } from '../../shared/models/tool-definition.model';
 export const manifest: ToolDefinition = {
   id: 'markdown-workspace',
   desktopOpen: { extensions: ['.md'], inputKey: 'source' },
-  desktopCapabilities: ['watches the file on disk for external changes', 'collaborate across networks via a self-hosted relay'],
+  capabilities: [
+    { kind: 'platform', id: 'collab-relay', web: 'unavailable', note: 'collaborate across networks via a self-hosted relay' },
+  ],
   title: 'Advanced Markdown Workspace',
   shortTitle: 'Markdown Workspace',
   description:

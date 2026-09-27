@@ -1,6 +1,7 @@
 import { ToolCategory } from './tool-category.model';
 import { PersistencePolicy } from './persistence-policy.model';
 import { ToolIOCapabilities } from './tool-io.model';
+import { ToolCapability } from './tool-capability.model';
 
 export interface ToolPersistencePolicy {
   readonly input?: PersistencePolicy;
@@ -122,13 +123,13 @@ export interface ToolDefinition {
   readonly verification?: ToolVerificationMetadata;
   readonly consequenceClass?: readonly ConsequenceClass[];
   /**
-   * Desktop Capability Indicators (DUDE_PRD.md §21 Phase 25 Item 10) — free-string labels of what
-   * this tool does better on desktop (e.g. `'native filesystem access'`), deliberately loose like
-   * `ToolVerificationMetadata.vectors` since Phase 26's "Web Capability Matrix" may reshape this
-   * later. Distinct from `desktopOpen`, which is about *file types this tool can open*, not general
-   * desktop-only capability.
+   * Web Capability Matrix (DUDE_PRD.md §21 Phase 26 Item 6; supersedes Phase 25's free-string
+   * `desktopCapabilities`) — native platform capabilities and optional runtimes this tool uses, from
+   * a closed vocabulary (see `ToolCapability`). Drives the capability badges, the generated matrix in
+   * README/SECURITY.md, offline readiness, and pipeline gating. Distinct from `desktopOpen`, which is
+   * about *file types this tool can open*, not general desktop-only capability.
    */
-  readonly desktopCapabilities?: readonly string[];
+  readonly capabilities?: readonly ToolCapability[];
   /** A Settings section this tool contributes — see `ToolSettingsSection`. */
   readonly settingsSection?: ToolSettingsSection;
   /** Legacy storage keys moved into this tool's namespace at bootstrap — see `ToolStorageMigration`. */

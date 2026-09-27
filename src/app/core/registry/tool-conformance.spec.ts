@@ -1,10 +1,12 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { TOOL_DEFINITIONS } from './tool-definitions';
 import { TOOL_CATEGORIES } from '../../shared/models/tool-category.model';
 import { DudeDataType } from '../../shared/models/tool-io.model';
 import { PersistencePolicy } from '../../shared/models/persistence-policy.model';
 import { ConsequenceClass } from '../../shared/models/tool-definition.model';
+import { PLATFORM_CAPABILITY_IDS, RUNTIME_IDS, RuntimeId } from '../../shared/models/tool-capability.model';
+import { PLATFORM_CAPABILITIES } from '../platform/capability-catalog';
 
 // One authoritative structural-validation pass over the real registry (DUDE_PRD.md §21 Phase
 // 22 Item 3), consolidating what tool-registry.service.spec.ts's validateDefinitions (synthetic
@@ -31,6 +33,23 @@ const VALID_CONSEQUENCE_CLASSES: readonly ConsequenceClass[] = [
   'database-write',
   'secret-management',
 ];
+
+// Web Capability Matrix (Phase 26 Item 6): a runtime is "used" when non-spec source references
+// its asset path/package in code (string literal or import), not merely mentions it in a comment.
+const RUNTIME_SOURCE_PATTERNS: Readonly<Record<RuntimeId, RegExp>> = {
+  pyodide: /['"`]assets\/vendor\/pyodide/,
+  sqljs: /from ['"]sql\.js['"]/,
+  xmllint: /from ['"]xmllint-wasm['"]/,
+  ejs: /['"`]assets\/vendor\/ejs\.min\.js/,
+};
+
+function toolSource(id: string): string {
+  const dir = resolve(process.cwd(), 'src/app/tools', id);
+  return readdirSync(dir, { recursive: true, encoding: 'utf8' })
+    .filter((file) => file.endsWith('.ts') && !file.endsWith('.spec.ts'))
+    .map((file) => readFileSync(resolve(dir, file), 'utf8'))
+    .join('\n');
+}
 
 describe('Tool conformance harness', () => {
   it('has at least one registered tool', () => {
@@ -97,9 +116,39 @@ describe('Tool conformance harness', () => {
         }
       });
 
-      it('declares non-empty desktopCapabilities strings, when present', () => {
-        for (const capability of definition.desktopCapabilities ?? []) {
-          expect(capability.trim().length, `${definition.id} declares a blank desktopCapabilities entry`).toBeGreaterThan(0);
+      it('declares well-formed, non-duplicate capabilities from the closed vocabulary, when present', () => {
+        const seen = new Set<string>();
+        for (const capability of definition.capabilities ?? []) {
+          const key = capability.kind === 'platform' ? capability.id : `runtime:${capability.runtime}`;
+          expect(seen.has(key), `${definition.id} declares capability "${key}" twice`).toBe(false);
+          seen.add(key);
+          if (capability.kind === 'platform') {
+            expect(PLATFORM_CAPABILITY_IDS, `${definition.id} declares unknown capability "${capability.id}"`).toContain(capability.id);
+            expect(['fallback', 'unavailable']).toContain(capability.web);
+            expect(capability.note.trim().length, `${definition.id} capability "${capability.id}" has a blank note`).toBeGreaterThan(0);
+          } else {
+            expect(RUNTIME_IDS, `${definition.id} declares unknown runtime "${capability.runtime}"`).toContain(capability.runtime);
+          }
+        }
+      });
+
+      // The matrix is only trustworthy if it can't drift from the code: importing a native service
+      // or referencing a vendored runtime without declaring it (or vice versa) fails here.
+      it('declares exactly the platform capabilities and runtimes its source actually uses', () => {
+        const source = toolSource(definition.id);
+        const declaredPlatform = new Set(
+          (definition.capabilities ?? []).flatMap((c) => (c.kind === 'platform' ? [c.id] : [])),
+        );
+        for (const id of PLATFORM_CAPABILITY_IDS) {
+          const uses = new RegExp(`import \\{[^}]*\\b${PLATFORM_CAPABILITIES[id].service}\\b`).test(source);
+          expect(declaredPlatform.has(id), `${definition.id}: imports ${PLATFORM_CAPABILITIES[id].service} ⇔ declares '${id}'`).toBe(uses);
+        }
+        const declaredRuntimes = new Set(
+          (definition.capabilities ?? []).flatMap((c) => (c.kind === 'runtime' ? [c.runtime] : [])),
+        );
+        for (const runtime of RUNTIME_IDS) {
+          const uses = RUNTIME_SOURCE_PATTERNS[runtime].test(source);
+          expect(declaredRuntimes.has(runtime), `${definition.id}: references the ${runtime} runtime ⇔ declares it`).toBe(uses);
         }
       });
 

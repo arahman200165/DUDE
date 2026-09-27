@@ -6,6 +6,11 @@
 // Mirrors scripts/generate-readme-tools.mjs's approach exactly: walk manifests, regex-extract
 // the fields this doc needs, regenerate one fenced section of SECURITY.md in place.
 //
+// Also regenerates the Web Capability Matrix (DUDE_PRD.md §21 Phase 26 Item 6) — from each
+// manifest's closed-vocabulary `capabilities` — into SECURITY.md and README.md's fenced
+// `<!-- capability-matrix:start/end -->` block, so the web/desktop split is disclosed from the
+// same metadata the conformance harness enforces against real imports.
+//
 // Usage: node scripts/generate-security-doc.mjs
 
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -16,6 +21,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const TOOLS_DIR = path.join(ROOT, 'src/app/tools');
 const SECURITY_PATH = path.join(ROOT, 'SECURITY.md');
+const README_PATH = path.join(ROOT, 'README.md');
 const BASE_URL = 'https://arahman200165.github.io/DUDE';
 
 const CONSEQUENCE_LABELS = {
@@ -29,6 +35,42 @@ const CONSEQUENCE_LABELS = {
   'database-write': 'Database Write',
   'secret-management': 'Secret Management',
 };
+
+// Mirrors src/app/core/platform/capability-catalog.ts's labels (kept in sync by security-doc.spec.ts).
+const PLATFORM_CAPABILITY_LABELS = {
+  'native-fs': 'Native filesystem access',
+  'file-watch': 'File watching',
+  'llm-proxy': 'Local LLM proxy',
+  'collab-relay': 'Collaboration relay',
+  'secure-keychain': 'OS keychain storage',
+};
+const RUNTIME_LABELS = {
+  pyodide: 'Pyodide (Python/WASM)',
+  sqljs: 'sql.js (SQLite/WASM)',
+  xmllint: 'xmllint (libxml2/WASM)',
+  ejs: 'EJS template engine',
+};
+const WEB_LABELS = {
+  fallback: 'Works — weaker browser fallback',
+  unavailable: 'Desktop-only feature',
+};
+
+function extractCapabilities(text) {
+  const block = text.match(/capabilities:\s*\[([\s\S]*?)\],\n/);
+  if (!block) return { platform: [], runtimes: [] };
+  const entries = [...block[1].matchAll(/\{([^{}]*)\}/g)].map((m) => m[1]);
+  const platform = [];
+  const runtimes = [];
+  for (const entry of entries) {
+    const kind = extractField(entry, 'kind');
+    if (kind === 'platform') {
+      platform.push({ id: extractField(entry, 'id'), web: extractField(entry, 'web'), note: extractField(entry, 'note') });
+    } else if (kind === 'runtime') {
+      runtimes.push(extractField(entry, 'runtime'));
+    }
+  }
+  return { platform, runtimes };
+}
 
 function findManifests(dir) {
   const results = [];
@@ -76,7 +118,7 @@ function extractNestedBoolean(text, group, field) {
 const manifestPaths = findManifests(TOOLS_DIR);
 const tools = manifestPaths
   .map((manifestPath) => {
-    const text = readFileSync(manifestPath, 'utf8');
+    const text = readFileSync(manifestPath, 'utf8').replace(/\r\n/g, '\n');
     return {
       id: extractField(text, 'id'),
       title: extractField(text, 'title'),
@@ -89,6 +131,7 @@ const tools = manifestPaths
       persistenceInput: extractNestedField(text, 'persistence', 'input'),
       persistencePreferences: extractNestedField(text, 'persistence', 'preferences'),
       desktopOpen: /desktopOpen:\s*\{/.test(text),
+      capabilities: extractCapabilities(text),
     };
   });
 
@@ -109,17 +152,49 @@ const networkRows = tools
   .sort((a, b) => a.id.localeCompare(b.id))
   .map((tool) => `| ${link(tool)} | ${tool.networkDetail ?? 'required'} |`);
 
+const usesKeychain = (tool) =>
+  tool.persistenceInput === 'secure-local' ||
+  tool.persistencePreferences === 'secure-local' ||
+  tool.capabilities.platform.some((c) => c.id === 'secure-keychain');
+
 const nativeRows = tools
-  .filter((tool) => tool.desktopOpen || tool.persistenceInput === 'secure-local' || tool.persistencePreferences === 'secure-local')
+  .filter((tool) => tool.desktopOpen || usesKeychain(tool) || tool.capabilities.platform.length > 0)
   .sort((a, b) => a.id.localeCompare(b.id))
   .map((tool) => {
     const capabilities = [];
     if (tool.desktopOpen) capabilities.push('Desktop file/folder open');
-    if (tool.persistenceInput === 'secure-local' || tool.persistencePreferences === 'secure-local') {
-      capabilities.push('OS keychain storage (Electron only)');
+    for (const capability of tool.capabilities.platform) {
+      if (capability.id !== 'secure-keychain') capabilities.push(PLATFORM_CAPABILITY_LABELS[capability.id] ?? capability.id);
     }
+    if (usesKeychain(tool)) capabilities.push('OS keychain storage (Electron only)');
     return `| ${link(tool)} | ${capabilities.join('; ')} |`;
   });
+
+const capabilityRows = tools
+  .flatMap((tool) => tool.capabilities.platform.map((capability) => ({ tool, capability })))
+  .sort((a, b) => a.tool.id.localeCompare(b.tool.id) || a.capability.id.localeCompare(b.capability.id))
+  .map(
+    ({ tool, capability }) =>
+      `| ${link(tool)} | ${PLATFORM_CAPABILITY_LABELS[capability.id] ?? capability.id} | ${WEB_LABELS[capability.web] ?? capability.web} | ${capability.note} |`,
+  );
+
+const runtimeRows = tools
+  .flatMap((tool) => tool.capabilities.runtimes.map((runtime) => ({ tool, runtime })))
+  .sort((a, b) => a.tool.id.localeCompare(b.tool.id))
+  .map(({ tool, runtime }) => `| ${link(tool)} | ${RUNTIME_LABELS[runtime] ?? runtime} |`);
+
+const capabilityMatrix = `Every tool not listed here behaves identically on the web companion and the desktop app.
+
+| Tool | Desktop capability | On the web | What desktop adds |
+| --- | --- | --- | --- |
+${capabilityRows.join('\n')}
+
+Optional runtimes are cached on demand by the web service worker the first time the tool needs
+them (never prefetched), and ship locally inside the desktop app.
+
+| Tool | Optional runtime |
+| --- | --- |
+${runtimeRows.join('\n')}`;
 
 const content = `# Security & Capability Disclosure
 
@@ -154,13 +229,17 @@ ${networkRows.join('\n')}
 
 ## Native/Desktop-Privileged Tools
 
-Tools that use a desktop-only native capability (Electron file/folder picker, or OS-keychain-backed
-storage) beyond the browser sandbox. All other tools run identically on the web companion and the
-desktop app.
+Tools that use a desktop-only native capability (Electron file/folder picker, native filesystem
+access, the local LLM proxy, the collaboration server, or OS-keychain-backed storage) beyond the
+browser sandbox.
 
 | Tool | Native capability |
 | --- | --- |
 ${nativeRows.join('\n')}
+
+## Web Capability Matrix
+
+${capabilityMatrix}
 `;
 
 // Plain `\n` -- the committed blob is LF (git normalizes on commit regardless of a Windows
@@ -168,6 +247,11 @@ ${nativeRows.join('\n')}
 // Linux CI runner (no autocrlf conversion in play), failing the "up to date" staleness check
 // even when the content itself hadn't changed at all.
 writeFileSync(SECURITY_PATH, content, 'utf8');
+
+const README_BLOCK = /(<!-- capability-matrix:start -->\n)[\s\S]*?(\n<!-- capability-matrix:end -->)/;
+const readme = readFileSync(README_PATH, 'utf8').replace(/\r\n/g, '\n');
+if (!README_BLOCK.test(readme)) throw new Error('README.md is missing the <!-- capability-matrix:start/end --> block');
+writeFileSync(README_PATH, readme.replace(README_BLOCK, (_m, start, end) => `${start}${capabilityMatrix}${end}`), 'utf8');
 console.log(
-  `Regenerated SECURITY.md: ${matrixRows.length} high-consequence rows, ${networkRows.length} network-capable tools, ${nativeRows.length} native-privileged tools.`,
+  `Regenerated SECURITY.md: ${matrixRows.length} high-consequence rows, ${networkRows.length} network-capable tools, ${nativeRows.length} native-privileged tools, ${capabilityRows.length + runtimeRows.length} capability-matrix rows.`,
 );

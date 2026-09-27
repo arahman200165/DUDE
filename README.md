@@ -59,6 +59,31 @@ npm run relay:dev        # run the standalone BYO collab relay locally
 
 Electron's `BrowserWindow` loads the built app from a small local static server bound to `127.0.0.1` on an OS-assigned port (never an external interface), not `file://` — so the existing path-based routing works unchanged, with real SPA fallback instead of the GitHub Pages `404.html` trick. The renderer keeps `contextIsolation` on with no direct `nodeIntegration`; all native access is mediated through `electron/preload.ts`'s `contextBridge` bridge — see `electron/AGENTS.md` for that rule and `src/app/core/platform/` for the `PlatformService` tools/shell code can use to detect the desktop runtime. The one deliberate exception to the loopback-only rule is the local collab server, which binds `0.0.0.0` for LAN reachability, gated by a random per-session code.
 
+### Web vs. desktop capability matrix
+
+Generated from each tool's `capabilities` manifest metadata (`scripts/generate-security-doc.mjs`) — do not hand-edit.
+
+<!-- capability-matrix:start -->
+Every tool not listed here behaves identically on the web companion and the desktop app.
+
+| Tool | Desktop capability | On the web | What desktop adds |
+| --- | --- | --- | --- |
+| [Directory Diff](https://arahman200165.github.io/DUDE/tools/directory-diff) | Native filesystem access | Works — weaker browser fallback | compares real folders on disk, not zipped/pasted file lists |
+| [Git Repo Browser](https://arahman200165.github.io/DUDE/tools/git-diff) | Native filesystem access | Works — weaker browser fallback | reads a real .git directory on disk, no upload/zip step |
+| [Advanced Markdown Workspace](https://arahman200165.github.io/DUDE/tools/markdown-workspace) | Collaboration relay | Desktop-only feature | collaborate across networks via a self-hosted relay |
+| [Regex Tester](https://arahman200165.github.io/DUDE/tools/regex) | Local LLM proxy | Desktop-only feature | AI-assisted explain/generate via a local LLM proxy, no cloud key required |
+
+Optional runtimes are cached on demand by the web service worker the first time the tool needs
+them (never prefetched), and ship locally inside the desktop app.
+
+| Tool | Optional runtime |
+| --- | --- |
+| [Python Playground](https://arahman200165.github.io/DUDE/tools/python-playground) | Pyodide (Python/WASM) |
+| [SQLite File Viewer](https://arahman200165.github.io/DUDE/tools/sqlite-viewer) | sql.js (SQLite/WASM) |
+| [Template Renderer](https://arahman200165.github.io/DUDE/tools/template-renderer) | EJS template engine |
+| [XML Schema / XSD Validator](https://arahman200165.github.io/DUDE/tools/xml-xsd-validator) | xmllint (libxml2/WASM) |
+<!-- capability-matrix:end -->
+
 ## Tools
 
 276 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.

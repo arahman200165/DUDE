@@ -28,4 +28,5 @@ export const manifest: ToolDefinition = {
   execution: { worker: 'none' },
   network: { required: false },
   io: { accepts: ['text'], produces: ['text'] },
+  capabilities: [{ kind: 'runtime', runtime: 'pyodide' }],
 };

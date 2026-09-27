@@ -19,4 +19,5 @@ export const manifest: ToolDefinition = {
   fileInput: { key: 'xmlInput', extensions: ['.xml'] },
   execution: { worker: 'none' },
   io: { accepts: ['text', 'file'], produces: ['text'] },
+  capabilities: [{ kind: 'runtime', runtime: 'xmllint' }],
 };

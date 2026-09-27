@@ -68,22 +68,45 @@ Every other tool processes data entirely locally and makes no network request.
 
 ## Native/Desktop-Privileged Tools
 
-Tools that use a desktop-only native capability (Electron file/folder picker, or OS-keychain-backed
-storage) beyond the browser sandbox. All other tools run identically on the web companion and the
-desktop app.
+Tools that use a desktop-only native capability (Electron file/folder picker, native filesystem
+access, the local LLM proxy, the collaboration server, or OS-keychain-backed storage) beyond the
+browser sandbox.
 
 | Tool | Native capability |
 | --- | --- |
 | [CSS Formatter / Minifier](https://arahman200165.github.io/DUDE/tools/css-formatter) | Desktop file/folder open |
 | [CSV Viewer / Converter](https://arahman200165.github.io/DUDE/tools/csv-viewer) | Desktop file/folder open |
-| [Directory Diff](https://arahman200165.github.io/DUDE/tools/directory-diff) | Desktop file/folder open |
+| [Directory Diff](https://arahman200165.github.io/DUDE/tools/directory-diff) | Desktop file/folder open; Native filesystem access |
+| [Git Repo Browser](https://arahman200165.github.io/DUDE/tools/git-diff) | Native filesystem access |
 | [HTML Preview](https://arahman200165.github.io/DUDE/tools/html-preview) | Desktop file/folder open |
 | [INI Formatter / Parser](https://arahman200165.github.io/DUDE/tools/ini-formatter) | Desktop file/folder open |
 | [JavaScript Playground](https://arahman200165.github.io/DUDE/tools/js-playground) | Desktop file/folder open |
 | [JSON Formatter](https://arahman200165.github.io/DUDE/tools/json) | Desktop file/folder open |
-| [Advanced Markdown Workspace](https://arahman200165.github.io/DUDE/tools/markdown-workspace) | Desktop file/folder open |
+| [Advanced Markdown Workspace](https://arahman200165.github.io/DUDE/tools/markdown-workspace) | Desktop file/folder open; Collaboration relay |
+| [Regex Tester](https://arahman200165.github.io/DUDE/tools/regex) | Local LLM proxy |
 | [SQL Formatter / Minifier](https://arahman200165.github.io/DUDE/tools/sql-formatter-tool) | Desktop file/folder open |
 | [Text Inspector](https://arahman200165.github.io/DUDE/tools/text-inspector) | Desktop file/folder open |
 | [TOML Formatter / Validator](https://arahman200165.github.io/DUDE/tools/toml-formatter) | Desktop file/folder open |
 | [XML Formatter](https://arahman200165.github.io/DUDE/tools/xml-formatter) | Desktop file/folder open |
 | [YAML ↔ JSON Converter](https://arahman200165.github.io/DUDE/tools/yaml-json) | Desktop file/folder open |
+
+## Web Capability Matrix
+
+Every tool not listed here behaves identically on the web companion and the desktop app.
+
+| Tool | Desktop capability | On the web | What desktop adds |
+| --- | --- | --- | --- |
+| [Directory Diff](https://arahman200165.github.io/DUDE/tools/directory-diff) | Native filesystem access | Works — weaker browser fallback | compares real folders on disk, not zipped/pasted file lists |
+| [Git Repo Browser](https://arahman200165.github.io/DUDE/tools/git-diff) | Native filesystem access | Works — weaker browser fallback | reads a real .git directory on disk, no upload/zip step |
+| [Advanced Markdown Workspace](https://arahman200165.github.io/DUDE/tools/markdown-workspace) | Collaboration relay | Desktop-only feature | collaborate across networks via a self-hosted relay |
+| [Regex Tester](https://arahman200165.github.io/DUDE/tools/regex) | Local LLM proxy | Desktop-only feature | AI-assisted explain/generate via a local LLM proxy, no cloud key required |
+
+Optional runtimes are cached on demand by the web service worker the first time the tool needs
+them (never prefetched), and ship locally inside the desktop app.
+
+| Tool | Optional runtime |
+| --- | --- |
+| [Python Playground](https://arahman200165.github.io/DUDE/tools/python-playground) | Pyodide (Python/WASM) |
+| [SQLite File Viewer](https://arahman200165.github.io/DUDE/tools/sqlite-viewer) | sql.js (SQLite/WASM) |
+| [Template Renderer](https://arahman200165.github.io/DUDE/tools/template-renderer) | EJS template engine |
+| [XML Schema / XSD Validator](https://arahman200165.github.io/DUDE/tools/xml-xsd-validator) | xmllint (libxml2/WASM) |
