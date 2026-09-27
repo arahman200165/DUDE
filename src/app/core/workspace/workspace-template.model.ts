@@ -1,4 +1,4 @@
-import { PanelNode } from './workspace.model';
+import { PanelNode, PreferenceOverrides, withPreferenceOverrides } from './workspace.model';
 
 /**
  * A named, saved arrangement of tools/panels (DUDE_PRD.md §21 Phase 24 Item 11) — exactly
@@ -13,6 +13,7 @@ export interface WorkspaceTemplate {
   readonly builtIn: boolean;
   readonly panelTree: PanelNode | null;
   readonly openTabs: readonly string[];
+  readonly preferenceOverrides?: PreferenceOverrides;
 }
 
 function threeToolLayout(id: string, toolIds: readonly [string, string, string]): Pick<WorkspaceTemplate, 'panelTree' | 'openTabs'> {
@@ -69,8 +70,13 @@ export function recordRecentlyAppliedTemplate(ids: readonly string[], id: string
   return [id, ...ids.filter((existing) => existing !== id)].slice(0, MAX_RECENTLY_APPLIED_TEMPLATES);
 }
 
-export function createWorkspaceTemplate(name: string, panelTree: PanelNode | null, openTabs: readonly string[]): WorkspaceTemplate {
-  return { id: crypto.randomUUID(), name, builtIn: false, panelTree, openTabs };
+export function createWorkspaceTemplate(
+  name: string,
+  panelTree: PanelNode | null,
+  openTabs: readonly string[],
+  preferenceOverrides?: PreferenceOverrides,
+): WorkspaceTemplate {
+  return { id: crypto.randomUUID(), name, builtIn: false, panelTree, openTabs, ...withPreferenceOverrides(preferenceOverrides) };
 }
 
 export const BUILT_IN_TEMPLATES: readonly WorkspaceTemplate[] = [

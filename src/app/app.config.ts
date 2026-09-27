@@ -10,10 +10,12 @@ import { PIPELINE_COMMAND_SOURCE_PROVIDERS } from './core/pipeline/pipeline-comm
 import { NATIVE_COMMAND_SOURCE_PROVIDERS } from './core/platform/native-command-source';
 import { RECENTS_COMMAND_SOURCE_PROVIDERS } from './core/recents/recents-command-source';
 import { PREFERENCES_COMMAND_SOURCE_PROVIDERS } from './core/platform/preferences-command-source';
+import { provideStorageMigrations } from './core/persistence/storage-migrations';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
+    provideStorageMigrations(),
     ...TOOL_COMMAND_SOURCE_PROVIDERS,
     ...WORKSPACE_COMMAND_SOURCE_PROVIDERS,
     ...PROJECT_COMMAND_SOURCE_PROVIDERS,

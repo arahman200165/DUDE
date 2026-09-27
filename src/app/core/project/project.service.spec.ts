@@ -107,4 +107,18 @@ describe('ProjectService', () => {
 
     expect(freshService.projects().some((p) => p.id === project.id)).toBe(true);
   });
+
+  it('carries workspace preference overrides through create, activate and saveCurrentLayoutInto', () => {
+    workspaceLayout.setPreferenceOverride('markdown', 'relayUrl', 'ws://one');
+    const project = service.create('Relay');
+    expect(project.preferenceOverrides).toEqual({ markdown: { relayUrl: 'ws://one' } });
+
+    workspaceLayout.setPreferenceOverride('markdown', 'relayUrl', null);
+    service.activate(project.id);
+    expect(workspaceLayout.preferenceOverrides()).toEqual({ markdown: { relayUrl: 'ws://one' } });
+
+    workspaceLayout.setPreferenceOverride('markdown', 'relayUrl', null);
+    service.saveCurrentLayoutInto(project.id);
+    expect(service.getById(project.id)?.preferenceOverrides).toBeUndefined();
+  });
 });

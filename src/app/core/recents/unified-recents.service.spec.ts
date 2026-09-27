@@ -70,4 +70,12 @@ describe('UnifiedRecentsService', () => {
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatchObject({ kind: 'native-file', path: 'C:/notes.md', title: 'notes.md' });
   });
+
+  it('silently drops tool-open entries for tool ids that are no longer registered', () => {
+    const usage = TestBed.inject(UsageService);
+    usage.recordOpen('this-tool-does-not-exist');
+    usage.recordOpen(TOOL_DEFINITIONS[0].id);
+
+    expect(service.entries().map((entry) => ('toolId' in entry ? entry.toolId : null))).toEqual([TOOL_DEFINITIONS[0].id]);
+  });
 });

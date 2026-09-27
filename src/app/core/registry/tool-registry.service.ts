@@ -1,9 +1,15 @@
 import { Injectable, isDevMode } from '@angular/core';
 import { ToolCategory, TOOL_CATEGORIES } from '../../shared/models/tool-category.model';
-import { ToolDefinition } from '../../shared/models/tool-definition.model';
+import { ToolDefinition, ToolSettingsSection } from '../../shared/models/tool-definition.model';
 import { TOOL_DEFINITIONS } from './tool-definitions';
 import { searchTools } from './tool-search';
 import { toRoutePath } from './tool-routes';
+
+/** A tool-contributed Settings section, flattened with its owning tool's id/title. */
+export interface ContributedSettingsSection extends ToolSettingsSection {
+  readonly toolId: string;
+  readonly toolTitle: string;
+}
 
 export function validateDefinitions(definitions: readonly ToolDefinition[]): void {
   const seenIds = new Set<string>();
@@ -64,6 +70,14 @@ export class ToolRegistryService {
 
   search(query: string): ToolDefinition[] {
     return searchTools(this.definitions, query);
+  }
+
+  /** Every `settingsSection` declared by a manifest, alphabetical by tool title (Settings' "Tools" group). */
+  settingsSections(): readonly ContributedSettingsSection[] {
+    return this.definitions
+      .filter((definition) => definition.settingsSection !== undefined)
+      .map((definition) => ({ ...definition.settingsSection!, toolId: definition.id, toolTitle: definition.title }))
+      .sort((a, b) => a.toolTitle.localeCompare(b.toolTitle));
   }
 
   requiresNetwork(id: string): boolean {

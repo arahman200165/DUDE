@@ -28,7 +28,12 @@ export class ProjectService {
   }
 
   create(name: string): Project {
-    const project = createProject(name, this.workspaceLayout.panelTree(), this.workspaceLayout.openTabs());
+    const project = createProject(
+      name,
+      this.workspaceLayout.panelTree(),
+      this.workspaceLayout.openTabs(),
+      this.workspaceLayout.preferenceOverrides(),
+    );
     this.store.set({ ...this.store(), projects: [...this.store().projects, project] });
     return project;
   }
@@ -49,7 +54,7 @@ export class ProjectService {
   activate(id: string): void {
     const project = this.getById(id);
     if (!project) return;
-    this.workspaceLayout.applyLayout(project.panelTree, project.openTabs);
+    this.workspaceLayout.applyLayout(project.panelTree, project.openTabs, project.preferenceOverrides);
     this.updateProject(id, (current) => ({ ...current, lastActivatedAt: new Date().toISOString() }));
   }
 
@@ -59,6 +64,7 @@ export class ProjectService {
       ...project,
       panelTree: this.workspaceLayout.panelTree(),
       openTabs: this.workspaceLayout.openTabs(),
+      preferenceOverrides: this.workspaceLayout.preferenceOverrides(),
     }));
   }
 

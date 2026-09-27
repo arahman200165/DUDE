@@ -28,9 +28,13 @@ export class UnifiedRecentsService {
     return this.registry.getById(toolId)?.title ?? toolId;
   }
 
+  /** A tool that has since been retired (or became a shell destination) silently drops off. */
+  private readonly isKnownTool = (entry: { readonly toolId: string }): boolean => this.registry.getById(entry.toolId) !== undefined;
+
   readonly entries = computed<readonly UnifiedRecentEntry[]>(() => {
     const toolEntries: UnifiedRecentEntry[] = this.usage
       .recentLogRaw()
+      .filter(this.isKnownTool)
       .map((e) => ({ kind: 'tool' as const, toolId: e.toolId, title: this.toolTitle(e.toolId), at: e.at }));
 
     const pipelineEntries: UnifiedRecentEntry[] = this.pipelineStore
@@ -44,10 +48,12 @@ export class UnifiedRecentsService {
     const now = new Date().toISOString();
     const workspaceEntries: UnifiedRecentEntry[] = this.workspaceLayout
       .openTabs()
+      .filter((toolId) => this.isKnownTool({ toolId }))
       .map((toolId) => ({ kind: 'workspace-tab' as const, toolId, title: this.toolTitle(toolId), at: now }));
 
     const historyEntries: UnifiedRecentEntry[] = this.history
       .recent()
+      .filter(this.isKnownTool)
       .map((e) => ({ kind: 'history' as const, entryId: e.id, toolId: e.toolId, title: this.toolTitle(e.toolId), at: e.createdAt }));
 
     const nativeFileEntries: UnifiedRecentEntry[] = this.nativeRecents

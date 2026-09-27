@@ -83,4 +83,17 @@ describe('WorkspaceTemplateService', () => {
 
     expect(freshService.templates().some((t) => t.id === saved.id)).toBe(true);
   });
+
+  it('round-trips workspace preference overrides through save-as-template and apply', () => {
+    workspaceLayout.openTool('base64');
+    workspaceLayout.setPreferenceOverride('markdown', 'relayUrl', 'ws://team');
+    const saved = service.saveCurrentAsTemplate('Team');
+    expect(saved.preferenceOverrides).toEqual({ markdown: { relayUrl: 'ws://team' } });
+
+    service.apply(BUILT_IN_TEMPLATES[0]);
+    expect(workspaceLayout.preferenceOverrides()).toBeUndefined();
+
+    service.apply(saved);
+    expect(workspaceLayout.preferenceOverrides()).toEqual({ markdown: { relayUrl: 'ws://team' } });
+  });
 });

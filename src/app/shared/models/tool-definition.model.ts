@@ -63,6 +63,43 @@ export interface ToolFileInput {
   readonly policy?: 'session' | 'user-choice';
 }
 
+/**
+ * A preference the owning tool lets a saved workspace/template/project override (Settings
+ * extension point — see `core/workspace/workspace-preference.ts`). `key` is one of the tool's own
+ * `local`-policy `PersistenceService.signal(...)` keys holding a string; the Workspace settings
+ * popover renders one input per declaration, generically, straight from the registry.
+ */
+export interface WorkspaceOverridablePreference {
+  readonly key: string;
+  readonly label: string;
+  readonly type: 'text' | 'url';
+}
+
+/**
+ * A tool-contributed Settings section, rendered under the Settings page's "Tools" group at
+ * `/settings/tools/<toolId>` (`shell/settings/`). `load` resolves a standalone component, exactly
+ * like `ToolDefinition.load`. `onboarding: true` also renders it in the first-run wizard.
+ */
+export interface ToolSettingsSection {
+  readonly title: string;
+  readonly keywords?: readonly string[];
+  readonly desktopOnly?: boolean;
+  readonly onboarding?: boolean;
+  readonly load: () => Promise<unknown>;
+  readonly workspaceOverridable?: readonly WorkspaceOverridablePreference[];
+}
+
+/**
+ * A one-time move of a legacy `local` storage value into this tool's own namespace, run once at
+ * bootstrap by `core/persistence/storage-migrations.ts` (copy only when the target is empty, then
+ * delete the source). The target namespace is always the declaring tool's id.
+ */
+export interface ToolStorageMigration {
+  readonly fromNamespace: string;
+  readonly fromKey: string;
+  readonly toKey: string;
+}
+
 export interface ToolDefinition {
   readonly id: string;
   readonly title: string;
@@ -94,4 +131,8 @@ export interface ToolDefinition {
    * desktop-only capability.
    */
   readonly desktopCapabilities?: readonly string[];
+  /** A Settings section this tool contributes — see `ToolSettingsSection`. */
+  readonly settingsSection?: ToolSettingsSection;
+  /** Legacy storage keys moved into this tool's namespace at bootstrap — see `ToolStorageMigration`. */
+  readonly storageMigrations?: readonly ToolStorageMigration[];
 }

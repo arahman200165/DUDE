@@ -129,4 +129,40 @@ describe('WorkspaceLayoutService', () => {
 
     expect((service.panelTree() as { ratio: number }).ratio).toBe(0.3);
   });
+  it('silently prunes tabs/leaves for unregistered tools from a persisted layout on bootstrap', () => {
+    localStorage.setItem(
+      'dude:v1:__workspace__:layout',
+      JSON.stringify({
+        schemaVersion: 1,
+        openTabs: ['base64', 'retired-tool'],
+        panelTree: { kind: 'split', nodeId: 's', ratio: 0.5, a: { kind: 'leaf', nodeId: 'a', toolId: 'base64' }, b: { kind: 'leaf', nodeId: 'b', toolId: 'retired-tool' } },
+        focusedNodeId: 'b',
+      }),
+    );
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({});
+    const fresh = TestBed.inject(WorkspaceLayoutService);
+
+    expect(fresh.openTabs()).toEqual(['base64']);
+    expect(fresh.panelTree()).toEqual({ kind: 'leaf', nodeId: 'a', toolId: 'base64' });
+    expect(fresh.focusedToolId()).toBe('base64');
+  });
+
+  it('applyLayout replaces preference overrides wholesale and setPreferenceOverride sets/clears them', () => {
+    service.setPreferenceOverride('markdown', 'relayUrl', ' ws://live ');
+    expect(service.preferenceOverrides()).toEqual({ markdown: { relayUrl: 'ws://live' } });
+
+    service.openTool('base64');
+    expect(service.preferenceOverrides()).toEqual({ markdown: { relayUrl: 'ws://live' } });
+
+    service.applyLayout(null, [], { markdown: { relayUrl: 'ws://template' } });
+    expect(service.preferenceOverrides()).toEqual({ markdown: { relayUrl: 'ws://template' } });
+
+    service.setPreferenceOverride('markdown', 'relayUrl', '');
+    expect(service.preferenceOverrides()).toBeUndefined();
+
+    service.setPreferenceOverride('markdown', 'relayUrl', 'ws://x');
+    service.applyLayout(null, []);
+    expect(service.preferenceOverrides()).toBeUndefined();
+  });
 });

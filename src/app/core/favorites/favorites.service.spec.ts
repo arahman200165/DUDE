@@ -78,4 +78,19 @@ describe('FavoritesService', () => {
 
     expect(freshService.isToolPinned(realToolId)).toBe(true);
   });
+
+  it('prunes persisted pins for unregistered tools on load', async () => {
+    localStorage.setItem(
+      'dude:v1:__favorites__:pinned',
+      JSON.stringify({ schemaVersion: 1, toolIds: [realToolId, 'this-tool-does-not-exist'], pipelineIds: [] }),
+    );
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({});
+    const fresh = TestBed.inject(FavoritesService);
+    await stable();
+
+    expect(fresh.isToolPinned('this-tool-does-not-exist')).toBe(false);
+    expect(fresh.isToolPinned(realToolId)).toBe(true);
+    expect(JSON.parse(localStorage.getItem('dude:v1:__favorites__:pinned')!).toolIds).toEqual([realToolId]);
+  });
 });

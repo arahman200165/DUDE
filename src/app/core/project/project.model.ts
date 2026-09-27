@@ -1,4 +1,4 @@
-import { PanelNode } from '../workspace/workspace.model';
+import { PanelNode, PreferenceOverrides, withPreferenceOverrides } from '../workspace/workspace.model';
 
 /**
  * A named, saved bundle of workspace layout + pinned pipelines (DUDE_PRD.md §21 Phase 25 Item 1) —
@@ -16,6 +16,7 @@ export interface Project {
   readonly panelTree: PanelNode | null;
   readonly openTabs: readonly string[];
   readonly pinnedPipelineIds: readonly string[];
+  readonly preferenceOverrides?: PreferenceOverrides;
 }
 
 export const PROJECT_STORE_SCHEMA_VERSION = 1;
@@ -37,7 +38,12 @@ export function migrateProjectStore(raw: unknown): ProjectStore {
   return EMPTY_PROJECT_STORE;
 }
 
-export function createProject(name: string, panelTree: PanelNode | null, openTabs: readonly string[]): Project {
+export function createProject(
+  name: string,
+  panelTree: PanelNode | null,
+  openTabs: readonly string[],
+  preferenceOverrides?: PreferenceOverrides,
+): Project {
   return {
     id: crypto.randomUUID(),
     name,
@@ -45,5 +51,6 @@ export function createProject(name: string, panelTree: PanelNode | null, openTab
     panelTree,
     openTabs,
     pinnedPipelineIds: [],
+    ...withPreferenceOverrides(preferenceOverrides),
   };
 }

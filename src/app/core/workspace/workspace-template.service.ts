@@ -40,7 +40,7 @@ export class WorkspaceTemplateService {
    * always just applies.
    */
   apply(template: WorkspaceTemplate): void {
-    this.workspaceLayout.applyLayout(template.panelTree, template.openTabs);
+    this.workspaceLayout.applyLayout(template.panelTree, template.openTabs, template.preferenceOverrides);
     this.store.set({ ...this.store(), recentlyAppliedIds: recordRecentlyAppliedTemplate(this.store().recentlyAppliedIds, template.id) });
   }
 
@@ -61,7 +61,12 @@ export class WorkspaceTemplateService {
   }
 
   saveCurrentAsTemplate(name: string): WorkspaceTemplate {
-    const template = createWorkspaceTemplate(name, this.workspaceLayout.panelTree(), this.workspaceLayout.openTabs());
+    const template = createWorkspaceTemplate(
+      name,
+      this.workspaceLayout.panelTree(),
+      this.workspaceLayout.openTabs(),
+      this.workspaceLayout.preferenceOverrides(),
+    );
     this.store.set({ ...this.store(), userTemplates: [...this.store().userTemplates, template] });
     return template;
   }

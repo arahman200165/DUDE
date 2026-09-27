@@ -65,6 +65,22 @@ export class PersistenceService {
     }
   }
 
+  /**
+   * One-time move of a `local` value from one namespace/key to another: copies only when the
+   * target is empty (a value already written under the new key always wins), then removes the
+   * source either way. Returns whether a value was copied. Idempotent.
+   */
+  moveLocalValue(fromToolId: string, fromKey: string, toToolId: string, toKey: string): boolean {
+    const sourceKey = buildStorageKey(fromToolId, fromKey);
+    const raw = this.local.get(sourceKey);
+    if (raw === null) return false;
+
+    const targetKey = buildStorageKey(toToolId, toKey);
+    const copied = this.local.get(targetKey) === null && this.local.set(targetKey, raw);
+    this.local.remove(sourceKey);
+    return copied;
+  }
+
   clearTool(toolId: string): void {
     for (const backend of [this.local, this.session]) {
       for (const storedKey of backend.keys(buildToolPrefix(toolId))) {

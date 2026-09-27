@@ -128,6 +128,29 @@ describe('Tool conformance harness', () => {
         expect(definition.io.produces).toContain('file');
       });
 
+      // Settings extension point (shell/settings/): a contributed section renders from the registry
+      // alone, so a malformed declaration would surface as a broken Settings page, not a type error.
+      it('declares a well-formed settingsSection, when present', () => {
+        const section = definition.settingsSection;
+        if (!section) return;
+        expect(section.title.trim().length, `${definition.id} settingsSection has a blank title`).toBeGreaterThan(0);
+        expect(typeof section.load, `${definition.id} settingsSection.load must be a lazy function`).toBe('function');
+        const keys = (section.workspaceOverridable ?? []).map((preference) => preference.key);
+        expect(new Set(keys).size, `${definition.id} declares duplicate workspaceOverridable keys`).toBe(keys.length);
+        for (const preference of section.workspaceOverridable ?? []) {
+          expect(preference.label.trim().length, `${definition.id} workspaceOverridable "${preference.key}" has a blank label`).toBeGreaterThan(0);
+        }
+      });
+
+      it('declares storageMigrations that never move a key onto itself, when present', () => {
+        for (const migration of definition.storageMigrations ?? []) {
+          expect(
+            migration.fromNamespace === definition.id && migration.fromKey === migration.toKey,
+            `${definition.id} declares a storage migration from its own "${migration.toKey}" key onto itself`,
+          ).toBe(false);
+        }
+      });
+
       it('has a lazy load() function, never eagerly resolved', () => {
         expect(typeof definition.load).toBe('function');
       });

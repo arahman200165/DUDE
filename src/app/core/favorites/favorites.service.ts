@@ -19,7 +19,10 @@ export class FavoritesService {
 
   constructor() {
     const migrated = migrateFavoritesStore(this.store());
-    if (migrated !== this.store()) this.store.set(migrated);
+    // Silently prune pins for tools that no longer exist (retired, or promoted to a shell destination).
+    const toolIds = migrated.toolIds.filter((id) => this.registry.getById(id) !== undefined);
+    const pruned = toolIds.length === migrated.toolIds.length ? migrated : { ...migrated, toolIds };
+    if (pruned !== this.store()) this.store.set(pruned);
   }
 
   isToolPinned(toolId: string): boolean {

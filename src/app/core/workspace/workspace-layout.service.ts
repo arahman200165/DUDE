@@ -1,15 +1,21 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { PersistenceService } from '../persistence/persistence.service';
+import { ToolRegistryService } from '../registry/tool-registry.service';
 import {
   EMPTY_WORKSPACE_LAYOUT,
   PanelNode,
+  PreferenceOverrides,
   WorkspaceLayout,
   findFirstLeaf,
   findLeafByToolId,
   findNodeById,
   migrateWorkspaceLayout,
+  pruneUnknownTools,
   removeLeafById,
   replaceNode,
+  sanitizePreferenceOverrides,
+  setPreferenceOverride,
+  withPreferenceOverrides,
 } from './workspace.model';
 
 /**
@@ -21,6 +27,8 @@ import {
 @Injectable({ providedIn: 'root' })
 export class WorkspaceLayoutService {
   private readonly persistence = inject(PersistenceService);
+  private readonly registry = inject(ToolRegistryService);
+  private readonly isKnownTool = (toolId: string): boolean => this.registry.getById(toolId) !== undefined;
   private readonly layout = this.persistence.signal<WorkspaceLayout>(
     '__workspace__',
     'layout',
@@ -38,7 +46,7 @@ export class WorkspaceLayoutService {
   readonly reopenOnRestart = this.persistence.signal('__workspace__', 'reopenOnRestart', 'local', true);
 
   constructor() {
-    const migrated = migrateWorkspaceLayout(this.layout());
+    const migrated = pruneUnknownTools(migrateWorkspaceLayout(this.layout()), this.isKnownTool);
     const layout = this.reopenOnRestart() ? migrated : EMPTY_WORKSPACE_LAYOUT;
     if (layout !== this.layout()) this.layout.set(layout);
   }
@@ -46,6 +54,7 @@ export class WorkspaceLayoutService {
   readonly openTabs = computed(() => this.layout().openTabs);
   readonly panelTree = computed(() => this.layout().panelTree);
   readonly focusedNodeId = computed(() => this.layout().focusedNodeId);
+  readonly preferenceOverrides = computed<PreferenceOverrides | undefined>(() => this.layout().preferenceOverrides);
 
   /** The tool id shown by the currently-focused leaf, if any — drives the tab strip's active state. */
   readonly focusedToolId = computed(() => {
@@ -139,10 +148,26 @@ export class WorkspaceLayoutService {
    * Replaces the entire layout wholesale -- the one setter Workspace Templates (Phase 24 Item 11)
    * applies through, so a template can never desync from the invariants already enforced here (one
    * leaf per tool id is the template author's own responsibility; this does no further validation,
-   * exactly like `openTool`'s own trust of its caller).
+   * exactly like `openTool`'s own trust of its caller). Tabs/leaves naming tools that no longer
+   * exist are silently pruned, and the saved record's preference overrides (if any) replace the
+   * live ones wholesale.
    */
-  applyLayout(panelTree: PanelNode | null, openTabs: readonly string[]): void {
-    this.layout.set({ schemaVersion: 1, openTabs, panelTree, focusedNodeId: null });
+  applyLayout(panelTree: PanelNode | null, openTabs: readonly string[], preferenceOverrides?: PreferenceOverrides): void {
+    const layout: WorkspaceLayout = {
+      schemaVersion: 1,
+      openTabs,
+      panelTree,
+      focusedNodeId: null,
+      ...withPreferenceOverrides(sanitizePreferenceOverrides(preferenceOverrides)),
+    };
+    this.layout.set(pruneUnknownTools(layout, this.isKnownTool));
+  }
+
+  /** Sets (or with `null`/`''` clears back to the global value) one workspace-scoped preference override. */
+  setPreferenceOverride(toolId: string, key: string, value: string | null): void {
+    const { preferenceOverrides, ...current } = this.layout();
+    const next = setPreferenceOverride(preferenceOverrides, toolId, key, value?.trim() || null);
+    this.layout.set({ ...current, ...withPreferenceOverrides(next) });
   }
 
   /** Persists a drag-resize on the split with id `nodeId`. */
