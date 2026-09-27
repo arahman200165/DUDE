@@ -69,6 +69,7 @@
               ],
               "outputHashing": "all",
               "serviceWorker": "ngsw-config.json",
+              "statsJson": true,
               "baseHref": "/DUDE/"
             },
             "development": {

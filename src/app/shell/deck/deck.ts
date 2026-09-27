@@ -10,6 +10,7 @@ import { PlatformService } from '../../core/platform/platform.service';
 import { WorkspaceTemplateService } from '../../core/workspace/workspace-template.service';
 import { ProjectService } from '../../core/project/project.service';
 import { CategoryIcon } from '../../shared/components/category-icon/category-icon';
+import { OfflineAvailability } from '../../shared/components/offline-badge/offline-availability.directive';
 import { HomeRail } from './home-rail/home-rail';
 import { PinnedPipelinesRail } from './pinned-pipelines-rail/pinned-pipelines-rail';
 import { HomePasteDropHero } from './home-paste-drop-hero/home-paste-drop-hero';
@@ -26,6 +27,7 @@ const QUICK_ACTION_ID_PREFIX = 'native:quick-action:';
   imports: [
     RouterLink,
     CategoryIcon,
+    OfflineAvailability,
     HomeRail,
     PinnedPipelinesRail,
     HomePasteDropHero,

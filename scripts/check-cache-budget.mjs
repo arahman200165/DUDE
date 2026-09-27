@@ -11,7 +11,7 @@
 //
 // Usage: node scripts/check-cache-budget.mjs (run as a postbuild step)
 
-import { readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -58,6 +58,28 @@ for (const group of ngsw.assetGroups ?? []) {
 }
 
 console.log(`\nPrefetched ("${PREFETCH_GROUP_NAME}") total: ${formatBytes(prefetchTotal)} (budget: ${formatBytes(PREFETCH_BUDGET_BYTES)})`);
+
+// Group coverage (Phase 26 Items 1-3 verification): every deployed file must belong to some asset
+// group, or it silently breaks offline. template-renderer's ejs.min.js did exactly that until
+// Milestone 483. Only the service worker's own files and the GitHub Pages SPA fallback are exempt.
+const UNCACHED_ALLOWLIST = new Set(['404.html', 'ngsw.json', 'ngsw-worker.js', 'safety-worker.js', 'worker-basic.min.js']);
+const cachedUrls = new Set(
+  (ngsw.assetGroups ?? []).flatMap((group) =>
+    group.urls.map((url) => (url.startsWith(basePrefix) ? url.slice(basePrefix.length) : url.replace(/^\//, ''))),
+  ),
+);
+const uncovered = readdirSync(BROWSER_DIR, { recursive: true, withFileTypes: true })
+  .filter((entry) => entry.isFile())
+  .map((entry) => path.relative(BROWSER_DIR, path.join(entry.parentPath, entry.name)).split(path.sep).join('/'))
+  .filter((file) => !cachedUrls.has(file) && !UNCACHED_ALLOWLIST.has(file));
+if (uncovered.length > 0) {
+  console.error(
+    `\nERROR: ${uncovered.length} deployed file(s) belong to no ngsw-config.json asset group, so they won't work offline:\n` +
+      uncovered.map((file) => `  ${file}`).join('\n') +
+      '\nAdd them to a lazy group (optional runtimes) or the prefetched "app" group (shell-critical).',
+  );
+  sawError = true;
+}
 
 if (prefetchTotal > PREFETCH_BUDGET_BYTES) {
   console.error(

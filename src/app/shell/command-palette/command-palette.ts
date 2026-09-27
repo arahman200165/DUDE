@@ -7,6 +7,7 @@ import { COMMAND_KIND_LABEL, COMMAND_KIND_ORDER, searchCommands } from '../../co
 import { PipelineStepRegistryService } from '../../core/pipeline/pipeline-step-registry.service';
 import { CommandPaletteService } from './command-palette.service';
 import { CategoryIcon } from '../../shared/components/category-icon/category-icon';
+import { OfflineAvailability } from '../../shared/components/offline-badge/offline-availability.directive';
 
 interface PaletteGroup {
   readonly key: string;
@@ -22,7 +23,7 @@ const GROUP_ORDER = [
 
 @Component({
   selector: 'app-command-palette',
-  imports: [CdkTrapFocus, CategoryIcon],
+  imports: [CdkTrapFocus, CategoryIcon, OfflineAvailability],
   templateUrl: './command-palette.html',
 })
 export class CommandPalette implements AfterViewInit {

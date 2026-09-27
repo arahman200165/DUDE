@@ -82,3 +82,21 @@ describe('UpdateService periodic update check', () => {
     expect(fakeSwUpdate.checkForUpdate).not.toHaveBeenCalled();
   });
 });
+
+describe('UpdateService repair signal', () => {
+  it('flags needsRepair on an unrecoverable state or a failed version install', () => {
+    const unrecoverable = new Subject<{ type: 'UNRECOVERABLE_STATE'; reason: string }>();
+    const fake = Object.assign(new FakeSwUpdate(), { unrecoverable });
+    TestBed.configureTestingModule({ providers: [{ provide: SwUpdate, useValue: fake }] });
+    const service = TestBed.inject(UpdateService);
+
+    expect(service.needsRepair()).toBe(false);
+    fake.versionUpdates.next({ type: 'VERSION_INSTALLATION_FAILED' } as VersionEvent);
+    expect(service.needsRepair()).toBe(true);
+
+    fake.versionUpdates.next({ type: 'NO_NEW_VERSION_DETECTED' } as VersionEvent);
+    expect(service.needsRepair()).toBe(false);
+    unrecoverable.next({ type: 'UNRECOVERABLE_STATE', reason: 'hash mismatch' });
+    expect(service.needsRepair()).toBe(true);
+  });
+});

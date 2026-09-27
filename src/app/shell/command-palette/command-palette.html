@@ -49,6 +49,7 @@
                   : 'border-l-transparent ' + (group.category ? 'text-' + meta[group.category].colorToken + '-tint' : 'text-text-muted')
               "
               (click)="open(command)"
+              [appOfflineAvailability]="command.kind === 'tool' ? command.toolId : undefined"
             >
               @if (group.category; as category) {
                 <span class="h-1 w-1 shrink-0 rounded-full" [class]="'bg-' + meta[category].colorToken"></span>

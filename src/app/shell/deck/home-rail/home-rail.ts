@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { ToolDefinition } from '../../../shared/models/tool-definition.model';
 import { CATEGORY_METADATA } from '../../../shared/models/tool-category.model';
 import { CategoryIcon } from '../../../shared/components/category-icon/category-icon';
+import { OfflineAvailability } from '../../../shared/components/offline-badge/offline-availability.directive';
 
 /**
  * A generic, horizontally-scrollable rail of tool cards — shared by Home's "Recently Used" and
@@ -14,7 +15,7 @@ import { CategoryIcon } from '../../../shared/components/category-icon/category-
  */
 @Component({
   selector: 'app-home-rail',
-  imports: [RouterLink, CategoryIcon],
+  imports: [RouterLink, CategoryIcon, OfflineAvailability],
   templateUrl: './home-rail.html',
 })
 export class HomeRail {

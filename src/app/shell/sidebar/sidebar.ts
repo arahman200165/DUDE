@@ -5,10 +5,11 @@ import { ToolRegistryService } from '../../core/registry/tool-registry.service';
 import { WorkspaceLayoutService } from '../../core/workspace/workspace-layout.service';
 import { CommandPaletteService } from '../command-palette/command-palette.service';
 import { CategoryIcon } from '../../shared/components/category-icon/category-icon';
+import { OfflineAvailability } from '../../shared/components/offline-badge/offline-availability.directive';
 
 @Component({
   selector: 'app-sidebar',
-  imports: [RouterLink, RouterLinkActive, CategoryIcon],
+  imports: [RouterLink, RouterLinkActive, CategoryIcon, OfflineAvailability],
   templateUrl: './sidebar.html',
 })
 export class Sidebar {

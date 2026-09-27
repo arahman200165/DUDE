@@ -58,6 +58,7 @@
             @for (tool of grouped().get(category); track tool.id) {
               <a
                 [routerLink]="tool.route"
+                [appOfflineAvailability]="tool.id"
                 class="flex items-center gap-1.5 rounded-sm px-1.5 py-1 text-xs hover:bg-panel-elevated"
                 [class]="'text-' + meta[category].colorToken + '-tint hover:bg-' + meta[category].colorToken + '/10'"
               >

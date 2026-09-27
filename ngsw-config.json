@@ -11,6 +11,7 @@
           "/favicon.svg",
           "/index.html",
           "/manifest.webmanifest",
+          "/offline-map.json",
           "/*.css",
           "/main-*.js"
         ]
@@ -54,6 +55,14 @@
       "updateMode": "lazy",
       "resources": {
         "files": ["/assets/vendor/sql.js/**"]
+      }
+    },
+    {
+      "name": "ejs",
+      "installMode": "lazy",
+      "updateMode": "lazy",
+      "resources": {
+        "files": ["/assets/vendor/ejs.min.js"]
       }
     }
   ]

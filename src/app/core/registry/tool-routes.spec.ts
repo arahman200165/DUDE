@@ -1,5 +1,6 @@
 import { ToolDefinition } from '../../shared/models/tool-definition.model';
-import { buildToolRoutes, toRoutePath } from './tool-routes';
+import { buildToolRoutes, loadToolComponent, toRoutePath } from './tool-routes';
+import { ToolLoadFailure } from '../../shared/components/tool-load-failure/tool-load-failure';
 
 describe('toRoutePath', () => {
   it('strips a leading slash', () => {
@@ -33,5 +34,30 @@ describe('buildToolRoutes', () => {
   it('keeps loadComponent lazy instead of eagerly resolving the import', () => {
     const [route] = buildToolRoutes(definitions);
     expect(typeof route.loadComponent).toBe('function');
+  });
+});
+
+describe('loadToolComponent', () => {
+  const base: ToolDefinition = {
+    id: 'json',
+    title: 'JSON Formatter',
+    description: '',
+    category: 'data',
+    keywords: [],
+    route: '/tools/json',
+    load: () => Promise.resolve({}),
+    io: { accepts: ['text'], produces: ['text'] },
+  };
+
+  it('resolves the tool component when its chunk loads', async () => {
+    class Real {}
+    await expect(loadToolComponent({ ...base, load: () => Promise.resolve(Real) })).resolves.toBe(Real);
+  });
+
+  it('falls back to the bundled ToolLoadFailure when the chunk fails to load (offline / stale deploy)', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const failing = { ...base, load: () => Promise.reject(new TypeError('Failed to fetch dynamically imported module')) };
+    await expect(loadToolComponent(failing)).resolves.toBe(ToolLoadFailure);
+    warn.mockRestore();
   });
 });

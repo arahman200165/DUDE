@@ -1,0 +1,185 @@
+<div class="flex flex-col gap-5">
+  @if (readiness.enabled) {
+    <p class="text-ui text-text-muted">
+      The web companion caches its shell up front, then caches each tool and optional runtime the first time you use it,
+      so nothing large downloads until you need it. Everything below only affects this browser's download cache. Your tool
+      inputs, preferences, workspaces, pipelines, and History are never touched here (see Data &amp; Privacy for those).
+    </p>
+
+    <!-- Storage -->
+    <div data-setting class="flex flex-col gap-2">
+      <h3 class="text-ui-sm font-semibold text-text">Storage</h3>
+      @if (inspector.storage(); as storage) {
+        <p class="text-ui text-text-muted">
+          @if (storage.usage !== null && storage.quota !== null) {
+            Using <span class="font-mono text-text">{{ formatBytes(storage.usage) }}</span> of
+            <span class="font-mono text-text">{{ formatBytes(storage.quota) }}</span> available to this site.
+          } @else {
+            This browser doesn't report storage usage.
+          }
+          @if (storage.persisted === true) {
+            <span class="text-success">Persistent: the browser won't evict it under storage pressure.</span>
+          } @else if (storage.persisted === false) {
+            The browser may evict it under storage pressure.
+          }
+        </p>
+        @if (storage.persisted === false) {
+          <button type="button" class="w-fit rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10" (click)="requestPersistence()">
+            Keep DUDE's storage persistent
+          </button>
+        }
+      }
+    </div>
+
+    <!-- Runtimes -->
+    <div data-setting class="flex flex-col gap-2">
+      <h3 class="text-ui-sm font-semibold text-text">Optional runtimes</h3>
+      <table class="w-full text-left text-ui">
+        <thead class="text-text-muted">
+          <tr><th class="py-1 font-normal">Runtime</th><th class="font-normal">Cached</th><th class="font-normal">Size</th><th></th></tr>
+        </thead>
+        <tbody>
+          @for (group of runtimes(); track group.name) {
+            <tr class="border-t border-border" [attr.data-runtime]="group.runtime">
+              <td class="py-1 text-text">{{ group.label }}</td>
+              <td class="font-mono">
+                @if (group.cachedFiles === group.totalFiles) {
+                  <span class="text-success">Yes</span>
+                } @else if (group.cachedFiles === 0) {
+                  <span class="text-text-muted">No</span>
+                } @else {
+                  <span class="text-warning">{{ group.cachedFiles }}/{{ group.totalFiles }} files</span>
+                }
+              </td>
+              <td class="font-mono text-text-muted">{{ formatBytes(group.buildBytes) }}</td>
+              <td class="flex justify-end gap-2 py-1">
+                @if (group.cachedFiles < group.totalFiles) {
+                  <button type="button" class="rounded-sm border border-border px-1.5 py-0.5 text-ui-xs text-text-muted hover:border-accent hover:text-accent" (click)="previewRuntime(group.runtime!)">
+                    Download…
+                  </button>
+                }
+                @if (group.cachedFiles > 0) {
+                  <button type="button" class="rounded-sm border border-border px-1.5 py-0.5 text-ui-xs text-text-muted hover:border-error hover:text-error" (click)="previewClear(group.runtime!)">
+                    Clear…
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <p class="text-ui-xs text-text-muted">
+        App shell and tool code:
+        @for (group of otherGroups(); track group.name) {
+          <span class="mr-3 font-mono">{{ group.name }} {{ formatBytes(group.cachedBytes) }} / {{ formatBytes(group.buildBytes) }}</span>
+        }
+      </p>
+    </div>
+
+    <!-- Make available offline -->
+    <div data-setting class="flex flex-col gap-2">
+      <h3 class="text-ui-sm font-semibold text-text">Make available offline</h3>
+      <p class="text-ui text-text-muted">Download tools ahead of time so they open without a connection. You'll see the size before anything downloads.</p>
+      <div class="flex flex-wrap items-center gap-2">
+        <select class="rounded-sm border border-border bg-panel px-2 py-0.5 text-ui" [value]="selectedCategory()" (change)="onCategoryChange($event)" aria-label="Category">
+          @for (category of categories; track category.id) {
+            <option [value]="category.id">{{ category.label }}</option>
+          }
+        </select>
+        <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:border-accent hover:text-accent" (click)="previewCategory()">
+          Cache category…
+        </button>
+        <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:border-accent hover:text-accent" (click)="previewAll()">
+          Cache everything…
+        </button>
+      </div>
+      @if (readiness.progress(); as progress) {
+        <div class="flex items-center gap-2 text-ui text-info" role="status">
+          Downloading {{ progress.done }}/{{ progress.total }} files…
+          <button type="button" class="rounded-sm border border-border px-1.5 py-0.5 text-ui-xs text-text-muted hover:bg-panel-elevated" (click)="readiness.cancel()">Cancel</button>
+        </div>
+      }
+    </div>
+
+    @if (pendingDownload(); as pending) {
+      <div class="flex flex-col gap-2 rounded-sm border border-accent/40 bg-accent/5 p-3" data-testid="download-preview">
+        <p class="text-ui text-text">
+          Download {{ pending.label }}: <span class="font-mono">{{ pending.plan.missingFiles.length }}</span> files,
+          <span class="font-mono">{{ formatBytes(pending.plan.missingBytes) }}</span>
+          ({{ formatBytes(pending.plan.bytes - pending.plan.missingBytes) }} already cached).
+        </p>
+        <div class="flex gap-2">
+          <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10" (click)="confirmDownload()">Download</button>
+          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated" (click)="cancelPending()">Cancel</button>
+        </div>
+      </div>
+    }
+
+    <!-- Repair -->
+    <div data-setting class="flex flex-col gap-2 rounded-sm border border-warning/40 p-3">
+      <h3 class="text-ui-sm font-semibold text-warning">Repair installation</h3>
+      <p class="text-ui text-text-muted">
+        If the web companion is stuck on an old version or tools fail to load, this unregisters its service worker, deletes
+        every cached file, and reloads. Your saved data stays.
+      </p>
+      <button type="button" class="w-fit rounded-sm border border-warning/40 px-2 py-0.5 text-ui text-warning hover:bg-warning/10" (click)="previewRepair()">
+        Repair installation…
+      </button>
+    </div>
+
+    @if (pendingAction(); as plan) {
+      <div class="flex flex-col gap-2 rounded-sm border border-error/40 bg-error/5 p-3" data-testid="action-preview" role="alertdialog" aria-label="Confirm cache action">
+        @if (plan.kind === 'clear-runtime') {
+          <p class="text-ui text-text">
+            Clear {{ plan.label }}: removes <span class="font-mono">{{ plan.files.length }}</span> cached file(s)
+            (<span class="font-mono">{{ formatBytes(plan.bytes) }}</span>). Tools that need it will download it again on next use,
+            and won't work offline until then.
+          </p>
+        } @else {
+          <p class="text-ui text-text">
+            Repair: unregisters <span class="font-mono">{{ plan.registrations }}</span> service worker registration(s), deletes
+            <span class="font-mono">{{ plan.cacheNames.length }}</span> cache(s), then reloads the page. Tool inputs, preferences,
+            workspaces, pipelines, and History are kept.
+          </p>
+        }
+        <div class="flex gap-2">
+          <button type="button" class="rounded-sm border border-error/40 px-2 py-0.5 text-ui text-error hover:bg-error/10" [disabled]="busy()" (click)="confirmAction()">
+            {{ plan.kind === 'clear-runtime' ? 'Confirm clear' : 'Confirm repair' }}
+          </button>
+          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated" (click)="cancelPending()">Cancel</button>
+        </div>
+      </div>
+    }
+
+    @if (message()) {
+      <p class="text-ui text-info" role="status">{{ message() }}</p>
+    }
+  } @else if (platform.isDesktop()) {
+    <p class="text-ui text-text-muted">
+      The desktop app ships every tool and optional runtime locally, so there's nothing to cache or repair here. The matrix below
+      shows what differs on the zero-install web companion.
+    </p>
+  } @else {
+    <p class="text-ui text-text-muted">Offline caching is only active in production web builds (the service worker is disabled here).</p>
+  }
+
+  <!-- Web Capability Matrix -->
+  <div data-setting class="flex flex-col gap-2">
+    <h3 class="text-ui-sm font-semibold text-text">Web capability matrix</h3>
+    <p class="text-ui text-text-muted">Every tool not listed here behaves identically in the browser and in the desktop app.</p>
+    <table class="w-full text-left text-ui">
+      <thead class="text-text-muted">
+        <tr><th class="py-1 font-normal">Tool</th><th class="font-normal">Capability</th><th class="font-normal">In the browser</th></tr>
+      </thead>
+      <tbody>
+        @for (row of matrix(); track row.tool.id + row.capability) {
+          <tr class="border-t border-border" [title]="row.note">
+            <td class="py-1 text-text">{{ row.tool.title }}</td>
+            <td class="text-text-muted">{{ row.capability }}</td>
+            <td [class]="row.unavailable ? 'text-warning' : 'text-text-muted'">{{ row.web }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
