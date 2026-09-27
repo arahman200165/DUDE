@@ -13,6 +13,14 @@
   </header>
 
   <div class="flex-1 overflow-auto p-3">
+    @if (script().imported) {
+      <div class="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-sm border border-warning/40 bg-warning/10 px-2 py-1.5 text-ui text-warning" role="alert">
+        <span>This script came from an imported bundle. It runs code, so pipelines won't run it until you've read it and marked it reviewed.</span>
+        <button type="button" class="rounded-sm border border-warning/40 px-2 py-0.5 text-ui-xs hover:bg-warning/20" (click)="markReviewed()">
+          I've reviewed this code
+        </button>
+      </div>
+    }
     <input
       type="text"
       [value]="script().name"

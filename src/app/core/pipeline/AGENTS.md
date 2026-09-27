@@ -19,3 +19,9 @@ It is a **thin wrapper**, never a rewrite of the tool's existing pure transform.
 ## Command Palette source (Phase 25 Item 4)
 
 `pipeline-command-source.ts`'s `PipelineCommandSource` is one `CommandSource` (`shared/models/command-source.model.ts`) registered via the multi-provider `COMMAND_SOURCE` token, alongside `ToolCommandSource`/`WorkspaceCommandSource`/`ProjectCommandSource`. It is deliberately navigate-only — opening the builder at `/pipelines/:id`, never running the pipeline — until a direct "run" command can go through `PipelineConfirmationService`'s confirmation gate (`core/pipeline/pipeline-confirmation.service.ts`), the same gate deep links already use.
+
+## Browser-safe execution (Phase 26 Item 13)
+
+- The runner passes every step a `PipelineStepContext`. `signal` is aborted by `cancel()`, which now stops a step mid-run. `offload` runs a payload through the tool's own existing worker via `WorkerClientService.runAsync`. A step must still work when called bare (unit tests), so fall back to inline computation when `offload` is absent. Hash and JSON are the reference adopters.
+- `MAX_PIPELINE_VALUE_CHARS` caps any intermediate value. It is identical on web and desktop.
+- `PipelineStepGateService` is the one "can this step run here, now" check, used by both the builder's live warnings and the runner's pre-flight. It blocks: offline with the step's code or declared runtime uncached, and imported user scripts not yet reviewed. It deliberately doesn't block on a tool's desktop-only *platform* capability, since steps run shared-core logic only (the parity suite enforces that).

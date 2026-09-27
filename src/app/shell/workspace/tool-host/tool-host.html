@@ -1,5 +1,7 @@
 <div class="h-full w-full overflow-auto">
-  @if (loadError(); as error) {
+  @if (chunkFailed()) {
+    <app-tool-load-failure [toolId]="toolId()" />
+  } @else if (loadError(); as error) {
     <app-error-panel [message]="error" />
   } @else if (componentType(); as type) {
     <ng-container *ngComponentOutlet="type; injector: childInjector()!" />

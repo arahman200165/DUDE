@@ -77,7 +77,7 @@ export const CORE_SETTINGS_SECTIONS: readonly CoreSettingsSection[] = [
   {
     id: 'data',
     title: 'Data & Privacy',
-    keywords: ['clear all local data', 'reset', 'privacy', 'storage', 'delete', 'danger'],
+    keywords: ['clear all local data', 'reset', 'privacy', 'storage', 'delete', 'danger', 'export', 'import', 'bundle', 'backup', 'restore'],
     desktopOnly: false,
     load: () => import('./sections/data-privacy-settings').then((m) => m.DataPrivacySettings),
   },

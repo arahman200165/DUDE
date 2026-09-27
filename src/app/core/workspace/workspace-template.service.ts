@@ -9,6 +9,7 @@ import {
   migrateWorkspaceTemplateStore,
   recordRecentlyAppliedTemplate,
 } from './workspace-template.model';
+import { upsertById } from '../backup/upsert-by-id';
 
 /**
  * Workspace Templates (DUDE_PRD.md §21 Phase 24 Item 11) — built-in templates are curated data
@@ -24,6 +25,7 @@ export class WorkspaceTemplateService {
     'userTemplates',
     'local',
     EMPTY_WORKSPACE_TEMPLATE_STORE,
+    { crossTab: 'live' },
   );
 
   constructor() {
@@ -69,6 +71,13 @@ export class WorkspaceTemplateService {
     );
     this.store.set({ ...this.store(), userTemplates: [...this.store().userTemplates, template] });
     return template;
+  }
+
+  /** Bundle import (Phase 26 Item 14). Always stored as user templates, never built-ins. */
+  importUserTemplates(templates: readonly WorkspaceTemplate[]): void {
+    const builtInIds = new Set(BUILT_IN_TEMPLATES.map((template) => template.id));
+    const incoming = templates.filter((template) => !builtInIds.has(template.id)).map((template) => ({ ...template, builtIn: false }));
+    this.store.set({ ...this.store(), userTemplates: upsertById(this.store().userTemplates, incoming) });
   }
 
   /** A no-op if `id` belongs to a built-in template -- those never live in `userTemplates`. */

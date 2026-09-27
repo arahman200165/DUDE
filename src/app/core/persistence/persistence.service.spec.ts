@@ -121,3 +121,54 @@ describe('PersistenceService', () => {
     vi.restoreAllMocks();
   });
 });
+
+describe('PersistenceService cross-tab sync (Phase 26 Item 14)', () => {
+  const fireStorage = (key: string, newValue: string | null) =>
+    window.dispatchEvent(new StorageEvent('storage', { key, newValue, storageArea: localStorage }));
+
+  beforeEach(() => {
+    localStorage.clear();
+    TestBed.configureTestingModule({});
+  });
+
+  it("'live' adopts another tab's write for the same key", () => {
+    const value = TestBed.inject(PersistenceService).signal('__pipelines__', 'saved', 'local', { n: 0 }, { crossTab: 'live' });
+    fireStorage('dude:v1:__pipelines__:saved', '{"n":5}');
+    expect(value()).toEqual({ n: 5 });
+  });
+
+  it('does not echo an adopted value back to storage', () => {
+    const service = TestBed.inject(PersistenceService);
+    const value = service.signal('__pipelines__', 'saved', 'local', { n: 0 }, { crossTab: 'live' });
+    TestBed.tick();
+    localStorage.setItem('dude:v1:__pipelines__:saved', '{"n":5}');
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    fireStorage('dude:v1:__pipelines__:saved', '{"n":5}');
+    TestBed.tick();
+    expect(value()).toEqual({ n: 5 });
+    expect(setItem).not.toHaveBeenCalled();
+    setItem.mockRestore();
+  });
+
+  it("'notify' leaves this tab's value alone and counts external changes", () => {
+    const service = TestBed.inject(PersistenceService);
+    const value = service.signal('__workspace__', 'layout', 'local', { mine: true }, { crossTab: 'notify' });
+    fireStorage('dude:v1:__workspace__:layout', '{"mine":false}');
+    expect(value()).toEqual({ mine: true });
+    expect(service.externalChanges('__workspace__', 'layout')()).toBe(1);
+  });
+
+  it('ignores malformed values, deletions, and keys nobody opted in', () => {
+    const value = TestBed.inject(PersistenceService).signal('__projects__', 'projects', 'local', 1, { crossTab: 'live' });
+    fireStorage('dude:v1:__projects__:projects', 'not json');
+    fireStorage('dude:v1:__projects__:projects', null);
+    fireStorage('dude:v1:other:key', '2');
+    expect(value()).toBe(1);
+  });
+
+  it('keeps default signals independent per tab', () => {
+    const value = TestBed.inject(PersistenceService).signal('json', 'indent', 'local', 2);
+    fireStorage('dude:v1:json:indent', '4');
+    expect(value()).toBe(2);
+  });
+});

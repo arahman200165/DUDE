@@ -1,5 +1,7 @@
-import { Injectable, computed, inject } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { PersistenceService } from '../persistence/persistence.service';
+import { createStorageBackend } from '../persistence/storage-backend';
+import { buildStorageKey } from '../persistence/persistence-keys';
 import { ToolRegistryService } from '../registry/tool-registry.service';
 import {
   EMPTY_WORKSPACE_LAYOUT,
@@ -34,7 +36,36 @@ export class WorkspaceLayoutService {
     'layout',
     'local',
     EMPTY_WORKSPACE_LAYOUT,
+    { crossTab: 'notify' },
   );
+
+  /**
+   * Multi-tab coherence (Phase 26 Item 14). Each tab owns its layout, so another tab's layout
+   * write is never adopted silently. It raises `changedInAnotherTab` so the Workspace can offer
+   * "use that layout / keep mine" instead of the last writer quietly winning.
+   */
+  private readonly externalChanges = this.persistence.externalChanges('__workspace__', 'layout');
+  private readonly acknowledgedChanges = signal(0);
+  readonly changedInAnotherTab = computed(() => this.externalChanges() > this.acknowledgedChanges());
+
+  /** Adopts the layout another tab just saved. */
+  adoptOtherTabLayout(): void {
+    const raw = createStorageBackend('local').get(buildStorageKey('__workspace__', 'layout'));
+    if (raw !== null) {
+      try {
+        this.layout.set(pruneUnknownTools(migrateWorkspaceLayout(JSON.parse(raw)), this.isKnownTool));
+      } catch {
+        // Unreadable: keep this tab's layout.
+      }
+    }
+    this.acknowledgedChanges.set(this.externalChanges());
+  }
+
+  /** Keeps this tab's layout and re-saves it, so storage matches what this tab shows. */
+  keepThisTabLayout(): void {
+    this.layout.set({ ...this.layout() });
+    this.acknowledgedChanges.set(this.externalChanges());
+  }
 
   /**
    * "Reopen my tabs on restart" (Milestone 294) — a plain UI preference (`local`-policy, on by

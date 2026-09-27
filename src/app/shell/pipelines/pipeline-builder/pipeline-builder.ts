@@ -20,6 +20,7 @@ import { PipelineSuggestionHandoffService } from '../../../core/pipeline/pipelin
 import { PipelineRun } from '../../../core/pipeline/pipeline-run';
 import { canChain } from '../../../core/pipeline/pipeline-compatibility';
 import { validatePipelineChain } from '../../../core/pipeline/pipeline-validation';
+import { PipelineStepGateService } from '../../../core/pipeline/pipeline-step-gate.service';
 import {
   Pipeline,
   PipelineStepRef,
@@ -44,6 +45,7 @@ export class PipelineBuilder {
   private readonly stepRegistry = inject(PipelineStepRegistryService);
   private readonly scriptStore = inject(UserScriptStoreService);
   private readonly runner = inject(PipelineRunnerService);
+  private readonly stepGate = inject(PipelineStepGateService);
   private readonly confirmation = inject(PipelineConfirmationService);
   private deepLinkRunPrompted = false;
   private readonly suggestionHandoff = inject(PipelineSuggestionHandoffService);
@@ -66,7 +68,10 @@ export class PipelineBuilder {
   protected readonly validation = computed(() =>
     validatePipelineChain(
       INITIAL_INPUT_TYPE,
-      this.pipeline().steps.map((step) => ({ stepId: step.stepId, step: this.resolvedSteps()[step.stepId] })),
+      this.pipeline().steps.map((step) => {
+        const resolved = this.resolvedSteps()[step.stepId];
+        return { stepId: step.stepId, step: resolved, blockedReason: this.registryReady() ? this.stepGate.gate(step, resolved) : undefined };
+      }),
     ),
   );
 
@@ -243,7 +248,7 @@ export class PipelineBuilder {
 
   protected runPipeline(): void {
     const initialInput: PipelineValue = { type: INITIAL_INPUT_TYPE, value: this.inputText() };
-    const run = this.runner.runPipeline(this.pipeline(), initialInput, this.resolveStepRef);
+    const run = this.runner.runPipeline(this.pipeline(), initialInput, this.resolveStepRef, this.stepGate.gate);
     this.run.set(run);
   }
 

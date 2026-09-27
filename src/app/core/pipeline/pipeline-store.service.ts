@@ -1,6 +1,7 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { PersistenceService } from '../persistence/persistence.service';
 import { EMPTY_PIPELINE_STORE, Pipeline, PipelineStore, migratePipelineStore } from './pipeline.model';
+import { upsertById } from '../backup/upsert-by-id';
 
 /**
  * Saved pipelines live in their own store, not appended to `TOOL_DEFINITIONS` — a pipeline is
@@ -11,7 +12,7 @@ import { EMPTY_PIPELINE_STORE, Pipeline, PipelineStore, migratePipelineStore } f
 @Injectable({ providedIn: 'root' })
 export class PipelineStoreService {
   private readonly persistence = inject(PersistenceService);
-  private readonly store = this.persistence.signal<PipelineStore>('__pipelines__', 'saved', 'local', EMPTY_PIPELINE_STORE);
+  private readonly store = this.persistence.signal<PipelineStore>('__pipelines__', 'saved', 'local', EMPTY_PIPELINE_STORE, { crossTab: 'live' });
 
   constructor() {
     const migrated = migratePipelineStore(this.store());
@@ -34,6 +35,11 @@ export class PipelineStoreService {
 
   remove(id: string): void {
     this.store.set({ ...this.store(), pipelines: this.store().pipelines.filter((pipeline) => pipeline.id !== id) });
+  }
+
+  /** Bundle import (Phase 26 Item 14): upsert by id, conflicts already resolved by `planImport`. */
+  importPipelines(pipelines: readonly Pipeline[]): void {
+    this.store.set({ ...this.store(), pipelines: upsertById(this.store().pipelines, pipelines) });
   }
 
   duplicate(id: string): Pipeline | undefined {

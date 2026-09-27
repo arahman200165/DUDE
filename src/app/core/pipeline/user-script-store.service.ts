@@ -1,6 +1,7 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { PersistenceService } from '../persistence/persistence.service';
 import { EMPTY_USER_SCRIPT_STORE, UserScriptDefinition, UserScriptStore, migrateUserScriptStore } from './pipeline.model';
+import { upsertById } from '../backup/upsert-by-id';
 
 /**
  * A library of user-authored pipeline scripts, independent of any one saved pipeline — a
@@ -12,7 +13,9 @@ import { EMPTY_USER_SCRIPT_STORE, UserScriptDefinition, UserScriptStore, migrate
 @Injectable({ providedIn: 'root' })
 export class UserScriptStoreService {
   private readonly persistence = inject(PersistenceService);
-  private readonly store = this.persistence.signal<UserScriptStore>('user-scripts', 'library', 'local', EMPTY_USER_SCRIPT_STORE);
+  private readonly store = this.persistence.signal<UserScriptStore>('user-scripts', 'library', 'local', EMPTY_USER_SCRIPT_STORE, {
+    crossTab: 'live',
+  });
 
   constructor() {
     const migrated = migrateUserScriptStore(this.store());
@@ -35,5 +38,18 @@ export class UserScriptStoreService {
 
   remove(id: string): void {
     this.store.set({ ...this.store(), scripts: this.store().scripts.filter((script) => script.id !== id) });
+  }
+
+  /** Bundle import (Phase 26 Item 14). Imported scripts carry `imported: true` until reviewed. */
+  importScripts(scripts: readonly UserScriptDefinition[]): void {
+    this.store.set({ ...this.store(), scripts: upsertById(this.store().scripts, scripts) });
+  }
+
+  /** The explicit "I've read this code" step that lets an imported script run in pipelines. */
+  markReviewed(id: string): void {
+    const script = this.getById(id);
+    if (!script?.imported) return;
+    const { imported: _imported, ...reviewed } = script;
+    this.save(reviewed);
   }
 }

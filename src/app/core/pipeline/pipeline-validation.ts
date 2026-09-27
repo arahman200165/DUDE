@@ -5,6 +5,8 @@ import { PipelineStepIo, canChain } from './pipeline-compatibility';
 export interface PipelineStepResolution {
   readonly stepId: string;
   readonly step: PipelineStep | undefined;
+  /** Set by a `PipelineStepGate`: why this step can't run on this platform right now. */
+  readonly blockedReason?: string;
 }
 
 export interface PipelineValidationIssue {
@@ -28,9 +30,10 @@ export function validatePipelineChain(initialType: DudeDataType, resolutions: re
   let upstream: PipelineStepIo = { accepts: [], produces: [initialType] };
   let upstreamUnknown = false;
 
-  for (const { stepId, step } of resolutions) {
+  for (const { stepId, step, blockedReason } of resolutions) {
+    if (blockedReason) issues.push({ stepId, message: blockedReason });
     if (!step) {
-      issues.push({ stepId, message: 'This step is not available (its tool or script could not be found).' });
+      if (!blockedReason) issues.push({ stepId, message: 'This step is not available (its tool or script could not be found).' });
       upstreamUnknown = true;
       continue;
     }

@@ -34,8 +34,21 @@ export type PipelineStepResult =
   | { readonly ok: true; readonly output: PipelineValue }
   | { readonly ok: false; readonly error: PipelineStepError };
 
+/**
+ * Runs `payload` through a tool's existing worker (the same `worker-protocol` message shape its
+ * component already uses) and resolves with the worker's result. It is honoured by the run's
+ * abort signal (Phase 26 Item 13).
+ */
+export type PipelineWorkerOffload = <TPayload, TResult>(createWorker: () => Worker, payload: TPayload) => Promise<TResult>;
+
+/**
+ * What the runner hands each step. Both fields are optional, so a step must still work when called
+ * bare (unit tests, jsdom): `signal` for cooperative cancellation, and `offload` to move heavy work
+ * off the UI thread. Fall back to computing inline when `offload` is absent.
+ */
 export interface PipelineStepContext {
   readonly signal?: AbortSignal;
+  readonly offload?: PipelineWorkerOffload;
 }
 
 /**

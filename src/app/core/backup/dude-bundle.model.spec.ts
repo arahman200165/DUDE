@@ -1,0 +1,91 @@
+import fc from 'fast-check';
+import { BUNDLE_FORMAT, DudeBundle, ExistingIds, parseBundle, planImport } from './dude-bundle.model';
+import { Pipeline, UserScriptDefinition } from '../pipeline/pipeline.model';
+import { Project } from '../project/project.model';
+
+const script = (id: string): UserScriptDefinition => ({
+  id,
+  name: `Script ${id}`,
+  body: 'return input;',
+  accepts: ['text'],
+  produces: ['text'],
+  timeoutMs: 3000,
+  createdAt: 'x',
+  updatedAt: 'x',
+});
+const pipeline = (id: string, scriptId?: string): Pipeline => ({
+  schemaVersion: 1,
+  id,
+  name: `Pipeline ${id}`,
+  steps: scriptId ? [{ kind: 'script', stepId: 's1', scriptId }] : [{ kind: 'tool', stepId: 't1', toolId: 'json' }],
+  createdAt: 'x',
+  updatedAt: 'x',
+});
+const project = (id: string, pinned: string[]): Project => ({ id, name: id, createdAt: 'x', panelTree: null, openTabs: [], pinnedPipelineIds: pinned });
+
+const BUNDLE: DudeBundle = {
+  format: BUNDLE_FORMAT,
+  schemaVersion: 1,
+  exportedAt: '2026-09-27T00:00:00.000Z',
+  projects: [project('proj', ['p1'])],
+  workspaceTemplates: [],
+  pipelines: [pipeline('p1', 'sc1')],
+  userScripts: [script('sc1')],
+  toolPreferences: { json: { indent: '4' } },
+};
+const NONE: ExistingIds = { projects: new Set(), workspaceTemplates: new Set(), pipelines: new Set(), userScripts: new Set() };
+
+describe('dude-bundle model', () => {
+  it('round-trips through JSON', () => {
+    const parsed = parseBundle(JSON.stringify(BUNDLE));
+    expect(parsed).toEqual({ ok: true, invalid: 0, bundle: { ...BUNDLE, toolInputs: undefined } });
+  });
+
+  it('rejects non-bundles and unknown versions with a clear message', () => {
+    expect(parseBundle('not json')).toEqual({ ok: false, error: 'This file isn’t valid JSON.' });
+    expect(parseBundle('{"format":"other"}')).toEqual({ ok: false, error: 'This file isn’t a DUDE bundle.' });
+    expect(parseBundle(JSON.stringify({ ...BUNDLE, schemaVersion: 9 }))).toMatchObject({ ok: false });
+  });
+
+  it('drops and counts malformed entries instead of failing the whole import', () => {
+    const tampered = { ...BUNDLE, pipelines: [pipeline('ok'), { id: 7 }, { schemaVersion: 1, id: 'x', name: 'x', steps: [{ kind: 'evil' }] }] };
+    const parsed = parseBundle(JSON.stringify(tampered));
+    expect(parsed.ok && parsed.invalid).toBe(2);
+    expect(parsed.ok && parsed.bundle.pipelines.map((p) => p.id)).toEqual(['ok']);
+  });
+
+  it('never lets a bundle contribute a built-in template', () => {
+    const tampered = { ...BUNDLE, workspaceTemplates: [{ id: 't', name: 't', builtIn: true, panelTree: null, openTabs: [] }] };
+    const parsed = parseBundle(JSON.stringify(tampered));
+    expect(parsed.ok && parsed.bundle.workspaceTemplates[0].builtIn).toBe(false);
+  });
+
+  it('never throws on arbitrary input', () => {
+    fc.assert(fc.property(fc.string(), (text) => typeof parseBundle(text).ok === 'boolean'));
+    fc.assert(fc.property(fc.jsonValue(), (value) => typeof parseBundle(JSON.stringify({ format: BUNDLE_FORMAT, schemaVersion: 1, projects: value })).ok === 'boolean'));
+  });
+
+  it('flags every imported script as needing review', () => {
+    const plan = planImport(BUNDLE, NONE, 'skip');
+    expect(plan.userScripts.items.every((s) => s.imported)).toBe(true);
+  });
+
+  it('skip / replace leave ids alone and count conflicts', () => {
+    const existing: ExistingIds = { ...NONE, pipelines: new Set(['p1']) };
+    expect(planImport(BUNDLE, existing, 'skip').pipelines).toMatchObject({ added: 0, skipped: 1, items: [] });
+    expect(planImport(BUNDLE, existing, 'replace').pipelines).toMatchObject({ replaced: 1, items: [{ id: 'p1' }] });
+  });
+
+  it('keep-both renames conflicting items and rewrites references to them', () => {
+    const existing: ExistingIds = { ...NONE, pipelines: new Set(['p1']), userScripts: new Set(['sc1']) };
+    let n = 0;
+    const plan = planImport(BUNDLE, existing, 'keep-both', () => `new-${++n}`);
+
+    const newScriptId = plan.userScripts.items[0].id;
+    const newPipeline = plan.pipelines.items[0];
+    expect(newScriptId).not.toBe('sc1');
+    expect(newPipeline.id).not.toBe('p1');
+    expect(newPipeline.steps[0]).toMatchObject({ kind: 'script', scriptId: newScriptId });
+    expect(plan.projects.items[0].pinnedPipelineIds).toEqual([newPipeline.id]);
+  });
+});

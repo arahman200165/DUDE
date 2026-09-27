@@ -70,6 +70,11 @@ export interface UserScriptDefinition {
   readonly timeoutMs: number;
   readonly createdAt: string;
   readonly updatedAt: string;
+  /**
+   * Arrived via a bundle import (Phase 26 Item 14). It executes code, so it can't run in any
+   * pipeline until the user explicitly reviews it (`UserScriptStoreService.markReviewed`).
+   */
+  readonly imported?: boolean;
 }
 
 export interface UserScriptStore {

@@ -138,3 +138,44 @@ describe('WorkerClientService', () => {
     expect(job!.error()).toBe('workers unsupported');
   });
 });
+
+describe('WorkerClientService.runAsync', () => {
+  let service: WorkerClientService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(WorkerClientService);
+  });
+
+  it('resolves with the worker result', async () => {
+    const worker = new FakeWorker();
+    const promise = service.runAsync<{ n: number }, number>(() => worker as unknown as Worker, { n: 2 });
+    worker.emit({ id: worker.posted[0].id, kind: 'result', result: 4 });
+    await expect(promise).resolves.toBe(4);
+    expect(worker.terminated).toBe(true);
+  });
+
+  it('rejects with the worker error message', async () => {
+    const worker = new FakeWorker();
+    const promise = service.runAsync(() => worker as unknown as Worker, {});
+    worker.emit({ id: worker.posted[0].id, kind: 'error', error: { message: 'bad input' } });
+    await expect(promise).rejects.toThrow('bad input');
+  });
+
+  it('terminates the worker and rejects with AbortError when the signal aborts', async () => {
+    const worker = new FakeWorker();
+    const abort = new AbortController();
+    const promise = service.runAsync(() => worker as unknown as Worker, {}, abort.signal);
+    abort.abort();
+    await expect(promise).rejects.toMatchObject({ name: 'AbortError' });
+    expect(worker.terminated).toBe(true);
+  });
+
+  it('never spawns a worker for an already-aborted signal', async () => {
+    const create = vi.fn();
+    const abort = new AbortController();
+    abort.abort();
+    await expect(service.runAsync(create, {}, abort.signal)).rejects.toMatchObject({ name: 'AbortError' });
+    expect(create).not.toHaveBeenCalled();
+  });
+});

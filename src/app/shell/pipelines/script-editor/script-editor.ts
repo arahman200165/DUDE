@@ -64,6 +64,13 @@ export class ScriptEditor {
     }
   }
 
+  /** Imported via a bundle (Phase 26 Item 14): blocked in pipelines until this explicit review. */
+  protected markReviewed(): void {
+    this.store.markReviewed(this.script().id);
+    const reviewed = this.store.getById(this.script().id);
+    if (reviewed) this.script.set(reviewed);
+  }
+
   private buildTestValue(): PipelineValue {
     const type = this.script().accepts[0] ?? 'text';
     const raw = this.testInput();

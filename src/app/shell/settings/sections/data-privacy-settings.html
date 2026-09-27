@@ -4,6 +4,68 @@
     usage stats. Nothing is sent anywhere unless a tool you use makes a network request.
   </p>
 
+  <div data-setting class="flex flex-col gap-2">
+    <h3 class="text-ui-sm font-semibold text-text">Export / import bundle</h3>
+    <p class="text-ui text-text-muted">
+      A JSON backup of your projects, workspace templates, pipelines, scripts, and tool preferences. Use it to keep a copy
+      (browsers can clear site data) or to move your setup between the web companion and Desktop DUDE. Consent choices, History,
+      and secrets are never included.
+    </p>
+    <label class="flex items-center gap-2 text-ui text-text">
+      <input type="checkbox" class="accent-accent" [checked]="includeInputs()" (change)="includeInputs.set($any($event.target).checked)" />
+      Include tool inputs (whatever is currently typed into each tool, which may be sensitive)
+    </label>
+    <div class="flex flex-wrap items-center gap-2">
+      <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10" (click)="exportBundle()">
+        Export bundle…
+      </button>
+      <label class="cursor-pointer rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:border-accent hover:text-accent">
+        Import bundle…
+        <input type="file" accept=".json,application/json" class="hidden" data-testid="bundle-file" (change)="onImportFile($event)" />
+      </label>
+    </div>
+
+    @if (importPlan(); as plan) {
+      <div class="flex flex-col gap-2 rounded-sm border border-accent/40 bg-accent/5 p-3" data-testid="import-preview" role="alertdialog" aria-label="Confirm import">
+        <p class="text-ui text-text">This bundle will add or update:</p>
+        <ul class="ml-4 list-disc text-ui text-text-muted">
+          <li>{{ plan.projects.items.length }} project(s)</li>
+          <li>{{ plan.workspaceTemplates.items.length }} workspace template(s)</li>
+          <li>{{ plan.pipelines.items.length }} pipeline(s)</li>
+          <li>{{ plan.userScripts.items.length }} script(s)</li>
+          <li>preferences for {{ toolCount(plan.toolPreferences) }} tool(s)</li>
+          @if (toolCount(plan.toolInputs)) {
+            <li>inputs for {{ toolCount(plan.toolInputs) }} tool(s)</li>
+          }
+        </ul>
+        @if (plan.userScripts.items.length) {
+          <p class="text-ui text-warning">Scripts run code. Imported scripts stay blocked in pipelines until you review each one.</p>
+        }
+        @if (plan.invalid) {
+          <p class="text-ui text-text-muted">{{ plan.invalid }} malformed item(s) will be ignored.</p>
+        }
+        <label class="flex items-center gap-2 text-ui text-text">
+          When an item already exists:
+          <select class="rounded-sm border border-border bg-panel px-2 py-0.5" [value]="conflictMode()" (change)="onConflictModeChange($event)">
+            <option value="skip">Keep mine (skip)</option>
+            <option value="replace">Replace with the bundle's</option>
+            <option value="keep-both">Keep both</option>
+          </select>
+        </label>
+        @if (conflictSummary(plan); as conflicts) {
+          <p class="text-ui-xs text-text-muted">{{ conflicts.skipped }} skipped · {{ conflicts.replaced }} replaced</p>
+        }
+        <div class="flex gap-2">
+          <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10" (click)="confirmImport()">Import</button>
+          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated" (click)="cancelImport()">Cancel</button>
+        </div>
+      </div>
+    }
+    @if (bundleMessage()) {
+      <p class="text-ui text-info" role="status">{{ bundleMessage() }}</p>
+    }
+  </div>
+
   <div data-setting class="flex flex-col gap-2 rounded-sm border border-error/40 p-3">
     <h3 class="text-ui-sm font-semibold text-error">Danger zone</h3>
     <p class="text-ui text-text-muted">

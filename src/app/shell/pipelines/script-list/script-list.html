@@ -23,7 +23,12 @@
         @for (script of scripts(); track script.id) {
           <li class="flex items-center justify-between rounded-sm border border-border bg-panel-elevated px-3 py-2">
             <a [routerLink]="['/pipelines/scripts', script.id]" class="flex flex-col gap-0.5">
-              <span class="text-ui font-medium text-text">{{ script.name }}</span>
+              <span class="text-ui font-medium text-text">
+                {{ script.name }}
+                @if (script.imported) {
+                  <span class="ml-1 rounded-sm border border-warning/40 px-1 text-ui-xs text-warning" title="Imported from a bundle. Review it before pipelines can run it.">Needs review</span>
+                }
+              </span>
               <span class="text-ui-xs text-text-muted">accepts [{{ script.accepts.join(', ') }}] · produces [{{ script.produces.join(', ') }}]</span>
             </a>
             <button type="button" class="text-ui-sm text-text-muted hover:text-error" (click)="remove(script.id, script.name)">Delete</button>

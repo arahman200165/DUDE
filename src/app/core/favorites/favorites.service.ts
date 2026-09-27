@@ -15,7 +15,7 @@ export class FavoritesService {
   private readonly persistence = inject(PersistenceService);
   private readonly registry = inject(ToolRegistryService);
   private readonly pipelineStore = inject(PipelineStoreService);
-  private readonly store = this.persistence.signal('__favorites__', 'pinned', 'local', EMPTY_FAVORITES_STORE);
+  private readonly store = this.persistence.signal('__favorites__', 'pinned', 'local', EMPTY_FAVORITES_STORE, { crossTab: 'live' });
 
   constructor() {
     const migrated = migrateFavoritesStore(this.store());

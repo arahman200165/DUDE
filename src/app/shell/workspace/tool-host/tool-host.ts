@@ -4,6 +4,7 @@ import { ToolRegistryService } from '../../../core/registry/tool-registry.servic
 import { WORKSPACE_HOST_CONTEXT } from '../../../core/workspace/workspace-host-context';
 import { ErrorPanel } from '../../../shared/components/error-panel/error-panel';
 import { BusyIndicator } from '../../../shared/components/busy-indicator/busy-indicator';
+import { ToolLoadFailure } from '../../../shared/components/tool-load-failure/tool-load-failure';
 
 /**
  * Mounts a tool by id outside its own route, via the tool's existing lazy `ToolDefinition.load()`
@@ -18,7 +19,7 @@ import { BusyIndicator } from '../../../shared/components/busy-indicator/busy-in
  */
 @Component({
   selector: 'app-tool-host',
-  imports: [NgComponentOutlet, ErrorPanel, BusyIndicator],
+  imports: [NgComponentOutlet, ErrorPanel, BusyIndicator, ToolLoadFailure],
   templateUrl: './tool-host.html',
 })
 export class ToolHost {
@@ -30,6 +31,12 @@ export class ToolHost {
   protected readonly definition = computed(() => this.registry.getById(this.toolId()));
   protected readonly componentType = signal<Type<unknown> | null>(null);
   protected readonly loadError = signal<string | null>(null);
+  /**
+   * The tool's code failed to download (offline before it was ever cached, or a stale tab after a
+   * deploy). A restored workspace shows the same explanatory `ToolLoadFailure` as a direct route
+   * (Phase 26 Item 14), not a raw error string.
+   */
+  protected readonly chunkFailed = signal(false);
 
   protected readonly childInjector = computed<Injector | null>(() => {
     const definition = this.definition();
@@ -46,6 +53,7 @@ export class ToolHost {
       const definition = this.definition();
       this.componentType.set(null);
       this.loadError.set(null);
+      this.chunkFailed.set(false);
 
       if (!definition) {
         this.loadError.set(`Unknown tool "${this.toolId()}".`);
@@ -59,7 +67,9 @@ export class ToolHost {
           if (!cancelled) this.componentType.set(loaded as Type<unknown>);
         })
         .catch((error: unknown) => {
-          if (!cancelled) this.loadError.set(error instanceof Error ? error.message : String(error));
+          if (cancelled) return;
+          console.warn(`[DUDE] Failed to load tool "${definition.id}" in a workspace panel`, error);
+          this.chunkFailed.set(true);
         });
 
       onCleanup(() => {

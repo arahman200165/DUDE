@@ -15,12 +15,21 @@ class WorkerJobHandle<TResult> implements WorkerJob<TResult> {
   readonly result = this.resultSignal.asReadonly();
   readonly error = this.errorSignal.asReadonly();
 
-  constructor(private readonly terminateWorker: () => void) {}
+  private settle!: { resolve: (result: TResult) => void; reject: (error: Error) => void };
+  /** Promise view of the same job, for non-component callers (see `WorkerClientService.runAsync`). */
+  readonly settled = new Promise<TResult>((resolve, reject) => (this.settle = { resolve, reject }));
+
+  constructor(private readonly terminateWorker: () => void) {
+    // A settled-but-unobserved rejection (component callers never read `settled`) must not
+    // surface as an unhandled rejection.
+    this.settled.catch(() => undefined);
+  }
 
   cancel(): void {
     if (this.statusSignal() !== 'running') return;
     this.statusSignal.set('cancelled');
     this.terminateWorker();
+    this.settle.reject(new DOMException('The worker job was cancelled.', 'AbortError'));
   }
 
   reportProgress(progress: number): void {
@@ -32,6 +41,7 @@ class WorkerJobHandle<TResult> implements WorkerJob<TResult> {
     this.resultSignal.set(result);
     this.statusSignal.set('done');
     this.terminateWorker();
+    this.settle.resolve(result);
   }
 
   reject(message: string): void {
@@ -39,6 +49,7 @@ class WorkerJobHandle<TResult> implements WorkerJob<TResult> {
     this.errorSignal.set(message);
     this.statusSignal.set('error');
     this.terminateWorker();
+    this.settle.reject(new Error(message));
   }
 }
 
@@ -102,5 +113,17 @@ export class WorkerClientService {
     }
 
     return job;
+  }
+
+  /**
+   * Promise form of `run` for callers without a component to bind signals to (pipeline steps, via
+   * `PipelineStepContext.offload`). Aborting `signal` terminates the worker and rejects with an
+   * `AbortError`.
+   */
+  runAsync<TPayload, TResult>(createWorker: () => Worker, payload: TPayload, signal?: AbortSignal): Promise<TResult> {
+    if (signal?.aborted) return Promise.reject(new DOMException('The worker job was cancelled.', 'AbortError'));
+    const job = this.run<TPayload, TResult>(createWorker, payload) as WorkerJobHandle<TResult>;
+    signal?.addEventListener('abort', () => job.cancel(), { once: true });
+    return job.settled;
   }
 }

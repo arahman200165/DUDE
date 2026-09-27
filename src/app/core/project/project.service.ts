@@ -4,6 +4,7 @@ import { WorkspaceLayoutService } from '../workspace/workspace-layout.service';
 import { UnifiedRecentsService } from '../recents/unified-recents.service';
 import { UnifiedRecentEntry } from '../recents/unified-recents.model';
 import { EMPTY_PROJECT_STORE, Project, createProject, migrateProjectStore } from './project.model';
+import { upsertById } from '../backup/upsert-by-id';
 
 /**
  * Projects (DUDE_PRD.md §21 Phase 25 Item 1) — persist under the synthetic pseudo-tool-id
@@ -14,7 +15,7 @@ import { EMPTY_PROJECT_STORE, Project, createProject, migrateProjectStore } from
 export class ProjectService {
   private readonly workspaceLayout = inject(WorkspaceLayoutService);
   private readonly unifiedRecents = inject(UnifiedRecentsService);
-  private readonly store = inject(PersistenceService).signal('__projects__', 'projects', 'local', EMPTY_PROJECT_STORE);
+  private readonly store = inject(PersistenceService).signal('__projects__', 'projects', 'local', EMPTY_PROJECT_STORE, { crossTab: 'live' });
 
   constructor() {
     const migrated = migrateProjectStore(this.store());
@@ -44,6 +45,11 @@ export class ProjectService {
 
   remove(id: string): void {
     this.store.set({ ...this.store(), projects: this.store().projects.filter((project) => project.id !== id) });
+  }
+
+  /** Bundle import (Phase 26 Item 14): upsert by id, conflicts already resolved by `planImport`. */
+  importProjects(projects: readonly Project[]): void {
+    this.store.set({ ...this.store(), projects: upsertById(this.store().projects, projects) });
   }
 
   /**

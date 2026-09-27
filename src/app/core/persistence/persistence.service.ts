@@ -1,4 +1,4 @@
-import { Injectable, Injector, WritableSignal, effect, inject, signal } from '@angular/core';
+import { Injectable, Injector, Signal, WritableSignal, effect, inject, signal } from '@angular/core';
 import { PersistencePolicy } from '../../shared/models/persistence-policy.model';
 import { StorageBackend, createStorageBackend } from './storage-backend';
 import {
@@ -9,12 +9,48 @@ import {
   buildToolPrefix,
 } from './persistence-keys';
 
+/**
+ * Multi-tab coherence for a `local` signal (DUDE_PRD.md §21 Phase 26 Item 14). Another open DUDE
+ * tab writing the same key fires a `storage` event here:
+ * - `'live'`: adopt the other tab's value (app-level stores: pipelines, scripts, projects,
+ *   templates). Without it, the last tab to save silently erases the other's additions.
+ * - `'notify'`: leave this tab's value alone but bump `externalChanges(...)`, for state each tab
+ *   owns (the workspace layout), where the UI offers "reload / keep mine" instead.
+ * Omitted means today's behaviour: independent per tab.
+ */
+export type CrossTabSync = 'live' | 'notify';
+
 @Injectable({ providedIn: 'root' })
 export class PersistenceService {
   private readonly injector = inject(Injector);
   private readonly local: StorageBackend = createStorageBackend('local');
   private readonly session: StorageBackend = createStorageBackend('session');
   private readonly consentSignals = new Map<string, WritableSignal<boolean>>();
+  // Only root-level stores opt in, so holding their signals for the app's lifetime is intended.
+  private readonly liveSignals = new Map<string, Set<WritableSignal<unknown>>>();
+  private readonly externalChangeCounters = new Map<string, WritableSignal<number>>();
+
+  constructor() {
+    if (typeof window === 'undefined') return;
+    window.addEventListener('storage', (event) => {
+      if (!event.key || (typeof localStorage !== 'undefined' && event.storageArea !== localStorage)) return;
+      this.externalChangeCounters.get(event.key)?.update((count) => count + 1);
+      const live = this.liveSignals.get(event.key);
+      if (!live || event.newValue === null) return;
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(event.newValue);
+      } catch {
+        return;
+      }
+      for (const value of live) value.set(parsed);
+    });
+  }
+
+  /** Increments whenever another tab writes this `local` key. Pair with `crossTab: 'notify'`. */
+  externalChanges(toolId: string, key: string): Signal<number> {
+    return this.counterFor(buildStorageKey(toolId, key)).asReadonly();
+  }
 
   /**
    * A signal that auto-persists on every write per `policy`. `none` never
@@ -22,7 +58,7 @@ export class PersistenceService {
    * `user-choice` behaves like `session` until the user opts in via
    * `setConsent`, after which future writes land in `local`.
    */
-  signal<T>(toolId: string, key: string, policy: PersistencePolicy, initialValue: T): WritableSignal<T> {
+  signal<T>(toolId: string, key: string, policy: PersistencePolicy, initialValue: T, options?: { readonly crossTab?: CrossTabSync }): WritableSignal<T> {
     if (policy === 'none') {
       return signal(initialValue);
     }
@@ -48,8 +84,27 @@ export class PersistenceService {
 
     const backend = policy === 'local' ? this.local : this.session;
     const value = signal(this.readValue(backend, storageKey, initialValue));
-    effect(() => backend.set(storageKey, JSON.stringify(value())), { injector: this.injector });
+    effect(
+      () => {
+        const json = JSON.stringify(value());
+        // Skipping an identical write keeps a value adopted from another tab from echoing back.
+        if (backend.get(storageKey) !== json) backend.set(storageKey, json);
+      },
+      { injector: this.injector },
+    );
+    if (policy === 'local' && options?.crossTab === 'live') {
+      let set = this.liveSignals.get(storageKey);
+      if (!set) this.liveSignals.set(storageKey, (set = new Set()));
+      set.add(value as WritableSignal<unknown>);
+    }
+    if (policy === 'local' && options?.crossTab === 'notify') this.counterFor(storageKey);
     return value;
+  }
+
+  private counterFor(storageKey: string): WritableSignal<number> {
+    let counter = this.externalChangeCounters.get(storageKey);
+    if (!counter) this.externalChangeCounters.set(storageKey, (counter = signal(0)));
+    return counter;
   }
 
   hasConsent(toolId: string, key: string): boolean {
