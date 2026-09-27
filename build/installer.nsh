@@ -115,6 +115,7 @@ Var pid
 
 !ifndef BUILD_UNINSTALLER
 Var DudeElevatedContinuation
+Var DudeStepTotal
 Var DudeCustomize
 Var DudePreset
 Var DudePreviousPreset
@@ -190,6 +191,10 @@ Var DudeExt13
 
 !macro customWelcomePage
   Page custom DudeWelcomeCreate DudeWelcomeLeave
+  ; The built-in install-scope page is the next visible page in Custom mode.
+  !ifndef INSTALL_MODE_PER_ALL_USERS
+    !define MUI_PAGE_CUSTOMFUNCTION_SHOW DudeModeShow
+  !endif
 !macroend
 
 !macro customInstallmode
@@ -265,13 +270,41 @@ Function DudeSyncOptionsForScope
     StrCpy $R0 $DudePreset
     StrCpy $R1 $DudeCustomize
     Call DudeLoadOptions
+    ; The welcome-page Custom choice belongs to the user, not the prior
+    ; installation in the newly selected scope.
+    StrCpy $DudeCustomize $R1
     ${If} $DudePresetChanged == "1"
       StrCpy $DudePreset $R0
-      StrCpy $DudeCustomize $R1
       Call DudeApplyPreset
       StrCpy $DudePreviousPreset $DudePreset
     ${EndIf}
   ${EndIf}
+FunctionEnd
+
+; Four visible pages for a preset install, eight when Custom is selected.
+; The built-in scope page is skipped in preset mode; elevation also skips the
+; welcome and scope pages in the second process without changing their numbers.
+Function DudeSetStepHeader
+  StrCpy $DudeStepTotal "4"
+  ${If} $DudeCustomize == "1"
+    StrCpy $DudeStepTotal "8"
+  ${EndIf}
+  !insertmacro MUI_HEADER_TEXT "Step $0 of $DudeStepTotal" "$1"
+FunctionEnd
+
+Function DudeModeShow
+  StrCpy $0 "2"
+  StrCpy $1 "Choose who can use DUDE"
+  Call DudeSetStepHeader
+FunctionEnd
+
+Function DudeInstallShow
+  StrCpy $0 "3"
+  ${If} $DudeCustomize == "1"
+    StrCpy $0 "7"
+  ${EndIf}
+  StrCpy $1 "Installing DUDE"
+  Call DudeSetStepHeader
 FunctionEnd
 
   Page custom DudePathCreate DudePathLeave
@@ -284,6 +317,12 @@ Function DudeReviewCreate
   ${EndIf}
   nsDialogs::Create 1018
   Pop $0
+  StrCpy $0 "2"
+  ${If} $DudeCustomize == "1"
+    StrCpy $0 "6"
+  ${EndIf}
+  StrCpy $1 "Review before installing"
+  Call DudeSetStepHeader
   ${NSD_CreateLabel} 0 0 100% 16u "Ready to install DUDE."
   Pop $0
   ${NSD_CreateLabel} 0 20u 100% 13u "Preset: $DudePreset"
@@ -333,6 +372,10 @@ Function DudeReviewCreate
   Pop $0
   nsDialogs::Show
 FunctionEnd
+
+  ; These built-in pages follow the custom review page in assistedInstaller.nsh.
+  !define MUI_PAGE_CUSTOMFUNCTION_SHOW DudeInstallShow
+  !define MUI_FINISHPAGE_TITLE "Step $DudeStepTotal of $DudeStepTotal"
 !macroend
 
 !macro customInstall
@@ -397,6 +440,9 @@ Function DudeWelcomeCreate
   ${EndIf}
   nsDialogs::Create 1018
   Pop $0
+  StrCpy $0 "1"
+  StrCpy $1 "Choose a starting setup"
+  Call DudeSetStepHeader
   ${NSD_CreateLabel} 0 0 100% 28u "Welcome to DUDE. Choose a starting setup; Custom lets you review every installation choice."
   Pop $0
   ${NSD_CreateRadioButton} 0 34u 100% 13u "Minimal — current user, Start shortcut, manual updates"
@@ -417,9 +463,22 @@ Function DudeWelcomeCreate
   ${If} $DudeCustomize == "1"
     ${NSD_Check} $DudeCustomizeCheck
   ${EndIf}
+  ${NSD_OnClick} $DudeCustomizeCheck DudeWelcomeCustomizeChanged
   ${NSD_CreateLabel} 0 118u 100% 25u "Fully Integrated may request administrator permission. Windows will ask you to confirm any default file apps."
   Pop $0
   nsDialogs::Show
+FunctionEnd
+
+Function DudeWelcomeCustomizeChanged
+  Pop $0
+  ${NSD_GetState} $DudeCustomizeCheck $0
+  StrCpy $DudeCustomize "0"
+  ${If} $0 == ${BST_CHECKED}
+    StrCpy $DudeCustomize "1"
+  ${EndIf}
+  StrCpy $0 "1"
+  StrCpy $1 "Choose a starting setup"
+  Call DudeSetStepHeader
 FunctionEnd
 
 Function DudeWelcomeLeave
@@ -453,6 +512,9 @@ Function DudePathCreate
   ${EndIf}
   nsDialogs::Create 1018
   Pop $0
+  StrCpy $0 "3"
+  StrCpy $1 "Choose installation folder"
+  Call DudeSetStepHeader
   ${NSD_CreateLabel} 0 0 100% 28u "Choose where DUDE is installed. This applies only to the desktop app; your personal data stays in your Windows profile."
   Pop $0
   ${NSD_CreateDirRequest} 0 37u 78% 13u "$INSTDIR"
@@ -502,6 +564,9 @@ Function DudeOptionsCreate
   ${EndIf}
   nsDialogs::Create 1018
   Pop $0
+  StrCpy $0 "4"
+  StrCpy $1 "Choose shortcuts and updates"
+  Call DudeSetStepHeader
   ${NSD_CreateLabel} 0 0 100% 15u "Shortcuts and startup"
   Pop $0
   ${NSD_CreateCheckbox} 0 19u 100% 12u "Start menu shortcut"
@@ -586,6 +651,9 @@ Function DudeExplorerCreate
   ${EndIf}
   nsDialogs::Create 1018
   Pop $0
+  StrCpy $0 "5"
+  StrCpy $1 "Choose Windows integrations"
+  Call DudeSetStepHeader
   ${NSD_CreateCheckbox} 0 0 100% 12u "Add Open with DUDE for supported files"
   Pop $DudeExplorerCheck
   ${NSD_CreateCheckbox} 0 15u 100% 12u "Add Open with DUDE for folders (opens Directory Diff)"
