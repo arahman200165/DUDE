@@ -2,6 +2,16 @@
 !include "LogicLib.nsh"
 !include "FileFunc.nsh"
 !include "getProcessInfo.nsh"
+!include "UAC.nsh"
+
+; DUDE's checkboxes own both shortcuts. Fail packaging if builder is
+; configured to create its own links before customInstall runs.
+!ifndef DO_NOT_CREATE_START_MENU_SHORTCUT
+  !error "Set nsis.createStartMenuShortcut to false; DUDE manages shortcuts."
+!endif
+!ifndef DO_NOT_CREATE_DESKTOP_SHORTCUT
+  !error "Set nsis.createDesktopShortcut to false; DUDE manages shortcuts."
+!endif
 
 ; The custom process hook below calls electron-builder's normal process check.
 Var pid
@@ -22,9 +32,22 @@ Var pid
           ${If} $R7 != "$R8\"
             ${GetFileName} "$R7" $R9
             ${If} $R9 == "DUDE"
-            ${AndIfNot} ${FileExists} "$R7\.git"
-            ${AndIfNot} ${FileExists} "$R7\package.json"
               StrCpy ${RESULT} "1"
+              ; The install directory may not exist yet. Check its ancestors too.
+              StrCpy $R5 $R7
+              ${Do}
+                ${If} ${FileExists} "$R5\.git"
+                ${OrIf} ${FileExists} "$R5\package.json"
+                  StrCpy ${RESULT} "0"
+                  ${Break}
+                ${EndIf}
+                ${GetParent} "$R5" $R6
+                ${If} $R6 == ""
+                ${OrIf} $R6 == $R5
+                  ${Break}
+                ${EndIf}
+                StrCpy $R5 $R6
+              ${Loop}
             ${EndIf}
           ${EndIf}
         ${EndIf}
@@ -37,10 +60,12 @@ Var pid
 ; electron-builder's uninstallOldVersion, which derives a path from that entry.
 !macro DudeCheckPreviousInstall ROOT_KEY
   ReadRegStr $R4 ${ROOT_KEY} "${UNINSTALL_REGISTRY_KEY}" "UninstallString"
-  ${If} $R4 != ""
-    ReadRegStr $R3 ${ROOT_KEY} "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+  ReadRegStr $R3 ${ROOT_KEY} "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+  ${If} $R3 != ""
+  ${OrIf} $R4 != ""
     !insertmacro DudePathIsSafe $R3 $R2
     ${If} $R2 == "1"
+    ${AndIf} $R4 != ""
       !insertmacro GetInQuotes $R5 "$R4"
       ${If} $R5 != "$R3\${UNINSTALL_FILENAME}"
         StrCpy $R2 "0"
@@ -62,10 +87,8 @@ Var pid
     Quit
   ${EndIf}
   !ifndef BUILD_UNINSTALLER
-    !insertmacro DudeCheckPreviousInstall SHELL_CONTEXT
-    ${If} $installMode == "all"
-      !insertmacro DudeCheckPreviousInstall HKEY_CURRENT_USER
-    ${EndIf}
+    !insertmacro DudeCheckPreviousInstall HKEY_CURRENT_USER
+    !insertmacro DudeCheckPreviousInstall HKEY_LOCAL_MACHINE
   !endif
   !insertmacro IS_POWERSHELL_AVAILABLE
   !insertmacro _CHECK_APP_RUNNING
@@ -94,6 +117,9 @@ Var pid
 Var DudeCustomize
 Var DudePreset
 Var DudePreviousPreset
+Var DudeLoadedMode
+Var DudePresetChanged
+Var DudeOptionsValid
 Var DudeStart
 Var DudeDesktop
 Var DudeLogin
@@ -136,6 +162,7 @@ Var DudeExt13
 
 !ifndef BUILD_UNINSTALLER
 !macro customInit
+  StrCpy $DudePresetChanged "0"
   Call DudeLoadOptions
 !macroend
 
@@ -154,6 +181,77 @@ Var DudeExt13
 !macroend
 
 !macro customPageAfterChangeDir
+Function DudeLoadOptions
+  StrCpy $DudePreset "Integrated"
+  StrCpy $DudeCustomize "0"
+  Call DudeApplyPreset
+  ${If} ${Silent}
+    StrCpy $DudePreset "Standard"
+    Call DudeApplyPreset
+  ${EndIf}
+  ReadRegStr $0 SHELL_CONTEXT "Software\DUDE\Installer" "Preset"
+  ${If} $0 == "Minimal"
+  ${OrIf} $0 == "Standard"
+  ${OrIf} $0 == "Integrated"
+    StrCpy $DudePreset $0
+    Call DudeApplyPreset
+    StrCpy $DudeOptionsValid "1"
+    !insertmacro DudeReadSavedBoolean "Customize" $DudeCustomize
+    !insertmacro DudeReadSavedBoolean "StartShortcut" $DudeStart
+    !insertmacro DudeReadSavedBoolean "DesktopShortcut" $DudeDesktop
+    !insertmacro DudeReadSavedBoolean "LaunchOnLogin" $DudeLogin
+    ReadRegStr $DudeUpdates SHELL_CONTEXT "Software\DUDE\Installer" "UpdateMode"
+    ${If} $DudeUpdates != "manual"
+    ${AndIf} $DudeUpdates != "notify"
+    ${AndIf} $DudeUpdates != "auto-download"
+      StrCpy $DudeOptionsValid "0"
+    ${EndIf}
+    !insertmacro DudeReadSavedBoolean "ExplorerAction" $DudeExplorer
+    !insertmacro DudeReadSavedBoolean "FolderAction" $DudeFolders
+    ; Older installs did not save this field; their fallback was disabled.
+    ReadRegStr $0 SHELL_CONTEXT "Software\DUDE\Installer" "ProtocolEnabled"
+    ${If} $0 == ""
+      StrCpy $DudeProtocol "0"
+    ${ElseIf} $0 == "0"
+    ${OrIf} $0 == "1"
+      StrCpy $DudeProtocol $0
+    ${Else}
+      StrCpy $DudeOptionsValid "0"
+    ${EndIf}
+    ReadRegStr $0 SHELL_CONTEXT "Software\DUDE\Installer" "FileMask"
+    IntOp $1 $0 + 0
+    ${If} $0 == $1
+    ${AndIf} $1 >= 0
+    ${AndIf} $1 <= ${DUDE_ALL_EXTENSION_MASK}
+      StrCpy $DudeMask $1
+    ${Else}
+      StrCpy $DudeOptionsValid "0"
+    ${EndIf}
+    ${If} $DudeOptionsValid != "1"
+      ; Keep a damaged saved record from silently enabling integrations.
+      StrCpy $DudePreset "Minimal"
+      StrCpy $DudeCustomize "0"
+      Call DudeApplyPreset
+    ${EndIf}
+  ${EndIf}
+  StrCpy $DudePreviousPreset $DudePreset
+  StrCpy $DudeLoadedMode $installMode
+FunctionEnd
+
+Function DudeSyncOptionsForScope
+  ${If} $installMode != $DudeLoadedMode
+    StrCpy $R0 $DudePreset
+    StrCpy $R1 $DudeCustomize
+    Call DudeLoadOptions
+    ${If} $DudePresetChanged == "1"
+      StrCpy $DudePreset $R0
+      StrCpy $DudeCustomize $R1
+      Call DudeApplyPreset
+      StrCpy $DudePreviousPreset $DudePreset
+    ${EndIf}
+  ${EndIf}
+FunctionEnd
+
   Page custom DudePathCreate DudePathLeave
   Page custom DudeOptionsCreate DudeOptionsLeave
   Page custom DudeExplorerCreate DudeExplorerLeave
@@ -223,6 +321,14 @@ FunctionEnd
 
 !macro customUnInstall
   Call un.DudeRemoveOptions
+  ${If} $DudeDeleteData == "1"
+    ; Execute in the unelevated parent when UAC used another admin account.
+    ${If} ${UAC_IsInnerInstance}
+      !insertmacro UAC_AsUser_Call Function un.DudeDeleteUserData 0
+    ${Else}
+      Call un.DudeDeleteUserData
+    ${EndIf}
+  ${EndIf}
 !macroend
 
 !ifndef BUILD_UNINSTALLER
@@ -252,32 +358,15 @@ Function DudeApplyPreset
   ${EndIf}
 FunctionEnd
 
-Function DudeLoadOptions
-  StrCpy $DudePreset "Integrated"
-  StrCpy $DudeCustomize "0"
-  Call DudeApplyPreset
-  ${If} ${Silent}
-    StrCpy $DudePreset "Standard"
-    Call DudeApplyPreset
+!macro DudeReadSavedBoolean NAME TARGET
+  ReadRegStr $0 SHELL_CONTEXT "Software\DUDE\Installer" "${NAME}"
+  ${If} $0 == "0"
+  ${OrIf} $0 == "1"
+    StrCpy ${TARGET} $0
+  ${Else}
+    StrCpy $DudeOptionsValid "0"
   ${EndIf}
-  ReadRegStr $0 SHELL_CONTEXT "Software\DUDE\Installer" "Preset"
-  ${If} $0 != ""
-    StrCpy $DudePreset $0
-    ReadRegStr $DudeCustomize SHELL_CONTEXT "Software\DUDE\Installer" "Customize"
-    ReadRegStr $DudeStart SHELL_CONTEXT "Software\DUDE\Installer" "StartShortcut"
-    ReadRegStr $DudeDesktop SHELL_CONTEXT "Software\DUDE\Installer" "DesktopShortcut"
-    ReadRegStr $DudeLogin SHELL_CONTEXT "Software\DUDE\Installer" "LaunchOnLogin"
-    ReadRegStr $DudeUpdates SHELL_CONTEXT "Software\DUDE\Installer" "UpdateMode"
-    ReadRegStr $DudeExplorer SHELL_CONTEXT "Software\DUDE\Installer" "ExplorerAction"
-    ReadRegStr $DudeFolders SHELL_CONTEXT "Software\DUDE\Installer" "FolderAction"
-    ReadRegStr $DudeProtocol SHELL_CONTEXT "Software\DUDE\Installer" "ProtocolEnabled"
-    ${If} $DudeProtocol == ""
-      StrCpy $DudeProtocol "0"
-    ${EndIf}
-    ReadRegStr $DudeMask SHELL_CONTEXT "Software\DUDE\Installer" "FileMask"
-  ${EndIf}
-  StrCpy $DudePreviousPreset $DudePreset
-FunctionEnd
+!macroend
 
 Function DudeWelcomeCreate
   ${If} ${Silent}
@@ -329,10 +418,13 @@ Function DudeWelcomeLeave
   ${EndIf}
   ${If} $DudePreset != $DudePreviousPreset
     Call DudeApplyPreset
+    StrCpy $DudePresetChanged "1"
   ${EndIf}
+  StrCpy $DudePreviousPreset $DudePreset
 FunctionEnd
 
 Function DudePathCreate
+  Call DudeSyncOptionsForScope
   ${If} $DudeCustomize != "1"
     Abort
   ${EndIf}
@@ -753,12 +845,13 @@ Function un.DudeRemoveOptions
   !insertmacro DudeRemoveProtocol
   DeleteRegValue SHELL_CONTEXT "Software\RegisteredApplications" "DUDE"
   DeleteRegKey SHELL_CONTEXT "Software\DUDE"
-  ${If} $DudeDeleteData == "1"
-    ; $%APPDATA% reads the literal environment variable of the invoking user,
-    ; unaffected by SetShellVarContext/install mode — unlike the $APPDATA
-    ; shell-folder constant, which resolves differently for per-machine
-    ; installs and would otherwise require tracking/restoring install mode.
-    RMDir /r "$%APPDATA%\DUDE"
+FunctionEnd
+
+Function un.DudeDeleteUserData
+  ; Resolve the profile at runtime, in the user's own process.
+  ReadEnvStr $0 "APPDATA"
+  ${If} $0 != ""
+    RMDir /r "$0\DUDE"
   ${EndIf}
 FunctionEnd
 !endif
