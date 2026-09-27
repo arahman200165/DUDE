@@ -4,6 +4,8 @@ The GitHub Releases `DUDE-Setup-<version>.exe` is an NSIS installer. It has a na
 
 ## Installer choices
 
+Windows requests administrator permission as soon as the installer or uninstaller opens, before any setup page appears. If you enter credentials for a different administrator account, current-user installs and optional data deletion apply to that administrator account. A standard user who supplies different administrator credentials cannot target their own profile with the current-user option or the optional data-deletion checkbox; an all-users install remains available.
+
 The welcome page offers an Express preset or **Custom**. Custom starts from the selected preset and opens pages for location, shortcuts and login launch, update policy, Explorer actions, and individual file types. Back and Next let you review choices before installation.
 
 | Preset | Scope | Shortcuts | Explorer | File types | Login | Updates |

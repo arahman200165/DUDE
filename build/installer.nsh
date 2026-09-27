@@ -2,7 +2,13 @@
 !include "LogicLib.nsh"
 !include "FileFunc.nsh"
 !include "getProcessInfo.nsh"
-!include "UAC.nsh"
+
+; electron-builder's default entry script asks for user privileges when scope
+; is selectable. A later RequestExecutionLevel replaces that manifest setting
+; in both the installer and its generated uninstaller.
+!macro customHeader
+  RequestExecutionLevel admin
+!macroend
 
 ; DUDE's checkboxes own both shortcuts. Fail packaging if builder is
 ; configured to create its own links before customInstall runs.
@@ -271,7 +277,6 @@ FunctionEnd
 ; END GENERATED FILE ASSOCIATIONS BITS
 
 !ifndef BUILD_UNINSTALLER
-Var DudeElevatedContinuation
 Var DudeStepTotal
 Var DudeExistingInstall
 Var DudeExistingScope
@@ -337,7 +342,6 @@ Var DudeExt13
 
 !ifndef BUILD_UNINSTALLER
 !macro customInit
-  StrCpy $DudeElevatedContinuation "0"
   StrCpy $DudePresetChanged "0"
   StrCpy $DudeExistingInstall "0"
   StrCpy $DudeMaintenanceAction "repair"
@@ -346,33 +350,6 @@ Var DudeExt13
   ${IfNot} ${Silent}
   ${AndIfNot} ${isUpdated}
     Call DudeDetectExistingInstall
-  ${EndIf}
-  ${If} ${UAC_IsInnerInstance}
-    StrCpy $DudeElevatedContinuation "1"
-    ; Elevation restarts the page flow in a separate process. Restore the
-    ; choices made before the prompt instead of loading the admin account's
-    ; saved installer settings or showing the welcome page again.
-    !insertmacro UAC_AsUser_GetGlobalVar $DudePreset
-    !insertmacro UAC_AsUser_GetGlobalVar $DudeCustomize
-    !insertmacro UAC_AsUser_GetGlobalVar $DudeStart
-    !insertmacro UAC_AsUser_GetGlobalVar $DudeDesktop
-    !insertmacro UAC_AsUser_GetGlobalVar $DudeLogin
-    !insertmacro UAC_AsUser_GetGlobalVar $DudeUpdates
-    !insertmacro UAC_AsUser_GetGlobalVar $DudeExplorer
-    !insertmacro UAC_AsUser_GetGlobalVar $DudeFolders
-    !insertmacro UAC_AsUser_GetGlobalVar $DudeProtocol
-    !insertmacro UAC_AsUser_GetGlobalVar $DudeMask
-    !insertmacro UAC_AsUser_GetGlobalVar $DudeExistingInstall
-    !insertmacro UAC_AsUser_GetGlobalVar $DudeExistingScope
-    !insertmacro UAC_AsUser_GetGlobalVar $DudeExistingPath
-    !insertmacro UAC_AsUser_GetGlobalVar $DudeExistingVersion
-    !insertmacro UAC_AsUser_GetGlobalVar $DudeMultipleInstalls
-    !insertmacro UAC_AsUser_GetGlobalVar $DudeMaintenanceAction
-    !insertmacro UAC_AsUser_GetGlobalVar $DudeMaintenanceReady
-    StrCpy $DudePreviousPreset $DudePreset
-    ; The elevated mode page will select all users even if initMultiUser
-    ; initially found only a current-user installation.
-    StrCpy $DudeLoadedMode "all"
   ${EndIf}
 !macroend
 
@@ -443,7 +420,6 @@ FunctionEnd
 Function DudeMaintenanceCreate
   ${If} ${Silent}
   ${OrIf} $DudeExistingInstall != "1"
-  ${OrIf} $DudeElevatedContinuation == "1"
     Abort
   ${EndIf}
   nsDialogs::Create 1018
@@ -525,7 +501,6 @@ FunctionEnd
 Function DudeMaintenanceReviewCreate
   ${If} ${Silent}
   ${OrIf} $DudeExistingInstall != "1"
-  ${OrIf} $DudeElevatedContinuation == "1"
     Abort
   ${EndIf}
   nsDialogs::Create 1018
@@ -539,7 +514,7 @@ Function DudeMaintenanceReviewCreate
     StrCpy $4 "Repair"
   ${ElseIf} $DudeMaintenanceAction == "reset"
     StrCpy $2 "Delete my DUDE data"
-    StrCpy $3 "This permanently deletes this Windows user's DUDE settings and personal data in %APPDATA%\DUDE. DUDE stays installed. Other users' data is kept."
+    StrCpy $3 "This permanently deletes the elevated Windows account's DUDE settings and personal data in %APPDATA%\DUDE. DUDE stays installed. Other users' data is kept."
     StrCpy $4 "Delete data"
   ${Else}
     StrCpy $2 "Uninstall DUDE"
@@ -749,8 +724,7 @@ FunctionEnd
 
 ; Fresh installs have four preset pages or eight Custom pages. Repair has four;
 ; data reset and uninstall end after their second confirmation page.
-; The built-in scope page is skipped in preset mode; elevation also skips the
-; welcome and scope pages in the second process without changing their numbers.
+; The built-in scope page is skipped in preset mode.
 Function DudeSetStepHeader
   StrCpy $DudeStepTotal "4"
   ${If} $DudeExistingInstall == "1"
@@ -860,12 +834,7 @@ FunctionEnd
 !macro customUnInstall
   Call un.DudeRemoveOptions
   ${If} $DudeDeleteData == "1"
-    ; Execute in the unelevated parent when UAC used another admin account.
-    ${If} ${UAC_IsInnerInstance}
-      !insertmacro UAC_AsUser_Call Function un.DudeDeleteUserData 0
-    ${Else}
-      Call un.DudeDeleteUserData
-    ${EndIf}
+    Call un.DudeDeleteUserData
   ${EndIf}
 !macroend
 
@@ -909,7 +878,6 @@ FunctionEnd
 Function DudeWelcomeCreate
   ${If} ${Silent}
   ${OrIf} $DudeExistingInstall == "1"
-  ${OrIf} $DudeElevatedContinuation == "1"
     Abort
   ${EndIf}
   nsDialogs::Create 1018
@@ -938,7 +906,7 @@ Function DudeWelcomeCreate
     ${NSD_Check} $DudeCustomizeCheck
   ${EndIf}
   ${NSD_OnClick} $DudeCustomizeCheck DudeWelcomeCustomizeChanged
-  ${NSD_CreateLabel} 0 118u 100% 25u "Fully Integrated may request administrator permission. Windows will ask you to confirm any default file apps."
+  ${NSD_CreateLabel} 0 118u 100% 25u "Setup requested administrator permission when it opened. Windows will ask you to confirm any default file apps."
   Pop $0
   nsDialogs::Show
 FunctionEnd
@@ -1388,7 +1356,7 @@ Function DudeUnWelcomeCreate
   Pop $0
   ${NSD_CreateLabel} 0 0 100% 40u "This will remove DUDE from your computer. Your saved settings, hotkeys, secure credentials, and cache are normally left behind, so a future install picks up where you left off."
   Pop $0
-  ${NSD_CreateCheckbox} 0 52u 100% 32u "Also permanently delete my DUDE settings and data (preferences, hotkeys, saved credentials, cache). This cannot be undone."
+  ${NSD_CreateCheckbox} 0 52u 100% 32u "Also permanently delete this Windows account's DUDE settings and data (preferences, hotkeys, saved credentials, cache). This cannot be undone."
   Pop $DudeDeleteDataCheck
   nsDialogs::Show
 FunctionEnd
