@@ -20,11 +20,19 @@ export interface ScannedFile {
   read(): Promise<ArrayBuffer>;
 }
 
+/**
+ * `webkitRelativePath` starts with the picked folder's own name (`v1/src/a.ts`), but the native
+ * walk is root-relative (`src/a.ts`). That first segment is stripped so both paths key files
+ * identically. Before Phase 26's parity suite caught it, comparing web folders named differently
+ * (`v1` vs `v2`) reported every file as added/removed.
+ */
 export function scanFileList(fileList: FileList): readonly ScannedFile[] {
   const files: ScannedFile[] = [];
   for (let i = 0; i < fileList.length; i++) {
     const file = fileList[i];
-    files.push({ path: file.webkitRelativePath || file.name, read: () => file.arrayBuffer() });
+    const relative = file.webkitRelativePath;
+    const slash = relative ? relative.indexOf('/') : -1;
+    files.push({ path: slash >= 0 ? relative.slice(slash + 1) : relative || file.name, read: () => file.arrayBuffer() });
   }
   return files;
 }

@@ -1,0 +1,3 @@
+{
+  "reason": "The CUID library mixes a module-level counter and fingerprint with entropy; exact runs cannot be reset."
+}

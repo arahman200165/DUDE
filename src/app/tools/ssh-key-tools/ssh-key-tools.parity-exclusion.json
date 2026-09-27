@@ -1,0 +1,3 @@
+{
+  "reason": "Native Ed25519 key generation owns nondeterministic entropy and cannot be seeded in jsdom."
+}

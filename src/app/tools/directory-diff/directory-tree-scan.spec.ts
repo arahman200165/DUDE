@@ -12,10 +12,10 @@ function fakeFile(name: string, relativePath: string): File {
 }
 
 describe('scanFileList', () => {
-  it('uses webkitRelativePath when present', async () => {
+  it("uses webkitRelativePath minus the picked folder's own name, like the root-relative native walk", async () => {
     const file = fakeFile('a.txt', 'my-folder/sub/a.txt');
     const result = scanFileList(fakeFileList([file]));
-    expect(result.map((r) => r.path)).toEqual(['my-folder/sub/a.txt']);
+    expect(result.map((r) => r.path)).toEqual(['sub/a.txt']);
     expect(new TextDecoder().decode(await result[0].read())).toBe('content');
   });
 
@@ -29,7 +29,7 @@ describe('scanFileList', () => {
     const a = fakeFile('a.txt', 'dir/a.txt');
     const b = fakeFile('b.txt', 'dir/b.txt');
     const result = scanFileList(fakeFileList([a, b]));
-    expect(result.map((r) => r.path)).toEqual(['dir/a.txt', 'dir/b.txt']);
+    expect(result.map((r) => r.path)).toEqual(['a.txt', 'b.txt']);
   });
 
   it('returns an empty array for an empty FileList', () => {

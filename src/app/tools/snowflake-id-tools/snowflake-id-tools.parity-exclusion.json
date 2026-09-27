@@ -1,0 +1,3 @@
+{
+  "reason": "Its module-level same-millisecond sequence counter intentionally changes between runs and cannot be reset."
+}

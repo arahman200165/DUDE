@@ -137,6 +137,19 @@ A feature declared `web: 'unavailable'` must stay visible on the web rather than
 
 **PWA shortcut (rare).** `pwaShortcut: { order: N }` adds the tool to the installed web app's jump list, via the generated `public/manifest.webmanifest`. Browsers only show a handful, so the cap is 10. Only take a slot for a genuinely top-used tool.
 
+### Web/desktop parity fixtures
+
+A tool with a `<id>.pipeline-step.ts` adapter joins `core/parity/web-desktop-parity.spec.ts` automatically. The suite runs the same input with and without the fake Electron bridge and compares the full result. It derives a representative input from the first accepted type unless you add `<id>.parity-fixtures.ts` beside the adapter:
+
+```ts
+import type { PipelineValue } from '../../shared/models/pipeline-step.model';
+export const fixtures: readonly { input: PipelineValue; expected?: PipelineValue }[] = [
+  { input: { type: 'text', value: 'SGVsbG8=' }, expected: { type: 'text', value: 'Hello' } },
+];
+```
+
+Prefer valid, deterministic vectors with an explicit expected output. If a step uses fresh entropy, time, a browser-only runtime, or another environment-dependent source, document why exact result equality cannot be tested in a colocated `<id>.parity-exclusion.json` (`{ "reason": "..." }`); keep its own behavior tests. A `web: 'fallback'` capability additionally requires a colocated `<id>.parity.spec.ts` that compares the web and native adapters against the same fixture.
+
 ## 7. Declare I/O capabilities
 
 Set `io: { accepts: [...], produces: [...] }` in the `ToolDefinition` — the field is required (`io:`, not `io?:`) so the compiler rejects a tool that forgets it. Use the shared vocabulary in `src/app/shared/models/tool-io.model.ts` (`DudeDataType`: `text`, `json`, `bytes`, `file`, `table`, `url`, `http-response`). This is the "Universal Input/Output Contract" from PRD §21 Phase 21 — like `persistence`/`execution`/`network`, it's declarative documentation only (not read by the shell at runtime yet), but it's what a future pipeline/Smart-Paste feature would build on, so keep it honest: describe what the tool's UI/logic actually consumes and emits today, not aspirational future capability. `tool-count.spec.ts`'s "Universal I/O contract coverage" spec still guards against a technically-present-but-empty `accepts`/`produces` array, which the required-field type check alone doesn't catch.

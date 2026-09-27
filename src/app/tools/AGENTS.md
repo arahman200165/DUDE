@@ -37,3 +37,7 @@ Full detail and code snippets for all of the above: `ADDING_A_TOOL.md` steps 2, 
 ## Sandboxed/executable tools
 
 If the tool needs to run untrusted code (JS/HTML/templates/Python-style execution), read `src/app/shared/code-sandbox/AGENTS.md` first — there are three non-obvious CSP/CORS/iframe gotchas that only show up in real browser testing, not unit tests.
+
+## Platform and parity metadata
+
+Declare desktop features and optional web runtimes in the manifest's `capabilities` field, using the closed vocabulary in `shared/models/tool-capability.model.ts`. A high-use web tool may opt into a generated PWA shortcut with `pwaShortcut: { order: N }` (maximum 10). A tool with a `<id>.pipeline-step.ts` is covered by the registry-wide parity suite; add `<id>.parity-fixtures.ts` for meaningful deterministic vectors. Every `web: 'fallback'` capability needs a colocated `<id>.parity.spec.ts` comparing the web and native adapter results. See `ADDING_A_TOOL.md` for the fixture shape.

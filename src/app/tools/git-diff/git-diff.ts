@@ -7,7 +7,8 @@ import { PlatformService } from '../../core/platform/platform.service';
 import { NativeFsService } from '../../core/platform/native-fs.service';
 import { DiffLineType, DiffResult } from '../diff/text-diff';
 import { scanFileList } from '../directory-diff/directory-tree-scan';
-import { buildInMemoryFs, InMemoryFile } from './git-fs-shim';
+import { buildInMemoryFs } from './git-fs-shim';
+import { toInMemoryRepoFiles } from './git-web-files';
 import { buildNativeFsClient } from './git-native-fs-client';
 import { CommitSummary, diffCommitFiles, diffFileContent, FileChange, listCommits } from './git-diff-service';
 
@@ -63,23 +64,10 @@ export class GitDiff {
     this.clear();
     this.loadStatus.set('loading');
 
-    const scanned = scanFileList(input.files);
-    const topFolder = scanned[0]?.path.split('/')[0] ?? '';
-    this.repoName.set(topFolder);
+    this.repoName.set(input.files[0].webkitRelativePath.split('/')[0] ?? '');
 
     try {
-      const files: InMemoryFile[] = await Promise.all(
-        scanned.map(async (entry) => ({
-          path: `/${entry.path.slice(topFolder.length + 1)}`,
-          data: new Uint8Array(await entry.read()),
-        })),
-      );
-
-      if (!files.some((f) => f.path.startsWith('/.git/'))) {
-        throw new Error('No .git folder found in the selected folder — select a folder containing a git repository.');
-      }
-
-      this.fs = buildInMemoryFs(files);
+      this.fs = buildInMemoryFs(await toInMemoryRepoFiles(scanFileList(input.files)));
       await this.loadCommits();
     } catch (error) {
       this.loadError.set(error instanceof Error ? error.message : 'Could not read this folder as a git repository.');
