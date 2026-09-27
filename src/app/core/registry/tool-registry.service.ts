@@ -76,7 +76,7 @@ export class ToolRegistryService {
   settingsSections(): readonly ContributedSettingsSection[] {
     return this.definitions
       .filter((definition) => definition.settingsSection !== undefined)
-      .map((definition) => ({ ...definition.settingsSection!, toolId: definition.id, toolTitle: definition.title }))
+      .map((definition) => ({ ...definition.settingsSection!, toolId: definition.id, toolTitle: definition.shortTitle ?? definition.title }))
       .sort((a, b) => a.toolTitle.localeCompare(b.toolTitle));
   }
 

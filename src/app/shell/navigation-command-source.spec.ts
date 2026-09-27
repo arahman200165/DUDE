@@ -21,7 +21,7 @@ describe('NavigationCommandSource', () => {
     const titles = source.commands().map((command) => command.title);
     expect(titles).toEqual(expect.arrayContaining(SHELL_DESTINATIONS.map((destination) => destination.title)));
     expect(titles).toEqual(expect.arrayContaining(CORE_SETTINGS_SECTIONS.map((section) => `Settings: ${section.title}`)));
-    expect(titles).toContain('Settings: Advanced Markdown Workspace — Collaboration relay');
+    expect(titles).toContain('Settings: Markdown Workspace — Collaboration relay');
     expect(source.commands().every((command) => command.kind === 'navigation')).toBe(true);
   });
 
