@@ -3,15 +3,17 @@ import { DesktopPreferencesService } from '../../core/platform/desktop-preferenc
 import { OnboardingService } from '../../core/platform/onboarding.service';
 import { ShellChromeService } from '../../core/platform/shell-chrome.service';
 import { SecureLocalService } from '../../core/persistence/secure-local.service';
-import { PersistenceService } from '../../core/persistence/persistence.service';
 import { APP_SETTINGS_NAMESPACE, LLM_API_KEY_KEY, LLM_BASE_URL_KEY, LLM_MODEL_KEY } from '../../core/persistence/app-settings';
 import { WorkspaceLayoutService } from '../../core/workspace/workspace-layout.service';
 import type { DesktopPreferences, QuickActionInfo } from '../../core/platform/electron-bridge';
+import { ToolRegistryService } from '../../core/registry/tool-registry.service';
+import { ContributedSectionHost } from '../settings/contributed-section-host/contributed-section-host';
 
-const PAGES = ['Welcome', 'Workspace & window', 'Updates & notifications', 'Hotkeys', 'AI provider', 'Collaboration', 'Review'];
+const PAGES = ['Welcome', 'Workspace & window', 'Updates & notifications', 'Hotkeys', 'AI provider', 'Tool settings', 'Review'];
 
 @Component({
   selector: 'app-onboarding',
+  imports: [ContributedSectionHost],
   templateUrl: './onboarding.html',
 })
 export class Onboarding {
@@ -20,7 +22,6 @@ export class Onboarding {
   protected readonly workspace = inject(WorkspaceLayoutService);
   private readonly shell = inject(ShellChromeService);
   private readonly secure = inject(SecureLocalService);
-  private readonly persistence = inject(PersistenceService);
   protected readonly pages = PAGES;
   protected readonly launchOnLogin = signal(false);
   protected readonly hotkeys = signal<readonly QuickActionInfo[]>([]);
@@ -28,7 +29,8 @@ export class Onboarding {
   protected readonly baseUrl = signal('');
   protected readonly model = signal('');
   protected readonly apiKey = signal('');
-  protected readonly relayUrl = this.persistence.signal('settings', 'relayUrl', 'local', '');
+  /** Tool-contributed Settings sections that opted into the wizard (`settingsSection.onboarding`). */
+  protected readonly toolSections = inject(ToolRegistryService).settingsSections().filter((section) => section.onboarding);
   protected readonly message = signal('');
   protected readonly saving = signal(false);
 

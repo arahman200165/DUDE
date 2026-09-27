@@ -7,6 +7,8 @@ import { BusyIndicator } from '../../shared/components/busy-indicator/busy-indic
 import { SandboxedMarkdownPreview } from '../../shared/components/sandboxed-markdown-preview/sandboxed-markdown-preview';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
 import { PersistenceService } from '../../core/persistence/persistence.service';
+import { WorkspaceLayoutService } from '../../core/workspace/workspace-layout.service';
+import { resolvePreference } from '../../core/workspace/workspace-preference';
 import { WorkerClientService } from '../../core/workers/worker-client.service';
 import { WorkerJob } from '../../core/workers/worker-job';
 import { PlatformService } from '../../core/platform/platform.service';
@@ -30,6 +32,7 @@ import { extractMarkdownLinks } from './markdown-link-extract';
 import { LinkCheckOutcome, checkLinks } from './markdown-link-check';
 import { PluginRuntimeHost } from './plugins/plugin-runtime-host';
 import { CollabConnectionStatus, MarkdownCollabClient } from './collab/markdown-collab-client';
+import { MARKDOWN_WORKSPACE_TOOL_ID, RELAY_URL_KEY } from './markdown-workspace-relay';
 
 /** Inputs above this size run in a Worker instead of blocking the main thread — higher than csv-viewer/yaml-json's 50k since markdown-it rendering is cheaper per byte. */
 const WORKER_THRESHOLD = 100_000;
@@ -147,10 +150,13 @@ export class MarkdownWorkspace implements OnDestroy {
   protected readonly joinCodeInput = signal('');
   protected readonly showCollabPanel = signal(false);
 
-  // Stage 7: BYO relay — read the same 'settings'-tool-owned preference the
-  // Settings tool's UI writes (a plain `local` value both tools' components
-  // read/write through the one shared PersistenceService key).
-  protected readonly relayUrl = this.persistence.signal('settings', 'relayUrl', 'local', '');
+  // Stage 7: BYO relay. The global value is this tool's own `local` preference (edited from
+  // Settings › Tools › Markdown Workspace); the live workspace may override it, and templates/
+  // projects carry that override (manifest `settingsSection.workspaceOverridable`).
+  private readonly workspaceLayout = inject(WorkspaceLayoutService);
+  private readonly globalRelayUrl = this.persistence.signal(MARKDOWN_WORKSPACE_TOOL_ID, RELAY_URL_KEY, 'local', '');
+  protected readonly relay = resolvePreference(MARKDOWN_WORKSPACE_TOOL_ID, RELAY_URL_KEY, this.globalRelayUrl);
+  protected readonly workspaceRelayDraft = signal('');
 
   constructor() {
     effect((onCleanup) => {
@@ -202,9 +208,9 @@ export class MarkdownWorkspace implements OnDestroy {
    * the same way any joiner connects to any room.
    */
   protected startHostingViaRelay(): void {
-    const relayUrl = this.relayUrl().trim().replace(/\/+$/, '');
+    const relayUrl = this.relay().value.trim().replace(/\/+$/, '');
     if (!relayUrl) {
-      this.collabError.set('Configure a relay server URL in Settings first.');
+      this.collabError.set('Configure a relay server URL in Settings › Tools › Markdown Workspace, or set one for this workspace.');
       return;
     }
 
@@ -217,6 +223,20 @@ export class MarkdownWorkspace implements OnDestroy {
     this.collabUrl.set(url);
     this.collabSessionCode.set(sessionCode);
     this.connectCollabClient(url, sessionCode, this.source());
+  }
+
+  protected onWorkspaceRelayDraftInput(event: Event): void {
+    this.workspaceRelayDraft.set((event.target as HTMLInputElement).value);
+  }
+
+  /** Stores the relay as an override on the live workspace (saved with templates/projects). */
+  protected setWorkspaceRelay(): void {
+    this.workspaceLayout.setPreferenceOverride(MARKDOWN_WORKSPACE_TOOL_ID, RELAY_URL_KEY, this.workspaceRelayDraft());
+    this.workspaceRelayDraft.set('');
+  }
+
+  protected clearWorkspaceRelay(): void {
+    this.workspaceLayout.setPreferenceOverride(MARKDOWN_WORKSPACE_TOOL_ID, RELAY_URL_KEY, null);
   }
 
   protected onJoinUrlInput(event: Event): void {

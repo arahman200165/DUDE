@@ -1,0 +1,43 @@
+@if (rows().length) {
+  <div class="relative shrink-0">
+    <button
+      type="button"
+      class="rounded-sm border border-border px-2 py-1 text-ui-sm text-text-muted hover:bg-panel-elevated hover:text-text"
+      title="Workspace settings"
+      aria-label="Workspace settings"
+      [attr.aria-expanded]="open()"
+      (click)="toggle()"
+    >
+      ⚙
+      @if (activeCount()) {
+        <span class="text-accent">{{ activeCount() }}</span>
+      }
+    </button>
+
+    @if (open()) {
+      <div class="absolute right-0 top-full z-20 mt-1 flex w-80 flex-col gap-3 rounded-sm border border-border bg-panel p-3 shadow-lg">
+        <div class="flex flex-col gap-0.5">
+          <span class="text-ui-sm font-semibold text-text">Workspace settings</span>
+          <span class="text-ui-xs text-text-muted">Override a tool's global setting for this workspace. Saved with templates and projects.</span>
+        </div>
+        @for (row of rows(); track row.toolId + ':' + row.key) {
+          <label class="flex flex-col gap-1">
+            <span class="text-ui-xs text-text-muted">{{ row.toolTitle }} — {{ row.label }}</span>
+            <div class="flex items-center gap-1">
+              <input
+                [type]="row.type === 'url' ? 'url' : 'text'"
+                class="min-w-0 flex-1 rounded-sm border border-border bg-panel-elevated px-2 py-0.5 font-mono text-ui-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
+                [placeholder]="row.globalValue ? 'Global: ' + row.globalValue : 'Not set globally'"
+                [value]="valueOf(row)"
+                (change)="commit(row, $event)"
+              />
+              @if (valueOf(row)) {
+                <button type="button" class="rounded-sm px-1 text-ui-xs text-text-muted hover:text-text" title="Use the global setting" (click)="clear(row)">×</button>
+              }
+            </div>
+          </label>
+        }
+      </div>
+    }
+  </div>
+}

@@ -39,4 +39,13 @@ export const manifest: ToolDefinition = {
     detail: 'Link Checker: HEAD/GET per link, manual "Check links" button only',
   },
   io: { accepts: ['text', 'file'], produces: ['text', 'file'] },
+  settingsSection: {
+    title: 'Collaboration relay',
+    keywords: ['relay', 'relay url', 'collaboration', 'collab', 'websocket', 'host via relay'],
+    desktopOnly: true,
+    onboarding: true,
+    load: () => import('./markdown-workspace.settings').then((m) => m.MarkdownWorkspaceSettings),
+    workspaceOverridable: [{ key: 'relayUrl', label: 'Relay URL', type: 'url' }],
+  },
+  storageMigrations: [{ fromNamespace: 'settings', fromKey: 'relayUrl', toKey: 'relayUrl' }],
 };

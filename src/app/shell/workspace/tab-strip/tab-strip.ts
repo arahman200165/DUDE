@@ -4,12 +4,13 @@ import { WorkspaceLayoutService } from '../../../core/workspace/workspace-layout
 import { findLeafByToolId } from '../../../core/workspace/workspace.model';
 import { CommandPaletteService } from '../../command-palette/command-palette.service';
 import { CategoryIcon } from '../../../shared/components/category-icon/category-icon';
+import { WorkspaceOverrides } from '../workspace-overrides/workspace-overrides';
 import { CATEGORY_METADATA } from '../../../shared/models/tool-category.model';
 
 /** Open-tools tab strip for the `/workspace` route. Every tool referenced is registry-resolved. */
 @Component({
   selector: 'app-tab-strip',
-  imports: [CategoryIcon],
+  imports: [CategoryIcon, WorkspaceOverrides],
   templateUrl: './tab-strip.html',
 })
 export class TabStrip {
