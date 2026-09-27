@@ -42,6 +42,84 @@ Var pid
   ${EndIf}
 !macroend
 
+; Registered InstallLocation values may carry a trailing separator (from a
+; hand-edited or externally written registry entry). Trim it right after
+; reading so every later comparison and path concatenation sees one
+; canonical form; otherwise "C:\Apps\DUDE\" fails folder-name checks that
+; expect "DUDE" and builds a doubled-separator uninstall path.
+!macro DudeTrimTrailingSlash VALUE
+  StrLen $R6 ${VALUE}
+  ${If} $R6 > 0
+    IntOp $R6 $R6 - 1
+    StrCpy $R7 ${VALUE} 1 $R6
+    ${If} $R7 == "\"
+      StrCpy ${VALUE} ${VALUE} $R6
+    ${EndIf}
+  ${EndIf}
+!macroend
+
+; Recursively delete PATH, but never follow a junction or symlink found
+; along the way: NSIS's RMDir /r recurses into anything with the directory
+; attribute and does not exclude reparse points, so a link nested under a
+; deleted tree could otherwise reach files far outside it. Removing the
+; reparse point itself (via RMDir/Delete without /r) unlinks it without
+; touching whatever it points to.
+!macro DudeRecursiveDeleteBody SELF
+  ; $R0 is swapped via Exch (not Pop) and restored via the trailing Pop
+  ; below so a recursive Call leaves the caller's own loop variables
+  ; ($R0 included) exactly as it left them: NSIS registers are global, not
+  ; per-call, so a naive Pop here would corrupt the caller's $R0 on return.
+  Exch $R0
+  Push $R1
+  Push $R2
+  Push $R3
+
+  System::Call 'kernel32::GetFileAttributesW(w r0) i.r1'
+  IntCmp $R1 -1 done
+  IntOp $R2 $R1 & 0x400 ; FILE_ATTRIBUTE_REPARSE_POINT
+  ${If} $R2 != 0
+    RMDir "$R0"
+    Delete "$R0"
+    Goto done
+  ${EndIf}
+  IntOp $R2 $R1 & 0x10 ; FILE_ATTRIBUTE_DIRECTORY
+  ${If} $R2 == 0
+    Delete "$R0"
+    Goto done
+  ${EndIf}
+
+  FindFirst $R1 $R3 "$R0\*.*"
+  loop:
+    StrCmp $R3 "" break
+    StrCmp $R3 "." next
+    StrCmp $R3 ".." next
+    Push "$R0\$R3"
+    Call ${SELF}
+    next:
+      FindNext $R1 $R3
+      Goto loop
+  break:
+    FindClose $R1
+  RMDir "$R0"
+
+  done:
+  Pop $R3
+  Pop $R2
+  Pop $R1
+  Pop $R0
+!macroend
+
+!ifndef BUILD_UNINSTALLER
+Function DudeRecursiveDelete
+  !insertmacro DudeRecursiveDeleteBody DudeRecursiveDelete
+FunctionEnd
+!endif
+!ifdef BUILD_UNINSTALLER
+Function un.DudeRecursiveDelete
+  !insertmacro DudeRecursiveDeleteBody un.DudeRecursiveDelete
+FunctionEnd
+!endif
+
 ; Reject empty, relative, and drive/share-root install paths before NSIS can
 ; install or recursively uninstall files there.
 !macro DudePathIsSafe PATH RESULT ALLOW_MISSING
@@ -92,6 +170,7 @@ Var pid
 !macro DudeCheckPreviousInstall ROOT_KEY
   ReadRegStr $R4 ${ROOT_KEY} "${UNINSTALL_REGISTRY_KEY}" "UninstallString"
   ReadRegStr $R3 ${ROOT_KEY} "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+  !insertmacro DudeTrimTrailingSlash $R3
   ${If} $R3 != ""
   ${OrIf} $R4 != ""
     !insertmacro DudePathIsSafe $R3 $R2 0
@@ -129,7 +208,9 @@ Var pid
     ${IfNot} ${Silent}
     ${AndIfNot} ${isUpdated}
       ReadRegStr $R0 HKEY_CURRENT_USER "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+      !insertmacro DudeTrimTrailingSlash $R0
       ReadRegStr $R1 HKEY_LOCAL_MACHINE "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+      !insertmacro DudeTrimTrailingSlash $R1
       ${If} $DudeExistingInstall == "1"
         ${If} $DudeMaintenanceReady != "1"
         ${OrIf} $DudeMaintenanceAction != "repair"
@@ -328,12 +409,14 @@ Var DudeExt13
 !macro customPageAfterChangeDir
 Function DudeDetectExistingInstall
   ReadRegStr $DudeUserPath HKEY_CURRENT_USER "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+  !insertmacro DudeTrimTrailingSlash $DudeUserPath
   ReadRegStr $0 HKEY_CURRENT_USER "${UNINSTALL_REGISTRY_KEY}" "UninstallString"
   ${If} $DudeUserPath != ""
   ${OrIf} $0 != ""
     !insertmacro DudeCheckPreviousInstall HKEY_CURRENT_USER
   ${EndIf}
   ReadRegStr $DudeMachinePath HKEY_LOCAL_MACHINE "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+  !insertmacro DudeTrimTrailingSlash $DudeMachinePath
   ReadRegStr $0 HKEY_LOCAL_MACHINE "${UNINSTALL_REGISTRY_KEY}" "UninstallString"
   ${If} $DudeMachinePath != ""
   ${OrIf} $0 != ""
@@ -547,7 +630,8 @@ Function DudeResetUserData
       Return
     ${EndIf}
     ClearErrors
-    RMDir /r "$1"
+    Push "$1"
+    Call DudeRecursiveDelete
     ${If} ${Errors}
     ${OrIf} ${FileExists} "$1"
       MessageBox MB_OK|MB_ICONSTOP "Some DUDE data could not be deleted. Close apps using the folder and try again."
@@ -564,6 +648,7 @@ Function DudeOpenUninstaller
   ${Else}
     ReadRegStr $R3 HKEY_CURRENT_USER "${INSTALL_REGISTRY_KEY}" "InstallLocation"
   ${EndIf}
+  !insertmacro DudeTrimTrailingSlash $R3
   ${If} $R3 != $DudeExistingPath
     MessageBox MB_OK|MB_ICONSTOP "The registered DUDE installation changed. Restart Setup before uninstalling."
     Return
@@ -1338,8 +1423,22 @@ FunctionEnd
 Function un.DudeDeleteUserData
   ; Resolve the profile at runtime, in the user's own process.
   ReadEnvStr $0 "APPDATA"
-  ${If} $0 != ""
-    RMDir /r "$0\DUDE"
+  ${If} $0 == ""
+    Return
+  ${EndIf}
+  StrCpy $1 "$0\DUDE"
+  !insertmacro DudePathIsSafe $1 $R2 1
+  ${If} $R2 != "1"
+    Return
+  ${EndIf}
+  ${If} ${FileExists} "$1"
+    System::Call 'kernel32::GetFileAttributesW(w r1) i.r2'
+    IntOp $2 $2 & 0x400
+    ${If} $2 != 0
+      Return
+    ${EndIf}
+    Push "$1"
+    Call un.DudeRecursiveDelete
   ${EndIf}
 FunctionEnd
 !endif
