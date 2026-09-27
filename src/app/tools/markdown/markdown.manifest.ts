@@ -16,5 +16,6 @@ export const manifest: ToolDefinition = {
       'Fuzz-tested (fast-check) the pure renderMarkdown core against arbitrary text: never throws, always returns a string, and the DOMPurify pass never lets a raw <script> tag or a javascript: href through.',
   },
   persistence: { input: 'session', preferences: 'local' },
-  io: { accepts: ['text'], produces: ['text'] },
+  fileInput: { key: 'source', extensions: ['.md', '.markdown', '.mdown'] },
+  io: { accepts: ['text', 'file'], produces: ['text', 'file'] },
 };

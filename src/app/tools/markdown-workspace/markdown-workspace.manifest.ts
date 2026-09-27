@@ -38,5 +38,5 @@ export const manifest: ToolDefinition = {
     required: true,
     detail: 'Link Checker: HEAD/GET per link, manual "Check links" button only',
   },
-  io: { accepts: ['text'], produces: ['text', 'file'] },
+  io: { accepts: ['text', 'file'], produces: ['text', 'file'] },
 };

@@ -1,6 +1,9 @@
 <app-tool-shell>
   <div class="flex h-full min-h-0 flex-col gap-2">
     <div class="flex flex-wrap items-center gap-3 text-ui text-text-muted">
+      <app-open-text-file #open [text]="source()" (textLoaded)="source.set($event)" />
+      <app-save-text-file [text]="source()" [source]="open" label="Save .md…" />
+      <app-save-text-file [text]="renderedHtml()" [source]="open" extension=".html" mimeType="text/html;charset=utf-8" label="Save HTML…" />
       <button
         type="button"
         class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated"
@@ -45,6 +48,7 @@
       <app-split-pane [initialRatio]="paneRatio()" (ratioChange)="onRatioChange($event)">
         <textarea
           slot="start"
+          [appTextFileDrop]="open"
           class="h-full w-full resize-none bg-panel px-2 py-1.5 font-mono text-xs text-text focus:outline-none"
           placeholder="Type Markdown here…"
           [value]="source()"

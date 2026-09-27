@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { vi } from 'vitest';
 import { SmartFileDropZone } from './smart-file-drop-zone';
 import { FileDropHandoffService } from '../../../core/file-drop-detect/file-drop-handoff.service';
+import { readStorageValue } from '../../../core/workspace/workspace-storage-bridge';
 
 class FakeRouter {
   url = '/';
@@ -41,24 +42,34 @@ describe('SmartFileDropZone', () => {
     expect(fixture.nativeElement.textContent).toContain('JSON Formatter');
   });
 
-  it('offers the file via FileDropHandoffService and navigates when a candidate is opened', async () => {
+  async function dropAndOpen(file: File, candidateTitle: string) {
     const fixture = TestBed.createComponent(SmartFileDropZone);
     fixture.detectChanges();
-    const handoff = TestBed.inject(FileDropHandoffService);
-
-    const file = new File(['{}'], 'data.json', { type: 'application/json' });
-    const zone = fixture.nativeElement.querySelector('[role="button"]')!;
-    dispatchDrop(zone, [file]);
+    dispatchDrop(fixture.nativeElement.querySelector('[role="button"]')!, [file]);
     await flush();
     fixture.detectChanges();
-
     const button = Array.from(fixture.nativeElement.querySelectorAll('button')).find((b) =>
-      (b as HTMLButtonElement).textContent?.includes('JSON Formatter'),
+      (b as HTMLButtonElement).textContent?.includes(candidateTitle),
     ) as HTMLButtonElement;
     button.click();
+    await flush();
+    return fixture;
+  }
+
+  it("writes a text file's contents into a text tool's input and navigates when a candidate is opened", async () => {
+    await dropAndOpen(new File(['{"a":1}'], 'data.json', { type: 'application/json' }), 'JSON Formatter');
 
     expect(router.navigateByUrl).toHaveBeenCalledWith('/tools/json');
-    expect(handoff.consume('json')).toBe(file);
+    expect(readStorageValue('json', 'input', 'session')).toBe('{"a":1}');
+    sessionStorage.clear();
+  });
+
+  it('offers the File itself via FileDropHandoffService to a tool with no text input', async () => {
+    const file = new File([new Uint8Array([0, 1, 2])], 'blob');
+    await dropAndOpen(file, 'File Hash');
+
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/tools/file-hash');
+    expect(TestBed.inject(FileDropHandoffService).consume('file-hash')).toBe(file);
   });
 
   it('clear resets the candidate list (the underlying app-file-drop keeps its own last-selected display)', async () => {

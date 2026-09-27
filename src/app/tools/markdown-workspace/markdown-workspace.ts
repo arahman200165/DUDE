@@ -14,6 +14,9 @@ import { CollabService } from '../../core/platform/collab.service';
 import { DesktopPreferencesService } from '../../core/platform/desktop-preferences.service';
 import { ShellChromeService } from '../../core/platform/shell-chrome.service';
 import { downloadFile } from '../../shared/utils/download-file';
+import { OpenTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
+import { SaveTextFile } from '../../shared/components/save-text-file/save-text-file';
 import { MARKDOWN_BODY_STYLES } from '../../shared/styles/markdown-body.styles';
 import { markdownPresetStyleVars, MARKDOWN_STYLE_PRESETS, type MarkdownStylePreset } from '../../shared/models/markdown-theme.model';
 import { WorkspaceRenderResult, buildWorkspaceResult } from './markdown-workspace-render';
@@ -36,7 +39,7 @@ const DEFAULT_SOURCE =
 
 @Component({
   selector: 'app-markdown-workspace',
-  imports: [ToolShell, SplitPane, BusyIndicator, SandboxedMarkdownPreview, ErrorPanel, PluginRuntimeHost],
+  imports: [ToolShell, SplitPane, BusyIndicator, SandboxedMarkdownPreview, ErrorPanel, PluginRuntimeHost, OpenTextFile, TextFileDrop, SaveTextFile],
   templateUrl: './markdown-workspace.html',
   // Emulated encapsulation adds a scoping attribute to elements the Angular
   // template compiler renders, but never to content injected via
@@ -168,7 +171,11 @@ export class MarkdownWorkspace implements OnDestroy {
   }
 
   protected onSourceInput(event: Event): void {
-    const value = (event.target as HTMLTextAreaElement).value;
+    this.onFileLoaded((event.target as HTMLTextAreaElement).value);
+  }
+
+  /** A typed edit and an opened/dropped file are the same edit as far as collaborators are concerned. */
+  protected onFileLoaded(value: string): void {
     this.source.set(value);
     this.collabClient?.applyLocalEdit(value);
   }

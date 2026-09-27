@@ -5,6 +5,7 @@ import { OnboardingService } from './onboarding.service';
 import { ToolRegistryService } from '../registry/tool-registry.service';
 import { writeStorageValue } from '../workspace/workspace-storage-bridge';
 import { NativeRecentsService } from '../native-recents/native-recents.service';
+import { recordImportedFileFlags } from '../text-file-input/imported-file-flags';
 import type { DesktopOpenItem, VoidResult } from './electron-bridge';
 
 @Injectable({ providedIn: 'root' })
@@ -58,9 +59,7 @@ export class DesktopOpenService {
         if (item.kind === 'directory') this.directory.set({ path: item.path, name: item.name });
         else {
           writeStorageValue(definition.id, definition.desktopOpen!.inputKey!, 'session', item.text);
-          if (item.extension === '.html') sessionStorage.setItem('dude:desktop:html-preview-manual', 'true');
-          if (item.extension === '.ts') sessionStorage.setItem('dude:desktop:typescript-notice', 'true');
-          else if (item.extension === '.js') sessionStorage.removeItem('dude:desktop:typescript-notice');
+          recordImportedFileFlags(item.name);
           this.nativeRecents.record({ path: item.path, name: item.name, extension: item.extension, openedAt: new Date().toISOString() });
         }
         await this.router.navigateByUrl('/', { skipLocationChange: true });

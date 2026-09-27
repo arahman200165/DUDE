@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { TOOL_DEFINITIONS } from './tool-definitions';
 import { TOOL_CATEGORIES } from '../../shared/models/tool-category.model';
@@ -101,6 +101,31 @@ describe('Tool conformance harness', () => {
         for (const capability of definition.desktopCapabilities ?? []) {
           expect(capability.trim().length, `${definition.id} declares a blank desktopCapabilities entry`).toBeGreaterThan(0);
         }
+      });
+
+      // Universal File Input (core/text-file-input/AGENTS.md): a wrong key would make every
+      // dashboard drop / Smart Paste prefill silently write somewhere the tool never reads.
+      it('declares a fileInput whose key really is a persisted input of the tool, when present', () => {
+        const fileInput = definition.fileInput;
+        if (!fileInput) return;
+        expect(fileInput.extensions.length, `${definition.id} fileInput declares no extensions`).toBeGreaterThan(0);
+        for (const extension of fileInput.extensions) expect(extension).toMatch(/^\.[a-z0-9]+$/);
+        const dir = resolve(process.cwd(), 'src/app/tools', definition.id);
+        const component = readFileSync(resolve(dir, `${definition.id}.ts`), 'utf8');
+        const policy = fileInput.policy ?? 'session';
+        expect(
+          new RegExp(`'${fileInput.key}',\\s*'${policy}'`).test(component),
+          `${definition.id} fileInput.key "${fileInput.key}" isn't a '${policy}' persistence.signal key in ${definition.id}.ts`,
+        ).toBe(true);
+        const template = readFileSync(resolve(dir, `${definition.id}.html`), 'utf8');
+        expect(template, `${definition.id} declares fileInput but never renders <app-open-text-file>`).toContain('<app-open-text-file');
+        expect(definition.io.accepts, `${definition.id} loads files (fileInput) so io.accepts needs 'file'`).toContain('file');
+      });
+
+      it("declares 'file' in io.produces when it renders a Save button (ADDING_A_TOOL.md step 7)", () => {
+        const templatePath = resolve(process.cwd(), 'src/app/tools', definition.id, `${definition.id}.html`);
+        if (!existsSync(templatePath) || !readFileSync(templatePath, 'utf8').includes('<app-save-text-file')) return;
+        expect(definition.io.produces).toContain('file');
       });
 
       it('has a lazy load() function, never eagerly resolved', () => {

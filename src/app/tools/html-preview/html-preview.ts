@@ -1,6 +1,10 @@
 import { Component, effect, inject, signal, viewChild } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { PersistenceService } from '../../core/persistence/persistence.service';
+import { OpenTextFile, OpenedTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
+import { SaveTextFile } from '../../shared/components/save-text-file/save-text-file';
+import { recordImportedFileFlags } from '../../core/text-file-input/imported-file-flags';
 import { LiveHtmlPreview, LivePreviewEvent } from './live-html-preview';
 
 const DEFAULT_SOURCE = `<!DOCTYPE html>
@@ -21,7 +25,7 @@ export interface HtmlPreviewLogLine {
 
 @Component({
   selector: 'app-html-preview',
-  imports: [ToolShell, LiveHtmlPreview],
+  imports: [ToolShell, LiveHtmlPreview, OpenTextFile, TextFileDrop, SaveTextFile],
   templateUrl: './html-preview.html',
 })
 export class HtmlPreview {
@@ -58,6 +62,14 @@ export class HtmlPreview {
     } else {
       this.logs.update((logs) => [...logs, { level: 'error', text: event.message }]);
     }
+  }
+
+  /** HTML from a file gets the same approval gate as an Explorer-opened one: never auto-run it. */
+  protected onFileOpened(file: OpenedTextFile): void {
+    recordImportedFileFlags('imported.html');
+    this.importedNeedsApproval.set(true);
+    this.debouncedSource.set('');
+    this.source.set(file.text);
   }
 
   protected approveImportedPreview(): void {

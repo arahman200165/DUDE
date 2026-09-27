@@ -15,5 +15,6 @@ export const manifest: ToolDefinition = {
       'Fuzz-tested (fast-check) the pure formatSvg/minifySvg/optimizeSvg core against arbitrary strings, truncated valid SVG, and XML-flavored noise: never throws and always returns a well-shaped ok/error result.',
   },
   persistence: { input: 'session', preferences: 'local' },
-  io: { accepts: ['text', 'file'], produces: ['text'] },
+  fileInput: { key: 'source', extensions: ['.svg'] },
+  io: { accepts: ['text', 'file'], produces: ['text', 'file'] },
 };

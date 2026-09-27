@@ -2,7 +2,9 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
 import { CopyButton } from '../../shared/components/copy-button/copy-button';
-import { FileDrop } from '../../shared/components/file-drop/file-drop';
+import { OpenTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
+import { SaveTextFile } from '../../shared/components/save-text-file/save-text-file';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { formatSvg, minifySvg, optimizeSvg, type SvgOptimizeResult, type SvgTextResult } from './svg-tools';
 
@@ -18,7 +20,7 @@ const SAMPLE = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" widt
  */
 @Component({
   selector: 'app-svg-viewer',
-  imports: [ToolShell, ErrorPanel, CopyButton, FileDrop],
+  imports: [ToolShell, ErrorPanel, CopyButton, OpenTextFile, TextFileDrop, SaveTextFile],
   templateUrl: './svg-viewer.html',
 })
 export class SvgViewer {
@@ -26,7 +28,6 @@ export class SvgViewer {
 
   protected readonly mode = this.persistence.signal<Mode>('svg-viewer', 'mode', 'local', 'format');
   protected readonly source = this.persistence.signal('svg-viewer', 'source', 'session', SAMPLE);
-  protected readonly rejection = signal<string | null>(null);
 
   private readonly previewUrlSignal = signal<string | null>(null);
   protected readonly previewUrl = this.previewUrlSignal.asReadonly();
@@ -75,14 +76,5 @@ export class SvgViewer {
 
   protected onSourceChange(event: Event): void {
     this.source.set((event.target as HTMLTextAreaElement).value);
-  }
-
-  protected async onFileSelected(file: File): Promise<void> {
-    this.rejection.set(null);
-    this.source.set(await file.text());
-  }
-
-  protected onRejected(message: string): void {
-    this.rejection.set(message);
   }
 }

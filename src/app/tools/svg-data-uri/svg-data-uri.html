@@ -25,9 +25,13 @@
 
     @if (direction() === 'encode') {
       <div class="flex flex-col gap-1">
-        <span class="text-ui text-text-muted">SVG source</span>
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-ui text-text-muted">SVG source</span>
+          <app-open-text-file #open [text]="svgInput()" (textLoaded)="svgInput.set($event)" />
+        </div>
         <textarea
           rows="8"
+          [appTextFileDrop]="open"
           class="w-full rounded-sm border border-border bg-panel px-2 py-1 font-mono text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
           [value]="svgInput()"
           (input)="onSvgInputChange($event)"
@@ -65,7 +69,10 @@
         @if (result.ok) {
           <div class="flex items-center justify-between">
             <span class="text-ui text-text-muted">Decoded SVG</span>
-            <app-copy-button [text]="result.svg" />
+            <span class="flex items-center gap-1.5">
+              <app-save-text-file [text]="result.svg" fileName="decoded.svg" mimeType="image/svg+xml" />
+              <app-copy-button [text]="result.svg" />
+            </span>
           </div>
           <textarea rows="8" readonly class="w-full rounded-sm border border-border bg-panel px-2 py-1 font-mono text-xs text-text" [value]="result.svg"></textarea>
           <div class="flex items-center justify-center rounded-sm border border-border bg-[repeating-conic-gradient(#00000022_0%_25%,transparent_0%_50%)] bg-[length:16px_16px] p-3">

@@ -68,6 +68,17 @@ Wrap the tool's content in `<app-tool-shell>` (`src/app/shared/components/tool-s
 
 Import other shared primitives as needed: `ErrorPanel`, `BusyIndicator` (for worker-backed tools), `OfflineBadge` (already included inside `ToolShell` itself).
 
+**File input and output.** Nobody should have to open a file in another editor just to paste it into DUDE:
+
+- *Binary/file tools* render `<app-file-drop>` — it receives a file dropped on the dashboard automatically (no `consume()` call; see `core/file-drop-detect/AGENTS.md`). If it only renders in one mode, `has(toolId)`-check `FileDropHandoffService` in the constructor and switch modes.
+- *Text/code tools* pair `<app-open-text-file>` with the `appTextFileDrop` directive on the input, and declare `fileInput: { key, extensions }` in the manifest (skip it if `desktopOpen.inputKey` already names the same key). That makes the tool a Smart File Drop candidate for those extensions and prefills it — see `core/text-file-input/AGENTS.md`:
+
+  ```html
+  <app-open-text-file #open [text]="input()" (textLoaded)="input.set($event)" />
+  <textarea [appTextFileDrop]="open" [value]="input()" (input)="onInput($event)"></textarea>
+  ```
+- *Text output* gets `<app-save-text-file [text]="output()" [source]="open" />` next to its copy button (pass `extension=".json"` when the output format differs from the input's). A tool rendering it must declare `file` in `io.produces`, and a `fileInput` tool `file` in `io.accepts` (`tool-conformance.spec.ts` checks both).
+
 ## 4. Choose a persistence policy
 
 For each piece of state, call `PersistenceService.signal(toolId, key, policy, initialValue)` (`src/app/core/persistence/persistence.service.ts`), where `policy` is `'none' | 'session' | 'local' | 'user-choice'`:

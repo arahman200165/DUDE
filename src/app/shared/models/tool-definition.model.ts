@@ -45,6 +45,24 @@ export type ConsequenceClass =
   | 'database-write'
   | 'secret-management';
 
+/**
+ * The tool's primary text input can be loaded straight from a text file (Universal File Input —
+ * see `core/text-file-input/AGENTS.md`). One declaration drives three consumers generically:
+ * Smart File Drop ranks the tool for these extensions and writes the dropped file's text into
+ * `key` before navigating; Smart Paste text-format matches prefill the same key; and the shared
+ * `app-open-text-file` button defaults its picker filter to `extensions`. Distinct from
+ * `desktopOpen`, which also registers Windows file associations (one owner per extension) —
+ * `fileInput` extensions may be shared by any number of tools.
+ */
+export interface ToolFileInput {
+  /** The tool's own `PersistenceService.signal(...)` key for its primary text input. */
+  readonly key: string;
+  /** Lower-case, dot-prefixed (`'.md'`), matched against a dropped/opened file's name. */
+  readonly extensions: readonly string[];
+  /** Persistence policy `key` is declared with in the component — defaults to `'session'`. */
+  readonly policy?: 'session' | 'user-choice';
+}
+
 export interface ToolDefinition {
   readonly id: string;
   readonly title: string;
@@ -61,6 +79,8 @@ export interface ToolDefinition {
   readonly io: ToolIOCapabilities;
   /** Desktop Explorer file/folder opening, interpreted generically by the platform bridge. */
   readonly desktopOpen?: { readonly extensions?: readonly string[]; readonly inputKey?: string; readonly directory?: boolean };
+  /** Primary text input loadable from a file — see `ToolFileInput`. */
+  readonly fileInput?: ToolFileInput;
   /** Optional application-menu role; declared by the owning tool manifest. */
   readonly nativeMenu?: { readonly preferences?: boolean };
   readonly status?: 'experimental' | 'stable' | 'verified';

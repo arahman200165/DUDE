@@ -3,7 +3,7 @@ import { FileDrop } from '../file-drop/file-drop';
 import { FileDropCandidatePicker } from '../file-drop-candidate-picker/file-drop-candidate-picker';
 import { ToolRegistryService } from '../../../core/registry/tool-registry.service';
 import { ToolLauncherService } from '../../../core/registry/tool-launcher.service';
-import { FileDropHandoffService } from '../../../core/file-drop-detect/file-drop-handoff.service';
+import { FileDropDeliveryService } from '../../../core/file-drop-detect/file-drop-delivery.service';
 import { FILE_DROP_DETECTORS } from '../../../core/file-drop-detect/file-drop-detectors';
 import { detectFileDrop } from '../../../core/file-drop-detect/file-drop-detect';
 import { FileDropMatch } from '../../../core/file-drop-detect/file-drop-detectors.model';
@@ -23,16 +23,18 @@ import { FileDropMatch } from '../../../core/file-drop-detect/file-drop-detector
 export class SmartFileDropZone {
   private readonly registry = inject(ToolRegistryService);
   private readonly launcher = inject(ToolLauncherService);
-  private readonly handoff = inject(FileDropHandoffService);
+  private readonly delivery = inject(FileDropDeliveryService);
 
   protected readonly droppedFileName = signal<string | null>(null);
   protected readonly matches = signal<readonly FileDropMatch[] | null>(null);
+  protected readonly error = signal<string | null>(null);
   private droppedFile: File | null = null;
 
   protected async onFileSelected(file: File): Promise<void> {
     this.droppedFile = file;
     this.droppedFileName.set(file.name);
     this.matches.set(null);
+    this.error.set(null);
 
     const matches = await detectFileDrop(file, this.registry.getAll(), FILE_DROP_DETECTORS, (id) => this.registry.getById(id));
 
@@ -41,11 +43,17 @@ export class SmartFileDropZone {
     if (this.droppedFile === file) this.matches.set(matches);
   }
 
-  protected open(toolId: string): void {
+  protected async open(toolId: string): Promise<void> {
     const tool = this.registry.getById(toolId);
-    if (!tool || !this.droppedFile) return;
+    const file = this.droppedFile;
+    if (!tool || !file) return;
 
-    this.handoff.offer(toolId, this.droppedFile);
+    const error = await this.delivery.deliver(tool, file);
+    if (file !== this.droppedFile) return;
+    if (error) {
+      this.error.set(error);
+      return;
+    }
     this.launcher.open(tool);
     this.clear();
   }
@@ -54,5 +62,6 @@ export class SmartFileDropZone {
     this.droppedFile = null;
     this.droppedFileName.set(null);
     this.matches.set(null);
+    this.error.set(null);
   }
 }

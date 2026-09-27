@@ -9,6 +9,9 @@
     @if (matches(); as m) {
       @if (m.length) {
         <app-file-drop-candidate-picker [matches]="m" (selected)="open($event)" />
+        @if (error(); as message) {
+          <p class="text-ui-xs text-error" role="alert">{{ message }}</p>
+        }
       } @else {
         <p class="text-ui-xs text-text-muted">No matching tool found for this file.</p>
       }

@@ -2,13 +2,18 @@ import { ToolDefinition } from '../../shared/models/tool-definition.model';
 import { identifyZipContainer, sniffFileType } from '../../shared/utils/file-signatures';
 import { FileDropContext, FileDropDetector, FileDropMatch } from './file-drop-detectors.model';
 
-const MAX_MATCHES = 6;
+const MAX_MATCHES = 8;
 /** Enough leading bytes for every signature in file-signatures.ts (the longest check is 8 bytes)
  *  plus headroom for identifyZipContainer's internal-filename scan. */
 const SNIFF_PREFIX_BYTES = 4096;
 /** Extension-only match against a tool's registered `desktopOpen.extensions` -- below any
  *  magic-byte-verified match, above the universal file-hash/file-base64 fallbacks. */
 const EXTENSION_MATCH_SCORE = 0.85;
+/** Extension match against a tool's `fileInput.extensions` (any number of tools may share one) --
+ *  deliberately far enough below the extension's single `desktopOpen` owner that the desktop drop
+ *  router's `confidentFileDropMatch` still auto-opens that owner, and the rest rank as
+ *  alternatives in the picker. Still above the universal fallbacks. */
+const FILE_INPUT_MATCH_SCORE = 0.65;
 
 function declaredExtensionOf(fileName: string): string | null {
   const dot = fileName.lastIndexOf('.');
@@ -29,7 +34,8 @@ function upsertBestScore(
 
 /**
  * Pure ranking over three signals — magic-byte/format detectors (`FILE_DROP_DETECTORS`), and a
- * registry-driven extension match against every tool's own `desktopOpen.extensions` (already used,
+ * registry-driven extension match against every tool's own `desktopOpen.extensions` and
+ * `fileInput.extensions` (the former already used,
  * unmodified, by the deterministic single-match OS-file-association flow — see `AGENTS.md`).
  * Kept separate from byte-reading so it's trivially testable with synthetic contexts.
  */
@@ -53,6 +59,8 @@ export function rankFileDropCandidates(
     for (const tool of definitions) {
       if (tool.desktopOpen?.extensions?.includes(extension)) {
         upsertBestScore(matches, tool, EXTENSION_MATCH_SCORE, `${extension} file`);
+      } else if (tool.fileInput?.extensions.includes(extension)) {
+        upsertBestScore(matches, tool, FILE_INPUT_MATCH_SCORE, `${extension} file`);
       }
     }
   }

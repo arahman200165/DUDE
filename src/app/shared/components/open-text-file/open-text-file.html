@@ -1,0 +1,15 @@
+<button
+  type="button"
+  class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated"
+  title="Open a text file into this input — or drop one onto the input"
+  (click)="picker.click()"
+>
+  {{ label() }}
+</button>
+<input #picker type="file" hidden [accept]="effectiveAccept()" (change)="onPicked($event)" />
+@if (visibleName(); as name) {
+  <span class="max-w-56 truncate font-mono text-ui-xs text-text-muted" [title]="name">{{ name }}</span>
+}
+@if (error(); as message) {
+  <span class="text-ui-xs text-error" role="alert">{{ message }}</span>
+}

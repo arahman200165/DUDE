@@ -2,6 +2,8 @@
   <div class="flex h-full flex-col gap-3">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="flex flex-wrap items-center gap-3 text-ui text-text-muted">
+        <app-open-text-file #open [text]="source()" (fileOpened)="onFileOpened($event)" />
+        <app-save-text-file [text]="source()" [source]="open" mimeType="text/html;charset=utf-8" />
         <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" [disabled]="importedNeedsApproval()" (click)="reload()">
           Reload
         </button>
@@ -34,6 +36,7 @@
     }
     <div class="grid min-h-0 flex-1 grid-cols-2 gap-3">
       <textarea
+        [appTextFileDrop]="open"
         class="h-full w-full resize-none rounded-sm border border-border bg-panel px-2 py-1 font-mono text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
         placeholder="Paste an HTML page here…"
         [value]="source()"

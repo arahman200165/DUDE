@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ToolDefinition } from '../../shared/models/tool-definition.model';
 import { FileDropContext, FileDropDetector } from './file-drop-detectors.model';
 import { buildFileDropContext, rankFileDropCandidates } from './file-drop-detect';
+import { confidentFileDropMatch } from '../../shared/components/global-drop-router/global-drop-router';
 
 function makeTool(id: string, desktopOpen?: ToolDefinition['desktopOpen']): ToolDefinition {
   return {
@@ -42,6 +43,15 @@ describe('rankFileDropCandidates', () => {
     const ctx = context({ fileName: 'data.json' });
     const result = rankFileDropCandidates(ctx, definitions, [hashDetector], getTool);
     expect(result[0].toolId).toBe('json');
+  });
+
+  it('ranks fileInput.extensions matches below the desktopOpen owner, keeping its auto-open confident', () => {
+    const jsonSortKeys = { ...makeTool('json-sort-keys'), fileInput: { key: 'input', extensions: ['.json'] } };
+    const jsonFlatten = { ...makeTool('json-flatten'), fileInput: { key: 'input', extensions: ['.json'] } };
+    const all = [...definitions, jsonSortKeys, jsonFlatten];
+    const result = rankFileDropCandidates(context({ fileName: 'data.json' }), all, [hashDetector], (id) => all.find((t) => t.id === id));
+    expect(result.map((m) => m.toolId)).toEqual(['json', 'json-sort-keys', 'json-flatten', 'file-hash']);
+    expect(confidentFileDropMatch(result)?.toolId).toBe('json');
   });
 
   it('is case-insensitive about the extension', () => {

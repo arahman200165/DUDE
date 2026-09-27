@@ -2,6 +2,9 @@ import { Component, ViewEncapsulation, computed, inject } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { SplitPane } from '../../shared/components/split-pane/split-pane';
 import { SandboxedMarkdownPreview } from '../../shared/components/sandboxed-markdown-preview/sandboxed-markdown-preview';
+import { OpenTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
+import { SaveTextFile } from '../../shared/components/save-text-file/save-text-file';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { MARKDOWN_BODY_STYLES } from '../../shared/styles/markdown-body.styles';
 import { markdownPresetStyleVars, MARKDOWN_STYLE_PRESETS, type MarkdownStylePreset } from '../../shared/models/markdown-theme.model';
@@ -11,7 +14,7 @@ const DEFAULT_SOURCE = '# Markdown Preview\n\nType **Markdown** on the left to s
 
 @Component({
   selector: 'app-markdown',
-  imports: [ToolShell, SplitPane, SandboxedMarkdownPreview],
+  imports: [ToolShell, SplitPane, SandboxedMarkdownPreview, OpenTextFile, TextFileDrop, SaveTextFile],
   templateUrl: './markdown.html',
   // Emulated encapsulation (the default) adds a scoping attribute to
   // elements the Angular template compiler renders, but never to content

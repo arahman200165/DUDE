@@ -47,6 +47,11 @@ Two rules keep that generic path honest:
 - **The first `app-file-drop` to render wins.** A tool with a secondary file input that should never
   claim the hand-off sets `[acceptHandoff]="false"` on it.
 
+A candidate with a declared *text* input (`fileInput`, or a `desktopOpen.inputKey` — see
+`core/text-file-input/AGENTS.md`) is not handed a `File` at all: `FileDropDeliveryService` reads the
+file as text and writes it into that input instead. Both drop surfaces (`smart-file-drop-zone`,
+`global-drop-router`) go through that one service — never call either hand-off service directly.
+
 ## Why this needs a curated array, not per-tool convention files
 
 Same reasoning as `core/paste-detect/AGENTS.md`: a drop has to be checked against every detector at
