@@ -4,6 +4,7 @@ import { PasteDetectionMatch } from '../../models/paste-detector.model';
 import { PASTE_DETECTORS } from '../../../core/paste-detect/paste-detectors';
 import { detectAmbientMatch, isEditablePasteTarget } from '../../../core/paste-detect/ambient-paste';
 import { PasteHandoffService } from '../../../core/paste-detect/paste-handoff.service';
+import { TextInputHandoffService } from '../../../core/text-file-input/text-input-handoff.service';
 import { ToolRegistryService } from '../../../core/registry/tool-registry.service';
 import { ToolLauncherService } from '../../../core/registry/tool-launcher.service';
 import { PlatformService } from '../../../core/platform/platform.service';
@@ -29,6 +30,7 @@ import { PlatformService } from '../../../core/platform/platform.service';
 export class AmbientPasteChip {
   private readonly registry = inject(ToolRegistryService);
   private readonly handoff = inject(PasteHandoffService);
+  private readonly textHandoff = inject(TextInputHandoffService);
   private readonly launcher = inject(ToolLauncherService);
   private readonly router = inject(Router);
   private readonly platform = inject(PlatformService);
@@ -77,6 +79,7 @@ export class AmbientPasteChip {
     if (!tool) return;
 
     this.handoff.offer(match.toolId, this.lastText);
+    this.textHandoff.offer(tool, this.lastText);
     this.launcher.open(tool);
     this.match.set(null);
   }

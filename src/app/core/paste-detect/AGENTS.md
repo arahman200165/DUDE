@@ -31,6 +31,26 @@ the paste already has an obvious destination (an input/textarea/contenteditable 
 array or the ranking function for this — both `/smart-paste` and the ambient chip must always see
 identical shape recognition, differing only in threshold and trigger surface.
 
-## Prefill
+## Prefill (ID/token detectors)
 
 `PasteHandoffService` is the one-shot, in-memory-only value hand-off used when the user picks a suggestion. It is intentionally not part of `PersistenceService` — see its own doc comment. The Smart Paste page calls `offer(toolId, value)` immediately before navigating; the target tool's component calls `consume(toolId)` once in its constructor. A tool with no `consume` call simply isn't paste-detection-eligible for prefill (still fine to have a detector for it — the suggestion would just navigate without prefilling).
+
+## Text-format detectors (documents, not IDs)
+
+The detectors at the end of `PASTE_DETECTORS` recognize whole documents — SVG, HTML, XML,
+Markdown, YAML/Kubernetes, SQL, CSV, CSS, Dockerfile, `.env`, stack traces — via the structural
+sniffers in `text-format-sniffers.ts`, **not** the owning tools' parsers. That's the one sanctioned
+exception to "reuse the tool's pure-logic export": this array is imported by the ambient chip, i.e.
+the prefetched shell bundle, and the real YAML/XML/SQL/SVGO parsers are heavy lazy dependencies.
+A sniffer only has to be right about shape (false negatives are fine), must stay bounded on huge
+input (head/tail only — see the file's header), and must be scored at or below JSON's 0.8 unless
+the shape is unmistakable, so ID/token matches always win. `text-format-sniffers.spec.ts` holds the
+positive/negative cases; `paste-detect-coverage.spec.ts` checks every one wins its sample and that
+prose and JSON never get claimed.
+
+Their targets don't `consume()` anything: they receive the paste through their declared text input
+(`fileInput` / `desktopOpen.inputKey`) — the Smart Paste panel and ambient chip call
+`TextInputHandoffService.offer` alongside `PasteHandoffService.offer` (see
+`core/text-file-input/AGENTS.md`). `paste-detect-coverage.spec.ts` fails if any detector's target
+has neither a `consume()` call nor a declared text input — the "suggested a tool, value vanished"
+bug this section exists to prevent.

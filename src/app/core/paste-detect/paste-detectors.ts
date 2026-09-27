@@ -5,6 +5,12 @@
  * why. Each detector delegates to the owning tool's existing pure-logic export wherever one already
  * exists; only JSON's "is this JSON-shaped" check and the Snowflake/hex-color length/pattern gates
  * are new, since no existing tool exports a bare predicate for those.
+ *
+ * The document-format detectors at the end (SVG, HTML, XML, Markdown, YAML, SQL, CSV, …) use the
+ * lightweight structural sniffers in `text-format-sniffers.ts` instead of the tools' real parsers —
+ * this array ships in the prefetched shell bundle, and those parsers are heavy (see that file).
+ * They're scored at or below JSON's 0.8 unless the shape is unmistakable (an `<svg>` root, a
+ * `FROM` Dockerfile), so a specific ID/token match always outranks "this is some document".
  */
 import { PasteDetector } from '../../shared/models/paste-detector.model';
 import { decodeJwt } from '../../tools/jwt/jwt-decode';
@@ -16,6 +22,20 @@ import { inspectUlid } from '../../tools/ulid-tools/ulid-logic';
 import { inspectKsuid } from '../../tools/ksuid-tools/ksuid-logic';
 import { parseColor } from '../../tools/color-converter/color-convert';
 import { inspectIpAddress } from '../../tools/ip-address-inspector/ip-address-inspector-logic';
+import {
+  looksLikeCss,
+  looksLikeDockerfile,
+  looksLikeDotenv,
+  looksLikeHtmlDocument,
+  looksLikeKubernetesManifest,
+  looksLikeSql,
+  looksLikeStackTrace,
+  looksLikeSvg,
+  looksLikeXml,
+  looksLikeYaml,
+  markdownSignalCount,
+  sniffDelimitedTable,
+} from './text-format-sniffers';
 
 const HEX_COLOR_LENGTHS = new Set([3, 4, 6, 8]);
 const HEX_COLOR_PATTERN = /^#?[0-9a-f]{3,8}$/i;
@@ -56,7 +76,12 @@ export const PASTE_DETECTORS: readonly PasteDetector[] = [
   },
   {
     toolId: 'url-inspector',
-    test: (text) => (parseUrl(text.trim()).ok ? 0.8 : null),
+    // A URL never contains whitespace — without this, `parseUrl` happily reads multi-line
+    // `name: value` text (YAML, stack traces) as a URL with the scheme "name:".
+    test: (text) => {
+      const trimmed = text.trim();
+      return !/\s/.test(trimmed) && parseUrl(trimmed).ok ? 0.8 : null;
+    },
   },
   {
     toolId: 'unix-timestamp',
@@ -94,6 +119,37 @@ export const PASTE_DETECTORS: readonly PasteDetector[] = [
       if (trimmed.length < 8 || trimmed.length % 4 !== 0) return null;
       if (!/^[A-Za-z0-9+/]+={0,2}$/.test(trimmed)) return null;
       return decodeBase64(trimmed).ok ? 0.5 : null;
+    },
+  },
+  { toolId: 'svg-viewer', test: (text) => (looksLikeSvg(text) ? 0.9 : null) },
+  { toolId: 'svg-data-uri', test: (text) => (looksLikeSvg(text) ? 0.55 : null) },
+  { toolId: 'html-formatter', test: (text) => (looksLikeHtmlDocument(text) ? 0.8 : null) },
+  { toolId: 'html-preview', test: (text) => (looksLikeHtmlDocument(text) ? 0.6 : null) },
+  {
+    toolId: 'xml-formatter',
+    test: (text) => (looksLikeXml(text) && !looksLikeSvg(text) && !looksLikeHtmlDocument(text) ? 0.75 : null),
+  },
+  { toolId: 'dockerfile-linter', test: (text) => (looksLikeDockerfile(text) ? 0.9 : null) },
+  { toolId: 'k8s-manifest-validator', test: (text) => (looksLikeKubernetesManifest(text) ? 0.8 : null) },
+  // `Error: message` plus indented `at …` frames is structurally YAML-ish too.
+  { toolId: 'yaml-json', test: (text) => (looksLikeYaml(text) && !looksLikeStackTrace(text) ? 0.6 : null) },
+  { toolId: 'sql-formatter-tool', test: (text) => (looksLikeSql(text) ? 0.75 : null) },
+  { toolId: 'stack-trace-formatter', test: (text) => (looksLikeStackTrace(text) ? 0.8 : null) },
+  { toolId: 'env-editor', test: (text) => (looksLikeDotenv(text) ? 0.6 : null) },
+  { toolId: 'css-formatter', test: (text) => (looksLikeCss(text) ? 0.6 : null) },
+  {
+    // Deliberately low: plenty of prose has a comma on every line of a short paste.
+    toolId: 'csv-viewer',
+    test: (text) => {
+      const delimiter = sniffDelimitedTable(text);
+      return delimiter === null ? null : delimiter === '\t' ? 0.55 : 0.5;
+    },
+  },
+  {
+    toolId: 'markdown',
+    test: (text) => {
+      const signals = markdownSignalCount(text);
+      return signals >= 3 ? 0.6 : signals === 2 ? 0.5 : null;
     },
   },
 ];

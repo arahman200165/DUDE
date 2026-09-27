@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { textFileInputOf } from '../text-file-input/imported-file-flags';
 import { TOOL_DEFINITIONS } from '../registry/tool-definitions';
 import { PASTE_DETECTORS } from './paste-detectors';
 import { detectShapes } from './paste-detect';
@@ -15,6 +18,19 @@ describe('PASTE_DETECTORS registry coverage', () => {
       const tool = getTool(detector.toolId);
       expect(tool, `"${detector.toolId}" is not a real TOOL_DEFINITIONS id`).toBeDefined();
       expect(tool?.io.accepts, `"${detector.toolId}"'s io.accepts should include 'text'`).toContain('text');
+    }
+  });
+
+  // The user-visible bug this guards: Smart Paste suggests a tool, navigates there, and the pasted
+  // value is silently gone because that tool has no way to receive it.
+  it('every detector target can actually receive the pasted value', () => {
+    for (const detector of PASTE_DETECTORS) {
+      const tool = getTool(detector.toolId)!;
+      const source = readFileSync(resolve(process.cwd(), 'src/app/tools', tool.id, `${tool.id}.ts`), 'utf8');
+      expect(
+        source.includes(`.consume('${tool.id}')`) || textFileInputOf(tool) !== undefined,
+        `"${tool.id}" is a Smart Paste target but neither consumes PasteHandoffService nor declares a text input (fileInput / desktopOpen.inputKey)`,
+      ).toBe(true);
     }
   });
 
@@ -54,6 +70,18 @@ describe('detectShapes sample regression', () => {
     ['color-converter', '#3b82f6'],
     ['base64', base64Sample.ok ? base64Sample.value : ''],
     ['unix-timestamp', '1700000000'],
+    ['svg-viewer', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><circle r="4"/></svg>'],
+    ['html-formatter', '<!doctype html>\n<html><head><title>x</title></head><body></body></html>'],
+    ['xml-formatter', '<?xml version="1.0"?>\n<catalog><book id="1"/></catalog>'],
+    ['dockerfile-linter', 'FROM node:20-alpine\nWORKDIR /app\nCOPY . .\nRUN npm ci'],
+    ['k8s-manifest-validator', 'apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: web\n'],
+    ['yaml-json', 'name: dude\nversion: 2\nfeatures:\n  - paste\n  - drop\n'],
+    ['sql-formatter-tool', 'SELECT id, email FROM users WHERE active = 1 ORDER BY id'],
+    ['stack-trace-formatter', 'Error: boom\n    at run (/app/index.js:10:5)\n    at main (/app/index.js:20:3)'],
+    ['env-editor', 'DATABASE_URL=postgres://x\nDEBUG=true\n'],
+    ['css-formatter', '.card { border: 1px solid #333; padding: 8px; }'],
+    ['csv-viewer', 'id,name,email\n1,Ada,ada@x.dev\n2,Linus,linus@x.dev'],
+    ['markdown', '# Release notes\n\n- Faster **paste** detection\n- See [docs](https://example.com)'],
   ])('"%s" wins top rank for its sample value', (expectedId, sample) => {
     const matches = detectShapes(sample, PASTE_DETECTORS, getTool);
     expect(matches[0]?.toolId).toBe(expectedId);
@@ -62,5 +90,28 @@ describe('detectShapes sample regression', () => {
   it('surfaces snowflake-id-tools as a candidate (not necessarily top-ranked) for a plausible Snowflake id', () => {
     const matches = detectShapes('175928847299117063', PASTE_DETECTORS, getTool);
     expect(matches.some((match) => match.toolId === 'snowflake-id-tools')).toBe(true);
+  });
+});
+
+describe('text-format detectors stay out of the way', () => {
+  it('never claims ordinary prose', () => {
+    expect(detectShapes('Hi team, the build is green again. Thanks for the quick fix!', PASTE_DETECTORS, getTool)).toEqual([]);
+  });
+
+  it('keeps JSON on the JSON Formatter, ahead of any document-format match', () => {
+    const matches = detectShapes('{\n  "name": "dude",\n  "tags": ["a", "b"]\n}', PASTE_DETECTORS, getTool);
+    expect(matches[0]?.toolId).toBe('json');
+    expect(matches.map((match) => match.toolId)).not.toContain('yaml-json');
+  });
+
+  it('does not also offer YAML for a stack trace', () => {
+    const matches = detectShapes('Error: boom\n    at run (/a.js:1:1)\n    at main (/a.js:2:2)', PASTE_DETECTORS, getTool);
+    expect(matches.map((match) => match.toolId)).toEqual(['stack-trace-formatter']);
+  });
+
+  it('ranks SVG above generic XML', () => {
+    const matches = detectShapes('<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg"/>', PASTE_DETECTORS, getTool);
+    expect(matches[0]?.toolId).toBe('svg-viewer');
+    expect(matches.map((match) => match.toolId)).not.toContain('xml-formatter');
   });
 });
