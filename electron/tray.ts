@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { promises as fs } from 'node:fs';
 import { parseFileAssociations } from './file-association-marker';
 import { markCleanExit } from './crash-detection';
+import { sendMenuAction } from './native-menu';
 
 /**
  * System tray + launch-on-login (Phase 8 Stage 5). Closing the main window
@@ -42,6 +43,7 @@ export function createTray(window: BrowserWindow): Tray {
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: 'Show DUDE', click: showWindow },
+      { label: 'Settings…', click: () => { showWindow(); sendMenuAction('preferences'); } },
       { type: 'separator' },
       { label: 'Quit DUDE', click: () => app.quit() },
     ]),

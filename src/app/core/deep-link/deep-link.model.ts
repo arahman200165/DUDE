@@ -1,6 +1,10 @@
 export type DudeDeepLink =
   | { readonly action: 'open'; readonly target: 'tool' | 'workspace-template' | 'project' | 'pipeline'; readonly id: string }
-  | { readonly action: 'run'; readonly target: 'pipeline' | 'quick-run'; readonly id: string };
+  | { readonly action: 'run'; readonly target: 'pipeline' | 'quick-run'; readonly id: string }
+  /** `dude://open/settings` or `dude://open/settings/<section>` — the Settings shell destination. */
+  | { readonly action: 'open'; readonly target: 'settings'; readonly section?: string };
+
+const ID_PATTERN = /^[a-zA-Z0-9_-]{1,100}$/;
 
 /** Strictly parse an IPC string; URL shape and allowed targets are closed. */
 export function parseDudeDeepLink(raw: string): DudeDeepLink | null {
@@ -9,12 +13,16 @@ export function parseDudeDeepLink(raw: string): DudeDeepLink | null {
   try { url = new URL(raw); } catch { return null; }
   if (url.protocol !== 'dude:' || url.username || url.password || url.port || url.search || url.hash) return null;
   const parts = url.pathname.split('/');
+  if (url.hostname === 'open' && parts.length === 2 && parts[0] === '' && parts[1] === 'settings') {
+    return { action: 'open', target: 'settings' };
+  }
   if (parts.length !== 3 || parts[0] !== '') return null;
   let id: string;
   try { id = decodeURIComponent(parts[2]); } catch { return null; }
-  if (!/^[a-zA-Z0-9_-]{1,100}$/.test(id)) return null;
+  if (!ID_PATTERN.test(id)) return null;
 
   const target = parts[1];
+  if (url.hostname === 'open' && target === 'settings') return { action: 'open', target, section: id };
   if (url.hostname === 'open' && (target === 'tool' || target === 'workspace-template' || target === 'project' || target === 'pipeline')) {
     return { action: 'open', target, id };
   }

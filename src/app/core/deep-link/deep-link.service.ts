@@ -55,7 +55,10 @@ export class DeepLinkService {
           continue;
         }
 
-        if (link.target === 'tool') {
+        if (link.target === 'settings') {
+          // An unknown section id is handled by the Settings page itself (falls back to General).
+          await this.router.navigateByUrl(link.section ? `/settings/${link.section}` : '/settings');
+        } else if (link.target === 'tool') {
           const tool = this.tools.getById(link.id);
           if (tool) this.launcher.open(tool);
           else this.error.set('The linked tool was not found.');

@@ -3,6 +3,20 @@ import { enqueueOpenPath, pickOpenFile } from './open-bridge';
 import { checkForUpdates } from './update-bridge';
 import type { NativeMenuToolInfo } from '../src/app/core/platform/electron-bridge';
 
+let activeSendAction: ((action: string) => void) | null = null;
+const preRegistrationActions: string[] = [];
+
+/**
+ * Sends a declared navigation action (`'preferences'`, `'command-palette'`, `tool:<id>`) to the
+ * renderer through the native menu's ready-gated queue — shared with other main-process surfaces
+ * (the tray's "Settings…") so they never need their own IPC channel. Actions sent before
+ * `registerNativeMenu` runs are held and replayed into its queue.
+ */
+export function sendMenuAction(action: string): void {
+  if (activeSendAction) activeSendAction(action);
+  else preRegistrationActions.push(action);
+}
+
 /** Main owns OS menu mechanics; renderer receives only declared navigation commands. */
 export function registerNativeMenu(window: BrowserWindow): void {
   let rendererReady = false;
@@ -11,6 +25,8 @@ export function registerNativeMenu(window: BrowserWindow): void {
     if (!rendererReady || window.webContents.isDestroyed()) { pending.push(action); return; }
     window.webContents.send('dude:menu:action', action);
   };
+  activeSendAction = sendAction;
+  while (preRegistrationActions.length) sendAction(preRegistrationActions.shift()!);
   ipcMain.on('dude:menu:ready', (event) => {
     if (event.sender !== window.webContents) return;
     rendererReady = true;

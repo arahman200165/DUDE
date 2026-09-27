@@ -50,6 +50,13 @@ describe('DeepLinkService', () => {
     expect(router.navigateByUrl).toHaveBeenCalledWith('/', { skipLocationChange: true });
     expect(router.navigate).toHaveBeenCalledWith(['/pipelines', pipeline.id], { queryParams: { confirmRun: '1' } });
     expect(runPipeline).not.toHaveBeenCalled();
+
+    receive('dude://open/settings/hotkeys');
+    await TestBed.inject(ApplicationRef).whenStable();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/settings/hotkeys');
+    receive('dude://open/settings');
+    await TestBed.inject(ApplicationRef).whenStable();
+    expect(router.navigateByUrl).toHaveBeenLastCalledWith('/settings');
     expect(service.error()).toBe('');
   });
 });

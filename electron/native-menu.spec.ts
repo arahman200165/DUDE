@@ -18,7 +18,7 @@ vi.mock('electron', () => ({
 vi.mock('./open-bridge', () => ({ enqueueOpenPath: vi.fn(), pickOpenFile: vi.fn() }));
 vi.mock('./update-bridge', () => ({ checkForUpdates: vi.fn() }));
 
-import { parseToolMenuData, registerNativeMenu } from './native-menu';
+import { parseToolMenuData, registerNativeMenu, sendMenuAction } from './native-menu';
 
 describe('native Tools menu', () => {
   const tool = { id: 'base64', title: 'Base64', route: '/tools/base64', category: 'encoding' };
@@ -46,5 +46,23 @@ describe('native Tools menu', () => {
     expect(send).not.toHaveBeenCalled();
     mock.on.get('dude:menu:ready')!({ sender: webContents });
     expect(send).toHaveBeenCalledWith('dude:menu:action', 'tool:base64');
+  });
+
+  it('File > Preferences and shared sendMenuAction callers (the tray) go through the same ready-gated queue', () => {
+    const send = vi.fn();
+    const webContents = { send, on: vi.fn(), isDestroyed: () => false };
+    registerNativeMenu({ webContents } as never);
+    const template = mock.buildFromTemplate.mock.lastCall![0] as Array<{ label: string; submenu: Array<{ label?: string; click?: () => void }> }>;
+    const preferences = template[0].submenu.find((item) => item.label === 'Preferences')!;
+
+    preferences.click!();
+    sendMenuAction('preferences');
+    expect(send).not.toHaveBeenCalled();
+
+    mock.on.get('dude:menu:ready')!({ sender: webContents });
+    expect(send.mock.calls).toEqual([
+      ['dude:menu:action', 'preferences'],
+      ['dude:menu:action', 'preferences'],
+    ]);
   });
 });
