@@ -114,6 +114,7 @@ Var pid
 ; END GENERATED FILE ASSOCIATIONS BITS
 
 !ifndef BUILD_UNINSTALLER
+Var DudeElevatedContinuation
 Var DudeCustomize
 Var DudePreset
 Var DudePreviousPreset
@@ -162,8 +163,29 @@ Var DudeExt13
 
 !ifndef BUILD_UNINSTALLER
 !macro customInit
+  StrCpy $DudeElevatedContinuation "0"
   StrCpy $DudePresetChanged "0"
   Call DudeLoadOptions
+  ${If} ${UAC_IsInnerInstance}
+    StrCpy $DudeElevatedContinuation "1"
+    ; Elevation restarts the page flow in a separate process. Restore the
+    ; choices made before the prompt instead of loading the admin account's
+    ; saved installer settings or showing the welcome page again.
+    !insertmacro UAC_AsUser_GetGlobalVar $DudePreset
+    !insertmacro UAC_AsUser_GetGlobalVar $DudeCustomize
+    !insertmacro UAC_AsUser_GetGlobalVar $DudeStart
+    !insertmacro UAC_AsUser_GetGlobalVar $DudeDesktop
+    !insertmacro UAC_AsUser_GetGlobalVar $DudeLogin
+    !insertmacro UAC_AsUser_GetGlobalVar $DudeUpdates
+    !insertmacro UAC_AsUser_GetGlobalVar $DudeExplorer
+    !insertmacro UAC_AsUser_GetGlobalVar $DudeFolders
+    !insertmacro UAC_AsUser_GetGlobalVar $DudeProtocol
+    !insertmacro UAC_AsUser_GetGlobalVar $DudeMask
+    StrCpy $DudePreviousPreset $DudePreset
+    ; The elevated mode page will select all users even if initMultiUser
+    ; initially found only a current-user installation.
+    StrCpy $DudeLoadedMode "all"
+  ${EndIf}
 !macroend
 
 !macro customWelcomePage
@@ -370,6 +392,7 @@ FunctionEnd
 
 Function DudeWelcomeCreate
   ${If} ${Silent}
+  ${OrIf} $DudeElevatedContinuation == "1"
     Abort
   ${EndIf}
   nsDialogs::Create 1018
