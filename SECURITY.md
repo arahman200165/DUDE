@@ -26,6 +26,7 @@ below until a Phase 27+ tool actually claims them.
 | [Bearer Token Builder](https://arahman200165.github.io/DUDE/tools/bearer-token-builder) | Authentication | verified — Fuzz- and crosscheck-tested (fast-check) against an independently-written RFC 6750 §2.1 b64token grammar regex. |
 | [Certificate Chain Viewer & Builder](https://arahman200165.github.io/DUDE/tools/certificate-chain-tools) | Crypto | verified — Chain validity for a real openssl-built leaf/intermediate/root chain matches openssl verify. |
 | [ChaCha20-Poly1305 Encrypt / Decrypt](https://arahman200165.github.io/DUDE/tools/chacha20-poly1305) | Crypto | verified — Decrypts ChaCha20-Poly1305 ciphertext built independently by Node's OpenSSL-backed crypto module, not just @noble/ciphers agreeing with itself. |
+| [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | Remote Write | experimental |
 | [CSR Generator & Inspector](https://arahman200165.github.io/DUDE/tools/csr-generator-inspector) | Crypto | verified — Parses a real openssl-generated CSR, correctly extracting subject/key-size/signature validity that openssl req -text independently confirms. |
 | [Hash Generator](https://arahman200165.github.io/DUDE/tools/hash) | Crypto | verified — Every one of the 15 supported algorithms is tested against its official published test vector, not just self round-trip. |
 | [HMAC Generator](https://arahman200165.github.io/DUDE/tools/hmac-generator) | Crypto | verified — HMAC-SHA1/256/384/512 match RFC 4231's official test vectors exactly. |
@@ -41,6 +42,7 @@ below until a Phase 27+ tool actually claims them.
 | [JWT Signature Verifier](https://arahman200165.github.io/DUDE/tools/jwt-verify) | Authentication | verified — Verifies a token signed by hand with Node's HMAC-SHA256, and rejects it when a single signature byte is flipped — not just a token jose signed and jose verified. |
 | [Kubernetes Base64 Secret Encoder / Decoder](https://arahman200165.github.io/DUDE/tools/k8s-secret-base64) | Secret Management | verified — decodeSecretData(encodeSecretData(pairs)) recovers every value exactly for generated key/value arrays (fast-check property test), built on the already-verified base64 codec. |
 | [kubeconfig Inspector](https://arahman200165.github.io/DUDE/tools/kubeconfig-inspector) | Authentication | verified — Fuzz-tested with arbitrary text (fast-check) -- never throws on malformed YAML. |
+| [Network Diagnostic Bundle Export](https://arahman200165.github.io/DUDE/tools/network-diagnostic-bundle) | Network Scanning | experimental |
 | [OAuth 2.0 Playground](https://arahman200165.github.io/DUDE/tools/oauth-playground) | Authentication | verified — Callback URL/device-response/token-response inspection is fuzz-tested with arbitrary text (fast-check) -- never throws. |
 | [OAuth Scope Parser](https://arahman200165.github.io/DUDE/tools/oauth-scope-parser) | Authentication | verified — parseScopeString/buildScopeString round-trip and never-throws are checked with generated inputs (fast-check), not just hand-picked examples. |
 | [OAuth Token Inspector](https://arahman200165.github.io/DUDE/tools/oauth-token-inspector) | Authentication | verified — Fuzz-tested with arbitrary text (fast-check) -- never throws; delegates JWT decoding to the already-verified JWT Debugger. |
@@ -49,6 +51,7 @@ below until a Phase 27+ tool actually claims them.
 | [PKCE Generator](https://arahman200165.github.io/DUDE/tools/pkce-generator) | Authentication | verified — S256 code_challenge computation matches RFC 7636 Appendix B's official worked example exactly. |
 | [PKCE Verifier](https://arahman200165.github.io/DUDE/tools/pkce-verifier) | Authentication | verified — Verifier/challenge matching is checked against RFC 7636 Appendix B's official worked example. |
 | [PKCS#12 / PFX Inspector](https://arahman200165.github.io/DUDE/tools/pkcs12-inspector) | Crypto | verified — Correctly extracts leaf/intermediate certs and friendlyName from a real openssl-generated .p12 using modern PBES2 encryption. |
+| [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Network Scanning | experimental |
 | [Python Playground](https://arahman200165.github.io/DUDE/tools/python-playground) | Code Execution | verified — Fuzz-tested the pure sandbox-event reducer for transcript and outcome shape. |
 | [Secret Detector](https://arahman200165.github.io/DUDE/tools/secret-detector) | Secret Management | verified — Fuzz-tested with generated text up to 5000 chars, asserting it never throws and never takes more than 500ms -- guards against regex catastrophic backtracking. |
 | [SSH Key Generator & Inspector](https://arahman200165.github.io/DUDE/tools/ssh-key-tools) | Crypto | verified — SHA256/MD5 fingerprints for Ed25519/RSA-2048/ECDSA-P256 keys matched byte-for-byte against real ssh-keygen output. |
@@ -61,10 +64,13 @@ Every other tool processes data entirely locally and makes no network request.
 
 | Tool | What it contacts |
 | --- | --- |
+| [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | required |
 | [JWT Signature Verifier](https://arahman200165.github.io/DUDE/tools/jwt-verify) | JWKS / OIDC discovery |
 | [Advanced Markdown Workspace](https://arahman200165.github.io/DUDE/tools/markdown-workspace) | Link Checker: HEAD/GET per link, manual "Check links" button only |
 | [Package Metadata Inspector](https://arahman200165.github.io/DUDE/tools/package-metadata-inspector) | npm / PyPI / crates.io / NuGet registries |
+| [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | required |
 | [Text Inspector](https://arahman200165.github.io/DUDE/tools/text-inspector) | LanguageTool API |
+| [WHOIS Lookup](https://arahman200165.github.io/DUDE/tools/whois-lookup) | required |
 
 ## Native/Desktop-Privileged Tools
 
@@ -74,19 +80,37 @@ browser sandbox.
 
 | Tool | Native capability |
 | --- | --- |
+| [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | Native network diagnostics |
 | [CSS Formatter / Minifier](https://arahman200165.github.io/DUDE/tools/css-formatter) | Desktop file/folder open |
 | [CSV Viewer / Converter](https://arahman200165.github.io/DUDE/tools/csv-viewer) | Desktop file/folder open |
 | [Directory Diff](https://arahman200165.github.io/DUDE/tools/directory-diff) | Desktop file/folder open; Native filesystem access |
+| [DNS Lookup](https://arahman200165.github.io/DUDE/tools/dns-lookup) | Native network diagnostics |
+| [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Native network diagnostics |
 | [Git Repo Browser](https://arahman200165.github.io/DUDE/tools/git-diff) | Native filesystem access |
+| [Hostname Resolver](https://arahman200165.github.io/DUDE/tools/hostname-resolver) | Native network diagnostics |
 | [HTML Preview](https://arahman200165.github.io/DUDE/tools/html-preview) | Desktop file/folder open |
 | [INI Formatter / Parser](https://arahman200165.github.io/DUDE/tools/ini-formatter) | Desktop file/folder open |
 | [JavaScript Playground](https://arahman200165.github.io/DUDE/tools/js-playground) | Desktop file/folder open |
 | [JSON Formatter](https://arahman200165.github.io/DUDE/tools/json) | Desktop file/folder open |
+| [Continuous Ping / Latency Graph](https://arahman200165.github.io/DUDE/tools/latency-monitor) | Native network diagnostics |
+| [Local Network Viewer](https://arahman200165.github.io/DUDE/tools/local-network) | Native network diagnostics |
 | [Advanced Markdown Workspace](https://arahman200165.github.io/DUDE/tools/markdown-workspace) | Desktop file/folder open; Collaboration relay |
+| [MTU Discovery](https://arahman200165.github.io/DUDE/tools/mtu-discovery) | Native network diagnostics |
+| [Network Diagnostic Bundle Export](https://arahman200165.github.io/DUDE/tools/network-diagnostic-bundle) | Native network diagnostics |
+| [Packet-Loss Measurement](https://arahman200165.github.io/DUDE/tools/packet-loss) | Native network diagnostics |
+| [Ping](https://arahman200165.github.io/DUDE/tools/ping) | Native network diagnostics |
+| [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Native network diagnostics |
+| [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | Native network diagnostics |
 | [Regex Tester](https://arahman200165.github.io/DUDE/tools/regex) | Local LLM proxy |
+| [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Native network diagnostics |
+| [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | Native network diagnostics |
 | [SQL Formatter / Minifier](https://arahman200165.github.io/DUDE/tools/sql-formatter-tool) | Desktop file/folder open |
+| [TCP Port Tester](https://arahman200165.github.io/DUDE/tools/tcp-port-tester) | Native network diagnostics |
 | [Text Inspector](https://arahman200165.github.io/DUDE/tools/text-inspector) | Desktop file/folder open |
 | [TOML Formatter / Validator](https://arahman200165.github.io/DUDE/tools/toml-formatter) | Desktop file/folder open |
+| [Traceroute](https://arahman200165.github.io/DUDE/tools/traceroute) | Native network diagnostics |
+| [UDP Port Tester](https://arahman200165.github.io/DUDE/tools/udp-port-tester) | Native network diagnostics |
+| [WHOIS Lookup](https://arahman200165.github.io/DUDE/tools/whois-lookup) | Native network diagnostics |
 | [XML Formatter](https://arahman200165.github.io/DUDE/tools/xml-formatter) | Desktop file/folder open |
 | [YAML ↔ JSON Converter](https://arahman200165.github.io/DUDE/tools/yaml-json) | Desktop file/folder open |
 
@@ -96,10 +120,28 @@ Every tool not listed here behaves identically on the web companion and the desk
 
 | Tool | Desktop capability | On the web | What desktop adds |
 | --- | --- | --- | --- |
+| [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Directory Diff](https://arahman200165.github.io/DUDE/tools/directory-diff) | Native filesystem access | Works — weaker browser fallback | compares real folders on disk, not zipped/pasted file lists |
+| [DNS Lookup](https://arahman200165.github.io/DUDE/tools/dns-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Git Repo Browser](https://arahman200165.github.io/DUDE/tools/git-diff) | Native filesystem access | Works — weaker browser fallback | reads a real .git directory on disk, no upload/zip step |
+| [Hostname Resolver](https://arahman200165.github.io/DUDE/tools/hostname-resolver) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Continuous Ping / Latency Graph](https://arahman200165.github.io/DUDE/tools/latency-monitor) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Local Network Viewer](https://arahman200165.github.io/DUDE/tools/local-network) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Advanced Markdown Workspace](https://arahman200165.github.io/DUDE/tools/markdown-workspace) | Collaboration relay | Desktop-only feature | collaborate across networks via a self-hosted relay |
+| [MTU Discovery](https://arahman200165.github.io/DUDE/tools/mtu-discovery) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Network Diagnostic Bundle Export](https://arahman200165.github.io/DUDE/tools/network-diagnostic-bundle) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Packet-Loss Measurement](https://arahman200165.github.io/DUDE/tools/packet-loss) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Ping](https://arahman200165.github.io/DUDE/tools/ping) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Regex Tester](https://arahman200165.github.io/DUDE/tools/regex) | Local LLM proxy | Desktop-only feature | AI-assisted explain/generate via a local LLM proxy, no cloud key required |
+| [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [TCP Port Tester](https://arahman200165.github.io/DUDE/tools/tcp-port-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Traceroute](https://arahman200165.github.io/DUDE/tools/traceroute) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [UDP Port Tester](https://arahman200165.github.io/DUDE/tools/udp-port-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [WHOIS Lookup](https://arahman200165.github.io/DUDE/tools/whois-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 
 Optional runtimes are cached on demand by the web service worker the first time the tool needs
 them (never prefetched), and ship locally inside the desktop app.

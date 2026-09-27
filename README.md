@@ -68,10 +68,28 @@ Every tool not listed here behaves identically on the web companion and the desk
 
 | Tool | Desktop capability | On the web | What desktop adds |
 | --- | --- | --- | --- |
+| [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Directory Diff](https://arahman200165.github.io/DUDE/tools/directory-diff) | Native filesystem access | Works — weaker browser fallback | compares real folders on disk, not zipped/pasted file lists |
+| [DNS Lookup](https://arahman200165.github.io/DUDE/tools/dns-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Git Repo Browser](https://arahman200165.github.io/DUDE/tools/git-diff) | Native filesystem access | Works — weaker browser fallback | reads a real .git directory on disk, no upload/zip step |
+| [Hostname Resolver](https://arahman200165.github.io/DUDE/tools/hostname-resolver) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Continuous Ping / Latency Graph](https://arahman200165.github.io/DUDE/tools/latency-monitor) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Local Network Viewer](https://arahman200165.github.io/DUDE/tools/local-network) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Advanced Markdown Workspace](https://arahman200165.github.io/DUDE/tools/markdown-workspace) | Collaboration relay | Desktop-only feature | collaborate across networks via a self-hosted relay |
+| [MTU Discovery](https://arahman200165.github.io/DUDE/tools/mtu-discovery) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Network Diagnostic Bundle Export](https://arahman200165.github.io/DUDE/tools/network-diagnostic-bundle) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Packet-Loss Measurement](https://arahman200165.github.io/DUDE/tools/packet-loss) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Ping](https://arahman200165.github.io/DUDE/tools/ping) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Regex Tester](https://arahman200165.github.io/DUDE/tools/regex) | Local LLM proxy | Desktop-only feature | AI-assisted explain/generate via a local LLM proxy, no cloud key required |
+| [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [TCP Port Tester](https://arahman200165.github.io/DUDE/tools/tcp-port-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Traceroute](https://arahman200165.github.io/DUDE/tools/traceroute) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [UDP Port Tester](https://arahman200165.github.io/DUDE/tools/udp-port-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [WHOIS Lookup](https://arahman200165.github.io/DUDE/tools/whois-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 
 Optional runtimes are cached on demand by the web service worker the first time the tool needs
 them (never prefetched), and ship locally inside the desktop app.
@@ -86,7 +104,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-276 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+294 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -264,6 +282,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Commit Message Validator](https://arahman200165.github.io/DUDE/tools/commit-message-validator) | Developer | Validates a commit message against the Conventional Commits spec, flagging format, length, and style issues. |
 | [Config File Comparator](https://arahman200165.github.io/DUDE/tools/config-file-comparator) | Developer | Diffs two config files as .env, INI, or Java .properties, reporting added, removed, and changed keys. |
 | [Configuration Merge Tool](https://arahman200165.github.io/DUDE/tools/config-merge-tool) | Developer | Merges an ordered list of .env/INI/.properties/YAML/JSON config sources, later sources overriding earlier ones. |
+| [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | Developer | Test an HTTP endpoint with configurable method, headers, and body. |
 | [Conventional Commit Builder](https://arahman200165.github.io/DUDE/tools/conventional-commit-builder) | Developer | Builds a Conventional Commits formatted message from a type, scope, subject, body, and footers. |
 | [CSS Animation Builder](https://arahman200165.github.io/DUDE/tools/css-animation-builder) | Developer | Builds an @keyframes block and its animation shorthand from an ordered list of percentage stops, with a live preview. |
 | [CSS Formatter / Minifier](https://arahman200165.github.io/DUDE/tools/css-formatter) | Developer | Pretty-prints or minifies CSS, comment- and string-aware, including nested at-rules like @media. |
@@ -275,6 +294,8 @@ them (never prefetched), and ship locally inside the desktop app.
 | [CUID Generator](https://arahman200165.github.io/DUDE/tools/cuid-generator) | Developer | Generates collision-resistant CUID2 identifiers with a configurable count and length. |
 | [Dependency Version Comparator](https://arahman200165.github.io/DUDE/tools/dependency-version-comparator) | Developer | Diffs two pasted dependency lists (package.json-style), classifying each change as added, removed, or a major/minor/patch upgrade or downgrade. |
 | [Dev Snippets Reference](https://arahman200165.github.io/DUDE/tools/dev-snippets-reference) | Developer | Searchable reference of common HTTP headers, regex syntax, git/docker commands, shell idioms, SQL, CSS, HTML, Unicode, MIME types, cron syntax, and chmod. |
+| [DNS Lookup](https://arahman200165.github.io/DUDE/tools/dns-lookup) | Developer | Query live DNS records using system, custom, DoH, or DoT resolvers. |
+| [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Developer | Compare a DNS record across public and custom resolvers. |
 | [Docker Compose Validator / Viewer](https://arahman200165.github.io/DUDE/tools/docker-compose-validator) | Developer | Validates a docker-compose YAML file against a minimal Compose Specification shape and browses it as a tree. |
 | [Docker Run ↔ Compose Converter](https://arahman200165.github.io/DUDE/tools/docker-run-compose-converter) | Developer | Converts a docker run command into a docker-compose service block, or the reverse. |
 | [Dockerfile Linter / Formatter](https://arahman200165.github.io/DUDE/tools/dockerfile-linter) | Developer | Lints a Dockerfile for common issues (unpinned base image, root user, apt-get cleanup, ADD vs COPY, bad EXPOSE ports) and normalizes instruction casing. |
@@ -301,6 +322,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Glob Pattern Tester](https://arahman200165.github.io/DUDE/tools/glob-tester) | Developer | Test a glob pattern against a list of sample paths. |
 | [Hex Diff](https://arahman200165.github.io/DUDE/tools/hex-diff) | Developer | Compares two uploaded files byte-by-byte in fixed-width hex rows, highlighting which 16-byte chunks differ -- the standalone version of Directory Diff's binary drill-down. |
 | [Hex Editor](https://arahman200165.github.io/DUDE/tools/hex-editor) | Developer | Interactively edits an uploaded file byte-by-byte in a hex grid with a live ASCII gutter, then downloads the modified bytes. Limited to 16 KB files to keep editing responsive. |
+| [Hostname Resolver](https://arahman200165.github.io/DUDE/tools/hostname-resolver) | Developer | Show addresses selected by the Windows system resolver. |
 | [HTML Entity Explorer](https://arahman200165.github.io/DUDE/tools/html-entity-explorer) | Developer | Searchable reference of common named HTML character entities, with decimal and hex codepoints. |
 | [HTML Formatter / Minifier](https://arahman200165.github.io/DUDE/tools/html-formatter) | Developer | Pretty-prints or minifies HTML by walking the parsed DOM, preserving <pre>/<script>/<style> content verbatim. |
 | [HTML ↔ JSX Converter](https://arahman200165.github.io/DUDE/tools/html-jsx-converter) | Developer | Converts HTML to JSX (className, htmlFor, style objects, self-closing void tags) or JSX back to HTML, best-effort. |
@@ -318,6 +340,8 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Kubernetes Base64 Secret Encoder / Decoder](https://arahman200165.github.io/DUDE/tools/k8s-secret-base64) | Developer | Encodes plaintext key/value pairs into a Secret data: block, or decodes an existing Secret's base64 values back to plaintext. |
 | [KSUID Generator / Inspector](https://arahman200165.github.io/DUDE/tools/ksuid-tools) | Developer | Generates a KSUID, and inspects an existing KSUID to decode its embedded timestamp and random payload. |
 | [kubeconfig Inspector](https://arahman200165.github.io/DUDE/tools/kubeconfig-inspector) | Developer | Summarizes a kubeconfig's clusters, contexts, and users, redacting credential fields (tokens, client certs/keys, passwords) behind a reveal toggle. |
+| [Continuous Ping / Latency Graph](https://arahman200165.github.io/DUDE/tools/latency-monitor) | Developer | Monitor ICMP latency over a bounded interval. |
+| [Local Network Viewer](https://arahman200165.github.io/DUDE/tools/local-network) | Developer | Inspect bound ports, connections, listeners, neighbors, routes, interfaces, and local addresses. |
 | [Lockfile Inspector](https://arahman200165.github.io/DUDE/tools/lockfile-inspector) | Developer | Parses a package-lock.json, pnpm-lock.yaml, or yarn.lock into a searchable table of resolved package versions and their dependencies. |
 | [MAC Address Inspector](https://arahman200165.github.io/DUDE/tools/mac-address-inspector) | Developer | Normalizes a MAC address across colon/hyphen/Cisco-dotted/plain formats, decodes its unicast/multicast and administration bits, and looks up its OUI vendor. |
 | [Mach-O Header Viewer](https://arahman200165.github.io/DUDE/tools/macho-header-viewer) | Developer | Parses a macOS/iOS Mach-O binary's mach_header, load commands, and linked dylibs (with versions) -- including fat/universal binaries, listing each architecture slice and drilling into the first. |
@@ -326,15 +350,21 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Missing Environment Variable Detector](https://arahman200165.github.io/DUDE/tools/missing-env-var-detector) | Developer | Cross-checks environment variables referenced in source code against a .env file's declared keys, in both directions. |
 | [Mock Data Studio](https://arahman200165.github.io/DUDE/tools/mock-data-studio) | Developer | Generates schema-driven mock data by mapping field names to faker methods, exported as JSON, NDJSON, CSV, SQL, XML, or YAML. |
 | [Model Generator (JSON → Code)](https://arahman200165.github.io/DUDE/tools/model-generator) | Developer | Infers a type shape from sample JSON and generates a TypeScript, C#, Java, Kotlin, Swift, Python, Rust, Go, or SQL model. |
+| [MTU Discovery](https://arahman200165.github.io/DUDE/tools/mtu-discovery) | Developer | Probe path MTU for an explicit IPv4 or IPv6 target. |
 | [NanoID Generator](https://arahman200165.github.io/DUDE/tools/nanoid-generator) | Developer | Generates NanoIDs with a configurable count, length, and alphabet. |
+| [Network Diagnostic Bundle Export](https://arahman200165.github.io/DUDE/tools/network-diagnostic-bundle) | Developer | Collect selected checks and export a reviewed diagnostic ZIP. |
 | [Number Theory Toolkit](https://arahman200165.github.io/DUDE/tools/number-theory-toolkit) | Developer | Modular arithmetic (including modular inverse), GCD/LCM of a list, and prime checking/factorization. |
 | [Numeric Representation Inspector](https://arahman200165.github.io/DUDE/tools/numeric-representation-inspector) | Developer | Inspects a value's byte-order (endianness), IEEE-754 float bit layout, or integer representation across bit widths. |
 | [OpenGraph Preview](https://arahman200165.github.io/DUDE/tools/opengraph-preview) | Developer | Builds og:/twitter: meta tags and renders a live social-card preview, entirely from entered values -- no URL fetching. |
 | [Package Metadata Inspector](https://arahman200165.github.io/DUDE/tools/package-metadata-inspector) | Developer | Looks up a package's latest version, description, license, and dependency count on npm, PyPI, crates.io, or NuGet. |
+| [Packet-Loss Measurement](https://arahman200165.github.io/DUDE/tools/packet-loss) | Developer | Measure ICMP packet loss over a bounded probe sample. |
 | [PE Header Viewer](https://arahman200165.github.io/DUDE/tools/pe-header-viewer) | Developer | Parses a Windows PE executable's DOS/COFF/Optional headers, section table, data directories, and basic import/export table into a browsable tree. |
 | [Percentage & Ratio Calculator](https://arahman200165.github.io/DUDE/tools/percentage-ratio-calculator) | Developer | Percentage of, percent-of-what, percent change, ratio simplification, and proportion solving. |
+| [Ping](https://arahman200165.github.io/DUDE/tools/ping) | Developer | Send ICMP echo requests and show round-trip latency. |
 | [Pixel Color Picker](https://arahman200165.github.io/DUDE/tools/pixel-color-picker) | Developer | Reads the exact color of any pixel in an uploaded image. |
+| [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Developer | Probe a bounded TCP and UDP port set on one host or CIDR. |
 | [Programmer Calculator](https://arahman200165.github.io/DUDE/tools/programmer-calculator) | Developer | Arithmetic and bitwise (AND/OR/XOR/NOT/shift) calculator with an interactive bit grid, two’s-complement, and 8/16/32/64-bit widths. |
+| [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | Developer | Detect public IPv4 and IPv6 addresses on explicit request. |
 | [Python Playground](https://arahman200165.github.io/DUDE/tools/python-playground) | Developer | Run Python in the browser via Pyodide (WebAssembly CPython) — no network calls once the runtime is cached. |
 | [Random Data Generator](https://arahman200165.github.io/DUDE/tools/random-data-generator) | Developer | Generate realistic fake data — names, addresses, internet, finance, and more — as a table, CSV, or JSON. |
 | [Range Generator](https://arahman200165.github.io/DUDE/tools/range-generator) | Developer | Generates a numeric sequence from a start, end, and step, with zero-padding and newline/comma/JSON output. |
@@ -343,6 +373,8 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Regex Flavor Converter](https://arahman200165.github.io/DUDE/tools/regex-flavor-converter) | Developer | Translates a regex pattern between JavaScript, Python, Java, .NET, PCRE, and Go RE2 syntax, flagging constructs the target flavor cannot represent. |
 | [Regex Generator](https://arahman200165.github.io/DUDE/tools/regex-generator) | Developer | Generalizes a pattern from example strings (non-AI, heuristic), validated against every example and counter-example before being shown. |
 | [Regex Visualizer](https://arahman200165.github.io/DUDE/tools/regex-visualizer) | Developer | Renders a regular expression as a railroad syntax diagram. |
+| [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Developer | Resolve an IP address to PTR records. |
+| [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | Developer | Compare two network traces or before and after traces. |
 | [Scientific Notation Converter](https://arahman200165.github.io/DUDE/tools/scientific-notation-converter) | Developer | Converts a number between standard, scientific, and engineering notation with adjustable significant digits. |
 | [Secret Detector](https://arahman200165.github.io/DUDE/tools/secret-detector) | Developer | Flags likely credentials and keys in pasted text or config — AWS/GitHub/Slack tokens, PEM private keys, JWTs, generic key=value assignments, and high-entropy strings. |
 | [Semantic Version Comparator](https://arahman200165.github.io/DUDE/tools/semver-comparator) | Developer | Compare, sort, and range-check versions against the Semantic Versioning spec. |
@@ -350,9 +382,13 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Stack Trace Formatter](https://arahman200165.github.io/DUDE/tools/stack-trace-formatter) | Developer | Auto-detects and cleans up a Java, .NET, JavaScript, or Python stack trace, tagging library frames and Caused-by/inner-exception chains. |
 | [Statistics Calculator](https://arahman200165.github.io/DUDE/tools/statistics-calculator) | Developer | Count, sum, mean, median, mode, range, quartiles/IQR, and population/sample variance and standard deviation. |
 | [Subnet Calculator](https://arahman200165.github.io/DUDE/tools/subnet-calculator) | Developer | Splits an IPv4 network into a chosen number of equal subnets, or into subnets of a given prefix length. |
+| [TCP Port Tester](https://arahman200165.github.io/DUDE/tools/tcp-port-tester) | Developer | Test one TCP port on an explicit host. |
 | [Template Renderer](https://arahman200165.github.io/DUDE/tools/template-renderer) | Developer | Render an EJS template against a JSON data context in a network-isolated sandbox, using the same execution engine as the JavaScript Playground. |
+| [Traceroute](https://arahman200165.github.io/DUDE/tools/traceroute) | Developer | Trace the network path to an explicit host. |
+| [UDP Port Tester](https://arahman200165.github.io/DUDE/tools/udp-port-tester) | Developer | Probe one UDP port and show conclusive or inconclusive results. |
 | [ULID Generator / Inspector](https://arahman200165.github.io/DUDE/tools/ulid-tools) | Developer | Generates a ULID (optionally monotonic), and inspects an existing ULID to decode its embedded timestamp and randomness component. |
 | [UUID Generator / Inspector](https://arahman200165.github.io/DUDE/tools/uuid) | Developer | Generate v1/v3/v4/v5/v6/v7 UUIDs (with namespace support), inspect an existing UUID and its embedded timestamp, and bulk-export the generated list. |
+| [WHOIS Lookup](https://arahman200165.github.io/DUDE/tools/whois-lookup) | Developer | Query RDAP registration data with classic WHOIS fallback. |
 | [Aspect Ratio Calculator](https://arahman200165.github.io/DUDE/tools/aspect-ratio-calculator) | Documents | Simplifies a width/height pair to its lowest-terms ratio (e.g. 1920x1080 -> 16:9), or solves for a missing width/height given a target ratio. |
 | [DPI Calculator](https://arahman200165.github.io/DUDE/tools/dpi-calculator) | Documents | Converts between pixel dimensions, physical print size, and DPI -- find the DPI of an image at a given print size, the pixels needed for a target DPI, or the print size a given pixel count supports. |
 | [EXIF Viewer / Cleaner](https://arahman200165.github.io/DUDE/tools/exif-viewer) | Documents | Views an image's embedded EXIF metadata, or strips it entirely by re-encoding the image through canvas. |

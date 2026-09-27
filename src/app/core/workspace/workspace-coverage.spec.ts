@@ -13,6 +13,26 @@ import { loadWorkspaceStep } from './workspace-step-loader';
  * network-dependent tools are NOT excluded on those grounds (see `core/history/AGENTS.md`).
  */
 const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
+  // Phase 27 native network checks require explicit action; they have no workspace or pipeline adapter.
+  'ping': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
+  'traceroute': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
+  'dns-lookup': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
+  'reverse-dns': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
+  'dns-propagation': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
+  'tcp-port-tester': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
+  'udp-port-tester': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
+  'port-scanner': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
+  'local-network': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
+  'public-ip': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
+  'hostname-resolver': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
+  'whois-lookup': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
+  'connectivity-tester': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
+  'latency-monitor': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
+  'packet-loss': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
+  'mtu-discovery': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
+  'route-comparison': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
+  'network-diagnostic-bundle': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
+
   // Sensitive-by-design (DUDE_PRD.md §30) — live keys/secrets/tokens/passwords, or a tool whose
   // own code already declares the relevant field 'none'-policy. Respected as-is, never overridden.
   'file-hash': 'only a local preference persisted; file content never routed through PersistenceService',

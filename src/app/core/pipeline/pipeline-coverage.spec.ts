@@ -10,6 +10,26 @@ import { loadPipelineStep } from './pipeline-step-loader';
  * `core/pipeline/AGENTS.md`.
  */
 const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
+  // Phase 27 native network checks require explicit action; they have no workspace or pipeline adapter.
+  'ping': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
+  'traceroute': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
+  'dns-lookup': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
+  'reverse-dns': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
+  'dns-propagation': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
+  'tcp-port-tester': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
+  'udp-port-tester': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
+  'port-scanner': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
+  'local-network': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
+  'public-ip': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
+  'hostname-resolver': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
+  'whois-lookup': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
+  'connectivity-tester': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
+  'latency-monitor': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
+  'packet-loss': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
+  'mtu-discovery': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
+  'route-comparison': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
+  'network-diagnostic-bundle': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
+
   // Network-required (a pipeline must never make an invisible mid-chain network call).
   'text-inspector': 'network-required (LanguageTool API)',
   'jwt-verify': 'network-required (JWKS / OIDC discovery)',

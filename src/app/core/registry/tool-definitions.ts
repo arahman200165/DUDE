@@ -42,6 +42,7 @@ import { manifest as commitMessageValidatorManifest } from '../../tools/commit-m
 import { manifest as compressionLabManifest } from '../../tools/compression-lab/compression-lab.manifest';
 import { manifest as configFileComparatorManifest } from '../../tools/config-file-comparator/config-file-comparator.manifest';
 import { manifest as configMergeToolManifest } from '../../tools/config-merge-tool/config-merge-tool.manifest';
+import { manifest as connectivityTesterManifest } from '../../tools/connectivity-tester/connectivity-tester.manifest';
 import { manifest as contentDispositionBuilderManifest } from '../../tools/content-disposition-builder/content-disposition-builder.manifest';
 import { manifest as contrastCheckerManifest } from '../../tools/contrast-checker/contrast-checker.manifest';
 import { manifest as conventionalCommitBuilderManifest } from '../../tools/conventional-commit-builder/conventional-commit-builder.manifest';
@@ -75,6 +76,8 @@ import { manifest as dependencyVersionComparatorManifest } from '../../tools/dep
 import { manifest as devSnippetsReferenceManifest } from '../../tools/dev-snippets-reference/dev-snippets-reference.manifest';
 import { manifest as diffManifest } from '../../tools/diff/diff.manifest';
 import { manifest as directoryDiffManifest } from '../../tools/directory-diff/directory-diff.manifest';
+import { manifest as dnsLookupManifest } from '../../tools/dns-lookup/dns-lookup.manifest';
+import { manifest as dnsPropagationManifest } from '../../tools/dns-propagation/dns-propagation.manifest';
 import { manifest as dockerComposeValidatorManifest } from '../../tools/docker-compose-validator/docker-compose-validator.manifest';
 import { manifest as dockerRunComposeConverterManifest } from '../../tools/docker-run-compose-converter/docker-run-compose-converter.manifest';
 import { manifest as dockerfileLinterManifest } from '../../tools/dockerfile-linter/dockerfile-linter.manifest';
@@ -117,6 +120,7 @@ import { manifest as hexDumpManifest } from '../../tools/hex-dump/hex-dump.manif
 import { manifest as hexEditorManifest } from '../../tools/hex-editor/hex-editor.manifest';
 import { manifest as hexTextConverterManifest } from '../../tools/hex-text-converter/hex-text-converter.manifest';
 import { manifest as hmacGeneratorManifest } from '../../tools/hmac-generator/hmac-generator.manifest';
+import { manifest as hostnameResolverManifest } from '../../tools/hostname-resolver/hostname-resolver.manifest';
 import { manifest as htmlEntitiesManifest } from '../../tools/html-entities/html-entities.manifest';
 import { manifest as htmlEntityExplorerManifest } from '../../tools/html-entity-explorer/html-entity-explorer.manifest';
 import { manifest as htmlFormatterManifest } from '../../tools/html-formatter/html-formatter.manifest';
@@ -165,8 +169,10 @@ import { manifest as k8sSecretBase64Manifest } from '../../tools/k8s-secret-base
 import { manifest as keywordFrequencyAnalyzerManifest } from '../../tools/keyword-frequency-analyzer/keyword-frequency-analyzer.manifest';
 import { manifest as ksuidToolsManifest } from '../../tools/ksuid-tools/ksuid-tools.manifest';
 import { manifest as kubeconfigInspectorManifest } from '../../tools/kubeconfig-inspector/kubeconfig-inspector.manifest';
+import { manifest as latencyMonitorManifest } from '../../tools/latency-monitor/latency-monitor.manifest';
 import { manifest as lineOrderToolsManifest } from '../../tools/line-order-tools/line-order-tools.manifest';
 import { manifest as linePrefixNumberingManifest } from '../../tools/line-prefix-numbering/line-prefix-numbering.manifest';
+import { manifest as localNetworkManifest } from '../../tools/local-network/local-network.manifest';
 import { manifest as lockfileInspectorManifest } from '../../tools/lockfile-inspector/lockfile-inspector.manifest';
 import { manifest as loremIpsumGeneratorManifest } from '../../tools/lorem-ipsum-generator/lorem-ipsum-generator.manifest';
 import { manifest as macAddressInspectorManifest } from '../../tools/mac-address-inspector/mac-address-inspector.manifest';
@@ -180,8 +186,10 @@ import { manifest as missingEnvVarDetectorManifest } from '../../tools/missing-e
 import { manifest as mockDataStudioManifest } from '../../tools/mock-data-studio/mock-data-studio.manifest';
 import { manifest as modelGeneratorManifest } from '../../tools/model-generator/model-generator.manifest';
 import { manifest as msgpackDecoderManifest } from '../../tools/msgpack-decoder/msgpack-decoder.manifest';
+import { manifest as mtuDiscoveryManifest } from '../../tools/mtu-discovery/mtu-discovery.manifest';
 import { manifest as multipartFormBuilderManifest } from '../../tools/multipart-form-builder/multipart-form-builder.manifest';
 import { manifest as nanoidGeneratorManifest } from '../../tools/nanoid-generator/nanoid-generator.manifest';
+import { manifest as networkDiagnosticBundleManifest } from '../../tools/network-diagnostic-bundle/network-diagnostic-bundle.manifest';
 import { manifest as numberBaseManifest } from '../../tools/number-base/number-base.manifest';
 import { manifest as numberTheoryToolkitManifest } from '../../tools/number-theory-toolkit/number-theory-toolkit.manifest';
 import { manifest as numericRepresentationInspectorManifest } from '../../tools/numeric-representation-inspector/numeric-representation-inspector.manifest';
@@ -191,6 +199,7 @@ import { manifest as oauthTokenInspectorManifest } from '../../tools/oauth-token
 import { manifest as oidcDiscoveryInspectorManifest } from '../../tools/oidc-discovery-inspector/oidc-discovery-inspector.manifest';
 import { manifest as opengraphPreviewManifest } from '../../tools/opengraph-preview/opengraph-preview.manifest';
 import { manifest as packageMetadataInspectorManifest } from '../../tools/package-metadata-inspector/package-metadata-inspector.manifest';
+import { manifest as packetLossManifest } from '../../tools/packet-loss/packet-loss.manifest';
 import { manifest as paletteGeneratorManifest } from '../../tools/palette-generator/palette-generator.manifest';
 import { manifest as parquetViewerManifest } from '../../tools/parquet-viewer/parquet-viewer.manifest';
 import { manifest as passwordGeneratorManifest } from '../../tools/password-generator/password-generator.manifest';
@@ -198,13 +207,16 @@ import { manifest as passwordStrengthAnalyzerManifest } from '../../tools/passwo
 import { manifest as peHeaderViewerManifest } from '../../tools/pe-header-viewer/pe-header-viewer.manifest';
 import { manifest as pemDerInspectorManifest } from '../../tools/pem-der-inspector/pem-der-inspector.manifest';
 import { manifest as percentageRatioCalculatorManifest } from '../../tools/percentage-ratio-calculator/percentage-ratio-calculator.manifest';
+import { manifest as pingManifest } from '../../tools/ping/ping.manifest';
 import { manifest as pixelColorPickerManifest } from '../../tools/pixel-color-picker/pixel-color-picker.manifest';
 import { manifest as pkceGeneratorManifest } from '../../tools/pkce-generator/pkce-generator.manifest';
 import { manifest as pkceVerifierManifest } from '../../tools/pkce-verifier/pkce-verifier.manifest';
 import { manifest as pkcs12InspectorManifest } from '../../tools/pkcs12-inspector/pkcs12-inspector.manifest';
+import { manifest as portScannerManifest } from '../../tools/port-scanner/port-scanner.manifest';
 import { manifest as programmerCalculatorManifest } from '../../tools/programmer-calculator/programmer-calculator.manifest';
 import { manifest as propertiesParserManifest } from '../../tools/properties-parser/properties-parser.manifest';
 import { manifest as protobufDecoderManifest } from '../../tools/protobuf-decoder/protobuf-decoder.manifest';
+import { manifest as publicIpManifest } from '../../tools/public-ip/public-ip.manifest';
 import { manifest as punycodeConverterManifest } from '../../tools/punycode-converter/punycode-converter.manifest';
 import { manifest as pythonPlaygroundManifest } from '../../tools/python-playground/python-playground.manifest';
 import { manifest as qrCodeGeneratorManifest } from '../../tools/qr-code-generator/qr-code-generator.manifest';
@@ -222,8 +234,10 @@ import { manifest as regexManifest } from '../../tools/regex/regex.manifest';
 import { manifest as relativeTimeParserManifest } from '../../tools/relative-time-parser/relative-time-parser.manifest';
 import { manifest as resolutionCalculatorManifest } from '../../tools/resolution-calculator/resolution-calculator.manifest';
 import { manifest as resxToolManifest } from '../../tools/resx-tool/resx-tool.manifest';
+import { manifest as reverseDnsManifest } from '../../tools/reverse-dns/reverse-dns.manifest';
 import { manifest as richTextEditorManifest } from '../../tools/rich-text-editor/rich-text-editor.manifest';
 import { manifest as rotCipherManifest } from '../../tools/rot-cipher/rot-cipher.manifest';
+import { manifest as routeComparisonManifest } from '../../tools/route-comparison/route-comparison.manifest';
 import { manifest as schemaDiffManifest } from '../../tools/schema-diff/schema-diff.manifest';
 import { manifest as scientificNotationConverterManifest } from '../../tools/scientific-notation-converter/scientific-notation-converter.manifest';
 import { manifest as secretDetectorManifest } from '../../tools/secret-detector/secret-detector.manifest';
@@ -248,12 +262,15 @@ import { manifest as subnetCalculatorManifest } from '../../tools/subnet-calcula
 import { manifest as svgDataUriManifest } from '../../tools/svg-data-uri/svg-data-uri.manifest';
 import { manifest as svgViewerManifest } from '../../tools/svg-viewer/svg-viewer.manifest';
 import { manifest as tailwindColorMatcherManifest } from '../../tools/tailwind-color-matcher/tailwind-color-matcher.manifest';
+import { manifest as tcpPortTesterManifest } from '../../tools/tcp-port-tester/tcp-port-tester.manifest';
 import { manifest as templateRendererManifest } from '../../tools/template-renderer/template-renderer.manifest';
 import { manifest as textInspectorManifest } from '../../tools/text-inspector/text-inspector.manifest';
 import { manifest as textTokenizerNgramManifest } from '../../tools/text-tokenizer-ngram/text-tokenizer-ngram.manifest';
 import { manifest as timezoneConverterManifest } from '../../tools/timezone-converter/timezone-converter.manifest';
 import { manifest as timezoneOffsetComparatorManifest } from '../../tools/timezone-offset-comparator/timezone-offset-comparator.manifest';
 import { manifest as tomlFormatterManifest } from '../../tools/toml-formatter/toml-formatter.manifest';
+import { manifest as tracerouteManifest } from '../../tools/traceroute/traceroute.manifest';
+import { manifest as udpPortTesterManifest } from '../../tools/udp-port-tester/udp-port-tester.manifest';
 import { manifest as ulidToolsManifest } from '../../tools/ulid-tools/ulid-tools.manifest';
 import { manifest as unicodeCharacterInspectorManifest } from '../../tools/unicode-character-inspector/unicode-character-inspector.manifest';
 import { manifest as unicodeCodePointConverterManifest } from '../../tools/unicode-code-point-converter/unicode-code-point-converter.manifest';
@@ -269,6 +286,7 @@ import { manifest as userAgentManifest } from '../../tools/user-agent/user-agent
 import { manifest as uuidManifest } from '../../tools/uuid/uuid.manifest';
 import { manifest as weekNumberCalculatorManifest } from '../../tools/week-number-calculator/week-number-calculator.manifest';
 import { manifest as whitespaceCleanerManifest } from '../../tools/whitespace-cleaner/whitespace-cleaner.manifest';
+import { manifest as whoisLookupManifest } from '../../tools/whois-lookup/whois-lookup.manifest';
 import { manifest as x509CertificateInspectorManifest } from '../../tools/x509-certificate-inspector/x509-certificate-inspector.manifest';
 import { manifest as xmlCsvManifest } from '../../tools/xml-csv/xml-csv.manifest';
 import { manifest as xmlFormatterManifest } from '../../tools/xml-formatter/xml-formatter.manifest';
@@ -320,6 +338,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   compressionLabManifest,
   configFileComparatorManifest,
   configMergeToolManifest,
+  connectivityTesterManifest,
   contentDispositionBuilderManifest,
   contrastCheckerManifest,
   conventionalCommitBuilderManifest,
@@ -353,6 +372,8 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   devSnippetsReferenceManifest,
   diffManifest,
   directoryDiffManifest,
+  dnsLookupManifest,
+  dnsPropagationManifest,
   dockerComposeValidatorManifest,
   dockerRunComposeConverterManifest,
   dockerfileLinterManifest,
@@ -395,6 +416,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   hexEditorManifest,
   hexTextConverterManifest,
   hmacGeneratorManifest,
+  hostnameResolverManifest,
   htmlEntitiesManifest,
   htmlEntityExplorerManifest,
   htmlFormatterManifest,
@@ -443,8 +465,10 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   keywordFrequencyAnalyzerManifest,
   ksuidToolsManifest,
   kubeconfigInspectorManifest,
+  latencyMonitorManifest,
   lineOrderToolsManifest,
   linePrefixNumberingManifest,
+  localNetworkManifest,
   lockfileInspectorManifest,
   loremIpsumGeneratorManifest,
   macAddressInspectorManifest,
@@ -458,8 +482,10 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   mockDataStudioManifest,
   modelGeneratorManifest,
   msgpackDecoderManifest,
+  mtuDiscoveryManifest,
   multipartFormBuilderManifest,
   nanoidGeneratorManifest,
+  networkDiagnosticBundleManifest,
   numberBaseManifest,
   numberTheoryToolkitManifest,
   numericRepresentationInspectorManifest,
@@ -469,6 +495,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   oidcDiscoveryInspectorManifest,
   opengraphPreviewManifest,
   packageMetadataInspectorManifest,
+  packetLossManifest,
   paletteGeneratorManifest,
   parquetViewerManifest,
   passwordGeneratorManifest,
@@ -476,13 +503,16 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   peHeaderViewerManifest,
   pemDerInspectorManifest,
   percentageRatioCalculatorManifest,
+  pingManifest,
   pixelColorPickerManifest,
   pkceGeneratorManifest,
   pkceVerifierManifest,
   pkcs12InspectorManifest,
+  portScannerManifest,
   programmerCalculatorManifest,
   propertiesParserManifest,
   protobufDecoderManifest,
+  publicIpManifest,
   punycodeConverterManifest,
   pythonPlaygroundManifest,
   qrCodeGeneratorManifest,
@@ -500,8 +530,10 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   relativeTimeParserManifest,
   resolutionCalculatorManifest,
   resxToolManifest,
+  reverseDnsManifest,
   richTextEditorManifest,
   rotCipherManifest,
+  routeComparisonManifest,
   schemaDiffManifest,
   scientificNotationConverterManifest,
   secretDetectorManifest,
@@ -526,12 +558,15 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   svgDataUriManifest,
   svgViewerManifest,
   tailwindColorMatcherManifest,
+  tcpPortTesterManifest,
   templateRendererManifest,
   textInspectorManifest,
   textTokenizerNgramManifest,
   timezoneConverterManifest,
   timezoneOffsetComparatorManifest,
   tomlFormatterManifest,
+  tracerouteManifest,
+  udpPortTesterManifest,
   ulidToolsManifest,
   unicodeCharacterInspectorManifest,
   unicodeCodePointConverterManifest,
@@ -547,6 +582,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   uuidManifest,
   weekNumberCalculatorManifest,
   whitespaceCleanerManifest,
+  whoisLookupManifest,
   x509CertificateInspectorManifest,
   xmlCsvManifest,
   xmlFormatterManifest,
