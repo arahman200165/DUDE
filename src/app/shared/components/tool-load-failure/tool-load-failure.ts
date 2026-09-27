@@ -6,7 +6,7 @@ import { ToolRegistryService } from '../../../core/registry/tool-registry.servic
 import { PAGE_RELOAD } from '../../../core/offline/cache-inspector.service';
 
 /**
- * Shown in place of a tool whose lazy chunk failed to load (DUDE_PRD.md §21 Phase 26 Item 10):
+ * Shown in place of a tool or shell page whose lazy chunk failed to load (DUDE_PRD.md §21 Phase 26 Item 10):
  * either offline before the tool was ever cached, or a stale tab after a deploy removed the chunk
  * it expected. Statically bundled into the shell by `core/registry/tool-routes.ts`, so it can
  * render even when nothing else is reachable. Also reused by workspace panels (`toolId` input).
@@ -28,7 +28,7 @@ export class ToolLoadFailure {
 
   protected readonly definition = computed(() => {
     const id = this.toolId();
-    return id ? this.registry.getById(id) : this.registry.getByRoute(this.router.url.split(/[?#]/)[0]);
+    return id ? this.registry.getById(id) : this.registry.getByRoute(this.router.url);
   });
   protected readonly offline = computed(() => !this.connectivity.online());
   protected readonly updateReady = this.update.updateReady;

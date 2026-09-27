@@ -22,6 +22,7 @@ const MAP: OfflineMap = {
   files: ['chunk-json.js', 'chunk-shared.js', 'chunk-py.js', 'assets/vendor/pyodide/pyodide.asm.wasm', 'assets/vendor/pyodide/pyodide.js'],
   sizes: [100, 50, 200, 9000, 20],
   tools: { json: { open: [0], extra: [1] }, 'python-playground': { open: [2], extra: [1] } },
+  shell: [],
   groups: {
     'tool-chunks': { installMode: 'lazy', files: [0, 1, 2] },
     pyodide: { installMode: 'lazy', files: [3, 4] },

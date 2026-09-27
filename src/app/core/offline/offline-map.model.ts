@@ -12,6 +12,8 @@ export interface OfflineMap {
    * `extra`: workers, pipeline/workspace step chunks, and lazily imported libraries.
    */
   readonly tools: Readonly<Record<string, { readonly open: readonly number[]; readonly extra: readonly number[] }>>;
+  /** Lazy shell destinations (History, Pipelines, Settings sections, ...) and their imports. */
+  readonly shell: readonly number[];
   readonly groups: Readonly<Record<string, { readonly installMode: 'prefetch' | 'lazy'; readonly files: readonly number[] }>>;
 }
 
@@ -31,6 +33,7 @@ export function isOfflineMap(value: unknown): value is OfflineMap {
     Array.isArray(map.files) &&
     Array.isArray(map.sizes) &&
     map.files.length === map.sizes.length &&
+    Array.isArray(map.shell) &&
     typeof map.tools === 'object' &&
     map.tools !== null &&
     typeof map.groups === 'object' &&
@@ -47,6 +50,10 @@ export function filesForTool(map: OfflineMap, toolId: string, groupNames: readon
   const indices = new Set<number>([...(tool?.open ?? []), ...(scope === 'all' ? (tool?.extra ?? []) : [])]);
   for (const name of groupNames) for (const index of map.groups[name]?.files ?? []) indices.add(index);
   return [...indices].map((index) => map.files[index]).filter((file): file is string => file !== undefined);
+}
+
+export function filesForShell(map: OfflineMap): string[] {
+  return map.shell.map((index) => map.files[index]).filter((file): file is string => file !== undefined);
 }
 
 export function filesForGroup(map: OfflineMap, groupName: string): string[] {

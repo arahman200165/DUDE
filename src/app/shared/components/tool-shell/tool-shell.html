@@ -40,6 +40,7 @@
           History
         </a>
       }
+      <app-tool-share-menu [definition]="definition()" />
       <app-security-badge [definition]="definition()" />
       <app-desktop-capability-badge [definition]="definition()" />
       <app-offline-badge [show]="showOfflineBadge()" />
@@ -52,6 +53,12 @@
     </div>
   </header>
   <div class="flex-1 overflow-auto p-3">
+    @if (loadedFromLink()) {
+      <div class="mb-3 flex items-center justify-between gap-2 rounded-sm border border-info/40 bg-info/10 px-2 py-1 text-ui text-info" role="status">
+        <span>Input loaded from a shared link. Nothing was run or saved beyond this tool's usual settings. Review it before use.</span>
+        <button type="button" class="rounded-sm border border-info/40 px-1.5 py-0.5 text-ui-xs" (click)="share.dismissReceived()">Dismiss</button>
+      </div>
+    }
     <ng-content />
     @if (definition(); as def) {
       <app-related-tools-panel [current]="def" />

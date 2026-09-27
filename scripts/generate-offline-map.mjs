@@ -90,6 +90,14 @@ for (const [id, files] of Object.entries(owned)) {
   tools[id] = { open, extra: new Set([...all].filter((file) => !open.has(file))) };
 }
 
+// Lazy shell destinations (History, Pipelines, Settings sections, ...) are code-split too, and
+// can't be opened offline until cached. They're too large to prefetch (~0.8 MB), so they're listed
+// for "Make available offline" instead.
+const shellRoots = Object.keys(outputs).filter(
+  (file) => file.endsWith('.js') && !prefetched.has(file) && /^src\/app\/(shell|core|shared)\//.test(outputs[file].entryPoint ?? ''),
+);
+const shell = closure(undefined, shellRoots, false);
+
 // Shared chunks recur across hundreds of tools, so tools and groups reference one deduplicated
 // `files`/`sizes` table by index. The map ships in the prefetched shell, so its size counts
 // against the app-group budget.
@@ -114,6 +122,7 @@ const map = {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([id, { open, extra }]) => [id, { open: [...open].sort().map(indexOf), extra: [...extra].sort().map(indexOf) }]),
   ),
+  shell: [...shell].sort().map(indexOf),
   groups: Object.fromEntries(
     ngsw.assetGroups.map((group) => [group.name, { installMode: group.installMode, files: group.urls.map(relative).map(indexOf) }]),
   ),

@@ -16,6 +16,14 @@ describe('ToolRegistryService', () => {
     expect(service.getByRoute('tools/json')?.id).toBe('json');
   });
 
+  // A tool URL with a query or fragment (bookmarks, share links, anchors) must still resolve.
+  // Before Phase 26 it didn't, and ToolShell lost its title and badges on such URLs.
+  it('ignores a query string or fragment in getByRoute', () => {
+    expect(service.getByRoute('/tools/json?x=1')?.id).toBe('json');
+    expect(service.getByRoute('/tools/json#section-2')?.id).toBe('json');
+    expect(service.getByRoute('/tools/json?x=1#frag')?.id).toBe('json');
+  });
+
   it('groups the JSON tool under the data category', () => {
     const grouped = service.groupedByCategory();
     expect(grouped['data'].map((t) => t.id)).toContain('json');

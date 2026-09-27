@@ -6,7 +6,13 @@
     <script type="text/javascript">
       // Single Page Apps for GitHub Pages
       // https://github.com/rafgraph/spa-github-pages
+      // Hardened for DUDE (Phase 26 Item 11): a literal "~" is escaped to "~0" before "&" becomes
+      // "~and~", so a URL that itself contains "~and~" round-trips intact. index.html reverses the
+      // two steps in the opposite order. Covered by e2e/route-fidelity.spec.ts.
       var pathSegmentsToKeep = 1;
+      var escape = function (s) {
+        return s.replace(/~/g, '~0').replace(/&/g, '~and~');
+      };
 
       var l = window.location;
       l.replace(
@@ -16,13 +22,8 @@
           (l.port ? ':' + l.port : '') +
           l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') +
           '/?/' +
-          l.pathname
-            .slice(1)
-            .split('/')
-            .slice(pathSegmentsToKeep)
-            .join('/')
-            .replace(/&/g, '~and~') +
-          (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+          escape(l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/')) +
+          (l.search ? '&' + escape(l.search.slice(1)) : '') +
           l.hash,
       );
     </script>

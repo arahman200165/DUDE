@@ -49,8 +49,9 @@ export class ToolRegistryService {
     return this.definitions.find((definition) => definition.id === id);
   }
 
+  /** Accepts a full router URL: any `?query` or `#fragment` is ignored. */
   getByRoute(route: string): ToolDefinition | undefined {
-    const routePath = toRoutePath(route);
+    const routePath = toRoutePath(route.split(/[?#]/)[0]);
     return this.definitions.find((definition) => toRoutePath(definition.route) === routePath);
   }
 

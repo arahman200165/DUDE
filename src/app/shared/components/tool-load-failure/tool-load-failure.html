@@ -1,9 +1,9 @@
 <section class="flex h-full flex-col items-start gap-3 p-4" role="alert">
-  <h1 class="text-sm font-semibold tracking-wide text-text">{{ definition()?.title ?? 'This tool' }} couldn't be loaded</h1>
+  <h1 class="text-sm font-semibold tracking-wide text-text">{{ definition()?.title ?? 'This page' }} couldn't be loaded</h1>
   @if (offline()) {
     <p class="max-w-prose text-ui text-text-muted">
-      <span class="font-semibold text-offline">Not available offline yet.</span> The web companion caches each tool the first
-      time you open it online. Open it once with a connection, or cache tools ahead of time under
+      <span class="font-semibold text-offline">Not available offline yet.</span> The web companion caches each tool and page the
+      first time you open it online. Open it once with a connection, or cache tools ahead of time under
       <a routerLink="/settings/web-companion" class="text-accent hover:underline">Settings › Web &amp; Offline</a>.
     </p>
   } @else if (updateReady()) {

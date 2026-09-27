@@ -14,10 +14,12 @@ import { OfflineBadge } from '../offline-badge/offline-badge';
 import { CategoryIcon } from '../category-icon/category-icon';
 import { SecurityBadge } from '../security-badge/security-badge';
 import { DesktopCapabilityBadge } from '../desktop-capability-badge/desktop-capability-badge';
+import { ToolShareMenu } from '../tool-share-menu/tool-share-menu';
+import { ShareLinkService } from '../../../core/share/share-link.service';
 
 @Component({
   selector: 'app-tool-shell',
-  imports: [OfflineBadge, CategoryIcon, SecurityBadge, DesktopCapabilityBadge, RouterLink, RelatedToolsPanel],
+  imports: [OfflineBadge, CategoryIcon, SecurityBadge, DesktopCapabilityBadge, RouterLink, RelatedToolsPanel, ToolShareMenu],
   templateUrl: './tool-shell.html',
 })
 export class ToolShell implements OnDestroy {
@@ -29,6 +31,7 @@ export class ToolShell implements OnDestroy {
   private readonly history = inject(HistoryService);
   private readonly usage = inject(UsageService);
   protected readonly favorites = inject(FavoritesService);
+  protected readonly share = inject(ShareLinkService);
 
   /**
    * Optional override for tools whose network need is a runtime condition rather than a
@@ -56,6 +59,11 @@ export class ToolShell implements OnDestroy {
     return hostContext ? this.registry.getById(hostContext.toolId) : this.registry.getByRoute(this.router.url);
   });
   protected readonly category = computed(() => this.definition()?.category);
+  /** "Loaded from link" notice (Phase 26 Item 12): shown once for the tool a share link just prefilled. */
+  protected readonly loadedFromLink = computed(() => {
+    const definition = this.definition();
+    return !!definition && this.share.received() === definition.id;
+  });
   protected readonly categoryMeta = computed(() => {
     const category = this.category();
     return category ? CATEGORY_METADATA[category] : undefined;

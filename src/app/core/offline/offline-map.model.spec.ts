@@ -6,6 +6,7 @@ const MAP: OfflineMap = {
   files: ['chunk-a.js', 'chunk-shared.js', 'chunk-b.js', 'assets/vendor/pyodide/pyodide.asm.wasm', 'assets/vendor/pyodide/pyodide.js'],
   sizes: [100, 50, 200, 9000, 20],
   tools: { a: { open: [0], extra: [1] }, b: { open: [2, 1], extra: [] } },
+  shell: [],
   groups: {
     'tool-chunks': { installMode: 'lazy', files: [0, 1, 2] },
     pyodide: { installMode: 'lazy', files: [3, 4] },

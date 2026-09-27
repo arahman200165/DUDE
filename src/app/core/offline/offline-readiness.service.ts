@@ -6,7 +6,7 @@ import { RUNTIMES } from '../platform/capability-catalog';
 import { ToolRegistryService } from '../registry/tool-registry.service';
 import { RuntimeId } from '../../shared/models/tool-capability.model';
 import { ToolCategory } from '../../shared/models/tool-category.model';
-import { CachePlan, OfflineMap, buildCachePlan, filesForGroup, filesForTool, isOfflineMap, toRelativePath } from './offline-map.model';
+import { CachePlan, OfflineMap, buildCachePlan, filesForGroup, filesForShell, filesForTool, isOfflineMap, toRelativePath } from './offline-map.model';
 
 export type ToolReadiness = 'ready' | 'missing' | 'unknown';
 
@@ -93,9 +93,12 @@ export class OfflineReadinessService {
     return this.planTools(this.registry.getByCategory(category).map((tool) => tool.id));
   }
 
-  /** Every tool plus every optional runtime: the full offline footprint. */
+  /** Every tool, every optional runtime, and every lazy shell page: the full offline footprint. */
   planAll(): CachePlan | null {
-    return this.planTools(this.registry.getAll().map((tool) => tool.id));
+    const map = this.mapSignal();
+    if (!map) return null;
+    const files = [...filesForShell(map), ...this.registry.getAll().flatMap((tool) => this.filesFor(tool.id, map, 'all'))];
+    return buildCachePlan(map, files, this.cachedSignal());
   }
 
   planRuntime(runtime: RuntimeId): CachePlan | null {
