@@ -9,7 +9,7 @@
  * `core/platform/capability-catalog.ts`, the conformance harness, and the doc generator together).
  * `secure-keychain` is reserved — no shipped tool stores a tool-level secret yet.
  */
-export type PlatformCapabilityId = 'native-fs' | 'file-watch' | 'llm-proxy' | 'collab-relay' | 'secure-keychain';
+export type PlatformCapabilityId = 'native-fs' | 'file-watch' | 'llm-proxy' | 'collab-relay' | 'secure-keychain' | 'native-network';
 
 export const PLATFORM_CAPABILITY_IDS: readonly PlatformCapabilityId[] = [
   'native-fs',
@@ -17,6 +17,7 @@ export const PLATFORM_CAPABILITY_IDS: readonly PlatformCapabilityId[] = [
   'llm-proxy',
   'collab-relay',
   'secure-keychain',
+  'native-network',
 ];
 
 /**

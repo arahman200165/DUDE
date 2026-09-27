@@ -51,13 +51,41 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Run Electron networking tests
+        run: npm run test:electron
+
+      - name: Run high-consequence release gate
+        run: npm run test:high-consequence
+
       - name: Build (Angular, Electron configuration)
         run: npm run build -- --configuration production,electron
 
       - name: Compile Electron main/preload
         run: npm run electron:compile
 
+      - name: Build Windows network helper
+        run: npm run electron:helper
+
+      - name: Verify ICMP helper on IPv4 and IPv6 loopback
+        shell: pwsh
+        run: |
+          $ipv4 = & .\build\network-icmp.exe probe 127.0.0.1 ipv4 64 64 1000 | ConvertFrom-Json
+          $ipv6 = & .\build\network-icmp.exe probe ::1 ipv6 64 64 1000 | ConvertFrom-Json
+          if ($ipv4.status -ne 'success' -or $ipv6.status -ne 'success') { throw 'ICMP helper loopback probes failed.' }
+
       - name: Package and publish (NSIS + MSIX)
         run: npx electron-builder --config electron-builder.yml --win nsis appx --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify packaged network helper
+        shell: pwsh
+        run: |
+          $source = (Get-FileHash build\network-icmp.exe).Hash
+          $packaged = (Get-FileHash release\win-unpacked\resources\network-icmp.exe).Hash
+          if ($source -ne $packaged) { throw 'NSIS source tree does not contain the network helper.' }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = [System.IO.Compression.ZipFile]::OpenRead((Get-ChildItem release -Filter 'DUDE-*.appx' | Select-Object -First 1).FullName)
+          try {
+            if (-not ($archive.Entries | Where-Object { $_.FullName -eq 'app/resources/network-icmp.exe' })) { throw 'MSIX is missing the network helper.' }
+          } finally { $archive.Dispose() }

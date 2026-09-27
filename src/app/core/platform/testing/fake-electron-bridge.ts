@@ -61,6 +61,7 @@ export function fakeElectronBridge(overrides: Partial<DudeElectronBridge> = {}):
       stopSession: async () => ({ ok: true }),
       participantCount: async () => 0,
     },
+    network: { prepare: async () => ({ ok: false, error: 'unavailable' }), start: async () => ({ ok: false, error: 'unavailable' }), cancel: async () => false, adminStatus: async () => false, relaunchAsAdmin: async () => false, onEvent: () => () => {} },
     update: {
       checkForUpdates: async () => ({ ok: true }),
       quitAndInstall: async () => ({ ok: true }),

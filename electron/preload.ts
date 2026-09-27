@@ -113,7 +113,18 @@ const bridge: DudeElectronBridge = {
     stopSession: () => ipcRenderer.invoke('dude:collab:stopSession'),
     participantCount: () => ipcRenderer.invoke('dude:collab:participantCount'),
   },
-  update: {
+  network: {
+    prepare: (request) => ipcRenderer.invoke('dude:network:prepare', request),
+    start: (request, token) => ipcRenderer.invoke('dude:network:start', request, token),
+    cancel: (jobId) => ipcRenderer.invoke('dude:network:cancel', jobId),
+    adminStatus: () => ipcRenderer.invoke('dude:network:adminStatus'),
+    relaunchAsAdmin: () => ipcRenderer.invoke('dude:network:relaunchAsAdmin'),
+    onEvent: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, value: import('../src/app/core/platform/network-types').NetworkJobEvent) => callback(value);
+      ipcRenderer.on('dude:network:event', listener);
+      return () => ipcRenderer.removeListener('dude:network:event', listener);
+    },
+  },  update: {
     checkForUpdates: () => ipcRenderer.invoke('dude:update:check'),
     quitAndInstall: () => ipcRenderer.invoke('dude:update:quitAndInstall'),
     downloadUpdate: () => ipcRenderer.invoke('dude:update:download'),

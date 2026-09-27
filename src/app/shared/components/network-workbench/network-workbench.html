@@ -1,0 +1,196 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning/40 bg-warning/5 p-4 text-ui text-text-muted">
+      Live network checks require the Windows desktop app. This page stays available for discovery and desktop handoff.
+    </div>
+  } @else {
+    <div class="flex flex-col gap-4 text-ui">
+      <p class="text-text-muted">Checks start only when you choose Run. A firewall or silent UDP service can make a result inconclusive.</p>
+
+      @if (kind() !== 'local-network' && kind() !== 'public-ip') {
+        <label class="flex flex-col gap-1 text-text-muted">
+          {{ kind() === 'connectivity-tester' ? (connectivityMode() === 'tcp' ? 'TCP host or IP address' : 'HTTP or HTTPS URL') : kind() === 'port-scanner' ? 'Host or CIDR (up to 16 addresses)' : 'Host or IP address' }}
+          <input class="rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="target()" (input)="setText('target', $event)" placeholder="example.com" />
+        </label>
+      }
+      @if (kind() === 'route-comparison') {
+        <label class="flex flex-col gap-1 text-text-muted">Second target (leave empty for before/after on the same target)
+          <input class="rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="secondTarget()" (input)="setText('secondTarget', $event)" />
+        </label>
+      }
+      @if (kind() === 'connectivity-tester') {
+        <label class="flex items-center gap-2 text-text-muted">Mode
+          <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="connectivityMode()" (change)="setChoice('connectivityMode', $event)"><option value="http">HTTP</option><option value="tcp">TCP</option></select>
+        </label>
+        @if (connectivityMode() === 'tcp') {
+          <label class="flex items-center gap-2 text-text-muted">Port
+            <input type="number" min="1" max="65535" class="w-28 rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="port()" (input)="setNumber('port', $event)" />
+          </label>
+        }
+      }
+      @if (kind() === 'ping' || kind() === 'packet-loss') {
+        <label class="flex items-center gap-2 text-text-muted">Probe count
+          <input type="number" min="1" max="100" class="w-24 rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="count()" (input)="setNumber('count', $event)" />
+        </label>
+      }
+      @if (kind() === 'latency-monitor') {
+        <label class="flex items-center gap-2 text-text-muted">Duration in minutes (1–60)
+          <input type="number" min="1" max="60" class="w-24 rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="durationMinutes()" (input)="setNumber('durationMinutes', $event)" />
+        </label>
+      }
+      @if (kind() === 'tcp-port-tester' || kind() === 'udp-port-tester') {
+        <label class="flex items-center gap-2 text-text-muted">Port
+          <input type="number" min="1" max="65535" class="w-28 rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="port()" (input)="setNumber('port', $event)" />
+        </label>
+      }
+      @if (kind() === 'port-scanner' || kind() === 'network-diagnostic-bundle') {
+        @if (kind() === 'network-diagnostic-bundle') {
+          <div class="flex flex-wrap gap-3 text-text-muted">
+            <label><input type="checkbox" checked (change)="toggleCheck('local', $event)" /> Local state</label>
+            <label><input type="checkbox" checked (change)="toggleCheck('dns', $event)" /> DNS</label>
+            <label><input type="checkbox" checked (change)="toggleCheck('ping', $event)" /> Ping</label>
+            <label><input type="checkbox" checked (change)="toggleCheck('trace', $event)" /> Trace</label>
+            <label><input type="checkbox" checked (change)="toggleCheck('tcp', $event)" /> TCP 443</label>
+            <label><input type="checkbox" [checked]="selectedChecks().includes('scan')" [disabled]="!includeScan()" (change)="toggleCheck('scan', $event)" /> Port scan</label>
+          </div>
+        }
+        @if (kind() === 'network-diagnostic-bundle') {
+          <label class="flex items-center gap-2 text-text-muted"><input type="checkbox" [checked]="includeScan()" (change)="toggleScan($event)" /> Include a bounded port scan in guided collection</label>
+        }
+        <label class="flex flex-col gap-1 text-text-muted">Ports (comma-separated, up to 64)
+          <input class="rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="ports()" (input)="setText('ports', $event)" />
+        </label>
+        <label class="flex items-center gap-2 text-text-muted">Protocol
+          <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="protocol()" (change)="setChoice('protocol', $event)"><option value="tcp">TCP</option><option value="udp">UDP</option><option value="both">TCP and UDP</option></select>
+        </label>
+        <p class="text-text-muted">Probe budget: {{ scanCount() }}. Public CIDRs are allowed within the same hard limit. UDP silence means open or filtered.</p>
+      }
+      @if (kind() === 'dns-lookup' || kind() === 'reverse-dns' || kind() === 'dns-propagation') {
+        @if (kind() !== 'reverse-dns') {
+          <label class="flex items-center gap-2 text-text-muted">Record type
+            <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="recordType()" (change)="setChoice('recordType', $event)">
+              <option>A</option><option>AAAA</option><option>MX</option><option>TXT</option><option>SRV</option><option>NS</option><option>CNAME</option>
+            </select>
+          </label>
+        }
+        @if (kind() !== 'dns-propagation') {
+          <label class="flex items-center gap-2 text-text-muted">Transport
+            <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="transport()" (change)="setChoice('transport', $event)"><option value="classic">Classic DNS</option><option value="doh">DNS over HTTPS</option><option value="dot">DNS over TLS</option></select>
+          </label>
+        }
+        <label class="flex flex-col gap-1 text-text-muted">{{ kind() === 'dns-propagation' ? 'Optional fourth resolver' : 'Resolver (blank uses system or transport default)' }}
+          <input class="rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="resolver()" (input)="setText('resolver', $event)" />
+        </label>
+      }
+      @if (kind() === 'whois-lookup') {
+        <label class="flex flex-col gap-1 text-text-muted">Optional WHOIS server (bypasses RDAP)
+          <input class="rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="resolver()" (input)="setText('resolver', $event)" placeholder="whois.example.net" />
+        </label>
+      }
+      @if (kind() === 'local-network') {
+        <label class="flex items-center gap-2 text-text-muted">View
+          <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="localView()" (change)="setChoice('localView', $event)">
+            <option value="ports">Bound ports</option><option value="connections">Active connections</option><option value="processes">Listening processes</option><option value="neighbors">ARP / neighbor table</option><option value="routes">Route table</option><option value="interfaces">Interfaces</option><option value="local-ip">Local IP addresses</option>
+          </select>
+        </label>
+      }
+      @if (kind() === 'local-network') {
+        @if (isAdmin()) { <div class="rounded-sm border border-warning/50 bg-warning/5 p-2 text-warning">Administrator mode — the desktop app is running with elevated permissions.</div> }
+        @else {
+          <button type="button" class="self-start rounded-sm border border-border px-2 py-1 text-text" (click)="adminPrompt.set(true)">Relaunch as Administrator</button>
+          @if (adminPrompt()) {
+            <div class="rounded-sm border border-warning/50 bg-warning/5 p-3">
+              <p class="text-text-muted">Windows will ask for administrator permission. The current app will close only if elevation succeeds. No check runs automatically after relaunch.</p>
+              <div class="mt-2 flex gap-2"><button type="button" class="rounded-sm border border-warning px-2 py-1 text-warning" (click)="relaunchAdmin()">Request elevation</button><button type="button" class="rounded-sm border border-border px-2 py-1 text-text" (click)="adminPrompt.set(false)">Cancel</button></div>
+            </div>
+          }
+        }
+      }
+      @if (kind() === 'connectivity-tester' && connectivityMode() === 'http') {
+        <label class="flex items-center gap-2 text-text-muted">Method
+          <input class="w-28 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="method()" (input)="setText('method', $event)" />
+        </label>
+        <label class="flex flex-col gap-1 text-text-muted">Headers, one per line
+          <textarea class="min-h-20 rounded-sm border border-border bg-panel p-2 font-mono text-text" [value]="headers()" (input)="setText('headers', $event)"></textarea>
+        </label>
+        <label class="flex flex-col gap-1 text-text-muted">Optional request body (1 MB maximum)
+          <textarea class="min-h-20 rounded-sm border border-border bg-panel p-2 font-mono text-text" [value]="body()" (input)="setText('body', $event)"></textarea>
+        </label>
+        <p class="text-text-muted">TLS verification stays enabled. Responses are capped at 50 MB; non-GET/HEAD redirects are not followed automatically.</p>
+      }
+      @if (kind() === 'ping' || kind() === 'traceroute' || kind() === 'tcp-port-tester' || kind() === 'udp-port-tester' || kind() === 'port-scanner' || kind() === 'hostname-resolver' || kind() === 'latency-monitor' || kind() === 'packet-loss' || kind() === 'mtu-discovery' || kind() === 'route-comparison' || kind() === 'network-diagnostic-bundle') {
+        <label class="flex items-center gap-2 text-text-muted">Address family
+          <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="family()" (change)="setChoice('family', $event)"><option value="auto">Auto</option><option value="ipv4">IPv4</option><option value="ipv6">IPv6</option></select>
+        </label>
+      }
+
+      <div class="flex items-center gap-2">
+        <button type="button" class="rounded-sm border border-accent px-3 py-1 text-accent hover:bg-accent/10 disabled:opacity-40" [disabled]="running()" (click)="run()">{{ running() ? 'Running…' : 'Run check' }}</button>
+        @if (running()) { <button type="button" class="rounded-sm border border-border px-3 py-1 text-text" (click)="stop()">Cancel</button> }
+      </div>
+      @if (preview(); as pending) {
+        <div class="rounded-sm border border-warning/50 bg-warning/5 p-3">
+          <div class="font-semibold text-warning">Review before running</div>
+          <pre class="mt-2 max-h-48 overflow-auto whitespace-pre-wrap font-mono text-text">{{ pending.details | json }}</pre>
+          <p class="my-2 text-text-muted">This action sends probes or an HTTP request to the stated target. A scan can contact every listed host and port.</p>
+          <div class="flex gap-2"><button type="button" class="rounded-sm border border-warning px-3 py-1 text-warning" (click)="confirm()">Confirm and run</button><button type="button" class="rounded-sm border border-border px-3 py-1 text-text" (click)="cancelPreview()">Back</button></div>
+        </div>
+      }
+      @if (progress(); as p) { <div class="text-text-muted">Progress: {{ p.completed }} / {{ p.total }}</div> }
+      @if (error()) { <div role="alert" class="rounded-sm border border-error/50 bg-error/5 p-2 text-error">{{ error() }}</div> }
+      @if (kind() === 'latency-monitor' && graphPoints()) {
+        <svg viewBox="0 0 600 110" class="h-32 w-full rounded-sm border border-border bg-panel" role="img" aria-label="Round-trip latency over time"><polyline fill="none" stroke="currentColor" stroke-width="2" class="text-accent" [attr.points]="graphPoints()" /></svg>
+      }
+      @if (result() !== null) {
+        <div class="flex items-center gap-2"><span class="font-semibold text-text">Result</span>@if (latestRun()) { <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="saveLatest()">Save to History</button> }<button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="copy()">Copy JSON</button>
+          @if (kind() === 'connectivity-tester') { <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="downloadResponse()">Download response</button> }
+        </div>
+        <pre class="max-h-[34rem] overflow-auto rounded-sm border border-border bg-panel p-3 font-mono text-xs text-text">{{ formattedResult() }}</pre>
+      }
+      @if (history.error()) { <div role="alert" class="text-error">{{ history.error() }}</div> }
+      @if (kind() === 'route-comparison') {
+        <div class="border-t border-border pt-3">
+          <h3 class="font-semibold text-text">Compare saved or current traces</h3>
+          @for (run of availableRuns(); track run.id) {
+            @if (run.request.kind === 'traceroute') {
+              <label class="flex items-center gap-2 py-0.5"><input type="checkbox" (change)="selectRun(run.id, $event)" />{{ run.request.target }} — {{ run.createdAt }}</label>
+            }
+          }
+          <button type="button" class="mt-2 rounded-sm border border-border px-3 py-1 text-text" (click)="compareSelected()">Compare two selected traces</button>
+        </div>
+      }
+      @if (history.saved().length) {
+        <details class="border-t border-border pt-3">
+          <summary class="cursor-pointer text-text">Saved network runs ({{ history.saved().length }})</summary>
+          @for (run of history.saved(); track run.id) {
+            <div class="flex items-center gap-2 py-1">
+              <span class="flex-1 text-text-muted">{{ run.request.kind }} — {{ run.request.target || 'local machine' }} — {{ run.createdAt }}</span>
+              <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="restoreRun(run)">View</button>
+              <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="history.delete(run.id)">Delete</button>
+            </div>
+          }
+          <button type="button" class="mt-2 rounded-sm border border-border px-2 py-0.5 text-text" (click)="history.clear()">Clear saved runs</button>
+        </details>
+      }
+      @if (kind() === 'network-diagnostic-bundle') {
+        <div class="border-t border-border pt-3">
+          <h3 class="font-semibold text-text">Export selected runs</h3>
+          <p class="mb-2 text-text-muted">Review the selected results: exports can contain hostnames, private IPs, process details, and other sensitive data. HTTP bodies are excluded.</p>
+          @for (run of availableRuns(); track run.id) {
+            <label class="flex items-center gap-2 py-0.5"><input type="checkbox" (change)="selectRun(run.id, $event)" />{{ run.request.kind }} — {{ run.request.target || 'local machine' }} — {{ run.createdAt }}</label>
+          }
+          <label class="mt-2 flex items-center gap-2 text-text-muted"><input type="checkbox" [checked]="includeHttpBodies()" (change)="toggleHttpBodies($event)" /> Include the latest HTTP response body if selected (up to 50 MB)</label>
+          <button type="button" class="mt-2 rounded-sm border border-accent px-3 py-1 text-accent" (click)="exportBundle()">Review export fields</button>
+          @if (exportPreview(); as reviewed) {
+            <div class="mt-2 rounded-sm border border-warning/50 bg-warning/5 p-3">
+              <p class="text-warning">Review these fields. The ZIP may reveal private IPs, hostnames, and process details.</p>
+              <pre class="mt-2 max-h-48 overflow-auto whitespace-pre-wrap font-mono text-text">{{ reviewed.fields | json }}</pre>
+              <button type="button" class="mt-2 rounded-sm border border-warning px-3 py-1 text-warning" (click)="confirmExport()">Export ZIP</button>
+              <button type="button" class="ml-2 rounded-sm border border-border px-3 py-1 text-text" (click)="exportPreview.set(null)">Back</button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</app-tool-shell>

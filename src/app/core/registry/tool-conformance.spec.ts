@@ -32,6 +32,7 @@ const VALID_CONSEQUENCE_CLASSES: readonly ConsequenceClass[] = [
   'network-scanning',
   'database-write',
   'secret-management',
+  'remote-write',
 ];
 
 // Web Capability Matrix (Phase 26 Item 6): a runtime is "used" when non-spec source references
@@ -154,7 +155,9 @@ describe('Tool conformance harness', () => {
           (definition.capabilities ?? []).flatMap((c) => (c.kind === 'platform' ? [c.id] : [])),
         );
         for (const id of PLATFORM_CAPABILITY_IDS) {
-          const uses = new RegExp(`import \\{[^}]*\\b${PLATFORM_CAPABILITIES[id].service}\\b`).test(source);
+          const uses = id === 'native-network'
+            ? source.includes('NetworkWorkbench')
+            : new RegExp(`import \\{[^}]*\\b${PLATFORM_CAPABILITIES[id].service}\\b`).test(source);
           expect(declaredPlatform.has(id), `${definition.id}: imports ${PLATFORM_CAPABILITIES[id].service} ⇔ declares '${id}'`).toBe(uses);
         }
         const declaredRuntimes = new Set(

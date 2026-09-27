@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { PersistenceService } from '../persistence/persistence.service';
 import { HistoryService } from '../history/history.service';
+import { NetworkRunHistoryService } from '../platform/network-run-history.service';
 
 /**
  * The one place "clear everything DUDE has saved on this device" goes through, so the sidebar's
@@ -12,9 +13,11 @@ import { HistoryService } from '../history/history.service';
 export class ClearAllDataService {
   private readonly persistence = inject(PersistenceService);
   private readonly history = inject(HistoryService);
+  private readonly networkHistory = inject(NetworkRunHistoryService);
 
   async clearAll(): Promise<void> {
     this.persistence.clearAll();
     await this.history.clearAll();
+    await this.networkHistory.clear();
   }
 }

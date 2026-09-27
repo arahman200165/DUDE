@@ -1,3 +1,4 @@
+import type { NetworkRequest, NetworkJobEvent, NetworkStartResult, NetworkPrepareResult } from './network-types';
 export interface NativeStat {
   readonly isFile: boolean;
   readonly isDirectory: boolean;
@@ -107,7 +108,14 @@ export interface DudeElectronBridge {
     stopSession(): Promise<{ readonly ok: true }>;
     participantCount(): Promise<number>;
   };
-  readonly update: {
+  readonly network: {
+    prepare(request: NetworkRequest): Promise<NetworkPrepareResult>;
+    start(request: NetworkRequest, token?: string): Promise<NetworkStartResult>;
+    cancel(jobId: string): Promise<boolean>;
+    adminStatus(): Promise<boolean>;
+    relaunchAsAdmin(): Promise<boolean>;
+    onEvent(callback: (event: NetworkJobEvent) => void): () => void;
+  };  readonly update: {
     checkForUpdates(): Promise<VoidResult>;
     quitAndInstall(): Promise<VoidResult>;
     downloadUpdate(): Promise<VoidResult>;

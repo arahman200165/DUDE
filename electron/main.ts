@@ -2,6 +2,7 @@ import { app, BrowserWindow } from 'electron';
 import { join, resolve } from 'node:path';
 import { startStaticServer } from './static-server';
 import { registerFsHandlers } from './fs-bridge';
+import { registerNetworkHandlers, cancelAllNetworkJobs } from './network-bridge';
 import { registerSecretsHandlers } from './secrets-bridge';
 import { registerLlmHandlers } from './llm-bridge';
 import { createTray, isAppQuitting, registerShellChromeHandlers } from './tray';
@@ -124,6 +125,7 @@ if (hasSingleInstanceLock) void app.whenReady().then(async () => {
     app.setAsDefaultProtocolClient('dude', process.execPath, [resolve(process.argv[1])]);
   }
   registerFsHandlers();
+  registerNetworkHandlers();
   registerSecretsHandlers();
   registerLlmHandlers();
   registerShellChromeHandlers();
@@ -148,5 +150,6 @@ app.on('window-all-closed', () => {
 app.on('will-quit', () => {
   unregisterAllHotkeys();
   closeAllFileWatches();
+  cancelAllNetworkJobs();
   stopCollabServerOnQuit();
 });

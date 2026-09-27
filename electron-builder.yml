@@ -24,6 +24,10 @@ files:
   - dist/dude/browser/**
   - package.json
 
+extraResources:
+  - from: build/network-icmp.exe
+    to: network-icmp.exe
+
 icon: build/icon.ico
 
 win:

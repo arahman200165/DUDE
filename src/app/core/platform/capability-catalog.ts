@@ -33,6 +33,11 @@ export const PLATFORM_CAPABILITIES: Readonly<Record<PlatformCapabilityId, Platfo
     description: 'Hosts a local collaboration session, optionally via a self-hosted relay.',
     service: 'CollabService',
   },
+  'native-network': {
+    label: 'Native network diagnostics',
+    description: 'Runs explicit network checks and reads local network state through the desktop bridge.',
+    service: 'NetworkDiagnosticsService',
+  },
   'secure-keychain': {
     label: 'OS keychain storage',
     description: 'Stores secrets encrypted by the operating system keychain (Electron safeStorage).',

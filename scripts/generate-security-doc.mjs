@@ -34,6 +34,7 @@ const CONSEQUENCE_LABELS = {
   'network-scanning': 'Network Scanning',
   'database-write': 'Database Write',
   'secret-management': 'Secret Management',
+  'remote-write': 'Remote Write',
 };
 
 // Mirrors src/app/core/platform/capability-catalog.ts's labels (kept in sync by security-doc.spec.ts).
@@ -43,6 +44,7 @@ const PLATFORM_CAPABILITY_LABELS = {
   'llm-proxy': 'Local LLM proxy',
   'collab-relay': 'Collaboration relay',
   'secure-keychain': 'OS keychain storage',
+  'native-network': 'Native network diagnostics',
 };
 const RUNTIME_LABELS = {
   pyodide: 'Pyodide (Python/WASM)',

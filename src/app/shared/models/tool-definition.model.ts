@@ -44,7 +44,8 @@ export type ConsequenceClass =
   | 'registry'
   | 'network-scanning'
   | 'database-write'
-  | 'secret-management';
+  | 'secret-management'
+  | 'remote-write';
 
 /**
  * The tool's primary text input can be loaded straight from a text file (Universal File Input —
