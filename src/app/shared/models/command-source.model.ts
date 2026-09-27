@@ -2,7 +2,7 @@ import { InjectionToken } from '@angular/core';
 import { ToolCategory } from './tool-category.model';
 
 /** Declared palette actions. Sources may read signals when commands() is called. */
-export type CommandKind = 'tool' | 'pipeline' | 'workspace' | 'project' | 'native' | 'recent' | 'preference';
+export type CommandKind = 'tool' | 'navigation' | 'pipeline' | 'workspace' | 'project' | 'native' | 'recent' | 'preference';
 
 export interface PaletteCommand {
   readonly id: string;

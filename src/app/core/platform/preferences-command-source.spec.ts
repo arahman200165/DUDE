@@ -19,7 +19,8 @@ describe('PreferencesCommandSource', () => {
 
   it('omits desktop-only commands on web', () => {
     expect(source.commands().some((c) => c.id === 'preference:toggle-launch-on-login')).toBe(false);
-    expect(source.commands().some((c) => c.id === 'preference:open-settings')).toBe(true);
+    // "Open Settings" moved to the navigation source ("Settings" under Go to).
+    expect(source.commands().some((c) => c.id === 'preference:open-settings')).toBe(false);
   });
 
   it('the reopen-on-restart toggle command flips the live preference and relabels itself', async () => {

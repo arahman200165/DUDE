@@ -11,12 +11,14 @@ import { NATIVE_COMMAND_SOURCE_PROVIDERS } from './core/platform/native-command-
 import { RECENTS_COMMAND_SOURCE_PROVIDERS } from './core/recents/recents-command-source';
 import { PREFERENCES_COMMAND_SOURCE_PROVIDERS } from './core/platform/preferences-command-source';
 import { provideStorageMigrations } from './core/persistence/storage-migrations';
+import { NAVIGATION_COMMAND_SOURCE_PROVIDERS } from './shell/navigation-command-source';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideStorageMigrations(),
     ...TOOL_COMMAND_SOURCE_PROVIDERS,
+    ...NAVIGATION_COMMAND_SOURCE_PROVIDERS,
     ...WORKSPACE_COMMAND_SOURCE_PROVIDERS,
     ...PROJECT_COMMAND_SOURCE_PROVIDERS,
     ...PIPELINE_COMMAND_SOURCE_PROVIDERS,

@@ -1,6 +1,6 @@
 import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 import { NATIVE_COMMAND_SOURCE_PROVIDERS, NativeCommandSource } from './native-command-source';
 import { fakeElectronBridge } from './testing/fake-electron-bridge';
@@ -56,5 +56,15 @@ describe('NativeCommandSource', () => {
     await source.commands().find((c) => c.id === 'native:check-updates')!.execute();
 
     expect(checkForUpdates).toHaveBeenCalled();
+  });
+
+  it('Manage Secrets opens the Settings AI / LLM Provider section', async () => {
+    Object.defineProperty(window, 'dude', { value: fakeElectronBridge(), configurable: true });
+    TestBed.configureTestingModule({ providers: [provideRouter(routes), ...NATIVE_COMMAND_SOURCE_PROVIDERS] });
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+
+    await TestBed.inject(NativeCommandSource).commands().find((c) => c.id === 'native:manage-secrets')!.execute();
+
+    expect(navigate).toHaveBeenCalledWith('/settings/ai');
   });
 });

@@ -3,11 +3,12 @@ import { CATEGORY_METADATA } from '../../shared/models/tool-category.model';
 
 /** Fixed tie breaker across command kinds; each source keeps its own order. */
 export const COMMAND_KIND_ORDER: readonly CommandKind[] = [
-  'tool', 'pipeline', 'workspace', 'project', 'native', 'recent', 'preference',
+  'tool', 'navigation', 'pipeline', 'workspace', 'project', 'native', 'recent', 'preference',
 ];
 
 export const COMMAND_KIND_LABEL: Record<CommandKind, string> = {
   tool: 'Tools',
+  navigation: 'Go to',
   pipeline: 'Pipelines',
   workspace: 'Workspaces',
   project: 'Projects',
