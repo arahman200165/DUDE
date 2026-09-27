@@ -23,6 +23,7 @@ export const manifest: ToolDefinition = {
     'go re2',
   ],
   route: '/tools/regex',
+  pwaShortcut: { order: 4 },
   load: () => import('./regex').then((m) => m.Regex),
   capabilities: [
     { kind: 'platform', id: 'llm-proxy', web: 'unavailable', note: 'AI-assisted explain/generate via a local LLM proxy, no cloud key required' },

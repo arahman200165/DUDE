@@ -1,4 +1,6 @@
 import { Component, HostListener, computed, inject } from '@angular/core';
+import { PwaInstallService } from '../../core/pwa/pwa-install.service';
+import { PwaLaunchService } from '../../core/pwa/pwa-launch.service';
 import { RouterOutlet } from '@angular/router';
 import { Sidebar } from '../sidebar/sidebar';
 import { CommandPaletteService } from '../command-palette/command-palette.service';
@@ -28,7 +30,9 @@ export class ShellLayout {
   protected readonly deepLink = inject(DeepLinkService);
   protected readonly quickLauncher = inject(QuickLauncherService);
 
-  constructor() { inject(NativeMenuService); void this.onboarding.initialize(); }
+  protected readonly pwaLaunch = inject(PwaLaunchService);
+
+  constructor() { inject(NativeMenuService); inject(PwaInstallService); void this.onboarding.initialize(); }
 
   protected readonly offline = computed(() => !this.connectivity.online());
 

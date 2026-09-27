@@ -50,6 +50,7 @@ export class NavigationCommandSource implements CommandSource {
       kind: 'navigation',
       title: `Settings: ${section.title}`,
       keywords: section.keywords,
+      desktopOnly: section.desktopOnly,
       execute: go(`/settings/${section.id}`),
     }));
 
@@ -58,6 +59,7 @@ export class NavigationCommandSource implements CommandSource {
       kind: 'navigation',
       title: `Settings: ${section.toolTitle} — ${section.title}`,
       keywords: section.keywords ?? [],
+      desktopOnly: section.desktopOnly ?? false,
       execute: go(`/settings/tools/${section.toolId}`),
     }));
 

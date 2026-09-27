@@ -2,6 +2,15 @@
   <h1 class="mb-3 font-mono text-sm font-semibold text-text">Dashboard</h1>
 
   <app-home-paste-drop-hero />
+  @if (pwa.showHint()) {
+    <div class="mb-3 flex flex-wrap items-center gap-2 rounded-sm border border-accent/40 bg-accent/5 px-3 py-1.5 text-ui text-text" role="status">
+      <span class="flex-1">Install DUDE as an app for its own window, jump-list shortcuts, and "Open with DUDE" for files.</span>
+      <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui-xs text-accent hover:bg-accent/10" (click)="pwa.install()">Install</button>
+      <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui-xs text-text-muted hover:bg-panel-elevated" (click)="pwa.hintDismissed.set(true)">
+        Not now
+      </button>
+    </div>
+  }
 
   @if (platform.isDesktop()) {
     <button
@@ -34,6 +43,20 @@
     [value]="query()"
     (input)="onQueryInput($event)"
   />
+  <div class="-mt-2 mb-3 flex items-center gap-1" role="radiogroup" aria-label="Filter by platform">
+    @for (facet of facets; track facet.id) {
+      <button
+        type="button"
+        role="radio"
+        [attr.aria-checked]="platformFacet() === facet.id"
+        class="rounded-sm border px-1.5 py-0.5 text-ui-xs"
+        [class]="platformFacet() === facet.id ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border text-text-muted hover:text-text'"
+        (click)="platformFacet.set(facet.id)"
+      >
+        {{ facet.label }}
+      </button>
+    }
+  </div>
 
   @if (hasResults()) {
     <div class="grid grid-cols-4 gap-2">
@@ -64,6 +87,7 @@
               >
                 <span class="h-1 w-1 shrink-0 rounded-full" [class]="'bg-' + meta[category].colorToken"></span>
                 {{ tool.title }}
+                <app-desktop-feature-marker [toolId]="tool.id" />
               </a>
             }
           } @else {

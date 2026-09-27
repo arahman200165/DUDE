@@ -1,4 +1,5 @@
 import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
+import { DesktopOnlyControl } from '../../shared/components/desktop-only-control/desktop-only-control';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { BusyIndicator } from '../../shared/components/busy-indicator/busy-indicator';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
@@ -22,7 +23,7 @@ const AUTO_TIMEOUT_MS = 3000;
 
 @Component({
   selector: 'app-regex',
-  imports: [ToolShell, BusyIndicator, ErrorPanel],
+  imports: [ToolShell, BusyIndicator, ErrorPanel, DesktopOnlyControl],
   templateUrl: './regex.html',
 })
 export class Regex implements OnDestroy {

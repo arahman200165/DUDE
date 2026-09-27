@@ -23,7 +23,9 @@
           chat previews. It never reaches a server.
         </p>
       }
-      <ng-content />
+      @if (desktopLink(); as link) {
+        <app-open-in-desktop variant="menuitem" [link]="link" />
+      }
       @if (status()) {
         <p class="px-2 text-ui-xs text-info" role="status">{{ status() }}</p>
       }

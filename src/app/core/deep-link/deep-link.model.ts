@@ -31,3 +31,16 @@ export function parseDudeDeepLink(raw: string): DudeDeepLink | null {
   }
   return null;
 }
+
+/**
+ * The inverse of `parseDudeDeepLink` (Phase 26 Item 8, "Open in Desktop DUDE"). It only emits links
+ * the strict parser accepts, returning `null` for an id it would reject, so a web page can never
+ * build a link the desktop app then refuses.
+ */
+export function formatDudeDeepLink(link: DudeDeepLink): string | null {
+  if (link.action === 'open' && link.target === 'settings') {
+    if (link.section === undefined) return 'dude://open/settings';
+    return ID_PATTERN.test(link.section) ? `dude://open/settings/${link.section}` : null;
+  }
+  return ID_PATTERN.test(link.id) ? `dude://${link.action}/${link.target}/${link.id}` : null;
+}

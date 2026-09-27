@@ -9,7 +9,15 @@ import { ProjectService } from '../project/project.service';
 import { PipelineStoreService } from '../pipeline/pipeline-store.service';
 import { parseDudeDeepLink } from './deep-link.model';
 
-/** Renderer-only interpretation of the raw strings forwarded by Electron. */
+/** Shown when a pipeline/project link names an id this install doesn't have (Phase 26 Item 8). */
+export const PER_INSTALL_ID_HINT =
+  'Pipeline and project IDs are per install. Export a bundle where it lives, then import it here under Settings › Data & Privacy.';
+
+/**
+ * Renderer-only interpretation of `dude://` links: forwarded by Electron on desktop, and by the
+ * installed PWA's `web+dude://` protocol handler on the web (`accept`, Phase 26 Item 9). `run`
+ * links only ever navigate with a pending-confirmation flag. Nothing executes from a link alone.
+ */
 @Injectable({ providedIn: 'root' })
 export class DeepLinkService {
   private readonly platform = inject(PlatformService);
@@ -25,12 +33,17 @@ export class DeepLinkService {
   private processing = false;
 
   constructor() {
-    if (!this.platform.isDesktop()) return;
-    window.dude!.deepLink.onItem((url) => this.pending.update((items) => [...items, url]));
-    window.dude!.deepLink.ready();
     effect(() => {
       if (this.onboarding.initialized() && !this.onboarding.visible() && this.pending().length) void this.flush();
     });
+    if (!this.platform.isDesktop()) return;
+    window.dude!.deepLink.onItem((url) => this.accept(url));
+    window.dude!.deepLink.ready();
+  }
+
+  /** Queues a raw `dude://` link for the same strict parse + navigation, on either platform. */
+  accept(raw: string): void {
+    this.pending.update((items) => [...items, raw]);
   }
 
   private async flush(): Promise<void> {
@@ -44,7 +57,7 @@ export class DeepLinkService {
         if (!link) { this.error.set('This DUDE link is invalid.'); continue; }
         if (link.action === 'run') {
           if (link.target === 'pipeline') {
-            if (!this.pipelines.getById(link.id)) { this.error.set('The linked pipeline was not found.'); continue; }
+            if (!this.pipelines.getById(link.id)) { this.error.set(`The linked pipeline isn't on this install. ${PER_INSTALL_ID_HINT}`); continue; }
             await this.router.navigateByUrl('/', { skipLocationChange: true });
             await this.router.navigate(['/pipelines', link.id], { queryParams: { confirmRun: '1' } });
           } else {
@@ -68,11 +81,11 @@ export class DeepLinkService {
           this.templates.apply(template);
           await this.router.navigateByUrl('/workspace');
         } else if (link.target === 'project') {
-          if (!this.projects.getById(link.id)) { this.error.set('The linked project was not found.'); continue; }
+          if (!this.projects.getById(link.id)) { this.error.set(`The linked project isn't on this install. ${PER_INSTALL_ID_HINT}`); continue; }
           this.projects.activate(link.id);
           await this.router.navigateByUrl('/workspace');
         } else {
-          if (!this.pipelines.getById(link.id)) { this.error.set('The linked pipeline was not found.'); continue; }
+          if (!this.pipelines.getById(link.id)) { this.error.set(`The linked pipeline isn't on this install. ${PER_INSTALL_ID_HINT}`); continue; }
           await this.router.navigateByUrl('/', { skipLocationChange: true });
           await this.router.navigate(['/pipelines', link.id]);
         }

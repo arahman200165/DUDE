@@ -130,6 +130,12 @@ export interface ToolDefinition {
    * about *file types this tool can open*, not general desktop-only capability.
    */
   readonly capabilities?: readonly ToolCapability[];
+  /**
+   * Listed as a jump-list shortcut of the installed PWA (Phase 26 Item 9), generated into
+   * `manifest.webmanifest` by `scripts/generate-web-manifest.mjs` in ascending `order`. Browsers
+   * show only a handful, so conformance caps opt-ins at 10. Reserve it for the most-used tools.
+   */
+  readonly pwaShortcut?: { readonly order: number };
   /** A Settings section this tool contributes — see `ToolSettingsSection`. */
   readonly settingsSection?: ToolSettingsSection;
   /** Legacy storage keys moved into this tool's namespace at bootstrap — see `ToolStorageMigration`. */

@@ -20,6 +20,14 @@
         }
       })(window.location);
     </script>
+    <script type="text/javascript">
+      // Phase 26 Item 9: Chromium can fire beforeinstallprompt before Angular boots. Keep it for
+      // PwaInstallService so DUDE's own "Install app" button still works.
+      window.addEventListener('beforeinstallprompt', function (event) {
+        event.preventDefault();
+        window.__dudeInstallPrompt = event;
+      });
+    </script>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />

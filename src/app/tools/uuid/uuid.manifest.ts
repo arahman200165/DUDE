@@ -21,6 +21,7 @@ export const manifest: ToolDefinition = {
     'v7',
   ],
   route: '/tools/uuid',
+  pwaShortcut: { order: 8 },
   load: () => import('./uuid').then((m) => m.Uuid),
   status: 'verified',
   verification: {

@@ -19,6 +19,12 @@
         <button type="button" class="ml-3 underline" (click)="desktopOpen.error.set('')">Dismiss</button>
       </div>
     }
+    @if (pwaLaunch.error()) {
+      <div class="fixed bottom-4 right-4 z-50 max-w-lg rounded border border-error/50 bg-panel p-3 text-ui text-error" role="alert">
+        {{ pwaLaunch.error() }}
+        <button type="button" class="ml-3 underline" (click)="pwaLaunch.error.set('')">Dismiss</button>
+      </div>
+    }
     @if (deepLink.error()) {
       <div class="fixed bottom-20 right-4 z-50 max-w-lg rounded border border-error/50 bg-panel p-3 text-ui text-error" role="alert">
         {{ deepLink.error() }}

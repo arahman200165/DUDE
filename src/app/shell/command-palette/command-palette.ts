@@ -1,4 +1,6 @@
 import { AfterViewInit, Component, ElementRef, ViewChild, computed, inject, signal } from '@angular/core';
+import { PlatformService } from '../../core/platform/platform.service';
+import { DesktopFeatureMarker } from '../../shared/components/desktop-feature-marker/desktop-feature-marker';
 import { Router } from '@angular/router';
 import { CdkTrapFocus } from '@angular/cdk/a11y';
 import { CATEGORY_METADATA, ToolCategory, TOOL_CATEGORIES } from '../../shared/models/tool-category.model';
@@ -23,7 +25,7 @@ const GROUP_ORDER = [
 
 @Component({
   selector: 'app-command-palette',
-  imports: [CdkTrapFocus, CategoryIcon, OfflineAvailability],
+  imports: [CdkTrapFocus, CategoryIcon, OfflineAvailability, DesktopFeatureMarker],
   templateUrl: './command-palette.html',
 })
 export class CommandPalette implements AfterViewInit {
@@ -31,6 +33,7 @@ export class CommandPalette implements AfterViewInit {
   private readonly paletteService = inject(CommandPaletteService);
   private readonly router = inject(Router);
   private readonly stepRegistry = inject(PipelineStepRegistryService);
+  protected readonly isDesktop = inject(PlatformService).isDesktop();
 
   @ViewChild('searchInput') private readonly searchInput?: ElementRef<HTMLInputElement>;
 

@@ -1,4 +1,5 @@
 import { Component, computed, inject } from '@angular/core';
+import { DesktopFeatureMarker } from '../../shared/components/desktop-feature-marker/desktop-feature-marker';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { CATEGORY_METADATA, TOOL_CATEGORIES } from '../../shared/models/tool-category.model';
 import { ToolRegistryService } from '../../core/registry/tool-registry.service';
@@ -9,7 +10,7 @@ import { OfflineAvailability } from '../../shared/components/offline-badge/offli
 
 @Component({
   selector: 'app-sidebar',
-  imports: [RouterLink, RouterLinkActive, CategoryIcon, OfflineAvailability],
+  imports: [RouterLink, RouterLinkActive, CategoryIcon, OfflineAvailability, DesktopFeatureMarker],
   templateUrl: './sidebar.html',
 })
 export class Sidebar {

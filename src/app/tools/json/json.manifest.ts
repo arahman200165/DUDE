@@ -20,6 +20,7 @@ export const manifest: ToolDefinition = {
     'repair',
   ],
   route: '/tools/json',
+  pwaShortcut: { order: 1 },
   load: () => import('./json').then((m) => m.Json),
   status: 'verified',
   verification: {

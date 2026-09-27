@@ -21,6 +21,8 @@ import { PipelineRun } from '../../../core/pipeline/pipeline-run';
 import { canChain } from '../../../core/pipeline/pipeline-compatibility';
 import { validatePipelineChain } from '../../../core/pipeline/pipeline-validation';
 import { PipelineStepGateService } from '../../../core/pipeline/pipeline-step-gate.service';
+import { OpenInDesktop } from '../../../shared/components/open-in-desktop/open-in-desktop';
+import { DudeDeepLink } from '../../../core/deep-link/deep-link.model';
 import {
   Pipeline,
   PipelineStepRef,
@@ -34,7 +36,7 @@ const INITIAL_INPUT_TYPE = 'text' as const;
 
 @Component({
   selector: 'app-pipeline-builder',
-  imports: [ErrorPanel, NgTemplateOutlet, DecimalPipe, RouterLink, CodeSandboxHost],
+  imports: [ErrorPanel, NgTemplateOutlet, DecimalPipe, RouterLink, CodeSandboxHost, OpenInDesktop],
   templateUrl: './pipeline-builder.html',
 })
 export class PipelineBuilder {
@@ -74,6 +76,9 @@ export class PipelineBuilder {
       }),
     ),
   );
+
+  /** Offered alongside blocked steps and in the header on the web (Phase 26 Items 8 and 13). */
+  protected readonly desktopLink = computed<DudeDeepLink>(() => ({ action: 'open', target: 'pipeline', id: this.pipeline().id }));
 
   protected readonly canRun = computed(() => this.registryReady() && this.validation().valid && this.pipeline().steps.length > 0);
 

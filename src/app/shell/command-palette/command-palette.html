@@ -55,6 +55,11 @@
                 <span class="h-1 w-1 shrink-0 rounded-full" [class]="'bg-' + meta[category].colorToken"></span>
               }
               <span class="flex-1">{{ command.title }}</span>
+              @if (command.kind === 'tool') {
+                <app-desktop-feature-marker [toolId]="command.toolId" />
+              } @else if (command.desktopOnly && !isDesktop) {
+                <span class="shrink-0 rounded-sm border border-border px-1 text-ui-xs text-text-muted" title="Opens a desktop-only feature">Desktop</span>
+              }
               @if (canQuickRun(command)) {
                 <span
                   class="shrink-0 rounded-sm border border-accent/40 px-1 text-ui-xs text-accent hover:bg-accent/10"

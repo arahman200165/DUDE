@@ -54,6 +54,7 @@
           Collaborate{{ collabRole() ? ' (' + collabParticipantCount() + ')' : '' }}
         </button>
       }
+      <app-desktop-only-control capability="collab-relay" label="Collaborate" />
       <app-open-text-file #open [text]="source()" (textLoaded)="onFileLoaded($event)" />
       <app-save-text-file [text]="source()" [source]="open" label="Save .md…" />
       <button type="button" class="rounded-sm border border-border px-1.5 py-0.5 hover:bg-panel-elevated" (click)="copyHtml()">Copy HTML</button>

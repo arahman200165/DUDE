@@ -1,4 +1,5 @@
-import { parseDudeDeepLink } from './deep-link.model';
+import fc from 'fast-check';
+import { DudeDeepLink, formatDudeDeepLink, parseDudeDeepLink } from './deep-link.model';
 
 describe('parseDudeDeepLink', () => {
   it('accepts only the declared open and run shapes', () => {
@@ -21,5 +22,30 @@ describe('parseDudeDeepLink', () => {
       'dude://open/tool/../json', 'dude://open/unknown/json', 'dude://run/tool/json',
       `dude://open/tool/${'x'.repeat(101)}`,
     ]) expect(parseDudeDeepLink(raw)).toBeNull();
+  });
+});
+
+describe('formatDudeDeepLink', () => {
+  const idArb = fc.stringMatching(/^[a-zA-Z0-9_-]{1,100}$/);
+  const linkArb: fc.Arbitrary<DudeDeepLink> = fc.oneof(
+    fc.record({ action: fc.constant('open' as const), target: fc.constantFrom('tool', 'workspace-template', 'project', 'pipeline'), id: idArb }),
+    fc.record({ action: fc.constant('run' as const), target: fc.constantFrom('pipeline', 'quick-run'), id: idArb }),
+    fc.record({ action: fc.constant('open' as const), target: fc.constant('settings' as const), section: idArb }),
+    fc.constant({ action: 'open' as const, target: 'settings' as const }),
+  );
+
+  it('round-trips every well-formed link through the strict parser', () => {
+    fc.assert(
+      fc.property(linkArb, (link) => {
+        const raw = formatDudeDeepLink(link);
+        return raw !== null && JSON.stringify(parseDudeDeepLink(raw)) === JSON.stringify(link);
+      }),
+    );
+  });
+
+  it('refuses ids the parser would reject, instead of emitting a link desktop refuses', () => {
+    expect(formatDudeDeepLink({ action: 'open', target: 'tool', id: '../json' })).toBeNull();
+    expect(formatDudeDeepLink({ action: 'open', target: 'tool', id: 'a/b' })).toBeNull();
+    expect(formatDudeDeepLink({ action: 'open', target: 'settings', section: 'tools/x' })).toBeNull();
   });
 });

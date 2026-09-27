@@ -1,6 +1,8 @@
 import { Component, ElementRef, computed, inject, input, signal } from '@angular/core';
 import { ShareLinkService } from '../../../core/share/share-link.service';
 import { ToolDefinition } from '../../models/tool-definition.model';
+import { DudeDeepLink } from '../../../core/deep-link/deep-link.model';
+import { OpenInDesktop } from '../open-in-desktop/open-in-desktop';
 
 /**
  * ToolShell's "Share" menu (DUDE_PRD.md §21 Phase 26 Item 12). "Copy link" always copies the bare,
@@ -9,6 +11,7 @@ import { ToolDefinition } from '../../models/tool-definition.model';
  */
 @Component({
   selector: 'app-tool-share-menu',
+  imports: [OpenInDesktop],
   templateUrl: './tool-share-menu.html',
   host: {
     '(document:click)': 'onDocumentClick($event)',
@@ -23,6 +26,10 @@ export class ToolShareMenu {
 
   protected readonly open = signal(false);
   protected readonly status = signal<string | null>(null);
+  protected readonly desktopLink = computed<DudeDeepLink | null>(() => {
+    const definition = this.definition();
+    return definition ? { action: 'open', target: 'tool', id: definition.id } : null;
+  });
   protected readonly canShareInput = computed(() => {
     const definition = this.definition();
     return !!definition && this.share.canShareInput(definition.id);

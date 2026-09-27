@@ -7,6 +7,7 @@ export const manifest: ToolDefinition = {
   category: 'text',
   keywords: ['diff', 'compare', 'text', 'changes', 'delta'],
   route: '/tools/diff',
+  pwaShortcut: { order: 5 },
   load: () => import('./diff').then((m) => m.Diff),
   status: 'verified',
   verification: {

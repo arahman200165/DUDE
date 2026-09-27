@@ -1,0 +1,33 @@
+@if (available()) {
+  <span class="relative inline-flex flex-col">
+    <button
+      type="button"
+      [attr.role]="variant() === 'menuitem' ? 'menuitem' : null"
+      [class]="
+        variant() === 'menuitem'
+          ? 'rounded-sm px-2 py-1 text-left text-ui text-text hover:bg-panel'
+          : 'rounded border border-border px-1.5 py-0.5 text-ui-xs text-text-muted hover:border-accent hover:text-accent'
+      "
+      title="Open this in the Windows desktop app (navigation only, nothing is sent)"
+      (click)="start()"
+    >
+      Open in Desktop DUDE
+    </button>
+    @if (confirmingPerInstall()) {
+      <span class="mt-1 flex max-w-72 flex-col gap-1 rounded-sm border border-border bg-panel-elevated p-2 text-ui-xs text-text-muted" role="alertdialog">
+        {{ link().target === 'pipeline' ? 'Pipeline' : 'Project' }} IDs are per install, so Desktop DUDE only has this one if you've
+        moved it there. Export a bundle first, then import it in Desktop DUDE.
+        <span class="flex gap-2">
+          <a routerLink="/settings/data" class="text-accent hover:underline">Export bundle…</a>
+          <button type="button" class="text-text hover:underline" (click)="openAnyway()">Open anyway</button>
+        </span>
+      </span>
+    }
+    @if (result() === 'not-detected') {
+      <span class="mt-1 max-w-72 text-ui-xs text-text-muted" role="status">
+        Desktop DUDE didn't open.
+        <a [href]="releasesUrl" target="_blank" rel="noopener" class="text-accent hover:underline">Get Desktop DUDE</a>
+      </span>
+    }
+  </span>
+}

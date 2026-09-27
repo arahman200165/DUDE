@@ -6,6 +6,34 @@
       inputs, preferences, workspaces, pipelines, and History are never touched here (see Data &amp; Privacy for those).
     </p>
 
+    <!-- Install -->
+    <div data-setting class="flex flex-col gap-2">
+      <h3 class="text-ui-sm font-semibold text-text">Install</h3>
+      @if (pwa.installed()) {
+        <p class="text-ui text-success">DUDE is installed as an app on this device.</p>
+      } @else if (pwa.canInstall()) {
+        <p class="text-ui text-text-muted">
+          Install the web companion as an app: its own window, an entry in your app list, jump-list shortcuts to common tools,
+          and "Open with DUDE" for supported file types. Still zero-install: nothing but this site's files.
+        </p>
+        <button type="button" class="w-fit rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10" (click)="install()">
+          Install app
+        </button>
+      } @else {
+        <p class="text-ui text-text-muted">
+          This browser hasn't offered installation. Use a Chromium-based browser's install option in the address bar or menu.
+        </p>
+      }
+      <label class="flex items-center gap-2 text-ui text-text">
+        <input type="checkbox" class="accent-accent" [checked]="handoff.desktopInstalled()" (change)="handoff.desktopInstalled.set($any($event.target).checked)" />
+        I have Desktop DUDE installed (show "Open in Desktop DUDE" in each tool's header)
+      </label>
+      <p class="text-ui-xs text-text-muted">
+        Desktop DUDE is the full Windows workbench.
+        <a [href]="releasesUrl" target="_blank" rel="noopener" class="text-accent hover:underline">Download it from GitHub Releases</a>.
+      </p>
+    </div>
+
     <!-- Storage -->
     <div data-setting class="flex flex-col gap-2">
       <h3 class="text-ui-sm font-semibold text-text">Storage</h3>

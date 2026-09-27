@@ -23,6 +23,7 @@ export const manifest: ToolDefinition = {
     'imf-fixdate',
   ],
   route: '/tools/unix-timestamp',
+  pwaShortcut: { order: 7 },
   load: () => import('./unix-timestamp').then((m) => m.UnixTimestamp),
   status: 'verified',
   verification: {

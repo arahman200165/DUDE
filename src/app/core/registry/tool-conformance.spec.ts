@@ -132,6 +132,20 @@ describe('Tool conformance harness', () => {
         }
       });
 
+      // Desktop-Only Feature Badges (Phase 26 Item 7): a feature that's absent on the web must be
+      // visibly badged there, not silently hidden. Every `web: 'unavailable'` capability renders an
+      // <app-desktop-only-control capability="…"> stand-in in the tool's template.
+      it("renders a desktop-only stand-in for each capability that's unavailable on the web", () => {
+        const unavailable = (definition.capabilities ?? []).flatMap((c) => (c.kind === 'platform' && c.web === 'unavailable' ? [c.id] : []));
+        if (!unavailable.length) return;
+        const template = readFileSync(resolve(process.cwd(), 'src/app/tools', definition.id, `${definition.id}.html`), 'utf8');
+        for (const id of unavailable) {
+          expect(template, `${definition.id} declares '${id}' unavailable on web but never renders <app-desktop-only-control capability="${id}">`).toMatch(
+            new RegExp(`<app-desktop-only-control[^>]*capability="${id}"`),
+          );
+        }
+      });
+
       // The matrix is only trustworthy if it can't drift from the code: importing a native service
       // or referencing a vendored runtime without declaring it (or vice versa) fails here.
       it('declares exactly the platform capabilities and runtimes its source actually uses', () => {

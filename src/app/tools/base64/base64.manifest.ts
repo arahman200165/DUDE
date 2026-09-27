@@ -7,6 +7,7 @@ export const manifest: ToolDefinition = {
   category: 'encoding',
   keywords: ['base64', 'encode', 'decode', 'encoding', 'utf-8'],
   route: '/tools/base64',
+  pwaShortcut: { order: 2 },
   load: () => import('./base64').then((m) => m.Base64Tool),
   status: 'verified',
   verification: {

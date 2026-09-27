@@ -15,11 +15,14 @@ import { CategoryIcon } from '../category-icon/category-icon';
 import { SecurityBadge } from '../security-badge/security-badge';
 import { DesktopCapabilityBadge } from '../desktop-capability-badge/desktop-capability-badge';
 import { ToolShareMenu } from '../tool-share-menu/tool-share-menu';
+import { OpenInDesktop } from '../open-in-desktop/open-in-desktop';
+import { DesktopHandoffService } from '../../../core/deep-link/desktop-handoff.service';
+import { DudeDeepLink } from '../../../core/deep-link/deep-link.model';
 import { ShareLinkService } from '../../../core/share/share-link.service';
 
 @Component({
   selector: 'app-tool-shell',
-  imports: [OfflineBadge, CategoryIcon, SecurityBadge, DesktopCapabilityBadge, RouterLink, RelatedToolsPanel, ToolShareMenu],
+  imports: [OfflineBadge, CategoryIcon, SecurityBadge, DesktopCapabilityBadge, RouterLink, RelatedToolsPanel, ToolShareMenu, OpenInDesktop],
   templateUrl: './tool-shell.html',
 })
 export class ToolShell implements OnDestroy {
@@ -32,6 +35,7 @@ export class ToolShell implements OnDestroy {
   private readonly usage = inject(UsageService);
   protected readonly favorites = inject(FavoritesService);
   protected readonly share = inject(ShareLinkService);
+  protected readonly handoff = inject(DesktopHandoffService);
 
   /**
    * Optional override for tools whose network need is a runtime condition rather than a
@@ -59,6 +63,11 @@ export class ToolShell implements OnDestroy {
     return hostContext ? this.registry.getById(hostContext.toolId) : this.registry.getByRoute(this.router.url);
   });
   protected readonly category = computed(() => this.definition()?.category);
+  /** Promoted into the header once the user has said (or shown) they have Desktop DUDE (Phase 26 Item 8). */
+  protected readonly headerDesktopLink = computed<DudeDeepLink | null>(() => {
+    const definition = this.definition();
+    return definition && this.handoff.enabled && this.handoff.desktopInstalled() ? { action: 'open', target: 'tool', id: definition.id } : null;
+  });
   /** "Loaded from link" notice (Phase 26 Item 12): shown once for the tool a share link just prefilled. */
   protected readonly loadedFromLink = computed(() => {
     const definition = this.definition();

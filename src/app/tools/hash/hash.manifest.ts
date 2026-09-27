@@ -7,6 +7,7 @@ export const manifest: ToolDefinition = {
   category: 'security',
   keywords: ['hash', 'checksum', 'md5', 'sha1', 'sha256', 'sha512', 'digest'],
   route: '/tools/hash',
+  pwaShortcut: { order: 6 },
   load: () => import('./hash').then((m) => m.Hash),
   status: 'verified',
   verification: {

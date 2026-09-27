@@ -13,6 +13,8 @@ export interface PaletteCommand {
   /** Only tool commands have a tool category and optional Quick Run affordance. */
   readonly category?: ToolCategory;
   readonly toolId?: string;
+  /** Leads to a desktop-only feature. The palette badges it on the web (Phase 26 Item 7). */
+  readonly desktopOnly?: boolean;
   readonly execute: () => void | Promise<void>;
 }
 

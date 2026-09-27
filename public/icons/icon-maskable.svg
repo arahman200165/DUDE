@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <!-- Maskable variant of favicon.svg (Phase 26 Item 9): full-bleed background with no rounded
+       corners, since the OS applies its own mask, and the glyph scaled into the central 80%
+       safe-zone circle so no platform mask shape crops it. -->
+  <title id="title">DUDE icon</title>
+  <rect width="512" height="512" fill="#07111D"/>
+  <g transform="translate(131 122) scale(1.05)">
+    <path d="M20 8H102C172 8 218 50 218 128S172 248 102 248H20Z"
+          fill="none" stroke="#F4F7FB" stroke-width="18" stroke-linejoin="round"/>
+    <path d="M58 66H132" stroke="#38D8FF" stroke-width="16" stroke-linecap="round"/>
+    <path d="M58 128H158" stroke="#38D8FF" stroke-width="16" stroke-linecap="round"/>
+    <path d="M58 190H132" stroke="#38D8FF" stroke-width="16" stroke-linecap="round"/>
+    <path d="M146 90L188 128L146 166Z" fill="#8B5CF6"/>
+    <rect x="46" y="55" width="22" height="22" rx="5" fill="#38D8FF"/>
+    <rect x="46" y="117" width="22" height="22" rx="5" fill="#38D8FF"/>
+    <rect x="46" y="179" width="22" height="22" rx="5" fill="#38D8FF"/>
+  </g>
+</svg>

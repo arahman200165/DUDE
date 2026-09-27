@@ -6,6 +6,13 @@
     >
       Desktop-enhanced
     </span>
+  } @else if (hasUnavailable()) {
+    <span
+      class="inline-flex items-center rounded border border-warning/40 bg-warning/10 px-1.5 py-0.5 font-mono text-ui-xs text-warning"
+      [title]="title()"
+    >
+      Some features need desktop
+    </span>
   } @else {
     <span
       class="inline-flex items-center rounded border border-accent/40 bg-accent/10 px-1.5 py-0.5 font-mono text-ui-xs text-accent"

@@ -7,6 +7,7 @@ export const manifest: ToolDefinition = {
   category: 'security',
   keywords: ['jwt', 'json web token', 'decode', 'auth', 'token', 'claims'],
   route: '/tools/jwt',
+  pwaShortcut: { order: 3 },
   load: () => import('./jwt').then((m) => m.Jwt),
   status: 'verified',
   verification: {

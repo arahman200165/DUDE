@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { OpenInDesktop } from '../../../shared/components/open-in-desktop/open-in-desktop';
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { ProjectService } from '../../../core/project/project.service';
@@ -14,7 +15,7 @@ import { Project } from '../../../core/project/project.model';
  */
 @Component({
   selector: 'app-project-list',
-  imports: [DatePipe],
+  imports: [DatePipe, OpenInDesktop],
   templateUrl: './project-list.html',
 })
 export class ProjectList {

@@ -24,7 +24,7 @@
     "test:perf": "vitest run --config vitest.perf.config.mts",
     "test:high-consequence": "node scripts/check-high-consequence-gate.mjs",
     "playwright:install": "playwright install chromium",
-    "generate:registry": "node scripts/generate-tool-registry.mjs && node scripts/generate-file-associations.mjs && node scripts/generate-readme-tools.mjs && node scripts/generate-security-doc.mjs",
+    "generate:registry": "node scripts/generate-tool-registry.mjs && node scripts/generate-file-associations.mjs && node scripts/generate-readme-tools.mjs && node scripts/generate-security-doc.mjs && node scripts/generate-web-manifest.mjs",
     "generate:brand-assets": "node scripts/generate-brand-assets.mjs",
     "electron:compile": "esbuild electron/main.ts electron/preload.ts --bundle --platform=node --format=cjs --outdir=dist/electron --external:electron",
     "electron:start": "ng build --configuration production,electron && npm run electron:compile && electron dist/electron/main.js",

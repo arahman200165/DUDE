@@ -1,4 +1,6 @@
 import { Component, ElementRef, Type, afterRenderEffect, computed, effect, inject, signal, viewChild } from '@angular/core';
+import { OpenInDesktop } from '../../../shared/components/open-in-desktop/open-in-desktop';
+import { DudeDeepLink } from '../../../core/deep-link/deep-link.model';
 import { NgComponentOutlet, NgTemplateOutlet } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink, RouterLinkActive } from '@angular/router';
@@ -51,7 +53,7 @@ export function matchesSettingsFilter(item: Pick<NavItem, 'title' | 'subtitle' |
  */
 @Component({
   selector: 'app-settings-page',
-  imports: [NgComponentOutlet, NgTemplateOutlet, RouterLink, RouterLinkActive],
+  imports: [NgComponentOutlet, NgTemplateOutlet, RouterLink, RouterLinkActive, OpenInDesktop],
   templateUrl: './settings-page.html',
 })
 export class SettingsPage {
@@ -76,6 +78,11 @@ export class SettingsPage {
 
   protected readonly active = computed(() => [...this.coreItems, ...this.toolItems].find((item) => item.key === this.activeKey()));
   protected readonly unavailableHere = computed(() => (this.active()?.desktopOnly ?? false) && !this.platform.isDesktop());
+  /** "Configure this in Desktop DUDE" from a desktop-only explainer (Phase 26 Item 8). Tool sections open Settings' root. */
+  protected readonly desktopLink = computed<DudeDeepLink>(() => {
+    const key = this.activeKey();
+    return key.includes('/') ? { action: 'open', target: 'settings' } : { action: 'open', target: 'settings', section: key };
+  });
   protected readonly component = signal<Type<unknown> | null>(null);
 
   private readonly content = viewChild<ElementRef<HTMLElement>>('content');

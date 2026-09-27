@@ -53,6 +53,9 @@
               </div>
             }
             <div class="flex items-center gap-2">
+              @if (renamingId() !== project.id) {
+                <app-open-in-desktop [link]="{ action: 'open', target: 'project', id: project.id }" />
+              }
               @if (renamingId() === project.id) {
                 <button type="button" class="text-ui-sm text-accent hover:underline" (click)="confirmRename()">Save</button>
                 <button type="button" class="text-ui-sm text-text-muted hover:text-text" (click)="cancelRename()">Cancel</button>

@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { OpenInDesktop } from '../../../shared/components/open-in-desktop/open-in-desktop';
 import { WorkspaceTemplateService } from '../../../core/workspace/workspace-template.service';
 import { WorkspaceLayoutService } from '../../../core/workspace/workspace-layout.service';
 import { WorkspaceTemplate } from '../../../core/workspace/workspace-template.model';
@@ -11,6 +12,7 @@ import { WorkspaceTemplate } from '../../../core/workspace/workspace-template.mo
  */
 @Component({
   selector: 'app-template-gallery',
+  imports: [OpenInDesktop],
   templateUrl: './template-gallery.html',
 })
 export class TemplateGallery {

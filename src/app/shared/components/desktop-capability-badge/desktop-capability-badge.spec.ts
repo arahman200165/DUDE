@@ -53,7 +53,7 @@ describe('DesktopCapabilityBadge', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('More capable on desktop');
-    expect(fixture.nativeElement.querySelector('span')?.getAttribute('title')).toBe('native filesystem access');
+    expect(fixture.nativeElement.querySelector('span')?.getAttribute('title')).toBe('Better on desktop: native filesystem access');
   });
 
   it('shows a quiet confirmation on desktop when capabilities are declared', () => {
@@ -62,6 +62,16 @@ describe('DesktopCapabilityBadge', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Desktop-enhanced');
-    expect(fixture.nativeElement.querySelector('span')?.getAttribute('title')).toBe('native filesystem access · file watching');
+    expect(fixture.nativeElement.querySelector('span')?.getAttribute('title')).toBe(
+      'Better on desktop: native filesystem access · Desktop only: file watching',
+    );
+  });
+
+  it('warns on web when some feature is unavailable there, not just weaker', () => {
+    const fixture = withPlatform(false);
+    fixture.componentRef.setInput('definition', { ...base, capabilities: [{ kind: 'platform', id: 'llm-proxy', web: 'unavailable', note: 'AI explain' }] });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Some features need desktop');
   });
 });

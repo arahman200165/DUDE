@@ -66,6 +66,7 @@
               These settings control features that need the Windows desktop app (the OS keychain, global hotkeys, the tray,
               file associations, or native networking), so there is nothing to configure in the web version.
             </p>
+            <app-open-in-desktop [link]="desktopLink()" />
           </div>
         } @else if (component(); as sectionComponent) {
           <ng-container *ngComponentOutlet="sectionComponent" />

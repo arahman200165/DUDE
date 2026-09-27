@@ -1,4 +1,5 @@
 import { Component, ElementRef, OnDestroy, ViewEncapsulation, computed, effect, inject, signal, viewChild, viewChildren } from '@angular/core';
+import { DesktopOnlyControl } from '../../shared/components/desktop-only-control/desktop-only-control';
 import { DomSanitizer } from '@angular/platform-browser';
 import DOMPurify from 'dompurify';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
@@ -42,7 +43,7 @@ const DEFAULT_SOURCE =
 
 @Component({
   selector: 'app-markdown-workspace',
-  imports: [ToolShell, SplitPane, BusyIndicator, SandboxedMarkdownPreview, ErrorPanel, PluginRuntimeHost, OpenTextFile, TextFileDrop, SaveTextFile],
+  imports: [ToolShell, SplitPane, BusyIndicator, SandboxedMarkdownPreview, ErrorPanel, PluginRuntimeHost, OpenTextFile, TextFileDrop, SaveTextFile, DesktopOnlyControl],
   templateUrl: './markdown-workspace.html',
   // Emulated encapsulation adds a scoping attribute to elements the Angular
   // template compiler renders, but never to content injected via

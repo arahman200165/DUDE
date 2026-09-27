@@ -1,4 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { PwaInstallService } from '../../core/pwa/pwa-install.service';
+import { DesktopFeatureMarker } from '../../shared/components/desktop-feature-marker/desktop-feature-marker';
 import { RouterLink } from '@angular/router';
 import { CATEGORY_METADATA, ToolCategory, TOOL_CATEGORIES } from '../../shared/models/tool-category.model';
 import { ToolDefinition } from '../../shared/models/tool-definition.model';
@@ -28,6 +30,7 @@ const QUICK_ACTION_ID_PREFIX = 'native:quick-action:';
     RouterLink,
     CategoryIcon,
     OfflineAvailability,
+    DesktopFeatureMarker,
     HomeRail,
     PinnedPipelinesRail,
     HomePasteDropHero,
@@ -39,6 +42,7 @@ const QUICK_ACTION_ID_PREFIX = 'native:quick-action:';
 })
 export class Deck {
   private readonly registry = inject(ToolRegistryService);
+  protected readonly pwa = inject(PwaInstallService);
   private readonly usage = inject(UsageService);
   private readonly workspaceTemplates = inject(WorkspaceTemplateService);
   private readonly projects = inject(ProjectService);
@@ -70,10 +74,27 @@ export class Deck {
   protected readonly clipboardActions = computed(() => this.nativeCommands().filter((c) => c.id.startsWith(QUICK_ACTION_ID_PREFIX)));
   protected readonly nativeCapabilities = computed(() => this.nativeCommands().filter((c) => !c.id.startsWith(QUICK_ACTION_ID_PREFIX)));
 
-  protected readonly isFiltering = computed(() => this.query().trim().length > 0);
+  /**
+   * Discovery facet from the Web Capability Matrix (Phase 26 Item 7). "Works fully in browser"
+   * means the tool declares no platform capability, so it behaves identically on web and desktop.
+   * "Desktop-enhanced" is everything else (weaker web fallback, or a desktop-only feature).
+   */
+  protected readonly platformFacet = signal<'all' | 'browser' | 'desktop'>('all');
+  protected readonly facets = [
+    { id: 'all', label: 'All' },
+    { id: 'browser', label: 'Works fully in browser' },
+    { id: 'desktop', label: 'Desktop-enhanced' },
+  ] as const;
+
+  protected readonly isFiltering = computed(() => this.query().trim().length > 0 || this.platformFacet() !== 'all');
 
   private readonly filteredGrouped = computed(() => {
-    const results = this.registry.search(this.query());
+    const facet = this.platformFacet();
+    const results = (this.query().trim() ? this.registry.search(this.query()) : [...this.registry.getAll()]).filter((tool) => {
+      if (facet === 'all') return true;
+      const enhanced = this.registry.platformCapabilitiesOf(tool.id).length > 0;
+      return facet === 'desktop' ? enhanced : !enhanced;
+    });
     const grouped = new Map<ToolCategory, ToolDefinition[]>();
     for (const tool of results) {
       const bucket = grouped.get(tool.category) ?? [];

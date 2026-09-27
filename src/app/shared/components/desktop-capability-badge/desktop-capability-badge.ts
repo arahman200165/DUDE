@@ -4,10 +4,13 @@ import { ToolDefinition } from '../../models/tool-definition.model';
 import { platformCapabilities } from '../../../core/platform/capability-catalog';
 
 /**
- * Desktop Capability Indicators (DUDE_PRD.md §21 Phase 25 Item 10) -- mirrors `SecurityBadge`/
- * `OfflineBadge`/`UpdateBadge`'s shape exactly: web shows an upsell tone (there's something better
- * on desktop), desktop shows a quiet confirmation (already got it). Hidden entirely for a tool with
- * no platform `capabilities` declared, same "hidden when nothing to say" precedent as those badges.
+ * Desktop capability badge in ToolShell's header (Phase 25 Item 10, reworked for Phase 26 Item 7
+ * on the closed `capabilities` vocabulary). It mirrors `SecurityBadge`/`OfflineBadge`: hidden when
+ * the tool declares no platform capability.
+ * - Web, some feature `unavailable`: "Some features need desktop" (warning). Paired with the
+ *   inline `<app-desktop-only-control>` stand-ins inside the tool.
+ * - Web, only `fallback`s: "More capable on desktop" (upsell). It works here, better there.
+ * - Desktop: a quiet "Desktop-enhanced" confirmation.
  */
 @Component({
   selector: 'app-desktop-capability-badge',
@@ -19,5 +22,10 @@ export class DesktopCapabilityBadge {
 
   protected readonly capabilities = computed(() => platformCapabilities(this.definition()?.capabilities));
   protected readonly isDesktop = computed(() => this.platform.isDesktop());
-  protected readonly title = computed(() => this.capabilities().map((capability) => capability.note).join(' · '));
+  protected readonly hasUnavailable = computed(() => this.capabilities().some((capability) => capability.web === 'unavailable'));
+  protected readonly title = computed(() =>
+    this.capabilities()
+      .map((capability) => (capability.web === 'unavailable' ? `Desktop only: ${capability.note}` : `Better on desktop: ${capability.note}`))
+      .join(' · '),
+  );
 }

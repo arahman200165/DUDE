@@ -25,6 +25,10 @@
               >
                 Apply
               </button>
+              @if (template.builtIn) {
+                <!-- Built-in template ids are the same on every install, so this link always resolves. -->
+                <app-open-in-desktop [link]="{ action: 'open', target: 'workspace-template', id: template.id }" />
+              }
               @if (!template.builtIn) {
                 <button
                   type="button"

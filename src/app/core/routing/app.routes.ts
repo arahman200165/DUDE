@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { openLinkGuard } from '../deep-link/open-link.guard';
 import { ShellLayout } from '../../shell/layout/shell-layout';
 import { Deck } from '../../shell/deck/deck';
 import { buildToolRoutes, withLoadFallback } from '../registry/tool-routes';
@@ -16,6 +17,8 @@ export const routes: Routes = [
     component: ShellLayout,
     children: [
       { path: '', component: Deck },
+      // web+dude:// protocol handler target for the installed PWA (Phase 26 Item 9). Guard-only.
+      { path: 'open-link', canActivate: [openLinkGuard], children: [] },
       {
         path: 'smart-paste',
         loadComponent: withLoadFallback('SmartPaste', () => import('../../shell/smart-paste/smart-paste').then((m) => m.SmartPaste)),

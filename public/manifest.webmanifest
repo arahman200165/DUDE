@@ -1,60 +1,222 @@
 {
+  "id": "./",
   "name": "DUDE — Developer Utility Dashboard Engine",
   "short_name": "DUDE",
-  "description": "An offline-capable deck of local developer utilities.",
+  "description": "The zero-install web companion to Desktop DUDE: a dense deck of local developer utilities that runs in your browser and keeps working offline.",
+  "categories": [
+    "developer",
+    "productivity",
+    "utilities"
+  ],
   "theme_color": "#0a0e14",
   "background_color": "#0a0e14",
   "display": "standalone",
   "scope": "./",
   "start_url": "./",
+  "launch_handler": {
+    "client_mode": [
+      "focus-existing",
+      "auto"
+    ]
+  },
   "icons": [
     {
       "src": "icons/icon-72x72.png",
       "sizes": "72x72",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
     },
     {
       "src": "icons/icon-96x96.png",
       "sizes": "96x96",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
     },
     {
       "src": "icons/icon-128x128.png",
       "sizes": "128x128",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
     },
     {
       "src": "icons/icon-144x144.png",
       "sizes": "144x144",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
     },
     {
       "src": "icons/icon-152x152.png",
       "sizes": "152x152",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
     },
     {
       "src": "icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
     },
     {
       "src": "icons/icon-384x384.png",
       "sizes": "384x384",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
     },
     {
       "src": "icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/deck-wide.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "The DUDE tool deck"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "JSON Formatter",
+      "short_name": "JSON Formatter",
+      "description": "Validate, format, and minify JSON, with an editable tree view, structural compare, and malformed-JSON repair.",
+      "url": "./tools/json",
+      "icons": [
+        {
+          "src": "icons/icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Base64 Encoder / Decoder",
+      "short_name": "Base64 Encoder / Decoder",
+      "description": "UTF-8-safe text-to-Base64 and Base64-to-text conversion.",
+      "url": "./tools/base64",
+      "icons": [
+        {
+          "src": "icons/icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "JWT Debugger",
+      "short_name": "JWT Debugger",
+      "description": "Decode a JWT header and payload — does not verify signatures.",
+      "url": "./tools/jwt",
+      "icons": [
+        {
+          "src": "icons/icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Regex Tester",
+      "short_name": "Regex Tester",
+      "description": "Test a regular expression against text with match/capture-group details, a plain-English explainer, cross-language flavor notes, and a replace mode.",
+      "url": "./tools/regex",
+      "icons": [
+        {
+          "src": "icons/icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Text Diff",
+      "short_name": "Text Diff",
+      "description": "Line-oriented diff between two blocks of text.",
+      "url": "./tools/diff",
+      "icons": [
+        {
+          "src": "icons/icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Hash Generator",
+      "short_name": "Hash Generator",
+      "description": "MD5, SHA-1, SHA-256, SHA-384, and SHA-512 digests for text.",
+      "url": "./tools/hash",
+      "icons": [
+        {
+          "src": "icons/icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Unix Timestamp Converter",
+      "short_name": "Unix Timestamp Converter",
+      "description": "Convert between Unix timestamps (seconds through nanoseconds), ISO 8601, HTTP-date, RFC 2822, and human-readable dates.",
+      "url": "./tools/unix-timestamp",
+      "icons": [
+        {
+          "src": "icons/icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "UUID Generator / Inspector",
+      "short_name": "UUID Generator / Inspector",
+      "description": "Generate v1/v3/v4/v5/v6/v7 UUIDs (with namespace support), inspect an existing UUID and its embedded timestamp, and bulk-export the generated list.",
+      "url": "./tools/uuid",
+      "icons": [
+        {
+          "src": "icons/icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "file_handlers": [
+    {
+      "action": "./",
+      "accept": {
+        "text/plain": [
+          ".css",
+          ".csv",
+          ".html",
+          ".ini",
+          ".js",
+          ".json",
+          ".md",
+          ".sql",
+          ".toml",
+          ".ts",
+          ".txt",
+          ".xml",
+          ".yaml",
+          ".yml"
+        ]
+      }
+    }
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "web+dude",
+      "url": "./open-link?u=%s"
     }
   ]
 }

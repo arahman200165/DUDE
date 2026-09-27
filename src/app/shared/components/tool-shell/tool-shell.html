@@ -40,6 +40,9 @@
           History
         </a>
       }
+      @if (headerDesktopLink(); as link) {
+        <app-open-in-desktop [link]="link" />
+      }
       <app-tool-share-menu [definition]="definition()" />
       <app-security-badge [definition]="definition()" />
       <app-desktop-capability-badge [definition]="definition()" />

@@ -7,6 +7,8 @@ import { CacheActionPlan, CacheInspectorService } from '../../../core/offline/ca
 import { CachePlan, formatBytes } from '../../../core/offline/offline-map.model';
 import { CATEGORY_METADATA, TOOL_CATEGORIES, ToolCategory } from '../../../shared/models/tool-category.model';
 import { RuntimeId } from '../../../shared/models/tool-capability.model';
+import { PwaInstallService } from '../../../core/pwa/pwa-install.service';
+import { DESKTOP_RELEASES_URL, DesktopHandoffService } from '../../../core/deep-link/desktop-handoff.service';
 
 interface PendingDownload {
   readonly label: string;
@@ -31,6 +33,9 @@ export class WebCompanionSettings {
   protected readonly readiness = inject(OfflineReadinessService);
   protected readonly inspector = inject(CacheInspectorService);
   private readonly registry = inject(ToolRegistryService);
+  protected readonly pwa = inject(PwaInstallService);
+  protected readonly handoff = inject(DesktopHandoffService);
+  protected readonly releasesUrl = DESKTOP_RELEASES_URL;
 
   protected readonly formatBytes = formatBytes;
   protected readonly categories = TOOL_CATEGORIES.map((id) => ({ id, label: CATEGORY_METADATA[id].label }));
@@ -68,6 +73,11 @@ export class WebCompanionSettings {
 
   constructor() {
     if (this.readiness.enabled) void this.inspector.refresh();
+  }
+
+  protected async install(): Promise<void> {
+    const accepted = await this.pwa.install();
+    this.message.set(accepted ? 'Installed. DUDE now opens in its own window and from your app list.' : null);
   }
 
   protected async requestPersistence(): Promise<void> {
