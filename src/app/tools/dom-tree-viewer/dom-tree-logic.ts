@@ -44,7 +44,9 @@ function nodeToTreeNode(node: Node, path: string): TreeNode | null {
 export function buildDomTree(html: string): DomTreeResult {
   if (html.trim() === '') return { ok: false, error: 'Enter some HTML to view.' };
 
-  const container = document.createElement('div');
+  // An inert document (no browsing context): a detached element of the live `document` would still
+  // fetch `<img src>` and run inline handlers like `onerror` the moment innerHTML parses them.
+  const container = document.implementation.createHTMLDocument('').createElement('div');
   container.innerHTML = html;
 
   const roots = Array.from(container.childNodes)

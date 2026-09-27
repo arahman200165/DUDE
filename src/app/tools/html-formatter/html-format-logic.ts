@@ -107,7 +107,9 @@ function serializeMinified(node: Node, ancestorPreservesWhitespace: boolean): st
 export function formatHtml(input: string, mode: HtmlFormatMode): HtmlFormatResult {
   if (input.trim() === '') return { ok: false, error: 'Enter some HTML to format.' };
 
-  const container = document.createElement('div');
+  // An inert document (no browsing context): a detached element of the live `document` would still
+  // fetch `<img src>` and run inline handlers like `onerror` the moment innerHTML parses them.
+  const container = document.implementation.createHTMLDocument('').createElement('div');
   container.innerHTML = input;
 
   const roots = Array.from(container.childNodes);

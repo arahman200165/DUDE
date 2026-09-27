@@ -111,7 +111,9 @@ export type HtmlJsxResult = { readonly ok: true; readonly output: string } | { r
 export function htmlToJsx(html: string): HtmlJsxResult {
   if (html.trim() === '') return { ok: false, error: 'Enter some HTML to convert.' };
 
-  const container = document.createElement('div');
+  // An inert document (no browsing context): a detached element of the live `document` would still
+  // fetch `<img src>` and run inline handlers like `onerror` the moment innerHTML parses them.
+  const container = document.implementation.createHTMLDocument('').createElement('div');
   container.innerHTML = html;
   const roots = Array.from(container.childNodes);
   const output = roots.map((node) => nodeToJsx(node, 0)).join('').trimEnd();

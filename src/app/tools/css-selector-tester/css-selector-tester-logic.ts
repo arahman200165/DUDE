@@ -17,19 +17,20 @@ export type SelectorTestResult =
   | { readonly ok: false; readonly error: string };
 
 /**
- * Parses `html` into a detached `<div>` (same "delegate to the browser's own
- * parser via a detached element" convention `html-entity-codec.ts` uses),
+ * Parses `html` into a `<div>` of an inert document (the browser's own parser,
+ * but no browsing context, so nothing loads and no inline handler runs),
  * runs `selector` against it with `querySelectorAll`, and returns every
  * element in document order flagged with whether it matched. Deliberately
  * returns a structural summary rather than raw HTML to render — nothing here
- * ever gets injected back into the live DOM, so there's no sanitization/XSS
- * surface to worry about.
+ * ever gets injected back into the live DOM.
  */
 export function testSelector(html: string, selector: string): SelectorTestResult {
   const trimmedSelector = selector.trim();
   if (trimmedSelector === '') return { ok: false, error: 'Enter a CSS selector.' };
 
-  const container = document.createElement('div');
+  // An inert document (no browsing context): a detached element of the live `document` would still
+  // fetch `<img src>` and run inline handlers like `onerror` the moment innerHTML parses them.
+  const container = document.implementation.createHTMLDocument('').createElement('div');
   container.innerHTML = html;
 
   let matched: NodeListOf<Element>;
