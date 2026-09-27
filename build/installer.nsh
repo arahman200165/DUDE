@@ -16,9 +16,35 @@
 ; The custom process hook below calls electron-builder's normal process check.
 Var pid
 
+; NSIS GetFullPathName fails for a destination that does not exist yet. Keep
+; its existing-path behavior, then use Win32's lexical normalization for a
+; new install directory. SetOutPath creates that directory during install.
+!macro DudeGetInstallPath SOURCE TARGET
+  ClearErrors
+  GetFullPathName ${TARGET} "${SOURCE}"
+  ${If} ${Errors}
+    Push $0
+    Push $1
+    Push $2
+    StrCpy $0 "${SOURCE}"
+    System::Call 'kernel32::GetFullPathNameW(w r0, i ${NSIS_MAX_STRLEN}, w .r1, p 0) i.r2'
+    StrCpy ${TARGET} ""
+    ${If} $2 > 0
+    ${AndIf} $2 < ${NSIS_MAX_STRLEN}
+      StrCpy ${TARGET} $1
+      ClearErrors
+    ${Else}
+      SetErrors
+    ${EndIf}
+    Pop $2
+    Pop $1
+    Pop $0
+  ${EndIf}
+!macroend
+
 ; Reject empty, relative, and drive/share-root install paths before NSIS can
 ; install or recursively uninstall files there.
-!macro DudePathIsSafe PATH RESULT
+!macro DudePathIsSafe PATH RESULT ALLOW_MISSING
   StrCpy ${RESULT} "0"
   ${If} "${PATH}" != ""
     ${GetRoot} "${PATH}" $R8
@@ -26,8 +52,13 @@ Var pid
       StrLen $R6 $R8
       StrCpy $R6 "${PATH}" 1 $R6
       ${If} $R6 == "\"
-        ClearErrors
-        GetFullPathName $R7 "${PATH}"
+        StrCpy $R7 ""
+        !if "${ALLOW_MISSING}" == "1"
+          !insertmacro DudeGetInstallPath ${PATH} $R7
+        !else
+          ClearErrors
+          GetFullPathName $R7 "${PATH}"
+        !endif
         ${IfNot} ${Errors}
           ${If} $R7 != "$R8\"
             ${GetFileName} "$R7" $R9
@@ -63,7 +94,7 @@ Var pid
   ReadRegStr $R3 ${ROOT_KEY} "${INSTALL_REGISTRY_KEY}" "InstallLocation"
   ${If} $R3 != ""
   ${OrIf} $R4 != ""
-    !insertmacro DudePathIsSafe $R3 $R2
+    !insertmacro DudePathIsSafe $R3 $R2 0
     ${If} $R2 == "1"
     ${AndIf} $R4 != ""
       !insertmacro GetInQuotes $R5 "$R4"
@@ -80,7 +111,11 @@ Var pid
 !macroend
 
 !macro customCheckAppRunning
-  !insertmacro DudePathIsSafe $INSTDIR $R2
+  !ifdef BUILD_UNINSTALLER
+    !insertmacro DudePathIsSafe $INSTDIR $R2 0
+  !else
+    !insertmacro DudePathIsSafe $INSTDIR $R2 1
+  !endif
   ${If} $R2 != "1"
     MessageBox MB_OK|MB_ICONSTOP "DUDE's installation folder must be a dedicated DUDE folder outside the drive root and source checkout. Setup stopped before changing files."
     SetErrorLevel 2
@@ -515,7 +550,7 @@ Function DudePathCreate
   StrCpy $0 "3"
   StrCpy $1 "Choose installation folder"
   Call DudeSetStepHeader
-  ${NSD_CreateLabel} 0 0 100% 28u "Choose where DUDE is installed. This applies only to the desktop app; your personal data stays in your Windows profile."
+  ${NSD_CreateLabel} 0 0 100% 28u "Choose where DUDE is installed. Setup creates the DUDE folder if needed; personal data stays in your Windows profile."
   Pop $0
   ${NSD_CreateDirRequest} 0 37u 78% 13u "$INSTDIR"
   Pop $DudePathControl
@@ -540,8 +575,7 @@ Function DudePathLeave
       MessageBox MB_ICONEXCLAMATION "Choose an installation folder."
       Abort
     ${EndIf}
-    ClearErrors
-    GetFullPathName $INSTDIR $0
+    !insertmacro DudeGetInstallPath $0 $INSTDIR
     ${If} ${Errors}
       MessageBox MB_OK|MB_ICONEXCLAMATION "Choose a valid installation folder."
       Abort
@@ -550,7 +584,7 @@ Function DudePathLeave
     ${If} $R9 != "DUDE"
       StrCpy $INSTDIR "$INSTDIR\DUDE"
     ${EndIf}
-    !insertmacro DudePathIsSafe $INSTDIR $R2
+    !insertmacro DudePathIsSafe $INSTDIR $R2 1
     ${If} $R2 != "1"
       MessageBox MB_OK|MB_ICONEXCLAMATION "Choose a dedicated DUDE folder outside the drive root and source checkout."
       Abort
