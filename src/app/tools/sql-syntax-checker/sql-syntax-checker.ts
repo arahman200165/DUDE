@@ -1,11 +1,13 @@
 import { Component, computed, inject } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
+import { OpenTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { checkSqlSyntax, SQL_CHECKER_DIALECTS, type SqlCheckerDialect } from './sql-syntax-checker-logic';
 
 @Component({
   selector: 'app-sql-syntax-checker',
-  imports: [ToolShell],
+  imports: [ToolShell, OpenTextFile, TextFileDrop],
   templateUrl: './sql-syntax-checker.html',
 })
 export class SqlSyntaxChecker {

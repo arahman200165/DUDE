@@ -2,6 +2,9 @@ import { Component, computed, inject } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { CopyButton } from '../../shared/components/copy-button/copy-button';
 import { PersistenceService } from '../../core/persistence/persistence.service';
+import { OpenTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
+import { SaveTextFile } from '../../shared/components/save-text-file/save-text-file';
 import { formatStackTrace, StackTraceMode } from './stack-trace-format';
 
 const MODE_OPTIONS: readonly { readonly id: StackTraceMode; readonly label: string }[] = [
@@ -14,7 +17,7 @@ const MODE_OPTIONS: readonly { readonly id: StackTraceMode; readonly label: stri
 
 @Component({
   selector: 'app-stack-trace-formatter',
-  imports: [ToolShell, CopyButton],
+  imports: [ToolShell, CopyButton, OpenTextFile, TextFileDrop, SaveTextFile],
   templateUrl: './stack-trace-formatter.html',
 })
 export class StackTraceFormatter {

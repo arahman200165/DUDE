@@ -14,6 +14,7 @@ export const manifest: ToolDefinition = {
     summary: 'Fuzz-tested arbitrary strings for non-throwing structured YAML lint results.',
   },
   persistence: { input: 'session', preferences: 'local' },
+  fileInput: { key: 'input', extensions: ['.yaml', '.yml'] },
   execution: { worker: 'optional' },
-  io: { accepts: ['text'], produces: ['text'] },
+  io: { accepts: ['text', 'file'], produces: ['text'] },
 };

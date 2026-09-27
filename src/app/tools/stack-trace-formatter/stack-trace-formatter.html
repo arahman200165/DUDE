@@ -27,18 +27,28 @@
     </div>
 
     <div class="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-2">
-      <textarea
-        class="min-h-40 flex-1 resize-none rounded-sm border border-border bg-panel p-2 font-mono text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
-        placeholder="Paste a stack trace…"
-        spellcheck="false"
-        [value]="input()"
-        (input)="onInputChange($event)"
-      ></textarea>
+      <div class="flex min-h-40 flex-col gap-1">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-ui text-text-muted">Stack trace</span>
+          <app-open-text-file #open [text]="input()" (textLoaded)="input.set($event)" />
+        </div>
+        <textarea
+          [appTextFileDrop]="open"
+          class="min-h-0 flex-1 resize-none rounded-sm border border-border bg-panel p-2 font-mono text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
+          placeholder="Paste a stack trace…"
+          spellcheck="false"
+          [value]="input()"
+          (input)="onInputChange($event)"
+        ></textarea>
+      </div>
 
       <div class="flex min-h-40 flex-col gap-1">
         <div class="flex items-center justify-between">
           <span class="text-ui text-text-muted">Formatted</span>
-          <app-copy-button [text]="outputText()" />
+          <span class="flex items-center gap-1.5">
+            <app-save-text-file [text]="outputText()" [source]="open" />
+            <app-copy-button [text]="outputText()" />
+          </span>
         </div>
         <div class="flex-1 overflow-auto rounded-sm border border-border bg-panel p-2 font-mono text-xs">
           @for (line of visibleLines(); track $index) {

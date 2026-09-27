@@ -30,5 +30,5 @@ export const manifest: ToolDefinition = {
   },
   persistence: { input: 'session', preferences: 'none' },
   network: { required: true, detail: 'LanguageTool API' },
-  io: { accepts: ['text'], produces: ['json'] },
+  io: { accepts: ['text', 'file'], produces: ['json'] },
 };

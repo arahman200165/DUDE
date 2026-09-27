@@ -1,6 +1,8 @@
 import { Component, computed, inject } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { PersistenceService } from '../../core/persistence/persistence.service';
+import { OpenTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
 import { testSelector } from './css-selector-tester-logic';
 
 const SAMPLE_HTML = `<ul id="list">
@@ -11,7 +13,7 @@ const SAMPLE_HTML = `<ul id="list">
 
 @Component({
   selector: 'app-css-selector-tester',
-  imports: [ToolShell],
+  imports: [ToolShell, OpenTextFile, TextFileDrop],
   templateUrl: './css-selector-tester.html',
 })
 export class CssSelectorTester {

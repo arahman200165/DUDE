@@ -2,12 +2,14 @@ import { Component, computed, inject } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { SplitPane } from '../../shared/components/split-pane/split-pane';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
+import { OpenTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { evaluateXPath, XPathEvalResult } from './xml-xpath-eval';
 
 @Component({
   selector: 'app-xml-xpath',
-  imports: [ToolShell, SplitPane, ErrorPanel],
+  imports: [ToolShell, SplitPane, ErrorPanel, OpenTextFile, TextFileDrop],
   templateUrl: './xml-xpath.html',
 })
 export class XmlXpath {

@@ -1,6 +1,8 @@
 import { Component, computed, inject } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
+import { OpenTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { validateJsonLd } from './json-ld-logic';
 
@@ -18,7 +20,7 @@ const SAMPLE = JSON.stringify(
 
 @Component({
   selector: 'app-json-ld-tester',
-  imports: [ToolShell, ErrorPanel],
+  imports: [ToolShell, ErrorPanel, OpenTextFile, TextFileDrop],
   templateUrl: './json-ld-tester.html',
 })
 export class JsonLdTester {

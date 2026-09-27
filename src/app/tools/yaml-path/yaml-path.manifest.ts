@@ -14,6 +14,7 @@ export const manifest: ToolDefinition = {
     summary: 'Fuzz-tested generated scalar YAML with JSONPath root queries for stable result shape.',
   },
   persistence: { input: 'session', preferences: 'local' },
+  fileInput: { key: 'yamlInput', extensions: ['.yaml', '.yml'] },
   execution: { worker: 'optional' },
-  io: { accepts: ['text'], produces: ['json'] },
+  io: { accepts: ['text', 'file'], produces: ['json'] },
 };

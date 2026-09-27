@@ -15,5 +15,6 @@ export const manifest: ToolDefinition = {
     summary: 'Fuzz-tested with arbitrary text across every dialect/param-style (fast-check) -- never throws.',
   },
   persistence: { input: 'session', preferences: 'local' },
-  io: { accepts: ['text'], produces: ['text', 'json'] },
+  fileInput: { key: 'input', extensions: ['.sql'] },
+  io: { accepts: ['text', 'file'], produces: ['text', 'json', 'file'] },
 };

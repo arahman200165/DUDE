@@ -1,4 +1,4 @@
-import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, computed, inject, signal, viewChild } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { SplitPane } from '../../shared/components/split-pane/split-pane';
 import { BusyIndicator } from '../../shared/components/busy-indicator/busy-indicator';
@@ -7,7 +7,9 @@ import { FileDrop } from '../../shared/components/file-drop/file-drop';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { WorkerClientService } from '../../core/workers/worker-client.service';
 import { WorkerJob } from '../../core/workers/worker-job';
-import { downloadFile } from '../../shared/utils/download-file';
+import { OpenTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
+import { SaveTextFile } from '../../shared/components/save-text-file/save-text-file';
 import { DiffLineType } from '../diff/text-diff';
 import { DiffSegmentType } from './char-word-diff';
 import { DiffHunk, MergeDecision, buildHunks, buildMergedOutput } from './diff-hunks';
@@ -42,7 +44,7 @@ const SEGMENT_CLASSES: Record<DiffSegmentType, string> = {
 
 @Component({
   selector: 'app-advanced-diff',
-  imports: [ToolShell, SplitPane, BusyIndicator, ErrorPanel, FileDrop, SemanticDiffView, ImageDiffView],
+  imports: [ToolShell, SplitPane, BusyIndicator, ErrorPanel, FileDrop, SemanticDiffView, ImageDiffView, OpenTextFile, TextFileDrop, SaveTextFile],
   templateUrl: './advanced-diff.html',
 })
 export class AdvancedDiff implements OnDestroy {
@@ -69,6 +71,9 @@ export class AdvancedDiff implements OnDestroy {
     'local',
     NO_IGNORE_OPTIONS,
   );
+
+  // The left pane's Open file… button (paste mode only) -- the patch and merged-result saves are named after its file.
+  protected readonly leftOpener = viewChild<OpenTextFile>('openLeft');
 
   protected readonly rejection = signal<string | null>(null);
   protected readonly job = signal<WorkerJob<AdvancedDiffResult> | null>(null);
@@ -316,11 +321,6 @@ export class AdvancedDiff implements OnDestroy {
 
   protected copy(text: string): void {
     void navigator.clipboard.writeText(text);
-  }
-
-  protected downloadPatch(): void {
-    const text = this.unifiedDiffText();
-    if (text !== '') downloadFile(new TextEncoder().encode(text), 'diff.patch', 'text/x-diff');
   }
 
   ngOnDestroy(): void {

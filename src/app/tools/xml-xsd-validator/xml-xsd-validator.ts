@@ -2,12 +2,14 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { BusyIndicator, BusyIndicatorStatus } from '../../shared/components/busy-indicator/busy-indicator';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
+import { OpenTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { validateAgainstXsd, XsdValidateResult } from './xsd-validate';
 
 @Component({
   selector: 'app-xml-xsd-validator',
-  imports: [ToolShell, BusyIndicator, ErrorPanel],
+  imports: [ToolShell, BusyIndicator, ErrorPanel, OpenTextFile, TextFileDrop],
   templateUrl: './xml-xsd-validator.html',
 })
 export class XmlXsdValidator {

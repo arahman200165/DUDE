@@ -18,8 +18,12 @@
 
     <div class="grid min-h-0 flex-1 grid-cols-1 gap-3 md:grid-cols-2">
       <div class="flex min-h-0 flex-col gap-1">
-        <span class="text-ui text-text-muted">Before</span>
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-ui text-text-muted">Before</span>
+          <app-open-text-file #openBefore [text]="beforeInput()" (textLoaded)="beforeInput.set($event)" />
+        </div>
         <textarea
+          [appTextFileDrop]="openBefore"
           class="h-full min-h-32 w-full resize-none rounded-sm border border-border bg-panel px-2 py-1.5 font-mono text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
           placeholder="Paste the original JSON document here…"
           [value]="beforeInput()"
@@ -28,8 +32,12 @@
       </div>
 
       <div class="flex min-h-0 flex-col gap-1">
-        <span class="text-ui text-text-muted">After</span>
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-ui text-text-muted">After</span>
+          <app-open-text-file #openAfter [text]="afterInput()" (textLoaded)="afterInput.set($event)" />
+        </div>
         <textarea
+          [appTextFileDrop]="openAfter"
           class="h-full min-h-32 w-full resize-none rounded-sm border border-border bg-panel px-2 py-1.5 font-mono text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
           placeholder="Paste the changed JSON document here…"
           [value]="afterInput()"
@@ -48,13 +56,16 @@
           <div class="flex h-full flex-col">
             <div class="flex items-center justify-between px-2 pt-1.5">
               <span class="text-ui text-text-muted">JSON Patch</span>
-              <button
-                type="button"
-                class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated"
-                (click)="copy(current.output)"
-              >
-                Copy
-              </button>
+              <span class="flex items-center gap-1.5">
+                <app-save-text-file [text]="current.output" fileName="patch.json" mimeType="application/json;charset=utf-8" />
+                <button
+                  type="button"
+                  class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated"
+                  (click)="copy(current.output)"
+                >
+                  Copy
+                </button>
+              </span>
             </div>
             <textarea
               readonly

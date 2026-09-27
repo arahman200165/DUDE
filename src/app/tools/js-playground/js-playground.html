@@ -30,9 +30,14 @@
     </p>
 
     <div class="flex flex-col gap-1">
-      <span class="text-ui text-text-muted">Code</span>
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-ui text-text-muted">Code</span>
+        <app-open-text-file #open [text]="code()" (fileOpened)="onFileOpened($event)" />
+        <app-save-text-file [text]="code()" [source]="open" />
+      </div>
       <textarea
         rows="10"
+        [appTextFileDrop]="open"
         class="w-full rounded-sm border border-border bg-panel px-2 py-1 font-mono text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
         placeholder="Type JavaScript here…"
         [value]="code()"

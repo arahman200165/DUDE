@@ -2,6 +2,8 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { BusyIndicator } from '../../shared/components/busy-indicator/busy-indicator';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
+import { OpenTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { WorkerClientService } from '../../core/workers/worker-client.service';
 import { WorkerJob } from '../../core/workers/worker-job';
@@ -13,7 +15,7 @@ const WORKER_THRESHOLD = 50_000;
 
 @Component({
   selector: 'app-yaml-linter',
-  imports: [ToolShell, BusyIndicator, ErrorPanel],
+  imports: [ToolShell, BusyIndicator, ErrorPanel, OpenTextFile, TextFileDrop],
   templateUrl: './yaml-linter.html',
 })
 export class YamlLinter {

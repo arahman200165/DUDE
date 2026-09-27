@@ -16,6 +16,7 @@ export const manifest: ToolDefinition = {
       'CSV<->SQL round-trip property-tested and fuzz-tested (fast-check) -- caught and fixed a real parser bug where a quoted value containing a semicolon truncated the VALUES(...) capture.',
   },
   persistence: { input: 'session', preferences: 'local' },
+  fileInput: { key: 'input', extensions: ['.csv', '.tsv'] },
   execution: { worker: 'optional' },
-  io: { accepts: ['text', 'table', 'json'], produces: ['text', 'table'] },
+  io: { accepts: ['text', 'table', 'json', 'file'], produces: ['text', 'table', 'file'] },
 };

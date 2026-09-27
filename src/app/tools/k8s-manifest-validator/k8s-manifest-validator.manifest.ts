@@ -16,5 +16,6 @@ export const manifest: ToolDefinition = {
     summary: 'Round-trip tested parsed YAML values through formatting and fuzz-tested arbitrary YAML text with fast-check.',
   },
   persistence: { input: 'session', preferences: 'none' },
-  io: { accepts: ['text'], produces: ['text'] },
+  fileInput: { key: 'input', extensions: ['.yaml', '.yml'] },
+  io: { accepts: ['text', 'file'], produces: ['text', 'file'] },
 };

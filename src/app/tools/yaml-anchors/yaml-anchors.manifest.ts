@@ -15,6 +15,7 @@ export const manifest: ToolDefinition = {
     summary: 'Fuzz-tested generated scalar anchor and alias documents for alias discovery.',
   },
   persistence: { input: 'session', preferences: 'local' },
+  fileInput: { key: 'input', extensions: ['.yaml', '.yml'] },
   execution: { worker: 'optional' },
-  io: { accepts: ['text'], produces: ['table'] },
+  io: { accepts: ['text', 'file'], produces: ['table'] },
 };

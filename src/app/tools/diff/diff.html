@@ -1,9 +1,14 @@
 <app-tool-shell>
   <div class="flex h-full min-h-0 flex-col gap-2">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <app-open-text-file #openLeft [text]="left()" (textLoaded)="left.set($event)" label="Open left…" />
+      <app-open-text-file #openRight [text]="right()" (textLoaded)="right.set($event)" label="Open right…" />
+    </div>
     <div class="min-h-40 flex-1 rounded-sm border border-border">
       <app-split-pane [initialRatio]="paneRatio()" (ratioChange)="onRatioChange($event)">
         <textarea
           slot="start"
+          [appTextFileDrop]="openLeft"
           class="h-full w-full resize-none bg-panel px-2 py-1.5 font-mono text-xs text-text focus:outline-none"
           placeholder="Left…"
           [value]="left()"
@@ -11,6 +16,7 @@
         ></textarea>
         <textarea
           slot="end"
+          [appTextFileDrop]="openRight"
           class="h-full w-full resize-none bg-panel px-2 py-1.5 font-mono text-xs text-text focus:outline-none"
           placeholder="Right…"
           [value]="right()"

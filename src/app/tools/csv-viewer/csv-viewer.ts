@@ -4,7 +4,11 @@ import { SplitPane } from '../../shared/components/split-pane/split-pane';
 import { DataTable } from '../../shared/components/data-table/data-table';
 import { BusyIndicator } from '../../shared/components/busy-indicator/busy-indicator';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
+import { OpenTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
+import { SaveTextFile } from '../../shared/components/save-text-file/save-text-file';
 import { PersistenceService } from '../../core/persistence/persistence.service';
+import { TextInputHandoffService } from '../../core/text-file-input/text-input-handoff.service';
 import { WorkerClientService } from '../../core/workers/worker-client.service';
 import { WorkerJob } from '../../core/workers/worker-job';
 import { convertCsv, CsvConvertResult, CsvDelimiter, CsvDirection, CsvParseResult, parseCsv } from './csv-convert';
@@ -17,7 +21,7 @@ type OutputView = 'table' | 'json';
 
 @Component({
   selector: 'app-csv-viewer',
-  imports: [ToolShell, SplitPane, DataTable, BusyIndicator, ErrorPanel],
+  imports: [ToolShell, SplitPane, DataTable, BusyIndicator, ErrorPanel, OpenTextFile, TextFileDrop, SaveTextFile],
   templateUrl: './csv-viewer.html',
 })
 export class CsvViewer {
@@ -49,7 +53,16 @@ export class CsvViewer {
     this.showTableToggle() ? parseCsv(this.input(), this.delimiter(), this.hasHeaderRow()) : null,
   );
 
+  /** Save follows the output's format, not the input's: CSV → JSON saves `.json`, JSON → CSV `.csv`. */
+  protected readonly saveExtension = computed(() => (this.direction() === 'csv-to-json' ? '.json' : '.csv'));
+  protected readonly saveMimeType = computed(() =>
+    this.direction() === 'csv-to-json' ? 'application/json;charset=utf-8' : 'text/csv;charset=utf-8',
+  );
+
   constructor() {
+    // A dropped .csv hand-off lands in `input`; make sure it's read as CSV, not as JSON.
+    if (inject(TextInputHandoffService).has('csv-viewer')) this.direction.set('csv-to-json');
+
     effect((onCleanup) => {
       const input = this.input();
       const direction = this.direction();

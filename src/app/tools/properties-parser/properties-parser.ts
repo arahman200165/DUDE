@@ -3,18 +3,22 @@ import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { SplitPane } from '../../shared/components/split-pane/split-pane';
 import { BusyIndicator } from '../../shared/components/busy-indicator/busy-indicator';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
+import { OpenTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
+import { SaveTextFile } from '../../shared/components/save-text-file/save-text-file';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { WorkerClientService } from '../../core/workers/worker-client.service';
 import { WorkerJob } from '../../core/workers/worker-job';
 import { convertProperties, PropertiesConvertResult, PropertiesDirection } from './properties-convert';
 import { PropertiesConvertPayload } from './properties-convert-payload';
+import { TextInputHandoffService } from '../../core/text-file-input/text-input-handoff.service';
 
 /** Inputs above this size run in a Worker instead of blocking the main thread. */
 const WORKER_THRESHOLD = 50_000;
 
 @Component({
   selector: 'app-properties-parser',
-  imports: [ToolShell, SplitPane, BusyIndicator, ErrorPanel],
+  imports: [ToolShell, SplitPane, BusyIndicator, ErrorPanel, OpenTextFile, TextFileDrop, SaveTextFile],
   templateUrl: './properties-parser.html',
 })
 export class PropertiesParser {
@@ -30,6 +34,11 @@ export class PropertiesParser {
   );
   protected readonly paneRatio = this.persistence.signal('properties-parser', 'paneRatio', 'local', 0.5);
 
+  protected readonly outputExtension = computed(() => (this.direction() === 'properties-to-json' ? '.json' : '.properties'));
+  protected readonly outputMimeType = computed(() =>
+    this.direction() === 'properties-to-json' ? 'application/json;charset=utf-8' : 'text/plain;charset=utf-8',
+  );
+
   protected readonly usesWorker = computed(() => this.input().length > WORKER_THRESHOLD);
   private readonly jobSignal = signal<WorkerJob<PropertiesConvertResult> | null>(null);
   protected readonly job = this.jobSignal.asReadonly();
@@ -43,6 +52,9 @@ export class PropertiesParser {
   );
 
   constructor() {
+    // A dropped/pasted .properties hand-off lands in `input`; make sure it's read as .properties, not the other direction.
+    if (inject(TextInputHandoffService).has('properties-parser')) this.direction.set('properties-to-json');
+
     effect((onCleanup) => {
       const input = this.input();
       const direction = this.direction();

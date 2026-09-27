@@ -15,6 +15,7 @@ export const manifest: ToolDefinition = {
     summary: 'Property-tested with fast-check via the shared harness for arbitrary inputs and tool-specific invariants.',
   },
   persistence: { input: 'session', preferences: 'local' },
+  fileInput: { key: 'input', extensions: ['.csv', '.tsv'] },
   execution: { worker: 'optional' },
-  io: { accepts: ['text', 'table'], produces: ['table'] },
+  io: { accepts: ['text', 'table', 'file'], produces: ['table'] },
 };

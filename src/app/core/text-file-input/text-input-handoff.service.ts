@@ -38,6 +38,11 @@ export class TextInputHandoffService {
     return this.pending.has(toolId);
   }
 
+  /** Non-consuming: the pending hand-off's file name, for a tool that picks its mode by extension. */
+  pendingFileName(toolId: string): string | undefined {
+    return this.pending.get(toolId)?.name;
+  }
+
   /** One-shot: the file name a hand-off of exactly `text` came from, for this tool. */
   takeFileName(toolId: string, text: string): string | undefined {
     const entry = this.pending.get(toolId);

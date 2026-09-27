@@ -15,5 +15,7 @@ export const manifest: ToolDefinition = {
     summary: 'Round-trip tested parsed instruction semantics through formatting and fuzz-tested arbitrary Dockerfile text with fast-check.',
   },
   persistence: { input: 'session', preferences: 'none' },
-  io: { accepts: ['text'], produces: ['text'] },
+  // Usually named plain `Dockerfile` (no extension) -- the picker's "All files" option covers it.
+  fileInput: { key: 'input', extensions: ['.dockerfile'] },
+  io: { accepts: ['text', 'file'], produces: ['text', 'file'] },
 };

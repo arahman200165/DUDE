@@ -14,6 +14,7 @@ export const manifest: ToolDefinition = {
     summary: 'Fuzz-tested generated XML text with XPath evaluation, asserting stable result shape.',
   },
   persistence: { input: 'session', preferences: 'local' },
+  fileInput: { key: 'xmlInput', extensions: ['.xml'] },
   execution: { worker: 'none' },
-  io: { accepts: ['text'], produces: ['text'] },
+  io: { accepts: ['text', 'file'], produces: ['text'] },
 };

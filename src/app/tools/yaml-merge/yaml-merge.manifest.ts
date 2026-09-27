@@ -14,6 +14,7 @@ export const manifest: ToolDefinition = {
     summary: 'Fuzz-tested generated scalar YAML values against empty overlays, preserving values.',
   },
   persistence: { input: 'session', preferences: 'local' },
+  fileInput: { key: 'baseInput', extensions: ['.yaml', '.yml'] },
   execution: { worker: 'optional' },
-  io: { accepts: ['text'], produces: ['text'] },
+  io: { accepts: ['text', 'file'], produces: ['text', 'file'] },
 };

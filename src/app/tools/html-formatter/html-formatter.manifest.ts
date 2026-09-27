@@ -15,5 +15,6 @@ export const manifest: ToolDefinition = {
     summary: 'DOM-backed properties verify generated paragraph structure and text survive pretty and minified output reparsing.',
   },
   persistence: { input: 'session', preferences: 'local' },
-  io: { accepts: ['text'], produces: ['text'] },
+  fileInput: { key: 'input', extensions: ['.html', '.htm'] },
+  io: { accepts: ['text', 'file'], produces: ['text', 'file'] },
 };

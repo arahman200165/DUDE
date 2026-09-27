@@ -14,5 +14,6 @@ export const manifest: ToolDefinition = {
     summary: 'Round-trip-tested valid .env pairs through JSON and fuzz-tested arbitrary text in both directions.',
   },
   persistence: { input: 'session', preferences: 'local' },
-  io: { accepts: ['text'], produces: ['text', 'json'] },
+  fileInput: { key: 'input', extensions: ['.env'] },
+  io: { accepts: ['text', 'file'], produces: ['text', 'json', 'file'] },
 };

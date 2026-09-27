@@ -40,6 +40,8 @@
         Clear
       </button>
 
+      <app-open-text-file #open [text]="yamlInput()" (textLoaded)="yamlInput.set($event)" />
+
       @if (usesWorker() && job(); as currentJob) {
         <app-busy-indicator [status]="currentJob.status()" [progress]="currentJob.progress()" />
       }
@@ -49,6 +51,7 @@
       <app-split-pane [initialRatio]="paneRatio()" (ratioChange)="onRatioChange($event)">
         <textarea
           slot="start"
+          [appTextFileDrop]="open"
           class="h-full w-full resize-none bg-panel px-2 py-1.5 font-mono text-xs text-text focus:outline-none"
           placeholder="Paste YAML here…"
           [value]="yamlInput()"

@@ -1,11 +1,13 @@
 import { Component, computed, inject } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
+import { OpenTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { validateEnv } from './env-validator-logic';
 
 @Component({
   selector: 'app-env-validator',
-  imports: [ToolShell],
+  imports: [ToolShell, OpenTextFile, TextFileDrop],
   templateUrl: './env-validator.html',
 })
 export class EnvValidator {

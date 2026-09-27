@@ -3,7 +3,11 @@ import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { SplitPane } from '../../shared/components/split-pane/split-pane';
 import { BusyIndicator } from '../../shared/components/busy-indicator/busy-indicator';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
+import { OpenTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
+import { SaveTextFile } from '../../shared/components/save-text-file/save-text-file';
 import { PersistenceService } from '../../core/persistence/persistence.service';
+import { TextInputHandoffService } from '../../core/text-file-input/text-input-handoff.service';
 import { WorkerClientService } from '../../core/workers/worker-client.service';
 import { WorkerJob } from '../../core/workers/worker-job';
 import { convertCsvSql, CsvSqlDirection, CsvSqlResult } from './csv-sql-transform';
@@ -14,7 +18,7 @@ const WORKER_THRESHOLD = 50_000;
 
 @Component({
   selector: 'app-csv-sql',
-  imports: [ToolShell, SplitPane, BusyIndicator, ErrorPanel],
+  imports: [ToolShell, SplitPane, BusyIndicator, ErrorPanel, OpenTextFile, TextFileDrop, SaveTextFile],
   templateUrl: './csv-sql.html',
 })
 export class CsvSql {
@@ -38,7 +42,16 @@ export class CsvSql {
     this.usesWorker() ? (this.job()?.result() ?? null) : this.syncResult(),
   );
 
+  /** Save follows the output's format: INSERT statements save as `.sql`, SQL → CSV as `.csv`. */
+  protected readonly saveExtension = computed(() => (this.direction() === 'sql-to-csv' ? '.csv' : '.sql'));
+  protected readonly saveMimeType = computed(() =>
+    this.direction() === 'sql-to-csv' ? 'text/csv;charset=utf-8' : 'application/sql',
+  );
+
   constructor() {
+    // A dropped .csv/.tsv hand-off lands in `input`; make sure it's read as CSV, not as INSERTs or JSON.
+    if (inject(TextInputHandoffService).has('csv-sql')) this.direction.set('csv-to-sql');
+
     effect((onCleanup) => {
       const input = this.input();
       const direction = this.direction();

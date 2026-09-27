@@ -15,5 +15,6 @@ export const manifest: ToolDefinition = {
     summary: 'DOM-backed properties verify generated selector match counts, document order, and typed results for arbitrary HTML and selectors.',
   },
   persistence: { input: 'session', preferences: 'none' },
-  io: { accepts: ['text'], produces: ['json'] },
+  fileInput: { key: 'html', extensions: ['.html', '.htm'] },
+  io: { accepts: ['text', 'file'], produces: ['json'] },
 };

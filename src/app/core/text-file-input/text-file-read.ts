@@ -65,8 +65,11 @@ export function suggestSaveName(options: {
   readonly fallbackExtension?: string;
 }): string {
   if (options.explicit) return options.explicit;
+  // Same format as what was opened: save it back under exactly its own name — including names
+  // with no extension (`Dockerfile`) or dotfiles (`.env`), which must never grow a second one.
+  if (options.openedName && options.extension === undefined) return options.openedName;
   const opened = options.openedName ? splitName(options.openedName) : null;
   const base = opened?.base || options.fallbackBase;
-  const extension = options.extension ?? (opened?.extension || options.fallbackExtension || '.txt');
+  const extension = options.extension ?? (options.fallbackExtension || '.txt');
   return `${base}${extension}`;
 }

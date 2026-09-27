@@ -16,6 +16,7 @@ export const manifest: ToolDefinition = {
     summary: 'Property-tested (fast-check) for core output shape and invariants.',
   },
   persistence: { input: 'session', preferences: 'none' },
-  io: { accepts: ['text', 'json'], produces: ['json'] },
+  fileInput: { key: 'input', extensions: ['.jsonld', '.json'] },
+  io: { accepts: ['text', 'json', 'file'], produces: ['json'] },
 };
 

@@ -16,5 +16,5 @@ export const manifest: ToolDefinition = {
     summary: 'Round-trip tested (fast-check): minified CSS is idempotent; arbitrary input returns a typed result.',
   },
   persistence: { input: 'session', preferences: 'local' },
-  io: { accepts: ['text'], produces: ['text'] },
+  io: { accepts: ['text', 'file'], produces: ['text', 'file'] },
 };

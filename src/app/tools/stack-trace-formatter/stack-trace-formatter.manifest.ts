@@ -26,5 +26,6 @@ export const manifest: ToolDefinition = {
     summary: 'Fuzz-tested line preservation for explicit parsers and auto-detection on arbitrary text.',
   },
   persistence: { input: 'session', preferences: 'local' },
-  io: { accepts: ['text'], produces: ['text'] },
+  fileInput: { key: 'input', extensions: ['.log'] },
+  io: { accepts: ['text', 'file'], produces: ['text', 'file'] },
 };

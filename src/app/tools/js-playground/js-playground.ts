@@ -4,6 +4,10 @@ import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
 import { BusyIndicator, BusyIndicatorStatus } from '../../shared/components/busy-indicator/busy-indicator';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { CodeSandboxHost } from '../../shared/code-sandbox/code-sandbox-host';
+import { OpenTextFile, OpenedTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
+import { SaveTextFile } from '../../shared/components/save-text-file/save-text-file';
+import { recordImportedFileFlags } from '../../core/text-file-input/imported-file-flags';
 import { EMPTY_JS_PLAYGROUND_STATE, JsPlaygroundState, applySandboxEvent } from './js-playground-session';
 
 const DEFAULT_SNIPPET = "console.log('Hello from the JS Playground!');\n1 + 1;";
@@ -11,7 +15,7 @@ const DEFAULT_TIMEOUT_MS = 3000;
 
 @Component({
   selector: 'app-js-playground',
-  imports: [ToolShell, ErrorPanel, BusyIndicator, CodeSandboxHost],
+  imports: [ToolShell, ErrorPanel, BusyIndicator, CodeSandboxHost, OpenTextFile, TextFileDrop, SaveTextFile],
   templateUrl: './js-playground.html',
 })
 export class JsPlayground {
@@ -39,6 +43,13 @@ export class JsPlayground {
 
   protected onCodeChange(event: Event): void {
     this.code.set((event.target as HTMLTextAreaElement).value);
+  }
+
+  /** Like an Explorer-opened file: TypeScript source gets the "runs as JavaScript" notice, anything else clears it. */
+  protected onFileOpened(file: OpenedTextFile): void {
+    recordImportedFileFlags(file.name);
+    this.importedTypeScript.set(/\.tsx?$/i.test(file.name));
+    this.code.set(file.text);
   }
 
   protected run(): void {

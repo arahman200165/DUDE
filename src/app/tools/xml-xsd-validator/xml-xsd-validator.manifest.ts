@@ -16,6 +16,7 @@ export const manifest: ToolDefinition = {
     summary: 'Resolves valid and malformed arbitrary XML and schema text to typed results; examples cover validation outcomes.',
   },
   persistence: { input: 'session', preferences: 'local' },
+  fileInput: { key: 'xmlInput', extensions: ['.xml'] },
   execution: { worker: 'none' },
-  io: { accepts: ['text'], produces: ['text'] },
+  io: { accepts: ['text', 'file'], produces: ['text'] },
 };

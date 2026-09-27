@@ -3,6 +3,9 @@ import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
 import { CopyButton } from '../../shared/components/copy-button/copy-button';
 import { PersistenceService } from '../../core/persistence/persistence.service';
+import { OpenTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
+import { SaveTextFile } from '../../shared/components/save-text-file/save-text-file';
 import { HtmlFormatMode, formatHtml } from './html-format-logic';
 
 const SAMPLE_HTML = `<div class="card">
@@ -13,7 +16,7 @@ const SAMPLE_HTML = `<div class="card">
 
 @Component({
   selector: 'app-html-formatter',
-  imports: [ToolShell, ErrorPanel, CopyButton],
+  imports: [ToolShell, ErrorPanel, CopyButton, OpenTextFile, TextFileDrop, SaveTextFile],
   templateUrl: './html-formatter.html',
 })
 export class HtmlFormatter {

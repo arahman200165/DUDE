@@ -40,6 +40,13 @@
         Clear
       </button>
 
+      <app-open-text-file
+        #open
+        [accept]="direction() === 'properties-to-json' ? undefined : '.json'"
+        [text]="input()"
+        (textLoaded)="input.set($event)"
+      />
+
       @if (usesWorker() && job(); as currentJob) {
         <app-busy-indicator [status]="currentJob.status()" [progress]="currentJob.progress()" />
       }
@@ -49,6 +56,7 @@
       <app-split-pane [initialRatio]="paneRatio()" (ratioChange)="onRatioChange($event)">
         <textarea
           slot="start"
+          [appTextFileDrop]="open"
           class="h-full w-full resize-none bg-panel px-2 py-1.5 font-mono text-xs text-text focus:outline-none"
           [placeholder]="direction() === 'properties-to-json' ? 'Paste a .properties file here…' : 'Paste a flat JSON object here…'"
           [value]="input()"
@@ -62,7 +70,8 @@
             </div>
           } @else if (result(); as current) {
             @if (current.ok) {
-              <div class="flex items-center justify-end px-2 pt-1.5">
+              <div class="flex items-center justify-end gap-1.5 px-2 pt-1.5">
+                <app-save-text-file [text]="current.output" [source]="open" [extension]="outputExtension()" [mimeType]="outputMimeType()" />
                 <button
                   type="button"
                   class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated"

@@ -1,14 +1,19 @@
 <app-tool-shell>
   <div class="flex flex-col gap-4 md:flex-row">
-    <label class="flex flex-1 flex-col gap-1 text-ui text-text-muted">
-      Raw .env text
+    <div class="flex flex-1 flex-col gap-1 text-ui text-text-muted">
+      <div class="flex flex-wrap items-center gap-2">
+        <span>Raw .env text</span>
+        <app-open-text-file #open [text]="rawText()" (textLoaded)="rawText.set($event)" />
+      </div>
       <textarea
         rows="14"
+        aria-label="Raw .env text"
+        [appTextFileDrop]="open"
         class="w-full resize-y rounded-sm border border-border bg-panel px-2 py-1 font-mono text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
         [value]="rawText()"
         (input)="onRawInput($event)"
       ></textarea>
-    </label>
+    </div>
 
     <div class="flex flex-1 flex-col gap-2">
       <app-key-value-editor
@@ -19,13 +24,8 @@
       />
       <div class="flex items-center gap-2">
         <app-copy-button [text]="rawText()" />
-        <button
-          type="button"
-          class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated"
-          (click)="download()"
-        >
-          Download .env
-        </button>
+        <!-- Explicit name: a bare ".env" has no extension to carry over, so the derived name would be ".env.env". -->
+        <app-save-text-file [text]="rawText()" [fileName]="open.lastOpenedName() ?? '.env'" label="Save .env…" />
       </div>
     </div>
   </div>

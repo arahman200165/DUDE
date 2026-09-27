@@ -15,5 +15,6 @@ export const manifest: ToolDefinition = {
     summary: 'Fuzz-tested arbitrary environment and rule text for non-throwing validation results.',
   },
   persistence: { input: 'session', preferences: 'local' },
-  io: { accepts: ['text'], produces: ['text'] },
+  fileInput: { key: 'envText', extensions: ['.env'] },
+  io: { accepts: ['text', 'file'], produces: ['text'] },
 };

@@ -14,6 +14,7 @@ export const manifest: ToolDefinition = {
     summary: 'Fuzz-tested generated safe flat CSV rows through XML conversion and back, preserving headers.',
   },
   persistence: { input: 'session', preferences: 'local' },
+  fileInput: { key: 'input', extensions: ['.xml'] },
   execution: { worker: 'optional' },
-  io: { accepts: ['text', 'table'], produces: ['text', 'table'] },
+  io: { accepts: ['text', 'table', 'file'], produces: ['text', 'table', 'file'] },
 };

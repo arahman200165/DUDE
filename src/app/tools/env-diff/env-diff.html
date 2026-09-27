@@ -1,24 +1,34 @@
 <app-tool-shell>
   <div class="flex flex-col gap-4">
     <div class="flex flex-col gap-4 md:flex-row">
-      <label class="flex flex-1 flex-col gap-1 text-ui text-text-muted">
-        Before
+      <div class="flex flex-1 flex-col gap-1 text-ui text-text-muted">
+        <div class="flex flex-wrap items-center gap-2">
+          <span>Before</span>
+          <app-open-text-file #openBefore [text]="before()" (textLoaded)="before.set($event)" />
+        </div>
         <textarea
           rows="8"
+          aria-label="Before"
+          [appTextFileDrop]="openBefore"
           class="w-full resize-y rounded-sm border border-border bg-panel px-2 py-1 font-mono text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
           [value]="before()"
           (input)="onBeforeInput($event)"
         ></textarea>
-      </label>
-      <label class="flex flex-1 flex-col gap-1 text-ui text-text-muted">
-        After
+      </div>
+      <div class="flex flex-1 flex-col gap-1 text-ui text-text-muted">
+        <div class="flex flex-wrap items-center gap-2">
+          <span>After</span>
+          <app-open-text-file #openAfter [text]="after()" (textLoaded)="after.set($event)" />
+        </div>
         <textarea
           rows="8"
+          aria-label="After"
+          [appTextFileDrop]="openAfter"
           class="w-full resize-y rounded-sm border border-border bg-panel px-2 py-1 font-mono text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
           [value]="after()"
           (input)="onAfterInput($event)"
         ></textarea>
-      </label>
+      </div>
     </div>
 
     <app-diff-view [entries]="diff().entries" [summary]="diff().summary" />

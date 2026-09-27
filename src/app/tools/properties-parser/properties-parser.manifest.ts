@@ -14,6 +14,7 @@ export const manifest: ToolDefinition = {
     summary: 'Round-trips nonempty flat JSON string maps through Java properties formatting with arbitrary string values.',
   },
   persistence: { input: 'session', preferences: 'local' },
+  fileInput: { key: 'input', extensions: ['.properties'] },
   execution: { worker: 'optional' },
-  io: { accepts: ['text', 'json'], produces: ['json', 'text'] },
+  io: { accepts: ['text', 'json', 'file'], produces: ['json', 'text', 'file'] },
 };

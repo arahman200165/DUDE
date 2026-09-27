@@ -15,5 +15,5 @@ export const manifest: ToolDefinition = {
   },
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'required' },
-  io: { accepts: ['text'], produces: ['json'] },
+  io: { accepts: ['text', 'file'], produces: ['json'] },
 };

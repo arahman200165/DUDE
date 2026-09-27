@@ -1,6 +1,6 @@
 <app-tool-shell>
   <div class="flex flex-col gap-3">
-    <div class="flex items-center gap-2">
+    <div class="flex flex-wrap items-center gap-2">
       <button
         type="button"
         class="rounded-sm border border-border px-2 py-1 text-ui"
@@ -21,11 +21,13 @@
       >
         Minify
       </button>
+      <app-open-text-file #open [text]="input()" (textLoaded)="input.set($event)" />
     </div>
 
     <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
       <textarea
         rows="14"
+        [appTextFileDrop]="open"
         class="w-full rounded-sm border border-border bg-panel px-2 py-1 font-mono text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
         placeholder="Paste CSS…"
         [value]="input()"
@@ -36,7 +38,8 @@
         @if (current.ok) {
           <div class="relative">
             <pre class="h-full overflow-auto rounded-sm border border-border bg-panel px-2 py-1 font-mono text-xs text-text">{{ current.output }}</pre>
-            <div class="absolute right-2 top-2">
+            <div class="absolute right-2 top-2 flex items-center gap-1.5">
+              <app-save-text-file [text]="current.output" [source]="open" />
               <app-copy-button [text]="current.output" />
             </div>
           </div>

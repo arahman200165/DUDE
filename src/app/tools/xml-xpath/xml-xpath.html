@@ -16,12 +16,15 @@
       >
         Clear
       </button>
+
+      <app-open-text-file #open [text]="xmlInput()" (textLoaded)="xmlInput.set($event)" />
     </div>
 
     <div class="min-h-0 flex-1 rounded-sm border border-border">
       <app-split-pane [initialRatio]="paneRatio()" (ratioChange)="onRatioChange($event)">
         <textarea
           slot="start"
+          [appTextFileDrop]="open"
           class="h-full w-full resize-none bg-panel px-2 py-1.5 font-mono text-xs text-text focus:outline-none"
           placeholder="Paste XML here…"
           [value]="xmlInput()"

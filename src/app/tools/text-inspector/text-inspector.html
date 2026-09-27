@@ -1,12 +1,16 @@
 <app-tool-shell [networkRequired]="grammarPanelOpen()">
   <div class="flex flex-col gap-3">
-    <p class="text-xs text-text-muted">
-      Paste or type text to see live character, word, line, and byte metrics. Select part of the text to
-      see metrics for just the selection.
-    </p>
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <p class="text-xs text-text-muted">
+        Paste or type text to see live character, word, line, and byte metrics. Select part of the text to
+        see metrics for just the selection.
+      </p>
+      <app-open-text-file #open [text]="text()" (textLoaded)="onFileLoaded($event)" />
+    </div>
 
     <textarea
       rows="8"
+      [appTextFileDrop]="open"
       class="w-full rounded-sm border border-border bg-panel px-2 py-1 font-mono text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
       placeholder="Type or paste text here…"
       [value]="text()"

@@ -15,6 +15,7 @@ export const manifest: ToolDefinition = {
     summary: 'RFC 6901 section 5 vectors plus fast-check fuzzing of valid and malformed pointers.',
   },
   persistence: { input: 'session', preferences: 'local' },
+  fileInput: { key: 'jsonInput', extensions: ['.json'] },
   execution: { worker: 'optional' },
-  io: { accepts: ['text', 'json'], produces: ['json'] },
+  io: { accepts: ['text', 'json', 'file'], produces: ['json', 'file'] },
 };

@@ -14,5 +14,6 @@ export const manifest: ToolDefinition = {
     summary: 'Fuzz-tested arbitrary valid SQLite table and column identifiers for stable, non-throwing schema diffs.',
   },
   persistence: { input: 'session', preferences: 'local' },
-  io: { accepts: ['text'], produces: ['text'] },
+  fileInput: { key: 'before', extensions: ['.sql'] },
+  io: { accepts: ['text', 'file'], produces: ['text'] },
 };

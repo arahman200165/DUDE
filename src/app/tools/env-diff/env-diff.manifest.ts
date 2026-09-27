@@ -14,5 +14,6 @@ export const manifest: ToolDefinition = {
     summary: 'Fuzz-tested arbitrary .env document pairs for stable diff result shapes.',
   },
   persistence: { input: 'session', preferences: 'none' },
-  io: { accepts: ['text'], produces: ['text'] },
+  fileInput: { key: 'before', extensions: ['.env'] },
+  io: { accepts: ['text', 'file'], produces: ['text'] },
 };

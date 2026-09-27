@@ -3,11 +3,13 @@ import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
 import { DiffView } from '../../shared/components/diff-view/diff-view';
 import { PersistenceService } from '../../core/persistence/persistence.service';
+import { OpenTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
 import { diffSchemas, SCHEMA_DIFF_DIALECTS, type SchemaDiffDialect } from './schema-diff-logic';
 
 @Component({
   selector: 'app-schema-diff',
-  imports: [ToolShell, ErrorPanel, DiffView],
+  imports: [ToolShell, ErrorPanel, DiffView, OpenTextFile, TextFileDrop],
   templateUrl: './schema-diff.html',
 })
 export class SchemaDiff {

@@ -53,7 +53,9 @@ describe('suggestSaveName', () => {
   it('saves back under the opened file name, swapping the extension when the output differs', () => {
     expect(suggestSaveName({ openedName: 'notes.md', fallbackBase: 'markdown' })).toBe('notes.md');
     expect(suggestSaveName({ openedName: 'config.yaml', extension: '.json', fallbackBase: 'yaml-json' })).toBe('config.json');
-    expect(suggestSaveName({ openedName: 'Makefile', fallbackBase: 'x', fallbackExtension: '.mk' })).toBe('Makefile.mk');
+    expect(suggestSaveName({ openedName: 'Dockerfile', fallbackBase: 'x', fallbackExtension: '.dockerfile' })).toBe('Dockerfile');
+    expect(suggestSaveName({ openedName: '.env', fallbackBase: 'env-editor', fallbackExtension: '.env' })).toBe('.env');
+    expect(suggestSaveName({ openedName: '.env', extension: '.json', fallbackBase: 'env-json' })).toBe('.env.json');
   });
 
   it('falls back to the tool id and its declared extension, then .txt', () => {

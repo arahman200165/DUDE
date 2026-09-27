@@ -15,6 +15,7 @@ export const manifest: ToolDefinition = {
     summary: 'Property-tested with fast-check using fuzz checks against arbitrary valid or malformed input.',
   },
   persistence: { input: 'session', preferences: 'local' },
+  fileInput: { key: 'input', extensions: ['.jsonl', '.ndjson'] },
   execution: { worker: 'optional' },
-  io: { accepts: ['text', 'json'], produces: ['table', 'json'] },
+  io: { accepts: ['text', 'json', 'file'], produces: ['table', 'json', 'file'] },
 };

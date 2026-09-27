@@ -15,5 +15,6 @@ export const manifest: ToolDefinition = {
     summary: 'Round-trip-tested unique valid keys and arbitrary values through .env serialization and parsing.',
   },
   persistence: { input: 'session', preferences: 'local' },
-  io: { accepts: ['text'], produces: ['text', 'file'] },
+  fileInput: { key: 'raw', extensions: ['.env'] },
+  io: { accepts: ['text', 'file'], produces: ['text', 'file'] },
 };

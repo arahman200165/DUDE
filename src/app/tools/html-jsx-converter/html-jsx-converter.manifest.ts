@@ -15,5 +15,6 @@ export const manifest: ToolDefinition = {
     summary: 'DOM-backed properties verify generated HTML class attributes become JSX className with text preserved; both directions are fuzzed for typed results.',
   },
   persistence: { input: 'session', preferences: 'local' },
-  io: { accepts: ['text'], produces: ['text'] },
+  fileInput: { key: 'input', extensions: ['.html', '.htm', '.jsx', '.tsx'] },
+  io: { accepts: ['text', 'file'], produces: ['text', 'file'] },
 };

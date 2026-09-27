@@ -4,6 +4,8 @@ import { SplitPane } from '../../shared/components/split-pane/split-pane';
 import { DataTable } from '../../shared/components/data-table/data-table';
 import { BusyIndicator } from '../../shared/components/busy-indicator/busy-indicator';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
+import { OpenTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { WorkerClientService } from '../../core/workers/worker-client.service';
 import { WorkerJob } from '../../core/workers/worker-job';
@@ -15,7 +17,7 @@ const WORKER_THRESHOLD = 50_000;
 
 @Component({
   selector: 'app-yaml-anchors',
-  imports: [ToolShell, SplitPane, DataTable, BusyIndicator, ErrorPanel],
+  imports: [ToolShell, SplitPane, DataTable, BusyIndicator, ErrorPanel, OpenTextFile, TextFileDrop],
   templateUrl: './yaml-anchors.html',
 })
 export class YamlAnchors {

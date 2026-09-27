@@ -3,6 +3,9 @@ import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
 import { CopyButton } from '../../shared/components/copy-button/copy-button';
 import { PersistenceService } from '../../core/persistence/persistence.service';
+import { OpenTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
+import { SaveTextFile } from '../../shared/components/save-text-file/save-text-file';
 import { CssFormatMode, formatCss } from './css-format-logic';
 
 const SAMPLE_CSS = `.card {
@@ -16,7 +19,7 @@ const SAMPLE_CSS = `.card {
 
 @Component({
   selector: 'app-css-formatter',
-  imports: [ToolShell, ErrorPanel, CopyButton],
+  imports: [ToolShell, ErrorPanel, CopyButton, OpenTextFile, TextFileDrop, SaveTextFile],
   templateUrl: './css-formatter.html',
 })
 export class CssFormatter {

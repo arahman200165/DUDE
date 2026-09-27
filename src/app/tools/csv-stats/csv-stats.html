@@ -1,6 +1,8 @@
 <app-tool-shell>
   <div class="flex h-full min-h-0 flex-col gap-3">
     <div class="flex flex-wrap items-center gap-3 text-ui text-text-muted">
+      <app-open-text-file #open [text]="input()" (textLoaded)="input.set($event)" />
+
       <span>Computes per-column count, empty, distinct, and numeric min/max/mean.</span>
 
       <button
@@ -20,6 +22,7 @@
       <app-split-pane [initialRatio]="paneRatio()" (ratioChange)="onRatioChange($event)">
         <textarea
           slot="start"
+          [appTextFileDrop]="open"
           class="h-full w-full resize-none bg-panel px-2 py-1.5 font-mono text-xs text-text focus:outline-none"
           placeholder="Paste CSV (with a header row) here…"
           [value]="input()"

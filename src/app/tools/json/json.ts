@@ -2,6 +2,9 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { BusyIndicator } from '../../shared/components/busy-indicator/busy-indicator';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
+import { OpenTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
+import { SaveTextFile } from '../../shared/components/save-text-file/save-text-file';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { PasteHandoffService } from '../../core/paste-detect/paste-handoff.service';
 import { WorkerClientService } from '../../core/workers/worker-client.service';
@@ -22,7 +25,7 @@ export type JsonView = 'text' | 'tree' | 'compare';
 
 @Component({
   selector: 'app-json',
-  imports: [ToolShell, BusyIndicator, ErrorPanel, JsonTreeEditor],
+  imports: [ToolShell, BusyIndicator, ErrorPanel, JsonTreeEditor, OpenTextFile, TextFileDrop, SaveTextFile],
   templateUrl: './json.html',
 })
 export class Json {

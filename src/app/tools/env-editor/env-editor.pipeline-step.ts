@@ -5,7 +5,7 @@ import { parseEnv, serializeEnv } from './env-format';
  * Pipeline-step adapter for the .env Editor tool. Round-trips the input through
  * `parseEnv`/`serializeEnv` to normalize quoting — this tool's declared `io` also lists `file`
  * as a producible type, but `env-format.ts` has no file-wrapping logic of its own (the
- * component's `download()` only wraps the same string in a `Blob` at the UI layer), so this
+ * component's Save button only wraps the same string in a `Blob` at the UI layer), so this
  * adapter honestly produces `text` only.
  */
 export const pipelineStep: PipelineStep = {

@@ -3,6 +3,8 @@ import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { ConnectivityService } from '../../core/connectivity/connectivity.service';
+import { OpenTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
 import { computeSelectionMetrics, computeTextMetrics } from './text-metrics';
 import { computeReadability, readingEaseLabel } from './readability';
 import { detectLanguage } from './language-detect';
@@ -15,7 +17,7 @@ interface Selection {
 
 @Component({
   selector: 'app-text-inspector',
-  imports: [ToolShell, ErrorPanel],
+  imports: [ToolShell, ErrorPanel, OpenTextFile, TextFileDrop],
   templateUrl: './text-inspector.html',
 })
 export class TextInspector {
@@ -47,6 +49,13 @@ export class TextInspector {
 
   protected onTextInput(event: Event): void {
     this.text.set((event.target as HTMLTextAreaElement).value);
+    this.grammarResult.set(null);
+  }
+
+  /** A whole new document: the old selection offsets and grammar findings no longer apply. */
+  protected onFileLoaded(text: string): void {
+    this.text.set(text);
+    this.selection.set({ start: 0, end: 0 });
     this.grammarResult.set(null);
   }
 

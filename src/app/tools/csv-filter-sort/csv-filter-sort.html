@@ -82,8 +82,12 @@
     </div>
 
     <div class="flex min-h-0 flex-1 flex-col gap-1">
-      <span class="text-ui text-text-muted">CSV</span>
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-ui text-text-muted">CSV</span>
+        <app-open-text-file #open [text]="input()" (textLoaded)="input.set($event)" />
+      </div>
       <textarea
+        [appTextFileDrop]="open"
         class="h-full min-h-24 w-full resize-none rounded-sm border border-border bg-panel px-2 py-1.5 font-mono text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
         placeholder="Paste CSV (with a header row) here…"
         [value]="input()"

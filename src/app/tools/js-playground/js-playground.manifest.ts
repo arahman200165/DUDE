@@ -30,6 +30,6 @@ export const manifest: ToolDefinition = {
   persistence: { input: 'session', preferences: 'local' },
   execution: { worker: 'required' },
   network: { required: false },
-  io: { accepts: ['text'], produces: ['text'] },
+  io: { accepts: ['text', 'file'], produces: ['text', 'file'] },
 };
 

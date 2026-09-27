@@ -3,6 +3,9 @@ import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { SplitPane } from '../../shared/components/split-pane/split-pane';
 import { BusyIndicator } from '../../shared/components/busy-indicator/busy-indicator';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
+import { OpenTextFile } from '../../shared/components/open-text-file/open-text-file';
+import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
+import { SaveTextFile } from '../../shared/components/save-text-file/save-text-file';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { WorkerClientService } from '../../core/workers/worker-client.service';
 import { WorkerJob } from '../../core/workers/worker-job';
@@ -14,7 +17,7 @@ const WORKER_THRESHOLD = 50_000;
 
 @Component({
   selector: 'app-json-flatten',
-  imports: [ToolShell, SplitPane, BusyIndicator, ErrorPanel],
+  imports: [ToolShell, SplitPane, BusyIndicator, ErrorPanel, OpenTextFile, TextFileDrop, SaveTextFile],
   templateUrl: './json-flatten.html',
 })
 export class JsonFlatten {

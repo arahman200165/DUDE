@@ -56,8 +56,12 @@
     <div class="min-h-40 flex-1 rounded-sm border border-border">
       <app-split-pane [initialRatio]="paneRatio()" (ratioChange)="onRatioChange($event)">
         <div slot="start" class="flex h-full flex-col">
-          <span class="border-b border-border bg-panel px-2 py-1 text-ui-xs text-text-muted">Schema</span>
+          <div class="flex flex-wrap items-center gap-2 border-b border-border bg-panel px-2 py-1">
+            <span class="text-ui-xs text-text-muted">Schema</span>
+            <app-open-text-file #openSchema [text]="schema()" (textLoaded)="schema.set($event)" />
+          </div>
           <textarea
+            [appTextFileDrop]="openSchema"
             class="h-full w-full resize-none bg-panel px-2 py-1.5 font-mono text-xs text-text focus:outline-none"
             placeholder="Paste a JSON Schema…"
             [value]="schema()"
@@ -65,8 +69,12 @@
           ></textarea>
         </div>
         <div slot="end" class="flex h-full flex-col">
-          <span class="border-b border-border bg-panel px-2 py-1 text-ui-xs text-text-muted">Instance</span>
+          <div class="flex flex-wrap items-center gap-2 border-b border-border bg-panel px-2 py-1">
+            <span class="text-ui-xs text-text-muted">Instance</span>
+            <app-open-text-file #openInstance [text]="instance()" (textLoaded)="instance.set($event)" />
+          </div>
           <textarea
+            [appTextFileDrop]="openInstance"
             class="h-full w-full resize-none bg-panel px-2 py-1.5 font-mono text-xs text-text focus:outline-none"
             placeholder="Paste the JSON instance to validate…"
             [value]="instance()"
