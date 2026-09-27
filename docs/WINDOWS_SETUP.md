@@ -12,11 +12,15 @@ The welcome page offers an Express preset or **Custom**. Custom starts from the 
 | Standard | Current user | Start, desktop | File and folder action | None | Off | Check and notify |
 | Fully Integrated | All users | Start, desktop | File and folder action | All supported types | On | Automatic download |
 
-Custom can change the installation scope on Windows' scope page and the installation folder on DUDE's location page. The supported file types are `.json`, `.yaml`, `.yml`, `.xml`, `.csv`, `.md`, `.txt`, `.toml`, `.ini`, `.sql`, `.js`, `.ts`, `.html`, and `.css`. The Explorer action adds **Open with DUDE** for supported files; the folder action opens Directory Diff with the selected folder on the left.
+Custom can change the installation scope on Windows' scope page and the installation folder on DUDE's location page. Choosing a parent such as C:\Program Files installs into its DUDE subfolder; Setup rejects source checkouts and shared parent folders. The supported file types are `.json`, `.yaml`, `.yml`, `.xml`, `.csv`, `.md`, `.txt`, `.toml`, `.ini`, `.sql`, `.js`, `.ts`, `.html`, and `.css`. The Explorer action adds **Open with DUDE** for supported files; the folder action opens Directory Diff with the selected folder on the left.
 
 Selecting file types registers DUDE as a candidate in Windows Default Apps. It does not take over defaults. Open Windows **Settings → Apps → Default apps** and choose DUDE for each type you want to make a default. The onboarding review page can open that Windows screen.
 
 The installer saves its choices for a later manual `.exe` reinstall or upgrade. A silent auto-update keeps the installed scope, shortcuts, and registrations and does not ask setup questions. Uninstall removes DUDE shortcuts and registry registrations, leaving app data and personal settings in the Windows user profile.
+
+## Interrupted upgrades with an invalid install path
+
+If Setup says DUDE cannot be closed but no DUDE process is running, check the registered uninstall path before retrying. A registration with an empty install location and an uninstall command like `"\Uninstall DUDE.exe" /allusers` can point at the drive root. Do not run that uninstaller. For the known 0.0.26 root-path case, `scripts/repair-broken-nsis-install.ps1` verifies the exact registration and quarantines DUDE-owned root files. For the 0.0.27 shared `C:\Program Files` case, `scripts/repair-shared-program-files-install.ps1` compares installed files with the local package before quarantining only those DUDE files. Both scripts back up registry keys, require administrator rights for repair, and support `-VerifyOnly` for a read-only check. Then rerun Setup and confirm the review page shows `C:\Program Files\DUDE` or another dedicated DUDE folder.
 
 ## First launch
 

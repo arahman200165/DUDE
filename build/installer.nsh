@@ -1,5 +1,76 @@
 !include "nsDialogs.nsh"
 !include "LogicLib.nsh"
+!include "FileFunc.nsh"
+!include "getProcessInfo.nsh"
+
+; The custom process hook below calls electron-builder's normal process check.
+Var pid
+
+; Reject empty, relative, and drive/share-root install paths before NSIS can
+; install or recursively uninstall files there.
+!macro DudePathIsSafe PATH RESULT
+  StrCpy ${RESULT} "0"
+  ${If} "${PATH}" != ""
+    ${GetRoot} "${PATH}" $R8
+    ${If} $R8 != ""
+      StrLen $R6 $R8
+      StrCpy $R6 "${PATH}" 1 $R6
+      ${If} $R6 == "\"
+        ClearErrors
+        GetFullPathName $R7 "${PATH}"
+        ${IfNot} ${Errors}
+          ${If} $R7 != "$R8\"
+            ${GetFileName} "$R7" $R9
+            ${If} $R9 == "DUDE"
+            ${AndIfNot} ${FileExists} "$R7\.git"
+            ${AndIfNot} ${FileExists} "$R7\package.json"
+              StrCpy ${RESULT} "1"
+            ${EndIf}
+          ${EndIf}
+        ${EndIf}
+      ${EndIf}
+    ${EndIf}
+  ${EndIf}
+!macroend
+
+; An older install with a corrupt registry entry must never be passed to
+; electron-builder's uninstallOldVersion, which derives a path from that entry.
+!macro DudeCheckPreviousInstall ROOT_KEY
+  ReadRegStr $R4 ${ROOT_KEY} "${UNINSTALL_REGISTRY_KEY}" "UninstallString"
+  ${If} $R4 != ""
+    ReadRegStr $R3 ${ROOT_KEY} "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+    !insertmacro DudePathIsSafe $R3 $R2
+    ${If} $R2 == "1"
+      !insertmacro GetInQuotes $R5 "$R4"
+      ${If} $R5 != "$R3\${UNINSTALL_FILENAME}"
+        StrCpy $R2 "0"
+      ${EndIf}
+    ${EndIf}
+    ${If} $R2 != "1"
+      MessageBox MB_OK|MB_ICONSTOP "The previous DUDE installation has an invalid uninstall path. Setup stopped before changing files. Repair the DUDE installation registration before retrying."
+      SetErrorLevel 2
+      Quit
+    ${EndIf}
+  ${EndIf}
+!macroend
+
+!macro customCheckAppRunning
+  !insertmacro DudePathIsSafe $INSTDIR $R2
+  ${If} $R2 != "1"
+    MessageBox MB_OK|MB_ICONSTOP "DUDE's installation folder must be a dedicated DUDE folder outside the drive root and source checkout. Setup stopped before changing files."
+    SetErrorLevel 2
+    Quit
+  ${EndIf}
+  !ifndef BUILD_UNINSTALLER
+    !insertmacro DudeCheckPreviousInstall SHELL_CONTEXT
+    ${If} $installMode == "all"
+      !insertmacro DudeCheckPreviousInstall HKEY_CURRENT_USER
+    ${EndIf}
+  !endif
+  !insertmacro IS_POWERSHELL_AVAILABLE
+  !insertmacro _CHECK_APP_RUNNING
+!macroend
+
 
 ; BEGIN GENERATED FILE ASSOCIATIONS BITS
 !define DUDE_ALL_EXTENSION_MASK 16383
@@ -292,7 +363,21 @@ Function DudePathLeave
       MessageBox MB_ICONEXCLAMATION "Choose an installation folder."
       Abort
     ${EndIf}
+    ClearErrors
     GetFullPathName $INSTDIR $0
+    ${If} ${Errors}
+      MessageBox MB_OK|MB_ICONEXCLAMATION "Choose a valid installation folder."
+      Abort
+    ${EndIf}
+    ${GetFileName} "$INSTDIR" $R9
+    ${If} $R9 != "DUDE"
+      StrCpy $INSTDIR "$INSTDIR\DUDE"
+    ${EndIf}
+    !insertmacro DudePathIsSafe $INSTDIR $R2
+    ${If} $R2 != "1"
+      MessageBox MB_OK|MB_ICONEXCLAMATION "Choose a dedicated DUDE folder outside the drive root and source checkout."
+      Abort
+    ${EndIf}
   ${EndIf}
 FunctionEnd
 
