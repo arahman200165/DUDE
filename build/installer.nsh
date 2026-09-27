@@ -622,6 +622,35 @@ FunctionEnd
 !endif
 
 !ifdef BUILD_UNINSTALLER
+Var DudeDeleteData
+Var DudeDeleteDataCheck
+
+!macro customUnWelcomePage
+  Page custom DudeUnWelcomeCreate DudeUnWelcomeLeave
+!macroend
+
+Function DudeUnWelcomeCreate
+  StrCpy $DudeDeleteData "0"
+  ${If} ${Silent}
+    Abort
+  ${EndIf}
+  nsDialogs::Create 1018
+  Pop $0
+  ${NSD_CreateLabel} 0 0 100% 40u "This will remove DUDE from your computer. Your saved settings, hotkeys, secure credentials, and cache are normally left behind, so a future install picks up where you left off."
+  Pop $0
+  ${NSD_CreateCheckbox} 0 52u 100% 32u "Also permanently delete my DUDE settings and data (preferences, hotkeys, saved credentials, cache). This cannot be undone."
+  Pop $DudeDeleteDataCheck
+  nsDialogs::Show
+FunctionEnd
+
+Function DudeUnWelcomeLeave
+  ${NSD_GetState} $DudeDeleteDataCheck $0
+  StrCpy $DudeDeleteData "0"
+  ${If} $0 == ${BST_CHECKED}
+    StrCpy $DudeDeleteData "1"
+  ${EndIf}
+FunctionEnd
+
 Function un.DudeRemoveRegistration
   Pop $1
   DeleteRegKey SHELL_CONTEXT "Software\Classes\DUDE.$1"
@@ -639,5 +668,12 @@ Function un.DudeRemoveOptions
   !insertmacro DudeRemoveProtocol
   DeleteRegValue SHELL_CONTEXT "Software\RegisteredApplications" "DUDE"
   DeleteRegKey SHELL_CONTEXT "Software\DUDE"
+  ${If} $DudeDeleteData == "1"
+    ; $%APPDATA% reads the literal environment variable of the invoking user,
+    ; unaffected by SetShellVarContext/install mode — unlike the $APPDATA
+    ; shell-folder constant, which resolves differently for per-machine
+    ; installs and would otherwise require tracking/restoring install mode.
+    RMDir /r "$%APPDATA%\DUDE"
+  ${EndIf}
 FunctionEnd
 !endif
