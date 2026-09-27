@@ -4,6 +4,7 @@ import { OnboardingService } from '../../core/platform/onboarding.service';
 import { ShellChromeService } from '../../core/platform/shell-chrome.service';
 import { SecureLocalService } from '../../core/persistence/secure-local.service';
 import { PersistenceService } from '../../core/persistence/persistence.service';
+import { APP_SETTINGS_NAMESPACE, LLM_API_KEY_KEY, LLM_BASE_URL_KEY, LLM_MODEL_KEY } from '../../core/persistence/app-settings';
 import { WorkspaceLayoutService } from '../../core/workspace/workspace-layout.service';
 import type { DesktopPreferences, QuickActionInfo } from '../../core/platform/electron-bridge';
 
@@ -40,7 +41,7 @@ export class Onboarding {
     this.hotkeys.set(hotkeys);
     this.hotkeyDrafts.set(Object.fromEntries(hotkeys.map((item) => [item.id, item.hotkey ?? ''])));
     const [url, model, key] = await Promise.all([
-      this.secure.get('settings', 'llmBaseUrl'), this.secure.get('settings', 'llmModel'), this.secure.get('settings', 'llmApiKey'),
+      this.secure.get(APP_SETTINGS_NAMESPACE, LLM_BASE_URL_KEY), this.secure.get(APP_SETTINGS_NAMESPACE, LLM_MODEL_KEY), this.secure.get(APP_SETTINGS_NAMESPACE, LLM_API_KEY_KEY),
     ]);
     if (url.ok) this.baseUrl.set(url.value ?? '');
     if (model.ok) this.model.set(model.value ?? '');
@@ -80,9 +81,9 @@ export class Onboarding {
     this.saving.set(true);
     this.message.set('');
     const results = await Promise.all([
-      this.secure.set('settings', 'llmBaseUrl', this.baseUrl().trim()),
-      this.secure.set('settings', 'llmModel', this.model().trim()),
-      this.secure.set('settings', 'llmApiKey', this.apiKey().trim()),
+      this.secure.set(APP_SETTINGS_NAMESPACE, LLM_BASE_URL_KEY, this.baseUrl().trim()),
+      this.secure.set(APP_SETTINGS_NAMESPACE, LLM_MODEL_KEY, this.model().trim()),
+      this.secure.set(APP_SETTINGS_NAMESPACE, LLM_API_KEY_KEY, this.apiKey().trim()),
     ]);
     this.saving.set(false);
     const error = results.find((result) => !result.ok);

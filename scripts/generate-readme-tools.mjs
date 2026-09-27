@@ -68,8 +68,7 @@ const tools = manifestPaths
       category: extractField(text, 'category'),
       route: extractField(text, 'route'),
     };
-  })
-  .filter((tool) => tool.id !== 'settings'); // desktop-only config page, not a showcase tool
+  });
 
 const grouped = new Map(CATEGORY_ORDER.map((category) => [category, []]));
 for (const tool of tools) {

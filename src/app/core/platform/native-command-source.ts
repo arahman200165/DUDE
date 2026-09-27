@@ -1,9 +1,8 @@
 import { Injectable, Provider, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { COMMAND_SOURCE, CommandSource, PaletteCommand } from '../../shared/models/command-source.model';
 import { PlatformService } from './platform.service';
 import { ShellChromeService } from './shell-chrome.service';
-import { ToolRegistryService } from '../registry/tool-registry.service';
-import { ToolLauncherService } from '../registry/tool-launcher.service';
 import type { QuickActionInfo } from './electron-bridge';
 
 /**
@@ -13,17 +12,14 @@ import type { QuickActionInfo } from './electron-bridge';
  * `[]` on web -- there is no native menu, no updater, no OS file picker, and no clipboard quick-
  * action registry to surface there.
  *
- * "Manage Secrets" is a narrow, precedented exception to the no-hard-coded-tool-id rule (like
- * `NativeMenuService`'s onboarding→settings reference): it opens the `settings` tool directly rather
- * than through a declarative manifest flag, since there is exactly one settings surface and it will
- * stay that way.
+ * "Manage Secrets" opens the Settings shell destination's AI / LLM Provider section — a fixed app
+ * route, not a tool id.
  */
 @Injectable()
 export class NativeCommandSource implements CommandSource {
   private readonly platform = inject(PlatformService);
   private readonly shellChrome = inject(ShellChromeService);
-  private readonly registry = inject(ToolRegistryService);
-  private readonly launcher = inject(ToolLauncherService);
+  private readonly router = inject(Router);
   private readonly quickActionInfos = signal<readonly QuickActionInfo[]>([]);
 
   constructor() {
@@ -40,10 +36,7 @@ export class NativeCommandSource implements CommandSource {
         id: 'native:manage-secrets',
         kind: 'native',
         title: 'Manage Secrets',
-        execute: () => {
-          const tool = this.registry.getById('settings');
-          if (tool) this.launcher.open(tool);
-        },
+        execute: () => void this.router.navigateByUrl('/settings/ai'),
       },
     ];
 

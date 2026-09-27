@@ -2,7 +2,8 @@ import { Injectable, inject, signal } from '@angular/core';
 import { PlatformService } from './platform.service';
 import type { DesktopPreferences } from './electron-bridge';
 
-const DEFAULTS: DesktopPreferences = {
+/** Mirrors `electron/desktop-preferences.ts`'s own defaults — used by Settings' "Reset to defaults". */
+export const DESKTOP_PREFERENCE_DEFAULTS: DesktopPreferences = {
   closeToTray: true,
   launchMinimized: false,
   startupDestination: 'workspace',
@@ -16,7 +17,7 @@ const DEFAULTS: DesktopPreferences = {
 @Injectable({ providedIn: 'root' })
 export class DesktopPreferencesService {
   private readonly platform = inject(PlatformService);
-  private readonly currentSignal = signal<DesktopPreferences>(DEFAULTS);
+  private readonly currentSignal = signal<DesktopPreferences>(DESKTOP_PREFERENCE_DEFAULTS);
   readonly current = this.currentSignal.asReadonly();
   readonly displays = signal<readonly { id: number; label: string; primary: boolean }[]>([]);
 

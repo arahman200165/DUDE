@@ -1,46 +1,32 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { Sidebar } from './sidebar';
-import { PersistenceService } from '../../core/persistence/persistence.service';
 import { routes } from '../../core/routing/app.routes';
 
 describe('Sidebar', () => {
-  let clearAllSpy: ReturnType<typeof vi.spyOn>;
-
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [provideRouter(routes)],
     });
-    clearAllSpy = vi.spyOn(TestBed.inject(PersistenceService), 'clearAll').mockImplementation(() => {});
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  function clearAllButton(fixture: ReturnType<typeof TestBed.createComponent>): HTMLButtonElement {
-    return Array.from(fixture.nativeElement.querySelectorAll('button')).find((button) =>
-      (button as HTMLButtonElement).textContent?.includes('Clear all DUDE data'),
-    ) as HTMLButtonElement;
-  }
-
-  it('does not clear data when the confirm dialog is declined', () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
+  it('pins a Settings link to the footer and no longer offers a clear-all-data button', () => {
     const fixture = TestBed.createComponent(Sidebar);
     fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
 
-    clearAllButton(fixture).click();
-
-    expect(clearAllSpy).not.toHaveBeenCalled();
+    const settingsLink = Array.from(element.querySelectorAll('a')).find((link) => link.textContent?.trim() === 'Settings');
+    expect(settingsLink?.getAttribute('href')).toBe('/settings');
+    expect(settingsLink?.closest('div.border-t')).not.toBeNull();
+    expect(element.textContent).not.toContain('Clear all DUDE data');
   });
 
-  it('clears all data when the confirm dialog is accepted', () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+  it('lists the shell destinations but no Settings tool entry among the categories', () => {
     const fixture = TestBed.createComponent(Sidebar);
     fixture.detectChanges();
+    const hrefs = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('a')).map((link) => link.getAttribute('href'));
 
-    clearAllButton(fixture).click();
-
-    expect(clearAllSpy).toHaveBeenCalledTimes(1);
+    expect(hrefs).toEqual(expect.arrayContaining(['/smart-paste', '/workspace', '/history', '/pipelines', '/quick-run', '/projects', '/settings']));
+    expect(hrefs).not.toContain('/tools/settings');
   });
 });

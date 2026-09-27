@@ -1,14 +1,13 @@
 import { Injectable, Provider, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { COMMAND_SOURCE, CommandSource, PaletteCommand } from '../../shared/models/command-source.model';
 import { PlatformService } from './platform.service';
 import { ShellChromeService } from './shell-chrome.service';
-import { ToolRegistryService } from '../registry/tool-registry.service';
-import { ToolLauncherService } from '../registry/tool-launcher.service';
 import { WorkspaceLayoutService } from '../workspace/workspace-layout.service';
 
 /**
  * Command Palette source for Preferences (DUDE_PRD.md §21 Phase 25 Item 4) -- "Open Settings" plus a
- * couple of instant, no-form toggles that would otherwise need a trip into the Settings tool. Each
+ * couple of instant, no-form toggles that would otherwise need a trip into Settings (`/settings`). Each
  * toggle command's title reflects the *next* state, matching a checkbox's usual "click to flip"
  * affordance rather than a static label.
  */
@@ -16,8 +15,7 @@ import { WorkspaceLayoutService } from '../workspace/workspace-layout.service';
 export class PreferencesCommandSource implements CommandSource {
   private readonly platform = inject(PlatformService);
   private readonly shellChrome = inject(ShellChromeService);
-  private readonly registry = inject(ToolRegistryService);
-  private readonly launcher = inject(ToolLauncherService);
+  private readonly router = inject(Router);
   private readonly workspaceLayout = inject(WorkspaceLayoutService);
   private readonly launchOnLogin = signal(false);
 
@@ -31,10 +29,7 @@ export class PreferencesCommandSource implements CommandSource {
         id: 'preference:open-settings',
         kind: 'preference',
         title: 'Open Settings',
-        execute: () => {
-          const tool = this.registry.getById('settings');
-          if (tool) this.launcher.open(tool);
-        },
+        execute: () => void this.router.navigateByUrl('/settings'),
       },
       {
         id: 'preference:toggle-reopen-on-restart',

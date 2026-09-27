@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { CommandPaletteService } from '../../shell/command-palette/command-palette.service';
 import { PlatformService } from './platform.service';
 import { ToolRegistryService } from '../registry/tool-registry.service';
@@ -13,15 +14,13 @@ export class NativeMenuService {
   private readonly registry = inject(ToolRegistryService);
   private readonly launcher = inject(ToolLauncherService);
   private readonly palette = inject(CommandPaletteService);
+  private readonly router = inject(Router);
   private snapshotTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     if (!this.platform.isDesktop()) return;
     window.dude!.menu.onAction((action) => {
-      if (action === 'preferences') {
-        const preferences = this.registry.getAll().find((tool) => tool.nativeMenu?.preferences);
-        if (preferences) this.launcher.open(preferences);
-      }
+      if (action === 'preferences') void this.router.navigateByUrl('/settings');
       else if (action === 'command-palette') this.palette.open();
       else if (action.startsWith('tool:')) {
         const tool = this.registry.getById(action.slice(5));

@@ -90,8 +90,7 @@ const tools = manifestPaths
       persistencePreferences: extractNestedField(text, 'persistence', 'preferences'),
       desktopOpen: /desktopOpen:\s*\{/.test(text),
     };
-  })
-  .filter((tool) => tool.id !== 'settings');
+  });
 
 const link = (tool) => `[${tool.title}](${BASE_URL}${tool.route})`;
 

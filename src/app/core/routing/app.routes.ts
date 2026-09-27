@@ -2,11 +2,13 @@ import { Routes } from '@angular/router';
 import { ShellLayout } from '../../shell/layout/shell-layout';
 import { Deck } from '../../shell/deck/deck';
 import { buildToolRoutes } from '../registry/tool-routes';
+import { settingsUnsavedChangesGuard } from '../../shell/settings/settings-unsaved-changes';
 
-// The Pipelines, Smart Paste, Workspace, History, Quick Run, and Projects routes below are the deliberate
-// exceptions to "never edit this file to wire up a feature" (DUDE_PRD.md §21 Phase 21 Items 2, 3,
-// 4, and 5, and Phase 24 Item 12, explicitly sanction them — see shell/AGENTS.md). Nothing here
-// names a specific tool by id; all are parallel, registry-adjacent features, never a 278th tool.
+// The Pipelines, Smart Paste, Workspace, History, Quick Run, Projects, and Settings routes below are
+// the deliberate exceptions to "never edit this file to wire up a feature" (DUDE_PRD.md §21 Phase 21
+// Items 2, 3, 4, and 5, Phase 24 Item 12, Phase 25 Item 1, and the Settings shell destination —
+// see shell/AGENTS.md). Nothing here names a specific tool by id; all are parallel,
+// registry-adjacent features, never a 278th tool.
 export const routes: Routes = [
   {
     path: '',
@@ -32,6 +34,17 @@ export const routes: Routes = [
       {
         path: 'projects',
         loadComponent: () => import('../../shell/projects/project-list/project-list').then((m) => m.ProjectList),
+      },
+      { path: 'settings', redirectTo: 'settings/general', pathMatch: 'full' },
+      {
+        path: 'settings/tools/:toolId',
+        loadComponent: () => import('../../shell/settings/settings-page/settings-page').then((m) => m.SettingsPage),
+        canDeactivate: [settingsUnsavedChangesGuard],
+      },
+      {
+        path: 'settings/:section',
+        loadComponent: () => import('../../shell/settings/settings-page/settings-page').then((m) => m.SettingsPage),
+        canDeactivate: [settingsUnsavedChangesGuard],
       },
       {
         path: 'pipelines',

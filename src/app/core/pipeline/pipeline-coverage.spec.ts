@@ -53,7 +53,6 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
 
   // Interactive/stateful UI with no genuine single-value input -> output transform.
   'stopwatch-countdown': 'not a transform tool (live-clock state machine over Date.now())',
-  settings: 'not a transform tool (app-preferences page)',
   'flexbox-playground': 'not a transform tool (interactive layout builder)',
   'css-grid-playground': 'not a transform tool (interactive layout builder)',
   'hex-editor': 'not a transform tool (interactive per-byte editor, no deterministic default edit)',

@@ -1,0 +1,62 @@
+import { Type } from '@angular/core';
+
+/**
+ * One entry in the Settings sub-nav. Core sections are app-level and hand-listed here (Settings is a
+ * shell destination, not a tool — see shell/AGENTS.md); tool-contributed sections come from the
+ * registry (`ToolRegistryService.settingsSections()`) and render under a separate "Tools" group.
+ * `keywords` feed the page's filter box and should include every setting label in the section.
+ */
+export interface CoreSettingsSection {
+  readonly id: string;
+  readonly title: string;
+  readonly keywords: readonly string[];
+  readonly desktopOnly: boolean;
+  readonly load: () => Promise<Type<unknown>>;
+}
+
+export const DEFAULT_SETTINGS_SECTION_ID = 'general';
+
+export const CORE_SETTINGS_SECTIONS: readonly CoreSettingsSection[] = [
+  {
+    id: 'general',
+    title: 'General',
+    keywords: ['reopen tabs on restart', 'startup destination', 'setup wizard', 'onboarding', 'workspace', 'deck'],
+    desktopOnly: false,
+    load: () => import('./sections/general-settings').then((m) => m.GeneralSettings),
+  },
+  {
+    id: 'ai',
+    title: 'AI / LLM Provider',
+    keywords: ['llm', 'ai', 'openai', 'model', 'api key', 'base url', 'provider', 'secrets', 'regex'],
+    desktopOnly: true,
+    load: () => import('./sections/ai-provider-settings').then((m) => m.AiProviderSettings),
+  },
+  {
+    id: 'hotkeys',
+    title: 'Hotkeys',
+    keywords: ['hotkey', 'shortcut', 'global', 'clipboard quick-actions', 'smart paste', 'quick launcher', 'keyboard'],
+    desktopOnly: true,
+    load: () => import('./sections/hotkeys-settings').then((m) => m.HotkeysSettings),
+  },
+  {
+    id: 'window',
+    title: 'Window & Updates',
+    keywords: ['launch on login', 'tray', 'close to tray', 'minimized', 'window size', 'display', 'updates', 'notifications', 'collaborators'],
+    desktopOnly: true,
+    load: () => import('./sections/window-updates-settings').then((m) => m.WindowUpdatesSettings),
+  },
+  {
+    id: 'files',
+    title: 'Files',
+    keywords: ['file associations', 'default apps', 'open with', 'native recents', 'recent files', 'explorer'],
+    desktopOnly: true,
+    load: () => import('./sections/files-settings').then((m) => m.FilesSettings),
+  },
+  {
+    id: 'data',
+    title: 'Data & Privacy',
+    keywords: ['clear all local data', 'reset', 'privacy', 'storage', 'delete', 'danger'],
+    desktopOnly: false,
+    load: () => import('./sections/data-privacy-settings').then((m) => m.DataPrivacySettings),
+  },
+];

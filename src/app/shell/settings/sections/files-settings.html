@@ -1,0 +1,51 @@
+<div class="flex flex-col gap-4">
+  <div data-setting class="flex flex-col gap-2">
+    <h3 class="text-ui-sm font-semibold text-text">File associations</h3>
+    <p class="text-ui text-text-muted">These file types were registered by the installer as candidates. Windows controls your actual default apps.</p>
+    @if (fileAssociations(); as associations) {
+      @if (associations.candidateExtensions.length) {
+        <div class="flex flex-wrap gap-1.5">
+          @for (extension of associations.candidateExtensions; track extension) {
+            <span class="rounded-sm border border-border bg-panel px-2 py-0.5 font-mono text-ui-xs text-text">{{ extension }}</span>
+          }
+        </div>
+      } @else {
+        <span class="text-ui text-text-muted">No file types were registered as candidates.</span>
+      }
+    } @else {
+      <span class="text-ui text-text-muted">No installer association record is available.</span>
+    }
+    <button type="button" class="w-fit rounded-sm border border-border px-2 py-0.5 text-ui text-text hover:bg-panel-elevated" (click)="openWindowsDefaultApps()">
+      Change in Windows Settings
+    </button>
+    @if (message()) {
+      <span class="text-ui text-info" role="status">{{ message() }}</span>
+    }
+  </div>
+
+  <div class="flex flex-col gap-2 border-t border-border pt-4">
+    <h3 class="text-ui-sm font-semibold text-text">Native file recent list</h3>
+    <p class="text-ui text-text-muted">
+      Files opened via Explorer ("Open with DUDE") or the Open File… picker. Only the file path and name are ever stored, never its contents.
+    </p>
+    <label data-setting class="flex items-center gap-2 text-ui text-text">
+      <input type="checkbox" class="accent-accent" [checked]="nativeRecents.enabled()" (change)="onNativeRecentsEnabledToggle($event)" />
+      Remember recently opened native files
+    </label>
+    @if (nativeRecents.entries().length) {
+      <ul class="flex flex-col gap-1">
+        @for (entry of nativeRecents.entries(); track entry.path) {
+          <li class="flex items-center justify-between gap-2 rounded-sm border border-border bg-panel px-2 py-1">
+            <span class="min-w-0 flex-1 truncate font-mono text-ui-xs text-text" [title]="entry.path">{{ entry.name }}</span>
+            <button type="button" class="text-ui-sm text-text-muted hover:text-error" (click)="nativeRecents.remove(entry.path)">Remove</button>
+          </li>
+        }
+      </ul>
+      <button type="button" class="w-fit rounded-sm border border-error/40 px-2 py-0.5 text-ui text-error hover:bg-error/10" (click)="nativeRecents.clearAll()">
+        Clear all
+      </button>
+    } @else {
+      <span class="text-ui text-text-muted">No native files opened yet.</span>
+    }
+  </div>
+</div>

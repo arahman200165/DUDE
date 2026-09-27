@@ -1,0 +1,40 @@
+<div class="flex flex-col gap-3">
+  <p class="text-ui text-text-muted">Global hotkeys work even when DUDE isn't focused. Leave a field empty to keep it unbound.</p>
+
+  @for (row of rows(); track row.id) {
+    <div data-setting class="flex flex-wrap items-center gap-2">
+      <span class="w-64 text-ui text-text">{{ row.label }}</span>
+      <input
+        type="text"
+        class="w-40 rounded-sm border border-border bg-panel px-2 py-0.5 font-mono text-ui-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
+        [placeholder]="row.placeholder"
+        [attr.aria-label]="row.label + ' hotkey'"
+        [value]="drafts()[row.id] ?? ''"
+        (input)="onDraftInput(row.id, $event)"
+      />
+      <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui-xs text-accent hover:bg-accent/10" (click)="save(row.id)">
+        Save
+      </button>
+      @if (saved()[row.id]) {
+        <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui-xs hover:bg-panel-elevated" (click)="clear(row.id)">
+          Clear
+        </button>
+      }
+      @if ((drafts()[row.id] ?? '').trim() !== (saved()[row.id] ?? '')) {
+        <span class="text-ui-xs text-warning">Unsaved</span>
+      }
+    </div>
+    @if (errors()[row.id]) {
+      <app-error-panel [message]="errors()[row.id]" />
+    }
+  }
+
+  <div class="flex items-center gap-3 border-t border-border pt-4">
+    <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated" (click)="resetToDefaults()">
+      Reset to defaults
+    </button>
+    @if (message()) {
+      <span class="text-ui text-info" role="status">{{ message() }}</span>
+    }
+  </div>
+</div>

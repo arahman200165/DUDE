@@ -8,10 +8,7 @@ describe('README tool count', () => {
   // (e.g. release.yml's windows-latest), which would otherwise break the bare `\n` splits below.
   const readme = readFileSync(readmePath, 'utf-8').replace(/\r\n/g, '\n');
 
-  // "Settings" is a desktop-only configuration page (Electron LLM proxy setup), not one of the
-  // showcased developer micro-tools -- the PRD (§21 Phase 8) already treats it as not incrementing
-  // the shipped-tool count, and README's Tools table deliberately omits it.
-  const showcaseToolCount = TOOL_DEFINITIONS.filter((t) => t.id !== 'settings').length;
+  const showcaseToolCount = TOOL_DEFINITIONS.length;
 
   it('matches the showcase tool count in the "N tools ship today" line', () => {
     const match = readme.match(/(\d+) tools ship today/);
@@ -20,7 +17,7 @@ describe('README tool count', () => {
     const statedCount = Number(match![1]);
     expect(
       statedCount,
-      `README says ${statedCount} tools, registry has ${showcaseToolCount} showcase tools (excl. Settings) -- update README.md's "tools ship today" line`,
+      `README says ${statedCount} tools, registry has ${showcaseToolCount} tools -- update README.md's "tools ship today" line`,
     ).toBe(showcaseToolCount);
   });
 
@@ -34,7 +31,7 @@ describe('README tool count', () => {
 
     expect(
       rows.length,
-      `README's Tools table has ${rows.length} rows, registry has ${showcaseToolCount} showcase tools (excl. Settings) -- they should match`,
+      `README's Tools table has ${rows.length} rows, registry has ${showcaseToolCount} tools -- they should match`,
     ).toBe(showcaseToolCount);
   });
 });

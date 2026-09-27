@@ -118,8 +118,6 @@ export interface ToolDefinition {
   readonly desktopOpen?: { readonly extensions?: readonly string[]; readonly inputKey?: string; readonly directory?: boolean };
   /** Primary text input loadable from a file — see `ToolFileInput`. */
   readonly fileInput?: ToolFileInput;
-  /** Optional application-menu role; declared by the owning tool manifest. */
-  readonly nativeMenu?: { readonly preferences?: boolean };
   readonly status?: 'experimental' | 'stable' | 'verified';
   readonly verification?: ToolVerificationMetadata;
   readonly consequenceClass?: readonly ConsequenceClass[];
