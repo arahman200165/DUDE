@@ -97,8 +97,10 @@ Var pid
     !insertmacro DudePathIsSafe $R3 $R2 0
     ${If} $R2 == "1"
     ${AndIf} $R4 != ""
-      !insertmacro GetInQuotes $R5 "$R4"
-      ${If} $R5 != "$R3\${UNINSTALL_FILENAME}"
+      StrCpy $R5 '"$R3\${UNINSTALL_FILENAME}"'
+      StrLen $R6 $R5
+      StrCpy $R7 $R4 $R6
+      ${If} $R7 != $R5
         StrCpy $R2 "0"
       ${EndIf}
     ${EndIf}
@@ -124,6 +126,45 @@ Var pid
   !ifndef BUILD_UNINSTALLER
     !insertmacro DudeCheckPreviousInstall HKEY_CURRENT_USER
     !insertmacro DudeCheckPreviousInstall HKEY_LOCAL_MACHINE
+    ${IfNot} ${Silent}
+    ${AndIfNot} ${isUpdated}
+      ReadRegStr $R0 HKEY_CURRENT_USER "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+      ReadRegStr $R1 HKEY_LOCAL_MACHINE "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+      ${If} $DudeExistingInstall == "1"
+        ${If} $DudeMaintenanceReady != "1"
+        ${OrIf} $DudeMaintenanceAction != "repair"
+        ${OrIf} $INSTDIR != $DudeExistingPath
+          MessageBox MB_OK|MB_ICONSTOP "Repair was not confirmed for the registered DUDE installation. Setup stopped."
+          SetErrorLevel 2
+          Quit
+        ${EndIf}
+        ${If} $DudeExistingScope == "all"
+          StrCpy $R2 $R1
+          ${If} $R0 != ""
+            MessageBox MB_OK|MB_ICONSTOP "Another DUDE installation was found. Restart Setup to manage it before repairing."
+            SetErrorLevel 2
+            Quit
+          ${EndIf}
+        ${Else}
+          StrCpy $R2 $R0
+          ${If} $R1 != ""
+            MessageBox MB_OK|MB_ICONSTOP "Another DUDE installation was found. Restart Setup to manage it before repairing."
+            SetErrorLevel 2
+            Quit
+          ${EndIf}
+        ${EndIf}
+        ${If} $R2 != $DudeExistingPath
+          MessageBox MB_OK|MB_ICONSTOP "The registered DUDE path changed. Restart Setup before repairing."
+          SetErrorLevel 2
+          Quit
+        ${EndIf}
+      ${ElseIf} $R0 != ""
+      ${OrIf} $R1 != ""
+        MessageBox MB_OK|MB_ICONSTOP "DUDE was installed while Setup was open. Restart Setup to choose a maintenance action."
+        SetErrorLevel 2
+        Quit
+      ${EndIf}
+    ${EndIf}
   !endif
   !insertmacro IS_POWERSHELL_AVAILABLE
   !insertmacro _CHECK_APP_RUNNING
@@ -151,6 +192,22 @@ Var pid
 !ifndef BUILD_UNINSTALLER
 Var DudeElevatedContinuation
 Var DudeStepTotal
+Var DudeExistingInstall
+Var DudeExistingScope
+Var DudeExistingPath
+Var DudeExistingVersion
+Var DudeUserPath
+Var DudeMachinePath
+Var DudeMultipleInstalls
+Var DudeMaintenanceAction
+Var DudeMaintenanceReady
+Var DudeMaintenanceRepairRadio
+Var DudeMaintenanceResetRadio
+Var DudeMaintenanceUninstallRadio
+Var DudeMaintenanceConfirmCheck
+Var DudeMaintenanceActionButton
+Var DudeMaintenanceNextButton
+Var DudeMaintenanceActionSucceeded
 Var DudeCustomize
 Var DudePreset
 Var DudePreviousPreset
@@ -201,7 +258,14 @@ Var DudeExt13
 !macro customInit
   StrCpy $DudeElevatedContinuation "0"
   StrCpy $DudePresetChanged "0"
+  StrCpy $DudeExistingInstall "0"
+  StrCpy $DudeMaintenanceAction "repair"
+  StrCpy $DudeMaintenanceReady "0"
   Call DudeLoadOptions
+  ${IfNot} ${Silent}
+  ${AndIfNot} ${isUpdated}
+    Call DudeDetectExistingInstall
+  ${EndIf}
   ${If} ${UAC_IsInnerInstance}
     StrCpy $DudeElevatedContinuation "1"
     ; Elevation restarts the page flow in a separate process. Restore the
@@ -217,6 +281,13 @@ Var DudeExt13
     !insertmacro UAC_AsUser_GetGlobalVar $DudeFolders
     !insertmacro UAC_AsUser_GetGlobalVar $DudeProtocol
     !insertmacro UAC_AsUser_GetGlobalVar $DudeMask
+    !insertmacro UAC_AsUser_GetGlobalVar $DudeExistingInstall
+    !insertmacro UAC_AsUser_GetGlobalVar $DudeExistingScope
+    !insertmacro UAC_AsUser_GetGlobalVar $DudeExistingPath
+    !insertmacro UAC_AsUser_GetGlobalVar $DudeExistingVersion
+    !insertmacro UAC_AsUser_GetGlobalVar $DudeMultipleInstalls
+    !insertmacro UAC_AsUser_GetGlobalVar $DudeMaintenanceAction
+    !insertmacro UAC_AsUser_GetGlobalVar $DudeMaintenanceReady
     StrCpy $DudePreviousPreset $DudePreset
     ; The elevated mode page will select all users even if initMultiUser
     ; initially found only a current-user installation.
@@ -225,6 +296,8 @@ Var DudeExt13
 !macroend
 
 !macro customWelcomePage
+  Page custom DudeMaintenanceCreate DudeMaintenanceLeave
+  Page custom DudeMaintenanceReviewCreate DudeMaintenanceReviewLeave
   Page custom DudeWelcomeCreate DudeWelcomeLeave
   ; The built-in install-scope page is the next visible page in Custom mode.
   !ifndef INSTALL_MODE_PER_ALL_USERS
@@ -233,7 +306,17 @@ Var DudeExt13
 !macroend
 
 !macro customInstallmode
-  ${If} $DudeCustomize != "1"
+  ${If} $DudeExistingInstall == "1"
+    ${If} $DudeMaintenanceReady != "1"
+      MessageBox MB_OK|MB_ICONSTOP "Choose and confirm a maintenance action before changing DUDE."
+      Quit
+    ${EndIf}
+    ${If} $DudeExistingScope == "all"
+      StrCpy $isForceMachineInstall "1"
+    ${Else}
+      StrCpy $isForceCurrentInstall "1"
+    ${EndIf}
+  ${ElseIf} $DudeCustomize != "1"
     ${If} $DudePreset == "Integrated"
       StrCpy $isForceMachineInstall "1"
     ${Else}
@@ -243,6 +326,269 @@ Var DudeExt13
 !macroend
 
 !macro customPageAfterChangeDir
+Function DudeDetectExistingInstall
+  ReadRegStr $DudeUserPath HKEY_CURRENT_USER "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+  ReadRegStr $0 HKEY_CURRENT_USER "${UNINSTALL_REGISTRY_KEY}" "UninstallString"
+  ${If} $DudeUserPath != ""
+  ${OrIf} $0 != ""
+    !insertmacro DudeCheckPreviousInstall HKEY_CURRENT_USER
+  ${EndIf}
+  ReadRegStr $DudeMachinePath HKEY_LOCAL_MACHINE "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+  ReadRegStr $0 HKEY_LOCAL_MACHINE "${UNINSTALL_REGISTRY_KEY}" "UninstallString"
+  ${If} $DudeMachinePath != ""
+  ${OrIf} $0 != ""
+    !insertmacro DudeCheckPreviousInstall HKEY_LOCAL_MACHINE
+  ${EndIf}
+  StrCpy $DudeMultipleInstalls "0"
+  ${If} $DudeUserPath != ""
+    StrCpy $DudeExistingInstall "1"
+    StrCpy $DudeExistingScope "current"
+    StrCpy $DudeExistingPath $DudeUserPath
+    ReadRegStr $DudeExistingVersion HKEY_CURRENT_USER "${UNINSTALL_REGISTRY_KEY}" "DisplayVersion"
+    ${If} $DudeMachinePath != ""
+      StrCpy $DudeMultipleInstalls "1"
+      StrCpy $DudeMaintenanceAction "uninstall"
+    ${EndIf}
+  ${ElseIf} $DudeMachinePath != ""
+    StrCpy $DudeExistingInstall "1"
+    StrCpy $DudeExistingScope "all"
+    StrCpy $DudeExistingPath $DudeMachinePath
+    ReadRegStr $DudeExistingVersion HKEY_LOCAL_MACHINE "${UNINSTALL_REGISTRY_KEY}" "DisplayVersion"
+  ${EndIf}
+FunctionEnd
+
+Function DudeMaintenanceCreate
+  ${If} ${Silent}
+  ${OrIf} $DudeExistingInstall != "1"
+  ${OrIf} $DudeElevatedContinuation == "1"
+    Abort
+  ${EndIf}
+  nsDialogs::Create 1018
+  Pop $0
+  StrCpy $0 "1"
+  StrCpy $1 "Choose how to manage the existing installation"
+  Call DudeSetStepHeader
+  GetDlgItem $DudeMaintenanceNextButton $HWNDPARENT 1
+  EnableWindow $DudeMaintenanceNextButton 1
+  SendMessage $DudeMaintenanceNextButton ${WM_SETTEXT} 0 "STR:Next >"
+  StrCpy $2 "Current user"
+  ${If} $DudeExistingScope == "all"
+    StrCpy $2 "All users"
+  ${EndIf}
+  ${NSD_CreateLabel} 0 0 100% 30u "DUDE $DudeExistingVersion is already installed for $2 at:$\r$\n$DudeExistingPath"
+  Pop $0
+  ${If} $DudeMultipleInstalls == "1"
+    ${NSD_CreateLabel} 0 34u 100% 28u "Two DUDE installations were found. Remove this current-user copy first, then run Setup again to manage the all-users copy."
+    Pop $0
+  ${EndIf}
+  ${NSD_CreateRadioButton} 0 70u 100% 16u "Repair or update DUDE (keep my data)"
+  Pop $DudeMaintenanceRepairRadio
+  ${NSD_CreateRadioButton} 0 90u 100% 16u "Delete my DUDE data (keep DUDE installed)"
+  Pop $DudeMaintenanceResetRadio
+  ${NSD_CreateRadioButton} 0 110u 100% 16u "Uninstall DUDE (keep my data)"
+  Pop $DudeMaintenanceUninstallRadio
+  ${If} $DudeMultipleInstalls == "1"
+    EnableWindow $DudeMaintenanceRepairRadio 0
+  ${EndIf}
+  ${If} $DudeMaintenanceAction == "reset"
+    ${NSD_Check} $DudeMaintenanceResetRadio
+  ${ElseIf} $DudeMaintenanceAction == "uninstall"
+    ${NSD_Check} $DudeMaintenanceUninstallRadio
+  ${Else}
+    ${NSD_Check} $DudeMaintenanceRepairRadio
+  ${EndIf}
+  ${NSD_OnClick} $DudeMaintenanceRepairRadio DudeMaintenanceChoiceChanged
+  ${NSD_OnClick} $DudeMaintenanceResetRadio DudeMaintenanceChoiceChanged
+  ${NSD_OnClick} $DudeMaintenanceUninstallRadio DudeMaintenanceChoiceChanged
+  nsDialogs::Show
+FunctionEnd
+
+Function DudeMaintenanceChoiceChanged
+  Pop $0
+  ${NSD_GetState} $DudeMaintenanceResetRadio $0
+  ${If} $0 == ${BST_CHECKED}
+    StrCpy $DudeMaintenanceAction "reset"
+  ${Else}
+    ${NSD_GetState} $DudeMaintenanceUninstallRadio $0
+    ${If} $0 == ${BST_CHECKED}
+      StrCpy $DudeMaintenanceAction "uninstall"
+    ${Else}
+      StrCpy $DudeMaintenanceAction "repair"
+    ${EndIf}
+  ${EndIf}
+  StrCpy $0 "1"
+  StrCpy $1 "Choose how to manage the existing installation"
+  Call DudeSetStepHeader
+FunctionEnd
+
+Function DudeMaintenanceLeave
+  ${NSD_GetState} $DudeMaintenanceRepairRadio $0
+  ${If} $0 == ${BST_CHECKED}
+    StrCpy $DudeMaintenanceAction "repair"
+    ${If} $DudeMultipleInstalls == "1"
+      MessageBox MB_OK|MB_ICONEXCLAMATION "Remove the current-user copy before repairing DUDE."
+      Abort
+    ${EndIf}
+  ${Else}
+    ${NSD_GetState} $DudeMaintenanceResetRadio $0
+    ${If} $0 == ${BST_CHECKED}
+      StrCpy $DudeMaintenanceAction "reset"
+    ${Else}
+      StrCpy $DudeMaintenanceAction "uninstall"
+    ${EndIf}
+  ${EndIf}
+FunctionEnd
+
+Function DudeMaintenanceReviewCreate
+  ${If} ${Silent}
+  ${OrIf} $DudeExistingInstall != "1"
+  ${OrIf} $DudeElevatedContinuation == "1"
+    Abort
+  ${EndIf}
+  nsDialogs::Create 1018
+  Pop $0
+  StrCpy $0 "2"
+  StrCpy $1 "Review and confirm"
+  Call DudeSetStepHeader
+  ${If} $DudeMaintenanceAction == "repair"
+    StrCpy $2 "Repair DUDE"
+    StrCpy $3 "Setup will replace files in the registered installation at $DudeExistingPath. Your saved data will be kept."
+    StrCpy $4 "Repair"
+  ${ElseIf} $DudeMaintenanceAction == "reset"
+    StrCpy $2 "Delete my DUDE data"
+    StrCpy $3 "This permanently deletes this Windows user's DUDE settings and personal data in %APPDATA%\DUDE. DUDE stays installed. Other users' data is kept."
+    StrCpy $4 "Delete data"
+  ${Else}
+    StrCpy $2 "Uninstall DUDE"
+    StrCpy $3 "The registered installation at $DudeExistingPath will be removed. Your saved data is kept unless you choose to delete it in the uninstaller."
+    StrCpy $4 "Open uninstaller"
+  ${EndIf}
+  GetDlgItem $DudeMaintenanceNextButton $HWNDPARENT 1
+  ${If} $DudeMaintenanceAction == "repair"
+    EnableWindow $DudeMaintenanceNextButton 1
+    SendMessage $DudeMaintenanceNextButton ${WM_SETTEXT} 0 "STR:$4"
+  ${Else}
+    EnableWindow $DudeMaintenanceNextButton 0
+  ${EndIf}
+  ${NSD_CreateLabel} 0 0 100% 18u "$2"
+  Pop $0
+  ${NSD_CreateLabel} 0 22u 100% 52u "$3"
+  Pop $0
+  ${NSD_CreateCheckbox} 0 91u 100% 30u "I understand the effect on this installation and my data."
+  Pop $DudeMaintenanceConfirmCheck
+  ${If} $DudeMaintenanceAction != "repair"
+    ${NSD_CreateButton} 0 135u 125u 22u "$4"
+    Pop $DudeMaintenanceActionButton
+    ${NSD_OnClick} $DudeMaintenanceActionButton DudeMaintenanceActionClicked
+  ${EndIf}
+  nsDialogs::Show
+FunctionEnd
+
+Function DudeMaintenanceActionClicked
+  Pop $0
+  ${NSD_GetState} $DudeMaintenanceConfirmCheck $0
+  ${If} $0 != ${BST_CHECKED}
+    MessageBox MB_OK|MB_ICONEXCLAMATION "Confirm that you understand this action before continuing."
+    Return
+  ${EndIf}
+  StrCpy $DudeMaintenanceActionSucceeded "0"
+  ${If} $DudeMaintenanceAction == "reset"
+    Call DudeResetUserData
+  ${ElseIf} $DudeMaintenanceAction == "uninstall"
+    Call DudeOpenUninstaller
+  ${EndIf}
+  ${If} $DudeMaintenanceActionSucceeded == "1"
+    Quit
+  ${EndIf}
+FunctionEnd
+
+Function DudeMaintenanceReviewLeave
+  ${If} $DudeMaintenanceAction != "repair"
+    Abort
+  ${EndIf}
+  ${NSD_GetState} $DudeMaintenanceConfirmCheck $0
+  ${If} $0 != ${BST_CHECKED}
+    MessageBox MB_OK|MB_ICONEXCLAMATION "Confirm that you understand this action before continuing."
+    Abort
+  ${EndIf}
+  StrCpy $DudeMaintenanceReady "1"
+  StrCpy $INSTDIR $DudeExistingPath
+  ${If} $DudeExistingScope == "all"
+    StrCpy $installMode "all"
+    SetShellVarContext all
+  ${Else}
+    StrCpy $installMode "CurrentUser"
+    SetShellVarContext current
+  ${EndIf}
+  Call DudeLoadOptions
+FunctionEnd
+Function DudeResetUserData
+  ${nsProcess::FindProcess} "DUDE.exe" $0
+  ${If} $0 == 0
+    MessageBox MB_OK|MB_ICONEXCLAMATION "Close DUDE before deleting its data, then try again."
+    Return
+  ${EndIf}
+  ReadEnvStr $0 APPDATA
+  ${If} $0 == ""
+    MessageBox MB_OK|MB_ICONSTOP "Windows did not provide your AppData folder. No data was deleted."
+    Return
+  ${EndIf}
+  StrCpy $1 "$0\DUDE"
+  !insertmacro DudePathIsSafe $1 $R2 1
+  ${If} $R2 != "1"
+    MessageBox MB_OK|MB_ICONSTOP "The DUDE data path could not be validated. No data was deleted."
+    Return
+  ${EndIf}
+  ${If} ${FileExists} "$1"
+    System::Call 'kernel32::GetFileAttributesW(w r1) i.r2'
+    IntOp $2 $2 & 0x400
+    ${If} $2 != 0
+      MessageBox MB_OK|MB_ICONSTOP "The DUDE data folder is a link. No data was deleted."
+      Return
+    ${EndIf}
+    ClearErrors
+    RMDir /r "$1"
+    ${If} ${Errors}
+    ${OrIf} ${FileExists} "$1"
+      MessageBox MB_OK|MB_ICONSTOP "Some DUDE data could not be deleted. Close apps using the folder and try again."
+      Return
+    ${EndIf}
+  ${EndIf}
+  StrCpy $DudeMaintenanceActionSucceeded "1"
+  MessageBox MB_OK|MB_ICONINFORMATION "Your DUDE data was deleted. DUDE remains installed."
+FunctionEnd
+
+Function DudeOpenUninstaller
+  ${If} $DudeExistingScope == "all"
+    ReadRegStr $R3 HKEY_LOCAL_MACHINE "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+  ${Else}
+    ReadRegStr $R3 HKEY_CURRENT_USER "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+  ${EndIf}
+  ${If} $R3 != $DudeExistingPath
+    MessageBox MB_OK|MB_ICONSTOP "The registered DUDE installation changed. Restart Setup before uninstalling."
+    Return
+  ${EndIf}
+  !insertmacro DudePathIsSafe $DudeExistingPath $R2 0
+  ${If} $R2 != "1"
+    MessageBox MB_OK|MB_ICONSTOP "The registered DUDE installation path is invalid. No files were changed."
+    Return
+  ${EndIf}
+  ${IfNot} ${FileExists} "$DudeExistingPath\${UNINSTALL_FILENAME}"
+    MessageBox MB_OK|MB_ICONSTOP "The DUDE uninstaller is missing from the registered installation. No files were changed."
+    Return
+  ${EndIf}
+  StrCpy $0 "/currentuser"
+  ${If} $DudeExistingScope == "all"
+    StrCpy $0 "/allusers"
+  ${EndIf}
+  ClearErrors
+  ExecShell "open" "$DudeExistingPath\${UNINSTALL_FILENAME}" "$0"
+  ${If} ${Errors}
+    MessageBox MB_OK|MB_ICONSTOP "Windows could not open the DUDE uninstaller. No files were changed."
+    Return
+  ${EndIf}
+  StrCpy $DudeMaintenanceActionSucceeded "1"
+FunctionEnd
 Function DudeLoadOptions
   StrCpy $DudePreset "Integrated"
   StrCpy $DudeCustomize "0"
@@ -316,12 +662,17 @@ Function DudeSyncOptionsForScope
   ${EndIf}
 FunctionEnd
 
-; Four visible pages for a preset install, eight when Custom is selected.
+; Fresh installs have four preset pages or eight Custom pages. Repair has four;
+; data reset and uninstall end after their second confirmation page.
 ; The built-in scope page is skipped in preset mode; elevation also skips the
 ; welcome and scope pages in the second process without changing their numbers.
 Function DudeSetStepHeader
   StrCpy $DudeStepTotal "4"
-  ${If} $DudeCustomize == "1"
+  ${If} $DudeExistingInstall == "1"
+    ${If} $DudeMaintenanceAction != "repair"
+      StrCpy $DudeStepTotal "2"
+    ${EndIf}
+  ${ElseIf} $DudeCustomize == "1"
     StrCpy $DudeStepTotal "8"
   ${EndIf}
   !insertmacro MUI_HEADER_TEXT "Step $0 of $DudeStepTotal" "$1"
@@ -335,7 +686,8 @@ FunctionEnd
 
 Function DudeInstallShow
   StrCpy $0 "3"
-  ${If} $DudeCustomize == "1"
+  ${If} $DudeExistingInstall != "1"
+  ${AndIf} $DudeCustomize == "1"
     StrCpy $0 "7"
   ${EndIf}
   StrCpy $1 "Installing DUDE"
@@ -348,6 +700,7 @@ FunctionEnd
   Page custom DudeReviewCreate
 Function DudeReviewCreate
   ${If} ${Silent}
+  ${OrIf} $DudeExistingInstall == "1"
     Abort
   ${EndIf}
   nsDialogs::Create 1018
@@ -470,6 +823,7 @@ FunctionEnd
 
 Function DudeWelcomeCreate
   ${If} ${Silent}
+  ${OrIf} $DudeExistingInstall == "1"
   ${OrIf} $DudeElevatedContinuation == "1"
     Abort
   ${EndIf}
@@ -541,6 +895,9 @@ Function DudeWelcomeLeave
 FunctionEnd
 
 Function DudePathCreate
+  ${If} $DudeExistingInstall == "1"
+    Abort
+  ${EndIf}
   Call DudeSyncOptionsForScope
   ${If} $DudeCustomize != "1"
     Abort
@@ -593,6 +950,9 @@ Function DudePathLeave
 FunctionEnd
 
 Function DudeOptionsCreate
+  ${If} $DudeExistingInstall == "1"
+    Abort
+  ${EndIf}
   ${If} $DudeCustomize != "1"
     Abort
   ${EndIf}
@@ -680,6 +1040,9 @@ FunctionEnd
 !macroend
 
 Function DudeExplorerCreate
+  ${If} $DudeExistingInstall == "1"
+    Abort
+  ${EndIf}
   ${If} $DudeCustomize != "1"
     Abort
   ${EndIf}
