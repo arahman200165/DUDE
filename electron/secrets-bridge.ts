@@ -47,7 +47,7 @@ type SecretVoidResult = { readonly ok: true } | { readonly ok: false; readonly e
 /**
  * In-process (no IPC) read of a stored secret, for other main-process
  * modules that need one directly — e.g. `llm-bridge.ts` reading the LLM
- * config the Settings tool wrote via `SecureLocalService`, without a
+ * config Settings (AI / LLM Provider) wrote via `SecureLocalService`, without a
  * second "push config to main" IPC round trip or a second on-disk store.
  */
 export async function getSecretValue(key: string): Promise<string | null> {

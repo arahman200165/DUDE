@@ -26,7 +26,7 @@ If Setup says DUDE cannot be closed but no DUDE process is running, check the re
 
 ## First launch
 
-The desktop app opens a resumable wizard for workspace and startup destination, window behavior, updates and notifications, global hotkeys, optional AI provider credentials, collaboration relay, and review. Optional pages may be skipped. Open **Settings → Run setup wizard again** to change those choices later. A manual installer run reopens the wizard with current values filled in; a silent auto-update does not.
+The desktop app opens a resumable wizard for workspace and startup destination, window behavior, updates and notifications, global hotkeys, optional AI provider credentials, tool settings (such as the collaboration relay), and review. Optional pages may be skipped. Open **Settings › General → Run setup wizard again** to change those choices later. A manual installer run reopens the wizard with current values filled in; a silent auto-update does not.
 
 Window settings include close to tray or quit, launch minimized, preferred monitor, and remembered size and position. If the chosen monitor is absent, DUDE centers its window on the primary display. AI credentials use the existing OS-backed secure store. The theme remains dark.
 

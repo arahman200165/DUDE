@@ -85,7 +85,7 @@ function findAction(actionId: string): QuickAction | undefined {
  * Restores previously-bound hotkeys on launch. A binding that fails to
  * register (e.g. another app already owns that accelerator) is silently
  * dropped from the in-memory map — not from disk — so `list()` correctly
- * reports it as unbound and the Settings tool can surface "couldn't
+ * reports it as unbound and Settings › Hotkeys can surface "couldn't
  * register" and let the user re-bind, rather than a permanent silent
  * no-op.
  */

@@ -1,6 +1,6 @@
 # AGENTS.md — relay/
 
-The standalone BYO collab relay (Phase 8 Stage 7). Not part of the Angular app or the Electron desktop build — a separate deployable unit a user self-hosts and points their desktop app at via a relay URL in Settings. DUDE itself never runs an instance of this (see `DUDE_PRD.md` §5.2's amended non-goals note).
+The standalone BYO collab relay (Phase 8 Stage 7). Not part of the Angular app or the Electron desktop build — a separate deployable unit a user self-hosts and points their desktop app at via a relay URL in Settings › Tools › Markdown Workspace (or a per-workspace override). DUDE itself never runs an instance of this (see `DUDE_PRD.md` §5.2's amended non-goals note).
 
 ## The rule
 

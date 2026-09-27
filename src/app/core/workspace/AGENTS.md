@@ -107,6 +107,19 @@ as `TemplateGallery.apply()` and Deck's `RecentWorkspacesRail`) plus one "Save C
 Template…" command that prompts for a name inline, since the palette has no multi-step UI of its own
 to collect one.
 
+## Workspace preference overrides (Settings extension point)
+
+`WorkspaceLayout`, `WorkspaceTemplate`, and `Project` carry an optional `preferenceOverrides`
+(`toolId -> key -> string`) — optional, so older persisted data simply has none and no schema bump was
+needed. Only keys a tool declares in its manifest's `settingsSection.workspaceOverridable` are ever
+written, through `WorkspaceLayoutService.setPreferenceOverride` (the Workspace settings popover in the
+tab strip, or a tool's own UI). `applyLayout` replaces overrides wholesale from the saved record, and
+template/project save captures the live ones. Tools read through `resolvePreference()`
+(`workspace-preference.ts`), which falls back to the tool's own global signal. Overrides are
+preference strings (e.g. a relay URL), never tool content, so the privacy rule below is unaffected.
+The same load path silently prunes tabs/leaves whose tool id is no longer registered
+(`pruneUnknownTools`), e.g. the retired `settings` tool.
+
 ## The governing privacy rule
 
 No part of this feature may cause a tool's content to outlive the `PersistencePolicy` that tool's own code

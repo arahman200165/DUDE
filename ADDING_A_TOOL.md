@@ -162,6 +162,22 @@ export const workspaceStep: WorkspaceStep = {
 
 `readStorageValue`/`writeStorageValue` (`src/app/core/workspace/workspace-storage-bridge.ts`) read/write the *exact same* storage keys your step-4 `persistence.signal(...)` calls already use — never invent a new key or a different policy than what you chose in step 4. A `'none'`-policy field (nothing ever touches storage, e.g. `jwt`'s token) can't use the bridge at all; use the in-memory `offerWorkspaceState`/`consumeWorkspaceState` pair (`src/app/core/workspace/workspace-handoff.ts`) instead, and add one line to your own constructor consuming the hand-off — see `src/app/tools/jwt/jwt.ts` for the worked example. `historyEligible` defaults to excluded and must be a deliberate, explicit opt-in — see `core/history/AGENTS.md` for the exclusion categories (sensitive-by-design, pure reference/lookup, sandboxed execution needs source-only). Write a matching `<id>.workspace-step.spec.ts` mirroring `src/app/tools/base64/base64.workspace-step.spec.ts`.
 
+### Optional: contribute a Settings panel
+
+If the tool has a *global* preference that users set once rather than per use (a server URL, a default profile), declare `settingsSection` in the manifest instead of building a settings UI inside the tool. It appears under Settings › Tools at `/settings/tools/<id>`, in the Ctrl+K "Settings: …" commands, and (with `onboarding: true`) in the desktop setup wizard, without touching `shell/`:
+
+```ts
+settingsSection: {
+  title: 'Collaboration relay',
+  keywords: ['relay', 'websocket'],
+  desktopOnly: true, // web lists it with a Desktop badge and an explainer
+  load: () => import('./my-tool.settings').then((m) => m.MyToolSettings),
+  workspaceOverridable: [{ key: 'relayUrl', label: 'Relay URL', type: 'url' }], // optional
+},
+```
+
+The panel component reads and writes the tool's own `local` `persistence.signal(...)` keys. For a key listed in `workspaceOverridable`, the tool reads it through `resolvePreference(toolId, key, globalSignal)` (`core/workspace/workspace-preference.ts`); the Workspace settings popover and templates/projects handle the rest generically. If you are moving a value out of another namespace, add `storageMigrations: [{ fromNamespace, fromKey, toKey }]` and it moves once at startup. `tools/markdown-workspace/` is the worked example.
+
 ## 9. Expose the lazy route/component
 
 Nothing to do beyond step 2. `buildToolRoutes()` (`src/app/core/registry/tool-routes.ts`) automatically turns every `TOOL_DEFINITIONS` entry into a lazy `loadComponent` route nested under the root `ShellLayout` (`src/app/core/routing/app.routes.ts`). No route file edits needed — this is the "shell generated from tool metadata" promise (PRD §12.2) actually working.

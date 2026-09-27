@@ -4,7 +4,7 @@ import { getSecretValue } from './secrets-bridge';
 import { startLlmProxy } from './llm-proxy-server';
 
 /**
- * IPC for Stage 4's local LLM proxy. Reads the Settings tool's stored
+ * IPC for Stage 4's local LLM proxy. Reads Settings' (/settings, AI / LLM Provider) stored
  * config directly from the secure store (same process, no extra IPC round
  * trip — see `getSecretValue` in `secrets-bridge.ts`) rather than requiring
  * a separate "push config to main" call, so the API key is only ever

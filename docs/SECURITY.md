@@ -29,7 +29,7 @@ Every tool declares a persistence policy per piece of state (`ToolPersistencePol
 | `session` | `sessionStorage` | until the tab closes | raw pasted input for most tools |
 | `local` | `localStorage` | across sessions | UI preferences (mode, indent size, algorithm choice) |
 | `user-choice` | user picks per-session | depends on choice | tools where persistence itself is sensitive enough to ask about (e.g. Python Playground) |
-| `secure-local` | OS keychain via Electron `safeStorage` | across sessions, desktop-only | the Settings tool's LLM proxy API key — never written to `localStorage` even on desktop |
+| `secure-local` | OS keychain via Electron `safeStorage` | across sessions, desktop-only | the LLM proxy API key set in Settings › AI / LLM Provider (`/settings`, a shell page — no longer a tool) — never written to `localStorage` even on desktop |
 
 Nothing here is ever synced, uploaded, or visible to anyone but you on your own device/browser profile. There is no account system and no server-side storage of any kind.
 
