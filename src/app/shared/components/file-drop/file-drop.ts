@@ -1,5 +1,7 @@
-import { Component, ElementRef, input, output, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, afterNextRender, inject, input, output, signal, viewChild } from '@angular/core';
 import { exceedsMaxSize, matchesAccept } from './file-drop-validation';
+import { FileDropHandoffService } from '../../../core/file-drop-detect/file-drop-handoff.service';
+import { injectCurrentTool } from '../../../core/registry/current-tool';
 
 /**
  * Generic drag-and-drop / click-to-browse file input. No tool in the repo
@@ -8,6 +10,14 @@ import { exceedsMaxSize, matchesAccept } from './file-drop-validation';
  *
  * Holds no persisted state: `File` objects aren't JSON-serializable, and
  * file content should never silently persist anyway.
+ *
+ * Smart File Drop hand-off (DUDE_PRD.md §21 Phase 24 Item 4): on first render, the widget consumes
+ * any file `FileDropHandoffService` is holding for the tool it's mounted in and runs it through
+ * exactly the same path as a real drop — so every tool with a file input receives a dashboard /
+ * global drop with zero per-tool wiring, and the widget shows the handed-off file's name instead
+ * of its empty-state label. The first `app-file-drop` to render wins (the offer is one-shot); a
+ * tool with a secondary file input that should never claim the hand-off sets
+ * `[acceptHandoff]="false"` on it.
  */
 @Component({
   selector: 'app-file-drop',
@@ -19,6 +29,7 @@ export class FileDrop {
   readonly disabled = input(false);
   readonly label = input('Drop a file here, or click to browse');
   readonly maxSizeBytes = input<number | undefined>(undefined);
+  readonly acceptHandoff = input(true);
 
   readonly fileSelected = output<File>();
   readonly filesSelected = output<readonly File[]>();
@@ -28,6 +39,19 @@ export class FileDrop {
   protected readonly selectedFile = signal<File | null>(null);
 
   private readonly fileInput = viewChild.required<ElementRef<HTMLInputElement>>('fileInput');
+  private readonly handoff = inject(FileDropHandoffService);
+  private readonly currentTool = injectCurrentTool();
+
+  constructor() {
+    // After first render (not the constructor) so the host tool's `(fileSelected)` listener is
+    // already bound and its handler runs outside this component's own change-detection pass.
+    afterNextRender(() => {
+      if (!this.acceptHandoff() || this.disabled()) return;
+      const toolId = this.currentTool()?.id;
+      const file = toolId ? this.handoff.consume(toolId) : undefined;
+      if (file) this.handleFiles([file]);
+    });
+  }
 
   protected onDragOver(event: DragEvent): void {
     event.preventDefault();
@@ -70,7 +94,7 @@ export class FileDrop {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
-  private handleFiles(fileList: FileList): void {
+  private handleFiles(fileList: ArrayLike<File>): void {
     const files = this.multiple() ? Array.from(fileList) : [fileList[0]];
     const accept = this.accept();
     const maxSizeBytes = this.maxSizeBytes();

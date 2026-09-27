@@ -27,4 +27,14 @@ describe('FileDropHandoffService', () => {
     expect(service.consume('file-base64')).toBe(b);
     expect(service.consume('file-hash')).toBe(a);
   });
+
+  it('has() reports a pending offer without consuming it', () => {
+    const service = new FileDropHandoffService();
+    service.offer('archive-tool', new File(['a'], 'a.zip'));
+
+    expect(service.has('archive-tool')).toBe(true);
+    expect(service.has('archive-tool')).toBe(true);
+    expect(service.consume('archive-tool')).toBeDefined();
+    expect(service.has('archive-tool')).toBe(false);
+  });
 });

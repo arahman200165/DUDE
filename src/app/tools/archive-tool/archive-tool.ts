@@ -3,8 +3,9 @@ import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
 import { FileDrop } from '../../shared/components/file-drop/file-drop';
 import { PersistenceService } from '../../core/persistence/persistence.service';
+import { FileDropHandoffService } from '../../core/file-drop-detect/file-drop-handoff.service';
 import { downloadFile } from '../../shared/utils/download-file';
-import { ARCHIVE_FORMATS, ArchiveEntry, ArchiveFormat } from './archive-tool-types';
+import { ARCHIVE_FORMATS, ArchiveEntry, ArchiveFormat, archiveFormatFromName } from './archive-tool-types';
 import { createZip, extractZip } from './archive-tool-zip';
 import { createTar, extractTar } from './archive-tool-tar';
 import { createTarGz, extractTarGz } from './archive-tool-targz';
@@ -32,6 +33,12 @@ export class ArchiveTool {
   protected readonly running = signal(false);
   protected readonly resultBytes = signal<Uint8Array | null>(null);
 
+  constructor() {
+    // Smart File Drop hand-off: a handed-off file is always an archive to extract, so switch into
+    // the mode that renders the extract-side `app-file-drop` (which consumes the file itself).
+    if (inject(FileDropHandoffService).has('archive-tool')) this.mode.set('extract');
+  }
+
   protected setMode(mode: Mode): void {
     this.mode.set(mode);
     this.error.set('');
@@ -50,6 +57,8 @@ export class ArchiveTool {
   }
 
   protected onArchiveFile(file: File): void {
+    const format = archiveFormatFromName(file.name);
+    if (format) this.format.set(format);
     this.archiveToExtract.set(file);
     this.extractedEntries.set(null);
     this.error.set('');

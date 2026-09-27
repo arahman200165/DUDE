@@ -27,30 +27,25 @@ A dropped file with no extension and no recognized signature still gets two univ
 (`file-hash`, `file-base64`, both `0.3`, the lowest score in the table) — every file, recognized or
 not, can be hashed or Base64-encoded.
 
-## `FileDropHandoffService` prefill is opt-in, same as Smart Paste's `consume()` calls
+## `FileDropHandoffService` prefill is generic, consumed by `app-file-drop` itself
 
-`file-drop-handoff.service.ts` mirrors `core/paste-detect/paste-handoff.service.ts` exactly, except
-it hands off a real `File` (which can't round-trip through `PersistenceService`'s JSON storage) —
-never persisted, one-shot, in-memory only. A candidate tool must explicitly call
-`fileDropHandoff.consume(toolId)` in its own constructor to actually receive the dropped file; a
-tool with no such call is still a perfectly valid candidate to navigate to, it just won't be
-prefilled — exactly the same honest, incremental-adoption model `core/paste-detect/AGENTS.md`
-documents for Smart Paste's 11 curated tools. Today only `file-hash` and `file-base64` opt in, as a
-proof of concept — most of the other candidates in `FILE_DROP_DETECTORS` (the format-specific
-binary viewers especially) do not yet, and that is a normal, expected gap to close incrementally,
-not a bug to "fix" all at once.
+`file-drop-handoff.service.ts` mirrors `core/paste-detect/paste-handoff.service.ts`, except it
+hands off a real `File` (which can't round-trip through `PersistenceService`'s JSON storage) —
+never persisted, one-shot, in-memory only. **No tool calls `consume()` itself.** The shared
+`app-file-drop` primitive (`shared/components/file-drop/`) resolves the tool it's mounted in
+(`core/registry/current-tool.ts` — Workspace host context, else the route) and, after first render,
+consumes any pending file for that tool and runs it through exactly the same validation/emit path
+as a real drop. Every tool with a file input (including `app-binary-format-viewer`, which wraps it)
+therefore receives a dashboard/global drop with zero per-tool wiring, the widget shows the
+handed-off file's name, and the tool processes it exactly as if the user had dropped it there.
 
-## A prefilled tool's own `app-file-drop` widget stays visually empty — known, not a bug
+Two rules keep that generic path honest:
 
-`FileHash`/`FileBase64`'s `consume()` call correctly sets their own `selectedFile` signal (verified
-end-to-end in-browser: "Compute" becomes enabled and produces the right hash for the handed-off
-file), but the shared `app-file-drop` primitive they render (`shared/components/file-drop/`) keeps
-its own independent internal `selectedFile` signal, populated only by a real drag-drop or file-input
-event — it has no input for "a file was already selected some other way." A tool receiving a hand-
-off is therefore functionally correct but still shows `app-file-drop`'s empty-state placeholder
-text. Giving `FileDrop` an external "preselected file" input would touch a primitive with 28+ call
-sites — out of scope for this proof of concept; revisit only if/when more tools opt into this
-hand-off and the cosmetic gap becomes worth the shared-component change.
+- **A tool whose file input is conditionally rendered** (a mode toggle) must `has(toolId)`-check in
+  its constructor and switch into the mode that renders it — see `file-base64` (encode) and
+  `archive-tool` (extract). Without that, the widget never mounts and the file silently vanishes.
+- **The first `app-file-drop` to render wins.** A tool with a secondary file input that should never
+  claim the hand-off sets `[acceptHandoff]="false"` on it.
 
 ## Why this needs a curated array, not per-tool convention files
 

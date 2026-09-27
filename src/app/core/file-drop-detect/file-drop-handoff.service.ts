@@ -15,6 +15,10 @@ export class FileDropHandoffService {
     this.pending.set(toolId, file);
   }
 
+  has(toolId: string): boolean {
+    return this.pending.has(toolId);
+  }
+
   consume(toolId: string): File | undefined {
     const file = this.pending.get(toolId);
     this.pending.delete(toolId);

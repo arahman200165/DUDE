@@ -70,14 +70,10 @@ export class FileBase64 {
   });
 
   constructor() {
-    // Smart File Drop hand-off (DUDE_PRD.md §21 Phase 24 Item 4) -- a proof-of-concept opt-in, same
-    // pattern as Smart Paste's per-tool `consume()` calls. A handed-off file always means "encode
-    // this," regardless of whatever direction was last persisted.
-    const droppedFile = this.fileDropHandoff.consume('file-base64');
-    if (droppedFile) {
-      this.direction.set('encode');
-      void this.onFileSelected(droppedFile);
-    }
+    // Smart File Drop hand-off (DUDE_PRD.md §21 Phase 24 Item 4) -- the encode-mode `app-file-drop`
+    // consumes the file itself; a handed-off file always means "encode this," so switch into the
+    // mode that renders it regardless of whatever direction was last persisted.
+    if (this.fileDropHandoff.has('file-base64')) this.direction.set('encode');
 
     // Pushes a completed encode worker job's result into the persisted output signal.
     effect(() => {

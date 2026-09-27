@@ -6,7 +6,6 @@ import { FileDrop } from '../../shared/components/file-drop/file-drop';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { WorkerClientService } from '../../core/workers/worker-client.service';
 import { WorkerJob } from '../../core/workers/worker-job';
-import { FileDropHandoffService } from '../../core/file-drop-detect/file-drop-handoff.service';
 import { HASH_ALGORITHMS, HashAlgorithm, HashOutput } from '../../../shared-logic/hash-compute';
 import { FileHashPayload } from './file-hash-payload';
 
@@ -18,7 +17,6 @@ import { FileHashPayload } from './file-hash-payload';
 export class FileHash implements OnDestroy {
   private readonly persistence = inject(PersistenceService);
   private readonly workerClient = inject(WorkerClientService);
-  private readonly fileDropHandoff = inject(FileDropHandoffService);
 
   protected readonly algorithms = HASH_ALGORITHMS;
 
@@ -43,14 +41,6 @@ export class FileHash implements OnDestroy {
   );
   protected readonly job = signal<WorkerJob<readonly HashOutput[]> | null>(null);
   protected readonly rejection = signal<string | null>(null);
-
-  /** Smart File Drop hand-off (DUDE_PRD.md §21 Phase 24 Item 4) -- a proof-of-concept opt-in, same
-   *  pattern as Smart Paste's per-tool `consume()` calls: not every candidate tool consumes this
-   *  yet, and that's a normal, expected outcome, not a bug. */
-  constructor() {
-    const file = this.fileDropHandoff.consume('file-hash');
-    if (file) this.onFileSelected(file);
-  }
 
   protected onFileSelected(file: File): void {
     this.job()?.cancel();
