@@ -15,6 +15,9 @@ if ($uninstall.DisplayName -ne 'DUDE 0.0.26' -or
     $install.InstallLocation -ne '') {
   throw 'DUDE registration does not match the reported broken install. No changes made.'
 }
+if (-not (Test-Path -LiteralPath 'C:\Uninstall DUDE.exe')) {
+  throw 'C:\Uninstall DUDE.exe is missing. No changes made.'
+}
 if ((Get-Item -LiteralPath 'C:\Uninstall DUDE.exe').VersionInfo.ProductName -ne 'DUDE') {
   throw 'The root-level uninstaller is not identified as DUDE. No changes made.'
 }

@@ -2,6 +2,7 @@ param([switch]$VerifyOnly)
 
 $ErrorActionPreference = 'Stop'
 $guid = '1a8c8bd9-9e16-5c53-851e-b8c3f19972bb'
+$expectedVersion = '0.0.27'
 $installRoot = 'C:\Program Files'
 $packageRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\release\win-unpacked'))
 $uninstallKey = "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\$guid"
@@ -12,12 +13,20 @@ $markers = @('Uninstall DUDE.exe', 'file-associations.json', 'setup-options.ini'
 
 $uninstall = Get-ItemProperty -LiteralPath $uninstallKey
 $install = Get-ItemProperty -LiteralPath $installKey
-if ($uninstall.DisplayName -ne 'DUDE 0.0.27' -or
+if ($uninstall.DisplayName -ne "DUDE $expectedVersion" -or
     $uninstall.UninstallString -ne '"C:\Program Files\Uninstall DUDE.exe" /allusers' -or
     $install.InstallLocation -ne $installRoot) {
   throw 'DUDE registration does not match the reported shared-folder install. No changes made.'
 }
 if (-not (Test-Path -LiteralPath $packageRoot)) { throw 'The local DUDE package is missing. No changes made.' }
+$packageJsonPath = Join-Path $PSScriptRoot '..\package.json'
+if (-not (Test-Path -LiteralPath $packageJsonPath)) { throw "$packageJsonPath is missing. No changes made." }
+$packageVersion = (Get-Content -LiteralPath $packageJsonPath -Raw | ConvertFrom-Json).version
+if ($packageVersion -ne $expectedVersion) {
+  throw "The local package is version $packageVersion, not $expectedVersion. Check out and build tag v$expectedVersion into release\win-unpacked before running this repair, so the file comparison below covers the exact set of files the broken install placed in Program Files. No changes made."
+}
+if (-not (Test-Path -LiteralPath (Join-Path $installRoot 'DUDE.exe'))) { throw "$installRoot\DUDE.exe is missing. No changes made." }
+if (-not (Test-Path -LiteralPath (Join-Path $installRoot 'Uninstall DUDE.exe'))) { throw "$installRoot\Uninstall DUDE.exe is missing. No changes made." }
 if ((Get-Item -LiteralPath (Join-Path $installRoot 'DUDE.exe')).VersionInfo.ProductName -ne 'DUDE' -or
     (Get-Item -LiteralPath (Join-Path $installRoot 'Uninstall DUDE.exe')).VersionInfo.ProductName -ne 'DUDE') {
   throw 'DUDE executables could not be identified. No changes made.'
