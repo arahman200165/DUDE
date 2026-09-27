@@ -164,7 +164,11 @@ desktop app.
 ${nativeRows.join('\n')}
 `;
 
-writeFileSync(SECURITY_PATH, content.replace(/\n/g, '\r\n'), 'utf8');
+// Plain `\n` -- the committed blob is LF (git normalizes on commit regardless of a Windows
+// author's local checkout), and forcing `\r\n` here made every line differ from that blob on a
+// Linux CI runner (no autocrlf conversion in play), failing the "up to date" staleness check
+// even when the content itself hadn't changed at all.
+writeFileSync(SECURITY_PATH, content, 'utf8');
 console.log(
   `Regenerated SECURITY.md: ${matrixRows.length} high-consequence rows, ${networkRows.length} network-capable tools, ${nativeRows.length} native-privileged tools.`,
 );

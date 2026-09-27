@@ -84,8 +84,9 @@ const tableRows = CATEGORY_ORDER.flatMap((category) =>
   ),
 );
 
-// README.md is checked out with CRLF line endings (Windows), same normalization
-// tool-count.spec.ts already applies when reading this file.
+// Defensively normalize CRLF -> LF on read (a Windows checkout may have autocrlf-converted this
+// file), the same normalization tool-count.spec.ts already applies -- but never assume it, since
+// the committed blob itself is LF (git normalizes on commit) and a Linux CI checkout gives LF as-is.
 let readme = readFileSync(README_PATH, 'utf8').replace(/\r\n/g, '\n');
 
 const countPattern = /\d+ tools ship today/;
@@ -98,5 +99,8 @@ readme = readme.replace(tableSectionPattern, (_match, header, _oldRows, nextHead
   return `${header}${tableRows.join('\n')}${nextHeading}`;
 });
 
-writeFileSync(README_PATH, readme.replace(/\n/g, '\r\n'), 'utf8');
+// Plain `\n` on write -- forcing `\r\n` made every line differ from the LF-stored blob on a
+// Linux CI runner (no autocrlf conversion there), failing the "up to date" staleness check even
+// when the content itself hadn't changed at all.
+writeFileSync(README_PATH, readme, 'utf8');
 console.log(`Regenerated README.md's tool count (${tools.length}) and Tools table (${tableRows.length} rows).`);
