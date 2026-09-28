@@ -17,3 +17,5 @@ export interface ToolIOCapabilities {
   readonly accepts: readonly DudeDataType[];
   readonly produces: readonly DudeDataType[];
 }
+
+export const DUDE_DATA_TYPES: readonly DudeDataType[] = ['text', 'json', 'bytes', 'file', 'table', 'url', 'http-response'];
