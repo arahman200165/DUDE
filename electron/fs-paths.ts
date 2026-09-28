@@ -1,4 +1,6 @@
-import { isAbsolute, join, normalize, sep } from 'node:path';
+import { win32 } from 'node:path';
+
+const { isAbsolute, join, normalize, sep } = win32;
 
 /**
  * Electron-free path helpers shared by the main process (`fs-grants.ts`) and the fs utility process
