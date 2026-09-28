@@ -6,10 +6,10 @@ import { Deck } from '../../shell/deck/deck';
 import { buildToolRoutes, withLoadFallback } from '../registry/tool-routes';
 import { settingsUnsavedChangesGuard } from '../../shell/settings/settings-unsaved-changes';
 
-// The Pipelines, Smart Paste, Workspace, History, Quick Run, Projects, Settings, and Browse Tools
+// The Pipelines, Smart Paste, Workspace, History, Quick Run, Projects, Settings, Browse Tools, and Insights
 // routes below are the deliberate exceptions to "never edit this file to wire up a feature"
 // (DUDE_PRD.md §21 Phase 21 Items 2, 3, 4, and 5, Phase 24 Item 12, Phase 25 Item 1, the Settings
-// shell destination, and Phase 30A — see shell/AGENTS.md). Nothing here names a specific tool by id;
+// shell destination, Phase 30A, and Phase 30H — see shell/AGENTS.md). Nothing here names a specific tool by id;
 // all are parallel, registry-adjacent features, never a 278th tool. Every lazy destination is wrapped
 // in `withLoadFallback` so an uncached chunk offline shows an explanation, not a blank app.
 // The dev-only entry below (added, then never deleted per its own doc comment, in Phase 30C) is
@@ -57,6 +57,10 @@ export const routes: Routes = [
       {
         path: 'tools',
         loadComponent: withLoadFallback('BrowseTools', () => import('../../shell/browse-tools/browse-tools').then((m) => m.BrowseTools)),
+      },
+      {
+        path: 'insights',
+        loadComponent: withLoadFallback('InsightsPage', () => import('../../shell/insights/insights-page/insights-page').then((m) => m.InsightsPage)),
       },
       { path: 'settings', redirectTo: 'settings/general', pathMatch: 'full' },
       {

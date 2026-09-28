@@ -21,6 +21,7 @@ export const SHELL_DESTINATIONS: readonly Destination[] = [
   { id: 'pipelines', title: 'Pipelines', url: '/pipelines', keywords: ['chain', 'workflow', 'scripts'] },
   { id: 'quick-run', title: 'Quick Run', url: '/quick-run', keywords: ['run', 'transform'] },
   { id: 'projects', title: 'Projects', url: '/projects', keywords: ['bundle', 'layout'] },
+  { id: 'insights', title: 'Insights', url: '/insights', keywords: ['usage', 'activity', 'stats', 'trend', 'top tools'] },
   { id: 'settings', title: 'Settings', url: '/settings', keywords: ['preferences', 'options', 'config'] },
 ];
 

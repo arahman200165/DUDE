@@ -5,7 +5,7 @@
  * get/set and answers every method call with a no-op is enough for zrender's paint loop to
  * complete without throwing; nothing here needs to draw a real pixel for a unit test. Installed
  * once, globally, from `src/testing/fast-check.setup.ts` — every spec in the suite may end up
- * rendering Deck (which mounts `HomeActivityPanel`), not just specs that mount a chart directly.
+ * rendering Deck (which mounts the Insights charts), not just specs that mount a chart directly.
  */
 export function stubCanvasRenderingContext(): void {
   const state: Record<string, unknown> = {};

@@ -13,7 +13,7 @@ import { HomeRail } from './home-rail/home-rail';
 import { HomePasteDropHero } from './home-paste-drop-hero/home-paste-drop-hero';
 import { ResumeWorkPanel } from './resume-work-panel/resume-work-panel';
 import { QuickRunPanel } from './quick-run-panel/quick-run-panel';
-import { HomeActivityPanel } from './home-activity-panel/home-activity-panel';
+import { InsightsSection } from '../insights/insights-section/insights-section';
 import { CategoryStrip } from './category-strip/category-strip';
 import { CategoryPreviewSection } from './category-preview-section/category-preview-section';
 import { CommandActionsRail } from './command-actions-rail/command-actions-rail';
@@ -38,7 +38,7 @@ const QUICK_ACTION_ID_PREFIX = 'native:quick-action:';
     HomePasteDropHero,
     ResumeWorkPanel,
     QuickRunPanel,
-    HomeActivityPanel,
+    InsightsSection,
     CategoryStrip,
     CategoryPreviewSection,
     CommandActionsRail,
