@@ -1,0 +1,78 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning/40 bg-warning/5 p-4 text-ui text-text-muted">
+      File Split &amp; Join splits files on disk by size, part count or lines (with a SHA-256 checksum file) and joins part sets back with verification. It needs the Windows desktop app.
+    </div>
+    <div class="mt-2 flex gap-2">
+      <app-desktop-only-control capability="native-fs" label="Pick a file" />
+      <app-desktop-only-control capability="native-fs-write" label="Write parts" />
+    </div>
+  } @else {
+    <div class="flex flex-col gap-3 text-ui">
+      <div class="flex gap-1" role="tablist">
+        <button type="button" role="tab" class="rounded-sm border px-2 py-0.5" [class]="tab() === 'split' ? 'border-accent text-accent' : 'border-border text-text-muted'" (click)="tab.set('split'); preview.set(null)">Split</button>
+        <button type="button" role="tab" class="rounded-sm border px-2 py-0.5" [class]="tab() === 'join' ? 'border-accent text-accent' : 'border-border text-text-muted'" (click)="tab.set('join'); preview.set(null)">Join</button>
+      </div>
+
+      @if (tab() === 'split') {
+        <app-fs-root-picker mode="file" label="File to split" [(root)]="source" (picked)="pickedSource($event)" />
+        @if (sourceInfo(); as info) { <span class="text-ui-xs text-text-muted">{{ bytes(info.size ?? 0) }}</span> }
+        <app-fs-root-picker label="Write parts to" [(root)]="splitOutput" />
+        <div class="flex flex-wrap items-center gap-3 rounded-sm border border-border bg-panel p-2 text-text-muted">
+          <label class="flex items-center gap-1 text-text"><input type="radio" name="mode" [checked]="mode() === 'size'" (change)="mode.set('size')" /> Part size</label>
+          @if (mode() === 'size') {
+            <input type="number" min="1" class="w-24 rounded-sm border border-border bg-panel px-1 py-0.5 text-text" [value]="partSize()" (change)="partSize.set(+value($event))" aria-label="Part size" />
+            <select class="rounded-sm border border-border bg-panel px-1 py-0.5 text-text" [value]="unit()" (change)="unit.set(value($event))" aria-label="Unit">@for (unit of units; track unit) { <option [value]="unit">{{ unit }}</option> }</select>
+          }
+          <label class="flex items-center gap-1 text-text"><input type="radio" name="mode" [checked]="mode() === 'count'" (change)="mode.set('count')" /> Number of parts</label>
+          @if (mode() === 'count') { <input type="number" min="2" class="w-20 rounded-sm border border-border bg-panel px-1 py-0.5 text-text" [value]="parts()" (change)="parts.set(+value($event))" aria-label="Number of parts" /> }
+          <label class="flex items-center gap-1 text-text"><input type="radio" name="mode" [checked]="mode() === 'lines'" (change)="mode.set('lines')" /> Lines per part</label>
+          @if (mode() === 'lines') {
+            <input type="number" min="1" class="w-28 rounded-sm border border-border bg-panel px-1 py-0.5 text-text" [value]="linesPerPart()" (change)="linesPerPart.set(+value($event))" aria-label="Lines per part" />
+            <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="repeatHeader()" (change)="repeatHeader.set(checked($event))" /> Repeat the first (header) line in every part</label>
+          }
+        </div>
+        <div class="flex flex-wrap items-center gap-3 text-text-muted">
+          <label class="flex items-center gap-1">Naming
+            <select class="rounded-sm border border-border bg-panel px-1 py-0.5 text-text" [value]="naming()" (change)="naming.set($any(value($event)))"><option value="numeric">name.ext.001</option><option value="alpha">name.ext.aa (split)</option><option value="numbered-ext">name-001.ext</option></select>
+          </label>
+          <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="sidecar()" (change)="sidecar.set(checked($event))" /> Write a .sha256 checksum file (sha256sum -c --ignore-missing)</label>
+          @if (estimate()) { <span class="font-mono text-ui-xs">{{ estimate() }}</span> }
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" class="rounded-sm border border-warning px-3 py-1 text-warning disabled:opacity-50" data-testid="plan-preview-button" [disabled]="!source() || !splitOutput()" (click)="previewSplit()">Preview split…</button>
+          <app-scan-progress [job]="planJob()" />
+        </div>
+      } @else {
+        <app-fs-root-picker label="Folder with the parts" [(root)]="partsFolder" />
+        <div class="flex items-center gap-2">
+          <button type="button" class="rounded-sm border border-accent px-3 py-1 text-accent disabled:opacity-50" data-testid="fs-scan" [disabled]="!partsFolder()" (click)="findSets()">Find part sets</button>
+          <app-scan-progress [job]="detectJob()" />
+        </div>
+        @if (sets().length) {
+          <div class="flex flex-col gap-1 rounded-sm border border-border p-2">
+            @for (set of sets(); track set.base) {
+              <label class="flex flex-wrap items-center gap-2">
+                <input type="radio" name="set" [checked]="chosen() === set.base" (change)="choose(set.base)" />
+                <span class="font-mono text-text">{{ set.base }}</span>
+                <span class="text-ui-xs text-text-muted">{{ set.parts.length }} parts ({{ set.parts[0] }} … {{ set.parts[set.parts.length - 1] }}), {{ bytes(set.total) }}</span>
+                @if (set.gaps.length) { <span class="text-ui-xs text-error">missing part {{ set.gaps.join(', ') }}</span> }
+                <span class="text-ui-xs" [class]="set.sidecar ? 'text-success' : 'text-text-muted'">{{ set.sidecar ? 'checksum file found' : 'no checksum file' }}</span>
+              </label>
+            }
+          </div>
+          <app-fs-root-picker label="Write the joined file to" [(root)]="joinOutput" />
+          <div class="flex flex-wrap items-center gap-3">
+            <label class="flex items-center gap-1 text-text-muted">File name<input class="w-64 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="outputName()" (input)="outputName.set(value($event))" /></label>
+            <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="verify()" (change)="verify.set(checked($event))" /> Verify parts and result against the checksum file</label>
+            @if (chosenSet()?.gaps?.length) { <label class="flex items-center gap-1 text-error"><input type="checkbox" [checked]="allowGaps()" (change)="allowGaps.set(checked($event))" /> Join anyway despite missing parts</label> }
+            <button type="button" class="rounded-sm border border-warning px-3 py-1 text-warning disabled:opacity-50" data-testid="plan-preview-button" [disabled]="!chosenSet() || !joinOutput()" (click)="previewJoin()">Preview join…</button>
+            <app-scan-progress [job]="planJob()" />
+          </div>
+        } @else if (detectJob()?.status() === 'done') { <p class="text-text-muted">No part sets found (two or more files named like name.001, name.aa, or name-001.ext).</p> }
+      }
+      @if (error()) { <div role="alert" class="text-error">{{ error() }}</div> }
+      <app-mutation-preview [preview]="preview()" (discarded)="preview.set(null)" />
+    </div>
+  }
+</app-tool-shell>

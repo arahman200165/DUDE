@@ -1,9 +1,10 @@
 import { app, ipcMain, shell, type WebContents } from 'electron';
 import { createHash, randomUUID } from 'node:crypto';
-import { promises as fs } from 'node:fs';
+import { createReadStream, createWriteStream, promises as fs } from 'node:fs';
+import { once } from 'node:events';
 import { basename, dirname, isAbsolute, join, normalize, sep } from 'node:path';
 import type {
-  ApplyResult, FsResult, JournalEntry, JournalOp, MutationOp, MutationOpKind, MutationPlanDraft, MutationSettings,
+  ApplyResult, ByteSegment, FsResult, JournalEntry, JournalOp, MutationOp, MutationOpKind, MutationPlanDraft, MutationSettings,
   PlanPreview, Precondition, PreviewOp,
 } from '../src/shared-logic/fs/fs-types';
 import { isInsideGrantedRoot, isRootGranted, normalizeRoot, resolveInRoot, toPosixRelative } from './fs-grants';
@@ -84,8 +85,19 @@ function validateOp(op: MutationOp): void {
   if (op.kind === 'rename' && normalizeRoot(dirname(op.from)).toLowerCase() !== normalizeRoot(dirname(op.to)).toLowerCase()) {
     throw new Error('A rename may only change a name, not move it to another folder.');
   }
-  if ((op.kind === 'write' || op.kind === 'create') && !within(stagingRoot(), op.staged) && !within(backupsRoot(), op.staged)) {
+  const staged = op.kind === 'write' || op.kind === 'create' ? op.staged : undefined;
+  if (staged !== undefined && !within(stagingRoot(), staged) && !within(backupsRoot(), staged)) {
     throw new Error('Plan content was not staged by DUDE.');
+  }
+  if (op.kind === 'write' && !op.staged) throw new Error('Plan content was not staged by DUDE.');
+  if (op.kind === 'create') {
+    if (!op.staged && !op.segments?.length) throw new Error('Plan creates a file without content.');
+    const expected = new Set((op.sources ?? []).map((source) => normalize(source.path).toLowerCase()));
+    for (const segment of op.segments ?? []) {
+      if (typeof segment.source !== 'string' || !isAbsolute(segment.source) || !isInsideGrantedRoot(segment.source)) throw new Error('Plan reads from a file outside the granted folders.');
+      if (!expected.has(normalize(segment.source).toLowerCase())) throw new Error('Plan reads from a file without a precondition.');
+      if (!Number.isSafeInteger(segment.start) || !Number.isSafeInteger(segment.end) || segment.start < 0 || segment.end < segment.start) throw new Error('Plan contains an invalid byte range.');
+    }
   }
 }
 
@@ -119,7 +131,7 @@ function sweep(): void {
 }
 
 async function discardStaging(plan: StoredPlan): Promise<void> {
-  for (const op of plan.draft.ops) if ((op.kind === 'write' || op.kind === 'create') && within(stagingRoot(), op.staged)) await fs.rm(op.staged, { force: true }).catch(() => {});
+  for (const op of plan.draft.ops) if ((op.kind === 'write' || op.kind === 'create') && op.staged && within(stagingRoot(), op.staged)) await fs.rm(op.staged, { force: true }).catch(() => {});
 }
 
 export async function registerPlan(owner: Pick<WebContents, 'id'>, draft: MutationPlanDraft, undoOf?: string): Promise<PlanPreview> {
@@ -193,11 +205,43 @@ function matches(actual: Precondition | null, expected: Precondition): boolean {
 
 async function exists(path: string): Promise<boolean> { return (await statOf(path)) !== null; }
 
-/** Copies staged content next to the target, then renames over it — readers never see a half-written file. */
-async function placeAtomically(staged: string, target: string): Promise<void> {
+interface Content {
+  readonly staged?: string;
+  readonly segments?: readonly ByteSegment[];
+  readonly sha256?: string;
+  readonly newSize?: number;
+}
+
+/**
+ * Writes the new content next to the target (staged file, then any source byte ranges), verifies
+ * size and optional SHA-256, then renames over the target — readers never see a half-written file,
+ * and a join whose result doesn't match its expected hash never replaces anything.
+ */
+async function placeAtomically(content: Content, target: string, signal?: AbortSignal): Promise<void> {
   const temp = join(dirname(target), `.dude-tmp-${randomUUID().slice(0, 8)}-${basename(target)}`);
-  await fs.copyFile(staged, temp);
-  try { await fs.rename(temp, target); } catch (error) { await fs.rm(temp, { force: true }).catch(() => {}); throw error; }
+  try {
+    if (!content.segments?.length && !content.sha256) {
+      await fs.copyFile(content.staged!, temp);
+    } else {
+      const hash = createHash('sha256');
+      const out = createWriteStream(temp);
+      const pipe = async (stream: NodeJS.ReadableStream) => {
+        for await (const chunk of stream as AsyncIterable<Buffer>) {
+          hash.update(chunk);
+          if (!out.write(chunk)) await once(out, 'drain');
+        }
+      };
+      if (content.staged) await pipe(createReadStream(content.staged, { signal }));
+      for (const segment of content.segments ?? []) if (segment.end > segment.start) await pipe(createReadStream(segment.source, { start: segment.start, end: segment.end - 1, signal }));
+      await new Promise<void>((resolve, reject) => out.end((error?: Error | null) => (error ? reject(error) : resolve())));
+      if (content.sha256 && hash.digest('hex') !== content.sha256.toLowerCase()) throw new Error('The assembled content does not match its expected SHA-256; nothing was replaced.');
+    }
+    if (content.newSize !== undefined && (await fs.stat(temp)).size !== content.newSize) throw new Error('The assembled content has an unexpected size; nothing was replaced.');
+    await fs.rename(temp, target);
+  } catch (error) {
+    await fs.rm(temp, { force: true }).catch(() => {});
+    throw error;
+  }
 }
 
 export type Trasher = (path: string) => Promise<void>;
@@ -252,8 +296,11 @@ async function applyOp(op: Exclude<MutationOp, { kind: 'rename' }>, index: numbe
   try {
     if (op.kind === 'create') {
       if (await exists(op.path)) { context.results[index] = { ...base, outcome: 'conflict', message: 'A file with this name already exists.' }; return; }
+      for (const source of op.sources ?? []) {
+        if (!matches(await statOf(source.path), source)) { context.results[index] = { ...base, outcome: 'conflict', message: `Source changed since the preview: ${basename(source.path)}` }; return; }
+      }
       await fs.mkdir(dirname(op.path), { recursive: true });
-      await placeAtomically(op.staged, op.path);
+      await placeAtomically(op, op.path, context.signal);
       context.results[index] = { ...base, outcome: 'applied', after: (await statOf(op.path)) ?? undefined };
       return;
     }
@@ -269,7 +316,7 @@ async function applyOp(op: Exclude<MutationOp, { kind: 'rename' }>, index: numbe
       await fs.mkdir(context.backupDir, { recursive: true });
       await fs.copyFile(op.path, join(context.backupDir, backup));
     }
-    await placeAtomically(op.staged, op.path);
+    await placeAtomically({ staged: op.staged }, op.path);
     context.results[index] = { ...base, outcome: 'applied', expect: op.expect, backup, after: (await statOf(op.path)) ?? undefined };
   } catch (error) {
     context.results[index] = { ...base, outcome: 'failed', message: error instanceof Error ? error.message : String(error), expect: 'expect' in op ? op.expect : undefined };

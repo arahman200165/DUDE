@@ -223,3 +223,35 @@ describe('journal and undo', () => {
     expect(writeDraft.ops[0]).toMatchObject({ kind: 'create', newSize: 6 });
   });
 });
+
+describe('segment-built files (File Split & Join)', () => {
+  it('assembles byte ranges of sources, checks their preconditions, and verifies the expected SHA-256 before placing', async () => {
+    const { createHash } = await import('node:crypto');
+    const a = file('parts/a.part', 'hello ');
+    const b = file('parts/b.part', 'world');
+    const sources = [{ path: a, ...expectOf(a) }, { path: b, ...expectOf(b) }];
+    const segments = [{ source: a, start: 0, end: 6 }, { source: b, start: 0, end: 5 }];
+    const good = createHash('sha256').update('hello world').digest('hex');
+    const preview = await engine.registerPlan(owner, draft([{ kind: 'create', path: join(root, 'joined.txt'), segments, sources, sha256: good, newSize: 11 }]));
+    expect((await confirmAndApply(preview.planId)).applied).toBe(1);
+    expect(readFileSync(join(root, 'joined.txt'), 'utf8')).toBe('hello world');
+
+    const bad = await engine.registerPlan(owner, draft([{ kind: 'create', path: join(root, 'bad.txt'), segments, sources, sha256: 'ff'.repeat(32), newSize: 11 }]));
+    const outcome = await confirmAndApply(bad.planId);
+    expect(outcome.failed).toBe(1);
+    expect(outcome.journal.ops[0].message).toMatch(/SHA-256/);
+    expect(existsSync(join(root, 'bad.txt'))).toBe(false);
+
+    const stale = await engine.registerPlan(owner, draft([{ kind: 'create', path: join(root, 'stale.txt'), segments, sources, newSize: 11 }]));
+    writeFileSync(b, 'WORLD!!');
+    expect((await confirmAndApply(stale.planId)).conflicts).toBe(1);
+    expect(existsSync(join(root, 'stale.txt'))).toBe(false);
+  });
+
+  it('refuses segments from ungranted files or without a precondition', async () => {
+    const a = file('x.part', 'x');
+    const outside = join(tmpdir(), 'not-granted.bin');
+    await expect(engine.registerPlan(owner, draft([{ kind: 'create', path: join(root, 'o'), segments: [{ source: outside, start: 0, end: 1 }], sources: [{ path: outside, size: 1, mtimeMs: 0 }], newSize: 1 }]))).rejects.toThrow(/outside the granted/);
+    await expect(engine.registerPlan(owner, draft([{ kind: 'create', path: join(root, 'o'), segments: [{ source: a, start: 0, end: 1 }], newSize: 1 }]))).rejects.toThrow(/precondition/);
+  });
+});

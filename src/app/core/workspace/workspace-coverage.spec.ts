@@ -32,6 +32,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'tree-search': 'search results are a live, in-session view of files on disk, not restorable renderer content',
   'batch-rename': 'the rename preview is a live, in-session view of files on disk, not restorable renderer content',
   'batch-text-converter': 'the inventory is a live, in-session view of files on disk, not restorable renderer content',
+  'file-split-join': 'split and join plans operate on files on disk and live in-session only, not restorable renderer content',
   'batch-operations': 'the operation journal lives in the main process, not restorable renderer content',
   'certificate-watch-list': 'the watch list is a live monitoring dashboard whose state lives in the main process, not restorable renderer content',
   'reverse-dns': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',

@@ -29,6 +29,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'tree-search': 'searching real folders requires a user-granted native root and replacing requires a previewed, confirmed action; neither can run invisibly in a pipeline',
   'batch-rename': 'renaming files on disk requires a previewed, explicitly confirmed native action and must never run invisibly in a pipeline',
   'batch-text-converter': 'rewriting files on disk requires a previewed, explicitly confirmed native action and must never run invisibly in a pipeline',
+  'file-split-join': 'writing parts or joined files requires a previewed, explicitly confirmed native action and must never run invisibly in a pipeline',
   'batch-operations': 'changing files on disk requires a previewed, explicitly confirmed native action and must never run invisibly in a pipeline',
   'certificate-watch-list': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'reverse-dns': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',

@@ -116,7 +116,20 @@ export type MutationOpKind = 'rename' | 'write' | 'create' | 'trash';
 export type MutationOp =
   | { readonly kind: 'rename'; readonly from: string; readonly to: string; readonly expect: Precondition; readonly detail?: string }
   | { readonly kind: 'write'; readonly path: string; readonly staged: string; readonly expect: Precondition; readonly newSize: number; readonly detail?: string; readonly sample?: DiffSample }
-  | { readonly kind: 'create'; readonly path: string; readonly staged: string; readonly newSize: number; readonly detail?: string }
+  | {
+      readonly kind: 'create';
+      readonly path: string;
+      /** Staged content written first (may be the whole file, or a small prefix such as a CSV header). */
+      readonly staged?: string;
+      /** Byte ranges of existing files appended after `staged` — File Split/Join copy without staging. */
+      readonly segments?: readonly ByteSegment[];
+      /** Preconditions on every segment source; a changed source makes the op a conflict. */
+      readonly sources?: readonly (Precondition & { readonly path: string })[];
+      /** Expected SHA-256 of the result, verified before it is moved into place. */
+      readonly sha256?: string;
+      readonly newSize: number;
+      readonly detail?: string;
+    }
   | { readonly kind: 'trash'; readonly path: string; readonly expect: Precondition; readonly detail?: string };
 
 export interface DiffSample {
@@ -216,4 +229,11 @@ export interface DuplicateGroup {
   readonly wasted: number;
   /** False in content mode when the copies differ only by normalization (EOL, whitespace, BOM). */
   readonly identicalBytes: boolean;
+}
+
+/** Inclusive-start, exclusive-end byte range of an existing file (absolute path). */
+export interface ByteSegment {
+  readonly source: string;
+  readonly start: number;
+  readonly end: number;
 }
