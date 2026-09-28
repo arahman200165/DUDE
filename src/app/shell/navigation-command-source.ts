@@ -17,6 +17,7 @@ export const SHELL_DESTINATIONS: readonly Destination[] = [
   { id: 'smart-paste', title: 'Smart Paste', url: '/smart-paste', keywords: ['paste', 'detect', 'clipboard'] },
   { id: 'workspace', title: 'Workspace', url: '/workspace', keywords: ['tabs', 'panels', 'split'] },
   { id: 'history', title: 'History', url: '/history', keywords: ['recent', 'recall'] },
+  { id: 'browse-tools', title: 'Browse Tools', url: '/tools', keywords: ['browse', 'catalog', 'all tools', 'search tools'] },
   { id: 'pipelines', title: 'Pipelines', url: '/pipelines', keywords: ['chain', 'workflow', 'scripts'] },
   { id: 'quick-run', title: 'Quick Run', url: '/quick-run', keywords: ['run', 'transform'] },
   { id: 'projects', title: 'Projects', url: '/projects', keywords: ['bundle', 'layout'] },

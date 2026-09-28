@@ -9,6 +9,8 @@ import { ToolDefinition } from '../../shared/models/tool-definition.model';
 import { ToolTable } from '../../shared/components/tool-table/tool-table';
 import { ToolGrid } from '../../shared/components/tool-grid/tool-grid';
 import { BrowseQueryHelp } from '../../shared/components/browse-query-help/browse-query-help';
+import { ShortcutHint } from '../../shared/components/shortcut-hint/shortcut-hint';
+import { CommandPaletteService } from '../command-palette/command-palette.service';
 import { parseBrowseQuery, ParsedBrowseQuery } from '../../core/registry/browse-tools-query';
 import { filterTools } from '../../core/registry/browse-tools-filter';
 import { BrowseToolsSortMode, sortTools } from '../../core/registry/browse-tools-sort';
@@ -45,7 +47,7 @@ const VIEW_MODE_VALUES: readonly BrowseToolsViewMode[] = ['table', 'grid'];
  */
 @Component({
   selector: 'app-browse-tools',
-  imports: [ToolTable, ToolGrid, BrowseQueryHelp],
+  imports: [ToolTable, ToolGrid, BrowseQueryHelp, ShortcutHint],
   templateUrl: './browse-tools.html',
 })
 export class BrowseTools {
@@ -55,6 +57,7 @@ export class BrowseTools {
   private readonly usage = inject(UsageService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  protected readonly paletteService = inject(CommandPaletteService);
 
   @ViewChild('searchInput') private readonly searchInputRef?: ElementRef<HTMLInputElement>;
 

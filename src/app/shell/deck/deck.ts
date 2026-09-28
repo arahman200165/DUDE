@@ -19,6 +19,8 @@ import { HomePasteDropHero } from './home-paste-drop-hero/home-paste-drop-hero';
 import { RecentWorkspacesRail } from './recent-workspaces-rail/recent-workspaces-rail';
 import { RecentProjectsRail } from './recent-projects-rail/recent-projects-rail';
 import { CommandActionsRail } from './command-actions-rail/command-actions-rail';
+import { ShortcutHint } from '../../shared/components/shortcut-hint/shortcut-hint';
+import { CommandPaletteService } from '../command-palette/command-palette.service';
 
 const RAIL_LIMIT = 8;
 /** `NativeCommandSource`'s own id prefix for a clipboard Quick Action, kept in sync there. */
@@ -37,6 +39,7 @@ const QUICK_ACTION_ID_PREFIX = 'native:quick-action:';
     RecentWorkspacesRail,
     RecentProjectsRail,
     CommandActionsRail,
+    ShortcutHint,
   ],
   templateUrl: './deck.html',
 })
@@ -49,6 +52,7 @@ export class Deck {
   private readonly commandSources = inject(COMMAND_SOURCE);
   protected readonly favorites = inject(FavoritesService);
   protected readonly platform = inject(PlatformService);
+  protected readonly paletteService = inject(CommandPaletteService);
 
   protected readonly meta = CATEGORY_METADATA;
   protected readonly query = signal('');

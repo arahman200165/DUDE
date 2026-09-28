@@ -5,6 +5,7 @@ import { TabStrip } from '../tab-strip/tab-strip';
 import { PanelHost } from '../panel-host/panel-host';
 import { ScratchpadDrawer } from '../scratchpad-drawer/scratchpad-drawer';
 import { TemplateGallery } from '../template-gallery/template-gallery';
+import { ShortcutHint } from '../../../shared/components/shortcut-hint/shortcut-hint';
 
 /**
  * `/workspace` route root (DUDE_PRD.md §21 Phase 21 Item 4) — a sanctioned exception to
@@ -13,7 +14,7 @@ import { TemplateGallery } from '../template-gallery/template-gallery';
  */
 @Component({
   selector: 'app-workspace-shell',
-  imports: [TabStrip, PanelHost, ScratchpadDrawer, TemplateGallery],
+  imports: [TabStrip, PanelHost, ScratchpadDrawer, TemplateGallery, ShortcutHint],
   templateUrl: './workspace-shell.html',
 })
 export class WorkspaceShell {
