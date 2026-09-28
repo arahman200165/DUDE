@@ -8,7 +8,7 @@ import { samplePixel } from './pixel-sample';
 
 /**
  * Upload-image mode only. The live-screen-capture variant needs native screen
- * access and is cross-referenced at PRD Phase 34 item 6 -- deliberately not
+ * access and is cross-referenced at PRD Phase 35 item 6 -- deliberately not
  * attempted here.
  */
 @Component({

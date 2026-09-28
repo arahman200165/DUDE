@@ -18,7 +18,7 @@
 
 DUDE is a dense, colorful, local-first **desktop developer workbench** built with Angular and Electron, with a highly capable static web/PWA companion generated from the same shared core. The Windows desktop application is now the canonical product surface because DUDE has already shipped capabilities that a browser sandbox cannot reproduce: native filesystem access, OS-level secret storage, local backend processes, system integration, collaboration infrastructure, and future live networking/database/process tooling. The GitHub Pages build remains a permanent zero-install companion for every capability that can run safely in-browser.
 
-Visually, DUDE remains dark-first today, but not monochrome or subdued. The current UI uses a dark base and a bright, bold, highly saturated accent-color system functionally — for categories, status, and structure — rather than decoratively. The current shipped theme remains the authoritative present-state design; Phase 36 later revisits light mode, theme customization, density, font, contrast, and accessibility options. See Section 8 for the full visual direction.
+Visually, DUDE remains dark-first today, but not monochrome or subdued. The current UI uses a dark base and a bright, bold, highly saturated accent-color system functionally — for categories, status, and structure — rather than decoratively. The current shipped theme remains the authoritative present-state design; Phase 30 later revisits light mode, theme customization, density, font, contrast, and accessibility options. See Section 8 for the full visual direction.
 
 The original weekend project was **not** to build 20–30 tools immediately.
 
@@ -58,7 +58,7 @@ The product then continued through **Phases 1–21, all of which are complete**.
 
 **Phases 22–29 are also complete**: Phase 22 (Platform Hardening, Trust & Desktop-First Pivot) consolidated metadata/registry structure, trust, testing, and cache/bundle control; Phase 23 (Correctness, Verification & High-Consequence Tool Hardening) brought every one of the 277 tool manifests to a `verified` confidence tier; Phase 24 (Smart Entry, Discovery & Personal DUDE) turned Phase 21's Smart Paste/pipelines/workspaces/history into the primary paste-first, personalized entry experience — Recently Used, Favorites, Pinned Pipelines, Related-Tool and Pipeline Suggestions, Workspace Templates, Quick Run, and Unified Recents, all private-by-construction with no analytics or server telemetry; Phase 25 (Desktop-First Shell & Native Product Experience) finished that positioning change technically — Projects, a Desktop-Native Home, `dude://` deep links, a native OS menu, a six-source Command Palette, a Native File Recent List, crash/restart recovery, a Quick Launcher, native drag-and-drop routing, a generated file-association framework, Desktop Capability Indicators, desktop-first documentation, and a measured startup/parallelization pass — all shipped as Milestones 421–455. Phase 26 (Web Companion & PWA Efficiency) added selective offline readiness, install/share/handoff flows, browser-safe pipeline and workspace support, and web/desktop parity tests, shipped as Milestones 482–488. Phase 27 (Networking Toolkit) began the native expansion. It shipped 18 desktop network-diagnostics tools over a main-process-enforced IPC bridge and a bundled Windows ICMP helper, as Milestones 489–508. Phase 28 shipped live DNS, TLS and certificate inspection as Milestones 509–522. Phase 29 shipped filesystem scanning, watching and previewed mutation as Milestones 523–536.
 
-The roadmap is now one linear product horizon through **Phase 100**. Completed Phases 22–26 consolidated platform structure, trust, discovery, desktop UX, and web/PWA efficiency. Phases 27–38 form the first major native/integration expansion: Phases 27–29 shipped networking, live DNS/TLS and filesystem workflows, and Phases 30–38 continue across Windows/process tooling, local API/server development, live databases, containers, OS integration, AI-assisted utilities, theming, VS Code integration, and browser-extension integration. Later phases extend into cross-platform desktop, automation, Git/SSH/package/build/log/proxy/database/container/Kubernetes workflows, secrets/PKI, collaboration/workspaces/pipelines, plugins/extensions, CLI/SDK/headless automation, AI, project/code/runtime tooling, and a deliberately distant platform/ecosystem horizon.
+The roadmap is now one linear product horizon through **Phase 100**. Completed Phases 22–26 consolidated platform structure, trust, discovery, desktop UX, and web/PWA efficiency. Phases 27–38 form the next major product expansion: Phases 27–29 shipped networking, live DNS/TLS and filesystem workflows, and Phases 30–38 continue across theming and accessibility, Windows/process tooling, local API/server development, live databases, containers, OS integration, AI-assisted utilities, VS Code integration, and browser-extension integration. Later phases extend into cross-platform desktop, automation, Git/SSH/package/build/log/proxy/database/container/Kubernetes workflows, secrets/PKI, collaboration/workspaces/pipelines, plugins/extensions, CLI/SDK/headless automation, AI, project/code/runtime tooling, and a deliberately distant platform/ecosystem horizon.
 
 ---
 
@@ -303,10 +303,10 @@ The original exclusions are preserved here so none of their rationale disappears
 - **User accounts** — no longer philosophically impossible, but any DUDE-hosted identity is conditional and gated by the no-DUDE-hosted-cloud boundary; the source suggestion is retained as Phase 81.
 - **Cloud synchronization / multi-device preferences** — conditional Phase 82–83 concepts; local-only mode must remain first-class, and current no-hosted-cloud direction means self-hosted/user-owned alternatives are the viable path unless explicitly reversed.
 - **Custom backend** — a *local bundled backend* shipped in Phase 8. A mandatory remote/cloud backend remains disallowed; self-hosted/on-prem backends are allowed later.
-- **DUDE-operated product database** — still unnecessary for the local product. This does not block Phase 32/48 tools connecting to user databases or future self-hosted platform infrastructure.
+- **DUDE-operated product database** — still unnecessary for the local product. This does not block Phase 33/48 tools connecting to user databases or future self-hosted platform infrastructure.
 - **Telemetry platform / analytics dashboard** — not silently enabled. Phase 93 preserves the idea only as explicit opt-in diagnostics/product insights with payload transparency and no user-payload collection.
 - **Collaborative editing** — already partially reopened and shipped through same-machine/LAN collaboration plus a BYO relay in Phase 8. Phase 53 expands self-hosted/accountless collaboration; Phase 84's DUDE-hosted service is conditional and blocked while the current hosted-cloud boundary stands.
-- **DUDE-operated hosted snippet service** — a user-operated/self-hosted snippet-sharing service is in Phase 31; a DUDE-hosted service is not part of the current direction.
+- **DUDE-operated hosted snippet service** — a user-operated/self-hosted snippet-sharing service is in Phase 32; a DUDE-hosted service is not part of the current direction.
 - **Extension marketplace / plugin installation from remote sources** — Phase 56 introduces a Local Plugin SDK; Phase 57 proposes signed, permission-declared extensions. Remote extension code must never become arbitrary native-code execution. A DUDE-hosted marketplace backend remains conditional; local/self-hosted catalogs are compatible with the current boundary.
 - **Third-party authentication** — only relevant to distant team/enterprise or source-hosting integrations; any hosted identity use is conditional.
 - **Mobile-first layout** — still not the core UX. Phase 91 preserves a mobile *companion* concept rather than redesigning the full workbench around a phone.
@@ -318,7 +318,7 @@ The original exclusions are preserved here so none of their rationale disappears
 - **SEO-heavy content pages** — unscheduled and non-core; the workbench remains the product.
 - **Public API documentation portal** — no longer impossible if Phase 97 turns internal seams into supported public SDK contracts.
 - **Design system extraction / component package publishing** — no longer permanent exclusions; Phase 56/97/98 may require supported shared UI/component packages once there is a real external consumer.
-- **Broad accessibility certification** — current baseline remains pragmatic, while Phase 36 and especially Phase 94 make accessibility maturity a real roadmap direction.
+- **Broad accessibility certification** — current baseline remains pragmatic, while Phase 30 and especially Phase 94 make accessibility maturity a real roadmap direction.
 - **Exhaustive cross-browser testing** — not a current requirement; Phase 92 may establish a deliberate cross-browser CI matrix.
 - **Exhaustive end-to-end/unit-test coverage** — still not a raw percentage goal, but Phase 23 materially raises verification standards for high-consequence tools through vectors, reference cross-checks, fuzzing, property tests, golden corpora, release gates, and performance regression fixtures.
 - **Bundle-size optimization project** — superseded by a more useful Phase 22 model: chunk budgets, cache budgets, service-worker strategy audits, and dependency-boundary validation tied to actual product risk.
@@ -347,14 +347,14 @@ These three amendments are reproduced verbatim from the pre-2026-09-25 PRD (only
 **Amendment (2026-09-21):** the product has grown well past the original weekend MVP this list was written to protect, and several further items are revisited — each a narrow, deliberate carve-out, not a reopening of anything else on the list:
 
 - **multi-tool tabs, resizable workbench panels, user-defined tool scripting** are no longer permanent non-goals — see §21 Phase 21, whose ceiling is explicitly "a multi-tool workbench, not a source-code IDE." Draggable panel rearrangement and a Monaco-style full IDE remain out of scope, unchanged above.
-- **multi-window workflows** is no longer a permanent non-goal — see §21 Phase 34. This is OS/window-management territory, distinct from Phase 21's single-window workbench above.
-- **"shareable server-stored snippets"** is narrowed, not removed — reworded above to **"DUDE-operated hosted snippet service"**, since a self-hosted/BYO snippet-sharing service is now in scope (§21 Phase 31), on the same BYO-deployment precedent as collaborative editing above; a DUDE-run one remains out of scope.
-- **"secret storage service"** is narrowed, not removed — reworded above to **"cloud-hosted secret storage service"**, since a local-only secrets vault built on the desktop track's `secure-local`/OS-keychain tier is now in scope (§21 Phase 34, with deeper work in Phase 51); a cloud-hosted one remains out of scope.
+- **multi-window workflows** is no longer a permanent non-goal — see §21 Phase 35. This is OS/window-management territory, distinct from Phase 21's single-window workbench above.
+- **"shareable server-stored snippets"** is narrowed, not removed — reworded above to **"DUDE-operated hosted snippet service"**, since a self-hosted/BYO snippet-sharing service is now in scope (§21 Phase 32), on the same BYO-deployment precedent as collaborative editing above; a DUDE-run one remains out of scope.
+- **"secret storage service"** is narrowed, not removed — reworded above to **"cloud-hosted secret storage service"**, since a local-only secrets vault built on the desktop track's `secure-local`/OS-keychain tier is now in scope (§21 Phase 35, with deeper work in Phase 51); a cloud-hosted one remains out of scope.
 - **VS Code extension, browser extension packaging** are no longer permanent non-goals — see §21 Phase 37 and Phase 38, both distribution/integration targets needing their own scoping pass.
-- **theme customization, light mode** are no longer permanent non-goals — see §21 Phase 36. This reverses an explicit, still-current design decision (§8.1, §8.5, `AGENTS.md`, Appendix A Q12) that will need its own amendments if and when that phase is actually adopted; nothing about those living specs changes now.
+- **theme customization, light mode** are no longer permanent non-goals — see §21 Phase 30. This reverses an explicit, still-current design decision (§8.1, §8.5, `AGENTS.md`, Appendix A Q12) that will need its own amendments if and when that phase is actually adopted; nothing about those living specs changes now.
 - localization/i18n was also considered and is **not** revisited — it stays a permanent non-goal, unchanged above.
 
-**Superseded 2026-09-25:** two of the seven bullets above no longer hold as written. §8.1 is itself amended by this rewrite — theme customization/light mode is no longer described elsewhere in the doc as "an explicit, still-current design decision," so that bullet's closing "nothing about those living specs changes now" is no longer accurate; see the current §8.1 and Appendix A Q12 directly. Localization/i18n's "stays a permanent non-goal, unchanged" is also reversed — §5.3 now retains it as a distant, unscheduled Phase 94 possibility rather than a permanent exclusion. The other carve-outs and their stated ceilings (multi-tool workbench not an IDE; Monaco-style IDE and draggable panels out of scope; BYO-only snippet/secrets deployment) remain the current, accurate boundary. `AGENTS.md`'s top-of-file product description has also been updated as part of this rewrite to describe desktop-canonical/web-companion positioning instead of the old "static PWA deployed to GitHub Pages" framing, so it no longer contradicts this section; its dark-mode-only line is unaffected until Phase 36 actually ships.
+**Superseded 2026-09-25:** two of the seven bullets above no longer hold as written. §8.1 is itself amended by this rewrite — theme customization/light mode is no longer described elsewhere in the doc as "an explicit, still-current design decision," so that bullet's closing "nothing about those living specs changes now" is no longer accurate; see the current §8.1 and Appendix A Q12 directly. Localization/i18n's "stays a permanent non-goal, unchanged" is also reversed — §5.3 now retains it as a distant, unscheduled Phase 94 possibility rather than a permanent exclusion. The other carve-outs and their stated ceilings (multi-tool workbench not an IDE; Monaco-style IDE and draggable panels out of scope; BYO-only snippet/secrets deployment) remain the current, accurate boundary. `AGENTS.md`'s top-of-file product description has also been updated as part of this rewrite to describe desktop-canonical/web-companion positioning instead of the old "static PWA deployed to GitHub Pages" framing, so it no longer contradicts this section; its dark-mode-only line is unaffected until Phase 30 actually ships.
 
 ## 5.4 Deferred / Roadmap-Tracked Scope
 
@@ -365,7 +365,7 @@ These items are not failures of the original product and are handled by the road
 - Cross-tool I/O, pipelines, Smart Paste, workspace/Saved Sessions, and local history (Phase 21) — ✅ shipped.
 - Platform hardening/correctness/discovery/desktop shell/web efficiency (Phases 22–26) — completed consolidation wave.
 - Native network diagnostics (Phase 27) — ✅ shipped.
-- TLS, filesystem, Windows/process, API/server, database, container, OS-integration, AI, theming, and editor/browser integration work is tracked authoritatively in Phases 28–38. TLS and filesystem expansion shipped in Phases 28–29; Windows/process through browser-integration work remains tracked in Phases 30–38.
+- TLS, filesystem, theming, Windows/process, API/server, database, container, OS-integration, AI, and editor/browser integration work is tracked authoritatively in Phases 28–38. TLS and filesystem expansion shipped in Phases 28–29; theming through browser-integration work remains tracked in Phases 30–38.
 - Long-horizon additions through Phase 100 are roadmap directions, not a fixed commitment or schedule.
 
 ---
@@ -446,7 +446,7 @@ Windows remains the desktop reference platform even if Phase 39 later makes desk
 
 The dark theme is not muted or monochrome. DUDE currently uses a single, fixed, highly colorful theme: a dark base (background/panel surfaces) paired with a bright, bold, highly saturated accent-color palette used throughout the shell and every tool. Color is a primary structural and functional device, not an afterthought layered on top of a gray UI.
 
-This remains the authoritative present-state theme until a theming phase is actually implemented. It is no longer a permanent product prohibition: Phase 36 explicitly revisits light mode, theme customization, accent palettes, density, fonts, reduced motion, high contrast, color-blind-safe semantics, and theme import/export.
+This remains the authoritative present-state theme until a theming phase is actually implemented. It is no longer a permanent product prohibition: Phase 30 explicitly revisits light mode, theme customization, accent palettes, density, fonts, reduced motion, high contrast, color-blind-safe semantics, and theme import/export.
 
 ## 8.2 Density
 
@@ -518,7 +518,7 @@ Required elements:
 
 Constraints:
 
-- exactly one theme is defined in the **current shipped implementation**; Phase 36 may introduce controlled user configuration without invalidating the historical V1 design;
+- exactly one theme is defined in the **current shipped implementation**; Phase 30 may introduce controlled user configuration without invalidating the historical V1 design;
 - every color combination used for text or status meaning must still meet the contrast baseline in Section 19 — "bright and bold" must not come at the cost of legibility;
 - new tools reuse the shared palette/tokens rather than inventing tool-specific colors, so the deck and sidebar stay visually coherent as tools are added.
 
@@ -530,13 +530,13 @@ The selected model is a hybrid.
 
 ## 9.1 Deck home
 
-The shipped default Home is a bounded, action-first workbench surface. It prioritizes Smart Entry, personalized tool launch, resuming projects/workspaces/pipelines, and Quick Run. Local activity summaries and a compact catalog preview may appear without making the complete registry Home's dominant content. Users may design their own Home layout under Phase Emergency-Addendum-1's builder contract. The exhaustive registry belongs to Browse Tools; category navigation, search, and the Command Palette provide other discovery paths.
+The Phase 30D default Home is planned as a bounded, action-first workbench surface. It prioritizes Smart Entry, personalized tool launch, resuming projects/workspaces/pipelines, and Quick Run. Local activity summaries and a compact catalog preview may appear without making the complete registry Home's dominant content. Phase 30I specifies the user-designed Home layout builder. In the Phase 30 design, the exhaustive registry belongs to Browse Tools; category navigation, search, and the Command Palette provide other discovery paths.
 
-For the original V1 deck, a tool list/grid with all registered tools was required while recent and favorite tools were optional. That remains the historical V1 acceptance record; Phase 24 made personalization first-class, and Phase Emergency-Addendum-1 supersedes the V1 deck layout for the current product.
+For the original V1 deck, a tool list/grid with all registered tools was required while recent and favorite tools were optional. That remains the historical V1 acceptance record; Phase 24 made personalization first-class, and the Phase 30D default Home replaces that V1 layout when implemented.
 
 ## 9.2 Sidebar
 
-Persistent desktop sidebar containing:
+The Phase 30B target is a persistent desktop sidebar containing:
 
 - DUDE identity;
 - global search/command launcher;
@@ -545,7 +545,7 @@ Persistent desktop sidebar containing:
 - a Browse Tools entry point;
 - active route state.
 
-The sidebar should be compact enough to remain open during normal use. Individual tool links may appear through explicit category expansion, but the complete registry is not permanently expanded by default.
+The redesigned sidebar should be compact enough to remain open during normal use. Individual tool links may appear through explicit category expansion, but the complete registry is not permanently expanded by default.
 
 ## 9.3 Command palette
 
@@ -1014,7 +1014,7 @@ Every feature and every originally-deferred capability across these 10 tools was
 
 The roadmap deliberately extends beyond what any single delivery phase covers.
 
-Phase 0 was the weekend commitment; it is complete. **Phases 1–29 are also complete.** Phase 8 established the Windows desktop track, Phase 21 established the cross-tool workflow foundations, and Phase 22 hardened the platform (distributed manifests, single-sourced metadata, structural validation, generated docs, dependency boundaries, chunk/cache budgets) for the next several hundred tools. Phase Emergency-Addendum-1 is the current shell/workbench intervention. Everything from Phase 30 onward is proposed/horizon work, taken up as decided rather than on any fixed schedule.
+Phase 0 was the weekend commitment; it is complete. **Phases 1–29 are also complete.** Phase 8 established the Windows desktop track, Phase 21 established the cross-tool workflow foundations, and Phase 22 hardened the platform (distributed manifests, single-sourced metadata, structural validation, generated docs, dependency boundaries, chunk/cache budgets) for the next several hundred tools. Phases 30A–30L define the proposed workbench shell, discovery, insights, appearance, and verification program. Phase 30 and later roadmap work is taken up as decided rather than on any fixed schedule.
 
 From Phase 22 onward, the roadmap deliberately stops treating raw tool count as the primary measure of progress. Platform trust, correctness, composition, native capability, local/offline strength, automation safety, discoverability, and reuse across surfaces matter more.
 
@@ -1138,7 +1138,7 @@ Every item explicitly deferred in the original showcase tools' write-ups (§20),
 
 **Explicitly out of scope at the time, now revisited:**
 
-- **AI-based regex generation/explanation** needed either a hosted LLM proxy or local-model support DUDE didn't have at the time — ✅ shipped since, as part of §21 Phase 8 Stage 4's local LLM proxy (natural-language → regex generation and an "AI Explain" panel on Regex Tester). The rest of the source material's "Local AI Utilities" family that Stage 4 didn't cover is now expanded in Phase 35 (AI-Assisted Utilities), with deeper on-device AI in Phase 69 and AI workflow/agent work in Phases 70–71.
+- **AI-based regex generation/explanation** needed either a hosted LLM proxy or local-model support DUDE didn't have at the time — ✅ shipped since, as part of §21 Phase 8 Stage 4's local LLM proxy (natural-language → regex generation and an "AI Explain" panel on Regex Tester). The rest of the source material's "Local AI Utilities" family that Stage 4 didn't cover is now expanded in Phase 36 (AI-Assisted Utilities), with deeper on-device AI in Phase 69 and AI workflow/agent work in Phases 70–71.
 - **Collaborative real-time editing** (Markdown) over the open internet via DUDE-operated hosted rooms/documents/auth remains outside the current hosted-cloud boundary. The shipped, in-scope model is narrower: same-machine/LAN collaboration and a user's own self-hosted relay; see §5.2 and §21 Phase 8 Stages 6–7.
 
 ### Notes
@@ -1252,7 +1252,7 @@ Goal: extend the Data category with power-tools and additional format support be
 30. CBOR Viewer
 31. Avro Viewer
 32. Parquet Viewer
-33. SQLite File Viewer (read-only, uploaded `.sqlite` file — distinct from a *live* database connection, which is covered by the later Database Toolkit in Phase 32)
+33. SQLite File Viewer (read-only, uploaded `.sqlite` file — distinct from a *live* database connection, which is covered by the later Database Toolkit in Phase 33)
 34. Resx file parser / viewer / diff / merge / token extractor
 
 ### Notes
@@ -1506,7 +1506,7 @@ Goal: grow Color Converter into a full design toolkit and add CSS/HTML/image/QR 
 33. Base64 Image Viewer (Milestone 192)
 34. SVG Viewer / Formatter / Optimizer — via `svgo`'s browser build (Milestone 199)
 35. SVG ↔ Data URI (Milestone 200)
-36. Pixel Color Picker — upload-image mode only (historically browser-extensible); the live-screen variant requires native screen access and is tracked at Phase 34 item 6 (Milestone 201)
+36. Pixel Color Picker — upload-image mode only (historically browser-extensible); the live-screen variant requires native screen access and is tracked at Phase 35 item 6 (Milestone 201)
 37. QR Code Generator (URL, Wi-Fi, contact, TOTP presets) — via `qrcode` (Milestone 202)
 38. QR Code Scanner (from an uploaded image or webcam frame) — via `jsqr`, introducing the shared `camera-capture` primitive (Milestone 203)
 39. Barcode Generator — via `jsbarcode`, with GS1 check-digit validation for EAN-13/EAN-8/UPC-A (Milestone 204)
@@ -1627,7 +1627,7 @@ Goal: broaden ID generation, turn Random Data Generator into a schema-driven moc
 
 ### Notes
 
-Items 8-16 are distinct from the existing Git Repo Browser (§20), which already does commit-history browsing/diffing over a locally-selected `.git` folder via `isomorphic-git` — these are text/URL-level tools with no repository needed. Items 43-48 look like "Networking" but are pure math/string manipulation and therefore remained browser-safe. Live database connections (SQL Server/PostgreSQL/MySQL/Redis/MongoDB explorers) are covered by Phase 32, while live Docker/Kubernetes daemon/cluster access is covered by Phases 33 and 50.
+Items 8-16 are distinct from the existing Git Repo Browser (§20), which already does commit-history browsing/diffing over a locally-selected `.git` folder via `isomorphic-git` — these are text/URL-level tools with no repository needed. Items 43-48 look like "Networking" but are pure math/string manipulation and therefore remained browser-safe. Live database connections (SQL Server/PostgreSQL/MySQL/Redis/MongoDB explorers) are covered by Phase 33, while live Docker/Kubernetes daemon/cluster access is covered by Phases 34 and 50.
 
 New dependencies added: `ulid`, `nanoid`, `@paralleldrive/cuid2` (item 2-5), `sql-formatter` and `node-sql-parser` (items 17-24). `ksuid` was deliberately **not** added — the published npm package hard-requires Node's `crypto`/`Buffer` globals with no browser build, so item 6 hand-rolls the same base62/epoch scheme instead (base62 encode/decode via the already-installed `base-x`, randomness via Web Crypto). Gitignore Generator (item 10) ships a curated, bundled template set rather than a live GitHub gitignore-API fetch, keeping every one of this phase's 48 tools fully offline — no `docs/SECURITY.md` changes were needed.
 
@@ -1658,7 +1658,7 @@ Goal: add file-upload-based binary/executable/format inspection — parsing what
 
 ### Notes
 
-The source list's item 9 (Endianness Viewer) was dropped outright rather than shipped: it would have duplicated the already-shipped Numeric Representation Inspector (§21 Phase 11), which covers byte-order/IEEE-754/integer representation across bit widths. PE/ELF/Mach-O header viewers (items 10-12 above) only need the uploaded binary's header bytes, not a running executable, so they remained browser-safe despite reading like "system" tools; their import/export/dylib table parsing is basic (names and counts, not full symbol/relocation tables). Items 13-15 are pure math and were pulled out of the source doc's "Screen / Pixel Tools" section — the native live-screen variants (screen ruler, live pixel picker) are covered by Phase 34.
+The source list's item 9 (Endianness Viewer) was dropped outright rather than shipped: it would have duplicated the already-shipped Numeric Representation Inspector (§21 Phase 11), which covers byte-order/IEEE-754/integer representation across bit widths. PE/ELF/Mach-O header viewers (items 10-12 above) only need the uploaded binary's header bytes, not a running executable, so they remained browser-safe despite reading like "system" tools; their import/export/dylib table parsing is basic (names and counts, not full symbol/relocation tables). Items 13-15 are pure math and were pulled out of the source doc's "Screen / Pixel Tools" section — the native live-screen variants (screen ruler, live pixel picker) are covered by Phase 35.
 
 ---
 
@@ -2004,15 +2004,15 @@ Every mutating batch operation now shows a preview with exact affected paths and
 
 ---
 
-## Phase Emergency-Addendum-1 — Dense Workbench Home, Tool Browser & Local Insights
+## Phase 30 — Workbench Shell, Tool Discovery, Local Insights & Appearance
 
 Rework DUDE's primary shell surfaces so the application behaves like a dense developer workbench rather than a scrollable catalog of hundreds of tools.
 
-Phases 24–25 already established the underlying product model: Smart Paste, Recently Used Tools, Favorites, Pinned Pipelines, Quick Run, Unified Recents, Workspace Templates, Projects, native actions, and a multi-source Command Palette are all first-class capabilities. This phase completes that transition visually and structurally.
+Phases 24–25 already established the underlying product model: Smart Paste, Recently Used Tools, Favorites, Pinned Pipelines, Quick Run, Unified Recents, Workspace Templates, Projects, native actions, and a multi-source Command Palette are all first-class capabilities. Phases 30A–30L complete that transition visually and structurally.
 
 The Deck/Home route must stop treating the complete tool registry as its dominant content. In the shipped default layout, the user's most likely next actions — paste/drop something, resume recent work, launch a favorite, run a workflow, reopen a project/workspace, or search — should occupy the primary viewport. The complete tool inventory remains fully accessible, searchable, keyboard-navigable, and bookmarkable through a dedicated dense browser.
 
-This is **not** the Phase 36 theming work. Phase Emergency-Addendum-1 keeps the current fixed dark, bright, category-colored visual system and the existing Section 8 density contract. It may refine spacing, layout, component proportions, panel treatment, and information hierarchy, but it does not introduce light mode, user-selectable density presets, font customization, theme import/export, or per-tool visual customization.
+The workbench redesign portion of Phase 30 starts from the current fixed dark, bright, category-colored visual system and the existing Section 8 density contract. It may refine spacing, layout, component proportions, panel treatment, and information hierarchy without depending on light mode, user-selectable density presets, font customization, theme import/export, or per-tool visual customization. Those platform-level appearance capabilities are introduced in Phase 30K; per-tool visual customization remains prohibited so the shared token/system contract stays authoritative.
 
 ### Product rule
 
@@ -2020,277 +2020,50 @@ This is **not** the Phase 36 theming work. Phase Emergency-Addendum-1 keeps the 
 
 The complete registry must never again be the primary visual hierarchy of the Home route.
 
-### 1. Workbench Home Information Architecture
-
-Replace the current "Smart Paste followed by the complete category/tool wall" hierarchy with a workstation dashboard. The shipped default Home layout is intentionally compact and bounded; users can redesign it with the Home Layout builder in Settings.
-
-The default layout prioritizes:
-
-1. compact global shell/search context;
-2. **Give it to DUDE** smart-entry surface;
-3. Favorites / Recently Used;
-4. Recent Projects / Recent Workspaces / Pinned Pipelines;
-5. Quick Run;
-6. local activity/usage summary;
-7. compact Browse Tools preview;
-8. explicit **Browse all tools** entry into the dedicated tool browser.
-
-This order describes the default preset, not a constraint on user-authored layouts. Home does not automatically render the entire registered tool inventory.
-
-All tools remain discoverable through:
-
-- Ctrl+K / Command Palette;
-- global search;
-- category navigation;
-- the dedicated Browse Tools surface;
-- Smart Paste/file-drop recommendations;
-- Favorites/Recents where applicable;
-- direct routes and `dude://` links.
-
-### 2. Above-the-Fold Workbench Contract
-
-At normal desktop zoom, the shipped default Home layout should expose useful work without immediate scrolling.
-
-Default-layout targets for the canonical desktop application:
-
-- at 1920x1080 / 100% scale, compact Smart Entry, Favorites/Recently Used, one Resume Work surface (or a compact start-work action when history is empty), and Quick Run are visible without scrolling;
-- at 1440x900 / 100% scale, compact Smart Entry, Favorites/Recently Used, and one Resume Work surface (or a compact start-work action when history is empty) are visible without scrolling;
-- at 1366x768 / 100% scale, the first useful action is visible immediately and controls remain usable;
-- normal use does not depend on zooming below 100%;
-- no horizontal page scrolling at supported desktop widths.
-
-Charts, tables, and the catalog preview may sit below the first viewport. The page may scroll for secondary information.
-
-User-authored layouts may move, resize, or hide panels and are not required to preserve the default order or first-viewport composition. They must still avoid horizontal overflow, clipped or unreachable controls, and inaccessible actions. Global navigation, Browse Tools, and Ctrl+K remain available regardless of Home layout.
-
-### 2A. User-Designed Home Layout
-
-Provide a Home Layout editor in Settings, with an Edit Home entry point on Home. Users can compose the Home canvas from first-party panels and user-authored text, link, and shortcut panels. The editor supports add, hide/show, drag, resize, reorder, and duplicate where a panel kind can safely have multiple instances, plus editing user-authored panel content and Reset to Default. Preserve a useful shipped default for new installations.
-
-Use a snapping responsive grid, not pixel-precise absolute positioning. Store separate wide-desktop and narrow placements so users can deliberately arrange both, while panel instances and user-authored content remain shared. Switching widths must select the corresponding placement without losing either. Every panel has a stable instance id and panel-kind id; layout persistence is versioned and can recover from removed or renamed panel kinds without blanking Home. A layout may reference registry tools, commands, projects, workspaces, or pipelines by their authoritative ids; it must not copy their state into dashboard records.
-
-Built-in panel kinds cover the Home surfaces in this phase: Smart Entry, Favorites, Recent Tools, resume-work panels, Quick Run, local insights, recent activity, category preview, and applicable native actions. User-authored text/link panels display locally stored user content as plain text, not executable markup. Accept only safe link schemes such as HTTPS and HTTP; reject script/data URLs. Shortcut panels point to existing tool routes, shell destinations, or CommandSource actions and use their existing navigation, execution, and confirmation paths. External links open only after an explicit user action. No panel may trigger a pipeline, native operation, or other consequential action simply by mounting or restoring a layout.
-
-**Built-in panel kinds must be declarative.** Give each kind a colocated manifest and a typed metadata contract analogous to tool manifests. Generate the first-party panel registry from those declarations rather than maintaining a central hand-edited kind list. That registry is the single source for the Home renderer, layout editor, available-panel picker, default layout, and layout validation. At minimum, a declaration identifies a stable panel-kind id, display metadata, renderer or lazy loader, supported platform/capabilities, size constraints and default placement, whether multiple instances are allowed, supported configuration and authoritative data dependencies. Availability and empty-state behavior belong to the panel declaration or its implementation, not to a Home switch on panel ids. Persisted layouts refer to stable kind ids and instance ids; registry/version migrations handle removed or renamed kinds.
-
-A later feature may contribute a panel through its own declaration without adding a case to Home, Settings, or unrelated shell components. For example, Git status, running processes, active containers, certificate expiry, and local servers should use the same registration path if introduced in later phases. Registering a tool alone does not automatically create a Home panel; its panel contribution is explicit. Generic Home code composes registered panel kinds and never maintains a parallel list of feature-specific ids.
-
-The editor must work without drag-and-drop: a keyboard-accessible list/form mode allows users to add, move, resize, hide, edit, and remove panels. Focus order follows a predictable reading order in both layouts. Drag/resize handles expose their purpose and do not require hover. Prevent overlaps and unusably small panels; show an intelligible placement result before saving. Reset to Default must be available without deleting the user's underlying favorites, usage, projects, workspaces, or pipelines.
-
-Desktop-only panels are omitted or replaced with a compact capability explanation on the web without leaving blank grid cells. User-authored panel content and layout preferences stay local under existing persistence controls. Arbitrary HTML/JavaScript execution, third-party widget code, and custom data-source scripting are outside this phase.
-
-### 3. Compact "Give it to DUDE" Surface
-
-Preserve Smart Paste/file-drop as the primary entry mechanism, but substantially reduce its idle footprint.
-
-Idle state:
-
-- one compact paste/input region;
-- one compact file/drop affordance;
-- short supported-input hint;
-- no large empty textarea or oversized drop target;
-- target approximately one compact dashboard row rather than a large hero card.
-
-Focused/active state:
-
-- expand the paste region when the user enters substantial content;
-- surface Smart Paste classification/results as today;
-- preserve drag/drop behavior;
-- preserve web/desktop capability differences;
-- preserve privacy behavior;
-- collapse back to its compact state when no longer active where doing so does not destroy user input.
-
-The visual treatment must remain a developer-workbench control, not a marketing-site hero.
-
-### 4. Personalized Launch Surface
-
-Create a compact, high-priority launch region sourced entirely from existing local personalization infrastructure.
-
-It should expose:
-
-- **Favorites**;
-- **Recently Used Tools**;
-- optionally the most relevant pinned/saved launch targets when useful.
-
-Requirements:
-
-- no separate home-specific copy of favorite state;
-- no home-specific usage recorder;
-- FavoritesService and UsageService remain authoritative;
-- empty sections disappear or collapse rather than reserving blank space;
-- items use dense rows or compact tiles;
-- title, category accent, relevant capability/status indicator, and optional shortcut/action affordance are enough;
-- descriptions should not be repeated when they add little value.
-
-Recommended default visible count:
-
-- 4–8 Favorites;
-- 4–8 Recently Used Tools.
-
-Overflow goes to the relevant full surface rather than growing Home indefinitely.
-
-### 5. Resume Work Surface
-
-Home should make persistent workflows more prominent than raw tool inventory.
-
-Add compact surfaces for:
-
-- **Recent Projects**;
-- **Recent Workspaces / Workspace Templates**;
-- **Pinned Pipelines**.
-
-These must reuse the stores and recency mechanisms already established by earlier phases.
-
-Do not create duplicate "dashboard project", "dashboard workspace", or "dashboard pipeline" models.
-
-Each panel should have:
-
-- compact title;
-- small item count where useful;
-- up to a bounded number of recent/pinned items;
-- one direct open/apply/run-or-navigate action as appropriate;
-- a "View all" destination.
-
-Executing a pipeline must continue to obey its existing confirmation rules. Home presence must never create a new implicit execution path.
-
-### 6. Quick Run as a First-Class Dashboard Control
-
-Promote Quick Run from a destination the user must remember to visit into a compact Home capability.
-
-The Home Quick Run surface should support:
-
-- a compact single input;
-- recently/frequently used Quick Run-compatible transformations;
-- explicit transform selection;
-- run via the same existing execution contract as `/quick-run`;
-- open-in-full-Quick-Run action for advanced use.
-
-Do not create separate Home implementations of transform logic.
-
-The Home surface is only a shell over the existing Quick Run execution path.
-
-### 7. Local Workbench Activity Summary
-
-Add a compact local-only activity area so Home feels like a live workbench rather than a static launcher.
-
-Initial summary may include:
-
-- tool opens over the last 7 days;
-- unique tools used over the selected period only when a complete time-bounded source exists;
-- most-used category;
-- most-used tools;
-- favorite count;
-- pinned-pipeline count;
-- recent project/workspace count where useful.
-
-Only display metrics that have a clear practical interpretation.
-
-Avoid generic SaaS vanity metrics such as:
-
-- arbitrary "productivity scores";
-- streaks;
-- engagement percentages;
-- achievement systems;
-- remote comparisons;
-- fabricated time-saved estimates.
-
-No metric requires remote analytics.
-
-### 8. Activity Trend Visualization
-
-Add one compact trend visualization for recent local usage.
-
-Preferred initial visualization:
-
-**Tool opens - last 7 days**
-
-Requirements:
-
-- compact sparkline or small line/bar chart;
-- one point/bucket per local calendar day;
-- restrained chrome;
-- meaningful tooltip/details on hover/focus;
-- readable without the tooltip;
-- no giant chart card;
-- no decorative chart animation;
-- no remote charting data.
-
-The existing `UsageService` recent-open log is capped at 200 entries and cannot guarantee a complete 7-day count. Extend `UsageService` with bounded daily-open buckets covering a rolling 30-day window, while keeping it the only usage recorder. Record empty days as zero only after reliable tracking begins. Preserve existing lifetime counts and the capped recent log through a schema migration, but do not present a partial reconstruction from that log as a complete period. Persist the start of reliable daily tracking. The chart must label an incomplete period after a first install or migration until seven full local calendar days have been tracked. Its displayed total must use the same complete-or-partial period as the chart.
-
-An example persisted aggregate shape may be equivalent to:
-
-```ts
-interface DailyUsageBucket {
-  date: string;
-  opens: number;
-}
-```
-
-The exact type is implementation-defined. Usage payloads must never include pasted content, file contents, tool inputs, outputs, secrets, tokens, or user document data.
-
-### 9. Category Usage Visualization
-
-Add a compact ranked category-usage visualization.
-
-Preferred presentation:
-
-- horizontal bars;
-- top categories by locally recorded use;
-- category accent color carries category identity;
-- category label + count remain text-readable;
-- optional "View category" action.
-
-Avoid pie/donut charts when ranking is the main question.
-
-The chart must be derived from registry category metadata plus existing local usage counts rather than introducing manually maintained category mappings. Label it as lifetime usage unless a complete time-bounded category source is added.
-
-### 10. Top Tools Table
-
-Add a dense local "Top Tools" table or ranked list.
-
-Suggested columns:
-
-| Tool | Category | Uses | Last used | Action |
-|---|---|---:|---|---|
-
-Requirements:
-
-- sortable where useful;
-- category visually identifiable;
-- favorite state may be toggled inline;
-- Enter/open action remains keyboard reachable;
-- tool routes come from the registry;
-- values are local only.
-
-This table is intentionally denser than the Home launch rails and demonstrates the shared compact-table visual language needed elsewhere in DUDE. Label its use counts as lifetime counts.
-
-### 11. Recent Activity Table
-
-Expose a small Home view over Unified Recents, using only entries with a real event timestamp.
-
-Suggested columns:
-
-| Type | Item | Context | Last activity | Action |
-|---|---|---|---|---|
-
-Initial eligible sources are:
-
-- tool opens recorded by UsageService;
-- pipeline runs with a recorded run time;
-- History entries where already permitted;
-- files permitted by the Native File Recent List.
-
-Projects and Workspace Templates remain in their separate resume panels until their actual activation/application events are added to UnifiedRecentsService. Open workspace tabs are not recent activity events: the current derived view assigns them a synthetic "now" timestamp, which must not appear as a historical last-activity time in this table. Future source types may be included only when their timestamps represent real events.
-
-Requirements:
-
-- UnifiedRecentsService remains a derived view rather than a new recorder;
-- privacy controls on recent files remain unchanged;
-- no new content-bearing fields are stored for dashboard purposes;
-- Home only shows a bounded recent slice;
-- History/Recents remains the full destination.
-
-### 12. Dedicated Browse Tools Route
+### Scope boundaries
+
+The following appearance capabilities are now included in Phase 30K rather than treated as non-goals: light mode, accent-palette selection, user-selectable density presets, and font selection. Theme customization is included only in the controlled, token/system-driven form defined in Phase 30K; arbitrary theme customization remains out of scope.
+
+Phase 30 deliberately does **not** include:
+
+- arbitrary theme customization;
+- arbitrary HTML/JavaScript or scriptable custom widgets;
+- third-party dashboard plugins;
+- cloud analytics;
+- telemetry;
+- gamification;
+- cross-user usage comparison;
+- AI-generated dashboard layouts;
+- replacing Command Palette;
+- replacing Smart Paste;
+- replacing dedicated tool routes;
+- turning Home into a source-code IDE;
+- hiding tools from the complete catalog.
+
+Users can freely arrange first-party panels and create text, link, and shortcut panels in Phase 30I. Scriptable/third-party widget runtimes require a separate execution and permission model. Theme and density customization are defined in Phase 30K.
+
+### Subphase sequence
+
+These twelve subphases follow the dependency order below. Each has its own exit criteria and phase-local requirement numbers. The product rule and scope boundaries above apply throughout.
+
+| Phase | Deliverable |
+|---|---|
+| 30A | Browse Tools Foundation |
+| 30B | Sidebar and Command Palette Navigation |
+| 30C | Shared Workbench Primitives |
+| 30D | Bounded Default Home |
+| 30E | Compact Smart Entry |
+| 30F | Personal Launch and Resume |
+| 30G | Quick Run on Home |
+| 30H | Local Workbench Insights |
+| 30I | User-Designed Home |
+| 30J | Density, Color, and Spacing |
+| 30K | Theming, Appearance, and Accessibility Expansion |
+| 30L | Integrated Scale, Accessibility, and Platform Verification |
+
+### Phase 30A — Browse Tools Foundation
+
+#### 30A.1 Dedicated Browse Tools Route
 
 Introduce or elevate a dedicated full-registry browser so Home no longer has to render the entire tool catalog.
 
@@ -2319,11 +2092,11 @@ Requirements:
 
 This becomes the authoritative complete catalog surface.
 
-### 13. Browse Tools View Modes
+#### 30A.2 Browse Tools View Modes
 
 Provide at least two high-density views.
 
-#### Compact Table
+##### Compact Table
 
 Recommended columns:
 
@@ -2332,7 +2105,7 @@ Recommended columns:
 
 Target row height should remain compact enough to show many tools at normal desktop scale without sacrificing readability or focus visibility.
 
-#### Compact Grid/List
+##### Compact Grid/List
 
 Use smaller multi-column tool entries for users who prefer visual scanning.
 
@@ -2349,7 +2122,7 @@ Do not restore the current large category-wall card treatment inside this view.
 
 Persist the user's selected Browse Tools view mode as a safe UI preference.
 
-### 14. Deterministic Tool Filtering
+#### 30A.3 Deterministic Tool Filtering
 
 Tool browser filtering must become powerful enough that hundreds of tools remain manageable.
 
@@ -2381,7 +2154,7 @@ If query syntax is implemented:
 - syntax must be documented in a compact help affordance;
 - filtering remains entirely local.
 
-### 15. Tool Sorting & Local Recommended Ranking
+#### 30A.4 Tool Sorting & Local Recommended Ranking
 
 Provide deterministic sort modes such as:
 
@@ -2406,32 +2179,92 @@ Do not introduce opaque ML, remote recommendation services, or hidden telemetry.
 
 Stable tie-breaking is required so the interface does not reorder unpredictably.
 
-### 16. Category Preview Instead of Category Wall
+#### 30A.5 Compact Search & Filter Bar
 
-Home may retain a **Browse Tools preview**, but it must be bounded.
+Browse Tools should have one persistent compact discovery bar containing:
 
-Two acceptable models:
+- search;
+- category;
+- platform/capability filters;
+- sort;
+- view-mode switch.
 
-#### A. Category strip
+Avoid placing each filter in a separate large card.
 
-```text
-Data 48   Text 31   Encoding 27   Security 39   Web 34 ...
-```
+Desktop layout should generally keep these controls on one or two compact lines.
 
-Clicking a category opens Browse Tools filtered to that category.
+Keyboard requirements:
 
-#### B. Compact category previews
+- `/` may focus tool filtering when it does not conflict with an active editor/input;
+- Escape clears/dismisses the active filter state where appropriate;
+- arrow keys may move through result rows;
+- Enter opens selected tool;
+- favorite toggles must remain keyboard reachable.
 
-Each category shows only a small bounded number of representative tools, for example:
+Ctrl+K continues to open the global Command Palette.
 
-- top/recent tools in that category;
-- up to 4–6 entries;
-- category count;
-- "View all N →".
+#### 30A.6 Registry-Driven Counts & Metadata
 
-Under no circumstances should Home render every tool from every category simply because all registry entries exist.
+All displayed totals must be generated from live application data.
 
-### 17. Sidebar Information Architecture Rewrite
+Examples:
+
+- `All tools — N`;
+- category counts;
+- desktop-only count;
+- browser-safe count;
+- verified count;
+- favorite count.
+
+Do not hard-code "277" or any other current tool count into shell templates.
+
+Counts must update automatically as new tool manifests are registered.
+
+#### 30A.7 Platform/Capability Visibility
+
+Compact discovery surfaces should continue to communicate when a tool is:
+
+- Web + Desktop;
+- Desktop-only;
+- browser-limited;
+- dependent on native capability;
+- unavailable in the current surface.
+
+Use the existing closed capability vocabulary and PlatformCapabilityBadge model rather than introducing dashboard-specific platform labels.
+
+Badges must stay compact enough that capability metadata does not dominate tool rows.
+
+#### 30A.8 Route & Deep-Link Stability
+
+No existing dedicated tool route may change because of this redesign.
+
+Existing:
+
+- browser bookmarks;
+- back/forward behavior;
+- GitHub Pages route recovery;
+- `dude://` tool links;
+- project links;
+- pipeline links;
+- workspace links
+
+must continue to resolve.
+
+If a dedicated `/tools` catalog route is added, it supplements rather than replaces existing per-tool URLs.
+
+Category/filter URLs may be shareable where this can be implemented without encoding sensitive search contents.
+
+#### Exit criteria
+
+- [ ] A dedicated Browse Tools surface exposes every registered tool.
+- [ ] Browse Tools supports search, category filtering, deterministic sorting, and at least Compact Table + Grid/List views.
+- [ ] Category counts and total tool counts are registry-derived.
+- [ ] Existing dedicated tool routes remain unchanged.
+- [ ] Browse Tools remains usable with a synthetic 1,000-tool registry where practical.
+
+### Phase 30B — Sidebar and Command Palette Navigation
+
+#### 30B.1 Sidebar Information Architecture Rewrite
 
 The persistent sidebar must stop duplicating the complete registry as an always-expanded tree.
 
@@ -2473,7 +2306,7 @@ Requirements:
 - Favorites and Recents may receive compact sidebar entry points;
 - sidebar remains useful at normal zoom without its own enormous tool-scroll wall.
 
-### 18. Command Palette Remains the Expert Fast Path
+#### 30B.2 Command Palette Remains the Expert Fast Path
 
 The redesigned Home and Browse Tools UI must not reduce the importance of Ctrl+K.
 
@@ -2489,7 +2322,541 @@ Do not duplicate command-source logic inside Home.
 
 Tools, navigation, projects, workspaces, pipelines, native operations, recents, and preferences continue to enter the palette through the established `CommandSource` architecture.
 
-### 19. Functional Use of Category Color
+#### Exit criteria
+
+- [ ] The sidebar no longer defaults to displaying hundreds of individual tool links.
+- [ ] Ctrl+K remains the fastest universal launcher, regardless of Home layout.
+
+### Phase 30C — Shared Workbench Primitives
+
+Complete these shared primitives before the Home surfaces in Phases 30D–30H consume them.
+
+#### 30C.1 Shared Dashboard Panel Primitive
+
+Create a small shared dashboard/workbench panel primitive rather than building each Home section as unrelated CSS.
+
+The primitive should support:
+
+- compact title/header;
+- optional icon/category/status accent;
+- optional item/count summary;
+- primary body region;
+- optional compact action area;
+- optional "View all";
+- loading state;
+- empty state;
+- keyboard/focus behavior.
+
+Avoid:
+
+- oversized padding;
+- heavy shadows;
+- decorative gradients;
+- excessive radius;
+- duplicated card-specific spacing systems.
+
+The primitive should be usable by Home and other dashboard-like surfaces without forcing every tool workspace into a card layout.
+
+#### 30C.2 Compact Table Primitive Expansion
+
+Reuse or extend the existing shared data-table pattern for shell-level tables.
+
+Shell tables should support where useful:
+
+- sticky compact header;
+- keyboard row focus;
+- sorting;
+- dense row height;
+- truncation with accessible full-value disclosure;
+- category/status badges;
+- inline primary action;
+- virtualization when row count justifies it.
+
+Do not build a second table component solely for Home if the existing shared primitive can be evolved safely.
+
+#### 30C.3 Dashboard Visualization Primitive
+
+Introduce a very small shared visualization layer for workbench metrics.
+
+Initial required chart classes:
+
+- sparkline / small time trend;
+- horizontal ranked bars.
+
+Optional future classes may be added when a real use case exists.
+
+Requirements:
+
+- charts read shared design tokens;
+- charts support dark-theme contrast;
+- charts have text equivalents;
+- chart colors retain semantic/category meaning;
+- no decorative gradients/glow;
+- no arbitrary per-dashboard color choices;
+- tool code does not need to depend on the dashboard package.
+
+Prefer a lightweight implementation over adding a large dashboard/chart dependency unless the dependency materially reduces complexity and remains appropriately lazy-loaded.
+
+#### Exit criteria
+
+- [ ] Home panels share one compact panel primitive with loading, empty, action, and keyboard states.
+- [ ] Shell tables reuse or extend the shared table pattern; local insights use small token-driven charts with text equivalents.
+
+### Phase 30D — Bounded Default Home
+
+#### 30D.1 Workbench Home Information Architecture
+
+Replace the current "Smart Paste followed by the complete category/tool wall" hierarchy with a workstation dashboard. The shipped default Home layout is intentionally compact and bounded; users can redesign it with the Home Layout builder in Settings.
+
+The default layout prioritizes:
+
+1. compact global shell/search context;
+2. **Give it to DUDE** smart-entry surface;
+3. Favorites / Recently Used;
+4. Recent Projects / Recent Workspaces / Pinned Pipelines;
+5. Quick Run;
+6. local activity/usage summary;
+7. compact Browse Tools preview;
+8. explicit **Browse all tools** entry into the dedicated tool browser.
+
+This order describes the default preset, not a constraint on user-authored layouts. Home does not automatically render the entire registered tool inventory.
+
+All tools remain discoverable through:
+
+- Ctrl+K / Command Palette;
+- global search;
+- category navigation;
+- the dedicated Browse Tools surface;
+- Smart Paste/file-drop recommendations;
+- Favorites/Recents where applicable;
+- direct routes and `dude://` links.
+
+#### 30D.2 Above-the-Fold Workbench Contract
+
+At normal desktop zoom, the shipped default Home layout should expose useful work without immediate scrolling.
+
+Default-layout targets for the canonical desktop application:
+
+- at 1920x1080 / 100% scale, compact Smart Entry, Favorites/Recently Used, one Resume Work surface (or a compact start-work action when history is empty), and Quick Run are visible without scrolling;
+- at 1440x900 / 100% scale, compact Smart Entry, Favorites/Recently Used, and one Resume Work surface (or a compact start-work action when history is empty) are visible without scrolling;
+- at 1366x768 / 100% scale, the first useful action is visible immediately and controls remain usable;
+- normal use does not depend on zooming below 100%;
+- no horizontal page scrolling at supported desktop widths.
+
+Charts, tables, and the catalog preview may sit below the first viewport. The page may scroll for secondary information.
+
+User-authored layouts may move, resize, or hide panels and are not required to preserve the default order or first-viewport composition. They must still avoid horizontal overflow, clipped or unreachable controls, and inaccessible actions. Global navigation, Browse Tools, and Ctrl+K remain available regardless of Home layout.
+
+#### 30D.3 Category Preview Instead of Category Wall
+
+Home may retain a **Browse Tools preview**, but it must be bounded.
+
+Two acceptable models:
+
+##### A. Category strip
+
+```text
+Data 48   Text 31   Encoding 27   Security 39   Web 34 ...
+```
+
+Clicking a category opens Browse Tools filtered to that category.
+
+##### B. Compact category previews
+
+Each category shows only a small bounded number of representative tools, for example:
+
+- top/recent tools in that category;
+- up to 4–6 entries;
+- category count;
+- "View all N →".
+
+Under no circumstances should Home render every tool from every category simply because all registry entries exist.
+
+#### 30D.4 Visual Hierarchy Audit
+
+The shipped default layout should establish three clear visual levels.
+
+##### Level 1 - Immediate action
+
+- Give it to DUDE;
+- global search / Ctrl+K;
+- Quick Run.
+
+##### Level 2 - Personal work context
+
+- Favorites;
+- Recent Tools;
+- Projects;
+- Workspaces;
+- Pipelines;
+- Local activity.
+
+##### Level 3 - Catalog/discovery
+
+- categories;
+- Browse Tools;
+- complete registry.
+
+A screenshot of the default layout should make these levels evident without explanation. User-authored layouts may choose a different hierarchy; the editor should make panel purpose and available actions clear without imposing the default order.
+
+#### Exit criteria
+
+- [ ] Default Home no longer renders the complete registry as its dominant content.
+- [ ] Default Home at 1920x1080 / 100% shows Smart Entry, Favorites/Recents, one resume surface or compact start-work action, and Quick Run without scrolling.
+- [ ] Default Home at 1440x900 / 100% shows Smart Entry, Favorites/Recents, and one resume surface or compact start-work action without scrolling; 1366x768 remains usable without horizontal overflow.
+
+### Phase 30E — Compact Smart Entry
+
+#### 30E.1 Compact "Give it to DUDE" Surface
+
+Preserve Smart Paste/file-drop as the primary entry mechanism, but substantially reduce its idle footprint.
+
+Idle state:
+
+- one compact paste/input region;
+- one compact file/drop affordance;
+- short supported-input hint;
+- no large empty textarea or oversized drop target;
+- target approximately one compact dashboard row rather than a large hero card.
+
+Focused/active state:
+
+- expand the paste region when the user enters substantial content;
+- surface Smart Paste classification/results as today;
+- preserve drag/drop behavior;
+- preserve web/desktop capability differences;
+- preserve privacy behavior;
+- collapse back to its compact state when no longer active where doing so does not destroy user input.
+
+The visual treatment must remain a developer-workbench control, not a marketing-site hero.
+
+#### Exit criteria
+
+- [ ] A user can paste/drop something immediately from default Home.
+- [ ] Smart Paste/file-drop behavior remains intact.
+
+### Phase 30F — Personal Launch and Resume
+
+#### 30F.1 Personalized Launch Surface
+
+Create a compact, high-priority launch region sourced entirely from existing local personalization infrastructure.
+
+It should expose:
+
+- **Favorites**;
+- **Recently Used Tools**;
+- optionally the most relevant pinned/saved launch targets when useful.
+
+Requirements:
+
+- no separate home-specific copy of favorite state;
+- no home-specific usage recorder;
+- FavoritesService and UsageService remain authoritative;
+- empty sections disappear or collapse rather than reserving blank space;
+- items use dense rows or compact tiles;
+- title, category accent, relevant capability/status indicator, and optional shortcut/action affordance are enough;
+- descriptions should not be repeated when they add little value.
+
+Recommended default visible count:
+
+- 4–8 Favorites;
+- 4–8 Recently Used Tools.
+
+Overflow goes to the relevant full surface rather than growing Home indefinitely.
+
+#### 30F.2 Resume Work Surface
+
+Home should make persistent workflows more prominent than raw tool inventory.
+
+Add compact surfaces for:
+
+- **Recent Projects**;
+- **Recent Workspaces / Workspace Templates**;
+- **Pinned Pipelines**.
+
+These must reuse the stores and recency mechanisms already established by earlier phases.
+
+Do not create duplicate "dashboard project", "dashboard workspace", or "dashboard pipeline" models.
+
+Each panel should have:
+
+- compact title;
+- small item count where useful;
+- up to a bounded number of recent/pinned items;
+- one direct open/apply/run-or-navigate action as appropriate;
+- a "View all" destination.
+
+Executing a pipeline must continue to obey its existing confirmation rules. Home presence must never create a new implicit execution path.
+
+#### 30F.3 Empty-State Behavior
+
+Dashboard composition must work cleanly for a new installation with no personal history.
+
+Examples:
+
+- no Favorites → hide/collapse the Favorites panel or show one compact explanatory row;
+- no Recent Projects → do not reserve a giant empty card;
+- no Pinned Pipelines → compact call-to-action to Pipelines;
+- insufficient activity for a trend chart → show a quiet "Activity will appear here as you use DUDE" state;
+- no Unified Recents → omit the table body without fake example data.
+
+Never populate charts with fabricated demo activity. Default-layout panels may collapse when empty; a user-placed panel should retain a compact, editable placeholder in layout-edit mode so its position and controls remain understandable.
+
+#### Exit criteria
+
+- [ ] Favorites and Recently Used Tools are first-class default Home surfaces.
+- [ ] Projects, Workspaces, and Pinned Pipelines are resumable from default Home where available.
+
+### Phase 30G — Quick Run on Home
+
+#### 30G.1 Quick Run as a First-Class Dashboard Control
+
+Promote Quick Run from a destination the user must remember to visit into a compact Home capability.
+
+The Home Quick Run surface should support:
+
+- a compact single input;
+- recently/frequently used Quick Run-compatible transformations;
+- explicit transform selection;
+- run via the same existing execution contract as `/quick-run`;
+- open-in-full-Quick-Run action for advanced use.
+
+Do not create separate Home implementations of transform logic.
+
+The Home surface is only a shell over the existing Quick Run execution path.
+
+#### Exit criteria
+
+- [ ] Quick Run is usable from a compact default Home surface.
+
+### Phase 30H — Local Workbench Insights
+
+#### 30H.1 Local Workbench Activity Summary
+
+Add a compact local-only activity area so Home feels like a live workbench rather than a static launcher.
+
+Initial summary may include:
+
+- tool opens over the last 7 days;
+- unique tools used over the selected period only when a complete time-bounded source exists;
+- most-used category;
+- most-used tools;
+- favorite count;
+- pinned-pipeline count;
+- recent project/workspace count where useful.
+
+Only display metrics that have a clear practical interpretation.
+
+Avoid generic SaaS vanity metrics such as:
+
+- arbitrary "productivity scores";
+- streaks;
+- engagement percentages;
+- achievement systems;
+- remote comparisons;
+- fabricated time-saved estimates.
+
+No metric requires remote analytics.
+
+#### 30H.2 Activity Trend Visualization
+
+Add one compact trend visualization for recent local usage.
+
+Preferred initial visualization:
+
+**Tool opens - last 7 days**
+
+Requirements:
+
+- compact sparkline or small line/bar chart;
+- one point/bucket per local calendar day;
+- restrained chrome;
+- meaningful tooltip/details on hover/focus;
+- readable without the tooltip;
+- no giant chart card;
+- no decorative chart animation;
+- no remote charting data.
+
+The existing `UsageService` recent-open log is capped at 200 entries and cannot guarantee a complete 7-day count. Extend `UsageService` with bounded daily-open buckets covering a rolling 30-day window, while keeping it the only usage recorder. Record empty days as zero only after reliable tracking begins. Preserve existing lifetime counts and the capped recent log through a schema migration, but do not present a partial reconstruction from that log as a complete period. Persist the start of reliable daily tracking. The chart must label an incomplete period after a first install or migration until seven full local calendar days have been tracked. Its displayed total must use the same complete-or-partial period as the chart.
+
+An example persisted aggregate shape may be equivalent to:
+
+```ts
+interface DailyUsageBucket {
+  date: string;
+  opens: number;
+}
+```
+
+The exact type is implementation-defined. Usage payloads must never include pasted content, file contents, tool inputs, outputs, secrets, tokens, or user document data.
+
+#### 30H.3 Category Usage Visualization
+
+Add a compact ranked category-usage visualization.
+
+Preferred presentation:
+
+- horizontal bars;
+- top categories by locally recorded use;
+- category accent color carries category identity;
+- category label + count remain text-readable;
+- optional "View category" action.
+
+Avoid pie/donut charts when ranking is the main question.
+
+The chart must be derived from registry category metadata plus existing local usage counts rather than introducing manually maintained category mappings. Label it as lifetime usage unless a complete time-bounded category source is added.
+
+#### 30H.4 Top Tools Table
+
+Add a dense local "Top Tools" table or ranked list.
+
+Suggested columns:
+
+| Tool | Category | Uses | Last used | Action |
+|---|---|---:|---|---|
+
+Requirements:
+
+- sortable where useful;
+- category visually identifiable;
+- favorite state may be toggled inline;
+- Enter/open action remains keyboard reachable;
+- tool routes come from the registry;
+- values are local only.
+
+This table is intentionally denser than the Home launch rails and demonstrates the shared compact-table visual language needed elsewhere in DUDE. Label its use counts as lifetime counts.
+
+#### 30H.5 Recent Activity Table
+
+Expose a small Home view over Unified Recents, using only entries with a real event timestamp.
+
+Suggested columns:
+
+| Type | Item | Context | Last activity | Action |
+|---|---|---|---|---|
+
+Initial eligible sources are:
+
+- tool opens recorded by UsageService;
+- pipeline runs with a recorded run time;
+- History entries where already permitted;
+- files permitted by the Native File Recent List.
+
+Projects and Workspace Templates remain in their separate resume panels until their actual activation/application events are added to UnifiedRecentsService. Open workspace tabs are not recent activity events: the current derived view assigns them a synthetic "now" timestamp, which must not appear as a historical last-activity time in this table. Future source types may be included only when their timestamps represent real events.
+
+Requirements:
+
+- UnifiedRecentsService remains a derived view rather than a new recorder;
+- privacy controls on recent files remain unchanged;
+- no new content-bearing fields are stored for dashboard purposes;
+- Home only shows a bounded recent slice;
+- History/Recents remains the full destination.
+
+#### 30H.6 Local-Only Dashboard Privacy Contract
+
+Dashboard analytics are personal workbench summaries, not product analytics.
+
+Standing rules:
+
+- no network request is introduced to power Home metrics;
+- no telemetry SDK or remote event collection;
+- no user identity;
+- no pasted/input/output payload retention in usage metrics;
+- no filenames added beyond what an existing feature is already allowed to retain;
+- no content hashes for analytics;
+- no command text/log payload collection for analytics;
+- no secret/token capture in usage metrics.
+
+Persist only the smallest metadata needed for local summaries. Extend the existing Phase 24 privacy audit to mechanically verify the daily bucket schema and tracking start.
+
+User-authored text and links in Home panels are intentionally persisted local content, separate from usage metrics. Explain that storage behavior in the editor, include panel content in the existing Clear All and backup export/import flows, and do not send it to a service. Opening an external link is an explicit user action that may contact its destination.
+
+#### Exit criteria
+
+- [ ] Default Home offers a useful local usage trend, category ranking, and at least one dense table/list.
+- [ ] UsageService stores bounded 30-day daily-open buckets and tracking start without a second recorder; incomplete periods are labeled.
+- [ ] Home Recent Activity displays only events with real timestamps; open workspace tabs are not shown as new activity.
+- [ ] No second analytics/usage recorder exists solely for the dashboard.
+- [ ] No user payload/content is recorded to produce dashboard charts.
+
+### Phase 30I — User-Designed Home
+
+#### 30I.1 User-Designed Home Layout
+
+Provide a Home Layout editor in Settings, with an Edit Home entry point on Home. Users can compose the Home canvas from first-party panels and user-authored text, link, and shortcut panels. The editor supports add, hide/show, drag, resize, reorder, and duplicate where a panel kind can safely have multiple instances, plus editing user-authored panel content and Reset to Default. Preserve a useful shipped default for new installations.
+
+Use a snapping responsive grid, not pixel-precise absolute positioning. Store separate wide-desktop and narrow placements so users can deliberately arrange both, while panel instances and user-authored content remain shared. Switching widths must select the corresponding placement without losing either. Every panel has a stable instance id and panel-kind id; layout persistence is versioned and can recover from removed or renamed panel kinds without blanking Home. A layout may reference registry tools, commands, projects, workspaces, or pipelines by their authoritative ids; it must not copy their state into dashboard records.
+
+Built-in panel kinds cover the Home surfaces in this phase: Smart Entry, Favorites, Recent Tools, resume-work panels, Quick Run, local insights, recent activity, category preview, and applicable native actions. User-authored text/link panels display locally stored user content as plain text, not executable markup. Accept only safe link schemes such as HTTPS and HTTP; reject script/data URLs. Shortcut panels point to existing tool routes, shell destinations, or CommandSource actions and use their existing navigation, execution, and confirmation paths. External links open only after an explicit user action. No panel may trigger a pipeline, native operation, or other consequential action simply by mounting or restoring a layout.
+
+**Built-in panel kinds must be declarative.** Give each kind a colocated manifest and a typed metadata contract analogous to tool manifests. Generate the first-party panel registry from those declarations rather than maintaining a central hand-edited kind list. That registry is the single source for the Home renderer, layout editor, available-panel picker, default layout, and layout validation. At minimum, a declaration identifies a stable panel-kind id, display metadata, renderer or lazy loader, supported platform/capabilities, size constraints and default placement, whether multiple instances are allowed, supported configuration and authoritative data dependencies. Availability and empty-state behavior belong to the panel declaration or its implementation, not to a Home switch on panel ids. Persisted layouts refer to stable kind ids and instance ids; registry/version migrations handle removed or renamed kinds.
+
+A later feature may contribute a panel through its own declaration without adding a case to Home, Settings, or unrelated shell components. For example, Git status, running processes, active containers, certificate expiry, and local servers should use the same registration path if introduced in later phases. Registering a tool alone does not automatically create a Home panel; its panel contribution is explicit. Generic Home code composes registered panel kinds and never maintains a parallel list of feature-specific ids.
+
+The editor must work without drag-and-drop: a keyboard-accessible list/form mode allows users to add, move, resize, hide, edit, and remove panels. Focus order follows a predictable reading order in both layouts. Drag/resize handles expose their purpose and do not require hover. Prevent overlaps and unusably small panels; show an intelligible placement result before saving. Reset to Default must be available without deleting the user's underlying favorites, usage, projects, workspaces, or pipelines.
+
+Desktop-only panels are omitted or replaced with a compact capability explanation on the web without leaving blank grid cells. User-authored panel content and layout preferences stay local under existing persistence controls. Arbitrary HTML/JavaScript execution, third-party widget code, and custom data-source scripting are outside this phase.
+
+#### 30I.2 No Duplicate State Systems
+
+The Phase 30 work composes existing product state and adds a user-configurable presentation layer.
+
+Existing authoritative sources remain authoritative:
+
+- Tool registry for tool metadata/category/routes/capabilities;
+- UsageService for frequency/recent tool usage and bounded daily buckets;
+- FavoritesService for tool/pipeline favorite state;
+- UnifiedRecentsService for merged recent activity;
+- PipelineStoreService for pipelines/pins;
+- WorkspaceTemplateService / WorkspaceLayoutService for workspace state;
+- Project services for project state;
+- CommandSource providers for Command Palette contents;
+- existing Smart Paste/file-drop detectors for classification/routing.
+
+A versioned Home Layout store may persist panel instances, positions, sizes, visibility, and user-authored text/link/shortcut panel content. It is presentation state, not another usage recorder, project/workspace/pipeline store, or hard-coded tool inventory. Built-in panels resolve live data from the sources above.
+
+#### 30I.3 Browse and Home State Persistence
+
+The following preferences may persist locally:
+
+- Browse view and sort modes;
+- optional sidebar category-collapse state;
+- versioned wide-desktop and narrow Home layouts;
+- panel positions, sizes, visibility, and supported instance configuration;
+- user-authored text, link, and shortcut panel content.
+
+Store only references to authoritative tool, command, project, workspace, and pipeline ids in layout records. Validate restored layouts and recover safely from missing panel kinds or targets. Offer Reset to Default for layout state without erasing underlying user data.
+
+Do not persist arbitrary search text by default when it could contain sensitive values. Search/filter state may remain route/session state instead.
+
+#### 30I.4 Responsive Workbench Grid
+
+Implement the Home canvas as a dense snapping grid with user-controlled placement and size.
+
+Recommended wide-desktop behavior:
+
+- 12-column conceptual grid or equivalent CSS Grid;
+- small consistent gaps;
+- panels snap to valid grid cells and do not overlap;
+- minimum dimensions keep their controls usable;
+- charts remain compact;
+- layout changes do not cause unpredictable reading or focus order.
+
+Store a separate narrow layout. When no user-edited narrow layout exists, derive a sensible initial arrangement from the current wide layout, or from the shipped default when the wide layout is untouched. Preserve the same panel instances and content. Switching widths or platforms must not destroy user placements. Unsupported desktop-only panels collapse without blank holes on the web. All editor functions have keyboard/list-form equivalents.
+
+#### Exit criteria
+
+- [ ] A user can design Home in Settings from first-party and text/link/shortcut panels, using drag/resize/reorder/hide/duplicate and a keyboard/list-form editor.
+- [ ] Built-in panel kinds declare typed metadata in colocated manifests; Home and Settings consume the assembled registry, and a new kind can be added without feature-specific shell branching.
+- [ ] Wide-desktop and narrow placements persist independently around shared panel content, restore safely, and support Reset to Default.
+- [ ] Restoring a layout or shortcut panel never executes its target; existing action confirmations remain in force.
+- [ ] Custom layouts avoid horizontal overflow, unreachable controls, and blank holes from unavailable panels without enforcing the default order.
+- [ ] Existing Favorites, Usage, Recents, Project, Workspace, Pipeline, and CommandSource systems remain authoritative.
+- [ ] Dashboard metrics and user-authored panel content remain local; panel content participates in Clear All and backup export/import.
+
+### Phase 30J — Density, Color, and Spacing
+
+#### 30J.1 Functional Use of Category Color
 
 Retain DUDE's bold category palette but use it more precisely.
 
@@ -2521,75 +2888,9 @@ Semantic colors for:
 
 remain distinct from category colors.
 
-### 20. Shared Dashboard Panel Primitive
+#### 30J.2 Compact Density Baseline
 
-Create a small shared dashboard/workbench panel primitive rather than building each Home section as unrelated CSS.
-
-The primitive should support:
-
-- compact title/header;
-- optional icon/category/status accent;
-- optional item/count summary;
-- primary body region;
-- optional compact action area;
-- optional "View all";
-- loading state;
-- empty state;
-- keyboard/focus behavior.
-
-Avoid:
-
-- oversized padding;
-- heavy shadows;
-- decorative gradients;
-- excessive radius;
-- duplicated card-specific spacing systems.
-
-The primitive should be usable by Home and other dashboard-like surfaces without forcing every tool workspace into a card layout.
-
-### 21. Compact Table Primitive Expansion
-
-Reuse or extend the existing shared data-table pattern for shell-level tables.
-
-Shell tables should support where useful:
-
-- sticky compact header;
-- keyboard row focus;
-- sorting;
-- dense row height;
-- truncation with accessible full-value disclosure;
-- category/status badges;
-- inline primary action;
-- virtualization when row count justifies it.
-
-Do not build a second table component solely for Home if the existing shared primitive can be evolved safely.
-
-### 22. Dashboard Visualization Primitive
-
-Introduce a very small shared visualization layer for workbench metrics.
-
-Initial required chart classes:
-
-- sparkline / small time trend;
-- horizontal ranked bars.
-
-Optional future classes may be added when a real use case exists.
-
-Requirements:
-
-- charts read shared design tokens;
-- charts support dark-theme contrast;
-- charts have text equivalents;
-- chart colors retain semantic/category meaning;
-- no decorative gradients/glow;
-- no arbitrary per-dashboard color choices;
-- tool code does not need to depend on the dashboard package.
-
-Prefer a lightweight implementation over adding a large dashboard/chart dependency unless the dependency materially reduces complexity and remains appropriately lazy-loaded.
-
-### 23. Compact Density Baseline
-
-Phase Emergency-Addendum-1 may refine the default shell dimensions to better fulfill the existing "extremely dense" contract.
+Phase 30J may refine the default shell dimensions to better fulfill the existing "extremely dense" contract.
 
 Target ranges, not rigid pixel requirements:
 
@@ -2604,9 +2905,9 @@ Target ranges, not rigid pixel requirements:
 
 These are baseline implementation targets, not user-configurable presets.
 
-Phase 36 remains responsible for actual Density Presets and font/theme customization.
+Phase 30K remains responsible for actual Density Presets and font/theme customization.
 
-### 24. Spacing Token Audit
+#### 30J.3 Spacing Token Audit
 
 Normalize shell/dashboard spacing around a compact token scale instead of page-local arbitrary values.
 
@@ -2622,7 +2923,7 @@ Recommended conceptual scale:
 
 The exact token names may follow the existing design-token system.
 
-Phase Emergency-Addendum-1 should remove obvious oversized gaps in:
+Phase 30J should remove obvious oversized gaps in:
 
 - Home;
 - sidebar;
@@ -2632,76 +2933,7 @@ Phase Emergency-Addendum-1 should remove obvious oversized gaps in:
 
 Do not globally compress tool workspaces without verifying their individual usability.
 
-### 25. Compact Search & Filter Bar
-
-Browse Tools should have one persistent compact discovery bar containing:
-
-- search;
-- category;
-- platform/capability filters;
-- sort;
-- view-mode switch.
-
-Avoid placing each filter in a separate large card.
-
-Desktop layout should generally keep these controls on one or two compact lines.
-
-Keyboard requirements:
-
-- `/` may focus tool filtering when it does not conflict with an active editor/input;
-- Escape clears/dismisses the active filter state where appropriate;
-- arrow keys may move through result rows;
-- Enter opens selected tool;
-- favorite toggles must remain keyboard reachable.
-
-Ctrl+K continues to open the global Command Palette.
-
-### 26. Registry-Driven Counts & Metadata
-
-All displayed totals must be generated from live application data.
-
-Examples:
-
-- `All tools — N`;
-- category counts;
-- desktop-only count;
-- browser-safe count;
-- verified count;
-- favorite count.
-
-Do not hard-code "277" or any other current tool count into shell templates.
-
-Counts must update automatically as new tool manifests are registered.
-
-### 27. Platform/Capability Visibility
-
-Compact discovery surfaces should continue to communicate when a tool is:
-
-- Web + Desktop;
-- Desktop-only;
-- browser-limited;
-- dependent on native capability;
-- unavailable in the current surface.
-
-Use the existing closed capability vocabulary and PlatformCapabilityBadge model rather than introducing dashboard-specific platform labels.
-
-Badges must stay compact enough that capability metadata does not dominate tool rows.
-
-### 28. Empty-State Behavior
-
-Dashboard composition must work cleanly for a new installation with no personal history.
-
-Examples:
-
-- no Favorites → hide/collapse the Favorites panel or show one compact explanatory row;
-- no Recent Projects → do not reserve a giant empty card;
-- no Pinned Pipelines → compact call-to-action to Pipelines;
-- insufficient activity for a trend chart → show a quiet "Activity will appear here as you use DUDE" state;
-- no Unified Recents → omit the table body without fake example data.
-
-Never populate charts with fabricated demo activity. Default-layout panels may collapse when empty; a user-placed panel should retain a compact, editable placeholder in layout-edit mode so its position and controls remain understandable.
-
-### 29. Progressive Disclosure
+#### 30J.4 Progressive Disclosure
 
 Dense does not mean "everything visible at once."
 
@@ -2720,7 +2952,54 @@ Primary actions stay visible.
 
 Secondary explanation appears on demand.
 
-### 30. Performance & Rendering Budget
+#### Exit criteria
+
+- [ ] Category color is primarily structural/semantic rather than large-area decoration.
+- [ ] Workbench shell changes do not prematurely couple to theming/density customization; the dedicated appearance work remains separately defined for Phase 30K.
+
+### Phase 30K — Theming, Appearance, and Accessibility Expansion
+
+#### 30K.1 Theming, Appearance & Accessibility Expansion
+
+Evolve the currently fixed dark-only visual implementation into a controlled theming system without losing DUDE's dense workstation identity or allowing per-tool visual drift.
+
+1. **Light Mode** — a second, fully contrast-checked first-party theme
+2. **Theme Customization** — controlled user customization on top of shared design tokens
+3. **Accent Palette Selection**
+4. **Density Presets**
+5. **Font Preferences**
+6. **Editor/Data Font Selection**
+7. **Reduced Motion Support**
+8. **High-Contrast Mode**
+9. **Better color-blind-safe semantic alternatives**
+10. **User theme export/import**
+
+##### Notes
+
+This phase intentionally changes the current design contract described in §8: today DUDE ships one dark, highly colorful theme. When Phase 30K is implemented, the change must be applied consistently to §8, shared design tokens, `AGENTS.md`, contrast/accessibility guidance, and any other living specification that still assumes one fixed theme.
+
+Customization must remain token/system driven. Individual tools should not invent private palettes/themes that fragment category, status, focus, error, or accessibility semantics.
+
+**Goal:** move appearance from a fixed implementation choice into a controlled platform capability without sacrificing the dense workstation identity.
+
+#### Exit criteria
+
+- [ ] Light Mode ships as a second, fully contrast-checked first-party theme.
+- [ ] Theme customization is controlled and driven by shared design tokens rather than private per-tool palettes.
+- [ ] Accent Palette Selection is available without fragmenting category, status, focus, error, or accessibility semantics.
+- [ ] User-selectable Density Presets are implemented while preserving DUDE's dense workstation identity.
+- [ ] Font Preferences and Editor/Data Font Selection are supported through the shared theming system.
+- [ ] Reduced Motion Support is implemented.
+- [ ] High-Contrast Mode is implemented.
+- [ ] Better color-blind-safe semantic alternatives are implemented.
+- [ ] User theme export/import is implemented.
+- [ ] §8, shared design tokens, `AGENTS.md`, contrast/accessibility guidance, and any other living specification that assumed one fixed dark theme are updated consistently.
+
+### Phase 30L — Integrated Scale, Accessibility, and Platform Verification
+
+Run this integrated gate after Phase 30K. Verify the completed shell with representative combinations of supported themes, density and font settings, high contrast, and reduced motion, in addition to the default appearance.
+
+#### 30L.1 Performance & Rendering Budget
 
 The redesigned shell must not undo the startup/chunk work from earlier phases.
 
@@ -2737,78 +3016,7 @@ Requirements:
 
 A registry containing substantially more tools than today should remain usable without architectural changes to Home.
 
-### 31. No Duplicate State Systems
-
-Phase Emergency-Addendum-1 composes existing product state and adds a user-configurable presentation layer.
-
-Existing authoritative sources remain authoritative:
-
-- Tool registry for tool metadata/category/routes/capabilities;
-- UsageService for frequency/recent tool usage and bounded daily buckets;
-- FavoritesService for tool/pipeline favorite state;
-- UnifiedRecentsService for merged recent activity;
-- PipelineStoreService for pipelines/pins;
-- WorkspaceTemplateService / WorkspaceLayoutService for workspace state;
-- Project services for project state;
-- CommandSource providers for Command Palette contents;
-- existing Smart Paste/file-drop detectors for classification/routing.
-
-A versioned Home Layout store may persist panel instances, positions, sizes, visibility, and user-authored text/link/shortcut panel content. It is presentation state, not another usage recorder, project/workspace/pipeline store, or hard-coded tool inventory. Built-in panels resolve live data from the sources above.
-
-### 32. Local-Only Dashboard Privacy Contract
-
-Dashboard analytics are personal workbench summaries, not product analytics.
-
-Standing rules:
-
-- no network request is introduced to power Home metrics;
-- no telemetry SDK or remote event collection;
-- no user identity;
-- no pasted/input/output payload retention in usage metrics;
-- no filenames added beyond what an existing feature is already allowed to retain;
-- no content hashes for analytics;
-- no command text/log payload collection for analytics;
-- no secret/token capture in usage metrics.
-
-Persist only the smallest metadata needed for local summaries. Extend the existing Phase 24 privacy audit to mechanically verify the daily bucket schema and tracking start.
-
-User-authored text and links in Home panels are intentionally persisted local content, separate from usage metrics. Explain that storage behavior in the editor, include panel content in the existing Clear All and backup export/import flows, and do not send it to a service. Opening an external link is an explicit user action that may contact its destination.
-
-### 33. Browse and Home State Persistence
-
-The following preferences may persist locally:
-
-- Browse view and sort modes;
-- optional sidebar category-collapse state;
-- versioned wide-desktop and narrow Home layouts;
-- panel positions, sizes, visibility, and supported instance configuration;
-- user-authored text, link, and shortcut panel content.
-
-Store only references to authoritative tool, command, project, workspace, and pipeline ids in layout records. Validate restored layouts and recover safely from missing panel kinds or targets. Offer Reset to Default for layout state without erasing underlying user data.
-
-Do not persist arbitrary search text by default when it could contain sensitive values. Search/filter state may remain route/session state instead.
-
-### 34. Route & Deep-Link Stability
-
-No existing dedicated tool route may change because of this redesign.
-
-Existing:
-
-- browser bookmarks;
-- back/forward behavior;
-- GitHub Pages route recovery;
-- `dude://` tool links;
-- project links;
-- pipeline links;
-- workspace links
-
-must continue to resolve.
-
-If a dedicated `/tools` catalog route is added, it supplements rather than replaces existing per-tool URLs.
-
-Category/filter URLs may be shareable where this can be implemented without encoding sensitive search contents.
-
-### 35. Web Companion Behavior
+#### 30L.2 Web Companion Behavior
 
 The Web companion receives the same default information architecture and Home Layout editor where the underlying data is available.
 
@@ -2830,7 +3038,7 @@ Desktop-only sections such as native file/project actions may be:
 
 Do not leave blank dashboard columns merely because a desktop-only block is unavailable.
 
-### 36. Desktop Home Behavior
+#### 30L.3 Desktop Home Behavior
 
 Desktop remains canonical and should make native context especially useful.
 
@@ -2846,49 +3054,7 @@ The desktop Home may prioritize:
 
 These remain views over existing command/project/recent infrastructure, not new hand-coded action registries.
 
-### 37. Responsive Workbench Grid
-
-Implement the Home canvas as a dense snapping grid with user-controlled placement and size.
-
-Recommended wide-desktop behavior:
-
-- 12-column conceptual grid or equivalent CSS Grid;
-- small consistent gaps;
-- panels snap to valid grid cells and do not overlap;
-- minimum dimensions keep their controls usable;
-- charts remain compact;
-- layout changes do not cause unpredictable reading or focus order.
-
-Store a separate narrow layout. When no user-edited narrow layout exists, derive a sensible initial arrangement from the current wide layout, or from the shipped default when the wide layout is untouched. Preserve the same panel instances and content. Switching widths or platforms must not destroy user placements. Unsupported desktop-only panels collapse without blank holes on the web. All editor functions have keyboard/list-form equivalents.
-
-### 38. Visual Hierarchy Audit
-
-The shipped default layout should establish three clear visual levels.
-
-#### Level 1 - Immediate action
-
-- Give it to DUDE;
-- global search / Ctrl+K;
-- Quick Run.
-
-#### Level 2 - Personal work context
-
-- Favorites;
-- Recent Tools;
-- Projects;
-- Workspaces;
-- Pipelines;
-- Local activity.
-
-#### Level 3 - Catalog/discovery
-
-- categories;
-- Browse Tools;
-- complete registry.
-
-A screenshot of the default layout should make these levels evident without explanation. User-authored layouts may choose a different hierarchy; the editor should make panel purpose and available actions clear without imposing the default order.
-
-### 39. First-Frame Quality Gate
+#### 30L.4 First-Frame Quality Gate
 
 Test the shipped default Home at normal scale rather than only after zooming out.
 
@@ -2900,9 +3066,9 @@ Required visual/manual checks:
 - Windows display scaling representative of supported desktop use;
 - corresponding desktop-Chromium web-companion checks.
 
-The default passes the specific first-viewport targets in Item 2. Both default and representative user-edited wide/narrow layouts must have no horizontal overflow, clipped or unreachable controls, hover-only critical actions, lost focus indicators, or blank holes from unavailable panels. The sidebar stays bounded and the complete catalog stays easy to reach. User layouts are not tested against the default panel order or above-the-fold composition.
+The default passes the specific first-viewport targets in requirement 30D.2. Both default and representative user-edited wide/narrow layouts must have no horizontal overflow, clipped or unreachable controls, hover-only critical actions, lost focus indicators, or blank holes from unavailable panels. The sidebar stays bounded and the complete catalog stays easy to reach. User layouts are not tested against the default panel order or above-the-fold composition.
 
-### 40. Home/Tool-Browser Keyboard Acceptance
+#### 30L.5 Home/Tool-Browser Keyboard Acceptance
 
 Automated or integration coverage should verify at minimum:
 
@@ -2918,7 +3084,7 @@ Automated or integration coverage should verify at minimum:
 10. The Home Layout editor can add, move, resize, hide, edit, and remove a panel through its keyboard/list-form path.
 11. A shortcut panel uses the same confirmation boundary as its target action; mounting/restoring a layout never executes it.
 
-### 41. Registry Scale Fixture
+#### 30L.6 Registry Scale Fixture
 
 Add a development/test fixture capable of generating a much larger synthetic manifest set than the current registry.
 
@@ -2940,7 +3106,7 @@ This fixture tests:
 
 Synthetic manifests are for testing only and never ship as fake tools.
 
-### 42. Visual Regression / Structural Assertions
+#### 30L.7 Visual Regression / Structural Assertions
 
 Even if exhaustive visual-regression infrastructure remains out of scope, add targeted structural checks for the new shell contract.
 
@@ -2959,7 +3125,7 @@ Examples:
 - panel placement cannot overlap or make controls unreachable;
 - editing or restoring a shortcut panel does not execute its target.
 
-### 43. Shared Design Documentation
+#### 30L.8 Shared Design Documentation
 
 Document the new shell rules near the implementation.
 
@@ -2981,7 +3147,7 @@ Document the panel manifest fields, registry assembly, ownership of panel data/a
 
 Future tools should continue to require only registry/manifest registration; adding a tool must not require editing Home.
 
-### 44. PRD Navigation Contract
+#### 30L.9 PRD Navigation Contract
 
 The living Sections 9 and 27 navigation/deck contracts now distinguish:
 
@@ -2993,117 +3159,21 @@ The living Sections 9 and 27 navigation/deck contracts now distinguish:
 
 The original V1 all-tools-on-Deck requirement remains in those sections only as a historical acceptance record. After implementation, verify that the living contract still matches the shipped navigation and update examples or screenshots that imply the complete registry belongs on Home.
 
-### 45. Non-Goals
+#### Exit criteria
 
-Phase Emergency-Addendum-1 deliberately does **not** include:
-
-- light mode;
-- arbitrary theme customization;
-- accent-palette selection;
-- user-selectable density presets;
-- font selection;
-- arbitrary HTML/JavaScript or scriptable custom widgets;
-- third-party dashboard plugins;
-- cloud analytics;
-- telemetry;
-- gamification;
-- cross-user usage comparison;
-- AI-generated dashboard layouts;
-- replacing Command Palette;
-- replacing Smart Paste;
-- replacing dedicated tool routes;
-- turning Home into a source-code IDE;
-- hiding tools from the complete catalog.
-
-Users can freely arrange first-party panels and create text, link, and shortcut panels under Item 2A. Scriptable/third-party widget runtimes require a separate execution and permission model. Theme and density customization remain in Phase 36.
-
-### Implementation Order
-
-Recommended order so the app improves continuously rather than requiring one giant shell rewrite:
-
-1. **Browse Tools foundation**
-   - dedicated exhaustive route;
-   - compact search/filter/sort;
-   - table/grid views.
-
-2. **Sidebar reduction**
-   - remove permanently expanded complete tool tree;
-   - category counts and category-to-Browse navigation.
-
-3. **Bounded default Home**
-   - remove full tool wall;
-   - add compact category/Browse preview;
-   - preserve direct access to all tools.
-
-4. **Compact Smart Entry**
-   - collapse idle footprint;
-   - progressive expansion.
-
-5. **Personal launch/resume panels**
-   - Favorites, Recent Tools, Projects, Workspaces, and Pinned Pipelines.
-
-6. **Quick Run Home surface**
-
-7. **Local insights**
-   - 30-day UsageService buckets and an honest 7-day trend;
-   - category ranking, Top Tools, and timestamped Unified Recents table.
-
-8. **Shared visual primitives**
-   - dashboard panel, visualization primitives, and shell-table refinements.
-
-9. **User-designed Home builder**
-   - declarative, colocated built-in panel manifests, assembled into a versioned first-party panel registry, plus a local layout store;
-   - snapping wide/narrow grids with drag/resize/reorder/hide/duplicate;
-   - Settings editor, keyboard/list-form controls, and Reset to Default;
-   - user-authored text, link, and shortcut panels.
-
-10. **Density/color/spacing audit**
-
-11. **Scale, keyboard, privacy, platform-parity, and layout-recovery verification**
-
-### Definition of Done
-
-Phase Emergency-Addendum-1 is complete when all of the following are true:
-
-- [ ] Default Home no longer renders the complete registry as its dominant content.
-- [ ] A user can paste/drop something immediately from default Home.
-- [ ] Favorites and Recently Used Tools are first-class default Home surfaces.
-- [ ] Projects, Workspaces, and Pinned Pipelines are resumable from default Home where available.
-- [ ] Quick Run is usable from a compact default Home surface.
-- [ ] Default Home offers a useful local usage trend, category ranking, and at least one dense table/list.
-- [ ] UsageService stores bounded 30-day daily-open buckets and tracking start without a second recorder; incomplete periods are labeled.
-- [ ] Home Recent Activity displays only events with real timestamps; open workspace tabs are not shown as new activity.
-- [ ] A user can design Home in Settings from first-party and text/link/shortcut panels, using drag/resize/reorder/hide/duplicate and a keyboard/list-form editor.
-- [ ] Built-in panel kinds declare typed metadata in colocated manifests; Home and Settings consume the assembled registry, and a new kind can be added without feature-specific shell branching.
-- [ ] Wide-desktop and narrow placements persist independently around shared panel content, restore safely, and support Reset to Default.
-- [ ] Restoring a layout or shortcut panel never executes its target; existing action confirmations remain in force.
-- [ ] Custom layouts avoid horizontal overflow, unreachable controls, and blank holes from unavailable panels without enforcing the default order.
-- [ ] A dedicated Browse Tools surface exposes every registered tool.
-- [ ] Browse Tools supports search, category filtering, deterministic sorting, and at least Compact Table + Grid/List views.
-- [ ] The sidebar no longer defaults to displaying hundreds of individual tool links.
-- [ ] Category counts and total tool counts are registry-derived.
-- [ ] Existing dedicated tool routes remain unchanged.
-- [ ] Ctrl+K remains the fastest universal launcher, regardless of Home layout.
-- [ ] Smart Paste/file-drop behavior remains intact.
-- [ ] Existing Favorites, Usage, Recents, Project, Workspace, Pipeline, and CommandSource systems remain authoritative.
-- [ ] No second analytics/usage recorder exists solely for the dashboard.
-- [ ] Dashboard metrics and user-authored panel content remain local; panel content participates in Clear All and backup export/import.
-- [ ] No user payload/content is recorded to produce dashboard charts.
 - [ ] Home and Browse Tools do not eagerly load tool implementation chunks.
 - [ ] Default Home remains bounded with a synthetic 500-tool registry.
-- [ ] Browse Tools remains usable with a synthetic 1,000-tool registry where practical.
-- [ ] Default Home at 1920x1080 / 100% shows Smart Entry, Favorites/Recents, one resume surface or compact start-work action, and Quick Run without scrolling.
-- [ ] Default Home at 1440x900 / 100% shows Smart Entry, Favorites/Recents, and one resume surface or compact start-work action without scrolling; 1366x768 remains usable without horizontal overflow.
 - [ ] Web companion receives the same default information hierarchy with graceful omission/substitution of desktop-only blocks.
-- [ ] Category color is primarily structural/semantic rather than large-area decoration.
 - [ ] Focus, keyboard navigation, contrast, and existing accessibility baseline remain intact for browsing and layout editing.
-- [ ] No Phase 36 theming/density-customization scope is pulled forward accidentally.
+- [ ] After Phase 30K, representative light/dark, density, font, high-contrast, and reduced-motion settings pass the first-frame, overflow, focus, keyboard, contrast, and responsive checks above.
+
+### Phase 30 overall outcome
 
 **Goal:** complete the transition from a tool deck into a true developer workbench. DUDE Home should surface the user's likely next action and current work context; Browse Tools should handle exhaustive discovery; Ctrl+K should remain the expert fast path. The application should feel denser and show substantially more useful information at normal zoom **without** becoming a smaller-font version of the same giant scroll wall.
 
 ---
 
-## Phase 30 — Windows & Process Tools
+## Phase 31 — Windows & Process Tools
 
 Make DUDE genuinely useful for day-to-day Windows developer/system troubleshooting now that it has a native process and a controlled preload/IPC boundary.
 
@@ -3146,7 +3216,7 @@ Tools in this phase should be **read-first**. Any operation that changes system 
 
 ---
 
-## Phase 31 — Local API & Server Toolkit
+## Phase 32 — Local API & Server Toolkit
 
 Build a serious **local-first API development surface**: a lightweight Postman/webhook.site/WebSocket-client-style toolkit plus localhost servers/listeners that work without requiring a hosted DUDE account.
 
@@ -3183,7 +3253,7 @@ Build a serious **local-first API development surface**: a lightweight Postman/w
 
 ### Notes
 
-Static OpenAPI/Swagger viewing, validation, diffing, and client/doc generation from an already-downloaded specification are browser-safe parsing/generation concerns. Phase 31 is specifically where **live endpoint interaction, local listening sockets, protocol clients, callback listeners, and running mock/static servers** belong.
+Static OpenAPI/Swagger viewing, validation, diffing, and client/doc generation from an already-downloaded specification are browser-safe parsing/generation concerns. Phase 32 is specifically where **live endpoint interaction, local listening sockets, protocol clients, callback listeners, and running mock/static servers** belong.
 
 Local servers should bind conservatively by default, clearly display bind address/port and exposure state, and require explicit user action before becoming reachable beyond loopback. Secret variables/authentication profiles inherit the secure-storage rules in §11, §22, and §30.
 
@@ -3193,7 +3263,7 @@ The snippet-sharing service follows the same self-hosted/BYO philosophy as colla
 
 ---
 
-## Phase 32 — Database Toolkit
+## Phase 33 — Database Toolkit
 
 Provide lightweight, read-leaning database browsing for development — the repeated 80% of inspection/query workflows developers need, without attempting to become a full DBA/DBeaver-class suite.
 
@@ -3229,7 +3299,7 @@ For relational/document database explorers where the database supports the conce
 
 ### Notes
 
-The read-only SQLite File Viewer in Phase 9 opens a user-selected `.sqlite` file as static content and requires no live database connection. Phase 32 is for **live database sessions** and connection profiles, including network/database drivers and transaction state.
+The read-only SQLite File Viewer in Phase 9 opens a user-selected `.sqlite` file as static content and requires no live database connection. Phase 33 is for **live database sessions** and connection profiles, including network/database drivers and transaction state.
 
 SQL text-only operations — formatting, dialect conversion, CREATE TABLE generation, query explanation from pasted text, and similar deterministic transforms — remain separate browser-safe tools and should not require a live connection.
 
@@ -3239,7 +3309,7 @@ Write-capable actions must clearly distinguish read-only vs. mutable sessions. I
 
 ---
 
-## Phase 33 — Containers & Local Orchestration
+## Phase 34 — Containers & Local Orchestration
 
 Stay lightweight: a developer diagnostics/orchestration companion that talks to explicitly configured local/connected container and Kubernetes environments rather than competing directly with Docker Desktop or a full Kubernetes management platform.
 
@@ -3266,7 +3336,7 @@ Stay lightweight: a developer diagnostics/orchestration companion that talks to 
 
 ### Notes
 
-Phase 19 already covers static Dockerfile/Compose linting, formatting, validation, `docker run`↔Compose conversion, Kubernetes manifest validation/formatting/diffing, and kubeconfig inspection. Phase 33 is specifically the **live daemon/cluster** layer: querying runtime state, reading logs/stats/events, changing selected resource state, and managing port forwards/contexts.
+Phase 19 already covers static Dockerfile/Compose linting, formatting, validation, `docker run`↔Compose conversion, Kubernetes manifest validation/formatting/diffing, and kubeconfig inspection. Phase 34 is specifically the **live daemon/cluster** layer: querying runtime state, reading logs/stats/events, changing selected resource state, and managing port forwards/contexts.
 
 Mutating daemon/cluster operations must display the target context/namespace/resource prominently and require explicit confirmation for destructive or state-changing actions.
 
@@ -3274,7 +3344,7 @@ Mutating daemon/cluster operations must display the target context/namespace/res
 
 ---
 
-## Phase 34 — System Diagnostics, Clipboard & OS Integration
+## Phase 35 — System Diagnostics, Clipboard & OS Integration
 
 Create the “why doesn't this work on my machine?” surface and the native conveniences that make DUDE feel like part of the operating system rather than a website contained in one window.
 
@@ -3313,9 +3383,9 @@ The Local Secrets Vault must reuse the secure credential boundary rather than in
 
 ---
 
-## Phase 35 — AI-Assisted Utilities
+## Phase 36 — AI-Assisted Utilities
 
-Phase 8 Stage 4 already shipped the localhost-only, provider-agnostic LLM proxy plus AI regex generation/explanation. Phase 35 uses that established explicit AI path for interpretation/debugging tasks where an LLM materially reduces effort, without turning deterministic utilities into LLM wrappers.
+Phase 8 Stage 4 already shipped the localhost-only, provider-agnostic LLM proxy plus AI regex generation/explanation. Phase 36 uses that established explicit AI path for interpretation/debugging tasks where an LLM materially reduces effort, without turning deterministic utilities into LLM wrappers.
 
 1. **Stack Trace Explainer**
 2. **SQL Explainer**
@@ -3350,30 +3420,6 @@ AI actions must be user-initiated or explicitly configured, must respect the no-
 
 ---
 
-## Phase 36 — Theming, Appearance & Accessibility Expansion
-
-Evolve the currently fixed dark-only visual implementation into a controlled theming system without losing DUDE's dense workstation identity or allowing per-tool visual drift.
-
-1. **Light Mode** — a second, fully contrast-checked first-party theme
-2. **Theme Customization** — controlled user customization on top of shared design tokens
-3. **Accent Palette Selection**
-4. **Density Presets**
-5. **Font Preferences**
-6. **Editor/Data Font Selection**
-7. **Reduced Motion Support**
-8. **High-Contrast Mode**
-9. **Better color-blind-safe semantic alternatives**
-10. **User theme export/import**
-
-### Notes
-
-This phase intentionally changes the current design contract described in §8: today DUDE ships one dark, highly colorful theme. When Phase 36 is implemented, the change must be applied consistently to §8, shared design tokens, `AGENTS.md`, contrast/accessibility guidance, and any other living specification that still assumes one fixed theme.
-
-Customization must remain token/system driven. Individual tools should not invent private palettes/themes that fragment category, status, focus, error, or accessibility semantics.
-
-**Goal:** move appearance from a fixed implementation choice into a controlled platform capability without sacrificing the dense workstation identity.
-
----
 
 ## Phase 37 — VS Code Integration
 
@@ -4961,7 +5007,7 @@ The V1 palette was navigation-only. The following were deliberately deferred the
 
 # 27. Deck Requirements
 
-The Home workbench should be useful, dense, and bounded in its default layout.
+The Phase 30D Home workbench should be useful, dense, and bounded in its default layout.
 
 Required:
 
@@ -4970,11 +5016,11 @@ Required:
 - compact Quick Run access;
 - a clear route to Browse Tools;
 - keyboard-compatible actions and links;
-- a configurable Home layout under Phase Emergency-Addendum-1.
+- a configurable Home layout under Phase 30I.
 
-The complete registered tool inventory belongs to Browse Tools, not to Home's default content. Home may show bounded category/tool previews and user-selected discovery panels. Direct tool routes remain stable.
+Under Phase 30A/30D, the complete registered tool inventory belongs to Browse Tools, not to Home's default content. Home may show bounded category/tool previews and user-selected discovery panels. Direct tool routes remain stable.
 
-For the original V1 Deck, all registered tools were required on the Deck and recently used/favorite tools were optional unless trivial. That remains a historical acceptance record. Phase 24 made personalization first-class; Phase Emergency-Addendum-1 supersedes the V1 Deck composition for the current product.
+For the original V1 Deck, all registered tools were required on the Deck and recently used/favorite tools were optional unless trivial. That remains a historical acceptance record. Phase 24 made personalization first-class; Phase 30D replaces the V1 Deck composition when implemented.
 
 ---
 
@@ -5029,7 +5075,7 @@ The framework should instead behave responsibly:
 - API-backed tools make transmission explicit;
 - sensitive tools choose safer persistence defaults.
 
-No enterprise secret-management system was in the original V1 scope. Desktop `secure-local` storage has since shipped, Phase 34/51 expands the local secrets experience, and distant enterprise/on-prem integrations may exist later. None of those changes the rule against silent persistence/transmission or plaintext automatic sync.
+No enterprise secret-management system was in the original V1 scope. Desktop `secure-local` storage has since shipped, Phase 35/51 expands the local secrets experience, and distant enterprise/on-prem integrations may exist later. None of those changes the rule against silent persistence/transmission or plaintext automatic sync.
 
 ---
 
@@ -5329,7 +5375,7 @@ This appendix captures the requirements interview that determined the original w
 | Q9 | Mandatory edge cases | Failure isolation, offline behavior, and GitHub Pages routing/deployment reliability are mandatory; large and sensitive inputs must be allowed, not rejected by policy. |
 | Q10 | Initial tool-set strategy | A framework-showcase set exercising different patterns, with the broader set organized into a roadmap. |
 | Q11 | Navigation | Hybrid — deck + sidebar + global search/command palette + dedicated routes, no IDE-style persistent tabs. **Amended 2026-09-21:** narrowed, not reversed — multi-tool tabs and resizable workbench panels shipped in Phase 21; the boundary is "a multi-tool workbench, not a source-code IDE." A Monaco-style full IDE remains explicitly out of scope (§5.2). **Current standing boundary:** later editor/LSP/terminal surfaces may exist (Phases 77–80), but DUDE must not become a conventional VS Code clone or editor-first IDE (§5.2). |
-| Q12 | Visual style | Minimal developer console, dark-only, super dense. **Amended 2026-09-18:** dark-only stays fixed, but the theme became explicitly bright and colorful rather than muted/monochrome — bold, saturated accent colors used functionally (categories, status, active state) against a dark base. "Minimal ornamentation" applies to shapes/effects, not color intensity. See §8 for the current, authoritative visual spec. **Current status:** the shipped design is still dark-only and authoritative, but Phase 36 may add light/custom themes, density/font preferences, reduced motion, and high-contrast support. |
+| Q12 | Visual style | Minimal developer console, dark-only, super dense. **Amended 2026-09-18:** dark-only stays fixed, but the theme became explicitly bright and colorful rather than muted/monochrome — bold, saturated accent colors used functionally (categories, status, active state) against a dark base. "Minimal ornamentation" applies to shapes/effects, not color intensity. See §8 for the current, authoritative visual spec. **Current status:** the shipped design is still dark-only and authoritative, but Phase 30 may add light/custom themes, density/font preferences, reduced motion, and high-contrast support. |
 | Q13 | Dependency strategy | Library-forward — prefer mature libraries where they accelerate reliable delivery. |
 | Q14 | Offline/PWA depth | Installable PWA with offline shell and local tools; network-dependent tools explicitly expose connectivity requirements. |
 | Q15 | Testing/accessibility quality bar | Ship first — test architecture-critical pieces and obvious regressions, not exhaustive coverage. |
@@ -5413,12 +5459,12 @@ The relay is not a DUDE-operated service. Broader accountless collaboration is t
 The following capabilities moved from blanket exclusion into explicit shipped/current roadmap scope:
 
 - **multi-tool tabs, panels, Saved Sessions, scripted workflow steps, and local history** — shipped in Phase 21;
-- **multi-window OS workflows** — Phase 34;
-- **self-hosted/BYO snippet sharing** — Phase 31;
-- **local secrets vault** — Phase 34, with deeper secrets work in Phase 51;
+- **multi-window OS workflows** — Phase 35;
+- **self-hosted/BYO snippet sharing** — Phase 32;
+- **local secrets vault** — Phase 35, with deeper secrets work in Phase 51;
 - **VS Code integration** — Phase 37;
 - **browser extension** — Phase 38;
-- **light mode/theme customization/accessibility appearance controls** — Phase 36;
+- **light mode/theme customization/accessibility appearance controls** — Phase 30;
 - **macOS/Linux desktop support** — Phase 39;
 - **mobile companion** — Phase 91;
 - **Firefox/Safari parity and broader web compatibility** — Phase 92;
@@ -5436,7 +5482,7 @@ The original MVP deliberately rejected exhaustive coverage targets. The modern P
 - Phase 23 introduces vectors, independent cross-checks, property tests, fuzzing, golden corpora, destructive-action tests, sandbox regressions, performance fixtures, and capability-specific release gates;
 - Phase 26 shipped registry-wide pipeline parity and filesystem-adapter parity;
 - §33 makes shared-core parity and desktop release verification standing build invariants;
-- Phase 36 expands appearance/accessibility controls;
+- Phase 30 expands appearance/accessibility controls;
 - Phase 92 introduces deliberate cross-browser CI at the universal-web horizon;
 - Phase 94 introduces mature i18n/accessibility auditing.
 

@@ -6,7 +6,7 @@
  * same pattern the Python Playground uses for Pyodide.
  *
  * Read-only, uploaded-file inspection only — a *live* database connection
- * is covered separately by the Database Toolkit (PRD Phase 32).
+ * is covered separately by the Database Toolkit (PRD Phase 33).
  */
 
 import initSqlJs, { type SqlJsStatic, type SqlValue } from 'sql.js';
