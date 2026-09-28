@@ -8,17 +8,23 @@ import { ToolRegistryService } from '../../core/registry/tool-registry.service';
 import { computeCatalogCounts } from '../../core/registry/browse-tools-counts';
 import { WorkspaceLayoutService } from '../../core/workspace/workspace-layout.service';
 import { FavoritesService } from '../../core/favorites/favorites.service';
+import { UnifiedRecentsService } from '../../core/recents/unified-recents.service';
+import { ToolLauncherService } from '../../core/registry/tool-launcher.service';
 import { CommandPaletteService } from '../command-palette/command-palette.service';
 import { CategoryIcon } from '../../shared/components/category-icon/category-icon';
 import { OfflineAvailability } from '../../shared/components/offline-badge/offline-availability.directive';
 import { ShortcutHint } from '../../shared/components/shortcut-hint/shortcut-hint';
+
+const RECENTS_LIMIT = 5;
 
 /**
  * Sidebar Information Architecture rewrite (DUDE_PRD.md §21 Phase 30B.1) — the tool list is now a
  * collapsed category index (counts, derived live from the registry) rather than an always-expanded
  * wall of ~277 links. A category row is both a link into Browse Tools' filtered view (`/tools`, the
  * ninth sanctioned shell exception — see `shell/AGENTS.md`) and independently caret-expandable
- * in place for users who want the old inline list without leaving the current page.
+ * in place for users who want the old inline list without leaving the current page. Compact
+ * Favorites/Recents sections above the index reuse `FavoritesService`/`UnifiedRecentsService`
+ * exactly as Deck's rails already do — never a second hand-rolled list.
  */
 @Component({
   selector: 'app-sidebar',
@@ -29,7 +35,9 @@ export class Sidebar {
   private readonly registry = inject(ToolRegistryService);
   private readonly workspaceLayout = inject(WorkspaceLayoutService);
   private readonly router = inject(Router);
-  private readonly favorites = inject(FavoritesService);
+  protected readonly favorites = inject(FavoritesService);
+  protected readonly recents = inject(UnifiedRecentsService);
+  private readonly launcher = inject(ToolLauncherService);
   protected readonly paletteService = inject(CommandPaletteService);
 
   protected readonly categories = TOOL_CATEGORIES;
@@ -43,6 +51,17 @@ export class Sidebar {
       isFavorite: (id) => this.favorites.isToolPinned(id),
     }),
   );
+
+  /** Top 5 most-recently-active tool/workspace-tab entries -- capped, "See all" links to /history. */
+  protected readonly recentTools = computed(() =>
+    this.recents
+      .entries()
+      .filter((entry) => entry.kind === 'tool' || entry.kind === 'workspace-tab')
+      .slice(0, RECENTS_LIMIT),
+  );
+
+  /** Pinned favorites, capped for the compact sidebar section -- "See all" links to Browse Tools. */
+  protected readonly favoriteTools = computed(() => this.favorites.pinnedTools().slice(0, RECENTS_LIMIT));
 
   /** Explicit user expand/collapse overrides, session-only (no persistence, per the locked 30B
    *  decision) -- absent from this map, a category falls back to "expanded iff it's the active
@@ -73,5 +92,12 @@ export class Sidebar {
     const next = new Map(this.expandOverrides());
     next.set(category, !this.isExpanded()(category));
     this.expandOverrides.set(next);
+  }
+
+  /** Sidebar is visible on every route including `/workspace`, so tool opens go through
+   *  `ToolLauncherService`'s workspace-aware branch, not a plain `routerLink`. */
+  protected openTool(toolId: string): void {
+    const tool = this.registry.getById(toolId);
+    if (tool) this.launcher.open(tool);
   }
 }

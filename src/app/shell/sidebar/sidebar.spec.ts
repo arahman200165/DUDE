@@ -4,6 +4,8 @@ import { Sidebar } from './sidebar';
 import { routes } from '../../core/routing/app.routes';
 import { TOOL_CATEGORIES } from '../../shared/models/tool-category.model';
 import { TOOL_DEFINITIONS } from '../../core/registry/tool-definitions';
+import { FavoritesService } from '../../core/favorites/favorites.service';
+import { ToolLauncherService } from '../../core/registry/tool-launcher.service';
 
 describe('Sidebar', () => {
   beforeEach(() => {
@@ -93,5 +95,33 @@ describe('Sidebar', () => {
     for (const category of TOOL_CATEGORIES) {
       expect(counts.byCategory[category]).toBeGreaterThanOrEqual(0);
     }
+  });
+
+  it('hides the Favorites and Recents sections entirely when empty', () => {
+    const fixture = TestBed.createComponent(Sidebar);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.textContent).not.toContain('Favorites');
+    expect(element.textContent).not.toContain('Recents');
+  });
+
+  it('shows a pinned favorite in the compact Favorites section and opens it through ToolLauncherService', () => {
+    const fixture = TestBed.createComponent(Sidebar);
+    const favorites = TestBed.inject(FavoritesService);
+    const launcher = TestBed.inject(ToolLauncherService);
+    const openSpy = vi.spyOn(launcher, 'open').mockImplementation(() => {});
+
+    const tool = TOOL_DEFINITIONS[0];
+    favorites.toggleTool(tool.id);
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.textContent).toContain('Favorites');
+    const favoriteButton = Array.from(element.querySelectorAll('button')).find((button) => button.textContent?.includes(tool.shortTitle ?? tool.title));
+    expect(favoriteButton).toBeTruthy();
+
+    favoriteButton!.click();
+    expect(openSpy).toHaveBeenCalledWith(tool);
   });
 });

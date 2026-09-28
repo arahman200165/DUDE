@@ -66,7 +66,47 @@
   </a>
 
   <nav class="flex-1 overflow-y-auto py-1">
-    <div class="px-3 py-1">
+    @if (favoriteTools().length) {
+      <div class="mt-2 first:mt-0">
+        <div class="flex items-center justify-between px-3 py-1">
+          <span class="text-ui-sm font-semibold uppercase tracking-wider text-text-muted">Favorites</span>
+        </div>
+        @for (tool of favoriteTools(); track tool.id) {
+          <button
+            type="button"
+            [appOfflineAvailability]="tool.id"
+            class="mx-1 flex w-[calc(100%-0.5rem)] items-center gap-1.5 rounded-sm px-2 py-1 text-left text-xs text-text-muted hover:bg-panel-elevated hover:text-text"
+            (click)="openTool(tool.id)"
+          >
+            <span>★</span>
+            <span class="truncate">{{ tool.shortTitle ?? tool.title }}</span>
+            <app-desktop-feature-marker [toolId]="tool.id" />
+          </button>
+        }
+        <a routerLink="/tools" [queryParams]="{ favorite: 'true' }" class="mx-2 block py-1 text-ui-xs text-text-muted hover:text-text"> See all favorites </a>
+      </div>
+    }
+
+    @if (recentTools().length) {
+      <div class="mt-2">
+        <div class="flex items-center justify-between px-3 py-1">
+          <span class="text-ui-sm font-semibold uppercase tracking-wider text-text-muted">Recents</span>
+        </div>
+        @for (entry of recentTools(); track entry.toolId) {
+          <button
+            type="button"
+            [appOfflineAvailability]="entry.toolId"
+            class="mx-1 flex w-[calc(100%-0.5rem)] items-center gap-1.5 rounded-sm px-2 py-1 text-left text-xs text-text-muted hover:bg-panel-elevated hover:text-text"
+            (click)="openTool(entry.toolId)"
+          >
+            <span class="truncate">{{ entry.title }}</span>
+          </button>
+        }
+        <a routerLink="/history" class="mx-2 block py-1 text-ui-xs text-text-muted hover:text-text"> See all recents </a>
+      </div>
+    }
+
+    <div class="mt-2 px-3 py-1">
       <span class="text-ui-sm font-semibold uppercase tracking-wider text-text-muted">Tools</span>
     </div>
 
