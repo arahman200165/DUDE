@@ -1,0 +1,75 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning/40 bg-warning/5 p-4 text-ui text-text-muted">
+      Duplicate Files scans folders or whole drives on disk for identical files (and text files with the same content) and needs the Windows desktop app. To find duplicate lines in text, use Duplicate Finder.
+    </div>
+    <div class="mt-2 flex gap-2">
+      <app-desktop-only-control capability="native-fs" label="Find duplicates" />
+      <app-desktop-only-control capability="native-fs-write" label="Recycle duplicates" />
+    </div>
+  } @else {
+    <div class="flex flex-col gap-3 text-ui">
+      <app-fs-root-picker [(root)]="root" label="Folder or drive" />
+      <app-walk-options [(options)]="options" />
+      <div class="flex flex-wrap items-center gap-3 rounded-sm border border-border bg-panel p-2">
+        <label class="flex items-center gap-1 text-text"><input type="radio" name="mode" [checked]="mode() === 'exact'" (change)="mode.set('exact')" /> Identical bytes</label>
+        <label class="flex items-center gap-1 text-text"><input type="radio" name="mode" [checked]="mode() === 'content'" (change)="mode.set('content')" /> Same text content</label>
+        @if (mode() === 'exact') {
+          <label class="flex items-center gap-1 text-text-muted">Min size (bytes)<input type="number" min="0" class="w-24 rounded-sm border border-border bg-panel px-2 py-0.5 text-text" [value]="minSize()" (change)="minSize.set(+$any($event.target).value)" /></label>
+          <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="byteCompare()" (change)="byteCompare.set(checked($event))" /> Confirm byte-for-byte</label>
+        } @else {
+          <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="normalize().lineEndings" (change)="setNormalize('lineEndings', $event)" /> Ignore line endings</label>
+          <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="normalize().trailingWhitespace" (change)="setNormalize('trailingWhitespace', $event)" /> Trailing whitespace</label>
+          <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="normalize().finalNewline" (change)="setNormalize('finalNewline', $event)" /> Final newline</label>
+          <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="normalize().allWhitespace" (change)="setNormalize('allWhitespace', $event)" /> All whitespace</label>
+          <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="normalize().caseInsensitive" (change)="setNormalize('caseInsensitive', $event)" /> Case</label>
+        }
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" class="rounded-sm border border-accent px-3 py-1 text-accent disabled:opacity-50" data-testid="fs-scan" [disabled]="!root()" (click)="find()">Find duplicates</button>
+        <app-scan-progress [job]="job()" />
+      </div>
+
+      @if (result(); as found) {
+        <div class="flex flex-wrap items-center gap-3 rounded-sm border border-border bg-panel p-2 text-text-muted">
+          <span><span class="text-text">{{ groups().length.toLocaleString() }}</span> group(s), {{ found.duplicateFiles.toLocaleString() }} extra copies, <span class="text-text">{{ bytes(found.wasted) }}</span> reclaimable of {{ found.scannedFiles.toLocaleString() }} files scanned</span>
+          <button type="button" class="ml-auto rounded-sm border border-border px-2 py-0.5 text-text" (click)="exportCsv()">CSV</button>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="rule()" (change)="rule.set($any($event.target).value)" aria-label="Keep rule">
+            @for (option of rules; track option.id) { <option [value]="option.id">{{ option.label }}</option> }
+          </select>
+          @if (rule() === 'in-folder') { <input class="w-48 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" placeholder="relative/folder" [value]="ruleFolder()" (input)="ruleFolder.set($any($event.target).value)" aria-label="Folder to keep copies in" /> }
+          <button type="button" class="rounded-sm border border-border px-2 py-1 text-text" data-testid="apply-rule" (click)="applyRule()">Select extras by rule</button>
+          <button type="button" class="rounded-sm border border-border px-2 py-1 text-text" (click)="clearSelection()">Clear</button>
+          <span class="text-text-muted">{{ selection().paths.length.toLocaleString() }} selected · {{ bytes(selection().bytes) }}</span>
+          <button type="button" class="rounded-sm border border-warning px-2 py-1 text-warning disabled:opacity-50" data-testid="plan-preview-button" [disabled]="!selection().paths.length || !!selection().problem" (click)="previewTrash()">Preview move to Recycle Bin…</button>
+        </div>
+        @if (selection().problem) { <div role="alert" class="text-error">{{ selection().problem }}</div> }
+        <app-mutation-preview [preview]="preview()" (applied)="onApplied()" (discarded)="preview.set(null)" />
+        @if (error()) { <div role="alert" class="text-error">{{ error() }}</div> }
+
+        <div class="flex flex-col gap-2">
+          @for (group of visibleGroups(); track group.key) {
+            <div class="rounded-sm border border-border">
+              <div class="flex flex-wrap items-center gap-3 border-b border-border/50 bg-panel px-2 py-1 text-ui-xs text-text-muted">
+                <span class="text-text">{{ group.files.length }} copies</span><span>{{ bytes(group.size) }} each</span><span class="text-warning">{{ bytes(group.wasted) }} reclaimable</span>
+                @if (!group.identicalBytes) { <span title="Same text after normalization, but the bytes differ">text-equal, bytes differ</span> }
+                <span class="ml-auto font-mono">{{ group.key.slice(-12) }}</span>
+              </div>
+              @for (file of group.files; track file.path) {
+                <label class="flex items-center gap-2 px-2 py-0.5 font-mono text-ui-xs">
+                  <input type="checkbox" [checked]="selected().has(file.path)" (change)="toggle(file.path, $event)" [attr.aria-label]="'Select ' + file.path" />
+                  <span class="min-w-0 flex-1 truncate" [class]="selected().has(file.path) ? 'text-warning line-through' : 'text-text'" [title]="file.path">{{ file.path }}</span>
+                  <span class="text-text-muted">{{ date(file.mtimeMs) }}</span>
+                </label>
+              }
+            </div>
+          }
+          @if (groups().length > shown()) { <button type="button" class="self-start rounded-sm border border-border px-2 py-1 text-text" (click)="shown.set(shown() + 200)">Show more ({{ (groups().length - shown()).toLocaleString() }} left)</button> }
+          @if (!groups().length) { <p class="text-text-muted">No duplicates found.</p> }
+        </div>
+      }
+    </div>
+  }
+</app-tool-shell>

@@ -204,3 +204,16 @@ export interface ApplyResult {
   readonly cancelled: number;
   readonly journal: JournalEntry;
 }
+
+// ---- Duplicate Files (Milestone 528) ----
+
+export interface DuplicateFile { readonly path: string; readonly size: number; readonly mtimeMs: number }
+export interface DuplicateGroup {
+  readonly key: string;
+  readonly size: number;
+  readonly files: readonly DuplicateFile[];
+  /** Bytes reclaimed by keeping one copy. */
+  readonly wasted: number;
+  /** False in content mode when the copies differ only by normalization (EOL, whitespace, BOM). */
+  readonly identicalBytes: boolean;
+}

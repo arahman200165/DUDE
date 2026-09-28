@@ -32,6 +32,7 @@ database-write) have no rows below until a tool claims them.
 | [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | Remote Write | experimental |
 | [CSR Generator & Inspector](https://arahman200165.github.io/DUDE/tools/csr-generator-inspector) | Crypto | verified — Parses a real openssl-generated CSR, correctly extracting subject/key-size/signature validity that openssl req -text independently confirms. |
 | [Directory Tree Generator](https://arahman200165.github.io/DUDE/tools/directory-tree-generator) | Filesystem Write | experimental |
+| [Duplicate Files](https://arahman200165.github.io/DUDE/tools/duplicate-files) | Filesystem Write | experimental |
 | [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Filesystem Write | experimental |
 | [Hash Generator](https://arahman200165.github.io/DUDE/tools/hash) | Crypto | verified — Every one of the 15 supported algorithms is tested against its official published test vector, not just self round-trip. |
 | [HMAC Generator](https://arahman200165.github.io/DUDE/tools/hmac-generator) | Crypto | verified — HMAC-SHA1/256/384/512 match RFC 4231's official test vectors exactly. |
@@ -123,6 +124,7 @@ browser sandbox.
 | [DNS Lookup](https://arahman200165.github.io/DUDE/tools/dns-lookup) | Native network diagnostics |
 | [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Native network diagnostics |
 | [DNSSEC Inspector](https://arahman200165.github.io/DUDE/tools/dnssec-inspector) | Native network diagnostics |
+| [Duplicate Files](https://arahman200165.github.io/DUDE/tools/duplicate-files) | Native filesystem access; Native filesystem write |
 | [Email Auth Inspector](https://arahman200165.github.io/DUDE/tools/email-auth-inspector) | Native network diagnostics |
 | [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Native filesystem access; Native filesystem write |
 | [Git Repo Browser](https://arahman200165.github.io/DUDE/tools/git-diff) | Native filesystem access |
@@ -175,6 +177,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [DNS Lookup](https://arahman200165.github.io/DUDE/tools/dns-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [DNSSEC Inspector](https://arahman200165.github.io/DUDE/tools/dnssec-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Duplicate Files](https://arahman200165.github.io/DUDE/tools/duplicate-files) | Native filesystem access | Desktop-only feature | scans and hashes real folders and drives in the desktop fs worker |
+| [Duplicate Files](https://arahman200165.github.io/DUDE/tools/duplicate-files) | Native filesystem write | Desktop-only feature | moves selected extra copies to the Recycle Bin through a previewed, journaled plan |
 | [Email Auth Inspector](https://arahman200165.github.io/DUDE/tools/email-auth-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Native filesystem access | Desktop-only feature | scans real folders and drives in the desktop fs worker |
 | [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Native filesystem write | Desktop-only feature | moves selected items to the Recycle Bin through a previewed, journaled plan |

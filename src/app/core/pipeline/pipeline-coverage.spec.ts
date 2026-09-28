@@ -25,6 +25,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'folder-size-analyzer': 'scanning real folders requires a user-granted native root and cleaning up requires a previewed, confirmed action; neither can run invisibly in a pipeline',
   'directory-tree-generator': 'walking real folders requires a user-granted native root and writing into them requires a previewed, confirmed action; neither can run invisibly in a pipeline',
   'hash-manifest': 'hashing real folders requires a user-granted native root and a user-directed run; it cannot execute invisibly in a pipeline',
+  'duplicate-files': 'scanning real folders requires a user-granted native root and recycling duplicates requires a previewed, confirmed action; neither can run invisibly in a pipeline',
   'batch-operations': 'changing files on disk requires a previewed, explicitly confirmed native action and must never run invisibly in a pipeline',
   'certificate-watch-list': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'reverse-dns': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',

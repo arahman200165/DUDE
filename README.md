@@ -82,6 +82,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [DNS Lookup](https://arahman200165.github.io/DUDE/tools/dns-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [DNSSEC Inspector](https://arahman200165.github.io/DUDE/tools/dnssec-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Duplicate Files](https://arahman200165.github.io/DUDE/tools/duplicate-files) | Native filesystem access | Desktop-only feature | scans and hashes real folders and drives in the desktop fs worker |
+| [Duplicate Files](https://arahman200165.github.io/DUDE/tools/duplicate-files) | Native filesystem write | Desktop-only feature | moves selected extra copies to the Recycle Bin through a previewed, journaled plan |
 | [Email Auth Inspector](https://arahman200165.github.io/DUDE/tools/email-auth-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Native filesystem access | Desktop-only feature | scans real folders and drives in the desktop fs worker |
 | [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Native filesystem write | Desktop-only feature | moves selected items to the Recycle Bin through a previewed, journaled plan |
@@ -123,7 +125,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-307 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+308 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -330,6 +332,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Docker Run ↔ Compose Converter](https://arahman200165.github.io/DUDE/tools/docker-run-compose-converter) | Developer | Converts a docker run command into a docker-compose service block, or the reverse. |
 | [Dockerfile Linter / Formatter](https://arahman200165.github.io/DUDE/tools/dockerfile-linter) | Developer | Lints a Dockerfile for common issues (unpinned base image, root user, apt-get cleanup, ADD vs COPY, bad EXPOSE ports) and normalizes instruction casing. |
 | [DOM Tree Viewer](https://arahman200165.github.io/DUDE/tools/dom-tree-viewer) | Developer | Parses HTML and renders it as a collapsible DOM tree — elements, attributes, text nodes, and comments. |
+| [Duplicate Files](https://arahman200165.github.io/DUDE/tools/duplicate-files) | Developer | Find identical files across a folder or drive (size, fingerprint, SHA-256, optional byte-compare) and text files with the same content, then recycle extras by keep-rule with a previewed plan. |
 | [ELF Header Viewer](https://arahman200165.github.io/DUDE/tools/elf-header-viewer) | Developer | Parses a Linux/Unix ELF binary's header, program headers, section headers, and dynamic symbol table (32-bit/64-bit, either endianness) into a browsable tree. |
 | [Email Auth Inspector](https://arahman200165.github.io/DUDE/tools/email-auth-inspector) | Developer | Inspect SPF (include tree, 10-lookup limit, sender IP evaluation), DKIM keys (typed, from pasted headers, or common selectors), and DMARC policy with report authorization. |
 | [Encoding Detector](https://arahman200165.github.io/DUDE/tools/encoding-detector) | Developer | Guesses an uploaded file's text encoding from its byte-order mark, or from a UTF-8/ASCII validity check when there is none, with a confidence rating. |

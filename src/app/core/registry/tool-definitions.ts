@@ -89,6 +89,7 @@ import { manifest as dockerfileLinterManifest } from '../../tools/dockerfile-lin
 import { manifest as domTreeViewerManifest } from '../../tools/dom-tree-viewer/dom-tree-viewer.manifest';
 import { manifest as dpiCalculatorManifest } from '../../tools/dpi-calculator/dpi-calculator.manifest';
 import { manifest as dstTransitionExplorerManifest } from '../../tools/dst-transition-explorer/dst-transition-explorer.manifest';
+import { manifest as duplicateFilesManifest } from '../../tools/duplicate-files/duplicate-files.manifest';
 import { manifest as duplicateFinderManifest } from '../../tools/duplicate-finder/duplicate-finder.manifest';
 import { manifest as durationFormatterManifest } from '../../tools/duration-formatter/duration-formatter.manifest';
 import { manifest as elfHeaderViewerManifest } from '../../tools/elf-header-viewer/elf-header-viewer.manifest';
@@ -398,6 +399,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   domTreeViewerManifest,
   dpiCalculatorManifest,
   dstTransitionExplorerManifest,
+  duplicateFilesManifest,
   duplicateFinderManifest,
   durationFormatterManifest,
   elfHeaderViewerManifest,
