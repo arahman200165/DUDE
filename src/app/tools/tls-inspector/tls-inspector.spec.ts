@@ -17,6 +17,15 @@ describe('TlsInspectorTool request builder', () => {
     expect(request['clientIdentity']).toBeUndefined();
   });
 
+  it('switches to enumeration and is mutually exclusive with HTTP/3', () => {
+    const tool = new TlsInspectorTool();
+    set(tool, 'host', 'example.com');
+    (tool as unknown as { toggle(f: string, e: Event): void }).toggle('enumerate', { target: { checked: true } } as unknown as Event);
+    expect((tool as unknown as { build(): Record<string, unknown> }).build()['kind']).toBe('tls-enumeration');
+    (tool as unknown as { toggle(f: string, e: Event): void }).toggle('http3', { target: { checked: true } } as unknown as Event);
+    expect((tool as unknown as { build(): Record<string, unknown> }).build()['kind']).toBe('http3-probe');
+  });
+
   it('switches to an HTTP/3 probe and drops TLS-only fields', () => {
     const tool = new TlsInspectorTool();
     set(tool, 'host', 'example.com'); set(tool, 'http3', true); set(tool, 'sni', 'x');

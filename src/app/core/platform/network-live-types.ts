@@ -150,3 +150,17 @@ export interface Http3View {
   readonly note: string;
   readonly error?: string;
 }
+
+export interface TlsEnumerationView {
+  readonly host: string;
+  readonly port: number;
+  readonly client: string;
+  readonly handshakes: number;
+  readonly budget: number;
+  readonly versions: readonly { readonly version: string; readonly state: string; readonly cipher?: string; readonly detail?: string }[];
+  readonly ciphers: readonly { readonly version: string; readonly openssl: string; readonly standardName?: string; readonly state: string; readonly detail?: string }[];
+  readonly supportedVersions: readonly string[];
+  readonly weaknesses: readonly TlsWeaknessView[];
+  readonly notTestable: number;
+  readonly note: string;
+}

@@ -3,6 +3,7 @@ import { inspectDnssec } from './network-dnssec';
 import { COMMON_DKIM_SELECTORS, inspectEmailAuth } from './network-email-auth';
 import { inspectTls } from './network-tls-inspect';
 import { probeHttp3 } from './network-http3';
+import { enumerateTls, enumerationPlan } from './network-tls-enumerate';
 
 /**
  * Registers every Phase 28 live check with the dispatcher (`network-live.ts`). Imported for its
@@ -14,3 +15,7 @@ registerLiveKind('email-auth', (request, signal, progress) => inspectEmailAuth(r
 });
 registerLiveKind('tls-inspector', (request, signal, progress) => inspectTls(request, signal, progress), { timeoutMs: 45_000 });
 registerLiveKind('http3-probe', (request, signal) => probeHttp3(request, signal), { timeoutMs: 20_000 });
+registerLiveKind('tls-enumeration', (request, signal, progress) => enumerateTls(request, signal, progress), {
+  timeoutMs: 120_000,
+  preview: (request) => { const plan = enumerationPlan(request); return { kind: request.kind, target: `${request.target}:${request.port ?? 443}`, sni: request.noSni ? '(none)' : request.sni || request.target, versionProbes: plan.versions, cipherProbes: plan.ciphers, maxHandshakes: Math.min(128, plan.total), concurrency: 4, tag: 'network-scanning' }; },
+});
