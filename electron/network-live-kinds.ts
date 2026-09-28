@@ -1,7 +1,7 @@
 import { registerLiveKind } from './network-live';
 import { inspectDnssec } from './network-dnssec';
 import { COMMON_DKIM_SELECTORS, inspectEmailAuth } from './network-email-auth';
-import { inspectTls } from './network-tls-inspect';
+import { fetchLiveChain, inspectTls } from './network-tls-inspect';
 import { probeHttp3 } from './network-http3';
 import { enumerateTls, enumerationPlan } from './network-tls-enumerate';
 import { captureTlsHandshake } from './network-capture';
@@ -24,3 +24,4 @@ registerLiveKind('tls-capture', (request, signal, progress) => captureTlsHandsha
   timeoutMs: 90_000,
   preview: (request) => ({ kind: request.kind, target: `${request.target}:${request.port ?? 443}`, tool: 'Windows pktmon (built-in)', scope: 'one filter for the target IP and port, this handshake only', requiresElevation: true, tag: 'process-management', note: 'pktmon start/stop and etl2pcap run as Administrator; the filter is removed and the trace stopped afterward.' }),
 });
+registerLiveKind('live-chain', (request, signal, progress) => fetchLiveChain(request, signal, progress), { timeoutMs: 30_000 });

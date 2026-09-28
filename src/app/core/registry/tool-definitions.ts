@@ -174,6 +174,7 @@ import { manifest as kubeconfigInspectorManifest } from '../../tools/kubeconfig-
 import { manifest as latencyMonitorManifest } from '../../tools/latency-monitor/latency-monitor.manifest';
 import { manifest as lineOrderToolsManifest } from '../../tools/line-order-tools/line-order-tools.manifest';
 import { manifest as linePrefixNumberingManifest } from '../../tools/line-prefix-numbering/line-prefix-numbering.manifest';
+import { manifest as liveCertificateChainManifest } from '../../tools/live-certificate-chain/live-certificate-chain.manifest';
 import { manifest as localNetworkManifest } from '../../tools/local-network/local-network.manifest';
 import { manifest as lockfileInspectorManifest } from '../../tools/lockfile-inspector/lockfile-inspector.manifest';
 import { manifest as loremIpsumGeneratorManifest } from '../../tools/lorem-ipsum-generator/lorem-ipsum-generator.manifest';
@@ -473,6 +474,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   latencyMonitorManifest,
   lineOrderToolsManifest,
   linePrefixNumberingManifest,
+  liveCertificateChainManifest,
   localNetworkManifest,
   lockfileInspectorManifest,
   loremIpsumGeneratorManifest,

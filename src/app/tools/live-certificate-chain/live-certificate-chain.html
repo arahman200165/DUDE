@@ -1,0 +1,31 @@
+<app-network-workbench kind="live-chain" [customForm]="true" [buildRequest]="build" [resultTemplate]="resultView" runLabel="Fetch chain">
+  <div workbenchForm class="flex flex-col gap-3">
+    <div class="flex flex-wrap items-end gap-3">
+      <label class="flex flex-1 flex-col gap-1 text-text-muted">Host
+        <input class="rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="host()" (input)="text('host', $event)" placeholder="example.com" />
+      </label>
+      <label class="flex w-28 flex-col gap-1 text-text-muted">Port
+        <input type="number" min="1" max="65535" class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="port()" (input)="setPort($event)" />
+      </label>
+      <label class="flex flex-col gap-1 text-text-muted">STARTTLS
+        <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="starttls()" (change)="setStarttls($event)"><option value="">None</option>@for (protocol of starttlsProtocols; track protocol) { <option [value]="protocol">{{ protocol }}</option> }</select>
+      </label>
+    </div>
+    <label class="flex flex-col gap-1 text-text-muted">SNI (blank uses the host)
+      <input class="rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="sni()" (input)="text('sni', $event)" />
+    </label>
+  </div>
+</app-network-workbench>
+<app-desktop-only-control capability="native-network" label="Run network check" />
+
+<ng-template #resultView let-result>
+  @if (view(result); as chain) {
+    <div class="flex flex-col gap-3 text-ui">
+      <div class="text-text-muted">{{ chain.host }}:{{ chain.port }} · SNI {{ chain.servername ?? '(none)' }} · {{ chain.protocol }}</div>
+      @if (chain.incompleteChain) {
+        <div class="rounded-sm border border-warning/50 bg-warning/5 p-2 text-warning">The server did not send a complete chain. @if (chain.missingIssuerUrls.length) { The issuer may be fetchable via AIA: {{ chain.missingIssuerUrls.join(', ') }} — use Check revocation → Fetch issuer.} @else { No AIA caIssuers URL is available to fetch the missing issuer.}</div>
+      }
+      <app-cert-chain-view [chain]="chain.chain" [trust]="chain.trust" [hostname]="chain.hostname" [endpoint]="chain.host + '_' + chain.port" [showWatch]="true" [showDrilldown]="true" (watch)="watch()" (drilldown)="drilldown($event)" />
+    </div>
+  }
+</ng-template>

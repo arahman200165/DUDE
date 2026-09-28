@@ -17,6 +17,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'dnssec-inspector': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'email-auth-inspector': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'tls-inspector': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
+  'live-certificate-chain': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'reverse-dns': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'dns-propagation': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'tcp-port-tester': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',

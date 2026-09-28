@@ -101,5 +101,34 @@ export async function inspectTls(request: NetworkRequest, signal: AbortSignal, p
   };
 }
 
+export interface LiveChainResult {
+  readonly host: string;
+  readonly port: number;
+  readonly servername: string | null;
+  readonly protocol: string | null;
+  readonly chain: HandshakeResult['chain'];
+  readonly trust: readonly TrustVerdict[];
+  readonly hostname: ReturnType<typeof analyzeHostname>;
+  readonly incompleteChain: boolean;
+  readonly missingIssuerUrls: readonly string[];
+  readonly ocspStapleBase64: string | null;
+}
+
+/** Live Certificate Chain Fetcher (item 16) + Hostname Mismatch Analyzer (item 23). */
+export async function fetchLiveChain(request: NetworkRequest, signal: AbortSignal, progress: (completed: number, total: number, data?: unknown) => void): Promise<LiveChainResult> {
+  const host = (request.target ?? '').trim();
+  const port = request.port ?? 443;
+  const sni = request.noSni ? false : request.sni?.trim() || host;
+  const handshake = await connect({ ...request, captureWire: false }, sni, signal);
+  progress(1, 2);
+  const chainDer = chainDerFromSummaries(handshake.chain);
+  const trust = handshake.chain.length ? (['mozilla', 'windows'] as const).map((store) => { try { return validateChain(chainDer, store); } catch (error) { return { store, trusted: false, reason: error instanceof Error ? error.message : String(error), path: [] }; } }) : [];
+  const hostname = handshake.chain.length ? analyzeHostname(host, handshake.chain[0]) : { host, matches: false, reasons: ['No certificate was presented.'] };
+  const incompleteChain = trust.some((verdict) => /Incomplete chain/.test(verdict.reason));
+  const missingIssuerUrls = incompleteChain ? handshake.chain.at(-1)?.caIssuerUrls ?? [] : [];
+  progress(2, 2);
+  return { host, port, servername: handshake.servername, protocol: handshake.protocol, chain: handshake.chain, trust, hostname, incompleteChain, missingIssuerUrls, ocspStapleBase64: handshake.ocspStapleBase64 };
+}
+
 export const TLS_VERSION_ORDER: readonly TlsVersionName[] = ['TLSv1', 'TLSv1.1', 'TLSv1.2', 'TLSv1.3'];
 export { trustStore };

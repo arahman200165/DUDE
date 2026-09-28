@@ -79,6 +79,7 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Git Repo Browser](https://arahman200165.github.io/DUDE/tools/git-diff) | Native filesystem access | Works — weaker browser fallback | reads a real .git directory on disk, no upload/zip step |
 | [Hostname Resolver](https://arahman200165.github.io/DUDE/tools/hostname-resolver) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Continuous Ping / Latency Graph](https://arahman200165.github.io/DUDE/tools/latency-monitor) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Live Certificate Chain Fetcher](https://arahman200165.github.io/DUDE/tools/live-certificate-chain) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Local Network Viewer](https://arahman200165.github.io/DUDE/tools/local-network) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Advanced Markdown Workspace](https://arahman200165.github.io/DUDE/tools/markdown-workspace) | Collaboration relay | Desktop-only feature | collaborate across networks via a self-hosted relay |
 | [MTU Discovery](https://arahman200165.github.io/DUDE/tools/mtu-discovery) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
@@ -109,7 +110,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-297 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+298 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -227,6 +228,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [JWT Expiration Visualizer](https://arahman200165.github.io/DUDE/tools/jwt-expiration-visualizer) | Security | Visualizes a JWT's iat/nbf/exp window on a timeline relative to now. |
 | [JWT Signer](https://arahman200165.github.io/DUDE/tools/jwt-signer) | Security | Sign a JWT with an HMAC secret or an RSA/EC/RSA-PSS private key, with in-browser key-pair generation. |
 | [JWT Signature Verifier](https://arahman200165.github.io/DUDE/tools/jwt-verify) | Security | Verify a JWT signature locally against a shared secret or public key, or a fetched JWKS — with named presets for Auth0, Okta, Azure AD, and Google. |
+| [Live Certificate Chain Fetcher](https://arahman200165.github.io/DUDE/tools/live-certificate-chain) | Security | Fetch the full certificate chain a host:port presents, validate it against the Mozilla and Windows trust stores, and analyze hostname mismatches (wildcards, IP SANs, near misses). |
 | [OAuth 2.0 Playground](https://arahman200165.github.io/DUDE/tools/oauth-playground) | Security | Builds and inspects OAuth 2.0 / OIDC requests and responses for every grant type, without a live redirect flow. |
 | [OAuth Scope Parser](https://arahman200165.github.io/DUDE/tools/oauth-scope-parser) | Security | Splits an OAuth/OIDC space-delimited scope string into individual scopes with known-scope annotations. |
 | [OAuth Token Inspector](https://arahman200165.github.io/DUDE/tools/oauth-token-inspector) | Security | Inspects an OAuth access/refresh/ID token — auto-detects JWT vs opaque, decodes claims and scope, flags expiry. |

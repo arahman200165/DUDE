@@ -5,6 +5,10 @@
     <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="downloadPem()">Download PEM bundle</button>
     <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="copyPem()">Copy PEM</button>
     @if (showWatch()) { <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-accent" (click)="watch.emit()">Watch this endpoint</button> }
+    @if (showDrilldown()) {
+      <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="drilldown.emit('revocation')">Check revocation</button>
+      <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="drilldown.emit('ct-lookup')">Certificate Transparency</button>
+    }
   </div>
 
   @if (trust().length || hostname()) {

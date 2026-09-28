@@ -76,6 +76,7 @@ Every other tool processes data entirely locally and makes no network request.
 | [Hostname Resolver](https://arahman200165.github.io/DUDE/tools/hostname-resolver) | the resolver configured in Windows |
 | [JWT Signature Verifier](https://arahman200165.github.io/DUDE/tools/jwt-verify) | JWKS / OIDC discovery |
 | [Continuous Ping / Latency Graph](https://arahman200165.github.io/DUDE/tools/latency-monitor) | ICMP echo requests to the host you enter, for at most one hour |
+| [Live Certificate Chain Fetcher](https://arahman200165.github.io/DUDE/tools/live-certificate-chain) | the host and port you enter (one TLS handshake to fetch the presented chain, with the SNI you choose) |
 | [Advanced Markdown Workspace](https://arahman200165.github.io/DUDE/tools/markdown-workspace) | Link Checker: HEAD/GET per link, manual "Check links" button only |
 | [MTU Discovery](https://arahman200165.github.io/DUDE/tools/mtu-discovery) | sized ICMP echo probes to the host you enter |
 | [Network Diagnostic Bundle Export](https://arahman200165.github.io/DUDE/tools/network-diagnostic-bundle) | only the selected checks, against the one target you enter |
@@ -116,6 +117,7 @@ browser sandbox.
 | [JavaScript Playground](https://arahman200165.github.io/DUDE/tools/js-playground) | Desktop file/folder open |
 | [JSON Formatter](https://arahman200165.github.io/DUDE/tools/json) | Desktop file/folder open |
 | [Continuous Ping / Latency Graph](https://arahman200165.github.io/DUDE/tools/latency-monitor) | Native network diagnostics |
+| [Live Certificate Chain Fetcher](https://arahman200165.github.io/DUDE/tools/live-certificate-chain) | Native network diagnostics |
 | [Local Network Viewer](https://arahman200165.github.io/DUDE/tools/local-network) | Native network diagnostics |
 | [Advanced Markdown Workspace](https://arahman200165.github.io/DUDE/tools/markdown-workspace) | Desktop file/folder open; Collaboration relay |
 | [MTU Discovery](https://arahman200165.github.io/DUDE/tools/mtu-discovery) | Native network diagnostics |
@@ -153,6 +155,7 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Git Repo Browser](https://arahman200165.github.io/DUDE/tools/git-diff) | Native filesystem access | Works — weaker browser fallback | reads a real .git directory on disk, no upload/zip step |
 | [Hostname Resolver](https://arahman200165.github.io/DUDE/tools/hostname-resolver) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Continuous Ping / Latency Graph](https://arahman200165.github.io/DUDE/tools/latency-monitor) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Live Certificate Chain Fetcher](https://arahman200165.github.io/DUDE/tools/live-certificate-chain) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Local Network Viewer](https://arahman200165.github.io/DUDE/tools/local-network) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Advanced Markdown Workspace](https://arahman200165.github.io/DUDE/tools/markdown-workspace) | Collaboration relay | Desktop-only feature | collaborate across networks via a self-hosted relay |
 | [MTU Discovery](https://arahman200165.github.io/DUDE/tools/mtu-discovery) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |

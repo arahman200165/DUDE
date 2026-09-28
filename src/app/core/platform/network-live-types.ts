@@ -164,3 +164,16 @@ export interface TlsEnumerationView {
   readonly notTestable: number;
   readonly note: string;
 }
+
+export interface LiveChainView {
+  readonly host: string;
+  readonly port: number;
+  readonly servername: string | null;
+  readonly protocol: string | null;
+  readonly chain: readonly import('./network-types').LiveCertificateSummary[];
+  readonly trust: readonly import('./network-types').TrustVerdict[];
+  readonly hostname: import('./network-types').HostnameVerdict;
+  readonly incompleteChain: boolean;
+  readonly missingIssuerUrls: readonly string[];
+  readonly ocspStapleBase64: string | null;
+}

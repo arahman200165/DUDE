@@ -25,6 +25,9 @@ export class CertChainView {
   /** Emits when the user asks to add this endpoint to the Certificate Watch List. */
   readonly watch = output<void>();
   readonly showWatch = input(false);
+  /** Show drill-down links to the revocation and CT tools (they read the chain from the shared context). */
+  readonly showDrilldown = input(false);
+  readonly drilldown = output<'revocation' | 'ct-lookup'>();
 
   protected statusClass(days: number): string {
     return days < 0 ? 'text-error' : days <= 30 ? 'text-warning' : 'text-success';
