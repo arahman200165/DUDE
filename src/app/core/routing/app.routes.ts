@@ -5,12 +5,12 @@ import { Deck } from '../../shell/deck/deck';
 import { buildToolRoutes, withLoadFallback } from '../registry/tool-routes';
 import { settingsUnsavedChangesGuard } from '../../shell/settings/settings-unsaved-changes';
 
-// The Pipelines, Smart Paste, Workspace, History, Quick Run, Projects, and Settings routes below are
-// the deliberate exceptions to "never edit this file to wire up a feature" (DUDE_PRD.md §21 Phase 21
-// Items 2, 3, 4, and 5, Phase 24 Item 12, Phase 25 Item 1, and the Settings shell destination —
-// see shell/AGENTS.md). Nothing here names a specific tool by id; all are parallel,
-// registry-adjacent features, never a 278th tool. Every lazy destination is wrapped in
-// `withLoadFallback` so an uncached chunk offline shows an explanation, not a blank app.
+// The Pipelines, Smart Paste, Workspace, History, Quick Run, Projects, Settings, and Browse Tools
+// routes below are the deliberate exceptions to "never edit this file to wire up a feature"
+// (DUDE_PRD.md §21 Phase 21 Items 2, 3, 4, and 5, Phase 24 Item 12, Phase 25 Item 1, the Settings
+// shell destination, and Phase 30A — see shell/AGENTS.md). Nothing here names a specific tool by id;
+// all are parallel, registry-adjacent features, never a 278th tool. Every lazy destination is wrapped
+// in `withLoadFallback` so an uncached chunk offline shows an explanation, not a blank app.
 export const routes: Routes = [
   {
     path: '',
@@ -38,6 +38,10 @@ export const routes: Routes = [
       {
         path: 'projects',
         loadComponent: withLoadFallback('ProjectList', () => import('../../shell/projects/project-list/project-list').then((m) => m.ProjectList)),
+      },
+      {
+        path: 'tools',
+        loadComponent: withLoadFallback('BrowseTools', () => import('../../shell/browse-tools/browse-tools').then((m) => m.BrowseTools)),
       },
       { path: 'settings', redirectTo: 'settings/general', pathMatch: 'full' },
       {

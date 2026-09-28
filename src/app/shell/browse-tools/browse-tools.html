@@ -1,0 +1,50 @@
+<div class="flex h-full flex-col p-3">
+  <div class="mb-2 flex items-center justify-between">
+    <h1 class="font-mono text-sm font-semibold text-text">Browse Tools</h1>
+    <span class="text-ui-xs text-text-muted">All tools — {{ total() }}</span>
+  </div>
+
+  <div class="mb-2 flex flex-wrap items-center gap-2">
+    <input
+      type="text"
+      placeholder="Search tools…"
+      class="w-64 rounded-sm border border-border bg-panel px-2 py-1 text-xs text-text placeholder:text-text-muted/60 focus:outline-none focus:ring-1 focus:ring-accent"
+      [value]="query()"
+      (input)="onQueryInput($event)"
+    />
+
+    <select
+      class="rounded-sm border border-border bg-panel px-1.5 py-1 text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
+      [value]="categoryFacet()"
+      (change)="onCategoryChange($event)"
+    >
+      <option value="all">All categories</option>
+      @for (category of categories; track category) {
+        <option [value]="category">{{ meta[category].label }}</option>
+      }
+    </select>
+
+    <div class="flex items-center gap-1" role="radiogroup" aria-label="Filter by platform">
+      @for (facet of platformFacets; track facet.id) {
+        <button
+          type="button"
+          role="radio"
+          [attr.aria-checked]="platformFacet() === facet.id"
+          class="rounded-sm border px-1.5 py-0.5 text-ui-xs"
+          [class]="platformFacet() === facet.id ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border text-text-muted hover:text-text'"
+          (click)="platformFacet.set(facet.id)"
+        >
+          {{ facet.label }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="min-h-0 flex-1">
+    @if (filtered().length) {
+      <app-tool-table [rows]="filtered()" />
+    } @else {
+      <p class="text-xs text-text-muted">No tools match "{{ query() }}".</p>
+    }
+  </div>
+</div>
