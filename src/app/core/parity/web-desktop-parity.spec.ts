@@ -81,6 +81,7 @@ describe('registry-wide web/desktop pipeline parity', () => {
 
   for (const id of stepIds) {
     if (DOCUMENTED_EXCLUSIONS[id]) continue;
+    // Each case cold-imports its tool's libraries (e.g. mathjs), which can outlast the 5 s default under full-suite load.
     it(`${id} returns the same result on web and desktop`, async () => {
       const pipelineStep = await loadPipelineStep(id);
       expect(pipelineStep, `${id} pipeline step failed to load`).toBeDefined();
@@ -97,6 +98,6 @@ describe('registry-wide web/desktop pipeline parity', () => {
         expect(desktop, `${id}: ${fixture.input.type}`).toEqual(web);
         if (fixture.expected) expect(web).toEqual({ ok: true, output: fixture.expected });
       }
-    });
+    }, 30_000);
   }
 });

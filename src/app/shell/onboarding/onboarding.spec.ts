@@ -21,6 +21,8 @@ describe('Onboarding', () => {
         {
           provide: ToolRegistryService,
           useValue: {
+            // WorkspaceLayoutService prunes a saved layout through getById; specs share localStorage.
+            getById: () => undefined,
             settingsSections: () => [
               { toolId: 'fake-tool', toolTitle: 'Fake Tool', title: 'Collaboration relay', onboarding: true, load: async () => FakeRelaySection },
               { toolId: 'quiet-tool', toolTitle: 'Quiet Tool', title: 'Not in wizard', load: async () => FakeRelaySection },
