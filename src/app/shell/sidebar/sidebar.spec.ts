@@ -1,8 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { Sidebar } from './sidebar';
 import { routes } from '../../core/routing/app.routes';
 import { TOOL_CATEGORIES } from '../../shared/models/tool-category.model';
+import { TOOL_DEFINITIONS } from '../../core/registry/tool-definitions';
 
 describe('Sidebar', () => {
   beforeEach(() => {
@@ -45,13 +46,40 @@ describe('Sidebar', () => {
     expect(categoryLinks.length).toBe(TOOL_CATEGORIES.length);
   });
 
-  it('a category row links into Browse Tools filtered by that category', () => {
+  it('a category row links into Browse Tools filtered by that category, and the caret expands it inline', () => {
     const fixture = TestBed.createComponent(Sidebar);
     fixture.detectChanges();
     const element = fixture.nativeElement as HTMLElement;
 
     const securityLink = Array.from(element.querySelectorAll('a')).find((link) => link.getAttribute('href')?.startsWith('/tools?category=security'));
     expect(securityLink).toBeTruthy();
+
+    const caret = Array.from(element.querySelectorAll('button')).find((button) => button.getAttribute('aria-label') === 'Expand Security')!;
+    expect(caret).toBeTruthy();
+    expect(element.querySelectorAll('a[href^="/tools/"]').length).toBe(0);
+
+    caret.click();
+    fixture.detectChanges();
+
+    expect(element.querySelectorAll('a[href^="/tools/"]').length).toBeGreaterThan(0);
+    expect(caret.getAttribute('aria-label')).toBe('Collapse Security');
+  });
+
+  it('auto-expands and highlights the active tool\'s category on direct navigation, even though it starts collapsed', async () => {
+    const fixture = TestBed.createComponent(Sidebar);
+    fixture.detectChanges();
+
+    const router = TestBed.inject(Router);
+    const tool = TOOL_DEFINITIONS.find((definition) => definition.category === 'security')!;
+    await router.navigateByUrl(tool.route);
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    // The category was collapsed by default (no per-tool link in the DOM at all) -- landing
+    // directly on a tool inside it must auto-expand the category so the active link is reachable.
+    expect(element.querySelector(`a[href="${tool.route}"]`)).toBeTruthy();
+    const caret = Array.from(element.querySelectorAll('button')).find((button) => button.getAttribute('aria-label')?.endsWith('Security'))!;
+    expect(caret.getAttribute('aria-label')).toBe('Collapse Security');
   });
 
   it('shows registry-derived category counts and a total "Browse all" count', () => {
