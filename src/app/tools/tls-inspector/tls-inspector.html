@@ -9,7 +9,9 @@
       </label>
       <label class="flex items-center gap-2 text-text-muted"><input type="checkbox" [checked]="http3()" (change)="toggle('http3', $event)" /> HTTP/3 probe (QUIC)</label>
       <label class="flex items-center gap-2 text-text-muted"><input type="checkbox" [checked]="enumerate()" (change)="toggle('enumerate', $event)" /> Enumerate ciphers &amp; versions</label>
+      <label class="flex items-center gap-2 text-text-muted"><input type="checkbox" [checked]="capture()" (change)="toggle('capture', $event)" /> Capture packets (pktmon)</label>
     </div>
+    @if (capture()) { <p class="text-text-muted">Packet capture uses Windows pktmon and needs the elevated session. It records only this handshake's packets, then converts them to pcapng for Wireshark. It is reviewed before it runs; if DUDE is not elevated you'll be told to relaunch as Administrator.</p> }
     @if (enumerate() && !http3()) { <p class="text-text-muted">Enumeration opens up to 128 handshakes to this one host and is reviewed before it runs. Suites this client cannot offer are reported as "not testable from this client".</p> }
     @if (!http3()) {
       <div class="flex flex-wrap items-end gap-3">
@@ -52,6 +54,19 @@
         <dt class="text-text-muted">Alt-Svc</dt><dd class="break-all text-text">{{ h3.altSvc ?? 'none' }}{{ h3.advertisesH3 ? ' (advertises h3)' : '' }}</dd>
         @if (h3.error) { <dt class="text-error">Error</dt><dd class="text-error">{{ h3.error }}</dd> }
       </dl>
+    </div>
+  } @else if (captureView(result); as cap) {
+    <div class="flex flex-col gap-3 text-ui">
+      <div class="rounded-sm border p-2" [class.border-success]="cap.capture.pcapngBase64" [class.border-warning]="!cap.capture.pcapngBase64">
+        <div class="font-semibold text-text">Packet capture</div>
+        <div class="text-text-muted">{{ cap.capture.note }} Filter: {{ cap.capture.filter }}.</div>
+        @if (cap.capture.error) { <div class="text-error">{{ cap.capture.error }}</div> }
+        @if (cap.capture.pcapngBase64) {
+          <button type="button" class="mt-2 rounded-sm border border-accent px-3 py-1 text-accent" (click)="downloadPcapng(cap.capture.pcapngBase64!, cap.inspection.host)">Download pcapng{{ cap.capture.packets ? ' (' + cap.capture.packets + ' packets)' : '' }}</button>
+        }
+      </div>
+      <app-cert-chain-view [chain]="cap.inspection.handshake.chain" [trust]="cap.inspection.trust" [hostname]="cap.inspection.hostname" [endpoint]="cap.inspection.host" />
+      <app-findings-list [findings]="cap.inspection.weaknesses" title="Configuration weaknesses" />
     </div>
   } @else if (enumView(result); as tlsEnum) {
     <div class="flex flex-col gap-3 text-ui">

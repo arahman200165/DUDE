@@ -10,7 +10,7 @@ export const manifest: ToolDefinition = {
   route: '/tools/tls-inspector',
   load: () => import('./tls-inspector').then((m) => m.TlsInspectorTool),
   status: 'experimental',
-  consequenceClass: ['secret-management', 'authentication'],
+  consequenceClass: ['secret-management', 'authentication', 'process-management'],
   persistence: { input: 'none', preferences: 'none' },
   network: { required: true, detail: 'the host and port you enter (a live TLS handshake with the SNI you choose); the HTTP/3 tab reaches the same host over QUIC via the Chromium network stack' },
   capabilities: [{ kind: 'platform', id: 'native-network', web: 'unavailable', note: 'runs live checks through the Windows desktop network bridge' }],

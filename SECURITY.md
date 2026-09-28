@@ -59,6 +59,7 @@ process-management, registry, database-write) have no rows below until a tool cl
 | [Template Renderer](https://arahman200165.github.io/DUDE/tools/template-renderer) | Code Execution | verified — Fuzz-tested arbitrary template/context handling and valid JSON context embedding. |
 | [TLS Connection Inspector](https://arahman200165.github.io/DUDE/tools/tls-inspector) | Secret Management | experimental |
 | [TLS Connection Inspector](https://arahman200165.github.io/DUDE/tools/tls-inspector) | Authentication | experimental |
+| [TLS Connection Inspector](https://arahman200165.github.io/DUDE/tools/tls-inspector) | Process Management | experimental |
 | [X.509 Certificate Inspector](https://arahman200165.github.io/DUDE/tools/x509-certificate-inspector) | Crypto | verified — SHA-1/SHA-256 fingerprints for a real openssl-generated certificate matched exactly. |
 
 ## Network-Capable Tools

@@ -4,6 +4,7 @@ import { DesktopOnlyControl } from '../../shared/components/desktop-only-control
 import { FindingsList } from '../../shared/components/findings-list/findings-list';
 import { CertChainView } from '../../shared/components/cert-chain-view/cert-chain-view';
 import { Timeline } from '../../shared/components/timeline/timeline';
+import { downloadFile } from '../../shared/utils/download-file';
 import type { ClientIdentity, NetworkRequest, StartTlsProtocol } from '../../core/platform/network-types';
 import { STARTTLS_PROTOCOLS } from '../../core/platform/network-types';
 import type { Http3View, TlsEnumerationView, TlsInspectView } from '../../core/platform/network-live-types';
@@ -32,6 +33,7 @@ export class TlsInspectorTool {
   protected readonly starttls = signal<'' | StartTlsProtocol>('');
   protected readonly http3 = signal(false);
   protected readonly enumerate = signal(false);
+  protected readonly capture = signal(false);
   protected readonly clientPfx = signal<{ name: string; base64: string } | null>(null);
   protected readonly clientPassphrase = signal('');
   protected readonly tab = signal<Tab>('connection');
@@ -39,7 +41,7 @@ export class TlsInspectorTool {
   protected readonly build = (): NetworkRequest => {
     const identity: ClientIdentity | undefined = this.clientPfx() ? { pfxBase64: this.clientPfx()!.base64, ...(this.clientPassphrase() ? { passphrase: this.clientPassphrase() } : {}) } : undefined;
     return {
-      kind: this.http3() ? 'http3-probe' : this.enumerate() ? 'tls-enumeration' : 'tls-inspector', target: this.host().trim(), port: this.port(),
+      kind: this.http3() ? 'http3-probe' : this.enumerate() ? 'tls-enumeration' : this.capture() ? 'tls-capture' : 'tls-inspector', target: this.host().trim(), port: this.port(),
       ...(this.http3() ? {} : {
         noSni: this.noSni(), ...(this.noSni() ? {} : this.sni().trim() ? { sni: this.sni().trim() } : {}),
         alpn: this.alpn().split(/[\s,]+/).map((value) => value.trim()).filter(Boolean),
@@ -52,10 +54,17 @@ export class TlsInspectorTool {
 
   protected text(field: 'host' | 'sni' | 'alpn' | 'sniNames' | 'clientPassphrase', event: Event): void { this[field].set((event.target as HTMLInputElement).value); }
   protected setPort(event: Event): void { this.port.set(Number((event.target as HTMLInputElement).value)); }
-  protected toggle(field: 'noSni' | 'http3' | 'enumerate', event: Event): void {
+  protected toggle(field: 'noSni' | 'http3' | 'enumerate' | 'capture', event: Event): void {
     this[field].set((event.target as HTMLInputElement).checked);
-    if (field === 'http3' && this.http3()) this.enumerate.set(false);
-    if (field === 'enumerate' && this.enumerate()) this.http3.set(false);
+    const modes = ['http3', 'enumerate', 'capture'] as const;
+    if ((modes as readonly string[]).includes(field) && this[field as 'http3']()) for (const other of modes) if (other !== field) this[other].set(false);
+  }
+  protected captureView(result: unknown): { inspection: TlsInspectView; capture: { available: boolean; packets: number | null; pcapngBase64: string | null; filter: string; note: string; error?: string } } | null {
+    return result && 'capture' in (result as object) && 'inspection' in (result as object) ? result as never : null;
+  }
+  protected downloadPcapng(base64: string, host: string): void {
+    const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+    downloadFile(bytes, `${host.replace(/[^a-z0-9.-]+/gi, '_')}-handshake.pcapng`, 'application/octet-stream');
   }
   protected enumView(result: unknown): TlsEnumerationView | null { return result && 'supportedVersions' in (result as object) ? result as TlsEnumerationView : null; }
   protected supportedCiphers(view: TlsEnumerationView): TlsEnumerationView['ciphers'] { return view.ciphers.filter((probe) => probe.state === 'supported'); }
