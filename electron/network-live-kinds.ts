@@ -1,7 +1,7 @@
 import { registerLiveKind } from './network-live';
 import { inspectDnssec } from './network-dnssec';
 import { COMMON_DKIM_SELECTORS, inspectEmailAuth } from './network-email-auth';
-import { fetchLiveChain, inspectTls } from './network-tls-inspect';
+import { fetchLiveChain, inspectStartTls, inspectTls } from './network-tls-inspect';
 import { probeHttp3 } from './network-http3';
 import { enumerateTls, enumerationPlan } from './network-tls-enumerate';
 import { captureTlsHandshake } from './network-capture';
@@ -32,3 +32,4 @@ registerLiveKind('revocation', (request, signal, progress) => inspectRevocation(
   preview: (request) => ({ kind: request.kind, action: request.revocationAction ?? 'all', urls: request.urls ?? [], note: 'Contacts only the OCSP/CRL/AIA URLs named inside the certificate, over HTTP.' }),
 });
 registerLiveKind('ct-lookup', (request, signal, progress) => inspectCt(request, signal, progress), { timeoutMs: 30_000 });
+registerLiveKind('starttls', (request, signal, progress) => inspectStartTls(request, signal, progress), { timeoutMs: 30_000 });

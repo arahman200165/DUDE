@@ -1,7 +1,7 @@
-import type { NetworkRequest, TlsVersionName, TrustVerdict } from '../src/app/core/platform/network-types';
+import type { NetworkRequest, StartTlsProtocol, TlsVersionName, TrustVerdict } from '../src/app/core/platform/network-types';
 import { analyzeHostname, chainDerFromSummaries, tlsHandshake, trustStore, validateChain, type HandshakeResult } from './network-tls';
 import { parseServerRecords, type TlsRecordEvent } from './network-tls-records';
-import { startTlsUpgrade } from './network-starttls';
+import { DEFAULT_STARTTLS_PORT, startTlsUpgrade } from './network-starttls';
 
 /**
  * TLS Connection Inspector orchestration (Phase 28 items 10, 13, 14, 22): one inspection handshake,
@@ -128,6 +128,42 @@ export async function fetchLiveChain(request: NetworkRequest, signal: AbortSigna
   const missingIssuerUrls = incompleteChain ? handshake.chain.at(-1)?.caIssuerUrls ?? [] : [];
   progress(2, 2);
   return { host, port, servername: handshake.servername, protocol: handshake.protocol, chain: handshake.chain, trust, hostname, incompleteChain, missingIssuerUrls, ocspStapleBase64: handshake.ocspStapleBase64 };
+}
+
+export interface StartTlsResult {
+  readonly host: string;
+  readonly port: number;
+  readonly protocol: StartTlsProtocol;
+  readonly transcript: readonly string[];
+  readonly upgraded: boolean;
+  readonly tlsProtocol: string | null;
+  readonly cipher: string | null;
+  readonly alpn: string | null;
+  readonly chain: HandshakeResult['chain'];
+  readonly trust: readonly TrustVerdict[];
+  readonly hostname: ReturnType<typeof analyzeHostname>;
+  readonly error?: string;
+}
+
+/** STARTTLS Inspector (item 21): negotiate the upgrade, show the transcript, then inspect the TLS layer. */
+export async function inspectStartTls(request: NetworkRequest, signal: AbortSignal, progress: (completed: number, total: number, data?: unknown) => void): Promise<StartTlsResult> {
+  const host = (request.target ?? '').trim();
+  const protocol = request.starttlsProtocol!;
+  const port = request.port || DEFAULT_STARTTLS_PORT[protocol];
+  const upgrade = await startTlsUpgrade(protocol, host, port, signal, request.timeoutMs ?? 10_000);
+  progress(1, 2);
+  try {
+    const handshake = await tlsHandshake({ host, port, servername: request.sni?.trim() || host, socket: upgrade.socket, alpn: request.alpn, clientIdentity: request.clientIdentity, timeoutMs: request.timeoutMs ?? 10_000, requestOcsp: true }, signal);
+    const chainDer = chainDerFromSummaries(handshake.chain);
+    const trust = handshake.chain.length ? (['mozilla', 'windows'] as const).map((store) => { try { return validateChain(chainDer, store); } catch (error) { return { store, trusted: false, reason: error instanceof Error ? error.message : String(error), path: [] }; } }) : [];
+    progress(2, 2);
+    return {
+      host, port, protocol, transcript: upgrade.transcript, upgraded: true, tlsProtocol: handshake.protocol, cipher: handshake.cipher?.standardName ?? null, alpn: handshake.alpn,
+      chain: handshake.chain, trust, hostname: handshake.chain.length ? analyzeHostname(host, handshake.chain[0]) : { host, matches: false, reasons: ['No certificate presented.'] },
+    };
+  } catch (error) {
+    return { host, port, protocol, transcript: upgrade.transcript, upgraded: false, tlsProtocol: null, cipher: null, alpn: null, chain: [], trust: [], hostname: { host, matches: false, reasons: [] }, error: error instanceof Error ? error.message : String(error) };
+  }
 }
 
 export const TLS_VERSION_ORDER: readonly TlsVersionName[] = ['TLSv1', 'TLSv1.1', 'TLSv1.2', 'TLSv1.3'];

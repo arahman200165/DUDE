@@ -198,3 +198,18 @@ export interface CtView {
   readonly search?: { readonly endpoint: string; readonly query: string; readonly count: number; readonly truncated: boolean; readonly entries: readonly { readonly id: number; readonly issuer: string; readonly commonName: string; readonly nameValue: string; readonly notBefore: string; readonly notAfter: string; readonly entryTimestamp: string }[]; readonly uniqueNames: readonly string[]; readonly issuers: readonly string[]; readonly error?: string };
   readonly note: string;
 }
+
+export interface StartTlsView {
+  readonly host: string;
+  readonly port: number;
+  readonly protocol: string;
+  readonly transcript: readonly string[];
+  readonly upgraded: boolean;
+  readonly tlsProtocol: string | null;
+  readonly cipher: string | null;
+  readonly alpn: string | null;
+  readonly chain: readonly import('./network-types').LiveCertificateSummary[];
+  readonly trust: readonly import('./network-types').TrustVerdict[];
+  readonly hostname: import('./network-types').HostnameVerdict;
+  readonly error?: string;
+}

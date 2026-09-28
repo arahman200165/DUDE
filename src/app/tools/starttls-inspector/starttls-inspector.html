@@ -1,0 +1,36 @@
+<app-network-workbench kind="starttls" [customForm]="true" [buildRequest]="build" [resultTemplate]="resultView" runLabel="Negotiate STARTTLS">
+  <div workbenchForm class="flex flex-col gap-3">
+    <div class="flex flex-wrap items-end gap-3">
+      <label class="flex flex-col gap-1 text-text-muted">Protocol
+        <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="protocol()" (change)="setProtocol($event)">@for (protocol of protocols; track protocol) { <option [value]="protocol">{{ protocol }}</option> }</select>
+      </label>
+      <label class="flex flex-1 flex-col gap-1 text-text-muted">Host
+        <input class="rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="host()" (input)="text($event)" placeholder="mail.example.com" />
+      </label>
+      <label class="flex w-28 flex-col gap-1 text-text-muted">Port
+        <input type="number" min="1" max="65535" class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="port()" (input)="setPort($event)" />
+      </label>
+    </div>
+    <p class="text-text-muted">DUDE performs the protocol's plaintext negotiation, then upgrades to TLS and inspects the certificate. No credentials are sent.</p>
+  </div>
+</app-network-workbench>
+<app-desktop-only-control capability="native-network" label="Run network check" />
+
+<ng-template #resultView let-result>
+  @if (view(result); as starttls) {
+    <div class="flex flex-col gap-3 text-ui">
+      <div class="flex flex-wrap items-baseline gap-3">
+        <span class="text-lg font-semibold" [class.text-success]="starttls.upgraded" [class.text-error]="!starttls.upgraded">{{ starttls.upgraded ? 'Upgraded to ' + starttls.tlsProtocol : 'STARTTLS failed' }}</span>
+        <span class="text-text-muted">{{ starttls.protocol }} {{ starttls.host }}:{{ starttls.port }}</span>
+        @if (starttls.cipher) { <span class="font-mono text-xs text-text">{{ starttls.cipher }}{{ starttls.alpn ? ' · ' + starttls.alpn : '' }}</span> }
+      </div>
+      @if (starttls.error) { <div class="rounded-sm border border-error/50 bg-error/5 p-2 text-error">{{ starttls.error }}</div> }
+      <div>
+        <div class="text-text-muted">Negotiation transcript</div>
+        <pre class="max-h-64 overflow-auto rounded-sm border border-border bg-panel p-2 font-mono text-xs text-text">@for (line of starttls.transcript; track $index) {{{ line }}
+}</pre>
+      </div>
+      @if (starttls.chain.length) { <app-cert-chain-view [chain]="starttls.chain" [trust]="starttls.trust" [hostname]="starttls.hostname" [endpoint]="starttls.host + '_' + starttls.port" /> }
+    </div>
+  }
+</ng-template>

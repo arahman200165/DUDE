@@ -89,6 +89,7 @@ Every other tool processes data entirely locally and makes no network request.
 | [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | PTR query to the system resolver, or a DNS, DoH, or DoT server you choose |
 | [Certificate Revocation Inspector](https://arahman200165.github.io/DUDE/tools/revocation-inspector) | the OCSP, CRL, and AIA URLs named inside the certificate (HTTP); optionally one TLS handshake to fetch the chain first |
 | [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | hop-limited ICMP probes to the one or two hosts you enter |
+| [STARTTLS Inspector](https://arahman200165.github.io/DUDE/tools/starttls-inspector) | the host and port you enter (a plaintext protocol negotiation, then a TLS handshake) |
 | [TCP Port Tester](https://arahman200165.github.io/DUDE/tools/tcp-port-tester) | a TCP connection to the host and port you enter |
 | [Text Inspector](https://arahman200165.github.io/DUDE/tools/text-inspector) | LanguageTool API |
 | [TLS Connection Inspector](https://arahman200165.github.io/DUDE/tools/tls-inspector) | the host and port you enter (a live TLS handshake with the SNI you choose); the HTTP/3 tab reaches the same host over QUIC via the Chromium network stack |
@@ -134,6 +135,7 @@ browser sandbox.
 | [Certificate Revocation Inspector](https://arahman200165.github.io/DUDE/tools/revocation-inspector) | Native network diagnostics |
 | [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | Native network diagnostics |
 | [SQL Formatter / Minifier](https://arahman200165.github.io/DUDE/tools/sql-formatter-tool) | Desktop file/folder open |
+| [STARTTLS Inspector](https://arahman200165.github.io/DUDE/tools/starttls-inspector) | Native network diagnostics |
 | [TCP Port Tester](https://arahman200165.github.io/DUDE/tools/tcp-port-tester) | Native network diagnostics |
 | [Text Inspector](https://arahman200165.github.io/DUDE/tools/text-inspector) | Desktop file/folder open |
 | [TLS Connection Inspector](https://arahman200165.github.io/DUDE/tools/tls-inspector) | Native network diagnostics |
@@ -173,6 +175,7 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Certificate Revocation Inspector](https://arahman200165.github.io/DUDE/tools/revocation-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [STARTTLS Inspector](https://arahman200165.github.io/DUDE/tools/starttls-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [TCP Port Tester](https://arahman200165.github.io/DUDE/tools/tcp-port-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [TLS Connection Inspector](https://arahman200165.github.io/DUDE/tools/tls-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Traceroute](https://arahman200165.github.io/DUDE/tools/traceroute) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
