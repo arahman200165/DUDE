@@ -5,6 +5,7 @@ import { fetchLiveChain, inspectTls } from './network-tls-inspect';
 import { probeHttp3 } from './network-http3';
 import { enumerateTls, enumerationPlan } from './network-tls-enumerate';
 import { captureTlsHandshake } from './network-capture';
+import { inspectRevocation } from './network-revocation';
 
 /**
  * Registers every Phase 28 live check with the dispatcher (`network-live.ts`). Imported for its
@@ -25,3 +26,7 @@ registerLiveKind('tls-capture', (request, signal, progress) => captureTlsHandsha
   preview: (request) => ({ kind: request.kind, target: `${request.target}:${request.port ?? 443}`, tool: 'Windows pktmon (built-in)', scope: 'one filter for the target IP and port, this handshake only', requiresElevation: true, tag: 'process-management', note: 'pktmon start/stop and etl2pcap run as Administrator; the filter is removed and the trace stopped afterward.' }),
 });
 registerLiveKind('live-chain', (request, signal, progress) => fetchLiveChain(request, signal, progress), { timeoutMs: 30_000 });
+registerLiveKind('revocation', (request, signal, progress) => inspectRevocation(request, signal, progress), {
+  timeoutMs: 45_000,
+  preview: (request) => ({ kind: request.kind, action: request.revocationAction ?? 'all', urls: request.urls ?? [], note: 'Contacts only the OCSP/CRL/AIA URLs named inside the certificate, over HTTP.' }),
+});

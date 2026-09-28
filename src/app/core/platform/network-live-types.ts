@@ -177,3 +177,16 @@ export interface LiveChainView {
   readonly missingIssuerUrls: readonly string[];
   readonly ocspStapleBase64: string | null;
 }
+
+export interface RevocationView {
+  readonly host: string;
+  readonly action: string;
+  readonly serial: string;
+  readonly leafSubject: string;
+  readonly issuerSubject: string;
+  readonly ocsp?: { readonly source: string; readonly url?: string; readonly responseStatus: string; readonly certStatus?: string; readonly thisUpdate?: string; readonly nextUpdate?: string; readonly revocationTime?: string; readonly revocationReason?: string; readonly producedAt?: string; readonly responder?: string; readonly signatureValid?: boolean; readonly signatureNote?: string };
+  readonly crl?: { readonly url: string; readonly issuer: string; readonly thisUpdate: string; readonly nextUpdate?: string; readonly entries: number; readonly serial: string; readonly revoked: boolean; readonly revocationTime?: string; readonly revocationReason?: string; readonly signatureValid: boolean; readonly signatureNote: string };
+  readonly aia?: { readonly url: string; readonly fetchedIssuer?: string; readonly error?: string };
+  readonly urls: { readonly ocsp: readonly string[]; readonly crl: readonly string[]; readonly aia: readonly string[] };
+  readonly note?: string;
+}

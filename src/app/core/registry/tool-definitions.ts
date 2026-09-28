@@ -238,6 +238,7 @@ import { manifest as relativeTimeParserManifest } from '../../tools/relative-tim
 import { manifest as resolutionCalculatorManifest } from '../../tools/resolution-calculator/resolution-calculator.manifest';
 import { manifest as resxToolManifest } from '../../tools/resx-tool/resx-tool.manifest';
 import { manifest as reverseDnsManifest } from '../../tools/reverse-dns/reverse-dns.manifest';
+import { manifest as revocationInspectorManifest } from '../../tools/revocation-inspector/revocation-inspector.manifest';
 import { manifest as richTextEditorManifest } from '../../tools/rich-text-editor/rich-text-editor.manifest';
 import { manifest as rotCipherManifest } from '../../tools/rot-cipher/rot-cipher.manifest';
 import { manifest as routeComparisonManifest } from '../../tools/route-comparison/route-comparison.manifest';
@@ -538,6 +539,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   resolutionCalculatorManifest,
   resxToolManifest,
   reverseDnsManifest,
+  revocationInspectorManifest,
   richTextEditorManifest,
   rotCipherManifest,
   routeComparisonManifest,

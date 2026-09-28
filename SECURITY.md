@@ -86,6 +86,7 @@ Every other tool processes data entirely locally and makes no network request.
 | [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | TCP/UDP probes to the reviewed hosts and ports, at most 1,024 per scan |
 | [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | api.ipify.org (IPv4) and api6.ipify.org (IPv6) |
 | [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | PTR query to the system resolver, or a DNS, DoH, or DoT server you choose |
+| [Certificate Revocation Inspector](https://arahman200165.github.io/DUDE/tools/revocation-inspector) | the OCSP, CRL, and AIA URLs named inside the certificate (HTTP); optionally one TLS handshake to fetch the chain first |
 | [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | hop-limited ICMP probes to the one or two hosts you enter |
 | [TCP Port Tester](https://arahman200165.github.io/DUDE/tools/tcp-port-tester) | a TCP connection to the host and port you enter |
 | [Text Inspector](https://arahman200165.github.io/DUDE/tools/text-inspector) | LanguageTool API |
@@ -128,6 +129,7 @@ browser sandbox.
 | [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | Native network diagnostics |
 | [Regex Tester](https://arahman200165.github.io/DUDE/tools/regex) | Local LLM proxy |
 | [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Native network diagnostics |
+| [Certificate Revocation Inspector](https://arahman200165.github.io/DUDE/tools/revocation-inspector) | Native network diagnostics |
 | [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | Native network diagnostics |
 | [SQL Formatter / Minifier](https://arahman200165.github.io/DUDE/tools/sql-formatter-tool) | Desktop file/folder open |
 | [TCP Port Tester](https://arahman200165.github.io/DUDE/tools/tcp-port-tester) | Native network diagnostics |
@@ -166,6 +168,7 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Regex Tester](https://arahman200165.github.io/DUDE/tools/regex) | Local LLM proxy | Desktop-only feature | AI-assisted explain/generate via a local LLM proxy, no cloud key required |
 | [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Certificate Revocation Inspector](https://arahman200165.github.io/DUDE/tools/revocation-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [TCP Port Tester](https://arahman200165.github.io/DUDE/tools/tcp-port-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [TLS Connection Inspector](https://arahman200165.github.io/DUDE/tools/tls-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |

@@ -1,0 +1,70 @@
+<app-network-workbench kind="revocation" [customForm]="true" [buildRequest]="build" [resultTemplate]="resultView" runLabel="Check revocation">
+  <div workbenchForm class="flex flex-col gap-3">
+    @if (chain(); as loaded) {
+      <div class="rounded-sm border border-border bg-panel p-2 text-ui">
+        <div class="font-semibold text-text">Chain loaded for {{ host() }}:{{ port() }}</div>
+        <div class="font-mono text-xs text-text-muted">{{ loaded[0].subject }} · issuer {{ loaded[0].issuer }}</div>
+        <div class="mt-1 text-xs text-text-muted">OCSP: {{ loaded[0].ocspUrls.join(', ') || 'none' }}</div>
+        <div class="text-xs text-text-muted">CRL: {{ loaded[0].crlUrls.join(', ') || 'none' }}</div>
+        <div class="text-xs text-text-muted">CA Issuers (AIA): {{ loaded[0].caIssuerUrls.join(', ') || 'none' }}</div>
+      </div>
+      <label class="flex items-center gap-2 text-text-muted">Check
+        <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="action()" (change)="setAction($event)"><option value="all">OCSP, CRL, and AIA</option><option value="ocsp">OCSP only</option><option value="crl">CRL only</option><option value="aia">Fetch issuer (AIA) only</option></select>
+      </label>
+      <p class="text-text-muted">Nothing is contacted until you run the check. Only the URLs listed above (inside the certificate) are fetched, over HTTP.</p>
+    } @else {
+      <div class="rounded-sm border border-warning/40 bg-warning/5 p-3 text-ui text-text-muted">Open this tool from the <span class="text-text">Live Certificate Chain Fetcher</span> using <span class="text-text">Check revocation</span>. It passes the already-fetched chain so no certificate is re-transmitted.</div>
+    }
+  </div>
+</app-network-workbench>
+<app-desktop-only-control capability="native-network" label="Run network check" />
+
+<ng-template #resultView let-result>
+  @if (view(result); as revocation) {
+    <div class="flex flex-col gap-3 text-ui">
+      <div class="font-mono text-xs text-text-muted">Serial {{ revocation.serial }} · {{ revocation.leafSubject }}</div>
+      @if (revocation.note) { <div class="text-text-muted">{{ revocation.note }}</div> }
+
+      @if (revocation.ocsp; as ocsp) {
+        <div class="rounded-sm border border-border bg-panel p-3">
+          <div class="font-semibold text-text">OCSP <span class="text-text-muted">({{ ocsp.source }}{{ ocsp.url ? ' · ' + ocsp.url : '' }})</span></div>
+          @if (ocsp.responseStatus !== 'successful') { <div class="text-error">Responder status: {{ ocsp.responseStatus }} {{ ocsp.signatureNote }}</div> }
+          @else {
+            <div class="text-lg font-semibold uppercase" [class]="statusClass(ocsp.certStatus)">{{ ocsp.certStatus }}</div>
+            @if (ocsp.certStatus === 'revoked') { <div class="text-error">Revoked {{ ocsp.revocationTime }}{{ ocsp.revocationReason ? ' (' + ocsp.revocationReason + ')' : '' }}</div> }
+            <dl class="grid grid-cols-[max-content_1fr] gap-x-3 font-mono text-xs">
+              <dt class="text-text-muted">Responder</dt><dd class="text-text">{{ ocsp.responder }}</dd>
+              <dt class="text-text-muted">Signature</dt><dd [class.text-success]="ocsp.signatureValid" [class.text-error]="!ocsp.signatureValid">{{ ocsp.signatureValid ? 'valid' : 'INVALID' }} — {{ ocsp.signatureNote }}</dd>
+              <dt class="text-text-muted">This update</dt><dd class="text-text">{{ ocsp.thisUpdate }}</dd>
+              <dt class="text-text-muted">Next update</dt><dd class="text-text">{{ ocsp.nextUpdate ?? '—' }}</dd>
+            </dl>
+          }
+        </div>
+      }
+
+      @if (revocation.crl; as crl) {
+        <div class="rounded-sm border border-border bg-panel p-3">
+          <div class="font-semibold text-text">CRL <span class="text-text-muted">({{ crl.url }})</span></div>
+          @if (crl.signatureNote && !crl.thisUpdate) { <div class="text-error">{{ crl.signatureNote }}</div> }
+          @else {
+            <div class="text-lg font-semibold uppercase" [class]="crl.revoked ? 'text-error' : 'text-success'">{{ crl.revoked ? 'revoked' : 'not on CRL' }}</div>
+            @if (crl.revoked) { <div class="text-error">Revoked {{ crl.revocationTime }}{{ crl.revocationReason ? ' (' + crl.revocationReason + ')' : '' }}</div> }
+            <dl class="grid grid-cols-[max-content_1fr] gap-x-3 font-mono text-xs">
+              <dt class="text-text-muted">Entries</dt><dd class="text-text">{{ crl.entries }}</dd>
+              <dt class="text-text-muted">Signature</dt><dd [class.text-success]="crl.signatureValid" [class.text-error]="!crl.signatureValid">{{ crl.signatureValid ? 'valid' : 'INVALID' }}</dd>
+              <dt class="text-text-muted">This update</dt><dd class="text-text">{{ crl.thisUpdate }}</dd>
+              <dt class="text-text-muted">Next update</dt><dd class="text-text">{{ crl.nextUpdate ?? '—' }}</dd>
+            </dl>
+          }
+        </div>
+      }
+
+      @if (revocation.aia; as aia) {
+        <div class="rounded-sm border border-border bg-panel p-3">
+          <div class="font-semibold text-text">AIA issuer fetch</div>
+          @if (aia.error) { <div class="text-error">{{ aia.url }}: {{ aia.error }}</div> } @else { <div class="text-success">Fetched {{ aia.fetchedIssuer }} from {{ aia.url }}</div> }
+        </div>
+      }
+    </div>
+  }
+</ng-template>
