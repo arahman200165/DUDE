@@ -270,6 +270,7 @@ import { manifest as textInspectorManifest } from '../../tools/text-inspector/te
 import { manifest as textTokenizerNgramManifest } from '../../tools/text-tokenizer-ngram/text-tokenizer-ngram.manifest';
 import { manifest as timezoneConverterManifest } from '../../tools/timezone-converter/timezone-converter.manifest';
 import { manifest as timezoneOffsetComparatorManifest } from '../../tools/timezone-offset-comparator/timezone-offset-comparator.manifest';
+import { manifest as tlsInspectorManifest } from '../../tools/tls-inspector/tls-inspector.manifest';
 import { manifest as tomlFormatterManifest } from '../../tools/toml-formatter/toml-formatter.manifest';
 import { manifest as tracerouteManifest } from '../../tools/traceroute/traceroute.manifest';
 import { manifest as udpPortTesterManifest } from '../../tools/udp-port-tester/udp-port-tester.manifest';
@@ -568,6 +569,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   textTokenizerNgramManifest,
   timezoneConverterManifest,
   timezoneOffsetComparatorManifest,
+  tlsInspectorManifest,
   tomlFormatterManifest,
   tracerouteManifest,
   udpPortTesterManifest,

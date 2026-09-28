@@ -1,0 +1,97 @@
+<app-network-workbench kind="tls-inspector" [customForm]="true" [buildRequest]="build" [resultTemplate]="resultView" runLabel="Inspect TLS">
+  <div workbenchForm class="flex flex-col gap-3">
+    <div class="flex flex-wrap items-end gap-3">
+      <label class="flex flex-1 flex-col gap-1 text-text-muted">Host
+        <input class="rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="host()" (input)="text('host', $event)" placeholder="example.com" />
+      </label>
+      <label class="flex w-28 flex-col gap-1 text-text-muted">Port
+        <input type="number" min="1" max="65535" class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="port()" (input)="setPort($event)" />
+      </label>
+      <label class="flex items-center gap-2 text-text-muted"><input type="checkbox" [checked]="http3()" (change)="toggle('http3', $event)" /> HTTP/3 probe (QUIC)</label>
+    </div>
+    @if (!http3()) {
+      <div class="flex flex-wrap items-end gap-3">
+        <label class="flex flex-1 flex-col gap-1 text-text-muted">SNI (blank uses the host)
+          <input class="rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="sni()" (input)="text('sni', $event)" [disabled]="noSni()" />
+        </label>
+        <label class="flex items-center gap-2 text-text-muted"><input type="checkbox" [checked]="noSni()" (change)="toggle('noSni', $event)" /> Send no SNI</label>
+        <label class="flex flex-col gap-1 text-text-muted">STARTTLS
+          <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="starttls()" (change)="setStarttls($event)"><option value="">None (direct TLS)</option>@for (protocol of starttlsProtocols; track protocol) { <option [value]="protocol">{{ protocol }}</option> }</select>
+        </label>
+      </div>
+      <label class="flex flex-col gap-1 text-text-muted">ALPN protocols to offer
+        <input class="rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="alpn()" (input)="text('alpn', $event)" placeholder="h2, http/1.1" />
+      </label>
+      <label class="flex flex-col gap-1 text-text-muted">Compare extra SNI names (optional, up to 8)
+        <input class="rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="sniNames()" (input)="text('sniNames', $event)" placeholder="www.example.com, cdn.example.com" />
+      </label>
+      <details class="rounded-sm border border-border bg-panel px-2 py-1">
+        <summary class="cursor-pointer text-text-muted">Client certificate (mTLS) — session only, never saved</summary>
+        <div class="mt-2 flex flex-col gap-2">
+          <input type="file" accept=".p12,.pfx" class="text-text-muted" (change)="loadPfx($event)" />
+          @if (clientPfx()) { <span class="text-text">{{ clientPfx()!.name }}</span> }
+          <input type="password" class="rounded-sm border border-border bg-panel px-2 py-1 text-text" placeholder="PFX passphrase" [value]="clientPassphrase()" (input)="text('clientPassphrase', $event)" />
+          <span class="text-xs text-text-muted">The certificate and key are sent for this one connection and dropped; they are never written to history or disk.</span>
+        </div>
+      </details>
+    }
+  </div>
+</app-network-workbench>
+<app-desktop-only-control capability="native-network" label="Run network check" />
+
+<ng-template #resultView let-result>
+  @if (http3View(result); as h3) {
+    <div class="flex flex-col gap-2 text-ui">
+      <div class="text-lg font-semibold" [class.text-success]="h3.h3" [class.text-warning]="!h3.h3 && !h3.error" [class.text-error]="!!h3.error">{{ h3.error ? 'HTTP/3 probe failed' : 'Negotiated ' + h3.negotiatedProtocol }}</div>
+      <div class="text-text-muted">{{ h3.note }}</div>
+      <dl class="grid grid-cols-[max-content_1fr] gap-x-3 font-mono text-xs">
+        <dt class="text-text-muted">URL</dt><dd class="text-text">{{ h3.url }}</dd>
+        <dt class="text-text-muted">Status</dt><dd class="text-text">{{ h3.status ?? '—' }} in {{ h3.elapsedMs }} ms</dd>
+        <dt class="text-text-muted">Alt-Svc</dt><dd class="break-all text-text">{{ h3.altSvc ?? 'none' }}{{ h3.advertisesH3 ? ' (advertises h3)' : '' }}</dd>
+        @if (h3.error) { <dt class="text-error">Error</dt><dd class="text-error">{{ h3.error }}</dd> }
+      </dl>
+    </div>
+  } @else if (view(result); as tls) {
+    <div class="flex flex-col gap-3 text-ui">
+      <div class="flex gap-1 border-b border-border">
+        @for (name of ['connection', 'chain', 'timeline', 'weaknesses']; track name) {
+          @if (name !== 'timeline' || tls.timeline?.length) {
+            <button type="button" class="px-3 py-1 capitalize" [class.border-b-2]="tab() === name" [class.border-accent]="tab() === name" [class.text-accent]="tab() === name" [class.text-text-muted]="tab() !== name" (click)="tab.set($any(name))">{{ name }}</button>
+          }
+        }
+      </div>
+
+      @if (tab() === 'connection') {
+        <dl class="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 font-mono text-xs">
+          <dt class="text-text-muted">Endpoint</dt><dd class="text-text">{{ tls.host }}:{{ tls.port }} → {{ tls.handshake.address }}</dd>
+          <dt class="text-text-muted">SNI</dt><dd class="text-text">{{ tls.handshake.servername ?? '(none sent)' }}</dd>
+          <dt class="text-text-muted">Protocol</dt><dd class="text-text">{{ tls.handshake.protocol }}</dd>
+          <dt class="text-text-muted">Cipher</dt><dd class="text-text">{{ tls.handshake.cipher?.standardName }}</dd>
+          <dt class="text-text-muted">ALPN</dt><dd class="text-text">{{ tls.handshake.alpn ?? 'none negotiated' }}</dd>
+          @if (tls.handshake.ephemeralKey; as key) { <dt class="text-text-muted">Key exchange</dt><dd class="text-text">{{ key.name ?? key.type }} {{ key.size }}-bit</dd> }
+          <dt class="text-text-muted">OCSP staple</dt><dd class="text-text">{{ tls.handshake.ocspStapleBase64 ? 'present' : 'none' }}</dd>
+          <dt class="text-text-muted">Client cert</dt><dd class="text-text">{{ tls.certificateRequested ? 'requested by server' : 'not requested' }}</dd>
+          <dt class="text-text-muted">Timing</dt><dd class="text-text">TCP {{ tls.handshake.timings.tcpMs }}ms · TLS {{ tls.handshake.timings.tlsMs }}ms</dd>
+        </dl>
+        @if (tls.sniComparison?.length) {
+          <div><div class="text-text-muted">SNI comparison</div>
+            <table class="w-full font-mono text-xs"><thead><tr class="text-left text-text-muted"><th class="px-1">SNI</th><th class="px-1">Protocol</th><th class="px-1">Leaf</th><th class="px-1">Matches</th></tr></thead>
+              <tbody>@for (entry of tls.sniComparison; track $index) { <tr class="border-t border-border align-top"><td class="px-1 text-text">{{ entry.sni === false ? '(none)' : entry.sni }}</td><td class="px-1 text-text">{{ entry.error ? '—' : entry.protocol }}</td><td class="px-1 text-text">{{ entry.error ?? entry.leafSubject }}</td><td class="px-1" [class.text-success]="entry.matchesHost">{{ entry.matchesHost ? 'yes' : 'no' }}</td></tr> }</tbody>
+            </table>
+          </div>
+        }
+      }
+
+      @if (tab() === 'chain') { <app-cert-chain-view [chain]="tls.handshake.chain" [trust]="tls.trust" [hostname]="tls.hostname" [endpoint]="tls.host + '_' + tls.port" [showWatch]="false" /> }
+
+      @if (tab() === 'timeline' && tls.timeline?.length) {
+        <app-timeline [markers]="timelineFor(tls).markers" [rangeStartMs]="0" [rangeEndMs]="timelineFor(tls).end" />
+        <table class="w-full font-mono text-xs"><thead><tr class="text-left text-text-muted"><th class="px-1">+ms</th><th class="px-1">Record</th><th class="px-1">Message</th><th class="px-1">Bytes</th></tr></thead>
+          <tbody>@for (event of tls.timeline; track $index) { <tr class="border-t border-border"><td class="px-1 text-text">{{ event.atMs }}</td><td class="px-1 text-text-muted">{{ event.contentType }}</td><td class="px-1 text-accent">{{ event.handshakeType ?? event.detail ?? '' }}</td><td class="px-1 text-text">{{ event.length }}</td></tr> }</tbody>
+        </table>
+      }
+
+      @if (tab() === 'weaknesses') { <app-findings-list [findings]="tls.weaknesses" title="Configuration weaknesses" /> }
+    </div>
+  }
+</ng-template>

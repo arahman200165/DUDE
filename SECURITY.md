@@ -57,6 +57,8 @@ process-management, registry, database-write) have no rows below until a tool cl
 | [Secret Detector](https://arahman200165.github.io/DUDE/tools/secret-detector) | Secret Management | verified — Fuzz-tested with generated text up to 5000 chars, asserting it never throws and never takes more than 500ms -- guards against regex catastrophic backtracking. |
 | [SSH Key Generator & Inspector](https://arahman200165.github.io/DUDE/tools/ssh-key-tools) | Crypto | verified — SHA256/MD5 fingerprints for Ed25519/RSA-2048/ECDSA-P256 keys matched byte-for-byte against real ssh-keygen output. |
 | [Template Renderer](https://arahman200165.github.io/DUDE/tools/template-renderer) | Code Execution | verified — Fuzz-tested arbitrary template/context handling and valid JSON context embedding. |
+| [TLS Connection Inspector](https://arahman200165.github.io/DUDE/tools/tls-inspector) | Secret Management | experimental |
+| [TLS Connection Inspector](https://arahman200165.github.io/DUDE/tools/tls-inspector) | Authentication | experimental |
 | [X.509 Certificate Inspector](https://arahman200165.github.io/DUDE/tools/x509-certificate-inspector) | Crypto | verified — SHA-1/SHA-256 fingerprints for a real openssl-generated certificate matched exactly. |
 
 ## Network-Capable Tools
@@ -85,6 +87,7 @@ Every other tool processes data entirely locally and makes no network request.
 | [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | hop-limited ICMP probes to the one or two hosts you enter |
 | [TCP Port Tester](https://arahman200165.github.io/DUDE/tools/tcp-port-tester) | a TCP connection to the host and port you enter |
 | [Text Inspector](https://arahman200165.github.io/DUDE/tools/text-inspector) | LanguageTool API |
+| [TLS Connection Inspector](https://arahman200165.github.io/DUDE/tools/tls-inspector) | the host and port you enter (a live TLS handshake with the SNI you choose); the HTTP/3 tab reaches the same host over QUIC via the Chromium network stack |
 | [Traceroute](https://arahman200165.github.io/DUDE/tools/traceroute) | hop-limited ICMP probes to the host you enter |
 | [UDP Port Tester](https://arahman200165.github.io/DUDE/tools/udp-port-tester) | a UDP datagram to the host and port you enter |
 | [WHOIS Lookup](https://arahman200165.github.io/DUDE/tools/whois-lookup) | IANA RDAP bootstrap and the RDAP server it names, or WHOIS over TCP 43 (whois.iana.org and its referral, or a custom server) |
@@ -126,6 +129,7 @@ browser sandbox.
 | [SQL Formatter / Minifier](https://arahman200165.github.io/DUDE/tools/sql-formatter-tool) | Desktop file/folder open |
 | [TCP Port Tester](https://arahman200165.github.io/DUDE/tools/tcp-port-tester) | Native network diagnostics |
 | [Text Inspector](https://arahman200165.github.io/DUDE/tools/text-inspector) | Desktop file/folder open |
+| [TLS Connection Inspector](https://arahman200165.github.io/DUDE/tools/tls-inspector) | Native network diagnostics |
 | [TOML Formatter / Validator](https://arahman200165.github.io/DUDE/tools/toml-formatter) | Desktop file/folder open |
 | [Traceroute](https://arahman200165.github.io/DUDE/tools/traceroute) | Native network diagnostics |
 | [UDP Port Tester](https://arahman200165.github.io/DUDE/tools/udp-port-tester) | Native network diagnostics |
@@ -160,6 +164,7 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [TCP Port Tester](https://arahman200165.github.io/DUDE/tools/tcp-port-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [TLS Connection Inspector](https://arahman200165.github.io/DUDE/tools/tls-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Traceroute](https://arahman200165.github.io/DUDE/tools/traceroute) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [UDP Port Tester](https://arahman200165.github.io/DUDE/tools/udp-port-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [WHOIS Lookup](https://arahman200165.github.io/DUDE/tools/whois-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |

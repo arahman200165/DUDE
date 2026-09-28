@@ -124,3 +124,29 @@ export interface EmailAuthView {
   readonly dmarc?: { readonly queried: readonly string[]; readonly policyDomain: string | null; readonly organizationalDomain: string; readonly record: string | null; readonly tags: Readonly<Record<string, string>>; readonly reportDestinations: readonly { readonly uri: string; readonly kind: string; readonly external: boolean; readonly authorized?: boolean; readonly checkedName?: string }[]; readonly findings: readonly LiveFindingView[] };
   readonly queries: number;
 }
+
+export interface TlsTimelineEventView { readonly atMs: number; readonly contentType: string; readonly handshakeType?: string; readonly length: number; readonly detail?: string }
+export interface TlsWeaknessView { readonly id: string; readonly status: 'pass' | 'warn' | 'fail' | 'info'; readonly title: string; readonly detail?: string; readonly reference?: string }
+export interface TlsInspectView {
+  readonly host: string;
+  readonly port: number;
+  readonly handshake: HandshakeView & { readonly ocspStapleBase64: string | null };
+  readonly trust: readonly import('./network-types').TrustVerdict[];
+  readonly hostname: import('./network-types').HostnameVerdict;
+  readonly sniComparison?: readonly { readonly sni: string | false; readonly protocol: string | null; readonly leafSubject: string | null; readonly leafFingerprint: string | null; readonly matchesHost: boolean; readonly error?: string }[];
+  readonly timeline?: readonly TlsTimelineEventView[];
+  readonly certificateRequested: boolean;
+  readonly weaknesses: readonly TlsWeaknessView[];
+}
+export interface Http3View {
+  readonly url: string;
+  readonly attemptedQuic: boolean;
+  readonly negotiatedProtocol: string;
+  readonly h3: boolean;
+  readonly status: number | null;
+  readonly altSvc: string | null;
+  readonly advertisesH3: boolean;
+  readonly elapsedMs: number;
+  readonly note: string;
+  readonly error?: string;
+}

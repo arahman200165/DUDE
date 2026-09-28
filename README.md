@@ -91,6 +91,7 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [TCP Port Tester](https://arahman200165.github.io/DUDE/tools/tcp-port-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [TLS Connection Inspector](https://arahman200165.github.io/DUDE/tools/tls-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Traceroute](https://arahman200165.github.io/DUDE/tools/traceroute) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [UDP Port Tester](https://arahman200165.github.io/DUDE/tools/udp-port-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [WHOIS Lookup](https://arahman200165.github.io/DUDE/tools/whois-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
@@ -108,7 +109,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-296 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+297 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -237,6 +238,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [PKCE Verifier](https://arahman200165.github.io/DUDE/tools/pkce-verifier) | Security | Checks whether a code_verifier matches a given code_challenge (round-trip validation). |
 | [PKCS#12 / PFX Inspector](https://arahman200165.github.io/DUDE/tools/pkcs12-inspector) | Security | Inspects a .p12/.pfx file's certificates and private keys given its password. |
 | [SSH Key Generator & Inspector](https://arahman200165.github.io/DUDE/tools/ssh-key-tools) | Security | Generates an RSA, ECDSA, or Ed25519 SSH key pair, or inspects an SSH public key and its fingerprint. |
+| [TLS Connection Inspector](https://arahman200165.github.io/DUDE/tools/tls-inspector) | Security | Inspect a live TLS handshake: negotiated version, cipher, ALPN, SNI behavior, the presented chain with dual-store trust and hostname verdicts, a handshake timeline, HTTP/3, mTLS, and configuration weaknesses. |
 | [X.509 Certificate Inspector](https://arahman200165.github.io/DUDE/tools/x509-certificate-inspector) | Security | Inspects a certificate's subject/issuer, validity, SAN, extensions, and fingerprints. |
 | [Cron Expression Parser](https://arahman200165.github.io/DUDE/tools/cron) | Date & Time | Parse a cron expression into a richer human-readable schedule and preview its next or previous run times. |
 | [Date Calculator](https://arahman200165.github.io/DUDE/tools/date-calculator) | Date & Time | Add/subtract calendar or business days from a date, and count days/weekdays/business-days between two dates. |
