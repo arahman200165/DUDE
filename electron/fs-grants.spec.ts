@@ -31,6 +31,11 @@ describe('fs grants', () => {
     expect(grants.resolveInRoot('C:\\work', '..\\workbench')).toBeNull();
     expect(grants.normalizeRoot('C:\\work\\')).toBe('C:\\work');
     expect(grants.normalizeRoot('C:\\')).toBe('C:\\');
+    expect(grants.normalizeRoot('/tmp/project/')).toBe('/tmp/project');
+    expect(grants.resolveInRoot('/tmp/project', 'dir/file.txt')).toBe('/tmp/project/dir/file.txt');
+    expect(grants.toPosixRelative('/tmp/project', '/tmp/project/dir/file.txt')).toBe('dir/file.txt');
+    expect(grants.resolveInRoot('/tmp/project', '../escape')).toBeNull();
+    expect(grants.resolveInRoot('/tmp/project', 'C:\\Windows')).toBeNull();
   });
 
   it('grants only picked paths, persists only remembered ones, and re-grants them on the next launch when they still exist', async () => {

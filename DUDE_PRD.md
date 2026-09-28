@@ -365,7 +365,7 @@ These items are not failures of the original product and are handled by the road
 - Cross-tool I/O, pipelines, Smart Paste, workspace/Saved Sessions, and local history (Phase 21) — ✅ shipped.
 - Platform hardening/correctness/discovery/desktop shell/web efficiency (Phases 22–26) — completed consolidation wave.
 - Native network diagnostics (Phase 27) — ✅ shipped.
-- TLS, filesystem, Windows/process, API/server, database, container, OS-integration, AI, theming, and editor/browser integration work is tracked authoritatively in Phases 28–38.
+- TLS, filesystem, Windows/process, API/server, database, container, OS-integration, AI, theming, and editor/browser integration work is tracked authoritatively in Phases 28–38. TLS and filesystem expansion shipped in Phases 28–29; Windows/process through browser-integration work remains tracked in Phases 30–38.
 - Long-horizon additions through Phase 100 are roadmap directions, not a fixed commitment or schedule.
 
 ---
@@ -1014,7 +1014,7 @@ Every feature and every originally-deferred capability across these 10 tools was
 
 The roadmap deliberately extends beyond what any single delivery phase covers.
 
-Phase 0 was the weekend commitment; it is complete. **Phases 1–22 are also complete.** Phase 8 established the Windows desktop track, Phase 21 established the cross-tool workflow foundations, and Phase 22 hardened the platform (distributed manifests, single-sourced metadata, structural validation, generated docs, dependency boundaries, chunk/cache budgets) for the next several hundred tools. Everything from Phase 23 onward is proposed/horizon work, taken up as decided rather than on any fixed schedule.
+Phase 0 was the weekend commitment; it is complete. **Phases 1–29 are also complete.** Phase 8 established the Windows desktop track, Phase 21 established the cross-tool workflow foundations, and Phase 22 hardened the platform (distributed manifests, single-sourced metadata, structural validation, generated docs, dependency boundaries, chunk/cache budgets) for the next several hundred tools. Phase Emergency-Addendum-1 is the current shell/workbench intervention. Everything from Phase 30 onward is proposed/horizon work, taken up as decided rather than on any fixed schedule.
 
 From Phase 22 onward, the roadmap deliberately stops treating raw tool count as the primary measure of progress. Platform trust, correctness, composition, native capability, local/offline strength, automation safety, discoverability, and reuse across surfaces matter more.
 
@@ -2071,6 +2071,10 @@ Use a snapping responsive grid, not pixel-precise absolute positioning. Store se
 
 Built-in panel kinds cover the Home surfaces in this phase: Smart Entry, Favorites, Recent Tools, resume-work panels, Quick Run, local insights, recent activity, category preview, and applicable native actions. User-authored text/link panels display locally stored user content as plain text, not executable markup. Accept only safe link schemes such as HTTPS and HTTP; reject script/data URLs. Shortcut panels point to existing tool routes, shell destinations, or CommandSource actions and use their existing navigation, execution, and confirmation paths. External links open only after an explicit user action. No panel may trigger a pipeline, native operation, or other consequential action simply by mounting or restoring a layout.
 
+**Built-in panel kinds must be declarative.** Give each kind a colocated manifest and a typed metadata contract analogous to tool manifests. Generate the first-party panel registry from those declarations rather than maintaining a central hand-edited kind list. That registry is the single source for the Home renderer, layout editor, available-panel picker, default layout, and layout validation. At minimum, a declaration identifies a stable panel-kind id, display metadata, renderer or lazy loader, supported platform/capabilities, size constraints and default placement, whether multiple instances are allowed, supported configuration and authoritative data dependencies. Availability and empty-state behavior belong to the panel declaration or its implementation, not to a Home switch on panel ids. Persisted layouts refer to stable kind ids and instance ids; registry/version migrations handle removed or renamed kinds.
+
+A later feature may contribute a panel through its own declaration without adding a case to Home, Settings, or unrelated shell components. For example, Git status, running processes, active containers, certificate expiry, and local servers should use the same registration path if introduced in later phases. Registering a tool alone does not automatically create a Home panel; its panel contribution is explicit. Generic Home code composes registered panel kinds and never maintains a parallel list of feature-specific ids.
+
 The editor must work without drag-and-drop: a keyboard-accessible list/form mode allows users to add, move, resize, hide, edit, and remove panels. Focus order follows a predictable reading order in both layouts. Drag/resize handles expose their purpose and do not require hover. Prevent overlaps and unusably small panels; show an intelligible placement result before saving. Reset to Default must be available without deleting the user's underlying favorites, usage, projects, workspaces, or pipelines.
 
 Desktop-only panels are omitted or replaced with a compact capability explanation on the web without leaving blank grid cells. User-authored panel content and layout preferences stay local under existing persistence controls. Arbitrary HTML/JavaScript execution, third-party widget code, and custom data-source scripting are outside this phase.
@@ -2950,6 +2954,7 @@ Examples:
 - desktop-only panels do not leave empty web-companion holes;
 - chart empty states do not fabricate data;
 - user layout restoration handles a removed panel kind/target without blanking Home;
+- a fixture panel kind can be registered, offered in the editor, rendered, and restored without changing Home or Settings branching;
 - wide and narrow layouts remain independent;
 - panel placement cannot overlap or make controls unreachable;
 - editing or restoring a shortcut panel does not execute its target.
@@ -2971,6 +2976,8 @@ The documentation should explain:
 - state-source ownership and privacy rules;
 - keyboard/list-form editing conventions;
 - how a future feature becomes eligible as a Home panel without hard-coding a tool id into unrelated shell components.
+
+Document the panel manifest fields, registry assembly, ownership of panel data/availability, and the steps for adding a panel kind. This is an architecture contract for built-in panels, not only authoring guidance.
 
 Future tools should continue to require only registry/manifest registration; adding a tool must not require editing Home.
 
@@ -3045,7 +3052,7 @@ Recommended order so the app improves continuously rather than requiring one gia
    - dashboard panel, visualization primitives, and shell-table refinements.
 
 9. **User-designed Home builder**
-   - versioned first-party panel registry and local layout store;
+   - declarative, colocated built-in panel manifests, assembled into a versioned first-party panel registry, plus a local layout store;
    - snapping wide/narrow grids with drag/resize/reorder/hide/duplicate;
    - Settings editor, keyboard/list-form controls, and Reset to Default;
    - user-authored text, link, and shortcut panels.
@@ -3067,6 +3074,7 @@ Phase Emergency-Addendum-1 is complete when all of the following are true:
 - [ ] UsageService stores bounded 30-day daily-open buckets and tracking start without a second recorder; incomplete periods are labeled.
 - [ ] Home Recent Activity displays only events with real timestamps; open workspace tabs are not shown as new activity.
 - [ ] A user can design Home in Settings from first-party and text/link/shortcut panels, using drag/resize/reorder/hide/duplicate and a keyboard/list-form editor.
+- [ ] Built-in panel kinds declare typed metadata in colocated manifests; Home and Settings consume the assembled registry, and a new kind can be added without feature-specific shell branching.
 - [ ] Wide-desktop and narrow placements persist independently around shared panel content, restore safely, and support Reset to Default.
 - [ ] Restoring a layout or shortcut panel never executes its target; existing action confirmations remain in force.
 - [ ] Custom layouts avoid horizontal overflow, unreachable controls, and blank holes from unavailable panels without enforcing the default order.
