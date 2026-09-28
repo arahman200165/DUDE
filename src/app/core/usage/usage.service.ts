@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { PersistenceService } from '../persistence/persistence.service';
 import { EMPTY_USAGE_STORE, UsageLogEntry, migrateUsageStore, recordUsage } from './usage.model';
+import { ActivityPeriod, lifetimeToolCounts, selectActivityPeriod } from './activity-summary';
 
 /**
  * Local usage tracking (DUDE_PRD.md §21 Phase 24 Items 5/6/14) — uniform across all 277 tools,
@@ -19,8 +20,24 @@ export class UsageService {
     if (migrated !== this.store()) this.store.set(migrated);
   }
 
-  recordOpen(toolId: string): void {
-    this.store.set(recordUsage(this.store(), toolId, new Date().toISOString()));
+  /** `now` is injectable so day-boundary behavior is testable without fake timers. */
+  recordOpen(toolId: string, now: Date = new Date()): void {
+    this.store.set(recordUsage(this.store(), toolId, now.toISOString()));
+  }
+
+  /** The trailing `days` local days with tracked/untracked distinction (Phase 30H.2). */
+  activityPeriod(days: number, now: Date = new Date(), isKnownTool?: (toolId: string) => boolean): ActivityPeriod {
+    const { dailyBuckets, trackingStartedOn } = this.store();
+    return selectActivityPeriod(dailyBuckets, trackingStartedOn, { days, now, isKnownTool });
+  }
+
+  /** Lifetime opens per tool id. */
+  lifetimeCounts(): Record<string, number> {
+    return lifetimeToolCounts(this.store().counts);
+  }
+
+  lastUsedAt(toolId: string): string | undefined {
+    return this.store().counts[toolId]?.lastUsedAt;
   }
 
   frequencyOf(toolId: string): number {

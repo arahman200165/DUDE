@@ -2,7 +2,6 @@ import { Component, computed, inject } from '@angular/core';
 import { UsageService } from '../../../core/usage/usage.service';
 import { ToolRegistryService } from '../../../core/registry/tool-registry.service';
 import { CATEGORY_METADATA } from '../../../shared/models/tool-category.model';
-import { bucketOpensByDay } from '../../../core/usage/activity-summary';
 import { DashboardPanel } from '../../../shared/components/dashboard-panel/dashboard-panel';
 import { SparklineChart } from '../../../shared/components/workbench-charts/sparkline-chart';
 import { RankedBarsChart, RankedBarInput } from '../../../shared/components/workbench-charts/ranked-bars-chart';
@@ -30,9 +29,21 @@ export class HomeActivityPanel {
 
   protected readonly hasActivity = computed(() => this.usage.recentLogRaw().length > 0);
 
-  protected readonly trend = computed<readonly SparklinePoint[]>(() =>
-    bucketOpensByDay(this.usage.recentLogRaw(), { days: TREND_DAYS, now: new Date() }),
+  private readonly period = computed(() =>
+    this.usage.activityPeriod(TREND_DAYS, new Date(), (id) => this.registry.getById(id) !== undefined),
   );
+
+  protected readonly trend = computed<readonly SparklinePoint[]>(() =>
+    this.period().days.map((day) => ({ label: day.label, value: day.opens ?? 0 })),
+  );
+
+  protected readonly trendTotal = computed(() => this.period().totalOpens);
+
+  /** "since <date>" while the 7-day window isn't fully tracked yet; `null` once complete. */
+  protected readonly partialSince = computed(() => {
+    const { complete, since } = this.period();
+    return complete ? null : since;
+  });
 
   protected readonly topTools = computed<readonly RankedBarInput[]>(() =>
     this.usage

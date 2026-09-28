@@ -53,17 +53,38 @@ describe('Phase 24 store shapes never carry tool content', () => {
     TestBed.configureTestingModule({});
   });
 
-  it('__usage__:activity only ever has schemaVersion/counts/recentLog, and count entries only count/lastUsedAt/toolId/at', async () => {
+  it('__usage__:activity only ever has schemaVersion/counts/recentLog/dailyBuckets/trackingStartedOn, and nested entries only their fixed keys', async () => {
     const toolId = TOOL_DEFINITIONS[0].id;
-    TestBed.inject(UsageService).recordOpen(toolId);
+    const usage = TestBed.inject(UsageService);
+    usage.recordOpen(toolId);
+    usage.recordOpen(TOOL_DEFINITIONS[1].id);
 
     const store = (await readStore('dude:v1:__usage__:activity')) as {
       counts: Record<string, unknown>;
       recentLog: readonly unknown[];
+      dailyBuckets: readonly { date: string; opens: number; perTool: Record<string, number> }[];
+      trackingStartedOn: string | null;
     };
-    assertOnlyKeys(store, ['schemaVersion', 'counts', 'recentLog']);
+    assertOnlyKeys(store, ['schemaVersion', 'counts', 'recentLog', 'dailyBuckets', 'trackingStartedOn']);
     assertOnlyKeys(Object.values(store.counts), ['count', 'lastUsedAt']);
     assertOnlyKeys(store.recentLog, ['toolId', 'at']);
+    assertOnlyKeys(store.dailyBuckets, ['date', 'opens', 'perTool']);
+
+    // Shape constraints (key names alone can't catch a content-bearing *value*): the 30H daily
+    // aggregate is dates, integer counts and registry-style tool-id slugs — nothing else.
+    const dayKey = /^\d{4}-\d{2}-\d{2}$/;
+    expect(store.dailyBuckets.length).toBeLessThanOrEqual(30);
+    expect(store.trackingStartedOn).toMatch(dayKey);
+    for (const bucket of store.dailyBuckets) {
+      expect(bucket.date).toMatch(dayKey);
+      expect(Number.isInteger(bucket.opens) && bucket.opens >= 0).toBe(true);
+      for (const [id, n] of Object.entries(bucket.perTool)) {
+        expect(id).toMatch(/^[a-z0-9][a-z0-9-]*$/);
+        expect(TOOL_DEFINITIONS.some((t) => t.id === id)).toBe(true);
+        expect(Number.isInteger(n) && n > 0).toBe(true);
+      }
+      expect(Object.values(bucket.perTool).reduce((a, b) => a + b, 0)).toBe(bucket.opens);
+    }
   });
 
   it('__favorites__:pinned only ever has schemaVersion/toolIds/pipelineIds', async () => {
