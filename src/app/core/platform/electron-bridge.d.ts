@@ -1,4 +1,4 @@
-import type { NetworkRequest, NetworkJobEvent, NetworkStartResult, NetworkPrepareResult } from './network-types';
+import type { NetworkRequest, NetworkJobEvent, NetworkStartResult, NetworkPrepareResult, WatchEntry, WatchSettings, WatchState, WatchResult } from './network-types';
 export interface NativeStat {
   readonly isFile: boolean;
   readonly isDirectory: boolean;
@@ -115,6 +115,18 @@ export interface DudeElectronBridge {
     adminStatus(): Promise<boolean>;
     relaunchAsAdmin(): Promise<boolean>;
     onEvent(callback: (event: NetworkJobEvent) => void): () => void;
+    readonly watch: {
+      get(): Promise<WatchResult<{ state: WatchState }>>;
+      upsert(entry: Partial<WatchEntry>): Promise<WatchResult<{ entry: WatchEntry }>>;
+      remove(id: string): Promise<WatchResult>;
+      clearPrepare(): Promise<WatchResult<{ token: string; count: number }>>;
+      clearConfirm(token: string): Promise<WatchResult>;
+      setSettings(settings: Partial<WatchSettings>): Promise<WatchResult<{ state: WatchState }>>;
+      checkNow(id?: string): Promise<WatchResult<{ state: WatchState }>>;
+      export(): Promise<WatchResult<{ json: string }>>;
+      import(json: string): Promise<WatchResult<{ state: WatchState }>>;
+      onChanged(callback: (state: WatchState) => void): () => void;
+    };
   };  readonly update: {
     checkForUpdates(): Promise<VoidResult>;
     quitAndInstall(): Promise<VoidResult>;

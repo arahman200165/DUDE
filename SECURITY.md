@@ -69,6 +69,7 @@ Every other tool processes data entirely locally and makes no network request.
 
 | Tool | What it contacts |
 | --- | --- |
+| [Certificate Watch List](https://arahman200165.github.io/DUDE/tools/certificate-watch-list) | each watched host:port (one TLS handshake per check, on the schedule you set, while DUDE is running) |
 | [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | a TCP connection or HTTP(S) request to the target you enter |
 | [Certificate Transparency Lookup](https://arahman200165.github.io/DUDE/tools/ct-lookup) | crt.sh (or a crt.sh-compatible endpoint you enter) for domain history; SCT decoding is local |
 | [DNS Lookup](https://arahman200165.github.io/DUDE/tools/dns-lookup) | your system DNS servers, or a DNS, DoH, or DoT server you choose; CAA checks also query the parent names |
@@ -107,6 +108,7 @@ browser sandbox.
 
 | Tool | Native capability |
 | --- | --- |
+| [Certificate Watch List](https://arahman200165.github.io/DUDE/tools/certificate-watch-list) | Native network diagnostics |
 | [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | Native network diagnostics |
 | [CSS Formatter / Minifier](https://arahman200165.github.io/DUDE/tools/css-formatter) | Desktop file/folder open |
 | [CSV Viewer / Converter](https://arahman200165.github.io/DUDE/tools/csv-viewer) | Desktop file/folder open |
@@ -155,6 +157,7 @@ Every tool not listed here behaves identically on the web companion and the desk
 
 | Tool | Desktop capability | On the web | What desktop adds |
 | --- | --- | --- | --- |
+| [Certificate Watch List](https://arahman200165.github.io/DUDE/tools/certificate-watch-list) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Certificate Transparency Lookup](https://arahman200165.github.io/DUDE/tools/ct-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Directory Diff](https://arahman200165.github.io/DUDE/tools/directory-diff) | Native filesystem access | Works — weaker browser fallback | compares real folders on disk, not zipped/pasted file lists |

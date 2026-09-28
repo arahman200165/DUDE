@@ -1,0 +1,68 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning/40 bg-warning/5 p-4 text-ui text-text-muted">
+      The Certificate Watch List runs background TLS checks and needs the Windows desktop app. This page stays available for discovery and desktop handoff.
+    </div>
+    <app-desktop-only-control capability="native-network" label="Open the watch list" />
+  } @else {
+    <div class="flex flex-col gap-4 text-ui">
+      @if (settings(); as settings) {
+        <div class="rounded-sm border border-border bg-panel p-3">
+          <div class="flex flex-wrap items-center gap-4">
+            <label class="flex items-center gap-2 text-text"><input type="checkbox" [checked]="settings.enabled" (change)="toggleEnabled($event)" /> Background checks</label>
+            <label class="flex items-center gap-2 text-text-muted">Every
+              <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="settings.intervalHours" (change)="setInterval($event)"><option [value]="6">6 hours</option><option [value]="12">12 hours</option><option [value]="24">24 hours</option></select>
+            </label>
+            <label class="flex items-center gap-2 text-text-muted">Warn at (days)
+              <input class="w-32 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="settings.thresholds.join(', ')" (change)="setThresholds($event)" />
+            </label>
+            <label class="flex items-center gap-2 text-text-muted"><input type="checkbox" [checked]="settings.notifications" (change)="toggleNotifications($event)" /> Notifications</label>
+          </div>
+          <p class="mt-2 text-xs text-text-muted">Checks run only while DUDE is open (including hidden to the tray) — never on login or as a service. One TLS handshake per endpoint. @if (nextPass()) { Next pass around {{ nextPass() }}. }</p>
+        </div>
+      }
+
+      <div class="rounded-sm border border-border bg-panel p-3">
+        <div class="mb-2 font-semibold text-text">Add an endpoint</div>
+        <div class="flex flex-wrap items-end gap-2">
+          <label class="flex flex-col gap-1 text-text-muted">Label<input class="w-32 rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="label()" (input)="text('label', $event)" placeholder="Prod API" /></label>
+          <label class="flex flex-1 flex-col gap-1 text-text-muted">Host<input class="rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="host()" (input)="text('host', $event)" placeholder="example.com" /></label>
+          <label class="flex w-24 flex-col gap-1 text-text-muted">Port<input type="number" min="1" max="65535" class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="port()" (input)="setPort($event)" /></label>
+          <label class="flex flex-col gap-1 text-text-muted">STARTTLS<select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="starttls()" (change)="setStarttls($event)"><option value="">None</option>@for (protocol of starttlsProtocols; track protocol) { <option [value]="protocol">{{ protocol }}</option> }</select></label>
+          <button type="button" class="rounded-sm border border-accent px-3 py-1 text-accent" (click)="add()">Add &amp; check</button>
+        </div>
+      </div>
+
+      @if (watch.error()) { <div role="alert" class="rounded-sm border border-error/50 bg-error/5 p-2 text-error">{{ watch.error() }}</div> }
+
+      @if (entries().length) {
+        <table class="w-full border-collapse text-ui">
+          <thead><tr class="text-left text-text-muted"><th class="px-2 py-1">Status</th><th class="px-2 py-1">Endpoint</th><th class="px-2 py-1">Expiry</th><th class="px-2 py-1">Issuer</th><th class="px-2 py-1">Last checked</th><th class="px-2 py-1"></th></tr></thead>
+          <tbody>
+            @for (entry of entries(); track entry.id) {
+              <tr class="border-t border-border align-top">
+                <td class="px-2 py-1 font-semibold uppercase" [class]="statusClass(entry.last?.status)">{{ entry.last?.status ?? 'pending' }}</td>
+                <td class="px-2 py-1"><div class="text-text">{{ entry.label || entry.host }}</div><div class="font-mono text-xs text-text-muted">{{ entry.host }}:{{ entry.port }}{{ entry.starttlsProtocol ? ' (' + entry.starttlsProtocol + ')' : '' }}</div></td>
+                <td class="px-2 py-1" [class]="statusClass(entry.last?.status)">{{ days(entry) }}<div class="font-mono text-xs text-text-muted">{{ entry.last?.validTo?.slice(0, 10) }}</div></td>
+                <td class="px-2 py-1 text-xs text-text-muted">{{ entry.last?.issuer ?? '—' }}</td>
+                <td class="px-2 py-1 text-xs text-text-muted">{{ entry.last?.checkedAt?.slice(0, 16)?.replace('T', ' ') ?? 'never' }}@if (entry.consecutiveFailures) { <span class="text-error"> · {{ entry.consecutiveFailures }} fail(s)</span> }</td>
+                <td class="px-2 py-1 text-right"><button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="watch.checkNow(entry.id)">Check</button> <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="watch.remove(entry.id)">Remove</button></td>
+              </tr>
+              @if (entry.last?.error) { <tr><td></td><td colspan="5" class="px-2 pb-1 text-xs text-error">{{ entry.last?.error }}</td></tr> }
+            }
+          </tbody>
+        </table>
+      } @else { <div class="text-text-muted">No endpoints yet. Add one above, or use "Watch this endpoint" from the Live Certificate Chain tool.</div> }
+
+      <div class="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+        <button type="button" class="rounded-sm border border-border px-2 py-1 text-text" (click)="watch.checkNow()">Check all now</button>
+        <button type="button" class="rounded-sm border border-border px-2 py-1 text-text" (click)="exportList()">Export</button>
+        <label class="rounded-sm border border-border px-2 py-1 text-text">Import<input type="file" accept=".json" class="hidden" (change)="importList($event)" /></label>
+        @if (entries().length) {
+          @if (!clearing()) { <button type="button" class="ml-auto rounded-sm border border-error/50 px-2 py-1 text-error" (click)="clearing.set(true)">Clear all…</button> }
+          @else { <span class="ml-auto text-warning">Remove all {{ entries().length }} watched endpoints?</span> <button type="button" class="rounded-sm border border-error px-2 py-1 text-error" (click)="clearAll()">Yes, clear</button> <button type="button" class="rounded-sm border border-border px-2 py-1 text-text" (click)="clearing.set(false)">Cancel</button> }
+        }
+      </div>
+    </div>
+  }
+</app-tool-shell>

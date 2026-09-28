@@ -33,6 +33,7 @@ import { manifest as cacheControlBuilderManifest } from '../../tools/cache-contr
 import { manifest as caseConverterManifest } from '../../tools/case-converter/case-converter.manifest';
 import { manifest as cborViewerManifest } from '../../tools/cbor-viewer/cbor-viewer.manifest';
 import { manifest as certificateChainToolsManifest } from '../../tools/certificate-chain-tools/certificate-chain-tools.manifest';
+import { manifest as certificateWatchListManifest } from '../../tools/certificate-watch-list/certificate-watch-list.manifest';
 import { manifest as chacha20Poly1305Manifest } from '../../tools/chacha20-poly1305/chacha20-poly1305.manifest';
 import { manifest as chmodConverterManifest } from '../../tools/chmod-converter/chmod-converter.manifest';
 import { manifest as cidrCalculatorManifest } from '../../tools/cidr-calculator/cidr-calculator.manifest';
@@ -337,6 +338,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   caseConverterManifest,
   cborViewerManifest,
   certificateChainToolsManifest,
+  certificateWatchListManifest,
   chacha20Poly1305Manifest,
   chmodConverterManifest,
   cidrCalculatorManifest,

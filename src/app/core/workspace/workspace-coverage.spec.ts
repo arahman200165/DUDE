@@ -25,6 +25,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'ct-lookup': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
   'starttls-inspector': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
   'https-config-analyzer': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
+  'certificate-watch-list': 'the watch list is a live monitoring dashboard whose state lives in the main process, not restorable renderer content',
   'reverse-dns': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
   'dns-propagation': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
   'tcp-port-tester': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',

@@ -25,6 +25,30 @@ app.on('before-quit', () => {
   markCleanExit();
 });
 
+let trayRef: Tray | null = null;
+let showWindowRef: (() => void) | null = null;
+
+/**
+ * Certificate Watch List summary in the tray (Phase 28 item 17). Called by the watch scheduler;
+ * a non-zero count adds a menu item that opens the watch list, so a background expiry alert is
+ * discoverable even with the window hidden.
+ */
+export function updateWatchTray(summary: { expiring: number; expired: number; errors: number }): void {
+  if (!trayRef || !showWindowRef) return;
+  const total = summary.expired + summary.expiring;
+  const items: Electron.MenuItemConstructorOptions[] = [
+    { label: 'Show DUDE', click: showWindowRef },
+    { label: 'Settings…', click: () => { showWindowRef!(); sendMenuAction('preferences'); } },
+  ];
+  if (total || summary.errors) {
+    const parts = [summary.expired ? `${summary.expired} expired` : '', summary.expiring ? `${summary.expiring} expiring` : '', summary.errors ? `${summary.errors} failing` : ''].filter(Boolean);
+    items.push({ type: 'separator' }, { label: `Certificates: ${parts.join(', ')}`, click: () => { showWindowRef!(); sendMenuAction('tool:certificate-watch-list'); } });
+    trayRef.setToolTip(`DUDE — certificates: ${parts.join(', ')}`);
+  } else trayRef.setToolTip('DUDE');
+  items.push({ type: 'separator' }, { label: 'Quit DUDE', click: () => app.quit() });
+  trayRef.setContextMenu(Menu.buildFromTemplate(items));
+}
+
 export function createTray(window: BrowserWindow): Tray {
   // `__dirname` is `dist/electron` (esbuild's outdir); the icon ships as a
   // source asset under the repo's `public/`, not a build output, so it's
@@ -50,6 +74,8 @@ export function createTray(window: BrowserWindow): Tray {
   );
   tray.on('click', showWindow);
 
+  trayRef = tray;
+  showWindowRef = showWindow;
   return tray;
 }
 

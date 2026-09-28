@@ -124,6 +124,22 @@ const bridge: DudeElectronBridge = {
       ipcRenderer.on('dude:network:event', listener);
       return () => ipcRenderer.removeListener('dude:network:event', listener);
     },
+    watch: {
+      get: () => ipcRenderer.invoke('dude:network:watch:get'),
+      upsert: (entry) => ipcRenderer.invoke('dude:network:watch:upsert', entry),
+      remove: (id) => ipcRenderer.invoke('dude:network:watch:remove', id),
+      clearPrepare: () => ipcRenderer.invoke('dude:network:watch:clearPrepare'),
+      clearConfirm: (token) => ipcRenderer.invoke('dude:network:watch:clearConfirm', token),
+      setSettings: (settings) => ipcRenderer.invoke('dude:network:watch:setSettings', settings),
+      checkNow: (id) => ipcRenderer.invoke('dude:network:watch:checkNow', id),
+      export: () => ipcRenderer.invoke('dude:network:watch:export'),
+      import: (json) => ipcRenderer.invoke('dude:network:watch:import', json),
+      onChanged: (callback) => {
+        const listener = (_event: Electron.IpcRendererEvent, state: import('../src/app/core/platform/network-types').WatchState) => callback(state);
+        ipcRenderer.on('dude:network:watch:changed', listener);
+        return () => ipcRenderer.removeListener('dude:network:watch:changed', listener);
+      },
+    },
   },  update: {
     checkForUpdates: () => ipcRenderer.invoke('dude:update:check'),
     quitAndInstall: () => ipcRenderer.invoke('dude:update:quitAndInstall'),

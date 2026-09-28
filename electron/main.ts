@@ -3,6 +3,8 @@ import { join, resolve } from 'node:path';
 import { startStaticServer } from './static-server';
 import { registerFsHandlers } from './fs-bridge';
 import { registerNetworkHandlers, cancelAllNetworkJobs } from './network-bridge';
+import { registerWatchHandlers, stopWatchScheduler, setTrayUpdater } from './network-watch';
+import { updateWatchTray } from './tray';
 import { registerSecretsHandlers } from './secrets-bridge';
 import { registerLlmHandlers } from './llm-bridge';
 import { createTray, isAppQuitting, registerShellChromeHandlers } from './tray';
@@ -81,6 +83,7 @@ async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
   });
 
   createTray(window);
+  setTrayUpdater(updateWatchTray);
   trackWindowBounds(window);
   registerDesktopPreferencesHandlers(window);
   registerOpenHandlers(window);
@@ -126,6 +129,7 @@ if (hasSingleInstanceLock) void app.whenReady().then(async () => {
   }
   registerFsHandlers();
   registerNetworkHandlers();
+  registerWatchHandlers();
   registerSecretsHandlers();
   registerLlmHandlers();
   registerShellChromeHandlers();
@@ -151,5 +155,6 @@ app.on('will-quit', () => {
   unregisterAllHotkeys();
   closeAllFileWatches();
   cancelAllNetworkJobs();
+  stopWatchScheduler();
   stopCollabServerOnQuit();
 });

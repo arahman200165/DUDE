@@ -70,6 +70,7 @@ Every tool not listed here behaves identically on the web companion and the desk
 
 | Tool | Desktop capability | On the web | What desktop adds |
 | --- | --- | --- | --- |
+| [Certificate Watch List](https://arahman200165.github.io/DUDE/tools/certificate-watch-list) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Certificate Transparency Lookup](https://arahman200165.github.io/DUDE/tools/ct-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Directory Diff](https://arahman200165.github.io/DUDE/tools/directory-diff) | Native filesystem access | Works — weaker browser fallback | compares real folders on disk, not zipped/pasted file lists |
@@ -114,7 +115,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-302 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+303 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -220,6 +221,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Basic Auth Header Generator](https://arahman200165.github.io/DUDE/tools/basic-auth-generator) | Security | Builds (or decodes) an HTTP Basic Authorization header from a username and password. |
 | [Bearer Token Builder](https://arahman200165.github.io/DUDE/tools/bearer-token-builder) | Security | Wraps a token into a properly formatted Bearer Authorization header, with format validation. |
 | [Certificate Chain Viewer & Builder](https://arahman200165.github.io/DUDE/tools/certificate-chain-tools) | Security | Splits, reorders, verifies, and re-assembles a multi-certificate PEM chain bundle. |
+| [Certificate Watch List](https://arahman200165.github.io/DUDE/tools/certificate-watch-list) | Security | Watch TLS endpoints for expiry and unexpected certificate changes. Opt-in background checks run while DUDE is open, with configurable thresholds and native notifications. |
 | [ChaCha20-Poly1305 Encrypt / Decrypt](https://arahman200165.github.io/DUDE/tools/chacha20-poly1305) | Security | Encrypts or decrypts text with ChaCha20-Poly1305 or XChaCha20-Poly1305, using a passphrase-derived (PBKDF2) key. |
 | [CSR Generator & Inspector](https://arahman200165.github.io/DUDE/tools/csr-generator-inspector) | Security | Generates an RSA CSR (PKCS#10) signed with a pasted private key, or inspects an existing CSR. |
 | [Certificate Transparency Lookup](https://arahman200165.github.io/DUDE/tools/ct-lookup) | Security | Decode a certificate's embedded SCTs and name each CT log from a bundled list, and search a domain's certificate history on crt.sh. |
