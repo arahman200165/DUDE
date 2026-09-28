@@ -74,6 +74,17 @@
       Recent
     </button>
 
+    <select
+      class="rounded-sm border border-border bg-panel px-1.5 py-1 text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
+      aria-label="Sort by"
+      [value]="sortMode()"
+      (change)="onSortChange($event)"
+    >
+      @for (mode of sortModes; track mode.id) {
+        <option [value]="mode.id">{{ mode.label }}</option>
+      }
+    </select>
+
     <div class="ml-auto flex items-center gap-1" role="radiogroup" aria-label="View mode">
       <button
         type="button"
@@ -99,11 +110,11 @@
   </div>
 
   <div class="min-h-0 flex-1">
-    @if (filtered().length) {
+    @if (sorted().length) {
       @if (viewMode() === 'grid') {
-        <app-tool-grid [rows]="filtered()" />
+        <app-tool-grid [rows]="sorted()" />
       } @else {
-        <app-tool-table [rows]="filtered()" />
+        <app-tool-table [rows]="sorted()" />
       }
     } @else {
       <p class="text-xs text-text-muted">No tools match "{{ query() }}".</p>

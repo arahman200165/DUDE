@@ -10,6 +10,8 @@ import { ToolGrid } from '../../shared/components/tool-grid/tool-grid';
 import { BrowseQueryHelp } from '../../shared/components/browse-query-help/browse-query-help';
 import { parseBrowseQuery, ParsedBrowseQuery } from '../../core/registry/browse-tools-query';
 import { filterTools } from '../../core/registry/browse-tools-filter';
+import { BrowseToolsSortMode, sortTools } from '../../core/registry/browse-tools-sort';
+import { scoreForRecommendation } from '../../core/registry/browse-tools-recommend';
 
 /** Synthetic pseudo-tool-id namespace, the same trick `'__favorites__'`/`'__usage__'` use. */
 const BROWSE_TOOLS_NAMESPACE = '__browse_tools__';
@@ -60,9 +62,30 @@ export class BrowseTools {
   ] as const;
   protected readonly statusFacets: readonly StatusFacet[] = ['all', 'verified', 'stable', 'experimental', 'unstated'];
 
+  protected readonly sortMode = signal<BrowseToolsSortMode>('recommended');
+  protected readonly sortModes: readonly { readonly id: BrowseToolsSortMode; readonly label: string }[] = [
+    { id: 'recommended', label: 'Recommended' },
+    { id: 'recent', label: 'Recently Used' },
+    { id: 'most-used', label: 'Most Used' },
+    { id: 'favorites-first', label: 'Favorites First' },
+    { id: 'alpha', label: 'A–Z' },
+    { id: 'category', label: 'Category' },
+  ];
+
   protected readonly total = computed(() => this.registry.getAll().length);
 
+  /** Every ever-opened tool id, most-recent-first — an unbounded reach so `recent:*`/sort/recommend see the whole history, not just a capped rail. */
+  private readonly recentRankById = computed(() => {
+    const ranked = new Map<string, number>();
+    this.usage.mostRecent(Number.MAX_SAFE_INTEGER).forEach((id, index) => ranked.set(id, index));
+    return ranked;
+  });
+
   private readonly recentToolIds = computed(() => new Set(this.usage.mostRecent(RECENT_LIMIT)));
+
+  private recentRank(id: string): number {
+    return this.recentRankById().get(id) ?? Infinity;
+  }
 
   private readonly criteria = computed<ParsedBrowseQuery>(() => {
     const parsed = parseBrowseQuery(this.query());
@@ -86,6 +109,28 @@ export class BrowseTools {
       platformCapabilitiesOf: (id) => this.registry.platformCapabilitiesOf(id),
     }),
   );
+
+  protected readonly sorted = computed<readonly ToolDefinition[]>(() => {
+    const category = this.categoryFacet();
+    const ioType = this.criteria().accepts ?? this.criteria().produces;
+    return sortTools(this.filtered(), this.sortMode(), {
+      isFavorite: (id) => this.favorites.isToolPinned(id),
+      frequencyOf: (id) => this.usage.frequencyOf(id),
+      recentRank: (id) => this.recentRank(id),
+      recommendationScore: (tool) =>
+        scoreForRecommendation({
+          isFavorite: this.favorites.isToolPinned(tool.id),
+          frequency: this.usage.frequencyOf(tool.id),
+          recentRank: this.recentRank(tool.id),
+          matchesActiveCategory: category !== 'all' && tool.category === category,
+          ioCompatible: ioType !== undefined && (tool.io.accepts.includes(ioType) || tool.io.produces.includes(ioType)),
+        }),
+    });
+  });
+
+  protected onSortChange(event: Event): void {
+    this.sortMode.set((event.target as HTMLSelectElement).value as BrowseToolsSortMode);
+  }
 
   protected onQueryInput(event: Event): void {
     this.query.set((event.target as HTMLInputElement).value);
