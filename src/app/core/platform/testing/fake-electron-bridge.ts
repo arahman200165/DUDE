@@ -33,6 +33,13 @@ export function fakeElectronBridge(overrides: Partial<DudeElectronBridge> = {}):
       cancel: async () => true,
       onEvent: () => () => {},
     },
+    fsSnapshots: {
+      list: async () => ({ ok: true, value: [] }),
+      export: async () => ({ ok: false, error: 'not-found' }),
+      import: async () => ({ ok: false, error: 'not-configured' }),
+      delete: async () => ({ ok: true, value: undefined }),
+      compare: async () => ({ ok: false, error: 'not-found' }),
+    },
     fsMutation: {
       planTrash: async () => ({ ok: false, error: 'not-configured' }),
       planWriteText: async () => ({ ok: false, error: 'not-configured' }),

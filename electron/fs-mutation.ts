@@ -133,7 +133,7 @@ export async function registerPlan(owner: Pick<WebContents, 'id'>, draft: Mutati
   const id = randomUUID();
   const digest = createHash('sha256').update(JSON.stringify(draft.ops)).digest('hex');
   const counts: Record<MutationOpKind, number> = { rename: 0, write: 0, create: 0, trash: 0 };
-  for (const op of draft.ops) counts[op.kind]++;
+  for (const op of draft.ops) counts[op.kind as MutationOpKind]++;
   const backupBytes = draft.ops.reduce((sum, op) => sum + (op.kind === 'write' ? op.expect.size : 0), 0);
   const exceedsBackupCap = backupBytes > 0 && (await backupUsage()) + backupBytes > settings.maxBackupBytes;
   const expires = Date.now() + PLAN_TTL_MS;

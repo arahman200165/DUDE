@@ -1,7 +1,9 @@
 import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import { promises as fs } from 'node:fs';
-import { basename, isAbsolute, join, normalize, sep } from 'node:path';
+import { basename, isAbsolute, join, sep } from 'node:path';
+import { normalizeRoot } from './fs-paths';
 import type { FsResult, PickedFile, RememberedFolder } from '../src/shared-logic/fs/fs-types';
+export { normalizeRoot, resolveInRoot, toPosixRelative } from './fs-paths';
 
 /**
  * Filesystem grants (Phase 8 Stage 2, extended in Phase 29 / Milestone 523). A path only becomes
@@ -17,13 +19,6 @@ let remembered: { path: string; name: string; addedAt: string }[] = [];
 let rememberedLoaded = false;
 const MAX_REMEMBERED = 50;
 
-/** Canonical key for a root: normalized, no trailing separator except on a drive root (`C:\`). */
-export function normalizeRoot(path: string): string {
-  let value = normalize(path);
-  while (value.length > 1 && value.endsWith(sep) && !/^[A-Za-z]:\\$/.test(value) && value !== sep) value = value.slice(0, -1);
-  return value;
-}
-
 export function grantPath(path: string): string {
   const key = normalizeRoot(path);
   granted.add(key);
@@ -34,16 +29,6 @@ export function isRootGranted(rootPath: unknown): rootPath is string {
   return typeof rootPath === 'string' && granted.has(normalizeRoot(rootPath));
 }
 
-/** Resolves a root-relative path, refusing anything that escapes the root (`..`, absolute input). */
-export function resolveInRoot(root: string, relativePath: string): string | null {
-  const base = normalizeRoot(root);
-  if (typeof relativePath !== 'string' || isAbsolute(relativePath) || /^[A-Za-z]:/.test(relativePath)) return null;
-  const resolved = normalize(join(base, relativePath));
-  const prefix = base.endsWith(sep) ? base : base + sep;
-  if (resolved !== base && !resolved.toLowerCase().startsWith(prefix.toLowerCase())) return null;
-  return resolved;
-}
-
 /** Whether an absolute path lies inside (or is) one of the granted roots. */
 export function isInsideGrantedRoot(absolute: string): boolean {
   const target = normalizeRoot(absolute).toLowerCase();
@@ -52,12 +37,6 @@ export function isInsideGrantedRoot(absolute: string): boolean {
     if (target === key || target.startsWith(key.endsWith(sep) ? key : key + sep)) return true;
   }
   return false;
-}
-
-export function toPosixRelative(root: string, absolute: string): string {
-  const base = normalizeRoot(root);
-  const prefix = base.endsWith(sep) ? base : base + sep;
-  return absolute.length > prefix.length ? absolute.slice(prefix.length).split(sep).join('/') : '';
 }
 
 // ---- Remembered folders ----

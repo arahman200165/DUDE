@@ -5,3 +5,4 @@
  */
 import './fs-job-walk';
 import './fs-job-size';
+import './fs-job-hash';

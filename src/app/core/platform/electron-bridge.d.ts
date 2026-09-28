@@ -1,3 +1,4 @@
+import type { SnapshotDiff, SnapshotHeader } from '../../../shared-logic/fs/snapshot-diff';
 import type { ApplyResult, FsJobEvent, FsJobRequest, FsResult, JournalEntry, MutationSettings, PickedFile, PlanPreview, RememberedFolder } from '../../../shared-logic/fs/fs-types';
 import type { NetworkRequest, NetworkJobEvent, NetworkStartResult, NetworkPrepareResult, WatchEntry, WatchSettings, WatchState, WatchResult } from './network-types';
 export interface NativeStat {
@@ -80,6 +81,13 @@ export interface DudeElectronBridge {
     start(request: FsJobRequest): Promise<FsResult<{ jobId: string }>>;
     cancel(jobId: string): Promise<boolean>;
     onEvent(callback: (event: FsJobEvent) => void): () => void;
+  };
+  readonly fsSnapshots: {
+    list(): Promise<FsResult<{ value: readonly SnapshotHeader[] }>>;
+    export(id: string): Promise<FsResult<{ value: string }>>;
+    import(json: string): Promise<FsResult<{ value: SnapshotHeader }>>;
+    delete(id: string): Promise<FsResult<{ value: void }>>;
+    compare(baseId: string, compareId: string): Promise<FsResult<{ value: SnapshotDiff }>>;
   };
   readonly fsMutation: {
     planTrash(root: string, paths: readonly string[], tool: string, title: string): Promise<FsResult<{ value: PlanPreview }>>;

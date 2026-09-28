@@ -81,6 +81,13 @@ const bridge: DudeElectronBridge = {
       return () => ipcRenderer.removeListener('dude:fsjob:event', listener);
     },
   },
+  fsSnapshots: {
+    list: () => ipcRenderer.invoke('dude:fssnap:list'),
+    export: (id) => ipcRenderer.invoke('dude:fssnap:export', id),
+    import: (json) => ipcRenderer.invoke('dude:fssnap:import', json),
+    delete: (id) => ipcRenderer.invoke('dude:fssnap:delete', id),
+    compare: (baseId, compareId) => ipcRenderer.invoke('dude:fssnap:compare', baseId, compareId),
+  },
   fsMutation: {
     planTrash: (root, paths, tool, title) => ipcRenderer.invoke('dude:fsmut:planTrash', root, paths, tool, title),
     planWriteText: (root, relativePath, text, tool) => ipcRenderer.invoke('dude:fsmut:planWriteText', root, relativePath, text, tool),

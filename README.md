@@ -86,6 +86,7 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Native filesystem access | Desktop-only feature | scans real folders and drives in the desktop fs worker |
 | [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Native filesystem write | Desktop-only feature | moves selected items to the Recycle Bin through a previewed, journaled plan |
 | [Git Repo Browser](https://arahman200165.github.io/DUDE/tools/git-diff) | Native filesystem access | Works — weaker browser fallback | reads a real .git directory on disk, no upload/zip step |
+| [Hash Manifest & Snapshot](https://arahman200165.github.io/DUDE/tools/hash-manifest) | Native filesystem access | Desktop-only feature | streams and hashes whole folders in the desktop fs worker |
 | [Hostname Resolver](https://arahman200165.github.io/DUDE/tools/hostname-resolver) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [HTTPS Configuration Analyzer](https://arahman200165.github.io/DUDE/tools/https-config-analyzer) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Continuous Ping / Latency Graph](https://arahman200165.github.io/DUDE/tools/latency-monitor) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
@@ -122,7 +123,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-306 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+307 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -235,6 +236,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Certificate Transparency Lookup](https://arahman200165.github.io/DUDE/tools/ct-lookup) | Security | Decode a certificate's embedded SCTs and name each CT log from a bundled list, and search a domain's certificate history on crt.sh. |
 | [File Hash Generator](https://arahman200165.github.io/DUDE/tools/file-hash) | Security | MD5, SHA-1, SHA-256, SHA-384, and SHA-512 digests for a local file. |
 | [Hash Generator](https://arahman200165.github.io/DUDE/tools/hash) | Security | MD5, SHA-1, SHA-256, SHA-384, and SHA-512 digests for text. |
+| [Hash Manifest & Snapshot](https://arahman200165.github.io/DUDE/tools/hash-manifest) | Security | Bulk-hash a folder into sha256sum / BSD-tag / JSON / CSV manifests with a Merkle directory hash, verify manifests, and snapshot folders to diff later or against a live rescan. |
 | [HMAC Generator](https://arahman200165.github.io/DUDE/tools/hmac-generator) | Security | HMAC-SHA1, HMAC-SHA256, HMAC-SHA384, and HMAC-SHA512 message authentication codes with a custom key. |
 | [HTTPS Configuration Analyzer](https://arahman200165.github.io/DUDE/tools/https-config-analyzer) | Security | One composite HTTPS check: TLS versions and ciphers, chain and hostname, expiry, OCSP stapling, HTTP→HTTPS redirect, HSTS, CAA, and HTTPS/SVCB — as pass/warn/fail findings, with no letter grade. |
 | [JWKS → Public Keys](https://arahman200165.github.io/DUDE/tools/jwks-to-pem) | Security | Converts JWKS keys to PEM (SPKI) or raw JWK for use outside the browser. |

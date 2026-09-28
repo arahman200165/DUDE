@@ -1,0 +1,156 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning/40 bg-warning/5 p-4 text-ui text-text-muted">
+      Hash Manifest &amp; Snapshot hashes whole folders on disk (sha256sum-compatible manifests, a Merkle directory hash, verification, and snapshot diffs). It needs the Windows desktop app; for a single file, use File Hash.
+    </div>
+    <app-desktop-only-control capability="native-fs" label="Hash a folder" />
+  } @else {
+    <div class="flex flex-col gap-3 text-ui">
+      <div class="flex gap-1" role="tablist">
+        @for (item of [{ id: 'manifest', label: 'Manifest & directory hash' }, { id: 'verify', label: 'Verify' }, { id: 'snapshots', label: 'Snapshots' }]; track item.id) {
+          <button type="button" role="tab" class="rounded-sm border px-2 py-0.5" [class]="tab() === item.id ? 'border-accent text-accent' : 'border-border text-text-muted'" [attr.aria-selected]="tab() === item.id" (click)="tab.set($any(item.id))">{{ item.label }}</button>
+        }
+      </div>
+      <app-fs-root-picker [(root)]="root" />
+      <app-walk-options [(options)]="options" />
+      @if (error()) { <div role="alert" class="text-error">{{ error() }}</div> }
+
+      @switch (tab()) {
+        @case ('manifest') {
+          <div class="flex flex-wrap gap-x-3 gap-y-1 rounded-sm border border-border bg-panel p-2">
+            @for (algorithm of algorithmsList; track algorithm) {
+              <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="algorithms().includes(algorithm)" (change)="toggleAlgorithm(algorithm, $event)" /> {{ algorithm }}</label>
+            }
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" class="rounded-sm border border-accent px-3 py-1 text-accent disabled:opacity-50" data-testid="fs-scan" [disabled]="!root() || !algorithms().length" (click)="generate()">Hash folder</button>
+            <app-scan-progress [job]="manifestJob()" />
+          </div>
+          @if (manifest(); as result) {
+            <div class="rounded-sm border border-border bg-panel p-2">
+              <div class="flex flex-wrap items-baseline gap-2"><span class="text-text-muted">Directory hash</span>
+                @if (result.directoryHash) { <span class="break-all font-mono text-text" data-testid="directory-hash">{{ result.directoryHash }}</span> <app-copy-button [text]="result.directoryHash" /> }
+                @else { <span class="text-warning">not computed — {{ result.failed }} file(s) could not be read</span> }
+              </div>
+              <p class="mt-1 text-ui-xs text-text-muted">{{ merkleDescription }}</p>
+              <p class="text-ui-xs text-text-muted">{{ result.files.toLocaleString() }} files, {{ result.dirs.toLocaleString() }} folders, {{ bytes(result.bytes) }}.</p>
+              <details class="mt-1">
+                <summary class="cursor-pointer text-ui-xs text-text-muted">Per-folder subtree hashes (compare two trees top-down)</summary>
+                <input class="my-1 w-full rounded-sm border border-border bg-panel px-2 py-0.5 text-text" placeholder="Filter folders" [value]="folderFilter()" (input)="folderFilter.set($any($event.target).value)" />
+                <ul class="max-h-60 overflow-auto font-mono text-ui-xs">@for (pair of folderHashes(); track pair[0]) { <li><span class="text-text-muted">{{ pair[1].slice(0, 16) }}…</span> {{ pair[0] || '(root)' }}</li> }</ul>
+              </details>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <label class="flex items-center gap-1 text-text-muted">Format
+                <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="format()" (change)="format.set($any($event.target).value)">
+                  <option value="gnu">GNU (sha256sum -c)</option><option value="bsd">BSD tag</option><option value="json">JSON</option><option value="csv">CSV</option>
+                </select>
+              </label>
+              @if (format() === 'gnu') {
+                <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="gnuAlgorithm()" (change)="gnuAlgorithm.set($any($event.target).value)" aria-label="Algorithm for the GNU manifest">
+                  @for (algorithm of result.algorithms; track algorithm) { <option [value]="algorithm">{{ algorithm }}</option> }
+                </select>
+              }
+              <app-copy-button [text]="output()" />
+              <app-save-text-file [text]="output()" [fileName]="outputName()" />
+            </div>
+            <cdk-virtual-scroll-viewport itemSize="22" class="h-80 rounded-sm border border-border font-mono text-ui-xs">
+              <div *cdkVirtualFor="let entry of entries(); trackBy: trackEntry" class="flex h-[22px] items-center gap-3 px-2">
+                <span class="min-w-0 flex-1 truncate text-text" [title]="entry.path">{{ entry.path }}</span>
+                <span class="w-20 shrink-0 text-right text-text-muted">{{ bytes(entry.size) }}</span>
+                <span class="max-w-[50%] shrink-0 truncate text-text-muted" [title]="digestsOf(entry)">{{ digestsOf(entry) }}</span>
+              </div>
+            </cdk-virtual-scroll-viewport>
+          }
+        }
+        @case ('verify') {
+          <div class="flex flex-col gap-2">
+            <textarea class="h-40 rounded-sm border border-border bg-panel p-2 font-mono text-ui-xs text-text" placeholder="Paste a sha256sum / md5sum / BSD-tag / DUDE JSON or CSV manifest" [value]="verifyText()" (input)="verifyText.set($any($event.target).value)" aria-label="Manifest to verify"></textarea>
+            <div class="flex flex-wrap items-center gap-3">
+              <label class="rounded-sm border border-border px-2 py-1 text-text">Load manifest file<input type="file" class="hidden" (change)="loadManifestFile($event)" /></label>
+              <label class="flex items-center gap-1 text-text-muted">Algorithm
+                <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="verifyAlgorithm()" (change)="verifyAlgorithm.set($any($event.target).value)">
+                  <option value="">Auto (tag / digest length)</option>@for (algorithm of algorithmsList; track algorithm) { <option [value]="algorithm">{{ algorithm }}</option> }
+                </select>
+              </label>
+              <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="reportExtra()" (change)="reportExtra.set(checked($event))" /> Report files not in the manifest</label>
+              @if (parsed(); as manifestFile) { <span class="text-ui-xs text-text-muted">{{ manifestFile.entries.length.toLocaleString() }} line(s), {{ manifestFile.format.toUpperCase() }}@if (manifestFile.errors.length) { <span class="text-warning">, {{ manifestFile.errors.length }} unparseable</span> }</span> }
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" class="rounded-sm border border-accent px-3 py-1 text-accent disabled:opacity-50" [disabled]="!root() || !parsed()?.entries?.length" (click)="verify()">Verify against folder</button>
+              <app-scan-progress [job]="verifyJob()" />
+            </div>
+            @if (verifyCounts(); as counts) {
+              <div class="flex flex-wrap items-center gap-3" role="status">
+                <span class="text-success">{{ counts.ok }} OK</span><span [class]="counts.mismatch ? 'text-error' : 'text-text-muted'">{{ counts.mismatch }} mismatch</span>
+                <span [class]="counts.missing ? 'text-warning' : 'text-text-muted'">{{ counts.missing }} missing</span><span class="text-text-muted">{{ counts.extra }} not listed · {{ counts.error + counts.unsupported }} error</span>
+                <select class="ml-auto rounded-sm border border-border bg-panel px-2 py-0.5 text-text" [value]="verifyFilter()" (change)="verifyFilter.set($any($event.target).value)" aria-label="Show">
+                  <option value="problems">Problems only</option><option value="all">All</option><option value="mismatch">Mismatch</option><option value="missing">Missing</option><option value="extra">Not listed</option>
+                </select>
+              </div>
+              <ul class="max-h-80 overflow-auto font-mono text-ui-xs">
+                @for (item of shownVerify().slice(0, 5000); track $index) {
+                  <li [class]="item.status === 'ok' ? 'text-success' : item.status === 'mismatch' ? 'text-error' : 'text-warning'">{{ item.status.toUpperCase() }} {{ item.path }}@if (item.message) { — {{ item.message }} }@if (item.status === 'mismatch') { <span class="text-text-muted"> expected {{ item.expected?.slice(0, 16) }}… got {{ item.actual?.slice(0, 16) }}…</span> }</li>
+                }
+              </ul>
+            }
+          </div>
+        }
+        @case ('snapshots') {
+          <div class="flex flex-wrap items-end gap-2 rounded-sm border border-border bg-panel p-2">
+            <label class="flex flex-col gap-0.5 text-text-muted">Label<input class="w-48 rounded-sm border border-border bg-panel px-2 py-1 text-text" placeholder="before upgrade" [value]="snapshotLabel()" (input)="snapshotLabel.set($any($event.target).value)" /></label>
+            <label class="flex flex-col gap-0.5 text-text-muted">Content hash
+              <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="snapshotAlgorithm()" (change)="snapshotAlgorithm.set($any($event.target).value)">
+                <option value="">None (size + modified time only)</option><option value="SHA-256">SHA-256 (enables directory hash + move detection)</option><option value="XXH64">XXH64 (fast)</option><option value="BLAKE3">BLAKE3</option>
+              </select>
+            </label>
+            <button type="button" class="rounded-sm border border-accent px-3 py-1 text-accent disabled:opacity-50" [disabled]="!root()" (click)="takeSnapshot()">Take snapshot</button>
+            <label class="rounded-sm border border-border px-2 py-1 text-text">Import…<input type="file" accept=".json" class="hidden" (change)="importSnapshot($event)" /></label>
+            <app-scan-progress [job]="snapshotJob()" />
+          </div>
+          @if (library.snapshots().length) {
+            <table class="w-full border-collapse">
+              <thead><tr class="text-left text-text-muted"><th class="px-2 py-1">Base</th><th class="px-2 py-1">Snapshot</th><th class="px-2 py-1">Folder</th><th class="px-2 py-1">Contents</th><th class="px-2 py-1"></th></tr></thead>
+              <tbody>
+                @for (snapshot of library.snapshots(); track snapshot.id) {
+                  <tr class="border-t border-border/50 align-top">
+                    <td class="px-2 py-1"><input type="radio" name="base" [checked]="baseId() === snapshot.id" (change)="baseId.set(snapshot.id)" [attr.aria-label]="'Use ' + snapshot.label + ' as base'" /></td>
+                    <td class="px-2 py-1"><div class="text-text">{{ snapshot.label }}</div><div class="font-mono text-ui-xs text-text-muted">{{ snapshot.takenAt.slice(0, 16).replace('T', ' ') }}</div></td>
+                    <td class="px-2 py-1 font-mono text-ui-xs text-text-muted">{{ snapshot.root }}</td>
+                    <td class="px-2 py-1 text-ui-xs text-text-muted">{{ snapshot.files.toLocaleString() }} files · {{ bytes(snapshot.bytes) }} · {{ snapshot.algorithm ?? 'no hash' }}@if (snapshot.directoryHash) { <div class="font-mono" [title]="snapshot.directoryHash">{{ snapshot.directoryHash.slice(0, 16) }}…</div> }</td>
+                    <td class="px-2 py-1 text-right">
+                      <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="exportSnapshot(snapshot)">Export</button>
+                      @if (deleting() !== snapshot.id) { <button type="button" class="ml-1 rounded-sm border border-border px-2 py-0.5 text-text" (click)="deleting.set(snapshot.id)">Delete…</button> }
+                      @else { <button type="button" class="ml-1 rounded-sm border border-error px-2 py-0.5 text-error" (click)="deleteSnapshot(snapshot.id)">Delete snapshot</button> }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-text-muted">Compare base with</span>
+              <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="compareId()" (change)="compareId.set($any($event.target).value)" aria-label="Compare with">
+                <option value="live">A live rescan of its folder</option>
+                @for (snapshot of library.snapshots(); track snapshot.id) { @if (snapshot.id !== baseId()) { <option [value]="snapshot.id">{{ snapshot.label }} ({{ snapshot.takenAt.slice(0, 10) }})</option> } }
+              </select>
+              <button type="button" class="rounded-sm border border-accent px-3 py-1 text-accent disabled:opacity-50" [disabled]="!baseSnapshot()" (click)="compare()">Diff</button>
+              <app-scan-progress [job]="diffJob()" />
+            </div>
+            @if (compareId() === 'live' && baseSnapshot(); as base) { <p class="text-ui-xs text-text-muted">A live rescan reads {{ base.root }} — pick (or remember) that folder first if DUDE was restarted since the snapshot. Only files whose timestamps moved are re-hashed.</p> }
+            @if (diffCounts(); as counts) {
+              <div class="flex flex-wrap items-center gap-3" role="status">
+                @for (change of changes; track change) { <button type="button" class="rounded-sm border px-2 py-0.5" [class]="diffFilter() === change ? 'border-accent text-accent' : 'border-border text-text-muted'" (click)="diffFilter.set(diffFilter() === change ? 'all' : change)">{{ counts[change] }} {{ change }}</button> }
+                <span class="text-text-muted">{{ counts.unchanged.toLocaleString() }} unchanged · {{ diffDirs().added.length }} folder(s) added · {{ diffDirs().removed.length }} removed</span>
+              </div>
+              <ul class="max-h-80 overflow-auto font-mono text-ui-xs">
+                @for (item of shownDiff().slice(0, 5000); track $index) {
+                  <li [class]="item.change === 'added' ? 'text-success' : item.change === 'removed' ? 'text-error' : 'text-warning'">{{ item.change.toUpperCase() }} {{ item.from ? item.from + ' → ' : '' }}{{ item.path }}@if (item.before && item.after && item.change === 'modified') { <span class="text-text-muted"> {{ bytes(item.before.size) }} → {{ bytes(item.after.size) }}</span> }</li>
+                }
+              </ul>
+            }
+          } @else { <p class="text-text-muted">No snapshots yet. Take one to record this folder's files (and optionally their hashes), then diff later snapshots or a live rescan against it.</p> }
+        }
+      }
+    </div>
+  }
+</app-tool-shell>

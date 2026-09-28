@@ -121,6 +121,7 @@ import { manifest as gitignoreGeneratorManifest } from '../../tools/gitignore-ge
 import { manifest as gitignoreTesterManifest } from '../../tools/gitignore-tester/gitignore-tester.manifest';
 import { manifest as globTesterManifest } from '../../tools/glob-tester/glob-tester.manifest';
 import { manifest as gradientGeneratorManifest } from '../../tools/gradient-generator/gradient-generator.manifest';
+import { manifest as hashManifestManifest } from '../../tools/hash-manifest/hash-manifest.manifest';
 import { manifest as hashManifest } from '../../tools/hash/hash.manifest';
 import { manifest as hexDiffManifest } from '../../tools/hex-diff/hex-diff.manifest';
 import { manifest as hexDumpManifest } from '../../tools/hex-dump/hex-dump.manifest';
@@ -429,6 +430,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   gitignoreTesterManifest,
   globTesterManifest,
   gradientGeneratorManifest,
+  hashManifestManifest,
   hashManifest,
   hexDiffManifest,
   hexDumpManifest,

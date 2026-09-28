@@ -18,6 +18,8 @@ export interface FsJobContext {
   readonly signal: AbortSignal;
   /** Plan builders stage new file content here; the main process validates and applies it. */
   readonly stagingDir: string;
+  /** DUDE's app-data folder (snapshot library, watch timelines) — never the user's folder. */
+  readonly userData: string;
   readonly attributes: AttributeReader | null;
   progress(progress: FsJobProgress): void;
   batch(item: unknown): void;
@@ -72,6 +74,7 @@ export async function runFsJob(
     params,
     signal,
     stagingDir: join(runtime.userData, 'fs-staging'),
+    userData: runtime.userData,
     attributes: attributeReader(runtime.attributeHelper),
     progress(progress) {
       const now = Date.now();
