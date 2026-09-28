@@ -1,15 +1,15 @@
 <div class="flex flex-col gap-4">
   <p class="text-ui text-text-muted">
     DUDE keeps everything on this device — tool inputs you opted to save, preferences, workspaces, pipelines, history, and
-    usage stats. Nothing is sent anywhere unless a tool you use makes a network request.
+    usage stats, and your Home note and links. Nothing is sent anywhere unless a tool you use makes a network request.
   </p>
 
   <div data-setting class="flex flex-col gap-2">
     <h3 class="text-ui-sm font-semibold text-text">Export / import bundle</h3>
     <p class="text-ui text-text-muted">
-      A JSON backup of your projects, workspace templates, pipelines, scripts, and tool preferences. Use it to keep a copy
+      A JSON backup of your projects, workspace templates, pipelines, scripts, tool preferences, and your Home note and links. Use it to keep a copy
       (browsers can clear site data) or to move your setup between the web companion and Desktop DUDE. Consent choices, History,
-      and secrets are never included.
+      usage stats, and secrets are never included.
     </p>
     <label class="flex items-center gap-2 text-ui text-text">
       <input type="checkbox" class="accent-accent" [checked]="includeInputs()" (change)="includeInputs.set($any($event.target).checked)" />
@@ -33,6 +33,9 @@
           <li>{{ plan.workspaceTemplates.items.length }} workspace template(s)</li>
           <li>{{ plan.pipelines.items.length }} pipeline(s)</li>
           <li>{{ plan.userScripts.items.length }} script(s)</li>
+          @if (plan.homePanel.items.length) {
+            <li>your Home note and links</li>
+          }
           <li>preferences for {{ toolCount(plan.toolPreferences) }} tool(s)</li>
           @if (toolCount(plan.toolInputs)) {
             <li>inputs for {{ toolCount(plan.toolInputs) }} tool(s)</li>
@@ -69,7 +72,7 @@
   <div data-setting class="flex flex-col gap-2 rounded-sm border border-error/40 p-3">
     <h3 class="text-ui-sm font-semibold text-error">Danger zone</h3>
     <p class="text-ui text-text-muted">
-      Deletes every saved preference, workspace, pipeline, and History entry from this browser/app profile. This cannot be undone.
+      Deletes every saved preference, workspace, pipeline, Home note, and History entry from this browser/app profile. This cannot be undone.
       Secrets kept in the OS keychain (the AI provider key) are cleared separately under AI / LLM Provider.
     </p>
     <div class="flex items-center gap-3">

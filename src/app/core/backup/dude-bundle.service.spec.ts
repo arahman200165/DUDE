@@ -6,6 +6,8 @@ import { UserScriptStoreService } from '../pipeline/user-script-store.service';
 import { createPipeline, createUserScript } from '../pipeline/pipeline.model';
 import { readStorageValue, writeStorageValue } from '../workspace/workspace-storage-bridge';
 import { BUNDLE_FORMAT } from './dude-bundle.model';
+import { HomePanelService } from '../home-panel/home-panel.service';
+import { UsageService } from '../usage/usage.service';
 
 describe('DudeBundleService', () => {
   beforeEach(() => {
@@ -96,5 +98,102 @@ describe('DudeBundleService', () => {
 
     scripts.markReviewed(id);
     expect(scripts.getById(id)?.imported).toBeUndefined();
+  });
+
+  describe('Home note and links (Phase 30H.6)', () => {
+    const emptyBundle = {
+      format: BUNDLE_FORMAT,
+      schemaVersion: 1,
+      exportedAt: '',
+      projects: [],
+      workspaceTemplates: [],
+      pipelines: [],
+      userScripts: [],
+      toolPreferences: {},
+    };
+
+    it('exports the panel only when it has content, and never exports usage stats alongside it', () => {
+      const service = TestBed.inject(DudeBundleService);
+      const panel = TestBed.inject(HomePanelService);
+      TestBed.inject(UsageService).recordOpen('base64');
+
+      expect(service.build({ includeInputs: false }).homePanel).toBeUndefined();
+
+      panel.setNote('my note');
+      panel.addLink('Docs', 'https://example.com');
+      const bundle = service.build({ includeInputs: false });
+
+      expect(bundle.homePanel?.note).toBe('my note');
+      expect(bundle.homePanel?.links.map((l) => l.url)).toEqual(['https://example.com/']);
+      expect(JSON.stringify(bundle)).not.toContain('dailyBuckets');
+      expect(JSON.stringify(bundle)).not.toContain('recentLog');
+    });
+
+    it('round-trips through export, parse, preview and apply', () => {
+      const service = TestBed.inject(DudeBundleService);
+      const panel = TestBed.inject(HomePanelService);
+      panel.setNote('carry me');
+      panel.addLink('Docs', 'https://example.com');
+      const text = JSON.stringify(service.build({ includeInputs: false }));
+
+      localStorage.clear();
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({});
+      const target = TestBed.inject(DudeBundleService);
+      const preview = target.preview(text, 'skip');
+      expect(preview.ok && preview.plan.homePanel.added).toBe(1);
+      if (preview.ok) target.apply(preview.plan);
+
+      const restored = TestBed.inject(HomePanelService);
+      expect(restored.note()).toBe('carry me');
+      expect(restored.links().map((l) => l.url)).toEqual(['https://example.com/']);
+    });
+
+    it('never imports an unsafe link from a hand-edited bundle', () => {
+      const service = TestBed.inject(DudeBundleService);
+      const tampered = {
+        ...emptyBundle,
+        homePanel: {
+          note: 'n',
+          links: [
+            { id: 'a', label: 'x', url: 'javascript:alert(document.cookie)' },
+            { id: 'b', label: 'y', url: 'data:text/html,<script>1</script>' },
+            { id: 'c', label: 'ok', url: 'https://ok.example.com' },
+          ],
+        },
+      };
+
+      const preview = service.preview(JSON.stringify(tampered), 'skip');
+      if (preview.ok) service.apply(preview.plan);
+
+      expect(TestBed.inject(HomePanelService).links().map((l) => l.url)).toEqual(['https://ok.example.com/']);
+    });
+
+    it('honors conflict modes against an existing panel', () => {
+      const service = TestBed.inject(DudeBundleService);
+      const panel = TestBed.inject(HomePanelService);
+      panel.setNote('mine');
+      panel.addLink('Mine', 'https://mine.example.com');
+      const incoming = JSON.stringify({ ...emptyBundle, homePanel: { note: 'theirs', links: [{ id: 'z', label: 'Theirs', url: 'https://theirs.example.com' }] } });
+
+      const skip = service.preview(incoming, 'skip');
+      expect(skip.ok && skip.plan.homePanel).toMatchObject({ skipped: 1, items: [] });
+
+      const keepBoth = service.preview(incoming, 'keep-both');
+      if (keepBoth.ok) service.apply(keepBoth.plan);
+      expect(panel.note()).toBe('mine');
+      expect(panel.links().map((l) => l.url)).toEqual(['https://mine.example.com/', 'https://theirs.example.com/']);
+
+      const replace = service.preview(incoming, 'replace');
+      expect(replace.ok && replace.plan.homePanel.replaced).toBe(1);
+      if (replace.ok) service.apply(replace.plan);
+      expect(panel.note()).toBe('theirs');
+      expect(panel.links()).toHaveLength(1);
+    });
+
+    it('plans nothing for a bundle without a panel (older bundles)', () => {
+      const preview = TestBed.inject(DudeBundleService).preview(JSON.stringify(emptyBundle), 'replace');
+      expect(preview.ok && preview.plan.homePanel).toEqual({ items: [], added: 0, replaced: 0, skipped: 0 });
+    });
   });
 });

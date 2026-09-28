@@ -3,6 +3,8 @@ import { ProjectService } from '../project/project.service';
 import { PipelineStoreService } from '../pipeline/pipeline-store.service';
 import { UserScriptStoreService } from '../pipeline/user-script-store.service';
 import { WorkspaceTemplateService } from '../workspace/workspace-template.service';
+import { HomePanelService } from '../home-panel/home-panel.service';
+import { sanitizeHomePanel } from '../home-panel/home-panel.model';
 import { ToolRegistryService } from '../registry/tool-registry.service';
 import { createStorageBackend } from '../persistence/storage-backend';
 import { buildStorageKey, buildToolPrefix } from '../persistence/persistence-keys';
@@ -30,6 +32,7 @@ export class DudeBundleService {
   private readonly pipelines = inject(PipelineStoreService);
   private readonly scripts = inject(UserScriptStoreService);
   private readonly templates = inject(WorkspaceTemplateService);
+  private readonly homePanel = inject(HomePanelService);
   private readonly registry = inject(ToolRegistryService);
   private readonly local = createStorageBackend('local');
 
@@ -65,6 +68,7 @@ export class DudeBundleService {
       userScripts: this.scripts.scripts(),
       toolPreferences,
       ...(options.includeInputs ? { toolInputs } : {}),
+      ...(this.homePanel.hasContent() ? { homePanel: this.homePanel.content() } : {}),
     };
   }
 
@@ -80,6 +84,8 @@ export class DudeBundleService {
     this.pipelines.importPipelines(plan.pipelines.items);
     this.projects.importProjects(plan.projects.items);
     this.templates.importUserTemplates(plan.workspaceTemplates.items);
+    // `importContent` re-sanitizes; the extra pass keeps `apply` from trusting a hand-built plan.
+    for (const content of plan.homePanel.items) this.homePanel.importContent(sanitizeHomePanel(content));
 
     for (const [toolId, keys] of Object.entries(plan.toolPreferences)) {
       const tool = this.registry.getById(toolId);
@@ -107,6 +113,7 @@ export class DudeBundleService {
       workspaceTemplates: new Set(this.templates.templates().map((template) => template.id)),
       pipelines: new Set(this.pipelines.pipelines().map((pipeline) => pipeline.id)),
       userScripts: new Set(this.scripts.scripts().map((script) => script.id)),
+      homePanel: this.homePanel.content(),
     };
   }
 }

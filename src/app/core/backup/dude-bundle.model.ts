@@ -1,6 +1,7 @@
 import { Project } from '../project/project.model';
 import { Pipeline, PipelineStepRef, UserScriptDefinition } from '../pipeline/pipeline.model';
 import { WorkspaceTemplate } from '../workspace/workspace-template.model';
+import { HomePanelContent, hasHomePanelContent, mergeHomePanel, sanitizeHomePanel } from '../home-panel/home-panel.model';
 
 /**
  * Browser-Safe Workspace Support (DUDE_PRD.md §21 Phase 26 Item 14): a portable JSON backup of what
@@ -27,6 +28,12 @@ export interface DudeBundle {
   readonly toolPreferences: Readonly<Record<string, Readonly<Record<string, string>>>>;
   /** Opt-in at export time. `toolId → its declared text input`. */
   readonly toolInputs?: Readonly<Record<string, string>>;
+  /**
+   * The user-authored Home note + links (Phase 30H.6) — the one Home store that is the user's own
+   * content, so unlike usage stats it is exported. Optional: absent when the panel is empty and in
+   * bundles written before it existed. Re-sanitized on parse and again on apply.
+   */
+  readonly homePanel?: HomePanelContent;
 }
 
 export type ConflictMode = 'skip' | 'replace' | 'keep-both';
@@ -36,6 +43,8 @@ export interface ExistingIds {
   readonly workspaceTemplates: ReadonlySet<string>;
   readonly pipelines: ReadonlySet<string>;
   readonly userScripts: ReadonlySet<string>;
+  /** The Home panel currently stored (treated as empty when omitted). */
+  readonly homePanel?: HomePanelContent;
 }
 
 export interface SectionPlan<T> {
@@ -50,6 +59,8 @@ export interface ImportPlan {
   readonly workspaceTemplates: SectionPlan<WorkspaceTemplate>;
   readonly pipelines: SectionPlan<Pipeline>;
   readonly userScripts: SectionPlan<UserScriptDefinition>;
+  /** At most one item: the Home panel to write, already merged per the conflict mode. */
+  readonly homePanel: SectionPlan<HomePanelContent>;
   readonly toolPreferences: DudeBundle['toolPreferences'];
   readonly toolInputs: Readonly<Record<string, string>>;
   /** Entries in the file that failed validation and will be ignored. */
@@ -149,6 +160,7 @@ export function parseBundle(text: string): ParseResult {
     userScripts: section(raw['userScripts'], isUserScript),
     toolPreferences,
     toolInputs: raw['toolInputs'] === undefined ? undefined : stringRecord(raw['toolInputs']),
+    homePanel: raw['homePanel'] === undefined ? undefined : sanitizeHomePanel(raw['homePanel']),
   };
   return { ok: true, invalid, bundle };
 }
@@ -190,6 +202,7 @@ export function planImport(bundle: DudeBundle, existing: ExistingIds, mode: Conf
   const pipelines = resolve(bundle.pipelines, existing.pipelines, renamed.pipelines);
   const projects = resolve(bundle.projects, existing.projects);
   const templates = resolve(bundle.workspaceTemplates, existing.workspaceTemplates);
+  const homePanel = planHomePanel(bundle.homePanel, existing.homePanel, mode);
 
   return {
     userScripts: { ...scripts, items: scripts.items.map((script) => ({ ...script, imported: true })) },
@@ -210,8 +223,18 @@ export function planImport(bundle: DudeBundle, existing: ExistingIds, mode: Conf
       })),
     },
     workspaceTemplates: templates,
+    homePanel,
     toolPreferences: bundle.toolPreferences,
     toolInputs: bundle.toolInputs ?? {},
     invalid: 0,
   };
+}
+
+function planHomePanel(incoming: HomePanelContent | undefined, existing: HomePanelContent | undefined, mode: ConflictMode): SectionPlan<HomePanelContent> {
+  const none = { items: [], added: 0, replaced: 0, skipped: 0 };
+  if (!incoming || !hasHomePanelContent(incoming)) return none;
+  if (!existing || !hasHomePanelContent(existing)) return { ...none, items: [incoming], added: 1 };
+  if (mode === 'skip') return { ...none, skipped: 1 };
+  const merged = mergeHomePanel(existing, incoming, mode);
+  return mode === 'replace' ? { ...none, items: [merged], replaced: 1 } : { ...none, items: [merged], added: 1 };
 }

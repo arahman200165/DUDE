@@ -2783,11 +2783,19 @@ User-authored text and links in Home panels are intentionally persisted local co
 
 #### Exit criteria
 
-- [ ] Default Home offers a useful local usage trend, category ranking, and at least one dense table/list.
-- [ ] UsageService stores bounded 30-day daily-open buckets and tracking start without a second recorder; incomplete periods are labeled.
-- [ ] Home Recent Activity displays only events with real timestamps; open workspace tabs are not shown as new activity.
-- [ ] No second analytics/usage recorder exists solely for the dashboard.
-- [ ] No user payload/content is recorded to produce dashboard charts.
+- [x] Default Home offers a useful local usage trend, category ranking, and at least one dense table/list — a deferred compact `app-insights-section` (summary strip, 7-day bar trend, category ranking with a Lifetime / 7-day toggle, Top Tools and Recent Activity tables on `app-data-table`).
+- [x] UsageService stores bounded 30-day daily-open buckets and tracking start without a second recorder; incomplete periods are labeled — `UsageStore` v2 (`dailyBuckets` + `trackingStartedOn`), migrated in place from v1 with no backfill; the trend total, unique-tools count and category 7-day view all use the same tracked days and say "partial period, tracked since …" until 7 full days have elapsed.
+- [x] Home Recent Activity displays only events with real timestamps; open workspace tabs are not shown as new activity — fed by `UnifiedRecentsService.activityEntries`, which excludes `workspace-tab` before the 50-entry cap.
+- [x] No second analytics/usage recorder exists solely for the dashboard.
+- [x] No user payload/content is recorded to produce dashboard charts — the Phase 24 privacy audit now checks the bucket key allow-list and value shapes (dates, integer counts, registry tool ids, ≤ 30 buckets) and that panel text never reaches the usage store.
+
+Shipped as Milestones 558–561. Decisions and additions beyond the bullet list above:
+
+- **Buckets carry per-tool counts** (`{date, opens, perTool}`, tool ids and integers only) so unique tools and a time-bounded category view are derivable from a complete source; pruned to a rolling 30 local days on every write; usage stays out of the backup bundle.
+- **Local calendar days** come from `core/usage/local-day.ts` (DST-safe calendar arithmetic); the earlier UTC `bucketOpensByDay` was removed.
+- **`/insights`** is shell exception #10 (route, sidebar link, palette "Go to" entry); Home renders the same `InsightsSection` in compact mode (5-row slices), `/insights` in full (15 top tools, 50 recent rows). New `BarChart` primitive (focusable per-day text cells + hover/focus detail, no tooltip or animation) backs the trend.
+- **Notes & links panel** (`core/home-panel/`, the minimal user-authored content 30H.6 refers to; the full Home layout builder remains 30I): one plain-text note (≤ 2,000 chars) and ≤ 10 http/https links, stored under `'__home__'`, included in Clear All and in the backup bundle (`homePanel` section with skip/replace/keep-both semantics and re-sanitization on parse and apply). The editor states the storage behavior. Desktop DUDE denies window opens, so on desktop saved links show as text with a copy button rather than an anchor; wiring an external-open bridge is a separate main/preload change.
+- The initial-bundle error budget was raised from 1 MB to 1.1 MB up front as a precaution; the deferred section kept the initial total at ~998 kB, so the extra headroom was not needed.
 
 ### Phase 30I — User-Designed Home
 
