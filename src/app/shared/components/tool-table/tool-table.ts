@@ -7,7 +7,7 @@ import { CategoryIcon } from '../category-icon/category-icon';
 import { OfflineAvailability } from '../offline-badge/offline-availability.directive';
 import { DesktopCapabilityBadge } from '../desktop-capability-badge/desktop-capability-badge';
 import { FavoritesService } from '../../../core/favorites/favorites.service';
-import { platformCapabilities, runtimeCapabilities, PLATFORM_CAPABILITIES, RUNTIMES } from '../../../core/platform/capability-catalog';
+import { toolCapabilitySummary, toolStatusClass, toolStatusLabel } from '../../utils/tool-status';
 
 /** Fixed row height (px) the `cdk-virtual-scroll-viewport` below sizes itself against. */
 const ROW_HEIGHT = 28;
@@ -49,28 +49,7 @@ export class ToolTable {
     this.favorites.toggleTool(id);
   }
 
-  protected statusLabel(status: ToolDefinition['status']): string {
-    return status ?? 'unstated';
-  }
-
-  protected statusClass(status: ToolDefinition['status']): string {
-    switch (status) {
-      case 'verified':
-        return 'border-accent/40 bg-accent/10 text-accent';
-      case 'stable':
-        return 'border-border text-text-muted';
-      case 'experimental':
-        return 'border-warning/40 bg-warning/10 text-warning';
-      default:
-        return 'border-border text-text-muted/60';
-    }
-  }
-
-  protected capabilitySummary(tool: ToolDefinition): string {
-    const labels = [
-      ...platformCapabilities(tool.capabilities).map((c) => PLATFORM_CAPABILITIES[c.id].label),
-      ...runtimeCapabilities(tool.capabilities).map((r) => RUNTIMES[r].label),
-    ];
-    return labels.length ? labels.join(', ') : '—';
-  }
+  protected readonly statusLabel = toolStatusLabel;
+  protected readonly statusClass = toolStatusClass;
+  protected readonly capabilitySummary = toolCapabilitySummary;
 }

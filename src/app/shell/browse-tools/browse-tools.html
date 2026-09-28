@@ -38,11 +38,38 @@
         </button>
       }
     </div>
+
+    <div class="ml-auto flex items-center gap-1" role="radiogroup" aria-label="View mode">
+      <button
+        type="button"
+        role="radio"
+        [attr.aria-checked]="viewMode() === 'table'"
+        class="rounded-sm border px-1.5 py-0.5 text-ui-xs"
+        [class]="viewMode() === 'table' ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border text-text-muted hover:text-text'"
+        (click)="viewMode.set('table')"
+      >
+        Table
+      </button>
+      <button
+        type="button"
+        role="radio"
+        [attr.aria-checked]="viewMode() === 'grid'"
+        class="rounded-sm border px-1.5 py-0.5 text-ui-xs"
+        [class]="viewMode() === 'grid' ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border text-text-muted hover:text-text'"
+        (click)="viewMode.set('grid')"
+      >
+        Grid
+      </button>
+    </div>
   </div>
 
   <div class="min-h-0 flex-1">
     @if (filtered().length) {
-      <app-tool-table [rows]="filtered()" />
+      @if (viewMode() === 'grid') {
+        <app-tool-grid [rows]="filtered()" />
+      } @else {
+        <app-tool-table [rows]="filtered()" />
+      }
     } @else {
       <p class="text-xs text-text-muted">No tools match "{{ query() }}".</p>
     }

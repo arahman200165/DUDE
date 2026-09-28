@@ -1,0 +1,46 @@
+<cdk-virtual-scroll-viewport [itemSize]="rowHeight" class="h-full">
+  <div
+    *cdkVirtualFor="let row of chunkedRows(); trackBy: trackByRowIndex"
+    [style.height.px]="rowHeight"
+    class="grid gap-2 px-0.5 pb-2"
+    [style.grid-template-columns]="'repeat(' + columns() + ', minmax(0, 1fr))'"
+  >
+    @for (tool of row; track tool.id) {
+      <a
+        [routerLink]="tool.route"
+        [appOfflineAvailability]="tool.id"
+        (click)="toolOpened.emit(tool.id)"
+        class="flex min-w-0 flex-col gap-1 rounded-sm border p-1.5 text-xs hover:bg-panel-elevated"
+        [class]="'border-' + meta[tool.category].colorToken + '/40 bg-' + meta[tool.category].colorToken + '-wash'"
+      >
+        <div class="flex min-w-0 items-start justify-between gap-1">
+          <div class="flex min-w-0 items-center gap-1.5">
+            <app-category-icon [category]="tool.category" class="h-3.5 w-3.5 shrink-0" [class]="'text-' + meta[tool.category].colorToken" />
+            <span class="truncate font-medium" [class]="'text-' + meta[tool.category].colorToken + '-tint'">{{ tool.title }}</span>
+          </div>
+          <button
+            type="button"
+            class="shrink-0 text-text-muted hover:text-accent"
+            [class.text-accent]="isFavorite(tool.id)"
+            [attr.aria-pressed]="isFavorite(tool.id)"
+            [attr.aria-label]="(isFavorite(tool.id) ? 'Unfavorite ' : 'Favorite ') + tool.title"
+            (click)="toggleFavorite(tool.id, $event)"
+          >
+            {{ isFavorite(tool.id) ? '★' : '☆' }}
+          </button>
+        </div>
+
+        @if (tool.description) {
+          <p class="truncate text-ui-xs text-text-muted">{{ tool.description }}</p>
+        }
+
+        <div class="mt-auto flex items-center gap-1.5">
+          <span class="inline-flex items-center rounded-sm border px-1 py-0.5 text-ui-xs" [class]="statusClass(tool.status)">
+            {{ statusLabel(tool.status) }}
+          </span>
+          <app-desktop-capability-badge [definition]="tool" />
+        </div>
+      </a>
+    }
+  </div>
+</cdk-virtual-scroll-viewport>
