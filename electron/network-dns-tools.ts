@@ -47,7 +47,7 @@ export async function runResolverComparison(request: NetworkRequest, signal: Abo
     let entry: Record<string, unknown>;
     try {
       const lookup = await queryDns({ ...request, kind: 'dns-lookup', resolver: spec.server, resolverTransport: spec.transport }, signal);
-      entry = { label: spec.label, transport: spec.transport, ...lookup };
+      entry = { label: spec.label, ...lookup };
     } catch (error) { entry = { label: spec.label, transport: spec.transport, server: spec.server, error: error instanceof Error ? error.message : String(error) }; }
     results[index] = entry;
     progress(++completed, specs.length, entry);

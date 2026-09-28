@@ -1,0 +1,108 @@
+<app-network-workbench kind="email-auth" [customForm]="true" [buildRequest]="build" [resultTemplate]="resultView" runLabel="Inspect">
+  <div workbenchForm class="flex flex-col gap-3">
+    <label class="flex flex-col gap-1 text-text-muted">Domain
+      <input class="rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="domain()" (input)="text('domain', $event)" placeholder="example.com" />
+    </label>
+    <div class="flex flex-wrap items-center gap-4 text-text-muted">
+      <label><input type="checkbox" [checked]="checks().includes('spf')" (change)="toggleCheck('spf', $event)" /> SPF</label>
+      <label><input type="checkbox" [checked]="checks().includes('dkim')" (change)="toggleCheck('dkim', $event)" /> DKIM</label>
+      <label><input type="checkbox" [checked]="checks().includes('dmarc')" (change)="toggleCheck('dmarc', $event)" /> DMARC</label>
+      <label class="flex items-center gap-2">Transport
+        <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="transport()" (change)="setTransport($event)"><option value="classic">Classic DNS</option><option value="doh">DoH</option><option value="dot">DoT</option></select>
+      </label>
+      <input class="min-w-48 flex-1 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" placeholder="Resolver (blank = default)" [value]="resolver()" (input)="text('resolver', $event)" />
+    </div>
+    @if (checks().includes('spf')) {
+      <label class="flex flex-col gap-1 text-text-muted">Optional sender IP to evaluate with check_host()
+        <input class="rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="senderIp()" (input)="text('senderIp', $event)" placeholder="192.0.2.25" />
+      </label>
+    }
+    @if (checks().includes('dkim')) {
+      <label class="flex flex-col gap-1 text-text-muted">DKIM selectors (comma-separated, up to 20)
+        <input class="rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="selectors()" (input)="text('selectors', $event)" placeholder="selector1, google" />
+      </label>
+      <label class="flex flex-col gap-1 text-text-muted">Or paste message headers — DKIM-Signature d=/s= are read locally; only the derived key lookups are sent
+        <textarea class="min-h-20 rounded-sm border border-border bg-panel p-2 font-mono text-xs text-text" [value]="headers()" (input)="text('headers', $event)"></textarea>
+      </label>
+      <label class="text-text-muted"><input type="checkbox" [checked]="commonProbe()" (change)="setProbe($event)" /> Also try 20 common selectors (reviewed before running; hits are labeled "guessed")</label>
+    }
+  </div>
+</app-network-workbench>
+<app-desktop-only-control capability="native-network" label="Run network check" />
+
+<ng-template #spfNode let-node>
+  <div class="border-l border-border pl-3">
+    <div class="font-mono text-xs"><span class="text-accent">{{ node.domain }}</span> <span class="text-text">{{ node.record ?? '(no SPF record)' }}</span></div>
+    @for (error of node.errors; track error) { <div class="text-xs text-error">{{ error }}</div> }
+    @for (term of node.terms; track $index) {
+      <div class="ml-2 font-mono text-xs">
+        <span [class]="qualifierClass(term.qualifier)">{{ term.raw }}</span>
+        @if (term.resolved?.length) { <span class="text-text-muted"> → {{ term.resolved.join(', ') }}</span> }
+        @if (term.note) { <span class="text-text-muted"> ({{ term.note }})</span> }
+        @if (term.error) { <span class="text-error"> {{ term.error }}</span> }
+      </div>
+      @if (term.child) { <div class="ml-2"><ng-container [ngTemplateOutlet]="spfNode" [ngTemplateOutletContext]="{ $implicit: term.child }" /></div> }
+    }
+  </div>
+</ng-template>
+
+<ng-template #resultView let-result>
+  @if (view(result); as auth) {
+    <div class="flex flex-col gap-3 text-ui">
+      <div class="flex gap-1 border-b border-border">
+        @for (name of ['spf', 'dkim', 'dmarc']; track name) {
+          <button type="button" class="px-3 py-1 uppercase" [class.border-b-2]="tab() === name" [class.border-accent]="tab() === name" [class.text-accent]="tab() === name" [class.text-text-muted]="tab() !== name" (click)="tab.set($any(name))">{{ name }}</button>
+        }
+        <span class="ml-auto self-center text-text-muted">{{ auth.queries }} DNS queries</span>
+      </div>
+
+      @if (tab() === 'spf') {
+        @if (auth.spf; as spf) {
+          <app-findings-list [findings]="spf.findings" title="SPF" />
+          @if (spf.evaluation; as evaluation) { <div class="rounded-sm border border-border bg-panel p-2"><span class="font-semibold text-text">check_host({{ evaluation.ip }}) = {{ evaluation.result }}</span> <span class="text-text-muted">{{ evaluation.explanation }}</span></div> }
+          @if (spf.tree) { <div class="rounded-sm border border-border bg-panel p-2"><div class="mb-1 text-text">Include tree · {{ spf.lookupCount }} / 10 lookups · {{ spf.voidLookups }} void</div><ng-container [ngTemplateOutlet]="spfNode" [ngTemplateOutletContext]="{ $implicit: spf.tree }" /></div> }
+          @if (spf.flattened.length) {
+            <details class="rounded-sm border border-border bg-panel px-2 py-1"><summary class="cursor-pointer text-text">Flattened ranges ({{ spf.flattened.length }})</summary>
+              @for (entry of spf.flattened; track $index) { <div class="font-mono text-xs"><span [class]="qualifierClass(entry.qualifier)">{{ entry.qualifier }}{{ entry.range }}</span> <span class="text-text-muted">{{ entry.source }}</span></div> }
+            </details>
+          }
+        } @else { <div class="text-text-muted">SPF was not checked.</div> }
+      }
+
+      @if (tab() === 'dkim') {
+        @if (auth.dkim; as dkim) {
+          @if (dkim.signatures.length) {
+            <div class="rounded-sm border border-border bg-panel p-2"><div class="font-semibold text-text">Signatures in the pasted headers</div>
+              @for (signature of dkim.signatures; track $index) { <div class="font-mono text-xs text-text">d={{ signature.domain }} s={{ signature.selector }} a={{ signature.algorithm }} c={{ signature.canonicalization }}{{ signature.expires ? ' x=' + signature.expires : '' }}</div> }
+            </div>
+          }
+          @for (key of dkim.keys; track key.name) {
+            <div class="rounded-sm border border-border bg-panel p-2">
+              <div class="flex flex-wrap items-baseline gap-2"><span class="font-mono text-text">{{ key.name }}</span><span class="text-xs text-text-muted">{{ key.source }}</span>
+                @if (key.found) { <span class="text-text">{{ key.keyType }}{{ key.keyBits ? ' ' + key.keyBits + '-bit' : '' }}{{ key.revoked ? ' · revoked' : '' }}{{ key.testing ? ' · testing' : '' }}</span> } @else { <span class="text-error">not found</span> }
+              </div>
+              @if (key.record) { <div class="break-all font-mono text-xs text-text-muted">{{ key.record }}</div> }
+            </div>
+          }
+          @if (dkim.guessedSelectors) { <div class="text-text-muted">Common selectors tried: {{ dkim.guessedSelectors.join(', ') }}. Misses are hidden; a miss doesn't prove the domain has no DKIM key.</div> }
+          @if (dkimFindings(auth).length) { <app-findings-list [findings]="dkimFindings(auth)" title="DKIM" /> }
+          @if (!dkim.keys.length) { <div class="text-text-muted">Enter a selector or paste headers — DKIM keys can't be discovered from the domain alone.</div> }
+        } @else { <div class="text-text-muted">DKIM was not checked.</div> }
+      }
+
+      @if (tab() === 'dmarc') {
+        @if (auth.dmarc; as dmarc) {
+          <app-findings-list [findings]="dmarc.findings" title="DMARC" />
+          <div class="text-text-muted">Queried {{ dmarc.queried.join(', ') }} · organizational domain {{ dmarc.organizationalDomain }} (Public Suffix List snapshot)</div>
+          @if (dmarc.record) {
+            <div class="break-all rounded-sm border border-border bg-panel p-2 font-mono text-xs text-text">{{ dmarc.record }}</div>
+            <dl class="grid grid-cols-[max-content_1fr] gap-x-3 font-mono text-xs">@for (entry of tagEntries(dmarc.tags); track entry[0]) { <dt class="text-text-muted">{{ entry[0] }}</dt><dd class="break-all text-text">{{ entry[1] }}</dd> }</dl>
+            @for (destination of dmarc.reportDestinations; track destination.uri) {
+              <div class="text-xs" [class.text-warning]="destination.external && !destination.authorized" [class.text-text]="!destination.external || destination.authorized">{{ destination.kind }} {{ destination.uri }} — {{ destination.external ? (destination.authorized ? 'external, authorized' : 'external, NOT authorized (' + destination.checkedName + ')') : 'same organization' }}</div>
+            }
+          }
+        } @else { <div class="text-text-muted">DMARC was not checked.</div> }
+      }
+    </div>
+  }
+</ng-template>

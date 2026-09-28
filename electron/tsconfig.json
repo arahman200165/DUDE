@@ -5,6 +5,8 @@
     "moduleResolution": "node",
     "strict": true,
     "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
     "types": ["node"],
     "outDir": "../out-tsc/electron",
     "rootDir": ".."

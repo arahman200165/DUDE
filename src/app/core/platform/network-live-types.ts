@@ -109,3 +109,18 @@ export interface DnssecView {
   readonly findings: readonly { readonly id: string; readonly status: 'pass' | 'warn' | 'fail' | 'info'; readonly title: string; readonly detail?: string; readonly reference?: string }[];
   readonly queries: number;
 }
+
+export interface SpfTermView { readonly raw: string; readonly kind: string; readonly qualifier?: string; readonly name: string; readonly value?: string; readonly error?: string; readonly resolved?: readonly string[]; readonly child?: SpfNodeView; readonly note?: string }
+export interface SpfNodeView { readonly domain: string; readonly record: string | null; readonly terms: readonly SpfTermView[]; readonly errors: readonly string[]; readonly lookupCount: number }
+export interface LiveFindingView { readonly id: string; readonly status: 'pass' | 'warn' | 'fail' | 'info'; readonly title: string; readonly detail?: string; readonly reference?: string }
+export interface EmailAuthView {
+  readonly domain: string;
+  readonly spf?: { readonly records: readonly string[]; readonly tree: SpfNodeView | null; readonly lookupCount: number; readonly voidLookups: number; readonly flattened: readonly { readonly range: string; readonly qualifier: string; readonly source: string }[]; readonly evaluation?: { readonly ip: string; readonly result: string; readonly matched?: string; readonly explanation: string }; readonly findings: readonly LiveFindingView[] };
+  readonly dkim?: {
+    readonly keys: readonly { readonly selector: string; readonly domain: string; readonly name: string; readonly source: string; readonly found: boolean; readonly record?: string; readonly keyType?: string; readonly keyBits?: number; readonly revoked?: boolean; readonly testing?: boolean; readonly findings: readonly LiveFindingView[] }[];
+    readonly signatures: readonly { readonly domain: string; readonly selector: string; readonly algorithm: string; readonly canonicalization: string; readonly signedHeaders: string; readonly expires?: string; readonly identity?: string }[];
+    readonly guessedSelectors?: readonly string[];
+  };
+  readonly dmarc?: { readonly queried: readonly string[]; readonly policyDomain: string | null; readonly organizationalDomain: string; readonly record: string | null; readonly tags: Readonly<Record<string, string>>; readonly reportDestinations: readonly { readonly uri: string; readonly kind: string; readonly external: boolean; readonly authorized?: boolean; readonly checkedName?: string }[]; readonly findings: readonly LiveFindingView[] };
+  readonly queries: number;
+}

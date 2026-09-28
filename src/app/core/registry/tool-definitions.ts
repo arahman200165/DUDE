@@ -88,6 +88,7 @@ import { manifest as dstTransitionExplorerManifest } from '../../tools/dst-trans
 import { manifest as duplicateFinderManifest } from '../../tools/duplicate-finder/duplicate-finder.manifest';
 import { manifest as durationFormatterManifest } from '../../tools/duration-formatter/duration-formatter.manifest';
 import { manifest as elfHeaderViewerManifest } from '../../tools/elf-header-viewer/elf-header-viewer.manifest';
+import { manifest as emailAuthInspectorManifest } from '../../tools/email-auth-inspector/email-auth-inspector.manifest';
 import { manifest as encodingDetectorManifest } from '../../tools/encoding-detector/encoding-detector.manifest';
 import { manifest as envDiffManifest } from '../../tools/env-diff/env-diff.manifest';
 import { manifest as envEditorManifest } from '../../tools/env-editor/env-editor.manifest';
@@ -385,6 +386,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   duplicateFinderManifest,
   durationFormatterManifest,
   elfHeaderViewerManifest,
+  emailAuthInspectorManifest,
   encodingDetectorManifest,
   envDiffManifest,
   envEditorManifest,

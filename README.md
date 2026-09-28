@@ -75,6 +75,7 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [DNS Lookup](https://arahman200165.github.io/DUDE/tools/dns-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [DNSSEC Inspector](https://arahman200165.github.io/DUDE/tools/dnssec-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Email Auth Inspector](https://arahman200165.github.io/DUDE/tools/email-auth-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Git Repo Browser](https://arahman200165.github.io/DUDE/tools/git-diff) | Native filesystem access | Works — weaker browser fallback | reads a real .git directory on disk, no upload/zip step |
 | [Hostname Resolver](https://arahman200165.github.io/DUDE/tools/hostname-resolver) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Continuous Ping / Latency Graph](https://arahman200165.github.io/DUDE/tools/latency-monitor) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
@@ -107,7 +108,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-295 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+296 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -305,6 +306,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Dockerfile Linter / Formatter](https://arahman200165.github.io/DUDE/tools/dockerfile-linter) | Developer | Lints a Dockerfile for common issues (unpinned base image, root user, apt-get cleanup, ADD vs COPY, bad EXPOSE ports) and normalizes instruction casing. |
 | [DOM Tree Viewer](https://arahman200165.github.io/DUDE/tools/dom-tree-viewer) | Developer | Parses HTML and renders it as a collapsible DOM tree — elements, attributes, text nodes, and comments. |
 | [ELF Header Viewer](https://arahman200165.github.io/DUDE/tools/elf-header-viewer) | Developer | Parses a Linux/Unix ELF binary's header, program headers, section headers, and dynamic symbol table (32-bit/64-bit, either endianness) into a browsable tree. |
+| [Email Auth Inspector](https://arahman200165.github.io/DUDE/tools/email-auth-inspector) | Developer | Inspect SPF (include tree, 10-lookup limit, sender IP evaluation), DKIM keys (typed, from pasted headers, or common selectors), and DMARC policy with report authorization. |
 | [Encoding Detector](https://arahman200165.github.io/DUDE/tools/encoding-detector) | Developer | Guesses an uploaded file's text encoding from its byte-order mark, or from a UTF-8/ASCII validity check when there is none, with a confidence rating. |
 | [.env Diff](https://arahman200165.github.io/DUDE/tools/env-diff) | Developer | Diffs two .env files, reporting added, removed, and changed variables. |
 | [.env Editor](https://arahman200165.github.io/DUDE/tools/env-editor) | Developer | Edits a .env file as a key/value list or raw text, with quoting handled automatically. |

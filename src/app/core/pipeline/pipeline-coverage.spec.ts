@@ -15,6 +15,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'traceroute': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'dns-lookup': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'dnssec-inspector': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
+  'email-auth-inspector': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'reverse-dns': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'dns-propagation': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'tcp-port-tester': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
