@@ -1,0 +1,53 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning/40 bg-warning/5 p-4 text-ui text-text-muted">
+      The Directory Tree Generator lists real folders on disk (re-generated on demand, honoring .gitignore) and needs the Windows desktop app.
+    </div>
+    <div class="mt-2 flex gap-2">
+      <app-desktop-only-control capability="native-fs" label="Generate a tree" />
+      <app-desktop-only-control capability="native-fs-write" label="Save into the folder" />
+    </div>
+  } @else {
+    <div class="flex flex-col gap-3 text-ui">
+      <app-fs-root-picker [(root)]="root" (picked)="picked($event)" />
+      <app-walk-options [(options)]="options" [showSizeAge]="false" />
+      <div class="flex flex-wrap items-center gap-3 rounded-sm border border-border bg-panel p-2">
+        <label class="flex items-center gap-1 text-text-muted">Format
+          <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="render().format" (change)="setRender('format', $any($event.target).value)">
+            @for (format of formats; track format.id) { <option [value]="format.id">{{ format.label }}</option> }
+          </select>
+        </label>
+        <label class="flex items-center gap-1 text-text-muted">Sort
+          <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="render().sort" (change)="setRender('sort', $any($event.target).value)">
+            <option value="dirs-first">Folders first</option><option value="name">Name</option><option value="size">Size</option>
+          </select>
+        </label>
+        <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="render().dirsOnly" (change)="setRender('dirsOnly', checked($event))" /> Folders only</label>
+        <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="render().showSizes" (change)="setRender('showSizes', checked($event))" /> Sizes</label>
+        <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="render().trailingSlash" (change)="setRender('trailingSlash', checked($event))" /> Trailing /</label>
+        <label class="flex items-center gap-1 text-text-muted">Root label
+          <input class="w-32 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="rootName()" (input)="rootName.set($any($event.target).value)" />
+        </label>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" class="rounded-sm border border-accent px-3 py-1 text-accent disabled:opacity-50" data-testid="fs-scan" [disabled]="!root()" (click)="generate()">Generate</button>
+        <app-scan-progress [job]="job()" />
+        @if (truncated()) { <span class="text-warning">Stopped at 500,000 entries — narrow it with filters or max depth.</span> }
+      </div>
+
+      @if (text()) {
+        <div class="flex flex-wrap items-center gap-2">
+          <app-copy-button [text]="text()" />
+          <app-save-text-file [text]="text()" [fileName]="fileName()" />
+          <span class="ml-auto flex items-center gap-2">
+            <input class="w-40 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [placeholder]="'TREE' + extension()" [value]="outputName()" (input)="outputName.set($any($event.target).value)" aria-label="File name inside the folder" />
+            <button type="button" class="rounded-sm border border-warning px-2 py-1 text-warning" data-testid="plan-preview-button" (click)="previewWrite()">Preview save into folder…</button>
+          </span>
+        </div>
+        <app-mutation-preview [preview]="preview()" (discarded)="preview.set(null)" />
+        @if (error()) { <div role="alert" class="text-error">{{ error() }}</div> }
+        <pre class="max-h-[32rem] overflow-auto rounded-sm border border-border bg-panel p-3 font-mono text-ui-xs leading-snug text-text" data-testid="tree-output">{{ shownText() }}</pre>
+      }
+    </div>
+  }
+</app-tool-shell>

@@ -31,6 +31,7 @@ database-write) have no rows below until a tool claims them.
 | [ChaCha20-Poly1305 Encrypt / Decrypt](https://arahman200165.github.io/DUDE/tools/chacha20-poly1305) | Crypto | verified — Decrypts ChaCha20-Poly1305 ciphertext built independently by Node's OpenSSL-backed crypto module, not just @noble/ciphers agreeing with itself. |
 | [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | Remote Write | experimental |
 | [CSR Generator & Inspector](https://arahman200165.github.io/DUDE/tools/csr-generator-inspector) | Crypto | verified — Parses a real openssl-generated CSR, correctly extracting subject/key-size/signature validity that openssl req -text independently confirms. |
+| [Directory Tree Generator](https://arahman200165.github.io/DUDE/tools/directory-tree-generator) | Filesystem Write | experimental |
 | [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Filesystem Write | experimental |
 | [Hash Generator](https://arahman200165.github.io/DUDE/tools/hash) | Crypto | verified — Every one of the 15 supported algorithms is tested against its official published test vector, not just self round-trip. |
 | [HMAC Generator](https://arahman200165.github.io/DUDE/tools/hmac-generator) | Crypto | verified — HMAC-SHA1/256/384/512 match RFC 4231's official test vectors exactly. |
@@ -118,6 +119,7 @@ browser sandbox.
 | [CSV Viewer / Converter](https://arahman200165.github.io/DUDE/tools/csv-viewer) | Desktop file/folder open |
 | [Certificate Transparency Lookup](https://arahman200165.github.io/DUDE/tools/ct-lookup) | Native network diagnostics |
 | [Directory Diff](https://arahman200165.github.io/DUDE/tools/directory-diff) | Desktop file/folder open; Native filesystem access |
+| [Directory Tree Generator](https://arahman200165.github.io/DUDE/tools/directory-tree-generator) | Native filesystem access; Native filesystem write |
 | [DNS Lookup](https://arahman200165.github.io/DUDE/tools/dns-lookup) | Native network diagnostics |
 | [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Native network diagnostics |
 | [DNSSEC Inspector](https://arahman200165.github.io/DUDE/tools/dnssec-inspector) | Native network diagnostics |
@@ -167,6 +169,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Certificate Transparency Lookup](https://arahman200165.github.io/DUDE/tools/ct-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Directory Diff](https://arahman200165.github.io/DUDE/tools/directory-diff) | Native filesystem access | Works — weaker browser fallback | compares real folders on disk, not zipped/pasted file lists |
+| [Directory Tree Generator](https://arahman200165.github.io/DUDE/tools/directory-tree-generator) | Native filesystem access | Desktop-only feature | walks real folders on disk in the desktop fs worker |
+| [Directory Tree Generator](https://arahman200165.github.io/DUDE/tools/directory-tree-generator) | Native filesystem write | Desktop-only feature | writes the generated tree into the folder only through a previewed, confirmed plan |
 | [DNS Lookup](https://arahman200165.github.io/DUDE/tools/dns-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [DNSSEC Inspector](https://arahman200165.github.io/DUDE/tools/dnssec-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |

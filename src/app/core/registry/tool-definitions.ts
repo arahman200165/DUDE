@@ -79,6 +79,7 @@ import { manifest as dependencyVersionComparatorManifest } from '../../tools/dep
 import { manifest as devSnippetsReferenceManifest } from '../../tools/dev-snippets-reference/dev-snippets-reference.manifest';
 import { manifest as diffManifest } from '../../tools/diff/diff.manifest';
 import { manifest as directoryDiffManifest } from '../../tools/directory-diff/directory-diff.manifest';
+import { manifest as directoryTreeGeneratorManifest } from '../../tools/directory-tree-generator/directory-tree-generator.manifest';
 import { manifest as dnsLookupManifest } from '../../tools/dns-lookup/dns-lookup.manifest';
 import { manifest as dnsPropagationManifest } from '../../tools/dns-propagation/dns-propagation.manifest';
 import { manifest as dnssecInspectorManifest } from '../../tools/dnssec-inspector/dnssec-inspector.manifest';
@@ -386,6 +387,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   devSnippetsReferenceManifest,
   diffManifest,
   directoryDiffManifest,
+  directoryTreeGeneratorManifest,
   dnsLookupManifest,
   dnsPropagationManifest,
   dnssecInspectorManifest,

@@ -77,6 +77,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Certificate Transparency Lookup](https://arahman200165.github.io/DUDE/tools/ct-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Directory Diff](https://arahman200165.github.io/DUDE/tools/directory-diff) | Native filesystem access | Works — weaker browser fallback | compares real folders on disk, not zipped/pasted file lists |
+| [Directory Tree Generator](https://arahman200165.github.io/DUDE/tools/directory-tree-generator) | Native filesystem access | Desktop-only feature | walks real folders on disk in the desktop fs worker |
+| [Directory Tree Generator](https://arahman200165.github.io/DUDE/tools/directory-tree-generator) | Native filesystem write | Desktop-only feature | writes the generated tree into the folder only through a previewed, confirmed plan |
 | [DNS Lookup](https://arahman200165.github.io/DUDE/tools/dns-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [DNSSEC Inspector](https://arahman200165.github.io/DUDE/tools/dnssec-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
@@ -120,7 +122,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-305 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+306 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -177,6 +179,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Case Converter](https://arahman200165.github.io/DUDE/tools/case-converter) | Text | Convert text between camelCase, snake_case, kebab-case, Title Case, and more. |
 | [Text Diff](https://arahman200165.github.io/DUDE/tools/diff) | Text | Line-oriented diff between two blocks of text. |
 | [Directory Diff](https://arahman200165.github.io/DUDE/tools/directory-diff) | Text | Compare two folders for added/removed/changed files, with a line diff for text files and a hex byte diff for binary files. |
+| [Directory Tree Generator](https://arahman200165.github.io/DUDE/tools/directory-tree-generator) | Text | Generate a tree listing of any folder on disk — Unicode/ASCII `tree`, Markdown, JSON, collapsible HTML, Mermaid or PlantUML — honoring .gitignore, depth and filters. |
 | [Duplicate Finder](https://arahman200165.github.io/DUDE/tools/duplicate-finder) | Text | Finds duplicate lines or duplicate words in text, with counts and one-click removal. |
 | [Extract Columns](https://arahman200165.github.io/DUDE/tools/extract-columns) | Text | Splits each line on a delimiter and extracts/reorders the selected columns. |
 | [Find & Replace](https://arahman200165.github.io/DUDE/tools/find-replace-text) | Text | Literal (non-regex) find and replace, with case-sensitive and whole-word options. |
