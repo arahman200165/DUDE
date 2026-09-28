@@ -29,7 +29,7 @@
       @if (current.ok) {
         @if (current.rows.length > 0) {
           <div class="h-64 rounded-sm border border-border">
-            <app-workbench-table [columns]="columns | simpleColumns" [rows]="rows()" />
+            <app-data-table [columns]="columns | simpleColumns" [rows]="rows()" />
           </div>
         } @else {
           <div class="rounded-sm border border-border bg-panel p-2 text-ui text-text-muted">

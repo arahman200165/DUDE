@@ -2,8 +2,8 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
 import { FileDrop } from '../../shared/components/file-drop/file-drop';
-import { WorkbenchTable } from '../../shared/components/workbench-table/workbench-table';
-import { SimpleColumnsPipe } from '../../shared/components/workbench-table/simple-columns.pipe';
+import { DataTable } from '../../shared/components/data-table/data-table';
+import { SimpleColumnsPipe } from '../../shared/components/data-table/simple-columns.pipe';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { parseLockfile, parseLockfileAs } from './lockfile-inspector-parse';
 import { LockfileFormat, NormalizedPackage } from './lockfile-inspector-types';
@@ -19,7 +19,7 @@ const FORMAT_LABELS: Record<LockfileFormat, string> = {
 
 @Component({
   selector: 'app-lockfile-inspector',
-  imports: [ToolShell, ErrorPanel, FileDrop, WorkbenchTable, SimpleColumnsPipe],
+  imports: [ToolShell, ErrorPanel, FileDrop, DataTable, SimpleColumnsPipe],
   templateUrl: './lockfile-inspector.html',
 })
 export class LockfileInspector {

@@ -16,7 +16,7 @@ function compareValues(a: string, b: string): number {
 }
 
 /**
- * Pure row sort used by `WorkbenchTable` (DUDE_PRD.md §21 Phase 30C.2). Kept outside the
+ * Pure row sort used by `DataTable` (DUDE_PRD.md §21 Phase 30C.2). Kept outside the
  * component so it stays unit-testable without a TestBed, per the root AGENTS.md testing posture.
  */
 export function sortRows<T>(rows: readonly T[], sort: SortState | undefined, valueOf: (row: T, key: string) => string): readonly T[] {

@@ -1,7 +1,7 @@
 import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
-import { WorkbenchTable } from '../../shared/components/workbench-table/workbench-table';
-import { SimpleColumnsPipe } from '../../shared/components/workbench-table/simple-columns.pipe';
+import { DataTable } from '../../shared/components/data-table/data-table';
+import { SimpleColumnsPipe } from '../../shared/components/data-table/simple-columns.pipe';
 import { BusyIndicator } from '../../shared/components/busy-indicator/busy-indicator';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
 import { PersistenceService } from '../../core/persistence/persistence.service';
@@ -15,7 +15,7 @@ type SearchScope = 'all' | 'block';
 
 @Component({
   selector: 'app-unicode-table',
-  imports: [ToolShell, WorkbenchTable, SimpleColumnsPipe, BusyIndicator, ErrorPanel],
+  imports: [ToolShell, DataTable, SimpleColumnsPipe, BusyIndicator, ErrorPanel],
   templateUrl: './unicode-table.html',
 })
 export class UnicodeTable implements OnDestroy {

@@ -3,8 +3,8 @@ import Papa from 'papaparse';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
 import { CopyButton } from '../../shared/components/copy-button/copy-button';
-import { WorkbenchTable } from '../../shared/components/workbench-table/workbench-table';
-import { SimpleColumnsPipe } from '../../shared/components/workbench-table/simple-columns.pipe';
+import { DataTable } from '../../shared/components/data-table/data-table';
+import { SimpleColumnsPipe } from '../../shared/components/data-table/simple-columns.pipe';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { GenerateResult, RANDOM_DATA_FIELDS, RANDOM_DATA_GROUPS, generateRows } from './random-data-fields';
 
@@ -14,7 +14,7 @@ const DEFAULT_FIELD_KEYS: readonly string[] = ['fullName', 'email', 'phoneNumber
 
 @Component({
   selector: 'app-random-data-generator',
-  imports: [ToolShell, ErrorPanel, CopyButton, WorkbenchTable, SimpleColumnsPipe],
+  imports: [ToolShell, ErrorPanel, CopyButton, DataTable, SimpleColumnsPipe],
   templateUrl: './random-data-generator.html',
 })
 export class RandomDataGenerator {

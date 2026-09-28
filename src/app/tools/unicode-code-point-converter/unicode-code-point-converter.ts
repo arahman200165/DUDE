@@ -1,8 +1,8 @@
 import { Component, computed, inject } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { CopyButton } from '../../shared/components/copy-button/copy-button';
-import { WorkbenchTable } from '../../shared/components/workbench-table/workbench-table';
-import { SimpleColumnsPipe } from '../../shared/components/workbench-table/simple-columns.pipe';
+import { DataTable } from '../../shared/components/data-table/data-table';
+import { SimpleColumnsPipe } from '../../shared/components/data-table/simple-columns.pipe';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { formatCodePoint, parseBulkCodePoints, parseCodePointInput } from './code-point-convert';
 
@@ -10,7 +10,7 @@ type Mode = 'single' | 'bulk';
 
 @Component({
   selector: 'app-unicode-code-point-converter',
-  imports: [ToolShell, CopyButton, WorkbenchTable, SimpleColumnsPipe],
+  imports: [ToolShell, CopyButton, DataTable, SimpleColumnsPipe],
   templateUrl: './unicode-code-point-converter.html',
 })
 export class UnicodeCodePointConverter {

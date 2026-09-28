@@ -1,15 +1,15 @@
 import { Component, computed, inject } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
-import { WorkbenchTable } from '../../shared/components/workbench-table/workbench-table';
-import { SimpleColumnsPipe } from '../../shared/components/workbench-table/simple-columns.pipe';
+import { DataTable } from '../../shared/components/data-table/data-table';
+import { SimpleColumnsPipe } from '../../shared/components/data-table/simple-columns.pipe';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { listTimeZones } from '../../shared/utils/iana-timezones';
 import { exploreDstTransitions } from './dst-transition-explorer-logic';
 
 @Component({
   selector: 'app-dst-transition-explorer',
-  imports: [ToolShell, ErrorPanel, WorkbenchTable, SimpleColumnsPipe],
+  imports: [ToolShell, ErrorPanel, DataTable, SimpleColumnsPipe],
   templateUrl: './dst-transition-explorer.html',
 })
 export class DstTransitionExplorer {

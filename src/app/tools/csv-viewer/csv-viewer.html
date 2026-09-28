@@ -121,7 +121,7 @@
             @if (showTableToggle() && outputView() === 'table') {
               @if (table(); as currentTable) {
                 @if (currentTable.ok) {
-                  <app-workbench-table [columns]="currentTable.table.columns | simpleColumns" [rows]="currentTable.table.rows" />
+                  <app-data-table [columns]="currentTable.table.columns | simpleColumns" [rows]="currentTable.table.rows" />
                 } @else {
                   <div class="p-2">
                     <app-error-panel [message]="currentTable.error.message" />

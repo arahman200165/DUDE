@@ -1,14 +1,14 @@
 import { Component, computed, inject } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
-import { WorkbenchTable } from '../../shared/components/workbench-table/workbench-table';
-import { SimpleColumnsPipe } from '../../shared/components/workbench-table/simple-columns.pipe';
+import { DataTable } from '../../shared/components/data-table/data-table';
+import { SimpleColumnsPipe } from '../../shared/components/data-table/simple-columns.pipe';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { ASCII_TABLE } from './ascii-table-data';
 import { filterAsciiTable } from './ascii-table-search';
 
 @Component({
   selector: 'app-ascii-table',
-  imports: [ToolShell, WorkbenchTable, SimpleColumnsPipe],
+  imports: [ToolShell, DataTable, SimpleColumnsPipe],
   templateUrl: './ascii-table.html',
 })
 export class AsciiTable {

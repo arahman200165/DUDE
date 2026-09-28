@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { WorkbenchTable, WorkbenchTableColumn } from './workbench-table';
-import { WorkbenchTableCellDef } from './workbench-table-cell.directive';
+import { DataTable, DataTableColumn } from './data-table';
+import { DataTableCellDef } from './data-table-cell.directive';
 
 interface Row {
   readonly name: string;
@@ -14,14 +14,14 @@ const rows: readonly Row[] = [
   { name: 'CSV Viewer', uses: '3' },
 ];
 
-const columns: readonly WorkbenchTableColumn<Row>[] = [
+const columns: readonly DataTableColumn<Row>[] = [
   { key: 'name', header: 'Tool', value: (r) => r.name, sortable: true },
   { key: 'uses', header: 'Uses', value: (r) => r.uses, sortable: true },
 ];
 
 @Component({
-  imports: [WorkbenchTable],
-  template: `<app-workbench-table [columns]="columns" [rows]="rows" [virtualizeThreshold]="100" (rowOpened)="opened = $event" />`,
+  imports: [DataTable],
+  template: `<app-data-table [columns]="columns" [rows]="rows" [virtualizeThreshold]="100" (rowOpened)="opened = $event" />`,
 })
 class PlainHost {
   protected readonly columns = columns;
@@ -30,13 +30,13 @@ class PlainHost {
 }
 
 @Component({
-  imports: [WorkbenchTable, WorkbenchTableCellDef],
+  imports: [DataTable, DataTableCellDef],
   template: `
-    <app-workbench-table [columns]="columns" [rows]="rows">
-      <ng-template appWorkbenchTableCell="name" let-row>
+    <app-data-table [columns]="columns" [rows]="rows">
+      <ng-template appDataTableCell="name" let-row>
         <button type="button" class="badge">{{ row.name }} ★</button>
       </ng-template>
-    </app-workbench-table>
+    </app-data-table>
   `,
 })
 class CustomCellHost {
@@ -44,7 +44,7 @@ class CustomCellHost {
   protected readonly rows = rows;
 }
 
-describe('WorkbenchTable', () => {
+describe('DataTable', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({});
   });

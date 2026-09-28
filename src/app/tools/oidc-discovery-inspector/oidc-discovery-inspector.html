@@ -23,7 +23,7 @@
     @if (result(); as current) {
       @if (current.ok) {
         <div class="h-56">
-          <app-workbench-table [columns]="fieldColumns | simpleColumns" [rows]="fieldRows()" />
+          <app-data-table [columns]="fieldColumns | simpleColumns" [rows]="fieldRows()" />
         </div>
 
         @if (current.findings.length > 0) {

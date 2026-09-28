@@ -39,7 +39,7 @@
               <div class="border-b border-border px-2 py-1.5 text-ui text-text">
                 Detected delimiter: <strong>{{ current.label }}</strong>
               </div>
-              <app-workbench-table [columns]="current.table.columns | simpleColumns" [rows]="current.table.rows" />
+              <app-data-table [columns]="current.table.columns | simpleColumns" [rows]="current.table.rows" />
             } @else {
               <div class="p-2">
                 <app-error-panel [message]="current.error.message" />

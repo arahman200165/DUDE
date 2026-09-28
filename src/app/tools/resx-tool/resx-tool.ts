@@ -1,8 +1,8 @@
 import { Component, computed, inject } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
-import { WorkbenchTable } from '../../shared/components/workbench-table/workbench-table';
-import { SimpleColumnsPipe } from '../../shared/components/workbench-table/simple-columns.pipe';
+import { DataTable } from '../../shared/components/data-table/data-table';
+import { SimpleColumnsPipe } from '../../shared/components/data-table/simple-columns.pipe';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { buildResx, diffResx, extractTokens, mergeResx, parseResx } from './resx-transform';
 
@@ -10,7 +10,7 @@ type ResxMode = 'view' | 'diff' | 'merge' | 'tokens';
 
 @Component({
   selector: 'app-resx-tool',
-  imports: [ToolShell, ErrorPanel, WorkbenchTable, SimpleColumnsPipe],
+  imports: [ToolShell, ErrorPanel, DataTable, SimpleColumnsPipe],
   templateUrl: './resx-tool.html',
 })
 export class ResxTool {

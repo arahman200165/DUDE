@@ -58,7 +58,7 @@
           } @else if (result(); as current) {
             @if (current.ok) {
               @if (viewMode() === 'table') {
-                <app-workbench-table [columns]="current.result.table.columns | simpleColumns" [rows]="current.result.table.rows" />
+                <app-data-table [columns]="current.result.table.columns | simpleColumns" [rows]="current.result.table.rows" />
               } @else {
                 <div class="flex items-center justify-end px-2 pt-1.5">
                   <span class="flex items-center gap-1.5">

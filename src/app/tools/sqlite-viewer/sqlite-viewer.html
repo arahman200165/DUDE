@@ -39,7 +39,7 @@
         @if (table.columns.length === 0) {
           <div class="text-ui text-text-muted">Table "{{ table.name }}" has no rows.</div>
         } @else {
-          <app-workbench-table [columns]="table.columns | simpleColumns" [rows]="table.rows" />
+          <app-data-table [columns]="table.columns | simpleColumns" [rows]="table.rows" />
         }
       }
     </div>

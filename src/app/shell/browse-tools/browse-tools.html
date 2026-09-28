@@ -136,7 +136,55 @@
       @if (viewMode() === 'grid') {
         <app-tool-grid [rows]="sorted()" [selectedId]="selectedToolId()" />
       } @else {
-        <app-tool-table [rows]="sorted()" [selectedId]="selectedToolId()" />
+        <app-data-table
+          [columns]="toolTableColumns"
+          [rows]="sorted()"
+          [trackByFn]="trackToolId"
+          [selectedIndex]="clampedSelectedIndex()"
+          [rowHeight]="28"
+          ariaLabel="Tools"
+          (rowOpened)="onRowOpened($event)"
+        >
+          <ng-template appDataTableCell="favorite" let-tool>
+            <button
+              type="button"
+              class="h-full text-text-muted hover:text-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+              [class.text-accent]="isFavorite(tool.id)"
+              [attr.aria-pressed]="isFavorite(tool.id)"
+              [attr.aria-label]="(isFavorite(tool.id) ? 'Unfavorite ' : 'Favorite ') + tool.title"
+              (click)="toggleFavorite(tool.id, $event)"
+            >
+              {{ isFavorite(tool.id) ? '★' : '☆' }}
+            </button>
+          </ng-template>
+
+          <ng-template appDataTableCell="tool" let-tool>
+            <a
+              [routerLink]="tool.route"
+              [appOfflineAvailability]="tool.id"
+              (click)="$event.stopPropagation()"
+              class="flex min-w-0 items-center gap-1.5 truncate focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+              [class]="'text-' + categoryMeta(tool).colorToken + '-tint hover:underline'"
+            >
+              <app-category-icon [category]="tool.category" class="h-3.5 w-3.5 shrink-0" [class]="'text-' + categoryMeta(tool).colorToken" />
+              <span class="truncate">{{ tool.title }}</span>
+            </a>
+          </ng-template>
+
+          <ng-template appDataTableCell="category" let-tool>
+            <span class="truncate" [class]="'text-' + categoryMeta(tool).colorToken">{{ categoryMeta(tool).label }}</span>
+          </ng-template>
+
+          <ng-template appDataTableCell="platform" let-tool>
+            <app-desktop-capability-badge [definition]="tool" />
+          </ng-template>
+
+          <ng-template appDataTableCell="status" let-tool>
+            <span class="inline-flex items-center rounded-sm border px-1 py-0.5 text-ui-xs" [class]="statusClass(tool.status)">
+              {{ statusLabel(tool.status) }}
+            </span>
+          </ng-template>
+        </app-data-table>
       }
     } @else {
       <p class="text-xs text-text-muted">No tools match "{{ query() }}".</p>

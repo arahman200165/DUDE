@@ -12,7 +12,7 @@
     @if (errorMessage(); as message) {
       <app-error-panel [message]="message" />
     } @else if (tableColumns(); as columns) {
-      <app-workbench-table [columns]="columns | simpleColumns" [rows]="tableRows() ?? []" />
+      <app-data-table [columns]="columns | simpleColumns" [rows]="tableRows() ?? []" />
     } @else if (treeNodes(); as nodes) {
       <app-tree-view [nodes]="nodes" />
     }

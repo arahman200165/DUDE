@@ -48,7 +48,7 @@
           <span class="text-ui text-text-muted">{{ filteredPackages().length }} of {{ result.packages.length }} packages</span>
         </div>
 
-        <app-workbench-table [columns]="['Name', 'Version', 'Deps', 'Resolved'] | simpleColumns" [rows]="rows()" />
+        <app-data-table [columns]="['Name', 'Version', 'Deps', 'Resolved'] | simpleColumns" [rows]="rows()" />
       }
     }
   </div>

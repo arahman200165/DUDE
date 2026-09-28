@@ -1,4 +1,4 @@
-import { nextSortState, sortRows } from './workbench-table-sort';
+import { nextSortState, sortRows } from './data-table-sort';
 
 interface Row {
   readonly name: string;

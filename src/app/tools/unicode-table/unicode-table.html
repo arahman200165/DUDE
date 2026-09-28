@@ -94,7 +94,7 @@
           <p class="text-ui text-text-muted">Showing the first {{ result.rows.length }} matches — narrow your search for more.</p>
         }
         <div class="min-h-0 flex-1 overflow-auto rounded-sm border border-border">
-          <app-workbench-table [columns]="columns | simpleColumns" [rows]="rows()" />
+          <app-data-table [columns]="columns | simpleColumns" [rows]="rows()" />
         </div>
       }
     }

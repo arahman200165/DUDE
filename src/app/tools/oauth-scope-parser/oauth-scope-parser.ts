@@ -1,14 +1,14 @@
 import { Component, computed, inject } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
-import { WorkbenchTable } from '../../shared/components/workbench-table/workbench-table';
-import { SimpleColumnsPipe } from '../../shared/components/workbench-table/simple-columns.pipe';
+import { DataTable } from '../../shared/components/data-table/data-table';
+import { SimpleColumnsPipe } from '../../shared/components/data-table/simple-columns.pipe';
 import { CopyButton } from '../../shared/components/copy-button/copy-button';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { annotateKnownScopes, buildScopeString, parseScopeString } from './oauth-scope-parser-logic';
 
 @Component({
   selector: 'app-oauth-scope-parser',
-  imports: [ToolShell, WorkbenchTable, SimpleColumnsPipe, CopyButton],
+  imports: [ToolShell, DataTable, SimpleColumnsPipe, CopyButton],
   templateUrl: './oauth-scope-parser.html',
 })
 export class OAuthScopeParser {

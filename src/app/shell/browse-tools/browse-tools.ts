@@ -1,15 +1,20 @@
 import { Component, ElementRef, HostListener, ViewChild, computed, effect, inject, signal } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ToolRegistryService } from '../../core/registry/tool-registry.service';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { FavoritesService } from '../../core/favorites/favorites.service';
 import { UsageService } from '../../core/usage/usage.service';
 import { CATEGORY_METADATA, ToolCategory, TOOL_CATEGORIES } from '../../shared/models/tool-category.model';
 import { ToolDefinition } from '../../shared/models/tool-definition.model';
-import { ToolTable } from '../../shared/components/tool-table/tool-table';
+import { DataTable, DataTableColumn } from '../../shared/components/data-table/data-table';
+import { DataTableCellDef } from '../../shared/components/data-table/data-table-cell.directive';
 import { ToolGrid } from '../../shared/components/tool-grid/tool-grid';
+import { CategoryIcon } from '../../shared/components/category-icon/category-icon';
+import { OfflineAvailability } from '../../shared/components/offline-badge/offline-availability.directive';
+import { DesktopCapabilityBadge } from '../../shared/components/desktop-capability-badge/desktop-capability-badge';
 import { BrowseQueryHelp } from '../../shared/components/browse-query-help/browse-query-help';
 import { ShortcutHint } from '../../shared/components/shortcut-hint/shortcut-hint';
+import { toolCapabilitySummary, toolStatusClass, toolStatusLabel } from '../../shared/utils/tool-status';
 import { CommandPaletteService } from '../command-palette/command-palette.service';
 import { parseBrowseQuery, ParsedBrowseQuery } from '../../core/registry/browse-tools-query';
 import { filterTools } from '../../core/registry/browse-tools-filter';
@@ -47,7 +52,17 @@ const VIEW_MODE_VALUES: readonly BrowseToolsViewMode[] = ['table', 'grid'];
  */
 @Component({
   selector: 'app-browse-tools',
-  imports: [ToolTable, ToolGrid, BrowseQueryHelp, ShortcutHint],
+  imports: [
+    DataTable,
+    DataTableCellDef,
+    ToolGrid,
+    BrowseQueryHelp,
+    ShortcutHint,
+    RouterLink,
+    CategoryIcon,
+    OfflineAvailability,
+    DesktopCapabilityBadge,
+  ],
   templateUrl: './browse-tools.html',
 })
 export class BrowseTools {
@@ -157,6 +172,47 @@ export class BrowseTools {
     if (!tools.length) return undefined;
     return tools[Math.min(this.selectedIndex(), tools.length - 1)]?.id;
   });
+
+  /** Same clamping as `selectedToolId`, but as an index — `app-data-table`'s external-selection input. */
+  protected readonly clampedSelectedIndex = computed(() => {
+    const count = this.sorted().length;
+    return count ? Math.min(this.selectedIndex(), count - 1) : 0;
+  });
+
+  protected readonly toolTableColumns: readonly DataTableColumn<ToolDefinition>[] = [
+    { key: 'favorite', header: '', value: () => '', width: '28px' },
+    { key: 'tool', header: 'Tool', value: (tool) => tool.title, width: '1fr' },
+    { key: 'category', header: 'Category', value: (tool) => this.meta[tool.category].label, width: '110px' },
+    { key: 'platform', header: 'Platform', value: () => '', width: '150px' },
+    { key: 'status', header: 'Status', value: (tool) => toolStatusLabel(tool.status), width: '90px' },
+    { key: 'capabilities', header: 'Capabilities', value: (tool) => toolCapabilitySummary(tool), width: '1fr', truncate: true },
+  ];
+
+  protected readonly statusLabel = toolStatusLabel;
+  protected readonly statusClass = toolStatusClass;
+
+  protected trackToolId(_index: number, tool: ToolDefinition): string {
+    return tool.id;
+  }
+
+  /** `tool` inside an `appDataTableCell` template comes through as `any`; this narrows the index. */
+  protected categoryMeta(tool: ToolDefinition) {
+    return this.meta[tool.category];
+  }
+
+  protected isFavorite(id: string): boolean {
+    return this.favorites.isToolPinned(id);
+  }
+
+  protected toggleFavorite(id: string, event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.favorites.toggleTool(id);
+  }
+
+  protected onRowOpened(tool: ToolDefinition): void {
+    void this.router.navigateByUrl(tool.route);
+  }
 
   constructor() {
     this.seedFromUrl();

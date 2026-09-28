@@ -22,7 +22,7 @@
 
     @if (parsed().scopes.length > 0) {
       <div class="h-56">
-        <app-workbench-table [columns]="columns | simpleColumns" [rows]="rows()" />
+        <app-data-table [columns]="columns | simpleColumns" [rows]="rows()" />
       </div>
 
       @if (parsed().duplicates.length > 0) {

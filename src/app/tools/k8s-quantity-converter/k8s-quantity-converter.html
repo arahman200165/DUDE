@@ -14,7 +14,7 @@
     @if (result(); as current) {
       @if (current.ok) {
         <div class="text-ui text-text-muted">Canonical value: {{ current.canonical }}</div>
-        <app-workbench-table [columns]="['Unit', 'Value'] | simpleColumns" [rows]="tableRows()" />
+        <app-data-table [columns]="['Unit', 'Value'] | simpleColumns" [rows]="tableRows()" />
       } @else {
         <app-error-panel [message]="current.error" />
       }
