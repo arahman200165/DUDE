@@ -16,6 +16,8 @@ import { OfflineAvailability } from '../../shared/components/offline-badge/offli
 import { HomeRail } from './home-rail/home-rail';
 import { HomePasteDropHero } from './home-paste-drop-hero/home-paste-drop-hero';
 import { ResumeWorkPanel } from './resume-work-panel/resume-work-panel';
+import { QuickRunPanel } from './quick-run-panel/quick-run-panel';
+import { HomeActivityPanel } from './home-activity-panel/home-activity-panel';
 import { CommandActionsRail } from './command-actions-rail/command-actions-rail';
 import { ShortcutHint } from '../../shared/components/shortcut-hint/shortcut-hint';
 import { CommandPaletteService } from '../command-palette/command-palette.service';
@@ -34,6 +36,8 @@ const QUICK_ACTION_ID_PREFIX = 'native:quick-action:';
     HomeRail,
     HomePasteDropHero,
     ResumeWorkPanel,
+    QuickRunPanel,
+    HomeActivityPanel,
     CommandActionsRail,
     ShortcutHint,
   ],

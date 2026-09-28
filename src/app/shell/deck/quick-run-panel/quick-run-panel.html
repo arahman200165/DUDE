@@ -1,0 +1,46 @@
+<app-dashboard-panel
+  title="Quick Run"
+  [loading]="loading()"
+  [empty]="!loading() && eligibleTools().length === 0"
+  viewAllLabel="Open Quick Run"
+  (viewAll)="openFullQuickRun()"
+>
+  <textarea
+    rows="2"
+    class="w-full rounded-sm border border-border bg-panel px-2 py-1 font-mono text-xs text-text placeholder:text-text-muted/60 focus:outline-none focus:ring-1 focus:ring-accent"
+    placeholder="Paste some text, then pick a tool to run it through…"
+    [value]="input()"
+    (input)="onInputChange($event)"
+  ></textarea>
+
+  <div class="mt-1.5 flex flex-wrap gap-1">
+    @for (tool of eligibleTools(); track tool.id) {
+      <button
+        type="button"
+        class="rounded-sm border border-border px-1.5 py-0.5 text-ui-xs text-text-muted hover:bg-panel-elevated hover:text-text disabled:opacity-40"
+        [disabled]="runningToolId() === tool.id"
+        (click)="run(tool.id)"
+      >
+        {{ runningToolId() === tool.id ? 'Running…' : (tool.shortTitle ?? tool.title) }}
+      </button>
+    }
+  </div>
+
+  @if (result(); as entry) {
+    <div class="mt-1.5">
+      <p class="mb-1 text-ui-xs text-text-muted">{{ toolTitle(entry.toolId) }}</p>
+      @if (entry.result.ok) {
+        <pre class="whitespace-pre-wrap rounded-sm border border-border bg-panel-elevated p-1.5 font-mono text-ui-xs text-text">{{
+          formatOutput(entry.result.output.value)
+        }}</pre>
+      } @else {
+        <app-error-panel [message]="entry.result.error.message" />
+      }
+    </div>
+  }
+
+  <p panelEmpty class="text-ui text-text-muted">
+    Favorite or open a text-based tool to see it here, or
+    <button type="button" class="text-accent hover:underline" (click)="openFullQuickRun()">browse all Quick Run tools</button>.
+  </p>
+</app-dashboard-panel>

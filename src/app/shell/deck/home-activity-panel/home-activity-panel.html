@@ -1,0 +1,14 @@
+<app-dashboard-panel title="Activity" [empty]="!hasActivity()">
+  <div class="flex flex-col gap-3">
+    <div>
+      <p class="mb-1 text-ui-xs text-text-muted">Opens, last 7 days</p>
+      <app-sparkline-chart [points]="trend()" label="Opens per day" />
+    </div>
+    <div>
+      <p class="mb-1 text-ui-xs text-text-muted">Most-used tools</p>
+      <app-ranked-bars-chart [items]="topTools()" label="Most-used tools" />
+    </div>
+  </div>
+
+  <p panelEmpty class="text-ui text-text-muted">No activity yet — open a tool to get started.</p>
+</app-dashboard-panel>

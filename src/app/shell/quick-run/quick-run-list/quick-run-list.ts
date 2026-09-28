@@ -2,12 +2,13 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { CATEGORY_METADATA } from '../../../shared/models/tool-category.model';
 import { ToolDefinition } from '../../../shared/models/tool-definition.model';
-import { PipelineStepResult, PipelineValue } from '../../../shared/models/pipeline-step.model';
+import { PipelineStepResult } from '../../../shared/models/pipeline-step.model';
 import { ToolRegistryService } from '../../../core/registry/tool-registry.service';
 import { searchTools } from '../../../core/registry/tool-search';
 import { ToolLauncherService } from '../../../core/registry/tool-launcher.service';
 import { PipelineStepRegistryService } from '../../../core/pipeline/pipeline-step-registry.service';
 import { PipelineConfirmationService } from '../../../core/pipeline/pipeline-confirmation.service';
+import { runQuickRun, textEligibleQuickRunToolIds } from '../../../core/pipeline/quick-run';
 import { CategoryIcon } from '../../../shared/components/category-icon/category-icon';
 import { ErrorPanel } from '../../../shared/components/error-panel/error-panel';
 
@@ -71,9 +72,7 @@ export class QuickRunList {
 
   protected readonly eligibleTools = computed<readonly ToolDefinition[]>(() => {
     if (!this.registryReady()) return [];
-    const textAcceptingIds = new Set(
-      this.stepRegistry.eligibleToolIds().filter((id) => this.stepRegistry.get(id)?.accepts.includes('text')),
-    );
+    const textAcceptingIds = new Set(textEligibleQuickRunToolIds(this.stepRegistry));
     const candidates = this.registry.getAll().filter((tool) => textAcceptingIds.has(tool.id));
     return searchTools(candidates, this.query());
   });
@@ -103,14 +102,13 @@ export class QuickRunList {
 
   protected async run(): Promise<void> {
     const toolId = this.selectedToolId();
-    const step = toolId ? this.stepRegistry.get(toolId) : undefined;
-    if (!step) return;
+    if (!toolId) return;
 
     this.running.set(true);
     this.result.set(null);
     try {
-      const value: PipelineValue = { type: 'text', value: this.input() };
-      this.result.set(await step.run(value));
+      const result = await runQuickRun(this.stepRegistry.get(toolId), this.input());
+      if (result) this.result.set(result);
     } finally {
       this.running.set(false);
     }
