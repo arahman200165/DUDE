@@ -75,6 +75,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Batch Operations](https://arahman200165.github.io/DUDE/tools/batch-operations) | Native filesystem write | Desktop-only feature | undoes journaled file changes through the desktop mutation engine |
 | [Batch Rename](https://arahman200165.github.io/DUDE/tools/batch-rename) | Native filesystem access | Desktop-only feature | lists real folders in the desktop fs worker |
 | [Batch Rename](https://arahman200165.github.io/DUDE/tools/batch-rename) | Native filesystem write | Desktop-only feature | renames only through a previewed, journaled, undoable plan |
+| [Batch Text Converter](https://arahman200165.github.io/DUDE/tools/batch-text-converter) | Native filesystem access | Desktop-only feature | reads real folders and re-encodes with iconv-lite in the desktop fs worker |
+| [Batch Text Converter](https://arahman200165.github.io/DUDE/tools/batch-text-converter) | Native filesystem write | Desktop-only feature | rewrites files only through a previewed, loss-checked, undoable plan |
 | [Certificate Watch List](https://arahman200165.github.io/DUDE/tools/certificate-watch-list) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Certificate Transparency Lookup](https://arahman200165.github.io/DUDE/tools/ct-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
@@ -129,7 +131,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-310 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+311 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -183,6 +185,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Advanced Diff / Merge](https://arahman200165.github.io/DUDE/tools/advanced-diff) | Text | Line, word, character, semantic JSON/YAML/XML, or image diffing with a side-by-side two-way or three-way merge view, file upload, and unified-diff export. |
 | [ASCII Art Generator / Banner](https://arahman200165.github.io/DUDE/tools/ascii-art-generator) | Text | Renders text as an ASCII-art banner, with a choice of FIGlet fonts. |
 | [ASCII Table](https://arahman200165.github.io/DUDE/tools/ascii-table) | Text | Searchable reference of the 128 standard ASCII characters, with decimal, hex, octal, and control-code names. |
+| [Batch Text Converter](https://arahman200165.github.io/DUDE/tools/batch-text-converter) | Text | Inventory and convert a folder of text files: line endings (LF/CRLF), encoding (UTF-8/16, Windows-125x, Shift_JIS…), BOM, final newline, trailing whitespace and indentation — or apply .editorconfig. |
 | [Case Converter](https://arahman200165.github.io/DUDE/tools/case-converter) | Text | Convert text between camelCase, snake_case, kebab-case, Title Case, and more. |
 | [Text Diff](https://arahman200165.github.io/DUDE/tools/diff) | Text | Line-oriented diff between two blocks of text. |
 | [Directory Diff](https://arahman200165.github.io/DUDE/tools/directory-diff) | Text | Compare two folders for added/removed/changed files, with a line diff for text files and a hex byte diff for binary files. |

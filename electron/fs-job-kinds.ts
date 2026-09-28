@@ -9,3 +9,4 @@ import './fs-job-hash';
 import './fs-job-duplicates';
 import './fs-job-search';
 import './fs-job-rename';
+import './fs-job-convert';

@@ -27,6 +27,7 @@ database-write) have no rows below until a tool claims them.
 | [Basic Auth Header Generator](https://arahman200165.github.io/DUDE/tools/basic-auth-generator) | Authentication | verified — decodeBasicAuthHeader(buildBasicAuthHeader(u, p)) recovers u/p exactly for any generated colon-free username and arbitrary password (fast-check property test). |
 | [Batch Operations](https://arahman200165.github.io/DUDE/tools/batch-operations) | Filesystem Write | experimental |
 | [Batch Rename](https://arahman200165.github.io/DUDE/tools/batch-rename) | Filesystem Write | experimental |
+| [Batch Text Converter](https://arahman200165.github.io/DUDE/tools/batch-text-converter) | Filesystem Write | experimental |
 | [Bearer Token Builder](https://arahman200165.github.io/DUDE/tools/bearer-token-builder) | Authentication | verified — Fuzz- and crosscheck-tested (fast-check) against an independently-written RFC 6750 §2.1 b64token grammar regex. |
 | [Certificate Chain Viewer & Builder](https://arahman200165.github.io/DUDE/tools/certificate-chain-tools) | Crypto | verified — Chain validity for a real openssl-built leaf/intermediate/root chain matches openssl verify. |
 | [ChaCha20-Poly1305 Encrypt / Decrypt](https://arahman200165.github.io/DUDE/tools/chacha20-poly1305) | Crypto | verified — Decrypts ChaCha20-Poly1305 ciphertext built independently by Node's OpenSSL-backed crypto module, not just @noble/ciphers agreeing with itself. |
@@ -117,6 +118,7 @@ browser sandbox.
 | --- | --- |
 | [Batch Operations](https://arahman200165.github.io/DUDE/tools/batch-operations) | Native filesystem write |
 | [Batch Rename](https://arahman200165.github.io/DUDE/tools/batch-rename) | Native filesystem access; Native filesystem write |
+| [Batch Text Converter](https://arahman200165.github.io/DUDE/tools/batch-text-converter) | Native filesystem access; Native filesystem write |
 | [Certificate Watch List](https://arahman200165.github.io/DUDE/tools/certificate-watch-list) | Native network diagnostics |
 | [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | Native network diagnostics |
 | [CSS Formatter / Minifier](https://arahman200165.github.io/DUDE/tools/css-formatter) | Desktop file/folder open |
@@ -174,6 +176,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Batch Operations](https://arahman200165.github.io/DUDE/tools/batch-operations) | Native filesystem write | Desktop-only feature | undoes journaled file changes through the desktop mutation engine |
 | [Batch Rename](https://arahman200165.github.io/DUDE/tools/batch-rename) | Native filesystem access | Desktop-only feature | lists real folders in the desktop fs worker |
 | [Batch Rename](https://arahman200165.github.io/DUDE/tools/batch-rename) | Native filesystem write | Desktop-only feature | renames only through a previewed, journaled, undoable plan |
+| [Batch Text Converter](https://arahman200165.github.io/DUDE/tools/batch-text-converter) | Native filesystem access | Desktop-only feature | reads real folders and re-encodes with iconv-lite in the desktop fs worker |
+| [Batch Text Converter](https://arahman200165.github.io/DUDE/tools/batch-text-converter) | Native filesystem write | Desktop-only feature | rewrites files only through a previewed, loss-checked, undoable plan |
 | [Certificate Watch List](https://arahman200165.github.io/DUDE/tools/certificate-watch-list) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Certificate Transparency Lookup](https://arahman200165.github.io/DUDE/tools/ct-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |

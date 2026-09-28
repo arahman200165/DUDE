@@ -60,7 +60,6 @@ export interface RenameProposal {
 }
 
 const RESERVED = /^(con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])(\..*)?$/i;
-// eslint-disable-next-line no-control-regex
 const ILLEGAL = /[<>:"/\\|?*\u0000-\u001f]/;
 
 /** Why `name` can't be a Windows file name, or null when it can. */
