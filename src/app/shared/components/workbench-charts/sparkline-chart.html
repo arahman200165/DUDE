@@ -1,0 +1,15 @@
+<div class="flex items-center gap-2">
+  <div data-chart-canvas class="h-8 w-full min-w-16" aria-hidden="true"></div>
+
+  @if (summary(); as s) {
+    <span class="shrink-0 font-mono text-xs text-text">{{ s.last }}</span>
+  }
+
+  @if (summary(); as s) {
+    <span class="sr-only">
+      {{ label() }}: last value {{ s.last }}, minimum {{ s.min }}, maximum {{ s.max }}, across {{ points().length }} points.
+    </span>
+  } @else {
+    <span class="sr-only">{{ label() }}: no data.</span>
+  }
+</div>

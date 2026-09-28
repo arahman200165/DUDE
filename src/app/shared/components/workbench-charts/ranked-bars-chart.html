@@ -1,0 +1,8 @@
+<div data-chart-canvas class="w-full" [style.height.px]="height()" aria-hidden="true"></div>
+
+<ul class="sr-only">
+  <li>{{ label() }}:</li>
+  @for (item of items(); track item.label) {
+    <li>{{ item.label }}: {{ item.value }}</li>
+  }
+</ul>

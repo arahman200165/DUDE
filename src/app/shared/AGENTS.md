@@ -1,6 +1,6 @@
 # AGENTS.md — src/app/shared/
 
-Cross-tool primitives: `components/` (tool-shell, error-panel, split-pane, tree-view, data-table, diff-view, copy-button, key-value-editor, busy-indicator, offline-badge, update-badge, file-drop, open-text-file (+ `appTextFileDrop`), save-text-file, category-icon, persistence-opt-in, sandboxed-markdown-preview, dashboard-panel, value-disclosure), `models/` (`ToolDefinition`, `ToolCategory`), `utils/`, `styles/`, and `code-sandbox/`.
+Cross-tool primitives: `components/` (tool-shell, error-panel, split-pane, tree-view, data-table, diff-view, copy-button, key-value-editor, busy-indicator, offline-badge, update-badge, file-drop, open-text-file (+ `appTextFileDrop`), save-text-file, category-icon, persistence-opt-in, sandboxed-markdown-preview, dashboard-panel, value-disclosure, workbench-charts), `models/` (`ToolDefinition`, `ToolCategory`), `utils/`, `styles/`, and `code-sandbox/`.
 
 ## Before building a new UI piece inside a tool folder
 
