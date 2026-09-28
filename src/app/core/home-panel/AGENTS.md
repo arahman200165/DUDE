@@ -15,7 +15,8 @@ This is the one Home store that holds text the user typed. It is deliberately se
   stats, which are never exported. Import re-sanitizes it (`sanitizeHomePanel`) and honors the
   skip / replace / keep-both conflict modes (`mergeHomePanel`).
 - **Never sent to a service.** Opening a saved link is an explicit user click that contacts that
-  link's own destination; nothing here fetches or previews a URL.
+  link's own destination; nothing here fetches or previews a URL. On desktop the click is routed through
+  `ExternalLinkService` → `window.dude.external.open` (see `electron/AGENTS.md`), where main validates again.
 - **Bounded, plain text.** Note ≤ `MAX_NOTE_CHARS`, ≤ `MAX_LINKS` links, label/URL length caps. The
   note is rendered as text (no HTML/markdown). Links must be absolute `http:`/`https:` with no
   embedded credentials (`normalizeExternalUrl`) — stored, imported, and hand-edited values are all

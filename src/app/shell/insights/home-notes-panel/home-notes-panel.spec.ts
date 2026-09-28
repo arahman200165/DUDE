@@ -103,14 +103,48 @@ describe('HomeNotesPanel', () => {
     expect(service.links()).toEqual([]);
   });
 
-  it('on desktop shows the URL as text with a copy button instead of an unopenable anchor', () => {
-    TestBed.overrideProvider(PlatformService, { useValue: { isDesktop: () => true } });
-    TestBed.inject(HomePanelService).addLink('Docs', 'https://example.com');
+  describe('on desktop', () => {
+    afterEach(() => {
+      delete (window as { dude?: unknown }).dude;
+    });
 
+    function renderDesktop(open: ReturnType<typeof vi.fn>) {
+      (window as unknown as { dude: unknown }).dude = { external: { open } };
+      TestBed.overrideProvider(PlatformService, { useValue: { isDesktop: () => true } });
+      TestBed.inject(HomePanelService).addLink('Docs', 'https://example.com');
+      return render();
+    }
+
+    it('sends a link click through the external-open bridge instead of navigating', async () => {
+      const open = vi.fn().mockResolvedValue({ ok: true });
+      const fixture = renderDesktop(open);
+
+      const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+      (el(fixture).querySelector('ul a') as HTMLAnchorElement).dispatchEvent(click);
+      await fixture.whenStable();
+
+      expect(click.defaultPrevented).toBe(true);
+      expect(open).toHaveBeenCalledWith('https://example.com/');
+    });
+
+    it('shows an error when main refuses the link', async () => {
+      const fixture = renderDesktop(vi.fn().mockResolvedValue({ ok: false, error: 'Only http:// and https:// links can be opened.' }));
+
+      (el(fixture).querySelector('ul a') as HTMLAnchorElement).click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(el(fixture).querySelector('[role="alert"]')?.textContent).toContain('Only http://');
+    });
+  });
+
+  it('leaves a normal anchor click alone on the web', () => {
+    TestBed.inject(HomePanelService).addLink('Docs', 'https://example.com');
     const fixture = render();
 
-    expect(el(fixture).querySelector('ul a')).toBeNull();
-    expect(el(fixture).textContent).toContain('https://example.com/');
-    expect(el(fixture).querySelector('app-copy-button')).not.toBeNull();
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+    (el(fixture).querySelector('ul a') as HTMLAnchorElement).dispatchEvent(click);
+
+    expect(click.defaultPrevented).toBe(false);
   });
 });

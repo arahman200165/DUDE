@@ -47,6 +47,10 @@ export interface DudeElectronBridge {
     ready(): void;
     onItem(callback: (url: string) => void): () => void;
   };
+  readonly external: {
+    /** Opens an http(s) link in the default browser; main re-validates and refuses anything else. */
+    open(url: string): Promise<VoidResult>;
+  };
   readonly menu: {
     ready(): void;
     onAction(callback: (action: string) => void): () => void;

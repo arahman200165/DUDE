@@ -32,6 +32,9 @@ const bridge: DudeElectronBridge = {
       return () => ipcRenderer.removeListener('dude:deepLink:item', listener);
     },
   },
+  external: {
+    open: (url) => ipcRenderer.invoke('dude:external:open', url),
+  },
   menu: {
     ready: () => ipcRenderer.send('dude:menu:ready'),
     setToolMenuData: (tools) => ipcRenderer.invoke('dude:menu:setToolMenuData', tools),

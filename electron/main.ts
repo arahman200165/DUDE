@@ -23,6 +23,7 @@ import { getDesktopPreferences, loadDesktopPreferences, registerDesktopPreferenc
 import { initialWindowBounds, trackWindowBounds } from './window-state';
 import { enqueueCommandLine, registerOpenHandlers } from './open-bridge';
 import { enqueueDeepLinkArguments, extractDeepLinkArgument, registerDeepLinkHandlers } from './deep-link-bridge';
+import { registerExternalLinkHandlers } from './external-link-bridge';
 import { registerNativeMenu } from './native-menu';
 import { registerQuickLauncherHotkey, registerQuickLauncherRenderer } from './quick-launcher';
 import { isAllowedRendererNavigation } from './navigation-guard';
@@ -94,6 +95,7 @@ async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
   registerDesktopPreferencesHandlers(window);
   registerOpenHandlers(window);
   registerDeepLinkHandlers(window);
+  registerExternalLinkHandlers(window);
   registerSmartPasteRenderer(window);
   registerUpdateHandlers(window);
   registerNativeMenu(window);

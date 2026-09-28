@@ -44,3 +44,23 @@ describe('deep-link argv boundary', () => {
     expect(mainSource).not.toMatch(/loadURL\(args|loadURL\(process\.argv/);
   });
 });
+
+// The one route out of the app to the user's browser (Phase 30H.6 saved links). Windows still can't
+// be opened from the renderer; this narrow, validated IPC is the only exception.
+describe('external link boundary', () => {
+  const mainSource = readFileSync(resolve(__dirname, 'main.ts'), 'utf-8');
+  const preloadSource = readFileSync(resolve(__dirname, 'preload.ts'), 'utf-8');
+  const bridgeSource = readFileSync(resolve(__dirname, 'external-link-bridge.ts'), 'utf-8');
+
+  it('registers the handler and keeps denying renderer window opens', () => {
+    expect(mainSource).toMatch(/registerExternalLinkHandlers\(window\)/);
+    expect(mainSource).toMatch(/setWindowOpenHandler\(\(\) => \(\{ action: 'deny' \}\)\)/);
+  });
+
+  it('is the only place that calls shell.openExternal with renderer-supplied input, and validates it first', () => {
+    expect(bridgeSource).toMatch(/event\.sender !== window\.webContents/);
+    expect(bridgeSource.indexOf('normalizeExternalUrl(url)')).toBeGreaterThan(-1);
+    expect(bridgeSource.indexOf('normalizeExternalUrl(url)')).toBeLessThan(bridgeSource.indexOf('shell.openExternal(href)'));
+    expect(preloadSource).toMatch(/ipcRenderer\.invoke\('dude:external:open', url\)/);
+  });
+});

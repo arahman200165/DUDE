@@ -1,25 +1,24 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { HomePanelService } from '../../../core/home-panel/home-panel.service';
 import { MAX_LABEL_CHARS, MAX_LINKS, MAX_NOTE_CHARS, MAX_URL_CHARS } from '../../../core/home-panel/home-panel.model';
-import { PlatformService } from '../../../core/platform/platform.service';
-import { CopyButton } from '../../../shared/components/copy-button/copy-button';
+import { ExternalLinkService } from '../../../core/platform/external-link.service';
 import { DashboardPanel } from '../../../shared/components/dashboard-panel/dashboard-panel';
 
 /**
  * Home "Notes & links" (DUDE_PRD.md §21 Phase 30H.6) — one plain-text note and a few saved links,
  * the user's own content. The editor says where it lives: on this device only, never sent, part of
- * backups, removed by "Clear all local data". On the web a saved link is a plain anchor (opening it
- * is an explicit click that contacts that site); Desktop DUDE denies window opens, so there each
- * link is shown as text with a copy button instead.
+ * backups, removed by "Clear all local data". A saved link is a plain anchor: opening it is an explicit
+ * click that contacts that site. On desktop the click goes through `ExternalLinkService`'s bridge to
+ * the default browser (Electron denies in-app window opens).
  */
 @Component({
   selector: 'app-home-notes-panel',
-  imports: [DashboardPanel, CopyButton],
+  imports: [DashboardPanel],
   templateUrl: './home-notes-panel.html',
 })
 export class HomeNotesPanel {
   private readonly panel = inject(HomePanelService);
-  protected readonly platform = inject(PlatformService);
+  private readonly externalLinks = inject(ExternalLinkService);
 
   protected readonly note = this.panel.note;
   protected readonly links = this.panel.links;
@@ -27,6 +26,7 @@ export class HomeNotesPanel {
 
   protected readonly editing = signal(false);
   protected readonly linkError = signal<string | null>(null);
+  protected readonly openError = signal<string | null>(null);
 
   protected readonly maxNote = MAX_NOTE_CHARS;
   protected readonly maxLabel = MAX_LABEL_CHARS;
@@ -56,6 +56,14 @@ export class HomeNotesPanel {
     this.linkError.set(null);
     label.value = '';
     url.value = '';
+  }
+
+  /** Desktop denies in-app window opens, so a click is routed through the narrow external-open bridge. */
+  protected async onLinkClick(event: Event, url: string): Promise<void> {
+    if (!this.externalLinks.isHandledNatively()) return;
+    event.preventDefault();
+    const result = await this.externalLinks.open(url);
+    this.openError.set(result.ok ? null : result.error);
   }
 
   protected removeLink(id: string): void {

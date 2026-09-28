@@ -13,3 +13,7 @@ The renderer (`src/app/`) keeps `contextIsolation: true`, `nodeIntegration: fals
 ## Two build targets, one repo
 
 `main.ts`/`preload.ts`/`static-server.ts` are plain TypeScript type-checked by `electron/tsconfig.json` (CommonJS, Node types) — a sibling to `tsconfig.worker.json`'s precedent for a second narrow build target that must never leak into `tsconfig.app.json`'s `include`. Type-only imports from `src/app/` (e.g. `DudeElectronBridge` in `electron-bridge.d.ts`) are fine and erased at build time; runtime imports from `src/app/` are not — the two processes only ever talk over `contextBridge`/IPC.
+
+## External links: one narrow route out
+
+The renderer can't open windows (`setWindowOpenHandler` denies everything) and `will-navigate` is pinned to the app's own origin. The single exception is `external-link-bridge.ts` (`dude:external:open`, exposed as `window.dude.external.open`), added for Phase 30H.6's user-saved Home links. Main — not the renderer — is the trust boundary: it accepts the request only from this window's own `webContents`, re-validates the URL (absolute `http:`/`https:`, real host, no embedded credentials, ≤ 2048 chars; never `file:`, `javascript:`, `data:`, custom protocol handlers or UNC paths), and only then calls `shell.openExternal` with the normalized href. `main-security.spec.ts` and `external-link-bridge.spec.ts` pin this; widen the allowed schemes only with the same review a new IPC surface gets.

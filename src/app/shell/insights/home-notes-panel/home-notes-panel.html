@@ -19,14 +19,16 @@
       <ul class="m-0 flex list-none flex-col gap-0.5 p-0">
         @for (link of links(); track link.id) {
           <li class="flex items-center justify-between gap-2 text-xs">
-            @if (platform.isDesktop()) {
-              <span class="min-w-0 truncate"><span class="text-text">{{ link.label }}</span> <span class="text-text-muted">{{ link.url }}</span></span>
-              <app-copy-button [text]="link.url" label="Copy link" />
-            } @else {
-              <a [href]="link.url" target="_blank" rel="noopener noreferrer" class="min-w-0 truncate text-accent hover:underline" [attr.title]="link.url">
-                {{ link.label }}
-              </a>
-            }
+            <a
+              [href]="link.url"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="min-w-0 truncate text-accent hover:underline"
+              [attr.title]="link.url"
+              (click)="onLinkClick($event, link.url)"
+            >
+              {{ link.label }}
+            </a>
             @if (editing()) {
               <button
                 type="button"
@@ -40,6 +42,10 @@
           </li>
         }
       </ul>
+    }
+
+    @if (openError(); as error) {
+      <p class="m-0 text-ui-xs text-error" role="alert">{{ error }}</p>
     }
 
     @if (editing()) {
