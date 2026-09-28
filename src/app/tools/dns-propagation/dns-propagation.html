@@ -1,2 +1,67 @@
-﻿<app-network-workbench kind="dns-propagation" />
+<app-network-workbench kind="dns-propagation" [customForm]="true" [buildRequest]="build" [resultTemplate]="resultView" runLabel="Compare resolvers">
+  <div workbenchForm class="flex flex-col gap-3">
+    <label class="flex flex-col gap-1 text-text-muted">Name
+      <input class="rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="target()" (input)="text($event)" placeholder="example.com" />
+    </label>
+    <div class="flex flex-wrap items-center gap-4">
+      <label class="flex items-center gap-2 text-text-muted">Record type
+        <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="recordType()" (change)="chooseType($event)">
+          @for (type of types; track type) { <option [value]="type">{{ type }}</option> }
+        </select>
+      </label>
+      <label class="flex items-center gap-2 text-text-muted"><input type="checkbox" [checked]="includePresets()" (change)="toggle('includePresets', $event)" /> Cloudflare, Google, Quad9</label>
+      <label class="flex items-center gap-2 text-text-muted"><input type="checkbox" [checked]="includeSystem()" (change)="toggle('includeSystem', $event)" /> System resolver</label>
+      <label class="flex items-center gap-2 text-text-muted"><input type="checkbox" [checked]="dnssecOk()" (change)="toggle('dnssecOk', $event)" /> DO bit</label>
+    </div>
+    <div class="flex flex-col gap-1">
+      <div class="text-text-muted">Custom resolvers ({{ custom().length }} / {{ maxCustom }})</div>
+      @for (entry of custom(); track $index; let index = $index) {
+        <div class="flex flex-wrap items-center gap-2">
+          <input class="w-28 rounded-sm border border-border bg-panel px-2 py-1 text-text" placeholder="Label" [value]="entry.label" (input)="updateResolver(index, 'label', $event)" />
+          <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="entry.transport" (change)="updateResolver(index, 'transport', $event)"><option value="classic">Classic</option><option value="doh">DoH</option><option value="dot">DoT</option></select>
+          <input class="min-w-64 flex-1 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [placeholder]="entry.transport === 'doh' ? 'https://dns.example/dns-query' : entry.transport === 'dot' ? 'dns.example[:853]' : '192.0.2.53[:53]'" [value]="entry.server" (input)="updateResolver(index, 'server', $event)" />
+          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="removeResolver(index)">Remove</button>
+        </div>
+      }
+      @if (custom().length < maxCustom) { <button type="button" class="self-start rounded-sm border border-border px-2 py-0.5 text-text" (click)="addResolver()">Add resolver</button> }
+    </div>
+    <p class="text-text-muted">This compares only the resolvers listed. Matching answers do not prove global propagation, and caches can differ by TTL.</p>
+  </div>
+</app-network-workbench>
 <app-desktop-only-control capability="native-network" label="Run network check" />
+
+<ng-template #resultView let-result>
+  @if (view(result); as comparison) {
+    <div class="flex flex-col gap-3 text-ui">
+      <div [class.text-success]="comparison.comparison.consistent" [class.text-warning]="!comparison.comparison.consistent" class="font-semibold">
+        {{ comparison.comparison.consistent ? 'All resolvers returned the same answer set.' : 'Resolvers disagree.' }}
+        <span class="font-normal text-text-muted">TTL spread {{ comparison.comparison.ttlSpread }} s.</span>
+      </div>
+      <table class="w-full border-collapse font-mono text-xs">
+        <thead><tr class="text-left text-text-muted"><th class="px-1">Resolver</th><th class="px-1">Contacted</th><th class="px-1">Status</th><th class="px-1">AD</th><th class="px-1">TTL</th><th class="px-1">ms</th><th class="px-1">Values</th></tr></thead>
+        <tbody>
+          @for (entry of comparison.results; track entry.label) {
+            <tr class="border-t border-border align-top">
+              <td class="px-1 text-text">{{ entry.label }}<div class="text-text-muted">{{ entry.transport }}</div></td>
+              <td class="px-1 text-text">{{ entry.diagnostics?.contacted ?? entry.server }}</td>
+              @if (entry.error) { <td class="px-1 text-error" colspan="5">{{ entry.error }}</td> }
+              @else {
+                <td class="px-1" [class.text-success]="entry.rcode === 0" [class.text-error]="entry.rcode !== 0">{{ entry.rcodeName }}</td>
+                <td class="px-1 text-text">{{ entry.flags?.ad ? 'yes' : 'no' }}</td>
+                <td class="px-1 text-text">{{ entry.answers?.length ? entry.answers![0].ttl : '—' }}</td>
+                <td class="px-1 text-text">{{ entry.diagnostics?.elapsedMs }}</td>
+                <td class="px-1">@for (value of valuesFor(comparison, entry.label); track value) { <div class="break-all" [class.text-warning]="isDivergent(comparison, entry.label, value)" [class.text-text]="!isDivergent(comparison, entry.label, value)">{{ value }}</div> }</td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+      <details class="rounded-sm border border-border bg-panel px-2 py-1">
+        <summary class="cursor-pointer text-text">Full responses</summary>
+        @for (entry of comparison.results; track entry.label) {
+          @if (lookup(entry); as response) { <div class="mt-2 font-semibold text-text">{{ entry.label }}</div><app-dns-response-view [result]="response" [compact]="true" /> }
+        }
+      </details>
+    </div>
+  }
+</ng-template>

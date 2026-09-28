@@ -9,7 +9,8 @@ import { join } from 'node:path';
 import { app } from 'electron';
 import type { NetworkRequest } from '../src/app/core/platform/network-types';
 import { expandScanTargets, validateHost } from './network-validation';
-import { compareDnsResults, queryDns } from './network-dns';
+import { queryDns } from './network-dns';
+import { runDnsLookup, runResolverComparison } from './network-dns-tools';
 import { runLiveRequest } from './network-live';
 
 export type Progress = (completed: number, total: number, data?: unknown) => void;
@@ -222,19 +223,8 @@ export async function runNetworkRequest(request: NetworkRequest, signal: AbortSi
     case 'ping': case 'latency-monitor': case 'packet-loss': return ping(request, signal, progress);
     case 'traceroute': return trace(validateHost(request.target ?? ''), request.addressFamily ?? 'auto', signal, progress);
     case 'mtu-discovery': return mtu(request, signal, progress);
-    case 'dns-lookup': case 'reverse-dns': return queryDns(request, signal);
-    case 'dns-propagation': {
-      const presets = [ ['Cloudflare', '1.1.1.1'], ['Google', '8.8.8.8'], ['Quad9', '9.9.9.9'] ];
-      if (request.resolver) presets.push(['Custom', request.resolver]);
-      const results = [];
-      for (const [index, [label, resolver]] of presets.entries()) {
-        aborted(signal);
-        try { results.push({ label, ...await queryDns({ ...request, kind: 'dns-lookup', resolver, resolverTransport: 'classic' }, signal) }); }
-        catch (error) { results.push({ label, error: String(error) }); }
-        progress(index + 1, presets.length, results.at(-1));
-      }
-      return { target: request.target, recordType: request.recordType ?? 'A', results, comparison: compareDnsResults(results) };
-    }
+    case 'dns-lookup': case 'reverse-dns': return runDnsLookup(request, signal);
+    case 'dns-propagation': return runResolverComparison(request, signal, progress);
     case 'tcp-port-tester': return { target: request.target, port: request.port, ...await tcpProbe(request.target ?? '', request.port ?? 443, signal, request.timeoutMs, ipFamily(request.addressFamily)) };
     case 'udp-port-tester': return { target: request.target, port: request.port, ...await udpProbe(request.target ?? '', request.port ?? 53, signal, request.timeoutMs, ipFamily(request.addressFamily)) };
     case 'port-scanner': return scan(request, signal, progress);

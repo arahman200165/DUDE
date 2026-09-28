@@ -1,2 +1,53 @@
-﻿<app-network-workbench kind="dns-lookup" />
+<app-network-workbench kind="dns-lookup" [customForm]="true" [buildRequest]="build" [resultTemplate]="resultView" runLabel="Look up">
+  <div workbenchForm class="flex flex-col gap-3">
+    <label class="flex flex-col gap-1 text-text-muted">Name
+      <input class="rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="target()" (input)="text('target', $event)" placeholder="example.com" />
+    </label>
+    <div class="flex flex-wrap items-center gap-4">
+      <label class="flex items-center gap-2 text-text-muted">Record type
+        <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="recordType()" (change)="choose('recordType', $event)">
+          @for (type of types; track type) { <option [value]="type">{{ type }}</option> }
+        </select>
+      </label>
+      <label class="flex items-center gap-2 text-text-muted">Transport
+        <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="transport()" (change)="choose('transport', $event)">
+          <option value="classic">Classic DNS (UDP, TCP fallback)</option><option value="doh">DNS over HTTPS</option><option value="dot">DNS over TLS</option>
+        </select>
+      </label>
+      <label class="flex items-center gap-2 text-text-muted" title="Sets the EDNS0 DO bit so DNSSEC records (RRSIG, NSEC) are returned"><input type="checkbox" [checked]="dnssecOk()" (change)="toggle('dnssecOk', $event)" /> DNSSEC records (DO)</label>
+      <label class="flex items-center gap-2 text-text-muted" title="Sets CD so a validating resolver returns data even if DNSSEC validation fails"><input type="checkbox" [checked]="checkingDisabled()" (change)="toggle('checkingDisabled', $event)" /> Checking disabled (CD)</label>
+    </div>
+    <label class="flex flex-col gap-1 text-text-muted">
+      {{ transport() === 'doh' ? 'DoH URL (blank: https://cloudflare-dns.com/dns-query)' : transport() === 'dot' ? 'DoT host[:port] (blank: one.one.one.one)' : 'Resolver IP[:port] (blank: your system DNS servers)' }}
+      <input class="rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="resolver()" (input)="text('resolver', $event)" />
+    </label>
+    @if (recordType() === 'CAA') {
+      <label class="flex flex-col gap-1 text-text-muted">Optional: check whether this CA may issue (CAA issuer domain)
+        <input list="dns-lookup-ca-ids" class="rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="caIdentifier()" (input)="text('caIdentifier', $event)" placeholder="letsencrypt.org" />
+        <datalist id="dns-lookup-ca-ids">@for (id of caSuggestions; track id) { <option [value]="id"></option> }</datalist>
+      </label>
+    }
+  </div>
+</app-network-workbench>
 <app-desktop-only-control capability="native-network" label="Run network check" />
+
+<ng-template #resultView let-result>
+  <div class="flex flex-col gap-3">
+    <app-dns-response-view [result]="view(result)" />
+    @if (view(result).caa; as caa) {
+      <div class="rounded-sm border border-border bg-panel p-3 text-ui">
+        <div class="font-semibold text-text">CAA analysis (RFC 8659)</div>
+        <div class="text-text-muted">Relevant record set: <span class="font-mono text-text">{{ caa.relevantName ?? 'none found up to the TLD' }}</span></div>
+        <div class="text-text-muted">Climbed: @for (step of caa.climbed; track step.name) { <span class="ml-1 font-mono text-xs">{{ step.name }} ({{ step.count }} CAA, {{ step.rcode }})</span> }</div>
+        <div class="mt-1 text-text">Non-wildcard: {{ policyText(caa.nonWildcardPolicy) }}{{ caa.issuers.length ? ': ' + caa.issuers.join(', ') : '' }}</div>
+        <div class="text-text">Wildcard: {{ policyText(caa.wildcardPolicy) }}{{ caa.wildcardIssuers.length ? ': ' + caa.wildcardIssuers.join(', ') : '' }}</div>
+        @if (caa.iodef.length) { <div class="text-text-muted">Violation reports (iodef): {{ caa.iodef.join(', ') }}</div> }
+        @if (caa.caCheck; as check) {
+          <div class="mt-1" [class.text-success]="check.nonWildcard" [class.text-error]="!check.nonWildcard">{{ check.ca }} {{ check.nonWildcard ? 'may' : 'may not' }} issue for {{ caa.queriedName }}</div>
+          <div [class.text-success]="check.wildcard" [class.text-error]="!check.wildcard">{{ check.ca }} {{ check.wildcard ? 'may' : 'may not' }} issue a wildcard for *.{{ caa.queriedName }}</div>
+        }
+        @for (warning of caa.warnings; track warning) { <div class="text-warning">{{ warning }}</div> }
+      </div>
+    }
+  </div>
+</ng-template>

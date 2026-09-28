@@ -66,8 +66,8 @@ Every other tool processes data entirely locally and makes no network request.
 | Tool | What it contacts |
 | --- | --- |
 | [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | a TCP connection or HTTP(S) request to the target you enter |
-| [DNS Lookup](https://arahman200165.github.io/DUDE/tools/dns-lookup) | the system resolver, or a DNS, DoH, or DoT server you choose |
-| [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Cloudflare (1.1.1.1), Google (8.8.8.8), Quad9 (9.9.9.9), and an optional custom resolver |
+| [DNS Lookup](https://arahman200165.github.io/DUDE/tools/dns-lookup) | your system DNS servers, or a DNS, DoH, or DoT server you choose; CAA checks also query the parent names |
+| [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Cloudflare (1.1.1.1), Google (8.8.8.8), Quad9 (9.9.9.9), your system DNS servers, and any custom resolvers you add |
 | [Hostname Resolver](https://arahman200165.github.io/DUDE/tools/hostname-resolver) | the resolver configured in Windows |
 | [JWT Signature Verifier](https://arahman200165.github.io/DUDE/tools/jwt-verify) | JWKS / OIDC discovery |
 | [Continuous Ping / Latency Graph](https://arahman200165.github.io/DUDE/tools/latency-monitor) | ICMP echo requests to the host you enter, for at most one hour |
