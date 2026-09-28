@@ -10,7 +10,7 @@
 **Primary frontend framework:** Angular  
 **Primary audience:** The developer building and using it first; later, other developers  
 **Delivery horizon:** Framework and first 10 tools delivered in one weekend; ongoing roadmap-driven development from there, now extending through a deliberately long-horizon Phase 100  
-**Status:** V1 and Phases 1–27 shipped; Windows desktop packaging is real and shipped; Phases 28–100 remain roadmap/horizon work rather than a fixed schedule
+**Status:** V1 and Phases 1–29 shipped; Windows desktop packaging is real and shipped; Phases 30–100 remain roadmap/horizon work rather than a fixed schedule
 
 ---
 
@@ -56,9 +56,9 @@ The product then continued through **Phases 1–21, all of which are complete**.
 
 **Phase 8 (Downloadable Desktop App with a Bundled Backend) is complete** and is the turning point for the product hierarchy. Its eight shipped stages remain: Electron shell; native file access; OS-level secret storage; local LLM proxy + AI regex features; desktop shell chrome; local collab server; BYO relay server; auto-update + distribution. Those shipped details remain documented in §21 Phase 8.
 
-**Phases 22–27 are also complete**: Phase 22 (Platform Hardening, Trust & Desktop-First Pivot) consolidated metadata/registry structure, trust, testing, and cache/bundle control; Phase 23 (Correctness, Verification & High-Consequence Tool Hardening) brought every one of the 277 tool manifests to a `verified` confidence tier; Phase 24 (Smart Entry, Discovery & Personal DUDE) turned Phase 21's Smart Paste/pipelines/workspaces/history into the primary paste-first, personalized entry experience — Recently Used, Favorites, Pinned Pipelines, Related-Tool and Pipeline Suggestions, Workspace Templates, Quick Run, and Unified Recents, all private-by-construction with no analytics or server telemetry; Phase 25 (Desktop-First Shell & Native Product Experience) finished that positioning change technically — Projects, a Desktop-Native Home, `dude://` deep links, a native OS menu, a six-source Command Palette, a Native File Recent List, crash/restart recovery, a Quick Launcher, native drag-and-drop routing, a generated file-association framework, Desktop Capability Indicators, desktop-first documentation, and a measured startup/parallelization pass — all shipped as Milestones 421–455. Phase 26 (Web Companion & PWA Efficiency) added selective offline readiness, install/share/handoff flows, browser-safe pipeline and workspace support, and web/desktop parity tests, shipped as Milestones 482–488. Phase 27 (Networking Toolkit) began the native expansion. It shipped 18 desktop network-diagnostics tools over a main-process-enforced IPC bridge and a bundled Windows ICMP helper, as Milestones 489–508.
+**Phases 22–29 are also complete**: Phase 22 (Platform Hardening, Trust & Desktop-First Pivot) consolidated metadata/registry structure, trust, testing, and cache/bundle control; Phase 23 (Correctness, Verification & High-Consequence Tool Hardening) brought every one of the 277 tool manifests to a `verified` confidence tier; Phase 24 (Smart Entry, Discovery & Personal DUDE) turned Phase 21's Smart Paste/pipelines/workspaces/history into the primary paste-first, personalized entry experience — Recently Used, Favorites, Pinned Pipelines, Related-Tool and Pipeline Suggestions, Workspace Templates, Quick Run, and Unified Recents, all private-by-construction with no analytics or server telemetry; Phase 25 (Desktop-First Shell & Native Product Experience) finished that positioning change technically — Projects, a Desktop-Native Home, `dude://` deep links, a native OS menu, a six-source Command Palette, a Native File Recent List, crash/restart recovery, a Quick Launcher, native drag-and-drop routing, a generated file-association framework, Desktop Capability Indicators, desktop-first documentation, and a measured startup/parallelization pass — all shipped as Milestones 421–455. Phase 26 (Web Companion & PWA Efficiency) added selective offline readiness, install/share/handoff flows, browser-safe pipeline and workspace support, and web/desktop parity tests, shipped as Milestones 482–488. Phase 27 (Networking Toolkit) began the native expansion. It shipped 18 desktop network-diagnostics tools over a main-process-enforced IPC bridge and a bundled Windows ICMP helper, as Milestones 489–508. Phase 28 shipped live DNS, TLS and certificate inspection as Milestones 509–522. Phase 29 shipped filesystem scanning, watching and previewed mutation as Milestones 523–536.
 
-The roadmap is now one linear product horizon through **Phase 100**. Completed Phases 22–26 consolidated platform structure, trust, discovery, desktop UX, and web/PWA efficiency. Phases 27–38 form the first major native/integration expansion: Phase 27 shipped networking, and Phases 28–38 continue across live DNS/TLS, filesystem workflows, Windows/process tooling, local API/server development, live databases, containers, OS integration, AI-assisted utilities, theming, VS Code integration, and browser-extension integration. Later phases extend into cross-platform desktop, automation, Git/SSH/package/build/log/proxy/database/container/Kubernetes workflows, secrets/PKI, collaboration/workspaces/pipelines, plugins/extensions, CLI/SDK/headless automation, AI, project/code/runtime tooling, and a deliberately distant platform/ecosystem horizon.
+The roadmap is now one linear product horizon through **Phase 100**. Completed Phases 22–26 consolidated platform structure, trust, discovery, desktop UX, and web/PWA efficiency. Phases 27–38 form the first major native/integration expansion: Phases 27–29 shipped networking, live DNS/TLS and filesystem workflows, and Phases 30–38 continue across Windows/process tooling, local API/server development, live databases, containers, OS integration, AI-assisted utilities, theming, VS Code integration, and browser-extension integration. Later phases extend into cross-platform desktop, automation, Git/SSH/package/build/log/proxy/database/container/Kubernetes workflows, secrets/PKI, collaboration/workspaces/pipelines, plugins/extensions, CLI/SDK/headless automation, AI, project/code/runtime tooling, and a deliberately distant platform/ecosystem horizon.
 
 ---
 
@@ -287,14 +287,14 @@ These constraints survive roadmap growth unless the owner makes an explicit futu
 
 ## 5.2.1 Destructive-Action Contract
 
-Durable constraint #4 above is a principle; this is the concrete contract every future `filesystem-write`, `process-management`, `registry`, or `database-write` tool must implement (DUDE_PRD.md §21 Phase 23 Item 8 — none of these tool categories are shipped yet, so this is documented now, ready to be enforced against the first tool that claims one of them, rather than built as a component with no consumer):
+Durable constraint #4 above is a principle; this is the concrete contract every `filesystem-write`, `process-management`, `registry`, or `database-write` tool must implement. Phase 29 is the first local implementation, through the filesystem mutation engine (§21 Phase 29); later native write capabilities must meet the same boundary:
 
 1. **Two-step confirmation.** A mutating action always has a distinct preview/dry-run step (what will change) and a separate, explicit confirm step (do it) — never a single click/keystroke that both previews and commits.
 2. **No incidental triggering.** Opening a file, importing data, running a detector, or otherwise inspecting input must never itself cause the destructive effect — the mutating action must be its own deliberate user gesture, reachable only after the preview step.
 3. **Consequence tagging.** The tool's manifest declares the relevant `ConsequenceClass` (`src/app/shared/models/tool-definition.model.ts`) so it's covered by the generated High-Consequence Tool Matrix (`SECURITY.md`) and any capability-specific release gate.
 4. **A confirmation-boundary test.** The tool's own spec asserts the destructive effect cannot fire without going through both steps above — this is the "Destructive-Action Harness" (Phase 23 Item 8) in practice: enforced per-tool at the point each such tool ships, not as a separate suite run against nothing.
 
-Phase 27 applied the same shape to its non-local high-consequence checks. A `network-scanning` or `remote-write` run first gets a main-process preview. It then needs a single-use confirmation token, bound to the requesting window and the unchanged request, which expires after 60 seconds. `electron/network-bridge.spec.ts` covers that boundary, including an attempted renderer-side limit bypass. This is the reference implementation for the first tool that mutates local state.
+Phase 27 applied the same shape to its non-local high-consequence checks. A `network-scanning` or `remote-write` run first gets a main-process preview. It then needs a single-use confirmation token, bound to the requesting window and the unchanged request, which expires after 60 seconds. `electron/network-bridge.spec.ts` covers that boundary, including an attempted renderer-side limit bypass. Phase 29's filesystem mutation engine is the first local implementation: it previews exact paths and preconditions, issues a 60-second single-use token bound to the requesting window and plan digest, rechecks files at apply time, journals per-operation results and supports previewed undo. Trash operations use the Recycle Bin. Engine and tool confirmation-boundary tests cover token replay, conflicts and the no-incidental-trigger rule.
 
 ## 5.3 Historical Exclusions Now Treated as Roadmap Territory
 
@@ -1178,12 +1178,12 @@ Each stage is expected to become its own Milestone number when implemented, foll
 2. **Native file access** — replace `<input webkitdirectory>` in Directory Diff and Git Repo Browser with Electron's native `dialog` + filesystem APIs, via a sandboxed preload/IPC bridge (no direct Node access from the renderer). Upgrades both tools from one-shot snapshots to live, re-scannable folder handles, desktop-only. **✅ shipped as Milestone 22.**
 3. **OS-level secret storage** — a new `secure-local` tier backed by Electron `safeStorage` (OS keychain), available only on desktop. Lays the groundwork for storing the LLM proxy's API key safely. **✅ shipped as Milestone 23.**
 4. **Local LLM proxy + AI regex features** — the localhost-only backend process holds the user-supplied, provider-agnostic LLM credential; wires up AI-based regex generation (natural-language → regex) and an "AI Explain" panel on Regex Tester, next to the existing rule-based `regexp-tree` explainer, which stays as the offline/web fallback when no key is configured. **✅ shipped as Milestone 24.**
-5. **Desktop shell chrome** — system tray, launch-on-login, native OS notifications, a global-hotkey clipboard quick-action registry (Base64 encode/decode, UUID generate, SHA-256 hash), and file-watch infrastructure (auto-reload-on-change is deliberately not wired into any tool yet — see the Stage 5 note below). **✅ shipped as Milestone 25.**
+5. **Desktop shell chrome** — system tray, launch-on-login, native OS notifications, a global-hotkey clipboard quick-action registry (Base64 encode/decode, UUID generate, SHA-256 hash), and file-watch infrastructure (wired into selected tools later in Phase 29; see the Stage 5 note below). **✅ shipped as Milestone 25.**
 6. **Local collab server** — a same-machine/LAN real-time collaboration backend for Advanced Markdown Workspace, CRDT-based via Yjs. **✅ shipped as Milestone 26.**
 7. **BYO relay server for cross-network collab** — a standalone relay server shipped from this repo (`relay/`, with a `Dockerfile`) that users self-host and point their desktop app at via a configured URL in Settings, extending Stage 6's collab session across networks. **✅ shipped as Milestone 27** — see the Stage 7 note below for the room/session identity model actually implemented, and what of the original open question remains deferred. **Follow-up (Milestone 477):** the relay URL is now owned by Advanced Markdown Workspace (its only consumer), stored under that tool's own namespace (migrated once at startup from the legacy `settings:relayUrl` key) and edited in Settings › Tools › Markdown Workspace. A saved workspace, template, or project may override it, set from the Workspace settings popover or the Host panel, which shows whether the global or the workspace relay applies.
 8. **Auto-update + distribution** — `electron-updater` against GitHub Releases; a new CI workflow builds a Windows installer via `electron-builder` (NSIS for the unsigned GitHub Releases path, MSIX/appx for Microsoft Store submission), separate from the existing GitHub Pages `deploy.yml`. Store submission itself (Partner Center) is a manual process, not automated in CI. **✅ shipped as Milestone 28** — see the Stage 8 note below for the versioning/release-automation model actually implemented and the placeholder Store identity values that still need a real swap before submission.
 
-**Explicitly deferred within Phase 8:** macOS/Linux builds, code-signed non-Store distribution, named-but-accountless relay participants (Stage 7 shipped anonymous room codes only — see the Stage 7 note), any provider-specific (non-OpenAI-compatible) LLM integration, wiring Stage 5's file-watch capability into any specific tool's auto-reload UX.
+**Explicitly deferred within Phase 8:** macOS/Linux builds, code-signed non-Store distribution, named-but-accountless relay participants (Stage 7 shipped anonymous room codes only — see the Stage 7 note), any provider-specific (non-OpenAI-compatible) LLM integration. The file-watch consumer deferred here shipped later in Phase 29: Directory Diff, Git Repo Browser and Large-File Inspector.
 
 ### Security notes (extending §31)
 
@@ -1205,7 +1205,7 @@ Two bugs surfaced only through live app testing, not the unit suite or code revi
 
 **Stage 4** reuses `SecureLocalService` for *all three* LLM fields (base URL, model, API key), not just the key — even though base URL/model aren't secret, this means the main process can read the whole config through the one mechanism it already has, with no separate "push config to main" IPC call and no second on-disk store. The proxy is non-streaming by design (a dumb pass-through with auth injection) and lazily started on first use, restarted whenever the stored config changes. **Follow-up — Settings as a shell destination (Milestones 475–479):** Settings shipped here as a `developer`-category tool, which then needed special cases everywhere (excluded from the tool count, the README/SECURITY generators, and pipeline coverage; looked up by a hard-coded `getById('settings')` in `core/`). It is now a sanctioned shell destination (`src/app/shell/settings/`, exception #8 in `shell/AGENTS.md`), not a tool: `/settings/:section`, pinned to the sidebar footer, with a filterable sub-nav of six app-level sections (General, AI / LLM Provider, Hotkeys, Window & Updates, Files, Data & Privacy), an unsaved-changes guard, and per-section reset. The sidebar's separate "Clear all DUDE data" button now lives only in Data & Privacy. A "Tools" group is generated from an optional manifest `settingsSection`, so a tool contributes its own panel without touching `shell/` (Advanced Markdown Workspace's relay is the first), and `settingsSection.workspaceOverridable` lets saved workspaces override a declared tool preference. The web build lists desktop-only sections with a Desktop badge and an explainer. Entry points: the sidebar gear, File › Preferences (Ctrl+,), the tray's "Settings…", Ctrl+K "Settings" / "Settings: <section>", and `dude://open/settings[/<section>]`. The LLM fields keep the `dude:v1:settings:llm*` keys because `electron/llm-bridge.ts` reads them directly; `settings` is now a storage namespace, not a tool id. Scope ceiling: this is an app-preferences page plus a per-tool contribution point, not a general plugin-configuration system; tools still own their own in-tool options.
 
-**Stage 5** moved `base64-codec.ts` and `hash-compute.ts` out of their tool folders into a new `src/shared-logic/` directory — the first precedent for `electron/` runtime-importing anything from outside itself (previously type-only). Closing the main window now hides it to the tray instead of quitting, a deliberate behavior change from Stage 1's `window-all-closed` → `app.quit()`. File watching shipped as infrastructure only — no tool auto-reloads on a watched file changing yet, since that needs a "reload / keep my edits" UX design pass this stage didn't resolve.
+**Stage 5** moved `base64-codec.ts` and `hash-compute.ts` out of their tool folders into a new `src/shared-logic/` directory — the first precedent for `electron/` runtime-importing anything from outside itself (previously type-only). Closing the main window now hides it to the tray instead of quitting, a deliberate behavior change from Stage 1's `window-all-closed` → `app.quit()`. File watching shipped as infrastructure only at this stage. Phase 29 later added an opt-in, read-only auto-rescan to Directory Diff and Git Repo Browser, plus an explicit reload action for a selected changed file; this does not reload unsaved editor content.
 
 **Stage 6** hand-rolled the `y-websocket` wire protocol (`y-protocols/sync` + `y-protocols/awareness` message framing over a plain `ws` WebSocket) rather than depending on `y-websocket` itself, whose package only exports the browser `WebsocketProvider` client under a resolvable subpath, not its server utility. This is also the one narrow, deliberate exception to every other Phase 8 backend's `127.0.0.1`-only rule: the collab server binds `0.0.0.0` (LAN reachability is the point), mitigated by a random per-session code required before a connection is accepted. A unit test simulating two paired clients (`markdown-collab-client.spec.ts`) caught a real duplication race before it ever ran live: if both sides of a fresh session tried to seed initial content, both texts got concatenated in CRDT-merge order. Fixed by making only the session *host* ever seed content — a *joiner* always starts empty and adopts whatever the host provides.
 
@@ -1521,7 +1521,7 @@ Goal: grow Color Converter into a full design toolkit and add CSS/HTML/image/QR 
 
 Milestone 174 (between Tailwind Color Matcher and Box Shadow Generator) built the `css-preview-sandbox` shared primitive — a sandboxed-iframe live-preview component, modeled on HTML Preview's iframe+CSP pattern but locked down further (no `allow-scripts` at all, since these tools render CSS only, never user script) — that all seven CSS live-preview tools (items 10-16) share. It's a framework-layer milestone with no numbered item of its own, the same pattern Milestone 16's `regex-ast-features.ts` extraction used.
 
-Item 30 (Image Compressor) deviates from this section's original plan: a real WASM codec (`@jsquash/jpeg`/`webp`/`png`, the maintained successor to `@squoosh/lib`) was implemented first, but its Emscripten `locateFile` resolution breaks once Angular's esbuild-based production build bundles the codec module — the `.wasm` binary never made it into `dist/`, a defect only a real `ng build` caught, not the unit test suite. Image Compressor ships on plain `canvas.toBlob()` quality-based compression instead: real but more modest size reduction, zero bundling risk. Items 27-29, 31-32, and 34-35 (the rest of the image/SVG tools) all shipped as originally planned, since none of them needed a WASM codec.
+Item 30 (Image Compressor) deviates from this section's original plan: a real WASM codec (`@jsquash/jpeg`/`webp`/`png`, the maintained successor to `@squoosh/lib`) was implemented first, but its Emscripten `locateFile` resolution breaks once Angular's esbuild-based production build bundles the codec module — the `.wasm` binary never made it into `dist/`, a defect only a real `ng build` caught, not the unit test suite. Image Compressor ships on plain `canvas.toBlob()` quality-based compression instead: real but more modest size reduction, zero bundling risk. Items 27–29, 31-32, and 34-35 (the rest of the image/SVG tools) all shipped as originally planned, since none of them needed a WASM codec.
 
 Items 38 and 40 (QR Code Scanner, Barcode Reader) are the first `getUserMedia`/camera-API use anywhere in the codebase; `docs/SECURITY.md` gained a new "Camera access" section documenting it, alongside the network-exception entry item 26 added.
 
@@ -1744,9 +1744,9 @@ DUDE now handles cryptography, authentication material, certificates, binary for
 
 6. Golden Corpus Tests — maintain representative real-world samples for PE, ELF, Mach-O, certificates, JSON/YAML/XML, SQL, logs, Git data, archives, images, and other complex formats. **✅ Rolled out (Milestones 314-406)**: the `__fixtures__/` convention now covers PE/ELF/Mach-O, a real X.509 certificate, JSON/YAML/XML, SQLite, ZIP/TAR, and PNG. Fixture provenance and independent checks are documented alongside the samples; add further corpora as new format-specific risks arise.
 
-7. High-Consequence Tool Matrix — explicitly identify crypto, authentication, code-execution, filesystem-write, process-management, registry, network-scanning, database-write, and secret-management tools as requiring stronger review. **✅ Shipped (Milestone 309)**: `ConsequenceClass` on `ToolDefinition`; every shipped crypto/authentication/code-execution/secret-management tool tagged. The five native-capability classes were reserved for the tools that would actually use them. Phase 27 (Milestone 489) put `network-scanning` into use (Port Scanner, guided Diagnostic Bundle). It also added a tenth class, `remote-write`, for HTTP methods that can change server state (TCP/HTTP Connectivity Tester). `filesystem-write`, `process-management`, `registry`, and `database-write` remain reserved.
+7. High-Consequence Tool Matrix — explicitly identify crypto, authentication, code-execution, filesystem-write, process-management, registry, network-scanning, database-write, and secret-management tools as requiring stronger review. **✅ Shipped (Milestone 309)**: `ConsequenceClass` on `ToolDefinition`; every shipped crypto/authentication/code-execution/secret-management tool tagged. The native-capability classes were initially reserved for the tools that would use them. Phase 27 (Milestone 489) put `network-scanning` into use (Port Scanner, guided Diagnostic Bundle). It also added a tenth class, `remote-write`, for HTTP methods that can change server state (TCP/HTTP Connectivity Tester). `filesystem-write` is now used by Phase 29's previewed, journaled local file changes. `registry` and `database-write` remain reserved; `process-management` is used by Phase 28's gated packet capture.
 
-8. Destructive-Action Harness — verify that every destructive desktop action has an explicit confirmation boundary and cannot be triggered merely by opening/importing data. **✅ Contract documented (Milestone 311)**: §5.2.1 spells out the two-step-confirm/no-incidental-trigger/tagging/test requirements. No enforcement component built yet since no `filesystem-write`/`process-management`/`registry`/`database-write` tool exists to enforce it against.
+8. Destructive-Action Harness — verify that every destructive desktop action has an explicit confirmation boundary and cannot be triggered merely by opening/importing data. **✅ Contract documented (Milestone 311)**: §5.2.1 spells out the two-step-confirm/no-incidental-trigger/tagging/test requirements. Phase 29's filesystem mutation engine now enforces plan preview, a short-lived single-use token, precondition checks, journaling and previewed undo; mutating tools have colocated confirmation-boundary tests.
 
 9. Sandbox Regression Suite — continuously verify the Phase 6 arbitrary-code isolation assumptions and Electron "contextIsolation"/preload boundaries. **✅ Shipped (Milestones 315-406)**: real-browser Playwright tests cover opaque-origin isolation, CSP denial of unallowlisted scripts, `Worker.terminate()`'s hard stop, and Python iframe recreation; `npm run test:electron` covers the preload/path boundary and `main.ts`'s `webPreferences`.
 
@@ -1776,7 +1776,7 @@ Phase 21 shipped Smart Paste, pipelines, workspaces, Saved Sessions, and local h
 
 3. Desktop Global Smart Paste Hotkey — a system-wide shortcut opens DUDE with clipboard contents already classified, without permanently storing them. **✅ Shipped (Milestone 416, desktop-only)**: `electron/smart-paste-hotkey.ts`, a sibling to `hotkey-bridge.ts`'s clipboard `QUICK_ACTIONS` (not an edit to it, since its effect — focusing the window with classified clipboard content — is materially different). Classification stays 100% renderer-side.
 
-4. Smart File Drop — dropping a file identifies likely applicable tools from extension, MIME type, signature bytes, and registered I/O capabilities. **✅ Shipped (Milestones 414–415), on both desktop and web**: extension/MIME/signature-byte sniffing all work client-side on a dropped `File`, so this deliberately shipped on the web/PWA build too, not desktop-only as originally floated — see `core/file-drop-detect/AGENTS.md`. **Follow-up — Universal File Input (Milestones 469–472):** as shipped, the hand-off was opt-in per tool and only File Hash/File Base64 consumed it, so every other suggested tool opened empty. The shared `app-file-drop` now consumes the hand-off generically for whatever tool it's mounted in (no per-tool wiring; mode-gated inputs `has()`-check and switch modes). Text/code tools declare `fileInput: { key, extensions }` in their manifest (or reuse `desktopOpen.inputKey`): Smart File Drop ranks them for those extensions and writes the file's text into that key before navigating — the same mechanism as Explorer "Open with DUDE". 57 text/code tools gained a shared Open file… button, drop-a-file-onto-the-input, and a Save… button for their output (`showSaveFilePicker`, download fallback — the user chooses the destination, so this is not a `filesystem-write` capability). Scope ceiling: this is loading and saving *text inputs/outputs*; it is not a file manager or a watched-file editing model (Markdown Workspace's existing desktop file-watching is unchanged). The same pass fixed live-document `innerHTML` parsing in four HTML tools that let injected event handlers run (Milestone 471) — see `core/text-file-input/AGENTS.md`.
+4. Smart File Drop — dropping a file identifies likely applicable tools from extension, MIME type, signature bytes, and registered I/O capabilities. **✅ Shipped (Milestones 414–415), on both desktop and web**: extension/MIME/signature-byte sniffing all work client-side on a dropped `File`, so this deliberately shipped on the web/PWA build too, not desktop-only as originally floated — see `core/file-drop-detect/AGENTS.md`. **Follow-up — Universal File Input (Milestones 469–472):** as shipped, the hand-off was opt-in per tool and only File Hash/File Base64 consumed it, so every other suggested tool opened empty. The shared `app-file-drop` now consumes the hand-off generically for whatever tool it's mounted in (no per-tool wiring; mode-gated inputs `has()`-check and switch modes). Text/code tools declare `fileInput: { key, extensions }` in their manifest (or reuse `desktopOpen.inputKey`): Smart File Drop ranks them for those extensions and writes the file's text into that key before navigating — the same mechanism as Explorer "Open with DUDE". 57 text/code tools gained a shared Open file… button, drop-a-file-onto-the-input, and a Save… button for their output (`showSaveFilePicker`, download fallback — the user chooses the destination, so this is not a `filesystem-write` capability). Scope ceiling: this is loading and saving *text inputs/outputs*; it is not a file manager or a watched-file editing model (Markdown Workspace has no file-watch consumer; Phase 29's opt-in watching belongs to Directory Diff, Git Repo Browser and Large-File Inspector). The same pass fixed live-document `innerHTML` parsing in four HTML tools that let injected event handlers run (Milestone 471) — see `core/text-file-input/AGENTS.md`.
 
 5. Local Usage Frequency — maintain private local usage counts to improve local ranking. **✅ Shipped (Milestone 407)**: `UsageService`, uniform across all 277 tools (unlike History, no per-tool opt-in — see `core/usage/AGENTS.md`), recording only `{toolId, count, lastUsedAt}`.
 
@@ -1970,40 +1970,42 @@ The certificate tools in Phase 12 operate from user-supplied PEM/DER/PFX materia
 
 ---
 
-## Phase 29 — Filesystem & Binary Forensics at Scale
+## Phase 29 — Filesystem & Binary Forensics at Scale (✅ Complete — shipped as Milestones 523–536)
 
-Cover filesystem operations that need arbitrary, persistent, background, recursive, watch, or write access beyond a single user-picked file/folder snapshot. This phase also consumes the native file-watch infrastructure established in Phase 8.
+Phase 29 covers filesystem operations that need arbitrary, persistent, background, recursive, watch, or write access beyond a single user-picked file/folder snapshot. This phase also consumes the native file-watch infrastructure established in Phase 8.
 
-1. **Folder Size Analyzer** — recursive, across an arbitrary directory tree
-2. **Duplicate File Finder** — across a drive or arbitrary tree
-3. **Batch Rename** — pattern-based, across a selected tree
-4. **Directory Tree Generator** — for an arbitrary path, not only a one-shot picked folder
-5. **File Splitter**
-6. **File Joiner**
-7. **Line-Ending Batch Converter** — across a folder of files
-8. **File Encoding Batch Converter** — across a folder/tree
-9. **Directory Hash** — whole-folder content hash for tree comparison
-10. **Watched Folder Workspace**
-11. **Auto-Rescan Directory Diff**
-12. **Git Repo Browser Auto-Refresh**
-13. **File Change Timeline**
-14. **Large-File Streaming Inspector**
-15. **Bulk Hash/Manifest Generator**
-16. **Folder Snapshot / Snapshot Diff**
-17. **Duplicate Content Groups**
-18. **Content Search Across Selected Tree**
-19. **Structured File Search**
-20. **Safe Batch Operation Preview / Dry Run**
+1. **Folder Size Analyzer** — recursive, across an arbitrary directory tree — **✅ shipped (M525)** via `folder-size-analyzer`.
+2. **Duplicate File Finder** — across a drive or arbitrary tree — **✅ shipped (M528)** via `duplicate-files`.
+3. **Batch Rename** — pattern-based, across a selected tree — **✅ shipped (M530)** via `batch-rename`.
+4. **Directory Tree Generator** — for an arbitrary path, not only a one-shot picked folder — **✅ shipped (M526)** via `directory-tree-generator`.
+5. **File Splitter** — **✅ shipped (M532)** via `file-split-join`.
+6. **File Joiner** — **✅ shipped (M532)** via `file-split-join`.
+7. **Line-Ending Batch Converter** — across a folder of files — **✅ shipped (M531)** via `batch-text-converter`.
+8. **File Encoding Batch Converter** — across a folder/tree — **✅ shipped (M531)** via `batch-text-converter`.
+9. **Directory Hash** — whole-folder content hash for tree comparison — **✅ shipped (M527)** via `hash-manifest`.
+10. **Watched Folder Workspace** — **✅ shipped (M534)** via `watched-folders`.
+11. **Auto-Rescan Directory Diff** — **✅ shipped (M535)** via `directory-diff`.
+12. **Git Repo Browser Auto-Refresh** — **✅ shipped (M535)** via `git-diff`.
+13. **File Change Timeline** — **✅ shipped (M534)** via `watched-folders`.
+14. **Large-File Streaming Inspector** — **✅ shipped (M533)** via `large-file-inspector`.
+15. **Bulk Hash/Manifest Generator** — **✅ shipped (M527)** via `hash-manifest`.
+16. **Folder Snapshot / Snapshot Diff** — **✅ shipped (M527)** via `hash-manifest`.
+17. **Duplicate Content Groups** — **✅ shipped (M528)** via `duplicate-files`.
+18. **Content Search Across Selected Tree** — **✅ shipped (M529)** via `tree-search`.
+19. **Structured File Search** — **✅ shipped (M529)** via `tree-search`.
+20. **Safe Batch Operation Preview / Dry Run** — **✅ shipped (M524)** via `batch-operations`.
 
 ### Notes
+
+Session folder grants remain the default; a user can explicitly remember and revoke a folder. Cancellable scans, searches and hashes run in an Electron utility process. Background watches require remembered roots and run only while DUDE is open. Per-root content capture is a separate opt-in with no size, type or secret limit; the tool shows storage usage and offers a clear action. Backups for undo default to 30 days / 5 GB and can be adjusted. Directory Diff and Git Repo Browser auto-rescan only while their views are open and the option is enabled.
 
 Single-file inspection — hex viewing, signature/entropy analysis, MIME/magic-byte detection, BOM handling, and PE/ELF/Mach-O header viewing — remains a browser-safe/upload-driven concern and is covered by the file/binary tooling in Phase 20.
 
 Directory Diff and Git Repo Browser already gained native re-scannable folder access in Phase 8. The distinction here is deeper **filesystem lifecycle access**: watching, streaming, searching, scanning large trees, generating manifests, and performing explicit write-back/batch mutations.
 
-Any mutating batch operation must provide a preview/dry run where practical, surface the exact affected paths, respect ignore/exclusion rules, and require explicit confirmation before writes.
+Every mutating batch operation now shows a preview with exact affected paths and requires a separate confirmation before writes. The shared engine checks preconditions, journals outcomes and supports previewed undo; deletes go to the Recycle Bin (see §5.2.1).
 
-**Goal:** graduate DUDE's file tools from “open a snapshot” into persistent native filesystem workflows.
+**Goal achieved:** DUDE's file tools now support persistent native filesystem workflows.
 
 ---
 
@@ -2367,6 +2369,8 @@ Goal: make “desktop-first” mean desktop generally while retaining Windows as
 10. Rule history
 11. Desktop notifications
 12. Per-rule permissions
+
+**Phase 29 foundation and remaining scope:** Phase 29 shipped remembered-folder grants, recursive watching, event coalescing, root-level exclusions, a timeline, notifications and a previewed mutation engine. The 12 items above remain the Phase 40 roadmap for rule-driven behavior: rules still need their own triggers, debounce and ignore settings, conflict handling, dry-run review, history, notification settings and permissions. A watch event by itself does not authorize a write; Phase 40 must define how automatic actions meet §5.2.1 or an explicitly specified standing authorization contract without silently overwriting work.
 
 Goal: turn the file-watch infrastructure into useful automation without surprising users or overwriting work silently.
 
@@ -2875,6 +2879,8 @@ Goal: preserve debugging context across interruptions without trying to replace 
 10. Watch history
 11. Local-only execution by default
 
+**Phase 29 foundation and remaining scope:** Phase 28 shipped certificate expiration watches; Phase 29 shipped opt-in file-change watches, a folder timeline, notifications and a tray summary. The 11 items above remain in their original scope and order. Phase 66 generalizes those existing implementations into a common monitoring surface, adds the other target types, and provides cross-watch notification controls, quiet hours and history. These watches remain opt-in and active only while DUDE runs unless a later phase explicitly changes that lifecycle.
+
 Goal: extend one-shot diagnostics into low-overhead developer monitoring, building on the Phase 28 certificate watcher.
 
 ---
@@ -2893,6 +2899,8 @@ Goal: extend one-shot diagnostics into low-overhead developer monitoring, buildi
 10. Search documentation
 11. Permission-scoped local indexing
 12. Index exclusion rules
+
+**Phase 29 foundation and remaining scope:** Tree Search already streams content, metadata and structured queries within a user-granted tree, and DUDE already has tool discovery. The 12 items above still describe a unified search surface across DUDE data and explicitly indexed project files. Phase 67 may reuse Phase 29's walker, grants and exclusions; it must show what is indexed and let users remove it. Opening a project does not silently grant access or create an index.
 
 Goal: make hundreds of capabilities and accumulated local context discoverable through one search model.
 
@@ -3555,7 +3563,7 @@ Phase 100 provides the intentionally extreme long-horizon endpoint without allow
 The remaining desktop-platform work is explicitly assigned within the current roadmap rather than left in an unnumbered backlog:
 
 - macOS/Linux desktop builds, platform keychains, native packaging, and signed non-Store Windows distribution — **Phase 39**;
-- file-watch-driven automation and safe auto-reload/write workflows — **Phase 40**;
+- file-watch-driven automation and safe write workflows — **Phase 40** (read-only auto-rescan shipped in Phase 29);
 - named/accountless collaboration and richer self-hosted relay behavior — **Phase 53**;
 - broader local/on-device model support and AI routing — **Phases 69–71**.
 
