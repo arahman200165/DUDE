@@ -97,7 +97,7 @@ export class DataPrivacySettings {
   }
 
   protected conflictSummary(plan: ImportPlan): { skipped: number; replaced: number } {
-    const sections = [plan.projects, plan.workspaceTemplates, plan.pipelines, plan.userScripts, plan.homePanel];
+    const sections = [plan.projects, plan.workspaceTemplates, plan.pipelines, plan.userScripts, plan.homePanel, plan.homeLayout];
     return {
       skipped: sections.reduce((total, section) => total + section.skipped, 0),
       replaced: sections.reduce((total, section) => total + section.replaced, 0),

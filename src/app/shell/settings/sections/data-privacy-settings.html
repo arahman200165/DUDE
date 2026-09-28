@@ -36,6 +36,9 @@
           @if (plan.homePanel.items.length) {
             <li>your Home note and links</li>
           }
+          @if (plan.homeLayout.items.length) {
+            <li>your Home layout and its text, link and shortcut panels</li>
+          }
           <li>preferences for {{ toolCount(plan.toolPreferences) }} tool(s)</li>
           @if (toolCount(plan.toolInputs)) {
             <li>inputs for {{ toolCount(plan.toolInputs) }} tool(s)</li>

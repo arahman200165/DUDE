@@ -2,6 +2,7 @@ import { Project } from '../project/project.model';
 import { Pipeline, PipelineStepRef, UserScriptDefinition } from '../pipeline/pipeline.model';
 import { WorkspaceTemplate } from '../workspace/workspace-template.model';
 import { HomePanelContent, hasHomePanelContent, mergeHomePanel, sanitizeHomePanel } from '../home-panel/home-panel.model';
+import type { HomeLayoutData } from '../home-layout/home-layout-store.model';
 
 /**
  * Browser-Safe Workspace Support (DUDE_PRD.md §21 Phase 26 Item 14): a portable JSON backup of what
@@ -34,6 +35,13 @@ export interface DudeBundle {
    * bundles written before it existed. Re-sanitized on parse and again on apply.
    */
   readonly homePanel?: HomePanelContent;
+  /**
+   * The user-designed Home (Phase 30I): panel instances, both placements, and user-authored panel
+   * content. Additive and optional like `homePanel` (so the bundle schema version is unchanged and
+   * older bundles still import). Re-sanitized against the panel registry on parse (`sanitizeLayout`)
+   * and again on apply. Supersedes `homePanel`, which is still read from older bundles.
+   */
+  readonly homeLayout?: HomeLayoutData;
 }
 
 export type ConflictMode = 'skip' | 'replace' | 'keep-both';
@@ -45,6 +53,8 @@ export interface ExistingIds {
   readonly userScripts: ReadonlySet<string>;
   /** The Home panel currently stored (treated as empty when omitted). */
   readonly homePanel?: HomePanelContent;
+  /** The Home layout currently stored (treated as untouched when omitted). */
+  readonly homeLayout?: HomeLayoutData;
 }
 
 export interface SectionPlan<T> {
@@ -61,6 +71,9 @@ export interface ImportPlan {
   readonly userScripts: SectionPlan<UserScriptDefinition>;
   /** At most one item: the Home panel to write, already merged per the conflict mode. */
   readonly homePanel: SectionPlan<HomePanelContent>;
+  /** At most one item: the sanitized incoming layout; `apply` merges it per `conflictMode`. */
+  readonly homeLayout: SectionPlan<HomeLayoutData>;
+  readonly conflictMode?: ConflictMode;
   readonly toolPreferences: DudeBundle['toolPreferences'];
   readonly toolInputs: Readonly<Record<string, string>>;
   /** Entries in the file that failed validation and will be ignored. */
@@ -124,7 +137,7 @@ function stringRecord(value: unknown): Record<string, string> {
 }
 
 /** Parses and validates a bundle file. Never throws. Invalid entries are dropped and counted. */
-export function parseBundle(text: string): ParseResult {
+export function parseBundle(text: string, sanitizeLayout?: (raw: unknown) => HomeLayoutData): ParseResult {
   if (text.length > MAX_BUNDLE_BYTES) return { ok: false, error: 'This file is too large to be a DUDE bundle.' };
   let raw: unknown;
   try {
@@ -161,6 +174,7 @@ export function parseBundle(text: string): ParseResult {
     toolPreferences,
     toolInputs: raw['toolInputs'] === undefined ? undefined : stringRecord(raw['toolInputs']),
     homePanel: raw['homePanel'] === undefined ? undefined : sanitizeHomePanel(raw['homePanel']),
+    homeLayout: raw['homeLayout'] === undefined || !sanitizeLayout ? undefined : sanitizeLayout(raw['homeLayout']),
   };
   return { ok: true, invalid, bundle };
 }
@@ -224,6 +238,8 @@ export function planImport(bundle: DudeBundle, existing: ExistingIds, mode: Conf
     },
     workspaceTemplates: templates,
     homePanel,
+    homeLayout: planHomeLayout(bundle.homeLayout, existing.homeLayout, mode),
+    conflictMode: mode,
     toolPreferences: bundle.toolPreferences,
     toolInputs: bundle.toolInputs ?? {},
     invalid: 0,
@@ -237,4 +253,14 @@ function planHomePanel(incoming: HomePanelContent | undefined, existing: HomePan
   if (mode === 'skip') return { ...none, skipped: 1 };
   const merged = mergeHomePanel(existing, incoming, mode);
   return mode === 'replace' ? { ...none, items: [merged], replaced: 1 } : { ...none, items: [merged], added: 1 };
+}
+
+const hasLayoutData = (data: HomeLayoutData | undefined): data is HomeLayoutData => !!data && (data.customized || Object.keys(data.content).length > 0);
+
+function planHomeLayout(incoming: HomeLayoutData | undefined, existing: HomeLayoutData | undefined, mode: ConflictMode): SectionPlan<HomeLayoutData> {
+  const none = { items: [], added: 0, replaced: 0, skipped: 0 };
+  if (!hasLayoutData(incoming)) return none;
+  if (!hasLayoutData(existing)) return { ...none, items: [incoming], added: 1 };
+  if (mode === 'skip') return { ...none, skipped: 1 };
+  return mode === 'replace' ? { ...none, items: [incoming], replaced: 1 } : { ...none, items: [incoming], added: 1 };
 }

@@ -4,6 +4,9 @@ import { PipelineStoreService } from '../pipeline/pipeline-store.service';
 import { UserScriptStoreService } from '../pipeline/user-script-store.service';
 import { WorkspaceTemplateService } from '../workspace/workspace-template.service';
 import { HomePanelService } from '../home-panel/home-panel.service';
+import { HomeLayoutService } from '../home-layout/home-layout.service';
+import { KindCatalog, sanitizeHomeLayoutData } from '../home-layout/home-layout-store.model';
+import { PanelRegistryService } from '../registry/panel-registry.service';
 import { sanitizeHomePanel } from '../home-panel/home-panel.model';
 import { ToolRegistryService } from '../registry/tool-registry.service';
 import { createStorageBackend } from '../persistence/storage-backend';
@@ -33,6 +36,8 @@ export class DudeBundleService {
   private readonly scripts = inject(UserScriptStoreService);
   private readonly templates = inject(WorkspaceTemplateService);
   private readonly homePanel = inject(HomePanelService);
+  private readonly homeLayout = inject(HomeLayoutService);
+  private readonly panels = inject(PanelRegistryService);
   private readonly registry = inject(ToolRegistryService);
   private readonly local = createStorageBackend('local');
 
@@ -68,12 +73,15 @@ export class DudeBundleService {
       userScripts: this.scripts.scripts(),
       toolPreferences,
       ...(options.includeInputs ? { toolInputs } : {}),
+      // Legacy M561 notes are exported only until the Home migration has moved them into the layout.
       ...(this.homePanel.hasContent() ? { homePanel: this.homePanel.content() } : {}),
+      ...(this.homeLayout.customized() || Object.keys(this.homeLayout.content()).length > 0 ? { homeLayout: this.homeLayout.data() } : {}),
     };
   }
 
   preview(text: string, mode: ConflictMode): ImportPreview {
-    const parsed = parseBundle(text);
+    const catalog: KindCatalog = { resolve: (id) => this.panels.resolveKind(id) };
+    const parsed = parseBundle(text, (raw) => sanitizeHomeLayoutData(raw, catalog, this.panels.defaultLayout()));
     if (!parsed.ok) return parsed;
     const plan = planImport(parsed.bundle, this.existingIds(), mode);
     return { ok: true, plan: { ...plan, invalid: parsed.invalid } };
@@ -86,6 +94,8 @@ export class DudeBundleService {
     this.templates.importUserTemplates(plan.workspaceTemplates.items);
     // `importContent` re-sanitizes; the extra pass keeps `apply` from trusting a hand-built plan.
     for (const content of plan.homePanel.items) this.homePanel.importContent(sanitizeHomePanel(content));
+    // `importData` re-sanitizes against the panel registry and merges per the previewed conflict mode.
+    for (const layout of plan.homeLayout.items) this.homeLayout.importData(layout, plan.conflictMode ?? 'skip');
 
     for (const [toolId, keys] of Object.entries(plan.toolPreferences)) {
       const tool = this.registry.getById(toolId);
@@ -114,6 +124,7 @@ export class DudeBundleService {
       pipelines: new Set(this.pipelines.pipelines().map((pipeline) => pipeline.id)),
       userScripts: new Set(this.scripts.scripts().map((script) => script.id)),
       homePanel: this.homePanel.content(),
+      homeLayout: this.homeLayout.data(),
     };
   }
 }
