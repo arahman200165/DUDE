@@ -1,0 +1,20 @@
+<span class="relative inline-block max-w-full">
+  <button
+    type="button"
+    class="block max-w-full truncate text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+    [attr.aria-expanded]="open()"
+    [attr.aria-label]="'Show full value: ' + value()"
+    (click)="toggle()"
+  >
+    {{ value() }}
+  </button>
+
+  @if (open()) {
+    <span
+      role="tooltip"
+      class="absolute left-0 top-full z-20 mt-1 max-w-xs whitespace-pre-wrap break-words rounded-sm border border-border bg-panel-elevated px-2 py-1 text-xs text-text shadow-none"
+    >
+      {{ value() }}
+    </span>
+  }
+</span>

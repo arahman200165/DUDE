@@ -1,0 +1,80 @@
+<div
+  class="flex h-full flex-col overflow-x-auto"
+  role="table"
+  [attr.aria-label]="ariaLabel()"
+  (keydown.arrowDown)="onArrowDown($event)"
+  (keydown.arrowUp)="onArrowUp($event)"
+  (keydown.enter)="onEnter()"
+>
+  <div
+    role="row"
+    class="grid shrink-0 items-center gap-2 border-b border-border px-1.5 py-1 text-ui-xs uppercase tracking-wider text-text-muted"
+    [class.sticky]="sticky()"
+    [class.top-0]="sticky()"
+    [class.z-10]="sticky()"
+    [class.bg-panel]="sticky()"
+    [style.grid-template-columns]="gridTemplateColumns()"
+  >
+    @for (column of columns(); track column.key) {
+      <span role="columnheader">
+        @if (column.sortable) {
+          <button
+            type="button"
+            class="flex items-center gap-1 hover:text-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+            [attr.aria-sort]="sort()?.key === column.key ? (sort()!.direction === 'asc' ? 'ascending' : 'descending') : 'none'"
+            (click)="toggleSort(column)"
+          >
+            {{ column.header }}
+            @if (sort()?.key === column.key) {
+              <span aria-hidden="true">{{ sort()!.direction === 'asc' ? '▲' : '▼' }}</span>
+            }
+          </button>
+        } @else {
+          {{ column.header }}
+        }
+      </span>
+    }
+  </div>
+
+  <ng-template #rowTpl let-row let-index="index">
+    <div
+      role="row"
+      class="grid items-center gap-2 border-b border-border/60 px-1.5 text-xs hover:bg-panel-elevated"
+      [class.py-0.5]="dense()"
+      [class.py-1]="!dense()"
+      [style.grid-template-columns]="gridTemplateColumns()"
+      [tabindex]="index === focusedIndex() ? 0 : -1"
+      [class.bg-panel-elevated]="index === focusedIndex()"
+      [class.ring-1]="index === focusedIndex()"
+      [class.ring-inset]="index === focusedIndex()"
+      [class.ring-accent]="index === focusedIndex()"
+      (click)="onRowClick(index, row)"
+    >
+      @for (column of columns(); track column.key) {
+        <span role="cell" class="min-w-0">
+          @if (templateFor(column.key); as tpl) {
+            <ng-container *ngTemplateOutlet="tpl; context: { $implicit: row, row: row }" />
+          } @else if (column.truncate) {
+            <app-value-disclosure [value]="column.value(row)" />
+          } @else {
+            <span class="truncate">{{ column.value(row) }}</span>
+          }
+        </span>
+      }
+    </div>
+  </ng-template>
+
+  @if (virtualize()) {
+    <cdk-virtual-scroll-viewport [itemSize]="rowHeight()" class="min-h-0 flex-1">
+      <ng-container *cdkVirtualFor="let row of sortedRows(); let i = index; trackBy: trackByRow">
+        <ng-container *ngTemplateOutlet="rowTpl; context: { $implicit: row, index: i }" />
+      </ng-container>
+    </cdk-virtual-scroll-viewport>
+  } @else {
+    <div class="min-h-0 flex-1 overflow-y-auto">
+      @for (row of sortedRows(); track trackByRow($index, row); let i = $index) {
+        <ng-container *ngTemplateOutlet="rowTpl; context: { $implicit: row, index: i }" />
+      }
+    </div>
+  }
+</div>
