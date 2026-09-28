@@ -213,3 +213,13 @@ export interface StartTlsView {
   readonly hostname: import('./network-types').HostnameVerdict;
   readonly error?: string;
 }
+
+export interface HttpsAnalysisView {
+  readonly host: string;
+  readonly port: number;
+  readonly findings: readonly (LiveFindingView & { readonly link?: string; readonly linkLabel?: string; readonly status: 'pass' | 'warn' | 'fail' | 'info' | 'untested' })[];
+  readonly summary: { readonly fail: number; readonly warn: number; readonly pass: number };
+  readonly supportedVersions: readonly string[];
+  readonly redirectsToHttps: boolean | null;
+  readonly hsts: string | null;
+}

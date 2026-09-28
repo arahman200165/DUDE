@@ -134,6 +134,7 @@ import { manifest as httpHeaderInspectorManifest } from '../../tools/http-header
 import { manifest as httpRequestBuilderManifest } from '../../tools/http-request-builder/http-request-builder.manifest';
 import { manifest as httpResponseViewerManifest } from '../../tools/http-response-viewer/http-response-viewer.manifest';
 import { manifest as httpStatusManifest } from '../../tools/http-status/http-status.manifest';
+import { manifest as httpsConfigAnalyzerManifest } from '../../tools/https-config-analyzer/https-config-analyzer.manifest';
 import { manifest as imageCompressorManifest } from '../../tools/image-compressor/image-compressor.manifest';
 import { manifest as imageCropperManifest } from '../../tools/image-cropper/image-cropper.manifest';
 import { manifest as imageFormatConverterManifest } from '../../tools/image-format-converter/image-format-converter.manifest';
@@ -437,6 +438,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   httpRequestBuilderManifest,
   httpResponseViewerManifest,
   httpStatusManifest,
+  httpsConfigAnalyzerManifest,
   imageCompressorManifest,
   imageCropperManifest,
   imageFormatConverterManifest,

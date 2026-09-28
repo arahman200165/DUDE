@@ -7,6 +7,7 @@ import { enumerateTls, enumerationPlan } from './network-tls-enumerate';
 import { captureTlsHandshake } from './network-capture';
 import { inspectRevocation } from './network-revocation';
 import { inspectCt } from './network-ct';
+import { analyzeHttps } from './network-https-analyzer';
 
 /**
  * Registers every Phase 28 live check with the dispatcher (`network-live.ts`). Imported for its
@@ -33,3 +34,7 @@ registerLiveKind('revocation', (request, signal, progress) => inspectRevocation(
 });
 registerLiveKind('ct-lookup', (request, signal, progress) => inspectCt(request, signal, progress), { timeoutMs: 30_000 });
 registerLiveKind('starttls', (request, signal, progress) => inspectStartTls(request, signal, progress), { timeoutMs: 30_000 });
+registerLiveKind('https-analyzer', (request, signal, progress) => analyzeHttps(request, signal, progress), {
+  timeoutMs: 150_000,
+  preview: (request) => ({ kind: request.kind, target: `${request.target}:${request.port ?? 443}`, includes: ['TLS version + cipher enumeration (up to 128 handshakes)', 'chain, hostname, expiry, OCSP stapling', 'HTTP→HTTPS redirect + HSTS', 'CAA + HTTPS/SVCB records'], tag: 'network-scanning' }),
+});

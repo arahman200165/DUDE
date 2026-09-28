@@ -79,6 +79,7 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Email Auth Inspector](https://arahman200165.github.io/DUDE/tools/email-auth-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Git Repo Browser](https://arahman200165.github.io/DUDE/tools/git-diff) | Native filesystem access | Works — weaker browser fallback | reads a real .git directory on disk, no upload/zip step |
 | [Hostname Resolver](https://arahman200165.github.io/DUDE/tools/hostname-resolver) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [HTTPS Configuration Analyzer](https://arahman200165.github.io/DUDE/tools/https-config-analyzer) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Continuous Ping / Latency Graph](https://arahman200165.github.io/DUDE/tools/latency-monitor) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Live Certificate Chain Fetcher](https://arahman200165.github.io/DUDE/tools/live-certificate-chain) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Local Network Viewer](https://arahman200165.github.io/DUDE/tools/local-network) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
@@ -113,7 +114,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-301 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+302 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -225,6 +226,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [File Hash Generator](https://arahman200165.github.io/DUDE/tools/file-hash) | Security | MD5, SHA-1, SHA-256, SHA-384, and SHA-512 digests for a local file. |
 | [Hash Generator](https://arahman200165.github.io/DUDE/tools/hash) | Security | MD5, SHA-1, SHA-256, SHA-384, and SHA-512 digests for text. |
 | [HMAC Generator](https://arahman200165.github.io/DUDE/tools/hmac-generator) | Security | HMAC-SHA1, HMAC-SHA256, HMAC-SHA384, and HMAC-SHA512 message authentication codes with a custom key. |
+| [HTTPS Configuration Analyzer](https://arahman200165.github.io/DUDE/tools/https-config-analyzer) | Security | One composite HTTPS check: TLS versions and ciphers, chain and hostname, expiry, OCSP stapling, HTTP→HTTPS redirect, HSTS, CAA, and HTTPS/SVCB — as pass/warn/fail findings, with no letter grade. |
 | [JWKS → Public Keys](https://arahman200165.github.io/DUDE/tools/jwks-to-pem) | Security | Converts JWKS keys to PEM (SPKI) or raw JWK for use outside the browser. |
 | [JWKS Viewer](https://arahman200165.github.io/DUDE/tools/jwks-viewer) | Security | Inspects a JWKS document — enumerates keys, decodes each JWK's parameters, and flags common problems. |
 | [JWT Debugger](https://arahman200165.github.io/DUDE/tools/jwt) | Security | Decode a JWT header and payload — does not verify signatures. |
