@@ -1,0 +1,111 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning/40 bg-warning/5 p-4 text-ui text-text-muted">
+      The Folder Size Analyzer scans whole folders or drives on disk and needs the Windows desktop app.
+    </div>
+    <div class="mt-2 flex gap-2">
+      <app-desktop-only-control capability="native-fs" label="Scan a folder" />
+      <app-desktop-only-control capability="native-fs-write" label="Move to Recycle Bin" />
+    </div>
+  } @else {
+    <div class="flex flex-col gap-3 text-ui">
+      <app-fs-root-picker [(root)]="root" label="Folder or drive" />
+      <app-walk-options [(options)]="options" />
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" class="rounded-sm border border-accent px-3 py-1 text-accent disabled:opacity-50" data-testid="fs-scan" [disabled]="!root()" (click)="scan()">Scan</button>
+        <app-scan-progress [job]="job()" />
+      </div>
+
+      @if (report(); as report) {
+        <div class="flex flex-wrap items-center gap-3 rounded-sm border border-border bg-panel p-2 text-text-muted">
+          <span><span class="text-text">{{ bytes(report.totalBytes) }}</span> in {{ report.totalFiles.toLocaleString() }} files, {{ report.totalDirs.toLocaleString() }} folders</span>
+          @if (report.links) { <span>{{ report.links }} link(s) not followed</span> }
+          @if (report.prunedDirs) { <span title="Folders below 1/20000 of the total are folded into their parent">{{ report.prunedDirs.toLocaleString() }} tiny folders folded</span> }
+          <span class="ml-auto flex gap-2">
+            <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="exportCsv()">CSV</button>
+            <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="exportJson()">JSON</button>
+          </span>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-1" role="tablist">
+          @for (tab of views; track tab.id) {
+            <button type="button" role="tab" class="rounded-sm border px-2 py-0.5" [class]="view() === tab.id ? 'border-accent text-accent' : 'border-border text-text-muted'" [attr.aria-selected]="view() === tab.id" (click)="view.set(tab.id)">{{ tab.label }}</button>
+          }
+          @if (view() === 'tree') {
+            <label class="ml-auto flex items-center gap-1 text-text-muted">Sort
+              <select class="rounded-sm border border-border bg-panel px-1 py-0.5 text-text" [value]="sort()" (change)="sort.set($any($event.target).value)"><option value="size">Size</option><option value="files">Files</option><option value="name">Name</option></select>
+            </label>
+          }
+        </div>
+
+        @switch (view()) {
+          @case ('tree') {
+            <cdk-virtual-scroll-viewport itemSize="26" class="h-[28rem] rounded-sm border border-border">
+              <div *cdkVirtualFor="let row of rows(); trackBy: trackRow" class="flex h-[26px] items-center gap-2 border-b border-border/30 pr-2" [style.padding-left.px]="8 + row.depth * 16">
+                <input type="checkbox" [checked]="selected().has(row.node.path)" (change)="toggleSelect(row.node.path, $event)" [attr.aria-label]="'Select ' + row.node.path" />
+                @if (row.hasChildren) { <button type="button" class="w-4 text-text-muted" (click)="toggleExpand(row.node.path)" [attr.aria-label]="(row.expanded ? 'Collapse ' : 'Expand ') + row.node.path">{{ row.expanded ? '▾' : '▸' }}</button> } @else { <span class="w-4"></span> }
+                <span class="min-w-0 flex-1 truncate font-mono text-text" [title]="row.node.path">{{ nameOf(row.node.path) }}@if (row.node.hiddenDirs) { <span class="text-ui-xs text-text-muted"> (+{{ row.node.hiddenDirs }} small)</span> }</span>
+                <span class="relative h-2 w-40 shrink-0 rounded-sm bg-panel-elevated"><span class="absolute inset-y-0 left-0 rounded-sm bg-accent/70" [style.width]="percent(row.share)"></span></span>
+                <span class="w-12 shrink-0 text-right text-ui-xs text-text-muted">{{ percent(row.share) }}</span>
+                <span class="w-20 shrink-0 text-right text-text">{{ bytes(row.node.size) }}</span>
+                <span class="w-20 shrink-0 text-right text-ui-xs text-text-muted">{{ row.node.files.toLocaleString() }} files</span>
+              </div>
+            </cdk-virtual-scroll-viewport>
+            @if (rootNode()?.ownFiles) { <div class="text-ui-xs text-text-muted">{{ rootNode()!.ownFiles }} file(s) directly in the root: {{ bytes(rootNode()!.ownBytes) }}</div> }
+          }
+          @case ('treemap') {
+            <div class="flex flex-wrap items-center gap-1 text-ui-xs">
+              @for (crumb of breadcrumb(); track crumb.path; let last = $last) {
+                <button type="button" class="font-mono" [class]="last ? 'text-text' : 'text-accent underline'" (click)="focus.set(crumb.path)">{{ crumb.label }}</button>@if (!last) { <span class="text-text-muted">/</span> }
+              }
+            </div>
+            <svg [attr.viewBox]="'0 0 ' + mapWidth + ' ' + mapHeight" class="w-full rounded-sm border border-border bg-panel" role="img" aria-label="Treemap of folder sizes">
+              @for (rect of treemap(); track rect.key) {
+                <g (click)="drill(rect.key, rect.folder)" [class.cursor-pointer]="rect.folder">
+                  <rect [attr.x]="rect.x" [attr.y]="rect.y" [attr.width]="rect.width" [attr.height]="rect.height" [attr.fill]="rect.folder ? 'hsl(' + rect.hue + ' 45% 38%)' : 'hsl(220 8% 30%)'" stroke="var(--color-bg, #111)" stroke-width="1"><title>{{ rect.label }} — {{ bytes(rect.value) }}</title></rect>
+                  @if (rect.width > 60 && rect.height > 18) {
+                    <text [attr.x]="rect.x + 4" [attr.y]="rect.y + 13" font-size="11" fill="white" class="pointer-events-none">{{ rect.label.length > rect.width / 7 ? rect.label.slice(0, rect.width / 7 - 1) + '…' : rect.label }}</text>
+                    @if (rect.height > 32) { <text [attr.x]="rect.x + 4" [attr.y]="rect.y + 26" font-size="10" fill="white" opacity="0.75" class="pointer-events-none">{{ bytes(rect.value) }}</text> }
+                  }
+                </g>
+              }
+            </svg>
+          }
+          @case ('largest') {
+            <table class="w-full border-collapse">
+              <thead><tr class="text-left text-text-muted"><th class="w-6"></th><th class="px-2 py-1">File</th><th class="px-2 py-1 text-right">Size</th><th class="px-2 py-1">Modified</th></tr></thead>
+              <tbody>
+                @for (file of report.largestFiles; track file.path) {
+                  <tr class="border-t border-border/40"><td><input type="checkbox" [checked]="selected().has(file.path)" (change)="toggleSelect(file.path, $event)" [attr.aria-label]="'Select ' + file.path" /></td><td class="px-2 py-0.5 font-mono text-ui-xs text-text">{{ file.path }}</td><td class="px-2 py-0.5 text-right text-text">{{ bytes(file.size) }}</td><td class="px-2 py-0.5 text-ui-xs text-text-muted">{{ ageDate(file.mtimeMs) }}</td></tr>
+                }
+              </tbody>
+            </table>
+          }
+          @case ('extensions') {
+            <div class="flex flex-col gap-1">
+              @for (bucket of report.byExtension.slice(0, 60); track bucket.extension) {
+                <div class="flex items-center gap-2"><span class="w-24 truncate font-mono text-text">{{ bucket.extension ? '.' + bucket.extension : '(none)' }}</span><span class="relative h-2 flex-1 rounded-sm bg-panel-elevated"><span class="absolute inset-y-0 left-0 rounded-sm bg-accent/70" [style.width.%]="(bucket.bytes / maxExtension()) * 100"></span></span><span class="w-20 text-right text-text">{{ bytes(bucket.bytes) }}</span><span class="w-24 text-right text-ui-xs text-text-muted">{{ bucket.files.toLocaleString() }} files</span></div>
+              }
+            </div>
+          }
+          @case ('age') {
+            <div class="flex flex-col gap-1">
+              @for (bucket of report.byAge; track bucket.label) {
+                <div class="flex items-center gap-2"><span class="w-24 text-text">{{ bucket.label }}</span><span class="relative h-2 flex-1 rounded-sm bg-panel-elevated"><span class="absolute inset-y-0 left-0 rounded-sm bg-accent/70" [style.width.%]="(bucket.bytes / maxAge()) * 100"></span></span><span class="w-20 text-right text-text">{{ bytes(bucket.bytes) }}</span><span class="w-24 text-right text-ui-xs text-text-muted">{{ bucket.files.toLocaleString() }} files</span></div>
+              }
+              <p class="text-ui-xs text-text-muted">By last-modified time.</p>
+            </div>
+          }
+        }
+
+        <div class="flex flex-wrap items-center gap-2 border-t border-border pt-2">
+          <span class="text-text-muted">{{ selection().length }} selected</span>
+          <button type="button" class="rounded-sm border border-warning px-2 py-1 text-warning disabled:opacity-50" data-testid="plan-preview-button" [disabled]="!selection().length" (click)="previewTrash()">Preview move to Recycle Bin…</button>
+          @if (selection().length) { <button type="button" class="rounded-sm border border-border px-2 py-1 text-text" (click)="clearSelection()">Clear selection</button> }
+        </div>
+        <app-mutation-preview [preview]="preview()" (applied)="onApplied()" (discarded)="preview.set(null)" />
+        @if (error()) { <div role="alert" class="text-error">{{ error() }}</div> }
+      }
+    </div>
+  }
+</app-tool-shell>

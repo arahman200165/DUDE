@@ -110,6 +110,7 @@ import { manifest as fileInspectorManifest } from '../../tools/file-inspector/fi
 import { manifest as fileTypeDetectorManifest } from '../../tools/file-type-detector/file-type-detector.manifest';
 import { manifest as findReplaceTextManifest } from '../../tools/find-replace-text/find-replace-text.manifest';
 import { manifest as flexboxPlaygroundManifest } from '../../tools/flexbox-playground/flexbox-playground.manifest';
+import { manifest as folderSizeAnalyzerManifest } from '../../tools/folder-size-analyzer/folder-size-analyzer.manifest';
 import { manifest as gitCommandBuilderManifest } from '../../tools/git-command-builder/git-command-builder.manifest';
 import { manifest as gitCommandExplainerManifest } from '../../tools/git-command-explainer/git-command-explainer.manifest';
 import { manifest as gitDiffManifest } from '../../tools/git-diff/git-diff.manifest';
@@ -416,6 +417,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   fileTypeDetectorManifest,
   findReplaceTextManifest,
   flexboxPlaygroundManifest,
+  folderSizeAnalyzerManifest,
   gitCommandBuilderManifest,
   gitCommandExplainerManifest,
   gitDiffManifest,

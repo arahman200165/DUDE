@@ -81,6 +81,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [DNSSEC Inspector](https://arahman200165.github.io/DUDE/tools/dnssec-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Email Auth Inspector](https://arahman200165.github.io/DUDE/tools/email-auth-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Native filesystem access | Desktop-only feature | scans real folders and drives in the desktop fs worker |
+| [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Native filesystem write | Desktop-only feature | moves selected items to the Recycle Bin through a previewed, journaled plan |
 | [Git Repo Browser](https://arahman200165.github.io/DUDE/tools/git-diff) | Native filesystem access | Works — weaker browser fallback | reads a real .git directory on disk, no upload/zip step |
 | [Hostname Resolver](https://arahman200165.github.io/DUDE/tools/hostname-resolver) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [HTTPS Configuration Analyzer](https://arahman200165.github.io/DUDE/tools/https-config-analyzer) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
@@ -118,7 +120,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-304 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+305 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -336,6 +338,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [File Inspector](https://arahman200165.github.io/DUDE/tools/file-inspector) | Developer | A "file forensics" summary: detected signature/container format, Shannon entropy verdict, and a sample of extracted strings, all in one dashboard. |
 | [File Signature & Type Detector](https://arahman200165.github.io/DUDE/tools/file-type-detector) | Developer | Identifies an uploaded file's real format from its magic bytes, disambiguates ZIP-based containers like docx/xlsx/pptx/jar, and flags a mismatch against the declared file extension. |
 | [Flexbox Playground](https://arahman200165.github.io/DUDE/tools/flexbox-playground) | Developer | Interactively builds flex container and item CSS with a live preview of editable, addable items. |
+| [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Developer | Recursive, drive-capable disk usage: a sortable size tree, treemap, largest files, and breakdowns by extension and age, with previewed Recycle Bin clean-up. |
 | [Git Command Builder](https://arahman200165.github.io/DUDE/tools/git-command-builder) | Developer | Builds a git command from a subcommand and its common flags — clone, commit, branch, merge, rebase, reset, tag, push, pull, log, and stash. |
 | [Git Command Explainer](https://arahman200165.github.io/DUDE/tools/git-command-explainer) | Developer | Breaks an arbitrary git command down token by token, explaining each subcommand, flag, and positional argument. |
 | [Git Repo Browser](https://arahman200165.github.io/DUDE/tools/git-diff) | Developer | Browse a local git repository's commit history and diff any two commits, entirely client-side. |

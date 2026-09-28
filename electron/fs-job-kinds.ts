@@ -4,3 +4,4 @@
  * branch in `fs-jobs.ts` or `fs-worker.ts`.
  */
 import './fs-job-walk';
+import './fs-job-size';

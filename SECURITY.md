@@ -31,6 +31,7 @@ database-write) have no rows below until a tool claims them.
 | [ChaCha20-Poly1305 Encrypt / Decrypt](https://arahman200165.github.io/DUDE/tools/chacha20-poly1305) | Crypto | verified — Decrypts ChaCha20-Poly1305 ciphertext built independently by Node's OpenSSL-backed crypto module, not just @noble/ciphers agreeing with itself. |
 | [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | Remote Write | experimental |
 | [CSR Generator & Inspector](https://arahman200165.github.io/DUDE/tools/csr-generator-inspector) | Crypto | verified — Parses a real openssl-generated CSR, correctly extracting subject/key-size/signature validity that openssl req -text independently confirms. |
+| [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Filesystem Write | experimental |
 | [Hash Generator](https://arahman200165.github.io/DUDE/tools/hash) | Crypto | verified — Every one of the 15 supported algorithms is tested against its official published test vector, not just self round-trip. |
 | [HMAC Generator](https://arahman200165.github.io/DUDE/tools/hmac-generator) | Crypto | verified — HMAC-SHA1/256/384/512 match RFC 4231's official test vectors exactly. |
 | [HTML Preview](https://arahman200165.github.io/DUDE/tools/html-preview) | Code Execution | verified — Property-tested (fast-check) for core output shape and invariants. |
@@ -121,6 +122,7 @@ browser sandbox.
 | [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Native network diagnostics |
 | [DNSSEC Inspector](https://arahman200165.github.io/DUDE/tools/dnssec-inspector) | Native network diagnostics |
 | [Email Auth Inspector](https://arahman200165.github.io/DUDE/tools/email-auth-inspector) | Native network diagnostics |
+| [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Native filesystem access; Native filesystem write |
 | [Git Repo Browser](https://arahman200165.github.io/DUDE/tools/git-diff) | Native filesystem access |
 | [Hostname Resolver](https://arahman200165.github.io/DUDE/tools/hostname-resolver) | Native network diagnostics |
 | [HTML Preview](https://arahman200165.github.io/DUDE/tools/html-preview) | Desktop file/folder open |
@@ -169,6 +171,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [DNSSEC Inspector](https://arahman200165.github.io/DUDE/tools/dnssec-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Email Auth Inspector](https://arahman200165.github.io/DUDE/tools/email-auth-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Native filesystem access | Desktop-only feature | scans real folders and drives in the desktop fs worker |
+| [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Native filesystem write | Desktop-only feature | moves selected items to the Recycle Bin through a previewed, journaled plan |
 | [Git Repo Browser](https://arahman200165.github.io/DUDE/tools/git-diff) | Native filesystem access | Works — weaker browser fallback | reads a real .git directory on disk, no upload/zip step |
 | [Hostname Resolver](https://arahman200165.github.io/DUDE/tools/hostname-resolver) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [HTTPS Configuration Analyzer](https://arahman200165.github.io/DUDE/tools/https-config-analyzer) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |

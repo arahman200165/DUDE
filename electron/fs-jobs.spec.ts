@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -46,5 +46,16 @@ describe('fs job runner', () => {
     abort.abort();
     const events = await runJob('walk', mkdtempSync(join(tmpdir(), 'dude-c-')), {}, abort.signal);
     expect(events.find((event) => event.type === 'error')).toMatchObject({ message: 'Cancelled.' });
+  });
+
+  it('aggregates a real tree into a folder-size report', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'dude-size-'));
+    mkdirSync(join(root, 'a', 'b'), { recursive: true });
+    writeFileSync(join(root, 'a', 'b', 'x.bin'), Buffer.alloc(1000));
+    writeFileSync(join(root, 'a', 'y.txt'), 'hello');
+    const result = (await runJob('folder-size', root, { options: { useGitignore: false } })).find((event) => event.type === 'result') as { data: { report: { totalBytes: number; nodes: { path: string; size: number }[] } } };
+    expect(result.data.report.totalBytes).toBe(1005);
+    expect(result.data.report.nodes.find((node) => node.path === 'a')?.size).toBe(1005);
+    expect(result.data.report.nodes.find((node) => node.path === 'a/b')?.size).toBe(1000);
   });
 });
