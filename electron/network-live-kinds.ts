@@ -6,6 +6,7 @@ import { probeHttp3 } from './network-http3';
 import { enumerateTls, enumerationPlan } from './network-tls-enumerate';
 import { captureTlsHandshake } from './network-capture';
 import { inspectRevocation } from './network-revocation';
+import { inspectCt } from './network-ct';
 
 /**
  * Registers every Phase 28 live check with the dispatcher (`network-live.ts`). Imported for its
@@ -30,3 +31,4 @@ registerLiveKind('revocation', (request, signal, progress) => inspectRevocation(
   timeoutMs: 45_000,
   preview: (request) => ({ kind: request.kind, action: request.revocationAction ?? 'all', urls: request.urls ?? [], note: 'Contacts only the OCSP/CRL/AIA URLs named inside the certificate, over HTTP.' }),
 });
+registerLiveKind('ct-lookup', (request, signal, progress) => inspectCt(request, signal, progress), { timeoutMs: 30_000 });

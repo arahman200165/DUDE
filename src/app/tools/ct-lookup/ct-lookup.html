@@ -1,0 +1,51 @@
+<app-network-workbench kind="ct-lookup" [customForm]="true" [buildRequest]="build" [resultTemplate]="resultView" runLabel="Look up CT">
+  <div workbenchForm class="flex flex-col gap-3">
+    @if (chain(); as loaded) { <div class="rounded-sm border border-border bg-panel p-2 text-xs text-text-muted">Chain loaded: {{ loaded[0].subject }} — {{ loaded[0].sctCount }} embedded SCT(s) will be decoded locally.</div> }
+    <label class="flex flex-col gap-1 text-text-muted">Domain
+      <input class="rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="domain()" (input)="text('domain', $event)" placeholder="example.com" />
+    </label>
+    <div class="flex flex-wrap items-center gap-4 text-text-muted">
+      <label><input type="checkbox" [checked]="search()" (change)="toggle('search', $event)" /> Search certificate history (crt.sh)</label>
+      <label><input type="checkbox" [checked]="includeSubdomains()" (change)="toggle('includeSubdomains', $event)" /> Include subdomains</label>
+    </div>
+    <label class="flex flex-col gap-1 text-text-muted">Custom crt.sh-compatible endpoint (optional)
+      <input class="rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="endpoint()" (input)="text('endpoint', $event)" placeholder="https://crt.sh" />
+    </label>
+    <p class="text-text-muted">SCT decoding is local. The history search sends the domain to crt.sh (or your endpoint) — a third-party service.</p>
+  </div>
+</app-network-workbench>
+<app-desktop-only-control capability="native-network" label="Run network check" />
+
+<ng-template #resultView let-result>
+  @if (view(result); as ct) {
+    <div class="flex flex-col gap-3 text-ui">
+      <div>
+        <div class="font-semibold text-text">Embedded SCTs ({{ ct.scts.length }})</div>
+        @if (ct.scts.length) {
+          <table class="w-full font-mono text-xs"><thead><tr class="text-left text-text-muted"><th class="px-1">Log</th><th class="px-1">Operator</th><th class="px-1">Timestamp</th><th class="px-1">Sig</th></tr></thead>
+            <tbody>@for (sct of ct.scts; track sct.logId + sct.timestamp) {
+              <tr class="border-t border-border"><td class="px-1 text-text">{{ sct.logName ?? '(unknown log ' + sct.logId.slice(0, 12) + '…)' }}</td><td class="px-1 text-text-muted">{{ sct.logOperator ?? '—' }}</td><td class="px-1 text-text">{{ sct.timestamp }}</td><td class="px-1 text-text-muted">v{{ sct.version }}</td></tr>
+            }</tbody>
+          </table>
+        } @else { <div class="text-text-muted">No embedded SCTs (open from the Live Certificate Chain tool to decode a live certificate's SCTs).</div> }
+      </div>
+
+      @if (ct.search; as search) {
+        <div>
+          <div class="font-semibold text-text">crt.sh history <span class="text-text-muted">({{ search.endpoint }} · {{ search.count }} records{{ search.truncated ? ', showing first ' + search.entries.length : '' }})</span></div>
+          @if (search.error) { <div class="text-error">{{ search.error }}</div> }
+          @else {
+            <div class="text-text-muted">{{ search.uniqueNames.length }} unique names across {{ search.issuers.length }} issuers.</div>
+            <details class="mt-1"><summary class="cursor-pointer text-text">Names</summary><div class="font-mono text-xs text-text">{{ search.uniqueNames.join(', ') }}</div></details>
+            <table class="mt-1 w-full font-mono text-xs"><thead><tr class="text-left text-text-muted"><th class="px-1">Logged</th><th class="px-1">Names</th><th class="px-1">Issuer</th><th class="px-1">Valid to</th></tr></thead>
+              <tbody>@for (entry of search.entries; track entry.id) {
+                <tr class="border-t border-border align-top"><td class="px-1 text-text">{{ entry.entryTimestamp.slice(0, 10) }}</td><td class="break-all px-1 text-text">{{ entry.nameValue.split('\n').join(', ') }}</td><td class="px-1 text-text-muted">{{ entry.issuer }}</td><td class="px-1 text-text">{{ entry.notAfter.slice(0, 10) }}</td></tr>
+              }</tbody>
+            </table>
+          }
+        </div>
+      }
+      <p class="text-xs text-text-muted">{{ ct.note }}</p>
+    </div>
+  }
+</ng-template>

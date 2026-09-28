@@ -69,6 +69,7 @@ Every other tool processes data entirely locally and makes no network request.
 | Tool | What it contacts |
 | --- | --- |
 | [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | a TCP connection or HTTP(S) request to the target you enter |
+| [Certificate Transparency Lookup](https://arahman200165.github.io/DUDE/tools/ct-lookup) | crt.sh (or a crt.sh-compatible endpoint you enter) for domain history; SCT decoding is local |
 | [DNS Lookup](https://arahman200165.github.io/DUDE/tools/dns-lookup) | your system DNS servers, or a DNS, DoH, or DoT server you choose; CAA checks also query the parent names |
 | [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Cloudflare (1.1.1.1), Google (8.8.8.8), Quad9 (9.9.9.9), your system DNS servers, and any custom resolvers you add |
 | [DNSSEC Inspector](https://arahman200165.github.io/DUDE/tools/dnssec-inspector) | your system DNS servers, or a DNS, DoH, or DoT server you choose — queried for each zone from the root down (DS, DNSKEY, NS) |
@@ -106,6 +107,7 @@ browser sandbox.
 | [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | Native network diagnostics |
 | [CSS Formatter / Minifier](https://arahman200165.github.io/DUDE/tools/css-formatter) | Desktop file/folder open |
 | [CSV Viewer / Converter](https://arahman200165.github.io/DUDE/tools/csv-viewer) | Desktop file/folder open |
+| [Certificate Transparency Lookup](https://arahman200165.github.io/DUDE/tools/ct-lookup) | Native network diagnostics |
 | [Directory Diff](https://arahman200165.github.io/DUDE/tools/directory-diff) | Desktop file/folder open; Native filesystem access |
 | [DNS Lookup](https://arahman200165.github.io/DUDE/tools/dns-lookup) | Native network diagnostics |
 | [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Native network diagnostics |
@@ -149,6 +151,7 @@ Every tool not listed here behaves identically on the web companion and the desk
 | Tool | Desktop capability | On the web | What desktop adds |
 | --- | --- | --- | --- |
 | [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Certificate Transparency Lookup](https://arahman200165.github.io/DUDE/tools/ct-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Directory Diff](https://arahman200165.github.io/DUDE/tools/directory-diff) | Native filesystem access | Works — weaker browser fallback | compares real folders on disk, not zipped/pasted file lists |
 | [DNS Lookup](https://arahman200165.github.io/DUDE/tools/dns-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |

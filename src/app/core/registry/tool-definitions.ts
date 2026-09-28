@@ -67,6 +67,7 @@ import { manifest as csvPivotManifest } from '../../tools/csv-pivot/csv-pivot.ma
 import { manifest as csvSqlManifest } from '../../tools/csv-sql/csv-sql.manifest';
 import { manifest as csvStatsManifest } from '../../tools/csv-stats/csv-stats.manifest';
 import { manifest as csvViewerManifest } from '../../tools/csv-viewer/csv-viewer.manifest';
+import { manifest as ctLookupManifest } from '../../tools/ct-lookup/ct-lookup.manifest';
 import { manifest as cubicBezierEditorManifest } from '../../tools/cubic-bezier-editor/cubic-bezier-editor.manifest';
 import { manifest as cuidGeneratorManifest } from '../../tools/cuid-generator/cuid-generator.manifest';
 import { manifest as curlConverterManifest } from '../../tools/curl-converter/curl-converter.manifest';
@@ -368,6 +369,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   csvSqlManifest,
   csvStatsManifest,
   csvViewerManifest,
+  ctLookupManifest,
   cubicBezierEditorManifest,
   cuidGeneratorManifest,
   curlConverterManifest,

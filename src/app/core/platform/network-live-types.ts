@@ -190,3 +190,11 @@ export interface RevocationView {
   readonly urls: { readonly ocsp: readonly string[]; readonly crl: readonly string[]; readonly aia: readonly string[] };
   readonly note?: string;
 }
+
+export interface CtView {
+  readonly host: string;
+  readonly scts: readonly { readonly source: string; readonly version: number; readonly logId: string; readonly logName: string | null; readonly logOperator: string | null; readonly logState: string | null; readonly timestamp: string; readonly hashAlgorithm: number; readonly signatureAlgorithm: number }[];
+  readonly logListRetrievedAt: string;
+  readonly search?: { readonly endpoint: string; readonly query: string; readonly count: number; readonly truncated: boolean; readonly entries: readonly { readonly id: number; readonly issuer: string; readonly commonName: string; readonly nameValue: string; readonly notBefore: string; readonly notAfter: string; readonly entryTimestamp: string }[]; readonly uniqueNames: readonly string[]; readonly issuers: readonly string[]; readonly error?: string };
+  readonly note: string;
+}
