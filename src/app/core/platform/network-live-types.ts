@@ -83,3 +83,29 @@ export interface LiveEndpointView {
   readonly trust: readonly TrustVerdict[];
   readonly hostname: HostnameVerdict | null;
 }
+
+export interface DnssecSignatureView { readonly covered: string; readonly owner: string; readonly algorithm: number; readonly algorithmName: string; readonly keyTag: number; readonly signer: string; readonly inception: string; readonly expiration: string; readonly expiresInDays: number; readonly valid: boolean; readonly reason: string }
+export interface DnssecDenialView { readonly kind: 'NSEC' | 'NSEC3' | 'none'; readonly proven: boolean; readonly optOut: boolean; readonly nameExists: boolean | null; readonly typesAtName: readonly string[]; readonly detail: string; readonly iterations?: number }
+export interface DnssecZoneView {
+  readonly zone: string;
+  readonly delegation: 'anchor' | 'secure' | 'insecure' | 'bogus';
+  readonly ds: readonly { readonly keyTag: number; readonly algorithm: number; readonly digestType: number; readonly digest: string; readonly digestName: string; readonly matchedKey: boolean }[];
+  readonly dsSignatures: readonly DnssecSignatureView[];
+  readonly keys: readonly { readonly keyTag: number; readonly algorithm: number; readonly algorithmName: string; readonly flags: number; readonly role: string; readonly revoked: boolean; readonly matchesParentDs: boolean; readonly bits?: number }[];
+  readonly keySignatures: readonly DnssecSignatureView[];
+  readonly denial?: DnssecDenialView;
+  readonly note: string;
+}
+export interface DnssecView {
+  readonly target: string;
+  readonly recordType: string;
+  readonly contacted: string;
+  readonly resolverAuthenticated: boolean;
+  readonly resolverRcode: string;
+  readonly status: 'secure' | 'insecure' | 'bogus' | 'indeterminate';
+  readonly statusReason: string;
+  readonly zones: readonly DnssecZoneView[];
+  readonly answer: { readonly rcode: string; readonly records: readonly DnsRecordView[]; readonly signatures: readonly DnssecSignatureView[]; readonly denial?: DnssecDenialView };
+  readonly findings: readonly { readonly id: string; readonly status: 'pass' | 'warn' | 'fail' | 'info'; readonly title: string; readonly detail?: string; readonly reference?: string }[];
+  readonly queries: number;
+}

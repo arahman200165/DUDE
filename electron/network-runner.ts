@@ -12,6 +12,7 @@ import { expandScanTargets, validateHost } from './network-validation';
 import { queryDns } from './network-dns';
 import { runDnsLookup, runResolverComparison } from './network-dns-tools';
 import { runLiveRequest } from './network-live';
+import './network-live-kinds';
 
 export type Progress = (completed: number, total: number, data?: unknown) => void;
 const DEFAULT_TIMEOUT = 3000;

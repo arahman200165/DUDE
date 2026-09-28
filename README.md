@@ -74,6 +74,7 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Directory Diff](https://arahman200165.github.io/DUDE/tools/directory-diff) | Native filesystem access | Works — weaker browser fallback | compares real folders on disk, not zipped/pasted file lists |
 | [DNS Lookup](https://arahman200165.github.io/DUDE/tools/dns-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [DNSSEC Inspector](https://arahman200165.github.io/DUDE/tools/dnssec-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Git Repo Browser](https://arahman200165.github.io/DUDE/tools/git-diff) | Native filesystem access | Works — weaker browser fallback | reads a real .git directory on disk, no upload/zip step |
 | [Hostname Resolver](https://arahman200165.github.io/DUDE/tools/hostname-resolver) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Continuous Ping / Latency Graph](https://arahman200165.github.io/DUDE/tools/latency-monitor) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
@@ -106,7 +107,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-294 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+295 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -298,6 +299,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Dev Snippets Reference](https://arahman200165.github.io/DUDE/tools/dev-snippets-reference) | Developer | Searchable reference of common HTTP headers, regex syntax, git/docker commands, shell idioms, SQL, CSS, HTML, Unicode, MIME types, cron syntax, and chmod. |
 | [DNS Lookup](https://arahman200165.github.io/DUDE/tools/dns-lookup) | Developer | Query live DNS records (incl. CAA, DNSSEC, TLSA, HTTPS/SVCB) over system, custom, DoH, or DoT resolvers, with flags and transport diagnostics. |
 | [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Developer | Compare one DNS record across public presets, the system resolver, and up to five custom classic, DoH, or DoT resolvers. |
+| [DNSSEC Inspector](https://arahman200165.github.io/DUDE/tools/dnssec-inspector) | Developer | Validate a DNS answer locally from the IANA root trust anchors: DS/DNSKEY/RRSIG chain, NSEC/NSEC3 denial proofs, and algorithm warnings. |
 | [Docker Compose Validator / Viewer](https://arahman200165.github.io/DUDE/tools/docker-compose-validator) | Developer | Validates a docker-compose YAML file against a minimal Compose Specification shape and browses it as a tree. |
 | [Docker Run ↔ Compose Converter](https://arahman200165.github.io/DUDE/tools/docker-run-compose-converter) | Developer | Converts a docker run command into a docker-compose service block, or the reverse. |
 | [Dockerfile Linter / Formatter](https://arahman200165.github.io/DUDE/tools/dockerfile-linter) | Developer | Lints a Dockerfile for common issues (unpinned base image, root user, apt-get cleanup, ADD vs COPY, bad EXPOSE ports) and normalizes instruction casing. |

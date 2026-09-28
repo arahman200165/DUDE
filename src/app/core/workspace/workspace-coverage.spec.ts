@@ -17,6 +17,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'ping': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
   'traceroute': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
   'dns-lookup': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
+  'dnssec-inspector': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
   'reverse-dns': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
   'dns-propagation': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
   'tcp-port-tester': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',

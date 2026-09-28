@@ -78,6 +78,7 @@ import { manifest as diffManifest } from '../../tools/diff/diff.manifest';
 import { manifest as directoryDiffManifest } from '../../tools/directory-diff/directory-diff.manifest';
 import { manifest as dnsLookupManifest } from '../../tools/dns-lookup/dns-lookup.manifest';
 import { manifest as dnsPropagationManifest } from '../../tools/dns-propagation/dns-propagation.manifest';
+import { manifest as dnssecInspectorManifest } from '../../tools/dnssec-inspector/dnssec-inspector.manifest';
 import { manifest as dockerComposeValidatorManifest } from '../../tools/docker-compose-validator/docker-compose-validator.manifest';
 import { manifest as dockerRunComposeConverterManifest } from '../../tools/docker-run-compose-converter/docker-run-compose-converter.manifest';
 import { manifest as dockerfileLinterManifest } from '../../tools/dockerfile-linter/dockerfile-linter.manifest';
@@ -374,6 +375,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   directoryDiffManifest,
   dnsLookupManifest,
   dnsPropagationManifest,
+  dnssecInspectorManifest,
   dockerComposeValidatorManifest,
   dockerRunComposeConverterManifest,
   dockerfileLinterManifest,
