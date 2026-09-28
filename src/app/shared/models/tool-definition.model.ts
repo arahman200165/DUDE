@@ -30,10 +30,11 @@ export interface ToolVerificationMetadata {
 }
 
 /**
- * High-Consequence Tool Matrix (DUDE_PRD.md §21 Phase 23 Item 7). `filesystem-write`,
- * `process-management`, `registry`, `network-scanning`, and `database-write` are reserved now
- * even though no shipped tool uses them yet, so Phase 27+ native tools tag themselves against a
- * stable, already-reviewed vocabulary from day one instead of inventing one per phase.
+ * High-Consequence Tool Matrix (DUDE_PRD.md §21 Phase 23 Item 7). `network-scanning` (Phase 27
+ * Port Scanner and guided Diagnostic Bundle) and `remote-write` (HTTP methods that can change
+ * server state) are in use. `filesystem-write`, `process-management`, `registry`, and
+ * `database-write` remain reserved so later native tools tag themselves against a stable,
+ * already-reviewed vocabulary instead of inventing one per phase.
  */
 export type ConsequenceClass =
   | 'crypto'

@@ -10,6 +10,7 @@ export const manifest: ToolDefinition = {
   load: () => import('./mtu-discovery').then((m) => m.MtuDiscoveryTool),
   status: 'experimental',
   persistence: { input: 'none', preferences: 'none' },
+  network: { required: true, detail: 'sized ICMP echo probes to the host you enter' },
   capabilities: [{ kind: 'platform', id: 'native-network', web: 'unavailable', note: 'runs live checks through the Windows desktop network bridge' }],
   io: { accepts: ['text'], produces: ['json'] },
 };

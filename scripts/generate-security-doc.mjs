@@ -211,11 +211,12 @@ certification claim.
 
 ## High-Consequence Tool Matrix
 
-Tools whose function is cryptography, authentication material, arbitrary code execution, or
-secret handling — the categories DUDE_PRD.md §21 Phase 23 calls out as needing a stronger bar
-than "the UI appears to work". Categories reserved for capabilities DUDE does not ship yet
-(filesystem-write, process-management, registry, network-scanning, database-write) have no rows
-below until a Phase 27+ tool actually claims them.
+Tools whose function is cryptography, authentication material, arbitrary code execution, secret
+handling, or network scanning — the categories DUDE_PRD.md §21 Phase 23 calls out as needing a
+stronger bar than "the UI appears to work" — plus HTTP requests that can change server state
+(\`remote-write\`, added in Phase 27).
+Categories reserved for capabilities DUDE does not ship yet (filesystem-write,
+process-management, registry, database-write) have no rows below until a tool claims them.
 
 | Tool | Consequence class | Status |
 | --- | --- | --- |

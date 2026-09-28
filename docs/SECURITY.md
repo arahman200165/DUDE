@@ -6,12 +6,14 @@ See [`README.md`](../README.md) for the product overview and [`DUDE_PRD.md`](../
 
 ## What leaves the device
 
-Nothing, by default. Four tools are the only exceptions, and all four require an explicit user action per use — none of them calls out automatically or in the background:
+Nothing, by default. The four tools below and the desktop-only network diagnostics are the only exceptions. Each requires an explicit user action per use; none of them calls out automatically or in the background:
 
 - **JWT Signature Verifier** (`/tools/jwt-verify`) — in JWKS mode, fetches the JWKS URL you supply (`jose`'s `createRemoteJWKSet`), or, if you pick a named preset (Auth0, Okta, Azure AD, Google), first fetches that provider's `.well-known/openid-configuration` discovery document to find its `jwks_uri`. In every case, the only thing that leaves your browser is a GET request to a URL you provided or explicitly selected — never the JWT itself, never its payload.
 - **Text Inspector** (`/tools/text-inspector`) — its grammar-check mode sends the text you're checking to the public LanguageTool API (`https://api.languagetool.org/v2/check`) via a manual "Check" button, not live-as-you-type. This is the one tool where pasted content itself is transmitted; don't use it on text you don't want a third-party service to see.
 - **Advanced Markdown Workspace** (`/tools/markdown-workspace`) — its Link Checker panel sends a HEAD request (falling back to GET if the server rejects HEAD) to every `http(s)` URL found in the document, via a manual "Check links" button, never automatically. Only the link URLs themselves leave the browser — nothing else about the document. Expect this to fail for many third-party sites that don't send CORS headers; those are reported as "couldn't check" rather than "broken," since the browser's Fetch API can't distinguish a CORS-blocked live link from a genuinely dead one.
 - **Package Metadata Inspector** (`/tools/package-metadata-inspector`) — sends the package name you enter to the public registry API for the ecosystem you pick (npm's `registry.npmjs.org`, PyPI's `pypi.org`, crates.io's `crates.io/api`, or NuGet's `api.nuget.org`), via a manual "Look up" button. Only the package name and chosen ecosystem leave the browser. Maven Central is not offered as an ecosystem choice — neither its search API nor its raw repository file server sends a permissive CORS header, so a browser-side `fetch` can't read the response, and this architecture has no backend to proxy it through.
+
+- **Desktop network diagnostics** (Ping, Traceroute, DNS Lookup, Reverse DNS, DNS Propagation, TCP/UDP Port Testers, Port Scanner, Public IP, Hostname Resolver, WHOIS, TCP/HTTP Connectivity, Continuous Ping, Packet Loss, MTU Discovery, Route Comparison, and Diagnostic Bundle) — desktop app only; on the web these routes show a desktop handoff and make no request. Each contacts only the target, resolver, or service listed for it in the generated [`SECURITY.md`](../SECURITY.md) network table, and only after you click Run. Public IP contacts `api.ipify.org`/`api6.ipify.org`, DNS Propagation queries Cloudflare, Google, and Quad9 plus any custom resolver you add, and WHOIS contacts IANA's RDAP bootstrap or `whois.iana.org`. The TCP/HTTP Connectivity Tester sends your headers and body to the URL you enter. Local Network makes no network request; it reads this machine's ports, connections, neighbors, routes, and interfaces.
 
 Every other tool — including ones that look network-adjacent, like cURL Command Inspector or HTTP Status Code Reference — only parses, formats, or looks up against data bundled in the app itself.
 
@@ -30,6 +32,8 @@ Every tool declares a persistence policy per piece of state (`ToolPersistencePol
 | `local` | `localStorage` | across sessions | UI preferences (mode, indent size, algorithm choice) |
 | `user-choice` | user picks per-session | depends on choice | tools where persistence itself is sensitive enough to ask about (e.g. Python Playground) |
 | `secure-local` | OS keychain via Electron `safeStorage` | across sessions, desktop-only | the LLM proxy API key set in Settings › AI / LLM Provider (`/settings`, a shell page — no longer a tool) — never written to `localStorage` even on desktop |
+
+Desktop network diagnostics keep results in memory for the session. A result is written to disk only when you click **Save to History**: saved runs go to IndexedDB (`dude:v1:network-history`), without request headers, request bodies, downloaded HTTP bodies, or `Authorization`/`Proxy-Authorization`/`Set-Cookie` response headers. They are capped at 100 runs, 30 days, and 50 MB, and deleted by the tool's Delete and Clear controls or by clearing all data. Restoring a saved run never reruns it.
 
 Nothing here is ever synced, uploaded, or visible to anyone but you on your own device/browser profile. There is no account system and no server-side storage of any kind.
 
@@ -80,6 +84,12 @@ Only files opened through the `--open-with-dude`/Explorer-association flow are e
 ### Crash/restart recovery
 
 A small on-disk marker (`crash-state.json`, under Electron's `userData` directory) records only whether the previous shutdown was clean, flipped at app quit — nothing else is written there. If DUDE detects it was restored after an unclean exit (a crash, a force-kill, an OS shutdown) and a workspace was open, a dismissible notice says so. Restoring that workspace only ever re-applies each tool's own already-persisted, already-locally-stored state — the identical path a clean quit's next launch already takes — and never re-runs a tool's own action (a fetch, a write, a delete).
+
+### Network diagnostics bridge
+
+Phase 27's network tools reach the network only through `dude:network:*` IPC handlers (`electron/network-bridge.ts`). The main process re-validates every request, so a renderer cannot widen a limit: one host, or an IPv4/IPv6 CIDR of at most 16 addresses; at most 64 ports and 1,024 host × port × protocol probes per scan; 16 concurrent probes; 100 probes for Packet Loss; one hour for Continuous Ping; a 1 MB HTTP request body and 50 MB streamed response. At most four checks run at once. Port Scanner, the guided Diagnostic Bundle, and HTTP methods other than GET and HEAD first return a preview of the exact targets, ports, protocols, probe count, method, and header names. The run then needs a single-use confirmation token, bound to that window and to the unchanged request, which expires after 60 seconds. Cancelling, closing the window, or quitting aborts the job and closes its sockets and child processes. A job runs only while its window is open, and no check runs on a schedule.
+
+Custom DNS servers use independent resolvers and never change Windows' DNS settings. DoH and DoT verify TLS certificates. HTTPS requests verify certificates by default. ICMP ping, trace, and MTU probes use a bundled `network-icmp.exe` helper (Windows ICMP API) that takes fixed arguments with no shell and returns bounded JSON. The local views run fixed, read-only PowerShell `Get-Net*` queries. **Relaunch as Administrator** is offered only as a deliberate button. It asks Windows for elevation (UAC), and the app closes only if you accept. An elevated session is marked in the tool. No check reruns after a relaunch or a refused prompt.
 
 ## Third-party dependencies
 

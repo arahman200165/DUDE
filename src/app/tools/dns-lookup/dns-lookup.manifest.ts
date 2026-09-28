@@ -10,6 +10,7 @@ export const manifest: ToolDefinition = {
   load: () => import('./dns-lookup').then((m) => m.DnsLookupTool),
   status: 'experimental',
   persistence: { input: 'none', preferences: 'none' },
+  network: { required: true, detail: 'the system resolver, or a DNS, DoH, or DoT server you choose' },
   capabilities: [{ kind: 'platform', id: 'native-network', web: 'unavailable', note: 'runs live checks through the Windows desktop network bridge' }],
   io: { accepts: ['text'], produces: ['json'] },
 };

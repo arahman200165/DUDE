@@ -10,7 +10,7 @@ export const manifest: ToolDefinition = {
   load: () => import('./dns-propagation').then((m) => m.DnsPropagationTool),
   status: 'experimental',
   persistence: { input: 'none', preferences: 'none' },
-  network: { required: true },
+  network: { required: true, detail: 'Cloudflare (1.1.1.1), Google (8.8.8.8), Quad9 (9.9.9.9), and an optional custom resolver' },
   capabilities: [{ kind: 'platform', id: 'native-network', web: 'unavailable', note: 'runs live checks through the Windows desktop network bridge' }],
   io: { accepts: ['text'], produces: ['json'] },
 };

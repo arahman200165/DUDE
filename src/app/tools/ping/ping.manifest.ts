@@ -10,6 +10,7 @@ export const manifest: ToolDefinition = {
   load: () => import('./ping').then((m) => m.PingTool),
   status: 'experimental',
   persistence: { input: 'none', preferences: 'none' },
+  network: { required: true, detail: 'ICMP echo requests to the host you enter' },
   capabilities: [{ kind: 'platform', id: 'native-network', web: 'unavailable', note: 'runs live checks through the Windows desktop network bridge' }],
   io: { accepts: ['text'], produces: ['json'] },
 };

@@ -10,6 +10,7 @@ export const manifest: ToolDefinition = {
   load: () => import('./udp-port-tester').then((m) => m.UdpPortTesterTool),
   status: 'experimental',
   persistence: { input: 'none', preferences: 'none' },
+  network: { required: true, detail: 'a UDP datagram to the host and port you enter' },
   capabilities: [{ kind: 'platform', id: 'native-network', web: 'unavailable', note: 'runs live checks through the Windows desktop network bridge' }],
   io: { accepts: ['text'], produces: ['json'] },
 };

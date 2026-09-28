@@ -10,6 +10,7 @@ export const manifest: ToolDefinition = {
   load: () => import('./network-diagnostic-bundle').then((m) => m.NetworkDiagnosticBundleTool),
   status: 'experimental',
   persistence: { input: 'none', preferences: 'none' },
+  network: { required: true, detail: 'only the selected checks, against the one target you enter' },
   consequenceClass: ['network-scanning'],
   capabilities: [{ kind: 'platform', id: 'native-network', web: 'unavailable', note: 'runs live checks through the Windows desktop network bridge' }],
   io: { accepts: ['json'], produces: ['json', 'file'] },

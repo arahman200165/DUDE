@@ -10,6 +10,7 @@ export const manifest: ToolDefinition = {
   load: () => import('./port-scanner').then((m) => m.PortScannerTool),
   status: 'experimental',
   persistence: { input: 'none', preferences: 'none' },
+  network: { required: true, detail: 'TCP/UDP probes to the reviewed hosts and ports, at most 1,024 per scan' },
   consequenceClass: ['network-scanning'],
   capabilities: [{ kind: 'platform', id: 'native-network', web: 'unavailable', note: 'runs live checks through the Windows desktop network bridge' }],
   io: { accepts: ['text'], produces: ['json'] },

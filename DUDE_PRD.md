@@ -10,7 +10,7 @@
 **Primary frontend framework:** Angular  
 **Primary audience:** The developer building and using it first; later, other developers  
 **Delivery horizon:** Framework and first 10 tools delivered in one weekend; ongoing roadmap-driven development from there, now extending through a deliberately long-horizon Phase 100  
-**Status:** V1 and Phases 1–26 shipped; Windows desktop packaging is real and shipped; Phases 27–100 remain roadmap/horizon work rather than a fixed schedule
+**Status:** V1 and Phases 1–27 shipped; Windows desktop packaging is real and shipped; Phases 28–100 remain roadmap/horizon work rather than a fixed schedule
 
 ---
 
@@ -56,9 +56,9 @@ The product then continued through **Phases 1–21, all of which are complete**.
 
 **Phase 8 (Downloadable Desktop App with a Bundled Backend) is complete** and is the turning point for the product hierarchy. Its eight shipped stages remain: Electron shell; native file access; OS-level secret storage; local LLM proxy + AI regex features; desktop shell chrome; local collab server; BYO relay server; auto-update + distribution. Those shipped details remain documented in §21 Phase 8.
 
-**Phases 22–26 are also complete**: Phase 22 (Platform Hardening, Trust & Desktop-First Pivot) consolidated metadata/registry structure, trust, testing, and cache/bundle control; Phase 23 (Correctness, Verification & High-Consequence Tool Hardening) brought every one of the 277 tool manifests to a `verified` confidence tier; Phase 24 (Smart Entry, Discovery & Personal DUDE) turned Phase 21's Smart Paste/pipelines/workspaces/history into the primary paste-first, personalized entry experience — Recently Used, Favorites, Pinned Pipelines, Related-Tool and Pipeline Suggestions, Workspace Templates, Quick Run, and Unified Recents, all private-by-construction with no analytics or server telemetry; Phase 25 (Desktop-First Shell & Native Product Experience) finished that positioning change technically — Projects, a Desktop-Native Home, `dude://` deep links, a native OS menu, a six-source Command Palette, a Native File Recent List, crash/restart recovery, a Quick Launcher, native drag-and-drop routing, a generated file-association framework, Desktop Capability Indicators, desktop-first documentation, and a measured startup/parallelization pass — all shipped as Milestones 421–455. Phase 26 (Web Companion & PWA Efficiency) added selective offline readiness, install/share/handoff flows, browser-safe pipeline and workspace support, and web/desktop parity tests, shipped as Milestones 482–488.
+**Phases 22–27 are also complete**: Phase 22 (Platform Hardening, Trust & Desktop-First Pivot) consolidated metadata/registry structure, trust, testing, and cache/bundle control; Phase 23 (Correctness, Verification & High-Consequence Tool Hardening) brought every one of the 277 tool manifests to a `verified` confidence tier; Phase 24 (Smart Entry, Discovery & Personal DUDE) turned Phase 21's Smart Paste/pipelines/workspaces/history into the primary paste-first, personalized entry experience — Recently Used, Favorites, Pinned Pipelines, Related-Tool and Pipeline Suggestions, Workspace Templates, Quick Run, and Unified Recents, all private-by-construction with no analytics or server telemetry; Phase 25 (Desktop-First Shell & Native Product Experience) finished that positioning change technically — Projects, a Desktop-Native Home, `dude://` deep links, a native OS menu, a six-source Command Palette, a Native File Recent List, crash/restart recovery, a Quick Launcher, native drag-and-drop routing, a generated file-association framework, Desktop Capability Indicators, desktop-first documentation, and a measured startup/parallelization pass — all shipped as Milestones 421–455. Phase 26 (Web Companion & PWA Efficiency) added selective offline readiness, install/share/handoff flows, browser-safe pipeline and workspace support, and web/desktop parity tests, shipped as Milestones 482–488. Phase 27 (Networking Toolkit) began the native expansion. It shipped 18 desktop network-diagnostics tools over a main-process-enforced IPC bridge and a bundled Windows ICMP helper, as Milestones 489–508.
 
-The roadmap is now one linear product horizon through **Phase 100**. Completed Phases 22–26 consolidated platform structure, trust, discovery, desktop UX, and web/PWA efficiency; Phases 27–38 then establish the first major native/integration expansion across networking, live DNS/TLS, filesystem workflows, Windows/process tooling, local API/server development, live databases, containers, OS integration, AI-assisted utilities, theming, VS Code integration, and browser-extension integration. Later phases extend into cross-platform desktop, automation, Git/SSH/package/build/log/proxy/database/container/Kubernetes workflows, secrets/PKI, collaboration/workspaces/pipelines, plugins/extensions, CLI/SDK/headless automation, AI, project/code/runtime tooling, and a deliberately distant platform/ecosystem horizon.
+The roadmap is now one linear product horizon through **Phase 100**. Completed Phases 22–26 consolidated platform structure, trust, discovery, desktop UX, and web/PWA efficiency. Phases 27–38 form the first major native/integration expansion: Phase 27 shipped networking, and Phases 28–38 continue across live DNS/TLS, filesystem workflows, Windows/process tooling, local API/server development, live databases, containers, OS integration, AI-assisted utilities, theming, VS Code integration, and browser-extension integration. Later phases extend into cross-platform desktop, automation, Git/SSH/package/build/log/proxy/database/container/Kubernetes workflows, secrets/PKI, collaboration/workspaces/pipelines, plugins/extensions, CLI/SDK/headless automation, AI, project/code/runtime tooling, and a deliberately distant platform/ecosystem horizon.
 
 ---
 
@@ -294,6 +294,8 @@ Durable constraint #4 above is a principle; this is the concrete contract every 
 3. **Consequence tagging.** The tool's manifest declares the relevant `ConsequenceClass` (`src/app/shared/models/tool-definition.model.ts`) so it's covered by the generated High-Consequence Tool Matrix (`SECURITY.md`) and any capability-specific release gate.
 4. **A confirmation-boundary test.** The tool's own spec asserts the destructive effect cannot fire without going through both steps above — this is the "Destructive-Action Harness" (Phase 23 Item 8) in practice: enforced per-tool at the point each such tool ships, not as a separate suite run against nothing.
 
+Phase 27 applied the same shape to its non-local high-consequence checks. A `network-scanning` or `remote-write` run first gets a main-process preview. It then needs a single-use confirmation token, bound to the requesting window and the unchanged request, which expires after 60 seconds. `electron/network-bridge.spec.ts` covers that boundary, including an attempted renderer-side limit bypass. This is the reference implementation for the first tool that mutates local state.
+
 ## 5.3 Historical Exclusions Now Treated as Roadmap Territory
 
 The original exclusions are preserved here so none of their rationale disappears. Their status changes from “permanently impossible” to one of: shipped, proposed, conditionally gated, or unscheduled.
@@ -362,7 +364,8 @@ These items are not failures of the original product and are handled by the road
 - Executable JavaScript playground, arbitrary HTML execution, arbitrary template execution, and sandboxed code runner (Phase 6) — ✅ shipped; see the amended standing security rule at §31.
 - Cross-tool I/O, pipelines, Smart Paste, workspace/Saved Sessions, and local history (Phase 21) — ✅ shipped.
 - Platform hardening/correctness/discovery/desktop shell/web efficiency (Phases 22–26) — completed consolidation wave.
-- Native networking, TLS, filesystem, Windows/process, API/server, database, container, OS-integration, AI, theming, and editor/browser integration work is tracked authoritatively in Phases 27–38.
+- Native network diagnostics (Phase 27) — ✅ shipped.
+- TLS, filesystem, Windows/process, API/server, database, container, OS-integration, AI, theming, and editor/browser integration work is tracked authoritatively in Phases 28–38.
 - Long-horizon additions through Phase 100 are roadmap directions, not a fixed commitment or schedule.
 
 ---
@@ -1687,7 +1690,7 @@ This phase intentionally breaks from §4.7's "any single unit of work should be 
 
 ---
 
-**Browser/native capability boundary.** A large and genuinely useful category of developer tools — live networking, live DNS/TLS, arbitrary filesystem operations, Windows-native system tools, local listening servers, and live database connections — is simply unreachable from a sandboxed browser tab. Phase 8 provides the shipped desktop foundation for those capabilities. Phases 27–34 are the authoritative native-capability roadmap, with per-capability web/desktop availability and shared-core reuse instead of a separate product hierarchy.
+**Browser/native capability boundary.** A large and genuinely useful category of developer tools — live networking, live DNS/TLS, arbitrary filesystem operations, Windows-native system tools, local listening servers, and live database connections — is simply unreachable from a sandboxed browser tab. Phase 8 provides the shipped desktop foundation for those capabilities. Phase 27 shipped the first of these (network diagnostics); Phases 28–34 are the authoritative native-capability roadmap for the rest, with per-capability web/desktop availability and shared-core reuse instead of a separate product hierarchy.
 
 ---
 
@@ -1741,7 +1744,7 @@ DUDE now handles cryptography, authentication material, certificates, binary for
 
 6. Golden Corpus Tests — maintain representative real-world samples for PE, ELF, Mach-O, certificates, JSON/YAML/XML, SQL, logs, Git data, archives, images, and other complex formats. **✅ Rolled out (Milestones 314-406)**: the `__fixtures__/` convention now covers PE/ELF/Mach-O, a real X.509 certificate, JSON/YAML/XML, SQLite, ZIP/TAR, and PNG. Fixture provenance and independent checks are documented alongside the samples; add further corpora as new format-specific risks arise.
 
-7. High-Consequence Tool Matrix — explicitly identify crypto, authentication, code-execution, filesystem-write, process-management, registry, network-scanning, database-write, and secret-management tools as requiring stronger review. **✅ Shipped (Milestone 309)**: `ConsequenceClass` on `ToolDefinition`; every shipped crypto/authentication/code-execution/secret-management tool tagged. The five native-capability classes are reserved for the Phase 27+ tools that will actually use them.
+7. High-Consequence Tool Matrix — explicitly identify crypto, authentication, code-execution, filesystem-write, process-management, registry, network-scanning, database-write, and secret-management tools as requiring stronger review. **✅ Shipped (Milestone 309)**: `ConsequenceClass` on `ToolDefinition`; every shipped crypto/authentication/code-execution/secret-management tool tagged. The five native-capability classes were reserved for the tools that would actually use them. Phase 27 (Milestone 489) put `network-scanning` into use (Port Scanner, guided Diagnostic Bundle). It also added a tenth class, `remote-write`, for HTTP methods that can change server state (TCP/HTTP Connectivity Tester). `filesystem-write`, `process-management`, `registry`, and `database-write` remain reserved.
 
 8. Destructive-Action Harness — verify that every destructive desktop action has an explicit confirmation boundary and cannot be triggered merely by opening/importing data. **✅ Contract documented (Milestone 311)**: §5.2.1 spells out the two-step-confirm/no-incidental-trigger/tagging/test requirements. No enforcement component built yet since no `filesystem-write`/`process-management`/`registry`/`database-write` tool exists to enforce it against.
 
@@ -1854,43 +1857,70 @@ The web build remains the portable, zero-install companion to the canonical desk
 Goal achieved: preserve the convenience of a URL while keeping browser limits explicit and desktop capabilities available through deliberate handoff.
 ---
 
-## Phase 27 — Networking Toolkit
+## Phase 27 — Networking Toolkit (✅ Complete — shipped as Milestones 489–508)
 
 Give DUDE a native network-diagnostics surface that a sandboxed browser cannot provide on its own. The emphasis is local diagnostics and explicit, user-directed checks against hosts/services rather than broad or autonomous scanning.
 
-1. **Ping** — ICMP echo against a host, with round-trip timing
-2. **Traceroute** — hop-by-hop path to a host
-3. **DNS Lookup** — live resolution against system or custom resolvers
-4. **Reverse DNS Lookup**
-5. **MX / TXT / SRV / NS / CNAME Lookup**
-6. **DNS Propagation Tester** — compare a record across multiple public resolvers
-7. **TCP Port Tester**
-8. **UDP Port Tester**
-9. **Port Scanner** — a user-specified range of ports against an explicit target
-10. **Local Port Viewer** — ports currently bound on this machine
-11. **Active Connections Viewer**
-12. **Listening Process Viewer**
-13. **ARP Table Viewer**
-14. **Route Table Viewer**
-15. **Network Interface Viewer**
-16. **Public IP Detector**
-17. **Local IP Detector**
-18. **Hostname Resolver**
-19. **WHOIS Lookup**
-20. **TCP/HTTP Connectivity Tester**
-21. **Continuous Ping / Latency Graph**
-22. **Packet-Loss Measurement**
-23. **MTU Discovery**
-24. **Route Comparison**
-25. **Network Diagnostic Bundle Export**
+**Foundation (Milestone 489):**
+- a typed `NetworkDiagnosticsService` and `dude:network:*` preload/IPC bridge with prepare/start/cancel and ordered job events (progress, result, error, done);
+- main-process validation of targets, limits, and job ownership;
+- independent DNS resolvers;
+- a bundled `network-icmp.exe` Windows ICMP helper, packaged in NSIS and MSIX and loopback-tested in release CI;
+- one shared `app-network-workbench` component used by all 18 routes;
+- the closed `native-network` platform capability and the new `remote-write` consequence class;
+- explicit-save network history and ZIP bundle export.
+
+1. **Ping** — **✅ Shipped (Milestone 490)**: IPv4/IPv6 ICMP echo through the bundled helper.
+2. **Traceroute** — **✅ Shipped (Milestone 491)**: hop-limited ICMP probes, up to 30 hops.
+3. **DNS Lookup** — **✅ Shipped (Milestone 492)**: the system resolver, or a custom classic DNS, DoH, or DoT server, with strict TLS and bounded timeouts. Custom servers use independent resolvers and never change Windows DNS settings.
+4. **Reverse DNS Lookup** — **✅ Shipped (Milestone 493)**: PTR queries for IPv4 and IPv6 through the same resolver choices.
+5. **MX / TXT / SRV / NS / CNAME Lookup** — **✅ Shipped as part of DNS Lookup (Milestone 492)**: these record types are a DNS Lookup option (A, AAAA, MX, TXT, SRV, NS, CNAME), not a separate route.
+6. **DNS Propagation Tester** — **✅ Shipped (Milestone 494)**: compares one record across labeled Cloudflare, Google, and Quad9 presets plus an optional custom resolver. It reports differences between those resolvers and does not claim global propagation.
+7. **TCP Port Tester** — **✅ Shipped (Milestone 495)**
+8. **UDP Port Tester** — **✅ Shipped (Milestone 496)**: silence is reported as "open or filtered," never "open."
+9. **Port Scanner** — **✅ Shipped (Milestone 497)**, tagged `network-scanning`:
+   - one host, or an IPv4/IPv6 CIDR of at most 16 addresses;
+   - up to 64 ports, and at most 1,024 host × port × protocol probes;
+   - TCP, UDP, or both, with at most 16 concurrent probes.
+
+   An over-limit CIDR is rejected, never truncated. A preview shows the exact targets, ports, protocols, and probe count, and the run needs a separate, single-use confirmation.
+10–15, 17. **Local Port / Active Connections / Listening Process / ARP Table / Route Table / Network Interface Viewers and Local IP Detector** — **✅ Shipped as one Local Network tool (Milestone 498)**: seven views built on read-only Windows `Get-Net*` queries and Node's interface list. It runs with current permissions first. **Relaunch as Administrator** is a deliberate action that marks the elevated session, and nothing reruns after a relaunch or a refused UAC prompt.
+16. **Public IP Detector** — **✅ Shipped (Milestone 499)**: queries IPv4 and IPv6 separately, only on Run.
+18. **Hostname Resolver** — **✅ Shipped (Milestone 500)**: OS resolution (`dns.lookup`), kept distinct from DNS record queries.
+19. **WHOIS Lookup** — **✅ Shipped (Milestone 501)**: prefers IANA-discovered RDAP, with a bounded TCP/43 referral fallback and an optional custom server.
+20. **TCP/HTTP Connectivity Tester** — **✅ Shipped (Milestone 502)**, tagged `remote-write`:
+    - any HTTP method, with optional headers and body;
+    - strict TLS by default;
+    - methods other than GET and HEAD get a preview and a separate confirmation;
+    - request bodies are capped at 1 MB and streamed responses at 50 MB;
+    - the full response can be downloaded during the session;
+    - credential headers are never persisted.
+21. **Continuous Ping / Latency Graph** — **✅ Shipped (Milestone 503)**: one probe per second for five minutes by default, capped at one hour.
+22. **Packet-Loss Measurement** — **✅ Shipped (Milestone 504)**: 20 probes by default, capped at 100.
+23. **MTU Discovery** — **✅ Shipped (Milestone 505)**: a binary search with don't-fragment ICMP probes. An inconclusive probe is reported as unknown.
+24. **Route Comparison** — **✅ Shipped (Milestone 506)**: two targets, or before/after runs for one target.
+25. **Network Diagnostic Bundle Export** — **✅ Shipped (Milestone 507)**: exports a ZIP of JSON, Markdown, timestamps, and a check manifest after a field preview and a private-data warning.
+    - Guided collection runs selected local and remote checks for one explicit target.
+    - Its optional scan preset (TCP 22, 80, 443, 3389, 8080) can be edited or disabled before confirmation.
+    - HTTP bodies are included only when explicitly selected.
+    - The bundle is tagged `network-scanning` because the guided scan is available.
 
 ### Notes
 
 IP/CIDR/subnet math, MAC-address inspection, and IPv4↔integer conversion are pure computation and remain browser-safe capabilities; Phase 19 already contains those kinds of text/math networking utilities. This phase is specifically for live diagnostics that require native socket, interface, routing-table, process, or ICMP access.
 
-Scanning operations need explicit target/range controls, conservative defaults, cancellation, and clear progress. DUDE is intended for local diagnostics and user-directed remote checks; it is not intended to become an offensive network-scanning platform.
+**Scope ceiling:** DUDE is for local diagnostics and user-directed checks, not an offensive network-scanning platform. Phase 27 enforces this with the fixed budgets above, applied in the main process and to public and private CIDRs alike. There is no sweep beyond 16 addresses, no background or scheduled check, and no check that outlives its route. A later phase that wants larger ranges, service fingerprinting, or scheduled monitoring must change this scope explicitly rather than by raising a constant.
 
-**Goal:** make DUDE the first application opened when a developer asks “is this host/service/network path actually reachable?”
+**Delivery notes:**
+- 25 roadmap items became 18 routes. Items 5, 10–15, and 17 were folded into DNS Lookup and Local Network, where they are options or views of one check rather than separate tools.
+- Windows is the only supported desktop platform. On the web, every route stays discoverable (deck, search, Ctrl+K) and shows a desktop handoff without making a network request.
+- Runs stay in memory unless the user clicks **Save to History**. Saved history holds at most 100 selected snapshots, for 30 days or 50 MB, without request headers, request bodies, or downloaded HTTP bodies. Restoring a snapshot never reruns it.
+- The generated registry, README, and SECURITY tables were regenerated only once, in Milestone 507, so individual tool commits 490–506 aren't discoverable checkouts on their own.
+- All 18 tools ship at `experimental` status.
+- Milestone 508 added per-tool `network` disclosure metadata, so the generated SECURITY network table lists every tool that contacts a host.
+- Still unverified: UAC acceptance and refusal, and direct desktop routes in the packaged app, both of which need manual testing.
+
+**Goal achieved:** DUDE can answer "is this host/service/network path actually reachable?" from one desktop surface, with explicit targets, bounded probes, and nothing running in the background.
 
 ---
 
@@ -1928,6 +1958,8 @@ Extend DUDE's existing file-based certificate inspection capabilities with **liv
 The certificate tools in Phase 12 operate from user-supplied PEM/DER/PFX material and can remain entirely local/browser-safe. Phase 28 is specifically the **live endpoint** layer: DNS queries, resolver comparison, TCP/TLS negotiation, chain retrieval, revocation/status checks, STARTTLS, monitoring, and other behavior that depends on contacting a running service.
 
 Live checks must expose the exact host/resolver/service being contacted and inherit the standing network-disclosure rules in §11 and §22.
+
+**Overlap with Phase 27 (flagged for whoever plans this phase):** Phase 27's DNS Lookup already queries A/AAAA/MX/TXT/SRV/NS/CNAME over classic DNS, DoH, and DoT, and DNS Propagation already compares Cloudflare, Google, Quad9, and custom resolvers. Items 1 and 7–9 should extend those tools and the shared `electron/network-dns.ts` client rather than add parallel implementations. What stays new here is depth: DNSSEC, per-transport diagnostics, and comparison against the system resolver. Item 17 would be DUDE's first background network check. Phase 27's bridge runs checks only in the foreground, so item 17 needs its own explicit scheduling and disclosure decision.
 
 **Goal:** unify static certificate inspection and real live-endpoint troubleshooting.
 
@@ -3507,7 +3539,7 @@ The GitHub Pages build remains important throughout this roadmap, but from Phase
 
 The progression is deliberate. Phases 22–26 slow raw feature accumulation to decompose registry/metadata debt, strengthen correctness and release confidence, improve discovery, mature the desktop shell, and harden the web companion before DUDE adds significantly more native power.
 
-Phases 27–38 then form a coherent native/integration expansion. Their authoritative text is intentionally self-contained: each phase states the static/browser-safe capabilities it complements, the live/native boundary it crosses, the relevant safety rules, and the full feature scope. No phase in this range depends on an obsolete numbering scheme or an archived roadmap definition to explain what it means.
+Phases 27–38 then form a coherent native/integration expansion; Phase 27 (networking) has shipped. Their authoritative text is intentionally self-contained: each phase states the static/browser-safe capabilities it complements, the live/native boundary it crosses, the relevant safety rules, and the full feature scope. No phase in this range depends on an obsolete numbering scheme or an archived roadmap definition to explain what it means.
 
 The longer progression remains: 39–55 deepen the interconnected workbench; 56–68 turn DUDE into an extensible automation platform; 69–80 move into AI/project/IDE-adjacent territory under the workbench-identity gate; 81–96 preserve a conditional cloud/team/commercial horizon behind explicit product-boundary gates; and 97–100 describe DUDE as a platform/ecosystem.
 

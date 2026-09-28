@@ -11,11 +11,12 @@ certification claim.
 
 ## High-Consequence Tool Matrix
 
-Tools whose function is cryptography, authentication material, arbitrary code execution, or
-secret handling — the categories DUDE_PRD.md §21 Phase 23 calls out as needing a stronger bar
-than "the UI appears to work". Categories reserved for capabilities DUDE does not ship yet
-(filesystem-write, process-management, registry, network-scanning, database-write) have no rows
-below until a Phase 27+ tool actually claims them.
+Tools whose function is cryptography, authentication material, arbitrary code execution, secret
+handling, or network scanning — the categories DUDE_PRD.md §21 Phase 23 calls out as needing a
+stronger bar than "the UI appears to work" — plus HTTP requests that can change server state
+(`remote-write`, added in Phase 27).
+Categories reserved for capabilities DUDE does not ship yet (filesystem-write,
+process-management, registry, database-write) have no rows below until a tool claims them.
 
 | Tool | Consequence class | Status |
 | --- | --- | --- |
@@ -64,13 +65,27 @@ Every other tool processes data entirely locally and makes no network request.
 
 | Tool | What it contacts |
 | --- | --- |
-| [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | required |
+| [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | a TCP connection or HTTP(S) request to the target you enter |
+| [DNS Lookup](https://arahman200165.github.io/DUDE/tools/dns-lookup) | the system resolver, or a DNS, DoH, or DoT server you choose |
+| [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Cloudflare (1.1.1.1), Google (8.8.8.8), Quad9 (9.9.9.9), and an optional custom resolver |
+| [Hostname Resolver](https://arahman200165.github.io/DUDE/tools/hostname-resolver) | the resolver configured in Windows |
 | [JWT Signature Verifier](https://arahman200165.github.io/DUDE/tools/jwt-verify) | JWKS / OIDC discovery |
+| [Continuous Ping / Latency Graph](https://arahman200165.github.io/DUDE/tools/latency-monitor) | ICMP echo requests to the host you enter, for at most one hour |
 | [Advanced Markdown Workspace](https://arahman200165.github.io/DUDE/tools/markdown-workspace) | Link Checker: HEAD/GET per link, manual "Check links" button only |
+| [MTU Discovery](https://arahman200165.github.io/DUDE/tools/mtu-discovery) | sized ICMP echo probes to the host you enter |
+| [Network Diagnostic Bundle Export](https://arahman200165.github.io/DUDE/tools/network-diagnostic-bundle) | only the selected checks, against the one target you enter |
 | [Package Metadata Inspector](https://arahman200165.github.io/DUDE/tools/package-metadata-inspector) | npm / PyPI / crates.io / NuGet registries |
-| [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | required |
+| [Packet-Loss Measurement](https://arahman200165.github.io/DUDE/tools/packet-loss) | ICMP echo requests to the host you enter, at most 100 per run |
+| [Ping](https://arahman200165.github.io/DUDE/tools/ping) | ICMP echo requests to the host you enter |
+| [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | TCP/UDP probes to the reviewed hosts and ports, at most 1,024 per scan |
+| [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | api.ipify.org (IPv4) and api6.ipify.org (IPv6) |
+| [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | PTR query to the system resolver, or a DNS, DoH, or DoT server you choose |
+| [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | hop-limited ICMP probes to the one or two hosts you enter |
+| [TCP Port Tester](https://arahman200165.github.io/DUDE/tools/tcp-port-tester) | a TCP connection to the host and port you enter |
 | [Text Inspector](https://arahman200165.github.io/DUDE/tools/text-inspector) | LanguageTool API |
-| [WHOIS Lookup](https://arahman200165.github.io/DUDE/tools/whois-lookup) | required |
+| [Traceroute](https://arahman200165.github.io/DUDE/tools/traceroute) | hop-limited ICMP probes to the host you enter |
+| [UDP Port Tester](https://arahman200165.github.io/DUDE/tools/udp-port-tester) | a UDP datagram to the host and port you enter |
+| [WHOIS Lookup](https://arahman200165.github.io/DUDE/tools/whois-lookup) | IANA RDAP bootstrap and the RDAP server it names, or WHOIS over TCP 43 (whois.iana.org and its referral, or a custom server) |
 
 ## Native/Desktop-Privileged Tools
 

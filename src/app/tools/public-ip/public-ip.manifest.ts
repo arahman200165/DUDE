@@ -10,7 +10,7 @@ export const manifest: ToolDefinition = {
   load: () => import('./public-ip').then((m) => m.PublicIpTool),
   status: 'experimental',
   persistence: { input: 'none', preferences: 'none' },
-  network: { required: true },
+  network: { required: true, detail: 'api.ipify.org (IPv4) and api6.ipify.org (IPv6)' },
   capabilities: [{ kind: 'platform', id: 'native-network', web: 'unavailable', note: 'runs live checks through the Windows desktop network bridge' }],
   io: { accepts: ['text'], produces: ['json'] },
 };
