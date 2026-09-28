@@ -1,0 +1,5 @@
+<app-dashboard-panel title="Tool opens · last 7 days" [empty]="!hasTracking()">
+  <app-bar-chart [bars]="bars()" [summary]="summary()" label="Tool opens per day" />
+
+  <p panelEmpty class="text-ui text-text-muted">No opens tracked yet — open a tool and daily tracking starts today.</p>
+</app-dashboard-panel>

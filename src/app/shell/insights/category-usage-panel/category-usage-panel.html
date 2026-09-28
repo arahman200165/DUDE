@@ -1,0 +1,49 @@
+<app-dashboard-panel title="Category usage" [empty]="rows().length === 0 && mode() === 'lifetime'">
+  <div class="flex flex-col gap-1.5">
+    <div class="flex items-center justify-between gap-2">
+      <p class="text-ui-xs text-text-muted">{{ caption() }}</p>
+      <div role="group" aria-label="Category usage period" class="flex shrink-0 overflow-hidden rounded-sm border border-border text-ui-xs">
+        <button
+          type="button"
+          class="px-1.5 py-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+          [class]="mode() === 'lifetime' ? 'bg-panel-elevated text-text' : 'text-text-muted hover:text-text'"
+          [attr.aria-pressed]="mode() === 'lifetime'"
+          (click)="setMode('lifetime')"
+        >
+          Lifetime
+        </button>
+        <button
+          type="button"
+          class="border-l border-border px-1.5 py-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+          [class]="mode() === '7d' ? 'bg-panel-elevated text-text' : 'text-text-muted hover:text-text'"
+          [attr.aria-pressed]="mode() === '7d'"
+          (click)="setMode('7d')"
+        >
+          7 days
+        </button>
+      </div>
+    </div>
+
+    @if (rows().length) {
+      <app-ranked-bars-chart [items]="bars()" [label]="caption()" />
+
+      <nav aria-label="View a category" class="flex flex-wrap gap-1">
+        @for (row of rows(); track row.category) {
+          <a
+            [routerLink]="['/tools']"
+            [queryParams]="{ category: row.category }"
+            class="flex items-center gap-1 rounded-sm border px-1 py-0.5 text-ui-xs"
+            [class]="'border-' + meta[row.category].colorToken + '/40 text-' + meta[row.category].colorToken + '-tint hover:bg-' + meta[row.category].colorToken + '/10'"
+          >
+            <app-category-icon [category]="row.category" class="h-3 w-3" [class]="'text-' + meta[row.category].colorToken" />
+            View {{ row.label }}
+          </a>
+        }
+      </nav>
+    } @else {
+      <p class="text-ui text-text-muted">No opens in this period yet.</p>
+    }
+  </div>
+
+  <p panelEmpty class="text-ui text-text-muted">No usage yet — open a tool to see which categories you use most.</p>
+</app-dashboard-panel>

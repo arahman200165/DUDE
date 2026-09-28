@@ -78,4 +78,35 @@ describe('UnifiedRecentsService', () => {
 
     expect(service.entries().map((entry) => ('toolId' in entry ? entry.toolId : null))).toEqual([TOOL_DEFINITIONS[0].id]);
   });
+
+  describe('activityEntries (Phase 30H.5)', () => {
+    it('excludes open workspace tabs, whose timestamp is a synthetic "now"', () => {
+      const toolId = TOOL_DEFINITIONS[0].id;
+      TestBed.inject(WorkspaceLayoutService).openTool(toolId);
+
+      expect(service.entries().some((e) => e.kind === 'workspace-tab')).toBe(true);
+      expect(service.activityEntries()).toEqual([]);
+    });
+
+    it('keeps real events: tool opens and pipeline runs', () => {
+      TestBed.inject(UsageService).recordOpen(TOOL_DEFINITIONS[0].id);
+      const pipelineStore = TestBed.inject(PipelineStoreService);
+      const pipeline = createPipeline('Ran');
+      pipelineStore.save({ ...pipeline, lastRunAt: '2026-01-01T00:00:00.000Z', lastRunStatus: 'succeeded' });
+
+      expect(service.activityEntries().map((e) => e.kind).sort()).toEqual(['pipeline', 'tool']);
+    });
+
+    it('is never crowded out by open workspace tabs', () => {
+      const usage = TestBed.inject(UsageService);
+      const layout = TestBed.inject(WorkspaceLayoutService);
+      for (const tool of TOOL_DEFINITIONS.slice(0, 60)) {
+        usage.recordOpen(tool.id);
+        layout.openTool(tool.id);
+      }
+
+      expect(service.activityEntries()).toHaveLength(50);
+      expect(service.activityEntries().every((e) => e.kind === 'tool')).toBe(true);
+    });
+  });
 });

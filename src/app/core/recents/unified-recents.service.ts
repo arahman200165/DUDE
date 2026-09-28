@@ -5,7 +5,7 @@ import { PipelineStoreService } from '../pipeline/pipeline-store.service';
 import { WorkspaceLayoutService } from '../workspace/workspace-layout.service';
 import { HistoryService } from '../history/history.service';
 import { NativeRecentsService } from '../native-recents/native-recents.service';
-import { UnifiedRecentEntry } from './unified-recents.model';
+import { UnifiedActivityEntry, UnifiedRecentEntry, isActivityEntry } from './unified-recents.model';
 import { mergeUnifiedRecents } from './unified-recents';
 
 /**
@@ -31,7 +31,8 @@ export class UnifiedRecentsService {
   /** A tool that has since been retired (or became a shell destination) silently drops off. */
   private readonly isKnownTool = (entry: { readonly toolId: string }): boolean => this.registry.getById(entry.toolId) !== undefined;
 
-  readonly entries = computed<readonly UnifiedRecentEntry[]>(() => {
+  /** Sources whose `at` is a real recorded event time. */
+  private readonly eventEntries = computed(() => {
     const toolEntries: UnifiedRecentEntry[] = this.usage
       .recentLogRaw()
       .filter(this.isKnownTool)
@@ -42,15 +43,6 @@ export class UnifiedRecentsService {
       .filter((p) => p.lastRunAt)
       .map((p) => ({ kind: 'pipeline' as const, pipelineId: p.id, title: p.name, at: p.lastRunAt! }));
 
-    // `WorkspaceLayoutService.openTabs()` carries no per-tab timestamp -- these deliberately use
-    // "now" (recomputed whenever anything reactive re-evaluates this) as an honest "open right
-    // now" signal rather than a fabricated historical one. See AGENTS.md.
-    const now = new Date().toISOString();
-    const workspaceEntries: UnifiedRecentEntry[] = this.workspaceLayout
-      .openTabs()
-      .filter((toolId) => this.isKnownTool({ toolId }))
-      .map((toolId) => ({ kind: 'workspace-tab' as const, toolId, title: this.toolTitle(toolId), at: now }));
-
     const historyEntries: UnifiedRecentEntry[] = this.history
       .recent()
       .filter(this.isKnownTool)
@@ -60,6 +52,31 @@ export class UnifiedRecentsService {
       .entries()
       .map((e) => ({ kind: 'native-file' as const, path: e.path, title: e.name, at: e.openedAt }));
 
+    return { toolEntries, pipelineEntries, historyEntries, nativeFileEntries };
+  });
+
+  readonly entries = computed<readonly UnifiedRecentEntry[]>(() => {
+    const { toolEntries, pipelineEntries, historyEntries, nativeFileEntries } = this.eventEntries();
+
+    // `WorkspaceLayoutService.openTabs()` carries no per-tab timestamp -- these deliberately use
+    // "now" (recomputed whenever anything reactive re-evaluates this) as an honest "open right
+    // now" signal rather than a fabricated historical one. See AGENTS.md.
+    const now = new Date().toISOString();
+    const workspaceEntries: UnifiedRecentEntry[] = this.workspaceLayout
+      .openTabs()
+      .filter((toolId) => this.isKnownTool({ toolId }))
+      .map((toolId) => ({ kind: 'workspace-tab' as const, toolId, title: this.toolTitle(toolId), at: now }));
+
     return mergeUnifiedRecents(toolEntries, pipelineEntries, workspaceEntries, historyEntries, nativeFileEntries);
+  });
+
+  /**
+   * Home/Insights "Recent Activity" (Phase 30H.5): the same merge without the synthetic-timestamp
+   * `workspace-tab` source, built *before* the 50-entry cap so open tabs (which sort first, at
+   * "now") can never crowd real events out. Still a derived view -- records nothing.
+   */
+  readonly activityEntries = computed<readonly UnifiedActivityEntry[]>(() => {
+    const { toolEntries, pipelineEntries, historyEntries, nativeFileEntries } = this.eventEntries();
+    return mergeUnifiedRecents(toolEntries, pipelineEntries, historyEntries, nativeFileEntries).filter(isActivityEntry);
   });
 }

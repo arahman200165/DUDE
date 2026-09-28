@@ -1,0 +1,60 @@
+<app-dashboard-panel
+  title="Top tools"
+  [empty]="rows().length === 0"
+  [viewAllLabel]="compact() ? 'View all insights' : ''"
+  (viewAll)="viewAll()"
+>
+  <p class="mb-1 text-ui-xs text-text-muted">Uses are lifetime counts, recorded locally on this device.</p>
+
+  <app-data-table [columns]="columns" [rows]="rows()" [trackByFn]="trackRow" [dense]="true" [sticky]="false" ariaLabel="Top tools" (rowOpened)="open($event)">
+    <ng-template appDataTableCell="favorite" let-row>
+      <button
+        type="button"
+        class="text-text-muted hover:text-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+        [class.text-accent]="isFavorite(row.id)"
+        [attr.aria-pressed]="isFavorite(row.id)"
+        [attr.aria-label]="(isFavorite(row.id) ? 'Unfavorite ' : 'Favorite ') + row.title"
+        (click)="toggleFavorite(row.id, $event)"
+      >
+        {{ isFavorite(row.id) ? '★' : '☆' }}
+      </button>
+    </ng-template>
+
+    <ng-template appDataTableCell="tool" let-row>
+      <a
+        [routerLink]="row.route"
+        (click)="$event.stopPropagation()"
+        class="flex min-w-0 items-center gap-1.5 truncate focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+        [class]="'text-' + color(row) + '-tint hover:underline'"
+      >
+        <app-category-icon [category]="row.category" class="h-3.5 w-3.5 shrink-0" [class]="'text-' + color(row)" />
+        <span class="truncate">{{ row.title }}</span>
+      </a>
+    </ng-template>
+
+    <ng-template appDataTableCell="category" let-row>
+      <span class="truncate" [class]="'text-' + color(row)">{{ row.categoryLabel }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="uses" let-row>
+      <span class="font-mono">{{ row.uses }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="last" let-row>
+      <span class="truncate text-text-muted" [attr.title]="row.lastUsedAt">{{ relative(row.lastUsedAt) }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="action" let-row>
+      <button
+        type="button"
+        class="text-ui-xs text-text-muted hover:text-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+        [attr.aria-label]="'Open ' + row.title"
+        (click)="open(row, $event)"
+      >
+        Open
+      </button>
+    </ng-template>
+  </app-data-table>
+
+  <p panelEmpty class="text-ui text-text-muted">No tools used yet.</p>
+</app-dashboard-panel>

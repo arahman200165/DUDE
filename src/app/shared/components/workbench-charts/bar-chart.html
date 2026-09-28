@@ -1,0 +1,22 @@
+<div data-chart-canvas class="h-10 w-full" aria-hidden="true"></div>
+
+<ul class="m-0 grid list-none p-0" [style.grid-template-columns]="'repeat(' + bars().length + ', minmax(0, 1fr))'" [attr.aria-label]="label()">
+  @for (bar of bars(); track bar.label + $index; let i = $index) {
+    <li
+      tabindex="0"
+      class="cursor-default rounded-sm py-0.5 text-center leading-tight focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+      [class.bg-panel-elevated]="activeIndex() === i"
+      [attr.aria-label]="bar.detail"
+      [attr.title]="bar.detail"
+      (mouseenter)="activeIndex.set(i)"
+      (mouseleave)="activeIndex.set(null)"
+      (focus)="activeIndex.set(i)"
+      (blur)="activeIndex.set(null)"
+    >
+      <span class="block text-ui-xs text-text-muted">{{ bar.label }}</span>
+      <span class="block font-mono text-xs" [class.text-text-muted]="bar.value === null">{{ display(bar) }}</span>
+    </li>
+  }
+</ul>
+
+<p class="mt-1 min-h-4 text-ui-xs text-text-muted">{{ activeDetail() }}</p>

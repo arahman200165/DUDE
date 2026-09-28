@@ -36,6 +36,11 @@ export class UsageService {
     return lifetimeToolCounts(this.store().counts);
   }
 
+  /** Lifetime `{toolId, count, lastUsedAt}` for every tool ever opened. */
+  lifetimeEntries(): readonly { readonly toolId: string; readonly count: number; readonly lastUsedAt: string }[] {
+    return Object.entries(this.store().counts).map(([toolId, c]) => ({ toolId, count: c.count, lastUsedAt: c.lastUsedAt }));
+  }
+
   lastUsedAt(toolId: string): string | undefined {
     return this.store().counts[toolId]?.lastUsedAt;
   }

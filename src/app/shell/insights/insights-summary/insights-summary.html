@@ -1,0 +1,11 @@
+<dl class="m-0 grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-6" aria-label="Local workbench summary">
+  @for (tile of tiles(); track tile.key) {
+    <div class="min-w-0 rounded-sm border border-border bg-panel px-2 py-1" [attr.data-tile]="tile.key">
+      <dt class="truncate text-ui-xs uppercase tracking-wider text-text-muted">{{ tile.label }}</dt>
+      <dd class="m-0 truncate font-mono text-sm text-text">{{ tile.value }}</dd>
+      @if (tile.note) {
+        <dd class="m-0 truncate text-ui-xs text-text-muted">{{ tile.note }}</dd>
+      }
+    </div>
+  }
+</dl>

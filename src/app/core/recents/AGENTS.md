@@ -25,6 +25,14 @@ benefit), a workspace-tab entry's `at` is simply "now," recomputed on every reac
 honest "this tool is open right now" signal, not a claim about *when* it was opened — that fact, if
 it matters, is already available as a separate `'tool'`-kind entry from `UsageService`.
 
+## `activityEntries`: the real-event view (Phase 30H.5)
+
+`activityEntries` is `entries` minus `workspace-tab`, merged *before* the 50-entry cap. Home's and
+Insights' Recent Activity tables use it, because a workspace tab's `at` is a synthetic "now" that must
+never appear as a historical last-activity time — and because those entries sort first, filtering
+after the cap would let open tabs crowd real events out. Projects and Workspace Templates stay out
+until their activation/application events are recorded here. It is still derived, never a recorder.
+
 ## Pure merge logic lives separately from the Angular service
 
 `unified-recents.ts`'s `mergeUnifiedRecents` (dedupe-by-`(kind,id)`-keep-latest, sort, cap at 50) is

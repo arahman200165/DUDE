@@ -1,0 +1,25 @@
+<app-dashboard-panel
+  title="Recent activity"
+  [empty]="rows().length === 0"
+  [viewAllLabel]="compact() ? 'History & Recents' : ''"
+  (viewAll)="viewAll()"
+>
+  <app-data-table [columns]="columns" [rows]="rows()" [trackByFn]="trackRow" [dense]="true" [sticky]="false" ariaLabel="Recent activity" (rowOpened)="open($event)">
+    <ng-template appDataTableCell="at" let-row>
+      <span class="truncate text-text-muted" [attr.title]="row.at">{{ relative(row.at) }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="action" let-row>
+      <button
+        type="button"
+        class="text-ui-xs text-text-muted hover:text-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+        [attr.aria-label]="'Open ' + row.item"
+        (click)="open(row, $event)"
+      >
+        Open
+      </button>
+    </ng-template>
+  </app-data-table>
+
+  <p panelEmpty class="text-ui text-text-muted">No recent activity yet.</p>
+</app-dashboard-panel>
