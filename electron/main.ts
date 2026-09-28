@@ -6,9 +6,10 @@ import { loadRememberedGrants } from './fs-grants';
 import { registerFsJobHandlers, stopFsWorker } from './fs-jobs-bridge';
 import { registerMutationHandlers } from './fs-mutation';
 import { registerSnapshotHandlers } from './fs-snapshots';
+import { loadFolderWatches, registerFolderWatchHandlers, setFolderWatchTrayUpdater, stopFolderWatches } from './fs-watch-service';
 import { registerNetworkHandlers, cancelAllNetworkJobs } from './network-bridge';
 import { registerWatchHandlers, stopWatchScheduler, setTrayUpdater } from './network-watch';
-import { updateWatchTray } from './tray';
+import { updateFolderWatchTray, updateWatchTray } from './tray';
 import { registerSecretsHandlers } from './secrets-bridge';
 import { registerLlmHandlers } from './llm-bridge';
 import { createTray, isAppQuitting, registerShellChromeHandlers } from './tray';
@@ -88,6 +89,7 @@ async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
 
   createTray(window);
   setTrayUpdater(updateWatchTray);
+  setFolderWatchTrayUpdater(updateFolderWatchTray);
   trackWindowBounds(window);
   registerDesktopPreferencesHandlers(window);
   registerOpenHandlers(window);
@@ -135,7 +137,9 @@ if (hasSingleInstanceLock) void app.whenReady().then(async () => {
   registerFsJobHandlers();
   registerMutationHandlers();
   registerSnapshotHandlers();
+  registerFolderWatchHandlers();
   await loadRememberedGrants();
+  void loadFolderWatches();
   registerNetworkHandlers();
   registerWatchHandlers();
   registerSecretsHandlers();
@@ -163,6 +167,7 @@ app.on('will-quit', () => {
   unregisterAllHotkeys();
   closeAllFileWatches();
   stopFsWorker();
+  stopFolderWatches();
   cancelAllNetworkJobs();
   stopWatchScheduler();
   stopCollabServerOnQuit();

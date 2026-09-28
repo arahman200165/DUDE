@@ -78,9 +78,9 @@ export class BatchRenameTool {
   });
   protected readonly included = computed(() => this.result().proposals.filter((proposal) => proposal.status === 'rename' && !this.excluded().has(proposal.path)));
 
-  protected load(): void {
+  protected load(keepPreview = false): void {
     if (!this.root()) return;
-    this.preview.set(null);
+    if (!keepPreview) this.preview.set(null);
     this.excluded.set(new Set());
     const collected: WalkEntry[] = [];
     const walk = { ...this.options(), maxDepth: this.scope().recursive ? this.options().maxDepth : 0 };
@@ -125,7 +125,8 @@ export class BatchRenameTool {
     job.result.then((result) => this.preview.set(result.preview), (caught: Error) => this.error.set(caught.message));
   }
 
-  protected onApplied(): void { this.preview.set(null); this.load(); }
+  /** Keeps the applied preview (and its outcome) visible while the item list refreshes. */
+  protected onApplied(): void { this.load(true); }
   protected statusClass(status: RenameProposal['status']): string {
     return status === 'rename' ? 'text-accent' : status === 'unchanged' ? 'text-text-muted' : 'text-error';
   }

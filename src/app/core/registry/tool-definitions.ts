@@ -303,6 +303,7 @@ import { manifest as urlPercentInspectorManifest } from '../../tools/url-percent
 import { manifest as urlSafetyInspectorManifest } from '../../tools/url-safety-inspector/url-safety-inspector.manifest';
 import { manifest as userAgentManifest } from '../../tools/user-agent/user-agent.manifest';
 import { manifest as uuidManifest } from '../../tools/uuid/uuid.manifest';
+import { manifest as watchedFoldersManifest } from '../../tools/watched-folders/watched-folders.manifest';
 import { manifest as weekNumberCalculatorManifest } from '../../tools/week-number-calculator/week-number-calculator.manifest';
 import { manifest as whitespaceCleanerManifest } from '../../tools/whitespace-cleaner/whitespace-cleaner.manifest';
 import { manifest as whoisLookupManifest } from '../../tools/whois-lookup/whois-lookup.manifest';
@@ -618,6 +619,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   urlSafetyInspectorManifest,
   userAgentManifest,
   uuidManifest,
+  watchedFoldersManifest,
   weekNumberCalculatorManifest,
   whitespaceCleanerManifest,
   whoisLookupManifest,

@@ -71,9 +71,9 @@ export class BatchTextConverterTool {
   protected readonly counts = computed(() => Object.fromEntries(this.filters.map((filter) => [filter.id, this.rows().filter(ROW_FILTERS[filter.id]).length])) as Record<RowFilter, number>);
   protected readonly shownRows = computed(() => this.rows().filter(ROW_FILTERS[this.rowFilter()]));
 
-  protected runInventory(): void {
+  protected runInventory(keepPreview = false): void {
     if (!this.root()) return;
-    this.preview.set(null);
+    if (!keepPreview) this.preview.set(null);
     const collected: InventoryRow[] = [];
     const job = this.jobs.run<{ files: number; binary: number }, InventoryRow>({ kind: 'text-inventory', root: this.root(), params: { options: this.options(), fallbackEncoding: this.fallbackEncoding() } }, (items) => collected.push(...items));
     this.inventoryJob.set(job);
@@ -94,6 +94,7 @@ export class BatchTextConverterTool {
     job.result.then((result) => this.preview.set(result.preview), (caught: Error) => this.error.set(caught.message));
   }
 
-  protected onApplied(): void { this.preview.set(null); if (this.rows().length) this.runInventory(); }
+  /** Keeps the applied preview (and its outcome) visible while the inventory refreshes. */
+  protected onApplied(): void { if (this.rows().length) this.runInventory(true); }
   protected trackRow(_index: number, row: InventoryRow): string { return row.path; }
 }

@@ -166,6 +166,7 @@ browser sandbox.
 | [Traceroute](https://arahman200165.github.io/DUDE/tools/traceroute) | Native network diagnostics |
 | [Tree Search](https://arahman200165.github.io/DUDE/tools/tree-search) | Native filesystem access; Native filesystem write |
 | [UDP Port Tester](https://arahman200165.github.io/DUDE/tools/udp-port-tester) | Native network diagnostics |
+| [Watched Folders & Change Timeline](https://arahman200165.github.io/DUDE/tools/watched-folders) | File watching; Native filesystem access |
 | [WHOIS Lookup](https://arahman200165.github.io/DUDE/tools/whois-lookup) | Native network diagnostics |
 | [XML Formatter](https://arahman200165.github.io/DUDE/tools/xml-formatter) | Desktop file/folder open |
 | [YAML ↔ JSON Converter](https://arahman200165.github.io/DUDE/tools/yaml-json) | Desktop file/folder open |
@@ -224,6 +225,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Tree Search](https://arahman200165.github.io/DUDE/tools/tree-search) | Native filesystem access | Desktop-only feature | searches real folders in the desktop fs worker |
 | [Tree Search](https://arahman200165.github.io/DUDE/tools/tree-search) | Native filesystem write | Desktop-only feature | replaces across files only through a previewed, per-hunk, journaled plan |
 | [UDP Port Tester](https://arahman200165.github.io/DUDE/tools/udp-port-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Watched Folders & Change Timeline](https://arahman200165.github.io/DUDE/tools/watched-folders) | File watching | Desktop-only feature | watches remembered folders in the desktop main process, including while hidden to the tray |
+| [Watched Folders & Change Timeline](https://arahman200165.github.io/DUDE/tools/watched-folders) | Native filesystem access | Desktop-only feature | picks and remembers the folders to watch |
 | [WHOIS Lookup](https://arahman200165.github.io/DUDE/tools/whois-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 
 Optional runtimes are cached on demand by the web service worker the first time the tool needs

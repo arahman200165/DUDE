@@ -120,6 +120,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Tree Search](https://arahman200165.github.io/DUDE/tools/tree-search) | Native filesystem access | Desktop-only feature | searches real folders in the desktop fs worker |
 | [Tree Search](https://arahman200165.github.io/DUDE/tools/tree-search) | Native filesystem write | Desktop-only feature | replaces across files only through a previewed, per-hunk, journaled plan |
 | [UDP Port Tester](https://arahman200165.github.io/DUDE/tools/udp-port-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Watched Folders & Change Timeline](https://arahman200165.github.io/DUDE/tools/watched-folders) | File watching | Desktop-only feature | watches remembered folders in the desktop main process, including while hidden to the tray |
+| [Watched Folders & Change Timeline](https://arahman200165.github.io/DUDE/tools/watched-folders) | Native filesystem access | Desktop-only feature | picks and remembers the folders to watch |
 | [WHOIS Lookup](https://arahman200165.github.io/DUDE/tools/whois-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 
 Optional runtimes are cached on demand by the web service worker the first time the tool needs
@@ -135,7 +137,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-313 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+314 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -438,6 +440,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [UDP Port Tester](https://arahman200165.github.io/DUDE/tools/udp-port-tester) | Developer | Probe one UDP port and show conclusive or inconclusive results. |
 | [ULID Generator / Inspector](https://arahman200165.github.io/DUDE/tools/ulid-tools) | Developer | Generates a ULID (optionally monotonic), and inspects an existing ULID to decode its embedded timestamp and randomness component. |
 | [UUID Generator / Inspector](https://arahman200165.github.io/DUDE/tools/uuid) | Developer | Generate v1/v3/v4/v5/v6/v7 UUIDs (with namespace support), inspect an existing UUID and its embedded timestamp, and bulk-export the generated list. |
+| [Watched Folders & Change Timeline](https://arahman200165.github.io/DUDE/tools/watched-folders) | Developer | Watch remembered folders in the background while DUDE runs and keep a searchable timeline of created, modified, deleted and renamed files — with notifications and optional before/after content capture. |
 | [WHOIS Lookup](https://arahman200165.github.io/DUDE/tools/whois-lookup) | Developer | Query RDAP registration data with classic WHOIS fallback. |
 | [Aspect Ratio Calculator](https://arahman200165.github.io/DUDE/tools/aspect-ratio-calculator) | Documents | Simplifies a width/height pair to its lowest-terms ratio (e.g. 1920x1080 -> 16:9), or solves for a missing width/height given a target ratio. |
 | [DPI Calculator](https://arahman200165.github.io/DUDE/tools/dpi-calculator) | Documents | Converts between pixel dimensions, physical print size, and DPI -- find the DPI of an image at a given print size, the pixels needed for a target DPI, or the print size a given pixel count supports. |

@@ -1,4 +1,5 @@
 import type { SnapshotDiff, SnapshotHeader } from '../../../shared-logic/fs/snapshot-diff';
+import type { ChangeEvent, FolderWatchSettings, FolderWatchState, TimelineQuery, WatchedFolder } from '../../../shared-logic/fs/watch-types';
 import type { ApplyResult, FsJobEvent, FsJobRequest, FsResult, JournalEntry, MutationSettings, PickedFile, PlanPreview, RememberedFolder } from '../../../shared-logic/fs/fs-types';
 import type { NetworkRequest, NetworkJobEvent, NetworkStartResult, NetworkPrepareResult, WatchEntry, WatchSettings, WatchState, WatchResult } from './network-types';
 export interface NativeStat {
@@ -81,6 +82,18 @@ export interface DudeElectronBridge {
     start(request: FsJobRequest): Promise<FsResult<{ jobId: string }>>;
     cancel(jobId: string): Promise<boolean>;
     onEvent(callback: (event: FsJobEvent) => void): () => void;
+  };
+  readonly fsWatch: {
+    get(): Promise<FsResult<{ value: FolderWatchState }>>;
+    add(path: string, folder: Partial<WatchedFolder>): Promise<FsResult<{ value: FolderWatchState }>>;
+    update(id: string, patch: Partial<WatchedFolder>): Promise<FsResult<{ value: FolderWatchState }>>;
+    remove(id: string): Promise<FsResult<{ value: FolderWatchState }>>;
+    setSettings(patch: Partial<FolderWatchSettings>): Promise<FsResult<{ value: FolderWatchState }>>;
+    timeline(query: TimelineQuery): Promise<FsResult<{ value: readonly ChangeEvent[] }>>;
+    clearTimeline(id: string): Promise<FsResult<{ value: FolderWatchState }>>;
+    clearContent(id: string): Promise<FsResult<{ value: FolderWatchState }>>;
+    content(id: string, hash: string): Promise<FsResult<{ value: { size: number; text: string | null; binary: boolean } }>>;
+    onChanged(callback: (state: FolderWatchState) => void): () => void;
   };
   readonly fsSnapshots: {
     list(): Promise<FsResult<{ value: readonly SnapshotHeader[] }>>;

@@ -33,6 +33,18 @@ export function fakeElectronBridge(overrides: Partial<DudeElectronBridge> = {}):
       cancel: async () => true,
       onEvent: () => () => {},
     },
+    fsWatch: {
+      get: async () => ({ ok: true, value: { settings: { enabled: false, notifyEveryMinutes: 5 }, folders: [] } }),
+      add: async () => ({ ok: false, error: 'not-configured' }),
+      update: async () => ({ ok: false, error: 'not-configured' }),
+      remove: async () => ({ ok: false, error: 'not-configured' }),
+      setSettings: async () => ({ ok: true, value: { settings: { enabled: false, notifyEveryMinutes: 5 }, folders: [] } }),
+      timeline: async () => ({ ok: true, value: [] }),
+      clearTimeline: async () => ({ ok: true, value: { settings: { enabled: false, notifyEveryMinutes: 5 }, folders: [] } }),
+      clearContent: async () => ({ ok: true, value: { settings: { enabled: false, notifyEveryMinutes: 5 }, folders: [] } }),
+      content: async () => ({ ok: false, error: 'not-found' }),
+      onChanged: () => () => {},
+    },
     fsSnapshots: {
       list: async () => ({ ok: true, value: [] }),
       export: async () => ({ ok: false, error: 'not-found' }),

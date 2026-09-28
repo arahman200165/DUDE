@@ -33,9 +33,25 @@ let showWindowRef: (() => void) | null = null;
  * a non-zero count adds a menu item that opens the watch list, so a background expiry alert is
  * discoverable even with the window hidden.
  */
+let certificateSummary = { expiring: 0, expired: 0, errors: 0 };
+let folderSummary = { folders: 0, changesToday: 0 };
+
 export function updateWatchTray(summary: { expiring: number; expired: number; errors: number }): void {
+  certificateSummary = summary;
+  rebuildTray();
+}
+
+/** Watched Folders summary in the tray (Phase 29 items 10, 13), alongside the certificate summary. */
+export function updateFolderWatchTray(summary: { folders: number; changesToday: number }): void {
+  folderSummary = summary;
+  rebuildTray();
+}
+
+function rebuildTray(): void {
   if (!trayRef || !showWindowRef) return;
+  const summary = certificateSummary;
   const total = summary.expired + summary.expiring;
+  const tooltip: string[] = [];
   const items: Electron.MenuItemConstructorOptions[] = [
     { label: 'Show DUDE', click: showWindowRef },
     { label: 'Settings…', click: () => { showWindowRef!(); sendMenuAction('preferences'); } },
@@ -43,8 +59,14 @@ export function updateWatchTray(summary: { expiring: number; expired: number; er
   if (total || summary.errors) {
     const parts = [summary.expired ? `${summary.expired} expired` : '', summary.expiring ? `${summary.expiring} expiring` : '', summary.errors ? `${summary.errors} failing` : ''].filter(Boolean);
     items.push({ type: 'separator' }, { label: `Certificates: ${parts.join(', ')}`, click: () => { showWindowRef!(); sendMenuAction('tool:certificate-watch-list'); } });
-    trayRef.setToolTip(`DUDE — certificates: ${parts.join(', ')}`);
-  } else trayRef.setToolTip('DUDE');
+    tooltip.push(`certificates: ${parts.join(', ')}`);
+  }
+  if (folderSummary.folders) {
+    const label = `Watching ${folderSummary.folders} folder(s) · ${folderSummary.changesToday} change(s) today`;
+    items.push({ type: 'separator' }, { label, click: () => { showWindowRef!(); sendMenuAction('tool:watched-folders'); } });
+    tooltip.push(label.toLowerCase());
+  }
+  trayRef.setToolTip(tooltip.length ? `DUDE — ${tooltip.join('; ')}` : 'DUDE');
   items.push({ type: 'separator' }, { label: 'Quit DUDE', click: () => app.quit() });
   trayRef.setContextMenu(Menu.buildFromTemplate(items));
 }

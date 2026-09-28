@@ -81,6 +81,22 @@ const bridge: DudeElectronBridge = {
       return () => ipcRenderer.removeListener('dude:fsjob:event', listener);
     },
   },
+  fsWatch: {
+    get: () => ipcRenderer.invoke('dude:fswatch:get'),
+    add: (path, folder) => ipcRenderer.invoke('dude:fswatch:add', path, folder),
+    update: (id, patch) => ipcRenderer.invoke('dude:fswatch:update', id, patch),
+    remove: (id) => ipcRenderer.invoke('dude:fswatch:remove', id),
+    setSettings: (patch) => ipcRenderer.invoke('dude:fswatch:setSettings', patch),
+    timeline: (query) => ipcRenderer.invoke('dude:fswatch:timeline', query),
+    clearTimeline: (id) => ipcRenderer.invoke('dude:fswatch:clearTimeline', id),
+    clearContent: (id) => ipcRenderer.invoke('dude:fswatch:clearContent', id),
+    content: (id, hash) => ipcRenderer.invoke('dude:fswatch:content', id, hash),
+    onChanged: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, state: import('../src/shared-logic/fs/watch-types').FolderWatchState) => callback(state);
+      ipcRenderer.on('dude:fswatch:changed', listener);
+      return () => ipcRenderer.removeListener('dude:fswatch:changed', listener);
+    },
+  },
   fsSnapshots: {
     list: () => ipcRenderer.invoke('dude:fssnap:list'),
     export: (id) => ipcRenderer.invoke('dude:fssnap:export', id),

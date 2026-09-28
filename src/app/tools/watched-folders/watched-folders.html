@@ -1,0 +1,106 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning/40 bg-warning/5 p-4 text-ui text-text-muted">
+      Watched Folders records what changes in folders on disk — created, modified, deleted and renamed files — in the background while Desktop DUDE runs, with optional notifications and before/after content diffs. It needs the Windows desktop app.
+    </div>
+    <div class="mt-2 flex gap-2">
+      <app-desktop-only-control capability="native-fs" label="Pick a folder" />
+      <app-desktop-only-control capability="file-watch" label="Watch a folder" />
+    </div>
+  } @else {
+    <div class="flex flex-col gap-3 text-ui">
+      @if (settings(); as settings) {
+        <div class="flex flex-wrap items-center gap-4 rounded-sm border border-border bg-panel p-3">
+          <label class="flex items-center gap-2 text-text"><input type="checkbox" data-testid="watch-enabled" [checked]="settings.enabled" (change)="watch.setSettings({ enabled: checked($event) })" /> Background watching</label>
+          <label class="flex items-center gap-1 text-text-muted">Notify at most every
+            <input type="number" min="1" max="1440" class="w-16 rounded-sm border border-border bg-panel px-1 py-0.5 text-text" [value]="settings.notifyEveryMinutes" (change)="watch.setSettings({ notifyEveryMinutes: +$any($event.target).value })" /> min per folder
+          </label>
+          <p class="w-full text-ui-xs text-text-muted">Runs only while DUDE is open (including hidden to the tray) — never on login or as a service. Only remembered folders can be watched; forgetting one stops its watch. Changes made by DUDE’s own batch operations are tagged instead of notified.</p>
+        </div>
+      }
+
+      <div class="flex flex-col gap-1 rounded-sm border border-border p-2">
+        <app-fs-root-picker [(root)]="root" label="Add a folder" />
+        @if (root()) {
+          <div class="flex items-center gap-2">
+            @if (!rootRemembered()) { <span class="text-ui-xs text-warning">Watching remembers this folder so DUDE can keep access to it across restarts.</span> }
+            <button type="button" class="rounded-sm border border-accent px-3 py-1 text-accent" data-testid="add-watch" (click)="addFolder()">Watch this folder</button>
+          </div>
+        }
+      </div>
+      @if (watch.error()) { <div role="alert" class="rounded-sm border border-error/50 bg-error/5 p-2 text-error">{{ watch.error() }}</div> }
+
+      @if (folders().length) {
+        <div class="flex flex-col gap-2">
+          @for (folder of folders(); track folder.id) {
+            <div class="rounded-sm border p-2" [class]="folder.id === selectedId() ? 'border-accent' : 'border-border'">
+              <div class="flex flex-wrap items-center gap-3">
+                <button type="button" class="text-left" (click)="selectedId.set(folder.id)">
+                  <span class="font-semibold text-text">{{ folder.label }}</span> <span class="font-mono text-ui-xs text-text-muted">{{ folder.path }}</span>
+                </button>
+                <span class="text-ui-xs" [class]="folder.active ? 'text-success' : 'text-text-muted'">{{ folder.active ? 'watching' : folder.enabled && settings()?.enabled ? 'not running' : 'paused' }}</span>
+                <span class="text-ui-xs text-text-muted">{{ folder.events.toLocaleString() }} event(s)@if (folder.lastEventAt) { · last {{ time(folder.lastEventAt) }} }</span>
+                <span class="ml-auto flex flex-wrap items-center gap-3">
+                  <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="folder.enabled" (change)="toggle(folder, 'enabled', $event)" /> On</label>
+                  <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="folder.notify" (change)="toggle(folder, 'notify', $event)" /> Notify</label>
+                  @if (folder.captureContent) {
+                    <span class="text-ui-xs text-warning">Capturing content · {{ bytes(folder.contentBytes) }}</span>
+                    <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="setCapture(folder, false)">Stop capturing</button>
+                    <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="watch.clearContent(folder.id)">Clear captured content</button>
+                  } @else if (confirmCapture() === folder.id) {
+                    <span class="max-w-md text-ui-xs text-warning">Content capture stores a copy of every changed file in DUDE’s app data, with no size, type or secret limits — including large files and anything sensitive in this folder. Storage is shown here and can be cleared.</span>
+                    <button type="button" class="rounded-sm border border-warning px-2 py-0.5 text-warning" (click)="setCapture(folder, true)">Capture content</button>
+                    <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="confirmCapture.set('')">Cancel</button>
+                  } @else { <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="confirmCapture.set(folder.id)">Capture content…</button> }
+                  @if (confirmRemove() !== folder.id) { <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="confirmRemove.set(folder.id)">Remove…</button> }
+                  @else { <button type="button" class="rounded-sm border border-error px-2 py-0.5 text-error" (click)="remove(folder)">Remove watch &amp; its timeline</button> }
+                </span>
+              </div>
+              <label class="mt-1 flex items-center gap-2 text-ui-xs text-text-muted">Also ignore
+                <input class="flex-1 rounded-sm border border-border bg-panel px-2 py-0.5 font-mono text-text" placeholder="dist, *.tmp, logs/**" [value]="folder.exclude.join(', ')" (change)="setExclude(folder, $event)" />
+                <span>(plus .git, node_modules and the other default excludes)</span>
+              </label>
+              @if (folder.error) { <div class="text-ui-xs text-error">{{ folder.error }}</div> }
+            </div>
+          }
+        </div>
+
+        @if (selected(); as folder) {
+          <div class="flex flex-wrap items-center gap-2 border-t border-border pt-2">
+            <span class="font-semibold text-text">Timeline — {{ folder.label }}</span>
+            @for (kind of kinds; track kind) { <button type="button" class="rounded-sm border px-2 py-0.5 text-ui-xs" [class]="kindFilter().has(kind) ? 'border-accent ' + kindClass(kind) : 'border-border text-text-muted'" (click)="toggleKind(kind)">{{ kind }}</button> }
+            <input class="w-48 rounded-sm border border-border bg-panel px-2 py-0.5 text-text" placeholder="Filter paths" [value]="text()" (input)="text.set($any($event.target).value); refreshTimeline()" aria-label="Filter timeline" />
+            <span class="ml-auto flex gap-2">
+              <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="exportTimeline('csv')">CSV</button>
+              <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="exportTimeline('json')">JSON</button>
+              <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="watch.clearTimeline(folder.id)">Clear timeline</button>
+            </span>
+          </div>
+          @if (diff(); as shown) {
+            <div class="rounded-sm border border-border p-2">
+              <div class="mb-1 flex items-center gap-2 text-text-muted"><span class="font-mono">{{ shown.event.path }}</span> <span>{{ shown.note }}</span><button type="button" class="ml-auto text-text" (click)="diff.set(null)">Close</button></div>
+              @if (shown.lines) {
+                <pre class="max-h-80 overflow-auto font-mono text-ui-xs">@for (line of shown.lines; track $index) {<span class="block" [class]="line.type === 'add' ? 'bg-success/10 text-success' : line.type === 'remove' ? 'bg-error/10 text-error' : 'text-text-muted'">{{ line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' ' }} {{ line.text }}</span>}</pre>
+              }
+            </div>
+          }
+          @for (group of grouped(); track group.day) {
+            <div class="text-ui-xs text-text-muted">{{ group.day }}</div>
+            <ul class="flex flex-col font-mono text-ui-xs" data-testid="timeline">
+              @for (event of group.events; track event.seq) {
+                <li class="flex items-center gap-2 border-b border-border/30 py-0.5">
+                  <span class="w-20 text-text-muted">{{ time(event.at) }}</span>
+                  <span class="w-16" [class]="kindClass(event.kind)">{{ event.kind }}</span>
+                  <span class="min-w-0 flex-1 truncate text-text" [title]="describe(event)">{{ describe(event) }}</span>
+                  <span class="text-text-muted">{{ delta(event) }}</span>
+                  @if (event.after) { <button type="button" class="text-accent underline" (click)="showDiff(event)">{{ event.before ? 'diff' : 'view' }}</button> }
+                </li>
+              }
+            </ul>
+          }
+          @if (!events().length) { <p class="text-text-muted">No changes recorded yet{{ folder.active ? ' — edits in this folder will appear here.' : '.' }}</p> }
+        }
+      } @else { <p class="text-text-muted">No watched folders. Pick one above to start recording its changes.</p> }
+    </div>
+  }
+</app-tool-shell>
