@@ -1,0 +1,79 @@
+<app-dashboard-panel title="Resume Work" [empty]="tabs().length === 0">
+  @if (tabs().length > 1) {
+    <div class="mb-1.5 flex items-center gap-1" role="tablist" aria-label="Resume Work source">
+      @for (tab of tabs(); track tab) {
+        <button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="currentTab() === tab"
+          class="rounded-sm border px-1.5 py-0.5 text-ui-xs capitalize"
+          [class]="currentTab() === tab ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border text-text-muted hover:text-text'"
+          (click)="selectTab(tab)"
+        >
+          {{ tab }}
+        </button>
+      }
+    </div>
+  }
+
+  @if (currentTab() === 'projects') {
+    <ul class="flex flex-col gap-1">
+      @for (project of projects(); track project.id) {
+        <li>
+          <button
+            type="button"
+            (click)="activateProject(project)"
+            class="flex w-full items-center justify-between gap-2 rounded-sm border border-accent/40 bg-accent/10 px-2 py-1 text-left text-xs text-accent hover:bg-accent/20"
+          >
+            <span class="truncate">{{ project.name }}</span>
+            <span class="shrink-0 text-ui-xs text-accent/70">{{ project.openTabs.length }} tool{{ project.openTabs.length === 1 ? '' : 's' }}</span>
+          </button>
+        </li>
+      }
+    </ul>
+  } @else if (currentTab() === 'workspaces') {
+    <ul class="flex flex-col gap-1">
+      @for (template of workspaces(); track template.id) {
+        <li>
+          <button
+            type="button"
+            (click)="applyWorkspace(template)"
+            class="flex w-full items-center justify-between gap-2 rounded-sm border border-border bg-panel px-2 py-1 text-left text-xs hover:bg-panel-elevated"
+          >
+            <span class="truncate text-text">{{ template.name }}</span>
+            <span class="shrink-0 text-ui-xs text-text-muted">{{ template.openTabs.length }} tool{{ template.openTabs.length === 1 ? '' : 's' }}</span>
+          </button>
+        </li>
+      }
+    </ul>
+  } @else if (currentTab() === 'pipelines') {
+    <ul class="flex flex-col gap-1">
+      @for (pipeline of pipelines(); track pipeline.id) {
+        <li>
+          <a
+            [routerLink]="['/pipelines', pipeline.id]"
+            class="flex items-center justify-between gap-2 rounded-sm border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-accent hover:bg-accent/20"
+          >
+            <span class="truncate">{{ pipeline.name }}</span>
+            <span class="shrink-0 text-ui-xs text-accent/70">{{ pipeline.steps.length }} step{{ pipeline.steps.length === 1 ? '' : 's' }}</span>
+          </a>
+        </li>
+      }
+    </ul>
+  }
+
+  <div panelEmpty class="flex flex-col items-center gap-1.5">
+    <p class="text-ui text-text-muted">Nothing to resume yet.</p>
+    <div class="flex flex-wrap justify-center gap-1.5">
+      <a routerLink="/tools" class="rounded-sm border border-border px-1.5 py-0.5 text-ui-xs text-text-muted hover:bg-panel-elevated hover:text-text">
+        Browse tools
+      </a>
+      <a routerLink="/projects" class="rounded-sm border border-border px-1.5 py-0.5 text-ui-xs text-text-muted hover:bg-panel-elevated hover:text-text">
+        Create a project
+      </a>
+      <a routerLink="/workspace" class="rounded-sm border border-border px-1.5 py-0.5 text-ui-xs text-text-muted hover:bg-panel-elevated hover:text-text">
+        Create a workspace
+      </a>
+    </div>
+  </div>
+</app-dashboard-panel>

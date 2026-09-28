@@ -25,10 +25,14 @@
   @if (!isFiltering()) {
     <app-home-rail title="Recently Used" [tools]="recentTools()" />
     <app-home-rail title="Favorites" [tools]="favorites.pinnedTools()" />
-    <app-pinned-pipelines-rail [pipelines]="favorites.pinnedPipelines()" />
+    <div class="mb-3">
+      <app-resume-work-panel
+        [projects]="platform.isDesktop() ? recentProjects() : []"
+        [workspaces]="platform.isDesktop() ? recentWorkspaces() : []"
+        [pipelines]="favorites.pinnedPipelines()"
+      />
+    </div>
     @if (platform.isDesktop()) {
-      <app-recent-workspaces-rail [templates]="recentWorkspaces()" />
-      <app-recent-projects-rail [projects]="recentProjects()" />
       <app-command-actions-rail title="Clipboard Actions" [commands]="clipboardActions()" />
       <app-command-actions-rail title="Native Capabilities" [commands]="nativeCapabilities()" />
     }

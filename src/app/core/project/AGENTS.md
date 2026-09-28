@@ -36,7 +36,7 @@ identical in kind to what Workspace Templates and Favorites already persist safe
 `project-command-source.ts`'s `ProjectCommandSource` is one `CommandSource` registered via the
 multi-provider `COMMAND_SOURCE` token (`shared/models/command-source.model.ts`) -- one "Open
 Project: X" command per project, confirming before replacing a non-empty live layout exactly like
-`ProjectList.activate()` and Deck's `RecentProjectsRail`, so all three call sites share one rule.
+`ProjectList.activate()` and Deck's `ResumeWorkPanel`, so all three call sites share one rule.
 
 ## `activate()` mirrors `WorkspaceTemplateService.apply()` exactly
 

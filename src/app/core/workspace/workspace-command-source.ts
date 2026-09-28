@@ -7,7 +7,7 @@ import { WorkspaceLayoutService } from './workspace-layout.service';
  * Command Palette source for Workspace Templates (DUDE_PRD.md §21 Phase 25 Item 4) -- an "apply"
  * command per template plus one "save current layout" command. Applying a template through the
  * palette mirrors `TemplateGallery.apply()`'s confirm-before-replacing-a-non-empty-layout precedent
- * exactly, since this is a third call site (after the gallery and Deck's `RecentWorkspacesRail`) for
+ * exactly, since this is a third call site (after the gallery and Deck's `ResumeWorkPanel`) for
  * the same non-destructive-but-disruptive action.
  */
 @Injectable()

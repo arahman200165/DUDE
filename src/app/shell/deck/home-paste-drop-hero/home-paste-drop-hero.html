@@ -1,7 +1,39 @@
-<section class="mb-4 rounded-sm border border-accent/30 bg-panel-elevated p-3">
-  <h2 class="mb-2 text-ui-sm font-semibold uppercase tracking-wider text-text-muted">Give it to DUDE</h2>
-  <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-    <app-paste-detect-panel />
-    <app-smart-file-drop-zone />
+@if (!expanded()) {
+  <div
+    #idleRow
+    tabindex="0"
+    role="button"
+    aria-expanded="false"
+    aria-label="Give it to DUDE — paste, drop a file, or click to expand"
+    class="mb-4 flex cursor-text items-center gap-2 rounded-sm border border-accent/30 bg-panel-elevated px-3 py-2 text-ui text-text-muted hover:border-accent/50 hover:text-text focus:outline-none focus:ring-1 focus:ring-accent"
+    (click)="expand()"
+    (focus)="expand()"
+    (dragenter)="expand()"
+    (paste)="expand()"
+  >
+    <span class="shrink-0 text-ui-sm font-semibold uppercase tracking-wider text-text-muted">Give it to DUDE</span>
+    <span class="truncate">Paste text, paste a screenshot, or drop a file — DUDE will figure it out.</span>
   </div>
-</section>
+} @else {
+  <section
+    #expandedSection
+    class="mb-4 rounded-sm border border-accent/30 bg-panel-elevated p-3"
+    (focusout)="onFocusOut($event, expandedSection)"
+    (keydown.escape)="onEscape()"
+  >
+    <div class="mb-2 flex items-center justify-between">
+      <h2 class="text-ui-sm font-semibold uppercase tracking-wider text-text-muted">Give it to DUDE</h2>
+      <button
+        type="button"
+        class="text-ui-xs text-text-muted hover:text-text"
+        (click)="onEscape()"
+      >
+        Collapse
+      </button>
+    </div>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <app-paste-detect-panel />
+      <app-smart-file-drop-zone />
+    </div>
+  </section>
+}

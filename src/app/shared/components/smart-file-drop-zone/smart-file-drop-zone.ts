@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FileDrop } from '../file-drop/file-drop';
 import { FileDropCandidatePicker } from '../file-drop-candidate-picker/file-drop-candidate-picker';
 import { ToolRegistryService } from '../../../core/registry/tool-registry.service';
@@ -30,6 +30,9 @@ export class SmartFileDropZone {
   protected readonly error = signal<string | null>(null);
   private droppedFile: File | null = null;
 
+  /** Public so callers (e.g. Home's compact Smart Entry hero) can decide whether to collapse. */
+  readonly hasFile = computed(() => this.droppedFileName() !== null);
+
   protected async onFileSelected(file: File): Promise<void> {
     this.droppedFile = file;
     this.droppedFileName.set(file.name);
@@ -58,7 +61,7 @@ export class SmartFileDropZone {
     this.clear();
   }
 
-  protected clear(): void {
+  clear(): void {
     this.droppedFile = null;
     this.droppedFileName.set(null);
     this.matches.set(null);

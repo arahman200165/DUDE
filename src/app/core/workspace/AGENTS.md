@@ -103,7 +103,7 @@ four inputs, not every recency signal in the app.
 `workspace-command-source.ts`'s `WorkspaceCommandSource` is one `CommandSource` registered via the
 multi-provider `COMMAND_SOURCE` token (`shared/models/command-source.model.ts`) -- one "Apply
 Workspace: X" command per template (confirming before replacing a non-empty live layout, same rule
-as `TemplateGallery.apply()` and Deck's `RecentWorkspacesRail`) plus one "Save Current Workspace as
+as `TemplateGallery.apply()` and Deck's `ResumeWorkPanel`) plus one "Save Current Workspace as
 Template…" command that prompts for a name inline, since the palette has no multi-step UI of its own
 to collect one.
 

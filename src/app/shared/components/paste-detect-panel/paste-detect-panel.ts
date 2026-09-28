@@ -27,6 +27,9 @@ export class PasteDetectPanel {
 
   protected readonly input = signal('');
 
+  /** Public so callers (e.g. Home's compact Smart Entry hero) can decide whether to collapse. */
+  readonly hasInput = computed(() => this.input().trim() !== '');
+
   protected readonly matches = computed(() =>
     detectShapes(this.input(), PASTE_DETECTORS, (id) => this.registry.getById(id)),
   );

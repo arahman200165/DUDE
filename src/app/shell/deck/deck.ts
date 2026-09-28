@@ -14,10 +14,8 @@ import { ProjectService } from '../../core/project/project.service';
 import { CategoryIcon } from '../../shared/components/category-icon/category-icon';
 import { OfflineAvailability } from '../../shared/components/offline-badge/offline-availability.directive';
 import { HomeRail } from './home-rail/home-rail';
-import { PinnedPipelinesRail } from './pinned-pipelines-rail/pinned-pipelines-rail';
 import { HomePasteDropHero } from './home-paste-drop-hero/home-paste-drop-hero';
-import { RecentWorkspacesRail } from './recent-workspaces-rail/recent-workspaces-rail';
-import { RecentProjectsRail } from './recent-projects-rail/recent-projects-rail';
+import { ResumeWorkPanel } from './resume-work-panel/resume-work-panel';
 import { CommandActionsRail } from './command-actions-rail/command-actions-rail';
 import { ShortcutHint } from '../../shared/components/shortcut-hint/shortcut-hint';
 import { CommandPaletteService } from '../command-palette/command-palette.service';
@@ -34,10 +32,8 @@ const QUICK_ACTION_ID_PREFIX = 'native:quick-action:';
     OfflineAvailability,
     DesktopFeatureMarker,
     HomeRail,
-    PinnedPipelinesRail,
     HomePasteDropHero,
-    RecentWorkspacesRail,
-    RecentProjectsRail,
+    ResumeWorkPanel,
     CommandActionsRail,
     ShortcutHint,
   ],

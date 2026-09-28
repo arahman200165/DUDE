@@ -1,0 +1,42 @@
+import { TestBed } from '@angular/core/testing';
+import { HomePasteDropHero } from './home-paste-drop-hero';
+
+describe('HomePasteDropHero', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
+  it('starts collapsed, showing only the idle affordance', () => {
+    const fixture = TestBed.createComponent(HomePasteDropHero);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="button"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('app-paste-detect-panel')).toBeNull();
+  });
+
+  it('expands on focus of the idle row', () => {
+    const fixture = TestBed.createComponent(HomePasteDropHero);
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[role="button"]') as HTMLElement).dispatchEvent(new FocusEvent('focus'));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('app-paste-detect-panel')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('app-smart-file-drop-zone')).not.toBeNull();
+  });
+
+  it('collapses back to idle when Escape is pressed with no content', () => {
+    const fixture = TestBed.createComponent(HomePasteDropHero);
+    fixture.detectChanges();
+    fixture.componentInstance['expand']();
+    fixture.detectChanges();
+
+    const section = fixture.nativeElement.querySelector('section') as HTMLElement;
+    section.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="button"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('app-paste-detect-panel')).toBeNull();
+  });
+});
