@@ -94,7 +94,7 @@
 
           @if (outputView() === 'table') {
             <div class="min-h-32 flex-1 overflow-auto rounded-sm border border-border">
-              <app-data-table [columns]="current.columns" [rows]="current.rows" />
+              <app-workbench-table [columns]="current.columns | simpleColumns" [rows]="current.rows" />
             </div>
           } @else if (outputView() === 'csv') {
             <textarea

@@ -1,7 +1,8 @@
 import { Component, computed, inject } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
-import { DataTable } from '../../shared/components/data-table/data-table';
+import { WorkbenchTable } from '../../shared/components/workbench-table/workbench-table';
+import { SimpleColumnsPipe } from '../../shared/components/workbench-table/simple-columns.pipe';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { downloadFile } from '../../shared/utils/download-file';
 import { generateMockData, parseSchema, type MockDataRow } from './mock-data-schema';
@@ -11,7 +12,7 @@ const DEFAULT_SCHEMA = '{\n  "name": "person.fullName",\n  "email": "internet.em
 
 @Component({
   selector: 'app-mock-data-studio',
-  imports: [ToolShell, ErrorPanel, DataTable],
+  imports: [ToolShell, ErrorPanel, WorkbenchTable, SimpleColumnsPipe],
   templateUrl: './mock-data-studio.html',
 })
 export class MockDataStudio {

@@ -88,7 +88,7 @@
         </div>
       } @else if (result(); as current) {
         @if (current.ok) {
-          <app-data-table [columns]="current.table.columns" [rows]="current.table.rows" />
+          <app-workbench-table [columns]="current.table.columns | simpleColumns" [rows]="current.table.rows" />
         } @else {
           <div class="p-2">
             <app-error-panel [message]="current.error.message" />

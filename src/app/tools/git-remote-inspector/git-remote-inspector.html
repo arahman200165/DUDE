@@ -12,7 +12,7 @@
 
     @if (entries().length > 0) {
       <div class="overflow-auto rounded-sm border border-border">
-        <app-data-table [columns]="['Name', 'Direction', 'URL', 'Host', 'Owner', 'Repo']" [rows]="tableRows()" />
+        <app-workbench-table [columns]="['Name', 'Direction', 'URL', 'Host', 'Owner', 'Repo'] | simpleColumns" [rows]="tableRows()" />
       </div>
     }
   </div>

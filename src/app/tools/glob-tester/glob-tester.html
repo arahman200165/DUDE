@@ -43,7 +43,7 @@
             {{ matchCount() }} of {{ current.results.length }} paths matched
           </span>
           <div class="min-h-32 flex-1 overflow-auto rounded-sm border border-border">
-            <app-data-table [columns]="['Path', 'Result']" [rows]="tableRows()" />
+            <app-workbench-table [columns]="['Path', 'Result'] | simpleColumns" [rows]="tableRows()" />
           </div>
         </div>
       } @else {

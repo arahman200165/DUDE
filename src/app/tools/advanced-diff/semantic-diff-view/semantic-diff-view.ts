@@ -1,5 +1,6 @@
 import { Component, computed, input } from '@angular/core';
-import { DataTable } from '../../../shared/components/data-table/data-table';
+import { WorkbenchTable } from '../../../shared/components/workbench-table/workbench-table';
+import { SimpleColumnsPipe } from '../../../shared/components/workbench-table/simple-columns.pipe';
 import { TreeDiffResult } from '../object-tree-diff';
 
 function formatValue(value: unknown): string {
@@ -13,7 +14,7 @@ function formatValue(value: unknown): string {
  */
 @Component({
   selector: 'app-semantic-diff-view',
-  imports: [DataTable],
+  imports: [WorkbenchTable, SimpleColumnsPipe],
   templateUrl: './semantic-diff-view.html',
 })
 export class SemanticDiffView {

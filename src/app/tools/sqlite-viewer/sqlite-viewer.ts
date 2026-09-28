@@ -3,12 +3,13 @@ import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { FileDrop } from '../../shared/components/file-drop/file-drop';
 import { BusyIndicator, BusyIndicatorStatus } from '../../shared/components/busy-indicator/busy-indicator';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
-import { DataTable } from '../../shared/components/data-table/data-table';
+import { WorkbenchTable } from '../../shared/components/workbench-table/workbench-table';
+import { SimpleColumnsPipe } from '../../shared/components/workbench-table/simple-columns.pipe';
 import { inspectSqlite, SqliteInspectResult } from './sqlite-inspect';
 
 @Component({
   selector: 'app-sqlite-viewer',
-  imports: [ToolShell, FileDrop, BusyIndicator, ErrorPanel, DataTable],
+  imports: [ToolShell, FileDrop, BusyIndicator, ErrorPanel, WorkbenchTable, SimpleColumnsPipe],
   templateUrl: './sqlite-viewer.html',
 })
 export class SqliteViewer {

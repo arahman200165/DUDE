@@ -76,7 +76,7 @@
 
       @if (bulkRows().length > 0) {
         <div class="min-h-0 flex-1 overflow-auto rounded-sm border border-border">
-          <app-data-table [columns]="bulkColumns" [rows]="bulkRows()" />
+          <app-workbench-table [columns]="bulkColumns | simpleColumns" [rows]="bulkRows()" />
         </div>
       }
     }

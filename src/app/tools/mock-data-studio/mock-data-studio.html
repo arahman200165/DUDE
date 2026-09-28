@@ -79,7 +79,7 @@
         </button>
       </div>
 
-      <app-data-table [columns]="columns()" [rows]="tableRows()" />
+      <app-workbench-table [columns]="columns() | simpleColumns" [rows]="tableRows()" />
     }
   </div>
 </app-tool-shell>

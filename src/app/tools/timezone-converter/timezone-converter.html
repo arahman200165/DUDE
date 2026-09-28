@@ -75,7 +75,7 @@
     @if (result(); as current) {
       @if (current.ok) {
         <div class="min-h-32 flex-1 overflow-auto rounded-sm border border-border">
-          <app-data-table [columns]="['Zone', 'Local Time', 'UTC Offset', 'DST?']" [rows]="tableRows()" />
+          <app-workbench-table [columns]="['Zone', 'Local Time', 'UTC Offset', 'DST?'] | simpleColumns" [rows]="tableRows()" />
         </div>
       } @else {
         <app-error-panel [message]="current.error" />

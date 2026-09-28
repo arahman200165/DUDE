@@ -1,12 +1,13 @@
 import { Component, computed, inject } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
-import { DataTable } from '../../shared/components/data-table/data-table';
+import { WorkbenchTable } from '../../shared/components/workbench-table/workbench-table';
+import { SimpleColumnsPipe } from '../../shared/components/workbench-table/simple-columns.pipe';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { HTML_ENTITY_TABLE, filterEntityTable } from './html-entity-explorer-logic';
 
 @Component({
   selector: 'app-html-entity-explorer',
-  imports: [ToolShell, DataTable],
+  imports: [ToolShell, WorkbenchTable, SimpleColumnsPipe],
   templateUrl: './html-entity-explorer.html',
 })
 export class HtmlEntityExplorer {

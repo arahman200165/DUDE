@@ -23,7 +23,7 @@
     @if (result(); as current) {
       @if (current.ok) {
         <div class="h-64">
-          <app-data-table [columns]="columns" [rows]="rows()" />
+          <app-workbench-table [columns]="columns | simpleColumns" [rows]="rows()" />
         </div>
 
         <div class="flex flex-col gap-3">

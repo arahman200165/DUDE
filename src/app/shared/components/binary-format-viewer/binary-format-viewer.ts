@@ -3,18 +3,19 @@ import { FileDrop } from '../file-drop/file-drop';
 import { BusyIndicator, BusyIndicatorStatus } from '../busy-indicator/busy-indicator';
 import { ErrorPanel } from '../error-panel/error-panel';
 import { TreeView, TreeNode } from '../tree-view/tree-view';
-import { DataTable } from '../data-table/data-table';
+import { WorkbenchTable } from '../workbench-table/workbench-table';
+import { SimpleColumnsPipe } from '../workbench-table/simple-columns.pipe';
 
 /**
  * Shared shell for the binary-format viewer tools (Protobuf, MessagePack,
  * BSON, CBOR, Avro, Parquet, SQLite): a file drop zone, a busy/error status
  * line, and either a structural tree (most formats) or a table (SQLite,
  * Parquet) for the decoded result. Each tool owns its own file-reading and
- * decode call — this is presentational only, mirroring `DataTable`/`TreeView`.
+ * decode call — this is presentational only, mirroring `WorkbenchTable`/`TreeView`.
  */
 @Component({
   selector: 'app-binary-format-viewer',
-  imports: [FileDrop, BusyIndicator, ErrorPanel, TreeView, DataTable],
+  imports: [FileDrop, BusyIndicator, ErrorPanel, TreeView, WorkbenchTable, SimpleColumnsPipe],
   templateUrl: './binary-format-viewer.html',
 })
 export class BinaryFormatViewer {

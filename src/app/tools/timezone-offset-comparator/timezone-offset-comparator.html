@@ -46,7 +46,7 @@
         @if (gridResult(); as result) {
           @if (result.ok) {
             <div class="h-64 rounded-sm border border-border">
-              <app-data-table [columns]="gridColumns()" [rows]="gridRows()" />
+              <app-workbench-table [columns]="gridColumns() | simpleColumns" [rows]="gridRows()" />
             </div>
           } @else {
             <app-error-panel [message]="result.error" />

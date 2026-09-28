@@ -28,7 +28,7 @@
         }
       </div>
       <div class="min-h-0 flex-1 overflow-auto rounded-sm border border-border">
-        <app-data-table [columns]="columns" [rows]="rows()" />
+        <app-workbench-table [columns]="columns | simpleColumns" [rows]="rows()" />
       </div>
     } @else {
       <p class="text-ui text-text-muted">No text to inspect yet.</p>

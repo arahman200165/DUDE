@@ -39,7 +39,7 @@
               @if (current.anchors.length === 0) {
                 <div class="p-2 text-ui text-text-muted">No anchors found in this document.</div>
               } @else {
-                <app-data-table [columns]="['Anchor', 'Defined at', 'Referenced at']" [rows]="rows()" />
+                <app-workbench-table [columns]="['Anchor', 'Defined at', 'Referenced at'] | simpleColumns" [rows]="rows()" />
               }
             } @else {
               <div class="p-2">

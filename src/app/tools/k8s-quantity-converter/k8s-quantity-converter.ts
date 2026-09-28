@@ -1,13 +1,14 @@
 import { Component, computed, inject } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
-import { DataTable } from '../../shared/components/data-table/data-table';
+import { WorkbenchTable } from '../../shared/components/workbench-table/workbench-table';
+import { SimpleColumnsPipe } from '../../shared/components/workbench-table/simple-columns.pipe';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { convertQuantity } from './k8s-quantity-converter-logic';
 
 @Component({
   selector: 'app-k8s-quantity-converter',
-  imports: [ToolShell, ErrorPanel, DataTable],
+  imports: [ToolShell, ErrorPanel, WorkbenchTable, SimpleColumnsPipe],
   templateUrl: './k8s-quantity-converter.html',
 })
 export class K8sQuantityConverter {

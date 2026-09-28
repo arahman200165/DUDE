@@ -22,6 +22,6 @@
   </div>
 
   <div class="mt-4 overflow-auto rounded-sm border border-border">
-    <app-data-table [columns]="['Path', 'Result', 'Matched rule']" [rows]="tableRows()" />
+    <app-workbench-table [columns]="['Path', 'Result', 'Matched rule'] | simpleColumns" [rows]="tableRows()" />
   </div>
 </app-tool-shell>

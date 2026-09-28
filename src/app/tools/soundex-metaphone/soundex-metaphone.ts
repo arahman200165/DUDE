@@ -1,12 +1,13 @@
 import { Component, computed, inject } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
-import { DataTable } from '../../shared/components/data-table/data-table';
+import { WorkbenchTable } from '../../shared/components/workbench-table/workbench-table';
+import { SimpleColumnsPipe } from '../../shared/components/workbench-table/simple-columns.pipe';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { generatePhoneticCodes } from './soundex-metaphone-generate';
 
 @Component({
   selector: 'app-soundex-metaphone',
-  imports: [ToolShell, DataTable],
+  imports: [ToolShell, WorkbenchTable, SimpleColumnsPipe],
   templateUrl: './soundex-metaphone.html',
 })
 export class SoundexMetaphone {

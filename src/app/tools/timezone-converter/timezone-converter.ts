@@ -1,7 +1,8 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
-import { DataTable } from '../../shared/components/data-table/data-table';
+import { WorkbenchTable } from '../../shared/components/workbench-table/workbench-table';
+import { SimpleColumnsPipe } from '../../shared/components/workbench-table/simple-columns.pipe';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { convertToZones, listTimeZones } from './timezone-convert';
 
@@ -17,7 +18,7 @@ const defaultTime = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
 @Component({
   selector: 'app-timezone-converter',
-  imports: [ToolShell, ErrorPanel, DataTable],
+  imports: [ToolShell, ErrorPanel, WorkbenchTable, SimpleColumnsPipe],
   templateUrl: './timezone-converter.html',
 })
 export class TimezoneConverter {

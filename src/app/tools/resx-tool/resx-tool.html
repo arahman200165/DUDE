@@ -73,11 +73,11 @@
       @if (errorMessage(); as message) {
         <app-error-panel [message]="message" />
       } @else if (mode() === 'view' && viewTable(); as table) {
-        <app-data-table [columns]="table.columns" [rows]="table.rows" />
+        <app-workbench-table [columns]="table.columns | simpleColumns" [rows]="table.rows" />
       } @else if (mode() === 'tokens' && tokensTable(); as table) {
-        <app-data-table [columns]="table.columns" [rows]="table.rows" />
+        <app-workbench-table [columns]="table.columns | simpleColumns" [rows]="table.rows" />
       } @else if (mode() === 'diff' && diffTable(); as table) {
-        <app-data-table [columns]="table.columns" [rows]="table.rows" />
+        <app-workbench-table [columns]="table.columns | simpleColumns" [rows]="table.rows" />
       } @else if (mode() === 'merge' && mergedXml(); as xml) {
         <div class="flex h-full flex-col">
           <div class="flex items-center justify-end pb-1.5">

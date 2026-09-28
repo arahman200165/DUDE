@@ -1,7 +1,8 @@
 import { Component, computed, inject } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
-import { DataTable } from '../../shared/components/data-table/data-table';
+import { WorkbenchTable } from '../../shared/components/workbench-table/workbench-table';
+import { SimpleColumnsPipe } from '../../shared/components/workbench-table/simple-columns.pipe';
 import { CopyButton } from '../../shared/components/copy-button/copy-button';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import {
@@ -12,7 +13,7 @@ import {
 
 @Component({
   selector: 'app-oidc-discovery-inspector',
-  imports: [ToolShell, ErrorPanel, DataTable, CopyButton],
+  imports: [ToolShell, ErrorPanel, WorkbenchTable, SimpleColumnsPipe, CopyButton],
   templateUrl: './oidc-discovery-inspector.html',
 })
 export class OidcDiscoveryInspector {

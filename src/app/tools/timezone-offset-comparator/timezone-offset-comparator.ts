@@ -1,7 +1,8 @@
 import { Component, computed, inject } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
-import { DataTable } from '../../shared/components/data-table/data-table';
+import { WorkbenchTable } from '../../shared/components/workbench-table/workbench-table';
+import { SimpleColumnsPipe } from '../../shared/components/workbench-table/simple-columns.pipe';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { listTimeZones } from '../../shared/utils/iana-timezones';
 import { buildOffsetGrid, comparePairwise } from './timezone-offset-comparator-logic';
@@ -17,7 +18,7 @@ function toDateTimeLocalValue(date: Date): string {
 
 @Component({
   selector: 'app-timezone-offset-comparator',
-  imports: [ToolShell, ErrorPanel, DataTable],
+  imports: [ToolShell, ErrorPanel, WorkbenchTable, SimpleColumnsPipe],
   templateUrl: './timezone-offset-comparator.html',
 })
 export class TimezoneOffsetComparator {

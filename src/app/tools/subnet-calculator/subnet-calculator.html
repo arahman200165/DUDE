@@ -49,7 +49,7 @@
 
     @if (result(); as current) {
       @if (current.ok) {
-        <app-data-table [columns]="['Subnet', 'Broadcast', 'Usable range', 'Usable hosts']" [rows]="tableRows()" />
+        <app-workbench-table [columns]="['Subnet', 'Broadcast', 'Usable range', 'Usable hosts'] | simpleColumns" [rows]="tableRows()" />
       } @else {
         <app-error-panel [message]="current.error" />
       }

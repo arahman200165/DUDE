@@ -1,6 +1,7 @@
 import { Component, computed, inject } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
-import { DataTable } from '../../shared/components/data-table/data-table';
+import { WorkbenchTable } from '../../shared/components/workbench-table/workbench-table';
+import { SimpleColumnsPipe } from '../../shared/components/workbench-table/simple-columns.pipe';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { NGramLevel, TokenGranularity, generateNGrams, tokenize } from './text-tokenizer-ngram-logic';
 
@@ -8,7 +9,7 @@ type Mode = 'tokenize' | 'ngram';
 
 @Component({
   selector: 'app-text-tokenizer-ngram',
-  imports: [ToolShell, DataTable],
+  imports: [ToolShell, WorkbenchTable, SimpleColumnsPipe],
   templateUrl: './text-tokenizer-ngram.html',
 })
 export class TextTokenizerNGram {

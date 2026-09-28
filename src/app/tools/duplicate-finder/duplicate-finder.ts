@@ -1,6 +1,7 @@
 import { Component, computed, inject } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
-import { DataTable } from '../../shared/components/data-table/data-table';
+import { WorkbenchTable } from '../../shared/components/workbench-table/workbench-table';
+import { SimpleColumnsPipe } from '../../shared/components/workbench-table/simple-columns.pipe';
 import { CopyButton } from '../../shared/components/copy-button/copy-button';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { findDuplicateLines, findDuplicateWords, removeDuplicateLines } from './duplicate-finder-logic';
@@ -9,7 +10,7 @@ type Mode = 'lines' | 'words';
 
 @Component({
   selector: 'app-duplicate-finder',
-  imports: [ToolShell, DataTable, CopyButton],
+  imports: [ToolShell, WorkbenchTable, SimpleColumnsPipe, CopyButton],
   templateUrl: './duplicate-finder.html',
 })
 export class DuplicateFinder {
