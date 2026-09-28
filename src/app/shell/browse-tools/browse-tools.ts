@@ -1,4 +1,5 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, ViewChild, computed, effect, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ToolRegistryService } from '../../core/registry/tool-registry.service';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { FavoritesService } from '../../core/favorites/favorites.service';
@@ -22,6 +23,11 @@ const RECENT_LIMIT = 20;
 export type BrowseToolsViewMode = 'table' | 'grid';
 type StatusFacet = 'all' | 'experimental' | 'stable' | 'verified' | 'unstated';
 
+const PLATFORM_VALUES: readonly ('browser' | 'desktop')[] = ['browser', 'desktop'];
+const STATUS_FACET_VALUES: readonly StatusFacet[] = ['experimental', 'stable', 'verified', 'unstated'];
+const SORT_MODE_VALUES: readonly BrowseToolsSortMode[] = ['recommended', 'recent', 'most-used', 'favorites-first', 'alpha', 'category'];
+const VIEW_MODE_VALUES: readonly BrowseToolsViewMode[] = ['table', 'grid'];
+
 /**
  * Browse Tools (`/tools`) — the dedicated, exhaustive tool catalog (DUDE_PRD.md §21 Phase 30A.1),
  * the ninth sanctioned shell exception (see `shell/AGENTS.md`). Deck's own "Browse all tools" grid
@@ -32,6 +38,10 @@ type StatusFacet = 'all' | 'experimental' | 'stable' | 'verified' | 'unstated';
  * logic (30A.3) — this component only resolves the live signals (favorites, usage, platform
  * capabilities) those pure functions need and merges the UI's explicit facet controls with the typed
  * query operators, UI facet always taking precedence over a same-purpose operator in the text.
+ *
+ * Active search/filters/sort/view-mode sync to the URL query string (30A.1/30A.8), so a filtered view
+ * is bookmarkable/shareable; the URL wins on load, falling back to the locally persisted view mode
+ * (and framework defaults for everything else) for a bare `/tools` hit.
  */
 @Component({
   selector: 'app-browse-tools',
@@ -43,6 +53,10 @@ export class BrowseTools {
   private readonly persistence = inject(PersistenceService);
   private readonly favorites = inject(FavoritesService);
   private readonly usage = inject(UsageService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+
+  @ViewChild('searchInput') private readonly searchInputRef?: ElementRef<HTMLInputElement>;
 
   protected readonly meta = CATEGORY_METADATA;
   protected readonly categories = TOOL_CATEGORIES;
@@ -55,6 +69,8 @@ export class BrowseTools {
   protected readonly statusFacet = signal<StatusFacet>('all');
   protected readonly favoritesOnly = signal(false);
   protected readonly recentOnly = signal(false);
+  protected readonly sortMode = signal<BrowseToolsSortMode>('recommended');
+  protected readonly selectedIndex = signal(0);
 
   protected readonly platformFacets = [
     { id: 'all', label: 'All' },
@@ -62,8 +78,6 @@ export class BrowseTools {
     { id: 'desktop', label: 'Desktop-enhanced' },
   ] as const;
   protected readonly statusFacets: readonly StatusFacet[] = ['all', 'verified', 'stable', 'experimental', 'unstated'];
-
-  protected readonly sortMode = signal<BrowseToolsSortMode>('recommended');
   protected readonly sortModes: readonly { readonly id: BrowseToolsSortMode; readonly label: string }[] = [
     { id: 'recommended', label: 'Recommended' },
     { id: 'recent', label: 'Recently Used' },
@@ -134,12 +148,106 @@ export class BrowseTools {
     });
   });
 
+  /** Clamped against the live result count so a stale index from a since-narrowed filter never points past the end. */
+  protected readonly selectedToolId = computed<string | undefined>(() => {
+    const tools = this.sorted();
+    if (!tools.length) return undefined;
+    return tools[Math.min(this.selectedIndex(), tools.length - 1)]?.id;
+  });
+
+  constructor() {
+    this.seedFromUrl();
+
+    effect(() => {
+      const queryParams: Record<string, string | null> = {
+        q: this.query().trim() || null,
+        category: this.categoryFacet() !== 'all' ? this.categoryFacet() : null,
+        platform: this.platformFacet() !== 'all' ? this.platformFacet() : null,
+        status: this.statusFacet() !== 'all' ? this.statusFacet() : null,
+        favorite: this.favoritesOnly() ? 'true' : null,
+        recent: this.recentOnly() ? 'true' : null,
+        sort: this.sortMode() !== 'recommended' ? this.sortMode() : null,
+        view: this.viewMode() !== 'table' ? this.viewMode() : null,
+      };
+      void this.router.navigate([], { relativeTo: this.route, queryParams, replaceUrl: true });
+    });
+  }
+
+  private seedFromUrl(): void {
+    const params = this.route.snapshot.queryParamMap;
+
+    const q = params.get('q');
+    if (q) this.query.set(q);
+
+    const category = params.get('category');
+    if (category && TOOL_CATEGORIES.includes(category as ToolCategory)) this.categoryFacet.set(category as ToolCategory);
+
+    const platform = params.get('platform');
+    if (platform && PLATFORM_VALUES.includes(platform as 'browser' | 'desktop')) this.platformFacet.set(platform as 'browser' | 'desktop');
+
+    const status = params.get('status');
+    if (status && STATUS_FACET_VALUES.includes(status as StatusFacet)) this.statusFacet.set(status as StatusFacet);
+
+    if (params.get('favorite') === 'true') this.favoritesOnly.set(true);
+    if (params.get('recent') === 'true') this.recentOnly.set(true);
+
+    const sort = params.get('sort');
+    if (sort && SORT_MODE_VALUES.includes(sort as BrowseToolsSortMode)) this.sortMode.set(sort as BrowseToolsSortMode);
+
+    const view = params.get('view');
+    if (view && VIEW_MODE_VALUES.includes(view as BrowseToolsViewMode)) this.viewMode.set(view as BrowseToolsViewMode);
+  }
+
+  /** Focuses the search box on `/`, mirroring the Command Palette's own discovery shortcut, unless the
+   *  user is already typing somewhere else (another input, a textarea, or contenteditable). */
+  @HostListener('document:keydown', ['$event'])
+  protected onGlobalKeydown(event: KeyboardEvent): void {
+    if (event.key !== '/') return;
+    const active = document.activeElement;
+    const isEditable = active instanceof HTMLElement && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT' || active.isContentEditable);
+    if (isEditable) return;
+    event.preventDefault();
+    this.searchInputRef?.nativeElement.focus();
+  }
+
+  protected onArrowDown(event: Event): void {
+    event.preventDefault();
+    const count = this.sorted().length;
+    if (!count) return;
+    this.selectedIndex.set((this.selectedIndex() + 1) % count);
+  }
+
+  protected onArrowUp(event: Event): void {
+    event.preventDefault();
+    const count = this.sorted().length;
+    if (!count) return;
+    this.selectedIndex.set((this.selectedIndex() - 1 + count) % count);
+  }
+
+  protected onEnter(): void {
+    const id = this.selectedToolId();
+    const tool = id ? this.registry.getById(id) : undefined;
+    if (tool) void this.router.navigateByUrl(tool.route);
+  }
+
+  /** Clears the active filter state rather than dismissing anything else on the page. */
+  protected onEscape(): void {
+    this.query.set('');
+    this.categoryFacet.set('all');
+    this.platformFacet.set('all');
+    this.statusFacet.set('all');
+    this.favoritesOnly.set(false);
+    this.recentOnly.set(false);
+    this.selectedIndex.set(0);
+  }
+
   protected onSortChange(event: Event): void {
     this.sortMode.set((event.target as HTMLSelectElement).value as BrowseToolsSortMode);
   }
 
   protected onQueryInput(event: Event): void {
     this.query.set((event.target as HTMLInputElement).value);
+    this.selectedIndex.set(0);
   }
 
   protected onCategoryChange(event: Event): void {

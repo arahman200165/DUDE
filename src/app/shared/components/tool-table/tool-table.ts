@@ -30,6 +30,8 @@ export class ToolTable {
   private readonly favorites = inject(FavoritesService);
 
   readonly rows = input.required<readonly ToolDefinition[]>();
+  /** The keyboard-focused row (Browse Tools' arrow-key navigation, DUDE_PRD.md §21 Phase 30A.5). */
+  readonly selectedId = input<string | undefined>(undefined);
   readonly toolOpened = output<string>();
 
   protected readonly meta = CATEGORY_METADATA;

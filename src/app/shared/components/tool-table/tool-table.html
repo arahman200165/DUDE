@@ -1,7 +1,7 @@
-<div class="flex h-full flex-col" role="table" aria-label="Tools">
+<div class="flex h-full flex-col overflow-x-auto" role="table" aria-label="Tools">
   <div
     role="row"
-    class="grid shrink-0 grid-cols-[28px_1fr_110px_150px_90px_1fr] items-center gap-2 border-b border-border bg-panel px-1.5 py-1 text-ui-xs uppercase tracking-wider text-text-muted"
+    class="grid min-w-[640px] shrink-0 grid-cols-[28px_1fr_110px_150px_90px_1fr] items-center gap-2 border-b border-border bg-panel px-1.5 py-1 text-ui-xs uppercase tracking-wider text-text-muted"
   >
     <span role="columnheader"></span>
     <span role="columnheader">Tool</span>
@@ -11,17 +11,21 @@
     <span role="columnheader">Capabilities</span>
   </div>
 
-  <cdk-virtual-scroll-viewport [itemSize]="rowHeight" class="min-h-0 flex-1">
+  <cdk-virtual-scroll-viewport [itemSize]="rowHeight" class="min-h-0 min-w-[640px] flex-1">
     <div
       *cdkVirtualFor="let tool of rows(); trackBy: trackById"
       role="row"
       [style.height.px]="rowHeight"
       class="grid grid-cols-[28px_1fr_110px_150px_90px_1fr] items-center gap-2 border-b border-border/60 px-1.5 text-xs hover:bg-panel-elevated"
+      [class.bg-panel-elevated]="tool.id === selectedId()"
+      [class.ring-1]="tool.id === selectedId()"
+      [class.ring-inset]="tool.id === selectedId()"
+      [class.ring-accent]="tool.id === selectedId()"
     >
       <button
         type="button"
         role="cell"
-        class="h-full text-text-muted hover:text-accent"
+        class="h-full text-text-muted hover:text-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
         [class.text-accent]="isFavorite(tool.id)"
         [attr.aria-pressed]="isFavorite(tool.id)"
         [attr.aria-label]="(isFavorite(tool.id) ? 'Unfavorite ' : 'Favorite ') + tool.title"
@@ -35,7 +39,7 @@
         [routerLink]="tool.route"
         [appOfflineAvailability]="tool.id"
         (click)="toolOpened.emit(tool.id)"
-        class="flex min-w-0 items-center gap-1.5 truncate"
+        class="flex min-w-0 items-center gap-1.5 truncate focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
         [class]="'text-' + meta[tool.category].colorToken + '-tint hover:underline'"
       >
         <app-category-icon [category]="tool.category" class="h-3.5 w-3.5 shrink-0" [class]="'text-' + meta[tool.category].colorToken" />

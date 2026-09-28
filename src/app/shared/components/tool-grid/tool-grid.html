@@ -10,8 +10,11 @@
         [routerLink]="tool.route"
         [appOfflineAvailability]="tool.id"
         (click)="toolOpened.emit(tool.id)"
-        class="flex min-w-0 flex-col gap-1 rounded-sm border p-1.5 text-xs hover:bg-panel-elevated"
+        class="flex min-w-0 flex-col gap-1 rounded-sm border p-1.5 text-xs hover:bg-panel-elevated focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
         [class]="'border-' + meta[tool.category].colorToken + '/40 bg-' + meta[tool.category].colorToken + '-wash'"
+        [class.ring-1]="tool.id === selectedId()"
+        [class.ring-accent]="tool.id === selectedId()"
+        [class.bg-panel-elevated]="tool.id === selectedId()"
       >
         <div class="flex min-w-0 items-start justify-between gap-1">
           <div class="flex min-w-0 items-center gap-1.5">
@@ -20,7 +23,7 @@
           </div>
           <button
             type="button"
-            class="shrink-0 text-text-muted hover:text-accent"
+            class="shrink-0 text-text-muted hover:text-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
             [class.text-accent]="isFavorite(tool.id)"
             [attr.aria-pressed]="isFavorite(tool.id)"
             [attr.aria-label]="(isFavorite(tool.id) ? 'Unfavorite ' : 'Favorite ') + tool.title"

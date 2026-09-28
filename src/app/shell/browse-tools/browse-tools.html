@@ -12,11 +12,17 @@
 
   <div class="mb-2 flex flex-wrap items-center gap-2">
     <input
+      #searchInput
       type="text"
       placeholder="Search tools… (try category:security jwt)"
-      class="w-64 rounded-sm border border-border bg-panel px-2 py-1 text-xs text-text placeholder:text-text-muted/60 focus:outline-none focus:ring-1 focus:ring-accent"
+      aria-label="Search tools"
+      class="w-64 min-w-40 flex-1 rounded-sm border border-border bg-panel px-2 py-1 text-xs text-text placeholder:text-text-muted/60 focus:outline-none focus:ring-1 focus:ring-accent sm:flex-none"
       [value]="query()"
       (input)="onQueryInput($event)"
+      (keydown.arrowdown)="onArrowDown($event)"
+      (keydown.arrowup)="onArrowUp($event)"
+      (keydown.enter)="onEnter()"
+      (keydown.escape)="onEscape()"
     />
 
     <app-browse-query-help />
@@ -51,7 +57,7 @@
           type="button"
           role="radio"
           [attr.aria-checked]="platformFacet() === facet.id"
-          class="rounded-sm border px-1.5 py-0.5 text-ui-xs"
+          class="rounded-sm border px-1.5 py-0.5 text-ui-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
           [class]="platformFacet() === facet.id ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border text-text-muted hover:text-text'"
           (click)="platformFacet.set(facet.id)"
         >
@@ -63,7 +69,7 @@
     <button
       type="button"
       [attr.aria-pressed]="favoritesOnly()"
-      class="rounded-sm border px-1.5 py-0.5 text-ui-xs"
+      class="rounded-sm border px-1.5 py-0.5 text-ui-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
       [class]="favoritesOnly() ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border text-text-muted hover:text-text'"
       (click)="favoritesOnly.set(!favoritesOnly())"
     >
@@ -73,7 +79,7 @@
     <button
       type="button"
       [attr.aria-pressed]="recentOnly()"
-      class="rounded-sm border px-1.5 py-0.5 text-ui-xs"
+      class="rounded-sm border px-1.5 py-0.5 text-ui-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
       [class]="recentOnly() ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border text-text-muted hover:text-text'"
       (click)="recentOnly.set(!recentOnly())"
     >
@@ -96,7 +102,7 @@
         type="button"
         role="radio"
         [attr.aria-checked]="viewMode() === 'table'"
-        class="rounded-sm border px-1.5 py-0.5 text-ui-xs"
+        class="rounded-sm border px-1.5 py-0.5 text-ui-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
         [class]="viewMode() === 'table' ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border text-text-muted hover:text-text'"
         (click)="viewMode.set('table')"
       >
@@ -106,7 +112,7 @@
         type="button"
         role="radio"
         [attr.aria-checked]="viewMode() === 'grid'"
-        class="rounded-sm border px-1.5 py-0.5 text-ui-xs"
+        class="rounded-sm border px-1.5 py-0.5 text-ui-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
         [class]="viewMode() === 'grid' ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border text-text-muted hover:text-text'"
         (click)="viewMode.set('grid')"
       >
@@ -118,9 +124,9 @@
   <div class="min-h-0 flex-1">
     @if (sorted().length) {
       @if (viewMode() === 'grid') {
-        <app-tool-grid [rows]="sorted()" />
+        <app-tool-grid [rows]="sorted()" [selectedId]="selectedToolId()" />
       } @else {
-        <app-tool-table [rows]="sorted()" />
+        <app-tool-table [rows]="sorted()" [selectedId]="selectedToolId()" />
       }
     } @else {
       <p class="text-xs text-text-muted">No tools match "{{ query() }}".</p>
