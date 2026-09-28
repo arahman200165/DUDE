@@ -1,7 +1,13 @@
 <div class="flex h-full flex-col p-3">
-  <div class="mb-2 flex items-center justify-between">
+  <div class="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5">
     <h1 class="font-mono text-sm font-semibold text-text">Browse Tools</h1>
-    <span class="text-ui-xs text-text-muted">All tools — {{ total() }}</span>
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-ui-xs text-text-muted">
+      <span>All tools — {{ counts().all }}</span>
+      <span>Desktop-only — {{ counts().desktopOnly }}</span>
+      <span>Browser-safe — {{ counts().browserSafe }}</span>
+      <span>Verified — {{ counts().verified }}</span>
+      <span>Favorites — {{ counts().favorite }}</span>
+    </div>
   </div>
 
   <div class="mb-2 flex flex-wrap items-center gap-2">
@@ -22,7 +28,7 @@
     >
       <option value="all">All categories</option>
       @for (category of categories; track category) {
-        <option [value]="category">{{ meta[category].label }}</option>
+        <option [value]="category">{{ meta[category].label }} ({{ counts().byCategory[category] }})</option>
       }
     </select>
 
@@ -61,7 +67,7 @@
       [class]="favoritesOnly() ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border text-text-muted hover:text-text'"
       (click)="favoritesOnly.set(!favoritesOnly())"
     >
-      ★ Favorites
+      ★ Favorites ({{ counts().favorite }})
     </button>
 
     <button

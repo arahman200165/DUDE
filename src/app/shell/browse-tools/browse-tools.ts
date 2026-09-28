@@ -12,6 +12,7 @@ import { parseBrowseQuery, ParsedBrowseQuery } from '../../core/registry/browse-
 import { filterTools } from '../../core/registry/browse-tools-filter';
 import { BrowseToolsSortMode, sortTools } from '../../core/registry/browse-tools-sort';
 import { scoreForRecommendation } from '../../core/registry/browse-tools-recommend';
+import { computeCatalogCounts } from '../../core/registry/browse-tools-counts';
 
 /** Synthetic pseudo-tool-id namespace, the same trick `'__favorites__'`/`'__usage__'` use. */
 const BROWSE_TOOLS_NAMESPACE = '__browse_tools__';
@@ -72,7 +73,12 @@ export class BrowseTools {
     { id: 'category', label: 'Category' },
   ];
 
-  protected readonly total = computed(() => this.registry.getAll().length);
+  protected readonly counts = computed(() =>
+    computeCatalogCounts(this.registry.getAll(), {
+      hasWebUnavailableFeature: (id) => this.registry.hasWebUnavailableFeature(id),
+      isFavorite: (id) => this.favorites.isToolPinned(id),
+    }),
+  );
 
   /** Every ever-opened tool id, most-recent-first — an unbounded reach so `recent:*`/sort/recommend see the whole history, not just a capped rail. */
   private readonly recentRankById = computed(() => {
