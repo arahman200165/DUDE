@@ -1,0 +1,119 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning/40 bg-warning/5 p-4 text-ui text-text-muted">
+      Tree Search searches every file under a folder on disk — text and regex, file metadata, and JSONPath / YAML / XPath queries — and can replace across files. It needs the Windows desktop app; for a single text, use Find &amp; Replace.
+    </div>
+    <div class="mt-2 flex gap-2">
+      <app-desktop-only-control capability="native-fs" label="Search a folder" />
+      <app-desktop-only-control capability="native-fs-write" label="Replace across files" />
+    </div>
+  } @else {
+    <div class="flex flex-col gap-3 text-ui">
+      <div class="flex gap-1" role="tablist">
+        @for (item of [{ id: 'content', label: 'Text / regex' }, { id: 'metadata', label: 'Files by metadata' }, { id: 'structured', label: 'JSON / YAML / XML query' }]; track item.id) {
+          <button type="button" role="tab" class="rounded-sm border px-2 py-0.5" [class]="mode() === item.id ? 'border-accent text-accent' : 'border-border text-text-muted'" [attr.aria-selected]="mode() === item.id" (click)="mode.set($any(item.id))">{{ item.label }}</button>
+        }
+      </div>
+      <app-fs-root-picker [(root)]="root" />
+      <app-walk-options [(options)]="options" />
+      @if (error()) { <div role="alert" class="text-error">{{ error() }}</div> }
+
+      @switch (mode()) {
+        @case ('content') {
+          <div class="flex flex-wrap items-center gap-2 rounded-sm border border-border bg-panel p-2">
+            <input class="min-w-64 flex-1 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" placeholder="Search text or regex" [value]="pattern()" (input)="pattern.set($any($event.target).value)" (keydown.enter)="search()" aria-label="Search pattern" />
+            <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="regex()" (change)="regex.set(checked($event))" /> Regex</label>
+            <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="caseSensitive()" (change)="caseSensitive.set(checked($event))" /> Match case</label>
+            <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="wholeWord()" (change)="wholeWord.set(checked($event))" /> Whole word</label>
+            <label class="flex items-center gap-1 text-text-muted">Context<input type="number" min="0" max="5" class="w-14 rounded-sm border border-border bg-panel px-1 py-0.5 text-text" [value]="context()" (change)="context.set(+$any($event.target).value)" /></label>
+            <label class="flex items-center gap-1 text-text-muted" title="Used for files that are neither UTF-8 nor BOM-marked">Non-UTF-8 files
+              <select class="rounded-sm border border-border bg-panel px-1 py-0.5 text-text" [value]="fallbackEncoding()" (change)="fallbackEncoding.set($any($event.target).value)">@for (encoding of encodings; track encoding) { <option [value]="encoding">{{ encoding }}</option> }</select>
+            </label>
+            <button type="button" class="rounded-sm border border-accent px-3 py-1 text-accent disabled:opacity-50" data-testid="fs-scan" [disabled]="!root() || !pattern()" (click)="search()">Search</button>
+          </div>
+          <app-scan-progress [job]="searchJob()" />
+          @if (summary(); as found) {
+            <div class="flex flex-wrap items-center gap-3 text-text-muted" role="status">
+              <span><span class="text-text">{{ found.total.toLocaleString() }}</span> match(es) in {{ found.filesMatched.toLocaleString() }} of {{ found.scanned.toLocaleString() }} files</span>
+              @if (found.skippedBinary) { <span>{{ found.skippedBinary }} binary skipped</span> }
+              @if (found.skippedLarge) { <span>{{ found.skippedLarge }} over 32 MiB skipped (use Large-File Inspector)</span> }
+              @if (found.truncated) { <span class="text-warning">stopped at 100,000 matches</span> }
+              @if (hits().length) { <button type="button" class="ml-auto rounded-sm border border-border px-2 py-0.5 text-text" (click)="exportResults()">Export</button> }
+            </div>
+          }
+          @if (hits().length) {
+            <div class="flex flex-wrap items-center gap-2 rounded-sm border border-warning/40 p-2">
+              <span class="text-text-muted">Replace with</span>
+              <input class="min-w-48 flex-1 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [placeholder]="regex() ? 'replacement ($1, $<name>, $& allowed)' : 'replacement'" [value]="replacement()" (input)="replacement.set($any($event.target).value)" aria-label="Replacement" />
+              <button type="button" class="rounded-sm border border-warning px-2 py-1 text-warning" data-testid="plan-preview-button" [disabled]="!summary()" (click)="previewReplace()">Preview replace ({{ replaceCount().toLocaleString() }})…</button>
+              <app-scan-progress [job]="planJob()" />
+              <span class="w-full text-ui-xs text-text-muted">Untick matches to leave them alone. Files keep their encoding, BOM and line endings; files changed since the search are skipped.</span>
+            </div>
+            <app-mutation-preview [preview]="preview()" (applied)="onApplied()" (discarded)="preview.set(null)" />
+            <div class="flex flex-col gap-2">
+              @for (hit of hits(); track hit.path) {
+                <div class="rounded-sm border border-border">
+                  <div class="flex items-center gap-2 border-b border-border/50 bg-panel px-2 py-1 text-ui-xs">
+                    <input type="checkbox" [checked]="fileIncluded(hit)" (change)="toggleFile(hit, $event)" [attr.aria-label]="'Include ' + hit.path" />
+                    <span class="font-mono text-text">{{ hit.path }}</span>
+                    <span class="text-text-muted">{{ hit.total }} match(es) · {{ hit.encoding }}</span>
+                    @if (hit.total > hit.matches.length) { <span class="text-warning">{{ hit.total - hit.matches.length }} more not listed (replaced unless the file is unticked)</span> }
+                    <a class="ml-auto text-accent underline" routerLink="/tools/large-file-inspector" [queryParams]="{ root: root(), path: hit.path, line: hit.matches[0]?.line }">Inspect</a>
+                  </div>
+                  @for (match of hit.matches; track match.line + ':' + match.column) {
+                    <div class="px-2 py-0.5 font-mono text-ui-xs">
+                      @for (line of match.before; track $index) { <div class="whitespace-pre text-text-muted/70"><span class="inline-block w-12 text-right">{{ match.line - match.before.length + $index }}</span>  {{ line }}</div> }
+                      <label class="flex items-start gap-1 whitespace-pre">
+                        <input type="checkbox" class="mt-0.5" [checked]="isIncluded(hit, match)" (change)="toggleMatch(hit, match, $event)" [attr.aria-label]="'Replace at line ' + match.line" />
+                        <span class="inline-block w-10 text-right text-text-muted">{{ match.line }}</span>  <span class="text-text">{{ segments(match).before }}<mark class="rounded-sm bg-warning/30 text-text">{{ segments(match).hit }}</mark>{{ segments(match).after }}</span>
+                      </label>
+                      @for (line of match.after; track $index) { <div class="whitespace-pre text-text-muted/70"><span class="inline-block w-12 text-right">{{ match.line + 1 + $index }}</span>  {{ line }}</div> }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        }
+        @case ('metadata') {
+          <div class="flex flex-wrap items-end gap-2 rounded-sm border border-border bg-panel p-2">
+            <label class="flex flex-col gap-0.5 text-text-muted">Name globs<input class="w-48 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" placeholder="*.log, report-*" [value]="names()" (input)="names.set($any($event.target).value)" /></label>
+            <label class="flex flex-col gap-0.5 text-text-muted">Extensions<input class="w-36 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" placeholder="png, pdf" [value]="extensions()" (input)="extensions.set($any($event.target).value)" /></label>
+            <label class="flex flex-col gap-0.5 text-text-muted" title="Detected from file contents, not the name">Detected type<input class="w-36 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" placeholder="png, zip, exe" [value]="types()" (input)="types.set($any($event.target).value)" /></label>
+            <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="emptyOnly()" (change)="emptyOnly.set(checked($event))" /> Empty files &amp; folders only</label>
+            <button type="button" class="rounded-sm border border-accent px-3 py-1 text-accent disabled:opacity-50" [disabled]="!root()" (click)="metaSearch()">Find files</button>
+          </div>
+          <p class="text-ui-xs text-text-muted">Size and modified-date ranges are in Filters above.</p>
+          <app-scan-progress [job]="metaJob()" />
+          @if (metaHits().length) {
+            <table class="w-full border-collapse font-mono text-ui-xs">
+              <thead><tr class="text-left text-text-muted"><th class="px-2 py-1">Path</th><th class="px-2 py-1 text-right">Size</th><th class="px-2 py-1">Modified</th><th class="px-2 py-1">Type</th></tr></thead>
+              <tbody>@for (hit of metaHits().slice(0, 5000); track hit.path) { <tr class="border-t border-border/40"><td class="px-2 py-0.5 text-text">{{ hit.path }}{{ hit.kind === 'dir' ? '/' : '' }}</td><td class="px-2 py-0.5 text-right text-text-muted">{{ bytes(hit.size) }}</td><td class="px-2 py-0.5 text-text-muted">{{ metaDate(hit.mtimeMs) }}</td><td class="px-2 py-0.5 text-text-muted">{{ hit.type ?? '' }}</td></tr> }</tbody>
+            </table>
+            @if (metaHits().length > 5000) { <p class="text-text-muted">Showing 5,000 of {{ metaHits().length.toLocaleString() }}.</p> }
+          }
+        }
+        @case ('structured') {
+          <div class="flex flex-wrap items-center gap-2 rounded-sm border border-border bg-panel p-2">
+            <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="structured()" (change)="structured.set($any($event.target).value)" aria-label="Query language">@for (language of languages; track language.id) { <option [value]="language.id">{{ language.label }}</option> }</select>
+            <input class="min-w-64 flex-1 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [placeholder]="structured() === 'xml-xpath' ? '//PackageReference/@Include' : structured().endsWith('jmespath') ? 'dependencies' : '$.dependencies'" [value]="expression()" (input)="expression.set($any($event.target).value)" (keydown.enter)="structuredSearch()" aria-label="Query" />
+            <button type="button" class="rounded-sm border border-accent px-3 py-1 text-accent disabled:opacity-50" [disabled]="!root() || !expression().trim()" (click)="structuredSearch()">Query files</button>
+          </div>
+          <p class="text-ui-xs text-text-muted">Runs over matching files (the include filter, or the language's usual extensions), up to 5,000 files of at most 8 MiB. Files with no result are hidden.</p>
+          <app-scan-progress [job]="structuredJob()" />
+          @if (structuredDone() || structuredHits().length) {
+            <div class="text-text-muted" role="status">{{ structuredHits().length.toLocaleString() }} file(s) with results@if (structuredErrors()) { · {{ structuredErrors() }} could not be parsed }</div>
+            <div class="flex flex-col gap-2">
+              @for (hit of structuredHits().slice(0, 1000); track hit.path) {
+                <details class="rounded-sm border border-border" open>
+                  <summary class="cursor-pointer bg-panel px-2 py-1 font-mono text-ui-xs text-text">{{ hit.path }}</summary>
+                  <pre class="max-h-60 overflow-auto p-2 font-mono text-ui-xs text-text">{{ hit.output }}</pre>
+                </details>
+              }
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</app-tool-shell>

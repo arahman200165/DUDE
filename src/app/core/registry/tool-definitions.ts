@@ -284,6 +284,7 @@ import { manifest as timezoneOffsetComparatorManifest } from '../../tools/timezo
 import { manifest as tlsInspectorManifest } from '../../tools/tls-inspector/tls-inspector.manifest';
 import { manifest as tomlFormatterManifest } from '../../tools/toml-formatter/toml-formatter.manifest';
 import { manifest as tracerouteManifest } from '../../tools/traceroute/traceroute.manifest';
+import { manifest as treeSearchManifest } from '../../tools/tree-search/tree-search.manifest';
 import { manifest as udpPortTesterManifest } from '../../tools/udp-port-tester/udp-port-tester.manifest';
 import { manifest as ulidToolsManifest } from '../../tools/ulid-tools/ulid-tools.manifest';
 import { manifest as unicodeCharacterInspectorManifest } from '../../tools/unicode-character-inspector/unicode-character-inspector.manifest';
@@ -594,6 +595,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   tlsInspectorManifest,
   tomlFormatterManifest,
   tracerouteManifest,
+  treeSearchManifest,
   udpPortTesterManifest,
   ulidToolsManifest,
   unicodeCharacterInspectorManifest,

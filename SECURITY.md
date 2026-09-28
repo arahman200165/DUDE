@@ -66,6 +66,7 @@ database-write) have no rows below until a tool claims them.
 | [TLS Connection Inspector](https://arahman200165.github.io/DUDE/tools/tls-inspector) | Secret Management | experimental |
 | [TLS Connection Inspector](https://arahman200165.github.io/DUDE/tools/tls-inspector) | Authentication | experimental |
 | [TLS Connection Inspector](https://arahman200165.github.io/DUDE/tools/tls-inspector) | Process Management | experimental |
+| [Tree Search](https://arahman200165.github.io/DUDE/tools/tree-search) | Filesystem Write | experimental |
 | [X.509 Certificate Inspector](https://arahman200165.github.io/DUDE/tools/x509-certificate-inspector) | Crypto | verified — SHA-1/SHA-256 fingerprints for a real openssl-generated certificate matched exactly. |
 
 ## Network-Capable Tools
@@ -156,6 +157,7 @@ browser sandbox.
 | [TLS Connection Inspector](https://arahman200165.github.io/DUDE/tools/tls-inspector) | Native network diagnostics |
 | [TOML Formatter / Validator](https://arahman200165.github.io/DUDE/tools/toml-formatter) | Desktop file/folder open |
 | [Traceroute](https://arahman200165.github.io/DUDE/tools/traceroute) | Native network diagnostics |
+| [Tree Search](https://arahman200165.github.io/DUDE/tools/tree-search) | Native filesystem access; Native filesystem write |
 | [UDP Port Tester](https://arahman200165.github.io/DUDE/tools/udp-port-tester) | Native network diagnostics |
 | [WHOIS Lookup](https://arahman200165.github.io/DUDE/tools/whois-lookup) | Native network diagnostics |
 | [XML Formatter](https://arahman200165.github.io/DUDE/tools/xml-formatter) | Desktop file/folder open |
@@ -204,6 +206,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [TCP Port Tester](https://arahman200165.github.io/DUDE/tools/tcp-port-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [TLS Connection Inspector](https://arahman200165.github.io/DUDE/tools/tls-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Traceroute](https://arahman200165.github.io/DUDE/tools/traceroute) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Tree Search](https://arahman200165.github.io/DUDE/tools/tree-search) | Native filesystem access | Desktop-only feature | searches real folders in the desktop fs worker |
+| [Tree Search](https://arahman200165.github.io/DUDE/tools/tree-search) | Native filesystem write | Desktop-only feature | replaces across files only through a previewed, per-hunk, journaled plan |
 | [UDP Port Tester](https://arahman200165.github.io/DUDE/tools/udp-port-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [WHOIS Lookup](https://arahman200165.github.io/DUDE/tools/whois-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 

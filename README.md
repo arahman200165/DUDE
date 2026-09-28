@@ -109,6 +109,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [TCP Port Tester](https://arahman200165.github.io/DUDE/tools/tcp-port-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [TLS Connection Inspector](https://arahman200165.github.io/DUDE/tools/tls-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Traceroute](https://arahman200165.github.io/DUDE/tools/traceroute) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Tree Search](https://arahman200165.github.io/DUDE/tools/tree-search) | Native filesystem access | Desktop-only feature | searches real folders in the desktop fs worker |
+| [Tree Search](https://arahman200165.github.io/DUDE/tools/tree-search) | Native filesystem write | Desktop-only feature | replaces across files only through a previewed, per-hunk, journaled plan |
 | [UDP Port Tester](https://arahman200165.github.io/DUDE/tools/udp-port-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [WHOIS Lookup](https://arahman200165.github.io/DUDE/tools/whois-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 
@@ -125,7 +127,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-308 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+309 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -197,6 +199,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [String Similarity Calculator](https://arahman200165.github.io/DUDE/tools/string-similarity-calculator) | Text | Compares two strings with Levenshtein distance/similarity and Jaro-Winkler similarity. |
 | [Text Inspector](https://arahman200165.github.io/DUDE/tools/text-inspector) | Text | Character, word, line, and byte metrics for any text, plus readability scoring, language detection, and grammar checking. |
 | [Text Tokenizer & N-Gram Generator](https://arahman200165.github.io/DUDE/tools/text-tokenizer-ngram) | Text | Tokenizes text into words or sentences, or generates word- or character-level n-grams with counts. |
+| [Tree Search](https://arahman200165.github.io/DUDE/tools/tree-search) | Text | Search every file under a folder: ripgrep-style text/regex with context, files by name/size/date/type, and JSONPath, JMESPath, YAML and XPath queries — with previewed replace across files. |
 | [Unicode Character Inspector](https://arahman200165.github.io/DUDE/tools/unicode-character-inspector) | Text | Inspect pasted text character by character: code point, UTF-8/UTF-16 bytes, general category, Unicode block, and official name. |
 | [Unicode Code Point Converter](https://arahman200165.github.io/DUDE/tools/unicode-code-point-converter) | Text | Convert between U+XXXX notation, decimal, HTML entities, JS \u escapes, and UTF-8 hex bytes, single or bulk. |
 | [Unicode Normalization](https://arahman200165.github.io/DUDE/tools/unicode-normalization) | Text | Normalize text to NFC, NFD, NFKC, or NFKD, with a before/after code point comparison. |
