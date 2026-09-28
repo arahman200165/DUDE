@@ -156,7 +156,7 @@ const bridge: DudeElectronBridge = {
     show: (title, body) => ipcRenderer.invoke('dude:notifications:show', title, body),
   },
   fileWatch: {
-    watch: (rootPath, relativePath) => ipcRenderer.invoke('dude:fileWatch:watch', rootPath, relativePath),
+    watch: (rootPath, relativePath, recursive) => ipcRenderer.invoke('dude:fileWatch:watch', rootPath, relativePath, recursive),
     unwatch: (watchId) => ipcRenderer.invoke('dude:fileWatch:unwatch', watchId),
     onEvent: (callback) => {
       const listener = (_event: Electron.IpcRendererEvent, message: FileWatchEvent) => callback(message);

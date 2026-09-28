@@ -1,10 +1,13 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnDestroy, effect, inject, signal, viewChild } from '@angular/core';
 import type { FsClient } from 'isomorphic-git';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
+import { DesktopOnlyControl } from '../../shared/components/desktop-only-control/desktop-only-control';
 import { BusyIndicator } from '../../shared/components/busy-indicator/busy-indicator';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
 import { PlatformService } from '../../core/platform/platform.service';
 import { NativeFsService } from '../../core/platform/native-fs.service';
+import { FileWatchService } from '../../core/platform/file-watch.service';
+import { PersistenceService } from '../../core/persistence/persistence.service';
 import { DiffLineType, DiffResult } from '../diff/text-diff';
 import { scanFileList } from '../directory-diff/directory-tree-scan';
 import { buildInMemoryFs } from './git-fs-shim';
@@ -31,12 +34,43 @@ const LINE_PREFIX: Record<DiffLineType, string> = { add: '+ ', remove: '- ', equ
  */
 @Component({
   selector: 'app-git-diff',
-  imports: [ToolShell, BusyIndicator, ErrorPanel],
+  imports: [ToolShell, DesktopOnlyControl, BusyIndicator, ErrorPanel],
   templateUrl: './git-diff.html',
 })
-export class GitDiff {
+export class GitDiff implements OnDestroy {
   private readonly nativeFs = inject(NativeFsService);
+  private readonly fileWatch = inject(FileWatchService);
+  private readonly persistence = inject(PersistenceService);
+  protected readonly autoRefresh = this.persistence.signal('git-diff', 'autoRefresh', 'local', false);
+  protected readonly refreshedCount = signal(0);
+  protected readonly selectedFileChanged = signal(false);
+  private readonly changeList = viewChild<ElementRef<HTMLUListElement>>('changeList');
+  private listScrollTop = 0;
+  private watchId: string | null = null;
+  private watchRoot: string | null = null;
+  private watchEpoch = 0;
+  private watchTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly dirtyPaths = new Set<string>();
+  private unsubscribeWatch: (() => void) | null = null;
+  private refreshing = false;
+  private hasCompared = false;
   protected readonly platform = inject(PlatformService);
+
+  constructor() {
+    this.unsubscribeWatch = this.fileWatch.onEvent((event) => {
+      if (event.id !== this.watchId) return;
+      if (event.kind === 'error') { this.loadError.set(event.error); return; }
+      this.dirtyPaths.add(event.relativePath ?? '*');
+      if (this.watchTimer) clearTimeout(this.watchTimer);
+      this.watchTimer = setTimeout(() => void this.flushWatchChanges(), 750);
+    });
+    effect(() => {
+      if (this.changes().length > 0) queueMicrotask(() => {
+        const list = this.changeList()?.nativeElement;
+        if (list) list.scrollTop = this.listScrollTop;
+      });
+    });
+  }
 
   private fs: FsClient | null = null;
   private nativeRootPath: string | null = null;
@@ -95,6 +129,7 @@ export class GitDiff {
       this.nativeRootPath = picked.rootPath;
       this.fs = buildNativeFsClient(this.nativeFs, picked.rootPath);
       await this.loadCommits();
+      await this.syncWatch();
     } catch (error) {
       this.loadError.set(error instanceof Error ? error.message : 'Could not read this folder as a git repository.');
       this.loadStatus.set('error');
@@ -105,23 +140,83 @@ export class GitDiff {
     if (!this.fs || !this.nativeRootPath) return;
     this.loadStatus.set('loading');
     try {
-      await this.loadCommits();
+      await this.loadCommits(true);
     } catch (error) {
       this.loadError.set(error instanceof Error ? error.message : 'Could not refresh commits.');
       this.loadStatus.set('error');
     }
   }
 
-  private async loadCommits(): Promise<void> {
+  private async loadCommits(preserveSelection = false): Promise<void> {
     if (!this.fs) return;
     const commits = await listCommits(this.fs, '/', 'HEAD', 200);
     this.commits.set(commits);
 
+    if (preserveSelection) {
+      const oids = new Set(commits.map((commit) => commit.oid));
+      if (oids.has(this.fromOid()) && oids.has(this.toOid())) { this.loadStatus.set('idle'); return; }
+    }
     if (commits.length > 0) this.toOid.set(commits[0].oid);
     if (commits.length > 1) this.fromOid.set(commits[1].oid);
     else if (commits.length === 1) this.fromOid.set(commits[0].oid);
 
     this.loadStatus.set('idle');
+  }
+
+  protected toggleAutoRefresh(event: Event): void {
+    this.autoRefresh.set((event.target as HTMLInputElement).checked);
+    void this.syncWatch();
+  }
+
+  protected rememberScroll(event: Event): void {
+    this.listScrollTop = (event.target as HTMLUListElement).scrollTop;
+  }
+
+  private async stopWatch(): Promise<void> {
+    this.watchEpoch++;
+    const id = this.watchId;
+    this.watchId = null;
+    this.watchRoot = null;
+    if (id) await this.fileWatch.unwatch(id);
+  }
+
+  private async syncWatch(): Promise<void> {
+    if (this.autoRefresh() && this.watchId && this.watchRoot === this.nativeRootPath) return;
+    await this.stopWatch();
+    if (!this.autoRefresh() || !this.nativeRootPath || !this.platform.isDesktop()) return;
+    const epoch = this.watchEpoch;
+    try {
+      // A recursive worktree watch includes .git/HEAD, .git/refs and .git/index.
+      const id = await this.fileWatch.watch(this.nativeRootPath, '.', true);
+      if (epoch !== this.watchEpoch || !this.autoRefresh()) { await this.fileWatch.unwatch(id); return; }
+      this.watchId = id;
+      this.watchRoot = this.nativeRootPath;
+    } catch (error) {
+      this.loadError.set(error instanceof Error ? error.message : 'Could not watch this repository.');
+    }
+  }
+
+  private async flushWatchChanges(): Promise<void> {
+    this.watchTimer = null;
+    if (this.refreshing || this.dirtyPaths.size === 0 || !this.nativeRootPath) return;
+    this.refreshing = true;
+    const paths = [...this.dirtyPaths];
+    this.dirtyPaths.clear();
+    try {
+      await this.refreshCommits();
+      this.refreshedCount.set(paths.length);
+      if (this.selectedPath() && (paths.includes('*') || paths.includes(this.selectedPath()!) || paths.some((path) => path.startsWith('.git/')))) this.selectedFileChanged.set(true);
+      if (this.hasCompared) await this.compare(true);
+    } finally {
+      this.refreshing = false;
+      if (this.dirtyPaths.size && !this.watchTimer) this.watchTimer = setTimeout(() => void this.flushWatchChanges(), 750);
+    }
+  }
+
+  protected async reloadSelectedFile(): Promise<void> {
+    const change = this.changes().find((item) => item.path === this.selectedPath());
+    if (change) await this.inspect(change);
+    this.selectedFileChanged.set(false);
   }
 
   protected onFromChange(event: Event): void {
@@ -132,16 +227,21 @@ export class GitDiff {
     this.toOid.set((event.target as HTMLSelectElement).value);
   }
 
-  protected async compare(): Promise<void> {
+  protected async compare(preserveSelection = false): Promise<void> {
     if (!this.fs || !this.fromOid() || !this.toOid()) return;
 
     this.diffStatus.set('loading');
     this.diffError.set('');
-    this.selectedPath.set(null);
-    this.fileDiff.set(null);
+    if (!preserveSelection) {
+      this.selectedPath.set(null);
+      this.fileDiff.set(null);
+      this.selectedFileChanged.set(false);
+      this.listScrollTop = 0;
+    }
 
     try {
       this.changes.set(await diffCommitFiles(this.fs, '/', this.fromOid(), this.toOid()));
+      this.hasCompared = true;
       this.diffStatus.set('idle');
     } catch (error) {
       this.diffError.set(error instanceof Error ? error.message : 'Could not diff these commits.');
@@ -152,6 +252,7 @@ export class GitDiff {
   protected async inspect(change: FileChange): Promise<void> {
     if (!this.fs) return;
     this.selectedPath.set(change.path);
+    this.selectedFileChanged.set(false);
     this.fileDiffStatus.set('loading');
     this.fileDiff.set(await diffFileContent(this.fs, '/', this.fromOid(), this.toOid(), change.path));
     this.fileDiffStatus.set('idle');
@@ -166,6 +267,13 @@ export class GitDiff {
   }
 
   protected clear(): void {
+    void this.stopWatch();
+    if (this.watchTimer) clearTimeout(this.watchTimer);
+    this.watchTimer = null;
+    this.dirtyPaths.clear();
+    this.refreshedCount.set(0);
+    this.selectedFileChanged.set(false);
+    this.hasCompared = false;
     this.fs = null;
     this.nativeRootPath = null;
     this.repoName.set('');
@@ -175,9 +283,16 @@ export class GitDiff {
     this.changes.set([]);
     this.selectedPath.set(null);
     this.fileDiff.set(null);
+    this.listScrollTop = 0;
     this.loadStatus.set('idle');
     this.loadError.set('');
     this.diffStatus.set('idle');
     this.diffError.set('');
+  }
+
+  ngOnDestroy(): void {
+    void this.stopWatch();
+    if (this.watchTimer) clearTimeout(this.watchTimer);
+    this.unsubscribeWatch?.();
   }
 }

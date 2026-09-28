@@ -1,11 +1,14 @@
-import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnDestroy, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
+import { DesktopOnlyControl } from '../../shared/components/desktop-only-control/desktop-only-control';
 import { BusyIndicator } from '../../shared/components/busy-indicator/busy-indicator';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
 import { WorkerClientService } from '../../core/workers/worker-client.service';
 import { WorkerJob } from '../../core/workers/worker-job';
 import { PlatformService } from '../../core/platform/platform.service';
 import { NativeFsService } from '../../core/platform/native-fs.service';
+import { FileWatchService } from '../../core/platform/file-watch.service';
+import { PersistenceService } from '../../core/persistence/persistence.service';
 import { DesktopOpenService } from '../../core/platform/desktop-open.service';
 import { computeLineDiff, DiffLineType, DiffResult } from '../diff/text-diff';
 import { scanFileList, scanNativeEntries, ScannedFile } from './directory-tree-scan';
@@ -32,16 +35,46 @@ const LINE_PREFIX: Record<DiffLineType, string> = { add: '+ ', remove: '- ', equ
 
 @Component({
   selector: 'app-directory-diff',
-  imports: [ToolShell, BusyIndicator, ErrorPanel],
+  imports: [ToolShell, DesktopOnlyControl, BusyIndicator, ErrorPanel],
   templateUrl: './directory-diff.html',
 })
 export class DirectoryDiff implements OnDestroy {
   private readonly workerClient = inject(WorkerClientService);
   private readonly nativeFs = inject(NativeFsService);
   private readonly desktopOpen = inject(DesktopOpenService);
+  private readonly fileWatch = inject(FileWatchService);
+  private readonly persistence = inject(PersistenceService);
+  protected readonly autoRefresh = this.persistence.signal('directory-diff', 'autoRefresh', 'local', false);
+  protected readonly refreshedCount = signal(0);
+  protected readonly selectedFileChanged = signal(false);
+  private readonly entryList = viewChild<ElementRef<HTMLUListElement>>('entryList');
+  private listScrollTop = 0;
+  private readonly watchIds: Partial<Record<Side, string>> = {};
+  private readonly watchRoots: Partial<Record<Side, string>> = {};
+  private readonly watchEpoch: Record<Side, number> = { left: 0, right: 0 };
+  private readonly dirtyPaths = new Set<string>();
+  private readonly dirtySides = new Set<Side>();
+  private watchTimer: ReturnType<typeof setTimeout> | null = null;
+  private unsubscribeWatch: (() => void) | null = null;
+  private refreshing = false;
   protected readonly platform = inject(PlatformService);
 
   constructor() {
+    this.unsubscribeWatch = this.fileWatch.onEvent((event) => {
+      const side = event.id === this.watchIds.left ? 'left' : event.id === this.watchIds.right ? 'right' : null;
+      if (!side) return;
+      if (event.kind === 'error') { this.scanError.set(event.error); return; }
+      this.dirtySides.add(side);
+      this.dirtyPaths.add(event.relativePath ?? '*');
+      if (this.watchTimer) clearTimeout(this.watchTimer);
+      this.watchTimer = setTimeout(() => void this.flushWatchChanges(), 750);
+    });
+    effect(() => {
+      if (this.entries().length > 0) queueMicrotask(() => {
+        const list = this.entryList()?.nativeElement;
+        if (list) list.scrollTop = this.listScrollTop;
+      });
+    });
     const incoming = this.desktopOpen.takeDirectory();
     if (incoming) void this.loadNativeFolder('left', incoming.path, incoming.name).catch((error: unknown) => {
       this.scanError.set(error instanceof Error ? error.message : 'Could not read this folder.');
@@ -76,6 +109,8 @@ export class DirectoryDiff implements OnDestroy {
   protected onLeftFolderSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
+    void this.stopWatch('left');
+    this.leftRootPath.set(null);
     this.leftFiles.set(scanFileList(input.files));
     this.leftFolderName.set(input.files[0].webkitRelativePath.split('/')[0] || 'left folder');
   }
@@ -83,6 +118,8 @@ export class DirectoryDiff implements OnDestroy {
   protected onRightFolderSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
+    void this.stopWatch('right');
+    this.rightRootPath.set(null);
     this.rightFiles.set(scanFileList(input.files));
     this.rightFolderName.set(input.files[0].webkitRelativePath.split('/')[0] || 'right folder');
   }
@@ -121,12 +158,80 @@ export class DirectoryDiff implements OnDestroy {
       this.rightFolderName.set(rootName);
       this.rightRootPath.set(rootPath);
     }
+    await this.syncWatch(side);
   }
 
-  protected async compare(): Promise<void> {
+  protected toggleAutoRefresh(event: Event): void {
+    this.autoRefresh.set((event.target as HTMLInputElement).checked);
+    void Promise.all([this.syncWatch('left'), this.syncWatch('right')]);
+  }
+
+  protected rememberScroll(event: Event): void {
+    this.listScrollTop = (event.target as HTMLUListElement).scrollTop;
+  }
+
+  private async stopWatch(side: Side): Promise<void> {
+    this.watchEpoch[side]++;
+    const id = this.watchIds[side];
+    delete this.watchIds[side];
+    delete this.watchRoots[side];
+    if (id) await this.fileWatch.unwatch(id);
+  }
+
+  private async syncWatch(side: Side): Promise<void> {
+    const root = side === 'left' ? this.leftRootPath() : this.rightRootPath();
+    if (this.autoRefresh() && root && this.watchIds[side] && this.watchRoots[side] === root) return;
+    await this.stopWatch(side);
+    if (!this.autoRefresh() || !root || !this.platform.isDesktop()) return;
+    const epoch = this.watchEpoch[side];
+    try {
+      const id = await this.fileWatch.watch(root, '.', true);
+      if (epoch !== this.watchEpoch[side] || !this.autoRefresh()) { await this.fileWatch.unwatch(id); return; }
+      this.watchIds[side] = id;
+      this.watchRoots[side] = root;
+    } catch (error) {
+      this.scanError.set(error instanceof Error ? error.message : 'Could not watch this folder.');
+    }
+  }
+
+  private async flushWatchChanges(): Promise<void> {
+    this.watchTimer = null;
+    if (this.refreshing || this.dirtySides.size === 0) return;
+    this.refreshing = true;
+    const sides = [...this.dirtySides];
+    const paths = [...this.dirtyPaths];
+    this.dirtySides.clear();
+    this.dirtyPaths.clear();
+    try {
+      for (const side of sides) {
+        const root = side === 'left' ? this.leftRootPath() : this.rightRootPath();
+        if (root) await this.loadNativeFolder(side, root, (side === 'left' ? this.leftFolderName() : this.rightFolderName()) || root);
+      }
+      this.refreshedCount.set(paths.length);
+      if (this.selectedPath() && (paths.includes('*') || paths.includes(this.selectedPath()!))) this.selectedFileChanged.set(true);
+      if (this.job()) await this.compare(true);
+    } catch (error) {
+      this.scanError.set(error instanceof Error ? error.message : 'Could not auto-rescan this folder.');
+    } finally {
+      this.refreshing = false;
+      if (this.dirtySides.size && !this.watchTimer) this.watchTimer = setTimeout(() => void this.flushWatchChanges(), 750);
+    }
+  }
+
+  protected async reloadSelectedFile(): Promise<void> {
+    const entry = this.entries().find((item) => item.path === this.selectedPath());
+    if (entry) await this.inspect(entry);
+    this.selectedFileChanged.set(false);
+  }
+
+  protected async compare(preserveSelection = false): Promise<void> {
     this.job()?.cancel();
-    this.selectedPath.set(null);
-    this.drillDown.set(null);
+    if (!preserveSelection) {
+      this.selectedPath.set(null);
+      this.drillDown.set(null);
+      this.selectedFileChanged.set(false);
+      this.listScrollTop = 0;
+    }
 
     const [left, right] = await Promise.all([this.buildPayloadEntries(this.leftFiles()), this.buildPayloadEntries(this.rightFiles())]);
     const payload: DirectoryDiffPayload = { left, right };
@@ -152,6 +257,7 @@ export class DirectoryDiff implements OnDestroy {
 
   protected async inspect(entry: TreeDiffEntry): Promise<void> {
     this.selectedPath.set(entry.path);
+    this.selectedFileChanged.set(false);
     if (entry.status !== 'changed') {
       this.drillDown.set(null);
       return;
@@ -201,6 +307,14 @@ export class DirectoryDiff implements OnDestroy {
   }
 
   protected clear(): void {
+    void this.stopWatch('left');
+    void this.stopWatch('right');
+    if (this.watchTimer) clearTimeout(this.watchTimer);
+    this.watchTimer = null;
+    this.dirtySides.clear();
+    this.dirtyPaths.clear();
+    this.refreshedCount.set(0);
+    this.selectedFileChanged.set(false);
     this.job()?.cancel();
     this.job.set(null);
     this.leftFiles.set([]);
@@ -215,6 +329,10 @@ export class DirectoryDiff implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    void this.stopWatch('left');
+    void this.stopWatch('right');
+    if (this.watchTimer) clearTimeout(this.watchTimer);
+    this.unsubscribeWatch?.();
     this.job()?.cancel();
   }
 }

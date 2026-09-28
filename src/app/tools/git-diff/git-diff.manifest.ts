@@ -12,12 +12,13 @@ export const manifest: ToolDefinition = {
   load: () => import('./git-diff').then((m) => m.GitDiff),
   capabilities: [
     { kind: 'platform', id: 'native-fs', web: 'fallback', note: 'reads a real .git directory on disk, no upload/zip step' },
+    { kind: 'platform', id: 'file-watch', web: 'unavailable', note: 'optionally refreshes the worktree and git metadata when they change' },
   ],
   status: 'verified',
   verification: {
     propertyTested: true,
     summary: 'Fuzz-tested construction of the read-only in-memory filesystem core with arbitrary file contents via fast-check.',
   },
-  persistence: { input: 'none', preferences: 'none' },
+  persistence: { input: 'none', preferences: 'local' },
   io: { accepts: ['file'], produces: ['json'] },
 };

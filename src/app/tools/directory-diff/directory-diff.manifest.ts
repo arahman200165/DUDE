@@ -5,6 +5,7 @@ export const manifest: ToolDefinition = {
   desktopOpen: { directory: true },
   capabilities: [
     { kind: 'platform', id: 'native-fs', web: 'fallback', note: 'compares real folders on disk, not zipped/pasted file lists' },
+    { kind: 'platform', id: 'file-watch', web: 'unavailable', note: 'optionally rescans open folders when their contents change' },
   ],
   title: 'Directory Diff',
   description:
@@ -18,7 +19,7 @@ export const manifest: ToolDefinition = {
     propertyTested: true,
     summary: 'Fuzz-tested (fast-check) against the pure diffDirectoryPayload core: never throws/rejects for arbitrary file lists, and diffing a payload against an identical copy of itself reports every entry as unchanged.',
   },
-  persistence: { input: 'none', preferences: 'none' },
+  persistence: { input: 'none', preferences: 'local' },
   execution: { worker: 'required' },
   io: { accepts: ['file'], produces: ['json'] },
 };

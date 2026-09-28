@@ -146,7 +146,7 @@ export interface DudeElectronBridge {
     show(title: string, body: string): Promise<VoidResult>;
   };
   readonly fileWatch: {
-    watch(rootPath: string, relativePath: string): Promise<{ readonly ok: true; readonly watchId: string } | { readonly ok: false; readonly error: string }>;
+    watch(rootPath: string, relativePath: string, recursive?: boolean): Promise<{ readonly ok: true; readonly watchId: string } | { readonly ok: false; readonly error: string }>;
     unwatch(watchId: string): Promise<{ readonly ok: true }>;
     onEvent(callback: (event: FileWatchEvent) => void): () => void;
   };
@@ -201,7 +201,7 @@ export interface QuickActionInfo {
   readonly hotkey: string | null;
 }
 
-export type FileWatchEvent = { readonly id: string; readonly kind: 'changed' } | { readonly id: string; readonly kind: 'error'; readonly error: string };
+export type FileWatchEvent = { readonly id: string; readonly kind: 'changed'; readonly relativePath?: string | null } | { readonly id: string; readonly kind: 'error'; readonly error: string };
 
 export type SecretResult<T> = ({ readonly ok: true } & T) | { readonly ok: false; readonly error: string };
 export type SecretVoidResult = { readonly ok: true } | { readonly ok: false; readonly error: string };
