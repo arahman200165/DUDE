@@ -1,21 +1,21 @@
-import { dialog, ipcMain } from 'electron';
+import { ipcMain } from 'electron';
 import { promises as fs } from 'node:fs';
 import { join, relative, sep } from 'node:path';
-import { resolveWithinRoot } from './static-server';
+import { grantPath, isRootGranted as isGranted, normalizeRoot, registerGrantHandlers, resolveInRoot } from './fs-grants';
 
 /**
  * Native file-access IPC for the desktop-only Directory Diff / Git Repo
  * Browser upgrades (Phase 8 Stage 2). A directory only becomes readable
- * after the user explicitly grants it via `dude:fs:pickDirectory` in this
- * session — `grantedRoots` is intentionally in-memory only (cleared on
- * restart), so a compromised/buggy renderer can't read arbitrary paths
- * without a fresh OS-level picker consent.
+ * after the user explicitly grants it through the native picker — the grant
+ * model (session grants plus explicitly remembered folders, Phase 29) lives in
+ * `fs-grants.ts`, so a compromised/buggy renderer can't read arbitrary paths
+ * without OS-level picker consent.
  */
 
-const grantedRoots = new Set<string>();
+const MAX_RANGE_BYTES = 1024 * 1024;
 
 /** Explorer's explicit Open with DUDE action grants this folder for this session. */
-export function grantExternalDirectory(rootPath: string): void { grantedRoots.add(rootPath); }
+export function grantExternalDirectory(rootPath: string): void { grantPath(rootPath); }
 
 interface NativeStatPayload {
   readonly isFile: boolean;
@@ -35,13 +35,13 @@ function toFsError(error: unknown): FsError {
 }
 
 function resolveGrantedPath(rootPath: string, relativePath: string): string | null {
-  if (!grantedRoots.has(rootPath)) return null;
-  return resolveWithinRoot(rootPath, relativePath);
+  if (!isGranted(rootPath)) return null;
+  return resolveInRoot(rootPath, relativePath);
 }
 
 /** Reused by `file-watch-bridge.ts` (Stage 5) to scope watches to already-granted roots. */
 export function isRootGranted(rootPath: string): boolean {
-  return grantedRoots.has(rootPath);
+  return isGranted(rootPath);
 }
 
 async function walk(rootPath: string): Promise<readonly { readonly path: string; readonly size: number }[]> {
@@ -65,20 +65,12 @@ async function walk(rootPath: string): Promise<readonly { readonly path: string;
 }
 
 export function registerFsHandlers(): void {
-  ipcMain.handle('dude:fs:pickDirectory', async () => {
-    const result = await dialog.showOpenDialog({ properties: ['openDirectory'] });
-    if (result.canceled || result.filePaths.length === 0) {
-      return { canceled: true };
-    }
-    const rootPath = result.filePaths[0];
-    grantedRoots.add(rootPath);
-    return { canceled: false, rootPath, rootName: rootPath.split(/[\\/]/).pop() ?? rootPath };
-  });
+  registerGrantHandlers();
 
   ipcMain.handle('dude:fs:walk', async (_event, rootPath: string): Promise<FsResult<{ entries: readonly { path: string; size: number }[] }> | FsError> => {
-    if (!grantedRoots.has(rootPath)) return { ok: false, error: { code: 'EPERM', message: 'This folder was not granted via the native picker.' } };
+    if (!isGranted(rootPath)) return { ok: false, error: { code: 'EPERM', message: 'This folder was not granted via the native picker.' } };
     try {
-      return { ok: true, entries: await walk(rootPath) };
+      return { ok: true, entries: await walk(normalizeRoot(rootPath)) };
     } catch (error) {
       return toFsError(error);
     }
@@ -135,6 +127,31 @@ export function registerFsHandlers(): void {
         };
       } catch (error) {
         return toFsError(error);
+      }
+    },
+  );
+
+  /** Ranged read for the Large-File Streaming Inspector (Phase 29): never loads the whole file. */
+  ipcMain.handle(
+    'dude:fs:readRange',
+    async (_event, rootPath: string, relativePath: string, offset: unknown, length: unknown): Promise<FsResult<{ data: ArrayBuffer; size: number }> | FsError> => {
+      const absolute = resolveGrantedPath(rootPath, relativePath);
+      if (!absolute) return { ok: false, error: { code: 'EPERM', message: 'This path is not accessible.' } };
+      if (typeof offset !== 'number' || typeof length !== 'number' || !Number.isSafeInteger(offset) || offset < 0 || !Number.isSafeInteger(length) || length < 0) {
+        return { ok: false, error: { code: 'EINVAL', message: 'Invalid range.' } };
+      }
+      const handle = await fs.open(absolute, 'r').catch((error: unknown) => error);
+      if (!handle || typeof (handle as { read?: unknown }).read !== 'function') return toFsError(handle);
+      const file = handle as import('node:fs/promises').FileHandle;
+      try {
+        const size = (await file.stat()).size;
+        const buffer = Buffer.alloc(Math.max(0, Math.min(length, MAX_RANGE_BYTES, size - offset)));
+        const { bytesRead } = buffer.length ? await file.read(buffer, 0, buffer.length, offset) : { bytesRead: 0 };
+        return { ok: true, size, data: buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + bytesRead) };
+      } catch (error) {
+        return toFsError(error);
+      } finally {
+        await file.close();
       }
     },
   );

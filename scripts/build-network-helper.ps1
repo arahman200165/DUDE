@@ -14,4 +14,9 @@ try {
   & cmd.exe /c $compile
   if ($LASTEXITCODE -ne 0) { throw "Network helper compilation failed with code $LASTEXITCODE." }
   if (-not (Test-Path -LiteralPath 'build\network-icmp.exe')) { throw 'Network helper output is missing.' }
+  # Phase 29 (Milestone 523): the read-only Windows attribute helper used by the fs utility process.
+  $compileFs = '"{0}" >nul && cl /nologo /std:c++17 /EHsc /O2 /Fo:build\fs-attrs.obj /Fe:build\fs-attrs.exe native\fs-attrs.cpp' -f $vcvars
+  & cmd.exe /c $compileFs
+  if ($LASTEXITCODE -ne 0) { throw "Filesystem attribute helper compilation failed with code $LASTEXITCODE." }
+  if (-not (Test-Path -LiteralPath 'build\fs-attrs.exe')) { throw 'Filesystem attribute helper output is missing.' }
 } finally { Pop-Location }

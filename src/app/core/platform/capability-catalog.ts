@@ -10,6 +10,8 @@ export interface PlatformCapabilityInfo {
   readonly description: string;
   /** Renderer service that exposes it — conformance enforces "imports this ⇔ declares it". */
   readonly service: string;
+  /** Other renderer entry points that also count as using it (a shared component wrapping the service). */
+  readonly alsoVia?: readonly string[];
 }
 
 export const PLATFORM_CAPABILITIES: Readonly<Record<PlatformCapabilityId, PlatformCapabilityInfo>> = {
@@ -17,11 +19,19 @@ export const PLATFORM_CAPABILITIES: Readonly<Record<PlatformCapabilityId, Platfo
     label: 'Native filesystem access',
     description: 'Reads user-granted folders/files directly from disk through the desktop bridge.',
     service: 'NativeFsService',
+    alsoVia: ['FsJobService', 'FsRootPicker'],
+  },
+  'native-fs-write': {
+    label: 'Native filesystem write',
+    description: 'Changes files in user-granted folders only through a previewed, confirmed, journaled and undoable plan.',
+    service: 'FsMutationService',
+    alsoVia: ['MutationPreview'],
   },
   'file-watch': {
     label: 'File watching',
-    description: 'Watches a user-granted file on disk for external changes.',
+    description: 'Watches user-granted files or folders on disk for external changes.',
     service: 'FileWatchService',
+    alsoVia: ['FolderWatchService'],
   },
   'llm-proxy': {
     label: 'Local LLM proxy',

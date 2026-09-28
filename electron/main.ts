@@ -2,6 +2,8 @@ import { app, BrowserWindow } from 'electron';
 import { join, resolve } from 'node:path';
 import { startStaticServer } from './static-server';
 import { registerFsHandlers } from './fs-bridge';
+import { loadRememberedGrants } from './fs-grants';
+import { registerFsJobHandlers, stopFsWorker } from './fs-jobs-bridge';
 import { registerNetworkHandlers, cancelAllNetworkJobs } from './network-bridge';
 import { registerWatchHandlers, stopWatchScheduler, setTrayUpdater } from './network-watch';
 import { updateWatchTray } from './tray';
@@ -128,6 +130,8 @@ if (hasSingleInstanceLock) void app.whenReady().then(async () => {
     app.setAsDefaultProtocolClient('dude', process.execPath, [resolve(process.argv[1])]);
   }
   registerFsHandlers();
+  registerFsJobHandlers();
+  await loadRememberedGrants();
   registerNetworkHandlers();
   registerWatchHandlers();
   registerSecretsHandlers();
@@ -154,6 +158,7 @@ app.on('window-all-closed', () => {
 app.on('will-quit', () => {
   unregisterAllHotkeys();
   closeAllFileWatches();
+  stopFsWorker();
   cancelAllNetworkJobs();
   stopWatchScheduler();
   stopCollabServerOnQuit();

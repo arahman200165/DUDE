@@ -27,6 +27,8 @@ files:
 extraResources:
   - from: build/network-icmp.exe
     to: network-icmp.exe
+  - from: build/fs-attrs.exe
+    to: fs-attrs.exe
 
 icon: build/icon.ico
 

@@ -1,3 +1,4 @@
+import type { FsJobEvent, FsJobRequest, FsResult, PickedFile, RememberedFolder } from '../../../shared-logic/fs/fs-types';
 import type { NetworkRequest, NetworkJobEvent, NetworkStartResult, NetworkPrepareResult, WatchEntry, WatchSettings, WatchState, WatchResult } from './network-types';
 export interface NativeStat {
   readonly isFile: boolean;
@@ -63,11 +64,22 @@ export interface DudeElectronBridge {
     readonly wasRestoredAfterCrash: boolean;
   };
   readonly fs: {
-    pickDirectory(): Promise<{ readonly canceled: true } | { readonly canceled: false; readonly rootPath: string; readonly rootName: string }>;
+    pickDirectory(defaultPath?: string): Promise<{ readonly canceled: true } | { readonly canceled: false; readonly rootPath: string; readonly rootName: string }>;
+    pickFile(defaultPath?: string): Promise<{ readonly canceled: true } | ({ readonly canceled: false } & PickedFile)>;
+    readRange(rootPath: string, relativePath: string, offset: number, length: number): Promise<NativeFsResult<{ data: ArrayBuffer; size: number }>>;
+    listRemembered(): Promise<readonly RememberedFolder[]>;
+    remember(rootPath: string): Promise<FsResult<{ folders: readonly RememberedFolder[] }>>;
+    forget(rootPath: string): Promise<FsResult<{ folders: readonly RememberedFolder[] }>>;
+    isGranted(rootPath: string): Promise<boolean>;
     walk(rootPath: string): Promise<NativeFsResult<{ entries: readonly { readonly path: string; readonly size: number }[] }>>;
     readFile(rootPath: string, relativePath: string): Promise<NativeFsResult<{ data: ArrayBuffer }>>;
     readdir(rootPath: string, relativePath: string): Promise<NativeFsResult<{ names: readonly string[] }>>;
     stat(rootPath: string, relativePath: string, followSymlink: boolean): Promise<NativeFsResult<{ stat: NativeStat }>>;
+  };
+  readonly fsJobs: {
+    start(request: FsJobRequest): Promise<FsResult<{ jobId: string }>>;
+    cancel(jobId: string): Promise<boolean>;
+    onEvent(callback: (event: FsJobEvent) => void): () => void;
   };
   readonly secrets: {
     get(key: string): Promise<SecretResult<{ value: string | null }>>;

@@ -51,3 +51,5 @@ Thumbs.db
 
 /build/network-icmp.exe
 /build/network-icmp.obj
+/build/fs-attrs.exe
+/build/fs-attrs.obj

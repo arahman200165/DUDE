@@ -17,10 +17,21 @@ export function fakeElectronBridge(overrides: Partial<DudeElectronBridge> = {}):
     open: { ready: () => {}, pickFile: async () => ({ canceled: true }), getPathForFile: () => '', enqueuePath: async () => ({ ok: true }), reopen: async () => ({ ok: true }), onItem: () => () => {} },
     fs: {
       pickDirectory: async () => ({ canceled: true }),
+      pickFile: async () => ({ canceled: true }),
+      readRange: async () => ({ ok: true, data: new ArrayBuffer(0), size: 0 }),
+      listRemembered: async () => [],
+      remember: async () => ({ ok: true, folders: [] }),
+      forget: async () => ({ ok: true, folders: [] }),
+      isGranted: async () => false,
       walk: async () => ({ ok: true, entries: [] }),
       readFile: async () => ({ ok: true, data: new ArrayBuffer(0) }),
       readdir: async () => ({ ok: true, names: [] }),
       stat: async () => ({ ok: true, stat: { isFile: false, isDirectory: true, isSymbolicLink: false, size: 0, mtimeMs: 0 } }),
+    },
+    fsJobs: {
+      start: async () => ({ ok: true, jobId: 'job-1' }),
+      cancel: async () => true,
+      onEvent: () => () => {},
     },
     secrets: {
       get: async () => ({ ok: true, value: null }),

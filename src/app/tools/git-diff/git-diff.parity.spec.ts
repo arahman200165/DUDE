@@ -45,6 +45,7 @@ describe('Git Diff: web/desktop adapter parity', () => {
       const web = buildInMemoryFs(await toInMemoryRepoFiles(scanFileList(repoFiles(root))));
       const bridge = fakeElectronBridge({
         fs: {
+          ...fakeElectronBridge().fs,
           pickDirectory: async () => ({ canceled: false, rootPath: root, rootName: 'repo' }),
           walk: async () => ({ ok: true, entries: [] }),
           readFile: async (_root, path) => {

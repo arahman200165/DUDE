@@ -10,8 +10,8 @@ describe('NativeFsService', () => {
     Object.defineProperty(window, 'dude', { value: originalDude, configurable: true });
   });
 
-  function withBridge(fs: DudeElectronBridge['fs']): NativeFsService {
-    Object.defineProperty(window, 'dude', { value: fakeElectronBridge({ fs }), configurable: true });
+  function withBridge(fs: Partial<DudeElectronBridge['fs']>): NativeFsService {
+    Object.defineProperty(window, 'dude', { value: fakeElectronBridge({ fs: { ...fakeElectronBridge().fs, ...fs } }), configurable: true });
     TestBed.configureTestingModule({});
     return TestBed.inject(NativeFsService);
   }

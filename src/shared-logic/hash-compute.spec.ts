@@ -1,4 +1,4 @@
-import { computeFileHash, computeFileHashes, computeHash, computeHashes } from './hash-compute';
+import { computeFileHash, computeFileHashes, computeHash, computeHashes, createStreamingHasher, HASH_ALGORITHMS } from './hash-compute';
 
 describe('computeHash', () => {
   it('computes the known MD5 test vector for "abc"', async () => {
@@ -119,5 +119,21 @@ describe('computeFileHashes', () => {
 
     expect(results.map((r) => r.algorithm)).toEqual(['MD5', 'SHA-1']);
     expect(results[0].hex).toBe('900150983cd24fb0d6963f7d28e17f72');
+  });
+});
+
+describe('createStreamingHasher', () => {
+  it('produces the same digest as the one-shot path for every algorithm, across uneven chunks', async () => {
+    const bytes = new Uint8Array(70_001).map((_, index) => (index * 31 + 7) & 0xff);
+    for (const algorithm of HASH_ALGORITHMS) {
+      const hasher = await createStreamingHasher(algorithm);
+      for (let offset = 0; offset < bytes.length; offset += 4099) hasher.update(bytes.subarray(offset, offset + 4099));
+      expect(hasher.digest(), algorithm).toBe(await computeFileHash(bytes.buffer, algorithm));
+    }
+  });
+
+  it('prefers an injected native hasher when it offers one', async () => {
+    const hasher = await createStreamingHasher('SHA-256', () => ({ update: () => {}, digest: () => 'native' }));
+    expect(hasher.digest()).toBe('native');
   });
 });

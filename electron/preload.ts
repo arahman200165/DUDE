@@ -60,11 +60,26 @@ const bridge: DudeElectronBridge = {
   },
   platform: { isDesktop: true, wasRestoredAfterCrash },
   fs: {
-    pickDirectory: () => ipcRenderer.invoke('dude:fs:pickDirectory'),
+    pickDirectory: (defaultPath) => ipcRenderer.invoke('dude:fs:pickDirectory', defaultPath),
+    pickFile: (defaultPath) => ipcRenderer.invoke('dude:fs:pickFile', defaultPath),
+    readRange: (rootPath, relativePath, offset, length) => ipcRenderer.invoke('dude:fs:readRange', rootPath, relativePath, offset, length),
+    listRemembered: () => ipcRenderer.invoke('dude:fs:listRemembered'),
+    remember: (rootPath) => ipcRenderer.invoke('dude:fs:remember', rootPath),
+    forget: (rootPath) => ipcRenderer.invoke('dude:fs:forget', rootPath),
+    isGranted: (rootPath) => ipcRenderer.invoke('dude:fs:isGranted', rootPath),
     walk: (rootPath) => ipcRenderer.invoke('dude:fs:walk', rootPath),
     readFile: (rootPath, relativePath) => ipcRenderer.invoke('dude:fs:readFile', rootPath, relativePath),
     readdir: (rootPath, relativePath) => ipcRenderer.invoke('dude:fs:readdir', rootPath, relativePath),
     stat: (rootPath, relativePath, followSymlink) => ipcRenderer.invoke('dude:fs:stat', rootPath, relativePath, followSymlink),
+  },
+  fsJobs: {
+    start: (request) => ipcRenderer.invoke('dude:fsjob:start', request),
+    cancel: (jobId) => ipcRenderer.invoke('dude:fsjob:cancel', jobId),
+    onEvent: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, value: import('../src/shared-logic/fs/fs-types').FsJobEvent) => callback(value);
+      ipcRenderer.on('dude:fsjob:event', listener);
+      return () => ipcRenderer.removeListener('dude:fsjob:event', listener);
+    },
   },
   secrets: {
     get: (key) => ipcRenderer.invoke('dude:secrets:get', key),

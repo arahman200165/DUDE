@@ -59,3 +59,25 @@ export function crc64(bytes: Uint8Array): string {
   }
   return (crc ^ MASK64).toString(16).padStart(16, '0');
 }
+
+/** Incremental CRC-32/ISO-HDLC for streamed input (Phase 29 bulk hashing); same result as `crc32`. */
+export function createCrc32(): { update(bytes: Uint8Array): void; digest(): string } {
+  let crc = 0xffffffff;
+  return {
+    update(bytes) {
+      for (let i = 0; i < bytes.length; i++) crc = CRC32_TABLE[(crc ^ bytes[i]) & 0xff] ^ (crc >>> 8);
+    },
+    digest: () => ((crc ^ 0xffffffff) >>> 0).toString(16).padStart(8, '0'),
+  };
+}
+
+/** Incremental CRC-64/XZ for streamed input; same result as `crc64`. */
+export function createCrc64(): { update(bytes: Uint8Array): void; digest(): string } {
+  let crc = MASK64;
+  return {
+    update(bytes) {
+      for (let i = 0; i < bytes.length; i++) crc = CRC64_TABLE[Number((crc ^ BigInt(bytes[i])) & 0xffn)] ^ (crc >> 8n);
+    },
+    digest: () => (crc ^ MASK64).toString(16).padStart(16, '0'),
+  };
+}

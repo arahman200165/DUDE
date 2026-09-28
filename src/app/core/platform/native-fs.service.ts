@@ -19,8 +19,21 @@ export class NativeFsService {
     return fs;
   }
 
-  async pickDirectory(): Promise<{ canceled: true } | { canceled: false; rootPath: string; rootName: string }> {
-    return this.bridge.pickDirectory();
+  /** `defaultPath` pre-navigates the picker (a typed path is only granted once the user confirms it there). */
+  async pickDirectory(defaultPath?: string): Promise<{ canceled: true } | { canceled: false; rootPath: string; rootName: string }> {
+    return defaultPath ? this.bridge.pickDirectory(defaultPath) : this.bridge.pickDirectory();
+  }
+
+  /** Grants one file (Phase 29: Large-File Inspector, File Split & Join). */
+  async pickFile(defaultPath?: string): Promise<{ canceled: true } | { canceled: false; path: string; name: string; size: number }> {
+    return this.bridge.pickFile(defaultPath);
+  }
+
+  /** Ranged read (≤ 1 MB per call) of a granted file or a file inside a granted root. */
+  async readRange(rootPath: string, relativePath: string, offset: number, length: number): Promise<{ data: ArrayBuffer; size: number }> {
+    const result = await this.bridge.readRange(rootPath, relativePath, offset, length);
+    if (!result.ok) throw this.toError(result.error);
+    return { data: result.data, size: result.size };
   }
 
   async walk(rootPath: string): Promise<readonly { readonly path: string; readonly size: number }[]> {

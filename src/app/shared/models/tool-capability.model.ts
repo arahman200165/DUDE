@@ -7,12 +7,15 @@
  *
  * Closed like `ConsequenceClass`: adding an id is a framework change (update
  * `core/platform/capability-catalog.ts`, the conformance harness, and the doc generator together).
- * `secure-keychain` is reserved — no shipped tool stores a tool-level secret yet.
+ * `secure-keychain` is reserved — no shipped tool stores a tool-level secret yet. `native-fs-write`
+ * (Phase 29) marks tools that change files on disk, always through the mutation engine's preview →
+ * confirm → journal contract (DUDE_PRD.md §5.2.1).
  */
-export type PlatformCapabilityId = 'native-fs' | 'file-watch' | 'llm-proxy' | 'collab-relay' | 'secure-keychain' | 'native-network';
+export type PlatformCapabilityId = 'native-fs' | 'native-fs-write' | 'file-watch' | 'llm-proxy' | 'collab-relay' | 'secure-keychain' | 'native-network';
 
 export const PLATFORM_CAPABILITY_IDS: readonly PlatformCapabilityId[] = [
   'native-fs',
+  'native-fs-write',
   'file-watch',
   'llm-proxy',
   'collab-relay',

@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron';
 import { watch, type FSWatcher } from 'node:fs';
 import { isRootGranted } from './fs-bridge';
-import { resolveWithinRoot } from './static-server';
+import { resolveInRoot } from './fs-grants';
 
 /**
  * Local file watching (Phase 8 Stage 5) — infrastructure only. No tool
@@ -34,7 +34,7 @@ export function registerFileWatchHandlers(): void {
   ipcMain.handle('dude:fileWatch:watch', (event, rootPath: string, relativePath: string): WatchResult => {
     if (!isRootGranted(rootPath)) return { ok: false, error: 'not-granted' };
 
-    const absolute = resolveWithinRoot(rootPath, relativePath);
+    const absolute = resolveInRoot(rootPath, relativePath);
     if (!absolute) return { ok: false, error: 'invalid-path' };
 
     const watchId = `watch-${nextWatchId++}`;

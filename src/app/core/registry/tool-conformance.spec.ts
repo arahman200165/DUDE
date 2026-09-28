@@ -159,7 +159,7 @@ describe('Tool conformance harness', () => {
             // The Certificate Watch List drives the native network bridge directly through
             // CertificateWatchService (background checks), rather than the shared NetworkWorkbench.
             ? source.includes('NetworkWorkbench') || source.includes('CertificateWatchService')
-            : new RegExp(`import \\{[^}]*\\b${PLATFORM_CAPABILITIES[id].service}\\b`).test(source);
+            : [PLATFORM_CAPABILITIES[id].service, ...(PLATFORM_CAPABILITIES[id].alsoVia ?? [])].some((name) => new RegExp(`import \\{[^}]*\\b${name}\\b`).test(source));
           expect(declaredPlatform.has(id), `${definition.id}: imports ${PLATFORM_CAPABILITIES[id].service} ⇔ declares '${id}'`).toBe(uses);
         }
         const declaredRuntimes = new Set(

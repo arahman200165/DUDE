@@ -40,6 +40,7 @@ const CONSEQUENCE_LABELS = {
 // Mirrors src/app/core/platform/capability-catalog.ts's labels (kept in sync by security-doc.spec.ts).
 const PLATFORM_CAPABILITY_LABELS = {
   'native-fs': 'Native filesystem access',
+  'native-fs-write': 'Native filesystem write',
   'file-watch': 'File watching',
   'llm-proxy': 'Local LLM proxy',
   'collab-relay': 'Collaboration relay',
