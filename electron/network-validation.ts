@@ -1,6 +1,6 @@
 import { isIP } from 'node:net';
 import { domainToASCII } from 'node:url';
-import type { NetworkRequest, NetworkKind } from '../src/app/core/platform/network-types';
+import type { DnsTransport, NetworkRequest, NetworkKind } from '../src/app/core/platform/network-types';
 
 export const NETWORK_KINDS: readonly NetworkKind[] = [
   'ping', 'traceroute', 'dns-lookup', 'reverse-dns', 'dns-propagation',
@@ -8,9 +8,15 @@ export const NETWORK_KINDS: readonly NetworkKind[] = [
   'public-ip', 'hostname-resolver', 'whois-lookup', 'connectivity-tester',
   'latency-monitor', 'packet-loss', 'mtu-discovery', 'route-comparison',
   'network-diagnostic-bundle',
+  'dnssec-inspector', 'email-auth', 'tls-inspector', 'tls-enumeration', 'tls-capture',
+  'http3-probe', 'live-chain', 'revocation', 'ct-lookup', 'starttls', 'https-analyzer',
 ];
+const TLS_KINDS = new Set<NetworkKind>(['tls-inspector', 'tls-enumeration', 'tls-capture', 'http3-probe', 'live-chain', 'starttls', 'https-analyzer']);
+const DNS_KINDS = new Set<NetworkKind>(['dns-lookup', 'reverse-dns', 'dns-propagation', 'dnssec-inspector', 'email-auth']);
+const TLS_VERSIONS = new Set(['TLSv1', 'TLSv1.1', 'TLSv1.2', 'TLSv1.3']);
+const STARTTLS = new Set(['smtp', 'imap', 'pop3', 'ftp', 'ldap', 'postgres', 'mysql', 'xmpp']);
 const NO_TARGET = new Set<NetworkKind>(['local-network', 'public-ip']);
-const VALID_RECORDS = new Set(['A', 'AAAA', 'MX', 'TXT', 'SRV', 'NS', 'CNAME', 'PTR']);
+const VALID_RECORDS = new Set(['A', 'AAAA', 'MX', 'TXT', 'SRV', 'NS', 'CNAME', 'PTR', 'SOA', 'CAA', 'DNSKEY', 'DS', 'RRSIG', 'NSEC', 'NSEC3', 'TLSA', 'HTTPS', 'SVCB']);
 const VALID_VIEWS = new Set(['ports', 'connections', 'processes', 'neighbors', 'routes', 'interfaces', 'local-ip']);
 
 function parseIPv4(address: string): bigint {
@@ -72,6 +78,96 @@ export function validateHost(value: string): string {
   return ascii;
 }
 
+/** A DNS server for one transport: classic = IP[:port] or 'system'; DoH = credential-free https URL; DoT = host[:port]. */
+export function validateResolver(server: string, transport: DnsTransport): string {
+  if (typeof server !== 'string') throw new Error('Invalid resolver.');
+  const trimmed = server.trim();
+  if (trimmed.length > 2048) throw new Error('Resolver is too long.');
+  if (transport === 'doh') {
+    let url: URL;
+    try { url = new URL(trimmed); } catch { throw new Error('DoH resolver must be an https:// URL.'); }
+    if (url.protocol !== 'https:' || url.username || url.password) throw new Error('DoH resolver must be an https:// URL without credentials.');
+    return url.href;
+  }
+  if (transport === 'classic' && trimmed === 'system') return trimmed;
+  const bracket = /^\[([^\]]+)\](?::(\d{1,5}))?$/.exec(trimmed);
+  let host = trimmed;
+  let port: string | undefined;
+  if (bracket) { host = bracket[1]; port = bracket[2]; }
+  else if (isIP(trimmed) !== 6) {
+    const parts = trimmed.split(':');
+    if (parts.length > 2) throw new Error('Enter one resolver address.');
+    [host, port] = parts;
+  }
+  if (port !== undefined && (!/^\d{1,5}$/.test(port) || Number(port) < 1 || Number(port) > 65535)) throw new Error('Invalid resolver port.');
+  if (transport === 'classic') {
+    if (!isIP(host)) throw new Error('Classic DNS resolvers must be IP addresses (optionally with :port).');
+    return trimmed;
+  }
+  validateHost(host);
+  return trimmed;
+}
+
+function validateBase64(value: unknown, maxBytes: number, label: string): void {
+  if (typeof value !== 'string' || value.length > Math.ceil(maxBytes * 4 / 3) + 4 || !/^[A-Za-z0-9+/=\s]*$/.test(value)) throw new Error(`Invalid ${label}.`);
+}
+
+function validatePhase28(request: NetworkRequest): void {
+  const transport = request.resolverTransport ?? 'classic';
+  if (request.resolverTransport && !['classic', 'doh', 'dot'].includes(request.resolverTransport)) throw new Error('Invalid DNS transport.');
+  if (DNS_KINDS.has(request.kind) && request.resolver) validateResolver(request.resolver, transport);
+  if (request.resolvers !== undefined) {
+    if (request.kind !== 'dns-propagation' || !Array.isArray(request.resolvers) || request.resolvers.length > 5) throw new Error('Compare at most five custom resolvers.');
+    for (const entry of request.resolvers) {
+      if (!entry || typeof entry.label !== 'string' || entry.label.length > 40 || !['classic', 'doh', 'dot'].includes(entry.transport)) throw new Error('Invalid resolver entry.');
+      validateResolver(entry.server, entry.transport);
+    }
+  }
+  if (request.caIdentifier !== undefined && (typeof request.caIdentifier !== 'string' || request.caIdentifier.length > 253 || !/^[a-z0-9.-]*$/i.test(request.caIdentifier))) throw new Error('Invalid CA identifier.');
+  if (request.kind === 'email-auth') {
+    const checks = request.emailChecks ?? ['spf', 'dkim', 'dmarc'];
+    if (!Array.isArray(checks) || checks.some((check) => !['spf', 'dkim', 'dmarc'].includes(check))) throw new Error('Invalid email checks.');
+    const selectors = request.dkimSelectors ?? [];
+    if (!Array.isArray(selectors) || selectors.length > 20 || selectors.some((selector) => typeof selector !== 'string' || !/^[a-z0-9_-]{1,63}(\.[a-z0-9_-]{1,63})*$/i.test(selector))) throw new Error('Enter up to 20 valid DKIM selectors.');
+    if (request.dkimHeaders !== undefined && (typeof request.dkimHeaders !== 'string' || request.dkimHeaders.length > 65_536)) throw new Error('Pasted headers exceed 64 KB.');
+    if (request.senderIp !== undefined && request.senderIp !== '' && !isIP(request.senderIp)) throw new Error('Sender IP must be an IPv4 or IPv6 address.');
+  }
+  if (TLS_KINDS.has(request.kind)) {
+    if (request.sni !== undefined && request.sni !== '') validateHost(request.sni);
+    if (request.sniNames !== undefined) {
+      if (!Array.isArray(request.sniNames) || request.sniNames.length > 8) throw new Error('Test at most eight SNI names.');
+      request.sniNames.forEach((name) => validateHost(name));
+    }
+    if (request.alpn !== undefined && (!Array.isArray(request.alpn) || request.alpn.length > 8 || request.alpn.some((protocol) => typeof protocol !== 'string' || !/^[\x21-\x7e]{1,32}$/.test(protocol)))) throw new Error('Offer at most eight ALPN protocol IDs.');
+    if (request.tlsVersions !== undefined && (!Array.isArray(request.tlsVersions) || request.tlsVersions.some((version) => !TLS_VERSIONS.has(version)))) throw new Error('Invalid TLS version.');
+    if (request.starttlsProtocol !== undefined && !STARTTLS.has(request.starttlsProtocol)) throw new Error('Unsupported STARTTLS protocol.');
+    const identity = request.clientIdentity;
+    if (identity !== undefined) {
+      if (!identity || typeof identity !== 'object') throw new Error('Invalid client identity.');
+      if (identity.pfxBase64 !== undefined) validateBase64(identity.pfxBase64, 65_536, 'client PFX');
+      for (const pem of [identity.pemCert, identity.pemKey]) if (pem !== undefined && (typeof pem !== 'string' || pem.length > 65_536)) throw new Error('Client PEM exceeds 64 KB.');
+      if (identity.passphrase !== undefined && (typeof identity.passphrase !== 'string' || identity.passphrase.length > 1024)) throw new Error('Invalid passphrase.');
+      if (identity.secureRef !== undefined && (typeof identity.secureRef !== 'string' || !/^[a-z0-9-]{1,64}$/i.test(identity.secureRef))) throw new Error('Invalid saved identity.');
+    }
+  }
+  if (request.urls !== undefined) {
+    if (!Array.isArray(request.urls) || request.urls.length > 8) throw new Error('Choose at most eight CA URLs.');
+    for (const value of request.urls) {
+      const url = new URL(value);
+      if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw new Error('CA URLs must be HTTP or HTTPS without credentials.');
+    }
+  }
+  if (request.chainBase64 !== undefined) {
+    if (!Array.isArray(request.chainBase64) || request.chainBase64.length > 10) throw new Error('At most ten certificates.');
+    request.chainBase64.forEach((der) => validateBase64(der, 65_536, 'certificate'));
+  }
+  if (request.revocationAction !== undefined && !['ocsp', 'crl', 'aia'].includes(request.revocationAction)) throw new Error('Invalid revocation action.');
+  if (request.ctEndpoint !== undefined && request.ctEndpoint !== '') {
+    const url = new URL(request.ctEndpoint);
+    if (url.protocol !== 'https:' || url.username || url.password) throw new Error('CT endpoint must be an https:// URL without credentials.');
+  }
+}
+
 export function validateNetworkRequest(raw: unknown): NetworkRequest {
   if (!raw || typeof raw !== 'object') throw new Error('Invalid network request.');
   const request = raw as NetworkRequest;
@@ -111,6 +207,7 @@ export function validateNetworkRequest(raw: unknown): NetworkRequest {
   if (request.kind === 'route-comparison' && request.secondTarget) validateHost(request.secondTarget);
   if (request.kind === 'reverse-dns' && !isIP(request.target ?? '')) throw new Error('Reverse DNS requires an IP address.');
   if (request.kind === 'whois-lookup' && request.resolver) validateHost(request.resolver);
+  validatePhase28(request);
   if (request.kind === 'network-diagnostic-bundle' && request.selectedChecks?.includes('scan') && !request.includeScan) throw new Error('Enable the guided scan before selecting it.');
   return request;
 }

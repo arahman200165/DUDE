@@ -4,16 +4,21 @@ import { randomUUID } from 'node:crypto';
 import type { NetworkJobEvent, NetworkPrepareResult, NetworkStartResult, NetworkRequest } from '../src/app/core/platform/network-types';
 import { expandScanTargets, validateNetworkRequest } from './network-validation';
 import { helperPath, runNetworkRequest } from './network-runner';
+import { LIVE_KINDS, livePreview, liveTimeoutMs } from './network-live';
 
 interface Job { readonly kind: string; readonly owner: WebContents; readonly abort: AbortController; readonly timer: NodeJS.Timeout }
 const jobs = new Map<string, Job>();
 const MAX_ACTIVE_JOBS = 4;
 const prepared = new Map<string, { ownerId: number; request: string; expires: number }>();
-function needsConfirmation(request: NetworkRequest): boolean {
+/** Mirrored by `src/app/shared/utils/network-contacts.ts` `needsReview`; this copy is the enforced one. */
+export function needsConfirmation(request: NetworkRequest): boolean {
   return request.kind === 'port-scanner' || request.kind === 'network-diagnostic-bundle' ||
-    (request.kind === 'connectivity-tester' && request.connectivityMode !== 'tcp' && !['GET', 'HEAD'].includes(request.method ?? 'HEAD'));
+    (request.kind === 'connectivity-tester' && request.connectivityMode !== 'tcp' && !['GET', 'HEAD'].includes(request.method ?? 'HEAD')) ||
+    request.kind === 'tls-enumeration' || request.kind === 'https-analyzer' || request.kind === 'tls-capture' ||
+    (request.kind === 'email-auth' && !!request.dkimCommonProbe);
 }
 function previewDetails(request: NetworkRequest): unknown {
+  if (LIVE_KINDS.has(request.kind)) return livePreview(request);
   const scan = request.kind === 'port-scanner' || (request.kind === 'network-diagnostic-bundle' && request.includeScan);
   const targets = scan ? expandScanTargets(request.target ?? '') : [request.target ?? 'local machine'];
   const ports = scan ? request.ports ?? [] : [];
@@ -66,7 +71,7 @@ export function registerNetworkHandlers(): void {
       if (request.kind === 'port-scanner' && [...jobs.values()].some((job) => job.owner.id === owner.id && job.kind === 'port-scanner')) throw new Error('A port scan is already running.');
       const jobId = randomUUID();
       const abort = new AbortController();
-      const timer = setTimeout(() => abort.abort(), request.kind === 'latency-monitor' ? 3_610_000 : request.kind === 'network-diagnostic-bundle' ? 600_000 : 180_000);
+      const timer = setTimeout(() => abort.abort(), request.kind === 'latency-monitor' ? 3_610_000 : request.kind === 'network-diagnostic-bundle' ? 600_000 : LIVE_KINDS.has(request.kind) ? liveTimeoutMs(request) : 180_000);
       jobs.set(jobId, { kind: request.kind, owner, abort, timer });
       owner.once('destroyed', () => abort.abort());
       let sequence = 0;

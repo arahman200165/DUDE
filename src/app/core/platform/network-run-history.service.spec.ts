@@ -21,6 +21,18 @@ describe('selected network history', () => {
     expect(run.request.headers).toEqual({ Authorization: 'Bearer private' });
   });
 
+  it('never stores a client identity, pasted mail headers, or packet captures (Phase 28)', async () => {
+    await history.save({
+      id: crypto.randomUUID(), createdAt: new Date().toISOString(),
+      request: { kind: 'tls-inspector', target: 'example.test', clientIdentity: { pfxBase64: 'AAAA', passphrase: 'pw' }, dkimHeaders: 'DKIM-Signature: d=x' },
+      result: { protocol: 'TLSv1.3', pcapngBase64: 'AAAA' },
+    });
+    const stored = history.saved()[0];
+    expect(stored.request.clientIdentity).toBeUndefined();
+    expect(stored.request.dkimHeaders).toBeUndefined();
+    expect(stored.result).toEqual({ protocol: 'TLSv1.3' });
+  });
+
   it('expires old snapshots and restores saved values without a network job', async () => {
     await history.save({ id: 'old', createdAt: new Date(Date.now() - 31 * 86400000).toISOString(), request: { kind: 'ping', target: '127.0.0.1' }, result: { sent: 1 } });
     expect(history.saved()).toHaveLength(0);

@@ -42,9 +42,10 @@ export class NetworkDiagnosticsService {
   relaunchAsAdmin(): Promise<boolean> { return this.bridge.relaunchAsAdmin(); }
 
   addRun(request: NetworkRequest, result: unknown): NetworkRun {
-    const { headers: _headers, body: _body, ...safeRequest } = request;
+    // Client identities (mTLS keys) and pasted mail headers never enter run history; packet captures are download-only.
+    const { headers: _headers, body: _body, clientIdentity: _identity, dkimHeaders: _dkimHeaders, ...safeRequest } = request;
     const safeResult = result && typeof result === 'object' ? { ...result as Record<string, unknown> } : result;
-    if (safeResult && typeof safeResult === 'object') delete (safeResult as Record<string, unknown>)['bodyBase64'];
+    if (safeResult && typeof safeResult === 'object') { delete (safeResult as Record<string, unknown>)['bodyBase64']; delete (safeResult as Record<string, unknown>)['pcapngBase64']; }
     if (safeResult && typeof safeResult === 'object' && (safeResult as Record<string, unknown>)['headers']) { const headers = { ...(safeResult as Record<string, unknown>)['headers'] as Record<string, unknown> }; for (const name of Object.keys(headers)) if (['set-cookie', 'authorization', 'proxy-authorization'].includes(name.toLowerCase())) delete headers[name]; (safeResult as Record<string, unknown>)['headers'] = headers; }
     const run = { id: crypto.randomUUID(), request: safeRequest, createdAt: new Date().toISOString(), result: safeResult };
     const bodyBase64 = (result as { bodyBase64?: unknown })?.bodyBase64;

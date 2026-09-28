@@ -51,6 +51,27 @@ describe('network IPC confirmation boundary', () => {
     expect(start(ipc, { kind: 'connectivity-tester', connectivityMode: 'http', target: 'https://example.com', method: 'POST' }).error).toMatch(/Review and confirm/);
   });
 
+  it('requires review for Phase 28 multi-connection and elevated checks, but not one-shot inspection', () => {
+    const start = mock.handles.get('dude:network:start')!;
+    mock.run.mockResolvedValue({ ok: true });
+    for (const request of [
+      { kind: 'tls-enumeration', target: 'example.com', port: 443 },
+      { kind: 'https-analyzer', target: 'example.com' },
+      { kind: 'tls-capture', target: 'example.com', port: 443 },
+      { kind: 'email-auth', target: 'example.com', dkimCommonProbe: true },
+    ]) expect(start(ipc, request).error, request.kind).toMatch(/Review and confirm/);
+    expect(start(ipc, { kind: 'tls-inspector', target: 'example.com', port: 443 }).ok).toBe(true);
+    expect(start(ipc, { kind: 'email-auth', target: 'example.com' }).ok).toBe(true);
+  });
+
+  it('rejects a malformed Phase 28 request before it reaches the runner', () => {
+    const start = mock.handles.get('dude:network:start')!;
+    expect(start(ipc, { kind: 'dns-lookup', target: 'example.com', resolver: 'not a server', resolverTransport: 'classic' }).error).toMatch(/IP addresses/);
+    expect(start(ipc, { kind: 'tls-inspector', target: 'example.com', alpn: Array(9).fill('h2') }).error).toMatch(/ALPN/);
+    expect(start(ipc, { kind: 'revocation', target: 'example.com', urls: ['file:///etc/passwd'] }).error).toMatch(/HTTP or HTTPS/);
+    expect(mock.run).not.toHaveBeenCalled();
+  });
+
   it('cancels only an owned job and sends ordered progress, error, and done events', async () => {
     mock.run.mockImplementation((_request, signal, progress) => {
       progress(1, 4, { status: 'success' });

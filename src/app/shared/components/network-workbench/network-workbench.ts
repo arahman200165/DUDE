@@ -1,5 +1,5 @@
-import { JsonPipe } from '@angular/common';
-import { Component, OnDestroy, OnInit, computed, inject, input, signal } from '@angular/core';
+import { JsonPipe, NgTemplateOutlet } from '@angular/common';
+import { Component, OnDestroy, OnInit, TemplateRef, computed, inject, input, output, signal } from '@angular/core';
 import { ToolShell } from '../tool-shell/tool-shell';
 import { PlatformService } from '../../../core/platform/platform.service';
 import { NetworkDiagnosticsService, type NetworkRun } from '../../../core/platform/network-diagnostics.service';
@@ -7,14 +7,28 @@ import { NetworkRunHistoryService } from '../../../core/platform/network-run-his
 import type { AddressFamily, DnsRecordType, DnsTransport, LocalView, NetworkJobEvent, NetworkKind, NetworkRequest, ScanProtocol } from '../../../core/platform/network-types';
 import { downloadFile } from '../../utils/download-file';
 import { buildNetworkBundle } from '../../utils/network-bundle';
+import { describeContacts, needsReview } from '../../utils/network-contacts';
+
+/** Context a tool's result template receives. */
+export interface NetworkResultContext { readonly $implicit: unknown; readonly request: NetworkRequest | null; readonly runId: string | null }
 
 @Component({
   selector: 'app-network-workbench',
-  imports: [ToolShell, JsonPipe],
+  imports: [ToolShell, JsonPipe, NgTemplateOutlet],
   templateUrl: './network-workbench.html',
 })
 export class NetworkWorkbench implements OnDestroy, OnInit {
   readonly kind = input.required<NetworkKind>();
+  /**
+   * Phase 28 extension points: a tool supplies its own form (projected as `[workbenchForm]`) and
+   * request builder, and a rich result template. The workbench keeps run/cancel/preview/history/
+   * export, so each tool doesn't grow this component. Phase 27 tools use neither and are unchanged.
+   */
+  readonly buildRequest = input<(() => NetworkRequest) | null>(null);
+  readonly customForm = input(false);
+  readonly resultTemplate = input<TemplateRef<NetworkResultContext> | null>(null);
+  readonly runLabel = input('Run check');
+  readonly resultChange = output<{ result: unknown; request: NetworkRequest; runId: string | null }>();
   protected readonly platform = inject(PlatformService);
   protected readonly diagnostics = inject(NetworkDiagnosticsService);
   protected readonly history = inject(NetworkRunHistoryService);
@@ -48,6 +62,12 @@ export class NetworkWorkbench implements OnDestroy, OnInit {
   protected readonly selectedRunIds = signal<readonly string[]>([]);
   protected readonly includeHttpBodies = signal(false);
   protected readonly exportPreview = signal<{ ids: readonly string[]; fields: unknown } | null>(null);
+  protected readonly showRaw = signal(false);
+  protected readonly contacting = computed(() => {
+    try { return describeContacts(this.composeRequest()); } catch { return []; }
+  });
+  private readonly shownRequest = signal<NetworkRequest | null>(null);
+  protected readonly resultContext = computed<NetworkResultContext>(() => ({ $implicit: this.result(), request: this.shownRequest(), runId: this.latestRun()?.id ?? null }));
   protected readonly formattedResult = computed(() => this.result() === null ? '' : JSON.stringify(this.stripBody(this.result()), null, 2));
   protected readonly availableRuns = computed(() => {
     const runs = [...this.diagnostics.runs(), ...this.history.saved()];
@@ -115,7 +135,11 @@ export class NetworkWorkbench implements OnDestroy, OnInit {
     }
     return headers;
   }
-  private buildRequest(): NetworkRequest {
+  private composeRequest(): NetworkRequest {
+    const custom = this.buildRequest();
+    return custom ? custom() : this.genericRequest();
+  }
+  private genericRequest(): NetworkRequest {
     const kind = this.kind();
     const request: NetworkRequest = {
       kind,
@@ -137,11 +161,9 @@ export class NetworkWorkbench implements OnDestroy, OnInit {
     if (!this.platform.isDesktop() || this.running()) return;
     this.error.set('');
     let request: NetworkRequest;
-    try { request = this.buildRequest(); }
+    try { request = this.composeRequest(); }
     catch (error) { this.error.set(String(error)); return; }
-    const requiresPreview = request.kind === 'port-scanner' || request.kind === 'network-diagnostic-bundle' ||
-      (request.kind === 'connectivity-tester' && !['GET', 'HEAD'].includes(request.method ?? 'HEAD'));
-    if (requiresPreview) {
+    if (needsReview(request)) {
       try { const staged = await this.diagnostics.prepare(request); this.preview.set({ request, token: staged.token, details: staged.preview }); }
       catch (error) { this.error.set(error instanceof Error ? error.message : String(error)); }
       return;
@@ -174,7 +196,12 @@ export class NetworkWorkbench implements OnDestroy, OnInit {
       if (event.data !== undefined) this.samples.update((samples) => [...samples.slice(-3599), event.data]);
     } else if (event.type === 'result') {
       this.result.set(event.data);
-      if (this.activeRequest) this.latestRun.set(this.diagnostics.addRun(this.activeRequest, event.data));
+      this.shownRequest.set(this.activeRequest);
+      if (this.activeRequest) {
+        const run = this.diagnostics.addRun(this.activeRequest, event.data);
+        this.latestRun.set(run);
+        this.resultChange.emit({ result: event.data, request: this.activeRequest, runId: run.id });
+      }
     } else if (event.type === 'error') this.error.set(event.message ?? 'Network check failed.');
     else { this.running.set(false); this.jobId = null; this.unsubscribe?.(); this.unsubscribe = null; }
   }
@@ -186,7 +213,7 @@ export class NetworkWorkbench implements OnDestroy, OnInit {
     } catch (error) { this.error.set(error instanceof Error ? error.message : String(error)); }
   }
   protected saveLatest(): void { const run = this.latestRun(); if (run) void this.history.save(run); }
-  protected restoreRun(run: NetworkRun): void { this.result.set(run.result); this.latestRun.set(null); this.error.set(''); }
+  protected restoreRun(run: NetworkRun): void { this.result.set(run.result); this.shownRequest.set(run.request); this.latestRun.set(null); this.error.set(''); }
   protected compareSelected(): void {
     const selected = this.availableRuns().filter((run) => this.selectedRunIds().includes(run.id) && run.request.kind === 'traceroute');
     if (selected.length !== 2) { this.error.set('Select exactly two traceroute runs.'); return; }

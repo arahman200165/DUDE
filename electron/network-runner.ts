@@ -10,6 +10,7 @@ import { app } from 'electron';
 import type { NetworkRequest } from '../src/app/core/platform/network-types';
 import { expandScanTargets, validateHost } from './network-validation';
 import { compareDnsResults, queryDns } from './network-dns';
+import { runLiveRequest } from './network-live';
 
 export type Progress = (completed: number, total: number, data?: unknown) => void;
 const DEFAULT_TIMEOUT = 3000;
@@ -260,6 +261,9 @@ export async function runNetworkRequest(request: NetworkRequest, signal: AbortSi
         .filter(({ before, after }) => before?.address !== after?.address || before?.status !== after?.status);
       return { first, second, changedHops };
     }
+    case 'dnssec-inspector': case 'email-auth': case 'tls-inspector': case 'tls-enumeration': case 'tls-capture':
+    case 'http3-probe': case 'live-chain': case 'revocation': case 'ct-lookup': case 'starttls': case 'https-analyzer':
+      return runLiveRequest(request, signal, progress);
     case 'network-diagnostic-bundle': {
       const target = validateHost(request.target ?? '');
       const chosen = request.selectedChecks ?? ['local', 'dns', 'ping', 'trace', 'tcp', 'scan'];

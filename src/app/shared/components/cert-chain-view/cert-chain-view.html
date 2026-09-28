@@ -1,0 +1,49 @@
+<div class="flex flex-col gap-3 text-ui">
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="font-semibold text-text">Presented chain ({{ chain().length }})</span>
+    <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="openInChainTools()">Open in Chain Tools</button>
+    <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="downloadPem()">Download PEM bundle</button>
+    <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="copyPem()">Copy PEM</button>
+    @if (showWatch()) { <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-accent" (click)="watch.emit()">Watch this endpoint</button> }
+  </div>
+
+  @if (trust().length || hostname()) {
+    <div class="flex flex-wrap gap-2">
+      @for (verdict of trust(); track verdict.store) {
+        <div class="rounded-sm border px-2 py-1" [class.border-success]="verdict.trusted" [class.border-error]="!verdict.trusted">
+          <span class="font-semibold" [class.text-success]="verdict.trusted" [class.text-error]="!verdict.trusted">{{ verdict.store === 'mozilla' ? 'Mozilla roots' : 'Windows store' }}: {{ verdict.trusted ? 'trusted' : 'not trusted' }}</span>
+          <span class="ml-1 text-text-muted">{{ verdict.reason }}</span>
+        </div>
+      }
+      @if (hostname(); as host) {
+        <div class="rounded-sm border px-2 py-1" [class.border-success]="host.matches" [class.border-error]="!host.matches">
+          <span class="font-semibold" [class.text-success]="host.matches" [class.text-error]="!host.matches">Hostname {{ host.host }}: {{ host.matches ? 'matches ' + host.matchedName : 'mismatch' }}</span>
+          @for (reason of host.reasons; track reason) { <div class="text-text-muted">{{ reason }}</div> }
+        </div>
+      }
+    </div>
+  }
+
+  @for (entry of chain(); track entry.fingerprint256; let index = $index) {
+    <div class="rounded-sm border border-border bg-panel p-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-text-muted">#{{ index }} {{ index === 0 ? 'leaf' : entry.selfIssued ? 'self-issued' : entry.isCA ? 'CA' : 'certificate' }}</span>
+        <span class="font-mono text-text">{{ entry.subject }}</span>
+        <span [class]="statusClass(entry.daysRemaining)">{{ expiryText(entry.daysRemaining) }}</span>
+        <button type="button" class="ml-auto rounded-sm border border-border px-2 py-0.5 text-text" (click)="openInInspector(entry)">Open in X.509 Inspector</button>
+      </div>
+      <dl class="mt-2 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 font-mono text-xs">
+        <dt class="text-text-muted">Issuer</dt><dd class="text-text">{{ entry.issuer }}</dd>
+        <dt class="text-text-muted">Valid</dt><dd class="text-text">{{ entry.validFrom }} → {{ entry.validTo }}</dd>
+        <dt class="text-text-muted">Key</dt><dd class="text-text">{{ entry.keyType }} {{ entry.keyDetail }} · {{ entry.signatureAlgorithm }}</dd>
+        <dt class="text-text-muted">Serial</dt><dd class="text-text">{{ entry.serialNumber }}</dd>
+        <dt class="text-text-muted">SHA-256</dt><dd class="break-all text-text">{{ entry.fingerprint256 }}</dd>
+        @if (entry.subjectAltName.length) { <dt class="text-text-muted">SAN</dt><dd class="text-text">{{ entry.subjectAltName.join(', ') }}</dd> }
+        @if (entry.ocspUrls.length) { <dt class="text-text-muted">OCSP</dt><dd class="text-text">{{ entry.ocspUrls.join(', ') }}</dd> }
+        @if (entry.crlUrls.length) { <dt class="text-text-muted">CRL</dt><dd class="text-text">{{ entry.crlUrls.join(', ') }}</dd> }
+        @if (entry.caIssuerUrls.length) { <dt class="text-text-muted">CA Issuers</dt><dd class="text-text">{{ entry.caIssuerUrls.join(', ') }}</dd> }
+        @if (entry.sctCount) { <dt class="text-text-muted">SCTs</dt><dd class="text-text">{{ entry.sctCount }} embedded</dd> }
+      </dl>
+    </div>
+  }
+</div>

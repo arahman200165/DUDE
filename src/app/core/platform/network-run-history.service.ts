@@ -30,9 +30,9 @@ function all(db: IDBDatabase): Promise<NetworkRun[]> {
   });
 }
 function scrub(run: NetworkRun): NetworkRun {
-  const { headers: _headers, body: _body, ...request } = run.request;
+  const { headers: _headers, body: _body, clientIdentity: _identity, dkimHeaders: _dkimHeaders, ...request } = run.request;
   const result = run.result && typeof run.result === 'object' ? { ...run.result as Record<string, unknown> } : run.result;
-  if (result && typeof result === 'object') delete (result as Record<string, unknown>)['bodyBase64'];
+  if (result && typeof result === 'object') { delete (result as Record<string, unknown>)['bodyBase64']; delete (result as Record<string, unknown>)['pcapngBase64']; }
   if (result && typeof result === 'object' && (result as Record<string, unknown>)['headers']) { const headers = { ...(result as Record<string, unknown>)['headers'] as Record<string, unknown> }; for (const name of Object.keys(headers)) if (['set-cookie', 'authorization', 'proxy-authorization'].includes(name.toLowerCase())) delete headers[name]; (result as Record<string, unknown>)['headers'] = headers; }
   return { ...run, request, result };
 }

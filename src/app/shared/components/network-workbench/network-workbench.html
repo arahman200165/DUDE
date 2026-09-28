@@ -7,6 +7,8 @@
     <div class="flex flex-col gap-4 text-ui">
       <p class="text-text-muted">Checks start only when you choose Run. A firewall or silent UDP service can make a result inconclusive.</p>
 
+      <ng-content select="[workbenchForm]" />
+      @if (!customForm()) {
       @if (kind() !== 'local-network' && kind() !== 'public-ip') {
         <label class="flex flex-col gap-1 text-text-muted">
           {{ kind() === 'connectivity-tester' ? (connectivityMode() === 'tcp' ? 'TCP host or IP address' : 'HTTP or HTTPS URL') : kind() === 'port-scanner' ? 'Host or CIDR (up to 16 addresses)' : 'Host or IP address' }}
@@ -123,16 +125,23 @@
           <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="family()" (change)="setChoice('family', $event)"><option value="auto">Auto</option><option value="ipv4">IPv4</option><option value="ipv6">IPv6</option></select>
         </label>
       }
+      }
 
+      @if (contacting().length) {
+        <div class="rounded-sm border border-border bg-panel px-2 py-1 text-text-muted" data-testid="network-contacting">
+          <span class="font-semibold text-text">Contacting:</span>
+          @for (contact of contacting(); track contact) { <span class="ml-2 font-mono text-xs">{{ contact }}</span> }
+        </div>
+      }
       <div class="flex items-center gap-2">
-        <button type="button" class="rounded-sm border border-accent px-3 py-1 text-accent hover:bg-accent/10 disabled:opacity-40" [disabled]="running()" (click)="run()">{{ running() ? 'Running…' : 'Run check' }}</button>
+        <button type="button" class="rounded-sm border border-accent px-3 py-1 text-accent hover:bg-accent/10 disabled:opacity-40" [disabled]="running()" (click)="run()">{{ running() ? 'Running…' : runLabel() }}</button>
         @if (running()) { <button type="button" class="rounded-sm border border-border px-3 py-1 text-text" (click)="stop()">Cancel</button> }
       </div>
       @if (preview(); as pending) {
         <div class="rounded-sm border border-warning/50 bg-warning/5 p-3">
           <div class="font-semibold text-warning">Review before running</div>
           <pre class="mt-2 max-h-48 overflow-auto whitespace-pre-wrap font-mono text-text">{{ pending.details | json }}</pre>
-          <p class="my-2 text-text-muted">This action sends probes or an HTTP request to the stated target. A scan can contact every listed host and port.</p>
+          <p class="my-2 text-text-muted">This action sends probes, several handshakes, or an HTTP request to the stated target. Every listed host, port, and connection count is contacted exactly as shown.</p>
           <div class="flex gap-2"><button type="button" class="rounded-sm border border-warning px-3 py-1 text-warning" (click)="confirm()">Confirm and run</button><button type="button" class="rounded-sm border border-border px-3 py-1 text-text" (click)="cancelPreview()">Back</button></div>
         </div>
       }
@@ -145,7 +154,13 @@
         <div class="flex items-center gap-2"><span class="font-semibold text-text">Result</span>@if (latestRun()) { <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="saveLatest()">Save to History</button> }<button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="copy()">Copy JSON</button>
           @if (kind() === 'connectivity-tester') { <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="downloadResponse()">Download response</button> }
         </div>
-        <pre class="max-h-[34rem] overflow-auto rounded-sm border border-border bg-panel p-3 font-mono text-xs text-text">{{ formattedResult() }}</pre>
+        @if (resultTemplate(); as template) {
+          <ng-container [ngTemplateOutlet]="template" [ngTemplateOutletContext]="resultContext()" />
+          <label class="flex items-center gap-2 text-text-muted"><input type="checkbox" [checked]="showRaw()" (change)="showRaw.set(!showRaw())" /> Show raw JSON</label>
+          @if (showRaw()) { <pre class="max-h-[34rem] overflow-auto rounded-sm border border-border bg-panel p-3 font-mono text-xs text-text">{{ formattedResult() }}</pre> }
+        } @else {
+          <pre class="max-h-[34rem] overflow-auto rounded-sm border border-border bg-panel p-3 font-mono text-xs text-text">{{ formattedResult() }}</pre>
+        }
       }
       @if (history.error()) { <div role="alert" class="text-error">{{ history.error() }}</div> }
       @if (kind() === 'route-comparison') {
