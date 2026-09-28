@@ -26,6 +26,19 @@ describe('HomePasteDropHero', () => {
     expect(fixture.nativeElement.querySelector('app-smart-file-drop-zone')).not.toBeNull();
   });
 
+  it('forwards clipboard text pasted on the idle row into the expanded panel', () => {
+    const fixture = TestBed.createComponent(HomePasteDropHero);
+    fixture.detectChanges();
+
+    const pasteEvent = new Event('paste');
+    Object.defineProperty(pasteEvent, 'clipboardData', { value: { getData: () => 'pasted content' } });
+    (fixture.nativeElement.querySelector('[role="button"]') as HTMLElement).dispatchEvent(pasteEvent);
+    fixture.detectChanges();
+
+    const textarea: HTMLTextAreaElement = fixture.nativeElement.querySelector('textarea');
+    expect(textarea.value).toBe('pasted content');
+  });
+
   it('collapses back to idle when Escape is pressed with no content', () => {
     const fixture = TestBed.createComponent(HomePasteDropHero);
     fixture.detectChanges();

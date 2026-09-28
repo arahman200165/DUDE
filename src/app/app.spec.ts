@@ -11,6 +11,7 @@ import { PIPELINE_COMMAND_SOURCE_PROVIDERS } from './core/pipeline/pipeline-comm
 import { NATIVE_COMMAND_SOURCE_PROVIDERS } from './core/platform/native-command-source';
 import { RECENTS_COMMAND_SOURCE_PROVIDERS } from './core/recents/recents-command-source';
 import { PREFERENCES_COMMAND_SOURCE_PROVIDERS } from './core/platform/preferences-command-source';
+import { ToolRegistryService } from './core/registry/tool-registry.service';
 
 describe('App', () => {
   beforeEach(() => {
@@ -38,6 +39,20 @@ describe('App', () => {
     const harness = await RouterTestingHarness.create('/');
     const compiled = harness.routeNativeElement as HTMLElement;
     expect(compiled.querySelector('h1')?.textContent).toContain('Dashboard');
+  });
+
+  // Phase 30D's exit criteria: default Home no longer renders the complete registry as its
+  // dominant content, and an explicit "Browse all tools" entry points into Browse Tools instead.
+  it('bounds default Home instead of rendering the complete tool registry', async () => {
+    const harness = await RouterTestingHarness.create('/');
+    const compiled = harness.routeNativeElement as HTMLElement;
+    const registrySize = TestBed.inject(ToolRegistryService).getAll().length;
+
+    // A handful of representative tool links per category preview is fine; the full registry
+    // (hundreds of tools) unconditionally rendered as links is exactly what Phase 30D removes.
+    expect(compiled.querySelectorAll('a[href^="/tools/"]').length).toBeLessThan(registrySize / 2);
+    const browseAllLinks = Array.from(compiled.querySelectorAll('a[href="/tools"]'));
+    expect(browseAllLinks.some((link) => link.textContent?.includes('Browse all tools'))).toBe(true);
   });
 
   it('a worker failure on a real tool does not break shell navigation', async () => {

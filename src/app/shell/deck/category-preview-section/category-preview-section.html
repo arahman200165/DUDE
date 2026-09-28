@@ -1,0 +1,27 @@
+<div class="grid grid-cols-2 gap-2 md:grid-cols-4">
+  @for (preview of previews(); track preview.category) {
+    <app-dashboard-panel
+      [title]="meta[preview.category].label"
+      [category]="preview.category"
+      [itemCount]="preview.count"
+      [empty]="preview.tools.length === 0"
+      viewAllLabel="View all"
+      (viewAll)="viewAll(preview.category)"
+    >
+      <ul class="flex flex-col gap-0.5">
+        @for (tool of preview.tools; track tool.id) {
+          <li>
+            <a
+              [routerLink]="tool.route"
+              [appOfflineAvailability]="tool.id"
+              class="block truncate rounded-sm px-1 py-0.5 text-ui-xs text-text hover:bg-panel-elevated"
+            >
+              {{ tool.shortTitle ?? tool.title }}
+            </a>
+          </li>
+        }
+      </ul>
+      <p panelEmpty class="text-ui-xs text-text-muted">No tools yet</p>
+    </app-dashboard-panel>
+  }
+</div>

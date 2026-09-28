@@ -38,6 +38,12 @@ export class PasteDetectPanel {
     this.input.set((event.target as HTMLTextAreaElement).value);
   }
 
+  /** Lets a wrapping idle affordance (e.g. Home's compact Smart Entry hero) forward clipboard
+   *  text it captured before this panel existed, so a single paste both expands and populates. */
+  receivePaste(text: string): void {
+    this.input.set(text);
+  }
+
   clear(): void {
     this.input.set('');
   }

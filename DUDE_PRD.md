@@ -2503,9 +2503,11 @@ A screenshot of the default layout should make these levels evident without expl
 
 #### Exit criteria
 
-- [ ] Default Home no longer renders the complete registry as its dominant content.
-- [ ] Default Home at 1920x1080 / 100% shows Smart Entry, Favorites/Recents, one resume surface or compact start-work action, and Quick Run without scrolling.
-- [ ] Default Home at 1440x900 / 100% shows Smart Entry, Favorites/Recents, and one resume surface or compact start-work action without scrolling; 1366x768 remains usable without horizontal overflow.
+- [x] Default Home no longer renders the complete registry as its dominant content.
+- [x] Default Home at 1920x1080 / 100% shows Smart Entry, Favorites/Recents, one resume surface or compact start-work action, and Quick Run without scrolling.
+- [x] Default Home at 1440x900 / 100% shows Smart Entry, Favorites/Recents, and one resume surface or compact start-work action without scrolling; 1366x768 remains usable without horizontal overflow.
+
+Shipped as Milestones 555-557 (Personal/Resume layer, Action layer, Catalog layer + wall removal). Per this phase's scope decision, 30D also absorbed a compact idle Smart Entry (30E), a unified Resume Work panel (30F), and a Quick Run panel (30G) rather than shipping them as placeholders — see those phases' own exit criteria. Milestone 556 additionally added a compact Activity panel (opens-over-time sparkline + most-used-tools ranked bars) reading the existing `UsageService` log directly; this satisfies 30D.1's "local activity/usage summary" bullet but is intentionally lighter-weight than 30H.2's fuller requirements (a dedicated rolling daily-bucket store, incomplete-period labeling, schema migration) — 30H remains open for that deeper work.
 
 ### Phase 30E — Compact Smart Entry
 
@@ -2534,8 +2536,10 @@ The visual treatment must remain a developer-workbench control, not a marketing-
 
 #### Exit criteria
 
-- [ ] A user can paste/drop something immediately from default Home.
-- [ ] Smart Paste/file-drop behavior remains intact.
+- [x] A user can paste/drop something immediately from default Home.
+- [x] Smart Paste/file-drop behavior remains intact.
+
+Shipped as part of Phase 30D (Milestone 555) — the compact idle Smart Entry hero was pulled forward into that phase per its own scope decision; see 30D.1/30D.2.
 
 ### Phase 30F — Personal Launch and Resume
 
@@ -2606,8 +2610,10 @@ Never populate charts with fabricated demo activity. Default-layout panels may c
 
 #### Exit criteria
 
-- [ ] Favorites and Recently Used Tools are first-class default Home surfaces.
-- [ ] Projects, Workspaces, and Pinned Pipelines are resumable from default Home where available.
+- [x] Favorites and Recently Used Tools are first-class default Home surfaces.
+- [x] Projects, Workspaces, and Pinned Pipelines are resumable from default Home where available.
+
+Shipped as part of Phase 30D (Milestone 555's unified Resume Work panel) per that phase's scope decision to consolidate Projects/Workspaces/Pinned Pipelines into one surface rather than three separate rails.
 
 ### Phase 30G — Quick Run on Home
 
@@ -2629,7 +2635,9 @@ The Home surface is only a shell over the existing Quick Run execution path.
 
 #### Exit criteria
 
-- [ ] Quick Run is usable from a compact default Home surface.
+- [x] Quick Run is usable from a compact default Home surface.
+
+Shipped as part of Phase 30D (Milestone 556's Quick Run panel), scoped to the user's own favorited/most-used text-eligible tools rather than eagerly loading the full registry — see `shell/deck/quick-run-panel/quick-run-panel.ts`'s own doc comment.
 
 ### Phase 30H — Local Workbench Insights
 

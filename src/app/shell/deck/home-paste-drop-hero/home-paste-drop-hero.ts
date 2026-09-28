@@ -1,4 +1,4 @@
-import { Component, signal, viewChild } from '@angular/core';
+import { Component, effect, signal, viewChild } from '@angular/core';
 import { PasteDetectPanel } from '../../../shared/components/paste-detect-panel/paste-detect-panel';
 import { SmartFileDropZone } from '../../../shared/components/smart-file-drop-zone/smart-file-drop-zone';
 
@@ -20,9 +20,28 @@ export class HomePasteDropHero {
   private readonly dropZone = viewChild(SmartFileDropZone);
 
   protected readonly expanded = signal(false);
+  private pendingPaste: string | null = null;
+
+  constructor() {
+    // The idle row isn't an editable element, so a paste event on it never lands in the
+    // (not-yet-mounted) textarea -- capture the clipboard text here and forward it the moment
+    // `PasteDetectPanel` mounts, so a single paste both expands and populates.
+    effect(() => {
+      const panel = this.pastePanel();
+      if (panel && this.pendingPaste !== null) {
+        panel.receivePaste(this.pendingPaste);
+        this.pendingPaste = null;
+      }
+    });
+  }
 
   protected expand(): void {
     this.expanded.set(true);
+  }
+
+  protected onIdlePaste(event: ClipboardEvent): void {
+    this.pendingPaste = event.clipboardData?.getData('text') ?? '';
+    this.expand();
   }
 
   protected onFocusOut(event: FocusEvent, container: HTMLElement): void {

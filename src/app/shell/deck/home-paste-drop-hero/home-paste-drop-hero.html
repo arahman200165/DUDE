@@ -9,7 +9,7 @@
     (click)="expand()"
     (focus)="expand()"
     (dragenter)="expand()"
-    (paste)="expand()"
+    (paste)="onIdlePaste($event)"
   >
     <span class="shrink-0 text-ui-sm font-semibold uppercase tracking-wider text-text-muted">Give it to DUDE</span>
     <span class="truncate">Paste text, paste a screenshot, or drop a file — DUDE will figure it out.</span>

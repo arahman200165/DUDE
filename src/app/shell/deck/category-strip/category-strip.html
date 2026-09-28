@@ -1,0 +1,14 @@
+<nav aria-label="Browse tools by category" class="mb-3 flex flex-wrap items-center gap-1.5">
+  @for (category of categories; track category) {
+    <a
+      [routerLink]="['/tools']"
+      [queryParams]="{ category }"
+      class="flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-ui-xs"
+      [class]="'border-' + meta[category].colorToken + '/40 text-' + meta[category].colorToken + '-tint hover:bg-' + meta[category].colorToken + '/10'"
+    >
+      <app-category-icon [category]="category" class="h-3 w-3" [class]="'text-' + meta[category].colorToken" />
+      {{ meta[category].label }}
+      <span class="text-text-muted">{{ counts().byCategory[category] }}</span>
+    </a>
+  }
+</nav>
