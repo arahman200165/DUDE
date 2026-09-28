@@ -81,6 +81,24 @@ const bridge: DudeElectronBridge = {
       return () => ipcRenderer.removeListener('dude:fsjob:event', listener);
     },
   },
+  fsMutation: {
+    planTrash: (root, paths, tool, title) => ipcRenderer.invoke('dude:fsmut:planTrash', root, paths, tool, title),
+    planWriteText: (root, relativePath, text, tool) => ipcRenderer.invoke('dude:fsmut:planWriteText', root, relativePath, text, tool),
+    planUndo: (planId) => ipcRenderer.invoke('dude:fsmut:planUndo', planId),
+    issueToken: (planId) => ipcRenderer.invoke('dude:fsmut:issueToken', planId),
+    apply: (planId, token, options) => ipcRenderer.invoke('dude:fsmut:apply', planId, token, options),
+    cancelApply: (planId) => ipcRenderer.invoke('dude:fsmut:cancelApply', planId),
+    discard: (planId) => ipcRenderer.invoke('dude:fsmut:discard', planId),
+    journal: () => ipcRenderer.invoke('dude:fsmut:journal'),
+    getSettings: () => ipcRenderer.invoke('dude:fsmut:getSettings'),
+    setSettings: (patch) => ipcRenderer.invoke('dude:fsmut:setSettings', patch),
+    purgeBackups: (planId) => ipcRenderer.invoke('dude:fsmut:purgeBackups', planId),
+    onProgress: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, value: { planId: string; done: number; total: number }) => callback(value);
+      ipcRenderer.on('dude:fsmut:progress', listener);
+      return () => ipcRenderer.removeListener('dude:fsmut:progress', listener);
+    },
+  },
   secrets: {
     get: (key) => ipcRenderer.invoke('dude:secrets:get', key),
     set: (key, value) => ipcRenderer.invoke('dude:secrets:set', key, value),

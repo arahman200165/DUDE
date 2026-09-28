@@ -14,9 +14,10 @@ certification claim.
 Tools whose function is cryptography, authentication material, arbitrary code execution, secret
 handling, or network scanning — the categories DUDE_PRD.md §21 Phase 23 calls out as needing a
 stronger bar than "the UI appears to work" — plus HTTP requests that can change server state
-(`remote-write`, added in Phase 27).
-Categories reserved for capabilities DUDE does not ship yet (filesystem-write,
-process-management, registry, database-write) have no rows below until a tool claims them.
+(`remote-write`, added in Phase 27) and changes to local files (`filesystem-write`, added in
+Phase 29 — always through the preview → confirm → journal/undo mutation engine).
+Categories reserved for capabilities DUDE does not ship yet (process-management, registry,
+database-write) have no rows below until a tool claims them.
 
 | Tool | Consequence class | Status |
 | --- | --- | --- |
@@ -24,6 +25,7 @@ process-management, registry, database-write) have no rows below until a tool cl
 | [Asymmetric Key Generator](https://arahman200165.github.io/DUDE/tools/asymmetric-key-generator) | Crypto | verified — A generated RSA-2048 private key was independently loaded, signed, and verified by openssl, confirming standards-compliant PKCS#8 output. |
 | [AWS Signature V4 Inspector](https://arahman200165.github.io/DUDE/tools/aws-sigv4-inspector) | Authentication | verified — Signature computation matches AWS's own documented worked example exactly, cross-checked independently via Node's crypto. |
 | [Basic Auth Header Generator](https://arahman200165.github.io/DUDE/tools/basic-auth-generator) | Authentication | verified — decodeBasicAuthHeader(buildBasicAuthHeader(u, p)) recovers u/p exactly for any generated colon-free username and arbitrary password (fast-check property test). |
+| [Batch Operations](https://arahman200165.github.io/DUDE/tools/batch-operations) | Filesystem Write | experimental |
 | [Bearer Token Builder](https://arahman200165.github.io/DUDE/tools/bearer-token-builder) | Authentication | verified — Fuzz- and crosscheck-tested (fast-check) against an independently-written RFC 6750 §2.1 b64token grammar regex. |
 | [Certificate Chain Viewer & Builder](https://arahman200165.github.io/DUDE/tools/certificate-chain-tools) | Crypto | verified — Chain validity for a real openssl-built leaf/intermediate/root chain matches openssl verify. |
 | [ChaCha20-Poly1305 Encrypt / Decrypt](https://arahman200165.github.io/DUDE/tools/chacha20-poly1305) | Crypto | verified — Decrypts ChaCha20-Poly1305 ciphertext built independently by Node's OpenSSL-backed crypto module, not just @noble/ciphers agreeing with itself. |
@@ -108,6 +110,7 @@ browser sandbox.
 
 | Tool | Native capability |
 | --- | --- |
+| [Batch Operations](https://arahman200165.github.io/DUDE/tools/batch-operations) | Native filesystem write |
 | [Certificate Watch List](https://arahman200165.github.io/DUDE/tools/certificate-watch-list) | Native network diagnostics |
 | [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | Native network diagnostics |
 | [CSS Formatter / Minifier](https://arahman200165.github.io/DUDE/tools/css-formatter) | Desktop file/folder open |
@@ -157,6 +160,7 @@ Every tool not listed here behaves identically on the web companion and the desk
 
 | Tool | Desktop capability | On the web | What desktop adds |
 | --- | --- | --- | --- |
+| [Batch Operations](https://arahman200165.github.io/DUDE/tools/batch-operations) | Native filesystem write | Desktop-only feature | undoes journaled file changes through the desktop mutation engine |
 | [Certificate Watch List](https://arahman200165.github.io/DUDE/tools/certificate-watch-list) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Certificate Transparency Lookup](https://arahman200165.github.io/DUDE/tools/ct-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |

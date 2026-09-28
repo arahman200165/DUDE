@@ -215,9 +215,10 @@ certification claim.
 Tools whose function is cryptography, authentication material, arbitrary code execution, secret
 handling, or network scanning — the categories DUDE_PRD.md §21 Phase 23 calls out as needing a
 stronger bar than "the UI appears to work" — plus HTTP requests that can change server state
-(\`remote-write\`, added in Phase 27).
-Categories reserved for capabilities DUDE does not ship yet (filesystem-write,
-process-management, registry, database-write) have no rows below until a tool claims them.
+(\`remote-write\`, added in Phase 27) and changes to local files (\`filesystem-write\`, added in
+Phase 29 — always through the preview → confirm → journal/undo mutation engine).
+Categories reserved for capabilities DUDE does not ship yet (process-management, registry,
+database-write) have no rows below until a tool claims them.
 
 | Tool | Consequence class | Status |
 | --- | --- | --- |

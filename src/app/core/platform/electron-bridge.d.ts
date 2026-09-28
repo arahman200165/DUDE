@@ -1,4 +1,4 @@
-import type { FsJobEvent, FsJobRequest, FsResult, PickedFile, RememberedFolder } from '../../../shared-logic/fs/fs-types';
+import type { ApplyResult, FsJobEvent, FsJobRequest, FsResult, JournalEntry, MutationSettings, PickedFile, PlanPreview, RememberedFolder } from '../../../shared-logic/fs/fs-types';
 import type { NetworkRequest, NetworkJobEvent, NetworkStartResult, NetworkPrepareResult, WatchEntry, WatchSettings, WatchState, WatchResult } from './network-types';
 export interface NativeStat {
   readonly isFile: boolean;
@@ -80,6 +80,20 @@ export interface DudeElectronBridge {
     start(request: FsJobRequest): Promise<FsResult<{ jobId: string }>>;
     cancel(jobId: string): Promise<boolean>;
     onEvent(callback: (event: FsJobEvent) => void): () => void;
+  };
+  readonly fsMutation: {
+    planTrash(root: string, paths: readonly string[], tool: string, title: string): Promise<FsResult<{ value: PlanPreview }>>;
+    planWriteText(root: string, relativePath: string, text: string, tool: string): Promise<FsResult<{ value: PlanPreview }>>;
+    planUndo(planId: string): Promise<FsResult<{ value: PlanPreview }>>;
+    issueToken(planId: string): Promise<FsResult<{ token: string; expiresAt: string }>>;
+    apply(planId: string, token: string, options?: { acceptNoUndo?: boolean }): Promise<FsResult<{ value: ApplyResult }>>;
+    cancelApply(planId: string): Promise<boolean>;
+    discard(planId: string): Promise<boolean>;
+    journal(): Promise<FsResult<{ value: readonly JournalEntry[] }>>;
+    getSettings(): Promise<FsResult<{ value: { settings: MutationSettings; backupBytes: number } }>>;
+    setSettings(patch: Partial<MutationSettings>): Promise<FsResult<{ value: MutationSettings }>>;
+    purgeBackups(planId?: string): Promise<FsResult<{ value: void }>>;
+    onProgress(callback: (event: { readonly planId: string; readonly done: number; readonly total: number }) => void): () => void;
   };
   readonly secrets: {
     get(key: string): Promise<SecretResult<{ value: string | null }>>;

@@ -1,0 +1,63 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning/40 bg-warning/5 p-4 text-ui text-text-muted">
+      Batch Operations lists and undoes the file changes Desktop DUDE applied to folders on disk (batch rename, text conversion, Recycle Bin clean-ups, replace across a tree…). It needs the Windows desktop app.
+    </div>
+    <app-desktop-only-control capability="native-fs-write" label="Undo a batch operation" />
+  } @else {
+    <div class="flex flex-col gap-3 text-ui">
+      <div class="flex flex-wrap items-center gap-3 rounded-sm border border-border bg-panel p-2 text-text-muted">
+        <span>Backups for undo: <span class="text-text">{{ bytes(backupBytes()) }}</span> of {{ bytes(maxBackupBytes()) }}, kept {{ retentionDays() }} day(s)</span>
+        <a routerLink="/settings/tools/batch-operations" class="text-accent underline">Retention &amp; remembered folders</a>
+        @if (backupBytes()) {
+          @if (!confirmingPurge()) { <button type="button" class="ml-auto rounded-sm border border-error/50 px-2 py-0.5 text-error" (click)="confirmingPurge.set(true)">Purge all backups…</button> }
+          @else {
+            <span class="ml-auto text-warning">Purging removes the ability to undo content changes. Files on disk are untouched.</span>
+            <button type="button" class="rounded-sm border border-error px-2 py-0.5 text-error" (click)="purge()">Purge</button>
+            <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="confirmingPurge.set(false)">Cancel</button>
+          }
+        }
+      </div>
+
+      <app-mutation-preview [preview]="preview()" (applied)="onApplied($event)" (discarded)="preview.set(null)" />
+      @if (error()) { <div role="alert" class="rounded-sm border border-error/50 bg-error/5 p-2 text-error">{{ error() }}</div> }
+
+      <div class="flex items-center gap-2">
+        <input class="flex-1 rounded-sm border border-border bg-panel px-2 py-1 text-text" placeholder="Filter by title, tool, or folder" [value]="query()" (input)="query.set($any($event.target).value)" aria-label="Filter operations" />
+        <button type="button" class="rounded-sm border border-border px-2 py-1 text-text" (click)="reload()">Refresh</button>
+      </div>
+
+      @if (visible().length) {
+        <table class="w-full border-collapse">
+          <thead><tr class="text-left text-text-muted"><th class="px-2 py-1">Applied</th><th class="px-2 py-1">Operation</th><th class="px-2 py-1">Folder</th><th class="px-2 py-1">Outcome</th><th class="px-2 py-1">Undo</th></tr></thead>
+          <tbody>
+            @for (row of visible(); track row.entry.planId) {
+              <tr class="border-t border-border align-top">
+                <td class="px-2 py-1 font-mono text-ui-xs text-text-muted">{{ when(row.entry.appliedAt) }}</td>
+                <td class="px-2 py-1"><button type="button" class="text-left text-text underline decoration-dotted" (click)="toggle(row.entry.planId)">{{ row.entry.title }}</button>
+                  <div class="text-ui-xs text-text-muted">{{ row.entry.tool }}@if (row.entry.undoOf) { · undo }@if (row.entry.backupBytes) { · {{ bytes(row.entry.backupBytes) }} backed up{{ row.entry.backupsPruned ? ' (pruned)' : '' }} }</div></td>
+                <td class="px-2 py-1 font-mono text-ui-xs text-text-muted">{{ row.entry.root }}</td>
+                <td class="px-2 py-1 text-ui-xs"><span class="text-success">{{ row.summary.counts.applied }} applied</span>@if (row.summary.counts.conflict) { <span class="text-warning"> · {{ row.summary.counts.conflict }} conflict</span> }@if (row.summary.counts.failed) { <span class="text-error"> · {{ row.summary.counts.failed }} failed</span> }@if (row.summary.counts.cancelled) { <span class="text-warning"> · {{ row.summary.counts.cancelled }} stopped</span> }</td>
+                <td class="px-2 py-1">
+                  @if (row.summary.undoable) { <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" data-testid="undo-preview" (click)="previewUndo(row.entry.planId)">Preview undo…</button> }
+                  @else { <span class="text-ui-xs text-text-muted">{{ row.summary.undoNote }}</span> }
+                </td>
+              </tr>
+              @if (expanded() === row.entry.planId) {
+                <tr><td></td><td colspan="4" class="px-2 pb-2">
+                  <ul class="max-h-60 overflow-auto font-mono text-ui-xs">
+                    @for (op of row.entry.ops; track $index) {
+                      <li [class]="op.outcome === 'applied' ? 'text-text' : op.outcome === 'failed' ? 'text-error' : 'text-warning'">{{ op.outcome }} — {{ describe(op) }}@if (op.message) { ({{ op.message }}) }</li>
+                    }
+                  </ul>
+                </td></tr>
+              }
+            }
+          </tbody>
+        </table>
+      } @else {
+        <div class="text-text-muted">No batch operations yet. Tools that change files — Batch Rename, Batch Text Converter, Duplicate Files, Folder Size Analyzer, Tree Search replace, File Split &amp; Join — journal every applied change here.</div>
+      }
+    </div>
+  }
+</app-tool-shell>

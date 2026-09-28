@@ -22,6 +22,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'ct-lookup': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'starttls-inspector': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'https-config-analyzer': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
+  'batch-operations': 'changing files on disk requires a previewed, explicitly confirmed native action and must never run invisibly in a pipeline',
   'certificate-watch-list': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'reverse-dns': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'dns-propagation': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',

@@ -4,6 +4,7 @@ import { startStaticServer } from './static-server';
 import { registerFsHandlers } from './fs-bridge';
 import { loadRememberedGrants } from './fs-grants';
 import { registerFsJobHandlers, stopFsWorker } from './fs-jobs-bridge';
+import { registerMutationHandlers } from './fs-mutation';
 import { registerNetworkHandlers, cancelAllNetworkJobs } from './network-bridge';
 import { registerWatchHandlers, stopWatchScheduler, setTrayUpdater } from './network-watch';
 import { updateWatchTray } from './tray';
@@ -131,6 +132,7 @@ if (hasSingleInstanceLock) void app.whenReady().then(async () => {
   }
   registerFsHandlers();
   registerFsJobHandlers();
+  registerMutationHandlers();
   await loadRememberedGrants();
   registerNetworkHandlers();
   registerWatchHandlers();

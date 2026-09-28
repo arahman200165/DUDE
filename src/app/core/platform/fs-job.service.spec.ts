@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import type { FsJobEvent } from '../../../shared-logic/fs/fs-types';
 import { fakeElectronBridge } from './testing/fake-electron-bridge';
+import { installBridge, removeBridge } from './testing/recording-fs-bridge';
 import { FsJobService } from './fs-job.service';
 
 describe('FsJobService', () => {
@@ -9,11 +10,11 @@ describe('FsJobService', () => {
 
   beforeEach(() => {
     cancel.mockClear();
-    (window as unknown as { dude: unknown }).dude = fakeElectronBridge({
+    installBridge(fakeElectronBridge({
       fsJobs: { start: async () => ({ ok: true, jobId: 'j1' }), cancel, onEvent: (callback) => { emit = callback; return () => {}; } },
-    });
+    }));
   });
-  afterEach(() => { delete (window as unknown as { dude?: unknown }).dude; });
+  afterEach(() => removeBridge());
 
   it('streams batches to the caller, tracks progress and issues, and resolves with the result', async () => {
     const service = TestBed.inject(FsJobService);
@@ -47,7 +48,7 @@ describe('FsJobService', () => {
   });
 
   it('fails cleanly on the web, where there is no bridge', async () => {
-    delete (window as unknown as { dude?: unknown }).dude;
+    removeBridge();
     const job = TestBed.inject(FsJobService).run({ kind: 'walk', root: 'x' });
     await expect(job.result).rejects.toThrow(/desktop app/);
     expect(job.status()).toBe('error');
