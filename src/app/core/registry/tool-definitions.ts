@@ -20,6 +20,7 @@ import { manifest as base64ImageViewerManifest } from '../../tools/base64-image-
 import { manifest as base64Manifest } from '../../tools/base64/base64.manifest';
 import { manifest as basicAuthGeneratorManifest } from '../../tools/basic-auth-generator/basic-auth-generator.manifest';
 import { manifest as batchOperationsManifest } from '../../tools/batch-operations/batch-operations.manifest';
+import { manifest as batchRenameManifest } from '../../tools/batch-rename/batch-rename.manifest';
 import { manifest as bearerTokenBuilderManifest } from '../../tools/bearer-token-builder/bearer-token-builder.manifest';
 import { manifest as bigintCalculatorManifest } from '../../tools/bigint-calculator/bigint-calculator.manifest';
 import { manifest as binaryStringsExtractorManifest } from '../../tools/binary-strings-extractor/binary-strings-extractor.manifest';
@@ -331,6 +332,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   base64Manifest,
   basicAuthGeneratorManifest,
   batchOperationsManifest,
+  batchRenameManifest,
   bearerTokenBuilderManifest,
   bigintCalculatorManifest,
   binaryStringsExtractorManifest,

@@ -1,0 +1,86 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning/40 bg-warning/5 p-4 text-ui text-text-muted">
+      Batch Rename renames files and folders on disk by pattern or list, with a live preview and undo. It needs the Windows desktop app.
+    </div>
+    <div class="mt-2 flex gap-2">
+      <app-desktop-only-control capability="native-fs" label="Load a folder" />
+      <app-desktop-only-control capability="native-fs-write" label="Rename files" />
+    </div>
+  } @else {
+    <div class="flex flex-col gap-3 text-ui">
+      <app-fs-root-picker [(root)]="root" />
+      <app-walk-options [(options)]="options" [showSizeAge]="true" />
+      <div class="flex flex-wrap items-center gap-3">
+        <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="scope().files" (change)="setScope('files', $event)" /> Files</label>
+        <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="scope().dirs" (change)="setScope('dirs', $event)" /> Folders</label>
+        <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="scope().recursive" (change)="setScope('recursive', $event)" /> Include subfolders</label>
+        <button type="button" class="rounded-sm border border-accent px-3 py-1 text-accent disabled:opacity-50" data-testid="fs-scan" [disabled]="!root()" (click)="load()">Load items</button>
+        <app-scan-progress [job]="loadJob()" />
+      </div>
+
+      <div class="flex flex-col gap-2 rounded-sm border border-border bg-panel p-2">
+        <div class="flex gap-1" role="tablist">
+          <button type="button" role="tab" class="rounded-sm border px-2 py-0.5" [class]="rename().mode === 'pattern' ? 'border-accent text-accent' : 'border-border text-text-muted'" (click)="set('mode', 'pattern')">Pattern</button>
+          <button type="button" role="tab" class="rounded-sm border px-2 py-0.5" [class]="rename().mode === 'list' ? 'border-accent text-accent' : 'border-border text-text-muted'" (click)="set('mode', 'list')">From list / CSV</button>
+        </div>
+        @if (rename().mode === 'pattern') {
+          <div class="flex flex-wrap items-center gap-2">
+            <input class="w-48 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" placeholder="Find" [value]="rename().find" (input)="set('find', text($event))" aria-label="Find" />
+            <input class="w-48 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [placeholder]="rename().regex ? 'Replace ($1, $<name>)' : 'Replace'" [value]="rename().replace" (input)="set('replace', text($event))" aria-label="Replace" />
+            <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="rename().regex" (change)="set('regex', checked($event))" /> Regex</label>
+            <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="rename().caseSensitive" (change)="set('caseSensitive', checked($event))" /> Match case</label>
+            <label class="flex items-center gap-1 text-text-muted">Apply to
+              <select class="rounded-sm border border-border bg-panel px-1 py-0.5 text-text" [value]="rename().target" (change)="set('target', $any(text($event)))"><option value="name">Name (no extension)</option><option value="extension">Extension</option><option value="full">Full name</option></select>
+            </label>
+            <label class="flex items-center gap-1 text-text-muted">Case
+              <select class="rounded-sm border border-border bg-panel px-1 py-0.5 text-text" [value]="rename().caseTransform" (change)="set('caseTransform', $any(text($event)))"><option value="none">Keep</option><option value="lower">lower</option><option value="upper">UPPER</option><option value="title">Title Case</option><option value="slug">slug-case</option></select>
+            </label>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <label class="flex items-center gap-1 text-text-muted">New name
+              <input class="w-72 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [value]="rename().template" (input)="set('template', text($event))" aria-label="Name template" />
+            </label>
+            @for (token of tokens; track token) { <button type="button" class="rounded-sm border border-border px-1 font-mono text-ui-xs text-text-muted" (click)="addToken(token)">{{ token }}</button> }
+          </div>
+          <div class="flex flex-wrap items-center gap-2 text-text-muted">
+            <label class="flex items-center gap-1">Counter from<input type="number" class="w-16 rounded-sm border border-border bg-panel px-1 py-0.5 text-text" [value]="rename().counterStart" (change)="set('counterStart', +text($event))" /></label>
+            <label class="flex items-center gap-1">step<input type="number" class="w-14 rounded-sm border border-border bg-panel px-1 py-0.5 text-text" [value]="rename().counterStep" (change)="set('counterStep', +text($event))" /></label>
+            <label class="flex items-center gap-1">Number in order of
+              <select class="rounded-sm border border-border bg-panel px-1 py-0.5 text-text" [value]="rename().sort" (change)="set('sort', $any(text($event)))"><option value="path">Path</option><option value="name">Name</option><option value="mtime">Modified time</option><option value="size">Size</option></select>
+            </label>
+            <span class="text-ui-xs">{{ '{hash8}' }} is filled from file content when the plan is built.</span>
+          </div>
+        } @else {
+          <textarea class="h-32 rounded-sm border border-border bg-panel p-2 font-mono text-ui-xs text-text" placeholder="old/path.txt -> new-name.txt   (also =>, tab, or CSV old,new)" [value]="rename().list" (input)="set('list', text($event))" aria-label="Rename list"></textarea>
+          <div class="flex gap-2">
+            <label class="rounded-sm border border-border px-2 py-1 text-text">Load list / CSV…<input type="file" accept=".csv,.txt,.tsv" class="hidden" (change)="loadList($event)" /></label>
+            <button type="button" class="rounded-sm border border-border px-2 py-1 text-text" [disabled]="!loaded()" (click)="seedList()">Start from current names</button>
+          </div>
+        }
+      </div>
+
+      @if (result().problem) { <div role="alert" class="text-error">{{ result().problem }}</div> }
+      @if (loaded()) {
+        <div class="flex flex-wrap items-center gap-3" role="status">
+          <span class="text-accent">{{ counts().rename }} to rename</span><span class="text-text-muted">{{ counts().unchanged }} unchanged</span>
+          @if (counts().invalid + counts().collision + counts().exists) { <span class="text-error">{{ counts().invalid }} invalid · {{ counts().collision }} collisions · {{ counts().exists }} name taken</span> }
+          <select class="rounded-sm border border-border bg-panel px-1 py-0.5 text-text" [value]="filter()" (change)="filter.set($any(text($event)))" aria-label="Show"><option value="changes">Changes</option><option value="problems">Problems</option><option value="all">All</option></select>
+          <button type="button" class="ml-auto rounded-sm border border-warning px-2 py-1 text-warning disabled:opacity-50" data-testid="plan-preview-button" [disabled]="!included().length" (click)="buildPlan()">Preview {{ included().length }} rename(s)…</button>
+          <app-scan-progress [job]="planJob()" />
+        </div>
+        <app-mutation-preview [preview]="preview()" (applied)="onApplied()" (discarded)="preview.set(null)" />
+        @if (error()) { <div role="alert" class="text-error">{{ error() }}</div> }
+        <cdk-virtual-scroll-viewport itemSize="24" class="h-96 rounded-sm border border-border font-mono text-ui-xs">
+          <div *cdkVirtualFor="let proposal of visible(); trackBy: trackProposal" class="flex h-[24px] items-center gap-2 border-b border-border/30 px-2">
+            <input type="checkbox" [disabled]="proposal.status !== 'rename'" [checked]="proposal.status === 'rename' && !excluded().has(proposal.path)" (change)="toggle(proposal.path, $event)" [attr.aria-label]="'Rename ' + proposal.path" />
+            <span class="w-16 shrink-0" [class]="statusClass(proposal.status)">{{ proposal.status }}</span>
+            <span class="min-w-0 flex-1 truncate text-text-muted" [title]="proposal.path">{{ proposal.path }}</span>
+            <span class="text-text-muted">→</span>
+            <span class="min-w-0 flex-1 truncate" [class]="statusClass(proposal.status)" [title]="proposal.reason ?? proposal.warning ?? proposal.newName">{{ proposal.newName }}@if (proposal.reason) { <span class="text-error"> — {{ proposal.reason }}</span> }@if (proposal.warning) { <span class="text-warning"> — {{ proposal.warning }}</span> }</span>
+          </div>
+        </cdk-virtual-scroll-viewport>
+      }
+    </div>
+  }
+</app-tool-shell>

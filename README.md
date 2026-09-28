@@ -73,6 +73,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | Tool | Desktop capability | On the web | What desktop adds |
 | --- | --- | --- | --- |
 | [Batch Operations](https://arahman200165.github.io/DUDE/tools/batch-operations) | Native filesystem write | Desktop-only feature | undoes journaled file changes through the desktop mutation engine |
+| [Batch Rename](https://arahman200165.github.io/DUDE/tools/batch-rename) | Native filesystem access | Desktop-only feature | lists real folders in the desktop fs worker |
+| [Batch Rename](https://arahman200165.github.io/DUDE/tools/batch-rename) | Native filesystem write | Desktop-only feature | renames only through a previewed, journaled, undoable plan |
 | [Certificate Watch List](https://arahman200165.github.io/DUDE/tools/certificate-watch-list) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Certificate Transparency Lookup](https://arahman200165.github.io/DUDE/tools/ct-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
@@ -127,7 +129,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-309 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+310 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -303,6 +305,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [URL Safety Inspector](https://arahman200165.github.io/DUDE/tools/url-safety-inspector) | Web | Heuristic URL safety checks — punycode homograph risk, userinfo tricks, IP-literal hosts, suspicious TLDs, and deep subdomain chains. |
 | [User-Agent Parser](https://arahman200165.github.io/DUDE/tools/user-agent) | Web | Break a User-Agent string down into browser, engine, OS, and device details. |
 | [Batch Operations](https://arahman200165.github.io/DUDE/tools/batch-operations) | Developer | Journal of every change DUDE applied to files on disk: per-file outcomes, previewed undo, backup storage, retention, and remembered folders. |
+| [Batch Rename](https://arahman200165.github.io/DUDE/tools/batch-rename) | Developer | Rename files and folders on disk by find/replace, regex, tokens (counter, date, parent, hash), case transform, or an old→new list — live preview, Windows-name checks, and undo. |
 | [Arbitrary Precision Calculator](https://arahman200165.github.io/DUDE/tools/bigint-calculator) | Developer | Exact-precision integer arithmetic (add/subtract/multiply/divide/mod/power/factorial) with no 64-bit limit. |
 | [Binary Strings Extractor](https://arahman200165.github.io/DUDE/tools/binary-strings-extractor) | Developer | Extracts printable ASCII and little-endian UTF-16 text runs from an uploaded file, like the Unix `strings` utility, with an adjustable minimum length. |
 | [Binary Structure Inspector](https://arahman200165.github.io/DUDE/tools/binary-structure-inspector) | Developer | Parses an uploaded file against a user-defined sequence of typed fields (integers, floats, fixed-length strings, chosen endianness) into a table of offsets and decoded values. |
