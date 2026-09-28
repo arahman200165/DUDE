@@ -31,7 +31,11 @@ test('offline, a never-visited tool explains itself and is dimmed; a visited one
   await context.setOffline(true);
   try {
     // Dimming needs the map + a cache scan, which the readiness service runs on going offline.
+    // The sidebar's category index is collapsed by default (Phase 30B.1) -- expand the two
+    // categories these tools live in before asserting on their per-tool links.
     const sidebar = page.locator('app-sidebar');
+    await sidebar.getByRole('button', { name: 'Expand Developer' }).click();
+    await sidebar.getByRole('button', { name: 'Expand Encoding' }).click();
     await expect(sidebar.locator('a[href="/DUDE/tools/python-playground"]')).toHaveAttribute('data-offline-unavailable', 'true');
     await expect(sidebar.locator('a[href="/DUDE/tools/base64"]')).not.toHaveAttribute('data-offline-unavailable', 'true');
 

@@ -2324,8 +2324,8 @@ Tools, navigation, projects, workspaces, pipelines, native operations, recents, 
 
 #### Exit criteria
 
-- [ ] The sidebar no longer defaults to displaying hundreds of individual tool links.
-- [ ] Ctrl+K remains the fastest universal launcher, regardless of Home layout.
+- [x] The sidebar no longer defaults to displaying hundreds of individual tool links.
+- [x] Ctrl+K remains the fastest universal launcher, regardless of Home layout.
 
 ### Phase 30C — Shared Workbench Primitives
 
