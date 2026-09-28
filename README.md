@@ -97,6 +97,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Hash Manifest & Snapshot](https://arahman200165.github.io/DUDE/tools/hash-manifest) | Native filesystem access | Desktop-only feature | streams and hashes whole folders in the desktop fs worker |
 | [Hostname Resolver](https://arahman200165.github.io/DUDE/tools/hostname-resolver) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [HTTPS Configuration Analyzer](https://arahman200165.github.io/DUDE/tools/https-config-analyzer) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Large-File Streaming Inspector](https://arahman200165.github.io/DUDE/tools/large-file-inspector) | File watching | Desktop-only feature | follows a growing file (tail -f) |
+| [Large-File Streaming Inspector](https://arahman200165.github.io/DUDE/tools/large-file-inspector) | Native filesystem access | Desktop-only feature | reads byte ranges and streams search over files of any size on disk |
 | [Continuous Ping / Latency Graph](https://arahman200165.github.io/DUDE/tools/latency-monitor) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Live Certificate Chain Fetcher](https://arahman200165.github.io/DUDE/tools/live-certificate-chain) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Local Network Viewer](https://arahman200165.github.io/DUDE/tools/local-network) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
@@ -133,7 +135,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-312 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+313 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -387,6 +389,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Kubernetes Base64 Secret Encoder / Decoder](https://arahman200165.github.io/DUDE/tools/k8s-secret-base64) | Developer | Encodes plaintext key/value pairs into a Secret data: block, or decodes an existing Secret's base64 values back to plaintext. |
 | [KSUID Generator / Inspector](https://arahman200165.github.io/DUDE/tools/ksuid-tools) | Developer | Generates a KSUID, and inspects an existing KSUID to decode its embedded timestamp and random payload. |
 | [kubeconfig Inspector](https://arahman200165.github.io/DUDE/tools/kubeconfig-inspector) | Developer | Summarizes a kubeconfig's clusters, contexts, and users, redacting credential fields (tokens, client certs/keys, passwords) behind a reveal toggle. |
+| [Large-File Streaming Inspector](https://arahman200165.github.io/DUDE/tools/large-file-inspector) | Developer | Open files of any size on disk without loading them: paged hex view with offset jumps, line-numbered text view, streaming text/regex/byte find, tail -f follow, and range hashing or export. |
 | [Continuous Ping / Latency Graph](https://arahman200165.github.io/DUDE/tools/latency-monitor) | Developer | Monitor ICMP latency over a bounded interval. |
 | [Local Network Viewer](https://arahman200165.github.io/DUDE/tools/local-network) | Developer | Inspect bound ports, connections, listeners, neighbors, routes, interfaces, and local addresses. |
 | [Lockfile Inspector](https://arahman200165.github.io/DUDE/tools/lockfile-inspector) | Developer | Parses a package-lock.json, pnpm-lock.yaml, or yarn.lock into a searchable table of resolved package versions and their dependencies. |

@@ -1,0 +1,92 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning/40 bg-warning/5 p-4 text-ui text-text-muted">
+      The Large-File Streaming Inspector opens files of any size on disk (hex and line views, streaming find, tail -f) without loading them into memory. It needs the Windows desktop app; for an uploaded file, use Hex Dump, File Inspector, or the header viewers.
+    </div>
+    <div class="mt-2 flex gap-2">
+      <app-desktop-only-control capability="native-fs" label="Open a large file" />
+      <app-desktop-only-control capability="file-watch" label="Follow (tail -f)" />
+    </div>
+  } @else {
+    <div class="flex flex-col gap-3 text-ui">
+      <app-fs-root-picker mode="file" label="File" [(root)]="pickedFile" (picked)="picked($event)" />
+      @if (error()) { <div role="alert" class="text-error">{{ error() }}</div> }
+      @if (opened()) {
+        <div class="flex flex-wrap items-center gap-2 rounded-sm border border-border bg-panel p-2">
+          <span class="font-mono text-text">{{ name() }}</span>
+          <span class="text-text-muted">{{ bytes(size()) }} ({{ size().toLocaleString() }} bytes)</span>
+          @if (lineIndex(); as index) { <span class="text-text-muted">{{ index.lines.toLocaleString() }} lines</span> }
+          <span class="ml-auto flex gap-1">
+            <button type="button" class="rounded-sm border px-2 py-0.5" [class]="view() === 'hex' ? 'border-accent text-accent' : 'border-border text-text-muted'" (click)="view.set('hex'); loadHex(offset())">Hex</button>
+            <button type="button" class="rounded-sm border px-2 py-0.5" [class]="view() === 'text' ? 'border-accent text-accent' : 'border-border text-text-muted'" data-testid="text-view" (click)="showText()">Text / lines</button>
+            <button type="button" class="rounded-sm border px-2 py-0.5" [class]="following() ? 'border-success text-success' : 'border-border text-text-muted'" (click)="toggleFollow()">{{ following() ? 'Following…' : 'Follow (tail -f)' }}</button>
+          </span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="page(-1)" aria-label="Previous page">▲ Page</button>
+          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="page(1)" aria-label="Next page">▼ Page</button>
+          <input type="range" min="0" max="1000" class="flex-1" [value]="view() === 'hex' ? percent() * 10 : (lineIndex() ? (line() / lineIndex()!.lines) * 1000 : 0)" (change)="scrub($event)" aria-label="Position in file" />
+          <input class="w-44 rounded-sm border border-border bg-panel px-2 py-0.5 font-mono text-text" placeholder="0x1F4 · 512MiB · 50% · L1200" [value]="jump()" (input)="jump.set(value($event))" (keydown.enter)="goJump()" aria-label="Jump to offset or line" />
+          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="goJump()">Go</button>
+        </div>
+        <app-scan-progress [job]="indexJob()" />
+
+        <div class="overflow-hidden rounded-sm border border-border bg-panel font-mono text-ui-xs leading-5" (wheel)="wheel($event)" data-testid="inspector-view">
+          @if (view() === 'hex') {
+            @for (row of rows(); track row.offset) {
+              <div class="flex gap-3 px-2">
+                <span class="text-text-muted">{{ formatOffset(row.offset) }}</span>
+                <span class="flex gap-1">@for (byte of row.hex; track $index) { <span [class]="isHighlighted(row, $index) ? 'rounded-sm bg-warning/40 text-text' : 'text-text'">{{ byte }}</span> }</span>
+                <span class="whitespace-pre text-text-muted">{{ row.ascii }}</span>
+              </div>
+            }
+          } @else {
+            @for (entry of lines(); track entry.number) {
+              <div class="flex gap-3 px-2"><span class="w-16 shrink-0 text-right text-text-muted">{{ entry.number > 0 ? entry.number : '' }}</span><span class="whitespace-pre-wrap break-all text-text">{{ entry.text }}</span></div>
+            }
+            @if (!lines().length && !indexJob()) { <div class="p-2 text-text-muted">Switch to Text to index lines.</div> }
+          }
+        </div>
+
+        <div class="flex flex-col gap-2 rounded-sm border border-border p-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <input class="min-w-56 flex-1 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [placeholder]="findHex() ? 'Bytes, e.g. 4D 5A 90 00' : 'Find text or regex'" [value]="findPattern()" (input)="findPattern.set(value($event))" (keydown.enter)="find()" aria-label="Find in file" />
+            <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="findHex()" (change)="findHex.set(checked($event))" /> Hex bytes</label>
+            @if (!findHex()) {
+              <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="findRegex()" (change)="findRegex.set(checked($event))" /> Regex</label>
+              <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="findCase()" (change)="findCase.set(checked($event))" /> Match case</label>
+            }
+            <button type="button" class="rounded-sm border border-accent px-3 py-1 text-accent" data-testid="find" (click)="find()">Find</button>
+            <app-scan-progress [job]="findJob()" />
+          </div>
+          @if (textFinds().length) {
+            <ul class="max-h-60 overflow-auto font-mono text-ui-xs">
+              @for (hit of textFinds(); track hit.offset) {
+                <li><button type="button" class="w-full text-left hover:bg-panel-elevated" (click)="openTextFind(hit)"><span class="inline-block w-20 text-right text-text-muted">{{ hit.line }}</span>  {{ segments(hit).before }}<mark class="bg-warning/30 text-text">{{ segments(hit).hit }}</mark>{{ segments(hit).after }}</button></li>
+              }
+            </ul>
+          }
+          @if (hexFinds().length) {
+            <ul class="max-h-60 overflow-auto font-mono text-ui-xs">
+              @for (hit of hexFinds(); track hit.offset) { <li><button type="button" class="text-accent underline" (click)="openHexFind(hit)">0x{{ formatOffset(hit.offset) }}</button> <span class="text-text-muted">({{ hit.offset.toLocaleString() }})</span></li> }
+            </ul>
+          }
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 rounded-sm border border-border p-2 text-text-muted">
+          <span>Range</span>
+          <input class="w-32 rounded-sm border border-border bg-panel px-2 py-0.5 font-mono text-text" [value]="rangeStart()" (input)="rangeStart.set(value($event))" aria-label="Range start" />
+          <span>to</span>
+          <input class="w-32 rounded-sm border border-border bg-panel px-2 py-0.5 font-mono text-text" placeholder="end of file" [value]="rangeEnd()" (input)="rangeEnd.set(value($event))" aria-label="Range end (exclusive)" />
+          <span class="text-ui-xs">{{ bytes(range().end - range().start) }}</span>
+          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="useView()">Use current view</button>
+          <select class="rounded-sm border border-border bg-panel px-1 py-0.5 text-text" [value]="hashAlgorithm()" (change)="hashAlgorithm.set($any(value($event)))" aria-label="Hash algorithm">@for (algorithm of algorithms; track algorithm) { <option [value]="algorithm">{{ algorithm }}</option> }</select>
+          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="hashRange()">Hash range</button>
+          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="exportRange()">Download range</button>
+          <app-scan-progress [job]="hashJob()" />
+          @if (rangeHash()) { <span class="break-all font-mono text-text" data-testid="range-hash">{{ rangeHash() }}</span> <app-copy-button [text]="rangeHash()" /> }
+        </div>
+      }
+    </div>
+  }
+</app-tool-shell>

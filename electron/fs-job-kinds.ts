@@ -11,3 +11,4 @@ import './fs-job-search';
 import './fs-job-rename';
 import './fs-job-convert';
 import './fs-job-split';
+import './fs-job-inspect';

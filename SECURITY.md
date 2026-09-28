@@ -142,6 +142,7 @@ browser sandbox.
 | [INI Formatter / Parser](https://arahman200165.github.io/DUDE/tools/ini-formatter) | Desktop file/folder open |
 | [JavaScript Playground](https://arahman200165.github.io/DUDE/tools/js-playground) | Desktop file/folder open |
 | [JSON Formatter](https://arahman200165.github.io/DUDE/tools/json) | Desktop file/folder open |
+| [Large-File Streaming Inspector](https://arahman200165.github.io/DUDE/tools/large-file-inspector) | Native filesystem access; File watching |
 | [Continuous Ping / Latency Graph](https://arahman200165.github.io/DUDE/tools/latency-monitor) | Native network diagnostics |
 | [Live Certificate Chain Fetcher](https://arahman200165.github.io/DUDE/tools/live-certificate-chain) | Native network diagnostics |
 | [Local Network Viewer](https://arahman200165.github.io/DUDE/tools/local-network) | Native network diagnostics |
@@ -200,6 +201,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Hash Manifest & Snapshot](https://arahman200165.github.io/DUDE/tools/hash-manifest) | Native filesystem access | Desktop-only feature | streams and hashes whole folders in the desktop fs worker |
 | [Hostname Resolver](https://arahman200165.github.io/DUDE/tools/hostname-resolver) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [HTTPS Configuration Analyzer](https://arahman200165.github.io/DUDE/tools/https-config-analyzer) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Large-File Streaming Inspector](https://arahman200165.github.io/DUDE/tools/large-file-inspector) | File watching | Desktop-only feature | follows a growing file (tail -f) |
+| [Large-File Streaming Inspector](https://arahman200165.github.io/DUDE/tools/large-file-inspector) | Native filesystem access | Desktop-only feature | reads byte ranges and streams search over files of any size on disk |
 | [Continuous Ping / Latency Graph](https://arahman200165.github.io/DUDE/tools/latency-monitor) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Live Certificate Chain Fetcher](https://arahman200165.github.io/DUDE/tools/live-certificate-chain) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Local Network Viewer](https://arahman200165.github.io/DUDE/tools/local-network) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |

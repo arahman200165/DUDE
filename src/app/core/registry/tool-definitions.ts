@@ -182,6 +182,7 @@ import { manifest as k8sSecretBase64Manifest } from '../../tools/k8s-secret-base
 import { manifest as keywordFrequencyAnalyzerManifest } from '../../tools/keyword-frequency-analyzer/keyword-frequency-analyzer.manifest';
 import { manifest as ksuidToolsManifest } from '../../tools/ksuid-tools/ksuid-tools.manifest';
 import { manifest as kubeconfigInspectorManifest } from '../../tools/kubeconfig-inspector/kubeconfig-inspector.manifest';
+import { manifest as largeFileInspectorManifest } from '../../tools/large-file-inspector/large-file-inspector.manifest';
 import { manifest as latencyMonitorManifest } from '../../tools/latency-monitor/latency-monitor.manifest';
 import { manifest as lineOrderToolsManifest } from '../../tools/line-order-tools/line-order-tools.manifest';
 import { manifest as linePrefixNumberingManifest } from '../../tools/line-prefix-numbering/line-prefix-numbering.manifest';
@@ -496,6 +497,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   keywordFrequencyAnalyzerManifest,
   ksuidToolsManifest,
   kubeconfigInspectorManifest,
+  largeFileInspectorManifest,
   latencyMonitorManifest,
   lineOrderToolsManifest,
   linePrefixNumberingManifest,
