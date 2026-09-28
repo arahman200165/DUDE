@@ -127,11 +127,11 @@ export function tryPlace(
 }
 
 /** First row-major position where a `w`×`h` block fits without overlap. */
-export function firstFit(items: readonly GridItem[], size: { w: number; h: number }, cols = GRID_COLUMNS): Placement {
+export function firstFit(items: readonly GridItem[], size: { w: number; h: number }, cols = GRID_COLUMNS, minY = 0): Placement {
   const w = Math.min(Math.max(toInt(size.w), 1), cols);
   const h = Math.max(toInt(size.h), 1);
-  const bottom = items.reduce((m, i) => Math.max(m, i.y + i.h), 0);
-  for (let y = 0; y <= bottom; y++) {
+  const bottom = Math.max(items.reduce((m, i) => Math.max(m, i.y + i.h), 0), minY);
+  for (let y = Math.max(minY, 0); y <= bottom; y++) {
     for (let x = 0; x + w <= cols; x++) {
       const candidate = { x, y, w, h };
       if (findCollisions(items, candidate).length === 0) return candidate;

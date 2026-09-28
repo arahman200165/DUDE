@@ -40,7 +40,7 @@ jobs:
       - name: Verify generated registry/docs are up to date
         run: |
           npm run generate:registry
-          git diff --exit-code -- src/app/core/registry/tool-definitions.ts README.md SECURITY.md public/manifest.webmanifest || \
+          git diff --exit-code -- src/app/core/registry/tool-definitions.ts src/app/core/registry/panel-definitions.ts README.md SECURITY.md public/manifest.webmanifest || \
             (echo '::error::tool-definitions.ts, README.md, SECURITY.md, or public/manifest.webmanifest is stale — a <id>.manifest.ts changed without regenerating (npm run generate:registry) and committing the result.' && exit 1)
 
       - name: Lint (dependency/platform boundaries)

@@ -45,7 +45,7 @@ jobs:
         shell: bash
         run: |
           npm run generate:registry
-          git diff --exit-code -- src/app/core/registry/tool-definitions.ts README.md || \
+          git diff --exit-code -- src/app/core/registry/tool-definitions.ts src/app/core/registry/panel-definitions.ts README.md || \
             (echo '::error::tool-definitions.ts or README.md is stale — a <id>.manifest.ts changed without regenerating (npm run generate:registry) and committing the result.' && exit 1)
 
       - name: Run tests
