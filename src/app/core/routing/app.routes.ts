@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { isDevMode } from '@angular/core';
 import { openLinkGuard } from '../deep-link/open-link.guard';
 import { ShellLayout } from '../../shell/layout/shell-layout';
 import { Deck } from '../../shell/deck/deck';
@@ -11,6 +12,20 @@ import { settingsUnsavedChangesGuard } from '../../shell/settings/settings-unsav
 // shell destination, and Phase 30A — see shell/AGENTS.md). Nothing here names a specific tool by id;
 // all are parallel, registry-adjacent features, never a 278th tool. Every lazy destination is wrapped
 // in `withLoadFallback` so an uncached chunk offline shows an explanation, not a blank app.
+// The dev-only entry below (added, then never deleted per its own doc comment, in Phase 30C) is
+// NOT a tool or shell exception — it's a throwaway visual harness for the Phase 30C shared
+// primitives (dashboard panel, unified data table, charts), gated out of production entirely so
+// it never ships. See `dev-preview/primitives-preview/primitives-preview.ts` and the Phase 30
+// exit gate in DUDE_PRD.md for when to delete it.
+const devRoutes: Routes = isDevMode()
+  ? [
+      {
+        path: 'dev/primitives-preview',
+        loadComponent: () => import('../../dev-preview/primitives-preview/primitives-preview').then((m) => m.PrimitivesPreview),
+      },
+    ]
+  : [];
+
 export const routes: Routes = [
   {
     path: '',
@@ -83,4 +98,5 @@ export const routes: Routes = [
       ...buildToolRoutes(),
     ],
   },
+  ...devRoutes,
 ];

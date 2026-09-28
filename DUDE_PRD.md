@@ -2399,8 +2399,10 @@ Prefer a lightweight implementation over adding a large dashboard/chart dependen
 
 #### Exit criteria
 
-- [ ] Home panels share one compact panel primitive with loading, empty, action, and keyboard states.
-- [ ] Shell tables reuse or extend the shared table pattern; local insights use small token-driven charts with text equivalents.
+- [x] Home panels share one compact panel primitive with loading, empty, action, and keyboard states — `app-dashboard-panel` (`shared/components/dashboard-panel/`), M549.
+- [x] Shell tables reuse or extend the shared table pattern; local insights use small token-driven charts with text equivalents — `app-data-table` (`shared/components/data-table/`, unified from the former `app-data-table`/`app-tool-table` split, M550–M552) and `app-sparkline-chart`/`app-ranked-bars-chart` (`shared/components/workbench-charts/`, M553).
+
+Shipped M549–M553. A dev-only `/dev/primitives-preview` route (gated by `isDevMode()`, never reachable in a production build, not registered in the sidebar/search/command-palette) exercises all three primitives together — **remove this route and `src/app/dev-preview/` once Phase 30D–30H have real consumers of these primitives**, tracked in Phase 30's own exit gate below.
 
 ### Phase 30D — Bounded Default Home
 
@@ -3166,6 +3168,7 @@ The original V1 all-tools-on-Deck requirement remains in those sections only as 
 - [ ] Web companion receives the same default information hierarchy with graceful omission/substitution of desktop-only blocks.
 - [ ] Focus, keyboard navigation, contrast, and existing accessibility baseline remain intact for browsing and layout editing.
 - [ ] After Phase 30K, representative light/dark, density, font, high-contrast, and reduced-motion settings pass the first-frame, overflow, focus, keyboard, contrast, and responsive checks above.
+- [ ] Phase 30C's dev-only `/dev/primitives-preview` route and `src/app/dev-preview/` are deleted now that 30D–30H's real Home panels/tables/charts exercise the shared primitives directly.
 
 ### Phase 30 overall outcome
 
