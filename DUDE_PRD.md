@@ -1360,7 +1360,7 @@ Goal: extend Security with the hashing/encryption/key-generation/certificate-ins
 
 ### Notes
 
-Web Crypto API covers AES/RSA/EC/Ed25519 generation and SHA-family hashing/fingerprinting natively; `node-forge` is the fallback for ASN.1/PEM/DER/X.509/CSR/PKCS#12 handling per the library-forward philosophy (§17), added to `angular.json`'s `allowedCommonJsDependencies` in Milestone 117. Every hand-rolled or forge-based crypto path (SSH wire format, X.509 fingerprints, PKCS#12 decryption) was cross-validated in its unit tests against real, independent tool output (`ssh-keygen`, `openssl`) rather than only against itself. Live TLS handshake fetching (`TLS Certificate Fetcher`, cipher/ALPN/SNI inspection, expiration *monitoring* over time) needs live socket/network access and is covered by the later DNS & Live TLS / Certificate Tools in Phase 28.
+Web Crypto API covers AES/RSA/EC/Ed25519 generation and SHA-family hashing/fingerprinting natively; `node-forge` is the fallback for ASN.1/PEM/DER/X.509/CSR/PKCS#12 handling per the library-forward philosophy (§17), added to `angular.json`'s `allowedCommonJsDependencies` in Milestone 117. Every hand-rolled or forge-based crypto path (SSH wire format, X.509 fingerprints, PKCS#12 decryption) was cross-validated in its unit tests against real, independent tool output (`ssh-keygen`, `openssl`) rather than only against itself. Live TLS handshake fetching (cipher/ALPN/SNI inspection, expiration *monitoring* over time) needs live socket/network access and **shipped in Phase 28** as the TLS Connection Inspector, Live Certificate Chain Fetcher and Certificate Watch List; those tools hand a live-fetched chain back to these Phase 12 file-based tools for detailed inspection.
 
 ---
 
@@ -1909,7 +1909,7 @@ Give DUDE a native network-diagnostics surface that a sandboxed browser cannot p
 
 IP/CIDR/subnet math, MAC-address inspection, and IPv4↔integer conversion are pure computation and remain browser-safe capabilities; Phase 19 already contains those kinds of text/math networking utilities. This phase is specifically for live diagnostics that require native socket, interface, routing-table, process, or ICMP access.
 
-**Scope ceiling:** DUDE is for local diagnostics and user-directed checks, not an offensive network-scanning platform. Phase 27 enforces this with the fixed budgets above, applied in the main process and to public and private CIDRs alike. There is no sweep beyond 16 addresses, no background or scheduled check, and no check that outlives its route. A later phase that wants larger ranges, service fingerprinting, or scheduled monitoring must change this scope explicitly rather than by raising a constant.
+**Scope ceiling:** DUDE is for local diagnostics and user-directed checks, not an offensive network-scanning platform. Phase 27 enforces this with the fixed budgets above, applied in the main process and to public and private CIDRs alike. There is no sweep beyond 16 addresses, and no service fingerprinting. A later phase that wants larger ranges or service fingerprinting must change this scope explicitly rather than by raising a constant. *(Amended by Phase 28: the "no background or scheduled check, and no check that outlives its route" rule is narrowed — the Phase 28 Certificate Watch List may run opt-in background checks, process-lifetime only, ≥6 h apart, ≤50 endpoints, one handshake each; see the Phase 28 scope amendment. Nothing else runs in the background.)*
 
 **Delivery notes:**
 - 25 roadmap items became 18 routes. Items 5, 10–15, and 17 were folded into DNS Lookup and Local Network, where they are options or views of one check rather than separate tools.
@@ -1924,44 +1924,49 @@ IP/CIDR/subnet math, MAC-address inspection, and IPv4↔integer conversion are p
 
 ---
 
-## Phase 28 — DNS & Live TLS / Certificate Tools
+## Phase 28 — DNS & Live TLS / Certificate Tools (✅ Complete — shipped as Milestones 509–522)
 
-Extend DUDE's existing file-based certificate inspection capabilities with **live, socket-level checks against running services**. Static certificate parsing and inspection remain useful browser-safe workflows; this phase adds active endpoint/resolver inspection that requires real network connections.
+Extend DUDE's file-based certificate inspection (Phase 12) with **live, socket-level checks against running services**. Static PEM/DER/PFX parsing stays a browser-safe workflow; this phase is the **live-endpoint layer**: deeper DNS (DNSSEC, CAA, email auth), TLS handshake and cipher inspection, chain/revocation/CT retrieval, STARTTLS, and DUDE's first background network check. Every live check reuses the Phase 27 bridge and the shared `electron/network-*.ts` clients, exposes the exact host/resolver/service contacted (§11.2, §22), and stays desktop-only with a web handoff.
 
-1. **DNS Record Explorer (live)**
-2. **DNSSEC Inspector**
-3. **CAA Inspector**
-4. **DKIM Inspector**
-5. **SPF Inspector**
-6. **DMARC Inspector**
-7. **DNS-over-HTTPS Tester**
-8. **DNS-over-TLS Tester**
-9. **Multiple Resolver Comparator** — Cloudflare / Google / Quad9 / system / custom resolvers
-10. **TLS Connection Inspector**
-11. **Cipher Suite Inspector**
-12. **TLS Version Tester**
-13. **ALPN Inspector**
-14. **SNI Tester**
-15. **HTTPS Configuration Analyzer**
-16. **Live Certificate Chain Fetcher** — `host:port` → full presented chain
-17. **Certificate Expiration Monitor** — background-checked/watchable, not only one-shot inspection
-18. **OCSP Inspector**
-19. **CRL Inspector**
-20. **Certificate Transparency Lookup**
-21. **STARTTLS Inspector** for supported protocols
-22. **TLS Handshake Timeline**
-23. **Certificate/Hostname Mismatch Analyzer**
-24. **Local Certificate Watch List**
+**Foundation (Milestone 509):**
+- the DNS wire client (`electron/network-dns.ts`) gained EDNS0 with the DO/CD bits, a UDP transport with TCP fallback on truncation, authority/additional sections and AD/TC/RA/CD flags, real TTLs and rcodes, and typed decoders for SOA, CAA, DNSKEY, DS, RRSIG, NSEC, NSEC3, TLSA and HTTPS/SVCB. `"system"` now queries the OS-configured servers over the wire. Per-transport diagnostics report DoH HTTP status and DoT TLS details;
+- the DNS resolver is now validated for every DNS kind (previously unvalidated), and the DoH/DoT/wire paths gained specs;
+- `electron/network-tls.ts` performs the inspection handshake (`rejectUnauthorized:false`, then separate trust verdicts against the bundled Mozilla roots **and** the Windows store), with a byte tap for the handshake timeline, session-only mTLS identities, stapled-OCSP capture, and hostname-mismatch analysis;
+- a minimal DER reader (`electron/der.ts`) for CRL distribution points, SCTs, OCSP and CRL;
+- the shared `app-network-workbench` gained pluggable form / request-builder / result-template slots, a "Contacting:" disclosure strip, and a raw-JSON toggle (Phase 27 tools are unchanged); shared `cert-chain-view` and `findings-list` components;
+- run history never stores client identities, pasted mail headers, or packet captures.
+
+Twenty-four roadmap items became **eleven routes** (two extended in place, nine new):
+
+1. **DNS Record Explorer (live)** — **✅ Shipped as DNS Lookup extensions (Milestone 510)**: all 17 record types, a typed response view (flags, sections, EDNS), and per-transport diagnostics.
+2. **DNSSEC Inspector** — **✅ Shipped (Milestone 511)**: full local chain-of-trust validation from the embedded IANA root KSKs, RRSIG/DS/DNSKEY verification (RSA/ECDSA/Ed25519), and NSEC/NSEC3 denial-of-existence proofs. The resolver only transports the records; its AD bit is shown next to the local verdict.
+3. **CAA Inspector** — **✅ Shipped as a DNS Lookup analysis view (Milestone 510)**: RFC 8659 tree-climb, issue/issuewild/iodef, and a "can this CA issue?" check. Reused by the HTTPS Analyzer.
+4. **DKIM Inspector** / 5. **SPF Inspector** / 6. **DMARC Inspector** — **✅ Shipped as one Email Auth Inspector (Milestone 512)**, three tabs of one run: SPF include tree with the 10-lookup limit and `check_host()` evaluation; DKIM keys by selector, pasted header, or a reviewed common-selector probe; DMARC with PSL organizational-domain fallback and external-report authorization.
+7. **DNS-over-HTTPS Tester** / 8. **DNS-over-TLS Tester** — **✅ Shipped as DNS Lookup transport options with per-transport diagnostics (Milestone 510)**, not separate routes.
+9. **Multiple Resolver Comparator** — **✅ Shipped as DNS Propagation extensions (Milestone 510)**: presets, the system resolver, and up to five custom classic/DoH/DoT resolvers, with TTL spread and per-resolver divergent values. Still reports resolver differences, never global propagation.
+10. **TLS Connection Inspector** / 11. **Cipher Suite Inspector** / 12. **TLS Version Tester** / 13. **ALPN Inspector** / 14. **SNI Tester** / 22. **TLS Handshake Timeline** — **✅ Shipped as one TLS Connection Inspector (Milestones 513–515)**: connection (version/cipher/ALPN/SNI), a handshake timeline from raw record bytes, mTLS, and HTTP/3 via the Chromium network stack (M513); gated cipher/version **enumeration** with a configuration weakness report (M514); and an elevated-only pktmon **packet capture** to pcapng (M515).
+15. **HTTPS Configuration Analyzer** — **✅ Shipped (Milestone 520)**: one composite, gated run producing pass/warn/fail findings (versions, ciphers, chain, hostname, expiry, OCSP stapling, HTTP→HTTPS redirect, HSTS, CAA, HTTPS/SVCB) with **no letter grade**.
+16. **Live Certificate Chain Fetcher** / 23. **Certificate/Hostname Mismatch Analyzer** — **✅ Shipped as one Live Certificate Chain Fetcher (Milestone 516)**: fetches the full presented chain (direct or via STARTTLS), the dual-store trust verdicts, the wildcard/IP-SAN/near-miss hostname analysis, and an incomplete-chain/AIA hint, with hand-offs to the Phase 12 tools and to Revocation/CT/Watch.
+17. **Certificate Expiration Monitor** / 24. **Local Certificate Watch List** — **✅ Shipped as one Certificate Watch List (Milestone 521)**, DUDE's first background network check (see the amended scope note below).
+18. **OCSP Inspector** / 19. **CRL Inspector** — **✅ Shipped as one Certificate Revocation Inspector (Milestone 517)**, plus AIA issuer fetch: builds and verifies OCSP (issuer or delegated responder), parses and verifies CRLs, and contacts only the URLs named inside the certificate, over HTTP.
+20. **Certificate Transparency Lookup** — **✅ Shipped (Milestone 518)**: decodes embedded SCTs locally and names each log from a bundled list; domain history via crt.sh (a disclosed third party) or a custom endpoint.
+21. **STARTTLS Inspector** — **✅ Shipped (Milestone 519)**: SMTP, IMAP, POP3, FTP, LDAP, PostgreSQL, MySQL and XMPP, showing the negotiation transcript and then the TLS layer.
 
 ### Notes
 
-The certificate tools in Phase 12 operate from user-supplied PEM/DER/PFX material and can remain entirely local/browser-safe. Phase 28 is specifically the **live endpoint** layer: DNS queries, resolver comparison, TCP/TLS negotiation, chain retrieval, revocation/status checks, STARTTLS, monitoring, and other behavior that depends on contacting a running service.
+The certificate tools in Phase 12 operate from user-supplied PEM/DER/PFX material and stay entirely local/browser-safe. Phase 28 is the live-endpoint layer that contacts a running service, and every route inherits the standing network-disclosure rules in §11 and §22.
 
-Live checks must expose the exact host/resolver/service being contacted and inherit the standing network-disclosure rules in §11 and §22.
+**Delivery notes:**
+- Each tool commit ran `generate:registry`, so the sidebar, search, palette, README and SECURITY tables track the tools (fixing a Phase 27 discoverability gap).
+- All eleven routes ship at `experimental` status. Trust verdicts are reported against both the bundled Mozilla roots and the Windows system store, labeled separately, so corporate/MITM roots are visible.
+- Because Electron's TLS library (BoringSSL) omits many legacy suites, cipher/version enumeration reports anything it cannot offer as **"not testable from this client"**, never as unsupported.
+- Cipher/version enumeration, the HTTPS Analyzer (which enumerates), and packet capture are tagged `network-scanning`/`process-management` and gated by a main-process preview and single-use confirmation. Packet capture also requires the elevated session.
+- Bundled reference data (`electron/data/`: the Public Suffix List snapshot for DMARC, the CT log list) is refreshed by `scripts/refresh-network-data.mjs` and committed with its retrieval date; nothing is downloaded at runtime for those steps.
+- **Still unverified (needs manual desktop testing):** the watch-list background firing, notifications and tray badge; the elevated pktmon capture and its UAC path; and how much HTTP/3 detail the Chromium net stack exposes.
 
-**Overlap with Phase 27 (flagged for whoever plans this phase):** Phase 27's DNS Lookup already queries A/AAAA/MX/TXT/SRV/NS/CNAME over classic DNS, DoH, and DoT, and DNS Propagation already compares Cloudflare, Google, Quad9, and custom resolvers. Items 1 and 7–9 should extend those tools and the shared `electron/network-dns.ts` client rather than add parallel implementations. What stays new here is depth: DNSSEC, per-transport diagnostics, and comparison against the system resolver. Item 17 would be DUDE's first background network check. Phase 27's bridge runs checks only in the foreground, so item 17 needs its own explicit scheduling and disclosure decision.
+**Scope amendment to Phase 27's ceiling (§21 Phase 27 Notes).** Phase 27 stated "no background or scheduled check, and no check that outlives its route." Phase 28 amends this **narrowly and explicitly**: the Certificate Watch List (items 17/24) may run background checks, but only opt-in, only while the DUDE process is alive (window open or hidden to tray), at most every 6 hours, for at most 50 endpoints, as a single TLS handshake each — no launch-on-login, no service, no OCSP/CT follow-ups in the background. Phase 28 also adds config-weakness findings (legacy versions, RC4/3DES, weak DH, missing extensions) derived from normal or enumerated handshakes; consistent with Phase 27's "not an offensive scanning platform" ceiling, **no probe triggers a server bug, reads leaked memory, or stresses the server.**
 
-**Goal:** unify static certificate inspection and real live-endpoint troubleshooting.
+**Goal achieved:** static certificate inspection and live-endpoint troubleshooting are unified — DUDE can answer "what does this endpoint actually present, is it trusted, is it revoked, and when does it expire?" from one desktop surface, with explicit targets and bounded, mostly foreground checks.
 
 ---
 
@@ -2858,7 +2863,7 @@ Goal: preserve debugging context across interruptions without trying to replace 
 
 ## Phase 66 — Monitoring & Watchers
 
-1. Certificate expiration watches
+1. Certificate expiration watches — **partly shipped in Phase 28** (the Certificate Watch List). This item is now to *generalize* that watcher (its scheduler, thresholds, notifications and tray badge) as the basis for the other watch types below, and to add the cross-cutting features (quiet hours, a notification center) rather than to rebuild certificate watching.
 2. Endpoint health watches
 3. Local service watches
 4. File change watches
@@ -2870,7 +2875,7 @@ Goal: preserve debugging context across interruptions without trying to replace 
 10. Watch history
 11. Local-only execution by default
 
-Goal: extend one-shot diagnostics into low-overhead developer monitoring.
+Goal: extend one-shot diagnostics into low-overhead developer monitoring, building on the Phase 28 certificate watcher.
 
 ---
 
