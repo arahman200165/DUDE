@@ -1,0 +1,51 @@
+<section
+  class="flex h-full flex-col gap-1.5 rounded-sm border p-2 text-xs"
+  [class]="category() ? 'border-' + meta[category()!].colorToken + '/40 bg-' + meta[category()!].colorToken + '-wash' : 'border-border bg-panel'"
+>
+  <header class="flex items-center justify-between gap-2">
+    <div class="flex min-w-0 items-center gap-1.5">
+      @if (category()) {
+        <app-category-icon
+          [category]="category()!"
+          class="h-3.5 w-3.5 shrink-0"
+          [class]="'text-' + meta[category()!].colorToken"
+        />
+      }
+      <h2 class="truncate font-medium" [class]="category() ? 'text-' + meta[category()!].colorToken + '-tint' : 'text-text'">
+        {{ title() }}
+      </h2>
+      @if (itemCount() !== undefined) {
+        <span class="shrink-0 text-ui-xs text-text-muted">{{ itemCount() }}</span>
+      }
+    </div>
+
+    @if (viewAllLabel()) {
+      <button
+        type="button"
+        class="shrink-0 text-ui-xs text-text-muted hover:text-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+        (click)="viewAll.emit()"
+      >
+        {{ viewAllLabel() }} →
+      </button>
+    }
+  </header>
+
+  <div class="min-h-0 flex-1 overflow-auto">
+    @if (loading()) {
+      <div class="flex h-full items-center justify-center gap-1.5 text-text-muted" aria-live="polite" aria-busy="true">
+        <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-text-muted"></span>
+        <span>Loading…</span>
+      </div>
+    } @else if (empty()) {
+      <div class="flex h-full flex-col items-center justify-center gap-1 text-center text-text-muted">
+        <ng-content select="[panelEmpty]" />
+      </div>
+    } @else {
+      <ng-content />
+    }
+  </div>
+
+  @if (!loading() && !empty()) {
+    <ng-content select="[panelActions]" />
+  }
+</section>
