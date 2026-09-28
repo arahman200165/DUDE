@@ -15,6 +15,10 @@ const CASES: readonly { name: string; url: string; expected?: string }[] = [
   { name: 'literal ~and~ in the query', url: '/DUDE/history?tool=json&note=x~and~y' },
   { name: 'percent-encoded characters', url: '/DUDE/history?tool=j%20son%2Fx' },
   { name: 'trailing slash', url: '/DUDE/tools/json/', expected: '/DUDE/tools/json' },
+  // Browse Tools (Phase 30A) -- a bare hit and a filtered/sorted/viewed deep link must both survive
+  // the same 404.html round trip as any other shell destination.
+  { name: 'browse tools bare route', url: '/DUDE/tools' },
+  { name: 'browse tools filtered deep link', url: '/DUDE/tools?q=jwt&category=security&sort=alpha&view=grid' },
 ];
 
 const currentUrl = (page: Page) => page.evaluate(() => location.pathname + location.search + location.hash);

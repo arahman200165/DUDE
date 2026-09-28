@@ -1,6 +1,7 @@
 import { ToolDefinition } from '../../shared/models/tool-definition.model';
 import { buildToolRoutes, loadToolComponent, toRoutePath } from './tool-routes';
 import { ToolLoadFailure } from '../../shared/components/tool-load-failure/tool-load-failure';
+import { TOOL_DEFINITIONS } from './tool-definitions';
 
 describe('toRoutePath', () => {
   it('strips a leading slash', () => {
@@ -34,6 +35,16 @@ describe('buildToolRoutes', () => {
   it('keeps loadComponent lazy instead of eagerly resolving the import', () => {
     const [route] = buildToolRoutes(definitions);
     expect(typeof route.loadComponent).toBe('function');
+  });
+});
+
+describe('the real registry', () => {
+  // `/tools` is the Browse Tools shell route (DUDE_PRD.md §21 Phase 30A.1) -- a manifest declaring
+  // that bare path would collide with it. Individual tool routes live at `/tools/<id>`, a distinct
+  // full-path literal Angular matches independently, so this is the only invariant worth guarding.
+  it('never declares a bare "/tools" route for any tool manifest', () => {
+    const bareRouteTools = TOOL_DEFINITIONS.filter((definition) => toRoutePath(definition.route) === 'tools');
+    expect(bareRouteTools).toEqual([]);
   });
 });
 

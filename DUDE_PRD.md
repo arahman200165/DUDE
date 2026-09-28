@@ -2256,11 +2256,11 @@ Category/filter URLs may be shareable where this can be implemented without enco
 
 #### Exit criteria
 
-- [ ] A dedicated Browse Tools surface exposes every registered tool.
-- [ ] Browse Tools supports search, category filtering, deterministic sorting, and at least Compact Table + Grid/List views.
-- [ ] Category counts and total tool counts are registry-derived.
-- [ ] Existing dedicated tool routes remain unchanged.
-- [ ] Browse Tools remains usable with a synthetic 1,000-tool registry where practical.
+- [x] A dedicated Browse Tools surface exposes every registered tool.
+- [x] Browse Tools supports search, category filtering, deterministic sorting, and at least Compact Table + Grid/List views.
+- [x] Category counts and total tool counts are registry-derived.
+- [x] Existing dedicated tool routes remain unchanged.
+- [x] Browse Tools remains usable with a synthetic 1,000-tool registry where practical.
 
 ### Phase 30B — Sidebar and Command Palette Navigation
 
