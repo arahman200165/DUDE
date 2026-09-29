@@ -1,6 +1,6 @@
 # AGENTS.md — src/app/core/
 
-This directory is the tool-agnostic framework: `registry/` (metadata, search, route generation), `persistence/` (per-tool storage policy), `workers/` (Worker request/result/cancel contract), `connectivity/` (online/offline + update-available signal), and `routing/` (the one root route table). Phase 26 added `offline/` (cache readiness/repair), `share/` (URL input handoff), `backup/` (portable bundles), `pwa/` (install), and `parity/` (registry-wide tests). Keep all of these registry-driven; per-tool exceptions and fixtures live beside the tool, not in core.
+This directory is the tool-agnostic framework: `registry/` (metadata, search, route generation), `persistence/` (per-tool storage policy), `workers/` (Worker request/result/cancel contract), `connectivity/` (online/offline + update-available signal), and `routing/` (the one root route table). Phase 30I added `home-layout/` (the user-designed Home's grid engine, layout store and panel-manifest helpers; see its own `AGENTS.md` — like everything here it names no panel kind or tool id). Phase 26 added `offline/` (cache readiness/repair), `share/` (URL input handoff), `backup/` (portable bundles), `pwa/` (install), and `parity/` (registry-wide tests). Keep all of these registry-driven; per-tool exceptions and fixtures live beside the tool, not in core.
 
 ## The rule
 

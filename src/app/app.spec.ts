@@ -48,6 +48,12 @@ describe('App', () => {
     const compiled = harness.routeNativeElement as HTMLElement;
     const registrySize = TestBed.inject(ToolRegistryService).getAll().length;
 
+    // Home panels are lazy chunks (Phase 30I); wait for them to mount before inspecting.
+    await vi.waitFor(() => {
+      harness.detectChanges();
+      expect(compiled.querySelector('[data-panel-kind="category-strip"] a[href="/tools"]')).not.toBeNull();
+    });
+
     // A handful of representative tool links per category preview is fine; the full registry
     // (hundreds of tools) unconditionally rendered as links is exactly what Phase 30D removes.
     expect(compiled.querySelectorAll('a[href^="/tools/"]').length).toBeLessThan(registrySize / 2);

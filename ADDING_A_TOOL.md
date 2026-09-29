@@ -251,3 +251,29 @@ Then run `npm test` — `tool-search.spec.ts`, `tool-registry.service.spec.ts`, 
 ## 12. Verify the direct URL
 
 After `ng build`, confirm the lazy chunk loads and the route resolves correctly when hit directly (not just via in-app navigation) — this is what Milestone 9's `e2e/production-direct-route.spec.ts` automates for the `json` tool as a template if you want to extend it. At minimum, serve the production build locally and hard-navigate to `/DUDE/tools/<id>` to confirm it isn't relying on client-side router state that a fresh page load wouldn't have.
+
+## Adding a Home panel (not a tool)
+
+Registering a tool never creates a Home panel — a panel is its own explicit declaration (DUDE_PRD.md Phase 30I). A feature that wants one (a tool's status card, Git status, running processes, certificate expiry, …) adds a colocated **`<kind-id>.panel-manifest.ts`** next to its component and touches nothing in `src/app/shell/`, `src/app/core/` or Settings:
+
+```ts
+import type { PanelDefinition } from '<rel>/shared/models/panel-definition.model';
+
+export const panel: PanelDefinition = {
+  id: 'my-panel',                       // kebab-case; must equal the file name
+  title: 'My panel',
+  description: 'One sentence shown in the picker.',
+  load: () => import('./my-panel').then((m) => m.MyPanel),
+  size: { minW: 4, minH: 2 },           // whole 12-column grid cells
+  defaultPlacement: { order: 20, w: 6, h: 3 },   // omit to keep it out of the shipped default
+  dataDependencies: ['usage'],          // authoritative sources it reads live (never a copy)
+  // multiInstance + config: [...]      // only when per-instance config makes duplicates distinct
+  // desktopOnly / capabilities + webBehavior: 'omit' | 'explain'   // desktop-only panels
+  // showWhen: () => inject(SomeService).hasData()                  // omit (and close the gap) when empty
+  // deferUntilVisible: true            // heavy, below-the-fold panels
+};
+```
+
+The panel component injects its own data from the owning service (never a copied store) and, when it needs its instance id or config, `inject(PANEL_CONTEXT, { optional: true })`. It must **never do anything consequential on mount** — actions happen on a click, through the target's existing confirmation path.
+
+Then run `npm run generate:registry` (`pretest`/`prestart`/`prebuild` do it for you); it regenerates `core/registry/panel-definitions.ts`, which CI checks is current. `home-layout-framework.spec.ts` validates every manifest (unique kebab-case ids, matching file names, size and default-placement sanity, config defaults, closed data-dependency vocabulary), and the panel appears in Settings › Home layout's picker automatically. Kinds are referenced by id from persisted layouts, so a rename needs `replaces: ['old-id']` and a removal degrades to a dormant, removable entry rather than breaking anyone's Home. Existing users with a saved layout do not gain new kinds unprompted — they find them in the picker.

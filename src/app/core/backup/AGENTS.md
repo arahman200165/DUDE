@@ -8,6 +8,7 @@ Export/import bundle (DUDE_PRD.md §21 Phase 26 Item 14). It gives web users a b
 
 ## Rules
 
+- **The Home layout is exported** (Phase 30I, optional `homeLayout` section — additive, so the bundle schema version is unchanged): instances, both placements, and user-authored text/link/shortcut content. `parseBundle` takes a registry-aware sanitizer and `apply` re-sanitizes (`HomeLayoutService.importData`), so an imported link can only be http(s), a shortcut only a reference, and an unknown panel kind a dormant entry. It supersedes `homePanel`, which is still read from older bundles (and migrated on the next Home visit).
 - **Home note & links are exported** (Phase 30H.6, optional `homePanel` section): unlike usage stats they are the user's own authored content. `parseBundle` and `apply` both re-sanitize them (`core/home-panel/`), so an imported link can only ever be an http(s) URL. Conflict modes apply to the panel as one unit (`planHomePanel`).
 - **Never exported:** consent decisions, `secure-local`/keychain secrets, History, usage stats, and any storage namespace that isn't a registered tool (e.g. the app-level `settings` namespace holding the AI provider config).
 - **Import re-enforces the boundary; it doesn't trust the file.** Preferences are written only for registered tool ids, safe key names, and valid JSON, never a tool's declared input key. Inputs are written only through each tool's own declared policy and flagged as imported (`recordImportedFileFlags`). `dude-bundle.service.spec.ts` has a tampered-bundle test; keep it passing.

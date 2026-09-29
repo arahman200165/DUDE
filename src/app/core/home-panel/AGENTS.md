@@ -1,5 +1,7 @@
 # AGENTS.md — src/app/core/home-panel/
 
+> **Superseded by Phase 30I (Milestone 567).** The Notes & links panel is now the layout store's text and link panels (`core/home-layout/`); Home's `migrateLegacyHomePanel` moves this store's content there once and empties it. This directory remains only for that migration, for importing older backups' `homePanel` section, and for the shared link validation (`normalizeExternalUrl`, `validateLink`) that the new panels reuse. The rules below still hold for that content.
+
 Framework layer for the Home "Notes & links" panel (`DUDE_PRD.md` §21 Phase 30H.6). Like the rest of
 `core/`, no file here names a specific tool by id.
 
