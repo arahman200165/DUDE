@@ -78,7 +78,26 @@ export class AppearanceService {
     root.style.setProperty('--dude-font-mono', fontStack(prefs, 'mono'));
 
     const background = getComputedStyle(root).getPropertyValue('--dude-bg').trim();
-    if (background) document.querySelector('meta[name="theme-color"]')?.setAttribute('content', background);
+    if (background) this.applyThemeColor(background);
+  }
+
+  /**
+   * index.html ships two media-scoped theme-color metas so the first paint follows the OS scheme. Once
+   * the user's effective theme is known those would override it, so they are dropped in favour of one
+   * un-scoped meta carrying the resolved `--dude-bg`.
+   */
+  private applyThemeColor(background: string): void {
+    const metas = Array.from(document.head.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]'));
+    for (const meta of metas) if (meta.hasAttribute('media')) meta.remove();
+    const unscoped = metas.filter((candidate) => !candidate.hasAttribute('media'));
+    for (const extra of unscoped.slice(1)) extra.remove();
+    let meta = unscoped[0];
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.name = 'theme-color';
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', background);
   }
 
   private watchMedia(query: string, target: { set(value: boolean): void }): void {

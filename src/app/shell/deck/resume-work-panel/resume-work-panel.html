@@ -26,7 +26,7 @@
             class="flex w-full items-center justify-between gap-2 rounded-sm border border-accent/40 bg-accent/10 px-2 py-1 text-left text-xs text-accent hover:bg-accent/20"
           >
             <span class="truncate">{{ project.name }}</span>
-            <span class="shrink-0 text-ui-xs text-accent/70">{{ project.openTabs.length }} tool{{ project.openTabs.length === 1 ? '' : 's' }}</span>
+            <span class="shrink-0 text-ui-xs text-accent">{{ project.openTabs.length }} tool{{ project.openTabs.length === 1 ? '' : 's' }}</span>
           </button>
         </li>
       }
@@ -55,7 +55,7 @@
             class="flex items-center justify-between gap-2 rounded-sm border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-accent hover:bg-accent/20"
           >
             <span class="truncate">{{ pipeline.name }}</span>
-            <span class="shrink-0 text-ui-xs text-accent/70">{{ pipeline.steps.length }} step{{ pipeline.steps.length === 1 ? '' : 's' }}</span>
+            <span class="shrink-0 text-ui-xs text-accent">{{ pipeline.steps.length }} step{{ pipeline.steps.length === 1 ? '' : 's' }}</span>
           </a>
         </li>
       }

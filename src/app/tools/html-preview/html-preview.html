@@ -10,6 +10,7 @@
         <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" (click)="clear()">
           Clear
         </button>
+        <app-preview-background [(value)]="previewBg" />
       </div>
       @if (!importedNeedsApproval()) {
       @if (preview().status(); as status) {
@@ -43,7 +44,7 @@
         (input)="onSourceChange($event)"
       ></textarea>
       @if (!importedNeedsApproval()) {
-        <app-live-html-preview [source]="debouncedSource()" [timeoutMs]="timeoutMs" (event)="onPreviewEvent($event)" />
+        <app-live-html-preview [appPreviewBackground]="previewBg()" [source]="debouncedSource()" [timeoutMs]="timeoutMs" (event)="onPreviewEvent($event)" />
       } @else {
         <div class="rounded border border-border bg-panel p-4 text-ui text-text-muted">Preview paused until you approve this file.</div>
       }

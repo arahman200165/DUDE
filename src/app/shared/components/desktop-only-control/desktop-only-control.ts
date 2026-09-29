@@ -18,7 +18,7 @@ import { PlatformCapabilityId } from '../../models/tool-capability.model';
         type="button"
         disabled
         aria-disabled="true"
-        class="inline-flex cursor-not-allowed items-center gap-1 rounded-sm border border-dashed border-border px-1.5 py-0.5 text-ui text-text-muted/70"
+        class="inline-flex cursor-not-allowed items-center gap-1 rounded-sm border border-dashed border-border px-1.5 py-0.5 text-ui text-text-muted"
         [title]="title()"
       >
         {{ label() }}

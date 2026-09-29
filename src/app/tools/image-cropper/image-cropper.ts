@@ -1,17 +1,23 @@
-import { Component, ElementRef, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
 import { FileDrop } from '../../shared/components/file-drop/file-drop';
 import { downloadFile } from '../../shared/utils/download-file';
 import { clampCropRect, CropRect, Point, rectFromPoints, scaleRectToNatural } from './crop-rect';
+import { PersistenceService } from '../../core/persistence/persistence.service';
+import { PreviewBackground } from '../../shared/components/preview-background/preview-background-style';
+import { PreviewBackgroundChips, PreviewBackgroundTarget } from '../../shared/components/preview-background/preview-background';
 
 @Component({
   selector: 'app-image-cropper',
-  imports: [ToolShell, ErrorPanel, FileDrop],
+  imports: [PreviewBackgroundChips, PreviewBackgroundTarget, ToolShell, ErrorPanel, FileDrop],
   templateUrl: './image-cropper.html',
 })
 export class ImageCropper {
+  private readonly persistence = inject(PersistenceService);
   private readonly imageEl = viewChild<ElementRef<HTMLImageElement>>('previewImage');
+
+  protected readonly previewBg = this.persistence.signal<PreviewBackground>('image-cropper', 'preview-background', 'local', 'theme');
 
   protected readonly rejection = signal<string | null>(null);
   protected readonly selectedFile = signal<File | null>(null);

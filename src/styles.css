@@ -75,7 +75,7 @@ body {
  * Density tokens are generated (theme.generated.css) and switched by data-density.
  */
 @utility dude-input {
-  @apply rounded-sm border border-border bg-panel px-2 text-xs text-text placeholder:text-text-muted/60 focus:outline-none focus:ring-1 focus:ring-accent;
+  @apply rounded-sm border border-border bg-panel px-2 text-xs text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent;
   height: var(--dude-control-h);
 }
 
@@ -89,4 +89,35 @@ body {
 
 @utility dude-chip-off {
   @apply border-border text-text-muted hover:text-text;
+}
+
+/*
+ * Theme-conditional visibility for assets that ship in a dark-surface and a
+ * light-surface variant (e.g. the sidebar logo lockup). Keyed on the resolved
+ * theme attribute rather than prefers-color-scheme so the user's explicit
+ * choice wins.
+ */
+@utility dude-only-dark {
+  :root[data-theme='light'] & {
+    display: none;
+  }
+}
+
+@utility dude-only-light {
+  display: none;
+
+  :root[data-theme='light'] & {
+    display: inline;
+  }
+}
+
+/*
+ * Iframes hosting user/untrusted documents (which declare no color-scheme) must
+ * not inherit the app's `color-scheme: dark`: Chromium paints an iframe's canvas
+ * opaque when the element's used scheme differs from the embedded document's,
+ * which would hide the preview-background behind the frame. `normal` matches an
+ * undeclared document, keeping the canvas transparent.
+ */
+@utility dude-doc-frame {
+  color-scheme: normal;
 }

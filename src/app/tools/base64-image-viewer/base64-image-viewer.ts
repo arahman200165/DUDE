@@ -5,18 +5,21 @@ import { CopyButton } from '../../shared/components/copy-button/copy-button';
 import { FileDrop } from '../../shared/components/file-drop/file-drop';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { encodeBytesToBase64, parseBase64Image } from './base64-image-codec';
+import { PreviewBackground } from '../../shared/components/preview-background/preview-background-style';
+import { PreviewBackgroundChips, PreviewBackgroundTarget } from '../../shared/components/preview-background/preview-background';
 
 export type Base64ImageDirection = 'view' | 'encode';
 
 @Component({
   selector: 'app-base64-image-viewer',
-  imports: [ToolShell, ErrorPanel, CopyButton, FileDrop],
+  imports: [PreviewBackgroundChips, PreviewBackgroundTarget, ToolShell, ErrorPanel, CopyButton, FileDrop],
   templateUrl: './base64-image-viewer.html',
 })
 export class Base64ImageViewer {
   private readonly persistence = inject(PersistenceService);
 
   protected readonly direction = this.persistence.signal<Base64ImageDirection>('base64-image-viewer', 'direction', 'local', 'view');
+  protected readonly previewBg = this.persistence.signal<PreviewBackground>('base64-image-viewer', 'preview-background', 'local', 'theme');
   protected readonly base64Input = signal('');
 
   protected readonly rejection = signal<string | null>(null);

@@ -62,7 +62,7 @@
             <svg [attr.viewBox]="'0 0 ' + mapWidth + ' ' + mapHeight" class="w-full rounded-sm border border-border bg-panel" role="img" aria-label="Treemap of folder sizes">
               @for (rect of treemap(); track rect.key) {
                 <g (click)="drill(rect.key, rect.folder)" [class.cursor-pointer]="rect.folder">
-                  <rect [attr.x]="rect.x" [attr.y]="rect.y" [attr.width]="rect.width" [attr.height]="rect.height" [attr.fill]="rect.folder ? 'hsl(' + rect.hue + ' 45% 38%)' : 'hsl(220 8% 30%)'" stroke="var(--color-bg, #111)" stroke-width="1"><title>{{ rect.label }} — {{ bytes(rect.value) }}</title></rect>
+                  <rect [attr.x]="rect.x" [attr.y]="rect.y" [attr.width]="rect.width" [attr.height]="rect.height" [attr.fill]="rect.folder ? 'hsl(' + rect.hue + ' 45% 38%)' : 'hsl(220 8% 30%)'" stroke="var(--color-bg)" stroke-width="1"><title>{{ rect.label }} — {{ bytes(rect.value) }}</title></rect>
                   @if (rect.width > 60 && rect.height > 18) {
                     <text [attr.x]="rect.x + 4" [attr.y]="rect.y + 13" font-size="11" fill="white" class="pointer-events-none">{{ rect.label.length > rect.width / 7 ? rect.label.slice(0, rect.width / 7 - 1) + '…' : rect.label }}</text>
                     @if (rect.height > 32) { <text [attr.x]="rect.x + 4" [attr.y]="rect.y + 26" font-size="10" fill="white" opacity="0.75" class="pointer-events-none">{{ bytes(rect.value) }}</text> }

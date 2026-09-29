@@ -21,6 +21,7 @@
     "test": "ng test",
     "prebuild": "npm run generate:registry",
     "test:e2e": "npm run build && playwright test --config=e2e/playwright.config.ts",
+    "test:appearance": "npm run build && playwright test --config=e2e/appearance/playwright.appearance.config.ts",
     "test:electron": "vitest run --config vitest.electron.config.mts",
     "test:perf": "vitest run --config vitest.perf.config.mts",
     "test:high-consequence": "node scripts/check-high-consequence-gate.mjs",

@@ -6,6 +6,8 @@ import { OpenTextFile } from '../../shared/components/open-text-file/open-text-f
 import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
 import { SaveTextFile } from '../../shared/components/save-text-file/save-text-file';
 import { PersistenceService } from '../../core/persistence/persistence.service';
+import { PreviewBackground } from '../../shared/components/preview-background/preview-background-style';
+import { PreviewBackgroundChips, PreviewBackgroundTarget } from '../../shared/components/preview-background/preview-background';
 import { formatSvg, minifySvg, optimizeSvg, type SvgOptimizeResult, type SvgTextResult } from './svg-tools';
 
 type Mode = 'format' | 'minify' | 'optimize';
@@ -20,7 +22,7 @@ const SAMPLE = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" widt
  */
 @Component({
   selector: 'app-svg-viewer',
-  imports: [ToolShell, ErrorPanel, CopyButton, OpenTextFile, TextFileDrop, SaveTextFile],
+  imports: [PreviewBackgroundChips, PreviewBackgroundTarget, ToolShell, ErrorPanel, CopyButton, OpenTextFile, TextFileDrop, SaveTextFile],
   templateUrl: './svg-viewer.html',
 })
 export class SvgViewer {
@@ -28,6 +30,8 @@ export class SvgViewer {
 
   protected readonly mode = this.persistence.signal<Mode>('svg-viewer', 'mode', 'local', 'format');
   protected readonly source = this.persistence.signal('svg-viewer', 'source', 'session', SAMPLE);
+  // Defaults to the checkerboard this preview always had, so transparent SVGs look the same until changed.
+  protected readonly previewBg = this.persistence.signal<PreviewBackground>('svg-viewer', 'preview-background', 'local', 'checker');
 
   private readonly previewUrlSignal = signal<string | null>(null);
   protected readonly previewUrl = this.previewUrlSignal.asReadonly();

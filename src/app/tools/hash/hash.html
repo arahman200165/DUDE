@@ -11,7 +11,7 @@
     <div class="flex flex-col gap-1.5">
       @for (group of algorithmGroups; track group.label) {
         <div class="flex flex-wrap items-center gap-3 text-ui text-text-muted">
-          <span class="w-16 shrink-0 text-text-muted/70">{{ group.label }}</span>
+          <span class="w-16 shrink-0 text-text-muted">{{ group.label }}</span>
           @for (algorithm of group.algorithms; track algorithm) {
             <label class="flex items-center gap-1.5">
               <input

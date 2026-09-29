@@ -15,6 +15,7 @@ export class PaletteGenerator {
 
   protected readonly paletteTypes = PALETTE_TYPES;
 
+  protected readonly inputPlaceholder = '#3b82f6, rgb(59,130,246), hsl(217,91%,60%)…';
   protected readonly input = this.persistence.signal('palette-generator', 'input', 'session', '#3b82f6');
   protected readonly type = this.persistence.signal<PaletteType>('palette-generator', 'type', 'local', 'complementary');
 

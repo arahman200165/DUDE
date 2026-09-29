@@ -6,7 +6,7 @@
         <span class="whitespace-nowrap text-ui-xs text-text-muted">{{ marker.label }}</span>
         <span
           class="w-px flex-1"
-          [class.bg-red-400]="marker.emphasis === 'now'"
+          [class.bg-error]="marker.emphasis === 'now'"
           [class.bg-accent]="marker.emphasis === 'accent'"
           [class.bg-border]="!marker.emphasis || marker.emphasis === 'default'"
         ></span>

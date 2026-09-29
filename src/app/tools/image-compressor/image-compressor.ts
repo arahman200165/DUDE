@@ -5,6 +5,8 @@ import { FileDrop } from '../../shared/components/file-drop/file-drop';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { downloadFile } from '../../shared/utils/download-file';
 import { computeSavingsPercent } from './image-compressor-savings';
+import { PreviewBackground } from '../../shared/components/preview-background/preview-background-style';
+import { PreviewBackgroundChips, PreviewBackgroundTarget } from '../../shared/components/preview-background/preview-background';
 
 export type CompressFormat = 'jpeg' | 'webp' | 'png';
 
@@ -32,7 +34,7 @@ const MIME_BY_FORMAT: Record<CompressFormat, string> = {
  */
 @Component({
   selector: 'app-image-compressor',
-  imports: [ToolShell, ErrorPanel, FileDrop],
+  imports: [PreviewBackgroundChips, PreviewBackgroundTarget, ToolShell, ErrorPanel, FileDrop],
   templateUrl: './image-compressor.html',
 })
 export class ImageCompressor {
@@ -40,6 +42,7 @@ export class ImageCompressor {
 
   protected readonly format = this.persistence.signal<CompressFormat>('image-compressor', 'format', 'local', 'webp');
   protected readonly quality = this.persistence.signal('image-compressor', 'quality', 'local', 75);
+  protected readonly previewBg = this.persistence.signal<PreviewBackground>('image-compressor', 'preview-background', 'local', 'theme');
 
   protected readonly rejection = signal<string | null>(null);
   protected readonly selectedFile = signal<File | null>(null);

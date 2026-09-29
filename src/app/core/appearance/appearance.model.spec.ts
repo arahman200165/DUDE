@@ -61,7 +61,7 @@ describe('appearance model', () => {
     it('keeps allowed values from a richer axes set', () => {
       const result = sanitizeAppearance({ mode: 'light', contrast: 'high', accent: 'violet', density: 'comfortable' }, RICH_AXES);
       expect(result).toMatchObject({ mode: 'light', contrast: 'high', accent: 'violet', density: 'comfortable' });
-      expect(sanitizeAppearance({ mode: 'light', accent: 'violet' })).toMatchObject({ mode: DEFAULT_APPEARANCE.mode, accent: DEFAULT_APPEARANCE.accent });
+      expect(sanitizeAppearance({ mode: 'neon', accent: 'violet' })).toMatchObject({ mode: DEFAULT_APPEARANCE.mode, accent: DEFAULT_APPEARANCE.accent });
     });
 
     it('drops unknown keys', () => {
@@ -115,9 +115,10 @@ describe('appearance model', () => {
       });
     });
 
-    it('resolves "system" to the axis default with the current single-value axes, whatever the media says', () => {
+    it('resolves "system" to the axis default when an axis has no alternative value, whatever the media says', () => {
       const prefs = { ...DEFAULT_APPEARANCE, mode: 'system', contrast: 'system' };
-      const effective = resolveEffective(prefs, { prefersLight: true, prefersMoreContrast: true });
+      const darkOnly = { ...APPEARANCE_AXES, theme: { ...APPEARANCE_AXES['theme'], values: ['dark'] } };
+      const effective = resolveEffective(prefs, { prefersLight: true, prefersMoreContrast: true }, darkOnly);
       expect(effective['theme']).toBe(APPEARANCE_AXES['theme'].default);
       expect(effective['contrast']).toBe(APPEARANCE_AXES['contrast'].default);
     });

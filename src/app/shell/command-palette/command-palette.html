@@ -11,7 +11,7 @@
     #searchInput
     type="text"
     placeholder="Search tools and commands…"
-    class="w-full border-b border-border bg-panel px-3 py-2 text-sm text-text placeholder:text-text-muted/60 focus:outline-none"
+    class="w-full border-b border-border bg-panel px-3 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none"
     [value]="query()"
     (input)="onQueryInput($event)"
   />
@@ -74,7 +74,7 @@
         </div>
       }
     } @else {
-      <p class="px-1.5 py-1 text-ui text-text-muted/60">No results for "{{ query() }}".</p>
+      <p class="px-1.5 py-1 text-ui text-text-muted">No results for "{{ query() }}".</p>
     }
   </div>
 </div>

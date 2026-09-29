@@ -12,6 +12,7 @@ import { DEFAULT_META_SETTINGS, MetaTagSettings, buildMetaTags } from './meta-ta
 export class MetaTagGenerator {
   private readonly persistence = inject(PersistenceService);
 
+  protected readonly themeColorPlaceholder = '#3b82f6';
   protected readonly settings = this.persistence.signal<MetaTagSettings>('meta-tag-generator', 'settings', 'session', DEFAULT_META_SETTINGS);
 
   protected readonly output = computed(() => buildMetaTags(this.settings()));

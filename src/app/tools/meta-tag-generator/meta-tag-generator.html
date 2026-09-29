@@ -31,7 +31,7 @@
       </label>
       <label class="flex flex-col gap-0.5 text-ui text-text-muted">
         Theme color
-        <input type="text" class="rounded-sm border border-border bg-panel px-2 py-1 text-xs text-text" placeholder="#3b82f6" [value]="settings().themeColor" (input)="onInput('themeColor', $event)" />
+        <input type="text" class="rounded-sm border border-border bg-panel px-2 py-1 text-xs text-text" [placeholder]="themeColorPlaceholder" [value]="settings().themeColor" (input)="onInput('themeColor', $event)" />
       </label>
     </div>
 

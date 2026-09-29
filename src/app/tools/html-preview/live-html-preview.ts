@@ -20,7 +20,7 @@ export type LivePreviewStatus = 'loading' | 'ready' | 'timeout';
  */
 @Component({
   selector: 'app-live-html-preview',
-  template: `<iframe #frame [srcdoc]="srcdoc()" sandbox="allow-scripts" class="h-full w-full border-0 bg-panel" (load)="onLoad()"></iframe>`,
+  template: `<iframe #frame [srcdoc]="srcdoc()" sandbox="allow-scripts" class="dude-doc-frame h-full w-full border-0 bg-transparent" (load)="onLoad()"></iframe>`,
 })
 export class LiveHtmlPreview implements OnDestroy {
   private readonly sanitizer = inject(DomSanitizer);

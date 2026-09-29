@@ -9,9 +9,10 @@
  *   2. text-muted on bg / panel / panel-elevated       >= 4.5
  *   3. on-accent on accent                             >= 4.5   (hc: >= 7)
  *   4. accent vs bg and vs panel                       >= 3     (focus ring / selection, WCAG 1.4.11)
- *   5. each category color vs panel, and each category tint
- *      (mix(cat, tint-toward, tint-pct))               >= 4.5   (both are used as text: text-cat-*)
- *   6. each semantic color vs panel                    >= 4.5
+ *   5. each category color, and each category tint (mix(cat, tint-toward, tint-pct)), vs bg, panel
+ *      AND panel-elevated                              >= 4.5   (both are used as text: text-cat-*, on
+ *                                                                 every surface, hc included)
+ *   6. each semantic color vs bg, panel AND panel-elevated >= 4.5 (same threshold in hc)
  *   7. semantic separation vs each category and the accent: hue distance >= 22deg
  *      OR HSL lightness distance >= 12 points (8 categories + 6 semantic colors cannot all be
  *      further apart on one hue wheel, so lightness is the second axis); neutral semantic
@@ -23,12 +24,29 @@
  *      (Machado et al. 2009, severity 1.0, applied in linear RGB) error, success and warning must
  *      be pairwise distinct: CIE76 deltaE >= 20 for every pair under every simulation.
  *
+ *  10. text on its own wash: Tailwind `bg-x/N` is color-mix(in oklab, x N%, transparent), i.e. the color
+ *      at alpha N%. For N in WASH_ALPHAS (the opacities the app uses for tinted chips/badges: 5, 10, 20, plus 15) the
+ *      color is alpha-blended (simple sRGB) over bg and over panel, and every semantic color, category
+ *      color and the accent must reach >= 4.5 as text on that composite (`text-x` on `bg-x/N`).
+ *  11. text / text-muted on the semantic highlight washes (bg-warning/40 etc. used behind text-text)
+ *      >= 4.5 for `text`.
+ *  12. category color and tint as text on their own *-wash surface (panel mixed toward the category by
+ *      wash-pct) >= 4.5.
+ *
+ * Opacity modifiers on text-color utilities are banned separately (check-design-tokens.mjs `text-opacity`)
+ * because they silently drop contrast below what this script proves.
+ *
  * Exits 1 on failure. Flags: --table (per-combination summary), --self-test (math sanity checks).
  */
 import { readFileSync } from 'node:fs';
 
 const CATS = ['data', 'text', 'encoding', 'security', 'date-time', 'web', 'developer', 'documents'];
 const SEM = ['error', 'warning', 'success', 'info', 'busy', 'offline'];
+// bg-<semantic|accent>/N opacities found in src (5, 10, 20 for chips/badges; 30/40 are strong highlights
+// that carry `text-text`, see rule 11) plus 15. Text COLORED like its wash is only allowed up to 20%.
+// Category colors are only used as fills via the 8% *-wash tokens (rule 12), never bg-cat-*/N.
+const WASH_ALPHAS = [5, 10, 15, 20];
+const HIGHLIGHT_ALPHAS = [30, 40];
 
 // ---------------------------------------------------------------- color math
 
@@ -69,6 +87,11 @@ function mixSrgb(a, b, pct) {
   const p = (typeof pct === 'string' ? parseFloat(pct) : pct) / 100;
   const ca = rgb(a), cb = rgb(b);
   return toHex(ca.map((v, i) => v * (1 - p) + cb[i] * p));
+}
+
+/** Plain sRGB alpha blend of `fg` at `alpha` percent over opaque `bg` (what `bg-x/N` renders as). */
+function blendAlpha(fg, bg, alpha) {
+  return mixSrgb(bg, fg, alpha);
 }
 
 // ---------------------------------------------------------------- CVD simulation
@@ -126,6 +149,8 @@ function selfTest() {
   assert(Math.abs(luminance('#ffffff') - 1) < 1e-9 && luminance('#000000') === 0, 'luminance of white/black');
   assert(mixSrgb('#000000', '#ffffff', '50%') === '#808080', 'mixSrgb 50% black/white should be #808080');
   assert(mixSrgb('#123456', '#ffffff', 0) === '#123456', 'mixSrgb 0% is identity');
+  assert(blendAlpha('#000000', '#ffffff', 10) === '#e6e6e6', 'blendAlpha black@10% over white should be #e6e6e6');
+  assert(blendAlpha('#123456', '#ffffff', 100) === '#123456', 'blendAlpha 100% is the foreground');
   const normal = deltaE76('#ff0000', '#00ff00');
   const deut = deltaE76(simulate('#ff0000', CVD_MATRICES.deuteranopia), simulate('#00ff00', CVD_MATRICES.deuteranopia));
   assert(normal > 100, `red vs green normal deltaE should be > 100 (got ${normal.toFixed(1)})`);
@@ -188,7 +213,7 @@ function run() {
     };
 
     const surfaces = [['bg', base.bg], ['panel', base.panel], ['panel-elevated', base['panel-elevated']]];
-    let textPanel = 0, catMin = Infinity, semMin = Infinity;
+    let textPanel = 0, catMin = Infinity, semMin = Infinity, washMin = Infinity;
 
     // 1, 2
     for (const [name, bg] of surfaces) {
@@ -202,14 +227,20 @@ function run() {
     const accentPanel = min('4 accent vs bg/panel (non-text 3:1)', 'accent vs panel', acc.accent, base.panel, 3);
     min('4 accent vs bg/panel (non-text 3:1)', 'accent vs bg', acc.accent, base.bg, 3);
     // 5
+    const tintToward = base['tint-toward'] === 'white' ? '#ffffff' : base['tint-toward'] === 'black' ? '#000000' : base['tint-toward'];
     for (const c of CATS) {
-      catMin = Math.min(catMin, min('5 category color/tint vs panel', `cat-${c}`, cats[c], base.panel, 4.5));
-      const tint = mixSrgb(cats[c], base['tint-toward'] === 'white' ? '#ffffff' : base['tint-toward'] === 'black' ? '#000000' : base['tint-toward'], base['tint-pct']);
-      min('5 category color/tint vs panel', `cat-${c}-tint`, tint, base.panel, 4.5);
+      const tint = mixSrgb(cats[c], tintToward, base['tint-pct']);
+      for (const [name, bg] of surfaces) {
+        catMin = Math.min(catMin, min('5 category color/tint vs bg/panel/panel-elevated', `cat-${c} on ${name}`, cats[c], bg, 4.5));
+        min('5 category color/tint vs bg/panel/panel-elevated', `cat-${c}-tint on ${name}`, tint, bg, 4.5);
+      }
     }
     // 6
     for (const s of SEM) {
-      semMin = Math.min(semMin, min('6 semantic vs panel', s, sem[s], base.panel, 4.5));
+      for (const [name, bg] of surfaces) {
+        const cr = min('6 semantic vs bg/panel/panel-elevated', `${s} on ${name}`, sem[s], bg, 4.5);
+        if (name === 'panel') semMin = Math.min(semMin, cr);
+      }
     }
     // 7
     const others = [...CATS.map((c) => [`cat-${c}`, cats[c]]), ['accent', acc.accent]];
@@ -224,6 +255,32 @@ function run() {
           fail('7 semantic separation', `${s} ${sem[s]} too close to ${oname} ${ohex} (dH ${hueDist(a.h, o.h).toFixed(0)}, dL ${Math.abs(a.l - o.l).toFixed(0)})`);
         }
       }
+    }
+    // 10: text-x on bg-x/N (composite over bg and panel)
+    const washed = [...SEM.map((s) => [s, sem[s]]), ['accent', acc.accent], ...CATS.map((c) => [`cat-${c}`, cats[c]])];
+    for (const [name, hex] of washed) {
+      for (const alpha of WASH_ALPHAS) {
+        for (const [sname, sbg] of [['bg', base.bg], ['panel', base.panel]]) {
+          const comp = blendAlpha(hex, sbg, alpha);
+          const cr = min('10 text on own wash (bg-x/N)', `${name} on ${name}/${alpha} over ${sname} (${comp})`, hex, comp, 4.5);
+          washMin = Math.min(washMin, cr);
+        }
+      }
+    }
+    // 11: text on the semantic highlight washes
+    for (const s of ['error', 'warning', 'success', 'info']) {
+      for (const alpha of HIGHLIGHT_ALPHAS) {
+        for (const [sname, sbg] of [['bg', base.bg], ['panel', base.panel]]) {
+          min('11 text on semantic highlight wash', `text on ${s}/${alpha} over ${sname}`, base.text, blendAlpha(sem[s], sbg, alpha), hc ? 7 : 4.5);
+        }
+      }
+    }
+    // 12: category color / tint as text on its own 8% wash (mix(panel, cat, wash-pct)), the *-wash surfaces
+    for (const c of CATS) {
+      const wash = mixSrgb(base.panel, cats[c], base['wash-pct']);
+      const tint = mixSrgb(cats[c], tintToward, base['tint-pct']);
+      min('12 category on own wash surface', `cat-${c} on cat-${c}-wash (${wash})`, cats[c], wash, 4.5);
+      min('12 category on own wash surface', `cat-${c}-tint on cat-${c}-wash (${wash})`, tint, wash, 4.5);
     }
     // 8
     if (hc) {
@@ -245,7 +302,7 @@ function run() {
       }
     }
 
-    rows.push(`${key.padEnd(44)} ${combFails ? `FAIL(${combFails})` : 'ok     '} text/panel ${textPanel.toFixed(2).padStart(5)}  accent/panel ${accentPanel.toFixed(2).padStart(5)}  cat min ${catMin.toFixed(2).padStart(5)}  sem min ${semMin.toFixed(2).padStart(5)}`);
+    rows.push(`${key.padEnd(44)} ${combFails ? `FAIL(${combFails})` : 'ok     '} text/panel ${textPanel.toFixed(2).padStart(5)}  accent/panel ${accentPanel.toFixed(2).padStart(5)}  cat min(all surfaces) ${catMin.toFixed(2).padStart(5)}  sem min ${semMin.toFixed(2).padStart(5)}  wash min ${washMin.toFixed(2).padStart(5)}`);
   }
 
   if (process.argv.includes('--table')) console.log(rows.join('\n'));

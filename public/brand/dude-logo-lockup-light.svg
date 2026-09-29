@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="360" viewBox="0 0 800 360" role="img" aria-labelledby="title">
+  <title id="title">DUDE</title>
+  <defs>
+    <style>
+      .wordmark {
+        font-family: Inter, Geist, &quot;SF Pro Display&quot;, &quot;Segoe UI&quot;, Arial, sans-serif;
+        font-size: 108px;
+        font-weight: 600;
+        letter-spacing: 16px;
+      }
+      .tagline {
+        font-family: &quot;JetBrains Mono&quot;, &quot;SFMono-Regular&quot;, Consolas, &quot;Liberation Mono&quot;, monospace;
+        font-size: 34px;
+        font-weight: 600;
+        letter-spacing: 4px;
+      }
+    </style>
+  </defs>
+<!--Icon-->
+  <g transform="translate(44 52)">
+    <path d="M20 8H102C172 8 218 50 218 128S172 248 102 248H20Z" fill="none" stroke="#111827" stroke-width="18" stroke-linejoin="round"/>
+    <path d="M58 66H132" stroke="#035E91" stroke-width="16" stroke-linecap="round"/>
+    <path d="M58 128H158" stroke="#035E91" stroke-width="16" stroke-linecap="round"/>
+    <path d="M58 190H132" stroke="#035E91" stroke-width="16" stroke-linecap="round"/>
+    <path d="M146 90L188 128L146 166Z" fill="#8B5CF6"/>
+    <rect x="46" y="55" width="22" height="22" rx="5" fill="#035E91"/>
+    <rect x="46" y="117" width="22" height="22" rx="5" fill="#035E91"/>
+    <rect x="46" y="179" width="22" height="22" rx="5" fill="#035E91"/>
+  </g>
+  <g transform="translate(-30 10)">
+<!--Wordmark-->
+    <text x="342" y="166" fill="#111827" class="wordmark">DUDE</text>
+<!--Thin technical divider-->
+    <rect x="349" y="188" width="445" height="2" rx="1" fill="#CBD5E1"/>
+<!--Expanded name-->
+    <text x="349" y="246" fill="#475569" class="tagline">DEVELOPER UTILITY</text>
+    <text x="349" y="286" fill="#475569" class="tagline">DASHBOARD ENGINE</text>
+  </g>
+</svg>

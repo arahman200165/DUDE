@@ -13,6 +13,7 @@ import { findClosestTailwindColors } from './tailwind-color-matcher-logic';
 export class TailwindColorMatcher {
   private readonly persistence = inject(PersistenceService);
 
+  protected readonly inputPlaceholder = '#3b82f6, rgb(59,130,246), hsl(217,91%,60%), royalblue…';
   protected readonly input = this.persistence.signal('tailwind-color-matcher', 'input', 'session', '#3b82f6');
 
   protected readonly result = computed(() => findClosestTailwindColors(this.input(), 8));

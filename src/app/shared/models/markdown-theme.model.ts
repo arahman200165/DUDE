@@ -7,9 +7,10 @@ export interface MarkdownStylePresetConfig {
 
 /**
  * Rendered-output style presets — deliberately scoped to the rendered
- * `.markdown-body` output only, via CSS custom properties. DUDE is
- * dark-mode-only app-wide, so this is not a light/dark toggle; it changes
- * typography/spacing/accent for the rendered preview, nothing else.
+ * `.markdown-body` output only, via CSS custom properties. Presets change
+ * typography, spacing and accent only; colors always follow the active
+ * theme (dark or light) through the `--color-*` tokens, so a preset value
+ * must be theme-safe (use `var(--color-accent)`, never a fixed hex).
  */
 export const MARKDOWN_STYLE_PRESETS: Record<MarkdownStylePreset, MarkdownStylePresetConfig> = {
   default: {
@@ -27,7 +28,7 @@ export const MARKDOWN_STYLE_PRESETS: Record<MarkdownStylePreset, MarkdownStylePr
       'md-font': "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
       'md-heading-weight': '600',
       'md-spacing': '0.75em',
-      'md-accent': '#58a6ff',
+      'md-accent': 'var(--color-accent)',
     },
   },
   compact: {

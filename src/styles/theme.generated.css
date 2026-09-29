@@ -21,7 +21,7 @@
   --dude-font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
 }
 
-:root {
+:root:not([data-theme="light"]) {
   --dude-bg: #0a0e14;
   --dude-panel: #10151d;
   --dude-panel-elevated: #161c26;
@@ -29,35 +29,76 @@
   --dude-text: #e6e9ef;
   --dude-text-muted: #8b93a3;
   --dude-focus-width: 2px;
+  --dude-scrim: #000000;
   --dude-wash-pct: 8%;
   --dude-tint-toward: white;
   --dude-tint-pct: 20%;
   color-scheme: dark;
 }
 
-:root {
+:root[data-theme="light"] {
+  --dude-bg: #eef1f5;
+  --dude-panel: #ffffff;
+  --dude-panel-elevated: #f6f8fc;
+  --dude-border: #c5cdd8;
+  --dude-text: #111827;
+  --dude-text-muted: #475569;
+  --dude-focus-width: 2px;
+  --dude-scrim: #0f172a;
+  --dude-wash-pct: 8%;
+  --dude-tint-toward: black;
+  --dude-tint-pct: 20%;
+  color-scheme: light;
+}
+
+:root:not([data-theme="light"]) {
   --dude-accent: #38d8ff;
   --dude-on-accent: #0a0e14;
 }
 
-:root {
+:root[data-theme="light"] {
+  --dude-accent: #035e91;
+  --dude-on-accent: #ffffff;
+}
+
+:root:not([data-theme="light"]) {
   --dude-cat-data: #22d3ee;
   --dude-cat-text: #a3e635;
   --dude-cat-encoding: #fb923c;
-  --dude-cat-security: #e879f9;
+  --dude-cat-security: #f97bf7;
   --dude-cat-date-time: #a78bfa;
-  --dude-cat-web: #60a5fa;
+  --dude-cat-web: #81b9fe;
   --dude-cat-developer: #34d399;
   --dude-cat-documents: #f472b6;
 }
 
-:root {
-  --dude-error: #ff4d4d;
+:root[data-theme="light"] {
+  --dude-cat-data: #0c6179;
+  --dude-cat-text: #3e640c;
+  --dude-cat-encoding: #944008;
+  --dude-cat-security: #9d1685;
+  --dude-cat-date-time: #5b21b6;
+  --dude-cat-web: #4338ca;
+  --dude-cat-developer: #03654a;
+  --dude-cat-documents: #a61f51;
+}
+
+:root:not([data-theme="light"]) {
+  --dude-error: #ff5757;
   --dude-warning: #d99a00;
   --dude-success: #46e05a;
-  --dude-info: #1a79ff;
-  --dude-busy: #c233ff;
-  --dude-offline: #717f94;
+  --dude-info: #4294ff;
+  --dude-busy: #c966ff;
+  --dude-offline: #8c97a8;
+}
+
+:root[data-theme="light"] {
+  --dude-error: #a91b1b;
+  --dude-warning: #6f5700;
+  --dude-success: #106810;
+  --dude-info: #134dce;
+  --dude-busy: #8e1aaf;
+  --dude-offline: #4f5b6d;
 }
 
 :root {

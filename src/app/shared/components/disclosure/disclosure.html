@@ -12,7 +12,7 @@
       <span class="rounded-sm border border-accent/60 bg-accent/10 px-1 text-accent" data-testid="disclosure-badge">{{ badge() }}</span>
     }
     @if (!open() && summary()) {
-      <span class="truncate text-text-muted/70">— {{ summary() }}</span>
+      <span class="truncate text-text-muted">— {{ summary() }}</span>
     }
   </button>
   @if (open()) {

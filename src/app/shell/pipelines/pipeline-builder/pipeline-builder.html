@@ -17,7 +17,7 @@
       [class]="
         canRun()
           ? 'border-accent/40 bg-accent/10 text-accent hover:bg-accent/20'
-          : 'cursor-not-allowed border-border text-text-muted/50'
+          : 'cursor-not-allowed border-border text-text-muted'
       "
       [disabled]="!canRun()"
       (click)="runPipeline()"
@@ -174,7 +174,7 @@
     @if (pickerResults().incompatible.length > 0) {
       <p class="mt-2 px-2 text-ui-xs uppercase tracking-wide text-text-muted">Incompatible — needs a bridge</p>
       @for (tool of pickerResults().incompatible; track tool.id) {
-        <button type="button" class="block w-full rounded-sm px-2 py-1 text-left text-ui-sm text-text-muted/70 hover:bg-panel-elevated" (click)="addStep(tool.id)">
+        <button type="button" class="block w-full rounded-sm px-2 py-1 text-left text-ui-sm text-text-muted hover:bg-panel-elevated" (click)="addStep(tool.id)">
           {{ tool.title }}
         </button>
       }

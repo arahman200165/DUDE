@@ -23,6 +23,7 @@
         }
 
         <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-accent hover:bg-accent/10" (click)="compress()">Compress</button>
+        <app-preview-background [(value)]="previewBg" />
       </div>
 
       @if (resultUrl(); as url) {
@@ -33,7 +34,7 @@
           }
           <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-accent hover:bg-accent/10" (click)="download()">Download</button>
         </div>
-        <img [src]="url" alt="Compressed preview" class="max-h-96 max-w-full rounded-sm border border-border object-contain" />
+        <img [src]="url" alt="Compressed preview" [appPreviewBackground]="previewBg()" class="max-h-96 max-w-full rounded-sm border border-border object-contain" />
       }
     }
   </div>

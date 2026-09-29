@@ -25,6 +25,13 @@ export const CORE_SETTINGS_SECTIONS: readonly CoreSettingsSection[] = [
     load: () => import('./sections/general-settings').then((m) => m.GeneralSettings),
   },
   {
+    id: 'appearance',
+    title: 'Appearance',
+    keywords: ['appearance', 'theme', 'light mode', 'dark mode', 'system theme', 'color scheme', 'colors'],
+    desktopOnly: false,
+    load: () => import('./sections/appearance-settings').then((m) => m.AppearanceSettings),
+  },
+  {
     id: 'ai',
     title: 'AI / LLM Provider',
     keywords: ['llm', 'ai', 'openai', 'model', 'api key', 'base url', 'provider', 'secrets', 'regex'],

@@ -25,6 +25,8 @@
       </div>
 
       <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" (click)="clear()">Clear</button>
+
+      <app-preview-background [(value)]="previewBg" />
     </div>
 
     @if (rejection(); as message) {
@@ -48,7 +50,7 @@
             <span>{{ result.byteLength }} bytes</span>
             <app-copy-button [text]="result.dataUri" label="Copy data URI" />
           </div>
-          <img [src]="result.dataUri" alt="Decoded preview" class="max-h-96 max-w-full rounded-sm border border-border object-contain" />
+          <img [src]="result.dataUri" alt="Decoded preview" [appPreviewBackground]="previewBg()" class="max-h-96 max-w-full rounded-sm border border-border object-contain" />
         } @else {
           <app-error-panel [message]="result.error" />
         }
@@ -65,7 +67,7 @@
           <app-copy-button [text]="result.base64" label="Copy Base64" />
           <app-copy-button [text]="result.dataUri" label="Copy data URI" />
         </div>
-        <img [src]="result.dataUri" alt="Selected image preview" class="max-h-96 max-w-full rounded-sm border border-border object-contain" />
+        <img [src]="result.dataUri" alt="Selected image preview" [appPreviewBackground]="previewBg()" class="max-h-96 max-w-full rounded-sm border border-border object-contain" />
         <textarea
           rows="8"
           readonly

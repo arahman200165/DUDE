@@ -1,7 +1,8 @@
 <aside class="flex h-full w-50 flex-col border-r border-border bg-panel">
   <div class="border-b border-border px-3 py-3">
     <a routerLink="/" aria-label="DUDE home" class="block w-fit opacity-100 transition-opacity hover:opacity-80">
-      <img src="brand/dude-logo-lockup.svg" alt="DUDE — Developer Utility Dashboard Engine" width="550" height="180"  />
+      <img src="brand/dude-logo-lockup.svg" alt="DUDE — Developer Utility Dashboard Engine" width="550" height="180" class="dude-only-dark" />
+      <img src="brand/dude-logo-lockup-light.svg" alt="DUDE — Developer Utility Dashboard Engine" width="550" height="180" class="dude-only-light" />
     </a>
   </div>
 
@@ -158,7 +159,7 @@
               </a>
             }
           } @else {
-            <p class="pl-6 pr-2 text-ui text-text-muted/60">No tools yet</p>
+            <p class="pl-6 pr-2 text-ui text-text-muted">No tools yet</p>
           }
         }
       </div>

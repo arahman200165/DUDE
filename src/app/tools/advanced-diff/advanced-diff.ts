@@ -37,8 +37,8 @@ const LINE_CLASSES: Record<DiffLineType, string> = {
 const LINE_PREFIX: Record<DiffLineType, string> = { add: '+ ', remove: '- ', equal: '  ' };
 
 const SEGMENT_CLASSES: Record<DiffSegmentType, string> = {
-  add: 'bg-success/30 text-success',
-  remove: 'bg-error/30 text-error line-through',
+  add: 'bg-success/30 text-text',
+  remove: 'bg-error/30 text-text line-through',
   equal: '',
 };
 

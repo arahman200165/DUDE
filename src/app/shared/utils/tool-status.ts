@@ -21,7 +21,7 @@ export function toolStatusClass(status: ToolDefinition['status']): string {
     case 'experimental':
       return 'border-warning/40 bg-warning/10 text-warning';
     default:
-      return 'border-border text-text-muted/60';
+      return 'border-dashed border-border text-text-muted';
   }
 }
 

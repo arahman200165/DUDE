@@ -14,7 +14,7 @@ import { buildCssPreviewDoc } from './css-preview-sandbox-doc';
  */
 @Component({
   selector: 'app-css-preview-sandbox',
-  template: `<iframe [srcdoc]="srcdoc()" sandbox="" class="h-full w-full border-0 bg-panel"></iframe>`,
+  template: `<iframe [srcdoc]="srcdoc()" sandbox="" class="dude-doc-frame h-full w-full border-0 bg-panel"></iframe>`,
 })
 export class CssPreviewSandbox {
   private readonly sanitizer = inject(DomSanitizer);

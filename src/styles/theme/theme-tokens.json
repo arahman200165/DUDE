@@ -1,6 +1,6 @@
 {
   "axes": {
-    "theme": { "attr": "data-theme", "values": ["dark"], "default": "dark" },
+    "theme": { "attr": "data-theme", "values": ["dark", "light"], "default": "dark" },
     "contrast": { "attr": "data-contrast", "values": ["standard"], "default": "standard" },
     "accent": { "attr": "data-accent", "values": ["cyan"], "default": "cyan" },
     "catset": { "attr": "data-catset", "values": ["vivid"], "default": "vivid" },
@@ -18,8 +18,25 @@
         "text-muted": "#8b93a3",
         "focus-width": "2px",
         "color-scheme": "dark",
+        "scrim": "#000000",
         "wash-pct": "8%",
         "tint-toward": "white",
+        "tint-pct": "20%"
+      }
+    },
+    "light": {
+      "standard": {
+        "bg": "#eef1f5",
+        "panel": "#ffffff",
+        "panel-elevated": "#f6f8fc",
+        "border": "#c5cdd8",
+        "text": "#111827",
+        "text-muted": "#475569",
+        "focus-width": "2px",
+        "color-scheme": "light",
+        "scrim": "#0f172a",
+        "wash-pct": "8%",
+        "tint-toward": "black",
         "tint-pct": "20%"
       }
     }
@@ -28,6 +45,9 @@
     "cyan": {
       "dark": {
         "standard": { "accent": "#38d8ff", "on-accent": "#0a0e14" }
+      },
+      "light": {
+        "standard": { "accent": "#035e91", "on-accent": "#ffffff" }
       }
     }
   },
@@ -38,11 +58,23 @@
           "data": "#22d3ee",
           "text": "#a3e635",
           "encoding": "#fb923c",
-          "security": "#e879f9",
+          "security": "#f97bf7",
           "date-time": "#a78bfa",
-          "web": "#60a5fa",
+          "web": "#81b9fe",
           "developer": "#34d399",
           "documents": "#f472b6"
+        }
+      },
+      "light": {
+        "standard": {
+          "data": "#0c6179",
+          "text": "#3e640c",
+          "encoding": "#944008",
+          "security": "#9d1685",
+          "date-time": "#5b21b6",
+          "web": "#4338ca",
+          "developer": "#03654a",
+          "documents": "#a61f51"
         }
       }
     }
@@ -51,12 +83,22 @@
     "standard": {
       "dark": {
         "standard": {
-          "error": "#ff4d4d",
+          "error": "#ff5757",
           "warning": "#d99a00",
           "success": "#46e05a",
-          "info": "#1a79ff",
-          "busy": "#c233ff",
-          "offline": "#717f94"
+          "info": "#4294ff",
+          "busy": "#c966ff",
+          "offline": "#8c97a8"
+        }
+      },
+      "light": {
+        "standard": {
+          "error": "#a91b1b",
+          "warning": "#6f5700",
+          "success": "#106810",
+          "info": "#134dce",
+          "busy": "#8e1aaf",
+          "offline": "#4f5b6d"
         }
       }
     }

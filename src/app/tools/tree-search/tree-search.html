@@ -62,12 +62,12 @@
                   </div>
                   @for (match of hit.matches; track match.line + ':' + match.column) {
                     <div class="px-2 py-0.5 font-mono text-ui-xs">
-                      @for (line of match.before; track $index) { <div class="whitespace-pre text-text-muted/70"><span class="inline-block w-12 text-right">{{ match.line - match.before.length + $index }}</span>  {{ line }}</div> }
+                      @for (line of match.before; track $index) { <div class="whitespace-pre text-text-muted"><span class="inline-block w-12 text-right">{{ match.line - match.before.length + $index }}</span>  {{ line }}</div> }
                       <label class="flex items-start gap-1 whitespace-pre">
                         <input type="checkbox" class="mt-0.5" [checked]="isIncluded(hit, match)" (change)="toggleMatch(hit, match, $event)" [attr.aria-label]="'Replace at line ' + match.line" />
                         <span class="inline-block w-10 text-right text-text-muted">{{ match.line }}</span>  <span class="text-text">{{ segments(match).before }}<mark class="rounded-sm bg-warning/30 text-text">{{ segments(match).hit }}</mark>{{ segments(match).after }}</span>
                       </label>
-                      @for (line of match.after; track $index) { <div class="whitespace-pre text-text-muted/70"><span class="inline-block w-12 text-right">{{ match.line + 1 + $index }}</span>  {{ line }}</div> }
+                      @for (line of match.after; track $index) { <div class="whitespace-pre text-text-muted"><span class="inline-block w-12 text-right">{{ match.line + 1 + $index }}</span>  {{ line }}</div> }
                     </div>
                   }
                 </div>

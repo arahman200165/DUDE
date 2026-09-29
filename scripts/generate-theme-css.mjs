@@ -14,7 +14,7 @@ const OUT = new URL('../src/styles/theme.generated.css', import.meta.url);
 const CATS = ['data', 'text', 'encoding', 'security', 'date-time', 'web', 'developer', 'documents'];
 const SEM = ['error', 'warning', 'success', 'info', 'busy', 'offline'];
 const BASE_COLORS = ['bg', 'panel', 'panel-elevated', 'border', 'text', 'text-muted'];
-const BASE_OTHER = ['focus-width', 'wash-pct', 'tint-toward', 'tint-pct'];
+const BASE_OTHER = ['focus-width', 'scrim', 'wash-pct', 'tint-toward', 'tint-pct'];
 const DENSITY_KEYS = [
   'spacing', 'control-h', 'row-h', 'radius', 'text-ui', 'text-ui-sm', 'text-ui-xs',
   'space-micro', 'space-normal', 'space-panel', 'space-major', 'space-exceptional',

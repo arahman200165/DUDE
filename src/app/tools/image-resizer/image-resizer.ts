@@ -5,13 +5,15 @@ import { FileDrop } from '../../shared/components/file-drop/file-drop';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { downloadFile } from '../../shared/utils/download-file';
 import { computeResizedDimensions, ResizeInput } from './resize-dimensions';
+import { PreviewBackground } from '../../shared/components/preview-background/preview-background-style';
+import { PreviewBackgroundChips, PreviewBackgroundTarget } from '../../shared/components/preview-background/preview-background';
 
 export type ResizeMode = 'dimensions' | 'percent';
 export type ResizeOutputFormat = 'image/png' | 'image/jpeg' | 'image/webp';
 
 @Component({
   selector: 'app-image-resizer',
-  imports: [ToolShell, ErrorPanel, FileDrop],
+  imports: [PreviewBackgroundChips, PreviewBackgroundTarget, ToolShell, ErrorPanel, FileDrop],
   templateUrl: './image-resizer.html',
 })
 export class ImageResizer {
@@ -21,6 +23,7 @@ export class ImageResizer {
   protected readonly lockAspect = this.persistence.signal('image-resizer', 'lock-aspect', 'local', true);
   protected readonly outputFormat = this.persistence.signal<ResizeOutputFormat>('image-resizer', 'format', 'local', 'image/png');
   protected readonly quality = this.persistence.signal('image-resizer', 'quality', 'local', 0.92);
+  protected readonly previewBg = this.persistence.signal<PreviewBackground>('image-resizer', 'preview-background', 'local', 'theme');
 
   protected readonly rejection = signal<string | null>(null);
   protected readonly originalWidth = signal(0);

@@ -16,7 +16,7 @@
         (pointerup)="onPointerUp()"
         (pointerleave)="onPointerUp()"
       >
-        <img #previewImage [src]="url" alt="Crop source" class="max-h-[32rem] max-w-full rounded-sm border border-border" draggable="false" />
+        <img #previewImage [src]="url" [appPreviewBackground]="previewBg()" alt="Crop source" class="max-h-[32rem] max-w-full rounded-sm border border-border" draggable="false" />
         @if (displayRect(); as rect) {
           <div
             class="pointer-events-none absolute border-2 border-accent bg-accent/20"
@@ -28,15 +28,16 @@
         }
       </div>
 
-      <div class="flex items-center gap-3">
+      <div class="flex flex-wrap items-center gap-3">
         <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-accent hover:bg-accent/10" (click)="crop()">Crop</button>
         @if (resultUrl()) {
           <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-accent hover:bg-accent/10" (click)="download()">Download</button>
         }
+        <app-preview-background [(value)]="previewBg" />
       </div>
 
       @if (resultUrl(); as croppedUrl) {
-        <img [src]="croppedUrl" alt="Cropped result" class="max-h-96 max-w-full rounded-sm border border-border object-contain" />
+        <img [src]="croppedUrl" alt="Cropped result" [appPreviewBackground]="previewBg()" class="max-h-96 max-w-full rounded-sm border border-border object-contain" />
       }
     }
   </div>

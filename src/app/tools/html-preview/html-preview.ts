@@ -5,6 +5,8 @@ import { OpenTextFile, OpenedTextFile } from '../../shared/components/open-text-
 import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
 import { SaveTextFile } from '../../shared/components/save-text-file/save-text-file';
 import { recordImportedFileFlags } from '../../core/text-file-input/imported-file-flags';
+import { PreviewBackground } from '../../shared/components/preview-background/preview-background-style';
+import { PreviewBackgroundChips, PreviewBackgroundTarget } from '../../shared/components/preview-background/preview-background';
 import { LiveHtmlPreview, LivePreviewEvent } from './live-html-preview';
 
 const DEFAULT_SOURCE = `<!DOCTYPE html>
@@ -25,13 +27,14 @@ export interface HtmlPreviewLogLine {
 
 @Component({
   selector: 'app-html-preview',
-  imports: [ToolShell, LiveHtmlPreview, OpenTextFile, TextFileDrop, SaveTextFile],
+  imports: [PreviewBackgroundChips, PreviewBackgroundTarget, ToolShell, LiveHtmlPreview, OpenTextFile, TextFileDrop, SaveTextFile],
   templateUrl: './html-preview.html',
 })
 export class HtmlPreview {
   private readonly persistence = inject(PersistenceService);
 
   protected readonly source = this.persistence.signal('html-preview', 'source', 'session', DEFAULT_SOURCE);
+  protected readonly previewBg = this.persistence.signal<PreviewBackground>('html-preview', 'preview-background', 'local', 'theme');
   protected readonly importedNeedsApproval = signal(sessionStorage.getItem('dude:desktop:html-preview-manual') === 'true');
   protected readonly debouncedSource = signal(this.importedNeedsApproval() ? '' : this.source());
   protected readonly timeoutMs = DEFAULT_TIMEOUT_MS;

@@ -84,13 +84,13 @@
         <div
           class="font-mono text-4xl tabular-nums"
           [class.text-text]="!countdownFinished()"
-          [class.text-red-400]="countdownFinished()"
+          [class.text-error]="countdownFinished()"
         >
           {{ countdownDisplay() }}
         </div>
 
         @if (countdownFinished()) {
-          <div class="text-ui text-red-400">Time's up!</div>
+          <div class="text-ui text-error">Time's up!</div>
         }
 
         <div class="flex gap-2">

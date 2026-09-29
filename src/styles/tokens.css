@@ -17,6 +17,7 @@
   --color-border: var(--dude-border);
   --color-text: var(--dude-text);
   --color-text-muted: var(--dude-text-muted);
+  --color-scrim: var(--dude-scrim);
 
   /* Category accents, one hue per Section 12.3 category */
   --color-cat-data: var(--dude-cat-data);

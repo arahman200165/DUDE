@@ -5,6 +5,8 @@ import { FileDrop } from '../../shared/components/file-drop/file-drop';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { downloadFile } from '../../shared/utils/download-file';
 import { ImageOutputFormat, replaceExtension } from './format-mime';
+import { PreviewBackground } from '../../shared/components/preview-background/preview-background-style';
+import { PreviewBackgroundChips, PreviewBackgroundTarget } from '../../shared/components/preview-background/preview-background';
 
 /** Cached across calls -- the capability doesn't change within a session. */
 let avifSupportPromise: Promise<boolean> | null = null;
@@ -24,7 +26,7 @@ function detectAvifSupport(): Promise<boolean> {
 
 @Component({
   selector: 'app-image-format-converter',
-  imports: [ToolShell, ErrorPanel, FileDrop],
+  imports: [PreviewBackgroundChips, PreviewBackgroundTarget, ToolShell, ErrorPanel, FileDrop],
   templateUrl: './image-format-converter.html',
 })
 export class ImageFormatConverter {
@@ -32,6 +34,7 @@ export class ImageFormatConverter {
 
   protected readonly outputFormat = this.persistence.signal<ImageOutputFormat>('image-format-converter', 'format', 'local', 'image/webp');
   protected readonly quality = this.persistence.signal('image-format-converter', 'quality', 'local', 0.92);
+  protected readonly previewBg = this.persistence.signal<PreviewBackground>('image-format-converter', 'preview-background', 'local', 'theme');
 
   protected readonly rejection = signal<string | null>(null);
   protected readonly selectedFile = signal<File | null>(null);

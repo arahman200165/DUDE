@@ -70,9 +70,9 @@ describe('AppearanceService', () => {
     const service = create();
     service.set({ mode: 'system' });
     TestBed.tick();
-    // The current axes have no light theme, so "system" still lands on the default value.
-    expect(service.effective()['theme']).toBe(APPEARANCE_AXES['theme'].default);
-    expect(root.getAttribute('data-theme')).toBe(APPEARANCE_AXES['theme'].default);
+    // matchMedia reports prefers-color-scheme: light, so "system" resolves to the light theme.
+    expect(service.effective()['theme']).toBe('light');
+    expect(root.getAttribute('data-theme')).toBe('light');
   });
 
   it('applies a custom font name through the style property, and never an unsafe one', () => {
@@ -84,6 +84,57 @@ describe('AppearanceService', () => {
     service.set({ monoFont: { custom: 'x"; background:url(evil)' } });
     TestBed.tick();
     expect(root.style.getPropertyValue('--dude-font-mono')).toBe(fontStack(DEFAULT_APPEARANCE, 'mono'));
+  });
+
+  describe('theme-color meta', () => {
+    function themeColorMetas(): HTMLMetaElement[] {
+      return Array.from(document.head.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]'));
+    }
+
+    function addMeta(content: string, media?: string): HTMLMetaElement {
+      const meta = document.createElement('meta');
+      meta.name = 'theme-color';
+      meta.content = content;
+      if (media) meta.setAttribute('media', media);
+      document.head.appendChild(meta);
+      return meta;
+    }
+
+    beforeEach(() => themeColorMetas().forEach((meta) => meta.remove()));
+    afterEach(() => {
+      themeColorMetas().forEach((meta) => meta.remove());
+      root.style.removeProperty('--dude-bg');
+    });
+
+    it('replaces the media-scoped metas with one un-scoped meta carrying --dude-bg', () => {
+      addMeta('#0a0e14', '(prefers-color-scheme: dark)');
+      addMeta('#eef1f5', '(prefers-color-scheme: light)');
+      root.style.setProperty('--dude-bg', '#123456');
+      create();
+      const metas = themeColorMetas();
+      expect(metas).toHaveLength(1);
+      expect(metas[0].hasAttribute('media')).toBe(false);
+      expect(metas[0].getAttribute('content')).toBe('#123456');
+    });
+
+    it('creates the meta when none exists and keeps a single one across re-applications', () => {
+      root.style.setProperty('--dude-bg', '#123456');
+      const service = create();
+      service.set({ monoFont: { custom: 'Inter' } });
+      root.style.setProperty('--dude-bg', '#654321');
+      TestBed.tick();
+      const metas = themeColorMetas();
+      expect(metas).toHaveLength(1);
+      expect(metas[0].getAttribute('content')).toBe('#654321');
+    });
+
+    it('leaves the metas alone when --dude-bg is not computable', () => {
+      addMeta('#0a0e14', '(prefers-color-scheme: dark)');
+      create();
+      const metas = themeColorMetas();
+      expect(metas).toHaveLength(1);
+      expect(metas[0].getAttribute('media')).toBe('(prefers-color-scheme: dark)');
+    });
   });
 
   it('increments revision on each application', () => {

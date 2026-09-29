@@ -10,13 +10,13 @@ import { UrlParts, buildUrl, parseUrl } from './url-parts';
 import { URI_COMPONENT_LEGEND, UriComponentKind, segmentUri } from './uri-component-visualizer';
 
 const KIND_CLASSES: Record<UriComponentKind, string> = {
-  scheme: 'text-sky-400',
-  userinfo: 'text-fuchsia-400',
-  host: 'text-emerald-400',
-  port: 'text-amber-400',
-  path: 'text-cyan-400',
-  query: 'text-pink-400',
-  fragment: 'text-orange-400',
+  scheme: 'text-cat-web-tint',
+  userinfo: 'text-cat-security-tint',
+  host: 'text-cat-developer-tint',
+  port: 'text-cat-text-tint',
+  path: 'text-cat-data-tint',
+  query: 'text-cat-documents-tint',
+  fragment: 'text-cat-encoding-tint',
   punctuation: 'text-text-muted',
 };
 

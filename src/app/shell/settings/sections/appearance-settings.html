@@ -1,0 +1,46 @@
+<div class="flex flex-col gap-4">
+  <div data-setting class="flex flex-col gap-1">
+    <span class="text-ui text-text">Theme</span>
+    <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Theme">
+      @for (option of themeOptions; track option.value) {
+        <button
+          type="button"
+          class="dude-chip"
+          [class]="appearance.prefs().mode === option.value ? 'dude-chip-on' : 'dude-chip-off'"
+          [attr.aria-pressed]="appearance.prefs().mode === option.value"
+          (click)="setMode(option.value)"
+        >
+          {{ option.label }}
+        </button>
+      }
+    </div>
+    @if (appearance.prefs().mode === 'system') {
+      <span class="text-ui-xs text-text-muted" data-testid="system-note">Currently: {{ resolvedTheme() }}</span>
+    }
+  </div>
+
+  <section data-setting aria-labelledby="appearance-swatch-title" class="flex flex-col gap-2">
+    <h3 id="appearance-swatch-title" class="text-ui-sm font-semibold text-text">Palette preview</h3>
+    <ul class="m-0 flex list-none flex-wrap gap-1 p-0" aria-label="Surface and accent colors" data-testid="swatches-surface">
+      @for (swatch of surfaceSwatches; track swatch.label) {
+        <li [class]="swatch.classes">{{ swatch.label }}</li>
+      }
+    </ul>
+    <ul class="m-0 flex list-none flex-wrap gap-1 p-0" aria-label="Category colors" data-testid="swatches-category">
+      @for (swatch of categorySwatches; track swatch.label) {
+        <li [class]="swatch.classes">{{ swatch.label }}</li>
+      }
+    </ul>
+    <ul class="m-0 flex list-none flex-wrap gap-1 p-0" aria-label="Status colors" data-testid="swatches-status">
+      @for (swatch of statusSwatches; track swatch.label) {
+        <li [class]="swatch.classes">{{ swatch.label }}</li>
+      }
+    </ul>
+  </section>
+
+  <div class="flex items-center gap-3 border-t border-border pt-4">
+    <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated" (click)="resetToDefaults()">
+      Reset appearance to defaults
+    </button>
+  </div>
+</div>

@@ -56,10 +56,10 @@
           ) {
             <span
               class="rounded-sm border px-2 py-1 text-ui"
-              [class.border-green-600]="check.pass"
-              [class.text-green-500]="check.pass"
-              [class.border-red-600]="!check.pass"
-              [class.text-red-500]="!check.pass"
+              [class.border-success]="check.pass"
+              [class.text-success]="check.pass"
+              [class.border-error]="!check.pass"
+              [class.text-error]="!check.pass"
             >
               {{ check.pass ? '✓' : '✗' }} {{ check.label }}
             </span>

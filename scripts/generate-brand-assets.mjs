@@ -114,7 +114,32 @@ function buildOgSvg() {
 </svg>`;
 }
 
+// Light-surface variant of the (hand-maintained) dark lockup at
+// public/brand/dude-logo-lockup.svg: the light-on-dark wordmark/tagline/icon
+// outline/divider are swapped for dark-on-light equivalents, and the cyan bars
+// use the darker accent so they read on a white/light panel. The purple play
+// glyph reads on both surfaces and is kept.
+// `node scripts/generate-brand-assets.mjs --lockup-only` writes just this file
+// (no rasterizing, no other assets touched).
+const LIGHT_LOCKUP_COLOR_MAP = [
+  ['#F4F7FB', '#111827'], // wordmark + icon outline
+  ['#91A4BA', '#475569'], // tagline
+  ['#26384C', '#CBD5E1'], // divider
+  ['#38D8FF', '#035E91'], // cyan bars/nodes -> darker accent
+];
+
+async function writeLightLockup() {
+  const brandDir = path.join(PUBLIC_DIR, 'brand');
+  let svg = await readFile(path.join(brandDir, 'dude-logo-lockup.svg'), 'utf8');
+  for (const [from, to] of LIGHT_LOCKUP_COLOR_MAP) svg = svg.replaceAll(from, to);
+  await writeFile(path.join(brandDir, 'dude-logo-lockup-light.svg'), svg);
+  console.log('wrote brand/dude-logo-lockup-light.svg');
+}
+
 async function main() {
+  await writeLightLockup();
+  if (process.argv.includes('--lockup-only')) return;
+
   const iconSvgSource = await readFile(path.join(ROOT, 'DUDE_logo_icon.svg'), 'utf8');
 
   await mkdir(ICONS_DIR, { recursive: true });
