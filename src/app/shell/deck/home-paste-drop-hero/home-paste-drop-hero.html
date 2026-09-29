@@ -6,8 +6,8 @@
     aria-expanded="false"
     aria-label="Give it to DUDE — paste, drop a file, or click to expand"
     class="mb-4 flex cursor-text items-center gap-2 rounded-sm border border-accent/30 bg-panel-elevated px-3 py-2 text-ui text-text-muted hover:border-accent/50 hover:text-text focus:outline-none focus:ring-1 focus:ring-accent"
-    (click)="expand()"
-    (focus)="expand()"
+    (click)="expandFromFocus()"
+    (focus)="expandFromFocus()"
     (dragenter)="expand()"
     (paste)="onIdlePaste($event)"
   >

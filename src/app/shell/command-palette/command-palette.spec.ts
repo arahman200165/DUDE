@@ -7,6 +7,7 @@ import { TOOL_DEFINITIONS } from '../../core/registry/tool-definitions';
 import { TOOL_CATEGORIES } from '../../shared/models/tool-category.model';
 import { CommandPaletteService } from './command-palette.service';
 import { TOOL_COMMAND_SOURCE_PROVIDERS } from '../../core/registry/tool-command-source';
+import { NAVIGATION_COMMAND_SOURCE_PROVIDERS } from '../navigation-command-source';
 
 describe('CommandPalette', () => {
   let service: CommandPaletteService;
@@ -14,7 +15,7 @@ describe('CommandPalette', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideRouter(routes), ...TOOL_COMMAND_SOURCE_PROVIDERS],
+      providers: [provideRouter(routes), ...TOOL_COMMAND_SOURCE_PROVIDERS, ...NAVIGATION_COMMAND_SOURCE_PROVIDERS],
     });
     service = TestBed.inject(CommandPaletteService);
     router = TestBed.inject(Router);
@@ -123,5 +124,27 @@ describe('CommandPalette', () => {
     const selected = document.querySelectorAll<HTMLButtonElement>('button.border-l-accent');
     expect(selected).toHaveLength(1);
     expect(selected[0]).toBe(buttons[0]);
+  });
+  async function firstResultAfterTyping(query: string): Promise<string> {
+    const navigateSpy = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    service.open();
+    await stable();
+    const input = document.querySelector<HTMLInputElement>('input')!;
+    input.value = query;
+    input.dispatchEvent(new Event('input'));
+    await stable();
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await stable();
+    return String(navigateSpy.mock.calls[0]?.[0]);
+  }
+
+  it('opens Browse Tools first for "browse" (title prefix outranks tool description hits)', async () => {
+    expect(await firstResultAfterTyping('browse')).toBe('/tools');
+  });
+
+  it.each(['base64', 'json'])('still opens a tool whose title starts with "%s" first', async (query) => {
+    const route = await firstResultAfterTyping(query);
+    const opened = TOOL_DEFINITIONS.find((tool) => tool.route === route);
+    expect(opened?.title.toLowerCase().startsWith(query)).toBe(true);
   });
 });

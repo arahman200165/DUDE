@@ -39,6 +39,14 @@ function rankOf(command: PaletteCommand, query: string): MatchRank {
   return MatchRank.None;
 }
 
+/** Match-quality tier of a command for a query (lower is better; Infinity when it does not match). */
+export function commandMatchRank(command: PaletteCommand, query: string): number {
+  const trimmed = query.trim().toLowerCase();
+  if (!trimmed) return 0;
+  const rank = rankOf(command, trimmed);
+  return rank === MatchRank.None ? Infinity : rank;
+}
+
 /** Tiered substring ranking, parallel to tool-search.ts, without changing Deck search behavior. */
 export function searchCommands(commands: readonly PaletteCommand[], query: string): PaletteCommand[] {
   const trimmed = query.trim().toLowerCase();

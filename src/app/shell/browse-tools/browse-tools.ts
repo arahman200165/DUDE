@@ -302,8 +302,11 @@ export class BrowseTools {
     if (tool) void this.router.navigateByUrl(tool.route);
   }
 
-  /** Clears the active filter state rather than dismissing anything else on the page. */
-  protected onEscape(): void {
+  /** Clears the active filter state rather than dismissing anything else on the page. Bound on the whole
+   *  search/filter region (search box, chips, and the Filters disclosure), so the key means the same
+   *  thing from any control there; focus then returns to the search box. */
+  protected onEscape(event?: Event): void {
+    if (event?.defaultPrevented) return;
     this.query.set('');
     this.categoryFacet.set('all');
     this.platformFacet.set('all');
@@ -311,6 +314,7 @@ export class BrowseTools {
     this.favoritesOnly.set(false);
     this.recentOnly.set(false);
     this.selectedIndex.set(0);
+    if (event) this.searchInputRef?.nativeElement.focus();
   }
 
   protected onSortChange(event: Event): void {

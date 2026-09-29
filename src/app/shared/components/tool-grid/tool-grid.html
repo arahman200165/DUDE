@@ -34,7 +34,7 @@
         </div>
 
         @if (tool.description) {
-          <p class="truncate text-ui-xs text-text-muted">{{ tool.description }}</p>
+          <p class="truncate text-ui-xs text-text-muted" [title]="tool.description">{{ tool.description }}</p>
         }
 
         <div class="mt-auto flex items-center gap-1.5">

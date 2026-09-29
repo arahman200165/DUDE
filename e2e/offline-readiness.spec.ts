@@ -25,21 +25,32 @@ test('offline, a never-visited tool explains itself and is dimmed; a visited one
   await waitForServiceWorker(page);
   await page.goto('/DUDE/tools/base64');
   await expect(page.getByRole('heading', { name: 'Base64 Encoder / Decoder' })).toBeVisible();
+  // Browse Tools is the route a user now takes to reach a category's tools; visit it while online so
+  // its lazy chunk is cached and the offline navigation below reaches it.
+  await page.goto('/DUDE/tools?category=developer');
+  await expect(page.getByRole('heading', { name: 'Browse Tools' })).toBeVisible();
   await page.goto('/DUDE/');
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
 
   await context.setOffline(true);
   try {
     // Dimming needs the map + a cache scan, which the readiness service runs on going offline.
-    // The sidebar's category index is collapsed by default (Phase 30B.1) -- expand the two
-    // categories these tools live in before asserting on their per-tool links.
+    // The sidebar caps an expanded category at a bounded list (Phase 30L), so python-playground is no
+    // longer guaranteed to be listed there: reach it the way a user now would -- Encoding for the
+    // visited tool in the sidebar, and the Developer "All N tools" link into Browse Tools for the other.
     const sidebar = page.locator('app-sidebar');
     await sidebar.getByRole('button', { name: 'Expand Developer' }).click();
+    await sidebar.getByRole('link', { name: /^All \d+ Developer tools/ }).click();
+    await expect(page).toHaveURL(/\/DUDE\/tools\?category=developer/);
+    const table = page.locator('app-data-table');
+    await page.getByLabel('Search tools').fill('python playground');
+    const python = table.locator('a[href="/DUDE/tools/python-playground"]');
+    await expect(python).toHaveAttribute('data-offline-unavailable', 'true');
+
     await sidebar.getByRole('button', { name: 'Expand Encoding' }).click();
-    await expect(sidebar.locator('a[href="/DUDE/tools/python-playground"]')).toHaveAttribute('data-offline-unavailable', 'true');
     await expect(sidebar.locator('a[href="/DUDE/tools/base64"]')).not.toHaveAttribute('data-offline-unavailable', 'true');
 
-    await sidebar.locator('a[href="/DUDE/tools/python-playground"]').click();
+    await python.click();
     await expect(page.getByRole('alert')).toContainText('Not available offline yet');
 
     await sidebar.locator('a[href="/DUDE/tools/base64"]').click();

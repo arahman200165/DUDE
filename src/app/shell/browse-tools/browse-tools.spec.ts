@@ -55,3 +55,37 @@ describe('BrowseTools persisted preferences (Phase 30I.3)', () => {
     expect(localStorage.getItem(SORT_KEY)).toBeNull();
   });
 });
+
+describe('BrowseTools Escape (Phase 30L)', () => {
+  function mountAt(url: string) {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ providers: [provideRouter([{ path: 'tools', component: BrowseTools }])] });
+    window.history.replaceState({}, '', url);
+    const fixture = TestBed.createComponent(BrowseTools);
+    document.body.appendChild(fixture.nativeElement);
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  it('clears the query and facets from a facet chip, then focuses the search box', () => {
+    const fixture = mountAt('/tools?q=json&category=data');
+    try {
+      const root = fixture.nativeElement as HTMLElement;
+      const search = root.querySelector<HTMLInputElement>('input[aria-label="Search tools"]')!;
+      const state = fixture.componentInstance as unknown as { query: { set(v: string): void }; categoryFacet: { (): string; set(v: string): void } };
+      state.query.set('json');
+      state.categoryFacet.set('data');
+      fixture.detectChanges();
+      expect(search.value).toBe('json');
+      const chip = root.querySelector<HTMLButtonElement>('button[aria-pressed]')!;
+      chip.focus();
+      chip.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      fixture.detectChanges();
+      expect(search.value).toBe('');
+      expect(state.categoryFacet()).toBe('all');
+      expect(document.activeElement).toBe(search);
+    } finally {
+      fixture.nativeElement.remove();
+    }
+  });
+});

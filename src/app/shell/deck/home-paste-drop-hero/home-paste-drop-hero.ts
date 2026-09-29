@@ -1,4 +1,4 @@
-import { Component, effect, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, Injector, afterNextRender, effect, inject, signal, viewChild } from '@angular/core';
 import { PasteDetectPanel } from '../../../shared/components/paste-detect-panel/paste-detect-panel';
 import { SmartFileDropZone } from '../../../shared/components/smart-file-drop-zone/smart-file-drop-zone';
 
@@ -21,6 +21,9 @@ export class HomePasteDropHero {
 
   protected readonly expanded = signal(false);
   private pendingPaste: string | null = null;
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
+  private skipFocusExpand = false;
 
   constructor() {
     // The idle row isn't an editable element, so a paste event on it never lands in the
@@ -39,6 +42,16 @@ export class HomePasteDropHero {
     this.expanded.set(true);
   }
 
+  /** Focus/click on the idle row: expanding unmounts the focused row, so hand focus to the paste box. */
+  protected expandFromFocus(): void {
+    if (this.skipFocusExpand) {
+      this.skipFocusExpand = false;
+      return;
+    }
+    this.expand();
+    afterNextRender(() => this.host.nativeElement.querySelector<HTMLTextAreaElement>('textarea')?.focus(), { injector: this.injector });
+  }
+
   protected onIdlePaste(event: ClipboardEvent): void {
     this.pendingPaste = event.clipboardData?.getData('text') ?? '';
     this.expand();
@@ -51,9 +64,23 @@ export class HomePasteDropHero {
   }
 
   protected onEscape(): void {
+    const hadFocus = this.host.nativeElement.contains(document.activeElement);
     this.pastePanel()?.clear();
     this.dropZone()?.clear();
     this.expanded.set(false);
+    if (hadFocus) {
+      // Return focus to the idle row once it re-renders, without that focus re-expanding the entry.
+      afterNextRender(
+        () => {
+          const row = this.host.nativeElement.querySelector<HTMLElement>('[role="button"]');
+          if (!row) return;
+          this.skipFocusExpand = true;
+          row.focus();
+          this.skipFocusExpand = false;
+        },
+        { injector: this.injector },
+      );
+    }
   }
 
   private collapseIfEmpty(): void {

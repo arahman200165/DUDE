@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
 import { CdkTrapFocus } from '@angular/cdk/a11y';
 import { CATEGORY_METADATA, ToolCategory, TOOL_CATEGORIES } from '../../shared/models/tool-category.model';
 import { COMMAND_SOURCE, CommandKind, PaletteCommand } from '../../shared/models/command-source.model';
-import { COMMAND_KIND_LABEL, COMMAND_KIND_ORDER, searchCommands } from '../../core/registry/command-search';
+import { COMMAND_KIND_LABEL, COMMAND_KIND_ORDER, commandMatchRank, searchCommands } from '../../core/registry/command-search';
 import { PipelineStepRegistryService } from '../../core/pipeline/pipeline-step-registry.service';
 import { CommandPaletteService } from './command-palette.service';
 import { CategoryIcon } from '../../shared/components/category-icon/category-icon';
@@ -51,7 +51,15 @@ export class CommandPalette implements AfterViewInit {
       bucket.push(command);
       grouped.set(key, bucket);
     }
-    return GROUP_ORDER.filter((key) => grouped.has(key)).map((key) => {
+    // Groups are ordered by the best match tier they contain (a title-prefix hit in "Go to" outranks a
+    // description-only hit in a tool category), then by the fixed GROUP_ORDER.
+    const query = this.query();
+    const bestRank = (key: string): number => Math.min(...grouped.get(key)!.map((command) => commandMatchRank(command, query)));
+    return GROUP_ORDER.filter((key) => grouped.has(key))
+      .map((key, order) => ({ key, order, rank: bestRank(key) }))
+      .sort((a, b) => a.rank - b.rank || a.order - b.order)
+      .map(({ key }) => key)
+      .map((key) => {
       const category = key.startsWith('tool:') ? key.slice(5) as ToolCategory : undefined;
       return {
         key,

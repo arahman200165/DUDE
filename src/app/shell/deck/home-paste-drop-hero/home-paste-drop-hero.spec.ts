@@ -52,4 +52,27 @@ describe('HomePasteDropHero', () => {
     expect(fixture.nativeElement.querySelector('[role="button"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('app-paste-detect-panel')).toBeNull();
   });
+  it('moves focus into the paste box when the idle row is focused, and back to the idle row on Escape', async () => {
+    const fixture = TestBed.createComponent(HomePasteDropHero);
+    document.body.appendChild(fixture.nativeElement);
+    try {
+      fixture.detectChanges();
+      (fixture.nativeElement.querySelector('[role="button"]') as HTMLElement).focus();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const textarea: HTMLTextAreaElement = fixture.nativeElement.querySelector('textarea');
+      expect(document.activeElement).toBe(textarea);
+
+      textarea.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(fixture.nativeElement.querySelector('textarea')).toBeNull();
+      const row = fixture.nativeElement.querySelector('[role="button"]') as HTMLElement;
+      expect(document.activeElement).toBe(row);
+    } finally {
+      fixture.nativeElement.remove();
+    }
+  });
 });
