@@ -152,6 +152,7 @@ import { manifest as imageFormatConverterManifest } from '../../tools/image-form
 import { manifest as imageMetadataInspectorManifest } from '../../tools/image-metadata-inspector/image-metadata-inspector.manifest';
 import { manifest as imageResizerManifest } from '../../tools/image-resizer/image-resizer.manifest';
 import { manifest as iniFormatterManifest } from '../../tools/ini-formatter/ini-formatter.manifest';
+import { manifest as installedSoftwareManifest } from '../../tools/installed-software/installed-software.manifest';
 import { manifest as invisibleCharScannerManifest } from '../../tools/invisible-char-scanner/invisible-char-scanner.manifest';
 import { manifest as ipAddressInspectorManifest } from '../../tools/ip-address-inspector/ip-address-inspector.manifest';
 import { manifest as ipv4IntegerConverterManifest } from '../../tools/ipv4-integer-converter/ipv4-integer-converter.manifest';
@@ -479,6 +480,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   imageMetadataInspectorManifest,
   imageResizerManifest,
   iniFormatterManifest,
+  installedSoftwareManifest,
   invisibleCharScannerManifest,
   ipAddressInspectorManifest,
   ipv4IntegerConverterManifest,

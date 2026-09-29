@@ -7,6 +7,8 @@ import { isInsideGrantedRoot } from './fs-grants';
 import type { ScheduledTaskDetail, ScheduledTaskSummary } from '../src/shared-logic/system/task-types';
 import type { StartupProgramsResult } from '../src/shared-logic/system/startup-types';
 import { readStartupPrograms } from './startup-programs';
+import { listInstalledSoftware } from './installed-software';
+import type { InstalledSoftware } from '../src/shared-logic/system/software-types';
 
 // Reserved for later milestones: `dude:sys:event` carries streamed helper events (SysStreamEvent).
 
@@ -33,4 +35,5 @@ export function registerSysHandlers(): void {
   });
   ipcMain.handle('dude:sys:startupList', (): Promise<StartupProgramsResult> =>
     readStartupPrograms((method, params) => sysHelper().call(method, params)));
+  ipcMain.handle('dude:sys:softwareList', (): Promise<InstalledSoftware[]> => listInstalledSoftware());
 }

@@ -4,6 +4,7 @@ import type { ApplyResult, FsJobEvent, FsJobRequest, FsResult, JournalEntry, Mut
 import type { PwshStatus, SysMethodMap, SysReadMethod, SysResult, SysStreamEvent } from '../../../shared-logic/system/system-types';
 import type { ScheduledTaskDetail, ScheduledTaskSummary } from '../../../shared-logic/system/task-types';
 import type { StartupProgramsResult } from '../../../shared-logic/system/startup-types';
+import type { InstalledSoftware } from '../../../shared-logic/system/software-types';
 import type { SysApplyResult, SysJournalEntry, SysMutationSettings, SysMutResult, SysPlanPreview, SysPlanRequest, SysSnapshot, SysSnapshotHeader, SysSnapshotKind } from '../../../shared-logic/system/sys-mutation-types';
 import type { NetworkRequest, NetworkJobEvent, NetworkStartResult, NetworkPrepareResult, WatchEntry, WatchSettings, WatchState, WatchResult } from './network-types';
 export interface NativeStat {
@@ -194,6 +195,7 @@ export interface DudeElectronBridge {
     taskList(): Promise<readonly ScheduledTaskSummary[]>;
     taskInfo(taskPath: string, taskName: string): Promise<ScheduledTaskDetail>;
     startupList(): Promise<StartupProgramsResult>;
+    listInstalledSoftware(): Promise<InstalledSoftware[]>;
     onEvent(callback: (event: SysStreamEvent) => void): () => void;
   };
   /**

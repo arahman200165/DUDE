@@ -110,6 +110,7 @@ Get-ScheduledTask -ErrorAction SilentlyContinue | ForEach-Object {
   if ($startupTriggers.Count -gt 0) { $tasks += [pscustomobject]@{ taskPath=$task.TaskPath; taskName=$task.TaskName; state=[string]$task.State; enabled=($task.State -ne 'Disabled'); lastRunTime=$null; nextRunTime=$null; lastTaskResult=$null } }
 }
 [pscustomobject]@{ folders=$folders; tasks=$tasks }`,
+  'software.appx': 'Get-AppxPackage | Select-Object Name,PackageFullName,Publisher,Version',
 };
 
 export function buildFixedScriptCommand(name: string, args: unknown): string {

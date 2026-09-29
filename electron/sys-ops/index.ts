@@ -5,6 +5,7 @@ import { registerRegistryOps } from './registry';
 import { registerServiceOps } from './service';
 import { registerTaskOps } from './task';
 import { registerStartupOps } from './startup';
+import { registerSoftwareOps } from './software';
 
 /**
  * Op families plug into the engine here. `sys-mutation.ts` calls `registerBuiltinSysOps(registerSysOp)`
@@ -19,4 +20,5 @@ export function registerBuiltinSysOps(register: <P>(def: SysOpDefinition<P>) => 
   registerServiceOps(register);
   registerTaskOps(register);
   registerStartupOps(register);
+  registerSoftwareOps(register);
 }
