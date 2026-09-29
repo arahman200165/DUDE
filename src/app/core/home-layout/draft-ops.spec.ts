@@ -5,6 +5,7 @@ import {
   addPanel,
   draftFromLayout,
   draftIssues,
+  draftSignature,
   followWide,
   duplicatePanel,
   movePanel,
@@ -158,5 +159,19 @@ describe('followWide', () => {
     const r = followWide(detached, lookup);
     expect(r.draft.narrowCustomized).toBe(false);
     expect(r.draft.narrow.map((i) => i.id)).toEqual(['a', 'b']);
+  });
+});
+
+describe('draftSignature', () => {
+  it('ignores placement array order, so a just-saved draft is not dirty', () => {
+    const d = base();
+    expect(draftSignature({ ...d, wide: [...d.wide].reverse() })).toBe(draftSignature(d));
+  });
+  it('changes for real edits and ignores the derived narrow layout until it is customized', () => {
+    const d = base();
+    expect(draftSignature(resizePanel(d, 'wide', 'a', { w: 4, h: 2 }, lookup).draft)).not.toBe(draftSignature(d));
+    expect(draftSignature({ ...d, narrow: [] })).toBe(draftSignature(d));
+    const detached = movePanel(d, 'narrow', 'b', -1, lookup).draft;
+    expect(draftSignature({ ...detached, narrow: [] })).not.toBe(draftSignature(detached));
   });
 });

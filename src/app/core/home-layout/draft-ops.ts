@@ -194,3 +194,20 @@ export function followWide(draft: HomeLayoutDraft, kinds: KindLookup): OpResult 
     'Narrow layout now follows the wide layout.',
   );
 }
+
+/**
+ * Order-independent fingerprint of a draft, for "does the editor differ from what is saved?".
+ * The store re-sorts placements into reading order when it saves, so comparing raw arrays would
+ * report a just-saved draft as still dirty. While narrow follows wide it is derived, so it is
+ * left out of the fingerprint.
+ */
+export function draftSignature(draft: HomeLayoutDraft): string {
+  const byId = (list: readonly GridItem[]) => [...list].sort((a, b) => a.id.localeCompare(b.id)).map((i) => [i.id, i.x, i.y, i.w, i.h]);
+  return JSON.stringify({
+    instances: draft.instances.map((i) => [i.id, i.kindId, i.visible, i.config]),
+    wide: byId(draft.wide),
+    narrow: draft.narrowCustomized ? byId(draft.narrow) : null,
+    narrowCustomized: draft.narrowCustomized,
+    content: Object.keys(draft.content).sort().map((k) => [k, draft.content[k]]),
+  });
+}

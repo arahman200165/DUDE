@@ -99,8 +99,20 @@ export class ShortcutResolverService {
   options(kind: ShortcutTargetKind, query: string, limit = 8): readonly ShortcutOption[] {
     const q = query.trim().toLowerCase();
     const all = this.allOptions(kind);
-    const matches = q ? all.filter((o) => `${o.title} ${o.description} ${o.ref}`.toLowerCase().includes(q)) : all;
-    return matches.slice(0, limit);
+    if (!q) return all.slice(0, limit);
+    // Title matches first (prefix before substring), then description/id matches, each in registry order.
+    const rank = (o: ShortcutOption): number => {
+      const title = o.title.toLowerCase();
+      if (title.startsWith(q)) return 0;
+      if (title.includes(q)) return 1;
+      return `${o.description} ${o.ref}`.toLowerCase().includes(q) ? 2 : 3;
+    };
+    return all
+      .map((option, index) => ({ option, index, score: rank(option) }))
+      .filter((r) => r.score < 3)
+      .sort((a, b) => a.score - b.score || a.index - b.index)
+      .slice(0, limit)
+      .map((r) => r.option);
   }
 
   private allOptions(kind: ShortcutTargetKind): readonly ShortcutOption[] {

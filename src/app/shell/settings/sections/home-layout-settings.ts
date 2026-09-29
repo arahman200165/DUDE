@@ -4,6 +4,7 @@ import {
   addPanel,
   draftFromLayout,
   draftIssues,
+  draftSignature,
   duplicatePanel,
   followWide,
   movePanel,
@@ -79,7 +80,7 @@ export class HomeLayoutSettings {
   protected readonly confirmingReset = signal(false);
   protected readonly visual = signal(false);
 
-  protected readonly dirty = computed(() => JSON.stringify(this.draft()) !== JSON.stringify(this.saved()));
+  protected readonly dirty = computed(() => draftSignature(this.draft()) !== draftSignature(this.saved()));
   protected readonly customized = this.service.customized;
 
   private readonly kinds = (kindId: string) => this.registry.resolveKind(kindId);
@@ -167,6 +168,11 @@ export class HomeLayoutSettings {
     this.openId.set(null);
   }
 
+  /** Report the dirty state right away (the effect alone lags a tick, which the leave-page guard could observe). */
+  private syncDirty(): void {
+    this.unsaved.setDirty(UNSAVED_KEY, this.dirty());
+  }
+
   private apply(result: OpResult): void {
     if (result.ok) this.draft.set(result.draft);
     this.message.set({ text: result.message, ok: result.ok });
@@ -244,6 +250,7 @@ export class HomeLayoutSettings {
     if (result.ok) {
       this.issues.set([]);
       this.message.set({ text: 'Home layout saved.', ok: true });
+      this.syncDirty();
     } else {
       this.issues.set(result.issues.map((i) => i.message));
       this.message.set({ text: 'Home layout wasn’t saved.', ok: false });
@@ -255,6 +262,7 @@ export class HomeLayoutSettings {
     this.openId.set(null);
     this.issues.set([]);
     this.message.set({ text: 'Changes discarded.', ok: true });
+    this.syncDirty();
   }
 
   protected requestReset(): void {
@@ -273,6 +281,7 @@ export class HomeLayoutSettings {
     this.openId.set(null);
     this.issues.set([]);
     this.message.set({ text: 'Home restored to the default layout.', ok: true });
+    this.syncDirty();
   }
 
   protected placementText(row: Row): string {

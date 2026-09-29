@@ -93,6 +93,9 @@ describe('ShortcutResolverService', () => {
 
     expect(resolver.options('tool', tool.title.toLowerCase()).some((o) => o.ref === tool.id)).toBe(true);
     expect(resolver.options('destination', 'zzzz-nothing')).toEqual([]);
+    // Title matches outrank description/id matches, so a search for a name finds that name first.
+    const first = resolver.options('tool', TOOL_DEFINITIONS[5].title.slice(0, 6).toLowerCase(), 50);
+    expect(first[0].title.toLowerCase()).toContain(TOOL_DEFINITIONS[5].title.slice(0, 6).toLowerCase());
     expect(resolver.options('tool', '', 3)).toHaveLength(3);
   });
 });
