@@ -39,11 +39,30 @@
     },
     "density": {
       "attr": "data-density",
-      "values": ["compact"],
+      "values": ["compact", "comfortable", "ultra"],
       "default": "compact",
-      "labels": { "compact": "Compact" }
+      "labels": { "compact": "Compact", "comfortable": "Comfortable", "ultra": "Ultra-compact" }
+    },
+    "uiSize": {
+      "attr": "data-ui-size",
+      "values": ["default", "small", "large"],
+      "default": "default",
+      "labels": { "default": "Default", "small": "Small", "large": "Large" }
+    },
+    "monoSize": {
+      "attr": "data-mono-size",
+      "values": ["default", "small", "large"],
+      "default": "default",
+      "labels": { "default": "Default", "small": "Small", "large": "Large" }
+    },
+    "ligatures": {
+      "attr": "data-ligatures",
+      "values": ["on", "off"],
+      "default": "on",
+      "labels": { "on": "On", "off": "Off" }
     }
   },
+  "sizeSteps": { "default": "1", "small": "0.9167", "large": "1.1667" },
   "bases": {
     "dark": {
       "standard": {
@@ -400,6 +419,34 @@
       "space-panel": "0.75rem",
       "space-major": "1rem",
       "space-exceptional": "1.5rem"
+    },
+    "comfortable": {
+      "spacing": "0.3125rem",
+      "control-h": "2rem",
+      "row-h": "2rem",
+      "radius": "0.3125rem",
+      "text-ui": "0.875rem",
+      "text-ui-sm": "0.8125rem",
+      "text-ui-xs": "0.75rem",
+      "space-micro": "0.3125rem",
+      "space-normal": "0.625rem",
+      "space-panel": "1rem",
+      "space-major": "1.25rem",
+      "space-exceptional": "2rem"
+    },
+    "ultra": {
+      "spacing": "0.1875rem",
+      "control-h": "1.5rem",
+      "row-h": "1.5rem",
+      "radius": "0.1875rem",
+      "text-ui": "0.75rem",
+      "text-ui-sm": "0.6875rem",
+      "text-ui-xs": "0.6875rem",
+      "space-micro": "0.1875rem",
+      "space-normal": "0.375rem",
+      "space-panel": "0.5rem",
+      "space-major": "0.75rem",
+      "space-exceptional": "1.125rem"
     }
   },
   "fonts": {
@@ -408,6 +455,31 @@
         "id": "system",
         "label": "System UI",
         "stack": "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"
+      },
+      {
+        "id": "segoe",
+        "label": "Segoe UI",
+        "stack": "'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif"
+      },
+      {
+        "id": "inter",
+        "label": "Inter (if installed)",
+        "stack": "Inter, 'Inter Variable', ui-sans-serif, system-ui, sans-serif"
+      },
+      {
+        "id": "helvetica",
+        "label": "Helvetica / Arial",
+        "stack": "'Helvetica Neue', Helvetica, Arial, 'Liberation Sans', sans-serif"
+      },
+      {
+        "id": "verdana",
+        "label": "Verdana (wide)",
+        "stack": "Verdana, 'DejaVu Sans', 'Bitstream Vera Sans', sans-serif"
+      },
+      {
+        "id": "atkinson",
+        "label": "Atkinson Hyperlegible (if installed)",
+        "stack": "'Atkinson Hyperlegible', 'Atkinson Hyperlegible Next', ui-sans-serif, system-ui, sans-serif"
       }
     ],
     "mono": [
@@ -415,6 +487,31 @@
         "id": "default",
         "label": "JetBrains Mono / Fira Code",
         "stack": "'JetBrains Mono', 'Fira Code', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace"
+      },
+      {
+        "id": "cascadia",
+        "label": "Cascadia Code",
+        "stack": "'Cascadia Code', 'Cascadia Mono', Consolas, ui-monospace, monospace"
+      },
+      {
+        "id": "consolas",
+        "label": "Consolas",
+        "stack": "Consolas, 'Lucida Console', 'Courier New', monospace"
+      },
+      {
+        "id": "system",
+        "label": "System monospace",
+        "stack": "ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', monospace"
+      },
+      {
+        "id": "plex",
+        "label": "IBM Plex Mono (if installed)",
+        "stack": "'IBM Plex Mono', ui-monospace, Consolas, monospace"
+      },
+      {
+        "id": "source",
+        "label": "Source Code Pro (if installed)",
+        "stack": "'Source Code Pro', ui-monospace, Consolas, monospace"
       }
     ],
     "defaultUi": "system",

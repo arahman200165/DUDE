@@ -24,6 +24,43 @@
     </div>
   }
 
+  @for (font of fontRows; track font.prefsKey) {
+    <div data-setting class="flex flex-col gap-1" [attr.data-testid]="'row-' + font.prefsKey">
+      <label class="text-ui text-text" [attr.for]="'font-select-' + font.prefsKey">{{ font.label }}</label>
+      <div class="flex flex-wrap items-center gap-2">
+        <select
+          class="dude-input"
+          [id]="'font-select-' + font.prefsKey"
+          [value]="selectedFont(font)"
+          (change)="onFontSelect(font, $any($event.target).value)"
+        >
+          @for (option of font.options; track option.id) {
+            <option [value]="option.id" [selected]="selectedFont(font) === option.id">{{ option.label }}</option>
+          }
+          <option [value]="customFontValue" [selected]="selectedFont(font) === customFontValue">Custom (installed font)…</option>
+        </select>
+        @if (isCustomFont(font)) {
+          <input
+            type="text"
+            class="dude-input"
+            placeholder="Font family name, e.g. Fira Sans"
+            [attr.aria-label]="font.label + ' custom family name'"
+            [value]="customFontName(font)"
+            (change)="onCustomFont(font, $any($event.target).value)"
+            (keydown.enter)="onCustomFont(font, $any($event.target).value)"
+          />
+        }
+      </div>
+      @if (invalidFont()[font.prefsKey]) {
+        <span class="text-ui-xs text-error" role="alert">{{ fontError }}</span>
+      }
+      <span class="text-ui-xs text-text-muted" [style.font-family]="fontSample(font)">The quick brown fox 0O1lI {{ '{}=>!=' }}</span>
+      @if (font.help) {
+        <span class="text-ui-xs text-text-muted">{{ font.help }}</span>
+      }
+    </div>
+  }
+
   <section data-setting aria-labelledby="appearance-swatch-title" class="flex flex-col gap-2">
     <h3 id="appearance-swatch-title" class="text-ui-sm font-semibold text-text">Palette preview</h3>
     <ul class="m-0 flex list-none flex-wrap gap-1 p-0" aria-label="Surface and accent colors" data-testid="swatches-surface">

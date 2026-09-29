@@ -27,7 +27,14 @@ export interface AppearanceCombo {
 }
 
 /** Axes whose values can change layout/sizing; the multi-viewport sub-matrix iterates only these. */
-export const LAYOUT_AXES = ['theme', 'contrast', 'density'];
+export const LAYOUT_AXES = ['theme', 'contrast', 'density', 'uiSize', 'monoSize'];
+
+/**
+ * Axes that change sizing / typography only, never color. The full color matrix pins them to their
+ * defaults (multiplying it by them would add no color coverage); the layout sub-matrix covers
+ * uiSize and monoSize instead, and ligatures is checked by unit tests.
+ */
+export const SIZE_AXES = ['uiSize', 'monoSize', 'ligatures'];
 
 export const VIEWPORTS = [
   { width: 1920, height: 1080 },
@@ -63,10 +70,10 @@ function crossProduct(tokens: ThemeTokens, axisNames: string[]): AppearanceCombo
   return acc.map((values) => buildCombo(tokens, values));
 }
 
-/** Every combination of every axis value. Grows automatically as theme-tokens.json grows. */
+/** Every combination of every color-affecting axis value (SIZE_AXES pinned to defaults). Grows automatically as theme-tokens.json grows. */
 export function allCombos(): AppearanceCombo[] {
   const tokens = loadTokens();
-  return crossProduct(tokens, Object.keys(tokens.axes));
+  return crossProduct(tokens, Object.keys(tokens.axes).filter((name) => !SIZE_AXES.includes(name)));
 }
 
 /** Every combination of the LAYOUT_AXES values, other axes at their defaults. */

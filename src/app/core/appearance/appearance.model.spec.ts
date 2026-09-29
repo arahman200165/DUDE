@@ -18,6 +18,9 @@ const RICH_AXES: AppearanceAxes = {
   catset: { attr: 'data-catset', values: ['vivid'], default: 'vivid' },
   semantic: { attr: 'data-semantic', values: ['standard'], default: 'standard' },
   density: { attr: 'data-density', values: ['compact', 'comfortable'], default: 'compact' },
+  uiSize: { attr: 'data-ui-size', values: ['default', 'large'], default: 'default' },
+  monoSize: { attr: 'data-mono-size', values: ['default', 'large'], default: 'default' },
+  ligatures: { attr: 'data-ligatures', values: ['on', 'off'], default: 'on' },
 };
 
 const NO_MEDIA = { prefersLight: false, prefersMoreContrast: false };
@@ -31,6 +34,9 @@ describe('appearance model', () => {
       expect(DEFAULT_APPEARANCE.catset).toBe(APPEARANCE_AXES['catset'].default);
       expect(DEFAULT_APPEARANCE.semantic).toBe(APPEARANCE_AXES['semantic'].default);
       expect(DEFAULT_APPEARANCE.density).toBe(APPEARANCE_AXES['density'].default);
+      expect(DEFAULT_APPEARANCE.uiSize).toBe(APPEARANCE_AXES['uiSize'].default);
+      expect(DEFAULT_APPEARANCE.monoSize).toBe(APPEARANCE_AXES['monoSize'].default);
+      expect(DEFAULT_APPEARANCE.ligatures).toBe(APPEARANCE_AXES['ligatures'].default);
       expect(UI_FONTS.some((font) => font.id === DEFAULT_APPEARANCE.uiFont)).toBe(true);
       expect(MONO_FONTS.some((font) => font.id === DEFAULT_APPEARANCE.monoFont)).toBe(true);
     });
@@ -61,6 +67,35 @@ describe('appearance model', () => {
       for (const catset of APPEARANCE_AXES['catset'].values) {
         expect(sanitizeAppearance({ catset }).catset).toBe(catset);
       }
+    });
+
+    it('list the three densities and the size / ligature axes, defaults first', () => {
+      expect(APPEARANCE_AXES['density'].values).toEqual(['compact', 'comfortable', 'ultra']);
+      expect(APPEARANCE_AXES['uiSize'].values).toEqual(['default', 'small', 'large']);
+      expect(APPEARANCE_AXES['monoSize'].values).toEqual(['default', 'small', 'large']);
+      expect(APPEARANCE_AXES['ligatures'].values).toEqual(['on', 'off']);
+      expect(APPEARANCE_AXES['uiSize'].attr).toBe('data-ui-size');
+      expect(APPEARANCE_AXES['monoSize'].attr).toBe('data-mono-size');
+      expect(APPEARANCE_AXES['ligatures'].attr).toBe('data-ligatures');
+    });
+
+    it('accept every density, size step and ligature value, and reject unknown or wrong-typed ones', () => {
+      for (const density of ['compact', 'comfortable', 'ultra']) expect(sanitizeAppearance({ density }).density).toBe(density);
+      for (const key of ['uiSize', 'monoSize'] as const) {
+        for (const value of ['default', 'small', 'large']) expect(sanitizeAppearance({ [key]: value })[key]).toBe(value);
+        for (const bad of ['huge', 'system', 3, null, {}]) expect(sanitizeAppearance({ [key]: bad })[key]).toBe('default');
+      }
+      for (const value of ['on', 'off']) expect(sanitizeAppearance({ ligatures: value }).ligatures).toBe(value);
+      for (const bad of ['yes', true, 1, null]) expect(sanitizeAppearance({ ligatures: bad }).ligatures).toBe('on');
+    });
+
+    it('accept every curated font id and fall back to the default for an unknown id', () => {
+      expect(UI_FONTS.map((font) => font.id)).toEqual(['system', 'segoe', 'inter', 'helvetica', 'verdana', 'atkinson']);
+      expect(MONO_FONTS.map((font) => font.id)).toEqual(['default', 'cascadia', 'consolas', 'system', 'plex', 'source']);
+      for (const font of UI_FONTS) expect(sanitizeAppearance({ uiFont: font.id }).uiFont).toBe(font.id);
+      for (const font of MONO_FONTS) expect(sanitizeAppearance({ monoFont: font.id }).monoFont).toBe(font.id);
+      expect(sanitizeAppearance({ uiFont: 'comic' }).uiFont).toBe('system');
+      expect(sanitizeAppearance({ monoFont: 'comic' }).monoFont).toBe('default');
     });
   });
 
@@ -136,6 +171,9 @@ describe('appearance model', () => {
         catset: 'vivid',
         semantic: 'standard',
         density: 'comfortable',
+        uiSize: 'default',
+        monoSize: 'default',
+        ligatures: 'on',
       });
     });
 

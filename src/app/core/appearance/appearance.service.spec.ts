@@ -75,6 +75,19 @@ describe('AppearanceService', () => {
     expect(root.getAttribute('data-theme')).toBe('light');
   });
 
+  it('applies density, UI size, data size and ligature preferences as data-* attributes', () => {
+    const service = create();
+    service.set({ density: 'comfortable', uiSize: 'large', monoSize: 'small', ligatures: 'off' });
+    TestBed.tick();
+    expect(root.getAttribute('data-density')).toBe('comfortable');
+    expect(root.getAttribute('data-ui-size')).toBe('large');
+    expect(root.getAttribute('data-mono-size')).toBe('small');
+    expect(root.getAttribute('data-ligatures')).toBe('off');
+    service.set({ density: 'ultra' });
+    TestBed.tick();
+    expect(root.getAttribute('data-density')).toBe('ultra');
+  });
+
   it('applies a custom font name through the style property, and never an unsafe one', () => {
     const service = create();
     service.set({ monoFont: { custom: 'Cascadia Code' } });

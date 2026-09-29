@@ -5,7 +5,8 @@ import { APPEARANCE_AXES_DATA, APPEARANCE_FONTS_DATA } from './appearance-axes.g
  * sanitizer and the resolution of `'system'` against media queries. Every allowed value is derived
  * from `styles/theme/theme-tokens.json` — the same file the generated CSS is built from — via the
  * generated `appearance-axes.generated.ts` (axes + fonts only, so the initial bundle does not carry
- * every color), so adding a theme/accent/font there needs no change here. No Angular imports; the
+ * every color), so adding a theme/accent/density/size step/font there needs no change here. Besides the
+ * color axes, `density`, `uiSize`, `monoSize` and `ligatures` are plain axis preferences (pref key = axis name). No Angular imports; the
  * service lives beside it.
  */
 
@@ -44,6 +45,12 @@ export interface AppearancePrefs {
   readonly catset: string;
   readonly semantic: string;
   readonly density: string;
+  /** UI text size step (`sizeSteps` id). */
+  readonly uiSize: string;
+  /** Data/code (monospace) text size step. */
+  readonly monoSize: string;
+  /** Programming ligatures in mono text: `on` or `off`. */
+  readonly ligatures: string;
   readonly uiFont: FontChoice;
   readonly monoFont: FontChoice;
 }
@@ -61,6 +68,9 @@ const PREF_AXIS = {
   catset: 'catset',
   semantic: 'semantic',
   density: 'density',
+  uiSize: 'uiSize',
+  monoSize: 'monoSize',
+  ligatures: 'ligatures',
 } as const;
 
 type AxisPrefKey = keyof typeof PREF_AXIS;
@@ -75,6 +85,9 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   catset: APPEARANCE_AXES['catset'].default,
   semantic: APPEARANCE_AXES['semantic'].default,
   density: APPEARANCE_AXES['density'].default,
+  uiSize: APPEARANCE_AXES['uiSize'].default,
+  monoSize: APPEARANCE_AXES['monoSize'].default,
+  ligatures: APPEARANCE_AXES['ligatures'].default,
   uiFont: tokens.fonts.defaultUi,
   monoFont: tokens.fonts.defaultMono,
 };

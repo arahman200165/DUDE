@@ -1,5 +1,15 @@
-import { Component, InjectionToken, inject } from '@angular/core';
-import { APPEARANCE_AXES, AppearanceAxes, AppearancePrefs, SYSTEM } from '../../../core/appearance/appearance.model';
+import { Component, InjectionToken, inject, signal } from '@angular/core';
+import {
+  APPEARANCE_AXES,
+  AppearanceAxes,
+  AppearancePrefs,
+  FontChoice,
+  MONO_FONTS,
+  SYSTEM,
+  UI_FONTS,
+  fontStack,
+  sanitizeFontFamily,
+} from '../../../core/appearance/appearance.model';
 import { AppearanceService } from '../../../core/appearance/appearance.service';
 import { CATEGORY_METADATA, TOOL_CATEGORIES } from '../../../shared/models/tool-category.model';
 
@@ -54,6 +64,48 @@ const AXIS_ROWS: readonly AxisRowSpec[] = [
     label: 'Status colors',
     help: 'Color-blind safe swaps red/green status colors for a blue/orange scheme; status icons and labels are always shown too.',
   },
+  {
+    axisKey: 'density',
+    prefsKey: 'density',
+    label: 'Density',
+    help: 'Compact is the default. Comfortable adds spacing and larger controls; Ultra-compact tightens everything.',
+  },
+  { axisKey: 'uiSize', prefsKey: 'uiSize', label: 'UI text size' },
+  {
+    axisKey: 'monoSize',
+    prefsKey: 'monoSize',
+    label: 'Data & code text size',
+    help: 'Sizes monospace values, editors and code blocks independently of the UI text.',
+  },
+  {
+    axisKey: 'ligatures',
+    prefsKey: 'ligatures',
+    label: 'Code ligatures',
+    help: 'Off shows operators like != and => as separate characters in monospace text.',
+  },
+];
+
+const CUSTOM_FONT = '__custom';
+const FONT_ERROR = 'Use letters, digits, spaces, dot, dash or underscore (max 64).';
+
+/** One font row (UI or monospace): curated select plus an optional installed-font name input. */
+interface FontRow {
+  readonly kind: 'ui' | 'mono';
+  readonly prefsKey: 'uiFont' | 'monoFont';
+  readonly label: string;
+  readonly options: readonly { readonly id: string; readonly label: string }[];
+  readonly help?: string;
+}
+
+const FONT_ROWS: readonly FontRow[] = [
+  {
+    kind: 'ui',
+    prefsKey: 'uiFont',
+    label: 'UI font',
+    options: UI_FONTS,
+    help: 'Only fonts installed on this device are used; DUDE bundles no web fonts.',
+  },
+  { kind: 'mono', prefsKey: 'monoFont', label: 'Data & code font', options: MONO_FONTS },
 ];
 
 const CHIP_BASE ='rounded-sm border border-border px-2 py-0.5 text-ui-xs';
@@ -83,9 +135,10 @@ function capitalize(value: string): string {
 }
 
 /**
- * Settings › Appearance. Chip rows (theme, contrast, accent, palette; theme and contrast also offer
- * `system`) and a live swatch strip; later Phase 30K milestones append rows (density, fonts, motion,
- * export/import) to the same vertical list. Options come from `theme-tokens.json` via the model.
+ * Settings › Appearance. Chip rows (theme, contrast, accent, palette, status colors, density, text
+ * sizes, ligatures; theme and contrast also offer `system`), font pickers (curated list or an
+ * installed-font name) and a live swatch strip; later Phase 30K milestones append motion and
+ * export/import. Options come from `theme-tokens.json` via the model.
  */
 @Component({
   selector: 'app-appearance-settings',
@@ -126,6 +179,51 @@ export class AppearanceSettings {
 
   protected setAxis(row: AxisRow, value: string): void {
     this.appearance.set({ [row.prefsKey]: value });
+  }
+
+  protected readonly fontRows = FONT_ROWS;
+  protected readonly customFontValue = CUSTOM_FONT;
+  protected readonly fontError = FONT_ERROR;
+
+  /** Rows where the user picked "Custom" (even before typing a name), keyed by prefs key. */
+  private readonly customMode = signal<Record<string, boolean>>({});
+  protected readonly invalidFont = signal<Record<string, boolean>>({});
+
+  protected isCustomFont(row: FontRow): boolean {
+    return this.customMode()[row.prefsKey] === true || typeof this.appearance.prefs()[row.prefsKey] !== 'string';
+  }
+
+  protected selectedFont(row: FontRow): string {
+    return this.isCustomFont(row) ? CUSTOM_FONT : (this.appearance.prefs()[row.prefsKey] as string);
+  }
+
+  protected customFontName(row: FontRow): string {
+    const choice: FontChoice = this.appearance.prefs()[row.prefsKey];
+    return typeof choice === 'string' ? '' : choice.custom;
+  }
+
+  protected fontSample(row: FontRow): string {
+    return fontStack(this.appearance.prefs(), row.kind);
+  }
+
+  protected onFontSelect(row: FontRow, value: string): void {
+    this.invalidFont.update((state) => ({ ...state, [row.prefsKey]: false }));
+    if (value === CUSTOM_FONT) {
+      this.customMode.update((state) => ({ ...state, [row.prefsKey]: true }));
+      return;
+    }
+    this.customMode.update((state) => ({ ...state, [row.prefsKey]: false }));
+    this.appearance.set({ [row.prefsKey]: value });
+  }
+
+  protected onCustomFont(row: FontRow, value: string): void {
+    const name = value.trim();
+    if (sanitizeFontFamily(name) === null) {
+      this.invalidFont.update((state) => ({ ...state, [row.prefsKey]: true }));
+      return;
+    }
+    this.invalidFont.update((state) => ({ ...state, [row.prefsKey]: false }));
+    this.appearance.set({ [row.prefsKey]: { custom: name } });
   }
 
   protected resetToDefaults(): void {

@@ -13,6 +13,29 @@
   --dude-base-font-size: 16px;
 }
 
+/* Data/code font size step (Phase 30K): inside mono subtrees the size tokens are
+   redefined against the mono scale with absolute rem bases, so nesting never compounds. */
+:where(.font-mono, pre, code, kbd, samp) {
+  --text-xs: calc(0.75rem * var(--dude-mono-scale));
+  --text-sm: calc(0.875rem * var(--dude-mono-scale));
+  --text-base: calc(1rem * var(--dude-mono-scale));
+  --text-lg: calc(1.125rem * var(--dude-mono-scale));
+  --text-ui: calc(var(--dude-text-ui) * var(--dude-mono-scale));
+  --text-ui-sm: calc(var(--dude-text-ui-sm) * var(--dude-mono-scale));
+  --text-ui-xs: calc(var(--dude-text-ui-xs) * var(--dude-mono-scale));
+}
+@layer base {
+  /* A mono root with no size utility inherits the (UI-scaled) parent size: swap the UI step for the mono step.
+     :is() gives class-level specificity so it beats preflight's code/pre { font-size: 1em } in this layer. */
+  :is(.font-mono, pre, code, kbd, samp):not(:where(.font-mono, pre, code, kbd, samp) *) {
+    font-size: calc(1em * var(--dude-mono-scale) / var(--dude-ui-scale));
+  }
+}
+:root[data-ligatures='off'] :where(.font-mono, pre, code, kbd, samp, textarea) {
+  font-variant-ligatures: none;
+  font-feature-settings: 'liga' 0, 'calt' 0;
+}
+
 html,
 body {
   height: 100%;

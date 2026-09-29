@@ -114,7 +114,7 @@ test.describe('appearance matrix (every axis combination)', () => {
   });
 });
 
-test.describe('appearance layout sub-matrix (theme × contrast × density × viewport)', () => {
+test.describe('appearance layout sub-matrix (theme × contrast × density × UI size × data size × viewport)', () => {
   const combos = layoutCombos();
   combos.forEach((combo, index) => {
     for (const viewport of VIEWPORTS) {

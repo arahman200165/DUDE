@@ -74,11 +74,55 @@ export const APPEARANCE_AXES_DATA = {
   "density": {
     "attr": "data-density",
     "values": [
-      "compact"
+      "compact",
+      "comfortable",
+      "ultra"
     ],
     "default": "compact",
     "labels": {
-      "compact": "Compact"
+      "compact": "Compact",
+      "comfortable": "Comfortable",
+      "ultra": "Ultra-compact"
+    }
+  },
+  "uiSize": {
+    "attr": "data-ui-size",
+    "values": [
+      "default",
+      "small",
+      "large"
+    ],
+    "default": "default",
+    "labels": {
+      "default": "Default",
+      "small": "Small",
+      "large": "Large"
+    }
+  },
+  "monoSize": {
+    "attr": "data-mono-size",
+    "values": [
+      "default",
+      "small",
+      "large"
+    ],
+    "default": "default",
+    "labels": {
+      "default": "Default",
+      "small": "Small",
+      "large": "Large"
+    }
+  },
+  "ligatures": {
+    "attr": "data-ligatures",
+    "values": [
+      "on",
+      "off"
+    ],
+    "default": "on",
+    "labels": {
+      "on": "On",
+      "off": "Off"
     }
   }
 } as const;
@@ -89,6 +133,31 @@ export const APPEARANCE_FONTS_DATA = {
       "id": "system",
       "label": "System UI",
       "stack": "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"
+    },
+    {
+      "id": "segoe",
+      "label": "Segoe UI",
+      "stack": "'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif"
+    },
+    {
+      "id": "inter",
+      "label": "Inter (if installed)",
+      "stack": "Inter, 'Inter Variable', ui-sans-serif, system-ui, sans-serif"
+    },
+    {
+      "id": "helvetica",
+      "label": "Helvetica / Arial",
+      "stack": "'Helvetica Neue', Helvetica, Arial, 'Liberation Sans', sans-serif"
+    },
+    {
+      "id": "verdana",
+      "label": "Verdana (wide)",
+      "stack": "Verdana, 'DejaVu Sans', 'Bitstream Vera Sans', sans-serif"
+    },
+    {
+      "id": "atkinson",
+      "label": "Atkinson Hyperlegible (if installed)",
+      "stack": "'Atkinson Hyperlegible', 'Atkinson Hyperlegible Next', ui-sans-serif, system-ui, sans-serif"
     }
   ],
   "mono": [
@@ -96,6 +165,31 @@ export const APPEARANCE_FONTS_DATA = {
       "id": "default",
       "label": "JetBrains Mono / Fira Code",
       "stack": "'JetBrains Mono', 'Fira Code', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace"
+    },
+    {
+      "id": "cascadia",
+      "label": "Cascadia Code",
+      "stack": "'Cascadia Code', 'Cascadia Mono', Consolas, ui-monospace, monospace"
+    },
+    {
+      "id": "consolas",
+      "label": "Consolas",
+      "stack": "Consolas, 'Lucida Console', 'Courier New', monospace"
+    },
+    {
+      "id": "system",
+      "label": "System monospace",
+      "stack": "ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', monospace"
+    },
+    {
+      "id": "plex",
+      "label": "IBM Plex Mono (if installed)",
+      "stack": "'IBM Plex Mono', ui-monospace, Consolas, monospace"
+    },
+    {
+      "id": "source",
+      "label": "Source Code Pro (if installed)",
+      "stack": "'Source Code Pro', ui-monospace, Consolas, monospace"
     }
   ],
   "defaultUi": "system",

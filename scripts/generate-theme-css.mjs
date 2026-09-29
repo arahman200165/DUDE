@@ -77,7 +77,7 @@ function checkHex(block, keys, where) {
 }
 
 export function validateTokens(t) {
-  for (const key of ['axes', 'bases', 'accents', 'categorySets', 'semanticSets', 'density', 'fonts']) {
+  for (const key of ['axes', 'bases', 'accents', 'categorySets', 'semanticSets', 'density', 'sizeSteps', 'fonts']) {
     if (!t[key]) throw new Error(`theme-tokens.json: missing top-level key "${key}"`);
   }
   for (const [name, axis] of Object.entries(t.axes)) {
@@ -122,7 +122,37 @@ export function validateTokens(t) {
   for (const d of v('density')) {
     checkKeys(need(t.density, [d], `density "${d}"`), DENSITY_KEYS, `density.${d}`);
   }
+  if (t.sizeSteps === null || typeof t.sizeSteps !== 'object' || Array.isArray(t.sizeSteps)) {
+    throw new Error('theme-tokens.json: sizeSteps must be an object of step id -> scale factor');
+  }
+  for (const name of ['uiSize', 'monoSize']) {
+    if (!t.axes[name]) continue;
+    for (const value of t.axes[name].values) {
+      const factor = t.sizeSteps[value];
+      if (typeof factor !== 'string' || !/^\d+(\.\d+)?$/.test(factor) || !(Number(factor) > 0)) {
+        throw new Error(`theme-tokens.json: axis "${name}" value "${value}" needs a sizeSteps entry that is a positive number string`);
+      }
+    }
+  }
+  if (t.axes.ligatures) {
+    const lig = t.axes.ligatures.values;
+    if (lig.length !== 2 || !lig.includes('on') || !lig.includes('off')) {
+      throw new Error('theme-tokens.json: axis "ligatures" values must be exactly "on" and "off"');
+    }
+  }
   const { ui, mono, defaultUi, defaultMono } = t.fonts;
+  for (const [kind, list] of [['ui', ui], ['mono', mono]]) {
+    if (!Array.isArray(list) || !list.length) throw new Error(`theme-tokens.json: fonts.${kind} must be a non-empty list`);
+    const seen = new Set();
+    for (const f of list) {
+      if (!f || typeof f.id !== 'string' || f.id === '') throw new Error(`theme-tokens.json: fonts.${kind} entry needs a string id`);
+      if (seen.has(f.id)) throw new Error(`theme-tokens.json: fonts.${kind} has duplicate id "${f.id}"`);
+      seen.add(f.id);
+      if (typeof f.stack !== 'string' || f.stack.trim() === '') {
+        throw new Error(`theme-tokens.json: fonts.${kind} "${f.id}" needs a non-empty stack`);
+      }
+    }
+  }
   if (!ui?.some((f) => f.id === defaultUi)) {
     throw new Error(`theme-tokens.json: fonts.defaultUi "${defaultUi}" not found in fonts.ui`);
   }
@@ -200,6 +230,13 @@ export function buildThemeCss(t) {
     const map = {};
     for (const k of DENSITY_KEYS) map[`--dude-${k}`] = s[k];
     block(selector(axes, ['density'], [d]), map);
+  }
+  // UI / data font size steps: one scale factor per step, default via the :not() fallback form.
+  for (const [axisName, prop] of [['uiSize', '--dude-ui-scale'], ['monoSize', '--dude-mono-scale']]) {
+    if (!axes[axisName]) continue;
+    for (const step of v(axisName)) {
+      block(selector(axes, [axisName], [step]), { [prop]: t.sizeSteps[step] });
+    }
   }
   return out.join('\n').replace(/\n+$/, '\n');
 }

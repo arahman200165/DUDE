@@ -27,7 +27,7 @@ export const CORE_SETTINGS_SECTIONS: readonly CoreSettingsSection[] = [
   {
     id: 'appearance',
     title: 'Appearance',
-    keywords: ['appearance', 'theme', 'light mode', 'dark mode', 'system theme', 'color scheme', 'colors'],
+    keywords: ['appearance', 'theme', 'light mode', 'dark mode', 'system theme', 'color scheme', 'colors', 'density', 'compact', 'comfortable', 'font', 'font size', 'text size', 'monospace', 'ligatures'],
     desktopOnly: false,
     load: () => import('./sections/appearance-settings').then((m) => m.AppearanceSettings),
   },

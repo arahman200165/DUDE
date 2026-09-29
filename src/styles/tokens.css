@@ -3,7 +3,8 @@
  * declared in src/styles/theme/theme-tokens.json and generated into
  * theme.generated.css (scripts/generate-theme-css.mjs) as --dude-* custom
  * properties, keyed by data-* attributes on <html> (data-theme, data-contrast,
- * data-accent, data-catset, data-semantic, data-density) so they are
+ * data-accent, data-catset, data-semantic, data-density, data-ui-size,
+ * data-mono-size, data-ligatures) so they are
  * runtime-overridable by core/appearance (Phase 30K). This @theme block only
  * maps Tailwind names to those variables, so every utility resolves through
  * var() at use time. Every shell component and tool should reuse these rather
@@ -63,10 +64,20 @@
   --color-accent: var(--dude-accent);
   --color-on-accent: var(--dude-on-accent);
 
-  /* Chrome type sizes for labels, meta rows, badges and keycaps */
-  --text-ui: var(--dude-text-ui);
-  --text-ui-sm: var(--dude-text-ui-sm);
-  --text-ui-xs: var(--dude-text-ui-xs);
+  /* UI size step (data-ui-size): Tailwind's text scale is multiplied by --dude-ui-scale
+     (1 by default, so the default look is unchanged). The --text-*--line-height ratios keep
+     Tailwind's defaults. Mono subtrees rebind these against --dude-mono-scale in styles.css. */
+  --text-xs: calc(0.75rem * var(--dude-ui-scale));
+  --text-sm: calc(0.875rem * var(--dude-ui-scale));
+  --text-base: calc(1rem * var(--dude-ui-scale));
+  --text-lg: calc(1.125rem * var(--dude-ui-scale));
+  --text-xl: calc(1.25rem * var(--dude-ui-scale));
+  --text-2xl: calc(1.5rem * var(--dude-ui-scale));
+
+  /* Chrome type sizes for labels, meta rows, badges and keycaps (density base x UI size step) */
+  --text-ui: calc(var(--dude-text-ui) * var(--dude-ui-scale));
+  --text-ui-sm: calc(var(--dude-text-ui-sm) * var(--dude-ui-scale));
+  --text-ui-xs: calc(var(--dude-text-ui-xs) * var(--dude-ui-scale));
 
   /* Base spacing unit; every p-/m-/gap-/size utility is calc(var(--spacing) * n) */
   --spacing: var(--dude-spacing);

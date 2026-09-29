@@ -43,6 +43,15 @@ describe('index.html appearance pre-paint script', () => {
     expect(root.getAttribute('data-density')).toBe('comfortable');
   });
 
+  it('applies the density, UI size, data size and ligature attributes', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ density: 'ultra', uiSize: 'large', monoSize: 'small', ligatures: 'off' }));
+    run();
+    expect(root.getAttribute('data-density')).toBe('ultra');
+    expect(root.getAttribute('data-ui-size')).toBe('large');
+    expect(root.getAttribute('data-mono-size')).toBe('small');
+    expect(root.getAttribute('data-ligatures')).toBe('off');
+  });
+
   it('does nothing when nothing is stored', () => {
     expect(() => run()).not.toThrow();
     for (const attr of attrs) expect(root.hasAttribute(attr)).toBe(false);
@@ -95,7 +104,7 @@ describe('index.html appearance pre-paint script', () => {
 
   it('stays in sync with the model: same attribute list and storage key', () => {
     const source = prepaintSource();
-    const scriptAttrs = [...source.matchAll(/'(data-[a-z]+)'/g)].map((match) => match[1]);
+    const scriptAttrs = [...source.matchAll(/'(data-[a-z-]+)'/g)].map((match) => match[1]);
     expect(scriptAttrs).toEqual(attrs);
     expect(/'(dude:v1:[^']+)'/.exec(source)?.[1]).toBe(STORAGE_KEY);
   });

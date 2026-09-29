@@ -1,6 +1,6 @@
 import { computed, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { AppearanceAxes, DEFAULT_APPEARANCE } from '../../../core/appearance/appearance.model';
+import { AppearanceAxes, DEFAULT_APPEARANCE, MONO_FONTS, UI_FONTS } from '../../../core/appearance/appearance.model';
 import { AppearanceService } from '../../../core/appearance/appearance.service';
 import { TOOL_CATEGORIES } from '../../../shared/models/tool-category.model';
 import { APPEARANCE_SETTINGS_AXES, AppearanceSettings } from './appearance-settings';
@@ -10,38 +10,26 @@ function buttonWithText(root: HTMLElement, text: string): HTMLButtonElement {
 }
 
 describe('AppearanceSettings', () => {
-  let mode: ReturnType<typeof signal<string>>;
-  let accent: ReturnType<typeof signal<string>>;
-  let catset: ReturnType<typeof signal<string>>;
-  let contrast: ReturnType<typeof signal<string>>;
-  let semantic: ReturnType<typeof signal<string>>;
+  let prefs: ReturnType<typeof signal<Record<string, unknown>>>;
   let resolved: ReturnType<typeof signal<string>>;
   let resolvedContrast: ReturnType<typeof signal<string>>;
   let set: ReturnType<typeof vi.fn>;
   let reset: ReturnType<typeof vi.fn>;
 
+  const patch = (partial: Record<string, unknown>) => prefs.update((current) => ({ ...current, ...partial }));
+
   beforeEach(() => {
-    mode = signal('dark');
-    accent = signal('cyan');
-    catset = signal('vivid');
-    contrast = signal('standard');
-    semantic = signal('standard');
+    prefs = signal<Record<string, unknown>>({ ...DEFAULT_APPEARANCE, mode: 'dark', accent: 'cyan', catset: 'vivid', contrast: 'standard', semantic: 'standard' });
     resolved = signal('dark');
     resolvedContrast = signal('standard');
-    set = vi.fn((partial: { mode?: string; accent?: string; catset?: string; contrast?: string; semantic?: string }) => {
-      if (partial.mode) mode.set(partial.mode);
-      if (partial.accent) accent.set(partial.accent);
-      if (partial.catset) catset.set(partial.catset);
-      if (partial.contrast) contrast.set(partial.contrast);
-      if (partial.semantic) semantic.set(partial.semantic);
-    });
+    set = vi.fn((partial: Record<string, unknown>) => patch(partial));
     reset = vi.fn();
     TestBed.configureTestingModule({
       providers: [
         {
           provide: AppearanceService,
           useValue: {
-            prefs: computed(() => ({ ...DEFAULT_APPEARANCE, mode: mode(), accent: accent(), catset: catset(), contrast: contrast(), semantic: semantic() })),
+            prefs: computed(() => prefs()),
             effective: computed(() => ({ theme: resolved(), contrast: resolvedContrast() })),
             set,
             reset,
@@ -59,6 +47,8 @@ describe('AppearanceSettings', () => {
     catset: { attr: 'data-catset', values: ['vivid', 'soft', 'cvd'], default: 'vivid' },
     contrast: { attr: 'data-contrast', values: ['standard', 'high'], default: 'standard', labels: { standard: 'Standard', high: 'High' } },
     semantic: { attr: 'data-semantic', values: ['standard', 'cvd'], default: 'standard', labels: { standard: 'Standard', cvd: 'Color-blind safe' } },
+    density: { attr: 'data-density', values: ['compact', 'comfortable', 'ultra'], default: 'compact', labels: { compact: 'Compact', comfortable: 'Comfortable', ultra: 'Ultra-compact' } },
+    ligatures: { attr: 'data-ligatures', values: ['on', 'off'], default: 'on' },
   };
 
   function withAxes(axes: AppearanceAxes) {
@@ -106,7 +96,7 @@ describe('AppearanceSettings', () => {
     const root = fixture.nativeElement as HTMLElement;
     expect(root.querySelector('[data-testid="system-note-theme"]')).toBeNull();
 
-    mode.set('system');
+    patch({ mode: 'system' });
     resolved.set('light');
     fixture.detectChanges();
     expect(root.querySelector('[data-testid="system-note-theme"]')?.textContent).toContain('Currently: Light');
@@ -145,7 +135,7 @@ describe('AppearanceSettings', () => {
     expect(set).toHaveBeenCalledWith({ contrast: 'high' });
     expect(state()).toEqual({ Standard: 'false', High: 'true', 'System (follows OS)': 'false' });
 
-    contrast.set('system');
+    patch({ contrast: 'system' });
     resolvedContrast.set('high');
     fixture.detectChanges();
     expect(root.querySelector('[data-testid="system-note-contrast"]')?.textContent).toContain('Currently: High');
@@ -222,5 +212,90 @@ describe('AppearanceSettings', () => {
   it('omits the Status colors row while the semantic axis has a single value (or is absent)', () => {
     withAxes({ ...MULTI, semantic: { attr: 'data-semantic', values: ['standard'], default: 'standard' } });
     expect(group(create().nativeElement as HTMLElement, 'Status colors')).toBeNull();
+  });
+
+  it('renders a Density row with three chips and sets { density }', () => {
+    withAxes(MULTI);
+    const fixture = create();
+    const root = fixture.nativeElement as HTMLElement;
+    const labels = Array.from((group(root, 'Density') as HTMLElement).querySelectorAll('button')).map((b) => b.textContent?.trim());
+    expect(labels).toEqual(['Compact', 'Comfortable', 'Ultra-compact']);
+    expect(root.textContent).toContain('Compact is the default.');
+    buttonWithText(root, 'Comfortable').click();
+    expect(set).toHaveBeenCalledWith({ density: 'comfortable' });
+  });
+
+  it('renders a Code ligatures row and sets { ligatures }', () => {
+    withAxes(MULTI);
+    const fixture = create();
+    const root = fixture.nativeElement as HTMLElement;
+    expect(group(root, 'Code ligatures')).not.toBeNull();
+    buttonWithText(root, 'Off').click();
+    expect(set).toHaveBeenCalledWith({ ligatures: 'off' });
+  });
+
+  describe('font rows', () => {
+    const select = (root: HTMLElement, key = 'uiFont') => root.querySelector('#font-select-' + key) as HTMLSelectElement;
+    const customInput = (root: HTMLElement, key = 'uiFont') => root.querySelector('[data-testid="row-' + key + '"] input') as HTMLInputElement | null;
+
+    function choose(fixture: ReturnType<typeof create>, value: string) {
+      const el = select(fixture.nativeElement as HTMLElement);
+      el.value = value;
+      el.dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+    }
+
+    function type(fixture: ReturnType<typeof create>, value: string) {
+      const input = customInput(fixture.nativeElement as HTMLElement) as HTMLInputElement;
+      input.value = value;
+      input.dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+    }
+
+    it('lists curated UI fonts plus Custom and sets the chosen id', () => {
+      const fixture = create();
+      const root = fixture.nativeElement as HTMLElement;
+      const options = Array.from(select(root).options);
+      expect(options.map((o) => o.textContent?.trim())).toEqual([...UI_FONTS.map((f) => f.label), 'Custom (installed font)…']);
+      expect(options[options.length - 1].value).toBe('__custom');
+      expect(customInput(root)).toBeNull();
+      expect(root.textContent).toContain('DUDE bundles no web fonts.');
+
+      const other = UI_FONTS[UI_FONTS.length - 1].id;
+      choose(fixture, other);
+      expect(set).toHaveBeenCalledWith({ uiFont: other });
+    });
+
+    it('Custom reveals the input without changing prefs, and a valid name is applied', () => {
+      const fixture = create();
+      const root = fixture.nativeElement as HTMLElement;
+      choose(fixture, '__custom');
+      expect(set).not.toHaveBeenCalled();
+      expect(customInput(root)).not.toBeNull();
+      type(fixture, ' Fira Sans ');
+      expect(set).toHaveBeenCalledWith({ uiFont: { custom: 'Fira Sans' } });
+      expect(root.querySelector('[role="alert"]')).toBeNull();
+    });
+
+    it('rejects an invalid custom name with an alert and does not store it', () => {
+      const fixture = create();
+      const root = fixture.nativeElement as HTMLElement;
+      choose(fixture, '__custom');
+      type(fixture, 'x;}body{color:red');
+      expect(set).not.toHaveBeenCalled();
+      expect(root.querySelector('[role="alert"]')?.textContent).toContain('Use letters, digits, spaces, dot, dash or underscore (max 64).');
+    });
+
+    it('shows Custom and the name when prefs already hold a custom font', () => {
+      patch({ uiFont: { custom: 'Foo' } });
+      const root = create().nativeElement as HTMLElement;
+      expect(select(root).value).toBe('__custom');
+      expect(customInput(root)?.value).toBe('Foo');
+    });
+
+    it('renders a mono font row too', () => {
+      const root = create().nativeElement as HTMLElement;
+      expect(Array.from(select(root, 'monoFont').options).map((o) => o.textContent?.trim())).toContain(MONO_FONTS[0].label);
+    });
   });
 });
