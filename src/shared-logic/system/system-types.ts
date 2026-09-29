@@ -11,7 +11,7 @@
 /** Renderer-callable read methods. Grows one milestone at a time; main rejects anything else. */
 export const SYS_READ_METHODS = [
   'helper.info', 'process.list', 'process.detail', 'process.modules', 'process.threads', 'process.handles',
-  'file.version', 'file.signature', 'svc.list', 'svc.config', 'net.tcp', 'net.udp', 'reg.enumKey', 'reg.getValues', 'fs.probeDirs', 'reg.search', 'reg.export',
+  'file.version', 'file.signature', 'svc.list', 'svc.config', 'evt.channels', 'evt.query', 'evt.queryFile', 'net.tcp', 'net.udp', 'reg.enumKey', 'reg.getValues', 'fs.probeDirs', 'reg.search', 'reg.export',
 ] as const;
 export type SysReadMethod = (typeof SYS_READ_METHODS)[number];
 
@@ -197,6 +197,73 @@ export interface ServiceConfigResult {
   readonly config: ServiceConfig;
 }
 
+// ---- Windows Event Log (evt.channels / evt.query / evt.queryFile) -------------------------------
+
+export interface EventChannel {
+  readonly name: string;
+  /** classic Application/System/Security/Setup, or a modern Operational/Analytic/Debug channel. */
+  readonly type: 'admin' | 'operational' | 'analytic' | 'debug' | 'classic';
+  readonly enabled: boolean;
+  /** Records currently in the channel, when known. */
+  readonly recordCount?: number;
+}
+
+export interface EventChannelsResult {
+  readonly channels: readonly EventChannel[];
+}
+
+export type EventLevel = 'critical' | 'error' | 'warning' | 'information' | 'verbose' | 'unknown';
+
+export interface EventRecord {
+  /** EventRecordID within the channel; a monotonically increasing cursor for incremental polling. */
+  readonly recordId: string;
+  readonly timeCreated: string;
+  readonly level: EventLevel;
+  readonly providerName: string;
+  readonly eventId: number;
+  readonly task: string;
+  readonly opcode: string;
+  readonly keywords: readonly string[];
+  readonly channel: string;
+  readonly computer: string;
+  readonly userSid: string | null;
+  readonly processId: number | null;
+  readonly threadId: number | null;
+  /** Correlation ActivityID/RelatedActivityID (GUIDs) when present. */
+  readonly activityId: string | null;
+  readonly relatedActivityId: string | null;
+  /** The rendered, human-readable message (EvtFormatMessage), or '' if it could not be rendered. */
+  readonly message: string;
+  /** The raw event XML. */
+  readonly xml: string;
+}
+
+export interface EventQueryParams {
+  /** A live channel name (e.g. 'System'); mutually exclusive with a file query. */
+  readonly channel: string;
+  /** An EvtQuery XPath/structured-XML query ('*' for everything). */
+  readonly xpath?: string;
+  /** Newest-first (default true). */
+  readonly reverse?: boolean;
+  /** Only records with EventRecordID greater than this (incremental "live tail"). */
+  readonly afterRecordId?: string;
+  /** Max records to return (helper caps, e.g. 1000). */
+  readonly limit?: number;
+}
+
+export interface EventQueryFileParams {
+  /** Absolute path to a .evtx file. */
+  readonly path: string;
+  readonly xpath?: string;
+  readonly reverse?: boolean;
+  readonly limit?: number;
+}
+
+export interface EventQueryResult {
+  readonly events: readonly EventRecord[];
+  readonly truncated: boolean;
+}
+
 // ---- net.tcp / net.udp -------------------------------------------------------------------------
 
 export type TcpState =
@@ -341,6 +408,9 @@ export interface SysMethodMap {
   'file.signature': { params: { path: string }; result: FileSignatureResult };
   'svc.list': { params: Record<string, never>; result: ServiceListResult };
   'svc.config': { params: { name: string }; result: ServiceConfigResult };
+  'evt.channels': { params: Record<string, never>; result: EventChannelsResult };
+  'evt.query': { params: EventQueryParams; result: EventQueryResult };
+  'evt.queryFile': { params: EventQueryFileParams; result: EventQueryResult };
   'net.tcp': { params: Record<string, never>; result: SocketTableResult };
   'net.udp': { params: Record<string, never>; result: SocketTableResult };
   'reg.enumKey': { params: RegistryKeyParams; result: RegistryEnumResult };

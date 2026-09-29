@@ -1,4 +1,5 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { RouterLink } from '@angular/router';
 import { buildDependencyTree, buildDependentTree, edgesOfTrees, impactOfStopping, toMermaid } from '../../../shared-logic/system/service-graph';
 import type { ServiceConfig, ServiceListResult, ServiceState, ServiceSummary } from '../../../shared-logic/system/system-types';
@@ -40,6 +41,7 @@ export class ServicesViewerTool {
   protected readonly platform = inject(PlatformService);
   private readonly persistence = inject(PersistenceService);
   private readonly system = inject(SystemInfoService);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly intervalMs = this.persistence.signal(TOOL_ID, 'intervalMs', 'local', 3000);
   protected readonly paused = this.persistence.signal(TOOL_ID, 'paused', 'local', false);
@@ -49,6 +51,7 @@ export class ServicesViewerTool {
   protected readonly listing = signal<ServiceListResult | null>(null);
   protected readonly error = signal('');
   protected readonly query = signal('');
+  private readonly pendingService = signal('');
   protected readonly stateFilter = signal<ServiceState | 'all'>('all');
   protected readonly selectedName = signal<string | null>(null);
   protected readonly detailError = signal('');
@@ -121,10 +124,28 @@ export class ServicesViewerTool {
     return config ? impactOfStopping(config.name, [...this.configs().values()]) : [];
   });
 
+  constructor() {
+    const value = this.route.snapshot.queryParamMap.get('query')?.trim() ?? '';
+    if (value.length > 0 && value.length <= 128 && !/[\u0000-\u001f\u007f]/.test(value)) {
+      this.query.set(value);
+      this.pendingService.set(value);
+    }
+  }
   private async tick(): Promise<void> {
     if (!this.platform.isDesktop()) return;
     try {
-      this.listing.set(await this.system.listServices());
+      const listing = await this.system.listServices();
+      this.listing.set(listing);
+      this.error.set('');
+      const target = this.pendingService();
+      if (target) {
+        const match = listing.services.find((service) => service.name.toLowerCase() === target.toLowerCase() || service.displayName.toLowerCase() === target.toLowerCase());
+        this.pendingService.set('');
+        if (match) {
+          this.selectedName.set(match.name);
+          void this.loadClosure(match.name, true);
+        }
+      }
       this.error.set('');
     } catch (caught) {
       this.error.set(caught instanceof Error ? caught.message : String(caught));

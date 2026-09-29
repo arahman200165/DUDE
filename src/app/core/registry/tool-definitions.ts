@@ -105,6 +105,7 @@ import { manifest as environmentVariablesManifest } from '../../tools/environmen
 import { manifest as epochTimelineVisualizerManifest } from '../../tools/epoch-timeline-visualizer/epoch-timeline-visualizer.manifest';
 import { manifest as errorCodeReferenceManifest } from '../../tools/error-code-reference/error-code-reference.manifest';
 import { manifest as escapeUnescapeToolkitManifest } from '../../tools/escape-unescape-toolkit/escape-unescape-toolkit.manifest';
+import { manifest as eventLogViewerManifest } from '../../tools/event-log-viewer/event-log-viewer.manifest';
 import { manifest as exifViewerManifest } from '../../tools/exif-viewer/exif-viewer.manifest';
 import { manifest as expressionEvaluatorManifest } from '../../tools/expression-evaluator/expression-evaluator.manifest';
 import { manifest as extractColumnsManifest } from '../../tools/extract-columns/extract-columns.manifest';
@@ -429,6 +430,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   epochTimelineVisualizerManifest,
   errorCodeReferenceManifest,
   escapeUnescapeToolkitManifest,
+  eventLogViewerManifest,
   exifViewerManifest,
   expressionEvaluatorManifest,
   extractColumnsManifest,

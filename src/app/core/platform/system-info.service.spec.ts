@@ -88,4 +88,16 @@ describe('SystemInfoService', () => {
     await service.exportRegistry({ ...key, recursive: false });
     expect(call).toHaveBeenLastCalledWith('reg.export', { ...key, recursive: false });
   });
+
+  it('forwards event log calls', async () => {
+    const call = vi.fn(async () => ({ ok: true as const, data: { events: [], truncated: false } }));
+    installBridge(fakeElectronBridge({ sys: { ...fakeElectronBridge().sys, call: call as never } }));
+    const service = TestBed.inject(SystemInfoService);
+    await service.eventChannels();
+    expect(call).toHaveBeenLastCalledWith('evt.channels', {});
+    await service.queryEvents({ channel: 'System', xpath: '*', limit: 5 });
+    expect(call).toHaveBeenLastCalledWith('evt.query', { channel: 'System', xpath: '*', limit: 5 });
+    await service.queryEventFile({ path: 'C:\logs\a.evtx', reverse: false });
+    expect(call).toHaveBeenLastCalledWith('evt.queryFile', { path: 'C:\logs\a.evtx', reverse: false });
+  });
 });

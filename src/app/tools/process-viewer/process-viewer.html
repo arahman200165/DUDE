@@ -20,6 +20,7 @@
         <span class="text-ui-xs text-text-muted" data-testid="process-count">{{ filtered().length }} of {{ rows().length }} processes</span>
       </div>
 
+      @if (routeNotice()) { <div role="status" class="rounded-sm border border-border bg-panel p-2 text-text-muted">{{ routeNotice() }}</div> }
       @if (error()) { <div role="alert" class="flex items-center gap-1 rounded-sm border border-error/50 bg-error/5 p-2 text-error"><app-status-glyph kind="error" />{{ error() }}</div> }
 
       <div class="h-[72vh] rounded-sm border border-border bg-panel">

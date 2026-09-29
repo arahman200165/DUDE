@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import type {
-  FileSignatureResult, FileVersionResult, HelperInfo, ProcessDetail, ProcessHandlesResult, ProcessListResult, ProcessModulesResult,
+  EventChannelsResult, EventQueryFileParams, EventQueryParams, EventQueryResult, FileSignatureResult, FileVersionResult, HelperInfo, ProcessDetail, ProcessHandlesResult, ProcessListResult, ProcessModulesResult,
   ProbeDirsResult, ProcessRef, ProcessThreadsResult, ServiceListResult, ServiceConfigResult, RegistryEnumResult, RegistryExportParams, RegistryExportResult, RegistryKeyParams, RegistrySearchParams, RegistrySearchResult, RegistryValuesResult, SocketTableResult, SysMethodMap, SysReadMethod,
 } from '../../../shared-logic/system/system-types';
 
@@ -40,6 +40,9 @@ export class SystemInfoService {
   fileSignature(path: string): Promise<FileSignatureResult> { return this.call('file.signature', { path }); }
   listServices(): Promise<ServiceListResult> { return this.call('svc.list', {}); }
   serviceConfig(name: string): Promise<ServiceConfigResult> { return this.call('svc.config', { name }); }
+  eventChannels(): Promise<EventChannelsResult> { return this.call('evt.channels', {}); }
+  queryEvents(params: EventQueryParams): Promise<EventQueryResult> { return this.call('evt.query', params); }
+  queryEventFile(params: EventQueryFileParams): Promise<EventQueryResult> { return this.call('evt.queryFile', params); }
   tcpTable(): Promise<SocketTableResult> { return this.call('net.tcp', {}); }
   udpTable(): Promise<SocketTableResult> { return this.call('net.udp', {}); }
   enumRegistryKey(params: RegistryKeyParams): Promise<RegistryEnumResult> { return this.call('reg.enumKey', params); }

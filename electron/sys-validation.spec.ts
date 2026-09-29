@@ -58,6 +58,26 @@ describe('validateSysCall', () => {
     expect(() => validateSysCall('svc.config', { name: 'a'.repeat(256) })).not.toThrow();
   });
 
+  it('validates evt.channels, evt.query and evt.queryFile', () => {
+    expect(validateSysCall('evt.channels', undefined)).toEqual({ method: 'evt.channels', params: {} });
+    expect(() => validateSysCall('evt.channels', { a: 1 })).toThrow();
+    const ok = { channel: 'System', xpath: '*[System[(Level=2)]]', reverse: false, afterRecordId: '123', limit: 50 };
+    expect(validateSysCall('evt.query', ok)).toEqual({ method: 'evt.query', params: ok });
+    expect(validateSysCall('evt.query', { channel: 'Microsoft-Windows-X/Operational' }).params).toEqual({ channel: 'Microsoft-Windows-X/Operational' });
+    for (const bad of [undefined, {}, { channel: '' }, { channel: 'a'.repeat(513) }, { channel: 'a\u0000b' }, { channel: 5 },
+      { channel: 'S', extra: 1 }, { channel: 'S', xpath: 5 }, { channel: 'S', xpath: 'x'.repeat(8193) },
+      { channel: 'S', afterRecordId: '-1' }, { channel: 'S', afterRecordId: 5 }, { channel: 'S', reverse: 'yes' },
+      { channel: 'S', limit: 0 }, { channel: 'S', limit: 1.5 }, { channel: 'S', limit: 1001 }, { channel: 'S', afterRecordId: '18446744073709551616' }, { channel: 'S', path: 'C:\\a.evtx' }]) {
+      expect(() => validateSysCall('evt.query', bad)).toThrow();
+    }
+    const file = { path: 'C:\\logs\\a.EVTX', xpath: '*', reverse: true, limit: 10 };
+    expect(validateSysCall('evt.queryFile', file)).toEqual({ method: 'evt.queryFile', params: file });
+    for (const bad of [undefined, {}, { path: 'C:\\logs\\a.txt' }, { path: 'a.evtx' }, { path: 'C:\\a.evtx', channel: 'S' },
+      { path: 'C:\\a.evtx', afterRecordId: '1' }, { path: 'C:\\a.evtx', limit: -1 }]) {
+      expect(() => validateSysCall('evt.queryFile', bad)).toThrow();
+    }
+  });
+
   it('rejects bad hive and view values', () => {
     for (const hive of ['hklm', 'HKEY_LOCAL_MACHINE', '', 1, null]) expect(() => validateSysCall('reg.enumKey', reg({ hive }))).toThrow(/hive/);
     for (const view of ['128', 'Default', '', 64, null]) expect(() => validateSysCall('reg.enumKey', reg({ view }))).toThrow(/view/);

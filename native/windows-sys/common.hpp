@@ -95,6 +95,9 @@ bool handleFileVersion(const JsonValue* params, std::string& result, Failure& er
 bool handleFileSignature(const JsonValue* params, std::string& result, Failure& err);
 bool handleSvcList(std::string& result, Failure& err);
 bool handleSvcConfig(const JsonValue* params, std::string& result, Failure& err);
+bool handleEvtChannels(std::string& result, Failure& err);
+bool handleEvtQuery(const JsonValue* params, std::string& result, Failure& err);
+bool handleEvtQueryFile(const JsonValue* params, std::string& result, Failure& err);
 bool handleNetTcp(std::string& result, Failure& err);
 bool handleNetUdp(std::string& result, Failure& err);
 bool handleRegEnumKey(const JsonValue* params, std::string& result, Failure& err);

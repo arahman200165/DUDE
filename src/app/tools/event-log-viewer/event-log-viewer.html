@@ -1,0 +1,155 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning/40 bg-warning/5 p-4 text-ui text-text-muted">
+      Event Log Viewer reads Windows event log channels and .evtx files, builds and edits EvtQuery XPath filters, and follows new events. It reads them through the Windows desktop app's system helper, so it needs Desktop DUDE.
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <app-desktop-only-control capability="native-system" label="Browse event log channels and events" />
+      <app-desktop-only-control capability="native-fs" label="Open a .evtx file" />
+    </div>
+  } @else {
+    <div class="grid gap-3 text-ui lg:grid-cols-[16rem_minmax(0,1fr)]">
+      <div class="flex h-[78vh] flex-col gap-2 rounded-sm border border-border bg-panel p-2" data-testid="channel-panel">
+        <input class="rounded-sm border border-border bg-panel px-2 py-1 text-text" type="search" aria-label="Filter channels" placeholder="Filter channels" data-testid="channel-filter" [value]="channelFilter()" (input)="channelFilter.set($any($event.target).value)" />
+        <button type="button" class="rounded-sm border border-border px-2 py-1 text-text hover:bg-panel-elevated" data-testid="open-evtx" (click)="openEvtx()">Open .evtx file…</button>
+        <div class="min-h-0 flex-1 overflow-auto" role="tree" aria-label="Event log channels">
+          @for (group of groups(); track group.type) {
+            <div class="mb-2" role="group" [attr.aria-label]="group.label">
+              <div class="px-1 text-ui-xs uppercase text-text-muted">{{ group.label }} ({{ group.channels.length }})</div>
+              @for (channel of group.channels; track channel.name) {
+                <button type="button" role="treeitem" class="flex w-full items-center gap-1 truncate rounded-sm px-1 py-0.5 text-left hover:bg-panel-elevated" [class.text-accent]="source()?.kind === 'channel' && sourceLabel() === channel.name" [class.text-text-muted]="!channel.enabled" [attr.aria-selected]="source()?.kind === 'channel' && sourceLabel() === channel.name" [title]="channel.name + (channel.enabled ? '' : ' (disabled)')" (click)="selectChannel(channel)">
+                  <app-status-glyph [kind]="channel.enabled ? 'success' : 'offline'" />
+                  <span class="truncate">{{ channel.name }}</span>
+                  @if (!channel.enabled) { <span class="text-ui-xs">off</span> }
+                </button>
+              }
+            </div>
+          } @empty {
+            <div class="p-2 text-text-muted" role="status">No channels{{ channelFilter() ? ' match' : ' loaded' }}.</div>
+          }
+        </div>
+      </div>
+
+      <div class="flex min-w-0 flex-col gap-2">
+        @if (error()) { <div role="alert" class="flex items-center gap-1 rounded-sm border border-error/50 bg-error/5 p-2 text-error"><app-status-glyph kind="error" />{{ error() }}</div> }
+        @if (notice()) { <div role="status" class="rounded-sm border border-border bg-panel p-2 text-text-muted">{{ notice() }}</div> }
+
+        <div class="flex flex-col gap-2 rounded-sm border border-border bg-panel p-2">
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span class="font-semibold text-text" data-testid="source-label">{{ sourceLabel() || 'Select a channel or open a .evtx file' }}</span>
+            <fieldset class="flex flex-wrap items-center gap-2"><legend class="sr-only">Levels</legend>
+              @for (level of levelOptions; track level) {
+                <label class="flex items-center gap-1"><input type="checkbox" [attr.data-testid]="'level-' + level" [checked]="levels().has(level)" (change)="toggleLevel(level)" />{{ formatLevel(level) }}</label>
+              }
+            </fieldset>
+            <label class="flex items-center gap-1">Time
+              <select class="rounded-sm border border-border bg-panel px-1 py-0.5 text-text" data-testid="range" [value]="range()" (change)="range.set($any($event.target).value)">
+                <option value="">Any time</option><option value="hour">Last hour</option><option value="day">Last 24 hours</option><option value="week">Last 7 days</option><option value="month">Last 30 days</option>
+              </select>
+            </label>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <input class="min-w-40 flex-1 rounded-sm border border-border bg-panel px-2 py-1 text-text" aria-label="Providers" placeholder="Provider(s), separated by ;" data-testid="providers" [value]="providers()" (input)="providers.set($any($event.target).value)" />
+            <input class="min-w-40 flex-1 rounded-sm border border-border bg-panel px-2 py-1 text-text" aria-label="Event IDs" placeholder="Event IDs: 1000, 4624-4634" data-testid="event-ids" [value]="eventIds()" (input)="eventIds.set($any($event.target).value)" />
+            <input class="min-w-40 flex-1 rounded-sm border border-border bg-panel px-2 py-1 text-text" aria-label="Event data value" placeholder="Event data value (exact)" data-testid="keyword" [value]="keyword()" (input)="keyword.set($any($event.target).value)" />
+          </div>
+          @if (activityFilter()) {
+            <div class="flex items-center gap-2" data-testid="activity-filter">
+              <span class="text-text-muted">Related to ActivityID</span><span class="font-mono">{{ activityFilter() }}</span>
+              <button type="button" class="rounded-sm border border-border px-1 hover:bg-panel-elevated" (click)="clearRelated()">Clear</button>
+            </div>
+          }
+          <label class="flex flex-col gap-1">
+            <span class="flex items-center gap-2 text-text-muted">XPath
+              @if (mode() === 'custom') {
+                <span class="rounded-sm border border-warning/40 px-1 text-ui-xs" data-testid="custom-badge">custom XPath</span>
+                <button type="button" class="rounded-sm border border-border px-1 text-text hover:bg-panel-elevated" data-testid="use-builder" (click)="useBuilder()">Use filter builder</button>
+              }
+            </span>
+            <textarea class="min-h-14 rounded-sm border border-border bg-bg px-2 py-1 font-mono text-text" spellcheck="false" data-testid="xpath" [value]="xpath()" (input)="editXpath($any($event.target).value)"></textarea>
+          </label>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" class="rounded-sm bg-accent px-3 py-1 text-on-accent disabled:opacity-50" data-testid="run" [disabled]="!source() || loading()" (click)="run()">{{ loading() ? 'Running…' : 'Run' }}</button>
+            @if (source()?.kind === 'channel') {
+              <label class="flex items-center gap-1"><input type="checkbox" data-testid="live-tail" [checked]="tail()" (change)="tail.set($any($event.target).checked)" />Live (polling)</label>
+              @if (tail()) {
+                <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" data-testid="poll-now" (click)="refresh.refreshNow()">Poll now</button>
+                <span class="text-ui-xs text-text-muted">every 3 s while visible · {{ polled() }} polls</span>
+              }
+            }
+            <span class="mx-1 h-4 border-l border-border"></span>
+            <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" data-testid="export-view" [disabled]="source()?.kind !== 'channel'" (click)="exportView()">Export custom view</button>
+            <label class="cursor-pointer rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated">Import custom view
+              <input type="file" class="sr-only" accept=".xml" data-testid="import-view" (change)="importView($any($event.target))" />
+            </label>
+            <span class="text-ui-xs text-text-muted" data-testid="event-count">{{ events().length }} events{{ truncated() ? ' (truncated)' : '' }}</span>
+          </div>
+          <app-disclosure label="Saved queries" [badge]="savedQueries().length">
+            <div class="flex flex-col gap-1">
+              <div class="flex gap-2">
+                <input class="flex-1 rounded-sm border border-border bg-panel px-2 py-1 text-text" aria-label="Saved query name" placeholder="Name" data-testid="save-name" [value]="saveName()" (input)="saveName.set($any($event.target).value)" />
+                <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" data-testid="save-query" [disabled]="source()?.kind !== 'channel' || !saveName().trim()" (click)="saveQuery()">Save current</button>
+              </div>
+              @for (q of savedQueries(); track q.name) {
+                <div class="flex items-center gap-2" data-testid="saved-query">
+                  <button type="button" class="truncate text-left text-accent hover:underline" [title]="q.xpath" (click)="applyQuery(q)">{{ q.name }}</button>
+                  <span class="truncate text-ui-xs text-text-muted">{{ q.channel }}</span>
+                  <button type="button" class="ml-auto rounded-sm border border-border px-1 hover:bg-panel-elevated" [attr.aria-label]="'Delete ' + q.name" (click)="deleteQuery(q)">Delete</button>
+                </div>
+              } @empty { <span class="text-text-muted">No saved queries yet.</span> }
+            </div>
+          </app-disclosure>
+        </div>
+
+        <div class="h-[56vh] rounded-sm border border-border bg-panel">
+          <app-split-pane [initialRatio]="ratio()" (ratioChange)="ratio.set($event)">
+            <div slot="start" class="h-full">
+              @if (!source()) {
+                <div class="p-4 text-text-muted" role="status">Pick a channel to load its newest events.</div>
+              } @else {
+                @if (truncated()) { <button type="button" class="m-2 rounded-sm border border-border px-2 py-1 text-text hover:bg-panel-elevated disabled:opacity-50" data-testid="load-older" [disabled]="paging() || loading()" (click)="loadOlder()">{{ paging() ? 'Loading older…' : 'Load older events' }}</button> }
+                <app-data-table [columns]="columns" [rows]="events()" [trackByFn]="trackRow" [dense]="true" ariaLabel="Events" (rowOpened)="select($event)">
+                  <ng-template appDataTableCell="time" let-e><span class="font-mono">{{ formatTime(e.timeCreated) }}</span></ng-template>
+                  <ng-template appDataTableCell="level" let-e><span class="flex items-center gap-1"><app-status-glyph [kind]="glyph(e.level)" />{{ formatLevel(e.level) }}</span></ng-template>
+                  <ng-template appDataTableCell="id" let-e><span class="font-mono">{{ e.eventId }}</span></ng-template>
+                </app-data-table>
+              }
+            </div>
+            <div slot="end" class="h-full overflow-auto p-2" data-testid="detail">
+              @if (selected(); as e) {
+                <div class="flex flex-col gap-2">
+                  <div class="text-text-muted">{{ e.providerName }} · Event {{ e.eventId }} · record {{ e.recordId }}</div>
+                  <pre class="whitespace-pre-wrap font-sans text-text" data-testid="message">{{ e.message || '(no rendered message available)' }}</pre>
+                  <div class="flex flex-col gap-1" data-testid="correlation">
+                    <div class="text-ui-xs uppercase text-text-muted">Correlation</div>
+                    @if (activityId(); as id) {
+                      <div class="flex flex-wrap items-center gap-2"><span class="text-text-muted">ActivityID</span><span class="font-mono">{{ id }}</span>
+                        <button type="button" class="rounded-sm border border-border px-1 hover:bg-panel-elevated" data-testid="show-related" (click)="showRelated()">Filter by ActivityID</button><span class="text-ui-xs text-text-muted">{{ activityGroup().length }} loaded related events</span></div>
+                      @for (related of activityGroup(); track related.recordId) {
+                        <button type="button" class="truncate text-left text-ui-xs text-accent hover:underline" (click)="select(related)">Event {{ related.eventId }} · record {{ related.recordId }} · {{ related.providerName }}</button>
+                      }
+                    } @else { <span class="text-text-muted">No ActivityID.</span> }
+                    @for (pid of pids(); track pid) {
+                      <button type="button" class="text-left text-accent hover:underline" data-testid="link-process" (click)="openProcess(pid)">Open PID {{ pid }} in Process Viewer</button>
+                    }
+                    @if (serviceName(); as svc) {
+                      <a class="text-accent hover:underline" routerLink="/tools/services-viewer" [queryParams]="{ query: svc }" data-testid="link-service">Service “{{ svc }}” in Services Viewer</a>
+                    }
+                    @for (code of statusCodes(); track code) {
+                      <a class="text-accent hover:underline" routerLink="/tools/error-code-reference" [queryParams]="{ q: code }" data-testid="link-code">Look up {{ code }} in Error Code Reference</a>
+                    }
+                  </div>
+                  <app-disclosure label="Raw XML">
+                    <div class="flex flex-col gap-1"><app-copy-button [text]="e.xml" label="Copy XML" /><pre class="overflow-auto font-mono text-ui-xs text-text" data-testid="xml">{{ e.xml }}</pre></div>
+                  </app-disclosure>
+                </div>
+              } @else {
+                <div class="text-text-muted" role="status">Select an event to see its message, XML and correlation.</div>
+              }
+            </div>
+          </app-split-pane>
+        </div>
+      </div>
+    </div>
+  }
+</app-tool-shell>

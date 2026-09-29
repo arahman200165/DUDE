@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import type { ProcessDetail, ProcessListResult, ProcessSummary, SocketEntry } from '../../../shared-logic/system/system-types';
 import { cpuPercents, processKey } from '../../../shared-logic/system/cpu-delta';
@@ -40,6 +41,7 @@ export class ProcessViewerTool {
   protected readonly platform = inject(PlatformService);
   private readonly persistence = inject(PersistenceService);
   private readonly system = inject(SystemInfoService);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly intervalMs = this.persistence.signal(TOOL_ID, 'intervalMs', 'local', 2000);
   protected readonly paused = this.persistence.signal(TOOL_ID, 'paused', 'local', false);
@@ -53,6 +55,9 @@ export class ProcessViewerTool {
   private previous: ProcessListResult | null = null;
 
   protected readonly query = signal('');
+  protected readonly routeNotice = signal('');
+  private routeHandoffApplied = false;
+  private readonly routeTarget = this.parseRouteTarget();
   protected readonly error = signal('');
   protected readonly selectedKey = signal<string | null>(null);
   private readonly lastSelected = signal<ProcessSummary | null>(null);
@@ -167,6 +172,17 @@ export class ProcessViewerTool {
     return samples.map((v, i) => `${(i * step).toFixed(1)},${(14 - (v / peak) * 13).toFixed(1)}`).join(' ');
   }
 
+  private parseRouteTarget(): { readonly pid: number; readonly startKey: string } | null {
+    const params = this.route.snapshot.queryParamMap;
+    const pidText = params.get('pid') ?? '';
+    const startKey = params.get('startKey') ?? '';
+    if (!/^[1-9][0-9]{0,9}$/.test(pidText) || !/^[0-9]{1,20}$/.test(startKey)) return null;
+    const pid = Number(pidText);
+    try {
+      if (!Number.isSafeInteger(pid) || pid > 0xffffffff || BigInt(startKey) > 18446744073709551615n) return null;
+    } catch { return null; }
+    return { pid, startKey };
+  }
   private async tick(): Promise<void> {
     if (!this.platform.isDesktop()) return;
     try {
@@ -177,6 +193,12 @@ export class ProcessViewerTool {
       this.cpu.set(percents);
       this.listing.set(next);
       this.error.set('');
+      if (!this.routeHandoffApplied && this.routeTarget) {
+        this.routeHandoffApplied = true;
+        const target = next.processes.find((p) => p.pid === this.routeTarget!.pid && p.startKey === this.routeTarget!.startKey);
+        if (target) this.selectKey(processKey(target));
+        else this.routeNotice.set('That process instance is no longer running; the PID was not reused for this link.');
+      }
       const key = this.selectedKey();
       const current = key ? next.processes.find((p) => processKey(p) === key) : undefined;
       if (current) this.lastSelected.set(current);

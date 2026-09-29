@@ -64,6 +64,9 @@ std::string handleLine(const std::string& line) {
   else if (method == "svc.config") ok = sys::handleSvcConfig(params, result, err);
   else if (method == "svc.control") ok = sys::handleSvcControl(params, result, err);
   else if (method == "svc.setStartType") ok = sys::handleSvcSetStartType(params, result, err);
+  else if (method == "evt.channels") ok = sys::handleEvtChannels(result, err);
+  else if (method == "evt.query") ok = sys::handleEvtQuery(params, result, err);
+  else if (method == "evt.queryFile") ok = sys::handleEvtQueryFile(params, result, err);
   else if (method == "net.tcp") ok = sys::handleNetTcp(result, err);
   else if (method == "net.udp") ok = sys::handleNetUdp(result, err);
   else if (method == "reg.enumKey") ok = sys::handleRegEnumKey(params, result, err);

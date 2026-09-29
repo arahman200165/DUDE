@@ -92,6 +92,50 @@ function validateRegistryScan(name: 'reg.search' | 'reg.export', params: unknown
   return out;
 }
 
+const MAX_CHANNEL = 512;
+const MAX_XPATH = 8192;
+const MAX_EVENT_LIMIT = 1000;
+
+function validateEventQuery(name: 'evt.query' | 'evt.queryFile', params: unknown): object {
+  if (!isPlainObject(params)) throw new Error('Event log parameters must be an object.');
+  const file = name === 'evt.queryFile';
+  const allowed = file ? ['path', 'xpath', 'reverse', 'limit'] : ['channel', 'xpath', 'reverse', 'afterRecordId', 'limit'];
+  for (const key of Object.keys(params)) if (!allowed.includes(key)) throw new Error(`Unknown event log parameter: ${key}.`);
+  const out: Record<string, unknown> = {};
+  if (file) {
+    const path = validateFilePath(params['path']);
+    if (!/\.evtx$/i.test(path)) throw new Error('Event log file must be a .evtx file.');
+    out['path'] = path;
+  } else {
+    const channel = params['channel'];
+    if (typeof channel !== 'string' || channel.length < 1 || channel.length > MAX_CHANNEL) throw new Error('Channel must be 1 to 512 characters.');
+    if (/[\u0000-\u001f\u007f]/.test(channel)) throw new Error('Channel contains control characters.');
+    out['channel'] = channel;
+    const after = params['afterRecordId'];
+    if (after !== undefined) {
+      if (typeof after !== 'string' || !/^[0-9]{1,20}$/.test(after) || BigInt(after) > 18446744073709551615n) throw new Error('afterRecordId must be an unsigned 64-bit decimal string.');
+      out['afterRecordId'] = after;
+    }
+  }
+  const xpath = params['xpath'];
+  if (xpath !== undefined) {
+    if (typeof xpath !== 'string' || xpath.length > MAX_XPATH) throw new Error('XPath must be a string of at most 8192 characters.');
+    if (/[\u0000-\u001f\u007f]/.test(xpath)) throw new Error('XPath contains control characters.');
+    out['xpath'] = xpath;
+  }
+  const reverse = params['reverse'];
+  if (reverse !== undefined) {
+    if (typeof reverse !== 'boolean') throw new Error('reverse must be a boolean.');
+    out['reverse'] = reverse;
+  }
+  const limit = params['limit'];
+  if (limit !== undefined) {
+    if (typeof limit !== 'number' || !Number.isInteger(limit) || limit < 1 || limit > MAX_EVENT_LIMIT) throw new Error('limit must be an integer from 1 to 1000.');
+    out['limit'] = limit;
+  }
+  return out;
+}
+
 /** Validates a renderer-supplied system call; throws a short `Error` on anything invalid. */
 export function validateSysCall(method: unknown, params: unknown): { method: SysReadMethod; params: object } {
   if (typeof method !== 'string' || !(SYS_READ_METHODS as readonly string[]).includes(method)) throw new Error('Unknown system method.');
@@ -134,6 +178,7 @@ export function validateSysCall(method: unknown, params: unknown): { method: Sys
     exactKeys(params, ['name'], 'Service parameters must be exactly name.');
     return { method: name, params: { name: validateServiceName(params['name']) } };
   }
+  if (name === 'evt.query' || name === 'evt.queryFile') return { method: name, params: validateEventQuery(name, params) };
   if (name === 'reg.search' || name === 'reg.export') return { method: name, params: validateRegistryScan(name, params) };
   if (!REGISTRY_METHODS.includes(name)) {
     if (params === undefined || params === null) return { method: name, params: {} };

@@ -1,4 +1,5 @@
 import { Component, computed, inject } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { CopyButton } from '../../shared/components/copy-button/copy-button';
 import { PersistenceService } from '../../core/persistence/persistence.service';
@@ -12,6 +13,7 @@ import { filterErrorCodes } from './error-codes-search';
 })
 export class ErrorCodeReference {
   private readonly persistence = inject(PersistenceService);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly categories = ERROR_CODE_CATEGORIES;
 
@@ -29,6 +31,10 @@ export class ErrorCodeReference {
     this.filterText.set((event.target as HTMLInputElement).value);
   }
 
+  constructor() {
+    const code = this.route.snapshot.queryParamMap.get('q') ?? '';
+    if (/^0x[0-9a-fA-F]{1,8}$/.test(code)) this.filterText.set(code.toUpperCase());
+  }
   protected clear(): void {
     this.filterText.set('');
   }
