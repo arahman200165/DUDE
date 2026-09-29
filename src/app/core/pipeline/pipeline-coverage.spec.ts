@@ -39,6 +39,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'environment-variables': 'reading and editing the live Windows registry environment needs the desktop system helper and a user-directed, previewed session, not an invisible pipeline step',
   'registry-editor': 'browsing and editing the live Windows registry needs the desktop system helper and a user-directed, previewed session, not an invisible pipeline step',
   'process-viewer': 'reading live Windows process state needs the desktop system helper and a user-directed session, not an invisible pipeline step',
+  'services-viewer': 'reading and controlling Windows services needs the desktop system helper and a user-directed, previewed session, not an invisible pipeline step',
   'port-process-lookup': 'reading live socket tables needs the desktop system helper and a user-directed session, and ending a process must never run invisibly in a pipeline',
   'certificate-watch-list': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'reverse-dns': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',

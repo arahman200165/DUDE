@@ -94,6 +94,7 @@ bool handleProcessHandles(const JsonValue* params, std::string& result, Failure&
 bool handleFileVersion(const JsonValue* params, std::string& result, Failure& err);
 bool handleFileSignature(const JsonValue* params, std::string& result, Failure& err);
 bool handleSvcList(std::string& result, Failure& err);
+bool handleSvcConfig(const JsonValue* params, std::string& result, Failure& err);
 bool handleNetTcp(std::string& result, Failure& err);
 bool handleNetUdp(std::string& result, Failure& err);
 bool handleRegEnumKey(const JsonValue* params, std::string& result, Failure& err);
@@ -117,5 +118,8 @@ bool handleRegDeleteValue(const JsonValue* params, std::string& result, Failure&
 bool handleRegCreateKey(const JsonValue* params, std::string& result, Failure& err);
 bool handleRegDeleteKeyIfEmpty(const JsonValue* params, std::string& result, Failure& err);
 bool handleEnvBroadcast(std::string& result, Failure& err);
+// Mutating service operations (services.cpp), reached only from confirmed engine plans.
+bool handleSvcControl(const JsonValue* params, std::string& result, Failure& err);
+bool handleSvcSetStartType(const JsonValue* params, std::string& result, Failure& err);
 
 }  // namespace sys

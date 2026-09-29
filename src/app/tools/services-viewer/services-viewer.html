@@ -1,0 +1,91 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning bg-panel p-4 text-ui text-text-muted">
+      Services Viewer lists the Windows services on this PC with their live state, startup type, account and binary path, and draws each service's dependency and dependent trees. It reads them through the Windows desktop app's system helper, and changes them through a previewed, confirmed change, so it needs Desktop DUDE.
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <app-desktop-only-control capability="native-system" label="Browse Windows services" />
+      <app-desktop-only-control capability="native-system-write" label="Start, stop or reconfigure a service" />
+    </div>
+  } @else {
+    <div class="flex flex-col gap-2 text-ui">
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <app-live-refresh-control [(intervalMs)]="intervalMs" [(paused)]="paused" [lastUpdatedAt]="refresh.lastTickAt()" (refreshRequested)="refresh.refreshNow()" />
+        <input class="min-w-48 flex-1 rounded-sm border border-border bg-panel px-2 py-1 text-text" type="search" aria-label="Filter services" placeholder="Filter: name, display name, PID" data-testid="service-filter" [value]="query()" (input)="setQuery($any($event.target).value)" />
+        <label class="flex items-center gap-1 text-text-muted">State
+          <select class="rounded-sm border border-border bg-panel px-1 py-0.5 text-text" aria-label="State filter" data-testid="state-filter" (change)="stateFilter.set($any($event.target).value)">
+            @for (s of stateFilters; track s) { <option [value]="s" [selected]="s === stateFilter()">{{ s === 'all' ? 'All states' : stateLabel($any(s)) }}</option> }
+          </select>
+        </label>
+        <label class="flex items-center gap-1 text-text"><input type="checkbox" data-testid="show-drivers" [checked]="showDrivers()" (change)="showDrivers.set($any($event.target).checked)" />Show drivers</label>
+        <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated disabled:opacity-50" [disabled]="loadingTypes()" data-testid="load-start-types" (click)="loadStartTypes()">{{ loadingTypes() ? 'Reading…' : 'Load startup types' }}</button>
+        <span class="text-ui-xs text-text-muted" data-testid="service-count">{{ filtered().length }} of {{ rows().length }} services</span>
+      </div>
+      <p class="text-ui-xs text-text-muted">The service list may not include kernel and filesystem drivers; a driver is hidden here once its configuration has been read, unless "Show drivers" is on.</p>
+
+      @if (error()) { <div role="alert" class="flex items-center gap-1 rounded-sm border border-error bg-panel p-2 text-error"><app-status-glyph kind="error" />{{ error() }}</div> }
+
+      <div class="h-[72vh] rounded-sm border border-border bg-panel">
+        <app-split-pane [initialRatio]="ratio()" (ratioChange)="ratio.set($event)">
+          <div slot="start" class="h-full">
+            @if (listing() === null && !error()) {
+              <div class="p-4 text-text-muted" role="status">Reading services…</div>
+            } @else {
+              <app-data-table [columns]="columns" [rows]="filtered()" [trackByFn]="trackRow" [dense]="true" ariaLabel="Services" (rowOpened)="select($event)">
+                <ng-template appDataTableCell="name" let-s>
+                  <span class="truncate font-mono" [class.text-accent]="selectedName() === s.name" [class.font-semibold]="selectedName() === s.name" [attr.aria-current]="selectedName() === s.name ? 'true' : null">{{ s.name }}</span>
+                </ng-template>
+                <ng-template appDataTableCell="state" let-s>
+                  <span class="flex items-center gap-1"><app-status-glyph [kind]="stateGlyph(s.state)" />{{ stateLabel(s.state) }}</span>
+                </ng-template>
+                <ng-template appDataTableCell="pid" let-s><span class="font-mono">{{ s.pid || '' }}</span></ng-template>
+              </app-data-table>
+            }
+          </div>
+          <div slot="end" class="flex h-full flex-col">
+            <app-service-actions [config]="selected()" [impact]="impact()" (applied)="onApplied()" />
+            <div class="min-h-0 flex-1 overflow-auto p-2" data-testid="service-detail">
+              @if (selectedName() === null) {
+                <p class="text-text-muted">Select a service to see its configuration and dependencies.</p>
+              } @else if (loadingDetail() && !selected()) {
+                <p class="text-text-muted" role="status">Reading configuration…</p>
+              } @else if (detailError()) {
+                <div role="alert" class="flex items-center gap-1 text-error"><app-status-glyph kind="error" />{{ detailError() }}</div>
+              } @else if (selected(); as c) {
+                <div class="flex flex-col gap-3">
+                  <div>
+                    <div class="text-ui font-semibold text-text">{{ c.displayName }}</div>
+                    <div class="font-mono text-ui-xs text-text-muted">{{ c.name }}{{ c.isDriver ? ' · driver' : '' }}</div>
+                  </div>
+                  @if (c.description) { <p class="text-text-muted">{{ c.description }}</p> }
+                  <dl class="grid grid-cols-[7rem_1fr] gap-x-2 gap-y-1">
+                    <dt class="text-text-muted">State</dt>
+                    <dd class="flex items-center gap-1" data-testid="detail-state"><app-status-glyph [kind]="stateGlyph(c.state)" />{{ stateLabel(c.state) }}</dd>
+                    <dt class="text-text-muted">Startup type</dt><dd data-testid="detail-starttype">{{ startTypeLabel(c.startType) }}</dd>
+                    <dt class="text-text-muted">Account</dt><dd class="font-mono">{{ c.account }}</dd>
+                    <dt class="text-text-muted">Pause / continue</dt><dd>{{ c.canPauseContinue ? 'Supported' : 'Not supported' }}</dd>
+                    <dt class="text-text-muted">Binary path</dt>
+                    <dd class="flex items-start gap-2"><span class="min-w-0 break-all font-mono text-ui-xs" data-testid="detail-binary">{{ c.binaryPath }}</span><app-copy-button [text]="c.binaryPath" label="Copy path" /></dd>
+                    @if (c.pid) {
+                      <dt class="text-text-muted">PID</dt>
+                      <dd class="flex items-center gap-2"><span class="font-mono">{{ c.pid }}</span><a routerLink="/tools/process-viewer" class="text-accent underline" data-testid="open-process-viewer">Open in Process Viewer</a></dd>
+                    }
+                  </dl>
+                  <section aria-label="Dependencies">
+                    <h3 class="mb-1 text-ui-xs uppercase text-text-muted">Depends on</h3>
+                    @if (c.dependencies.length) { <div data-testid="dependency-tree"><app-tree-view [nodes]="dependencyTree()" /></div> } @else { <p class="text-text-muted">No dependencies.</p> }
+                  </section>
+                  <section aria-label="Dependents">
+                    <h3 class="mb-1 text-ui-xs uppercase text-text-muted">Needed by</h3>
+                    @if (c.dependents.length) { <div data-testid="dependent-tree"><app-tree-view [nodes]="dependentTree()" /></div> } @else { <p class="text-text-muted">No dependents.</p> }
+                  </section>
+                  <div><app-copy-button [text]="mermaid()" label="Copy as Mermaid" /></div>
+                </div>
+              }
+            </div>
+          </div>
+        </app-split-pane>
+      </div>
+    </div>
+  }
+</app-tool-shell>

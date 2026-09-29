@@ -47,6 +47,17 @@ describe('validateSysCall', () => {
     expect(() => validateSysCall('reg.getValues', proto)).toThrow();
   });
 
+  it('validates svc.config: exact name key and name rules', () => {
+    expect(validateSysCall('svc.config', { name: 'Spooler' })).toEqual({ method: 'svc.config', params: { name: 'Spooler' } });
+    expect(() => validateSysCall('svc.config', undefined)).toThrow();
+    expect(() => validateSysCall('svc.config', {})).toThrow(/exactly/);
+    expect(() => validateSysCall('svc.config', { name: 'A', extra: 1 })).toThrow(/exactly/);
+    for (const name of ['', 'a'.repeat(257), 'a/b', 'a\\b', 'a\u0000b', 'a\nb', 5, null]) {
+      expect(() => validateSysCall('svc.config', { name })).toThrow();
+    }
+    expect(() => validateSysCall('svc.config', { name: 'a'.repeat(256) })).not.toThrow();
+  });
+
   it('rejects bad hive and view values', () => {
     for (const hive of ['hklm', 'HKEY_LOCAL_MACHINE', '', 1, null]) expect(() => validateSysCall('reg.enumKey', reg({ hive }))).toThrow(/hive/);
     for (const view of ['128', 'Default', '', 64, null]) expect(() => validateSysCall('reg.enumKey', reg({ view }))).toThrow(/view/);

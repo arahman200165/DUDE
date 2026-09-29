@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import type {
   FileSignatureResult, FileVersionResult, HelperInfo, ProcessDetail, ProcessHandlesResult, ProcessListResult, ProcessModulesResult,
-  ProbeDirsResult, ProcessRef, ProcessThreadsResult, ServiceListResult, RegistryEnumResult, RegistryExportParams, RegistryExportResult, RegistryKeyParams, RegistrySearchParams, RegistrySearchResult, RegistryValuesResult, SocketTableResult, SysMethodMap, SysReadMethod,
+  ProbeDirsResult, ProcessRef, ProcessThreadsResult, ServiceListResult, ServiceConfigResult, RegistryEnumResult, RegistryExportParams, RegistryExportResult, RegistryKeyParams, RegistrySearchParams, RegistrySearchResult, RegistryValuesResult, SocketTableResult, SysMethodMap, SysReadMethod,
 } from '../../../shared-logic/system/system-types';
 
 const UNAVAILABLE = 'Windows system tools are available in Desktop DUDE.';
@@ -39,6 +39,7 @@ export class SystemInfoService {
   fileVersion(path: string): Promise<FileVersionResult> { return this.call('file.version', { path }); }
   fileSignature(path: string): Promise<FileSignatureResult> { return this.call('file.signature', { path }); }
   listServices(): Promise<ServiceListResult> { return this.call('svc.list', {}); }
+  serviceConfig(name: string): Promise<ServiceConfigResult> { return this.call('svc.config', { name }); }
   tcpTable(): Promise<SocketTableResult> { return this.call('net.tcp', {}); }
   udpTable(): Promise<SocketTableResult> { return this.call('net.udp', {}); }
   enumRegistryKey(params: RegistryKeyParams): Promise<RegistryEnumResult> { return this.call('reg.enumKey', params); }

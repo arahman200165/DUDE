@@ -11,7 +11,7 @@
 /** Renderer-callable read methods. Grows one milestone at a time; main rejects anything else. */
 export const SYS_READ_METHODS = [
   'helper.info', 'process.list', 'process.detail', 'process.modules', 'process.threads', 'process.handles',
-  'file.version', 'file.signature', 'svc.list', 'net.tcp', 'net.udp', 'reg.enumKey', 'reg.getValues', 'fs.probeDirs', 'reg.search', 'reg.export',
+  'file.version', 'file.signature', 'svc.list', 'svc.config', 'net.tcp', 'net.udp', 'reg.enumKey', 'reg.getValues', 'fs.probeDirs', 'reg.search', 'reg.export',
 ] as const;
 export type SysReadMethod = (typeof SYS_READ_METHODS)[number];
 
@@ -169,6 +169,34 @@ export interface ServiceListResult {
   readonly services: readonly ServiceSummary[];
 }
 
+export type ServiceStartType = 'boot' | 'system' | 'auto' | 'auto-delayed' | 'manual' | 'disabled';
+
+export interface ServiceConfig {
+  readonly name: string;
+  readonly displayName: string;
+  readonly description: string;
+  readonly state: ServiceState;
+  readonly type: ServiceType;
+  readonly startType: ServiceStartType;
+  readonly pid: number;
+  /** The service's binary/command line (ImagePath). */
+  readonly binaryPath: string;
+  /** The account it runs as (e.g. LocalSystem, NT AUTHORITY\NetworkService). */
+  readonly account: string;
+  /** True when the service can accept a pause/continue while running. */
+  readonly canPauseContinue: boolean;
+  /** Whether the service is actually a kernel/filesystem driver. */
+  readonly isDriver: boolean;
+  /** Service names this service depends on (must start first). */
+  readonly dependencies: readonly string[];
+  /** Service names that depend on this one (stopping this stops them too). */
+  readonly dependents: readonly string[];
+}
+
+export interface ServiceConfigResult {
+  readonly config: ServiceConfig;
+}
+
 // ---- net.tcp / net.udp -------------------------------------------------------------------------
 
 export type TcpState =
@@ -312,6 +340,7 @@ export interface SysMethodMap {
   'file.version': { params: { path: string }; result: FileVersionResult };
   'file.signature': { params: { path: string }; result: FileSignatureResult };
   'svc.list': { params: Record<string, never>; result: ServiceListResult };
+  'svc.config': { params: { name: string }; result: ServiceConfigResult };
   'net.tcp': { params: Record<string, never>; result: SocketTableResult };
   'net.udp': { params: Record<string, never>; result: SocketTableResult };
   'reg.enumKey': { params: RegistryKeyParams; result: RegistryEnumResult };

@@ -43,6 +43,8 @@ describe('SystemInfoService', () => {
     expect(call).toHaveBeenLastCalledWith('file.signature', { path: 'C:\\a.exe' });
     await service.listServices();
     expect(call).toHaveBeenLastCalledWith('svc.list', {});
+    await service.serviceConfig('Spooler');
+    expect(call).toHaveBeenLastCalledWith('svc.config', { name: 'Spooler' });
   });
 
   it('probeDirs forwards dirs and optional extensions and unwraps the result', async () => {

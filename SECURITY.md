@@ -70,6 +70,7 @@ database-write) have no rows below until a tool claims them.
 | [Registry Editor](https://arahman200165.github.io/DUDE/tools/registry-editor) | Registry | experimental |
 | [Runtime Detector](https://arahman200165.github.io/DUDE/tools/runtime-detector) | Code Execution | experimental |
 | [Secret Detector](https://arahman200165.github.io/DUDE/tools/secret-detector) | Secret Management | verified — Fuzz-tested with generated text up to 5000 chars, asserting it never throws and never takes more than 500ms -- guards against regex catastrophic backtracking. |
+| [Services Viewer](https://arahman200165.github.io/DUDE/tools/services-viewer) | System Configuration | experimental |
 | [SSH Key Generator & Inspector](https://arahman200165.github.io/DUDE/tools/ssh-key-tools) | Crypto | verified — SHA256/MD5 fingerprints for Ed25519/RSA-2048/ECDSA-P256 keys matched byte-for-byte against real ssh-keygen output. |
 | [System Changes](https://arahman200165.github.io/DUDE/tools/system-changes) | Process Management | experimental |
 | [System Changes](https://arahman200165.github.io/DUDE/tools/system-changes) | Registry | experimental |
@@ -172,6 +173,7 @@ browser sandbox.
 | [Certificate Revocation Inspector](https://arahman200165.github.io/DUDE/tools/revocation-inspector) | Native network diagnostics |
 | [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | Native network diagnostics |
 | [Runtime Detector](https://arahman200165.github.io/DUDE/tools/runtime-detector) | Native Windows system access |
+| [Services Viewer](https://arahman200165.github.io/DUDE/tools/services-viewer) | Native Windows system access; Native Windows system changes |
 | [SQL Formatter / Minifier](https://arahman200165.github.io/DUDE/tools/sql-formatter-tool) | Desktop file/folder open |
 | [STARTTLS Inspector](https://arahman200165.github.io/DUDE/tools/starttls-inspector) | Native network diagnostics |
 | [System Changes](https://arahman200165.github.io/DUDE/tools/system-changes) | Native Windows system changes; Native Windows system access |
@@ -248,6 +250,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Certificate Revocation Inspector](https://arahman200165.github.io/DUDE/tools/revocation-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Runtime Detector](https://arahman200165.github.io/DUDE/tools/runtime-detector) | Native Windows system access | Desktop-only feature | reads PATH, registry install keys and executable file versions through the desktop system helper; the optional version probe runs discovered programs on an explicit, previewed action |
+| [Services Viewer](https://arahman200165.github.io/DUDE/tools/services-viewer) | Native Windows system access | Desktop-only feature | lists services and reads their configuration and dependencies through the desktop system helper |
+| [Services Viewer](https://arahman200165.github.io/DUDE/tools/services-viewer) | Native Windows system changes | Desktop-only feature | starts, stops, restarts and reconfigures services through the desktop system mutation engine |
 | [STARTTLS Inspector](https://arahman200165.github.io/DUDE/tools/starttls-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [System Changes](https://arahman200165.github.io/DUDE/tools/system-changes) | Native Windows system access | Desktop-only feature | manages the local snapshot library used by the environment, PATH and registry diffs |
 | [System Changes](https://arahman200165.github.io/DUDE/tools/system-changes) | Native Windows system changes | Desktop-only feature | undoes journaled Windows system changes through the desktop system mutation engine |

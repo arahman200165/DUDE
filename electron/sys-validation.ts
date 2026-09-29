@@ -30,6 +30,15 @@ export function validateRegistryPath(path: unknown): string {
   return path;
 }
 
+/** A service (short) name: 1 to 256 characters, no control characters, no path separators. */
+export function validateServiceName(name: unknown): string {
+  if (typeof name !== 'string') throw new Error('Service name must be a string.');
+  if (name.length < 1 || name.length > 256) throw new Error('Service name must be 1 to 256 characters.');
+  if (/[\u0000-\u001f\u007f]/.test(name)) throw new Error('Service name contains control characters.');
+  if (/[\\/]/.test(name)) throw new Error('Service name must not contain slashes.');
+  return name;
+}
+
 function validatePid(pid: unknown): number {
   if (typeof pid !== 'number' || !Number.isInteger(pid) || pid < 0 || pid > MAX_PID) throw new Error('Process id must be an integer from 0 to 4294967295.');
   return pid;
@@ -119,6 +128,11 @@ export function validateSysCall(method: unknown, params: unknown): { method: Sys
       });
     }
     return { method: name, params: out };
+  }
+  if (name === 'svc.config') {
+    if (!isPlainObject(params)) throw new Error('Service parameters must be an object.');
+    exactKeys(params, ['name'], 'Service parameters must be exactly name.');
+    return { method: name, params: { name: validateServiceName(params['name']) } };
   }
   if (name === 'reg.search' || name === 'reg.export') return { method: name, params: validateRegistryScan(name, params) };
   if (!REGISTRY_METHODS.includes(name)) {

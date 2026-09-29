@@ -130,6 +130,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Certificate Revocation Inspector](https://arahman200165.github.io/DUDE/tools/revocation-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Runtime Detector](https://arahman200165.github.io/DUDE/tools/runtime-detector) | Native Windows system access | Desktop-only feature | reads PATH, registry install keys and executable file versions through the desktop system helper; the optional version probe runs discovered programs on an explicit, previewed action |
+| [Services Viewer](https://arahman200165.github.io/DUDE/tools/services-viewer) | Native Windows system access | Desktop-only feature | lists services and reads their configuration and dependencies through the desktop system helper |
+| [Services Viewer](https://arahman200165.github.io/DUDE/tools/services-viewer) | Native Windows system changes | Desktop-only feature | starts, stops, restarts and reconfigures services through the desktop system mutation engine |
 | [STARTTLS Inspector](https://arahman200165.github.io/DUDE/tools/starttls-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [System Changes](https://arahman200165.github.io/DUDE/tools/system-changes) | Native Windows system access | Desktop-only feature | manages the local snapshot library used by the environment, PATH and registry diffs |
 | [System Changes](https://arahman200165.github.io/DUDE/tools/system-changes) | Native Windows system changes | Desktop-only feature | undoes journaled Windows system changes through the desktop system mutation engine |
@@ -156,7 +158,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-321 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+322 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -455,6 +457,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Scientific Notation Converter](https://arahman200165.github.io/DUDE/tools/scientific-notation-converter) | Developer | Converts a number between standard, scientific, and engineering notation with adjustable significant digits. |
 | [Secret Detector](https://arahman200165.github.io/DUDE/tools/secret-detector) | Developer | Flags likely credentials and keys in pasted text or config — AWS/GitHub/Slack tokens, PEM private keys, JWTs, generic key=value assignments, and high-entropy strings. |
 | [Semantic Version Comparator](https://arahman200165.github.io/DUDE/tools/semver-comparator) | Developer | Compare, sort, and range-check versions against the Semantic Versioning spec. |
+| [Services Viewer](https://arahman200165.github.io/DUDE/tools/services-viewer) | Developer | Windows services with live state, startup type, account and binary path, plus dependency and dependent trees (copyable as Mermaid). Start, stop, restart or change the startup type of a service through a previewed, confirmed change that lists the dependents a stop would take down. |
 | [Snowflake ID Generator / Inspector](https://arahman200165.github.io/DUDE/tools/snowflake-id-tools) | Developer | Generates a Snowflake id (Twitter/X, Discord, Instagram, or custom epoch/bit layout), and inspects an existing id to decode its embedded timestamp, worker id, and sequence. |
 | [Stack Trace Formatter](https://arahman200165.github.io/DUDE/tools/stack-trace-formatter) | Developer | Auto-detects and cleans up a Java, .NET, JavaScript, or Python stack trace, tagging library frames and Caused-by/inner-exception chains. |
 | [Statistics Calculator](https://arahman200165.github.io/DUDE/tools/statistics-calculator) | Developer | Count, sum, mean, median, mode, range, quartiles/IQR, and population/sample variance and standard deviation. |

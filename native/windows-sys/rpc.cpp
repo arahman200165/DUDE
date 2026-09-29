@@ -61,6 +61,9 @@ std::string handleLine(const std::string& line) {
   else if (method == "file.version") ok = sys::handleFileVersion(params, result, err);
   else if (method == "file.signature") ok = sys::handleFileSignature(params, result, err);
   else if (method == "svc.list") ok = sys::handleSvcList(result, err);
+  else if (method == "svc.config") ok = sys::handleSvcConfig(params, result, err);
+  else if (method == "svc.control") ok = sys::handleSvcControl(params, result, err);
+  else if (method == "svc.setStartType") ok = sys::handleSvcSetStartType(params, result, err);
   else if (method == "net.tcp") ok = sys::handleNetTcp(result, err);
   else if (method == "net.udp") ok = sys::handleNetUdp(result, err);
   else if (method == "reg.enumKey") ok = sys::handleRegEnumKey(params, result, err);
