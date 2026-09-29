@@ -2,15 +2,14 @@
 @import './styles/tokens.css';
 
 /*
- * UI scale. The deck's type and spacing were authored against a 13px base, but
- * at that size the shell reads cramped on a desktop display — it only looks
- * right around 150% browser zoom. Bake that zoom into the root font size so the
- * app ships at its intended density without the user reaching for Ctrl++.
- * Every rem-based Tailwind utility (spacing, widths, type) tracks this.
+ * Root size (Phase 30J). The former 13px x 1.5 UI scale (19.5px root) inflated
+ * every rem utility, which is why the shell did not read as "extremely dense"
+ * despite compact class choices. The root is now Tailwind's 16px default, so
+ * one spacing unit is 4px (p-1=4, p-2=8, p-3=12, p-4=16, p-6=24) and text-xs
+ * is 12px, matching the PRD 30J scale. Chrome type tokens live in tokens.css.
  */
 :root {
-  --dude-base-font-size: 13px;
-  --dude-ui-scale: 1.5;
+  --dude-base-font-size: 16px;
 }
 
 html,
@@ -25,7 +24,7 @@ body {
     -apple-system,
     'Segoe UI',
     sans-serif;
-  font-size: calc(var(--dude-base-font-size) * var(--dude-ui-scale));
+  font-size: var(--dude-base-font-size);
 }
 
 * {

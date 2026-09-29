@@ -56,12 +56,25 @@
   /* Active/focus accent used by sidebar selection, focus rings, primary buttons */
   --color-accent: #38d8ff;
 
-  /* Chrome type sizes for labels, meta rows, badges and keycaps. Kept in rem
-     (relative to the 13px design base) so they scale with the root UI scale in
-     styles.css instead of staying pinned at their authored pixel size. */
-  --text-ui: 0.8462rem; /* 11px at the 13px design base */
-  --text-ui-sm: 0.8077rem; /* 10.5px */
-  --text-ui-xs: 0.7692rem; /* 10px */
+  /* Chrome type sizes for labels, meta rows, badges and keycaps (Phase 30J
+     baseline: shell text ~12-13px, secondary metadata ~11-12px). In rem against
+     the 16px root in styles.css. */
+  --text-ui: 0.8125rem; /* 13px */
+  --text-ui-sm: 0.75rem; /* 12px */
+  --text-ui-xs: 0.6875rem; /* 11px */
+
+  /* Compact density baseline (Phase 30J.2). Fixed defaults, not user presets;
+     Density Presets are Phase 30K. Used via var() where a utility cannot express
+     the value (control/row heights, panel padding) and named by the
+     check-design-tokens script. */
+  --dude-space-micro: 0.25rem; /* 4px  */
+  --dude-space-normal: 0.5rem; /* 8px  gap between panels/controls */
+  --dude-space-panel: 0.75rem; /* 12px panel padding / section gap */
+  --dude-space-major: 1rem; /* 16px major separation */
+  --dude-space-exceptional: 1.5rem; /* 24px rare */
+  --dude-control-h: 1.75rem; /* 28px compact control (max 32px) */
+  --dude-row-h: 1.75rem; /* 28px table/tool row */
+  --dude-radius: 0.25rem; /* 4px small radius (3-5px band) */
 
   /* Monospace stack for data/code-like values (Section 8.4) */
   --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
