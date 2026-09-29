@@ -18,7 +18,7 @@
 
 DUDE is a dense, colorful, local-first **desktop developer workbench** built with Angular and Electron, with a highly capable static web/PWA companion generated from the same shared core. The Windows desktop application is now the canonical product surface because DUDE has already shipped capabilities that a browser sandbox cannot reproduce: native filesystem access, OS-level secret storage, local backend processes, system integration, collaboration infrastructure, and future live networking/database/process tooling. The GitHub Pages build remains a permanent zero-install companion for every capability that can run safely in-browser.
 
-Visually, DUDE remains dark-first today, but not monochrome or subdued. The current UI uses a dark base and a bright, bold, highly saturated accent-color system functionally — for categories, status, and structure — rather than decoratively. The current shipped theme remains the authoritative present-state design; Phase 30 later revisits light mode, theme customization, density, font, contrast, and accessibility options. See Section 8 for the full visual direction.
+Visually, DUDE is dark-first, but not monochrome or subdued. The default UI uses a dark base and a bright, bold, highly saturated accent-color system functionally — for categories, status, and structure — rather than decoratively. Since Phase 30K (Milestones 577–585), that dark theme is the default of a controlled set of first-party appearance options: Dark / Light / System themes, high contrast, accent and category palettes, color-blind-safe status colors, density presets, UI and data font preferences, and reduced motion, all generated from one shared token source. See Section 8 for the full visual direction.
 
 The original weekend project was **not** to build 20–30 tools immediately.
 
@@ -58,7 +58,7 @@ The product then continued through **Phases 1–21, all of which are complete**.
 
 **Phases 22–29 are also complete**: Phase 22 (Platform Hardening, Trust & Desktop-First Pivot) consolidated metadata/registry structure, trust, testing, and cache/bundle control; Phase 23 (Correctness, Verification & High-Consequence Tool Hardening) brought every one of the 277 tool manifests to a `verified` confidence tier; Phase 24 (Smart Entry, Discovery & Personal DUDE) turned Phase 21's Smart Paste/pipelines/workspaces/history into the primary paste-first, personalized entry experience — Recently Used, Favorites, Pinned Pipelines, Related-Tool and Pipeline Suggestions, Workspace Templates, Quick Run, and Unified Recents, all private-by-construction with no analytics or server telemetry; Phase 25 (Desktop-First Shell & Native Product Experience) finished that positioning change technically — Projects, a Desktop-Native Home, `dude://` deep links, a native OS menu, a six-source Command Palette, a Native File Recent List, crash/restart recovery, a Quick Launcher, native drag-and-drop routing, a generated file-association framework, Desktop Capability Indicators, desktop-first documentation, and a measured startup/parallelization pass — all shipped as Milestones 421–455. Phase 26 (Web Companion & PWA Efficiency) added selective offline readiness, install/share/handoff flows, browser-safe pipeline and workspace support, and web/desktop parity tests, shipped as Milestones 482–488. Phase 27 (Networking Toolkit) began the native expansion. It shipped 18 desktop network-diagnostics tools over a main-process-enforced IPC bridge and a bundled Windows ICMP helper, as Milestones 489–508. Phase 28 shipped live DNS, TLS and certificate inspection as Milestones 509–522. Phase 29 shipped filesystem scanning, watching and previewed mutation as Milestones 523–536.
 
-The roadmap is now one linear product horizon through **Phase 100**. Completed Phases 22–26 consolidated platform structure, trust, discovery, desktop UX, and web/PWA efficiency. Phases 27–38 form the next major product expansion: Phases 27–29 shipped networking, live DNS/TLS and filesystem workflows, and Phases 30–38 continue across theming and accessibility, Windows/process tooling, local API/server development, live databases, containers, OS integration, AI-assisted utilities, VS Code integration, and browser-extension integration. Later phases extend into cross-platform desktop, automation, Git/SSH/package/build/log/proxy/database/container/Kubernetes workflows, secrets/PKI, collaboration/workspaces/pipelines, plugins/extensions, CLI/SDK/headless automation, AI, project/code/runtime tooling, and a deliberately distant platform/ecosystem horizon.
+The roadmap is now one linear product horizon through **Phase 100**. Completed Phases 22–26 consolidated platform structure, trust, discovery, desktop UX, and web/PWA efficiency. Phases 27–38 form the next major product expansion: Phases 27–29 shipped networking, live DNS/TLS and filesystem workflows; Phase 30's workbench-shell, discovery, insights and appearance subphases 30A–30K have shipped, with the 30L integrated verification gate still open; and Phases 31–38 continue across Windows/process tooling, local API/server development, live databases, containers, OS integration, AI-assisted utilities, VS Code integration, and browser-extension integration. Later phases extend into cross-platform desktop, automation, Git/SSH/package/build/log/proxy/database/container/Kubernetes workflows, secrets/PKI, collaboration/workspaces/pipelines, plugins/extensions, CLI/SDK/headless automation, AI, project/code/runtime tooling, and a deliberately distant platform/ecosystem horizon.
 
 ---
 
@@ -242,7 +242,7 @@ Basic local developer utilities must never be paywalled behind the desktop app, 
 The weekend implementation delivered:
 
 - Angular application foundation;
-- dense dark-only UI shell;
+- dense dark-only UI shell (dark-only at V1; Phase 30K later added Light and the other first-party appearance options, keeping Dark as the default);
 - deck home;
 - persistent sidebar;
 - global search;
@@ -356,6 +356,8 @@ These three amendments are reproduced verbatim from the pre-2026-09-25 PRD (only
 
 **Superseded 2026-09-25:** two of the seven bullets above no longer hold as written. §8.1 is itself amended by this rewrite — theme customization/light mode is no longer described elsewhere in the doc as "an explicit, still-current design decision," so that bullet's closing "nothing about those living specs changes now" is no longer accurate; see the current §8.1 and Appendix A Q12 directly. Localization/i18n's "stays a permanent non-goal, unchanged" is also reversed — §5.3 now retains it as a distant, unscheduled Phase 94 possibility rather than a permanent exclusion. The other carve-outs and their stated ceilings (multi-tool workbench not an IDE; Monaco-style IDE and draggable panels out of scope; BYO-only snippet/secrets deployment) remain the current, accurate boundary. `AGENTS.md`'s top-of-file product description has also been updated as part of this rewrite to describe desktop-canonical/web-companion positioning instead of the old "static PWA deployed to GitHub Pages" framing, so it no longer contradicts this section; its dark-mode-only line is unaffected until Phase 30 actually ships.
 
+**Superseded 2026-09-29:** the theming half of Phase 30 has now shipped as Phase 30K (Milestones 577–585), so the "theme customization, light mode" bullet's pending amendments are made: §8.1, §8.5, §19, `AGENTS.md`'s product description and Appendix A Q12 now describe a dark-default product with controlled first-party appearance options (Milestone 586). The controlled-customization ceiling is stated explicitly in Phase 30's scope boundaries and in Phase 30K ("Customization means composing first-party, pre-validated options per axis…").
+
 ## 5.4 Deferred / Roadmap-Tracked Scope
 
 These items are not failures of the original product and are handled by the roadmap:
@@ -365,7 +367,7 @@ These items are not failures of the original product and are handled by the road
 - Cross-tool I/O, pipelines, Smart Paste, workspace/Saved Sessions, and local history (Phase 21) — ✅ shipped.
 - Platform hardening/correctness/discovery/desktop shell/web efficiency (Phases 22–26) — completed consolidation wave.
 - Native network diagnostics (Phase 27) — ✅ shipped.
-- TLS, filesystem, theming, Windows/process, API/server, database, container, OS-integration, AI, and editor/browser integration work is tracked authoritatively in Phases 28–38. TLS and filesystem expansion shipped in Phases 28–29; theming through browser-integration work remains tracked in Phases 30–38.
+- TLS, filesystem, theming, Windows/process, API/server, database, container, OS-integration, AI, and editor/browser integration work is tracked authoritatively in Phases 28–38. TLS and filesystem expansion shipped in Phases 28–29, and theming/appearance shipped in Phase 30K; Phase 30L's integrated verification gate and the Windows/process through browser-integration work remain tracked in Phases 30–38.
 - Long-horizon additions through Phase 100 are roadmap directions, not a fixed commitment or schedule.
 
 ---
@@ -442,11 +444,24 @@ Windows remains the desktop reference platform even if Phase 39 later makes desk
 
 ## 8.1 Theme
 
-**Current shipped state:** dark mode only, with no light-theme toggle.
+**Current shipped state:** dark by default, with controlled first-party theming axes (Phase 30K, Milestones 577–585).
 
-The dark theme is not muted or monochrome. DUDE currently uses a single, fixed, highly colorful theme: a dark base (background/panel surfaces) paired with a bright, bold, highly saturated accent-color palette used throughout the shell and every tool. Color is a primary structural and functional device, not an afterthought layered on top of a gray UI.
+The dark theme is not muted or monochrome: a dark base (background/panel surfaces) paired with a bright, bold, highly saturated accent-color palette used throughout the shell and every tool. Color is a primary structural and functional device, not an afterthought layered on top of a gray UI. The Light theme ("bright workstation") keeps that identity on a light base with its own category palette — hues picked for light surfaces, not darkened copies of the dark ones.
 
-This remains the authoritative present-state theme until a theming phase is actually implemented. It is no longer a permanent product prohibition: Phase 30 explicitly revisits light mode, theme customization, accent palettes, density, fonts, reduced motion, high contrast, color-blind-safe semantics, and theme import/export.
+Appearance is a set of independent axes, each with a small set of first-party values that are contrast-checked in every combination (§8.5, §19):
+
+- **Theme:** Dark (default) / Light / System (follows `prefers-color-scheme`);
+- **Contrast:** Standard (default) / High / System (follows `prefers-contrast: more`) — a modifier over both themes;
+- **Accent:** Cyan (default), Blue, Violet, Green, Amber, Magenta;
+- **Category palette:** Vivid (default), Soft, Color-blind safe;
+- **Status colors:** Standard (default) / Color-blind safe (blue/orange; success is blue);
+- **Density:** Compact (default), Comfortable, Ultra-compact (§8.2);
+- **Type:** UI text size and data/code text size (Small / Default / Large each), code ligatures On/Off, and UI and data/code font choices (§8.4);
+- **Motion:** System (default; honors `prefers-reduced-motion`) / Reduce / Allow.
+
+Appearance is global and per device — stored `local`, live across open tabs — not per workspace or project. The only entry points are Settings › Appearance and the Onboarding Appearance page; there are no palette commands or sidebar toggle. An inline pre-paint script in `index.html` sets one `data-*` attribute per axis on `<html>` before the first paint, and `AppearanceService` (`core/appearance/`) owns them after bootstrap. Preferences can be exported and imported as a standalone `*.dude-theme.json` file (preview, then apply) and travel in the optional `appearance` section of the backup bundle.
+
+Customization means composing first-party, pre-validated options per axis. Free color pickers, a user token editor, arbitrary user themes, per-tool themes, and bundled web fonts remain out of scope.
 
 ## 8.2 Density
 
@@ -464,6 +479,8 @@ The interface should favor:
 - compact headers.
 
 Density and color intensity are complementary, not in tension: strong, bold color lets compact panels, tight status chips, and small controls stay legible and instantly scannable without needing extra size or spacing to read clearly.
+
+This contract describes the default **Compact** density, which is the Phase 30J baseline (30J.2) and is unchanged by Phase 30K. The opt-in Comfortable and Ultra-compact presets (Phase 30K, M582) scale the same spacing, control-height, row-height, radius and UI-text tokens one step up or down; Compact stays the default.
 
 ## 8.3 Style
 
@@ -488,7 +505,7 @@ Still avoid, regardless of color intensity:
 - onboarding illustrations;
 - ornamental animations.
 
-The rule of thumb: color should always be carrying information (what category, what state, what severity, what's active) — never decoration for its own sake.
+The rule of thumb: color should always be carrying information (what category, what state, what severity, what's active) — never decoration for its own sake. That holds in every theme, contrast mode and palette set. Color also never carries that information alone: categories always show an icon and label, status states carry always-on non-color cues (status glyphs, diff +/− markers), and info banners use normal text with a colored ⓘ glyph (Phase 30K, M581).
 
 ## 8.4 Typography
 
@@ -504,23 +521,33 @@ Use monospace selectively for:
 
 Navigation and labels may use a compact UI font.
 
+Since Phase 30K (M582), the UI font and the data/code (monospace) font are user choices from curated installed-font stacks, or a sanitized custom installed-font name; UI and data/code text sizes step independently (Small / Default / Large), with the data step applied to monospace subtrees without compounding; code ligatures can be turned off. DUDE bundles no web fonts: a font the system lacks falls back through its stack.
+
 ## 8.5 Color System
 
-A single fixed dark-and-colorful palette is defined once and shared by the shell and every tool through the design-token/theming layer (Section 23, `shared/`).
+The palette is defined once, as data, and shared by the shell and every tool through the design-token/theming layer (Section 23, `shared/`, and `src/styles/`):
+
+- `src/styles/theme/theme-tokens.json` is the single machine-readable token source: the base scale per theme and contrast mode, the accents, the category palette sets, the status (semantic) color sets, density steps, text-size steps and font stacks, plus the axis list itself.
+- `scripts/generate-theme-css.mjs` generates `src/styles/theme.generated.css` — plain `:root` and `:root[data-*]` custom properties (`--dude-*`), with each default expressed through `:not(...)` so an absent or unknown attribute value falls back to the default — and `src/app/core/appearance/appearance-axes.generated.ts`. Both are generated, never hand-edited; `generate-theme-css.mjs --check` in `npm run lint` fails when they are stale.
+- `src/styles/tokens.css`'s Tailwind `@theme` block only maps Tailwind names to `var(--dude-*)`, so every utility resolves at use time and follows a runtime appearance change.
+- Text on a filled surface uses a paired `on-*` token (today `--color-on-accent`, used as `text-on-accent`), never the page background color; the old `text-bg`-on-fill pattern is retired.
 
 Required elements:
 
-- a dark base scale (background, panel, elevated-panel, border) that all tools and shell chrome share;
-- a bright, bold accent palette with enough distinct hues to color-code all Section 12.3 categories without repeats;
-- fixed semantic colors for error, warning, success, info, and busy/running states, used consistently by the shared error panel, warning badge, loading indicator, and offline badge (Section 13);
-- a defined active/focus accent used consistently across sidebar selection, command palette selection, and primary buttons;
-- monospace/data regions (Section 8.4) styled with enough contrast and, where applicable, syntax coloring to stay readable against the dark base.
+- a base scale (background, panel, elevated panel, border, text, muted text, scrim) for each theme and contrast mode, shared by all tools and shell chrome;
+- a bright, bold category palette with enough distinct hues to color-code all Section 12.3 categories without repeats, in every category palette set and theme;
+- semantic colors for error, warning, success, info, busy/running and offline states, used consistently by the shared error panel, warning badge, loading indicator, and offline badge (Section 13), in a Standard and a Color-blind-safe set;
+- a defined active/focus accent used consistently across sidebar selection, command palette selection, and primary buttons, chosen from six first-party accents;
+- monospace/data regions (Section 8.4) styled with enough contrast and, where applicable, syntax coloring to stay readable against every base.
 
 Constraints:
 
-- exactly one theme is defined in the **current shipped implementation**; Phase 30 may introduce controlled user configuration without invalidating the historical V1 design;
-- every color combination used for text or status meaning must still meet the contrast baseline in Section 19 — "bright and bold" must not come at the cost of legibility;
-- new tools reuse the shared palette/tokens rather than inventing tool-specific colors, so the deck and sidebar stay visually coherent as tools are added.
+- Dark, standard contrast, the Cyan accent, the Vivid category set and Standard status colors are the defaults; every other value is a first-party, pre-validated option (§8.1), never a user-defined color;
+- every combination of theme × contrast × accent × category set × status set must meet the contrast baseline in Section 19 — "bright and bold" must not come at the cost of legibility. `scripts/check-theme-contrast.mjs` (part of `npm run lint`) checks the whole matrix mechanically: 144 combinations and 49,008 checks today;
+- new tools reuse the shared tokens rather than inventing tool-specific colors or private palettes, so the shell stays coherent as tools are added. `scripts/check-design-tokens.mjs` rejects raw Tailwind palette utilities, `text-bg`, opacity modifiers on text colors, and hex colors in tool templates and stylesheets (hex values in a tool's `.ts` stay allowed as tool data);
+- user documents a tool previews (HTML, SVG, images) keep their own colors, framed by the shared preview-background control (Theme / White / Dark / Checker); the Markdown preview follows the active theme.
+
+**Shipped change to the default dark palette (Phase 30K, M578).** The stricter contrast lint — every category and status color as text on the background, panel and elevated panel, and on its own tinted washes — moved some default dark values that were genuinely illegible: category web `#60a5fa` → `#81b9fe` and security `#e879f9` → `#f97bf7` (the owner chose moving these two categories over making info/busy pastel), and status info `#1a79ff` → `#4294ff`, busy `#c233ff` → `#c966ff`, error `#ff4d4d` → `#ff5757` and offline `#717f94` → `#8c97a8`. Advanced Diff's inline highlights now use normal text color, and 19 faded-text styles were removed.
 
 ---
 
@@ -731,7 +758,7 @@ Avoid creating too many categories in the MVP.
 
 Taxonomy can evolve later.
 
-Each category is assigned one fixed bold accent color from the shared palette (Section 8.5), used consistently for that category's sidebar group, deck section, and tool badges. Category color is metadata-driven from the registry, not hard-coded per tool.
+Each category is assigned one bold color from the shared palette (Section 8.5) — one per theme, contrast mode and category palette set (Vivid / Soft / Color-blind safe) since Phase 30K — used consistently for that category's sidebar group, deck section, and tool badges. Category color is metadata-driven from the registry, not hard-coded per tool.
 
 ---
 
@@ -967,6 +994,8 @@ The following were deliberately deferred from the original V1 quality bar and re
 - performance lab;
 - coverage percentage gates.
 
+Phase 30K adopted one narrow slice of the second item: `npm run test:appearance` sweeps every appearance color combination against the production build (§19). It is an appearance matrix, not exhaustive accessibility automation of every tool.
+
 ---
 
 # 19. Accessibility Baseline
@@ -981,7 +1010,25 @@ Minimum expectations:
 - form controls have names/labels;
 - command palette can be dismissed by keyboard;
 - navigation state is understandable;
-- obvious contrast failures are avoided — the bright/bold accent colors used throughout the UI (Section 8.5) must still meet a reasonable text/status contrast bar against the dark background, not just look vivid.
+- obvious contrast failures are avoided — the bright/bold accent colors used throughout the UI (Section 8.5) must meet the contrast bar below against every shipped base, not just look vivid;
+- color is never the only carrier of meaning: categories show an icon and label, status states carry always-on non-color cues (status glyphs, diff +/− markers).
+
+Appearance accessibility baseline (Phase 30K):
+
+- **High contrast** (Standard / High / System, following `prefers-contrast: more`) is a modifier over both themes: text reaches ≥ 7:1, borders become real ≥ 3:1 boundaries, the focus ring is thicker, and accent washes are clamped so accent text keeps ≥ 7:1.
+- **Forced colors** (Windows Contrast Themes): focus, selection, disabled state and chips are re-expressed with system colors and outlines; canvas charts fall back to their recolored panel border and HTML labels.
+- **Reduced motion** (System by default, honoring `prefers-reduced-motion`, or Reduce / Allow): under Reduce, app animation and transitions are removed globally, and skeleton pulses become static. Previews of user-authored motion (CSS Animation Builder, Cubic-Bezier Editor) are exempt but start paused with a Play control.
+- **Color-blind-safe options**: a Color-blind-safe category palette and a blue/orange status set, both checked for distinguishability under simulated protanopia, deuteranopia and tritanopia.
+
+Contrast thresholds, enforced over every theme × contrast × accent × category set × status set combination by `scripts/check-theme-contrast.mjs` in `npm run lint`:
+
+- text and muted text on the background, panel and elevated panel: ≥ 4.5:1 (high contrast ≥ 7:1);
+- category and status colors used as text on those surfaces: ≥ 4.5:1 (high contrast ≥ 7:1); as text on their own tinted washes: ≥ 4.5:1 (high contrast: ≥ 7:1 for accent, error, warning and success badge washes; info banners use normal text with an info-colored glyph instead);
+- `on-*` text on its fill (`on-accent` on `accent`): ≥ 4.5:1 (high contrast ≥ 7:1);
+- non-text: the accent (focus ring, selection) against the background and panel ≥ 3:1 in every mode; borders ≥ 3:1 in high contrast (standard-contrast borders are decorative separators);
+- semantic separation: every saturated status color stays ≥ 22° of hue or ≥ 12 HSL-lightness points away from every category color and the accent, so status never reads as a category.
+
+`npm run test:appearance` (Playwright, `e2e/appearance/`) then checks the rendered app against the production build: all 864 color/state combinations (theme × contrast × accent × category set × status set × density × motion) on Home, the Ctrl+K palette, Browse Tools, Settings › Appearance and one tool (rotating through one tool per category) — pre-paint attributes, horizontal overflow, the focus indicator, sampled text contrast (4.5:1 normal / 3:1 large; 7:1 / 4.5:1 in high contrast), no animation under Reduce, and no console errors — plus a 108-combination layout sub-matrix (theme × contrast × density × UI text size × data text size) at 1920×1080, 1440×900 and 1366×768.
 
 Formal accessibility certification is out of scope.
 
@@ -2012,7 +2059,7 @@ Phases 24–25 already established the underlying product model: Smart Paste, Re
 
 The Deck/Home route must stop treating the complete tool registry as its dominant content. In the shipped default layout, the user's most likely next actions — paste/drop something, resume recent work, launch a favorite, run a workflow, reopen a project/workspace, or search — should occupy the primary viewport. The complete tool inventory remains fully accessible, searchable, keyboard-navigable, and bookmarkable through a dedicated dense browser.
 
-The workbench redesign portion of Phase 30 starts from the current fixed dark, bright, category-colored visual system and the existing Section 8 density contract. It may refine spacing, layout, component proportions, panel treatment, and information hierarchy without depending on light mode, user-selectable density presets, font customization, theme import/export, or per-tool visual customization. Those platform-level appearance capabilities are introduced in Phase 30K; per-tool visual customization remains prohibited so the shared token/system contract stays authoritative.
+The workbench redesign portion of Phase 30 (30A–30J) started from the then-fixed dark, bright, category-colored visual system and the existing Section 8 density contract. It refined spacing, layout, component proportions, panel treatment, and information hierarchy without depending on light mode, user-selectable density presets, font customization, theme import/export, or per-tool visual customization. Phase 30K (Milestones 577–585) then shipped those platform-level appearance capabilities, with Dark and the 30J Compact density kept as the defaults; per-tool visual customization remains prohibited so the shared token/system contract stays authoritative.
 
 ### Product rule
 
@@ -2022,7 +2069,7 @@ The complete registry must never again be the primary visual hierarchy of the Ho
 
 ### Scope boundaries
 
-The following appearance capabilities are now included in Phase 30K rather than treated as non-goals: light mode, accent-palette selection, user-selectable density presets, and font selection. Theme customization is included only in the controlled, token/system-driven form defined in Phase 30K; arbitrary theme customization remains out of scope.
+The following appearance capabilities are included in Phase 30K (shipped) rather than treated as non-goals: light mode, accent-palette selection, user-selectable density presets, and font selection. Theme customization is included only in the controlled, token/system-driven form defined in Phase 30K; arbitrary theme customization remains out of scope. Customization means composing first-party, pre-validated options per axis. Free color pickers, a user token editor, arbitrary user themes, per-tool themes, and bundled web fonts remain out of scope.
 
 Phase 30 deliberately does **not** include:
 
@@ -2040,7 +2087,7 @@ Phase 30 deliberately does **not** include:
 - turning Home into a source-code IDE;
 - hiding tools from the complete catalog.
 
-Users can freely arrange first-party panels and create text, link, and shortcut panels in Phase 30I. Scriptable/third-party widget runtimes require a separate execution and permission model. Theme and density customization are defined in Phase 30K.
+Users can freely arrange first-party panels and create text, link, and shortcut panels in Phase 30I. Scriptable/third-party widget runtimes require a separate execution and permission model. Theme and density customization are defined, and shipped, in Phase 30K, within the ceiling above.
 
 ### Subphase sequence
 
@@ -2388,7 +2435,7 @@ Optional future classes may be added when a real use case exists.
 Requirements:
 
 - charts read shared design tokens;
-- charts support dark-theme contrast;
+- charts support dark-theme contrast (since Phase 30K, every theme and contrast mode: the shared charts re-read token colors when `AppearanceService.revision()` changes);
 - charts have text equivalents;
 - chart colors retain semantic/category meaning;
 - no decorative gradients/glow;
@@ -2938,7 +2985,7 @@ Target ranges, not rigid pixel requirements:
 
 These are baseline implementation targets, not user-configurable presets.
 
-Phase 30K remains responsible for actual Density Presets and font/theme customization.
+Phase 30K delivered the user-selectable Density Presets (M582) and the font/theme customization, keeping this baseline as the default Compact preset.
 
 #### 30J.3 Spacing Token Audit
 
@@ -2988,22 +3035,22 @@ Secondary explanation appears on demand.
 #### Exit criteria
 
 - [x] Category color is primarily structural/semantic rather than large-area decoration. Resting panels, tool cards and rail/related chips are neutral `bg-panel` with a 2px category rule; the category wash is hover-only.
-- [x] Workbench shell changes do not prematurely couple to theming/density customization; the dedicated appearance work remains separately defined for Phase 30K. Density is a fixed baseline in `tokens.css`/`styles.css`; no user-facing setting or persisted appearance state was added.
+- [x] Workbench shell changes do not prematurely couple to theming/density customization; the dedicated appearance work remains separately defined for Phase 30K. Density is a fixed baseline in `tokens.css`/`styles.css`; no user-facing setting or persisted appearance state was added. *(True as of 30J. Phase 30K later moved these values into `theme-tokens.json` and added the user-facing appearance settings, with this baseline kept as the default Compact density.)*
 
 #### Shipped (Milestones 572–575)
 
 - **M572 — Density baseline.** Retired the 13px x 1.5 UI scale (a 19.5px root, which is what made the shell read as loose). Root is now 16px, so Tailwind spacing is the PRD scale (`p-1`=4 ... `p-6`=24) and `text-xs` is 12px. `text-ui`/`-sm`/`-xs` re-based to 13/12/11px. Added `--dude-space-*`, `--dude-control-h` (28px), `--dude-row-h`, `--dude-radius` tokens. `scripts/check-design-tokens.mjs` flags off-scale spacing, arbitrary sizes, radii above 5px, raw hex and resting category wash in `shell/` and `shared/`; it runs with `--enforce` inside `npm run lint` (`npm run check:design`).
-- **M573 — Color.** Semantic colors re-picked (`error #ff4d4d`, `warning #d99a00`, `success #46e05a`, `info #1a79ff`, `busy #c233ff`, `offline #717f94`). Rule: each is >=22deg hue or >=12 HSL-lightness points from every category and the accent, and >=4.5:1 on `--color-panel` (`scripts/check-semantic-palette.mjs`, also in `check:design`). The 30-degree/15-point version was not satisfiable for info/busy: eight categories plus six semantic colors do not fit on one hue wheel. Category hexes are unchanged.
+- **M573 — Color.** Semantic colors re-picked (`error #ff4d4d`, `warning #d99a00`, `success #46e05a`, `info #1a79ff`, `busy #c233ff`, `offline #717f94`). Rule: each is >=22deg hue or >=12 HSL-lightness points from every category and the accent, and >=4.5:1 on `--color-panel` (checked at the time by `scripts/check-semantic-palette.mjs`, also in `check:design`; Phase 30K's M577 replaced it with `scripts/check-theme-contrast.mjs`, which keeps this separation rule and checks it across every appearance combination). The 30-degree/15-point version was not satisfiable for info/busy: eight categories plus six semantic colors do not fit on one hue wheel. Category hexes are unchanged. (Phase 30K's M578 later moved the default dark info, busy, error and offline values and the web and security category colors; see §8.5.)
 - **M574 — Spacing + primitives.** `dude-input`, `dude-chip`, `dude-chip-on/off` utilities replace the class strings that were copy-pasted across shell templates. All off-scale values in Onboarding, Settings, sidebar and shared components fixed.
 - **M575 — Progressive disclosure.** New `shared/components/disclosure` (`aria-expanded`/`aria-controls`, badge, collapsed summary, state not persisted). Browse category/status/sort selects and catalog counts sit behind "Filters" with an active-filter badge; Smart Paste, Insights and the desktop-only panel card explanations collapse to a one-line summary.
 
 *Status (Milestones 572–575):* verified in the dev server on Home, Browse (table, grid, filtered), a tool workspace, Insights and the command palette; unit tests, lint and `ng build` pass. **Still owed:** the production-build direct-route check (`/DUDE/tools/<id>`); a per-category sample of tool workspaces at the new 16px root; a browser pass of Settings sections and Onboarding; and disclosure for category-preview contents, full Recent Activity and long tool descriptions (not started). Platform chips, Favorites and Recent stay visible in Browse because the web-companion e2e depends on them.
 
-### Phase 30K — Theming, Appearance, and Accessibility Expansion
+### Phase 30K — Theming, Appearance, and Accessibility Expansion (✅ Complete — shipped as Milestones 577–585)
 
 #### 30K.1 Theming, Appearance & Accessibility Expansion
 
-Evolve the currently fixed dark-only visual implementation into a controlled theming system without losing DUDE's dense workstation identity or allowing per-tool visual drift.
+Evolve the previously fixed dark-only visual implementation into a controlled theming system without losing DUDE's dense workstation identity or allowing per-tool visual drift.
 
 1. **Light Mode** — a second, fully contrast-checked first-party theme
 2. **Theme Customization** — controlled user customization on top of shared design tokens
@@ -3018,28 +3065,46 @@ Evolve the currently fixed dark-only visual implementation into a controlled the
 
 ##### Notes
 
-This phase intentionally changes the current design contract described in §8: today DUDE ships one dark, highly colorful theme. When Phase 30K is implemented, the change must be applied consistently to §8, shared design tokens, `AGENTS.md`, contrast/accessibility guidance, and any other living specification that still assumes one fixed theme.
+This phase intentionally changed the design contract described in §8: before it, DUDE shipped one dark, highly colorful theme. Dark is now the default of a controlled set of first-party appearance axes, and Milestone 586 applied that change to §8, §12.3, §19, Appendix A Q12, the root and nested `AGENTS.md` files, `README.md`, `ADDING_A_TOOL.md`, and `package.json`'s description (the token files' own comments were already current from M577).
 
 Customization must remain token/system driven. Individual tools should not invent private palettes/themes that fragment category, status, focus, error, or accessibility semantics.
+
+Customization means composing first-party, pre-validated options per axis. Free color pickers, a user token editor, arbitrary user themes, per-tool themes, and bundled web fonts remain out of scope.
 
 **Goal:** move appearance from a fixed implementation choice into a controlled platform capability without sacrificing the dense workstation identity.
 
 #### Exit criteria
 
-- [ ] Light Mode ships as a second, fully contrast-checked first-party theme.
-- [ ] Theme customization is controlled and driven by shared design tokens rather than private per-tool palettes.
-- [ ] Accent Palette Selection is available without fragmenting category, status, focus, error, or accessibility semantics.
-- [ ] User-selectable Density Presets are implemented while preserving DUDE's dense workstation identity.
-- [ ] Font Preferences and Editor/Data Font Selection are supported through the shared theming system.
-- [ ] Reduced Motion Support is implemented.
-- [ ] High-Contrast Mode is implemented.
-- [ ] Better color-blind-safe semantic alternatives are implemented.
-- [ ] User theme export/import is implemented.
-- [ ] §8, shared design tokens, `AGENTS.md`, contrast/accessibility guidance, and any other living specification that assumed one fixed dark theme are updated consistently.
+- [x] Light Mode ships as a second, fully contrast-checked first-party theme — a "bright workstation" light base with its own category palette (M578), inside the contrast lint matrix and `npm run test:appearance`.
+- [x] Theme customization is controlled and driven by shared design tokens rather than private per-tool palettes — every value comes from `theme-tokens.json` through generated CSS (M577); `check-design-tokens.mjs` rejects raw palette colors, `text-bg` and template hex in tools.
+- [x] Accent Palette Selection is available without fragmenting category, status, focus, error, or accessibility semantics — six accents (M579), each checked for semantic separation and on-accent contrast.
+- [x] User-selectable Density Presets are implemented while preserving DUDE's dense workstation identity — Compact (default, the unchanged 30J baseline), Comfortable, Ultra-compact (M582).
+- [x] Font Preferences and Editor/Data Font Selection are supported through the shared theming system — curated installed-font stacks and a sanitized custom name for UI and data/code text, independent size steps, ligatures On/Off (M582).
+- [x] Reduced Motion Support is implemented — System (default) / Reduce / Allow (M583).
+- [x] High-Contrast Mode is implemented — Standard / High / System over both themes, plus a forced-colors pass (M580, M585).
+- [x] Better color-blind-safe semantic alternatives are implemented — a blue/orange status set and a Color-blind-safe category set, plus always-on non-color status cues (M579, M581).
+- [x] User theme export/import is implemented — `*.dude-theme.json` and the optional backup-bundle `appearance` section (M584).
+- [x] §8, shared design tokens, `AGENTS.md`, contrast/accessibility guidance, and any other living specification that assumed one fixed dark theme are updated consistently — Milestone 586.
+
+#### Shipped (Milestones 577–585)
+
+- **M577 — Token architecture.** `src/styles/theme/theme-tokens.json` is the single machine-readable token source. `scripts/generate-theme-css.mjs` generates `src/styles/theme.generated.css` (plain `:root` and `:root[data-*]` custom properties; each default is expressed through `:not(...)`, so an absent or unknown attribute value falls back) and `core/appearance/appearance-axes.generated.ts`. `src/styles/tokens.css`'s `@theme` now only maps Tailwind names to `var(--dude-*)`, which fixes Tailwind freezing the category wash/tint to literal hexes and dropping unused density tokens. `--color-on-accent` replaced `text-bg` on fills (239 uses codemodded). `core/appearance/`: the pure model (`sanitizeAppearance` never throws; custom font names pass a CSS-injection guard) and `AppearanceService` (`local` storage, `crossTab: 'live'`, one `data-*` attribute per axis on `<html>`, a `revision` signal the charts re-read colors on). An inline pre-paint script in `src/index.html` applies the attributes before first paint. `scripts/check-theme-contrast.mjs` replaced `scripts/check-semantic-palette.mjs`: a WCAG matrix over every base × contrast × accent × category set × status set (144 combinations and 49,008 checks today), run with `generate-theme-css.mjs --check` in `npm run lint`. The default appearance was unchanged by this milestone.
+- **M578 — Light Mode.** A "bright workstation" light base with its own category palette (new hues, not darkened dark ones) and light status colors; Settings › Appearance (Dark / Light / System, default Dark). The media-scoped light/dark `theme-color` metas are replaced at runtime by one meta carrying the resolved background. The web manifest keeps the dark `theme_color`/`background_color`, because the manifest has no per-color-scheme member (known limitation). The Markdown preview iframe follows the theme; HTML Preview, SVG Viewer and the image tools share a preview-background picker (Theme / White / Dark / Checker), and user-document iframes no longer inherit the app's color scheme. `check-design-tokens.mjs` now scans `src/app/tools` for color rules (raw Tailwind palette utilities, `text-bg`, text-color opacity, hex in `.html`/`.css`; hex in `.ts` stays allowed as tool data). The stricter lint changed the default dark palette (recorded in §8.5): category web `#60a5fa` → `#81b9fe` and security `#e879f9` → `#f97bf7` (the owner's choice over pastel status colors), status info `#1a79ff` → `#4294ff`, busy `#c233ff` → `#c966ff`, error `#ff4d4d` → `#ff5757`, offline `#717f94` → `#8c97a8`; Advanced Diff's inline highlights use normal text color and 19 faded-text styles were removed. `npm run test:appearance` (`e2e/appearance/`) started here.
+- **M579 — Accents and category sets.** Six accents (Cyan default, Blue, Violet, Green, Amber, Magenta), each with dark/light values and a paired on-accent; three category palette sets (Vivid default, Soft, Color-blind safe — pairwise distinguishable under simulated protanopia, deuteranopia and tritanopia in both themes).
+- **M580 — High Contrast.** Standard / High / System (`prefers-contrast: more`) as a modifier over both bases: text ≥ 7:1, borders ≥ 3:1, a thicker (3px) focus ring. A `forced-colors` pass covers focus, selection, disabled state, chips, and the canvas-chart fallback.
+- **M581 — Color-blind-safe status colors.** An opt-in blue/orange status set (success is blue), plus always-on non-color cues in every theme: a shared status glyph on status surfaces and +/− markers in the diff views. Info banners use normal text with a colored ⓘ glyph.
+- **M582 — Density and fonts.** Compact (default, the unchanged 30J baseline) / Comfortable / Ultra-compact through `--spacing` plus control, row, radius and UI-text tokens; UI and data/code text size steps (Small / Default / Large), the data step applied to monospace subtrees without compounding; code ligatures On/Off; curated installed-font stacks for UI and monospace plus a sanitized custom installed-font name. No bundled web fonts.
+- **M583 — Reduced Motion.** System (default, honoring `prefers-reduced-motion`) / Reduce / Allow. Under Reduce, app animation and transitions are removed globally outside `[data-motion-exempt]`, and skeleton pulses become static. User-authored motion previews (CSS Animation Builder, Cubic-Bezier Editor, through the shared CSS preview sandbox's `motion` input) are exempt but start paused with a Play control.
+- **M584 — Export/import, Onboarding, desktop sync.** A standalone `*.dude-theme.json` file (`{format: 'dude-theme', schemaVersion: 1}`, 16 KB cap, preview then apply, dropped/unknown fields reported) from Settings › Appearance. An optional additive `appearance` section in the DUDE backup bundle (bundle schema version unchanged; re-sanitized on parse and on apply), the only record exported from the `settings` namespace. Onboarding gained an Appearance page (theme, density, contrast), and its steps are now page ids. On desktop, the `dude:appearance:set` bridge syncs `nativeTheme.themeSource` and the window background, persisted so the next launch creates the window with the right background.
+- **M585 — Exhaustive matrix.** `npm run test:appearance` against the production build: 864 color/state combinations (theme 2 × contrast 2 × accent 6 × category set 3 × status set 2 × density 3 × motion 2) on Home, the Ctrl+K palette, Browse Tools, Settings › Appearance and one tool per combination (rotating through one tool per category), plus a 108-combination layout sub-matrix (theme × contrast × density × UI text size × data text size) × 3 viewports (1920×1080, 1440×900, 1366×768) — 1,188 tests, all passing, 7.8 min on 18 workers. Fixes: high contrast clamps accent washes (`bg-accent/15`, `/20`, including hover) to 10% so accent text keeps ≥ 7:1, after which the high-contrast slice (594 tests) re-ran green; the 6 stale main-e2e specs (Home deck search/facets gone since 30D, `app-tool-table` gone since M552) were retargeted to Browse Tools, and the main e2e suite passes 68/68.
+
+**Scope decisions (locked by the owner):** the axes are independent. The only entry points are Settings › Appearance and the Onboarding Appearance page (no palette commands, no sidebar toggle). Appearance is global (`local`, live across tabs), not per workspace or project. Phase 30L keeps its own later gate in addition to 30K's matrix.
+
+*Status (Milestones 577–585; recorded in the PRD by Milestone 586):* all ten exit criteria are met; `npm run lint` (including the contrast matrix), `npm run test:appearance` and the main e2e suite pass. **Still owed** (not required by any exit criterion): a manual Electron check of the packaged app in dark, light and system while toggling the OS theme (window background, native menus and scrollbars, no white flash); a manual Windows Contrast Themes (forced-colors) check, since the forced-colors pass was verified by code review only; an eyeball check of light + high contrast + color-blind-safe `info` (`#4e4e74`), which sits close to `offline`. Fonts are applied at bootstrap (the pre-paint script sets only the `data-*` attributes), so a non-default font may swap in after first paint. The initial bundle remains over its 500 kB warning budget (~538 kB now; 513.64 kB at M576, before 30K), well under the 1.1 MB error budget.
 
 ### Phase 30L — Integrated Scale, Accessibility, and Platform Verification
 
-Run this integrated gate after Phase 30K. Verify the completed shell with representative combinations of supported themes, density and font settings, high contrast, and reduced motion, in addition to the default appearance.
+Run this integrated gate after Phase 30K (shipped). Verify the completed shell with representative combinations of supported themes, density and font settings, high contrast, and reduced motion, in addition to the default appearance. Phase 30K's own matrix, `npm run test:appearance`, already sweeps every appearance color combination for pre-paint, overflow, focus, contrast and motion; this gate builds on it rather than replacing it, and adds the scale, keyboard, first-frame and platform checks below. Both gates stay.
 
 #### 30L.1 Performance & Rendering Budget
 
@@ -3207,7 +3272,7 @@ The original V1 all-tools-on-Deck requirement remains in those sections only as 
 - [ ] Default Home remains bounded with a synthetic 500-tool registry.
 - [ ] Web companion receives the same default information hierarchy with graceful omission/substitution of desktop-only blocks.
 - [ ] Focus, keyboard navigation, contrast, and existing accessibility baseline remain intact for browsing and layout editing.
-- [ ] After Phase 30K, representative light/dark, density, font, high-contrast, and reduced-motion settings pass the first-frame, overflow, focus, keyboard, contrast, and responsive checks above.
+- [ ] Building on Phase 30K's `npm run test:appearance` matrix (which stays in force), representative light/dark, density, font, high-contrast, and reduced-motion settings pass the first-frame, overflow, focus, keyboard, contrast, and responsive checks above.
 - [ ] Phase 30C's dev-only `/dev/primitives-preview` route and `src/app/dev-preview/` are deleted now that 30D–30H's real Home panels/tables/charts exercise the shared primitives directly.
 
 ### Phase 30 overall outcome
@@ -5326,7 +5391,7 @@ DUDE V1 was declared done once all required items below were verified true, on 2
 ## Product
 
 - [x] App is called DUDE.
-- [x] Dark-only, highly colorful (bold accent palette), dense developer UI is implemented.
+- [x] Dark-only, highly colorful (bold accent palette), dense developer UI is implemented. *(V1 record. Since Phase 30K, Dark is the default theme alongside Light and the other first-party appearance options; see §8.1.)*
 - [x] Category color-coding and semantic status colors (Section 8.5) are consistent across sidebar, deck, and tools. Verified: `src/styles/tokens.css` defines the palette once; sidebar/deck/command palette all derive category dots from `CATEGORY_METADATA` dynamically (no hard-coded colors per tool); `ErrorPanel`/`OfflineBadge` use the shared semantic tokens.
 - [x] Deck exists.
 - [x] Sidebar exists.
@@ -5418,7 +5483,7 @@ This appendix captures the requirements interview that determined the original w
 | Q9 | Mandatory edge cases | Failure isolation, offline behavior, and GitHub Pages routing/deployment reliability are mandatory; large and sensitive inputs must be allowed, not rejected by policy. |
 | Q10 | Initial tool-set strategy | A framework-showcase set exercising different patterns, with the broader set organized into a roadmap. |
 | Q11 | Navigation | Hybrid — deck + sidebar + global search/command palette + dedicated routes, no IDE-style persistent tabs. **Amended 2026-09-21:** narrowed, not reversed — multi-tool tabs and resizable workbench panels shipped in Phase 21; the boundary is "a multi-tool workbench, not a source-code IDE." A Monaco-style full IDE remains explicitly out of scope (§5.2). **Current standing boundary:** later editor/LSP/terminal surfaces may exist (Phases 77–80), but DUDE must not become a conventional VS Code clone or editor-first IDE (§5.2). |
-| Q12 | Visual style | Minimal developer console, dark-only, super dense. **Amended 2026-09-18:** dark-only stays fixed, but the theme became explicitly bright and colorful rather than muted/monochrome — bold, saturated accent colors used functionally (categories, status, active state) against a dark base. "Minimal ornamentation" applies to shapes/effects, not color intensity. See §8 for the current, authoritative visual spec. **Current status:** the shipped design is still dark-only and authoritative, but Phase 30 may add light/custom themes, density/font preferences, reduced motion, and high-contrast support. |
+| Q12 | Visual style | Minimal developer console, dark-only, super dense. **Amended 2026-09-18:** dark-only stays fixed, but the theme became explicitly bright and colorful rather than muted/monochrome — bold, saturated accent colors used functionally (categories, status, active state) against a dark base. "Minimal ornamentation" applies to shapes/effects, not color intensity. See §8 for the current, authoritative visual spec. **Resolved 2026-09-29 (Phase 30K, Milestones 577–585):** DUDE is no longer dark-only. Dark stays the default and the bright, colorful, dense identity is unchanged, while Light/System themes, high contrast, accent and category palettes, color-blind-safe status colors, density presets, UI and data font preferences, and reduced motion are controlled first-party options (§8.1, §8.5, §19). Customization means composing first-party, pre-validated options per axis. Free color pickers, a user token editor, arbitrary user themes, per-tool themes, and bundled web fonts remain out of scope. |
 | Q13 | Dependency strategy | Library-forward — prefer mature libraries where they accelerate reliable delivery. |
 | Q14 | Offline/PWA depth | Installable PWA with offline shell and local tools; network-dependent tools explicitly expose connectivity requirements. |
 | Q15 | Testing/accessibility quality bar | Ship first — test architecture-critical pieces and obvious regressions, not exhaustive coverage. |
@@ -5435,7 +5500,7 @@ This appendix captures the requirements interview that determined the original w
 
 > Ship a dark-only but highly colorful, dense, desktop-Chromium Angular PWA on GitHub Pages with a reusable tool registry, clean routes, command/search navigation, per-tool persistence, worker-based failure isolation, offline support, documentation, and exactly enough varied utilities to prove the framework—then stop.
 
-This was the goal for V1 specifically, not a permanent stopping point — the “then stop” reflected the original weekend scope gate. It also preserves the historical fact that V1 was defined around the Chromium/GitHub Pages PWA before the desktop track existed. With V1 and Phases 1–21 delivered, the current product hierarchy is desktop-canonical/web-companion and work continues per the §21 roadmap (see §1.1).
+This was the goal for V1 specifically, not a permanent stopping point — the “then stop” reflected the original weekend scope gate. Its “dark-only” is likewise V1 history: Phase 30K later added first-party appearance options with Dark as the default (§8.1). It also preserves the historical fact that V1 was defined around the Chromium/GitHub Pages PWA before the desktop track existed. With V1 and Phases 1–21 delivered, the current product hierarchy is desktop-canonical/web-companion and work continues per the §21 roadmap (see §1.1).
 
 ---
 
@@ -5507,7 +5572,7 @@ The following capabilities moved from blanket exclusion into explicit shipped/cu
 - **local secrets vault** — Phase 35, with deeper secrets work in Phase 51;
 - **VS Code integration** — Phase 37;
 - **browser extension** — Phase 38;
-- **light mode/theme customization/accessibility appearance controls** — Phase 30;
+- **light mode/theme customization/accessibility appearance controls** — shipped in Phase 30K (Milestones 577–585);
 - **macOS/Linux desktop support** — Phase 39;
 - **mobile companion** — Phase 91;
 - **Firefox/Safari parity and broader web compatibility** — Phase 92;

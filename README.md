@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-3b82f6.svg)](LICENSE)
 [![Security Policy](https://img.shields.io/badge/security-policy-informational)](docs/SECURITY.md)
 
-A dense, dark-mode-only developer workbench for JSON, regex, JWT, hashing, diffing, and hundreds of other utilities. The Windows desktop app is the canonical experience; an installable, offline-capable web companion works without a download.
+A dense, dark-first, themeable developer workbench for JSON, regex, JWT, hashing, diffing, and hundreds of other utilities. The Windows desktop app is the canonical experience; an installable, offline-capable web companion works without a download.
 
 **[→ Open the live app](https://arahman200165.github.io/DUDE/)**
 
@@ -23,6 +23,7 @@ Most transforms run locally in the browser or desktop renderer. Native desktop f
 
 - **Local-first** — browser-safe tools work offline once their code and optional runtimes are cached; network-dependent modes and desktop-only features are clearly marked.
 - **Dense, not decorative** — bold, functional color-coding by category and status, built for daily use, not for demos.
+- **Dark by default, yours to tune** — Settings › Appearance offers Dark / Light / System themes, high contrast, six accents, Vivid / Soft / Color-blind-safe category palettes, color-blind-safe status colors, three densities, UI and data font choices, and reduced motion. Every option is first-party and contrast-checked in every combination; there are no free color pickers or user-authored themes.
 - **Framework-first** — the registry, shell, persistence, and worker layers were built before the tools, so new tools are cheap and safe to add.
 
 The tools are the proof, not the point: DUDE is a **local-first, extensible developer workbench** for transforming, inspecting, and composing developer data — not just a growing pile of independent utilities. Every tool declares what it accepts and produces in a small shared vocabulary (`DudeDataType` — see `src/app/shared/models/tool-io.model.ts`), and most tools can now be chained into a reusable **Transformation Pipeline** (`/pipelines`) instead of copying output to input by hand — including a user-defined script step, running in the same sandbox as the JS Playground, for a custom transform that isn't one of the built-in tools. **Smart Paste** (`/smart-paste`) recognizes a pasted JSON blob, JWT, UUID, ULID/KSUID/Snowflake id, URL, Unix timestamp, hex color, IP address, or Base64 string and jumps straight to (and prefills) the tool that understands it.
@@ -486,6 +487,7 @@ Key design choices:
 - **Shared worker layer** — heavy or unbounded work (hashing, regex, diffing, large JSON) can opt into a Web Worker without each tool reinventing message-passing, cancellation, or error handling.
 - **Failure isolation** — a worker crash or a tool bug stays inside that tool's route; the sidebar and navigation keep working.
 - **Lazy loading** — every tool is a separate `loadComponent` chunk, so visiting one tool never downloads another's code or libraries.
+- **Appearance is generated from one token file** — `src/styles/theme/theme-tokens.json` is the single source for every theme, contrast mode, accent, palette set, density and font stack; `scripts/generate-theme-css.mjs` turns it into plain CSS custom properties keyed by `data-*` attributes on `<html>`, which an inline pre-paint script sets before first paint and `core/appearance/` owns afterwards. Tools and shell use only theme tokens, and `npm run lint` proves the palette's WCAG contrast across all 144 color combinations. The choice is global to the device (live across tabs), exportable as a `*.dude-theme.json` file, and on desktop also drives the native window theme and background.
 - **Workspace/History never outlive a tool's own persistence policy** — tab/panel layout is metadata-only (which tools, in what arrangement) and always persists; a tool's actual content only ever reappears (across a tab switch, a full relaunch, or a History restore) because that tool's own `PersistenceService.signal(...)` policy already allowed it, never because either feature promoted or copied it.
 
 See [`ADDING_A_TOOL.md`](ADDING_A_TOOL.md) for the full, step-by-step guide to adding a new tool, written against the real `base64` tool as a worked example.
@@ -522,7 +524,8 @@ Production output goes to `dist/dude/browser`, optimized and with the service wo
 ```bash
 npm test         # Vitest unit tests — registry, persistence, worker wrapper, tool transforms, keyboard nav
 npm run test:e2e # Playwright, against a real production build: SPA-fallback routing + PWA offline behavior
-npm run lint     # ESLint — dependency/platform boundary rules only (src/app/ <-> electron/ <-> src/shared-logic/)
+npm run test:appearance # Playwright appearance matrix: every theme/contrast/accent/palette/density/motion combination, production build
+npm run lint     # ESLint boundary rules (src/app/ <-> electron/ <-> src/shared-logic/) + check:design (design tokens, generated theme CSS freshness, WCAG theme-contrast matrix)
 ```
 
 Testing follows a "protect the framework, not chase coverage" posture: pure transforms have unit tests, registry-wide web/desktop parity compares pipeline steps, and Playwright exercises production routing, caching, sharing, bundle restore, and PWA behavior.
@@ -544,7 +547,7 @@ The GitHub Pages build is an installable PWA. Its small app shell is prefetched;
 
 **Prepare for offline work:** open **Settings → Web & Offline**. It shows storage usage, persistence status, and cached runtime sizes. **Make available offline** previews the download size for a tool, a category, or all tools before fetching; progress can be cancelled. A previously visited tool can also be ready without using this action. Offline discovery dims uncached tools, and a direct load explains how to cache them. Network-dependent features still require a connection; the tool's other local modes remain available where supported. See [Security](docs/SECURITY.md) for network disclosures and the [capability matrix](#web-vs-desktop-capability-matrix) for desktop-only features.
 
-**Install:** use **Install app** in Web & Offline when the browser offers it, or the browser's install control. The generated manifest provides shortcuts to common tools, supported file types, and a `web+dude` protocol handler where the browser supports them. The home deck offers a one-time install hint.
+**Install:** use **Install app** in Web & Offline when the browser offers it, or the browser's install control. The generated manifest provides shortcuts to common tools, supported file types, and a `web+dude` protocol handler where the browser supports them. The home deck offers a one-time install hint. The page ships light- and dark-scheme `theme-color` metas and, once loaded, replaces them with one carrying the chosen theme's background. The web manifest's `theme_color`/`background_color` stay dark, because the manifest format has no per-color-scheme member — a known limitation for anything the browser paints from the manifest before the page loads.
 
 **Share and open in desktop:** a tool header can copy its bare route. Text-input tools also offer **Copy link with input**; the compressed text lives in the URL fragment and is limited to 8 KB. Anyone with that URL can read the input, so use the bare link for sensitive text. **Open in Desktop DUDE** launches a navigation-only `dude://` link and offers GitHub Releases if the app is not detected. No file or saved state crosses that link; state handoff belongs to Phase 59.
 

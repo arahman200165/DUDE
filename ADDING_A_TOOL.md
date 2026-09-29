@@ -79,6 +79,15 @@ Import other shared primitives as needed: `ErrorPanel`, `BusyIndicator` (for wor
   ```
 - *Text output* gets `<app-save-text-file [text]="output()" [source]="open" />` next to its copy button (pass `extension=".json"` when the output format differs from the input's). A tool rendering it must declare `file` in `io.produces`, and a `fileInput` tool `file` in `io.accepts` (`tool-conformance.spec.ts` checks both).
 
+**Colors and appearance.** Dark is the default, but your tool also renders in Light, high contrast, six accents, three category palette sets, the color-blind-safe status set, and three densities (DUDE_PRD.md §8.1, §8.5, §19). Use theme tokens only:
+
+- Surfaces and text: `bg-bg`, `bg-panel`, `bg-panel-elevated`, `border-border`, `text-text`, `text-text-muted`; status: `text-error`/`-warning`/`-success`/`-info`/`-busy`/`-offline`; category: `text-cat-<category>`; interaction: `accent`. Text on a filled accent surface is `text-on-accent`.
+- `npm run lint` runs `scripts/check-design-tokens.mjs`, which fails a tool on raw Tailwind palette colors (`text-red-400`, `bg-white`, `bg-black/75`), the retired `text-bg`, an opacity modifier on a text color (`text-text-muted/70`), or a hex color in its `.html`/`.css`. A hex value in the tool's `.ts` is allowed when it is tool data (a color converter's input, a palette generator's output). The same lint runs `check-theme-contrast.mjs`, which proves the tokens themselves in every combination; it can only vouch for your tool if the tool uses them.
+- Don't carry meaning by color alone: put `app-status-glyph` beside a status label.
+- If the tool previews the **user's own** document (HTML, SVG, an image), let the document keep its colors: add `<app-preview-background [(value)]="previewBg" />` and put `[appPreviewBackground]="previewBg()"` on the element that frames the preview; persist the choice as a `local` UI preference (see `html-preview`). An iframe hosting such a document also gets the `dude-doc-frame` class.
+- If the tool previews **user-authored motion** in `app-css-preview-sandbox`, pass `[motion]="true"` (see `css-animation-builder`): the preview is then exempt from the global reduced-motion rule and starts paused with a Play control when the user has asked for reduced motion. All other animation is removed under Reduce, so don't make tool behavior depend on an animation or transition finishing.
+- Code that reads token colors in script (a canvas or chart) must re-read them when `AppearanceService.revision()` changes, as the shared `workbench-charts` do; a color captured once at init is wrong after the next theme switch.
+
 ## 4. Choose a persistence policy
 
 For each piece of state, call `PersistenceService.signal(toolId, key, policy, initialValue)` (`src/app/core/persistence/persistence.service.ts`), where `policy` is `'none' | 'session' | 'local' | 'user-choice'`:
