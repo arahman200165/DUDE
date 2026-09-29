@@ -1,5 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
+import { HomeLayoutService } from '../../core/home-layout/home-layout.service';
+import { HomePanelService } from '../../core/home-panel/home-panel.service';
 import { HomeCanvas } from './home-canvas/home-canvas';
+import { migrateLegacyHomePanel } from './user-panels/legacy-home-panel-migration';
 
 /**
  * Home (DUDE_PRD.md Phase 30D → user-designed in Phase 30I). Deck is now just the page chrome around
@@ -14,4 +17,9 @@ import { HomeCanvas } from './home-canvas/home-canvas';
   imports: [HomeCanvas],
   templateUrl: './deck.html',
 })
-export class Deck {}
+export class Deck {
+  constructor() {
+    // Phase 30H.6 Notes & links now live in the layout store's text/link panels.
+    migrateLegacyHomePanel(inject(HomePanelService), inject(HomeLayoutService));
+  }
+}

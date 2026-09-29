@@ -7,7 +7,7 @@ export const panel: PanelDefinition = {
   description: 'A bounded, favorites-and-most-used-first sample of tools per category.',
   load: () => import('./category-preview-section').then((m) => m.CategoryPreviewSection),
   size: { minW: 4, minH: 3 },
-  defaultPlacement: { order: 18, w: 12, h: 6 },
+  defaultPlacement: { order: 19, w: 12, h: 6 },
   multiInstance: true,
   config: [
     {

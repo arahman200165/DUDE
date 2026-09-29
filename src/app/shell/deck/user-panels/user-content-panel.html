@@ -1,0 +1,71 @@
+<app-dashboard-panel [title]="title()" [empty]="!hasContent() && !editing()">
+  <div class="flex flex-col gap-2">
+    @if (editing()) {
+      <app-user-content-editor [content]="content()" (contentChange)="save($event)" />
+    } @else {
+      @switch (kind()) {
+        @case ('text') {
+          <p class="m-0 whitespace-pre-wrap break-words text-xs text-text">{{ text() }}</p>
+        }
+        @case ('link') {
+          <ul class="m-0 flex list-none flex-col gap-0.5 p-0">
+            @for (link of links(); track link.id) {
+              <li class="min-w-0 text-xs">
+                <a
+                  [href]="link.url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="block truncate text-accent hover:underline"
+                  [attr.title]="link.url"
+                  (click)="onLinkClick($event, link.url)"
+                >
+                  {{ link.label }}
+                </a>
+              </li>
+            }
+          </ul>
+        }
+        @case ('shortcut') {
+          <div class="flex flex-wrap gap-1.5">
+            @for (item of shortcuts(); track item.target.id) {
+              <button
+                type="button"
+                class="rounded-sm border border-border bg-panel px-2 py-1 text-xs text-text hover:bg-panel-elevated focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-60"
+                [disabled]="!item.info.available"
+                [attr.title]="item.info.reason ?? item.info.description"
+                (click)="runShortcut(item.target)"
+              >
+                {{ item.target.label || item.info.title }}
+              </button>
+            }
+          </div>
+        }
+      }
+    }
+
+    @if (openError(); as error) {
+      <p class="m-0 text-ui-xs text-error" role="alert">{{ error }}</p>
+    }
+
+    <div>
+      <button
+        type="button"
+        class="rounded-sm border border-border px-1.5 py-0.5 text-ui-sm text-text-muted hover:border-accent hover:text-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+        (click)="editing.set(!editing())"
+      >
+        {{ editing() ? 'Done' : hasContent() ? 'Edit' : 'Add content' }}
+      </button>
+    </div>
+  </div>
+
+  <div panelEmpty class="flex flex-col items-center gap-1.5">
+    <p class="text-ui text-text-muted">Keep a short note, a few links or shortcuts here — stored only on this device.</p>
+    <button
+      type="button"
+      class="rounded-sm border border-border px-1.5 py-0.5 text-ui-sm text-text-muted hover:border-accent hover:text-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+      (click)="editing.set(true)"
+    >
+      Add content
+    </button>
+  </div>
+</app-dashboard-panel>

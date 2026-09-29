@@ -1,0 +1,120 @@
+<div class="flex flex-col gap-2 text-xs">
+  <label class="flex flex-col gap-0.5 text-ui-xs text-text-muted">
+    Title (optional)
+    <input
+      type="text"
+      class="w-full rounded-sm border border-border bg-panel px-2 py-1 text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
+      [attr.maxlength]="maxTitle"
+      [value]="content().title"
+      (input)="onTitle($event)"
+    />
+  </label>
+
+  @if (textContent(); as text) {
+    <label class="flex flex-col gap-0.5 text-ui-xs text-text-muted">
+      Note (plain text)
+      <textarea
+        class="min-h-20 w-full rounded-sm border border-border bg-panel px-2 py-1 text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
+        [attr.maxlength]="maxText"
+        [value]="text.text"
+        (input)="onText($event)"
+      ></textarea>
+      <span class="self-end">{{ text.text.length }} / {{ maxText }}</span>
+    </label>
+  }
+
+  @if (linkContent(); as links) {
+    @if (links.links.length) {
+      <ul class="m-0 flex list-none flex-col gap-0.5 p-0">
+        @for (link of links.links; track link.id) {
+          <li class="flex items-center justify-between gap-2">
+            <span class="min-w-0 truncate text-text" [attr.title]="link.url">{{ link.label }}</span>
+            <button
+              type="button"
+              class="shrink-0 text-ui-xs text-text-muted hover:text-error focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+              [attr.aria-label]="'Remove link ' + link.label"
+              (click)="removeLink(link.id)"
+            >
+              Remove
+            </button>
+          </li>
+        }
+      </ul>
+    }
+    <div class="flex flex-wrap gap-1">
+      <input #label type="text" aria-label="Link label" placeholder="Label (optional)" [attr.maxlength]="maxLabel" class="w-32 rounded-sm border border-border bg-panel px-1.5 py-0.5 text-ui-sm text-text focus:outline-none focus:ring-1 focus:ring-accent" />
+      <input #url type="url" aria-label="Link address" placeholder="https://…" [attr.maxlength]="maxUrl" class="min-w-0 flex-1 rounded-sm border border-border bg-panel px-1.5 py-0.5 text-ui-sm text-text focus:outline-none focus:ring-1 focus:ring-accent" (keydown.enter)="addLink(label, url)" />
+      <button
+        type="button"
+        class="rounded-sm border border-border px-1.5 py-0.5 text-ui-sm text-text-muted hover:border-accent hover:text-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50"
+        [disabled]="links.links.length >= maxLinks"
+        (click)="addLink(label, url)"
+      >
+        Add link
+      </button>
+    </div>
+    <p class="m-0 text-ui-xs text-text-muted">Only http:// and https:// addresses. Up to {{ maxLinks }} links.</p>
+  }
+
+  @if (shortcutContent(); as shortcuts) {
+    @if (shortcuts.targets.length) {
+      <ul class="m-0 flex list-none flex-col gap-0.5 p-0">
+        @for (target of shortcuts.targets; track target.id) {
+          <li class="flex items-center justify-between gap-2">
+            <span class="min-w-0 truncate text-text">{{ titleOf(target) }} <span class="text-text-muted">· {{ kindLabels[target.kind] }}</span></span>
+            <button
+              type="button"
+              class="shrink-0 text-ui-xs text-text-muted hover:text-error focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+              [attr.aria-label]="'Remove shortcut ' + titleOf(target)"
+              (click)="removeShortcut(target.id)"
+            >
+              Remove
+            </button>
+          </li>
+        }
+      </ul>
+    }
+    <fieldset class="flex flex-col gap-1 rounded-sm border border-border p-2">
+      <legend class="px-1 text-ui-xs text-text-muted">Add a shortcut (up to {{ maxShortcuts }})</legend>
+      <div class="flex flex-wrap gap-1">
+        <select aria-label="Shortcut type" class="rounded-sm border border-border bg-panel px-1.5 py-0.5 text-ui-sm text-text" [value]="pickKind()" (change)="setPickKind($event)">
+          @for (kind of targetKinds; track kind) {
+            <option [value]="kind">{{ kindLabels[kind] }}</option>
+          }
+        </select>
+        <input
+          type="text"
+          aria-label="Search shortcut targets"
+          placeholder="Search…"
+          class="min-w-0 flex-1 rounded-sm border border-border bg-panel px-1.5 py-0.5 text-ui-sm text-text focus:outline-none focus:ring-1 focus:ring-accent"
+          [value]="pickQuery()"
+          (input)="onPickQuery($event)"
+        />
+      </div>
+      <ul class="m-0 flex list-none flex-col gap-0.5 p-0" aria-label="Matching targets">
+        @for (option of pickOptions(); track option.ref) {
+          <li>
+            <button
+              type="button"
+              class="w-full truncate rounded-sm px-1 py-0.5 text-left text-ui-sm text-text hover:bg-panel-elevated focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+              (click)="addShortcut(option)"
+            >
+              {{ option.title }}
+            </button>
+          </li>
+        } @empty {
+          <li class="text-ui-xs text-text-muted">No matches.</li>
+        }
+      </ul>
+      <p class="m-0 text-ui-xs text-text-muted">A shortcut only opens or runs its target when you click it, using that target's own confirmations.</p>
+    </fieldset>
+  }
+
+  @if (error(); as message) {
+    <p class="m-0 text-ui-xs text-error" role="alert">{{ message }}</p>
+  }
+
+  <p class="m-0 text-ui-xs text-text-muted" data-testid="storage-disclosure">
+    Stored on this device only and never sent to a service. Included in Settings › Data &amp; Privacy backups, and removed by “Clear all local data”.
+  </p>
+</div>

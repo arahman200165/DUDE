@@ -15,8 +15,10 @@ import { panel as nativeCapabilitiesPanel } from '../../shell/deck/panels/native
 import { panel as recentToolsPanel } from '../../shell/deck/panels/recent-tools.panel-manifest';
 import { panel as resumeWorkPanel } from '../../shell/deck/panels/resume-work.panel-manifest';
 import { panel as quickRunPanel } from '../../shell/deck/quick-run-panel/quick-run.panel-manifest';
+import { panel as userLinksPanel } from '../../shell/deck/user-panels/user-links.panel-manifest';
+import { panel as userShortcutsPanel } from '../../shell/deck/user-panels/user-shortcuts.panel-manifest';
+import { panel as userTextPanel } from '../../shell/deck/user-panels/user-text.panel-manifest';
 import { panel as activityTrendPanel } from '../../shell/insights/activity-trend-panel/activity-trend.panel-manifest';
-import { panel as homeNotesPanel } from '../../shell/insights/home-notes-panel/home-notes.panel-manifest';
 import { panel as insightsSummaryPanel } from '../../shell/insights/insights-summary/insights-summary.panel-manifest';
 import { panel as categoryUsagePanel } from '../../shell/insights/panels/category-usage.panel-manifest';
 import { panel as recentActivityPanel } from '../../shell/insights/panels/recent-activity.panel-manifest';
@@ -35,8 +37,10 @@ export const PANEL_DEFINITIONS: readonly PanelDefinition[] = [
   recentToolsPanel,
   resumeWorkPanel,
   quickRunPanel,
+  userLinksPanel,
+  userShortcutsPanel,
+  userTextPanel,
   activityTrendPanel,
-  homeNotesPanel,
   insightsSummaryPanel,
   categoryUsagePanel,
   recentActivityPanel,

@@ -1,7 +1,8 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { PersistenceService } from '../persistence/persistence.service';
 import { PanelRegistryService } from '../registry/panel-registry.service';
-import { LayoutIssue, validateLayout } from './grid-engine';
+import { LayoutIssue, firstFit, validateLayout } from './grid-engine';
+import { defaultConfig } from './panel-config';
 import type { HomeLayout, PanelInstance } from './home-layout.model';
 import { limitsFromDefinitions } from './default-layout';
 import {
@@ -9,10 +10,12 @@ import {
   HomeLayoutData,
   HomeLayoutMergeMode,
   KindCatalog,
+  MAX_INSTANCES,
   contentAfterReset,
   effectiveLayout,
   mergeHomeLayout,
   migrateHomeLayoutStore,
+  newInstanceId,
   sanitizeHomeLayoutData,
 } from './home-layout-store.model';
 import type { UserContent } from './user-content.model';
@@ -77,6 +80,36 @@ export class HomeLayoutService {
     if (issues.length > 0) return { ok: false, issues };
     this.write({ customized: true, ...draft });
     return { ok: true };
+  }
+
+  /** Instances of a kind in the current (effective) layout. */
+  instancesOfKind(kindId: string): readonly PanelInstance[] {
+    return this.layout().instances.filter((i) => i.kindId === kindId);
+  }
+
+  /**
+   * Add a panel of `kindId` at the bottom of both layouts (used by the legacy-notes migration and
+   * the editor). Returns the new instance id, or null when the kind is unknown, single-instance and
+   * already present, or the layout is full. This customizes the layout.
+   */
+  appendInstance(kindId: string, content?: UserContent): string | null {
+    const def = this.registry.getById(kindId);
+    const current = this.layout();
+    if (!def || current.instances.length >= MAX_INSTANCES) return null;
+    if (!def.multiInstance && current.instances.some((i) => i.kindId === kindId)) return null;
+    const taken = new Set(current.instances.map((i) => i.id));
+    const id = !taken.has(kindId) ? kindId : newInstanceId(kindId);
+    const maxW = Math.min(def.size.maxW ?? 12, 12);
+    const w = Math.min(Math.max(def.size.minW, def.defaultPlacement?.w ?? 6), maxW);
+    const h = Math.max(def.size.minH, def.defaultPlacement?.h ?? 2);
+    const saved = this.save({
+      instances: [...current.instances, { id, kindId, config: defaultConfig(def.config), visible: true }],
+      wide: [...current.wide, { id, ...firstFit(current.wide, { w, h }) }],
+      narrow: [...current.narrow, { id, ...firstFit(current.narrow, { w: maxW, h }) }],
+      narrowCustomized: this.narrowCustomized(),
+      content: content ? { ...this.content(), [id]: content } : this.content(),
+    });
+    return saved.ok ? id : null;
   }
 
   /**
