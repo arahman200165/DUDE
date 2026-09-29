@@ -1,5 +1,9 @@
 import { computed, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { serializeThemeFile } from '../../../core/appearance/theme-file';
+import { OpenTextFile } from '../../../shared/components/open-text-file/open-text-file';
+import { SaveTextFile } from '../../../shared/components/save-text-file/save-text-file';
 import { AppearanceAxes, DEFAULT_APPEARANCE, MONO_FONTS, UI_FONTS } from '../../../core/appearance/appearance.model';
 import { AppearanceService } from '../../../core/appearance/appearance.service';
 import { TOOL_CATEGORIES } from '../../../shared/models/tool-category.model';
@@ -242,6 +246,64 @@ describe('AppearanceSettings', () => {
     expect(group(root, 'Code ligatures')).not.toBeNull();
     buttonWithText(root, 'Off').click();
     expect(set).toHaveBeenCalledWith({ ligatures: 'off' });
+  });
+
+  describe('theme export / import', () => {
+    const themeText = () => serializeThemeFile({ ...DEFAULT_APPEARANCE, mode: 'light', accent: 'cyan', catset: 'vivid', contrast: 'standard', semantic: 'standard' } as never);
+    const load = (fixture: ReturnType<typeof create>, text: string) => {
+      fixture.debugElement.query(By.directive(OpenTextFile)).triggerEventHandler('textLoaded', text);
+      fixture.detectChanges();
+    };
+    const preview = (root: HTMLElement) => root.querySelector('[data-testid="theme-import-preview"]');
+
+    it('wires an Export theme button with the theme file content and name', () => {
+      const fixture = create();
+      const save = fixture.debugElement.query(By.directive(SaveTextFile)).componentInstance as SaveTextFile;
+      expect(buttonWithText(fixture.nativeElement, 'Export theme…')).toBeTruthy();
+      expect(save.fileName()).toMatch(/^dude-appearance-\d{4}-\d{2}-\d{2}\.dude-theme\.json$/);
+      expect(JSON.parse(save.text()).format).toBe('dude-theme');
+    });
+
+    it('previews an imported file without applying, then applies on confirm', () => {
+      const fixture = create();
+      const root = fixture.nativeElement as HTMLElement;
+      load(fixture, themeText());
+      expect(preview(root)?.textContent).toContain('Theme: Dark → Light');
+      expect(set).not.toHaveBeenCalled();
+
+      buttonWithText(root, 'Apply theme').click();
+      fixture.detectChanges();
+      expect(set).toHaveBeenCalledOnce();
+      expect(set.mock.calls[0][0]).toMatchObject({ mode: 'light' });
+      expect(preview(root)).toBeNull();
+      expect(root.querySelector('[role="status"]')?.textContent).toContain('Theme applied.');
+    });
+
+    it('Cancel discards the preview without applying', () => {
+      const fixture = create();
+      const root = fixture.nativeElement as HTMLElement;
+      load(fixture, themeText());
+      buttonWithText(root, 'Cancel').click();
+      fixture.detectChanges();
+      expect(preview(root)).toBeNull();
+      expect(set).not.toHaveBeenCalled();
+    });
+
+    it('shows an error for a bad file and no preview', () => {
+      const fixture = create();
+      const root = fixture.nativeElement as HTMLElement;
+      load(fixture, '{"format":"dude-bundle"}');
+      expect(root.querySelector('[role="alert"]')?.textContent).toContain('Data & privacy');
+      expect(preview(root)).toBeNull();
+    });
+
+    it('notes ignored invalid and unknown values', () => {
+      const fixture = create();
+      load(fixture, JSON.stringify({ format: 'dude-theme', schemaVersion: 1, appearance: { accent: 'neon', evil: 1 } }));
+      const text = preview(fixture.nativeElement)?.textContent ?? '';
+      expect(text).toContain('Ignored invalid values: accent');
+      expect(text).toContain('Ignored unknown settings: evil');
+    });
   });
 
   describe('font rows', () => {

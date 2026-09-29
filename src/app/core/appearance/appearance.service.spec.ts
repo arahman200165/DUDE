@@ -182,6 +182,50 @@ describe('AppearanceService', () => {
     });
   });
 
+  describe('native theme sync', () => {
+    let setNative: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      setNative = vi.fn().mockResolvedValue({ ok: true });
+      (window as { dude?: unknown }).dude = { appearance: { setNative } };
+      root.style.setProperty('--dude-bg', '#0a0e14');
+    });
+    afterEach(() => {
+      delete (window as { dude?: unknown }).dude;
+      root.style.removeProperty('--dude-bg');
+    });
+
+    it('sends the resolved mode and background on init, again on change, and not when unchanged', () => {
+      const service = create();
+      expect(setNative).toHaveBeenCalledTimes(1);
+      expect(setNative).toHaveBeenLastCalledWith('dark', '#0a0e14');
+      service.set({ monoFont: { custom: 'Inter' } });
+      TestBed.tick();
+      expect(setNative).toHaveBeenCalledTimes(1);
+      root.style.setProperty('--dude-bg', '#eef1f5');
+      service.set({ mode: 'light' });
+      TestBed.tick();
+      expect(setNative).toHaveBeenCalledTimes(2);
+      expect(setNative).toHaveBeenLastCalledWith('light', '#eef1f5');
+    });
+
+    it('skips non-hex backgrounds and swallows a rejected promise', () => {
+      root.style.setProperty('--dude-bg', 'rgb(1, 2, 3)');
+      create();
+      expect(setNative).not.toHaveBeenCalled();
+      root.style.setProperty('--dude-bg', '#112233');
+      setNative.mockRejectedValue(new Error('nope'));
+      TestBed.inject(AppearanceService).set({ mode: 'light' });
+      expect(() => TestBed.tick()).not.toThrow();
+      expect(setNative).toHaveBeenCalledWith('light', '#112233');
+    });
+
+    it('does not throw when window.dude is absent', () => {
+      delete (window as { dude?: unknown }).dude;
+      expect(() => create()).not.toThrow();
+    });
+  });
+
   it('increments revision on each application', () => {
     const service = create();
     const first = service.revision();

@@ -24,6 +24,7 @@ import { initialWindowBounds, trackWindowBounds } from './window-state';
 import { enqueueCommandLine, registerOpenHandlers } from './open-bridge';
 import { enqueueDeepLinkArguments, extractDeepLinkArgument, registerDeepLinkHandlers } from './deep-link-bridge';
 import { registerExternalLinkHandlers } from './external-link-bridge';
+import { applyNativeThemeSource, loadNativeAppearance, registerAppearanceBridge } from './appearance-bridge';
 import { registerNativeMenu } from './native-menu';
 import { registerQuickLauncherHotkey, registerQuickLauncherRenderer } from './quick-launcher';
 import { isAllowedRendererNavigation } from './navigation-guard';
@@ -54,12 +55,16 @@ async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
   // server, since window construction below only ever needs `bounds`.
   const boundsPromise = initialWindowBounds();
   const baseUrlPromise = resolveWindowUrl();
+  const nativeAppearancePromise = loadNativeAppearance();
   const bounds = await boundsPromise;
+  const nativeAppearance = await nativeAppearancePromise;
+  applyNativeThemeSource(nativeAppearance);
   markPerf('bounds-resolved');
   const shouldShowOnLaunch =
     !preferences.launchMinimized || process.argv.includes('--open-with-dude') || !!extractDeepLinkArgument(process.argv);
   const window = new BrowserWindow({
     ...bounds,
+    backgroundColor: nativeAppearance.background,
     // Created hidden and shown on 'ready-to-show' below instead of showing immediately, so the
     // window never displays a blank/white frame before its first real paint.
     show: false,
@@ -96,6 +101,7 @@ async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
   registerOpenHandlers(window);
   registerDeepLinkHandlers(window);
   registerExternalLinkHandlers(window);
+  registerAppearanceBridge(window);
   registerSmartPasteRenderer(window);
   registerUpdateHandlers(window);
   registerNativeMenu(window);

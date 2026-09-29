@@ -44,6 +44,8 @@ export class AppearanceService {
   /** Every axis resolved to a concrete value (`'system'` replaced), keyed by axis name. */
   readonly effective = computed(() => resolveEffective(this.prefs(), this.media()));
 
+  private lastNativeKey = '';
+
   private readonly revisionSignal = signal(0);
   /** Increments after each application to the document; read it to re-read CSS custom properties. */
   readonly revision = this.revisionSignal.asReadonly();
@@ -82,7 +84,23 @@ export class AppearanceService {
     root.style.setProperty('--dude-font-mono', fontStack(prefs, 'mono'));
 
     const background = getComputedStyle(root).getPropertyValue('--dude-bg').trim();
-    if (background) this.applyThemeColor(background);
+    if (background) {
+      this.applyThemeColor(background);
+      this.syncNative(effective['theme'] === 'light' ? 'light' : 'dark', background);
+    }
+  }
+
+  /** Desktop only: tells Electron's main process the resolved theme + background (skipped when unchanged). */
+  private syncNative(mode: 'dark' | 'light', background: string): void {
+    if (!/^#[0-9a-fA-F]{6}$/.test(background)) return;
+    const appearance = typeof window === 'undefined' ? undefined : window.dude?.appearance;
+    if (typeof appearance?.setNative !== 'function') return;
+    const key = `${mode}|${background.toLowerCase()}`;
+    if (key === this.lastNativeKey) return;
+    this.lastNativeKey = key;
+    try {
+      void Promise.resolve(appearance.setNative(mode, background)).catch(() => {});
+    } catch { /* A missing or broken bridge must never break appearance application. */ }
   }
 
   /**

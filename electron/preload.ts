@@ -35,6 +35,9 @@ const bridge: DudeElectronBridge = {
   external: {
     open: (url) => ipcRenderer.invoke('dude:external:open', url),
   },
+  appearance: {
+    setNative: (mode, background) => ipcRenderer.invoke('dude:appearance:set', { mode, background }),
+  },
   menu: {
     ready: () => ipcRenderer.send('dude:menu:ready'),
     setToolMenuData: (tools) => ipcRenderer.invoke('dude:menu:setToolMenuData', tools),

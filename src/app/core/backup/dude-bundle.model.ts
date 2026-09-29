@@ -2,6 +2,7 @@ import { Project } from '../project/project.model';
 import { Pipeline, PipelineStepRef, UserScriptDefinition } from '../pipeline/pipeline.model';
 import { WorkspaceTemplate } from '../workspace/workspace-template.model';
 import { HomePanelContent, hasHomePanelContent, mergeHomePanel, sanitizeHomePanel } from '../home-panel/home-panel.model';
+import { AppearancePrefs, DEFAULT_APPEARANCE, sanitizeAppearance } from '../appearance/appearance.model';
 import type { HomeLayoutData } from '../home-layout/home-layout-store.model';
 
 /**
@@ -42,6 +43,13 @@ export interface DudeBundle {
    * and again on apply. Supersedes `homePanel`, which is still read from older bundles.
    */
   readonly homeLayout?: HomeLayoutData;
+  /**
+   * The user's appearance preferences (Phase 30K). The one `settings`-namespace record that is
+   * exported, because it is the user's own presentation choice and holds no secrets. Additive and
+   * optional (schema version unchanged; older bundles still import); omitted on export while it
+   * equals the defaults. Re-sanitized on parse and again on apply.
+   */
+  readonly appearance?: AppearancePrefs;
 }
 
 export type ConflictMode = 'skip' | 'replace' | 'keep-both';
@@ -55,6 +63,8 @@ export interface ExistingIds {
   readonly homePanel?: HomePanelContent;
   /** The Home layout currently stored (treated as untouched when omitted). */
   readonly homeLayout?: HomeLayoutData;
+  /** The appearance currently stored (treated as the defaults when omitted). */
+  readonly appearance?: AppearancePrefs;
 }
 
 export interface SectionPlan<T> {
@@ -73,6 +83,11 @@ export interface ImportPlan {
   readonly homePanel: SectionPlan<HomePanelContent>;
   /** At most one item: the sanitized incoming layout; `apply` merges it per `conflictMode`. */
   readonly homeLayout: SectionPlan<HomeLayoutData>;
+  /**
+   * At most one item: the sanitized incoming appearance. There is only one appearance, so `'skip'`
+   * keeps the current one while `'replace'` and `'keep-both'` both replace it.
+   */
+  readonly appearance: SectionPlan<AppearancePrefs>;
   readonly conflictMode?: ConflictMode;
   readonly toolPreferences: DudeBundle['toolPreferences'];
   readonly toolInputs: Readonly<Record<string, string>>;
@@ -161,6 +176,11 @@ export function parseBundle(text: string, sanitizeLayout?: (raw: unknown) => Hom
     Object.entries(isRecord(raw['toolPreferences']) ? raw['toolPreferences'] : {}).map(([toolId, keys]) => [toolId, stringRecord(keys)]),
   );
 
+  // A present-but-non-object appearance is malformed: treated as absent and counted.
+  const appearanceRaw = raw['appearance'];
+  const appearanceValid = isRecord(appearanceRaw);
+  if (appearanceRaw !== undefined && !appearanceValid) invalid++;
+
   // Validate every section before reading `invalid`, which `section` increments as it goes.
   const bundle: DudeBundle = {
     format: BUNDLE_FORMAT,
@@ -175,6 +195,7 @@ export function parseBundle(text: string, sanitizeLayout?: (raw: unknown) => Hom
     toolInputs: raw['toolInputs'] === undefined ? undefined : stringRecord(raw['toolInputs']),
     homePanel: raw['homePanel'] === undefined ? undefined : sanitizeHomePanel(raw['homePanel']),
     homeLayout: raw['homeLayout'] === undefined || !sanitizeLayout ? undefined : sanitizeLayout(raw['homeLayout']),
+    appearance: appearanceValid ? sanitizeAppearance(appearanceRaw) : undefined,
   };
   return { ok: true, invalid, bundle };
 }
@@ -239,6 +260,7 @@ export function planImport(bundle: DudeBundle, existing: ExistingIds, mode: Conf
     workspaceTemplates: templates,
     homePanel,
     homeLayout: planHomeLayout(bundle.homeLayout, existing.homeLayout, mode),
+    appearance: planAppearance(bundle.appearance, existing.appearance, mode),
     conflictMode: mode,
     toolPreferences: bundle.toolPreferences,
     toolInputs: bundle.toolInputs ?? {},
@@ -263,4 +285,14 @@ function planHomeLayout(incoming: HomeLayoutData | undefined, existing: HomeLayo
   if (!hasLayoutData(existing)) return { ...none, items: [incoming], added: 1 };
   if (mode === 'skip') return { ...none, skipped: 1 };
   return mode === 'replace' ? { ...none, items: [incoming], replaced: 1 } : { ...none, items: [incoming], added: 1 };
+}
+
+const sameAppearance = (a: AppearancePrefs, b: AppearancePrefs) => JSON.stringify(sanitizeAppearance(a)) === JSON.stringify(sanitizeAppearance(b));
+
+function planAppearance(incoming: AppearancePrefs | undefined, existing: AppearancePrefs | undefined, mode: ConflictMode): SectionPlan<AppearancePrefs> {
+  const none = { items: [], added: 0, replaced: 0, skipped: 0 };
+  if (!incoming) return none;
+  if (!existing || sameAppearance(existing, DEFAULT_APPEARANCE)) return { ...none, items: [incoming], added: 1 };
+  if (mode === 'skip') return { ...none, skipped: 1 };
+  return { ...none, items: [incoming], replaced: 1 };
 }

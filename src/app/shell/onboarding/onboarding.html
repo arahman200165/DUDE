@@ -4,23 +4,42 @@
       <aside class="hidden w-56 shrink-0 border-r border-border bg-panel p-6 md:block">
         <div class="mb-6 text-2xl font-black tracking-wide text-accent">DUDE<span class="text-text"> SETUP</span></div>
         <ol class="space-y-3 text-ui-sm">
-          @for (page of pages; track page; let i = $index) {
-            <li [class.text-accent]="flow.step() === i" [class.text-text-muted]="flow.step() !== i">{{ i + 1 }}. {{ page }}</li>
+          @for (page of pages; track page.id; let i = $index) {
+            <li [class.text-accent]="flow.step() === i" [class.text-text-muted]="flow.step() !== i">{{ i + 1 }}. {{ page.title }}</li>
           }
         </ol>
       </aside>
       <div class="flex min-w-0 flex-1 flex-col">
         <header class="border-b border-border p-6">
           <p class="text-ui-xs uppercase tracking-widest text-accent">Step {{ flow.step() + 1 }} of {{ pages.length }}</p>
-          <h1 class="mt-1 text-2xl font-semibold">{{ pages[flow.step()] }}</h1>
+          <h1 class="mt-1 text-2xl font-semibold">{{ currentPage().title }}</h1>
         </header>
         <div class="flex-1 overflow-y-auto p-6 text-ui">
-          @switch (flow.step()) {
-            @case (0) {
+          @switch (currentPage().id) {
+            @case ('welcome') {
               <p class="max-w-xl text-text-muted">Set up your local developer workspace. Every choice can be changed later in Settings. Optional AI and collaboration fields can stay empty.</p>
               <p class="mt-4 text-text-muted">Your tools work offline. Network features are enabled only when you use them.</p>
             }
-            @case (1) {
+            @case ('appearance') {
+              <p class="mb-4 text-text-muted">Pick how DUDE looks. Changes apply immediately.</p>
+              <div class="flex flex-col gap-4">
+                @for (row of appearanceRows; track row.prefsKey) {
+                  <div class="flex flex-col gap-1" [attr.data-testid]="'row-' + row.prefsKey">
+                    <span class="text-ui text-text">{{ row.label }}</span>
+                    <div class="flex flex-wrap items-center gap-2" role="group" [attr.aria-label]="row.label">
+                      @for (option of row.options; track option.value) {
+                        <button type="button" class="dude-chip" [class]="isSelected(row, option.value) ? 'dude-chip-on' : 'dude-chip-off'" [attr.aria-pressed]="isSelected(row, option.value)" (click)="setAppearance(row, option.value)">{{ option.label }}</button>
+                      }
+                    </div>
+                    @if (isSelected(row, 'system')) {
+                      <span class="text-ui-xs text-text-muted" [attr.data-testid]="'system-note-' + row.prefsKey">Currently: {{ resolvedLabel(row) }}</span>
+                    }
+                  </div>
+                }
+                <p class="text-ui-xs text-text-muted">More options (accent, category palette, fonts, motion) live in Settings › Appearance.</p>
+              </div>
+            }
+            @case ('workspace') {
               <div class="grid gap-4">
                 <label class="flex items-center gap-2"><input type="checkbox" [checked]="workspace.reopenOnRestart()" (change)="workspace.reopenOnRestart.set($any($event.target).checked)" /> Reopen my tabs on restart</label>
                 <label class="flex items-center gap-2"><input type="checkbox" [checked]="launchOnLogin()" (change)="login($event)" /> Launch DUDE when I sign in</label>
@@ -40,7 +59,7 @@
                 </label>
               </div>
             }
-            @case (2) {
+            @case ('updates') {
               <div class="grid gap-4">
                 <label class="grid gap-1">Update behavior
                   <select class="rounded border border-border bg-panel p-2" [value]="desktop.current().updateMode" (change)="preference('updateMode', $any($event.target).value)">
@@ -54,7 +73,7 @@
                 <label class="flex items-center gap-2"><input type="checkbox" [checked]="desktop.current().notifyCollaboration" (change)="preference('notifyCollaboration', $any($event.target).checked)" /> Desktop notifications when collaborators join or leave</label>
               </div>
             }
-            @case (3) {
+            @case ('hotkeys') {
               <p class="mb-4 text-text-muted">Global hotkeys act on your clipboard. Leave a field empty to keep it unbound.</p>
               <div class="grid gap-3">
                 @for (action of hotkeys(); track action.id) {
@@ -65,7 +84,7 @@
                 }
               </div>
             }
-            @case (4) {
+            @case ('ai') {
               <p class="mb-4 text-text-muted">Optional. These values power Regex Tester's AI features and are kept in the OS-backed secure store.</p>
               <div class="grid gap-3">
                 <label class="grid gap-1">OpenAI-compatible base URL<input class="rounded border border-border bg-panel p-2" [value]="baseUrl()" (input)="baseUrl.set($any($event.target).value)" /></label>
@@ -74,7 +93,7 @@
                 <button type="button" class="w-fit rounded border border-accent px-3 py-2 text-accent" [disabled]="saving()" (click)="saveAi()">Save AI configuration</button>
               </div>
             }
-            @case (5) {
+            @case ('tool-settings') {
               <p class="mb-4 text-text-muted">Optional settings contributed by individual tools. You can change them later in Settings › Tools.</p>
               @for (section of toolSections; track section.toolId) {
                 <div class="mb-4 grid gap-2">
@@ -85,7 +104,7 @@
                 <p class="text-text-muted">No tools need setup right now.</p>
               }
             }
-            @case (6) {
+            @case ('review') {
               <p class="mb-4 text-text-muted">Your choices are saved as you leave each step. Finish to close setup, or go back to adjust them.</p>
               <dl class="grid grid-cols-2 gap-3"><dt>Startup</dt><dd>{{ desktop.current().startupDestination }}</dd><dt>Updates</dt><dd>{{ desktop.current().updateMode }}</dd><dt>Close behavior</dt><dd>{{ desktop.current().closeToTray ? 'Keep in tray' : 'Quit' }}</dd><dt>AI provider</dt><dd>{{ baseUrl() ? 'Configured' : 'Not configured' }}</dd><dt>Tool settings</dt><dd>{{ toolSections.length ? 'Settings › Tools' : 'None' }}</dd></dl>
               <button type="button" class="mt-4 rounded border border-accent px-3 py-2 text-accent" (click)="openDefaultApps()">Open Windows Default Apps</button>
@@ -97,8 +116,8 @@
         <footer class="flex items-center gap-3 border-t border-border p-4">
           <button type="button" class="rounded border border-border px-4 py-2" (click)="flow.skip()">Skip for now</button>
           <div class="flex-1"></div>
-          <button type="button" class="rounded border border-border px-4 py-2" [disabled]="flow.step() === 0" (click)="back()">Back</button>
-          <button type="button" class="rounded bg-accent px-4 py-2 font-semibold text-on-accent" (click)="next()">{{ flow.step() === pages.length - 1 ? 'Finish' : 'Next' }}</button>
+          <button type="button" class="rounded border border-border px-4 py-2" [disabled]="currentPage().id === 'welcome'" (click)="back()">Back</button>
+          <button type="button" class="rounded bg-accent px-4 py-2 font-semibold text-on-accent" (click)="next()">{{ currentPage().id === 'review' ? 'Finish' : 'Next' }}</button>
         </footer>
       </div>
     </div>

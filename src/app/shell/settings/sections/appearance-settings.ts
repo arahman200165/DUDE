@@ -11,6 +11,9 @@ import {
   sanitizeFontFamily,
 } from '../../../core/appearance/appearance.model';
 import { AppearanceService } from '../../../core/appearance/appearance.service';
+import { ThemeFileParseResult, parseThemeFile, serializeThemeFile, themeFileName } from '../../../core/appearance/theme-file';
+import { OpenTextFile } from '../../../shared/components/open-text-file/open-text-file';
+import { SaveTextFile } from '../../../shared/components/save-text-file/save-text-file';
 import { CATEGORY_METADATA, TOOL_CATEGORIES } from '../../../shared/models/tool-category.model';
 
 interface ThemeOption {
@@ -144,11 +147,13 @@ function capitalize(value: string): string {
 /**
  * Settings › Appearance. Chip rows (theme, contrast, accent, palette, status colors, density, text
  * sizes, ligatures, motion; theme, contrast and motion also offer `system`), font pickers (curated list or an
- * installed-font name) and a live swatch strip; a later Phase 30K milestone appends
- * export/import. Options come from `theme-tokens.json` via the model.
+ * installed-font name) and a live swatch strip. Export saves the appearance as a `.dude-theme.json`
+ * file; Import parses one (`core/appearance/theme-file.ts`, sanitized, size-capped), previews the
+ * changes and applies nothing until "Apply theme". Options come from `theme-tokens.json` via the model.
  */
 @Component({
   selector: 'app-appearance-settings',
+  imports: [OpenTextFile, SaveTextFile],
   templateUrl: './appearance-settings.html',
 })
 export class AppearanceSettings {
@@ -231,6 +236,42 @@ export class AppearanceSettings {
     }
     this.invalidFont.update((state) => ({ ...state, [row.prefsKey]: false }));
     this.appearance.set({ [row.prefsKey]: { custom: name } });
+  }
+
+  /** Export: the current appearance as a `.dude-theme.json` document. */
+  protected exportText(): string {
+    return serializeThemeFile(this.appearance.prefs());
+  }
+  protected readonly exportName = themeFileName;
+  protected readonly themeMime = 'application/json;charset=utf-8';
+
+  /** A parsed, not-yet-applied theme file (nothing changes until Apply). */
+  protected readonly importPreview = signal<Extract<ThemeFileParseResult, { ok: true }> | null>(null);
+  protected readonly importError = signal<string | null>(null);
+  protected readonly importStatus = signal<string | null>(null);
+
+  protected onThemeLoaded(text: string): void {
+    this.importStatus.set(null);
+    const result = parseThemeFile(text, this.appearance.prefs());
+    if (!result.ok) {
+      this.importPreview.set(null);
+      this.importError.set(result.error);
+      return;
+    }
+    this.importError.set(null);
+    this.importPreview.set(result);
+  }
+
+  protected applyImport(): void {
+    const preview = this.importPreview();
+    if (!preview) return;
+    this.appearance.set(preview.prefs);
+    this.importPreview.set(null);
+    this.importStatus.set('Theme applied.');
+  }
+
+  protected cancelImport(): void {
+    this.importPreview.set(null);
   }
 
   protected resetToDefaults(): void {

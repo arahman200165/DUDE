@@ -64,3 +64,18 @@ describe('external link boundary', () => {
     expect(preloadSource).toMatch(/ipcRenderer\.invoke\('dude:external:open', url\)/);
   });
 });
+
+// Native theme sync (Phase 30K): validated in main, accepted only from this window's renderer.
+describe('appearance boundary', () => {
+  const mainSource = readFileSync(resolve(__dirname, 'main.ts'), 'utf-8');
+  const preloadSource = readFileSync(resolve(__dirname, 'preload.ts'), 'utf-8');
+  const bridgeSource = readFileSync(resolve(__dirname, 'appearance-bridge.ts'), 'utf-8');
+
+  it('registers the handler, checks the sender and validates before touching the window', () => {
+    expect(mainSource).toMatch(/registerAppearanceBridge\(window\)/);
+    expect(mainSource).toMatch(/backgroundColor: nativeAppearance\.background/);
+    expect(bridgeSource).toMatch(/event\.sender !== window\.webContents/);
+    expect(bridgeSource.indexOf('parseNativeAppearance(payload)')).toBeLessThan(bridgeSource.indexOf('theme.themeSource = '));
+    expect(preloadSource).toMatch(/ipcRenderer\.invoke\('dude:appearance:set', \{ mode, background \}\)/);
+  });
+});

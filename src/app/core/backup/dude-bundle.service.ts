@@ -1,4 +1,6 @@
 import { Injectable, inject } from '@angular/core';
+import { AppearanceService } from '../appearance/appearance.service';
+import { DEFAULT_APPEARANCE, sanitizeAppearance } from '../appearance/appearance.model';
 import { ProjectService } from '../project/project.service';
 import { PipelineStoreService } from '../pipeline/pipeline-store.service';
 import { UserScriptStoreService } from '../pipeline/user-script-store.service';
@@ -37,6 +39,7 @@ export class DudeBundleService {
   private readonly templates = inject(WorkspaceTemplateService);
   private readonly homePanel = inject(HomePanelService);
   private readonly homeLayout = inject(HomeLayoutService);
+  private readonly appearance = inject(AppearanceService);
   private readonly panels = inject(PanelRegistryService);
   private readonly registry = inject(ToolRegistryService);
   private readonly local = createStorageBackend('local');
@@ -76,6 +79,8 @@ export class DudeBundleService {
       // Legacy M561 notes are exported only until the Home migration has moved them into the layout.
       ...(this.homePanel.hasContent() ? { homePanel: this.homePanel.content() } : {}),
       ...(this.homeLayout.customized() || Object.keys(this.homeLayout.content()).length > 0 ? { homeLayout: this.homeLayout.data() } : {}),
+      // Like homeLayout, omitted while untouched (equal to the defaults).
+      ...(JSON.stringify(this.appearance.prefs()) !== JSON.stringify(DEFAULT_APPEARANCE) ? { appearance: this.appearance.prefs() } : {}),
     };
   }
 
@@ -96,6 +101,9 @@ export class DudeBundleService {
     for (const content of plan.homePanel.items) this.homePanel.importContent(sanitizeHomePanel(content));
     // `importData` re-sanitizes against the panel registry and merges per the previewed conflict mode.
     for (const layout of plan.homeLayout.items) this.homeLayout.importData(layout, plan.conflictMode ?? 'skip');
+    // Re-sanitized again so a hand-built plan can't smuggle values past the model. `set` persists
+    // through AppearanceService's own store, so it applies live without a reload.
+    for (const prefs of plan.appearance.items.slice(0, 1)) this.appearance.set(sanitizeAppearance(prefs));
 
     for (const [toolId, keys] of Object.entries(plan.toolPreferences)) {
       const tool = this.registry.getById(toolId);
@@ -125,6 +133,7 @@ export class DudeBundleService {
       userScripts: new Set(this.scripts.scripts().map((script) => script.id)),
       homePanel: this.homePanel.content(),
       homeLayout: this.homeLayout.data(),
+      appearance: this.appearance.prefs(),
     };
   }
 }

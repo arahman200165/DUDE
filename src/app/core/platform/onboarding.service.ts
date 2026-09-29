@@ -10,7 +10,7 @@ export class OnboardingService {
   private readonly platform = inject(PlatformService);
   readonly visible = signal(false);
   readonly initialized = signal(false);
-  readonly step = signal(Math.min(6, Math.max(0, Number(localStorage.getItem(STEP_KEY) ?? 0) || 0)));
+  readonly step = signal(Math.min(7, Math.max(0, Number(localStorage.getItem(STEP_KEY) ?? 0) || 0)));
   private request: string | null = null;
 
   async initialize(): Promise<void> {

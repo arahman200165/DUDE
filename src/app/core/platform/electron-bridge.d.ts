@@ -51,6 +51,10 @@ export interface DudeElectronBridge {
     /** Opens an http(s) link in the default browser; main re-validates and refuses anything else. */
     open(url: string): Promise<VoidResult>;
   };
+  readonly appearance?: {
+    /** Syncs Electron's native theme source and window background; main validates and may reject. */
+    setNative(mode: 'dark' | 'light', background: string): Promise<{ readonly ok: true } | { readonly ok: false; readonly error: string }>;
+  };
   readonly menu: {
     ready(): void;
     onAction(callback: (action: string) => void): () => void;

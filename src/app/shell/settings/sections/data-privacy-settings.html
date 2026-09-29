@@ -39,6 +39,9 @@
           @if (plan.homeLayout.items.length) {
             <li>your Home layout and its text, link and shortcut panels</li>
           }
+          @if (plan.appearance.items.length) {
+            <li>your appearance (theme, palette, density and fonts)</li>
+          }
           <li>preferences for {{ toolCount(plan.toolPreferences) }} tool(s)</li>
           @if (toolCount(plan.toolInputs)) {
             <li>inputs for {{ toolCount(plan.toolInputs) }} tool(s)</li>

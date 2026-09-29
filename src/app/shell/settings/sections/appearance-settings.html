@@ -84,5 +84,38 @@
     <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated" (click)="resetToDefaults()">
       Reset appearance to defaults
     </button>
+    <app-save-text-file [text]="exportText()" [fileName]="exportName()" [mimeType]="themeMime" label="Export theme…" />
+    <app-open-text-file [text]="''" accept=".json,application/json" label="Import theme…" (textLoaded)="onThemeLoaded($event)" />
   </div>
+
+  @if (importError(); as message) {
+    <p role="alert" class="text-ui-xs text-error">{{ message }}</p>
+  }
+  @if (importStatus(); as status) {
+    <p role="status" class="text-ui-xs text-text-muted">{{ status }}</p>
+  }
+  @if (importPreview(); as preview) {
+    <div data-testid="theme-import-preview" class="flex flex-col gap-2 rounded-sm border border-border bg-panel p-3">
+      <h3 class="text-ui-sm font-semibold text-text">Import preview</h3>
+      @if (preview.changes.length === 0) {
+        <p class="text-ui-xs text-text-muted">No changes — this file matches your current appearance.</p>
+      } @else {
+        <ul class="m-0 flex list-none flex-col gap-0.5 p-0 text-ui-xs text-text">
+          @for (change of preview.changes; track change.key) {
+            <li>{{ change.label }}: {{ change.from }} → {{ change.to }}</li>
+          }
+        </ul>
+      }
+      @if (preview.dropped.length > 0) {
+        <p class="text-ui-xs text-warning">Ignored invalid values: {{ preview.dropped.join(', ') }}</p>
+      }
+      @if (preview.unknown.length > 0) {
+        <p class="text-ui-xs text-text-muted">Ignored unknown settings: {{ preview.unknown.join(', ') }}</p>
+      }
+      <div class="flex items-center gap-2">
+        <button type="button" class="rounded-sm bg-accent px-2 py-0.5 text-ui text-on-accent" (click)="applyImport()">Apply theme</button>
+        <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated" (click)="cancelImport()">Cancel</button>
+      </div>
+    </div>
+  }
 </div>

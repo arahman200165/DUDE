@@ -7,6 +7,9 @@ import { createPipeline, createUserScript } from '../pipeline/pipeline.model';
 import { readStorageValue, writeStorageValue } from '../workspace/workspace-storage-bridge';
 import { BUNDLE_FORMAT } from './dude-bundle.model';
 import { HomePanelService } from '../home-panel/home-panel.service';
+import { AppearanceService } from '../appearance/appearance.service';
+import { APPEARANCE_AXES, DEFAULT_APPEARANCE } from '../appearance/appearance.model';
+import { ImportPlan } from './dude-bundle.model';
 import { UsageService } from '../usage/usage.service';
 
 describe('DudeBundleService', () => {
@@ -194,6 +197,52 @@ describe('DudeBundleService', () => {
     it('plans nothing for a bundle without a panel (older bundles)', () => {
       const preview = TestBed.inject(DudeBundleService).preview(JSON.stringify(emptyBundle), 'replace');
       expect(preview.ok && preview.plan.homePanel).toEqual({ items: [], added: 0, replaced: 0, skipped: 0 });
+    });
+  });
+
+  describe('appearance (Phase 30K)', () => {
+    const emptyBundle = { format: BUNDLE_FORMAT, schemaVersion: 1, exportedAt: '', projects: [], workspaceTemplates: [], pipelines: [], userScripts: [], toolPreferences: {} };
+    const otherAccent = APPEARANCE_AXES['accent'].values.find((value) => value !== DEFAULT_APPEARANCE.accent) as string;
+
+    it('omits appearance while at defaults and exports it once customized', () => {
+      const service = TestBed.inject(DudeBundleService);
+      expect(service.build({ includeInputs: false }).appearance).toBeUndefined();
+      TestBed.inject(AppearanceService).set({ accent: otherAccent });
+      expect(service.build({ includeInputs: false }).appearance?.accent).toBe(otherAccent);
+    });
+
+    it('skip keeps the current appearance; replace applies the incoming one', () => {
+      const service = TestBed.inject(DudeBundleService);
+      const appearance = TestBed.inject(AppearanceService);
+      const incoming = JSON.stringify({ ...emptyBundle, appearance: { ...DEFAULT_APPEARANCE, accent: otherAccent } });
+
+      // Untouched defaults: nothing to conflict with, so even skip applies.
+      const first = service.preview(incoming, 'skip');
+      expect(first.ok && first.plan.appearance.added).toBe(1);
+
+      appearance.set({ density: APPEARANCE_AXES['density'].values.find((v) => v !== DEFAULT_APPEARANCE.density) as string });
+      const kept = appearance.prefs();
+      const skip = service.preview(incoming, 'skip');
+      expect(skip.ok && skip.plan.appearance.skipped).toBe(1);
+      if (skip.ok) service.apply(skip.plan);
+      expect(appearance.prefs()).toEqual(kept);
+
+      const replace = service.preview(incoming, 'replace');
+      if (replace.ok) service.apply(replace.plan);
+      expect(appearance.prefs()).toEqual({ ...DEFAULT_APPEARANCE, accent: otherAccent });
+    });
+
+    it('apply re-sanitizes even a hand-mutated plan', () => {
+      const service = TestBed.inject(DudeBundleService);
+      const preview = service.preview(JSON.stringify(emptyBundle), 'replace');
+      if (!preview.ok) throw new Error('preview failed');
+      const evil = { ...DEFAULT_APPEARANCE, accent: 'neon', uiFont: { custom: 'x;}body{' }, evil: 1 };
+      const plan = { ...preview.plan, appearance: { items: [evil], added: 1, replaced: 0, skipped: 0 } } as unknown as ImportPlan;
+      service.apply(plan);
+      const prefs = TestBed.inject(AppearanceService).prefs();
+      expect(prefs.accent).toBe(DEFAULT_APPEARANCE.accent);
+      expect(prefs.uiFont).toEqual(DEFAULT_APPEARANCE.uiFont);
+      expect(prefs).not.toHaveProperty('evil');
     });
   });
 });

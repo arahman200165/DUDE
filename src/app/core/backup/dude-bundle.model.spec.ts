@@ -1,5 +1,6 @@
 import fc from 'fast-check';
 import { BUNDLE_FORMAT, DudeBundle, ExistingIds, parseBundle, planImport } from './dude-bundle.model';
+import { APPEARANCE_AXES, DEFAULT_APPEARANCE } from '../appearance/appearance.model';
 import { Pipeline, UserScriptDefinition } from '../pipeline/pipeline.model';
 import { Project } from '../project/project.model';
 
@@ -87,5 +88,51 @@ describe('dude-bundle model', () => {
     expect(newPipeline.id).not.toBe('p1');
     expect(newPipeline.steps[0]).toMatchObject({ kind: 'script', scriptId: newScriptId });
     expect(plan.projects.items[0].pinnedPipelineIds).toEqual([newPipeline.id]);
+  });
+
+  describe('appearance (Phase 30K)', () => {
+    const other = APPEARANCE_AXES['accent'].values.find((value) => value !== DEFAULT_APPEARANCE.accent) as string;
+    const mine = { ...DEFAULT_APPEARANCE, accent: other };
+    const withAppearance = (appearance: unknown) => JSON.stringify({ ...BUNDLE, appearance });
+
+    it('parses an older bundle without appearance', () => {
+      const parsed = parseBundle(JSON.stringify(BUNDLE));
+      expect(parsed.ok && parsed.bundle.appearance).toBeUndefined();
+      expect(parsed.ok && parsed.invalid).toBe(0);
+    });
+
+    it('re-sanitizes a tampered appearance', () => {
+      const parsed = parseBundle(withAppearance({ accent: 'neon', uiFont: { custom: 'x;}body{' }, evil: 1 }));
+      expect(parsed.ok).toBe(true);
+      if (!parsed.ok) return;
+      expect(parsed.bundle.appearance?.accent).toBe(DEFAULT_APPEARANCE.accent);
+      expect(parsed.bundle.appearance?.uiFont).toEqual(DEFAULT_APPEARANCE.uiFont);
+      expect(parsed.bundle.appearance).not.toHaveProperty('evil');
+    });
+
+    it('treats a non-object appearance as absent and counts it invalid', () => {
+      for (const bad of ['dark', 5, null, [1]]) {
+        const parsed = parseBundle(withAppearance(bad));
+        expect(parsed.ok && parsed.bundle.appearance).toBeUndefined();
+        expect(parsed.ok && parsed.invalid).toBe(1);
+      }
+    });
+
+    it('plans nothing without an incoming appearance', () => {
+      expect(planImport(BUNDLE, { ...NONE, appearance: mine }, 'replace').appearance).toEqual({ items: [], added: 0, replaced: 0, skipped: 0 });
+    });
+
+    it('adds over default appearance; skip keeps a customized one; replace and keep-both replace it', () => {
+      const bundle = { ...BUNDLE, appearance: mine };
+      const custom = { ...DEFAULT_APPEARANCE, density: APPEARANCE_AXES['density'].values.find((v) => v !== DEFAULT_APPEARANCE.density) as string };
+      expect(planImport(bundle, NONE, 'skip').appearance.added).toBe(1);
+      expect(planImport(bundle, { ...NONE, appearance: DEFAULT_APPEARANCE }, 'skip').appearance.items).toEqual([mine]);
+      expect(planImport(bundle, { ...NONE, appearance: custom }, 'skip').appearance).toEqual({ items: [], added: 0, replaced: 0, skipped: 1 });
+      for (const mode of ['replace', 'keep-both'] as const) {
+        const plan = planImport(bundle, { ...NONE, appearance: custom }, mode).appearance;
+        expect(plan.items).toEqual([mine]);
+        expect(plan.replaced).toBe(1);
+      }
+    });
   });
 });

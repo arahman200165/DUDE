@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { DesktopPreferencesService } from '../../core/platform/desktop-preferences.service';
 import { OnboardingService } from '../../core/platform/onboarding.service';
 import { ShellChromeService } from '../../core/platform/shell-chrome.service';
@@ -7,9 +7,39 @@ import { APP_SETTINGS_NAMESPACE, LLM_API_KEY_KEY, LLM_BASE_URL_KEY, LLM_MODEL_KE
 import { WorkspaceLayoutService } from '../../core/workspace/workspace-layout.service';
 import type { DesktopPreferences, QuickActionInfo } from '../../core/platform/electron-bridge';
 import { ToolRegistryService } from '../../core/registry/tool-registry.service';
+import { AppearanceService } from '../../core/appearance/appearance.service';
+import { APPEARANCE_AXES, SYSTEM, type AppearancePrefs } from '../../core/appearance/appearance.model';
 import { ContributedSectionHost } from '../settings/contributed-section-host/contributed-section-host';
 
-const PAGES = ['Welcome', 'Workspace & window', 'Updates & notifications', 'Hotkeys', 'AI provider', 'Tool settings', 'Review'];
+type PageId = 'welcome' | 'appearance' | 'workspace' | 'updates' | 'hotkeys' | 'ai' | 'tool-settings' | 'review';
+
+const PAGES: readonly { readonly id: PageId; readonly title: string }[] = [
+  { id: 'welcome', title: 'Welcome' },
+  { id: 'appearance', title: 'Appearance' },
+  { id: 'workspace', title: 'Workspace & window' },
+  { id: 'updates', title: 'Updates & notifications' },
+  { id: 'hotkeys', title: 'Hotkeys' },
+  { id: 'ai', title: 'AI provider' },
+  { id: 'tool-settings', title: 'Tool settings' },
+  { id: 'review', title: 'Review' },
+];
+
+type AppearanceKey = 'mode' | 'density' | 'contrast';
+
+interface AppearanceRow {
+  readonly prefsKey: AppearanceKey;
+  readonly axisKey: string;
+  readonly label: string;
+  readonly options: readonly { readonly value: string; readonly label: string }[];
+}
+
+const APPEARANCE_ROW_SPECS: readonly { prefsKey: AppearanceKey; axisKey: string; label: string; allowSystem: boolean }[] = [
+  { prefsKey: 'mode', axisKey: 'theme', label: 'Theme', allowSystem: true },
+  { prefsKey: 'density', axisKey: 'density', label: 'Density', allowSystem: false },
+  { prefsKey: 'contrast', axisKey: 'contrast', label: 'Contrast', allowSystem: true },
+];
+
+const capitalize = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
 
 @Component({
   selector: 'app-onboarding',
@@ -23,6 +53,17 @@ export class Onboarding {
   private readonly shell = inject(ShellChromeService);
   private readonly secure = inject(SecureLocalService);
   protected readonly pages = PAGES;
+  /** The active page; a stored/out-of-range step index is clamped so the wizard can never render nothing. */
+  protected readonly currentPage = computed(() => PAGES[Math.min(PAGES.length - 1, Math.max(0, this.flow.step()))]);
+  protected readonly appearance = inject(AppearanceService);
+  /** Theme / density / contrast chip rows; an axis with fewer than two values offers no choice and is hidden. */
+  protected readonly appearanceRows: readonly AppearanceRow[] = APPEARANCE_ROW_SPECS.flatMap((spec) => {
+    const axis = APPEARANCE_AXES[spec.axisKey];
+    if (!axis || axis.values.length < 2) return [];
+    const options = axis.values.map((value) => ({ value, label: axis.labels?.[value] ?? capitalize(value) }));
+    if (spec.allowSystem) options.push({ value: SYSTEM, label: 'System (follows OS)' });
+    return [{ prefsKey: spec.prefsKey, axisKey: spec.axisKey, label: spec.label, options }];
+  });
   protected readonly launchOnLogin = signal(false);
   protected readonly hotkeys = signal<readonly QuickActionInfo[]>([]);
   protected readonly hotkeyDrafts = signal<Record<string, string>>({});
@@ -93,22 +134,36 @@ export class Onboarding {
     return !error;
   }
 
+  protected isSelected(row: AppearanceRow, value: string): boolean {
+    return this.appearance.prefs()[row.prefsKey] === value;
+  }
+
+  /** What `system` currently resolves to for a row. */
+  protected resolvedLabel(row: AppearanceRow): string {
+    const value = this.appearance.effective()[row.axisKey] ?? APPEARANCE_AXES[row.axisKey].default;
+    return row.options.find((option) => option.value === value)?.label ?? capitalize(value);
+  }
+
+  protected setAppearance(row: AppearanceRow, value: string): void {
+    this.appearance.set({ [row.prefsKey]: value } as Partial<AppearancePrefs>);
+  }
+
   protected async openDefaultApps(): Promise<void> {
     const result = await window.dude!.shell.openDefaultApps();
     if (!result.ok) this.message.set(result.error);
   }
 
   protected async next(): Promise<void> {
-    if (this.flow.step() === 3) {
+    if (this.currentPage().id === 'hotkeys') {
       for (const action of this.hotkeys()) {
         if ((this.hotkeyDrafts()[action.id]?.trim() || '') !== (action.hotkey ?? '')) {
           if (!await this.saveHotkey(action.id)) return;
         }
       }
     }
-    if (this.flow.step() === 4 && !await this.saveAi()) return;
+    if (this.currentPage().id === 'ai' && !await this.saveAi()) return;
     this.message.set('');
-    if (this.flow.step() === PAGES.length - 1) this.flow.complete();
+    if (this.currentPage().id === 'review') this.flow.complete();
     else this.flow.setStep(this.flow.step() + 1);
   }
 

@@ -9,6 +9,12 @@ describe('ExternalLinkService', () => {
     vi.restoreAllMocks();
   });
 
+  // Other specs restore window.dude via defineProperty (non-writable), so plain assignment can throw
+  // depending on which specs share this worker.
+  function setBridge(value: unknown): void {
+    Object.defineProperty(window, 'dude', { value, configurable: true, writable: true });
+  }
+
   function create(isDesktop: boolean) {
     TestBed.configureTestingModule({ providers: [{ provide: PlatformService, useValue: { isDesktop: () => isDesktop } }] });
     return TestBed.inject(ExternalLinkService);
@@ -16,7 +22,7 @@ describe('ExternalLinkService', () => {
 
   it('routes desktop opens through the bridge and returns its result', async () => {
     const open = vi.fn().mockResolvedValue({ ok: true });
-    (window as unknown as { dude: unknown }).dude = { external: { open } };
+    setBridge({ external: { open } });
     const service = create(true);
 
     expect(service.isHandledNatively()).toBe(true);
@@ -25,7 +31,7 @@ describe('ExternalLinkService', () => {
   });
 
   it('surfaces a refusal from main instead of swallowing it', async () => {
-    (window as unknown as { dude: unknown }).dude = { external: { open: vi.fn().mockResolvedValue({ ok: false, error: 'nope' }) } };
+    setBridge({ external: { open: vi.fn().mockResolvedValue({ ok: false, error: 'nope' }) } });
     await expect(create(true).open('https://example.com/')).resolves.toEqual({ ok: false, error: 'nope' });
   });
 
