@@ -228,6 +228,7 @@ import { manifest as pkceGeneratorManifest } from '../../tools/pkce-generator/pk
 import { manifest as pkceVerifierManifest } from '../../tools/pkce-verifier/pkce-verifier.manifest';
 import { manifest as pkcs12InspectorManifest } from '../../tools/pkcs12-inspector/pkcs12-inspector.manifest';
 import { manifest as portScannerManifest } from '../../tools/port-scanner/port-scanner.manifest';
+import { manifest as processViewerManifest } from '../../tools/process-viewer/process-viewer.manifest';
 import { manifest as programmerCalculatorManifest } from '../../tools/programmer-calculator/programmer-calculator.manifest';
 import { manifest as propertiesParserManifest } from '../../tools/properties-parser/properties-parser.manifest';
 import { manifest as protobufDecoderManifest } from '../../tools/protobuf-decoder/protobuf-decoder.manifest';
@@ -545,6 +546,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   pkceVerifierManifest,
   pkcs12InspectorManifest,
   portScannerManifest,
+  processViewerManifest,
   programmerCalculatorManifest,
   propertiesParserManifest,
   protobufDecoderManifest,

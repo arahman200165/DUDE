@@ -1,0 +1,196 @@
+@if (process(); as p) {
+  <div class="flex flex-col gap-2 p-2 text-ui" data-testid="process-detail">
+    <div class="flex flex-wrap items-center gap-2">
+      <h2 class="font-mono font-semibold text-text">{{ p.name }}</h2>
+      <span class="font-mono text-ui-xs text-text-muted">PID {{ p.pid }}</span>
+      @if (exited()) {
+        <span class="flex items-center gap-1 rounded-sm border border-warning px-1 text-ui-xs text-warning" data-testid="process-exited"><app-status-glyph kind="offline" />Exited</span>
+      }
+    </div>
+
+    <div role="tablist" aria-label="Process detail" class="flex flex-wrap gap-1 border-b border-border">
+      @for (t of tabs; track t.id) {
+        <button type="button" role="tab" class="rounded-sm px-2 py-1 text-ui hover:bg-panel-elevated focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+          [class.text-accent]="tab() === t.id" [class.font-semibold]="tab() === t.id" [class.text-text-muted]="tab() !== t.id"
+          [attr.aria-selected]="tab() === t.id" [attr.data-testid]="'tab-' + t.id" (click)="tab.set(t.id)">{{ t.label }}</button>
+      }
+    </div>
+
+    <app-elevation-banner [deniedCount]="deniedCount()" feature="Some process details" />
+
+    <div role="tabpanel" class="flex flex-col gap-2">
+      @switch (tab()) {
+        @case ('overview') {
+          @if (detail().status === 'loading') { <div class="text-text-muted" role="status">Reading process details…</div> }
+          @if (detail().status === 'error') { <div class="flex items-center gap-1 text-error" role="alert"><app-status-glyph kind="error" />{{ detail().error }}</div> }
+          @if (detail().data; as d) {
+            <div class="flex items-start gap-1">
+              <div class="min-w-0 flex-1">
+                <div class="text-ui-xs uppercase text-text-muted">Command line</div>
+                <div class="break-all font-mono text-text" data-testid="command-line">{{ d.commandLine ?? '—' }}</div>
+              </div>
+              <app-copy-button [text]="d.commandLine ?? ''" label="Copy" />
+            </div>
+            <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+              @for (row of overview(); track row.label) {
+                <dt class="text-text-muted">{{ row.label }}</dt>
+                <dd class="min-w-0 break-all text-text" [class.font-mono]="row.mono">{{ row.value }}</dd>
+              }
+              <dt class="text-text-muted">Started</dt>
+              <dd class="font-mono text-text">{{ p.createTimeMs ? (p.createTimeMs | date: 'yyyy-MM-dd HH:mm:ss') : '—' }}</dd>
+            </dl>
+            @if (unreadable().length) {
+              <app-disclosure label="Unreadable fields" [badge]="unreadable().length">
+                <ul class="text-ui-xs text-text-muted">
+                  @for (e of unreadable(); track e[0]) { <li><span class="font-mono text-text">{{ e[0] }}</span>: {{ e[1] }}</li> }
+                </ul>
+              </app-disclosure>
+            }
+          }
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <div class="min-w-32 flex-1"><div class="text-ui-xs text-text-muted">CPU % (recent)</div><app-sparkline-chart [points]="cpuPoints()" label="CPU percent" /></div>
+            <div class="min-w-32 flex-1"><div class="text-ui-xs text-text-muted">Working set MiB (recent)</div><app-sparkline-chart [points]="memoryPoints()" label="Working set in MiB" /></div>
+          </div>
+          <div class="flex flex-col gap-1">
+            <div>
+              <span class="text-text-muted">Parent: </span>
+              @if (parent(); as par) {
+                <button type="button" class="font-mono text-accent underline" data-testid="parent-link" (click)="selectKey.emit(par.pid + ':' + par.startKey)">{{ par.name }} ({{ par.pid }})</button>
+              } @else { <span class="font-mono text-text">{{ p.parentPid ? 'PID ' + p.parentPid + ' (not running)' : '—' }}</span> }
+            </div>
+            <div>
+              <span class="text-text-muted">Children: </span>
+              @for (child of children(); track child.pid + ':' + child.startKey) {
+                <button type="button" class="mr-2 font-mono text-accent underline" (click)="selectKey.emit(child.pid + ':' + child.startKey)">{{ child.name }} ({{ child.pid }})</button>
+              } @empty { <span class="text-text">none</span> }
+            </div>
+            @if (services().length) {
+              <div>
+                <span class="text-text-muted">Services: </span>
+                @for (s of services(); track s.name) { <span class="mr-2 text-text" [title]="s.name">{{ s.displayName }}</span> }
+              </div>
+            }
+          </div>
+        }
+        @case ('environment') {
+          @if (detail().status === 'loading') { <div class="text-text-muted" role="status">Reading environment…</div> }
+          @if (detail().status === 'error') { <div class="flex items-center gap-1 text-error" role="alert"><app-status-glyph kind="error" />{{ detail().error }}</div> }
+          @if (detail().status === 'ready') {
+            @if (detail().data?.environment) {
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-text-muted">{{ envRows().length }} variables</span>
+                <app-copy-button [text]="envText()" label="Copy all" />
+                <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" data-testid="env-diff-open" (click)="openDiff()">Diff…</button>
+              </div>
+              <div class="h-64"><app-data-table [columns]="envColumns" [rows]="envRows()" [trackByFn]="trackEnv" [dense]="true" ariaLabel="Environment variables" /></div>
+              @if (canSnapshot) {
+                <div class="flex flex-wrap items-center gap-2">
+                  <input class="min-w-40 flex-1 rounded-sm border border-border bg-panel px-2 py-1 text-text" aria-label="Snapshot name" [value]="snapshotName()" (input)="snapshotName.set($any($event.target).value)" />
+                  <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" data-testid="env-snapshot-save" (click)="saveSnapshot()">Save environment as snapshot</button>
+                  @if (snapshotMessage()) { <span class="text-ui-xs text-text-muted" role="status">{{ snapshotMessage() }}</span> }
+                </div>
+              }
+              @if (diffOpen()) {
+                <section class="flex flex-col gap-2 rounded-sm border border-border p-2" aria-label="Environment diff">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <label class="flex items-center gap-1 text-text-muted">Compare against
+                      <select class="rounded-sm border border-border bg-panel px-1 py-0.5 text-text" [value]="diffSource()" (change)="setDiffSource($any($event.target).value)">
+                        <option value="user">User environment</option>
+                        <option value="system">System environment</option>
+                        <option value="snapshot">Saved snapshot</option>
+                        <option value="paste">Pasted dump</option>
+                      </select>
+                    </label>
+                    @if (diffSource() === 'snapshot') {
+                      <select class="rounded-sm border border-border bg-panel px-1 py-0.5 text-text" aria-label="Snapshot" [value]="snapshotChoice()" (change)="snapshotChoice.set($any($event.target).value)">
+                        <option value="">Choose…</option>
+                        @for (h of snapshotChoices(); track h.id) { <option [value]="h.id">{{ h.name }} ({{ h.kind }})</option> }
+                      </select>
+                    }
+                    <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" data-testid="env-compare" (click)="compare()">Compare</button>
+                    <button type="button" class="ml-auto rounded-sm border border-border px-2 py-0.5 text-text-muted" (click)="diffOpen.set(false)">Close</button>
+                  </div>
+                  @if (diffSource() === 'paste') {
+                    <textarea class="h-24 rounded-sm border border-border bg-panel p-1 font-mono text-ui-xs text-text" aria-label="Pasted environment" placeholder="NAME=value lines from set / .env, or a JSON object" [value]="pasteText()" (input)="pasteText.set($any($event.target).value)"></textarea>
+                  }
+                  @if (diffError()) { <div class="flex items-center gap-1 text-error" role="alert"><app-status-glyph kind="error" />{{ diffError() }}</div> }
+                  @if (diffView(); as view) {
+                    <div class="text-ui-xs text-text-muted">Before: {{ diffBaseline() }}. After: this process.</div>
+                    <app-diff-view [entries]="view.entries" [summary]="view.summary" />
+                    @for (entry of view.paths; track entry.name) {
+                      <div class="text-ui-xs"><span class="font-mono text-text">{{ entry.name }}</span>
+                        @for (seg of entry.pathBreakdown!.added; track seg) { <div class="break-all font-mono text-success">+ {{ seg }}</div> }
+                        @for (seg of entry.pathBreakdown!.removed; track seg) { <div class="break-all font-mono text-error">− {{ seg }}</div> }
+                        @if (entry.pathBreakdown!.reordered) { <div class="text-text-muted">Entries were reordered.</div> }
+                      </div>
+                    }
+                  }
+                </section>
+              }
+            } @else {
+              <div class="text-text-muted">The environment could not be read for this process{{ detail().data?.errors?.['environment'] ? ': ' + detail().data?.errors?.['environment'] : '' }}.</div>
+            }
+          }
+        }
+        @case ('modules') {
+          @if (modules().status === 'loading') { <div class="text-text-muted" role="status">Listing modules…</div> }
+          @if (modules().status === 'error') { <div class="flex items-center gap-1 text-error" role="alert"><app-status-glyph kind="error" />{{ modules().error }}</div> }
+          @if (modules().data) {
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-text-muted">{{ modules().data!.length }} modules</span>
+              <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" data-testid="load-versions" [disabled]="versionProgress() !== null" (click)="loadVersions()">Load versions &amp; signers</button>
+              @if (versionProgress(); as progress) { <span class="text-text-muted" role="status">{{ progress.done }} / {{ progress.total }}</span> }
+            </div>
+            <div class="h-72">
+              <app-data-table [columns]="moduleColumns" [rows]="moduleRows()" [trackByFn]="trackModule" [dense]="true" ariaLabel="Loaded modules">
+                <ng-template appDataTableCell="signature" let-row>
+                  @if (row.info?.signature; as sig) {
+                    <span class="flex items-center gap-1" [title]="sig.signer ?? sig.message ?? ''"><app-status-glyph [kind]="signatureGlyph(row.info)" />{{ sig.status }}</span>
+                  } @else { <span class="text-text-muted">—</span> }
+                </ng-template>
+                <ng-template appDataTableCell="size" let-row><span class="font-mono">{{ bytes(row.module.size) }}</span></ng-template>
+              </app-data-table>
+            </div>
+          }
+        }
+        @case ('threads') {
+          @if (threads().status === 'loading') { <div class="text-text-muted" role="status">Listing threads…</div> }
+          @if (threads().status === 'error') { <div class="flex items-center gap-1 text-error" role="alert"><app-status-glyph kind="error" />{{ threads().error }}</div> }
+          @if (threads().data) {
+            <div class="text-text-muted">{{ threads().data!.length }} threads (snapshot; reopen the tab to refresh)</div>
+            <div class="h-72">
+              <app-data-table [columns]="threadColumns" [rows]="threads().data!" [trackByFn]="trackThread" [dense]="true" ariaLabel="Threads">
+                <ng-template appDataTableCell="cpu" let-row><span class="font-mono">{{ cpuTime(row.kernelTime100ns + row.userTime100ns) }}</span></ng-template>
+              </app-data-table>
+            </div>
+          }
+        }
+        @case ('handles') {
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" data-testid="load-handles" [disabled]="handles().status === 'loading'" (click)="loadHandles()">{{ handles().status === 'ready' ? 'Reload handles' : 'Load handles' }}</button>
+            <span class="text-ui-xs text-text-muted">Enumerating handles can take a few seconds.</span>
+          </div>
+          @if (handles().status === 'loading') { <div class="text-text-muted" role="status">Enumerating handles…</div> }
+          @if (handles().status === 'error') { <div class="flex items-center gap-1 text-error" role="alert"><app-status-glyph kind="error" />{{ handles().error }}</div> }
+          @if (handles().data; as h) {
+            @if (h.truncated) { <div class="flex items-center gap-1 text-warning"><app-status-glyph kind="warning" />Stopped early; the list is incomplete.{{ h.note ? ' ' + h.note : '' }}</div> }
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-text-muted">{{ handleRows().length }} of {{ h.handles.length }} handles</span>
+              <select class="rounded-sm border border-border bg-panel px-1 py-0.5 text-text" aria-label="Handle type" [value]="handleTypeFilter()" (change)="handleTypeFilter.set($any($event.target).value)">
+                <option value="">All types</option>
+                @for (type of handleTypes(); track type) { <option [value]="type">{{ type }}</option> }
+              </select>
+            </div>
+            <div class="h-72"><app-data-table [columns]="handleColumns" [rows]="handleRows()" [trackByFn]="trackHandle" [dense]="true" ariaLabel="Handles" /></div>
+          }
+        }
+        @case ('ports') {
+          <div class="text-text-muted">{{ portRows().length }} sockets owned by PID {{ p.pid }}</div>
+          <div class="h-48"><app-data-table [columns]="portColumns" [rows]="portRows()" [trackByFn]="trackSocket" [dense]="true" ariaLabel="Owned sockets" /></div>
+        }
+      }
+    </div>
+  </div>
+} @else {
+  <div class="p-4 text-ui text-text-muted" data-testid="detail-empty">Select a process to see its command line, environment, modules, threads, handles and ports.</div>
+}

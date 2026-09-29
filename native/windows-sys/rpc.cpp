@@ -4,7 +4,7 @@
 //   {"id":1,"method":"process.list","params":{...}}
 // One response line per request on stdout, flushed immediately:
 //   {"id":1,"ok":true,"result":...}  or  {"id":1,"ok":false,"error":"...","code":5}
-// Exits cleanly on stdin EOF. Read-only in Milestone 593: nothing here mutates the system.
+// Exits cleanly on stdin EOF. Read-only except proc.* (Milestone 596), which only confirmed engine plans call.
 #include <fcntl.h>
 #include <io.h>
 
@@ -54,10 +54,26 @@ std::string handleLine(const std::string& line) {
   bool ok = false;
   if (method == "helper.info") ok = sys::handleHelperInfo(result, err);
   else if (method == "process.list") ok = sys::handleProcessList(result, err);
+  else if (method == "process.detail") ok = sys::handleProcessDetail(params, result, err);
+  else if (method == "process.modules") ok = sys::handleProcessModules(params, result, err);
+  else if (method == "process.threads") ok = sys::handleProcessThreads(params, result, err);
+  else if (method == "process.handles") ok = sys::handleProcessHandles(params, result, err);
+  else if (method == "file.version") ok = sys::handleFileVersion(params, result, err);
+  else if (method == "file.signature") ok = sys::handleFileSignature(params, result, err);
+  else if (method == "svc.list") ok = sys::handleSvcList(result, err);
   else if (method == "net.tcp") ok = sys::handleNetTcp(result, err);
   else if (method == "net.udp") ok = sys::handleNetUdp(result, err);
   else if (method == "reg.enumKey") ok = sys::handleRegEnumKey(params, result, err);
   else if (method == "reg.getValues") ok = sys::handleRegGetValues(params, result, err);
+  else if (method == "proc.terminate") ok = sys::handleProcTerminate(params, result, err);
+  else if (method == "proc.tree") ok = sys::handleProcTree(params, result, err);
+  else if (method == "proc.suspend") ok = sys::handleProcSuspend(params, result, err);
+  else if (method == "proc.resume") ok = sys::handleProcResume(params, result, err);
+  else if (method == "proc.setPriority") ok = sys::handleProcSetPriority(params, result, err);
+  else if (method == "proc.setAffinity") ok = sys::handleProcSetAffinity(params, result, err);
+  else if (method == "proc.startInfo") ok = sys::handleProcStartInfo(params, result, err);
+  else if (method == "proc.create") ok = sys::handleProcCreate(params, result, err);
+  else if (method == "proc.dump") ok = sys::handleProcDump(params, result, err);
   else return failureLine(id, sys::plainFailure("Unknown method."));
 
   if (!ok) return failureLine(id, err);

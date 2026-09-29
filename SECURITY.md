@@ -155,6 +155,7 @@ browser sandbox.
 | [Packet-Loss Measurement](https://arahman200165.github.io/DUDE/tools/packet-loss) | Native network diagnostics |
 | [Ping](https://arahman200165.github.io/DUDE/tools/ping) | Native network diagnostics |
 | [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Native network diagnostics |
+| [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system access |
 | [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | Native network diagnostics |
 | [Regex Tester](https://arahman200165.github.io/DUDE/tools/regex) | Local LLM proxy |
 | [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Native network diagnostics |
@@ -219,6 +220,7 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Packet-Loss Measurement](https://arahman200165.github.io/DUDE/tools/packet-loss) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Ping](https://arahman200165.github.io/DUDE/tools/ping) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system access | Desktop-only feature | reads running processes and their details through the desktop system helper |
 | [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Regex Tester](https://arahman200165.github.io/DUDE/tools/regex) | Local LLM proxy | Desktop-only feature | AI-assisted explain/generate via a local LLM proxy, no cloud key required |
 | [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |

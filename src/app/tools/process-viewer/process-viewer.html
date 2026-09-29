@@ -1,0 +1,61 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning/40 bg-warning/5 p-4 text-ui text-text-muted">
+      Process Viewer lists the processes running on this PC — live CPU and memory, the parent/child tree, command lines, environments, modules, threads, handles and listening ports. It reads them through the Windows desktop app's system helper, so it needs Desktop DUDE.
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <app-desktop-only-control capability="native-system" label="Browse running processes" />
+    </div>
+  } @else {
+    <div class="flex flex-col gap-2 text-ui">
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <app-live-refresh-control [(intervalMs)]="intervalMs" [(paused)]="paused" [lastUpdatedAt]="refresh.lastTickAt()" (refreshRequested)="refresh.refreshNow()" />
+        <div class="flex" role="group" aria-label="View">
+          <button type="button" class="rounded-l-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" [class.text-accent]="view() === 'list'" [class.text-text]="view() !== 'list'" [attr.aria-pressed]="view() === 'list'" data-testid="view-list" (click)="view.set('list')">List</button>
+          <button type="button" class="rounded-r-sm border border-l-0 border-border px-2 py-0.5 hover:bg-panel-elevated" [class.text-accent]="view() === 'tree'" [class.text-text]="view() !== 'tree'" [attr.aria-pressed]="view() === 'tree'" data-testid="view-tree" (click)="view.set('tree')">Tree</button>
+        </div>
+        <input class="min-w-48 flex-1 rounded-sm border border-border bg-panel px-2 py-1 text-text" type="search" aria-label="Filter processes" placeholder="Filter: name, PID, port:8080, cmd:…, mod:…" data-testid="process-filter" [value]="query()" (input)="setQuery($any($event.target).value)" />
+        <span class="text-ui-xs text-text-muted" data-testid="process-count">{{ filtered().length }} of {{ rows().length }} processes</span>
+      </div>
+
+      @if (error()) { <div role="alert" class="flex items-center gap-1 rounded-sm border border-error/50 bg-error/5 p-2 text-error"><app-status-glyph kind="error" />{{ error() }}</div> }
+
+      <div class="h-[72vh] rounded-sm border border-border bg-panel">
+        <app-split-pane [initialRatio]="ratio()" (ratioChange)="ratio.set($event)">
+          <div slot="start" class="h-full">
+            @if (listing() === null && !error()) {
+              <div class="p-4 text-text-muted" role="status">Reading processes…</div>
+            } @else {
+              <app-data-table [columns]="columns()" [rows]="tableRows()" [trackByFn]="trackRow" [dense]="true" ariaLabel="Processes" (rowOpened)="select($event)">
+                <ng-template appDataTableCell="name" let-r>
+                  <span class="flex items-center gap-1 truncate" [style.padding-left.rem]="r.depth">
+                    @if (view() === 'tree') {
+                      @if (r.hasChildren) {
+                        <button type="button" class="w-4 shrink-0 text-text-muted hover:text-text" [attr.aria-expanded]="r.expanded" [attr.aria-label]="(r.expanded ? 'Collapse ' : 'Expand ') + r.row.process.name" (click)="toggle(r, $event)">{{ r.expanded ? '▾' : '▸' }}</button>
+                      } @else { <span class="w-4 shrink-0"></span> }
+                    }
+                    <span class="truncate font-mono" [class.text-accent]="selectedKey() === r.row.key" [class.font-semibold]="selectedKey() === r.row.key" [attr.aria-current]="selectedKey() === r.row.key ? 'true' : null">{{ r.row.process.name }}</span>
+                  </span>
+                </ng-template>
+                <ng-template appDataTableCell="pid" let-r><span class="font-mono">{{ r.row.process.pid }}</span></ng-template>
+                <ng-template appDataTableCell="cpu" let-r><span class="font-mono">{{ format.cpu(r.row.cpu) }}</span></ng-template>
+                <ng-template appDataTableCell="spark" let-r>
+                  <svg class="h-3.5 w-15 text-accent" viewBox="0 0 60 14" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true" focusable="false"><polyline [attr.points]="spark(r.row.key)" /></svg>
+                </ng-template>
+                <ng-template appDataTableCell="workingSet" let-r><span class="font-mono">{{ format.bytes(r.row.process.workingSetBytes) }}</span></ng-template>
+                <ng-template appDataTableCell="private" let-r><span class="font-mono">{{ format.bytes(r.row.process.privateBytes) }}</span></ng-template>
+                <ng-template appDataTableCell="started" let-r><span class="font-mono" [title]="r.row.process.createTimeMs | date: 'yyyy-MM-dd HH:mm:ss'">{{ format.age(r.row.process.createTimeMs, now()) }}</span></ng-template>
+              </app-data-table>
+            }
+          </div>
+          <div slot="end" class="h-full">
+            <app-process-detail-pane
+              [process]="selected()" [exited]="exited()" [parent]="parent()" [children]="childProcesses()" [sockets]="sockets()"
+              [cpuPoints]="cpuPoints()" [memoryPoints]="memoryPoints()" [tab]="tab()" (tabChange)="setTab($event)"
+              (selectKey)="selectKey($event)" (detailLoaded)="onDetail($event)" (modulesLoaded)="onModules($event)" />
+          </div>
+        </app-split-pane>
+      </div>
+    </div>
+  }
+</app-tool-shell>

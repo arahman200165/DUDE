@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <string>
+#include <vector>
 
 #include "json_read.hpp"
 
@@ -86,9 +87,26 @@ inline Failure plainFailure(const char* message) {
 // Handlers: fill `result` with a JSON value on success; return false with `err` set on failure.
 bool handleHelperInfo(std::string& result, Failure& err);
 bool handleProcessList(std::string& result, Failure& err);
+bool handleProcessThreads(const JsonValue* params, std::string& result, Failure& err);
+bool handleProcessDetail(const JsonValue* params, std::string& result, Failure& err);
+bool handleProcessModules(const JsonValue* params, std::string& result, Failure& err);
+bool handleProcessHandles(const JsonValue* params, std::string& result, Failure& err);
+bool handleFileVersion(const JsonValue* params, std::string& result, Failure& err);
+bool handleFileSignature(const JsonValue* params, std::string& result, Failure& err);
+bool handleSvcList(std::string& result, Failure& err);
 bool handleNetTcp(std::string& result, Failure& err);
 bool handleNetUdp(std::string& result, Failure& err);
 bool handleRegEnumKey(const JsonValue* params, std::string& result, Failure& err);
 bool handleRegGetValues(const JsonValue* params, std::string& result, Failure& err);
+// Mutating process operations (process_ops.cpp), reached only from confirmed engine plans.
+bool handleProcTerminate(const JsonValue* params, std::string& result, Failure& err);
+bool handleProcTree(const JsonValue* params, std::string& result, Failure& err);
+bool handleProcSuspend(const JsonValue* params, std::string& result, Failure& err);
+bool handleProcResume(const JsonValue* params, std::string& result, Failure& err);
+bool handleProcSetPriority(const JsonValue* params, std::string& result, Failure& err);
+bool handleProcSetAffinity(const JsonValue* params, std::string& result, Failure& err);
+bool handleProcStartInfo(const JsonValue* params, std::string& result, Failure& err);
+bool handleProcCreate(const JsonValue* params, std::string& result, Failure& err);
+bool handleProcDump(const JsonValue* params, std::string& result, Failure& err);
 
 }  // namespace sys

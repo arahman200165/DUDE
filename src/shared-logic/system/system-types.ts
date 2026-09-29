@@ -9,7 +9,10 @@
  */
 
 /** Renderer-callable read methods. Grows one milestone at a time; main rejects anything else. */
-export const SYS_READ_METHODS = ['helper.info', 'process.list', 'net.tcp', 'net.udp', 'reg.enumKey', 'reg.getValues'] as const;
+export const SYS_READ_METHODS = [
+  'helper.info', 'process.list', 'process.detail', 'process.modules', 'process.threads', 'process.handles',
+  'file.version', 'file.signature', 'svc.list', 'net.tcp', 'net.udp', 'reg.enumKey', 'reg.getValues',
+] as const;
 export type SysReadMethod = (typeof SYS_READ_METHODS)[number];
 
 export type SysResult<T> =
@@ -56,6 +59,114 @@ export interface ProcessListResult {
   readonly sampledAtMs: number;
   readonly logicalProcessors: number;
   readonly processes: readonly ProcessSummary[];
+}
+
+// ---- process.detail / modules / threads / handles (Milestone 595) ------------------------------
+
+/** Identifies one process instance: PID plus the `startKey` from `process.list`, so a reused PID never matches. */
+export interface ProcessRef {
+  readonly pid: number;
+  /** Decimal FILETIME creation time (`ProcessSummary.startKey`). */
+  readonly startKey: string;
+}
+
+export type ProcessIntegrityLevel = 'untrusted' | 'low' | 'medium' | 'medium-plus' | 'high' | 'system' | 'protected';
+export type ProcessPriorityClass = 'idle' | 'below-normal' | 'normal' | 'above-normal' | 'high' | 'realtime';
+
+export interface ProcessDetail {
+  readonly pid: number;
+  readonly startKey: string;
+  readonly imagePath: string | null;
+  readonly commandLine: string | null;
+  readonly currentDirectory: string | null;
+  readonly environment: Readonly<Record<string, string>> | null;
+  readonly user: { readonly name: string; readonly domain: string; readonly sid: string } | null;
+  readonly integrityLevel: ProcessIntegrityLevel | null;
+  readonly elevated: boolean | null;
+  readonly wow64: boolean | null;
+  readonly priorityClass: ProcessPriorityClass | null;
+  /** '0x'-prefixed lower-case hex. */
+  readonly affinityMask: string | null;
+  readonly systemAffinityMask: string | null;
+  /** A field that could not be read is null and has an entry here (field name to Windows message). */
+  readonly errors: Readonly<Record<string, string>>;
+}
+
+export interface ProcessModule {
+  readonly name: string;
+  readonly path: string;
+  /** '0x'-prefixed lower-case hex. */
+  readonly baseAddress: string;
+  readonly size: number;
+}
+
+export interface ProcessModulesResult {
+  readonly modules: readonly ProcessModule[];
+}
+
+export interface ProcessThread {
+  readonly tid: number;
+  /** '0x'-prefixed lower-case hex. */
+  readonly startAddress: string;
+  readonly priority: number;
+  readonly basePriority: number;
+  /** KTHREAD_STATE name, e.g. 'Running', 'Waiting'. */
+  readonly state: string;
+  /** KWAIT_REASON name while `state` is 'Waiting', otherwise ''. */
+  readonly waitReason: string;
+  readonly kernelTime100ns: number;
+  readonly userTime100ns: number;
+  readonly createTimeMs: number;
+}
+
+export interface ProcessThreadsResult {
+  readonly threads: readonly ProcessThread[];
+}
+
+export interface ProcessHandle {
+  /** '0x'-prefixed lower-case hex. */
+  readonly handle: string;
+  readonly type: string;
+  readonly name: string | null;
+}
+
+export interface ProcessHandlesResult {
+  readonly handles: readonly ProcessHandle[];
+  /** True when the ~3 s budget ran out before every handle was examined. */
+  readonly truncated: boolean;
+  readonly note?: string;
+}
+
+// ---- file.version / file.signature (Milestone 595) ---------------------------------------------
+
+export interface FileVersionResult {
+  readonly fixed: { readonly fileVersion: string; readonly productVersion: string } | null;
+  /** CompanyName, FileDescription, FileVersion, ProductName, ProductVersion, OriginalFilename, InternalName, LegalCopyright (those present). */
+  readonly strings: Readonly<Record<string, string>>;
+}
+
+export interface FileSignatureResult {
+  readonly status: 'signed' | 'catalog-signed' | 'unsigned' | 'invalid';
+  readonly signer?: string;
+  readonly message?: string;
+}
+
+// ---- svc.list (Milestone 595) -------------------------------------------------------------------
+
+export type ServiceState = 'stopped' | 'start-pending' | 'stop-pending' | 'running' | 'continue-pending' | 'pause-pending' | 'paused';
+export type ServiceType = 'own-process' | 'share-process' | 'other';
+
+export interface ServiceSummary {
+  readonly name: string;
+  readonly displayName: string;
+  /** 0 when the service is not running. */
+  readonly pid: number;
+  readonly state: ServiceState;
+  readonly type: ServiceType;
+}
+
+export interface ServiceListResult {
+  readonly services: readonly ServiceSummary[];
 }
 
 // ---- net.tcp / net.udp -------------------------------------------------------------------------
@@ -138,6 +249,13 @@ export interface RegistryValuesResult {
 export interface SysMethodMap {
   'helper.info': { params: Record<string, never>; result: HelperInfo };
   'process.list': { params: Record<string, never>; result: ProcessListResult };
+  'process.detail': { params: ProcessRef; result: ProcessDetail };
+  'process.modules': { params: ProcessRef; result: ProcessModulesResult };
+  'process.threads': { params: { pid: number }; result: ProcessThreadsResult };
+  'process.handles': { params: ProcessRef; result: ProcessHandlesResult };
+  'file.version': { params: { path: string }; result: FileVersionResult };
+  'file.signature': { params: { path: string }; result: FileSignatureResult };
+  'svc.list': { params: Record<string, never>; result: ServiceListResult };
   'net.tcp': { params: Record<string, never>; result: SocketTableResult };
   'net.udp': { params: Record<string, never>; result: SocketTableResult };
   'reg.enumKey': { params: RegistryKeyParams; result: RegistryEnumResult };

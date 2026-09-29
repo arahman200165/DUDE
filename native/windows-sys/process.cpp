@@ -67,7 +67,7 @@ void appendNum(std::string& out, unsigned long long v) { out += std::to_string(v
 
 }  // namespace
 
-bool handleProcessList(std::string& result, Failure& err) {
+bool querySystemProcesses(std::vector<unsigned char>& buffer, Failure& err) {
   HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
   NtQuerySystemInformationFn query =
       ntdll ? (NtQuerySystemInformationFn)(void*)GetProcAddress(ntdll, "NtQuerySystemInformation") : nullptr;
@@ -76,7 +76,7 @@ bool handleProcessList(std::string& result, Failure& err) {
     return false;
   }
 
-  std::vector<unsigned char> buffer(1 << 20);
+  buffer.assign(1 << 20, 0);
   LONG status = 0;
   for (int attempt = 0; attempt < 16; attempt++) {
     ULONG needed = 0;
@@ -91,6 +91,12 @@ bool handleProcessList(std::string& result, Failure& err) {
     err = f;
     return false;
   }
+  return true;
+}
+
+bool handleProcessList(std::string& result, Failure& err) {
+  std::vector<unsigned char> buffer;
+  if (!querySystemProcesses(buffer, err)) return false;
 
   std::string out;
   out.reserve(256 * 1024);
@@ -141,6 +147,99 @@ bool handleProcessList(std::string& result, Failure& err) {
   out += "]}";
   result = std::move(out);
   return true;
+}
+
+namespace {
+
+const char* threadStateName(ULONG s) {
+  static const char* names[] = {"Initialized", "Ready", "Running", "Standby", "Terminated", "Waiting", "Transition",
+                                "DeferredReady", "GateWaitObsolete", "WaitingForProcessInSwap"};
+  return s < sizeof(names) / sizeof(names[0]) ? names[s] : "Unknown";
+}
+
+const char* waitReasonName(ULONG r) {
+  static const char* names[] = {"Executive", "FreePage", "PageIn", "PoolAllocation", "DelayExecution", "Suspended", "UserRequest",
+                                "WrExecutive", "WrFreePage", "WrPageIn", "WrPoolAllocation", "WrDelayExecution", "WrSuspended",
+                                "WrUserRequest", "WrEventPair", "WrQueue", "WrLpcReceive", "WrLpcReply", "WrVirtualMemory",
+                                "WrPageOut", "WrRendezvous", "WrKeyedEvent", "WrTerminated", "WrProcessInSwap", "WrCpuRateControl",
+                                "WrCalloutStack", "WrKernel", "WrResource", "WrPushLock", "WrMutex", "WrQuantumEnd", "WrDispatchInt",
+                                "WrPreempted", "WrYieldExecution", "WrFastMutex", "WrGuardedMutex", "WrRundown", "WrAlertByThreadId",
+                                "WrDeferredPreempt"};
+  return r < sizeof(names) / sizeof(names[0]) ? names[r] : "Unknown";
+}
+
+// SYSTEM_THREAD_INFORMATION (80 bytes on x64): the array that follows each SYSTEM_PROCESS_INFORMATION.
+struct SystemThreadInfo {
+  LARGE_INTEGER KernelTime;
+  LARGE_INTEGER UserTime;
+  LARGE_INTEGER CreateTime;
+  ULONG WaitTime;
+  PVOID StartAddress;
+  HANDLE ClientIdProcess;
+  HANDLE ClientIdThread;
+  LONG Priority;
+  LONG BasePriority;
+  ULONG ContextSwitches;
+  ULONG ThreadState;
+  ULONG WaitReason;
+};
+
+// The documented struct above ends at PrivatePageCount; the real one adds six 8-byte I/O counters
+// before the thread array begins (total 256 bytes on x64/arm64).
+const size_t kProcessInfoTail = 6 * sizeof(LARGE_INTEGER);
+
+}  // namespace
+
+bool handleProcessThreads(const JsonValue* params, std::string& result, Failure& err) {
+  const JsonValue* pidValue = params && params->kind == JsonValue::Object ? params->find("pid") : nullptr;
+  if (!pidValue || pidValue->kind != JsonValue::Number || pidValue->number < 0 || pidValue->number > 4294967295.0) {
+    err = plainFailure("Invalid process id.");
+    return false;
+  }
+  unsigned long long wanted = (unsigned long long)pidValue->number;
+
+  std::vector<unsigned char> buffer;
+  if (!querySystemProcesses(buffer, err)) return false;
+
+  size_t offset = 0;
+  for (;;) {
+    if (offset + sizeof(SystemProcessInfo) > buffer.size()) break;
+    const SystemProcessInfo* p = (const SystemProcessInfo*)(buffer.data() + offset);
+    if ((unsigned long long)(ULONG_PTR)p->UniqueProcessId == wanted) {
+      size_t first = offset + sizeof(SystemProcessInfo) + kProcessInfoTail;
+      size_t count = p->NumberOfThreads;
+      if (first + count * sizeof(SystemThreadInfo) > buffer.size()) count = first > buffer.size() ? 0 : (buffer.size() - first) / sizeof(SystemThreadInfo);
+      std::string out = "{\"threads\":[";
+      for (size_t i = 0; i < count; i++) {
+        const SystemThreadInfo* t = (const SystemThreadInfo*)(buffer.data() + first + i * sizeof(SystemThreadInfo));
+        if (i) out.push_back(',');
+        char addr[32];
+        std::snprintf(addr, sizeof addr, "0x%llx", (unsigned long long)(ULONG_PTR)t->StartAddress);
+        unsigned long long created = (unsigned long long)t->CreateTime.QuadPart;
+        out += "{\"tid\":" + std::to_string((unsigned long long)(ULONG_PTR)t->ClientIdThread);
+        out += std::string(",\"startAddress\":\"") + addr + "\"";
+        out += ",\"priority\":" + std::to_string(t->Priority);
+        out += ",\"basePriority\":" + std::to_string(t->BasePriority);
+        out += std::string(",\"state\":\"") + threadStateName(t->ThreadState) + "\"";
+        out += std::string(",\"waitReason\":\"") + (t->ThreadState == 5 ? waitReasonName(t->WaitReason) : "") + "\"";
+        out += ",\"kernelTime100ns\":" + std::to_string((unsigned long long)t->KernelTime.QuadPart);
+        out += ",\"userTime100ns\":" + std::to_string((unsigned long long)t->UserTime.QuadPart);
+        out += ",\"createTimeMs\":" + std::to_string(created >= kUnixEpochAsFileTime ? (created - kUnixEpochAsFileTime) / 10000ULL : 0ULL);
+        out += "}";
+      }
+      out += "]}";
+      result = std::move(out);
+      return true;
+    }
+    if (p->NextEntryOffset == 0) break;
+    offset += p->NextEntryOffset;
+  }
+  Failure f;
+  f.message = "The process has exited or its PID was reused.";
+  f.code = ERROR_NOT_FOUND;
+  f.hasCode = true;
+  err = f;
+  return false;
 }
 
 }  // namespace sys

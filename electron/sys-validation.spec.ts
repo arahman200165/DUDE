@@ -12,7 +12,7 @@ describe('validateSysCall', () => {
   });
 
   it('normalizes empty params for parameterless methods', () => {
-    for (const method of ['helper.info', 'process.list', 'net.tcp', 'net.udp']) {
+    for (const method of ['helper.info', 'process.list', 'svc.list', 'net.tcp', 'net.udp']) {
       expect(SYS_READ_METHODS).toContain(method);
       for (const params of [undefined, null, {}, Object.create(null)]) {
         expect(validateSysCall(method, params)).toEqual({ method, params: {} });
@@ -63,5 +63,34 @@ describe('validateSysCall', () => {
     expect(long.length).toBeLessThanOrEqual(1024);
     expect(() => validateSysCall('reg.enumKey', reg({ path: long }))).not.toThrow();
     expect(() => validateSysCall('reg.enumKey', reg({ path: `${long}\\${'a'.repeat(255)}` }))).toThrow(/too long/);
+  });
+
+  it('accepts exact process references and rejects malformed ones', () => {
+    for (const method of ['process.detail', 'process.modules', 'process.handles']) {
+      const ok = { pid: 4321, startKey: '133700000000000000' };
+      expect(validateSysCall(method, ok)).toEqual({ method, params: ok });
+      expect(() => validateSysCall(method, { pid: 0, startKey: '0' })).not.toThrow();
+      expect(() => validateSysCall(method, { pid: 4294967295, startKey: '9'.repeat(20) })).not.toThrow();
+      for (const bad of [undefined, null, [], 'x', {}, { pid: 1 }, { startKey: '1' }, { ...ok, extra: 1 }]) expect(() => validateSysCall(method, bad)).toThrow();
+      for (const pid of [-1, 1.5, 4294967296, NaN, Infinity, '1', null]) expect(() => validateSysCall(method, { ...ok, pid })).toThrow(/Process id/);
+      for (const startKey of ['', 'abc', '-1', '1.5', ' 1', '1'.repeat(21), 1, null]) expect(() => validateSysCall(method, { ...ok, startKey })).toThrow(/start key/);
+    }
+  });
+
+  it('accepts exactly { pid } for process.threads', () => {
+    expect(validateSysCall('process.threads', { pid: 7 })).toEqual({ method: 'process.threads', params: { pid: 7 } });
+    for (const bad of [undefined, {}, { pid: 7, startKey: '1' }, { pid: -1 }, { pid: '7' }, []]) expect(() => validateSysCall('process.threads', bad)).toThrow();
+  });
+
+  it('validates absolute Windows file paths for file.version and file.signature', () => {
+    for (const method of ['file.version', 'file.signature']) {
+      for (const path of ['C:\\Windows\\notepad.exe', 'c:/windows/notepad.exe', '\\\\server\\share\\a.dll', '\\\\?\\C:\\a.dll', `C:\\${'a'.repeat(32764)}`]) {
+        expect(validateSysCall(method, { path })).toEqual({ method, params: { path } });
+      }
+      for (const path of ['', 'notepad.exe', '..\\a.dll', 'C:a.dll', '\\\\', '\\\\\\a', 'C:\\a\u0000b', 'C:\\a\nb', 'C:\\a\u007f', `C:\\${'a'.repeat(32765)}`, 5, null]) {
+        expect(() => validateSysCall(method, { path })).toThrow();
+      }
+      for (const bad of [undefined, {}, [], { path: 'C:\\a', extra: 1 }, { file: 'C:\\a' }]) expect(() => validateSysCall(method, bad)).toThrow();
+    }
   });
 });
