@@ -263,6 +263,8 @@ After `ng build`, confirm the lazy chunk loads and the route resolves correctly 
 
 ## Adding a Home panel (not a tool)
 
+The Home/Browse Tools/Sidebar responsibility split, panel ownership rules, layout persistence and dashboard/chart conventions are documented in `src/app/shell/deck/AGENTS.md`; this section is the recipe.
+
 Registering a tool never creates a Home panel — a panel is its own explicit declaration (DUDE_PRD.md Phase 30I). A feature that wants one (a tool's status card, Git status, running processes, certificate expiry, …) adds a colocated **`<kind-id>.panel-manifest.ts`** next to its component and touches nothing in `src/app/shell/`, `src/app/core/` or Settings:
 
 ```ts

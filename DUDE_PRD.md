@@ -56,9 +56,9 @@ The product then continued through **Phases 1–21, all of which are complete**.
 
 **Phase 8 (Downloadable Desktop App with a Bundled Backend) is complete** and is the turning point for the product hierarchy. Its eight shipped stages remain: Electron shell; native file access; OS-level secret storage; local LLM proxy + AI regex features; desktop shell chrome; local collab server; BYO relay server; auto-update + distribution. Those shipped details remain documented in §21 Phase 8.
 
-**Phases 22–29 are also complete**: Phase 22 (Platform Hardening, Trust & Desktop-First Pivot) consolidated metadata/registry structure, trust, testing, and cache/bundle control; Phase 23 (Correctness, Verification & High-Consequence Tool Hardening) brought every one of the 277 tool manifests to a `verified` confidence tier; Phase 24 (Smart Entry, Discovery & Personal DUDE) turned Phase 21's Smart Paste/pipelines/workspaces/history into the primary paste-first, personalized entry experience — Recently Used, Favorites, Pinned Pipelines, Related-Tool and Pipeline Suggestions, Workspace Templates, Quick Run, and Unified Recents, all private-by-construction with no analytics or server telemetry; Phase 25 (Desktop-First Shell & Native Product Experience) finished that positioning change technically — Projects, a Desktop-Native Home, `dude://` deep links, a native OS menu, a six-source Command Palette, a Native File Recent List, crash/restart recovery, a Quick Launcher, native drag-and-drop routing, a generated file-association framework, Desktop Capability Indicators, desktop-first documentation, and a measured startup/parallelization pass — all shipped as Milestones 421–455. Phase 26 (Web Companion & PWA Efficiency) added selective offline readiness, install/share/handoff flows, browser-safe pipeline and workspace support, and web/desktop parity tests, shipped as Milestones 482–488. Phase 27 (Networking Toolkit) began the native expansion. It shipped 18 desktop network-diagnostics tools over a main-process-enforced IPC bridge and a bundled Windows ICMP helper, as Milestones 489–508. Phase 28 shipped live DNS, TLS and certificate inspection as Milestones 509–522. Phase 29 shipped filesystem scanning, watching and previewed mutation as Milestones 523–536.
+**Phases 22–30 are also complete**: Phase 22 (Platform Hardening, Trust & Desktop-First Pivot) consolidated metadata/registry structure, trust, testing, and cache/bundle control; Phase 23 (Correctness, Verification & High-Consequence Tool Hardening) brought every one of the 277 tool manifests to a `verified` confidence tier; Phase 24 (Smart Entry, Discovery & Personal DUDE) turned Phase 21's Smart Paste/pipelines/workspaces/history into the primary paste-first, personalized entry experience — Recently Used, Favorites, Pinned Pipelines, Related-Tool and Pipeline Suggestions, Workspace Templates, Quick Run, and Unified Recents, all private-by-construction with no analytics or server telemetry; Phase 25 (Desktop-First Shell & Native Product Experience) finished that positioning change technically — Projects, a Desktop-Native Home, `dude://` deep links, a native OS menu, a six-source Command Palette, a Native File Recent List, crash/restart recovery, a Quick Launcher, native drag-and-drop routing, a generated file-association framework, Desktop Capability Indicators, desktop-first documentation, and a measured startup/parallelization pass — all shipped as Milestones 421–455. Phase 26 (Web Companion & PWA Efficiency) added selective offline readiness, install/share/handoff flows, browser-safe pipeline and workspace support, and web/desktop parity tests, shipped as Milestones 482–488. Phase 27 (Networking Toolkit) began the native expansion. It shipped 18 desktop network-diagnostics tools over a main-process-enforced IPC bridge and a bundled Windows ICMP helper, as Milestones 489–508. Phase 28 shipped live DNS, TLS and certificate inspection as Milestones 509–522. Phase 29 shipped filesystem scanning, watching and previewed mutation as Milestones 523–536. Phase 30 (Workbench Shell, Tool Discovery, Local Insights & Appearance) turned the tool deck into a bounded, user-designed workbench with a dedicated Browse Tools catalog, local insights, controlled theming, and an integrated scale/keyboard/platform verification gate, shipped as Milestones 537–592.
 
-The roadmap is now one linear product horizon through **Phase 100**. Completed Phases 22–26 consolidated platform structure, trust, discovery, desktop UX, and web/PWA efficiency. Phases 27–38 form the next major product expansion: Phases 27–29 shipped networking, live DNS/TLS and filesystem workflows; Phase 30's workbench-shell, discovery, insights and appearance subphases 30A–30K have shipped, with the 30L integrated verification gate still open; and Phases 31–38 continue across Windows/process tooling, local API/server development, live databases, containers, OS integration, AI-assisted utilities, VS Code integration, and browser-extension integration. Later phases extend into cross-platform desktop, automation, Git/SSH/package/build/log/proxy/database/container/Kubernetes workflows, secrets/PKI, collaboration/workspaces/pipelines, plugins/extensions, CLI/SDK/headless automation, AI, project/code/runtime tooling, and a deliberately distant platform/ecosystem horizon.
+The roadmap is now one linear product horizon through **Phase 100**. Completed Phases 22–26 consolidated platform structure, trust, discovery, desktop UX, and web/PWA efficiency. Phases 27–38 form the next major product expansion: Phases 27–29 shipped networking, live DNS/TLS and filesystem workflows; Phase 30 shipped the workbench shell, discovery, insights, appearance and its 30L integrated verification gate; and Phases 31–38 continue across Windows/process tooling, local API/server development, live databases, containers, OS integration, AI-assisted utilities, VS Code integration, and browser-extension integration. Later phases extend into cross-platform desktop, automation, Git/SSH/package/build/log/proxy/database/container/Kubernetes workflows, secrets/PKI, collaboration/workspaces/pipelines, plugins/extensions, CLI/SDK/headless automation, AI, project/code/runtime tooling, and a deliberately distant platform/ecosystem horizon.
 
 ---
 
@@ -367,7 +367,7 @@ These items are not failures of the original product and are handled by the road
 - Cross-tool I/O, pipelines, Smart Paste, workspace/Saved Sessions, and local history (Phase 21) — ✅ shipped.
 - Platform hardening/correctness/discovery/desktop shell/web efficiency (Phases 22–26) — completed consolidation wave.
 - Native network diagnostics (Phase 27) — ✅ shipped.
-- TLS, filesystem, theming, Windows/process, API/server, database, container, OS-integration, AI, and editor/browser integration work is tracked authoritatively in Phases 28–38. TLS and filesystem expansion shipped in Phases 28–29, and theming/appearance shipped in Phase 30K; Phase 30L's integrated verification gate and the Windows/process through browser-integration work remain tracked in Phases 30–38.
+- TLS, filesystem, theming, Windows/process, API/server, database, container, OS-integration, AI, and editor/browser integration work is tracked authoritatively in Phases 28–38. TLS and filesystem expansion shipped in Phases 28–29, and theming/appearance shipped in Phase 30K (Phase 30 is complete); the Windows/process through browser-integration work remains tracked in Phases 31–38.
 - Long-horizon additions through Phase 100 are roadmap directions, not a fixed commitment or schedule.
 
 ---
@@ -553,28 +553,41 @@ Constraints:
 
 # 9. Navigation and Information Architecture
 
-The selected model is a hybrid.
+The selected model is a hybrid. Since Phase 30 (verified by the Phase 30L gate) the five navigation surfaces have distinct, non-overlapping jobs:
 
-## 9.1 Deck home
+| Surface | Job | Bounded? |
+|---|---|---|
+| **Home / Workbench Dashboard** (`/`) | "What do I want to do now?" Action-first, personalized, user-configurable (Phase 30I) | Yes. Its content is independent of registry size |
+| **Browse Tools** (`/tools`) | "What does DUDE contain?" The exhaustive registry and discovery surface: search, category/status/platform filters, sort | No. Every registered tool is reachable here |
+| **Sidebar** | Persistent destination and category navigation | Yes. A category index with counts; an expanded category shows a capped list plus an "All N" link into Browse Tools |
+| **Command Palette** (`Ctrl+K`) | Universal expert launcher across tools, commands, projects, pipelines, recents and preferences (§26) | Ranked results |
+| **Dedicated routes** (`/tools/<route>`) | Stable, bookmarkable tool destinations (§9.5) | n/a |
 
-The Phase 30D default Home is planned as a bounded, action-first workbench surface. It prioritizes Smart Entry, personalized tool launch, resuming projects/workspaces/pipelines, and Quick Run. Local activity summaries and a compact catalog preview may appear without making the complete registry Home's dominant content. Phase 30I specifies the user-designed Home layout builder. In the Phase 30 design, the exhaustive registry belongs to Browse Tools; category navigation, search, and the Command Palette provide other discovery paths.
+## 9.1 Home / Workbench Dashboard
 
-For the original V1 deck, a tool list/grid with all registered tools was required while recent and favorite tools were optional. That remains the historical V1 acceptance record; Phase 24 made personalization first-class, and the Phase 30D default Home replaces that V1 layout when implemented.
+The Phase 30D default Home is a bounded, action-first workbench surface. It prioritizes Smart Entry, personalized tool launch, resuming projects/workspaces/pipelines, and Quick Run. Local activity summaries and a compact, capped catalog preview may appear, but the complete registry is never Home's dominant content. Phase 30I made the layout user-designed: first-party panels plus user text/link/shortcut panels, arranged in independent wide and narrow layouts from Settings › Home layout. The exhaustive registry belongs to Browse Tools; category navigation, search, and the Command Palette provide the other discovery paths. The Home/panel contract is documented next to the implementation in `src/app/shell/deck/AGENTS.md`.
 
-## 9.2 Sidebar
+For the original V1 deck, a tool list/grid with all registered tools was required while recent and favorite tools were optional. That remains only as the historical V1 acceptance record. Phase 24 made personalization first-class, and the Phase 30D default Home replaced that V1 layout.
 
-The Phase 30B target is a persistent desktop sidebar containing:
+## 9.2 Browse Tools
+
+The dedicated full-registry browser (Phase 30A) at `/tools` renders registry metadata only, never tool components. Search, category, status and platform filters, and sort are reflected in the URL, so a filtered view is bookmarkable. Sidebar category links and the Home catalog preview deep-link into it (`/tools?category=<id>`).
+
+## 9.3 Sidebar
+
+The persistent desktop sidebar (Phase 30B) contains:
 
 - DUDE identity;
 - global search/command launcher;
 - primary shell destinations;
+- compact Favorites and Recents entry points;
 - registry-derived category links/counts into Browse Tools;
 - a Browse Tools entry point;
 - active route state.
 
-The redesigned sidebar should be compact enough to remain open during normal use. Individual tool links may appear through explicit category expansion, but the complete registry is not permanently expanded by default.
+It stays compact enough to remain open during normal use. Categories are collapsed by default. Explicitly expanding one shows a capped tool list (the active tool always stays visible) followed by an "All N … tools" link into Browse Tools, so the sidebar stays bounded as the registry grows.
 
-## 9.3 Command palette
+## 9.4 Command palette
 
 Keyboard-accessible global launcher.
 
@@ -582,21 +595,23 @@ Recommended shortcut:
 
 - `Ctrl+K` on the primary target platform.
 
-Capabilities for V1:
+Capabilities for V1 (historical):
 
 - search by tool title;
 - search by keyword;
 - search by category;
 - navigate directly to tool.
 
-Deferred:
+Phase 25 (Milestones 423–424, 441–443) and Milestone 478 extended it into the universal expert launcher. Tools, workspace templates, projects, pipelines (navigate-only), native operations, recent activity, preferences and "Go to" shell destinations all contribute through the declared `COMMAND_SOURCE` contract (§26). It works from every route, including a user-customized Home.
 
-- executing tool actions directly from palette;
+Still deferred:
+
+- directly executing pipelines from the palette (pending their confirmation gate);
 - command history;
 - fuzzy action chains;
-- extension commands.
+- extension commands (no plugin loader exists yet).
 
-## 9.4 Dedicated tool routes
+## 9.5 Dedicated tool routes
 
 Every tool receives its own bookmarkable route.
 
@@ -1061,7 +1076,7 @@ Every feature and every originally-deferred capability across these 10 tools was
 
 The roadmap deliberately extends beyond what any single delivery phase covers.
 
-Phase 0 was the weekend commitment; it is complete. **Phases 1–29 are also complete.** Phase 8 established the Windows desktop track, Phase 21 established the cross-tool workflow foundations, and Phase 22 hardened the platform (distributed manifests, single-sourced metadata, structural validation, generated docs, dependency boundaries, chunk/cache budgets) for the next several hundred tools. Phases 30A–30L define the proposed workbench shell, discovery, insights, appearance, and verification program. Phase 30 and later roadmap work is taken up as decided rather than on any fixed schedule.
+Phase 0 was the weekend commitment; it is complete. **Phases 1–30 are also complete.** Phase 8 established the Windows desktop track, Phase 21 established the cross-tool workflow foundations, and Phase 22 hardened the platform (distributed manifests, single-sourced metadata, structural validation, generated docs, dependency boundaries, chunk/cache budgets) for the next several hundred tools. Phase 30 (30A–30L) shipped the workbench shell, discovery, insights, appearance, and verification program. Phase 31 and later roadmap work is taken up as decided rather than on any fixed schedule.
 
 From Phase 22 onward, the roadmap deliberately stops treating raw tool count as the primary measure of progress. Platform trust, correctness, composition, native capability, local/offline strength, automation safety, discoverability, and reuse across surfaces matter more.
 
@@ -1717,7 +1732,7 @@ Unlike every other phase in this roadmap, this one was never "pick an item, buil
    - **Milestone 282 audit:** with all 277 tools declaring `io`, a read-only audit checked accuracy (does the declared `io` match what each tool's component actually does) rather than just presence. It found real drift across ~33 tools — mostly `produces` omitting `file` despite a working download/export button, plus several tool-cluster inconsistencies with no documented rule (generator `accepts` conventions, decoder-family `produces`, CSV/JSON-family type pairing). Milestone 282 corrected those, made `io` a required field on `ToolDefinition` (was `io?:`) so a future tool can't omit it, and wired the previously-unused `http-response` type into `curl-converter`/`http-request-builder`'s `accepts`. Two things were deliberately left for a future pass rather than decided unilaterally here: (1) a larger, unresolved split between a "text-report" and a "json-structured-findings" convention across ~20 config/git-linter vs. binary-forensics tools, and (2) vocabulary gaps the current 7-type set can't cleanly express — no arity concept for two-input tools (diff/merge/join), no distinct type for a directory/multi-file bundle (`directory-diff`, `archive-tool`) or a live camera stream (`qr-code-scanner`'s webcam mode) vs. a single `file`.
 2. **Transformation Pipelines** — ✅ shipped as Milestones 283–286. Chains existing tools into a single reusable workflow (e.g. `Base64 Decode → JSON Formatter → …`) instead of visiting separate tools and manually copying output to input each time, via a new `PipelineStep` contract (`src/app/shared/models/pipeline-step.model.ts`) that 225 of 277 tools were mechanically retrofitted with — a thin `<id>.pipeline-step.ts` adapter per tool, resolved purely by naming convention (`core/pipeline/pipeline-step-loader.ts`'s convention-derived dynamic import), never a hand-maintained field on `ToolDefinition` or a parallel id-keyed map. The remaining 52 tools are deliberately excluded and individually documented (`core/pipeline/pipeline-coverage.spec.ts`): genuine multi-input tools (diff/merge/join-shaped, or a document+schema pair — the vocabulary gap Milestone 282 already flagged), network-required tools, crypto tools needing a caller-supplied key with no honest zero-config mode, interactive/stateful UIs with no real transform, and tools with no pure-logic file to adapt without a rewrite. Chaining is sequential-only (no branching/fan-out) with no automatic type coercion between steps — a mismatch must be bridged by inserting another compatible tool (or a script, below), never silently converted. This was, as anticipated, the one roadmap item allowed to touch `shell/`/`core/`: a new `/pipelines` route tree and sidebar entry (`src/app/shell/pipelines/`), kept registry-adjacent rather than a 278th tool (no category, no `TOOL_DEFINITIONS` entry).
    - **User-defined tool scripting** — ✅ shipped alongside Transformation Pipelines as Milestone 286, as a dependent extension of it: a user writes and locally saves their own custom transformation step (`/pipelines/scripts`), reusing the sandbox already shipped in Phase 6 (an opaque-origin iframe plus a nested, force-terminable Worker) unmodified rather than needing new execution infrastructure. At the time this shipped, it was explicitly distinguished from the then-banned “plugin installation from remote sources” (§5.2): a user's own script never leaves their machine or gets distributed to anyone else. That distinction remains important even though Phases 56–57 later revisit extensions under a separate signed, capability-declared, sandboxed model. A script is a first-class step type validated exactly like a built-in tool step (it declares its own `accepts`/`produces`), and a hung/errored/malformed-output script halts the pipeline the same way a failed built-in step would.
-3. **Smart Paste-Detection** — ✅ shipped as Milestone 288. A dedicated `/smart-paste` page (`src/app/shell/smart-paste/`) that inspects pasted content and suggests the tool that understands it. This matters for discoverability the way the command palette (§9.3/§26) already helps when a user knows what they want but not where it lives — this helps when they don't yet know what they want to do with what they're holding. A curated, hand-maintained `PASTE_DETECTORS` registry (`src/app/core/paste-detect/`, 11 shapes for v1: JSON, JWT, UUID, ULID, KSUID, Snowflake id, hex color, IPv4/IPv6, URL, Base64, Unix timestamp) ranks candidate matches by confidence, reusing each tool's existing pure-logic export rather than reimplementing shape recognition. Deliberately **not** the same per-tool `<id>.pipeline-step.ts` convention Item 2 uses — detection has to run every detector against the same input on every keystroke, which the per-paste dynamic-import cost of that convention doesn't suit at this curated scale (see `src/app/core/paste-detect/AGENTS.md`). Picking a suggestion navigates to the matching tool and prefills its input via a one-shot, in-memory-only hand-off (`PasteHandoffService`) — never persisted, consistent with §14.1's sensitive-payload default. Ambient/global paste capture (detecting a paste anywhere in the app, not just on this dedicated page) was considered and deliberately deferred to a future pass; NanoID was excluded from the v1 shape set for having no fixed structural signature to detect against. **Extended (Milestone 473):** 12 document-format detectors (SVG, HTML, XML, Markdown, YAML, Kubernetes manifests, SQL, CSV, CSS, Dockerfile, `.env`, stack traces) joined the 11 ID/token shapes. They use lightweight, bounded structural sniffers (`core/paste-detect/text-format-sniffers.ts`) rather than the owning tools' parsers — `PASTE_DETECTORS` ships in the prefetched shell via the ambient chip, and those parsers are heavy lazy dependencies — and are scored so any ID/token match outranks them. Their targets receive the paste through the Universal File Input text hand-off (Phase 24 Item 4's follow-up), which writes it into the tool's own declared input key: the value lands only where that tool's own persistence policy would have put it had the user typed it; `PasteHandoffService` itself remains in-memory-only.
+3. **Smart Paste-Detection** — ✅ shipped as Milestone 288. A dedicated `/smart-paste` page (`src/app/shell/smart-paste/`) that inspects pasted content and suggests the tool that understands it. This matters for discoverability the way the command palette (§9.4/§26) already helps when a user knows what they want but not where it lives — this helps when they don't yet know what they want to do with what they're holding. A curated, hand-maintained `PASTE_DETECTORS` registry (`src/app/core/paste-detect/`, 11 shapes for v1: JSON, JWT, UUID, ULID, KSUID, Snowflake id, hex color, IPv4/IPv6, URL, Base64, Unix timestamp) ranks candidate matches by confidence, reusing each tool's existing pure-logic export rather than reimplementing shape recognition. Deliberately **not** the same per-tool `<id>.pipeline-step.ts` convention Item 2 uses — detection has to run every detector against the same input on every keystroke, which the per-paste dynamic-import cost of that convention doesn't suit at this curated scale (see `src/app/core/paste-detect/AGENTS.md`). Picking a suggestion navigates to the matching tool and prefills its input via a one-shot, in-memory-only hand-off (`PasteHandoffService`) — never persisted, consistent with §14.1's sensitive-payload default. Ambient/global paste capture (detecting a paste anywhere in the app, not just on this dedicated page) was considered and deliberately deferred to a future pass; NanoID was excluded from the v1 shape set for having no fixed structural signature to detect against. **Extended (Milestone 473):** 12 document-format detectors (SVG, HTML, XML, Markdown, YAML, Kubernetes manifests, SQL, CSV, CSS, Dockerfile, `.env`, stack traces) joined the 11 ID/token shapes. They use lightweight, bounded structural sniffers (`core/paste-detect/text-format-sniffers.ts`) rather than the owning tools' parsers — `PASTE_DETECTORS` ships in the prefetched shell via the ambient chip, and those parsers are heavy lazy dependencies — and are scored so any ID/token match outranks them. Their targets receive the paste through the Universal File Input text hand-off (Phase 24 Item 4's follow-up), which writes it into the tool's own declared input key: the value lands only where that tool's own persistence policy would have put it had the user typed it; `PasteHandoffService` itself remains in-memory-only.
 4. **Persistent Workspace / Scratchpad** — ✅ shipped as Milestones 289–294. A multi-tool workbench (not a source-code IDE, per the ceiling below): a tab strip and a recursive panel tree let more than one tool be open — and, via "split right," visible side by side — at once, mounted through a new `ToolHost` (`src/app/shell/workspace/tool-host/`) that dynamically loads a tool's existing lazy `ToolDefinition.load()` via `NgComponentOutlet`, rather than named router outlets (rejected — panel count is open-ended, which would mean either a multiplicative blow-up of the route table per outlet slot or an ever-growing URL segment nothing else in DUDE does). Panels reuse the existing `SplitPane` primitive (§13) unmodified. A collapsible scratchpad drawer holds manually-saved snippets/notes, independent of the automatic per-tool mirroring. The shared `<id>.workspace-step.ts` adapter convention (`src/app/shared/models/workspace-step.model.ts`, resolved by the same naming-convention dynamic import as Item 2's `<id>.pipeline-step.ts`) is what both this item and Item 5 build on. **The governing rule, resolving the hardest design tension:** no part of this feature may ever cause a tool's content to outlive the `PersistencePolicy` that tool's own code already declares (§14.1) — tab/panel *layout* is treated as the "layout preference" §14.1 already names as safe to persist and restores unconditionally via a `local`-policy pseudo-tool store (`'__workspace__'`, the same synthetic-toolId trick `PipelineStoreService` uses for `'__pipelines__'`), but tool *content* is never separately copied or promoted — restoring a tab just remounts that tool's component, which re-reads its own already-existing `persistence.signal` values exactly as on any ordinary navigation. This is also why the originally-anticipated IndexedDB "durable content tier" for Saved Sessions turned out to be unnecessary (a real relaunch wipes all in-memory JS state anyway, leaving only `localStorage`/`sessionStorage`, which the tool's own code already reads correctly) — see `core/workspace/AGENTS.md`.
    - **Saved Sessions** — restoring open tools/inputs on relaunch — shipped as part of this (Milestone 293), exactly as the governing rule above describes: layout always restores; content restores only insofar as each tool's own policy already allowed it.
 5. **Persistent Local History** — ✅ shipped as Milestones 295–297. A cross-tool history (`/history`, `src/app/shell/history/`) backed by a new IndexedDB store (`src/app/core/history/history-db.ts`, on top of a shared `src/app/core/storage/indexed-db.ts` primitive — this codebase's first IndexedDB usage) with per-tool/global/age/size retention caps that degrade gracefully (§29) rather than throwing. Reuses Item 4's `<id>.workspace-step.ts` adapter rather than a second convention: a tool opts in via an explicit `historyEligible: true`, defaulting to excluded — deliberately **not** inferred from the tool's own `PersistencePolicy`, since that field answers a narrower question ("does this survive a refresh, inside this one tool") than History's actual one ("should this sit in a global, searchable, cross-tool feed indefinitely"); see `core/history/AGENTS.md` for the exclusion categories (sensitive-by-design, pure reference/lookup, sandboxed-execution-source-only). The mechanical retrofit (Milestones 296–297) touched 215 of 277 tools; the remaining 62 are individually documented in `core/workspace/workspace-coverage.spec.ts` (mirroring `pipeline-coverage.spec.ts`'s shape) — mostly binary/file-upload-only tools with nothing serializable, pure-reference tables, or tools whose relevant field is already sensitive-by-design in the tool's own code. `ToolShell.ngOnDestroy` is the single capture trigger, firing identically whether a tool was left via its own route or swapped out of a Workspace panel; clicking a History entry reuses the exact same `workspaceStep.restore()` `ToolHost` uses for tab reopen.
@@ -2051,7 +2066,7 @@ Every mutating batch operation now shows a preview with exact affected paths and
 
 ---
 
-## Phase 30 — Workbench Shell, Tool Discovery, Local Insights & Appearance
+## Phase 30 — Workbench Shell, Tool Discovery, Local Insights & Appearance (✅ Complete — shipped as Milestones 537–592)
 
 Rework DUDE's primary shell surfaces so the application behaves like a dense developer workbench rather than a scrollable catalog of hundreds of tools.
 
@@ -2449,7 +2464,7 @@ Prefer a lightweight implementation over adding a large dashboard/chart dependen
 - [x] Home panels share one compact panel primitive with loading, empty, action, and keyboard states — `app-dashboard-panel` (`shared/components/dashboard-panel/`), M549.
 - [x] Shell tables reuse or extend the shared table pattern; local insights use small token-driven charts with text equivalents — `app-data-table` (`shared/components/data-table/`, unified from the former `app-data-table`/`app-tool-table` split, M550–M552) and `app-sparkline-chart`/`app-ranked-bars-chart` (`shared/components/workbench-charts/`, M553).
 
-Shipped M549–M553. A dev-only `/dev/primitives-preview` route (gated by `isDevMode()`, never reachable in a production build, not registered in the sidebar/search/command-palette) exercises all three primitives together — **remove this route and `src/app/dev-preview/` once Phase 30D–30H have real consumers of these primitives**, tracked in Phase 30's own exit gate below.
+Shipped M549–M553. A dev-only `/dev/primitives-preview` route (gated by `isDevMode()`, never reachable in a production build, not registered in the sidebar/search/command-palette) exercises all three primitives together — removed, with `src/app/dev-preview/`, in Milestone 587 (Phase 30L) once the real Home panels, tables and charts exercised the primitives directly.
 
 ### Phase 30D — Bounded Default Home
 
@@ -3044,7 +3059,7 @@ Secondary explanation appears on demand.
 - **M574 — Spacing + primitives.** `dude-input`, `dude-chip`, `dude-chip-on/off` utilities replace the class strings that were copy-pasted across shell templates. All off-scale values in Onboarding, Settings, sidebar and shared components fixed.
 - **M575 — Progressive disclosure.** New `shared/components/disclosure` (`aria-expanded`/`aria-controls`, badge, collapsed summary, state not persisted). Browse category/status/sort selects and catalog counts sit behind "Filters" with an active-filter badge; Smart Paste, Insights and the desktop-only panel card explanations collapse to a one-line summary.
 
-*Status (Milestones 572–575):* verified in the dev server on Home, Browse (table, grid, filtered), a tool workspace, Insights and the command palette; unit tests, lint and `ng build` pass. **Still owed:** the production-build direct-route check (`/DUDE/tools/<id>`); a per-category sample of tool workspaces at the new 16px root; a browser pass of Settings sections and Onboarding; and disclosure for category-preview contents, full Recent Activity and long tool descriptions (not started). Platform chips, Favorites and Recent stay visible in Browse because the web-companion e2e depends on them.
+*Status (Milestones 572–575):* verified in the dev server on Home, Browse (table, grid, filtered), a tool workspace, Insights and the command palette; unit tests, lint and `ng build` pass. The items then still owed were closed later. The production-build direct-route check and a per-category tool-workspace sample are covered by the main e2e suite and Phase 30K's appearance matrix, which opens one tool per category on every combination. Settings › Appearance and Onboarding are covered by that matrix and the owner's Phase 30L visual pass. Category-preview contents, full Recent Activity and long descriptions use bounded slices with a "View all" route (Browse Tools, `/insights`, `/history`), and truncated tool-grid descriptions carry their full text as a title (M591). Platform chips, Favorites and Recent stay visible in Browse because the web-companion e2e depends on them.
 
 ### Phase 30K — Theming, Appearance, and Accessibility Expansion (✅ Complete — shipped as Milestones 577–585)
 
@@ -3100,9 +3115,9 @@ Customization means composing first-party, pre-validated options per axis. Free 
 
 **Scope decisions (locked by the owner):** the axes are independent. The only entry points are Settings › Appearance and the Onboarding Appearance page (no palette commands, no sidebar toggle). Appearance is global (`local`, live across tabs), not per workspace or project. Phase 30L keeps its own later gate in addition to 30K's matrix.
 
-*Status (Milestones 577–585; recorded in the PRD by Milestone 586):* all ten exit criteria are met; `npm run lint` (including the contrast matrix), `npm run test:appearance` and the main e2e suite pass. **Still owed** (not required by any exit criterion): a manual Electron check of the packaged app in dark, light and system while toggling the OS theme (window background, native menus and scrollbars, no white flash); a manual Windows Contrast Themes (forced-colors) check, since the forced-colors pass was verified by code review only; an eyeball check of light + high contrast + color-blind-safe `info` (`#4e4e74`), which sits close to `offline`. Fonts are applied at bootstrap (the pre-paint script sets only the `data-*` attributes), so a non-default font may swap in after first paint. The initial bundle remains over its 500 kB warning budget (~538 kB now; 513.64 kB at M576, before 30K), well under the 1.1 MB error budget.
+*Status (Milestones 577–585; recorded in the PRD by Milestone 586):* all ten exit criteria are met; `npm run lint` (including the contrast matrix), `npm run test:appearance` and the main e2e suite pass. **Still owed** (not required by any exit criterion): a manual Electron check of the packaged app in dark, light and system while toggling the OS theme (window background, native menus and scrollbars, no white flash); a manual Windows Contrast Themes (forced-colors) check, since the forced-colors pass was verified by code review only; an eyeball check of light + high contrast + color-blind-safe `info` (`#4e4e74`), which sits close to `offline`. Curated fonts are applied before first paint since Milestone 587 (`data-ui-font`/`data-mono-font`); only a custom installed-font name is still applied at bootstrap. The initial bundle totals ~1.04 MB: over its 500 kB warning budget by ~539 kB (an earlier revision of this line misquoted that overage as the bundle size) and ~60 kB under the 1.1 MB error budget.
 
-### Phase 30L — Integrated Scale, Accessibility, and Platform Verification
+### Phase 30L — Integrated Scale, Accessibility, and Platform Verification (✅ Complete — shipped as Milestones 587–592)
 
 Run this integrated gate after Phase 30K (shipped). Verify the completed shell with representative combinations of supported themes, density and font settings, high contrast, and reduced motion, in addition to the default appearance. Phase 30K's own matrix, `npm run test:appearance`, already sweeps every appearance color combination for pre-paint, overflow, focus, contrast and motion; this gate builds on it rather than replacing it, and adds the scale, keyboard, first-frame and platform checks below. Both gates stay.
 
@@ -3268,16 +3283,67 @@ The original V1 all-tools-on-Deck requirement remains in those sections only as 
 
 #### Exit criteria
 
-- [ ] Home and Browse Tools do not eagerly load tool implementation chunks.
-- [ ] Default Home remains bounded with a synthetic 500-tool registry.
-- [ ] Web companion receives the same default information hierarchy with graceful omission/substitution of desktop-only blocks.
-- [ ] Focus, keyboard navigation, contrast, and existing accessibility baseline remain intact for browsing and layout editing.
-- [ ] Building on Phase 30K's `npm run test:appearance` matrix (which stays in force), representative light/dark, density, font, high-contrast, and reduced-motion settings pass the first-frame, overflow, focus, keyboard, contrast, and responsive checks above.
-- [ ] Phase 30C's dev-only `/dev/primitives-preview` route and `src/app/dev-preview/` are deleted now that 30D–30H's real Home panels/tables/charts exercise the shared primitives directly.
+- [x] Home and Browse Tools do not eagerly load tool implementation chunks. `e2e/phase30l-workbench.spec.ts` records every script request on Home (default and with seeded favorites/usage) and Browse Tools (table and grid, scrolled) and fails on any tool-only chunk from `offline-map.json`; a direct tool route must request one, so the check is not vacuous. The Home Quick Run panel now resolves pipeline steps only on first user intent (M590).
+- [x] Default Home remains bounded with a synthetic 500-tool registry, and with 1,000 (`src/testing/synthetic-tool-registry.ts`, `shell/registry-scale.spec.ts`, M588).
+- [x] Web companion receives the same default information hierarchy with graceful omission/substitution of desktop-only blocks: no desktop-only panel and no blank holes at four widths or in a custom layout (M591).
+- [x] Focus, keyboard navigation, contrast, and existing accessibility baseline remain intact for browsing and layout editing: 30L.5 items 1–11 run pointer-free in `e2e/phase30l-keyboard.spec.ts`, and the three keyboard bugs the gate found were fixed (M591).
+- [x] Building on Phase 30K's `npm run test:appearance` matrix (which stays in force), representative light/dark, density, font, high-contrast, and reduced-motion settings pass the first-frame, overflow, focus, keyboard, contrast, and responsive checks above: `e2e/phase30l-first-frame.spec.ts`, 5 appearances × 5 displays, plus the owner's manual visual pass.
+- [x] Phase 30C's dev-only `/dev/primitives-preview` route and `src/app/dev-preview/` are deleted now that 30D–30H's real Home panels/tables/charts exercise the shared primitives directly (M587).
+
+#### Shipped (Milestones 587–592)
+
+- **M587 — Dev preview removed; fonts before first paint.** Deleted the Phase 30C harness and its dev-only route. Curated UI/mono fonts are now `data-ui-font`/`data-mono-font` attributes with generated CSS rules, set by the inline pre-paint script and `AppearanceService`, which closes 30K's font-swap follow-up for curated fonts.
+- **M588 — Registry scale fixture (30L.6).** A `TOOL_DEFINITION_SOURCE` token behind `ToolRegistryService` (production still reads the generated `TOOL_DEFINITIONS`). A test-only synthetic generator (never imported by app code) drives `registry-scale.spec.ts` at 500 and 1,000 tools, which checks:
+  - Browse Tools exposes the full registry, with working search, category filter and counts, and deterministic sort. Its initial jsdom render takes ~160–190 ms, so list virtualization was not needed.
+  - The sidebar keeps 8 collapsed category rows.
+  - Category previews and the category strip stay capped.
+  - Home's tool-link count is small and identical at both sizes.
+
+  Fix: an expanded sidebar category now shows at most `SIDEBAR_CATEGORY_LIMIT` (15) tools, plus the active tool, then an "All N … tools" link into Browse Tools. Developer alone had 129 inline links.
+- **M589 — Structural assertions (30L.7).** `home-structural.spec.ts` checks:
+  - A test-only fixture panel kind is offered in the editor, rendered, and restored with no Home or Settings branching.
+  - A removed kind, or a shortcut to a removed tool/command, never blanks Home.
+  - Activity and category charts show honest empty states rather than fabricated series.
+  - Favorites and Recently Used read the live stores.
+  - A restored shortcut never runs, and a click goes through the target command's own confirmation path.
+
+  The list-form editor gained move, remove + discard and number-field resize coverage. The chart option builders produce no points for empty input.
+- **M590 — Two bugs found during the gate.**
+  - A Home layout written by a newer DUDE build (`schemaVersion` > 1) was reset and written back on load, destroying it. It is now read best-effort and never written on load.
+  - Home's Quick Run panel imported up to 8 tools' pipeline-step modules on mount. It now does so on first focus, input or paste.
+- **M591 — e2e gate (30L.1, 30L.2, 30L.4, 30L.5).** Three new spec files in the main e2e suite (126 tests, all passing): `phase30l-workbench`, `phase30l-keyboard` and `phase30l-first-frame` (1920×1080, 1440×900, 1366×768, and 1366×768 at 1.25× and 1.5× display scaling). Fixes for what the gate found:
+  - Smart Entry expanded on focus but removed the focused element, dropping keyboard focus to `<body>`. Focus now moves into the paste box, and Escape returns it.
+  - Command-palette groups are ordered by their best match tier, so "browse" + Enter opens Browse Tools instead of a tool with a description hit.
+  - Escape in Browse Tools clears query and facets from any toolbar or filter control, not only the search box.
+  - `offline-readiness.spec.ts` was retargeted to the capped sidebar.
+- **M592 — Documentation and PRD (30L.8, 30L.9).** `src/app/shell/deck/AGENTS.md` is the Home/Workbench shell contract. It covers:
+  - Home, Browse Tools, Sidebar, Command Palette and routes.
+  - Default composition and the editor.
+  - Built-in and user-authored panel-kind contracts and data/availability ownership.
+  - Wide/narrow persistence, versioning, recovery and reset.
+  - Dashboard, density, category-color, chart and table rules.
+  - State ownership and privacy.
+  - Keyboard/list-form conventions.
+  - How a feature becomes a Home panel.
+
+  `shell/AGENTS.md`, `core/home-layout/AGENTS.md` and `ADDING_A_TOOL.md` point to it. §9, §26 and §27 now state the five-way navigation contract in shipped terms.
+
+*Status (Milestones 587–592):* all six exit criteria are met. The full unit suite, `npm run lint`, `ng build` and the main e2e suite (126 tests) pass, and the owner ran the manual first-frame visual check. Phase 30K's own gate, `npm run test:appearance`, stays in force alongside this one.
+
+**Known and intentional:** `main` statically includes a few small pure tool-logic modules (color, IP, JWT, UUID and similar parsers) through the Smart Paste detectors (Phase 21 Item 3, M473). The chunk gate excludes `main`'s static import closure; route-triggered tool chunks are what it forbids.
+
+**Carried forward** (not required by any 30L criterion):
+
+- Phase 30K's manual Electron dark/light/system check and Windows Contrast Themes (forced-colors) check.
+- 30I's screen-reader pass over the editors.
+- No built-in desktop-only panel yet uses `webBehavior: 'explain'`; all use `'omit'`, which 30L.2 permits.
+- The initial bundle remains over its 500 kB warning budget (~1.04 MB, under the 1.1 MB error budget).
 
 ### Phase 30 overall outcome
 
 **Goal:** complete the transition from a tool deck into a true developer workbench. DUDE Home should surface the user's likely next action and current work context; Browse Tools should handle exhaustive discovery; Ctrl+K should remain the expert fast path. The application should feel denser and show substantially more useful information at normal zoom **without** becoming a smaller-font version of the same giant scroll wall.
+
+**Outcome (Milestones 537–592):** met. Home is bounded, personal and user-designed; Browse Tools owns exhaustive discovery; the sidebar and palette stay bounded and fast at 1,000 synthetic tools; appearance is a controlled platform capability; and Phase 30L's gate keeps all of it under automated test.
 
 ---
 
@@ -5088,7 +5154,7 @@ Electron preload/main-process services expose narrowly-scoped native primitives.
 
 # 26. Command Palette Requirements
 
-The command palette currently supports navigation only.
+The command palette is the universal expert launcher (§9). Since Phase 25 it covers more than navigation; see the shipped expansion below.
 
 ## Required
 
@@ -5115,7 +5181,7 @@ The V1 palette was navigation-only. The following were deliberately deferred the
 
 # 27. Deck Requirements
 
-The Phase 30D Home workbench should be useful, dense, and bounded in its default layout.
+The Phase 30D Home workbench is useful, dense, and bounded in its default layout. Phase 30L verified this against the shipped navigation (§9).
 
 Required:
 
@@ -5124,11 +5190,13 @@ Required:
 - compact Quick Run access;
 - a clear route to Browse Tools;
 - keyboard-compatible actions and links;
-- a configurable Home layout under Phase 30I.
+- a configurable Home layout (Phase 30I);
+- content bounded independently of registry size. Verified with a synthetic 500- and 1,000-tool registry (Phase 30L.6);
+- no eager loading of tool implementation chunks (Phase 30L.1).
 
 Under Phase 30A/30D, the complete registered tool inventory belongs to Browse Tools, not to Home's default content. Home may show bounded category/tool previews and user-selected discovery panels. Direct tool routes remain stable.
 
-For the original V1 Deck, all registered tools were required on the Deck and recently used/favorite tools were optional unless trivial. That remains a historical acceptance record. Phase 24 made personalization first-class; Phase 30D replaces the V1 Deck composition when implemented.
+For the original V1 Deck, all registered tools were required on the Deck and recently used/favorite tools were optional unless trivial. That remains only as a historical acceptance record. Phase 24 made personalization first-class, and Phase 30D replaced the V1 Deck composition.
 
 ---
 
