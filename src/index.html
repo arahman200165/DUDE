@@ -7,7 +7,7 @@
       // Phase 30K: apply the saved appearance to <html> before the first paint (no flash of the
       // default theme). Mirrors sanitize/resolveEffective in core/appearance/appearance.model.ts;
       // appearance-prepaint.spec.ts keeps the key and attribute list in sync. Unknown values are
-      // harmless: the generated CSS falls back to the default block. Fonts are set by the service.
+      // harmless: the generated CSS falls back to the default block. Curated fonts are applied via data-ui-font / data-mono-font (generated CSS rules); custom font names are applied by the service.
       // A missing/malformed store is treated as {}: every axis then does nothing (absent = default)
       // except motion, whose default pref is "system" and so still follows prefers-reduced-motion.
       (function () {
@@ -34,6 +34,8 @@
             ['monoSize', 'data-mono-size'],
             ['ligatures', 'data-ligatures'],
             ['motion', 'data-motion'],
+            ['uiFont', 'data-ui-font'],
+            ['monoFont', 'data-mono-font'],
           ];
           for (var i = 0; i < axes.length; i++) {
             var value = prefs[axes[i][0]];

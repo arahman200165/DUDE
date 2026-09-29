@@ -5,6 +5,7 @@ import {
   APPEARANCE_AXES,
   AppearancePrefs,
   DEFAULT_APPEARANCE,
+  FontChoice,
   MediaState,
   fontStack,
   resolveEffective,
@@ -80,13 +81,24 @@ export class AppearanceService {
     for (const [axisName, axis] of Object.entries(APPEARANCE_AXES)) {
       root.setAttribute(axis.attr, effective[axisName] ?? axis.default);
     }
-    root.style.setProperty('--dude-font-sans', fontStack(prefs, 'ui'));
-    root.style.setProperty('--dude-font-mono', fontStack(prefs, 'mono'));
+    this.applyFont(root, prefs.uiFont, 'data-ui-font', '--dude-font-sans', fontStack(prefs, 'ui'));
+    this.applyFont(root, prefs.monoFont, 'data-mono-font', '--dude-font-mono', fontStack(prefs, 'mono'));
 
     const background = getComputedStyle(root).getPropertyValue('--dude-bg').trim();
     if (background) {
       this.applyThemeColor(background);
       this.syncNative(effective['theme'] === 'light' ? 'light' : 'dark', background);
+    }
+  }
+
+  /** Curated ids use the generated attribute rule (also set pre-paint); custom names use an inline property. */
+  private applyFont(root: HTMLElement, choice: FontChoice, attr: string, prop: string, stack: string): void {
+    if (typeof choice === 'string') {
+      root.setAttribute(attr, choice);
+      root.style.removeProperty(prop);
+    } else {
+      root.removeAttribute(attr);
+      root.style.setProperty(prop, stack);
     }
   }
 

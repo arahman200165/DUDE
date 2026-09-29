@@ -14,6 +14,8 @@ describe('AppearanceService', () => {
     for (const axis of Object.values(APPEARANCE_AXES)) root.removeAttribute(axis.attr);
     root.style.removeProperty('--dude-font-sans');
     root.style.removeProperty('--dude-font-mono');
+    root.removeAttribute('data-ui-font');
+    root.removeAttribute('data-mono-font');
   }
 
   beforeEach(() => {
@@ -39,10 +41,12 @@ describe('AppearanceService', () => {
     }
   });
 
-  it('applies the default font stacks as custom properties', () => {
+  it('applies curated fonts via data attributes and leaves no inline font property', () => {
     create();
-    expect(root.style.getPropertyValue('--dude-font-sans')).toBe(fontStack(DEFAULT_APPEARANCE, 'ui'));
-    expect(root.style.getPropertyValue('--dude-font-mono')).toBe(fontStack(DEFAULT_APPEARANCE, 'mono'));
+    expect(root.getAttribute('data-ui-font')).toBe(DEFAULT_APPEARANCE.uiFont);
+    expect(root.getAttribute('data-mono-font')).toBe(DEFAULT_APPEARANCE.monoFont);
+    expect(root.style.getPropertyValue('--dude-font-sans')).toBe('');
+    expect(root.style.getPropertyValue('--dude-font-mono')).toBe('');
   });
 
   it('sanitizes stale stored data on load', () => {
@@ -125,10 +129,12 @@ describe('AppearanceService', () => {
     service.set({ monoFont: { custom: 'Cascadia Code' } });
     TestBed.tick();
     expect(root.style.getPropertyValue('--dude-font-mono')).toContain('"Cascadia Code", ');
+    expect(root.hasAttribute('data-mono-font')).toBe(false);
 
     service.set({ monoFont: { custom: 'x"; background:url(evil)' } });
     TestBed.tick();
-    expect(root.style.getPropertyValue('--dude-font-mono')).toBe(fontStack(DEFAULT_APPEARANCE, 'mono'));
+    expect(root.style.getPropertyValue('--dude-font-mono')).toBe('');
+    expect(root.getAttribute('data-mono-font')).toBe(DEFAULT_APPEARANCE.monoFont);
   });
 
   describe('theme-color meta', () => {
@@ -262,6 +268,7 @@ describe('AppearanceService', () => {
     window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY, newValue: hostile, storageArea: localStorage }));
     TestBed.tick();
     expect(service.prefs().uiFont).toBe(DEFAULT_APPEARANCE.uiFont);
-    expect(root.style.getPropertyValue('--dude-font-sans')).toBe(fontStack(DEFAULT_APPEARANCE, 'ui'));
+    expect(root.style.getPropertyValue('--dude-font-sans')).toBe('');
+    expect(root.getAttribute('data-ui-font')).toBe(DEFAULT_APPEARANCE.uiFont);
   });
 });

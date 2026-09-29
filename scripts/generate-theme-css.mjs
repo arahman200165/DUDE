@@ -238,6 +238,17 @@ export function buildThemeCss(t) {
       block(selector(axes, [axisName], [step]), { [prop]: t.sizeSteps[step] });
     }
   }
+  // Curated non-default fonts: the pre-paint script sets data-ui-font / data-mono-font, so these
+  // (higher specificity than the :root formula default) win before first paint. Custom fonts stay inline.
+  for (const [list, attr, prop, def] of [
+    [t.fonts.ui, 'data-ui-font', '--dude-font-sans', t.fonts.defaultUi],
+    [t.fonts.mono, 'data-mono-font', '--dude-font-mono', t.fonts.defaultMono],
+  ]) {
+    for (const f of list) {
+      if (f.id === def) continue;
+      block(`:root[${attr}="${f.id}"]`, { [prop]: f.stack });
+    }
+  }
   return out.join('\n').replace(/\n+$/, '\n');
 }
 

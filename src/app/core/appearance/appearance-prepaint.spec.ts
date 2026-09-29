@@ -15,7 +15,8 @@ function prepaintSource(): string {
 
 describe('index.html appearance pre-paint script', () => {
   const root = document.documentElement;
-  const attrs = Object.values(APPEARANCE_AXES).map((axis) => axis.attr);
+  const fontAttrs = ['data-ui-font', 'data-mono-font'];
+  const attrs = [...Object.values(APPEARANCE_AXES).map((axis) => axis.attr), ...fontAttrs];
 
   function run(): void {
     new Function(prepaintSource())();
@@ -50,6 +51,13 @@ describe('index.html appearance pre-paint script', () => {
     expect(root.getAttribute('data-ui-size')).toBe('large');
     expect(root.getAttribute('data-mono-size')).toBe('small');
     expect(root.getAttribute('data-ligatures')).toBe('off');
+  });
+
+  it('applies curated font ids and skips custom font objects', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ uiFont: 'inter', monoFont: { custom: 'Iosevka' } }));
+    run();
+    expect(root.getAttribute('data-ui-font')).toBe('inter');
+    expect(root.hasAttribute('data-mono-font')).toBe(false);
   });
 
   it('does nothing when nothing is stored', () => {

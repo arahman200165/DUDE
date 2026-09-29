@@ -473,3 +473,43 @@
 :root[data-mono-size="large"] {
   --dude-mono-scale: 1.1667;
 }
+
+:root[data-ui-font="segoe"] {
+  --dude-font-sans: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+}
+
+:root[data-ui-font="inter"] {
+  --dude-font-sans: Inter, 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+:root[data-ui-font="helvetica"] {
+  --dude-font-sans: 'Helvetica Neue', Helvetica, Arial, 'Liberation Sans', sans-serif;
+}
+
+:root[data-ui-font="verdana"] {
+  --dude-font-sans: Verdana, 'DejaVu Sans', 'Bitstream Vera Sans', sans-serif;
+}
+
+:root[data-ui-font="atkinson"] {
+  --dude-font-sans: 'Atkinson Hyperlegible', 'Atkinson Hyperlegible Next', ui-sans-serif, system-ui, sans-serif;
+}
+
+:root[data-mono-font="cascadia"] {
+  --dude-font-mono: 'Cascadia Code', 'Cascadia Mono', Consolas, ui-monospace, monospace;
+}
+
+:root[data-mono-font="consolas"] {
+  --dude-font-mono: Consolas, 'Lucida Console', 'Courier New', monospace;
+}
+
+:root[data-mono-font="system"] {
+  --dude-font-mono: ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+}
+
+:root[data-mono-font="plex"] {
+  --dude-font-mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
+}
+
+:root[data-mono-font="source"] {
+  --dude-font-mono: 'Source Code Pro', ui-monospace, Consolas, monospace;
+}
