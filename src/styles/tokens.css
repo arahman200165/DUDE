@@ -46,12 +46,12 @@
   --color-cat-documents-tint: color-mix(in srgb, var(--color-cat-documents), white 20%);
 
   /* Fixed semantic status colors, shared by error/warning/success/info/busy UI */
-  --color-error: #ef4444;
-  --color-warning: #f59e0b;
-  --color-success: #22c55e;
-  --color-info: #3b82f6;
-  --color-busy: #a855f7;
-  --color-offline: #64748b;
+  --color-error: #ff4d4d;
+  --color-warning: #d99a00;
+  --color-success: #46e05a;
+  --color-info: #1a79ff;
+  --color-busy: #c233ff;
+  --color-offline: #717f94;
 
   /* Active/focus accent used by sidebar selection, focus rings, primary buttons */
   --color-accent: #38d8ff;
@@ -87,7 +87,10 @@
  * generation explicitly.
  */
 @source inline(
-  '{bg,text,border,border-t,border-b}-cat-{data,text,encoding,security,date-time,web,developer,documents}'
+  '{bg,text,border,border-t,border-b,border-l}-cat-{data,text,encoding,security,date-time,web,developer,documents}'
+);
+@source inline(
+  'border-cat-{data,text,encoding,security,date-time,web,developer,documents}/40'
 );
 @source inline(
   'hover:bg-cat-{data,text,encoding,security,date-time,web,developer,documents}/10'
@@ -101,8 +104,9 @@
 @source inline(
   'bg-cat-{data,text,encoding,security,date-time,web,developer,documents}/20'
 );
+/* Wash is a state cue only (hover / selected / active filter), never a resting surface. */
 @source inline(
-  'bg-cat-{data,text,encoding,security,date-time,web,developer,documents}-wash'
+  '{hover:,}bg-cat-{data,text,encoding,security,date-time,web,developer,documents}-wash'
 );
 @source inline(
   'text-cat-{data,text,encoding,security,date-time,web,developer,documents}-tint'

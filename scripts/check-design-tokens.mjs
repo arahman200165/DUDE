@@ -31,7 +31,8 @@ const SPACING_RE = new RegExp(`(?<![\\w-])-?${SPACING_PREFIX}-(\\d+(?:\\.\\d+)?|
 const ARBITRARY_RE = /(?<![\w-])(?:p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml|gap|gap-x|gap-y|space-x|space-y|w|h|min-w|min-h|max-w|max-h|text|rounded)-\[\d*\.?\d+(?:px|rem)\]/g;
 const RADIUS_RE = /(?<![\w-])rounded(?:-[a-z]{1,2})?-(?:lg|xl|2xl|3xl)(?![\w-])/g;
 const HEX_RE = /#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g;
-const WASH_RE = /(?<![:\w])(?:bg-cat-[\w${}.()\s+'\-]*-wash|bg-\$\{[^}]*\}-wash)/g;
+const WASH_RE = /^.*-wash.*$/gm;
+const WASH_STATE_RE = /hover:|selected|active/i;
 
 // Sizes that are structural (overlay widths, etc.) rather than spacing. Keep
 // this list short and justified; add entries only with a reason.
@@ -83,7 +84,7 @@ for (const dir of SCAN_DIRS) {
     }
     for (const m of text.matchAll(RADIUS_RE)) add('radius', file, text, m);
     if (isMarkup) for (const m of text.matchAll(HEX_RE)) add('hex', file, text, m);
-    for (const m of text.matchAll(WASH_RE)) add('wash', file, text, m);
+    for (const m of text.matchAll(WASH_RE)) if (!WASH_STATE_RE.test(m[0])) add('wash', file, text, m);
   }
 }
 

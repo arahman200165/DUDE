@@ -6,8 +6,8 @@
         <a
           [routerLink]="tool.route"
           [appOfflineAvailability]="tool.id"
-          class="flex shrink-0 items-center gap-1.5 rounded-sm border px-2 py-1.5 text-xs hover:bg-panel-elevated"
-          [class]="'border-' + meta[tool.category].colorToken + '/40 bg-' + meta[tool.category].colorToken + '-wash text-' + meta[tool.category].colorToken + '-tint'"
+          class="flex shrink-0 items-center gap-1.5 rounded-sm border border-border bg-panel px-2 py-1.5 text-xs text-text"
+          [class]="'border-l-2 border-l-' + meta[tool.category].colorToken + ' hover:bg-' + meta[tool.category].colorToken + '-wash'"
         >
           <app-category-icon [category]="tool.category" class="h-3.5 w-3.5" [class]="'text-' + meta[tool.category].colorToken" />
           {{ tool.shortTitle ?? tool.title }}

@@ -1,6 +1,6 @@
 <section
-  class="flex h-full flex-col gap-1.5 rounded-sm border p-2 text-xs"
-  [class]="category() ? 'border-' + meta[category()!].colorToken + '/40 bg-' + meta[category()!].colorToken + '-wash' : 'border-border bg-panel'"
+  class="flex h-full flex-col gap-1.5 rounded-sm border border-border bg-panel p-2 text-xs"
+  [class]="category() ? 'border-t-2 border-t-' + meta[category()!].colorToken : ''"
 >
   <header class="flex items-center justify-between gap-2">
     <div class="flex min-w-0 items-center gap-1.5">
