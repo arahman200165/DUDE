@@ -10,7 +10,7 @@ import {
 import type { SysResult } from '../src/shared-logic/system/system-types';
 import { ConfirmationStore, JsonJournal, digestOf } from './mutation-core';
 import { sysHelper } from './sys-helper';
-import './sys-ops';
+import { registerBuiltinSysOps } from './sys-ops';
 
 /**
  * DUDE's Windows system mutation engine (DUDE_PRD.md §5.2.1, Phase 31 Milestone 594): the generic
@@ -76,6 +76,8 @@ export function registerSysOp<P>(def: SysOpDefinition<P>): void {
   if (ops.has(def.kind)) throw new Error(`System op already registered: ${def.kind}`);
   ops.set(def.kind, def);
 }
+// Built-in families register here (not as an import side effect) because the families import types from this module.
+registerBuiltinSysOps(registerSysOp);
 export function sysOpKinds(): string[] { return [...ops.keys()]; }
 export function resetSysOpsForTesting(): void { ops.clear(); }
 

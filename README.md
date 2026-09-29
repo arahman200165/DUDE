@@ -113,7 +113,9 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Packet-Loss Measurement](https://arahman200165.github.io/DUDE/tools/packet-loss) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Ping](https://arahman200165.github.io/DUDE/tools/ping) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native filesystem access | Desktop-only feature | grants the folder a crash dump is written into |
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system access | Desktop-only feature | reads running processes and their details through the desktop system helper |
+| [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system changes | Desktop-only feature | ends, restarts, suspends, reprioritises and dumps processes through the desktop system mutation engine |
 | [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Regex Tester](https://arahman200165.github.io/DUDE/tools/regex) | Local LLM proxy | Desktop-only feature | AI-assisted explain/generate via a local LLM proxy, no cloud key required |
 | [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
@@ -423,7 +425,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Ping](https://arahman200165.github.io/DUDE/tools/ping) | Developer | Send ICMP echo requests and show round-trip latency. |
 | [Pixel Color Picker](https://arahman200165.github.io/DUDE/tools/pixel-color-picker) | Developer | Reads the exact color of any pixel in an uploaded image. |
 | [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Developer | Probe a bounded TCP and UDP port set on one host or CIDR. |
-| [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Developer | Read-only task manager for Windows: live CPU and memory, a parent/child process tree, and per-process command line, environment (with diffs and snapshots), modules with versions and signers, threads, handles and ports. |
+| [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Developer | Task manager for Windows: live CPU and memory, a parent/child process tree, and per-process command line, environment (with diffs and snapshots), modules with versions and signers, threads, handles and ports. End, restart, suspend, reprioritise or dump a process through a previewed, confirmed change. |
 | [Programmer Calculator](https://arahman200165.github.io/DUDE/tools/programmer-calculator) | Developer | Arithmetic and bitwise (AND/OR/XOR/NOT/shift) calculator with an interactive bit grid, two’s-complement, and 8/16/32/64-bit widths. |
 | [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | Developer | Detect public IPv4 and IPv6 addresses on explicit request. |
 | [Python Playground](https://arahman200165.github.io/DUDE/tools/python-playground) | Developer | Run Python in the browser via Pyodide (WebAssembly CPython) — no network calls once the runtime is cached. |

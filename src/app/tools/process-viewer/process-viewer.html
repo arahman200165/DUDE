@@ -5,6 +5,8 @@
     </div>
     <div class="flex flex-wrap gap-2">
       <app-desktop-only-control capability="native-system" label="Browse running processes" />
+      <app-desktop-only-control capability="native-system-write" label="End, suspend or reprioritise a process" />
+      <app-desktop-only-control capability="native-fs" label="Choose a crash dump folder" />
     </div>
   } @else {
     <div class="flex flex-col gap-2 text-ui">
@@ -48,11 +50,14 @@
               </app-data-table>
             }
           </div>
-          <div slot="end" class="h-full">
-            <app-process-detail-pane
-              [process]="selected()" [exited]="exited()" [parent]="parent()" [children]="childProcesses()" [sockets]="sockets()"
-              [cpuPoints]="cpuPoints()" [memoryPoints]="memoryPoints()" [tab]="tab()" (tabChange)="setTab($event)"
-              (selectKey)="selectKey($event)" (detailLoaded)="onDetail($event)" (modulesLoaded)="onModules($event)" />
+          <div slot="end" class="flex h-full flex-col">
+            <app-process-actions [process]="selected()" [exited]="exited()" [logicalProcessors]="listing()?.logicalProcessors ?? 1" (applied)="refresh.refreshNow()" />
+            <div class="min-h-0 flex-1 overflow-auto">
+              <app-process-detail-pane
+                [process]="selected()" [exited]="exited()" [parent]="parent()" [children]="childProcesses()" [sockets]="sockets()"
+                [cpuPoints]="cpuPoints()" [memoryPoints]="memoryPoints()" [tab]="tab()" (tabChange)="setTab($event)"
+                (selectKey)="selectKey($event)" (detailLoaded)="onDetail($event)" (modulesLoaded)="onModules($event)" />
+            </div>
           </div>
         </app-split-pane>
       </div>

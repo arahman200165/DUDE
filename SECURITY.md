@@ -62,6 +62,7 @@ database-write) have no rows below until a tool claims them.
 | [PKCE Verifier](https://arahman200165.github.io/DUDE/tools/pkce-verifier) | Authentication | verified — Verifier/challenge matching is checked against RFC 7636 Appendix B's official worked example. |
 | [PKCS#12 / PFX Inspector](https://arahman200165.github.io/DUDE/tools/pkcs12-inspector) | Crypto | verified — Correctly extracts leaf/intermediate certs and friendlyName from a real openssl-generated .p12 using modern PBES2 encryption. |
 | [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Network Scanning | experimental |
+| [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Process Management | experimental |
 | [Python Playground](https://arahman200165.github.io/DUDE/tools/python-playground) | Code Execution | verified — Fuzz-tested the pure sandbox-event reducer for transcript and outcome shape. |
 | [Secret Detector](https://arahman200165.github.io/DUDE/tools/secret-detector) | Secret Management | verified — Fuzz-tested with generated text up to 5000 chars, asserting it never throws and never takes more than 500ms -- guards against regex catastrophic backtracking. |
 | [SSH Key Generator & Inspector](https://arahman200165.github.io/DUDE/tools/ssh-key-tools) | Crypto | verified — SHA256/MD5 fingerprints for Ed25519/RSA-2048/ECDSA-P256 keys matched byte-for-byte against real ssh-keygen output. |
@@ -155,7 +156,7 @@ browser sandbox.
 | [Packet-Loss Measurement](https://arahman200165.github.io/DUDE/tools/packet-loss) | Native network diagnostics |
 | [Ping](https://arahman200165.github.io/DUDE/tools/ping) | Native network diagnostics |
 | [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Native network diagnostics |
-| [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system access |
+| [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system access; Native Windows system changes; Native filesystem access |
 | [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | Native network diagnostics |
 | [Regex Tester](https://arahman200165.github.io/DUDE/tools/regex) | Local LLM proxy |
 | [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Native network diagnostics |
@@ -220,7 +221,9 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Packet-Loss Measurement](https://arahman200165.github.io/DUDE/tools/packet-loss) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Ping](https://arahman200165.github.io/DUDE/tools/ping) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native filesystem access | Desktop-only feature | grants the folder a crash dump is written into |
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system access | Desktop-only feature | reads running processes and their details through the desktop system helper |
+| [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system changes | Desktop-only feature | ends, restarts, suspends, reprioritises and dumps processes through the desktop system mutation engine |
 | [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Regex Tester](https://arahman200165.github.io/DUDE/tools/regex) | Local LLM proxy | Desktop-only feature | AI-assisted explain/generate via a local LLM proxy, no cloud key required |
 | [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |

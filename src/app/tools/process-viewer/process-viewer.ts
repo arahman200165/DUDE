@@ -15,6 +15,7 @@ import { StatusGlyph } from '../../shared/components/status-glyph/status-glyph';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import type { SparklinePoint } from '../../shared/components/workbench-charts/sparkline-chart-option';
 import { createLiveRefresh } from '../../shared/utils/live-refresh';
+import { ProcessActions } from './process-actions';
 import { ProcessDetailPane, type DetailTab } from './process-detail-pane';
 import { formatAge, formatBytes, formatCpu, filterRows, parseQuery, pushSample, type ProcessRow, type SearchContext } from './process-viewer-logic';
 
@@ -26,13 +27,13 @@ interface TableRow { readonly row: ProcessRow; readonly depth: number; readonly 
 interface History { cpu: number[]; memory: number[] }
 
 /**
- * Process Viewer (DUDE_PRD.md §21 Phase 31, Milestone 595): a read-only task manager. A visibility-aware
+ * Process Viewer (DUDE_PRD.md §21 Phase 31, Milestone 595): a task manager. A visibility-aware
  * live loop samples `process.list`; a selected process opens a lazy detail pane (command line,
- * environment, modules, threads, handles, ports). Nothing here changes system state.
+ * environment, modules, threads, handles, ports). Actions (end, restart, suspend, priority, affinity, dump) live in `ProcessActions` and only ever go through the system-change preview/confirm surface.
  */
 @Component({
   selector: 'app-process-viewer',
-  imports: [DatePipe, ToolShell, DesktopOnlyControl, LiveRefreshControl, SplitPane, DataTable, DataTableCellDef, StatusGlyph, ProcessDetailPane],
+  imports: [DatePipe, ToolShell, DesktopOnlyControl, LiveRefreshControl, SplitPane, DataTable, DataTableCellDef, StatusGlyph, ProcessDetailPane, ProcessActions],
   templateUrl: './process-viewer.html',
 })
 export class ProcessViewerTool {

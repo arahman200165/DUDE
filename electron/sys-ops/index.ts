@@ -1,7 +1,12 @@
+import type { SysOpDefinition } from '../sys-mutation';
+import { registerProcessOps } from './process';
+
 /**
- * Op families register themselves with `registerSysOp` (see `../sys-mutation.ts`) as an import side effect.
- * One file per family, e.g. `./process` (process.kill), `./registry` (registry.setValue), `./env`,
- * `./service`. Add the import below when a tool's milestone introduces its family; the engine itself
- * never changes. Currently no families ship.
+ * Op families plug into the engine here. `sys-mutation.ts` calls `registerBuiltinSysOps(registerSysOp)`
+ * once, after its registry exists. Add a family by importing its `register…Ops` function and calling it
+ * below; the engine itself never changes. Families: `./process` (process.end, .end-tree, .restart,
+ * .suspend/.resume, .set-priority, .set-affinity, .dump); later `./registry`, `./env`, `./service`.
  */
-export {};
+export function registerBuiltinSysOps(register: <P>(def: SysOpDefinition<P>) => void): void {
+  registerProcessOps(register);
+}

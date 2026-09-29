@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import type { ProcessListResult, ProcessSummary } from '../../../shared-logic/system/system-types';
 import { fakeElectronBridge } from '../../core/platform/testing/fake-electron-bridge';
 import { installBridge, removeBridge, settleFsJobs } from '../../core/platform/testing/recording-fs-bridge';
@@ -29,6 +30,7 @@ describe('ProcessViewerTool', () => {
       }
     };
     installBridge(fakeElectronBridge({ sys: { ...fakeElectronBridge().sys, call: call as never } }));
+    TestBed.configureTestingModule({ providers: [provideRouter([])] });
     const fixture = TestBed.createComponent(ProcessViewerTool);
     const element = fixture.nativeElement as HTMLElement;
     const clickText = async (selector: string, text: string) => {
