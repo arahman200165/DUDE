@@ -53,3 +53,5 @@ Thumbs.db
 /build/network-icmp.obj
 /build/fs-attrs.exe
 /build/fs-attrs.obj
+/build/windows-sys.exe
+/build/windows-sys/

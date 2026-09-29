@@ -1,6 +1,7 @@
 import type { SnapshotDiff, SnapshotHeader } from '../../../shared-logic/fs/snapshot-diff';
 import type { ChangeEvent, FolderWatchSettings, FolderWatchState, TimelineQuery, WatchedFolder } from '../../../shared-logic/fs/watch-types';
 import type { ApplyResult, FsJobEvent, FsJobRequest, FsResult, JournalEntry, MutationSettings, PickedFile, PlanPreview, RememberedFolder } from '../../../shared-logic/fs/fs-types';
+import type { PwshStatus, SysMethodMap, SysReadMethod, SysResult, SysStreamEvent } from '../../../shared-logic/system/system-types';
 import type { NetworkRequest, NetworkJobEvent, NetworkStartResult, NetworkPrepareResult, WatchEntry, WatchSettings, WatchState, WatchResult } from './network-types';
 export interface NativeStat {
   readonly isFile: boolean;
@@ -182,7 +183,19 @@ export interface DudeElectronBridge {
       import(json: string): Promise<WatchResult<{ state: WatchState }>>;
       onChanged(callback: (state: WatchState) => void): () => void;
     };
-  };  readonly update: {
+  };
+  /** Windows system reads through the `windows-sys.exe` helper (DUDE_PRD.md §21 Phase 31, Milestone 593). */
+  readonly sys: {
+    call<M extends SysReadMethod>(method: M, params: SysMethodMap[M]['params']): Promise<SysResult<SysMethodMap[M]['result']>>;
+    pwshStatus(refresh?: boolean): Promise<PwshStatus>;
+    onEvent(callback: (event: SysStreamEvent) => void): () => void;
+  };
+  /** Session elevation state and the deliberate Relaunch as Administrator action (Phase 27, shared from Phase 31). */
+  readonly elevation: {
+    status(): Promise<boolean>;
+    relaunch(): Promise<boolean>;
+  };
+  readonly update: {
     checkForUpdates(): Promise<VoidResult>;
     quitAndInstall(): Promise<VoidResult>;
     downloadUpdate(): Promise<VoidResult>;

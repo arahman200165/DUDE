@@ -1,7 +1,7 @@
 // Capability-specific release gate (DUDE_PRD.md §21 Phase 23 Item 12) -- runs every spec file
 // belonging to a tool tagged with a ConsequenceClass (crypto/authentication/code-execution/
-// secret-management/network-scanning/remote-write/filesystem-write today; process-management/
-// registry/database-write reserved for later native phases) as its own, separately-labeled step, so a
+// secret-management/network-scanning/remote-write/filesystem-write today; process-management today; registry/system-config/
+// database-write reserved for later native phases) as its own, separately-labeled step, so a
 // high-consequence failure reads unambiguously in CI logs even though `npm test` already blocks
 // on any failure today.
 //

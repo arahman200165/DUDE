@@ -202,7 +202,21 @@ const bridge: DudeElectronBridge = {
         return () => ipcRenderer.removeListener('dude:network:watch:changed', listener);
       },
     },
-  },  update: {
+  },
+  sys: {
+    call: (method, params) => ipcRenderer.invoke('dude:sys:call', method, params),
+    pwshStatus: (refresh) => ipcRenderer.invoke('dude:sys:pwshStatus', refresh),
+    onEvent: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, value: import('../src/shared-logic/system/system-types').SysStreamEvent) => callback(value);
+      ipcRenderer.on('dude:sys:event', listener);
+      return () => ipcRenderer.removeListener('dude:sys:event', listener);
+    },
+  },
+  elevation: {
+    status: () => ipcRenderer.invoke('dude:elevation:status'),
+    relaunch: () => ipcRenderer.invoke('dude:elevation:relaunch'),
+  },
+  update: {
     checkForUpdates: () => ipcRenderer.invoke('dude:update:check'),
     quitAndInstall: () => ipcRenderer.invoke('dude:update:quitAndInstall'),
     downloadUpdate: () => ipcRenderer.invoke('dude:update:download'),

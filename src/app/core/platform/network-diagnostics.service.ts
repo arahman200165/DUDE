@@ -38,8 +38,6 @@ export class NetworkDiagnosticsService {
   }
 
   cancel(jobId: string): Promise<boolean> { return this.bridge.cancel(jobId); }
-  adminStatus(): Promise<boolean> { return this.bridge.adminStatus(); }
-  relaunchAsAdmin(): Promise<boolean> { return this.bridge.relaunchAsAdmin(); }
 
   addRun(request: NetworkRequest, result: unknown): NetworkRun {
     // Client identities (mTLS keys) and pasted mail headers never enter run history; packet captures are download-only.

@@ -1,9 +1,9 @@
-import { app, ipcMain, type WebContents } from 'electron';
-import { spawn } from 'node:child_process';
+import { ipcMain, type WebContents } from 'electron';
 import { randomUUID } from 'node:crypto';
 import type { NetworkJobEvent, NetworkPrepareResult, NetworkStartResult, NetworkRequest } from '../src/app/core/platform/network-types';
 import { expandScanTargets, validateNetworkRequest } from './network-validation';
-import { helperPath, runNetworkRequest } from './network-runner';
+import { runNetworkRequest } from './network-runner';
+import { isElevated, relaunchElevated } from './elevation-bridge';
 import { LIVE_KINDS, livePreview, liveTimeoutMs } from './network-live';
 
 interface Job { readonly kind: string; readonly owner: WebContents; readonly abort: AbortController; readonly timer: NodeJS.Timeout }
@@ -32,18 +32,6 @@ function event(owner: WebContents, value: NetworkJobEvent): void {
   if (!owner.isDestroyed()) owner.send('dude:network:event', value);
 }
 
-function helperMode(args: string[]): Promise<{ status: string; code: number }> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(helperPath(), args, { shell: false, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
-    let output = '';
-    child.stdout.on('data', (chunk: Buffer) => { output += chunk.toString('utf8'); if (output.length > 4096) child.kill(); });
-    child.once('error', reject);
-    child.once('close', () => {
-      try { resolve(JSON.parse(output) as { status: string; code: number }); }
-      catch { reject(new Error('Windows network helper did not return status.')); }
-    });
-  });
-}
 export function registerNetworkHandlers(): void {
   ipcMain.handle('dude:network:prepare', (ipcEvent, raw: unknown): NetworkPrepareResult => {
     try {
@@ -85,12 +73,8 @@ export function registerNetworkHandlers(): void {
       return { ok: false, error: error instanceof Error ? error.message : String(error) };
     }
   });
-  ipcMain.handle('dude:network:adminStatus', async () => (await helperMode(['status'])).status === 'elevated');
-  ipcMain.handle('dude:network:relaunchAsAdmin', async () => {
-    const result = await helperMode(['relaunch', String(process.pid), process.execPath, ...(!app.isPackaged ? [app.getAppPath()] : [])]);
-    if (result.status === 'accepted') { setImmediate(() => app.quit()); return true; }
-    return false;
-  });
+  ipcMain.handle('dude:network:adminStatus', () => isElevated());
+  ipcMain.handle('dude:network:relaunchAsAdmin', () => relaunchElevated());
   ipcMain.handle('dude:network:cancel', (ipcEvent, jobId: unknown): boolean => {
     if (typeof jobId !== 'string') return false;
     const job = jobs.get(jobId);

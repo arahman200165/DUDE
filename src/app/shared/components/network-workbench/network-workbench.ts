@@ -2,6 +2,7 @@ import { JsonPipe, NgTemplateOutlet } from '@angular/common';
 import { Component, OnDestroy, OnInit, TemplateRef, computed, inject, input, output, signal } from '@angular/core';
 import { ToolShell } from '../tool-shell/tool-shell';
 import { PlatformService } from '../../../core/platform/platform.service';
+import { ElevationService } from '../../../core/platform/elevation.service';
 import { NetworkDiagnosticsService, type NetworkRun } from '../../../core/platform/network-diagnostics.service';
 import { NetworkRunHistoryService } from '../../../core/platform/network-run-history.service';
 import type { AddressFamily, DnsRecordType, DnsTransport, LocalView, NetworkJobEvent, NetworkKind, NetworkRequest, ScanProtocol } from '../../../core/platform/network-types';
@@ -52,7 +53,8 @@ export class NetworkWorkbench implements OnDestroy, OnInit {
   protected readonly includeScan = signal(true);
   protected readonly preview = signal<{ request: NetworkRequest; token: string; details: unknown } | null>(null);
   protected readonly running = signal(false);
-  protected readonly isAdmin = signal(false);
+  protected readonly elevation = inject(ElevationService);
+  protected readonly isAdmin = computed(() => this.elevation.elevated() === true);
   protected readonly adminPrompt = signal(false);
   protected readonly progress = signal<{ completed: number; total: number } | null>(null);
   protected readonly samples = signal<unknown[]>([]);
@@ -94,7 +96,7 @@ export class NetworkWorkbench implements OnDestroy, OnInit {
   private activeRequest: NetworkRequest | null = null;
   private destroyed = false;
 
-  ngOnInit(): void { if (this.kind() === 'ping') this.count.set(4); if (this.platform.isDesktop() && this.kind() === 'local-network') void this.diagnostics.adminStatus().then((value) => this.isAdmin.set(value)).catch(() => {}); }
+  ngOnInit(): void { if (this.kind() === 'ping') this.count.set(4); if (this.platform.isDesktop() && this.kind() === 'local-network') void this.elevation.refresh(); }
   ngOnDestroy(): void { this.destroyed = true; if (this.jobId) void this.diagnostics.cancel(this.jobId); this.unsubscribe?.(); }
   protected setText(field: 'target' | 'secondTarget' | 'ports' | 'resolver' | 'method' | 'headers' | 'body', event: Event): void {
     const value = (event.target as HTMLInputElement | HTMLTextAreaElement).value;
@@ -208,7 +210,7 @@ export class NetworkWorkbench implements OnDestroy, OnInit {
   protected async relaunchAdmin(): Promise<void> {
     this.adminPrompt.set(false);
     try {
-      const accepted = await this.diagnostics.relaunchAsAdmin();
+      const accepted = await this.elevation.relaunch();
       if (!accepted) this.error.set('Administrator relaunch was declined. Current session is unchanged.');
     } catch (error) { this.error.set(error instanceof Error ? error.message : String(error)); }
   }

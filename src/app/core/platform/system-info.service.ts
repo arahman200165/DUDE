@@ -1,0 +1,38 @@
+import { Injectable } from '@angular/core';
+import type {
+  HelperInfo, ProcessListResult, RegistryEnumResult, RegistryKeyParams, RegistryValuesResult, SocketTableResult, SysMethodMap, SysReadMethod,
+} from '../../../shared-logic/system/system-types';
+
+const UNAVAILABLE = 'Windows system tools are available in Desktop DUDE.';
+const ACCESS_DENIED = 5;
+
+/** A failed helper call. `code` is the Win32 error when the helper reported one (5 = access denied). */
+export class SystemCallError extends Error {
+  constructor(message: string, readonly code?: number) {
+    super(message);
+    this.name = 'SystemCallError';
+  }
+
+  get accessDenied(): boolean { return this.code === ACCESS_DENIED; }
+}
+
+/** Renderer entry point for read-only Windows system queries (native-system capability). Desktop only. */
+@Injectable({ providedIn: 'root' })
+export class SystemInfoService {
+  get available(): boolean { return !!window.dude?.sys; }
+
+  async call<M extends SysReadMethod>(method: M, params: SysMethodMap[M]['params']): Promise<SysMethodMap[M]['result']> {
+    const sys = window.dude?.sys;
+    if (!sys) throw new Error(UNAVAILABLE);
+    const result = await sys.call(method, params);
+    if (!result.ok) throw new SystemCallError(result.error, result.code);
+    return result.data;
+  }
+
+  helperInfo(): Promise<HelperInfo> { return this.call('helper.info', {}); }
+  listProcesses(): Promise<ProcessListResult> { return this.call('process.list', {}); }
+  tcpTable(): Promise<SocketTableResult> { return this.call('net.tcp', {}); }
+  udpTable(): Promise<SocketTableResult> { return this.call('net.udp', {}); }
+  enumRegistryKey(params: RegistryKeyParams): Promise<RegistryEnumResult> { return this.call('reg.enumKey', params); }
+  registryValues(params: RegistryKeyParams): Promise<RegistryValuesResult> { return this.call('reg.getValues', params); }
+}

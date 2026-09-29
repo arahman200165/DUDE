@@ -32,7 +32,7 @@ export interface ToolVerificationMetadata {
 /**
  * High-Consequence Tool Matrix (DUDE_PRD.md §21 Phase 23 Item 7). `network-scanning` (Phase 27
  * Port Scanner and guided Diagnostic Bundle) and `remote-write` (HTTP methods that can change
- * server state) are in use. `filesystem-write`, `process-management`, `registry`, and
+ * server state) are in use. `filesystem-write` and `process-management` are in use; `registry`, `system-config` (Phase 31), and
  * `database-write` remain reserved so later native tools tag themselves against a stable,
  * already-reviewed vocabulary instead of inventing one per phase.
  */
@@ -46,7 +46,9 @@ export type ConsequenceClass =
   | 'network-scanning'
   | 'database-write'
   | 'secret-management'
-  | 'remote-write';
+  | 'remote-write'
+  /** Services, scheduled tasks, startup entries, Windows features, software uninstall, ACL changes (Phase 31). */
+  | 'system-config';
 
 /**
  * The tool's primary text input can be loaded straight from a text file (Universal File Input —

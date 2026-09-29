@@ -8,6 +8,9 @@ import { registerMutationHandlers } from './fs-mutation';
 import { registerSnapshotHandlers } from './fs-snapshots';
 import { loadFolderWatches, registerFolderWatchHandlers, setFolderWatchTrayUpdater, stopFolderWatches } from './fs-watch-service';
 import { registerNetworkHandlers, cancelAllNetworkJobs } from './network-bridge';
+import { registerSysHandlers } from './sys-bridge';
+import { registerElevationHandlers } from './elevation-bridge';
+import { stopSysHelper } from './sys-helper';
 import { registerWatchHandlers, stopWatchScheduler, setTrayUpdater } from './network-watch';
 import { updateFolderWatchTray, updateWatchTray } from './tray';
 import { registerSecretsHandlers } from './secrets-bridge';
@@ -149,6 +152,8 @@ if (hasSingleInstanceLock) void app.whenReady().then(async () => {
   await loadRememberedGrants();
   void loadFolderWatches();
   registerNetworkHandlers();
+  registerSysHandlers();
+  registerElevationHandlers();
   registerWatchHandlers();
   registerSecretsHandlers();
   registerLlmHandlers();
@@ -177,6 +182,7 @@ app.on('will-quit', () => {
   stopFsWorker();
   stopFolderWatches();
   cancelAllNetworkJobs();
+  stopSysHelper();
   stopWatchScheduler();
   stopCollabServerOnQuit();
 });

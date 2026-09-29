@@ -53,6 +53,17 @@ export const PLATFORM_CAPABILITIES: Readonly<Record<PlatformCapabilityId, Platfo
     description: 'Stores secrets encrypted by the operating system keychain (Electron safeStorage).',
     service: 'SecureLocalService',
   },
+  'native-system': {
+    label: 'Native Windows system access',
+    description: 'Reads Windows process, port, registry, service, event-log and security state through the desktop system helper.',
+    service: 'SystemInfoService',
+    alsoVia: ['PwshStatusService'],
+  },
+  'native-system-write': {
+    label: 'Native Windows system changes',
+    description: 'Changes processes, environment variables, the registry, services, tasks, features and permissions only through a previewed, confirmed and journaled plan.',
+    service: 'SystemMutationService',
+  },
 };
 
 export interface RuntimeInfo {

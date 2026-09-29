@@ -35,6 +35,7 @@ const CONSEQUENCE_LABELS = {
   'database-write': 'Database Write',
   'secret-management': 'Secret Management',
   'remote-write': 'Remote Write',
+  'system-config': 'System Configuration',
 };
 
 // Mirrors src/app/core/platform/capability-catalog.ts's labels (kept in sync by security-doc.spec.ts).
@@ -46,6 +47,8 @@ const PLATFORM_CAPABILITY_LABELS = {
   'collab-relay': 'Collaboration relay',
   'secure-keychain': 'OS keychain storage',
   'native-network': 'Native network diagnostics',
+  'native-system': 'Native Windows system access',
+  'native-system-write': 'Native Windows system changes',
 };
 const RUNTIME_LABELS = {
   pyodide: 'Pyodide (Python/WASM)',
@@ -217,7 +220,7 @@ handling, or network scanning — the categories DUDE_PRD.md §21 Phase 23 calls
 stronger bar than "the UI appears to work" — plus HTTP requests that can change server state
 (\`remote-write\`, added in Phase 27) and changes to local files (\`filesystem-write\`, added in
 Phase 29 — always through the preview → confirm → journal/undo mutation engine).
-Categories reserved for capabilities DUDE does not ship yet (process-management, registry,
+Categories reserved for capabilities DUDE does not ship yet (registry, system-config,
 database-write) have no rows below until a tool claims them.
 
 | Tool | Consequence class | Status |

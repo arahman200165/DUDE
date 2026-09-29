@@ -11,7 +11,7 @@
  * (Phase 29) marks tools that change files on disk, always through the mutation engine's preview →
  * confirm → journal contract (DUDE_PRD.md §5.2.1).
  */
-export type PlatformCapabilityId = 'native-fs' | 'native-fs-write' | 'file-watch' | 'llm-proxy' | 'collab-relay' | 'secure-keychain' | 'native-network';
+export type PlatformCapabilityId = 'native-fs' | 'native-fs-write' | 'file-watch' | 'llm-proxy' | 'collab-relay' | 'secure-keychain' | 'native-network' | 'native-system' | 'native-system-write';
 
 export const PLATFORM_CAPABILITY_IDS: readonly PlatformCapabilityId[] = [
   'native-fs',
@@ -21,6 +21,8 @@ export const PLATFORM_CAPABILITY_IDS: readonly PlatformCapabilityId[] = [
   'collab-relay',
   'secure-keychain',
   'native-network',
+  'native-system',
+  'native-system-write',
 ];
 
 /**
