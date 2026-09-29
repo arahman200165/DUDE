@@ -4,6 +4,7 @@ import { DesktopFeatureMarker } from '../../shared/components/desktop-feature-ma
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { filter, map } from 'rxjs';
 import { CATEGORY_METADATA, ToolCategory, TOOL_CATEGORIES } from '../../shared/models/tool-category.model';
+import { ToolDefinition } from '../../shared/models/tool-definition.model';
 import { ToolRegistryService } from '../../core/registry/tool-registry.service';
 import { computeCatalogCounts } from '../../core/registry/browse-tools-counts';
 import { WorkspaceLayoutService } from '../../core/workspace/workspace-layout.service';
@@ -17,6 +18,8 @@ import { OfflineAvailability } from '../../shared/components/offline-badge/offli
 import { ShortcutHint } from '../../shared/components/shortcut-hint/shortcut-hint';
 
 const RECENTS_LIMIT = 5;
+/** Max tool links an expanded category renders inline; the rest are one "All N" link into Browse Tools. */
+export const SIDEBAR_CATEGORY_LIMIT = 15;
 
 /**
  * Sidebar Information Architecture rewrite (DUDE_PRD.md §21 Phase 30B.1) — the tool list is now a
@@ -98,6 +101,19 @@ export class Sidebar {
     const overrides = this.expandOverrides();
     const keptOpen = this.keptOpen();
     return (category: ToolCategory) => overrides.get(category) ?? (keptOpen.has(category) || category === active);
+  });
+
+  /** Per expanded category: the first `SIDEBAR_CATEGORY_LIMIT` tools (plus the active tool if beyond the cap) and how many are hidden. */
+  protected readonly visibleTools = computed(() => {
+    const grouped = this.grouped();
+    const activeId = this.registry.getByRoute(this.currentUrl())?.id;
+    return (category: ToolCategory): { readonly tools: readonly ToolDefinition[]; readonly hidden: number } => {
+      const all = grouped[category] ?? [];
+      const tools = all.slice(0, SIDEBAR_CATEGORY_LIMIT);
+      const active = activeId ? all.find((tool) => tool.id === activeId) : undefined;
+      if (active && !tools.includes(active)) tools.push(active);
+      return { tools, hidden: all.length - tools.length };
+    };
   });
 
   protected toggleCategory(category: ToolCategory, event: Event): void {

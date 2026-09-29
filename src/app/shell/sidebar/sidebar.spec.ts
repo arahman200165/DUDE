@@ -2,7 +2,7 @@ import { ApplicationRef } from '@angular/core';
 import { PersistenceService } from '../../core/persistence/persistence.service';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
-import { Sidebar } from './sidebar';
+import { Sidebar, SIDEBAR_CATEGORY_LIMIT } from './sidebar';
 import { routes } from '../../core/routing/app.routes';
 import { TOOL_CATEGORIES } from '../../shared/models/tool-category.model';
 import { TOOL_DEFINITIONS } from '../../core/registry/tool-definitions';
@@ -183,5 +183,40 @@ describe('Sidebar category expand persistence (Phase 30I.3)', () => {
 
     TestBed.inject(PersistenceService).clearAll();
     expect(localStorage.getItem(KEY)).toBeNull();
+  });
+});
+
+describe('Sidebar expanded-category cap', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
+  });
+
+  it('caps an expanded category and links to the rest in Browse Tools', () => {
+    const fixture = TestBed.createComponent(Sidebar);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    const total = TOOL_DEFINITIONS.filter((tool) => tool.category === 'developer').length;
+    expect(total).toBeGreaterThan(SIDEBAR_CATEGORY_LIMIT);
+
+    Array.from(element.querySelectorAll('button')).find((b) => b.getAttribute('aria-label') === 'Expand Developer')!.click();
+    fixture.detectChanges();
+
+    expect(element.querySelectorAll('a[href^="/tools/"]').length).toBe(SIDEBAR_CATEGORY_LIMIT);
+    const more = Array.from(element.querySelectorAll('a')).find((a) => a.textContent?.includes(`All ${total} Developer tools`));
+    expect(more?.getAttribute('href')).toBe('/tools?category=developer');
+  });
+
+  it('keeps the active tool visible even when it sits beyond the cap', async () => {
+    const beyond = TOOL_DEFINITIONS.filter((tool) => tool.category === 'developer')[SIDEBAR_CATEGORY_LIMIT + 3];
+    const fixture = TestBed.createComponent(Sidebar);
+    fixture.detectChanges();
+    await TestBed.inject(Router).navigateByUrl(beyond.route);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelectorAll('a[href^="/tools/"]').length).toBe(SIDEBAR_CATEGORY_LIMIT + 1);
+    expect(element.querySelector(`a[href="${beyond.route}"]`)).not.toBeNull();
   });
 });

@@ -1,4 +1,4 @@
-import { Injectable, isDevMode } from '@angular/core';
+import { inject, Injectable, InjectionToken, isDevMode } from '@angular/core';
 import { ToolCategory, TOOL_CATEGORIES } from '../../shared/models/tool-category.model';
 import { ToolDefinition, ToolSettingsSection } from '../../shared/models/tool-definition.model';
 import { TOOL_DEFINITIONS } from './tool-definitions';
@@ -31,9 +31,19 @@ export function validateDefinitions(definitions: readonly ToolDefinition[]): voi
   }
 }
 
+/**
+ * Where `ToolRegistryService` reads its manifests from. Production always uses the generated
+ * `TOOL_DEFINITIONS`; specs override it (e.g. with a large synthetic registry) to prove the shell
+ * does not treat today's tool count as a ceiling.
+ */
+export const TOOL_DEFINITION_SOURCE = new InjectionToken<readonly ToolDefinition[]>('TOOL_DEFINITION_SOURCE', {
+  providedIn: 'root',
+  factory: () => TOOL_DEFINITIONS,
+});
+
 @Injectable({ providedIn: 'root' })
 export class ToolRegistryService {
-  private readonly definitions: readonly ToolDefinition[] = TOOL_DEFINITIONS;
+  private readonly definitions: readonly ToolDefinition[] = inject(TOOL_DEFINITION_SOURCE);
 
   constructor() {
     if (isDevMode()) {

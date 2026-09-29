@@ -152,7 +152,7 @@
 
         @if (isExpanded()(category)) {
           @if (grouped()[category].length) {
-            @for (tool of grouped()[category]; track tool.id) {
+            @for (tool of visibleTools()(category).tools; track tool.id) {
               <a
                 [routerLink]="tool.route"
                 [appOfflineAvailability]="tool.id"
@@ -164,6 +164,11 @@
                 <span class="h-1 w-1 shrink-0 rounded-full" [class]="'bg-' + meta[category].colorToken"></span>
                 {{ tool.shortTitle ?? tool.title }}
                 <app-desktop-feature-marker [toolId]="tool.id" />
+              </a>
+            }
+            @if (visibleTools()(category).hidden > 0) {
+              <a routerLink="/tools" [queryParams]="{ category }" class="mx-2 block py-1 text-ui-xs text-text-muted hover:text-text">
+                All {{ counts().byCategory[category] }} {{ meta[category].label }} tools →
               </a>
             }
           } @else {
