@@ -5,6 +5,7 @@ import type { PwshStatus, SysMethodMap, SysReadMethod, SysResult, SysStreamEvent
 import type { ScheduledTaskDetail, ScheduledTaskSummary } from '../../../shared-logic/system/task-types';
 import type { StartupProgramsResult } from '../../../shared-logic/system/startup-types';
 import type { InstalledSoftware } from '../../../shared-logic/system/software-types';
+import type { WindowsCapability, WindowsFeature } from '../../../shared-logic/system/feature-types';
 import type { SysApplyResult, SysJournalEntry, SysMutationSettings, SysMutResult, SysPlanPreview, SysPlanRequest, SysSnapshot, SysSnapshotHeader, SysSnapshotKind } from '../../../shared-logic/system/sys-mutation-types';
 import type { NetworkRequest, NetworkJobEvent, NetworkStartResult, NetworkPrepareResult, WatchEntry, WatchSettings, WatchState, WatchResult } from './network-types';
 export interface NativeStat {
@@ -196,6 +197,8 @@ export interface DudeElectronBridge {
     taskInfo(taskPath: string, taskName: string): Promise<ScheduledTaskDetail>;
     startupList(): Promise<StartupProgramsResult>;
     listInstalledSoftware(): Promise<InstalledSoftware[]>;
+    featureList(): Promise<readonly WindowsFeature[]>;
+    featureCapabilities(): Promise<readonly WindowsCapability[]>;
     onEvent(callback: (event: SysStreamEvent) => void): () => void;
   };
   /**

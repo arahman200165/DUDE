@@ -71,6 +71,7 @@ describe('ProcessViewerTool', () => {
   }, 30_000);
 
   it('shows a desktop-only explanation on the web', () => {
+    TestBed.configureTestingModule({ providers: [provideRouter([])] });
     removeBridge();
     const fixture = TestBed.createComponent(ProcessViewerTool);
     fixture.detectChanges();

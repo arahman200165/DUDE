@@ -1,4 +1,7 @@
 import { Injectable } from '@angular/core';
+import type { StartupProgramsResult } from '../../../shared-logic/system/startup-types';
+import type { InstalledSoftware } from '../../../shared-logic/system/software-types';
+import type { WindowsCapability, WindowsFeature } from '../../../shared-logic/system/feature-types';
 import type {
   EventChannelsResult, EventQueryFileParams, EventQueryParams, EventQueryResult, FileSignatureResult, FileVersionResult, HelperInfo, ProcessDetail, ProcessHandlesResult, ProcessListResult, ProcessModulesResult,
   ProbeDirsResult, ProcessRef, ProcessThreadsResult, ServiceListResult, ServiceConfigResult, RegistryEnumResult, RegistryExportParams, RegistryExportResult, RegistryKeyParams, RegistrySearchParams, RegistrySearchResult, RegistryValuesResult, SocketTableResult, SysMethodMap, SysReadMethod,
@@ -30,6 +33,26 @@ export class SystemInfoService {
     return result.data;
   }
 
+  startupList(): Promise<StartupProgramsResult> {
+    const sys = window.dude?.sys;
+    if (!sys) throw new Error(UNAVAILABLE);
+    return sys.startupList();
+  }
+  listInstalledSoftware(): Promise<InstalledSoftware[]> {
+    const sys = window.dude?.sys;
+    if (!sys) throw new Error(UNAVAILABLE);
+    return sys.listInstalledSoftware();
+  }
+  featureList(): Promise<readonly WindowsFeature[]> {
+    const sys = window.dude?.sys;
+    if (!sys) throw new Error(UNAVAILABLE);
+    return sys.featureList();
+  }
+  featureCapabilities(): Promise<readonly WindowsCapability[]> {
+    const sys = window.dude?.sys;
+    if (!sys) throw new Error(UNAVAILABLE);
+    return sys.featureCapabilities();
+  }
   helperInfo(): Promise<HelperInfo> { return this.call('helper.info', {}); }
   listProcesses(): Promise<ProcessListResult> { return this.call('process.list', {}); }
   processDetail(ref: ProcessRef): Promise<ProcessDetail> { return this.call('process.detail', ref); }

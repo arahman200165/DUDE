@@ -319,6 +319,7 @@ import { manifest as watchedFoldersManifest } from '../../tools/watched-folders/
 import { manifest as weekNumberCalculatorManifest } from '../../tools/week-number-calculator/week-number-calculator.manifest';
 import { manifest as whitespaceCleanerManifest } from '../../tools/whitespace-cleaner/whitespace-cleaner.manifest';
 import { manifest as whoisLookupManifest } from '../../tools/whois-lookup/whois-lookup.manifest';
+import { manifest as windowsFeaturesManifest } from '../../tools/windows-features/windows-features.manifest';
 import { manifest as x509CertificateInspectorManifest } from '../../tools/x509-certificate-inspector/x509-certificate-inspector.manifest';
 import { manifest as xmlCsvManifest } from '../../tools/xml-csv/xml-csv.manifest';
 import { manifest as xmlFormatterManifest } from '../../tools/xml-formatter/xml-formatter.manifest';
@@ -647,6 +648,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   weekNumberCalculatorManifest,
   whitespaceCleanerManifest,
   whoisLookupManifest,
+  windowsFeaturesManifest,
   x509CertificateInspectorManifest,
   xmlCsvManifest,
   xmlFormatterManifest,

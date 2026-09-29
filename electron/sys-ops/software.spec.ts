@@ -4,7 +4,6 @@ import { softwareUninstallOp } from './software';
 const helper = vi.fn();
 const launch = vi.fn();
 vi.mock('../sys-mutation', () => ({}));
-vi.mock('../installed-software', () => ({ safeVendorCommand: (value: string) => /\.exe(?:\s|$)/i.test(value) && !/\b(?:cmd|powershell|wscript|rundll32)(?:\.exe)?\b/i.test(value) && !/[&|<>^%]/.test(value) }));
 vi.mock('node:child_process', () => ({ spawn: (...args: unknown[]) => launch(...args) }));
 
 const params = { hive: 'HKCU', view: 'default', keyName: 'Widget', displayName: 'Widget', uninstallString: '"C:\\Program Files\\Widget\\uninstall.exe" /remove' } as const;

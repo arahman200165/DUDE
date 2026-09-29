@@ -43,6 +43,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'scheduled-tasks': 'reading and changing live Windows scheduled tasks requires a user-directed desktop session and a previewed confirmation',
   'startup-programs': 'reading and changing Windows startup registrations needs the desktop helper and a user-directed, previewed session, not an invisible pipeline step',
   'installed-software': 'reading installed Windows software is a live desktop session and launching an uninstaller requires a reviewed user action',
+  'windows-features': 'reading and changing live Windows optional features needs a user-directed desktop session and a previewed confirmation',
   'services-viewer': 'reading and controlling Windows services needs the desktop system helper and a user-directed, previewed session, not an invisible pipeline step',
   'port-process-lookup': 'reading live socket tables needs the desktop system helper and a user-directed session, and ending a process must never run invisibly in a pipeline',
   'certificate-watch-list': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',

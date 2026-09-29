@@ -197,7 +197,7 @@ export function parseCustomViewXml(xml: string): CustomViewParse {
     for (let s = selectRe.exec(body); s; s = selectRe.exec(body)) {
       const channel = attr(s[1], 'Path') ?? queryPath;
       if (!channel) continue;
-      queries.push({ channel, xpath: decodeXmlText(s[2]).trim() || '*', suppress });
+      queries.push({ channel, xpath: decodeXmlText(s[2]).trim(), suppress });
     }
   }
   if (!queries.length) return { ok: false, error: 'No <Select> query found in the XML.' };

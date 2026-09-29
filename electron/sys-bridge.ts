@@ -9,6 +9,7 @@ import type { StartupProgramsResult } from '../src/shared-logic/system/startup-t
 import { readStartupPrograms } from './startup-programs';
 import { listInstalledSoftware } from './installed-software';
 import type { InstalledSoftware } from '../src/shared-logic/system/software-types';
+import type { WindowsCapability, WindowsFeature } from '../src/shared-logic/system/feature-types';
 
 // Reserved for later milestones: `dude:sys:event` carries streamed helper events (SysStreamEvent).
 
@@ -36,4 +37,12 @@ export function registerSysHandlers(): void {
   ipcMain.handle('dude:sys:startupList', (): Promise<StartupProgramsResult> =>
     readStartupPrograms((method, params) => sysHelper().call(method, params)));
   ipcMain.handle('dude:sys:softwareList', (): Promise<InstalledSoftware[]> => listInstalledSoftware());
+  ipcMain.handle('dude:sys:featureList', async (): Promise<WindowsFeature[]> => {
+    const value = await runFixedScript('feature.list', {}, new AbortController().signal);
+    return Array.isArray(value) ? value as WindowsFeature[] : value ? [value as WindowsFeature] : [];
+  });
+  ipcMain.handle('dude:sys:featureCapabilities', async (): Promise<WindowsCapability[]> => {
+    const value = await runFixedScript('feature.capabilities', {}, new AbortController().signal);
+    return Array.isArray(value) ? value as WindowsCapability[] : value ? [value as WindowsCapability] : [];
+  });
 }

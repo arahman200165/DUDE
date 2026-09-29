@@ -2,14 +2,13 @@ import { Component, computed, inject, signal } from '@angular/core';
 import type { InstalledSoftware } from '../../../shared-logic/system/software-types';
 import type { SysApplyResult, SysPlanPreview } from '../../../shared-logic/system/sys-mutation-types';
 import { PlatformService } from '../../core/platform/platform.service';
+import { SystemInfoService } from '../../core/platform/system-info.service';
 import { SystemMutationService } from '../../core/platform/system-mutation.service';
 import { DesktopOnlyControl } from '../../shared/components/desktop-only-control/desktop-only-control';
 import { StatusGlyph } from '../../shared/components/status-glyph/status-glyph';
 import { SystemChangePreview } from '../../shared/components/system-change-preview/system-change-preview';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { appxRemovalCommand, filterSoftware, formatBytes, softwareCsv, sortSoftware, uninstallRequest, type SoftwareSort } from './installed-software-logic';
-
-interface SoftwareBridge { listInstalledSoftware(): Promise<InstalledSoftware[]> }
 
 @Component({
   selector: 'app-installed-software',
@@ -19,6 +18,7 @@ interface SoftwareBridge { listInstalledSoftware(): Promise<InstalledSoftware[]>
 export class InstalledSoftwareTool {
   protected readonly platform = inject(PlatformService);
   private readonly mutations = inject(SystemMutationService);
+  private readonly systemInfo = inject(SystemInfoService);
   protected readonly rows = signal<readonly InstalledSoftware[]>([]);
   protected readonly query = signal('');
   protected readonly sort = signal<SoftwareSort>('name');
@@ -37,9 +37,7 @@ export class InstalledSoftwareTool {
   protected async reload(): Promise<void> {
     this.loading.set(true); this.error.set(''); this.message.set('');
     try {
-      const sys = window.dude?.sys;
-      if (!sys?.listInstalledSoftware) throw new Error('Installed software reader is unavailable in this desktop build.');
-      this.rows.set(await sys.listInstalledSoftware());
+      this.rows.set(await this.systemInfo.listInstalledSoftware());
     } catch (error) { this.error.set(error instanceof Error ? error.message : String(error)); }
     finally { this.loading.set(false); }
   }

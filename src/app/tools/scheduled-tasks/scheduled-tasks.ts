@@ -68,7 +68,9 @@ export class ScheduledTasksTool {
     this.loading.set(true);
     this.error.set('');
     try {
-      const tasks = await window.dude.sys.taskList();
+      const sys = window.dude?.sys;
+      if (!sys) throw new Error('Desktop system reader is unavailable.');
+      const tasks = await sys.taskList();
       this.tasks.set(tasks);
       const selected = this.selected();
       if (selected) await this.open(selected);
@@ -83,7 +85,11 @@ export class ScheduledTasksTool {
     this.detailError.set('');
     this.preview.set(null);
     this.detailLoading.set(true);
-    try { this.detail.set(await window.dude.sys.taskInfo(task.taskPath, task.taskName)); }
+    try {
+      const sys = window.dude?.sys;
+      if (!sys) throw new Error('Desktop system reader is unavailable.');
+      this.detail.set(await sys.taskInfo(task.taskPath, task.taskName));
+    }
     catch (caught) { this.detailError.set(this.message(caught)); }
     finally { this.detailLoading.set(false); }
   }

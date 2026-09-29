@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import type { SysApplyResult, SysPlanPreview } from '../../../shared-logic/system/sys-mutation-types';
 import type { StartupEntry, StartupProgramsResult } from '../../../shared-logic/system/startup-types';
 import { PlatformService } from '../../core/platform/platform.service';
+import { SystemInfoService } from '../../core/platform/system-info.service';
 import { SystemMutationService } from '../../core/platform/system-mutation.service';
 import { DataTable, type DataTableColumn } from '../../shared/components/data-table/data-table';
 import { DataTableCellDef } from '../../shared/components/data-table/data-table-cell.directive';
@@ -21,6 +22,7 @@ import { filterStartupEntries, startupToggleRequest, type StartupFilter } from '
 export class StartupProgramsTool {
   protected readonly platform = inject(PlatformService);
   private readonly mutations = inject(SystemMutationService);
+  private readonly systemInfo = inject(SystemInfoService);
   protected readonly entries = signal<readonly StartupEntry[]>([]);
   protected readonly warnings = signal<readonly string[]>([]);
   protected readonly loading = signal(false);
@@ -48,7 +50,7 @@ export class StartupProgramsTool {
   protected async refresh(): Promise<void> {
     this.loading.set(true); this.error.set(''); this.preview.set(null);
     try {
-      const result: StartupProgramsResult = await window.dude.sys.startupList();
+      const result: StartupProgramsResult = await this.systemInfo.startupList();
       this.entries.set(result.entries); this.warnings.set(result.warnings);
       if (!this.entries().some((entry) => entry.id === this.selectedId())) this.selectedId.set(null);
     } catch (caught) { this.error.set(caught instanceof Error ? caught.message : String(caught)); }

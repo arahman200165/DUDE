@@ -21,7 +21,7 @@ function validate(raw: unknown): UninstallRef {
   const r = strict(raw);
   if (r['hive'] !== 'HKLM' && r['hive'] !== 'HKCU') throw new Error('Invalid software.uninstall: hive.');
   if (r['view'] !== '64' && r['view'] !== '32' && r['view'] !== 'default') throw new Error('Invalid software.uninstall: view.');
-  if (typeof r['keyName'] !== 'string' || !r['keyName'] || r['keyName'].length > 512 || /[\\/\u0000-\u001f\u007f]/.test(r['keyName'])) throw new Error('Invalid software.uninstall: keyName.');
+  if (typeof r['keyName'] !== 'string' || !r['keyName'] || r['keyName'] === '.' || r['keyName'] === '..' || r['keyName'].length > 512 || /[\\/\u0000-\u001f\u007f]/.test(r['keyName'])) throw new Error('Invalid software.uninstall: keyName.');
   if (typeof r['displayName'] !== 'string' || !r['displayName'].trim() || r['displayName'].length > 512 || /[\u0000-\u001f\u007f]/.test(r['displayName'])) throw new Error('Invalid software.uninstall: displayName.');
   if (typeof r['uninstallString'] !== 'string' || !r['uninstallString'].trim() || r['uninstallString'].length > 8192) throw new Error('Invalid software.uninstall: uninstallString.');
   if (!safeVendorCommand(r['uninstallString'])) throw new Error('This uninstall command is not a supported direct vendor executable.');
@@ -36,7 +36,7 @@ function parseCommand(raw: string): { executable: string; args: string[] } {
     const productCode = argText.match(/\{[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}\}/i)?.[0];
     if (!productCode) throw new Error('The MSI uninstall command has no valid product code.');
     executable = 'msiexec.exe';
-    return { executable, args: ['/x', productCode] };
+    return { executable, args: ['/x', productCode.toUpperCase()] };
   }
   // Preserve simple quoted arguments, but reject nested quoting and shell syntax at validation.
   const args = argText.match(/"[^"]*"|[^\s]+/g)?.map((part) => part.startsWith('"') ? part.slice(1, -1) : part) ?? [];

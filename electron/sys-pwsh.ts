@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { lstatSync } from 'node:fs';
 import { delimiter, join } from 'node:path';
 import type { PwshStatus } from '../src/shared-logic/system/system-types';
+import { WINDOWS_FEATURE_SCRIPTS } from './windows-features';
 
 export interface PwshDeps {
   readonly env: Readonly<Record<string, string | undefined>>;
@@ -80,6 +81,7 @@ export function pwshStatus(refresh = false): Promise<PwshStatus> {
 /** Fixed, reviewed scripts. Arguments never reach a script except through `$DudeArgs`. */
 export const FIXED_SCRIPTS: Record<string, string> = {
   'pwsh.echo': '$DudeArgs',
+  ...WINDOWS_FEATURE_SCRIPTS,
   'net.neighbors': 'Get-NetNeighbor | Select-Object IPAddress,LinkLayerAddress,State,InterfaceAlias,AddressFamily',
   'net.routes': 'Get-NetRoute | Select-Object DestinationPrefix,NextHop,RouteMetric,InterfaceAlias,AddressFamily',
   'net.interfaces': 'Get-NetIPConfiguration | Select-Object InterfaceAlias,InterfaceDescription,IPv4Address,IPv6Address,IPv4DefaultGateway,DNSServer',
