@@ -212,6 +212,32 @@ const bridge: DudeElectronBridge = {
       return () => ipcRenderer.removeListener('dude:sys:event', listener);
     },
   },
+  sysMutation: {
+    plan: (request) => ipcRenderer.invoke('dude:sysmut:plan', request),
+    planUndo: (planId) => ipcRenderer.invoke('dude:sysmut:planUndo', planId),
+    issueToken: (planId, typed) => ipcRenderer.invoke('dude:sysmut:issueToken', planId, typed),
+    apply: (planId, token, options) => ipcRenderer.invoke('dude:sysmut:apply', planId, token, options),
+    cancelApply: (planId) => ipcRenderer.invoke('dude:sysmut:cancelApply', planId),
+    discard: (planId) => ipcRenderer.invoke('dude:sysmut:discard', planId),
+    journal: () => ipcRenderer.invoke('dude:sysmut:journal'),
+    getSettings: () => ipcRenderer.invoke('dude:sysmut:getSettings'),
+    setSettings: (patch) => ipcRenderer.invoke('dude:sysmut:setSettings', patch),
+    purgeBackups: (planId) => ipcRenderer.invoke('dude:sysmut:purgeBackups', planId),
+    onProgress: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, value: { planId: string; done: number; total: number }) => callback(value);
+      ipcRenderer.on('dude:sysmut:progress', listener);
+      return () => ipcRenderer.removeListener('dude:sysmut:progress', listener);
+    },
+  },
+  sysSnapshots: {
+    list: (kind) => ipcRenderer.invoke('dude:syssnap:list', kind),
+    get: (kind, id) => ipcRenderer.invoke('dude:syssnap:get', kind, id),
+    save: (kind, name, source, data) => ipcRenderer.invoke('dude:syssnap:save', kind, name, source, data),
+    remove: (kind, id) => ipcRenderer.invoke('dude:syssnap:remove', kind, id),
+    exportJson: (kind, id) => ipcRenderer.invoke('dude:syssnap:export', kind, id),
+    importJson: (json) => ipcRenderer.invoke('dude:syssnap:import', json),
+    usage: () => ipcRenderer.invoke('dude:syssnap:usage'),
+  },
   elevation: {
     status: () => ipcRenderer.invoke('dude:elevation:status'),
     relaunch: () => ipcRenderer.invoke('dude:elevation:relaunch'),

@@ -33,6 +33,7 @@ const VALID_CONSEQUENCE_CLASSES: readonly ConsequenceClass[] = [
   'database-write',
   'secret-management',
   'remote-write',
+  'system-config',
 ];
 
 // Web Capability Matrix (Phase 26 Item 6): a runtime is "used" when non-spec source references

@@ -112,6 +112,19 @@ export function fakeElectronBridge(overrides: Partial<DudeElectronBridge> = {}):
       pwshStatus: async () => ({ available: false, reason: 'unavailable' }),
       onEvent: () => () => {},
     },
+    sysMutation: {
+      plan: async () => ({ ok: false as const, error: 'unavailable' }), planUndo: async () => ({ ok: false as const, error: 'unavailable' }), issueToken: async () => ({ ok: false as const, error: 'unavailable' }), apply: async () => ({ ok: false as const, error: 'unavailable' }),
+      cancelApply: async () => false, discard: async () => false,
+      journal: async () => ({ ok: true as const, value: [] }),
+      getSettings: async () => ({ ok: true as const, value: { settings: { retentionDays: 30, maxBackupBytes: 500 * 1024 ** 2 }, backupBytes: 0 } }),
+      setSettings: async () => ({ ok: false as const, error: 'unavailable' }), purgeBackups: async () => ({ ok: false as const, error: 'unavailable' }),
+      onProgress: () => () => {},
+    },
+    sysSnapshots: {
+      list: async () => ({ ok: true as const, value: [] }),
+      get: async () => ({ ok: false as const, error: 'unavailable' }), save: async () => ({ ok: false as const, error: 'unavailable' }), remove: async () => ({ ok: false as const, error: 'unavailable' }), exportJson: async () => ({ ok: false as const, error: 'unavailable' }), importJson: async () => ({ ok: false as const, error: 'unavailable' }),
+      usage: async () => ({ ok: true as const, value: { count: 0, bytes: 0 } }),
+    },
     elevation: {
       status: async () => false,
       relaunch: async () => false,

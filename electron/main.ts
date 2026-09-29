@@ -9,6 +9,8 @@ import { registerSnapshotHandlers } from './fs-snapshots';
 import { loadFolderWatches, registerFolderWatchHandlers, setFolderWatchTrayUpdater, stopFolderWatches } from './fs-watch-service';
 import { registerNetworkHandlers, cancelAllNetworkJobs } from './network-bridge';
 import { registerSysHandlers } from './sys-bridge';
+import { registerSysMutationHandlers } from './sys-mutation';
+import { registerSysSnapshotHandlers } from './sys-snapshots';
 import { registerElevationHandlers } from './elevation-bridge';
 import { stopSysHelper } from './sys-helper';
 import { registerWatchHandlers, stopWatchScheduler, setTrayUpdater } from './network-watch';
@@ -153,6 +155,8 @@ if (hasSingleInstanceLock) void app.whenReady().then(async () => {
   void loadFolderWatches();
   registerNetworkHandlers();
   registerSysHandlers();
+  registerSysMutationHandlers();
+  registerSysSnapshotHandlers();
   registerElevationHandlers();
   registerWatchHandlers();
   registerSecretsHandlers();

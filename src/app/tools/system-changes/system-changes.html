@@ -1,0 +1,122 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning/40 bg-warning/5 p-4 text-ui text-text-muted">
+      System Changes lists and undoes the Windows system changes Desktop DUDE applied — processes, environment variables, the registry, services, scheduled tasks, startup entries, features and permissions — and manages the snapshot library. It needs the Windows desktop app.
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <app-desktop-only-control capability="native-system-write" label="Undo a system change" />
+      <app-desktop-only-control capability="native-system" label="Manage system snapshots" />
+    </div>
+  } @else {
+    <div class="flex flex-col gap-4 text-ui">
+      <div class="flex flex-wrap items-center gap-3 rounded-sm border border-border bg-panel p-2 text-text-muted">
+        <span>Backups for undo: <span class="text-text" data-testid="sys-backup-usage">{{ bytes(backupBytes()) }}</span></span>
+        <a routerLink="/settings/tools/system-changes" class="text-accent underline">Retention &amp; backup cap</a>
+        @if (backupBytes()) {
+          @if (!confirmingPurge()) { <button type="button" class="ml-auto rounded-sm border border-error/50 px-2 py-0.5 text-error" (click)="confirmingPurge.set(true)">Purge backups…</button> }
+          @else {
+            <span class="ml-auto text-warning">Purging removes the ability to undo changes that relied on backups. Nothing on the system changes.</span>
+            <button type="button" class="rounded-sm border border-error px-2 py-0.5 text-error" (click)="purge()">Purge</button>
+            <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="confirmingPurge.set(false)">Cancel</button>
+          }
+        }
+      </div>
+
+      <app-system-change-preview [preview]="preview()" (applied)="onApplied($event)" (discarded)="preview.set(null)" />
+      @if (error()) { <div role="alert" class="flex items-center gap-1 rounded-sm border border-error/50 bg-error/5 p-2 text-error"><app-status-glyph kind="error" />{{ error() }}</div> }
+
+      <section class="flex flex-col gap-2" aria-label="Change journal">
+        <div class="flex flex-wrap items-center gap-2">
+          <h2 class="font-semibold text-text">Journal</h2>
+          <input class="min-w-40 flex-1 rounded-sm border border-border bg-panel px-2 py-1 text-text" placeholder="Filter by title, tool, or target" [value]="query()" (input)="query.set($any($event.target).value)" aria-label="Filter changes" />
+          <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" aria-label="Filter by tool" [value]="toolFilter()" (change)="toolFilter.set($any($event.target).value)">
+            <option value="">All tools</option>
+            @for (tool of tools(); track tool) { <option [value]="tool">{{ tool }}</option> }
+          </select>
+          <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" aria-label="Filter by outcome" [value]="outcomeFilter()" (change)="setOutcome($any($event.target).value)">
+            <option value="">Any outcome</option>
+            @for (outcome of outcomes; track outcome) { <option [value]="outcome">{{ outcome }}</option> }
+          </select>
+          <button type="button" class="rounded-sm border border-border px-2 py-1 text-text" (click)="reload()">Refresh</button>
+        </div>
+
+        @if (visible().length) {
+          <ul class="flex flex-col gap-2">
+            @for (row of visible(); track row.entry.planId) {
+              <li class="rounded-sm border border-border p-2" data-testid="journal-entry">
+                <div class="flex flex-wrap items-center gap-2">
+                  <button type="button" class="text-left font-semibold text-text underline decoration-dotted" data-testid="journal-toggle" [attr.aria-expanded]="expanded() === row.entry.planId" (click)="toggle(row.entry.planId)">{{ row.entry.title }}</button>
+                  <span class="text-ui-xs text-text-muted">{{ row.entry.tool }}@if (row.entry.undoOf) { · undo }</span>
+                  <span class="font-mono text-ui-xs text-text-muted">{{ when(row.entry.appliedAt) }}</span>
+                  @if (row.entry.elevated) { <span class="rounded-sm border border-warning px-1 text-ui-xs text-warning">elevated</span> }
+                  <span class="flex flex-wrap gap-2 text-ui-xs">
+                    <span class="flex items-center gap-1 text-success"><app-status-glyph kind="success" />{{ row.counts.applied }} applied</span>
+                    @if (row.counts.conflict) { <span class="flex items-center gap-1 text-warning"><app-status-glyph kind="warning" />{{ row.counts.conflict }} conflict</span> }
+                    @if (row.counts.failed) { <span class="flex items-center gap-1 text-error"><app-status-glyph kind="error" />{{ row.counts.failed }} failed</span> }
+                    @if (row.counts.cancelled) { <span class="flex items-center gap-1 text-warning"><app-status-glyph kind="cancelled" />{{ row.counts.cancelled }} cancelled</span> }
+                  </span>
+                  <span class="ml-auto">
+                    @if (row.undoable) { <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" data-testid="undo-preview" (click)="previewUndo(row.entry.planId)">Undo…</button> }
+                    @else { <span class="text-ui-xs text-text-muted">{{ row.note }}</span> }
+                  </span>
+                </div>
+                @if (row.entry.backupBytes) { <div class="text-ui-xs text-text-muted">{{ bytes(row.entry.backupBytes) }} backed up{{ row.entry.backupsPruned ? ' (pruned)' : '' }}</div> }
+                @if (expanded() === row.entry.planId) {
+                  <table class="mt-2 w-full border-collapse text-ui-xs">
+                    <thead><tr class="text-left text-text-muted"><th class="px-2 py-1">Target</th><th class="px-2 py-1">Change</th><th class="px-2 py-1">Before → after</th><th class="px-2 py-1">Outcome</th></tr></thead>
+                    <tbody>
+                      @for (op of row.entry.ops; track $index) {
+                        <tr class="border-t border-border align-top">
+                          <td class="break-all px-2 py-1 font-mono text-text">{{ op.target }}</td>
+                          <td class="px-2 py-1 text-text-muted">{{ op.summary }}</td>
+                          <td class="break-all px-2 py-1 font-mono text-text-muted">@if (op.before !== undefined || op.after !== undefined) { {{ op.before ?? '' }} → {{ op.after ?? '' }} }</td>
+                          <td class="px-2 py-1"><span class="flex items-center gap-1"><app-status-glyph [kind]="glyph(op.outcome)" />{{ op.outcome }}</span>@if (op.message) { <div class="text-text-muted">{{ op.message }}</div> }</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                }
+              </li>
+            }
+          </ul>
+        } @else {
+          <div class="text-text-muted" data-testid="journal-empty">No system changes yet. Tools that change Windows state — Process Manager, environment variables, the registry, services, tasks, startup entries — journal every applied change here.</div>
+        }
+      </section>
+
+      <section class="flex flex-col gap-2" aria-label="Snapshot library">
+        <div class="flex flex-wrap items-center gap-2">
+          <h2 class="font-semibold text-text">Snapshots</h2>
+          <span class="text-ui-xs text-text-muted">{{ snapshotHeaders().length }} saved, {{ bytes(snapshotBytes()) }}</span>
+          <label class="ml-auto cursor-pointer rounded-sm border border-border px-2 py-1 text-text">Import…
+            <input type="file" accept=".json,application/json" class="sr-only" data-testid="snapshot-import" (change)="importSnapshot($event)" />
+          </label>
+        </div>
+        @for (group of snapshotGroups(); track group.kind) {
+          <div>
+            <h3 class="text-ui-xs uppercase text-text-muted">{{ group.kind }}</h3>
+            <table class="w-full border-collapse text-ui-xs">
+              <thead><tr class="text-left text-text-muted"><th class="px-2 py-1">Name</th><th class="px-2 py-1">Source</th><th class="px-2 py-1">Created</th><th class="px-2 py-1">Size</th><th class="px-2 py-1"></th></tr></thead>
+              <tbody>
+                @for (snap of group.items; track snap.id) {
+                  <tr class="border-t border-border">
+                    <td class="px-2 py-1 text-text">{{ snap.name }}</td>
+                    <td class="break-all px-2 py-1 font-mono text-text-muted">{{ snap.source }}</td>
+                    <td class="px-2 py-1 font-mono text-text-muted">{{ when(snap.createdAt) }}</td>
+                    <td class="px-2 py-1 text-text-muted">{{ bytes(snap.bytes) }}</td>
+                    <td class="px-2 py-1 text-right">
+                      <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text" (click)="exportSnapshot(snap)">Export</button>
+                      <button type="button" class="ml-1 rounded-sm border border-error/50 px-2 py-0.5 text-error" (click)="removeSnapshot(snap)">Delete</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @empty {
+          <div class="text-text-muted" data-testid="snapshots-empty">No snapshots yet. Environment, PATH, registry and process-environment tools save snapshots here so you can diff them later.</div>
+        }
+      </section>
+    </div>
+  }
+</app-tool-shell>

@@ -2,6 +2,7 @@ import type { SnapshotDiff, SnapshotHeader } from '../../../shared-logic/fs/snap
 import type { ChangeEvent, FolderWatchSettings, FolderWatchState, TimelineQuery, WatchedFolder } from '../../../shared-logic/fs/watch-types';
 import type { ApplyResult, FsJobEvent, FsJobRequest, FsResult, JournalEntry, MutationSettings, PickedFile, PlanPreview, RememberedFolder } from '../../../shared-logic/fs/fs-types';
 import type { PwshStatus, SysMethodMap, SysReadMethod, SysResult, SysStreamEvent } from '../../../shared-logic/system/system-types';
+import type { SysApplyResult, SysJournalEntry, SysMutationSettings, SysMutResult, SysPlanPreview, SysPlanRequest, SysSnapshot, SysSnapshotHeader, SysSnapshotKind } from '../../../shared-logic/system/sys-mutation-types';
 import type { NetworkRequest, NetworkJobEvent, NetworkStartResult, NetworkPrepareResult, WatchEntry, WatchSettings, WatchState, WatchResult } from './network-types';
 export interface NativeStat {
   readonly isFile: boolean;
@@ -189,6 +190,34 @@ export interface DudeElectronBridge {
     call<M extends SysReadMethod>(method: M, params: SysMethodMap[M]['params']): Promise<SysResult<SysMethodMap[M]['result']>>;
     pwshStatus(refresh?: boolean): Promise<PwshStatus>;
     onEvent(callback: (event: SysStreamEvent) => void): () => void;
+  };
+  /**
+   * Windows system changes through the previewed, confirmed, journaled engine (DUDE_PRD.md §5.2.1,
+   * Phase 31 Milestone 594). `apply` needs a single-use token from `issueToken`, which in turn needs
+   * the exact typed names for any critical target.
+   */
+  readonly sysMutation: {
+    plan(request: SysPlanRequest): Promise<SysMutResult<SysPlanPreview>>;
+    planUndo(planId: string): Promise<SysMutResult<SysPlanPreview>>;
+    issueToken(planId: string, typed: readonly string[]): Promise<SysMutResult<{ token: string; expiresAt: string }>>;
+    apply(planId: string, token: string, options?: { acceptNoUndo?: boolean }): Promise<SysMutResult<SysApplyResult>>;
+    cancelApply(planId: string): Promise<boolean>;
+    discard(planId: string): Promise<boolean>;
+    journal(): Promise<SysMutResult<readonly SysJournalEntry[]>>;
+    getSettings(): Promise<SysMutResult<{ settings: SysMutationSettings; backupBytes: number }>>;
+    setSettings(patch: Partial<SysMutationSettings>): Promise<SysMutResult<SysMutationSettings>>;
+    purgeBackups(planId?: string): Promise<SysMutResult<void>>;
+    onProgress(callback: (event: { readonly planId: string; readonly done: number; readonly total: number }) => void): () => void;
+  };
+  /** The userData snapshot library behind Phase 31's env/PATH/registry/process-environment diffs. */
+  readonly sysSnapshots: {
+    list(kind?: SysSnapshotKind): Promise<SysMutResult<readonly SysSnapshotHeader[]>>;
+    get(kind: SysSnapshotKind, id: string): Promise<SysMutResult<SysSnapshot>>;
+    save(kind: SysSnapshotKind, name: string, source: string, data: unknown): Promise<SysMutResult<SysSnapshotHeader>>;
+    remove(kind: SysSnapshotKind, id: string): Promise<SysMutResult<void>>;
+    exportJson(kind: SysSnapshotKind, id: string): Promise<SysMutResult<string>>;
+    importJson(json: string): Promise<SysMutResult<SysSnapshotHeader>>;
+    usage(): Promise<SysMutResult<{ count: number; bytes: number }>>;
   };
   /** Session elevation state and the deliberate Relaunch as Administrator action (Phase 27, shared from Phase 31). */
   readonly elevation: {

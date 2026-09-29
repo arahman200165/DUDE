@@ -1,5 +1,6 @@
 import { app, ipcMain, shell, type WebContents } from 'electron';
 import { createHash, randomUUID } from 'node:crypto';
+import { ConfirmationStore, digestOf, JsonJournal } from './mutation-core';
 import { createReadStream, createWriteStream, promises as fs } from 'node:fs';
 import { once } from 'node:events';
 import { basename, dirname, isAbsolute, join, normalize, sep } from 'node:path';
@@ -46,9 +47,15 @@ interface StoredPlan {
   readonly undoOf?: string;
 }
 
-const plans = new Map<string, StoredPlan>();
-const tokens = new Map<string, { planId: string; ownerId: number; digest: string; expires: number }>();
 const applying = new Map<string, AbortController>();
+const store = new ConfirmationStore<StoredPlan>({
+  tokenTtlMs: TOKEN_TTL_MS,
+  maxPlans: MAX_PLANS,
+  maxTokens: MAX_PENDING_TOKENS,
+  isBusy: (id) => applying.has(id),
+  onExpire: (plan) => { void discardStaging(plan); },
+});
+const journalStore = new JsonJournal<JournalEntry>(() => journalRoot(), MAX_JOURNAL);
 let settings: MutationSettings = DEFAULT_MUTATION_SETTINGS;
 let settingsLoaded = false;
 
@@ -124,26 +131,20 @@ function toPreviewOp(root: string, op: MutationOp, index: number): PreviewOp {
   }
 }
 
-function sweep(): void {
-  const now = Date.now();
-  for (const [token, value] of tokens) if (value.expires < now) tokens.delete(token);
-  for (const [id, plan] of plans) if (plan.expires < now && !applying.has(id)) { plans.delete(id); void discardStaging(plan); }
-}
-
 async function discardStaging(plan: StoredPlan): Promise<void> {
   for (const op of plan.draft.ops) if ((op.kind === 'write' || op.kind === 'create') && op.staged && within(stagingRoot(), op.staged)) await fs.rm(op.staged, { force: true }).catch(() => {});
 }
 
 export async function registerPlan(owner: Pick<WebContents, 'id'>, draft: MutationPlanDraft, undoOf?: string): Promise<PlanPreview> {
-  sweep();
+  store.sweep();
   await loadSettings();
-  if (plans.size >= MAX_PLANS) throw new Error('Too many pending previews. Apply or discard one first.');
+  if (store.planCount >= MAX_PLANS) throw new Error('Too many pending previews. Apply or discard one first.');
   if (!draft || !Array.isArray(draft.ops)) throw new Error('Invalid plan.');
   if (!draft.ops.length) throw new Error(draft.skipped?.length ? `Nothing to change: all ${draft.skipped.length} candidate(s) were skipped.` : 'Nothing to change.');
   if (!isRootGranted(draft.root)) throw new Error('The folder for this plan is no longer granted. Pick it again.');
   for (const op of draft.ops) validateOp(op);
   const id = randomUUID();
-  const digest = createHash('sha256').update(JSON.stringify(draft.ops)).digest('hex');
+  const digest = digestOf(draft.ops);
   const counts: Record<MutationOpKind, number> = { rename: 0, write: 0, create: 0, trash: 0 };
   for (const op of draft.ops) counts[op.kind as MutationOpKind]++;
   const backupBytes = draft.ops.reduce((sum, op) => sum + (op.kind === 'write' ? op.expect.size : 0), 0);
@@ -162,32 +163,14 @@ export async function registerPlan(owner: Pick<WebContents, 'id'>, draft: Mutati
     expiresAt: new Date(expires).toISOString(),
     ...(undoOf ? { undoOf } : {}),
   };
-  plans.set(id, { id, ownerId: owner.id, draft, digest, expires, preview, undoOf });
+  store.addPlan({ id, ownerId: owner.id, draft, digest, expires, preview, undoOf });
   return preview;
 }
 
 // ---- Confirmation tokens ----
 
 export function issueToken(ownerId: number, planId: string): FsResult<{ token: string; expiresAt: string }> {
-  sweep();
-  const plan = plans.get(planId);
-  if (!plan || plan.ownerId !== ownerId) return { ok: false, error: 'This preview expired. Build it again.' };
-  if (tokens.size >= MAX_PENDING_TOKENS) return { ok: false, error: 'Too many pending confirmations.' };
-  const token = randomUUID();
-  const expires = Date.now() + TOKEN_TTL_MS;
-  tokens.set(token, { planId, ownerId, digest: plan.digest, expires });
-  return { ok: true, token, expiresAt: new Date(expires).toISOString() };
-}
-
-function consumeToken(ownerId: number, planId: string, token: unknown): StoredPlan {
-  if (typeof token !== 'string') throw new Error('Confirm this change before applying it.');
-  const staged = tokens.get(token);
-  tokens.delete(token);
-  const plan = plans.get(planId);
-  if (!staged || !plan || staged.planId !== planId || staged.ownerId !== ownerId || staged.expires < Date.now() || staged.digest !== plan.digest) {
-    throw new Error('Confirmation expired or the plan changed. Review it again.');
-  }
-  return plan;
+  return store.issueToken(ownerId, planId);
 }
 
 // ---- Apply ----
@@ -326,11 +309,11 @@ async function applyOp(op: Exclude<MutationOp, { kind: 'rename' }>, index: numbe
 }
 
 export async function applyPlan(owner: Pick<WebContents, 'id' | 'send' | 'isDestroyed'>, planId: string, token: unknown, options: { acceptNoUndo?: boolean } = {}): Promise<ApplyResult> {
-  sweep();
-  const plan = consumeToken(owner.id, planId, token);
+  store.sweep();
+  const plan = store.consume(owner.id, planId, token);
   if (plan.preview.exceedsBackupCap && !options.acceptNoUndo) throw new Error('Backups for this plan would exceed the backup cap. Acknowledge "no undo for this plan" to apply it.');
   const noUndo = plan.preview.exceedsBackupCap && !!options.acceptNoUndo;
-  plans.delete(planId);
+  store.deletePlan(planId);
   const abort = new AbortController();
   applying.set(planId, abort);
   const ops = plan.draft.ops;
@@ -387,32 +370,18 @@ export function cancelApply(planId: string): boolean {
 }
 
 export function discardPlan(ownerId: number, planId: string): boolean {
-  const plan = plans.get(planId);
+  const plan = store.getPlan(planId);
   if (!plan || plan.ownerId !== ownerId) return false;
-  plans.delete(planId);
+  store.deletePlan(planId);
   void discardStaging(plan);
   return true;
 }
 
 // ---- Journal ----
 
-async function writeJournal(entry: JournalEntry): Promise<void> {
-  await fs.mkdir(journalRoot(), { recursive: true });
-  const target = join(journalRoot(), `${entry.planId}.json`);
-  await fs.writeFile(`${target}.tmp`, JSON.stringify(entry), 'utf8');
-  await fs.rename(`${target}.tmp`, target);
-}
-
-async function readJournal(planId: string): Promise<JournalEntry | null> {
-  if (!/^[0-9a-f-]{36}$/.test(planId)) return null;
-  try { return JSON.parse(await fs.readFile(join(journalRoot(), `${planId}.json`), 'utf8')) as JournalEntry; } catch { return null; }
-}
-
-export async function listJournal(): Promise<JournalEntry[]> {
-  const files = (await fs.readdir(journalRoot()).catch(() => [] as string[])).filter((file) => file.endsWith('.json'));
-  const entries = (await Promise.all(files.map((file) => readJournal(file.slice(0, -5))))).filter((entry): entry is JournalEntry => !!entry);
-  return entries.sort((a, b) => b.appliedAt.localeCompare(a.appliedAt));
-}
+const writeJournal = (entry: JournalEntry): Promise<void> => journalStore.write(entry);
+const readJournal = (planId: string): Promise<JournalEntry | null> => journalStore.read(planId);
+export const listJournal = (): Promise<JournalEntry[]> => journalStore.list();
 
 /** The inverse of an applied plan, registered as a fresh plan (so undo is itself previewed + confirmed). */
 export async function planUndo(owner: Pick<WebContents, 'id'>, planId: string): Promise<PlanPreview> {
@@ -481,11 +450,7 @@ export async function pruneBackups(now = Date.now()): Promise<void> {
     const old = now - Date.parse(entry.appliedAt) > settings.retentionDays * 86_400_000;
     if (old || total > settings.maxBackupBytes) { total -= entry.backupBytes; await dropBackups(entry); }
   }
-  const all = await listJournal();
-  for (const entry of all.slice(MAX_JOURNAL)) {
-    await fs.rm(join(backupsRoot(), entry.planId), { recursive: true, force: true });
-    await fs.rm(join(journalRoot(), `${entry.planId}.json`), { force: true });
-  }
+  await journalStore.trimTo(MAX_JOURNAL, (entry) => fs.rm(join(backupsRoot(), entry.planId), { recursive: true, force: true }));
 }
 
 export async function purgeBackups(planId?: string): Promise<void> {

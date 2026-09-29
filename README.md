@@ -119,6 +119,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Certificate Revocation Inspector](https://arahman200165.github.io/DUDE/tools/revocation-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [STARTTLS Inspector](https://arahman200165.github.io/DUDE/tools/starttls-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [System Changes](https://arahman200165.github.io/DUDE/tools/system-changes) | Native Windows system access | Desktop-only feature | manages the local snapshot library used by the environment, PATH and registry diffs |
+| [System Changes](https://arahman200165.github.io/DUDE/tools/system-changes) | Native Windows system changes | Desktop-only feature | undoes journaled Windows system changes through the desktop system mutation engine |
 | [TCP Port Tester](https://arahman200165.github.io/DUDE/tools/tcp-port-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [TLS Connection Inspector](https://arahman200165.github.io/DUDE/tools/tls-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Traceroute](https://arahman200165.github.io/DUDE/tools/traceroute) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
@@ -142,7 +144,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-314 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+315 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -439,6 +441,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Stack Trace Formatter](https://arahman200165.github.io/DUDE/tools/stack-trace-formatter) | Developer | Auto-detects and cleans up a Java, .NET, JavaScript, or Python stack trace, tagging library frames and Caused-by/inner-exception chains. |
 | [Statistics Calculator](https://arahman200165.github.io/DUDE/tools/statistics-calculator) | Developer | Count, sum, mean, median, mode, range, quartiles/IQR, and population/sample variance and standard deviation. |
 | [Subnet Calculator](https://arahman200165.github.io/DUDE/tools/subnet-calculator) | Developer | Splits an IPv4 network into a chosen number of equal subnets, or into subnets of a given prefix length. |
+| [System Changes](https://arahman200165.github.io/DUDE/tools/system-changes) | Developer | Journal of every Windows system change DUDE applied — processes, environment variables, registry, services, tasks, startup entries, features and permissions — with per-change outcomes, previewed undo, backups, retention, and the snapshot library. |
 | [TCP Port Tester](https://arahman200165.github.io/DUDE/tools/tcp-port-tester) | Developer | Test one TCP port on an explicit host. |
 | [Template Renderer](https://arahman200165.github.io/DUDE/tools/template-renderer) | Developer | Render an EJS template against a JSON data context in a network-isolated sandbox, using the same execution engine as the JavaScript Playground. |
 | [Traceroute](https://arahman200165.github.io/DUDE/tools/traceroute) | Developer | Trace the network path to an explicit host. |

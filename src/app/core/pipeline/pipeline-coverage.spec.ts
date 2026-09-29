@@ -33,6 +33,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'large-file-inspector': 'inspecting files on disk requires a user-granted native file and a user-directed session; it cannot run invisibly in a pipeline',
   'watched-folders': 'background folder watching is a live monitor of folders on disk and cannot run as a pipeline step',
   'batch-operations': 'changing files on disk requires a previewed, explicitly confirmed native action and must never run invisibly in a pipeline',
+  'system-changes': 'changing Windows system state requires a previewed, explicitly confirmed native action and must never run invisibly in a pipeline',
   'certificate-watch-list': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'reverse-dns': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'dns-propagation': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',

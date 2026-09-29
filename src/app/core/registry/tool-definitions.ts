@@ -278,6 +278,7 @@ import { manifest as structuredDataConverterManifest } from '../../tools/structu
 import { manifest as subnetCalculatorManifest } from '../../tools/subnet-calculator/subnet-calculator.manifest';
 import { manifest as svgDataUriManifest } from '../../tools/svg-data-uri/svg-data-uri.manifest';
 import { manifest as svgViewerManifest } from '../../tools/svg-viewer/svg-viewer.manifest';
+import { manifest as systemChangesManifest } from '../../tools/system-changes/system-changes.manifest';
 import { manifest as tailwindColorMatcherManifest } from '../../tools/tailwind-color-matcher/tailwind-color-matcher.manifest';
 import { manifest as tcpPortTesterManifest } from '../../tools/tcp-port-tester/tcp-port-tester.manifest';
 import { manifest as templateRendererManifest } from '../../tools/template-renderer/template-renderer.manifest';
@@ -594,6 +595,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   subnetCalculatorManifest,
   svgDataUriManifest,
   svgViewerManifest,
+  systemChangesManifest,
   tailwindColorMatcherManifest,
   tcpPortTesterManifest,
   templateRendererManifest,
