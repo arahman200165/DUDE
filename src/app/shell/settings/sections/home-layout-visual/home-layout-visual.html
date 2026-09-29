@@ -1,0 +1,13 @@
+<div class="flex flex-col gap-1">
+  <p class="m-0 text-ui-xs text-text-muted">
+    Drag a panel to move it and drag the marked corner to resize it. With a panel focused, arrow keys move it and Shift plus arrow keys resize it. A change that would overlap
+    another panel or break a size limit is refused and explained below. Everything here is also available in the list.
+  </p>
+  @if (state() === 'loading') {
+    <p class="m-0 text-ui-xs text-text-muted" role="status">Loading the visual editor…</p>
+  }
+  @if (state() === 'failed') {
+    <p class="m-0 text-ui-sm text-error" role="alert">The visual editor couldn’t load. Use the list below to arrange panels.</p>
+  }
+  <div #grid class="grid-stack dude-home-visual rounded-sm border border-border bg-panel p-1" data-testid="visual-grid"></div>
+</div>

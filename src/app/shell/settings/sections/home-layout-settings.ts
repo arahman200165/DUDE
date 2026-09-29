@@ -14,7 +14,7 @@ import {
   setContent,
   setVisible,
 } from '../../../core/home-layout/draft-ops';
-import { readingOrder } from '../../../core/home-layout/grid-engine';
+import { Placement, readingOrder } from '../../../core/home-layout/grid-engine';
 import type { HomeLayoutDraft, LayoutWidth } from '../../../core/home-layout/home-layout.model';
 import { HomeLayoutService } from '../../../core/home-layout/home-layout.service';
 import { panelAvailability } from '../../../core/home-layout/panel-availability';
@@ -23,6 +23,8 @@ import { PlatformService } from '../../../core/platform/platform.service';
 import { PanelRegistryService } from '../../../core/registry/panel-registry.service';
 import type { PanelConfigField, PanelDefinition } from '../../../shared/models/panel-definition.model';
 import { UserContentEditor } from '../../deck/user-panels/user-content-editor/user-content-editor';
+import { HomeLayoutVisual } from './home-layout-visual/home-layout-visual';
+import type { VisualItem } from './home-layout-visual/gridstack-adapter';
 import { SettingsUnsavedChanges } from '../settings-unsaved-changes';
 
 interface Row {
@@ -58,7 +60,7 @@ const UNSAVED_KEY = 'home-layout';
  */
 @Component({
   selector: 'app-home-layout-settings',
-  imports: [UserContentEditor],
+  imports: [UserContentEditor, HomeLayoutVisual],
   templateUrl: './home-layout-settings.html',
 })
 export class HomeLayoutSettings {
@@ -75,6 +77,7 @@ export class HomeLayoutSettings {
   protected readonly issues = signal<readonly string[]>([]);
   protected readonly openId = signal<string | null>(null);
   protected readonly confirmingReset = signal(false);
+  protected readonly visual = signal(false);
 
   protected readonly dirty = computed(() => JSON.stringify(this.draft()) !== JSON.stringify(this.saved()));
   protected readonly customized = this.service.customized;
@@ -120,6 +123,29 @@ export class HomeLayoutSettings {
       };
     });
   });
+
+  protected readonly visualItems = computed<readonly VisualItem[]>(() =>
+    this.rows().map((r) => ({
+      id: r.id,
+      title: r.visible ? r.title : `${r.title} (hidden)`,
+      x: r.x,
+      y: r.y,
+      w: r.w,
+      h: r.h,
+      minW: r.def?.size.minW ?? 1,
+      minH: r.def?.size.minH ?? 1,
+      maxW: r.def?.size.maxW,
+      maxH: r.def?.size.maxH,
+      locked: !r.def,
+    })),
+  );
+
+  /** A drag/resize/arrow-key proposal from the visual surface: validated by the grid engine, never trusted. */
+  protected readonly proposeFromVisual = (id: string, placement: Placement): boolean => {
+    const result = placePanel(this.draft(), this.width(), id, placement, this.kinds);
+    this.apply(result);
+    return result.ok;
+  };
 
   protected readonly narrowFollowsWide = computed(() => !this.draft().narrowCustomized);
   protected readonly isDesktop = this.platform.isDesktop;

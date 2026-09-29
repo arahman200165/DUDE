@@ -44,7 +44,24 @@
   }
 
   <section aria-labelledby="home-layout-preview-title" class="flex flex-col gap-1">
-    <h3 id="home-layout-preview-title" class="text-ui-sm font-semibold text-text">Preview ({{ width() }})</h3>
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <h3 id="home-layout-preview-title" class="text-ui-sm font-semibold text-text">Preview ({{ width() }})</h3>
+      <button
+        type="button"
+        class="rounded-sm border border-border px-1.5 py-0.5 text-ui-sm text-text-muted hover:border-accent hover:text-accent"
+        [attr.aria-pressed]="visual()"
+        (click)="visual.set(!visual())"
+      >
+        {{ visual() ? 'Hide drag & resize' : 'Drag & resize…' }}
+      </button>
+    </div>
+    @if (visual()) {
+      @defer (when visual()) {
+        <app-home-layout-visual [items]="visualItems()" [propose]="proposeFromVisual" />
+      } @placeholder {
+        <p class="m-0 text-ui-xs text-text-muted" role="status">Loading the visual editor…</p>
+      }
+    } @else {
     <div
       class="grid gap-px rounded-sm border border-border bg-panel p-1"
       style="grid-template-columns: repeat(12, minmax(0, 1fr)); grid-auto-rows: 0.75rem"
@@ -64,6 +81,8 @@
         </div>
       }
     </div>
+    }
+    <p class="m-0 text-ui-xs text-text-muted" role="status" aria-live="polite">{{ message()?.text }}</p>
   </section>
 
   <section aria-labelledby="home-layout-panels-title" class="flex flex-col gap-2">

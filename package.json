@@ -79,6 +79,7 @@
     "fflate": "^0.8.3",
     "figlet": "^1.11.4",
     "franc-min": "^6.2.0",
+    "gridstack": "14.0.0",
     "humanize-duration": "^3.35.0",
     "hyparquet": "^1.31.1",
     "iconv-lite": "^0.7.3",

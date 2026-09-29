@@ -1,0 +1,33 @@
+/* Theme the gridstack surface with DUDE's tokens. The library's own structural CSS is loaded first. */
+.dude-home-visual .grid-stack-item-content {
+  display: flex;
+  align-items: flex-start;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-accent, #4c8dff), transparent 50%);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--color-accent, #4c8dff), var(--color-panel) 88%);
+  padding: 2px 6px;
+  color: var(--color-text);
+  font-size: 11px;
+  line-height: 1.25;
+  cursor: grab;
+}
+
+.dude-home-visual .grid-stack-item:focus-visible > .grid-stack-item-content,
+.dude-home-visual .grid-stack-item:focus > .grid-stack-item-content {
+  outline: 2px solid var(--color-accent, #4c8dff);
+  outline-offset: 1px;
+}
+
+.dude-home-visual .grid-stack-item.ui-draggable-dragging > .grid-stack-item-content {
+  cursor: grabbing;
+}
+
+/* The resize corner is always visible (never hover-only) and larger than the default. */
+.dude-home-visual .grid-stack-item > .ui-resizable-se {
+  width: 18px;
+  height: 18px;
+  opacity: 1;
+  background-color: color-mix(in srgb, var(--color-text-muted), transparent 75%);
+  border-radius: 2px;
+}
