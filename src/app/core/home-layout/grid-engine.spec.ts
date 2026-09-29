@@ -11,6 +11,7 @@ import {
   normalizeLayout,
   overlaps,
   readingOrder,
+  repackInOrder,
   tryPlace,
   validateLayout,
 } from './grid-engine';
@@ -141,11 +142,19 @@ describe('moveInReadingOrder', () => {
     expect(moveInReadingOrder(items, 'a', -1)).toEqual(items);
     expect(moveInReadingOrder(items, 'b', 1)).toEqual(items);
   });
-  it('refuses a swap that would create an overlap', () => {
-    const items = [item('a', 0, 0, 4, 2), item('b', 4, 0, 8, 2)];
-    // Swapping origins would put the 8-wide panel at x=0..8 over the 4-wide one at x=4..8.
-    expect(moveInReadingOrder(items, 'a', 1)).toEqual(items);
+  it('repacks in the new order when panels differ in size, never overlapping', () => {
+    const items = [item('a', 0, 0, 12, 1), item('b', 0, 1, 12, 3), item('c', 0, 4, 12, 2)];
+    const moved = moveInReadingOrder(items, 'a', 1);
+    expect(readingOrder(moved).map((i) => i.id)).toEqual(['b', 'a', 'c']);
+    expect(validateLayout(moved)).toEqual([]);
+    expect(moved.find((i) => i.id === 'b')).toMatchObject({ y: 0, h: 3 });
   });
+  it('keeps unrelated placements when a plain swap is clean', () => {
+    const items = [item('a', 0, 0, 6, 2), item('b', 6, 0, 6, 2), item('c', 0, 5, 12, 1)];
+    const moved = moveInReadingOrder(items, 'a', 1);
+    expect(moved.find((i) => i.id === 'c')).toEqual(item('c', 0, 5, 12, 1));
+  });
+
 });
 
 describe('compactUp', () => {
@@ -163,5 +172,14 @@ describe('compactUp', () => {
   it('is a no-op on an already compact layout', () => {
     const items = [item('a', 0, 0, 12, 2), item('b', 0, 2, 12, 2)];
     expect(compactUp(items)).toEqual(items);
+  });
+});
+
+describe('repackInOrder', () => {
+  it('produces a valid layout whose reading order is the given order', () => {
+    const order = [item('x', 5, 9, 6, 2), item('y', 0, 0, 6, 2), item('z', 3, 3, 12, 1)];
+    const out = repackInOrder(order);
+    expect(validateLayout(out)).toEqual([]);
+    expect(readingOrder(out).map((i) => i.id)).toEqual(['x', 'y', 'z']);
   });
 });

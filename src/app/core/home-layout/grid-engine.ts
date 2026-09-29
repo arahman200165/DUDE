@@ -194,8 +194,24 @@ export function deriveNarrow(wide: readonly GridItem[], limitsOf: LimitsOf = () 
 }
 
 /**
- * Apply a list-form move: shift an item one step in reading order by swapping
- * positions with its neighbour when sizes allow, else returning the input unchanged.
+ * Re-place panels one after another in the given order, each at the first free spot that is not
+ * above the previous panel's row. Sizes are kept, so this never overlaps and the resulting reading
+ * order equals `order`; deliberate gaps are not preserved.
+ */
+export function repackInOrder(order: readonly GridItem[], cols = GRID_COLUMNS): GridItem[] {
+  const out: GridItem[] = [];
+  for (const item of order) {
+    const minY = out.length > 0 ? out[out.length - 1].y : 0;
+    out.push({ id: item.id, ...firstFit(out, { w: item.w, h: item.h }, cols, minY) });
+  }
+  return out;
+}
+
+/**
+ * List-form "move earlier/later": exchange a panel with its reading-order neighbour. When the two
+ * simply trade origins without overlapping (same-size neighbours) the rest of the layout is left
+ * exactly as arranged; otherwise (different heights or widths) the layout is repacked in the new
+ * order. Returns the input unchanged at either end of the list.
  */
 export function moveInReadingOrder(items: readonly GridItem[], id: string, direction: -1 | 1, limitsOf: LimitsOf = () => DEFAULT_SIZE_LIMITS, cols = GRID_COLUMNS): GridItem[] {
   const ordered = readingOrder(items);
@@ -209,9 +225,10 @@ export function moveInReadingOrder(items: readonly GridItem[], id: string, direc
     if (i.id === b.id) return { ...i, x: a.x, y: a.y };
     return i;
   });
-  return normalizeLayout(swapped, limitsOf, cols).length === items.length && validateLayout(swapped, limitsOf, cols).length === 0
-    ? swapped
-    : [...items];
+  const clean = validateLayout(swapped, limitsOf, cols).length === 0;
+  const reordered = [...ordered];
+  [reordered[index], reordered[other]] = [reordered[other], reordered[index]];
+  return clean && readingOrder(swapped)[other]?.id === id ? swapped : repackInOrder(reordered, cols);
 }
 
 /**

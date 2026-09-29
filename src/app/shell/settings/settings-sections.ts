@@ -53,6 +53,13 @@ export const CORE_SETTINGS_SECTIONS: readonly CoreSettingsSection[] = [
     load: () => import('./sections/files-settings').then((m) => m.FilesSettings),
   },
   {
+    id: 'home-layout',
+    title: 'Home layout',
+    keywords: ['home', 'dashboard', 'panels', 'layout', 'arrange', 'customize', 'reorder', 'resize', 'hide', 'notes', 'links', 'shortcuts', 'reset to default'],
+    desktopOnly: false,
+    load: () => import('./sections/home-layout-settings').then((m) => m.HomeLayoutSettings),
+  },
+  {
     id: 'web-companion',
     title: 'Web & Offline',
     keywords: [

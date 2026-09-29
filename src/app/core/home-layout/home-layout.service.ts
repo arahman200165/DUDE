@@ -3,7 +3,8 @@ import { PersistenceService } from '../persistence/persistence.service';
 import { PanelRegistryService } from '../registry/panel-registry.service';
 import { LayoutIssue, firstFit, validateLayout } from './grid-engine';
 import { defaultConfig } from './panel-config';
-import type { HomeLayout, PanelInstance } from './home-layout.model';
+import type { HomeLayout, HomeLayoutDraft, PanelInstance } from './home-layout.model';
+export type { HomeLayoutDraft } from './home-layout.model';
 import { limitsFromDefinitions } from './default-layout';
 import {
   EMPTY_HOME_LAYOUT_STORE,
@@ -19,15 +20,6 @@ import {
   sanitizeHomeLayoutData,
 } from './home-layout-store.model';
 import type { UserContent } from './user-content.model';
-
-/** A layout being edited (Settings › Home layout). Saved atomically via `save`. */
-export interface HomeLayoutDraft {
-  readonly instances: readonly PanelInstance[];
-  readonly wide: HomeLayout['wide'];
-  readonly narrow: HomeLayout['narrow'];
-  readonly narrowCustomized: boolean;
-  readonly content: HomeLayoutData['content'];
-}
 
 export type SaveLayoutResult = { readonly ok: true } | { readonly ok: false; readonly issues: readonly LayoutIssue[] };
 

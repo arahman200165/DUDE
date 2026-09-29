@@ -1,0 +1,278 @@
+<div class="flex flex-col gap-4">
+  <p data-setting class="text-ui text-text-muted">
+    Choose which panels appear on Home and arrange them on a 12-column grid. Wide and narrow arrangements are saved separately around the same panels and content, so
+    switching window width never loses either. Nothing changes until you press Save. Everything here stays on this device.
+  </p>
+
+  <div data-setting class="flex flex-wrap items-center gap-2" role="tablist" aria-label="Layout width">
+    <button
+      type="button"
+      role="tab"
+      id="home-layout-tab-wide"
+      class="rounded-sm border px-2 py-0.5 text-ui"
+      [class]="width() === 'wide' ? 'border-accent bg-accent/10 text-accent' : 'border-border text-text-muted hover:border-accent hover:text-accent'"
+      [attr.aria-selected]="width() === 'wide'"
+      (click)="setWidth('wide')"
+    >
+      Wide layout
+    </button>
+    <button
+      type="button"
+      role="tab"
+      id="home-layout-tab-narrow"
+      class="rounded-sm border px-2 py-0.5 text-ui"
+      [class]="width() === 'narrow' ? 'border-accent bg-accent/10 text-accent' : 'border-border text-text-muted hover:border-accent hover:text-accent'"
+      [attr.aria-selected]="width() === 'narrow'"
+      (click)="setWidth('narrow')"
+    >
+      Narrow layout
+    </button>
+    <span class="text-ui-xs text-text-muted">Narrow is used when the Home area is under 720&nbsp;px wide.</span>
+  </div>
+
+  @if (width() === 'narrow') {
+    <div class="flex flex-wrap items-center gap-2 rounded-sm border border-border bg-panel px-3 py-2 text-ui text-text-muted" data-testid="narrow-note">
+      @if (narrowFollowsWide()) {
+        <span>The narrow layout currently follows the wide layout (one panel per row). Changing it here lets you arrange it independently.</span>
+      } @else {
+        <span>The narrow layout is arranged independently of the wide layout.</span>
+        <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui-sm text-text-muted hover:border-accent hover:text-accent" (click)="followWide()">
+          Follow the wide layout again
+        </button>
+      }
+    </div>
+  }
+
+  <section aria-labelledby="home-layout-preview-title" class="flex flex-col gap-1">
+    <h3 id="home-layout-preview-title" class="text-ui-sm font-semibold text-text">Preview ({{ width() }})</h3>
+    <div
+      class="grid gap-px rounded-sm border border-border bg-panel p-1"
+      style="grid-template-columns: repeat(12, minmax(0, 1fr)); grid-auto-rows: 0.75rem"
+      role="img"
+      [attr.aria-label]="'Schematic of the ' + width() + ' layout with ' + rows().length + ' panels. The list below has the same information.'"
+      data-testid="layout-preview"
+    >
+      @for (row of rows(); track row.id) {
+        <div
+          class="overflow-hidden truncate rounded-[2px] border px-1 text-[10px] leading-3"
+          [class]="row.visible && !row.webHidden ? 'border-accent/50 bg-accent/10 text-text' : 'border-dashed border-border text-text-muted'"
+          [style.grid-column]="row.x + 1 + ' / span ' + row.w"
+          [style.grid-row]="row.y + 1 + ' / span ' + row.h"
+          aria-hidden="true"
+        >
+          {{ row.title }}
+        </div>
+      }
+    </div>
+  </section>
+
+  <section aria-labelledby="home-layout-panels-title" class="flex flex-col gap-2">
+    <h3 id="home-layout-panels-title" class="text-ui-sm font-semibold text-text">Panels on Home ({{ rows().length }})</h3>
+    @if (rows().length === 0) {
+      <p class="text-ui text-text-muted">Home has no panels. Add one below, or restore the default layout.</p>
+    }
+    <ol class="m-0 flex list-none flex-col gap-2 p-0" aria-label="Panels in reading order">
+      @for (row of rows(); track rowKey($index, row); let i = $index) {
+        <li class="flex flex-col gap-2 rounded-sm border border-border bg-panel p-2" [attr.data-panel-row]="row.id">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-ui-xs text-text-muted" aria-hidden="true">{{ i + 1 }}.</span>
+            <span class="min-w-0 flex-1 truncate text-ui font-medium text-text">{{ row.title }}</span>
+            @if (row.webHidden && !isDesktop()) {
+              <span class="rounded-sm border border-border px-1 text-ui-xs text-text-muted">Desktop only — not shown on the web</span>
+            }
+            @if (!row.visible) {
+              <span class="rounded-sm border border-border px-1 text-ui-xs text-text-muted">Hidden</span>
+            }
+          </div>
+          <p class="m-0 text-ui-xs text-text-muted">{{ placementText(row) }}</p>
+
+          <div class="flex flex-wrap items-center gap-2">
+            @if (row.def) {
+              <label class="flex items-center gap-1 text-ui-sm text-text">
+                <input type="checkbox" class="accent-accent" [checked]="row.visible" (change)="toggleVisible(row, $event)" />
+                Show on Home
+              </label>
+            }
+            <button
+              type="button"
+              class="rounded-sm border border-border px-1.5 py-0.5 text-ui-sm text-text-muted hover:border-accent hover:text-accent disabled:opacity-40"
+              [disabled]="i === 0"
+              [attr.aria-label]="'Move ' + row.title + ' earlier'"
+              (click)="move(row, -1)"
+            >
+              Move earlier
+            </button>
+            <button
+              type="button"
+              class="rounded-sm border border-border px-1.5 py-0.5 text-ui-sm text-text-muted hover:border-accent hover:text-accent disabled:opacity-40"
+              [disabled]="i === rows().length - 1"
+              [attr.aria-label]="'Move ' + row.title + ' later'"
+              (click)="move(row, 1)"
+            >
+              Move later
+            </button>
+            @if (row.def?.multiInstance) {
+              <button
+                type="button"
+                class="rounded-sm border border-border px-1.5 py-0.5 text-ui-sm text-text-muted hover:border-accent hover:text-accent"
+                [attr.aria-label]="'Duplicate ' + row.title"
+                (click)="duplicate(row)"
+              >
+                Duplicate
+              </button>
+            }
+            @if (row.def && (row.def.config?.length || row.def.userContent)) {
+              <button
+                type="button"
+                class="rounded-sm border border-border px-1.5 py-0.5 text-ui-sm text-text-muted hover:border-accent hover:text-accent"
+                [attr.aria-expanded]="openId() === row.id"
+                [attr.aria-label]="'Edit ' + row.title"
+                (click)="toggleOpen(row)"
+              >
+                {{ openId() === row.id ? 'Close editor' : 'Edit' }}
+              </button>
+            }
+            <button
+              type="button"
+              class="rounded-sm border border-border px-1.5 py-0.5 text-ui-sm text-text-muted hover:border-error hover:text-error"
+              [attr.aria-label]="'Remove ' + row.title"
+              (click)="remove(row)"
+            >
+              Remove
+            </button>
+          </div>
+
+          @if (row.def) {
+            <fieldset class="m-0 flex flex-wrap items-end gap-2 border-0 p-0">
+              <legend class="sr-only">Position and size of {{ row.title }}</legend>
+              <label class="flex flex-col text-ui-xs text-text-muted">
+                Column
+                <input type="number" min="1" max="12" class="w-16 rounded-sm border border-border bg-panel px-1 py-0.5 text-ui-sm text-text" [value]="row.x + 1" (change)="setNumber(row, 'x', $event)" />
+              </label>
+              <label class="flex flex-col text-ui-xs text-text-muted">
+                Row
+                <input type="number" min="1" class="w-16 rounded-sm border border-border bg-panel px-1 py-0.5 text-ui-sm text-text" [value]="row.y + 1" (change)="setNumber(row, 'y', $event)" />
+              </label>
+              <label class="flex flex-col text-ui-xs text-text-muted">
+                Width (cells)
+                <input
+                  type="number"
+                  [attr.min]="row.def.size.minW"
+                  [attr.max]="row.def.size.maxW ?? 12"
+                  class="w-16 rounded-sm border border-border bg-panel px-1 py-0.5 text-ui-sm text-text"
+                  [value]="row.w"
+                  (change)="setNumber(row, 'w', $event)"
+                />
+              </label>
+              <label class="flex flex-col text-ui-xs text-text-muted">
+                Height (cells)
+                <input
+                  type="number"
+                  [attr.min]="row.def.size.minH"
+                  [attr.max]="row.def.size.maxH ?? null"
+                  class="w-16 rounded-sm border border-border bg-panel px-1 py-0.5 text-ui-sm text-text"
+                  [value]="row.h"
+                  (change)="setNumber(row, 'h', $event)"
+                />
+              </label>
+            </fieldset>
+          } @else {
+            <p class="m-0 text-ui-xs text-text-muted">This panel no longer exists in this version of DUDE. It isn’t shown; remove it to tidy up.</p>
+          }
+
+          @if (openId() === row.id && row.def) {
+            <div class="flex flex-col gap-2 border-t border-border pt-2">
+              @for (field of row.def.config ?? []; track field.key) {
+                <label class="flex flex-col gap-0.5 text-ui-xs text-text-muted">
+                  {{ field.label }}
+                  @switch (field.type) {
+                    @case ('number') {
+                      <input
+                        type="number"
+                        [attr.min]="field.min"
+                        [attr.max]="field.max"
+                        class="w-24 rounded-sm border border-border bg-panel px-1 py-0.5 text-ui-sm text-text"
+                        [value]="row.config[field.key]"
+                        (change)="setConfig(row, field, $event)"
+                      />
+                    }
+                    @case ('select') {
+                      <select class="w-fit rounded-sm border border-border bg-panel px-1 py-0.5 text-ui-sm text-text" [value]="row.config[field.key]" (change)="setConfig(row, field, $event)">
+                        @for (option of field.options; track option.value) {
+                          <option [value]="option.value">{{ option.label }}</option>
+                        }
+                      </select>
+                    }
+                    @case ('boolean') {
+                      <input type="checkbox" class="w-fit accent-accent" [checked]="row.config[field.key] === true" (change)="setConfig(row, field, $event)" />
+                    }
+                  }
+                </label>
+              }
+              @if (row.def.userContent) {
+                <app-user-content-editor [content]="contentFor(row)" (contentChange)="saveContent(row, $event)" />
+              }
+            </div>
+          }
+        </li>
+      }
+    </ol>
+  </section>
+
+  <section aria-labelledby="home-layout-add-title" class="flex flex-col gap-2">
+    <h3 id="home-layout-add-title" class="text-ui-sm font-semibold text-text">Add a panel</h3>
+    <ul class="m-0 flex list-none flex-col gap-1 p-0">
+      @for (entry of picker(); track entry.def.id) {
+        <li class="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-border px-2 py-1">
+          <div class="min-w-0 flex-1">
+            <div class="text-ui text-text">{{ entry.def.title }}</div>
+            <div class="text-ui-xs text-text-muted">
+              {{ entry.def.description }}
+              @if (entry.desktopNote && !isDesktop()) {
+                <span> Desktop app only; it won’t appear on the web.</span>
+              }
+            </div>
+          </div>
+          <button
+            type="button"
+            class="rounded-sm border border-border px-1.5 py-0.5 text-ui-sm text-text-muted hover:border-accent hover:text-accent disabled:opacity-40"
+            [disabled]="entry.disabledReason !== null"
+            [attr.title]="entry.disabledReason"
+            [attr.aria-label]="'Add ' + entry.def.title"
+            (click)="add(entry.def)"
+          >
+            {{ entry.disabledReason ?? 'Add' }}
+          </button>
+        </li>
+      }
+    </ul>
+  </section>
+
+  <div class="flex flex-col gap-2 border-t border-border pt-4">
+    <div class="min-h-5 text-ui" role="status" aria-live="polite" data-testid="layout-status">
+      @if (message(); as m) {
+        <span [class]="m.ok ? 'text-info' : 'text-error'">{{ m.text }}</span>
+      }
+    </div>
+    @if (issues().length) {
+      <ul class="m-0 list-disc pl-5 text-ui-sm text-error" role="alert">
+        @for (issue of issues(); track issue) {
+          <li>{{ issue }}</li>
+        }
+      </ul>
+    }
+    <div class="flex flex-wrap items-center gap-2">
+      <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10 disabled:opacity-40" [disabled]="!dirty()" (click)="save()">Save layout</button>
+      <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated disabled:opacity-40" [disabled]="!dirty()" (click)="discard()">Discard changes</button>
+      @if (!confirmingReset()) {
+        <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:border-error hover:text-error" (click)="requestReset()">Reset to default…</button>
+      } @else {
+        <span class="flex flex-wrap items-center gap-2 text-ui text-text" role="alertdialog" aria-label="Confirm reset">
+          Restore the default Home? Your favorites, usage, projects, workspaces and pipelines are not affected. Text, link and shortcut panels you added are removed.
+          <button type="button" class="rounded-sm border border-error px-2 py-0.5 text-ui text-error hover:bg-error/10" (click)="confirmReset()">Restore default</button>
+          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated" (click)="cancelReset()">Cancel</button>
+        </span>
+      }
+    </div>
+  </div>
+</div>
