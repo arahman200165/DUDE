@@ -19,7 +19,7 @@ describe('QuickRunPanel', () => {
   it('shows the empty state when there are no favorited/recently-used text-eligible tools', async () => {
     const fixture = TestBed.createComponent(QuickRunPanel);
     fixture.detectChanges();
-    await fixture.componentInstance.ready;
+    await fixture.componentInstance.ensureCandidates();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Favorite or open a text-based tool');
@@ -30,7 +30,7 @@ describe('QuickRunPanel', () => {
 
     const fixture = TestBed.createComponent(QuickRunPanel);
     fixture.detectChanges();
-    await fixture.componentInstance.ready;
+    await fixture.componentInstance.ensureCandidates();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Base64 Encoder / Decoder');
@@ -55,7 +55,7 @@ describe('QuickRunPanel', () => {
 
     const fixture = TestBed.createComponent(QuickRunPanel);
     fixture.detectChanges();
-    await fixture.componentInstance.ready;
+    await fixture.componentInstance.ensureCandidates();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Favorite or open a text-based tool');
@@ -66,7 +66,7 @@ describe('QuickRunPanel', () => {
 
     const fixture = TestBed.createComponent(QuickRunPanel);
     fixture.detectChanges();
-    await fixture.componentInstance.ready;
+    await fixture.componentInstance.ensureCandidates();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('JSON Formatter');
@@ -75,7 +75,7 @@ describe('QuickRunPanel', () => {
   it('opens the full Quick Run route', async () => {
     const fixture = TestBed.createComponent(QuickRunPanel);
     fixture.detectChanges();
-    await fixture.componentInstance.ready;
+    await fixture.componentInstance.ensureCandidates();
     fixture.detectChanges();
 
     const viewAll = Array.from(fixture.nativeElement.querySelectorAll('button')).find(
@@ -84,5 +84,26 @@ describe('QuickRunPanel', () => {
     viewAll.click();
 
     expect(TestBed.inject(Router).navigateByUrl).toHaveBeenCalledWith('/quick-run');
+  });
+
+  it('loads no tool code on mount, only after the first focus of the input', async () => {
+    TestBed.inject(FavoritesService).toggleTool('base64');
+    const spy = vi.spyOn(QuickRunPanel.prototype as unknown as { loadStep(id: string): Promise<unknown> }, 'loadStep');
+
+    const fixture = TestBed.createComponent(QuickRunPanel);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(spy).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('Paste or type to run it');
+
+    spy.mockClear();
+    fixture.nativeElement.querySelector('textarea').dispatchEvent(new Event('focus'));
+    await fixture.whenStable();
+    await fixture.componentInstance.ensureCandidates();
+    fixture.detectChanges();
+
+    expect(spy).toHaveBeenCalledWith('base64');
+    expect(fixture.nativeElement.textContent).toContain('Base64 Encoder / Decoder');
+    spy.mockRestore();
   });
 });

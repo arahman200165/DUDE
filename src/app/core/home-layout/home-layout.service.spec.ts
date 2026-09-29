@@ -101,6 +101,27 @@ describe('HomeLayoutService', () => {
     expect(() => fresh.layout()).not.toThrow();
   });
 
+  it('never overwrites a newer-schema layout on load, and exposes its understood panels', async () => {
+    const stored = JSON.stringify({
+      schemaVersion: 2,
+      futureField: { keep: true },
+      customized: true,
+      narrowCustomized: false,
+      instances: [{ id: 'rail', kindId: 'rail', config: {}, visible: true }],
+      wide: [{ id: 'rail', x: 0, y: 0, w: 12, h: 2 }],
+      narrow: [],
+      content: {},
+    });
+    localStorage.setItem(KEY, stored);
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ providers: [{ provide: PANEL_DEFINITIONS_TOKEN, useValue: defs }] });
+    const fresh = TestBed.inject(HomeLayoutService);
+    await stable();
+    expect(fresh.customized()).toBe(true);
+    expect(fresh.layout().instances.map((i) => i.id)).toEqual(['rail']);
+    expect(localStorage.getItem(KEY)).toBe(stored);
+  });
+
   it('is wiped by Clear All (persistence.clearAll)', async () => {
     service.setContent('default-note', { kind: 'text', title: '', text: 'x' });
     await stable();

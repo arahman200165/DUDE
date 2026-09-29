@@ -166,8 +166,15 @@ export function sanitizeHomeLayoutData(
   return { customized, narrowCustomized, instances, wide, narrow, content };
 }
 
+/** True for a record written by a newer DUDE build (schemaVersion above ours). Never overwrite it on load. */
+export function isNewerHomeLayoutSchema(raw: unknown): boolean {
+  return isRecord(raw) && typeof raw['schemaVersion'] === 'number' && raw['schemaVersion'] > HOME_LAYOUT_SCHEMA_VERSION;
+}
+
 export function migrateHomeLayoutStore(raw: unknown, catalog: KindCatalog, defaults: HomeLayout): HomeLayoutStore {
-  if (!isRecord(raw) || raw['schemaVersion'] !== HOME_LAYOUT_SCHEMA_VERSION) return EMPTY_HOME_LAYOUT_STORE;
+  if (!isRecord(raw)) return EMPTY_HOME_LAYOUT_STORE;
+  // A newer schema is read best-effort with the v1 sanitizer (fields we understand); callers must not persist the result on load.
+  if (raw['schemaVersion'] !== HOME_LAYOUT_SCHEMA_VERSION && !isNewerHomeLayoutSchema(raw)) return EMPTY_HOME_LAYOUT_STORE;
   return { schemaVersion: 1, ...sanitizeHomeLayoutData(raw, catalog, defaults) };
 }
 

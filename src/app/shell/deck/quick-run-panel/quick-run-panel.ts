@@ -21,7 +21,8 @@ const CANDIDATE_LIMIT = 8;
  * `PipelineStepRegistryService.ensureLoaded()`'s eager, whole-registry load (~225 dynamic imports)
  * on every visit to Home, which the standalone `/quick-run` route already accepts as its own
  * one-time cost but Home — the app's default route — should not pay just to render this panel.
- * "Open full Quick Run" hands off anything beyond this compact set to the full route.
+ * Candidates resolve lazily on the first focus/input/paste/run, never on mount, so merely viewing Home
+ * loads no tool chunks. "Open full Quick Run" hands off anything beyond this compact set to the full route.
  */
 @Component({
   selector: 'app-quick-run-panel',
@@ -35,36 +36,51 @@ export class QuickRunPanel {
   private readonly usage = inject(UsageService);
   private readonly steps = new Map<string, PipelineStep | undefined>();
 
-  protected readonly loading = signal(true);
+  protected readonly loading = signal(false);
+  /** False until the first user intent (focus/input/paste/run); no tool code is loaded before that. */
+  protected readonly resolved = signal(false);
   protected readonly eligibleTools = signal<readonly ToolDefinition[]>([]);
   protected readonly input = signal('');
   protected readonly runningToolId = signal<string | null>(null);
   protected readonly result = signal<{ toolId: string; result: PipelineStepResult } | null>(null);
 
-  /** Exposed so specs can await candidate resolution instead of polling `whenStable()`. */
-  readonly ready: Promise<void>;
+  private candidates?: Promise<void>;
 
-  constructor() {
-    this.ready = this.loadCandidates();
+  /** Resolves candidate tools once, on first user intent. Specs call this instead of relying on mount. */
+  ensureCandidates(): Promise<void> {
+    this.candidates ??= this.loadCandidates();
+    return this.candidates;
   }
 
   private async loadCandidates(): Promise<void> {
+    this.loading.set(true);
     const favoriteIds = this.favorites.pinnedTools().map((tool) => tool.id);
     const usedIds = this.usage.mostFrequent(CANDIDATE_LIMIT);
     const candidateIds = [...new Set([...favoriteIds, ...usedIds])].slice(0, CANDIDATE_LIMIT);
 
     const resolved = await Promise.all(
       candidateIds.map(async (id) => {
-        const step = await loadPipelineStep(id);
+        const step = await this.loadStep(id);
         this.steps.set(id, step);
         return step?.accepts.includes('text') ? this.registry.getById(id) : undefined;
       }),
     );
     this.eligibleTools.set(resolved.filter((tool): tool is ToolDefinition => tool !== undefined));
+    this.resolved.set(true);
     this.loading.set(false);
   }
 
+  /** The only place this panel touches tool code; specs spy on it. */
+  protected loadStep(id: string): Promise<PipelineStep | undefined> {
+    return loadPipelineStep(id);
+  }
+
+  protected onIntent(): void {
+    void this.ensureCandidates();
+  }
+
   protected onInputChange(event: Event): void {
+    this.onIntent();
     this.input.set((event.target as HTMLTextAreaElement).value);
   }
 
@@ -76,6 +92,7 @@ export class QuickRunPanel {
     this.runningToolId.set(toolId);
     this.result.set(null);
     try {
+      await this.ensureCandidates();
       const result = await runQuickRun(this.steps.get(toolId), this.input());
       if (result) this.result.set({ toolId, result });
     } finally {

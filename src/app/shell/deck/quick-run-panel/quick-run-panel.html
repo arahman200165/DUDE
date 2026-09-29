@@ -1,7 +1,7 @@
 <app-dashboard-panel
   title="Quick Run"
   [loading]="loading()"
-  [empty]="!loading() && eligibleTools().length === 0"
+  [empty]="resolved() && eligibleTools().length === 0"
   viewAllLabel="Open Quick Run"
   (viewAll)="openFullQuickRun()"
 >
@@ -11,7 +11,13 @@
     placeholder="Paste some text, then pick a tool to run it through…"
     [value]="input()"
     (input)="onInputChange($event)"
+    (focus)="onIntent()"
+    (paste)="onIntent()"
   ></textarea>
+
+  @if (!resolved()) {
+    <p class="mt-1 text-ui-xs text-text-muted">Paste or type to run it through your favorite tools</p>
+  }
 
   <div class="mt-1.5 flex flex-wrap gap-1">
     @for (tool of eligibleTools(); track tool.id) {

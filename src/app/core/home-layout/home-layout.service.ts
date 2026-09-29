@@ -14,6 +14,7 @@ import {
   MAX_INSTANCES,
   contentAfterReset,
   effectiveLayout,
+  isNewerHomeLayoutSchema,
   mergeHomeLayout,
   migrateHomeLayoutStore,
   newInstanceId,
@@ -37,32 +38,40 @@ export class HomeLayoutService {
 
   private readonly catalog: KindCatalog = { resolve: (id) => this.registry.resolveKind(id) };
 
+  /** In-memory view: a newer-schema record is sanitized for display but the stored record stays untouched. */
+  private readonly state = computed<HomeLayoutData>(() => {
+    const raw = this.store();
+    return isNewerHomeLayoutSchema(raw) ? migrateHomeLayoutStore(raw, this.catalog, this.registry.defaultLayout()) : raw;
+  });
+
   constructor() {
+    // Never write on load for a newer schema (another DUDE build's layout); older/garbage records are normalized as before.
+    if (isNewerHomeLayoutSchema(this.store())) return;
     const migrated = migrateHomeLayoutStore(this.store(), this.catalog, this.registry.defaultLayout());
     if (JSON.stringify(migrated) !== JSON.stringify(this.store())) this.store.set(migrated);
   }
 
   /** The layout Home renders right now, for both widths. */
-  readonly layout = computed<HomeLayout>(() => effectiveLayout(this.store(), this.registry.defaultLayout(), this.catalog));
-  readonly customized = computed(() => this.store().customized);
-  readonly narrowCustomized = computed(() => this.store().narrowCustomized);
-  readonly content = computed(() => this.store().content);
+  readonly layout = computed<HomeLayout>(() => effectiveLayout(this.state(), this.registry.defaultLayout(), this.catalog));
+  readonly customized = computed(() => this.state().customized);
+  readonly narrowCustomized = computed(() => this.state().narrowCustomized);
+  readonly content = computed(() => this.state().content);
 
   /** Exportable slice (backup bundle). */
   readonly data = computed<HomeLayoutData>(() => {
-    const s = this.store();
+    const s = this.state();
     return { customized: s.customized, narrowCustomized: s.narrowCustomized, instances: s.instances, wide: s.wide, narrow: s.narrow, content: s.content };
   });
 
   contentOf(instanceId: string): UserContent | undefined {
-    return this.store().content[instanceId];
+    return this.state().content[instanceId];
   }
 
   /** Save one panel's user-authored content in place (in-panel edits, legacy migration). */
   setContent(instanceId: string, content: UserContent): void {
     const inLayout = this.layout().instances.some((i) => i.id === instanceId);
     if (!inLayout) return;
-    this.write({ ...this.data(), content: { ...this.store().content, [instanceId]: content } });
+    this.write({ ...this.data(), content: { ...this.state().content, [instanceId]: content } });
   }
 
   /** Validate then persist an edited layout. Overlaps/out-of-range placements are rejected, not moved. */
@@ -117,7 +126,7 @@ export class HomeLayoutService {
       instances: [],
       wide: [],
       narrow: [],
-      content: contentAfterReset(this.store().content, defaults),
+      content: contentAfterReset(this.state().content, defaults),
     });
   }
 
@@ -128,6 +137,7 @@ export class HomeLayoutService {
     this.write(mergeHomeLayout(this.data(), clean, mode, defaults, this.catalog));
   }
 
+  // An explicit user save/reset/import may replace a newer-schema record (downgrading it to v1): that is the user's deliberate choice.
   private write(data: HomeLayoutData): void {
     const defaults = this.registry.defaultLayout();
     this.store.set({ schemaVersion: 1, ...sanitizeHomeLayoutData(data, this.catalog, defaults) });

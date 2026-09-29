@@ -8,6 +8,7 @@ import {
   KindInfo,
   contentAfterReset,
   effectiveLayout,
+  isNewerHomeLayoutSchema,
   mergeHomeLayout,
   migrateHomeLayoutStore,
   sanitizeHomeLayoutData,
@@ -201,8 +202,16 @@ describe('sanitizeHomeLayoutData', () => {
 });
 
 describe('migrateHomeLayoutStore', () => {
-  it('resets on a schema mismatch', () => {
-    expect(migrateHomeLayoutStore({ schemaVersion: 99, ...custom({}) }, catalog, defaults).customized).toBe(false);
+  it('resets an older or garbage schema', () => {
+    expect(migrateHomeLayoutStore({ schemaVersion: 0, ...custom({}) }, catalog, defaults).customized).toBe(false);
+    expect(migrateHomeLayoutStore({ schemaVersion: 'x', ...custom({}) }, catalog, defaults).customized).toBe(false);
+  });
+  it('reads a newer schema best-effort with the fields it understands', () => {
+    const out = migrateHomeLayoutStore({ schemaVersion: 99, futureField: 1, ...custom({}) }, catalog, defaults);
+    expect(out.customized).toBe(true);
+    expect(out.instances.map((i) => i.id)).toEqual(['rail', 'cat-1']);
+    expect(isNewerHomeLayoutSchema({ schemaVersion: 2 })).toBe(true);
+    expect(isNewerHomeLayoutSchema({ schemaVersion: 1 })).toBe(false);
   });
   it('accepts the current version', () => {
     expect(migrateHomeLayoutStore({ schemaVersion: 1, ...custom({}) }, catalog, defaults).customized).toBe(true);
