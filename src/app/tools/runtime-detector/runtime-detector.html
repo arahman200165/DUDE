@@ -1,0 +1,55 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning/40 bg-warning/5 p-4 text-ui text-text-muted">
+      Runtime Detector finds the developer runtimes installed on this Windows PC (Git, Node, Python, Java, .NET, Go, Rust, Docker and more), where each one lives, which version manager or App Execution Alias sits in front of it, and which versions conflict on PATH. It reads PATH, the registry and executable version resources through the Windows desktop app, so it needs Desktop DUDE.
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <app-desktop-only-control capability="native-system" label="Detect installed runtimes" />
+    </div>
+  } @else {
+    <div class="flex flex-col gap-2 text-ui">
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" data-testid="redetect" (click)="detect()">Detect again</button>
+        <button type="button" class="rounded-sm border border-warning px-2 py-0.5 text-warning disabled:opacity-50" data-testid="preview-probes" [disabled]="!canProbe()" (click)="previewProbes()">Run version probes…</button>
+        <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated disabled:opacity-50" data-testid="export-json" [disabled]="!detections().length" (click)="exportJson()">Export JSON</button>
+        <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated disabled:opacity-50" data-testid="export-md" [disabled]="!detections().length" (click)="exportMarkdown()">Export Markdown</button>
+        <span class="text-ui-xs text-text-muted" data-testid="count">{{ detections().length }} installs found</span>
+      </div>
+      <p class="text-ui-xs text-text-muted">Detection only reads PATH, the registry and file version resources; it does not run any program. Versions shown here are static. Use Run version probes to ask each program for its live version. <a class="text-accent underline" [routerLink]="pathEditor">Open PATH Editor</a> to change lookup order.</p>
+
+      @if (error()) { <div role="alert" class="flex items-center gap-1 rounded-sm border border-error/50 bg-error/5 p-2 text-error"><app-status-glyph kind="error" />{{ error() }}</div> }
+      @if (probeMessage()) { <div role="status" class="flex items-center gap-1 text-success" data-testid="probe-message"><app-status-glyph kind="success" />{{ probeMessage() }}</div> }
+
+      @if (plan(); as items) {
+        <section class="flex flex-col gap-2 rounded-sm border border-warning bg-panel p-3" aria-label="Version probe preview" data-testid="probe-preview">
+          <div class="flex items-center gap-1 font-semibold text-warning"><app-status-glyph kind="warning" />These commands will be executed on this PC</div>
+          <p class="text-ui-xs text-text-muted">Each program below is launched once with only its version flag, without a shell, and stopped after a short timeout. Programs that are not .exe files (such as npm.cmd) are not run.</p>
+          <ul class="flex flex-col gap-1" aria-label="Commands to run">
+            @for (p of items; track p.key) { <li class="break-all font-mono text-text" data-testid="probe-command">{{ p.display }}</li> } @empty { <li class="text-text-muted">Nothing runnable was detected.</li> }
+          </ul>
+          <div class="flex gap-2">
+            <button type="button" class="rounded-sm border border-warning px-2 py-0.5 text-warning disabled:opacity-50" data-testid="confirm-probes" [disabled]="!items.length || running()" (click)="runProbes()">Execute these commands</button>
+            <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" data-testid="cancel-probes" (click)="cancelProbes()">Cancel</button>
+            @if (running()) { <span class="flex items-center gap-1 text-accent" role="status"><app-status-glyph kind="busy" />Running…</span> }
+          </div>
+        </section>
+      }
+
+      @if (loading() && !detections().length) {
+        <div class="p-4 text-text-muted" role="status">Detecting runtimes…</div>
+      } @else {
+        <section aria-label="Detected runtimes" data-testid="detections">
+          <app-data-table [columns]="columns" [rows]="sorted()" ariaLabel="Detected runtimes" [dense]="true" />
+          @if (!sorted().length) { <p class="p-2 text-text-muted">No known runtimes were found.</p> }
+        </section>
+      }
+
+      <section class="flex flex-col gap-2 border-t border-border pt-2" aria-label="Runtime conflicts" data-testid="conflicts">
+        <h3 class="font-semibold text-text">Conflicts</h3>
+        @if (javaHome()) { <p class="text-ui-xs text-text-muted">JAVA_HOME: <span class="font-mono">{{ javaHome() }}</span></p> }
+        @if (findings().length) { <app-findings-list [findings]="findings()" title="Runtime conflicts" /> }
+        @else { <p class="text-text-muted" data-testid="no-conflicts">No conflicting versions or locations were found on PATH.</p> }
+      </section>
+    </div>
+  }
+</app-tool-shell>

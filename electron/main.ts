@@ -10,6 +10,7 @@ import { loadFolderWatches, registerFolderWatchHandlers, setFolderWatchTrayUpdat
 import { registerNetworkHandlers, cancelAllNetworkJobs } from './network-bridge';
 import { registerSysHandlers } from './sys-bridge';
 import { registerSysMutationHandlers } from './sys-mutation';
+import { registerRuntimeProbeHandlers } from './runtime-probe';
 import { registerSysSnapshotHandlers } from './sys-snapshots';
 import { registerElevationHandlers } from './elevation-bridge';
 import { stopSysHelper } from './sys-helper';
@@ -157,6 +158,7 @@ if (hasSingleInstanceLock) void app.whenReady().then(async () => {
   registerSysHandlers();
   registerSysMutationHandlers();
   registerSysSnapshotHandlers();
+  registerRuntimeProbeHandlers();
   registerElevationHandlers();
   registerWatchHandlers();
   registerSecretsHandlers();

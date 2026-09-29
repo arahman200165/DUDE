@@ -219,6 +219,16 @@ export interface DudeElectronBridge {
     importJson(json: string): Promise<SysMutResult<SysSnapshotHeader>>;
     usage(): Promise<SysMutResult<{ count: number; bytes: number }>>;
   };
+  /**
+   * Runs a bounded set of discovered developer runtimes to capture their version output
+   * (DUDE_PRD.md §21 Phase 31 Milestone 600). Each command is an absolute executable path plus
+   * version-flag arguments; main validates and execFiles them (no shell), with a timeout. This is an
+   * explicit, user-initiated code-execution action, never triggered by inspection.
+   */
+  readonly runtime: {
+    probe(commands: readonly { readonly id: string; readonly exe: string; readonly args: readonly string[] }[]):
+      Promise<readonly { readonly id: string; readonly ok: boolean; readonly stdout: string; readonly stderr: string; readonly exitCode: number | null; readonly error?: string }[]>;
+  };
   /** Session elevation state and the deliberate Relaunch as Administrator action (Phase 27, shared from Phase 31). */
   readonly elevation: {
     status(): Promise<boolean>;

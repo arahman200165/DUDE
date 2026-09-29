@@ -125,6 +125,9 @@ export function fakeElectronBridge(overrides: Partial<DudeElectronBridge> = {}):
       get: async () => ({ ok: false as const, error: 'unavailable' }), save: async () => ({ ok: false as const, error: 'unavailable' }), remove: async () => ({ ok: false as const, error: 'unavailable' }), exportJson: async () => ({ ok: false as const, error: 'unavailable' }), importJson: async () => ({ ok: false as const, error: 'unavailable' }),
       usage: async () => ({ ok: true as const, value: { count: 0, bytes: 0 } }),
     },
+    runtime: {
+      probe: async () => [],
+    },
     elevation: {
       status: async () => false,
       relaunch: async () => false,

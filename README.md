@@ -127,6 +127,7 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Certificate Revocation Inspector](https://arahman200165.github.io/DUDE/tools/revocation-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Runtime Detector](https://arahman200165.github.io/DUDE/tools/runtime-detector) | Native Windows system access | Desktop-only feature | reads PATH, registry install keys and executable file versions through the desktop system helper; the optional version probe runs discovered programs on an explicit, previewed action |
 | [STARTTLS Inspector](https://arahman200165.github.io/DUDE/tools/starttls-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [System Changes](https://arahman200165.github.io/DUDE/tools/system-changes) | Native Windows system access | Desktop-only feature | manages the local snapshot library used by the environment, PATH and registry diffs |
 | [System Changes](https://arahman200165.github.io/DUDE/tools/system-changes) | Native Windows system changes | Desktop-only feature | undoes journaled Windows system changes through the desktop system mutation engine |
@@ -153,7 +154,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-319 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+320 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -447,6 +448,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Regex Visualizer](https://arahman200165.github.io/DUDE/tools/regex-visualizer) | Developer | Renders a regular expression as a railroad syntax diagram. |
 | [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Developer | Resolve an IP address to PTR records. |
 | [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | Developer | Compare two network traces or before and after traces. |
+| [Runtime Detector](https://arahman200165.github.io/DUDE/tools/runtime-detector) | Developer | Find every installed developer runtime (Git, Node, Python, Java, .NET, Go, Rust, Docker and more) from PATH, known folders and the registry, see where each lives and which version manager shims it, and spot version conflicts. Live version probes run only when you preview and confirm them. |
 | [Scientific Notation Converter](https://arahman200165.github.io/DUDE/tools/scientific-notation-converter) | Developer | Converts a number between standard, scientific, and engineering notation with adjustable significant digits. |
 | [Secret Detector](https://arahman200165.github.io/DUDE/tools/secret-detector) | Developer | Flags likely credentials and keys in pasted text or config — AWS/GitHub/Slack tokens, PEM private keys, JWTs, generic key=value assignments, and high-entropy strings. |
 | [Semantic Version Comparator](https://arahman200165.github.io/DUDE/tools/semver-comparator) | Developer | Compare, sort, and range-check versions against the Semantic Versioning spec. |

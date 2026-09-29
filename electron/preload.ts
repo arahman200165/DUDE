@@ -238,6 +238,9 @@ const bridge: DudeElectronBridge = {
     importJson: (json) => ipcRenderer.invoke('dude:syssnap:import', json),
     usage: () => ipcRenderer.invoke('dude:syssnap:usage'),
   },
+  runtime: {
+    probe: (commands) => ipcRenderer.invoke('dude:runtime:probe', commands),
+  },
   elevation: {
     status: () => ipcRenderer.invoke('dude:elevation:status'),
     relaunch: () => ipcRenderer.invoke('dude:elevation:relaunch'),
