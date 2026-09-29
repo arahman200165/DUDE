@@ -121,3 +121,46 @@ body {
 @utility dude-doc-frame {
   color-scheme: normal;
 }
+
+/*
+ * Windows Contrast Themes / forced-colors (Phase 30K, M580). The browser replaces author colors with
+ * system colors, so state carried only by a background tint, a ring (box-shadow) or a text color
+ * disappears. This block re-expresses focus, selected and disabled state with system colors and
+ * borders/outlines, which forced colors keep. It is unlayered so it wins over Tailwind's utilities
+ * (including `outline-none`). Deliberately not handled here: scrollbars (left to the system) and
+ * canvas charts (forced colors do not recolor canvas; their surrounding panel border and HTML labels
+ * are recolored normally). Status dots next to text opt out via `forced-colors:forced-color-adjust-none`.
+ */
+@media (forced-colors: active) {
+  /* Focus rings drawn with box-shadow (`focus:ring-*`) are dropped, so every focus state gets a real outline. */
+  :focus-visible,
+  :is(input, textarea, select, [contenteditable]):focus {
+    outline: var(--dude-focus-width, 2px) solid Highlight;
+    outline-offset: 1px;
+  }
+
+  /* Selected / on / current state: the accent tint background vanishes, so mark it with a Highlight border plus inner outline. */
+  .dude-chip-on,
+  [aria-pressed='true'],
+  [aria-selected='true'],
+  [aria-current='page'] {
+    border-color: Highlight;
+    outline: 1px solid Highlight;
+    outline-offset: -3px;
+  }
+
+  /* Keep the focus ring on a selected control distinguishable from its selected outline (declared after, same specificity). */
+  [aria-pressed='true']:focus-visible,
+  [aria-selected='true']:focus-visible,
+  [aria-current='page']:focus-visible,
+  .dude-chip-on:focus-visible {
+    outline: var(--dude-focus-width, 2px) solid Highlight;
+    outline-offset: 1px;
+  }
+
+  :disabled,
+  [aria-disabled='true'] {
+    color: GrayText;
+    border-color: GrayText;
+  }
+}

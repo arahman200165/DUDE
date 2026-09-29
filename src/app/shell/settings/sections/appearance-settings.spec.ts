@@ -13,7 +13,9 @@ describe('AppearanceSettings', () => {
   let mode: ReturnType<typeof signal<string>>;
   let accent: ReturnType<typeof signal<string>>;
   let catset: ReturnType<typeof signal<string>>;
+  let contrast: ReturnType<typeof signal<string>>;
   let resolved: ReturnType<typeof signal<string>>;
+  let resolvedContrast: ReturnType<typeof signal<string>>;
   let set: ReturnType<typeof vi.fn>;
   let reset: ReturnType<typeof vi.fn>;
 
@@ -21,11 +23,14 @@ describe('AppearanceSettings', () => {
     mode = signal('dark');
     accent = signal('cyan');
     catset = signal('vivid');
+    contrast = signal('standard');
     resolved = signal('dark');
-    set = vi.fn((partial: { mode?: string; accent?: string; catset?: string }) => {
+    resolvedContrast = signal('standard');
+    set = vi.fn((partial: { mode?: string; accent?: string; catset?: string; contrast?: string }) => {
       if (partial.mode) mode.set(partial.mode);
       if (partial.accent) accent.set(partial.accent);
       if (partial.catset) catset.set(partial.catset);
+      if (partial.contrast) contrast.set(partial.contrast);
     });
     reset = vi.fn();
     TestBed.configureTestingModule({
@@ -33,8 +38,8 @@ describe('AppearanceSettings', () => {
         {
           provide: AppearanceService,
           useValue: {
-            prefs: computed(() => ({ ...DEFAULT_APPEARANCE, mode: mode(), accent: accent(), catset: catset() })),
-            effective: computed(() => ({ theme: resolved() })),
+            prefs: computed(() => ({ ...DEFAULT_APPEARANCE, mode: mode(), accent: accent(), catset: catset(), contrast: contrast() })),
+            effective: computed(() => ({ theme: resolved(), contrast: resolvedContrast() })),
             set,
             reset,
           },
@@ -49,6 +54,7 @@ describe('AppearanceSettings', () => {
     theme: { attr: 'data-theme', values: ['dark', 'light'], default: 'dark' },
     accent: { attr: 'data-accent', values: ['cyan', 'blue', 'violet'], default: 'cyan' },
     catset: { attr: 'data-catset', values: ['vivid', 'soft', 'cvd'], default: 'vivid' },
+    contrast: { attr: 'data-contrast', values: ['standard', 'high'], default: 'standard', labels: { standard: 'Standard', high: 'High' } },
   };
 
   function withAxes(axes: AppearanceAxes) {
@@ -94,12 +100,12 @@ describe('AppearanceSettings', () => {
   it('shows the resolved theme only while mode is system', () => {
     const fixture = create();
     const root = fixture.nativeElement as HTMLElement;
-    expect(root.querySelector('[data-testid="system-note"]')).toBeNull();
+    expect(root.querySelector('[data-testid="system-note-theme"]')).toBeNull();
 
     mode.set('system');
     resolved.set('light');
     fixture.detectChanges();
-    expect(root.querySelector('[data-testid="system-note"]')?.textContent).toContain('Currently: Light');
+    expect(root.querySelector('[data-testid="system-note-theme"]')?.textContent).toContain('Currently: Light');
   });
 
   it('renders a labelled swatch for every category and status token', () => {
@@ -119,6 +125,34 @@ describe('AppearanceSettings', () => {
     confirmSpy.mockReturnValue(true);
     buttonWithText(root, 'Reset appearance to defaults').click();
     expect(reset).toHaveBeenCalledOnce();
+  });
+
+  it('renders a Contrast row for a multi-value axis, with system resolution and set({ contrast })', () => {
+    withAxes(MULTI);
+    const fixture = create();
+    const root = fixture.nativeElement as HTMLElement;
+    const state = () => Object.fromEntries(Array.from((group(root, 'Contrast') as HTMLElement).querySelectorAll('button')).map((b) => [b.textContent?.trim(), b.getAttribute('aria-pressed')]));
+    expect(state()).toEqual({ Standard: 'true', High: 'false', 'System (follows OS)': 'false' });
+    expect(root.textContent).toContain('High raises text, border and focus-ring contrast. System follows your OS contrast setting.');
+    expect(root.querySelector('[data-testid="system-note-contrast"]')).toBeNull();
+
+    (group(root, 'Contrast') as HTMLElement).querySelectorAll('button')[1].click();
+    fixture.detectChanges();
+    expect(set).toHaveBeenCalledWith({ contrast: 'high' });
+    expect(state()).toEqual({ Standard: 'false', High: 'true', 'System (follows OS)': 'false' });
+
+    contrast.set('system');
+    resolvedContrast.set('high');
+    fixture.detectChanges();
+    expect(root.querySelector('[data-testid="system-note-contrast"]')?.textContent).toContain('Currently: High');
+    resolvedContrast.set('standard');
+    fixture.detectChanges();
+    expect(root.querySelector('[data-testid="system-note-contrast"]')?.textContent).toContain('Currently: Standard');
+  });
+
+  it('omits the Contrast row while the contrast axis has a single value', () => {
+    withAxes({ ...MULTI, contrast: { attr: 'data-contrast', values: ['standard'], default: 'standard' } });
+    expect(group(create().nativeElement as HTMLElement, 'Contrast')).toBeNull();
   });
 
   it('renders only the Theme row while accent and catset have a single value', () => {

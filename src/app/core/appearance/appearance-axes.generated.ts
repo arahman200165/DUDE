@@ -16,11 +16,13 @@ export const APPEARANCE_AXES_DATA = {
   "contrast": {
     "attr": "data-contrast",
     "values": [
-      "standard"
+      "standard",
+      "high"
     ],
     "default": "standard",
     "labels": {
-      "standard": "Standard"
+      "standard": "Standard",
+      "high": "High"
     }
   },
   "accent": {

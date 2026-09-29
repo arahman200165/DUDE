@@ -1,4 +1,4 @@
-import { Component, InjectionToken, computed, inject } from '@angular/core';
+import { Component, InjectionToken, inject } from '@angular/core';
 import { APPEARANCE_AXES, AppearanceAxes, AppearancePrefs, SYSTEM } from '../../../core/appearance/appearance.model';
 import { AppearanceService } from '../../../core/appearance/appearance.service';
 import { CATEGORY_METADATA, TOOL_CATEGORIES } from '../../../shared/models/tool-category.model';
@@ -19,12 +19,13 @@ export const APPEARANCE_SETTINGS_AXES = new InjectionToken<AppearanceAxes>('APPE
   factory: () => APPEARANCE_AXES,
 });
 
-/** A generic chip row bound to one axis; Theme is special-cased (it adds `system`), the rest go here. */
+/** A generic chip row bound to one axis; `allowSystem` appends a "System (follows OS)" chip. */
 interface AxisRowSpec {
   readonly axisKey: string;
   readonly prefsKey: Exclude<keyof AppearancePrefs, 'uiFont' | 'monoFont'>;
   readonly label: string;
   readonly help?: string;
+  readonly allowSystem?: boolean;
 }
 
 interface AxisRow extends AxisRowSpec {
@@ -32,6 +33,14 @@ interface AxisRow extends AxisRowSpec {
 }
 
 const AXIS_ROWS: readonly AxisRowSpec[] = [
+  { axisKey: 'theme', prefsKey: 'mode', label: 'Theme', allowSystem: true },
+  {
+    axisKey: 'contrast',
+    prefsKey: 'contrast',
+    label: 'Contrast',
+    allowSystem: true,
+    help: 'High raises text, border and focus-ring contrast. System follows your OS contrast setting.',
+  },
   { axisKey: 'accent', prefsKey: 'accent', label: 'Accent' },
   {
     axisKey: 'catset',
@@ -68,8 +77,8 @@ function capitalize(value: string): string {
 }
 
 /**
- * Settings › Appearance. Milestone 578 ships the theme (dark / light / system) row and a live swatch
- * strip; later Phase 30K milestones append rows (contrast, accent, palettes, density, fonts, motion,
+ * Settings › Appearance. Chip rows (theme, contrast, accent, palette; theme and contrast also offer
+ * `system`) and a live swatch strip; later Phase 30K milestones append rows (density, fonts, motion,
  * export/import) to the same vertical list. Options come from `theme-tokens.json` via the model.
  */
 @Component({
@@ -81,20 +90,26 @@ export class AppearanceSettings {
 
   private readonly axes = inject(APPEARANCE_SETTINGS_AXES);
 
-  protected readonly themeOptions: readonly ThemeOption[] = [...this.axes['theme'].values, SYSTEM].map((value) => ({
-    value,
-    label: value === SYSTEM ? 'System (follows OS)' : capitalize(value),
-  }));
-
   /** Rows for axes that actually offer a choice (more than one value); labels prefer the axis' own `labels`. */
   protected readonly axisRows: readonly AxisRow[] = AXIS_ROWS.flatMap((spec) => {
     const axis = this.axes[spec.axisKey];
     if (!axis || axis.values.length < 2) return [];
     const labels = (axis as { labels?: Readonly<Record<string, string>> }).labels;
-    return [{ ...spec, options: axis.values.map((value) => ({ value, label: labels?.[value] ?? capitalize(value) })) }];
+    const options: ThemeOption[] = axis.values.map((value) => ({ value, label: labels?.[value] ?? capitalize(value) }));
+    if (spec.allowSystem) options.push({ value: SYSTEM, label: 'System (follows OS)' });
+    return [{ ...spec, options }];
   });
 
-  protected readonly resolvedTheme = computed(() => capitalize(this.appearance.effective()['theme'] ?? this.axes['theme'].default));
+  protected isSelected(row: AxisRow, value: string): boolean {
+    return this.appearance.prefs()[row.prefsKey] === value;
+  }
+
+  /** What `system` currently resolves to for a row (shown only while that row is set to system). */
+  protected resolvedLabel(row: AxisRow): string {
+    const axis = this.axes[row.axisKey];
+    const value = this.appearance.effective()[row.axisKey] ?? axis.default;
+    return row.options.find((option) => option.value === value)?.label ?? capitalize(value);
+  }
 
   protected readonly surfaceSwatches = SURFACE_SWATCHES;
   protected readonly statusSwatches = STATUS_SWATCHES;
@@ -102,10 +117,6 @@ export class AppearanceSettings {
     label: CATEGORY_METADATA[id].label,
     classes: `${CHIP_BASE} bg-panel text-${CATEGORY_METADATA[id].colorToken}`,
   }));
-
-  protected setMode(mode: string): void {
-    this.appearance.set({ mode });
-  }
 
   protected setAxis(row: AxisRow, value: string): void {
     this.appearance.set({ [row.prefsKey]: value });

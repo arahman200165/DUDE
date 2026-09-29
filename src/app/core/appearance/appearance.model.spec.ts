@@ -141,7 +141,11 @@ describe('appearance model', () => {
 
     it('resolves "system" to the axis default when an axis has no alternative value, whatever the media says', () => {
       const prefs = { ...DEFAULT_APPEARANCE, mode: 'system', contrast: 'system' };
-      const darkOnly = { ...APPEARANCE_AXES, theme: { ...APPEARANCE_AXES['theme'], values: ['dark'] } };
+      const darkOnly = {
+        ...APPEARANCE_AXES,
+        theme: { ...APPEARANCE_AXES['theme'], values: ['dark'] },
+        contrast: { ...APPEARANCE_AXES['contrast'], values: ['standard'] },
+      };
       const effective = resolveEffective(prefs, { prefersLight: true, prefersMoreContrast: true }, darkOnly);
       expect(effective['theme']).toBe(APPEARANCE_AXES['theme'].default);
       expect(effective['contrast']).toBe(APPEARANCE_AXES['contrast'].default);

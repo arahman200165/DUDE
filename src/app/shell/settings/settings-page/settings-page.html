@@ -33,6 +33,7 @@
         <a
           [routerLink]="item.link"
           routerLinkActive="bg-panel-elevated text-text"
+          ariaCurrentWhenActive="page"
           class="flex items-center justify-between gap-2 rounded-sm px-2 py-1 text-ui text-text-muted hover:bg-panel-elevated hover:text-text"
           [class.opacity-60]="isDimmed(item)"
         >

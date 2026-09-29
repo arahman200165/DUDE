@@ -6,13 +6,13 @@
  * theme x contrast x catset x accent x semantic from `axes.*.values`. For each one it
  * resolves the base, accent, category and semantic tokens and enforces (hc = contrast "high"):
  *   1. text on bg / panel / panel-elevated             >= 4.5   (hc: >= 7)
- *   2. text-muted on bg / panel / panel-elevated       >= 4.5
+ *   2. text-muted on bg / panel / panel-elevated       >= 4.5   (hc: >= 7)
  *   3. on-accent on accent                             >= 4.5   (hc: >= 7)
  *   4. accent vs bg and vs panel                       >= 3     (focus ring / selection, WCAG 1.4.11)
  *   5. each category color, and each category tint (mix(cat, tint-toward, tint-pct)), vs bg, panel
- *      AND panel-elevated                              >= 4.5   (both are used as text: text-cat-*, on
- *                                                                 every surface, hc included)
- *   6. each semantic color vs bg, panel AND panel-elevated >= 4.5 (same threshold in hc)
+ *      AND panel-elevated                              >= 4.5   (hc: >= 7; both are used as text:
+ *                                                                 text-cat-*, on every surface)
+ *   6. each semantic color vs bg, panel AND panel-elevated >= 4.5 (hc: >= 7, WCAG 1.4.6 AAA)
  *   7. semantic separation vs each category and the accent: hue distance >= 22deg
  *      OR HSL lightness distance >= 12 points (8 categories + 6 semantic colors cannot all be
  *      further apart on one hue wheel, so lightness is the second axis); neutral semantic
@@ -34,6 +34,16 @@
  *      >= 4.5 for `text`.
  *  12. category color and tint as text on their own *-wash surface (panel mixed toward the category by
  *      wash-pct) >= 4.5.
+ *
+ *  13. (hc only) accent as text on accent/5 and accent/10 over bg, panel AND panel-elevated >= 7
+ *      (`text-accent bg-accent/10` badges, e.g. the Browse Tools "verified" chip).
+ *
+ * High-contrast (hc) thresholds enforced beyond standard: rules 1, 2, 3, 5, 6 and 11 require 7:1 (WCAG 1.4.6
+ * AAA) and rule 8 (border >= 3:1 vs bg and panel) only applies in hc. Everything else (accent non-text 3:1,
+ * semantic separation, rule 9's CVD deltaE thresholds, and the own-wash rules 10 and 12 at 4.5) is identical in
+ * standard and hc; the CVD category deltaE bar (16) is NOT relaxed for hc. The own-wash rules 10 and 12 stay at
+ * 4.5 in hc: a color on a wash of itself loses contrast by construction, and the cvd light set (dark colors
+ * to reach 7:1 on white) has too little lightness room to also stay 16 deltaE apart under CVD simulation.
  *
  * Opacity modifiers on text-color utilities are banned separately (check-design-tokens.mjs `text-opacity`)
  * because they silently drop contrast below what this script proves.
@@ -232,7 +242,7 @@ function run() {
     for (const [name, bg] of surfaces) {
       const cr = min('1 text on surfaces', `text on ${name}`, base.text, bg, hc ? 7 : 4.5);
       if (name === 'panel') textPanel = cr;
-      min('2 text-muted on surfaces', `text-muted on ${name}`, base['text-muted'], bg, 4.5);
+      min('2 text-muted on surfaces', `text-muted on ${name}`, base['text-muted'], bg, hc ? 7 : 4.5);
     }
     // 3
     min('3 on-accent on accent', 'on-accent on accent', acc['on-accent'], acc.accent, hc ? 7 : 4.5);
@@ -244,14 +254,14 @@ function run() {
     for (const c of CATS) {
       const tint = mixSrgb(cats[c], tintToward, base['tint-pct']);
       for (const [name, bg] of surfaces) {
-        catMin = Math.min(catMin, min('5 category color/tint vs bg/panel/panel-elevated', `cat-${c} on ${name}`, cats[c], bg, 4.5));
-        min('5 category color/tint vs bg/panel/panel-elevated', `cat-${c}-tint on ${name}`, tint, bg, 4.5);
+        catMin = Math.min(catMin, min('5 category color/tint vs bg/panel/panel-elevated', `cat-${c} on ${name}`, cats[c], bg, hc ? 7 : 4.5));
+        min('5 category color/tint vs bg/panel/panel-elevated', `cat-${c}-tint on ${name}`, tint, bg, hc ? 7 : 4.5);
       }
     }
     // 6
     for (const s of SEM) {
       for (const [name, bg] of surfaces) {
-        const cr = min('6 semantic vs bg/panel/panel-elevated', `${s} on ${name}`, sem[s], bg, 4.5);
+        const cr = min('6 semantic vs bg/panel/panel-elevated', `${s} on ${name}`, sem[s], bg, hc ? 7 : 4.5);
         if (name === 'panel') semMin = Math.min(semMin, cr);
       }
     }
@@ -277,6 +287,15 @@ function run() {
           const comp = blendAlpha(hex, sbg, alpha);
           const cr = min('10 text on own wash (bg-x/N)', `${name} on ${name}/${alpha} over ${sname} (${comp})`, hex, comp, 4.5);
           washMin = Math.min(washMin, cr);
+        }
+      }
+    }
+    // 13 (hc only): the shipped chip/badge/selected-row pattern `text-accent bg-accent/N` (N <= 10) sits on any of the three
+    // surfaces (hovered rows and elevated panels included), so accent text on its own 5%/10% wash must reach 7:1 there.
+    if (hc) {
+      for (const alpha of [5, 10]) {
+        for (const [sname, sbg] of surfaces) {
+          min('13 accent on own wash (hc, 7:1)', `accent on accent/${alpha} over ${sname}`, acc.accent, blendAlpha(acc.accent, sbg, alpha), 7);
         }
       }
     }
