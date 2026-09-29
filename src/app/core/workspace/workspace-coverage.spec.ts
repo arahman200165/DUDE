@@ -38,6 +38,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'batch-operations': 'the operation journal lives in the main process, not restorable renderer content',
   'system-changes': 'the system change journal lives in the main process, not restorable renderer content',
   'process-viewer': 'the live process list and selection are desktop-only session state, not restorable renderer content',
+  'port-process-lookup': 'the live socket table and selection are desktop-only session state, not restorable renderer content',
   'certificate-watch-list': 'the watch list is a live monitoring dashboard whose state lives in the main process, not restorable renderer content',
   'reverse-dns': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
   'dns-propagation': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',

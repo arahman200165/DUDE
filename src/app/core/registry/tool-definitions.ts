@@ -227,6 +227,7 @@ import { manifest as pixelColorPickerManifest } from '../../tools/pixel-color-pi
 import { manifest as pkceGeneratorManifest } from '../../tools/pkce-generator/pkce-generator.manifest';
 import { manifest as pkceVerifierManifest } from '../../tools/pkce-verifier/pkce-verifier.manifest';
 import { manifest as pkcs12InspectorManifest } from '../../tools/pkcs12-inspector/pkcs12-inspector.manifest';
+import { manifest as portProcessLookupManifest } from '../../tools/port-process-lookup/port-process-lookup.manifest';
 import { manifest as portScannerManifest } from '../../tools/port-scanner/port-scanner.manifest';
 import { manifest as processViewerManifest } from '../../tools/process-viewer/process-viewer.manifest';
 import { manifest as programmerCalculatorManifest } from '../../tools/programmer-calculator/programmer-calculator.manifest';
@@ -545,6 +546,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   pkceGeneratorManifest,
   pkceVerifierManifest,
   pkcs12InspectorManifest,
+  portProcessLookupManifest,
   portScannerManifest,
   processViewerManifest,
   programmerCalculatorManifest,

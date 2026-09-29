@@ -35,6 +35,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'batch-operations': 'changing files on disk requires a previewed, explicitly confirmed native action and must never run invisibly in a pipeline',
   'system-changes': 'changing Windows system state requires a previewed, explicitly confirmed native action and must never run invisibly in a pipeline',
   'process-viewer': 'reading live Windows process state needs the desktop system helper and a user-directed session, not an invisible pipeline step',
+  'port-process-lookup': 'reading live socket tables needs the desktop system helper and a user-directed session, and ending a process must never run invisibly in a pipeline',
   'certificate-watch-list': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'reverse-dns': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'dns-propagation': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',

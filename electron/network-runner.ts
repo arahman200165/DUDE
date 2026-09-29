@@ -9,6 +9,9 @@ import { join } from 'node:path';
 import { app } from 'electron';
 import type { NetworkRequest } from '../src/app/core/platform/network-types';
 import { expandScanTargets, validateHost } from './network-validation';
+import type { ProcessListResult, SocketTableResult } from '../src/shared-logic/system/system-types';
+import { sysHelper } from './sys-helper';
+import { runFixedScript } from './sys-pwsh';
 import { queryDns } from './network-dns';
 import { runDnsLookup, runResolverComparison } from './network-dns-tools';
 import { runLiveRequest } from './network-live';
@@ -145,21 +148,36 @@ async function mtu(request: NetworkRequest, signal: AbortSignal, progress: Progr
   return { target, mtu: best, status: best === null ? 'unknown' : 'measured' };
 }
 
-const LOCAL_SCRIPTS: Record<string, string> = {
-  ports: 'Get-NetTCPConnection -State Listen | Select-Object LocalAddress,LocalPort,OwningProcess; Get-NetUDPEndpoint | Select-Object LocalAddress,LocalPort,OwningProcess',
-  connections: 'Get-NetTCPConnection | Select-Object LocalAddress,LocalPort,RemoteAddress,RemotePort,State,OwningProcess',
-  processes: 'Get-NetTCPConnection -State Listen | ForEach-Object { $p=Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue; [pscustomobject]@{LocalAddress=$_.LocalAddress;LocalPort=$_.LocalPort;PID=$_.OwningProcess;Process=$p.ProcessName} }',
-  neighbors: 'Get-NetNeighbor | Select-Object IPAddress,LinkLayerAddress,State,InterfaceAlias,AddressFamily',
-  routes: 'Get-NetRoute | Select-Object DestinationPrefix,NextHop,RouteMetric,InterfaceAlias,AddressFamily',
-  interfaces: 'Get-NetIPConfiguration | Select-Object InterfaceAlias,InterfaceDescription,IPv4Address,IPv6Address,IPv4DefaultGateway,DNSServer',
-};
-async function localView(view: string, signal: AbortSignal): Promise<unknown> {
+const PWSH_VIEWS: Record<string, string> = { neighbors: 'net.neighbors', routes: 'net.routes', interfaces: 'net.interfaces' };
+
+async function helperData<T>(method: 'net.tcp' | 'net.udp' | 'process.list'): Promise<T> {
+  const result = await sysHelper().call(method, {});
+  if (!result.ok) throw new Error(result.error || 'Windows system helper is not available.');
+  return result.data as T;
+}
+
+export async function localView(view: string, signal: AbortSignal): Promise<unknown> {
+  aborted(signal);
   if (view === 'local-ip') return networkInterfaces();
-  const script = LOCAL_SCRIPTS[view];
-  if (!script) throw new Error('Unknown local network view.');
-  const code = `[Console]::OutputEncoding=[Text.UTF8Encoding]::new(); $ErrorActionPreference='Stop'; @(${script}) | ConvertTo-Json -Compress -Depth 7`;
-  const output = await runCommand('powershell.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(code, 'utf16le').toString('base64')], signal, 20_000);
-  return JSON.parse(output || '[]');
+  if (Object.prototype.hasOwnProperty.call(PWSH_VIEWS, view)) return runFixedScript(PWSH_VIEWS[view], undefined, signal, 20_000);
+  if (view === 'ports') {
+    const [tcp, udp] = await Promise.all([helperData<SocketTableResult>('net.tcp'), helperData<SocketTableResult>('net.udp')]);
+    return [
+      ...tcp.entries.filter((s) => s.state === 'LISTEN'),
+      ...udp.entries,
+    ].map((s) => ({ protocol: s.protocol, localAddress: s.localAddress, localPort: s.localPort, pid: s.pid }));
+  }
+  if (view === 'connections') {
+    const tcp = await helperData<SocketTableResult>('net.tcp');
+    return tcp.entries.map((s) => ({ localAddress: s.localAddress, localPort: s.localPort, remoteAddress: s.remoteAddress, remotePort: s.remotePort, state: s.state, pid: s.pid }));
+  }
+  if (view === 'processes') {
+    const [tcp, list] = await Promise.all([helperData<SocketTableResult>('net.tcp'), helperData<ProcessListResult>('process.list')]);
+    const names = new Map(list.processes.map((p) => [p.pid, p.name]));
+    return tcp.entries.filter((s) => s.state === 'LISTEN')
+      .map((s) => ({ localAddress: s.localAddress, localPort: s.localPort, pid: s.pid, process: names.get(s.pid) ?? null }));
+  }
+  throw new Error('Unknown local network view.');
 }
 
 async function httpCheck(request: NetworkRequest, signal: AbortSignal): Promise<unknown> {

@@ -61,6 +61,7 @@ database-write) have no rows below until a tool claims them.
 | [PKCE Generator](https://arahman200165.github.io/DUDE/tools/pkce-generator) | Authentication | verified — S256 code_challenge computation matches RFC 7636 Appendix B's official worked example exactly. |
 | [PKCE Verifier](https://arahman200165.github.io/DUDE/tools/pkce-verifier) | Authentication | verified — Verifier/challenge matching is checked against RFC 7636 Appendix B's official worked example. |
 | [PKCS#12 / PFX Inspector](https://arahman200165.github.io/DUDE/tools/pkcs12-inspector) | Crypto | verified — Correctly extracts leaf/intermediate certs and friendlyName from a real openssl-generated .p12 using modern PBES2 encryption. |
+| [Port → Process Lookup](https://arahman200165.github.io/DUDE/tools/port-process-lookup) | Process Management | experimental |
 | [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Network Scanning | experimental |
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Process Management | experimental |
 | [Python Playground](https://arahman200165.github.io/DUDE/tools/python-playground) | Code Execution | verified — Fuzz-tested the pure sandbox-event reducer for transcript and outcome shape. |
@@ -155,6 +156,7 @@ browser sandbox.
 | [Network Diagnostic Bundle Export](https://arahman200165.github.io/DUDE/tools/network-diagnostic-bundle) | Native network diagnostics |
 | [Packet-Loss Measurement](https://arahman200165.github.io/DUDE/tools/packet-loss) | Native network diagnostics |
 | [Ping](https://arahman200165.github.io/DUDE/tools/ping) | Native network diagnostics |
+| [Port → Process Lookup](https://arahman200165.github.io/DUDE/tools/port-process-lookup) | Native Windows system access; Native Windows system changes |
 | [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Native network diagnostics |
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system access; Native Windows system changes; Native filesystem access |
 | [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | Native network diagnostics |
@@ -220,6 +222,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Network Diagnostic Bundle Export](https://arahman200165.github.io/DUDE/tools/network-diagnostic-bundle) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Packet-Loss Measurement](https://arahman200165.github.io/DUDE/tools/packet-loss) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Ping](https://arahman200165.github.io/DUDE/tools/ping) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Port → Process Lookup](https://arahman200165.github.io/DUDE/tools/port-process-lookup) | Native Windows system access | Desktop-only feature | reads the TCP and UDP socket tables and running processes through the desktop system helper |
+| [Port → Process Lookup](https://arahman200165.github.io/DUDE/tools/port-process-lookup) | Native Windows system changes | Desktop-only feature | ends the process that owns a port through the desktop system mutation engine |
 | [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native filesystem access | Desktop-only feature | grants the folder a crash dump is written into |
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system access | Desktop-only feature | reads running processes and their details through the desktop system helper |

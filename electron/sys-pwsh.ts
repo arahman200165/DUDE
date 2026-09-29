@@ -80,6 +80,9 @@ export function pwshStatus(refresh = false): Promise<PwshStatus> {
 /** Fixed, reviewed scripts. Arguments never reach a script except through `$DudeArgs`. */
 export const FIXED_SCRIPTS: Record<string, string> = {
   'pwsh.echo': '$DudeArgs',
+  'net.neighbors': 'Get-NetNeighbor | Select-Object IPAddress,LinkLayerAddress,State,InterfaceAlias,AddressFamily',
+  'net.routes': 'Get-NetRoute | Select-Object DestinationPrefix,NextHop,RouteMetric,InterfaceAlias,AddressFamily',
+  'net.interfaces': 'Get-NetIPConfiguration | Select-Object InterfaceAlias,InterfaceDescription,IPv4Address,IPv6Address,IPv4DefaultGateway,DNSServer',
 };
 
 export function buildFixedScriptCommand(name: string, args: unknown): string {
@@ -87,7 +90,7 @@ export function buildFixedScriptCommand(name: string, args: unknown): string {
   const script = FIXED_SCRIPTS[name];
   const json = JSON.stringify(args ?? null);
   const encoded = Buffer.from(json, 'utf8').toString('base64');
-  return `[Console]::OutputEncoding=[Text.UTF8Encoding]::new(); $ErrorActionPreference='Stop'; ` +
+  return `[Console]::OutputEncoding=[Text.UTF8Encoding]::new(); $ErrorActionPreference='Stop'; $ProgressPreference='SilentlyContinue'; ` +
     `$DudeArgs = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encoded}')) | ConvertFrom-Json; ` +
     `@(${script}) | ConvertTo-Json -Compress -Depth 8`;
 }

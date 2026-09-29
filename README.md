@@ -112,6 +112,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Network Diagnostic Bundle Export](https://arahman200165.github.io/DUDE/tools/network-diagnostic-bundle) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Packet-Loss Measurement](https://arahman200165.github.io/DUDE/tools/packet-loss) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Ping](https://arahman200165.github.io/DUDE/tools/ping) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Port → Process Lookup](https://arahman200165.github.io/DUDE/tools/port-process-lookup) | Native Windows system access | Desktop-only feature | reads the TCP and UDP socket tables and running processes through the desktop system helper |
+| [Port → Process Lookup](https://arahman200165.github.io/DUDE/tools/port-process-lookup) | Native Windows system changes | Desktop-only feature | ends the process that owns a port through the desktop system mutation engine |
 | [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native filesystem access | Desktop-only feature | grants the folder a crash dump is written into |
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system access | Desktop-only feature | reads running processes and their details through the desktop system helper |
@@ -147,7 +149,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-316 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+317 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -424,6 +426,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Percentage & Ratio Calculator](https://arahman200165.github.io/DUDE/tools/percentage-ratio-calculator) | Developer | Percentage of, percent-of-what, percent change, ratio simplification, and proportion solving. |
 | [Ping](https://arahman200165.github.io/DUDE/tools/ping) | Developer | Send ICMP echo requests and show round-trip latency. |
 | [Pixel Color Picker](https://arahman200165.github.io/DUDE/tools/pixel-color-picker) | Developer | Reads the exact color of any pixel in an uploaded image. |
+| [Port → Process Lookup](https://arahman200165.github.io/DUDE/tools/port-process-lookup) | Developer | Find which process owns a port: a live, filterable table of every TCP and UDP socket joined to its owning process. Type 3000 to see who is using :3000, open the owner in Process Viewer, or end it through a previewed, confirmed change. |
 | [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Developer | Probe a bounded TCP and UDP port set on one host or CIDR. |
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Developer | Task manager for Windows: live CPU and memory, a parent/child process tree, and per-process command line, environment (with diffs and snapshots), modules with versions and signers, threads, handles and ports. End, restart, suspend, reprioritise or dump a process through a previewed, confirmed change. |
 | [Programmer Calculator](https://arahman200165.github.io/DUDE/tools/programmer-calculator) | Developer | Arithmetic and bitwise (AND/OR/XOR/NOT/shift) calculator with an interactive bit grid, two’s-complement, and 8/16/32/64-bit widths. |

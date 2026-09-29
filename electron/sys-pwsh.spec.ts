@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { buildFixedScriptCommand, detectPwsh, type PwshDeps } from './sys-pwsh';
+import { FIXED_SCRIPTS, buildFixedScriptCommand, detectPwsh, type PwshDeps } from './sys-pwsh';
 
 const LOCAL = 'C:\\Users\\me\\AppData\\Local';
 const ALIAS = `${LOCAL}\\Microsoft\\WindowsApps\\pwsh.exe`;
@@ -79,6 +79,16 @@ describe('buildFixedScriptCommand', () => {
       for (const bad of ["Remove-Item", '$(evil)', '`', 'evil', args.text]) expect(withoutLiteral).not.toContain(bad);
       expect(command).not.toContain(args.text);
       expect(command).toContain('@($DudeArgs) | ConvertTo-Json -Compress -Depth 8');
+    }
+  });
+
+  it('builds the argument-free network view scripts', () => {
+    for (const name of ['net.neighbors', 'net.routes', 'net.interfaces']) {
+      const command = buildFixedScriptCommand(name, undefined);
+      expect(command).toContain(FIXED_SCRIPTS[name]);
+      expect(command).toContain('Get-Net');
+      const literal = /FromBase64String\('([^']*)'\)/.exec(command)![1];
+      expect(Buffer.from(literal, 'base64').toString('utf8')).toBe('null');
     }
   });
 
