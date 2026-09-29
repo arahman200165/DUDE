@@ -7,6 +7,8 @@ const FILE_PATH_METHODS: readonly SysReadMethod[] = ['file.version', 'file.signa
 const MAX_PID = 4294967295;
 const MAX_FILE_PATH = 32767;
 const MAX_PATH = 1024;
+const MAX_PROBE_DIRS = 256;
+const MAX_PROBE_EXTENSIONS = 64;
 const MAX_SEGMENT = 255;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -66,6 +68,22 @@ export function validateSysCall(method: unknown, params: unknown): { method: Sys
     if (!isPlainObject(params)) throw new Error('File parameters must be an object.');
     exactKeys(params, ['path'], 'File parameters must be exactly path.');
     return { method: name, params: { path: validateFilePath(params['path']) } };
+  }
+  if (name === 'fs.probeDirs') {
+    if (!isPlainObject(params)) throw new Error('Probe parameters must be an object.');
+    if (Object.keys(params).some((key) => key !== 'dirs' && key !== 'extensions')) throw new Error('Probe parameters must be only dirs and extensions.');
+    const dirs = params['dirs'];
+    if (!Array.isArray(dirs) || dirs.length < 1 || dirs.length > MAX_PROBE_DIRS) throw new Error('Probe dirs must be an array of 1 to 256 paths.');
+    const out: { dirs: string[]; extensions?: string[] } = { dirs: dirs.map((dir) => validateFilePath(dir)) };
+    const extensions = params['extensions'];
+    if (extensions !== undefined) {
+      if (!Array.isArray(extensions) || extensions.length > MAX_PROBE_EXTENSIONS) throw new Error('Probe extensions must be an array of at most 64 entries.');
+      out.extensions = extensions.map((ext) => {
+        if (typeof ext !== 'string' || !/^\.[a-z0-9]+$/i.test(ext)) throw new Error('Probe extensions must look like ".exe".');
+        return ext.toLowerCase();
+      });
+    }
+    return { method: name, params: out };
   }
   if (!REGISTRY_METHODS.includes(name)) {
     if (params === undefined || params === null) return { method: name, params: {} };

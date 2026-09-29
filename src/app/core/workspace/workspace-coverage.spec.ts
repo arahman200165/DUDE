@@ -37,6 +37,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'watched-folders': 'watch state and timelines live in the main process, not restorable renderer content',
   'batch-operations': 'the operation journal lives in the main process, not restorable renderer content',
   'system-changes': 'the system change journal lives in the main process, not restorable renderer content',
+  'path-editor': 'the live PATH, its directory probes and any open edit or preview are desktop-only session state, not restorable renderer content',
   'environment-variables': 'the live registry environment and any open edit or preview are desktop-only session state, not restorable renderer content',
   'process-viewer': 'the live process list and selection are desktop-only session state, not restorable renderer content',
   'port-process-lookup': 'the live socket table and selection are desktop-only session state, not restorable renderer content',

@@ -1,0 +1,107 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning/40 bg-warning/5 p-4 text-ui text-text-muted">
+      PATH Editor reads the user and machine PATH of this Windows PC, checks every directory on it, shows which executables shadow which (for example which node or python actually runs), and lets you reorder, add, remove and de-duplicate entries through a previewed change. It reads and writes the registry through the Windows desktop app, so it needs Desktop DUDE.
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <app-desktop-only-control capability="native-system" label="Read and check the PATH" />
+      <app-desktop-only-control capability="native-system-write" label="Save the PATH" />
+    </div>
+  } @else {
+    <div class="flex flex-col gap-2 text-ui">
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="flex" role="tablist" aria-label="Scope">
+          @for (s of scopes; track s) {
+            <button type="button" role="tab" class="border border-border px-2 py-0.5 hover:bg-panel-elevated" [class.rounded-l-sm]="$first" [class.rounded-r-sm]="$last" [class.border-l-0]="!$first" [class.text-accent]="scope() === s" [class.text-text]="scope() !== s" [attr.aria-selected]="scope() === s" [attr.data-testid]="'scope-' + s" (click)="setScope(s)">{{ label[s] }}</button>
+          }
+        </div>
+        <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" data-testid="reload" (click)="reload()">Reload</button>
+        <span class="text-ui-xs text-text-muted" data-testid="count">{{ rows().length }} entries</span>
+      </div>
+
+      <p class="text-ui-xs text-text-muted">The effective PATH is the machine PATH followed by the user PATH, so the first matching directory wins. Changes affect new processes only.</p>
+
+      @if (error()) { <div role="alert" class="flex items-center gap-1 rounded-sm border border-error/50 bg-error/5 p-2 text-error"><app-status-glyph kind="error" />{{ error() }}</div> }
+      @if (message()) { <div role="status" class="flex items-center gap-1 text-success" data-testid="message"><app-status-glyph kind="success" />{{ message() }}</div> }
+
+      <app-elevation-banner [required]="scope() === 'machine'" feature="Editing the machine PATH" />
+
+      @for (g of global(); track g.kind) {
+        <div class="flex items-center gap-1" [class.text-error]="g.severity === 'error'" [class.text-warning]="g.severity !== 'error'" data-testid="global-issue"><app-status-glyph [kind]="g.severity === 'error' ? 'error' : 'warning'" />{{ g.message }}</div>
+      }
+
+      @if (editable()) {
+        <div class="flex flex-wrap items-center gap-2">
+          <input class="min-w-64 flex-1 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" aria-label="Directory to add" placeholder="C:\Tools\bin or %USERPROFILE%\bin" data-testid="add-input" [value]="addText()" (input)="addText.set($any($event.target).value)" (keydown.enter)="add()" />
+          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated disabled:opacity-50" data-testid="add" [disabled]="!addText().trim()" (click)="add()">Add</button>
+          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" data-testid="dedupe" (click)="dedupe()">Remove duplicates</button>
+          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated disabled:opacity-50" data-testid="discard-edits" [disabled]="!dirty()" (click)="discardEdits()">Discard edits</button>
+          <button type="button" class="rounded-sm border border-warning px-2 py-0.5 text-warning disabled:opacity-50" data-testid="save" [disabled]="!canSave()" (click)="save()">Save…</button>
+          <app-desktop-only-control capability="native-system-write" label="Save the PATH" />
+          @if (dirty()) { <span class="text-ui-xs text-warning" data-testid="dirty">Unsaved edits</span> }
+        </div>
+        <p class="text-ui-xs text-text-muted">Alt+Up / Alt+Down moves the focused entry, Delete removes it. Entries are edited as written, so %VARIABLES% are kept.</p>
+      } @else {
+        <p class="text-ui-xs text-text-muted" data-testid="effective-note">Read-only view of what programs see. Switch to User or Machine to edit.</p>
+      }
+
+      @if (planning()) { <div class="flex items-center gap-1 text-accent" role="status"><app-status-glyph kind="busy" />Building preview…</div> }
+      <app-system-change-preview [preview]="preview()" (applied)="onApplied($event)" (discarded)="preview.set(null)" />
+
+      @if (loading() && !rows().length) {
+        <div class="p-4 text-text-muted" role="status">Reading PATH…</div>
+      } @else {
+        <ol class="flex flex-col gap-1" aria-label="PATH entries" data-testid="entries">
+          @for (r of rows(); track $index) {
+            <li class="flex flex-wrap items-center gap-2 rounded-sm border border-border bg-panel px-2 py-1 focus:outline-2 focus:outline-accent" tabindex="0" [attr.data-testid]="'path-row-' + r.index" [attr.aria-label]="'PATH entry ' + (r.index + 1) + ': ' + r.raw" (keydown)="onKey($event, r.index)">
+              <span class="w-8 shrink-0 text-right font-mono text-ui-xs text-text-muted">{{ r.index + 1 }}</span>
+              @if (r.scope) { <span class="rounded-sm border border-border px-1 text-ui-xs text-text-muted" [attr.data-testid]="'scope-badge-' + r.index">{{ r.scope }}</span> }
+              <div class="min-w-0 flex-1">
+                <div class="break-all font-mono text-text">{{ r.raw || '(empty)' }}</div>
+                @if (r.expanded !== r.raw && r.raw) { <div class="break-all font-mono text-ui-xs text-text-muted">{{ r.expanded }}</div> }
+              </div>
+              <span class="flex flex-wrap items-center gap-1">
+                @if (r.checked && r.exists && !r.issues.length) {
+                  <span class="inline-flex items-center gap-1 text-ui-xs text-success" [attr.data-testid]="'badge-' + r.index + '-exists'"><app-status-glyph kind="success" />exists</span>
+                }
+                @for (i of r.issues; track i.kind) {
+                  <span class="inline-flex items-center gap-1 text-ui-xs" [class.text-error]="i.severity === 'error'" [class.text-warning]="i.severity === 'warning'" [class.text-text-muted]="i.severity === 'info'" [attr.title]="i.message" [attr.data-testid]="'badge-' + r.index + '-' + i.kind"><app-status-glyph [kind]="glyph(i)" />{{ issueLabel(i) }}</span>
+                }
+              </span>
+              @if (editable()) {
+                <span class="flex items-center gap-1">
+                  <button type="button" class="rounded-sm border border-border px-1.5 text-text hover:bg-panel-elevated disabled:opacity-40" [attr.aria-label]="'Move entry ' + (r.index + 1) + ' up'" [attr.data-testid]="'up-' + r.index" [disabled]="$first" (click)="move(r.index, r.index - 1)">Up</button>
+                  <button type="button" class="rounded-sm border border-border px-1.5 text-text hover:bg-panel-elevated disabled:opacity-40" [attr.aria-label]="'Move entry ' + (r.index + 1) + ' down'" [attr.data-testid]="'down-' + r.index" [disabled]="$last" (click)="move(r.index, r.index + 1)">Down</button>
+                  <button type="button" class="rounded-sm border border-border px-1.5 text-warning hover:bg-panel-elevated" [attr.aria-label]="'Remove entry ' + (r.index + 1)" [attr.data-testid]="'remove-' + r.index" (click)="remove(r.index)">Remove</button>
+                </span>
+              }
+            </li>
+          } @empty {
+            <li class="text-text-muted">This PATH has no entries.</li>
+          }
+        </ol>
+      }
+
+      <section class="flex flex-col gap-2 border-t border-border pt-2" aria-label="Executable conflicts" data-testid="shadows">
+        <h3 class="font-semibold text-text">Which one runs: shadowed executables</h3>
+        <p class="text-ui-xs text-text-muted">Judged on the effective PATH including any unsaved edits. For each name found in more than one directory the first directory wins; within a directory the earliest extension in PATHEXT wins.
+          <a class="text-accent underline" [routerLink]="runtimeDetector">Open Runtime Detector</a> to see installed runtime versions.</p>
+        @if (shadowSummary().length) { <app-findings-list [findings]="shadowSummary()" title="Common tool conflicts" /> }
+        @for (s of shadows(); track s.name) {
+          <div class="rounded-sm border border-border bg-panel px-2 py-1" [attr.data-testid]="'shadow-' + s.name">
+            <div class="flex flex-wrap items-baseline gap-2">
+              <span class="font-mono font-semibold text-text">{{ s.name }}</span>
+              <span class="text-ui-xs text-text-muted">wins:</span>
+              <span class="break-all font-mono text-success">{{ s.winner.dir }}\{{ s.winner.file }}</span>
+              @if (s.winner.alsoInDir.length) { <span class="text-ui-xs text-text-muted">(also {{ s.winner.alsoInDir.join(', ') }} here)</span> }
+            </div>
+            @for (c of s.shadowed; track c.dir) { <div class="break-all font-mono text-ui-xs text-text-muted">shadowed: {{ c.dir }}\{{ c.file }}</div> }
+            @if (s.note) { <div class="text-ui-xs text-warning">{{ s.note }}</div> }
+          </div>
+        } @empty {
+          <p class="text-text-muted" data-testid="no-shadows">No executable name appears in more than one PATH directory.</p>
+        }
+      </section>
+    </div>
+  }
+</app-tool-shell>

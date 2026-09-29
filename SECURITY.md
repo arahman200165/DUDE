@@ -58,6 +58,7 @@ database-write) have no rows below until a tool claims them.
 | [OAuth Scope Parser](https://arahman200165.github.io/DUDE/tools/oauth-scope-parser) | Authentication | verified — parseScopeString/buildScopeString round-trip and never-throws are checked with generated inputs (fast-check), not just hand-picked examples. |
 | [OAuth Token Inspector](https://arahman200165.github.io/DUDE/tools/oauth-token-inspector) | Authentication | verified — Fuzz-tested with arbitrary text (fast-check) -- never throws; delegates JWT decoding to the already-verified JWT Debugger. |
 | [OpenID Connect Discovery Document Inspector](https://arahman200165.github.io/DUDE/tools/oidc-discovery-inspector) | Authentication | verified — Checks against the official OIDC Discovery 1.0 field list and is fuzz-tested with arbitrary text/JSON (fast-check) -- never throws. |
+| [PATH Editor](https://arahman200165.github.io/DUDE/tools/path-editor) | Registry | experimental |
 | [PEM / DER Inspector & Converter](https://arahman200165.github.io/DUDE/tools/pem-der-inspector) | Crypto | verified — Parses the checked-in ISRG Root X1 certificate as PEM and DER with matching bytes and ASN.1 structure, cross-checked by Node X509Certificate; also checks Node-crypto-generated RSA/EC/Ed25519 PEM keys and fast-check fuzzing. |
 | [PKCE Generator](https://arahman200165.github.io/DUDE/tools/pkce-generator) | Authentication | verified — S256 code_challenge computation matches RFC 7636 Appendix B's official worked example exactly. |
 | [PKCE Verifier](https://arahman200165.github.io/DUDE/tools/pkce-verifier) | Authentication | verified — Verifier/challenge matching is checked against RFC 7636 Appendix B's official worked example. |
@@ -157,6 +158,7 @@ browser sandbox.
 | [MTU Discovery](https://arahman200165.github.io/DUDE/tools/mtu-discovery) | Native network diagnostics |
 | [Network Diagnostic Bundle Export](https://arahman200165.github.io/DUDE/tools/network-diagnostic-bundle) | Native network diagnostics |
 | [Packet-Loss Measurement](https://arahman200165.github.io/DUDE/tools/packet-loss) | Native network diagnostics |
+| [PATH Editor](https://arahman200165.github.io/DUDE/tools/path-editor) | Native Windows system access; Native Windows system changes |
 | [Ping](https://arahman200165.github.io/DUDE/tools/ping) | Native network diagnostics |
 | [Port → Process Lookup](https://arahman200165.github.io/DUDE/tools/port-process-lookup) | Native Windows system access; Native Windows system changes |
 | [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Native network diagnostics |
@@ -225,6 +227,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [MTU Discovery](https://arahman200165.github.io/DUDE/tools/mtu-discovery) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Network Diagnostic Bundle Export](https://arahman200165.github.io/DUDE/tools/network-diagnostic-bundle) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Packet-Loss Measurement](https://arahman200165.github.io/DUDE/tools/packet-loss) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [PATH Editor](https://arahman200165.github.io/DUDE/tools/path-editor) | Native Windows system access | Desktop-only feature | reads the PATH from the registry and checks its directories through the desktop system helper |
+| [PATH Editor](https://arahman200165.github.io/DUDE/tools/path-editor) | Native Windows system changes | Desktop-only feature | saves the user or machine PATH through the desktop system mutation engine |
 | [Ping](https://arahman200165.github.io/DUDE/tools/ping) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Port → Process Lookup](https://arahman200165.github.io/DUDE/tools/port-process-lookup) | Native Windows system access | Desktop-only feature | reads the TCP and UDP socket tables and running processes through the desktop system helper |
 | [Port → Process Lookup](https://arahman200165.github.io/DUDE/tools/port-process-lookup) | Native Windows system changes | Desktop-only feature | ends the process that owns a port through the desktop system mutation engine |

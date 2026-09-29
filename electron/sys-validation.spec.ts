@@ -82,6 +82,18 @@ describe('validateSysCall', () => {
     for (const bad of [undefined, {}, { pid: 7, startKey: '1' }, { pid: -1 }, { pid: '7' }, []]) expect(() => validateSysCall('process.threads', bad)).toThrow();
   });
 
+  it('validates fs.probeDirs params', () => {
+    expect(validateSysCall('fs.probeDirs', { dirs: ['C:\\Windows'] })).toEqual({ method: 'fs.probeDirs', params: { dirs: ['C:\\Windows'] } });
+    expect(validateSysCall('fs.probeDirs', { dirs: ['C:\\a', '\\\\srv\\s'], extensions: ['.EXE', '.cmd'] }).params).toEqual({ dirs: ['C:\\a', '\\\\srv\\s'], extensions: ['.exe', '.cmd'] });
+    const many = Array.from({ length: 256 }, () => 'C:\\a');
+    expect(() => validateSysCall('fs.probeDirs', { dirs: many })).not.toThrow();
+    for (const bad of [
+      undefined, [], {}, { dirs: [] }, { dirs: 'C:\\a' }, { dirs: [...many, 'C:\\b'] }, { dirs: ['relative'] }, { dirs: ['C:\\a\u0000'] }, { dirs: [5] },
+      { dirs: ['C:\\a'], extensions: 'exe' }, { dirs: ['C:\\a'], extensions: ['exe'] }, { dirs: ['C:\\a'], extensions: ['.'] }, { dirs: ['C:\\a'], extensions: ['.e x'] },
+      { dirs: ['C:\\a'], extensions: [1] }, { dirs: ['C:\\a'], extensions: Array.from({ length: 65 }, () => '.exe') }, { dirs: ['C:\\a'], extra: 1 },
+    ]) expect(() => validateSysCall('fs.probeDirs', bad)).toThrow();
+  });
+
   it('validates absolute Windows file paths for file.version and file.signature', () => {
     for (const method of ['file.version', 'file.signature']) {
       for (const path of ['C:\\Windows\\notepad.exe', 'c:/windows/notepad.exe', '\\\\server\\share\\a.dll', '\\\\?\\C:\\a.dll', `C:\\${'a'.repeat(32764)}`]) {

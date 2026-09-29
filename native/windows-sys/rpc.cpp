@@ -65,6 +65,7 @@ std::string handleLine(const std::string& line) {
   else if (method == "net.udp") ok = sys::handleNetUdp(result, err);
   else if (method == "reg.enumKey") ok = sys::handleRegEnumKey(params, result, err);
   else if (method == "reg.getValues") ok = sys::handleRegGetValues(params, result, err);
+  else if (method == "fs.probeDirs") ok = sys::handleFsProbeDirs(params, result, err);
   else if (method == "proc.terminate") ok = sys::handleProcTerminate(params, result, err);
   else if (method == "proc.tree") ok = sys::handleProcTree(params, result, err);
   else if (method == "proc.suspend") ok = sys::handleProcSuspend(params, result, err);

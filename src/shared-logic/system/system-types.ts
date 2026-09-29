@@ -11,7 +11,7 @@
 /** Renderer-callable read methods. Grows one milestone at a time; main rejects anything else. */
 export const SYS_READ_METHODS = [
   'helper.info', 'process.list', 'process.detail', 'process.modules', 'process.threads', 'process.handles',
-  'file.version', 'file.signature', 'svc.list', 'net.tcp', 'net.udp', 'reg.enumKey', 'reg.getValues',
+  'file.version', 'file.signature', 'svc.list', 'net.tcp', 'net.udp', 'reg.enumKey', 'reg.getValues', 'fs.probeDirs',
 ] as const;
 export type SysReadMethod = (typeof SYS_READ_METHODS)[number];
 
@@ -260,6 +260,33 @@ export interface SysMethodMap {
   'net.udp': { params: Record<string, never>; result: SocketTableResult };
   'reg.enumKey': { params: RegistryKeyParams; result: RegistryEnumResult };
   'reg.getValues': { params: RegistryKeyParams; result: RegistryValuesResult };
+  'fs.probeDirs': { params: ProbeDirsParams; result: ProbeDirsResult };
+}
+
+// ---- fs.probeDirs (PATH directory probe for the PATH Editor & Conflict Detector) ----------------
+
+export interface ProbeDirsParams {
+  /** Absolute directory paths to probe (already %VAR%-expanded by the caller). */
+  readonly dirs: readonly string[];
+  /**
+   * Lower-case, dot-prefixed executable extensions from PATHEXT (e.g. ['.com', '.exe', '.bat']).
+   * When present, each dir's `executables` lists only entries whose extension is in this set.
+   */
+  readonly extensions?: readonly string[];
+}
+
+export interface ProbeDirEntry {
+  readonly dir: string;
+  readonly exists: boolean;
+  readonly isDirectory: boolean;
+  /** File names (not full paths) in the directory whose extension is in `extensions`; capped. */
+  readonly executables: readonly string[];
+  /** Set when the directory could not be read (e.g. access denied); `exists` reflects what is known. */
+  readonly error?: string;
+}
+
+export interface ProbeDirsResult {
+  readonly dirs: readonly ProbeDirEntry[];
 }
 
 /** Streamed helper events forwarded on `dude:sys:event` (event tail, registry search — later milestones). */

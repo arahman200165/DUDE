@@ -34,6 +34,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'watched-folders': 'background folder watching is a live monitor of folders on disk and cannot run as a pipeline step',
   'batch-operations': 'changing files on disk requires a previewed, explicitly confirmed native action and must never run invisibly in a pipeline',
   'system-changes': 'changing Windows system state requires a previewed, explicitly confirmed native action and must never run invisibly in a pipeline',
+  'path-editor': 'reading and editing the live Windows PATH needs the desktop system helper and a user-directed, previewed session, not an invisible pipeline step',
   'environment-variables': 'reading and editing the live Windows registry environment needs the desktop system helper and a user-directed, previewed session, not an invisible pipeline step',
   'process-viewer': 'reading live Windows process state needs the desktop system helper and a user-directed session, not an invisible pipeline step',
   'port-process-lookup': 'reading live socket tables needs the desktop system helper and a user-directed session, and ending a process must never run invisibly in a pipeline',

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import type {
   FileSignatureResult, FileVersionResult, HelperInfo, ProcessDetail, ProcessHandlesResult, ProcessListResult, ProcessModulesResult,
-  ProcessRef, ProcessThreadsResult, ServiceListResult, RegistryEnumResult, RegistryKeyParams, RegistryValuesResult, SocketTableResult, SysMethodMap, SysReadMethod,
+  ProbeDirsResult, ProcessRef, ProcessThreadsResult, ServiceListResult, RegistryEnumResult, RegistryKeyParams, RegistryValuesResult, SocketTableResult, SysMethodMap, SysReadMethod,
 } from '../../../shared-logic/system/system-types';
 
 const UNAVAILABLE = 'Windows system tools are available in Desktop DUDE.';
@@ -43,4 +43,7 @@ export class SystemInfoService {
   udpTable(): Promise<SocketTableResult> { return this.call('net.udp', {}); }
   enumRegistryKey(params: RegistryKeyParams): Promise<RegistryEnumResult> { return this.call('reg.enumKey', params); }
   registryValues(params: RegistryKeyParams): Promise<RegistryValuesResult> { return this.call('reg.getValues', params); }
+  probeDirs(dirs: string[], extensions?: string[]): Promise<ProbeDirsResult> {
+    return this.call('fs.probeDirs', extensions ? { dirs, extensions } : { dirs });
+  }
 }

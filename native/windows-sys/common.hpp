@@ -98,6 +98,7 @@ bool handleNetTcp(std::string& result, Failure& err);
 bool handleNetUdp(std::string& result, Failure& err);
 bool handleRegEnumKey(const JsonValue* params, std::string& result, Failure& err);
 bool handleRegGetValues(const JsonValue* params, std::string& result, Failure& err);
+bool handleFsProbeDirs(const JsonValue* params, std::string& result, Failure& err);
 // Mutating process operations (process_ops.cpp), reached only from confirmed engine plans.
 bool handleProcTerminate(const JsonValue* params, std::string& result, Failure& err);
 bool handleProcTree(const JsonValue* params, std::string& result, Failure& err);

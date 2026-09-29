@@ -45,6 +45,17 @@ describe('SystemInfoService', () => {
     expect(call).toHaveBeenLastCalledWith('svc.list', {});
   });
 
+  it('probeDirs forwards dirs and optional extensions and unwraps the result', async () => {
+    const data = { dirs: [{ dir: 'C:\\Windows', exists: true, isDirectory: true, executables: ['notepad.exe'] }] };
+    const call = vi.fn(async () => ({ ok: true as const, data }));
+    installBridge(fakeElectronBridge({ sys: { ...fakeElectronBridge().sys, call: call as never } }));
+    const service = TestBed.inject(SystemInfoService);
+    expect(await service.probeDirs(['C:\\Windows'], ['.exe'])).toEqual(data);
+    expect(call).toHaveBeenLastCalledWith('fs.probeDirs', { dirs: ['C:\\Windows'], extensions: ['.exe'] });
+    await service.probeDirs(['C:\\Windows']);
+    expect(call).toHaveBeenLastCalledWith('fs.probeDirs', { dirs: ['C:\\Windows'] });
+  });
+
   it('surfaces a reused-PID failure as a SystemCallError with code 1168', async () => {
     const call = vi.fn(async () => ({ ok: false as const, error: 'The process has exited or its PID was reused.', code: 1168 }));
     installBridge(fakeElectronBridge({ sys: { ...fakeElectronBridge().sys, call: call as never } }));

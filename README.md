@@ -113,6 +113,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [MTU Discovery](https://arahman200165.github.io/DUDE/tools/mtu-discovery) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Network Diagnostic Bundle Export](https://arahman200165.github.io/DUDE/tools/network-diagnostic-bundle) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Packet-Loss Measurement](https://arahman200165.github.io/DUDE/tools/packet-loss) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [PATH Editor](https://arahman200165.github.io/DUDE/tools/path-editor) | Native Windows system access | Desktop-only feature | reads the PATH from the registry and checks its directories through the desktop system helper |
+| [PATH Editor](https://arahman200165.github.io/DUDE/tools/path-editor) | Native Windows system changes | Desktop-only feature | saves the user or machine PATH through the desktop system mutation engine |
 | [Ping](https://arahman200165.github.io/DUDE/tools/ping) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Port → Process Lookup](https://arahman200165.github.io/DUDE/tools/port-process-lookup) | Native Windows system access | Desktop-only feature | reads the TCP and UDP socket tables and running processes through the desktop system helper |
 | [Port → Process Lookup](https://arahman200165.github.io/DUDE/tools/port-process-lookup) | Native Windows system changes | Desktop-only feature | ends the process that owns a port through the desktop system mutation engine |
@@ -151,7 +153,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-318 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+319 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -425,6 +427,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [OpenGraph Preview](https://arahman200165.github.io/DUDE/tools/opengraph-preview) | Developer | Builds og:/twitter: meta tags and renders a live social-card preview, entirely from entered values -- no URL fetching. |
 | [Package Metadata Inspector](https://arahman200165.github.io/DUDE/tools/package-metadata-inspector) | Developer | Looks up a package's latest version, description, license, and dependency count on npm, PyPI, crates.io, or NuGet. |
 | [Packet-Loss Measurement](https://arahman200165.github.io/DUDE/tools/packet-loss) | Developer | Measure ICMP packet loss over a bounded probe sample. |
+| [PATH Editor](https://arahman200165.github.io/DUDE/tools/path-editor) | Developer | Edit the user and machine PATH with per-entry checks (missing, duplicate, unresolved, relative, quoted, not a folder), reorder and de-duplicate through a previewed, confirmed change, and see which executables shadow which (which node, git or java wins). |
 | [PE Header Viewer](https://arahman200165.github.io/DUDE/tools/pe-header-viewer) | Developer | Parses a Windows PE executable's DOS/COFF/Optional headers, section table, data directories, and basic import/export table into a browsable tree. |
 | [Percentage & Ratio Calculator](https://arahman200165.github.io/DUDE/tools/percentage-ratio-calculator) | Developer | Percentage of, percent-of-what, percent change, ratio simplification, and proportion solving. |
 | [Ping](https://arahman200165.github.io/DUDE/tools/ping) | Developer | Send ICMP echo requests and show round-trip latency. |

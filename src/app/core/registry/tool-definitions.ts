@@ -220,6 +220,7 @@ import { manifest as paletteGeneratorManifest } from '../../tools/palette-genera
 import { manifest as parquetViewerManifest } from '../../tools/parquet-viewer/parquet-viewer.manifest';
 import { manifest as passwordGeneratorManifest } from '../../tools/password-generator/password-generator.manifest';
 import { manifest as passwordStrengthAnalyzerManifest } from '../../tools/password-strength-analyzer/password-strength-analyzer.manifest';
+import { manifest as pathEditorManifest } from '../../tools/path-editor/path-editor.manifest';
 import { manifest as peHeaderViewerManifest } from '../../tools/pe-header-viewer/pe-header-viewer.manifest';
 import { manifest as pemDerInspectorManifest } from '../../tools/pem-der-inspector/pem-der-inspector.manifest';
 import { manifest as percentageRatioCalculatorManifest } from '../../tools/percentage-ratio-calculator/percentage-ratio-calculator.manifest';
@@ -540,6 +541,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   parquetViewerManifest,
   passwordGeneratorManifest,
   passwordStrengthAnalyzerManifest,
+  pathEditorManifest,
   peHeaderViewerManifest,
   pemDerInspectorManifest,
   percentageRatioCalculatorManifest,
