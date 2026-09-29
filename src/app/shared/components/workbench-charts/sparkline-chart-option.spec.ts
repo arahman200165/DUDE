@@ -35,3 +35,11 @@ describe('buildSparklineOption', () => {
     expect(option.series[0].lineStyle.color).toBe('#ff0000');
   });
 });
+
+describe('buildSparklineOption with no points', () => {
+  it('fabricates no labels or values', () => {
+    const option = buildSparklineOption([], '#38d8ff', '#8b93a3') as any;
+    expect(option.xAxis.data).toEqual([]);
+    expect(option.series[0].data).toEqual([]);
+  });
+});

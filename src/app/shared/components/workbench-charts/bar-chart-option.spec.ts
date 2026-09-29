@@ -33,3 +33,11 @@ describe('buildBarChartOption', () => {
     expect(option.series[0].itemStyle.color).toBe('#38d8ff');
   });
 });
+
+describe('buildBarChartOption with no bars', () => {
+  it('fabricates no categories or values', () => {
+    const option = buildBarChartOption([], '#38d8ff', '#333') as any;
+    expect(option.xAxis.data).toEqual([]);
+    expect(option.series[0].data).toEqual([]);
+  });
+});

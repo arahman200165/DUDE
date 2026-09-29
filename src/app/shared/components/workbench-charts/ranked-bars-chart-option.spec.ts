@@ -27,3 +27,11 @@ describe('buildRankedBarsOption', () => {
     expect(option.yAxis.axisLine.show).toBe(false);
   });
 });
+
+describe('buildRankedBarsOption with no items', () => {
+  it('fabricates no rows or values', () => {
+    const option = buildRankedBarsOption([], '#8b93a3') as any;
+    expect(option.yAxis.data).toEqual([]);
+    expect(option.series[0].data).toEqual([]);
+  });
+});
