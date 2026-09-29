@@ -85,8 +85,18 @@ export interface PanelDefinition {
   readonly multiInstance?: boolean;
   readonly config?: readonly PanelConfigField[];
   readonly capabilities?: readonly PanelCapability[];
+  /** The whole panel needs the desktop app (no finer-grained capability applies). */
+  readonly desktopOnly?: boolean;
   /** Default `omit`. */
   readonly webBehavior?: PanelWebBehavior;
+  /**
+   * Data-driven applicability, run in an injection context and read reactively (signals it reads are
+   * tracked). When it returns false the panel is omitted from Home and the grid closes over the gap —
+   * e.g. a rail with nothing to show. The layout editor still lists the panel. Keep it cheap.
+   */
+  readonly showWhen?: () => boolean;
+  /** Load the renderer only when its cell scrolls into view (heavier, below-the-fold panels). */
+  readonly deferUntilVisible?: boolean;
   /** Live sources this panel reads; must be authoritative services, never a copied store. */
   readonly dataDependencies: readonly PanelDataSource[];
   /** Set on the three user-authored kinds; their content lives in the layout store. */

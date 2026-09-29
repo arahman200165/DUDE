@@ -3,6 +3,42 @@
 // file. See ADDING_A_TOOL.md ("Adding a Home panel").
 
 import type { PanelDefinition } from '../../shared/models/panel-definition.model';
+import { panel as categoryPreviewPanel } from '../../shell/deck/category-preview-section/category-preview.panel-manifest';
+import { panel as categoryStripPanel } from '../../shell/deck/category-strip/category-strip.panel-manifest';
+import { panel as smartEntryPanel } from '../../shell/deck/home-paste-drop-hero/smart-entry.panel-manifest';
+import { panel as clipboardActionsPanel } from '../../shell/deck/panels/clipboard-actions.panel-manifest';
+import { panel as favoritesPanel } from '../../shell/deck/panels/favorites.panel-manifest';
+import { panel as homeOpenFilePanel } from '../../shell/deck/panels/home-open-file.panel-manifest';
+import { panel as homePwaHintPanel } from '../../shell/deck/panels/home-pwa-hint.panel-manifest';
+import { panel as homeSearchPanel } from '../../shell/deck/panels/home-search.panel-manifest';
+import { panel as nativeCapabilitiesPanel } from '../../shell/deck/panels/native-capabilities.panel-manifest';
+import { panel as recentToolsPanel } from '../../shell/deck/panels/recent-tools.panel-manifest';
+import { panel as resumeWorkPanel } from '../../shell/deck/panels/resume-work.panel-manifest';
+import { panel as quickRunPanel } from '../../shell/deck/quick-run-panel/quick-run.panel-manifest';
+import { panel as activityTrendPanel } from '../../shell/insights/activity-trend-panel/activity-trend.panel-manifest';
+import { panel as homeNotesPanel } from '../../shell/insights/home-notes-panel/home-notes.panel-manifest';
+import { panel as insightsSummaryPanel } from '../../shell/insights/insights-summary/insights-summary.panel-manifest';
+import { panel as categoryUsagePanel } from '../../shell/insights/panels/category-usage.panel-manifest';
+import { panel as recentActivityPanel } from '../../shell/insights/panels/recent-activity.panel-manifest';
+import { panel as topToolsPanel } from '../../shell/insights/panels/top-tools.panel-manifest';
 
 export const PANEL_DEFINITIONS: readonly PanelDefinition[] = [
+  categoryPreviewPanel,
+  categoryStripPanel,
+  smartEntryPanel,
+  clipboardActionsPanel,
+  favoritesPanel,
+  homeOpenFilePanel,
+  homePwaHintPanel,
+  homeSearchPanel,
+  nativeCapabilitiesPanel,
+  recentToolsPanel,
+  resumeWorkPanel,
+  quickRunPanel,
+  activityTrendPanel,
+  homeNotesPanel,
+  insightsSummaryPanel,
+  categoryUsagePanel,
+  recentActivityPanel,
+  topToolsPanel,
 ];

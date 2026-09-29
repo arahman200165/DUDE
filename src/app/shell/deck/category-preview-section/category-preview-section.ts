@@ -6,6 +6,7 @@ import { ToolRegistryService } from '../../../core/registry/tool-registry.servic
 import { FavoritesService } from '../../../core/favorites/favorites.service';
 import { UsageService } from '../../../core/usage/usage.service';
 import { DashboardPanel } from '../../../shared/components/dashboard-panel/dashboard-panel';
+import { PANEL_CONTEXT, panelString } from '../../../shared/models/panel-context.model';
 import { OfflineAvailability } from '../../../shared/components/offline-badge/offline-availability.directive';
 
 const PREVIEW_LIMIT = 6;
@@ -27,12 +28,14 @@ export class CategoryPreviewSection {
   private readonly favorites = inject(FavoritesService);
   private readonly usage = inject(UsageService);
   private readonly router = inject(Router);
+  private readonly context = inject(PANEL_CONTEXT, { optional: true });
 
   protected readonly meta = CATEGORY_METADATA;
 
   protected readonly previews = computed(() => {
     const grouped = this.registry.groupedByCategory();
-    return TOOL_CATEGORIES.map((category) => {
+    const only = panelString(this.context, 'category', 'all');
+    return TOOL_CATEGORIES.filter((category) => only === 'all' || category === only).map((category) => {
       const tools = (grouped[category] ?? []) as readonly ToolDefinition[];
       const ranked = [...tools].sort((a, b) => {
         const favoriteDelta = Number(this.favorites.isToolPinned(b.id)) - Number(this.favorites.isToolPinned(a.id));
@@ -42,6 +45,8 @@ export class CategoryPreviewSection {
       return { category, count: tools.length, tools: ranked.slice(0, PREVIEW_LIMIT) };
     });
   });
+
+  protected readonly single = computed(() => this.previews().length === 1);
 
   protected viewAll(category: ToolCategory): void {
     void this.router.navigate(['/tools'], { queryParams: { category } });

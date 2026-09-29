@@ -1,4 +1,4 @@
-<div class="grid grid-cols-2 gap-2 md:grid-cols-4">
+<div class="grid gap-2" [class]="single() ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-4'">
   @for (preview of previews(); track preview.category) {
     <app-dashboard-panel
       [title]="meta[preview.category].label"

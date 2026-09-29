@@ -3,6 +3,7 @@ import {
   GRID_COLUMNS,
   GridItem,
   clampPlacement,
+  compactUp,
   deriveNarrow,
   findCollisions,
   firstFit,
@@ -144,5 +145,23 @@ describe('moveInReadingOrder', () => {
     const items = [item('a', 0, 0, 4, 2), item('b', 4, 0, 8, 2)];
     // Swapping origins would put the 8-wide panel at x=0..8 over the 4-wide one at x=4..8.
     expect(moveInReadingOrder(items, 'a', 1)).toEqual(items);
+  });
+});
+
+describe('compactUp', () => {
+  it('closes the gap left by a removed panel', () => {
+    const items = [item('a', 0, 0, 12, 2), item('c', 0, 5, 12, 2)];
+    expect(compactUp(items)).toEqual([item('a', 0, 0, 12, 2), item('c', 0, 2, 12, 2)]);
+  });
+  it('keeps side-by-side panels aligned and never overlaps', () => {
+    const items = [item('a', 0, 0, 6, 2), item('b', 6, 3, 6, 2), item('c', 0, 6, 12, 1)];
+    const out = compactUp(items);
+    expect(out.find((i) => i.id === 'b')!.y).toBe(0);
+    expect(out.find((i) => i.id === 'c')!.y).toBe(2);
+    expect(validateLayout(out)).toEqual([]);
+  });
+  it('is a no-op on an already compact layout', () => {
+    const items = [item('a', 0, 0, 12, 2), item('b', 0, 2, 12, 2)];
+    expect(compactUp(items)).toEqual(items);
   });
 });

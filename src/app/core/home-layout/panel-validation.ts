@@ -53,8 +53,8 @@ export function validatePanelDefinitions(defs: readonly PanelDefinition[]): stri
     for (const c of d.capabilities ?? []) {
       if (!c.note.trim()) problems.push(`${at}: capability "${c.id}" needs a note`);
     }
-    if (d.webBehavior === 'explain' && !(d.capabilities ?? []).some((c) => c.web === 'unavailable')) {
-      problems.push(`${at}: webBehavior "explain" requires a web-unavailable capability`);
+    if (d.webBehavior === 'explain' && !d.desktopOnly && !(d.capabilities ?? []).some((c) => c.web === 'unavailable')) {
+      problems.push(`${at}: webBehavior "explain" requires desktopOnly or a web-unavailable capability`);
     }
     for (const old of d.replaces ?? []) {
       if (replaced.has(old)) problems.push(`${at}: "${old}" is replaced by more than one kind`);

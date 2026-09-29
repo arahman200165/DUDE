@@ -213,3 +213,18 @@ export function moveInReadingOrder(items: readonly GridItem[], id: string, direc
     ? swapped
     : [...items];
 }
+
+/**
+ * Close vertical gaps: each item, in reading order, rises as far as it can without overlapping an
+ * already-settled item. Used at render time after unavailable/hidden/empty panels are removed, so
+ * Home never shows blank cells where a panel used to be. Horizontal position is untouched.
+ */
+export function compactUp(items: readonly GridItem[]): GridItem[] {
+  const settled: GridItem[] = [];
+  for (const item of readingOrder(items)) {
+    let y = item.y;
+    while (y > 0 && findCollisions(settled, { x: item.x, y: y - 1, w: item.w, h: item.h }).length === 0) y--;
+    settled.push({ ...item, y });
+  }
+  return settled;
+}

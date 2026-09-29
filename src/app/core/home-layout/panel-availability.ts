@@ -9,7 +9,7 @@ export type PanelAvailability = 'available' | 'explain' | 'omit';
 
 export function panelAvailability(def: PanelDefinition, isDesktop: boolean): PanelAvailability {
   if (isDesktop) return 'available';
-  const blocked = (def.capabilities ?? []).some((c) => c.web === 'unavailable');
+  const blocked = def.desktopOnly === true || (def.capabilities ?? []).some((c) => c.web === 'unavailable');
   if (!blocked) return 'available';
   return def.webBehavior === 'explain' ? 'explain' : 'omit';
 }
