@@ -13,6 +13,7 @@ import {
 
 const LIGHT_QUERY = '(prefers-color-scheme: light)';
 const MORE_CONTRAST_QUERY = '(prefers-contrast: more)';
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
 /**
  * Owns the persisted appearance preferences and applies them to `<html>` (Phase 30K): one `data-*`
@@ -33,9 +34,11 @@ export class AppearanceService {
 
   private readonly prefersLight = signal(false);
   private readonly prefersMoreContrast = signal(false);
+  private readonly prefersReducedMotion = signal(false);
   private readonly media = computed<MediaState>(() => ({
     prefersLight: this.prefersLight(),
     prefersMoreContrast: this.prefersMoreContrast(),
+    prefersReducedMotion: this.prefersReducedMotion(),
   }));
 
   /** Every axis resolved to a concrete value (`'system'` replaced), keyed by axis name. */
@@ -48,6 +51,7 @@ export class AppearanceService {
   constructor() {
     this.watchMedia(LIGHT_QUERY, this.prefersLight);
     this.watchMedia(MORE_CONTRAST_QUERY, this.prefersMoreContrast);
+    this.watchMedia(REDUCED_MOTION_QUERY, this.prefersReducedMotion);
 
     effect(() => {
       const effective = this.effective();

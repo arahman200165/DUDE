@@ -6,8 +6,9 @@ import { APPEARANCE_AXES_DATA, APPEARANCE_FONTS_DATA } from './appearance-axes.g
  * from `styles/theme/theme-tokens.json` — the same file the generated CSS is built from — via the
  * generated `appearance-axes.generated.ts` (axes + fonts only, so the initial bundle does not carry
  * every color), so adding a theme/accent/density/size step/font there needs no change here. Besides the
- * color axes, `density`, `uiSize`, `monoSize` and `ligatures` are plain axis preferences (pref key = axis name). No Angular imports; the
- * service lives beside it.
+ * color axes, `density`, `uiSize`, `monoSize`, `ligatures` and `motion` are plain axis preferences (pref key = axis name).
+ * `mode`, `contrast` and `motion` also accept `'system'` (resolved against media queries); `motion` defaults to
+ * `'system'` so DUDE honors the OS reduced-motion setting out of the box. No Angular imports; the service lives beside it.
  */
 
 const tokens = { axes: APPEARANCE_AXES_DATA, fonts: APPEARANCE_FONTS_DATA };
@@ -51,6 +52,8 @@ export interface AppearancePrefs {
   readonly monoSize: string;
   /** Programming ligatures in mono text: `on` or `off`. */
   readonly ligatures: string;
+  /** App animation/transition: an `axes.motion` value (`allow` / `reduce`), or `'system'` (follow the OS). */
+  readonly motion: string;
   readonly uiFont: FontChoice;
   readonly monoFont: FontChoice;
 }
@@ -58,6 +61,7 @@ export interface AppearancePrefs {
 export interface MediaState {
   readonly prefersLight: boolean;
   readonly prefersMoreContrast: boolean;
+  readonly prefersReducedMotion: boolean;
 }
 
 /** Preference key -> axis name in `theme-tokens.json` (`mode` is the `theme` axis). */
@@ -71,6 +75,7 @@ const PREF_AXIS = {
   uiSize: 'uiSize',
   monoSize: 'monoSize',
   ligatures: 'ligatures',
+  motion: 'motion',
 } as const;
 
 type AxisPrefKey = keyof typeof PREF_AXIS;
@@ -88,6 +93,8 @@ export const DEFAULT_APPEARANCE: AppearancePrefs = {
   uiSize: APPEARANCE_AXES['uiSize'].default,
   monoSize: APPEARANCE_AXES['monoSize'].default,
   ligatures: APPEARANCE_AXES['ligatures'].default,
+  // Unlike mode/contrast (axis default), motion follows the OS out of the box.
+  motion: SYSTEM,
   uiFont: tokens.fonts.defaultUi,
   monoFont: tokens.fonts.defaultMono,
 };
@@ -113,20 +120,20 @@ function sanitizeFontChoice(raw: unknown, options: readonly FontOption[], fallba
   return fallback;
 }
 
-/** Whether `value` is allowed for a preference; `mode` and `contrast` also accept `'system'`. */
+/** Whether `value` is allowed for a preference; `mode`, `contrast` and `motion` also accept `'system'`. */
 function allowedValue(key: AxisPrefKey, value: unknown, axes: AppearanceAxes): value is string {
   if (typeof value !== 'string') return false;
-  if ((key === 'mode' || key === 'contrast') && value === SYSTEM) return true;
+  if ((key === 'mode' || key === 'contrast' || key === 'motion') && value === SYSTEM) return true;
   return axes[PREF_AXIS[key]]?.values.includes(value) ?? false;
 }
 
-/** Never throws: every field is clamped to an allowed value (else its default), unknown keys are dropped. */
+/** Never throws: every field is clamped to an allowed value (else its default pref), unknown keys are dropped. */
 export function sanitizeAppearance(raw: unknown, axes: AppearanceAxes = APPEARANCE_AXES): AppearancePrefs {
   const source = typeof raw === 'object' && raw !== null && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
   const axisValues = {} as Record<AxisPrefKey, string>;
   for (const key of AXIS_PREF_KEYS) {
     const value = source[key];
-    axisValues[key] = allowedValue(key, value, axes) ? value : (axes[PREF_AXIS[key]]?.default ?? DEFAULT_APPEARANCE[key]);
+    axisValues[key] = allowedValue(key, value, axes) ? value : DEFAULT_APPEARANCE[key];
   }
   return {
     ...axisValues,
@@ -155,6 +162,10 @@ export function resolveEffective(
   const contrast = axes['contrast'];
   if (contrast && prefs.contrast === SYSTEM) {
     effective['contrast'] = media.prefersMoreContrast && contrast.values.includes('high') ? 'high' : contrast.default;
+  }
+  const motion = axes['motion'];
+  if (motion && prefs.motion === SYSTEM) {
+    effective['motion'] = media.prefersReducedMotion && motion.values.includes('reduce') ? 'reduce' : motion.default;
   }
   return effective;
 }

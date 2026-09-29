@@ -60,6 +60,12 @@
       "values": ["on", "off"],
       "default": "on",
       "labels": { "on": "On", "off": "Off" }
+    },
+    "motion": {
+      "attr": "data-motion",
+      "values": ["allow", "reduce"],
+      "default": "allow",
+      "labels": { "allow": "Allow", "reduce": "Reduce" }
     }
   },
   "sizeSteps": { "default": "1", "small": "0.9167", "large": "1.1667" },

@@ -49,6 +49,7 @@ describe('AppearanceSettings', () => {
     semantic: { attr: 'data-semantic', values: ['standard', 'cvd'], default: 'standard', labels: { standard: 'Standard', cvd: 'Color-blind safe' } },
     density: { attr: 'data-density', values: ['compact', 'comfortable', 'ultra'], default: 'compact', labels: { compact: 'Compact', comfortable: 'Comfortable', ultra: 'Ultra-compact' } },
     ligatures: { attr: 'data-ligatures', values: ['on', 'off'], default: 'on' },
+    motion: { attr: 'data-motion', values: ['allow', 'reduce'], default: 'allow', labels: { allow: 'Allow', reduce: 'Reduce' } },
   };
 
   function withAxes(axes: AppearanceAxes) {
@@ -142,6 +143,15 @@ describe('AppearanceSettings', () => {
     resolvedContrast.set('standard');
     fixture.detectChanges();
     expect(root.querySelector('[data-testid="system-note-contrast"]')?.textContent).toContain('Currently: Standard');
+  });
+
+  it('renders a Motion row with a system chip and set({ motion })', () => {
+    withAxes(MULTI);
+    const root = create().nativeElement as HTMLElement;
+    const buttons = Array.from((group(root, 'Motion') as HTMLElement).querySelectorAll('button'));
+    expect(buttons.map((b) => b.textContent?.trim())).toEqual(['Allow', 'Reduce', 'System (follows OS)']);
+    buttons[1].click();
+    expect(set).toHaveBeenCalledWith({ motion: 'reduce' });
   });
 
   it('omits the Contrast row while the contrast axis has a single value', () => {

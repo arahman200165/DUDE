@@ -124,6 +124,18 @@ export const APPEARANCE_AXES_DATA = {
       "on": "On",
       "off": "Off"
     }
+  },
+  "motion": {
+    "attr": "data-motion",
+    "values": [
+      "allow",
+      "reduce"
+    ],
+    "default": "allow",
+    "labels": {
+      "allow": "Allow",
+      "reduce": "Reduce"
+    }
   }
 } as const;
 

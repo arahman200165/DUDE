@@ -187,3 +187,16 @@ body {
     border-color: GrayText;
   }
 }
+
+/* Reduced motion (Phase 30K): data-motion="reduce" (user choice, or the OS setting via System) removes
+   app animation/transition. Previews of user-authored motion opt out with data-motion-exempt and are
+   paused by their own control instead. animate-pulse skeletons become static placeholders. */
+:root[data-motion='reduce'] :not([data-motion-exempt], [data-motion-exempt] *),
+:root[data-motion='reduce'] :not([data-motion-exempt], [data-motion-exempt] *)::before,
+:root[data-motion='reduce'] :not([data-motion-exempt], [data-motion-exempt] *)::after {
+  animation: none !important;
+  transition: none !important;
+}
+:root[data-motion='reduce'] {
+  scroll-behavior: auto !important;
+}

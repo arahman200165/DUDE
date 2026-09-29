@@ -31,3 +31,16 @@ describe('buildCssPreviewDoc', () => {
     expect(doc.indexOf('Content-Security-Policy')).toBeLessThan(doc.indexOf('<!--marker-->'));
   });
 });
+
+describe('buildCssPreviewDoc paused option', () => {
+  it('appends the pause style after the user CSS', () => {
+    const doc = buildCssPreviewDoc('.a{}', '<b></b>', { paused: true });
+    expect(doc).toContain('animation-play-state:paused!important');
+    expect(doc.indexOf('animation-play-state:paused')).toBeGreaterThan(doc.indexOf('<style>.a{}</style>'));
+  });
+
+  it('has no pause style by default', () => {
+    expect(buildCssPreviewDoc('.a{}', '')).not.toContain('animation-play-state');
+    expect(buildCssPreviewDoc('.a{}', '', { paused: false })).not.toContain('animation-play-state');
+  });
+});

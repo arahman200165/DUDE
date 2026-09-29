@@ -4,13 +4,14 @@ Automated sweep of every Settings › Appearance axis combination against the pr
 
 ## What it covers
 
-- `combos.ts` reads `src/styles/theme/theme-tokens.json` at runtime and builds the full cross-product of every color-affecting axis in `axes` (the `SIZE_AXES` uiSize, monoSize and ligatures are pinned to defaults: 2 x 2 x 6 x 3 x 2 x 3 = 432 combos). New values or axes added by later milestones are picked up with no test edits.
+- `combos.ts` reads `src/styles/theme/theme-tokens.json` at runtime and builds the full cross-product of every color-affecting axis in `axes` (the `SIZE_AXES` uiSize, monoSize and ligatures are pinned to defaults: 2 x 2 x 6 x 3 x 2 x 3 x 2 = 864 combos). New values or axes added by later milestones are picked up with no test edits.
 - `matrix.spec.ts`, one test per combination. Preferences are seeded into `dude:v1:settings:appearance` before any page script runs. Pages visited: Home, the Ctrl+K command palette (opened, populated, closed), Browse Tools, Settings › Appearance, and one tool (rotates through 8 tools, one per category, by combination index).
 - Checks per page (all `expect.soft`, so one test reports every failure for its combination):
   - pre-paint: `<html>` `data-*` attributes are already correct when the first `<body>` element appears (MutationObserver probe, see `checks.ts`), and still correct after Angular boots;
   - no horizontal overflow;
   - focus indicator (outline >= 2px or box-shadow ring, >= 3:1 against its surroundings) at Tab stops 1 and 4 on Home and the tool page;
   - WCAG text contrast on up to ~600 sampled text elements (4.5 normal / 3 large; 7 / 4.5 when `contrast` is `high`). Elements with gradient/image backdrops, opacity < 1, disabled or `aria-hidden` state, and `[data-contrast-exempt]` / `[data-motion-exempt]` previews are skipped;
+  - when `motion` is `reduce`: `document.getAnimations()` holds no animation outside `[data-motion-exempt]` previews (Home, Browse Tools, tool page);
   - no `console.error` / `pageerror`.
 - Layout sub-matrix: every combination of `LAYOUT_AXES` (theme, contrast, density, uiSize, monoSize: 108 combos) x viewports 1920x1080, 1440x900, 1366x768 (other axes at defaults), checking overflow and focus ring only.
 - A `/settings/appearance` redirect or not-found is recorded as a `finding` annotation instead of failing the run.

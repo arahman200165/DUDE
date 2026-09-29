@@ -75,6 +75,38 @@ describe('AppearanceService', () => {
     expect(root.getAttribute('data-theme')).toBe('light');
   });
 
+  it('follows prefers-reduced-motion live while motion is "system", and explicit values ignore it', () => {
+    let reduce = false;
+    let listener: ((event: { matches: boolean }) => void) | undefined;
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query.includes('prefers-reduced-motion') && reduce,
+      addEventListener: (_type: string, fn: (event: { matches: boolean }) => void) => {
+        if (query.includes('prefers-reduced-motion')) listener = fn;
+      },
+      removeEventListener: () => undefined,
+    }));
+    const service = create();
+    expect(service.prefs().motion).toBe('system');
+    expect(root.getAttribute('data-motion')).toBe('allow');
+
+    listener?.({ matches: true });
+    TestBed.tick();
+    expect(service.effective()['motion']).toBe('reduce');
+    expect(root.getAttribute('data-motion')).toBe('reduce');
+
+    listener?.({ matches: false });
+    TestBed.tick();
+    expect(root.getAttribute('data-motion')).toBe('allow');
+
+    service.set({ motion: 'reduce' });
+    TestBed.tick();
+    expect(root.getAttribute('data-motion')).toBe('reduce');
+    service.set({ motion: 'allow' });
+    listener?.({ matches: true });
+    TestBed.tick();
+    expect(root.getAttribute('data-motion')).toBe('allow');
+  });
+
   it('applies density, UI size, data size and ligature preferences as data-* attributes', () => {
     const service = create();
     service.set({ density: 'comfortable', uiSize: 'large', monoSize: 'small', ligatures: 'off' });

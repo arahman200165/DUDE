@@ -83,6 +83,13 @@ const AXIS_ROWS: readonly AxisRowSpec[] = [
     label: 'Code ligatures',
     help: 'Off shows operators like != and => as separate characters in monospace text.',
   },
+  {
+    axisKey: 'motion',
+    prefsKey: 'motion',
+    label: 'Motion',
+    allowSystem: true,
+    help: 'Reduce removes interface animation and transitions. System follows your OS setting. Animation previews you author start paused with a Play control.',
+  },
 ];
 
 const CUSTOM_FONT = '__custom';
@@ -136,8 +143,8 @@ function capitalize(value: string): string {
 
 /**
  * Settings › Appearance. Chip rows (theme, contrast, accent, palette, status colors, density, text
- * sizes, ligatures; theme and contrast also offer `system`), font pickers (curated list or an
- * installed-font name) and a live swatch strip; later Phase 30K milestones append motion and
+ * sizes, ligatures, motion; theme, contrast and motion also offer `system`), font pickers (curated list or an
+ * installed-font name) and a live swatch strip; a later Phase 30K milestone appends
  * export/import. Options come from `theme-tokens.json` via the model.
  */
 @Component({

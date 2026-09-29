@@ -21,9 +21,10 @@ const RICH_AXES: AppearanceAxes = {
   uiSize: { attr: 'data-ui-size', values: ['default', 'large'], default: 'default' },
   monoSize: { attr: 'data-mono-size', values: ['default', 'large'], default: 'default' },
   ligatures: { attr: 'data-ligatures', values: ['on', 'off'], default: 'on' },
+  motion: { attr: 'data-motion', values: ['allow', 'reduce'], default: 'allow' },
 };
 
-const NO_MEDIA = { prefersLight: false, prefersMoreContrast: false };
+const NO_MEDIA = { prefersLight: false, prefersMoreContrast: false, prefersReducedMotion: false };
 
 describe('appearance model', () => {
   describe('defaults', () => {
@@ -37,6 +38,7 @@ describe('appearance model', () => {
       expect(DEFAULT_APPEARANCE.uiSize).toBe(APPEARANCE_AXES['uiSize'].default);
       expect(DEFAULT_APPEARANCE.monoSize).toBe(APPEARANCE_AXES['monoSize'].default);
       expect(DEFAULT_APPEARANCE.ligatures).toBe(APPEARANCE_AXES['ligatures'].default);
+      expect(DEFAULT_APPEARANCE.motion).toBe('system');
       expect(UI_FONTS.some((font) => font.id === DEFAULT_APPEARANCE.uiFont)).toBe(true);
       expect(MONO_FONTS.some((font) => font.id === DEFAULT_APPEARANCE.monoFont)).toBe(true);
     });
@@ -117,6 +119,14 @@ describe('appearance model', () => {
       expect(result.density).toBe(DEFAULT_APPEARANCE.density);
     });
 
+    it('accepts "system", "allow" and "reduce" for motion and falls back to "system"', () => {
+      expect(sanitizeAppearance({}).motion).toBe('system');
+      expect(sanitizeAppearance({ motion: 'system' }).motion).toBe('system');
+      expect(sanitizeAppearance({ motion: 'allow' }).motion).toBe('allow');
+      expect(sanitizeAppearance({ motion: 'reduce' }).motion).toBe('reduce');
+      for (const junk of ['none', 5, null, {}, 'REDUCE']) expect(sanitizeAppearance({ motion: junk }).motion).toBe('system');
+    });
+
     it('keeps allowed values from a richer axes set', () => {
       const result = sanitizeAppearance({ mode: 'light', contrast: 'high', accent: 'violet', density: 'comfortable' }, RICH_AXES);
       expect(result).toMatchObject({ mode: 'light', contrast: 'high', accent: 'violet', density: 'comfortable' });
@@ -174,7 +184,17 @@ describe('appearance model', () => {
         uiSize: 'default',
         monoSize: 'default',
         ligatures: 'on',
+        motion: 'allow',
       });
+    });
+
+    it('resolves "system" motion from prefers-reduced-motion; explicit values ignore the media', () => {
+      const system = { ...DEFAULT_APPEARANCE, motion: 'system' };
+      const reduced = { ...NO_MEDIA, prefersReducedMotion: true };
+      expect(resolveEffective(system, reduced, RICH_AXES)['motion']).toBe('reduce');
+      expect(resolveEffective(system, NO_MEDIA, RICH_AXES)['motion']).toBe('allow');
+      expect(resolveEffective({ ...system, motion: 'reduce' }, NO_MEDIA, RICH_AXES)['motion']).toBe('reduce');
+      expect(resolveEffective({ ...system, motion: 'allow' }, reduced, RICH_AXES)['motion']).toBe('allow');
     });
 
     it('resolves "system" to the axis default when an axis has no alternative value, whatever the media says', () => {
@@ -184,27 +204,27 @@ describe('appearance model', () => {
         theme: { ...APPEARANCE_AXES['theme'], values: ['dark'] },
         contrast: { ...APPEARANCE_AXES['contrast'], values: ['standard'] },
       };
-      const effective = resolveEffective(prefs, { prefersLight: true, prefersMoreContrast: true }, darkOnly);
+      const effective = resolveEffective(prefs, { prefersLight: true, prefersMoreContrast: true, prefersReducedMotion: true }, darkOnly);
       expect(effective['theme']).toBe(APPEARANCE_AXES['theme'].default);
       expect(effective['contrast']).toBe(APPEARANCE_AXES['contrast'].default);
     });
 
     it('resolves "system" mode from prefers-color-scheme when light exists', () => {
       const prefs = { ...DEFAULT_APPEARANCE, mode: 'system' };
-      expect(resolveEffective(prefs, { prefersLight: true, prefersMoreContrast: false }, RICH_AXES)['theme']).toBe('light');
+      expect(resolveEffective(prefs, { prefersLight: true, prefersMoreContrast: false, prefersReducedMotion: false }, RICH_AXES)['theme']).toBe('light');
       expect(resolveEffective(prefs, NO_MEDIA, RICH_AXES)['theme']).toBe('dark');
     });
 
     it('resolves "system" contrast from prefers-contrast when high exists', () => {
       const prefs = { ...DEFAULT_APPEARANCE, contrast: 'system' };
-      expect(resolveEffective(prefs, { prefersLight: false, prefersMoreContrast: true }, RICH_AXES)['contrast']).toBe('high');
+      expect(resolveEffective(prefs, { prefersLight: false, prefersMoreContrast: true, prefersReducedMotion: false }, RICH_AXES)['contrast']).toBe('high');
       expect(resolveEffective(prefs, NO_MEDIA, RICH_AXES)['contrast']).toBe('standard');
     });
 
     it('does not resolve to light/high when the axis lacks them', () => {
       const axes: AppearanceAxes = { ...RICH_AXES, theme: { ...RICH_AXES['theme'], values: ['dark'] }, contrast: { ...RICH_AXES['contrast'], values: ['standard'] } };
       const prefs = { ...DEFAULT_APPEARANCE, mode: 'system', contrast: 'system' };
-      const effective = resolveEffective(prefs, { prefersLight: true, prefersMoreContrast: true }, axes);
+      const effective = resolveEffective(prefs, { prefersLight: true, prefersMoreContrast: true, prefersReducedMotion: true }, axes);
       expect(effective['theme']).toBe('dark');
       expect(effective['contrast']).toBe('standard');
     });

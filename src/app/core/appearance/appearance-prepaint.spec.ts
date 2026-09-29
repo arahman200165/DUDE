@@ -102,6 +102,40 @@ describe('index.html appearance pre-paint script', () => {
     expect(root.hasAttribute('data-contrast')).toBe(false);
   });
 
+  it('applies a stored motion preference', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ motion: 'reduce' }));
+    run();
+    expect(root.getAttribute('data-motion')).toBe('reduce');
+  });
+
+  it('motion defaults to system: nothing stored + OS reduce sets data-motion=reduce', () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('prefers-reduced-motion: reduce') }));
+    run();
+    expect(root.getAttribute('data-motion')).toBe('reduce');
+    for (const attr of attrs.filter((a) => a !== 'data-motion')) expect(root.hasAttribute(attr)).toBe(false);
+  });
+
+  it('motion: nothing stored + no OS reduce sets no attributes at all', () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: false }));
+    run();
+    for (const attr of attrs) expect(root.hasAttribute(attr)).toBe(false);
+  });
+
+  it('motion: malformed JSON + OS reduce still sets data-motion=reduce and nothing else', () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('prefers-reduced-motion: reduce') }));
+    localStorage.setItem(STORAGE_KEY, '{not json');
+    expect(() => run()).not.toThrow();
+    expect(root.getAttribute('data-motion')).toBe('reduce');
+    for (const attr of attrs.filter((a) => a !== 'data-motion')) expect(root.hasAttribute(attr)).toBe(false);
+  });
+
+  it('motion: an explicit allow wins over the OS setting', () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ motion: 'allow' }));
+    run();
+    expect(root.getAttribute('data-motion')).toBe('allow');
+  });
+
   it('stays in sync with the model: same attribute list and storage key', () => {
     const source = prepaintSource();
     const scriptAttrs = [...source.matchAll(/'(data-[a-z-]+)'/g)].map((match) => match[1]);

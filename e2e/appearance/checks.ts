@@ -501,3 +501,24 @@ export async function gotoSettled(page: Page, path: string): Promise<void> {
   await page.evaluate(() => document.fonts.ready.then(() => undefined));
   await page.waitForTimeout(200);
 }
+
+// ---------------------------------------------------------------------------------------------
+// Reduced motion
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * With `data-motion="reduce"` no running/pending CSS animation or transition may remain, except inside
+ * `[data-motion-exempt]` previews. Returns up to 5 offending targets as `tagName.className`.
+ */
+export async function nonExemptAnimations(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const offenders = document.getAnimations().filter((animation) => {
+      const target = (animation.effect as KeyframeEffect | null)?.target;
+      return !(target instanceof Element && target.closest('[data-motion-exempt]'));
+    });
+    return offenders.slice(0, 5).map((animation) => {
+      const target = (animation.effect as KeyframeEffect | null)?.target;
+      return target instanceof Element ? `${target.tagName}.${String(target.getAttribute('class') ?? '')}` : 'unknown target';
+    });
+  });
+}

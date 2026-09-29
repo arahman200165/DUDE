@@ -7,6 +7,7 @@ import {
   gotoSettled,
   installPrepaintProbe,
   noHorizontalOverflow,
+  nonExemptAnimations,
   readPrepaint,
   sampleTextContrast,
   type ConsoleCollector,
@@ -66,6 +67,10 @@ test.describe('appearance matrix (every axis combination)', () => {
           if (opts.focus) {
             const ring = await focusRingVisible(page);
             expect.soft(ring.problems, `focus ring on ${ring.element}`).toEqual([]);
+          }
+          if (combo.values['motion'] === 'reduce') {
+            await page.waitForTimeout(150);
+            expect.soft(await nonExemptAnimations(page), 'no running animations under data-motion=reduce').toEqual([]);
           }
           expect.soft(consoleErrors.drain(), 'console errors').toEqual([]);
         });
