@@ -12,7 +12,7 @@ import { ToolRegistryService } from '../../../core/registry/tool-registry.servic
   template: `
     @if (show()) {
       <span
-        class="ml-auto shrink-0 rounded-sm border border-warning/40 px-1 font-mono text-[0.6rem] uppercase leading-tight text-warning"
+        class="ml-auto shrink-0 rounded-sm border border-warning/40 px-1 font-mono text-ui-xs uppercase leading-tight text-warning"
         title="Some features of this tool need Desktop DUDE"
         aria-label="Some features need Desktop DUDE"
         >desk</span

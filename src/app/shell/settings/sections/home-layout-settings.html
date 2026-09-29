@@ -71,7 +71,7 @@
     >
       @for (row of rows(); track row.id) {
         <div
-          class="overflow-hidden truncate rounded-[2px] border px-1 text-[10px] leading-3"
+          class="overflow-hidden truncate rounded-sm border px-1 text-ui-xs leading-3"
           [class]="row.visible && !row.webHidden ? 'border-accent/50 bg-accent/10 text-text' : 'border-dashed border-border text-text-muted'"
           [style.grid-column]="row.x + 1 + ' / span ' + row.w"
           [style.grid-row]="row.y + 1 + ' / span ' + row.h"
@@ -274,7 +274,7 @@
       }
     </div>
     @if (issues().length) {
-      <ul class="m-0 list-disc pl-5 text-ui-sm text-error" role="alert">
+      <ul class="m-0 list-disc pl-4 text-ui-sm text-error" role="alert">
         @for (issue of issues(); track issue) {
           <li>{{ issue }}</li>
         }

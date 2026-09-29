@@ -7,7 +7,7 @@
           role="tab"
           [attr.aria-selected]="currentTab() === tab"
           class="rounded-sm border px-1.5 py-0.5 text-ui-xs capitalize"
-          [class]="currentTab() === tab ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border text-text-muted hover:text-text'"
+          [class]="currentTab() === tab ? 'dude-chip-on' : 'dude-chip-off'"
           (click)="selectTab(tab)"
         >
           {{ tab }}

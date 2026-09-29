@@ -157,9 +157,9 @@
         @if (resultTemplate(); as template) {
           <ng-container [ngTemplateOutlet]="template" [ngTemplateOutletContext]="resultContext()" />
           <label class="flex items-center gap-2 text-text-muted"><input type="checkbox" [checked]="showRaw()" (change)="showRaw.set(!showRaw())" /> Show raw JSON</label>
-          @if (showRaw()) { <pre class="max-h-[34rem] overflow-auto rounded-sm border border-border bg-panel p-3 font-mono text-xs text-text">{{ formattedResult() }}</pre> }
+          @if (showRaw()) { <pre class="max-h-136 overflow-auto rounded-sm border border-border bg-panel p-3 font-mono text-xs text-text">{{ formattedResult() }}</pre> }
         } @else {
-          <pre class="max-h-[34rem] overflow-auto rounded-sm border border-border bg-panel p-3 font-mono text-xs text-text">{{ formattedResult() }}</pre>
+          <pre class="max-h-136 overflow-auto rounded-sm border border-border bg-panel p-3 font-mono text-xs text-text">{{ formattedResult() }}</pre>
         }
       }
       @if (history.error()) { <div role="alert" class="text-error">{{ history.error() }}</div> }

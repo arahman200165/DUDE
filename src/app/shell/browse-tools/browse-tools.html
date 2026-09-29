@@ -16,7 +16,7 @@
       type="text"
       placeholder="Search tools… (try category:security jwt)"
       aria-label="Search tools"
-      class="w-64 min-w-40 flex-1 rounded-sm border border-border bg-panel px-2 py-1 text-xs text-text placeholder:text-text-muted/60 focus:outline-none focus:ring-1 focus:ring-accent sm:flex-none"
+      class="dude-input w-64 min-w-40 flex-1 sm:flex-none"
       [value]="query()"
       (input)="onQueryInput($event)"
       (keydown.arrowdown)="onArrowDown($event)"
@@ -38,7 +38,7 @@
     </button>
 
     <select
-      class="rounded-sm border border-border bg-panel px-1.5 py-1 text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
+      class="dude-input"
       [value]="categoryFacet()"
       (change)="onCategoryChange($event)"
     >
@@ -49,7 +49,7 @@
     </select>
 
     <select
-      class="rounded-sm border border-border bg-panel px-1.5 py-1 text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
+      class="dude-input"
       [value]="statusFacet()"
       (change)="onStatusChange($event)"
     >
@@ -67,8 +67,8 @@
           type="button"
           role="radio"
           [attr.aria-checked]="platformFacet() === facet.id"
-          class="rounded-sm border px-1.5 py-0.5 text-ui-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
-          [class]="platformFacet() === facet.id ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border text-text-muted hover:text-text'"
+          class="dude-chip"
+          [class]="platformFacet() === facet.id ? 'dude-chip-on' : 'dude-chip-off'"
           (click)="platformFacet.set(facet.id)"
         >
           {{ facet.label }}
@@ -79,8 +79,8 @@
     <button
       type="button"
       [attr.aria-pressed]="favoritesOnly()"
-      class="rounded-sm border px-1.5 py-0.5 text-ui-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
-      [class]="favoritesOnly() ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border text-text-muted hover:text-text'"
+      class="dude-chip"
+      [class]="favoritesOnly() ? 'dude-chip-on' : 'dude-chip-off'"
       (click)="favoritesOnly.set(!favoritesOnly())"
     >
       ★ Favorites ({{ counts().favorite }})
@@ -89,15 +89,15 @@
     <button
       type="button"
       [attr.aria-pressed]="recentOnly()"
-      class="rounded-sm border px-1.5 py-0.5 text-ui-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
-      [class]="recentOnly() ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border text-text-muted hover:text-text'"
+      class="dude-chip"
+      [class]="recentOnly() ? 'dude-chip-on' : 'dude-chip-off'"
       (click)="recentOnly.set(!recentOnly())"
     >
       Recent
     </button>
 
     <select
-      class="rounded-sm border border-border bg-panel px-1.5 py-1 text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
+      class="dude-input"
       aria-label="Sort by"
       [value]="sortMode()"
       (change)="onSortChange($event)"
@@ -112,8 +112,8 @@
         type="button"
         role="radio"
         [attr.aria-checked]="viewMode() === 'table'"
-        class="rounded-sm border px-1.5 py-0.5 text-ui-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
-        [class]="viewMode() === 'table' ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border text-text-muted hover:text-text'"
+        class="dude-chip"
+        [class]="viewMode() === 'table' ? 'dude-chip-on' : 'dude-chip-off'"
         (click)="viewMode.set('table')"
       >
         Table
@@ -122,8 +122,8 @@
         type="button"
         role="radio"
         [attr.aria-checked]="viewMode() === 'grid'"
-        class="rounded-sm border px-1.5 py-0.5 text-ui-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
-        [class]="viewMode() === 'grid' ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border text-text-muted hover:text-text'"
+        class="dude-chip"
+        [class]="viewMode() === 'grid' ? 'dude-chip-on' : 'dude-chip-off'"
         (click)="viewMode.set('grid')"
       >
         Grid

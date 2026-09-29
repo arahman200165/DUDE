@@ -35,7 +35,7 @@ const KIND_CLASSES: Record<MutationOpKind, string> = { rename: 'text-accent', wr
         </div>
         <input class="rounded-sm border border-border bg-panel px-2 py-1 text-text" placeholder="Filter affected paths" [value]="filter()" (input)="filter.set($any($event.target).value)" aria-label="Filter affected paths" />
         <cdk-virtual-scroll-viewport itemSize="26" class="h-72 rounded-sm border border-border font-mono text-ui-xs">
-          <div *cdkVirtualFor="let op of visibleOps(); trackBy: trackOp" class="flex h-[26px] items-center gap-2 border-b border-border/40 px-2">
+          <div *cdkVirtualFor="let op of visibleOps(); trackBy: trackOp" class="flex h-7 items-center gap-2 border-b border-border/40 px-2">
             <span class="w-20 shrink-0" [class]="kindClass(op.kind)">{{ kindLabel(op.kind) }}</span>
             <span class="min-w-0 flex-1 truncate text-text" [title]="op.path + (op.to ? ' → ' + op.to : '')">{{ op.path }}@if (op.to) { <span class="text-text-muted"> → </span>{{ op.to }} }</span>
             @if (op.newSize !== undefined) { <span class="shrink-0 text-text-muted">{{ bytes(op.size) }} → {{ bytes(op.newSize) }}</span> }

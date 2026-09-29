@@ -10,7 +10,8 @@
   },
   "scripts": {
     "ng": "ng",
-    "lint": "eslint .",
+    "lint": "eslint . && npm run check:design",
+    "check:design": "node scripts/check-design-tokens.mjs --enforce && node scripts/check-semantic-palette.mjs",
     "prestart": "npm run generate:registry",
     "start": "ng serve",
     "build": "ng build",

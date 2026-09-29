@@ -3,9 +3,9 @@
   display: flex;
   align-items: flex-start;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--color-accent, #4c8dff), transparent 50%);
+  border: 1px solid color-mix(in srgb, var(--color-accent), transparent 50%);
   border-radius: 2px;
-  background: color-mix(in srgb, var(--color-accent, #4c8dff), var(--color-panel) 88%);
+  background: color-mix(in srgb, var(--color-accent), var(--color-panel) 88%);
   padding: 2px 6px;
   color: var(--color-text);
   font-size: 11px;
@@ -15,7 +15,7 @@
 
 .dude-home-visual .grid-stack-item:focus-visible > .grid-stack-item-content,
 .dude-home-visual .grid-stack-item:focus > .grid-stack-item-content {
-  outline: 2px solid var(--color-accent, #4c8dff);
+  outline: 2px solid var(--color-accent);
   outline-offset: 1px;
 }
 
