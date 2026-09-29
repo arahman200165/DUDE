@@ -62,11 +62,13 @@ export const APPEARANCE_AXES_DATA = {
   "semantic": {
     "attr": "data-semantic",
     "values": [
-      "standard"
+      "standard",
+      "cvd"
     ],
     "default": "standard",
     "labels": {
-      "standard": "Standard"
+      "standard": "Standard",
+      "cvd": "Color-blind safe"
     }
   },
   "density": {

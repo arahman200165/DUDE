@@ -1,5 +1,8 @@
 <div class="rounded-sm border border-error/40 bg-error/10 px-2 py-1.5 text-ui text-error">
-  <p>{{ message() }}</p>
+  <p class="flex items-start gap-1.5">
+    <app-status-glyph class="mt-0.5" kind="error" />
+    <span>{{ message() }}</span>
+  </p>
   @if (retryable()) {
     <button
       type="button"

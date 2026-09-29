@@ -7,7 +7,8 @@ import { CategoryIcon } from '../category-icon/category-icon';
 import { OfflineAvailability } from '../offline-badge/offline-availability.directive';
 import { DesktopCapabilityBadge } from '../desktop-capability-badge/desktop-capability-badge';
 import { FavoritesService } from '../../../core/favorites/favorites.service';
-import { toolStatusClass, toolStatusLabel } from '../../utils/tool-status';
+import { toolStatusClass, toolStatusGlyph, toolStatusLabel } from '../../utils/tool-status';
+import { StatusGlyph } from '../status-glyph/status-glyph';
 
 /** Fixed row height (px), matched to the compact card's rendered height for the virtual scroller. */
 const ROW_HEIGHT = 88;
@@ -28,7 +29,7 @@ function chunk<T>(items: readonly T[], size: number): readonly (readonly T[])[] 
  */
 @Component({
   selector: 'app-tool-grid',
-  imports: [RouterLink, ScrollingModule, CategoryIcon, OfflineAvailability, DesktopCapabilityBadge],
+  imports: [StatusGlyph, RouterLink, ScrollingModule, CategoryIcon, OfflineAvailability, DesktopCapabilityBadge],
   templateUrl: './tool-grid.html',
 })
 export class ToolGrid {
@@ -68,6 +69,7 @@ export class ToolGrid {
 
   protected readonly statusLabel = toolStatusLabel;
   protected readonly statusClass = toolStatusClass;
+  protected readonly statusGlyph = toolStatusGlyph;
 }
 
 function columnsForWidth(width: number): number {

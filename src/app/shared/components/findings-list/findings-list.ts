@@ -1,5 +1,6 @@
 import { Component, computed, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { StatusGlyph, StatusGlyphKind } from '../status-glyph/status-glyph';
 
 export type FindingStatus = 'pass' | 'warn' | 'fail' | 'info' | 'untested';
 export interface Finding {
@@ -16,10 +17,12 @@ export interface Finding {
 
 const ORDER: Record<FindingStatus, number> = { fail: 0, warn: 1, untested: 2, info: 3, pass: 4 };
 
+const GLYPHS: Record<FindingStatus, StatusGlyphKind> = { fail: 'error', warn: 'warning', pass: 'success', info: 'info', untested: 'idle' };
+
 /** Pass/warn/fail rows (Phase 28 HTTPS analyzer, TLS weaknesses, email auth, DNSSEC). No grades. */
 @Component({
   selector: 'app-findings-list',
-  imports: [RouterLink],
+  imports: [RouterLink, StatusGlyph],
   templateUrl: './findings-list.html',
 })
 export class FindingsList {
@@ -31,6 +34,9 @@ export class FindingsList {
     for (const finding of this.findings()) counts[finding.status]++;
     return counts;
   });
+  protected glyph(status: FindingStatus): StatusGlyphKind {
+    return GLYPHS[status];
+  }
   protected label(status: FindingStatus): string {
     return status === 'untested' ? 'not testable' : status;
   }

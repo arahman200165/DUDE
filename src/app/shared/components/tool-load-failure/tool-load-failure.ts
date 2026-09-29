@@ -4,6 +4,7 @@ import { ConnectivityService } from '../../../core/connectivity/connectivity.ser
 import { UpdateService } from '../../../core/connectivity/update.service';
 import { ToolRegistryService } from '../../../core/registry/tool-registry.service';
 import { PAGE_RELOAD } from '../../../core/offline/cache-inspector.service';
+import { StatusGlyph } from '../status-glyph/status-glyph';
 
 /**
  * Shown in place of a tool or shell page whose lazy chunk failed to load (DUDE_PRD.md §21 Phase 26 Item 10):
@@ -13,7 +14,7 @@ import { PAGE_RELOAD } from '../../../core/offline/cache-inspector.service';
  */
 @Component({
   selector: 'app-tool-load-failure',
-  imports: [RouterLink],
+  imports: [RouterLink, StatusGlyph],
   templateUrl: './tool-load-failure.html',
 })
 export class ToolLoadFailure {

@@ -84,6 +84,42 @@ describe('AdvancedDiff component', () => {
     expect(fixture.componentInstance['resolvedCount']()).toBe(1);
   });
 
+  it('renders +/- gutter markers and underline/strike segment decoration without relying on color', () => {
+    const fixture = TestBed.createComponent(AdvancedDiff);
+    fixture.detectChanges();
+    fixture.componentInstance['run']();
+    fakeWorkerClient.jobs[0].resolve({
+      lineDiff: {
+        lines: [
+          { type: 'equal', text: 'one' },
+          { type: 'remove', text: 'two' },
+          { type: 'add', text: 'TWO' },
+        ],
+        summary: { added: 1, removed: 1, unchanged: 1 },
+      },
+      fineDiff: {
+        segments: [
+          { type: 'remove', text: 'two' },
+          { type: 'add', text: 'TWO' },
+        ],
+        summary: { addedChars: 3, removedChars: 3 },
+      },
+    });
+    fixture.detectChanges();
+
+    const root = fixture.nativeElement as HTMLElement;
+    const gutters = (type: string) => root.querySelector(`[data-line="${type}"] [data-gutter]`);
+    expect(gutters('add')?.textContent?.trim()).toBe('+');
+    expect(gutters('remove')?.textContent?.trim()).toBe('−');
+    expect(gutters('add')?.getAttribute('aria-hidden')).toBe('true');
+    expect(root.querySelector('[data-line="add"]')?.textContent).toContain('TWO');
+
+    fixture.componentInstance['granularity'].set('word');
+    fixture.detectChanges();
+    expect(fixture.componentInstance['segmentClasses']('add')).toContain('underline');
+    expect(fixture.componentInstance['segmentClasses']('remove')).toContain('line-through');
+  });
+
   it('cancels the in-flight job and resets state on clear()', () => {
     const fixture = TestBed.createComponent(AdvancedDiff);
     fixture.componentInstance['left'].set('a');

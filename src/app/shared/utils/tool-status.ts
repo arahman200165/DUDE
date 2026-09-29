@@ -1,4 +1,5 @@
 import { ToolDefinition } from '../models/tool-definition.model';
+import type { StatusGlyphKind } from '../components/status-glyph/status-glyph';
 import { PLATFORM_CAPABILITIES, RUNTIMES, platformCapabilities, runtimeCapabilities } from '../../core/platform/capability-catalog';
 
 /**
@@ -22,6 +23,20 @@ export function toolStatusClass(status: ToolDefinition['status']): string {
       return 'border-warning/40 bg-warning/10 text-warning';
     default:
       return 'border-dashed border-border text-text-muted';
+  }
+}
+
+/** The always-on, non-color glyph shown beside a status label (verified check, experimental triangle, stable dot, unstated ring). */
+export function toolStatusGlyph(status: ToolDefinition['status']): StatusGlyphKind {
+  switch (status) {
+    case 'verified':
+      return 'success';
+    case 'stable':
+      return 'neutral';
+    case 'experimental':
+      return 'warning';
+    default:
+      return 'idle';
   }
 }
 

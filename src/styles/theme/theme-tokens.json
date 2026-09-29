@@ -33,9 +33,9 @@
     },
     "semantic": {
       "attr": "data-semantic",
-      "values": ["standard"],
+      "values": ["standard", "cvd"],
       "default": "standard",
-      "labels": { "standard": "Standard" }
+      "labels": { "standard": "Standard", "cvd": "Color-blind safe" }
     },
     "density": {
       "attr": "data-density",
@@ -343,6 +343,44 @@
           "success": "#0d550d",
           "info": "#1143b3",
           "busy": "#7c1799",
+          "offline": "#424c5b"
+        }
+      }
+    },
+    "cvd": {
+      "dark": {
+        "standard": {
+          "error": "#fe594d",
+          "warning": "#d9d026",
+          "success": "#6198e0",
+          "info": "#7fe8fd",
+          "busy": "#ffa6d5",
+          "offline": "#8c97a8"
+        },
+        "high": {
+          "error": "#ff8177",
+          "warning": "#ddd12c",
+          "success": "#7aabf0",
+          "info": "#02bdd2",
+          "busy": "#d997fe",
+          "offline": "#a1aab8"
+        }
+      },
+      "light": {
+        "standard": {
+          "error": "#7b0222",
+          "warning": "#6f5701",
+          "success": "#194fcc",
+          "info": "#003047",
+          "busy": "#712484",
+          "offline": "#4f5b6d"
+        },
+        "high": {
+          "error": "#6c021e",
+          "warning": "#5f4b00",
+          "success": "#023dc7",
+          "info": "#4e4e74",
+          "busy": "#5e296b",
           "offline": "#424c5b"
         }
       }

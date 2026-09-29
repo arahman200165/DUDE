@@ -1,18 +1,18 @@
 <div class="flex flex-col gap-2 text-ui">
   <div class="flex flex-wrap items-center gap-3">
     <span class="font-semibold text-text">{{ title() }}</span>
-    <span class="text-error">{{ counts().fail }} fail</span>
-    <span class="text-warning">{{ counts().warn }} warn</span>
-    <span class="text-success">{{ counts().pass }} pass</span>
+    <span class="inline-flex items-center gap-1 text-error"><app-status-glyph kind="error" />{{ counts().fail }} fail</span>
+    <span class="inline-flex items-center gap-1 text-warning"><app-status-glyph kind="warning" />{{ counts().warn }} warn</span>
+    <span class="inline-flex items-center gap-1 text-success"><app-status-glyph kind="success" />{{ counts().pass }} pass</span>
     @if (counts().untested) { <span class="text-text-muted">{{ counts().untested }} not testable from this client</span> }
   </div>
   <ul class="flex flex-col gap-1">
     @for (finding of sorted(); track finding.id) {
       <li class="rounded-sm border border-border bg-panel px-3 py-2">
         <div class="flex flex-wrap items-baseline gap-2">
-          <span class="w-24 shrink-0 font-mono text-xs uppercase"
+          <span class="inline-flex w-24 shrink-0 items-center gap-1 font-mono text-xs uppercase"
             [class.text-error]="finding.status === 'fail'" [class.text-warning]="finding.status === 'warn'"
-            [class.text-success]="finding.status === 'pass'" [class.text-text-muted]="finding.status === 'info' || finding.status === 'untested'">{{ label(finding.status) }}</span>
+            [class.text-success]="finding.status === 'pass'" [class.text-text-muted]="finding.status === 'info' || finding.status === 'untested'"><app-status-glyph [kind]="glyph(finding.status)" />{{ label(finding.status) }}</span>
           <span class="text-text">{{ finding.title }}</span>
           @if (finding.link) { <a class="ml-auto text-accent underline" [routerLink]="finding.link">{{ finding.linkLabel ?? 'Details' }}</a> }
         </div>

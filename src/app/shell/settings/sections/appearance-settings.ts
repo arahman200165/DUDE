@@ -48,6 +48,12 @@ const AXIS_ROWS: readonly AxisRowSpec[] = [
     label: 'Category palette',
     help: 'Changes the 8 category colors; icons and labels always identify categories too.',
   },
+  {
+    axisKey: 'semantic',
+    prefsKey: 'semantic',
+    label: 'Status colors',
+    help: 'Color-blind safe swaps red/green status colors for a blue/orange scheme; status icons and labels are always shown too.',
+  },
 ];
 
 const CHIP_BASE ='rounded-sm border border-border px-2 py-0.5 text-ui-xs';

@@ -1,5 +1,5 @@
 import { ToolDefinition } from '../models/tool-definition.model';
-import { toolCapabilitySummary, toolStatusClass, toolStatusLabel } from './tool-status';
+import { toolCapabilitySummary, toolStatusClass, toolStatusGlyph, toolStatusLabel } from './tool-status';
 
 const noop = () => Promise.resolve();
 
@@ -44,5 +44,14 @@ describe('toolCapabilitySummary', () => {
       ],
     };
     expect(toolCapabilitySummary(tool)).toBe('Native filesystem access, Pyodide (Python/WASM)');
+  });
+});
+
+describe('toolStatusGlyph', () => {
+  it('gives every status, including unstated, its own non-color glyph', () => {
+    const glyphs = [undefined, 'verified', 'stable', 'experimental'].map((status) => toolStatusGlyph(status as ToolDefinition['status']));
+    expect(new Set(glyphs).size).toBe(4);
+    expect(toolStatusGlyph('experimental')).toBe('warning');
+    expect(toolStatusGlyph('verified')).toBe('success');
   });
 });

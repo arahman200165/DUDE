@@ -2,6 +2,7 @@ import { Component, computed, inject, input } from '@angular/core';
 import { PlatformService } from '../../../core/platform/platform.service';
 import { ToolDefinition } from '../../models/tool-definition.model';
 import { platformCapabilities } from '../../../core/platform/capability-catalog';
+import { StatusGlyph } from '../status-glyph/status-glyph';
 
 /**
  * Desktop capability badge in ToolShell's header (Phase 25 Item 10, reworked for Phase 26 Item 7
@@ -14,6 +15,7 @@ import { platformCapabilities } from '../../../core/platform/capability-catalog'
  */
 @Component({
   selector: 'app-desktop-capability-badge',
+  imports: [StatusGlyph],
   templateUrl: './desktop-capability-badge.html',
 })
 export class DesktopCapabilityBadge {

@@ -38,7 +38,8 @@
         }
 
         <div class="mt-auto flex items-center gap-1.5">
-          <span class="inline-flex items-center rounded-sm border px-1 py-0.5 text-ui-xs" [class]="statusClass(tool.status)">
+          <span class="inline-flex items-center gap-1 rounded-sm border px-1 py-0.5 text-ui-xs" [class]="statusClass(tool.status)">
+            <app-status-glyph [kind]="statusGlyph(tool.status)" />
             {{ statusLabel(tool.status) }}
           </span>
           <app-desktop-capability-badge [definition]="tool" />

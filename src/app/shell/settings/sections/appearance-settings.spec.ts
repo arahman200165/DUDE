@@ -14,6 +14,7 @@ describe('AppearanceSettings', () => {
   let accent: ReturnType<typeof signal<string>>;
   let catset: ReturnType<typeof signal<string>>;
   let contrast: ReturnType<typeof signal<string>>;
+  let semantic: ReturnType<typeof signal<string>>;
   let resolved: ReturnType<typeof signal<string>>;
   let resolvedContrast: ReturnType<typeof signal<string>>;
   let set: ReturnType<typeof vi.fn>;
@@ -24,13 +25,15 @@ describe('AppearanceSettings', () => {
     accent = signal('cyan');
     catset = signal('vivid');
     contrast = signal('standard');
+    semantic = signal('standard');
     resolved = signal('dark');
     resolvedContrast = signal('standard');
-    set = vi.fn((partial: { mode?: string; accent?: string; catset?: string; contrast?: string }) => {
+    set = vi.fn((partial: { mode?: string; accent?: string; catset?: string; contrast?: string; semantic?: string }) => {
       if (partial.mode) mode.set(partial.mode);
       if (partial.accent) accent.set(partial.accent);
       if (partial.catset) catset.set(partial.catset);
       if (partial.contrast) contrast.set(partial.contrast);
+      if (partial.semantic) semantic.set(partial.semantic);
     });
     reset = vi.fn();
     TestBed.configureTestingModule({
@@ -38,7 +41,7 @@ describe('AppearanceSettings', () => {
         {
           provide: AppearanceService,
           useValue: {
-            prefs: computed(() => ({ ...DEFAULT_APPEARANCE, mode: mode(), accent: accent(), catset: catset(), contrast: contrast() })),
+            prefs: computed(() => ({ ...DEFAULT_APPEARANCE, mode: mode(), accent: accent(), catset: catset(), contrast: contrast(), semantic: semantic() })),
             effective: computed(() => ({ theme: resolved(), contrast: resolvedContrast() })),
             set,
             reset,
@@ -55,6 +58,7 @@ describe('AppearanceSettings', () => {
     accent: { attr: 'data-accent', values: ['cyan', 'blue', 'violet'], default: 'cyan' },
     catset: { attr: 'data-catset', values: ['vivid', 'soft', 'cvd'], default: 'vivid' },
     contrast: { attr: 'data-contrast', values: ['standard', 'high'], default: 'standard', labels: { standard: 'Standard', high: 'High' } },
+    semantic: { attr: 'data-semantic', values: ['standard', 'cvd'], default: 'standard', labels: { standard: 'Standard', cvd: 'Color-blind safe' } },
   };
 
   function withAxes(axes: AppearanceAxes) {
@@ -199,5 +203,24 @@ describe('AppearanceSettings', () => {
     expect(set).toHaveBeenCalledWith({ catset: 'soft' });
     expect(state('Category palette')).toEqual(['false', 'true', 'false']);
     expect(buttonWithText(root, 'Soft').className).toContain('dude-chip-on');
+  });
+
+  it('renders a Status colors row for a multi-value semantic axis and sets { semantic }', () => {
+    withAxes(MULTI);
+    const fixture = create();
+    const root = fixture.nativeElement as HTMLElement;
+    const state = () => Object.fromEntries(Array.from((group(root, 'Status colors') as HTMLElement).querySelectorAll('button')).map((b) => [b.textContent?.trim(), b.getAttribute('aria-pressed')]));
+    expect(state()).toEqual({ Standard: 'true', 'Color-blind safe': 'false' });
+    expect(root.textContent).toContain('Color-blind safe swaps red/green status colors for a blue/orange scheme; status icons and labels are always shown too.');
+
+    buttonWithText(root, 'Color-blind safe').click();
+    fixture.detectChanges();
+    expect(set).toHaveBeenCalledWith({ semantic: 'cvd' });
+    expect(state()).toEqual({ Standard: 'false', 'Color-blind safe': 'true' });
+  });
+
+  it('omits the Status colors row while the semantic axis has a single value (or is absent)', () => {
+    withAxes({ ...MULTI, semantic: { attr: 'data-semantic', values: ['standard'], default: 'standard' } });
+    expect(group(create().nativeElement as HTMLElement, 'Status colors')).toBeNull();
   });
 });

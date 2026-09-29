@@ -2,6 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { UpdateService } from '../../../core/connectivity/update.service';
 import { DesktopUpdateService } from '../../../core/platform/desktop-update.service';
 import { PlatformService } from '../../../core/platform/platform.service';
+import { StatusGlyph } from '../status-glyph/status-glyph';
 
 /**
  * Branches between the web `UpdateService` (SwUpdate) and the desktop
@@ -10,6 +11,7 @@ import { PlatformService } from '../../../core/platform/platform.service';
  */
 @Component({
   selector: 'app-update-badge',
+  imports: [StatusGlyph],
   templateUrl: './update-badge.html',
 })
 export class UpdateBadge {

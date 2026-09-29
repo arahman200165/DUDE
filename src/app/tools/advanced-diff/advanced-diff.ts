@@ -34,10 +34,11 @@ const LINE_CLASSES: Record<DiffLineType, string> = {
   equal: 'text-text-muted',
 };
 
-const LINE_PREFIX: Record<DiffLineType, string> = { add: '+ ', remove: '- ', equal: '  ' };
+/** Fixed-width gutter markers, so added/removed lines read without color. */
+const LINE_MARKER: Record<DiffLineType, string> = { add: '+', remove: '−', equal: '' };
 
 const SEGMENT_CLASSES: Record<DiffSegmentType, string> = {
-  add: 'bg-success/30 text-text',
+  add: 'bg-success/30 text-text underline',
   remove: 'bg-error/30 text-text line-through',
   equal: '',
 };
@@ -311,8 +312,8 @@ export class AdvancedDiff implements OnDestroy {
     return LINE_CLASSES[type];
   }
 
-  protected linePrefix(type: DiffLineType): string {
-    return LINE_PREFIX[type];
+  protected lineMarker(type: DiffLineType): string {
+    return LINE_MARKER[type];
   }
 
   protected segmentClasses(type: DiffSegmentType): string {

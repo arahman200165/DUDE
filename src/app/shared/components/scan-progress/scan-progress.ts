@@ -1,6 +1,7 @@
 import { Component, computed, input } from '@angular/core';
 import type { FsJobHandle } from '../../../core/platform/fs-job.service';
 import { formatBytes } from '../../../../shared-logic/fs/format-size';
+import { StatusGlyph } from '../status-glyph/status-glyph';
 
 /**
  * Live status of a Phase 29 fs job (Milestone 523): counts, bytes, throughput, the current path,
@@ -8,15 +9,16 @@ import { formatBytes } from '../../../../shared-logic/fs/format-size';
  */
 @Component({
   selector: 'app-scan-progress',
+  imports: [StatusGlyph],
   template: `
     @if (job(); as current) {
       <div class="flex flex-wrap items-center gap-3 text-ui text-text-muted" data-testid="scan-progress">
         @switch (current.status()) {
           @case ('starting') { <span>Starting…</span> }
-          @case ('running') { <span class="text-accent">{{ current.progress()?.phase ?? 'Working' }}…</span> }
-          @case ('done') { <span class="text-success">Done</span> }
-          @case ('cancelled') { <span class="text-warning">Cancelled</span> }
-          @case ('error') { <span class="text-error">Failed</span> }
+          @case ('running') { <span class="inline-flex items-center gap-1 text-accent"><app-status-glyph kind="busy" />{{ current.progress()?.phase ?? 'Working' }}…</span> }
+          @case ('done') { <span class="inline-flex items-center gap-1 text-success"><app-status-glyph kind="success" />Done</span> }
+          @case ('cancelled') { <span class="inline-flex items-center gap-1 text-warning"><app-status-glyph kind="cancelled" />Cancelled</span> }
+          @case ('error') { <span class="inline-flex items-center gap-1 text-error"><app-status-glyph kind="error" />Failed</span> }
         }
         @if (current.progress(); as progress) {
           <span>{{ progress.scanned.toLocaleString() }} item(s)</span>
@@ -30,7 +32,7 @@ import { formatBytes } from '../../../../shared-logic/fs/format-size';
       </div>
       @if (current.issues().length) {
         <details class="mt-1 text-ui-xs text-warning">
-          <summary class="cursor-pointer">{{ current.issues().length }}{{ current.issues().length >= 500 ? '+' : '' }} path(s) could not be read (access denied, in use, or removed)</summary>
+          <summary class="cursor-pointer"><app-status-glyph class="mr-1 align-middle" kind="warning" />{{ current.issues().length }}{{ current.issues().length >= 500 ? '+' : '' }} path(s) could not be read (access denied, in use, or removed)</summary>
           <ul class="max-h-40 overflow-auto font-mono">
             @for (issue of current.issues(); track $index) { <li>{{ issue.code }} — {{ issue.path || '(root)' }}</li> }
           </ul>

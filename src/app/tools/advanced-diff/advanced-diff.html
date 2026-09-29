@@ -347,7 +347,7 @@
               <p class="text-ui text-text-muted">Falling back to line diff:</p>
               <div class="max-h-64 overflow-auto rounded-sm border border-border bg-panel font-mono text-ui">
                 @for (line of diffResult.lineDiff.lines; track $index) {
-                  <div class="whitespace-pre-wrap px-2 py-0.5" [class]="lineClasses(line.type)">{{ linePrefix(line.type) }}{{ line.text }}</div>
+                  <div class="flex items-start gap-1.5 px-2 py-0.5" [class]="lineClasses(line.type)" [attr.data-line]="line.type"><span class="w-3 shrink-0 select-none text-center" data-gutter aria-hidden="true">{{ lineMarker(line.type) }}</span><span class="min-w-0 whitespace-pre-wrap break-words">{{ line.text }}</span></div>
                 }
               </div>
             }
@@ -356,7 +356,7 @@
           @if (granularity() === 'line') {
             <div class="max-h-64 overflow-auto rounded-sm border border-border bg-panel font-mono text-ui">
               @for (line of diffResult.lineDiff.lines; track $index) {
-                <div class="whitespace-pre-wrap px-2 py-0.5" [class]="lineClasses(line.type)">{{ linePrefix(line.type) }}{{ line.text }}</div>
+                <div class="flex items-start gap-1.5 px-2 py-0.5" [class]="lineClasses(line.type)" [attr.data-line]="line.type"><span class="w-3 shrink-0 select-none text-center" data-gutter aria-hidden="true">{{ lineMarker(line.type) }}</span><span class="min-w-0 whitespace-pre-wrap break-words">{{ line.text }}</span></div>
               }
             </div>
           } @else if (diffResult.fineDiff; as fine) {

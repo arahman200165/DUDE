@@ -37,6 +37,21 @@ describe('UpdateBadge', () => {
     expect(fakeSwUpdate.activateUpdate).toHaveBeenCalled();
   });
 
+  it('pairs the update text with an aria-hidden info glyph', () => {
+    Object.defineProperty(window, 'dude', { value: undefined, configurable: true });
+    const fakeSwUpdate = new FakeSwUpdate();
+    TestBed.configureTestingModule({ providers: [{ provide: SwUpdate, useValue: fakeSwUpdate }] });
+    const fixture = TestBed.createComponent(UpdateBadge);
+    fixture.detectChanges();
+    fakeSwUpdate.versionUpdates.next({ type: 'VERSION_READY' } as VersionEvent);
+    fixture.detectChanges();
+
+    const glyph = fixture.nativeElement.querySelector('app-status-glyph');
+    expect(glyph.getAttribute('data-glyph')).toBe('info');
+    expect(glyph.querySelector('svg').getAttribute('aria-hidden')).toBe('true');
+    expect(fixture.nativeElement.textContent).toContain('Update available');
+  });
+
   it('shows the desktop "Restart & Install" action once an update downloads', async () => {
     let fireDownloaded: (() => void) | undefined;
     let installed = false;

@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { CrashRecoveryService } from '../../../core/platform/crash-recovery.service';
+import { StatusGlyph } from '../status-glyph/status-glyph';
 
 /**
  * A dismissible notice shown only on the one launch immediately following an unclean exit (DUDE_PRD.md
@@ -8,6 +9,7 @@ import { CrashRecoveryService } from '../../../core/platform/crash-recovery.serv
  */
 @Component({
   selector: 'app-crash-recovery-notice',
+  imports: [StatusGlyph],
   templateUrl: './crash-recovery-notice.html',
 })
 export class CrashRecoveryNotice {

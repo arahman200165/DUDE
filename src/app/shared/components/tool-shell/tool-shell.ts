@@ -19,10 +19,11 @@ import { OpenInDesktop } from '../open-in-desktop/open-in-desktop';
 import { DesktopHandoffService } from '../../../core/deep-link/desktop-handoff.service';
 import { DudeDeepLink } from '../../../core/deep-link/deep-link.model';
 import { ShareLinkService } from '../../../core/share/share-link.service';
+import { StatusGlyph, StatusGlyphKind } from '../status-glyph/status-glyph';
 
 @Component({
   selector: 'app-tool-shell',
-  imports: [OfflineBadge, CategoryIcon, SecurityBadge, DesktopCapabilityBadge, RouterLink, RelatedToolsPanel, ToolShareMenu, OpenInDesktop],
+  imports: [StatusGlyph, OfflineBadge, CategoryIcon, SecurityBadge, DesktopCapabilityBadge, RouterLink, RelatedToolsPanel, ToolShareMenu, OpenInDesktop],
   templateUrl: './tool-shell.html',
 })
 export class ToolShell implements OnDestroy {
@@ -96,7 +97,8 @@ export class ToolShell implements OnDestroy {
       verified: 'border-accent/40 bg-accent/10 text-accent',
     };
     const title = status === 'verified' ? (definition?.verification?.summary ?? '') : '';
-    return { label: status, classes: classes[status], title };
+    const glyph: Record<'experimental' | 'stable' | 'verified', StatusGlyphKind> = { experimental: 'warning', stable: 'neutral', verified: 'success' };
+    return { label: status, classes: classes[status], title, glyph: glyph[status] };
   });
 
   /**

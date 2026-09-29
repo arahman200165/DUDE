@@ -1,23 +1,26 @@
 @if (capabilities().length) {
   @if (isDesktop()) {
     <span
-      class="inline-flex items-center rounded border border-border px-1.5 py-0.5 font-mono text-ui-xs text-text-muted"
+      class="inline-flex items-center gap-1 rounded border border-border px-1.5 py-0.5 font-mono text-ui-xs text-text-muted"
       [title]="title()"
     >
+      <app-status-glyph kind="success" />
       Desktop-enhanced
     </span>
   } @else if (hasUnavailable()) {
     <span
-      class="inline-flex items-center rounded border border-warning/40 bg-warning/10 px-1.5 py-0.5 font-mono text-ui-xs text-warning"
+      class="inline-flex items-center gap-1 rounded border border-warning/40 bg-warning/10 px-1.5 py-0.5 font-mono text-ui-xs text-warning"
       [title]="title()"
     >
+      <app-status-glyph kind="warning" />
       Some features need desktop
     </span>
   } @else {
     <span
-      class="inline-flex items-center rounded border border-accent/40 bg-accent/10 px-1.5 py-0.5 font-mono text-ui-xs text-accent"
+      class="inline-flex items-center gap-1 rounded border border-accent/40 bg-accent/10 px-1.5 py-0.5 font-mono text-ui-xs text-accent"
       [title]="title()"
     >
+      <app-status-glyph kind="info" />
       More capable on desktop
     </span>
   }

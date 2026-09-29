@@ -21,8 +21,9 @@
  *      the border is a decorative separator and is exempt (inputs/chips are also identifiable by
  *      fill/label); high-contrast mode is where WCAG 1.4.11 boundaries are enforced.
  *   9. for a semantic set with id "cvd": under simulated protanopia, deuteranopia and tritanopia
- *      (Machado et al. 2009, severity 1.0, applied in linear RGB) error, success and warning must
- *      be pairwise distinct: CIE76 deltaE >= 20 for every pair under every simulation.
+ *      (Machado et al. 2009, severity 1.0, applied in linear RGB) AND unsimulated vision, error, success
+ *      and warning must be pairwise distinct: CIE76 deltaE >= CVD_SEMANTIC_MIN_DELTA_E (20), and info must
+ *      be distinct from each of them: deltaE >= CVD_INFO_MIN_DELTA_E (12).
  *      For a category set with id "cvd": under the same three simulations (and unsimulated vision)
  *      every pair of the 8 category colors must reach CIE76 deltaE >= CVD_CATEGORY_MIN_DELTA_E.
  *
@@ -37,8 +38,12 @@
  *
  *  13. (hc only) accent as text on accent/5 and accent/10 over bg, panel AND panel-elevated >= 7
  *      (`text-accent bg-accent/10` badges, e.g. the Browse Tools "verified" chip).
+ *  14. (hc only) error, warning and success as text on their own /5 and /10 wash over bg AND panel >= 7
+ *      (`text-warning bg-warning/10` badges and banners, e.g. the desktop-capability badge). info is deliberately
+ *      excluded: info banners use `text-text` on the tinted wash with a `text-info` glyph, because the cvd light-hc info
+ *      color cannot be 7:1 on its own wash AND keep CVD_INFO_MIN_DELTA_E from success AND stay hue/lightness-separated.
  *
- * High-contrast (hc) thresholds enforced beyond standard: rules 1, 2, 3, 5, 6 and 11 require 7:1 (WCAG 1.4.6
+ * High-contrast (hc) thresholds enforced beyond standard: rules 1, 2, 3, 5, 6, 11, 13 and 14 require 7:1 (WCAG 1.4.6
  * AAA) and rule 8 (border >= 3:1 vs bg and panel) only applies in hc. Everything else (accent non-text 3:1,
  * semantic separation, rule 9's CVD deltaE thresholds, and the own-wash rules 10 and 12 at 4.5) is identical in
  * standard and hc; the CVD category deltaE bar (16) is NOT relaxed for hc. The own-wash rules 10 and 12 stay at
@@ -68,6 +73,14 @@ const HIGHLIGHT_ALPHAS = [30, 40];
 // dark set ~19.6). Categories always ship with an icon and a text label, so color is a secondary cue and
 // 16 (a clearly visible difference in CIE76 terms) is enough. Do not lower this to make a change pass.
 const CVD_CATEGORY_MIN_DELTA_E = 16;
+// Same metric for the "cvd" semantic set. error/success/warning carry the status meaning that must survive
+// a red-green deficiency (success is BLUE, error red-orange, warning yellow), so they get the strict bar of 20.
+// info is a fourth blue-ish hue that has to sit apart from success by lightness/chroma alone; the separation rule (7)
+// forbids the free hue/lightness room it would need next to 24 category colors and 6 accents, and in the hc
+// themes the 7:1 ceiling plus the 7:1-on-highlight-wash rule leave little lightness room, so its bar is 12
+// (achieved minimum ~12.4 in light-hc, ~14 in dark-hc).
+const CVD_SEMANTIC_MIN_DELTA_E = 20;
+const CVD_INFO_MIN_DELTA_E = 12;
 
 // ---------------------------------------------------------------- color math
 
@@ -212,6 +225,8 @@ function run() {
   const rows = [];
   /** "theme/contrast/vision" -> smallest pairwise deltaE among the cvd category set */
   const cvdStats = new Map();
+  /** "theme/contrast/trio|info" -> smallest pairwise deltaE among the cvd semantic set */
+  const semStats = new Map();
   let checks = 0;
 
   for (const [theme, contrastMode, catset, accent, semantic] of combos) {
@@ -299,6 +314,19 @@ function run() {
         }
       }
     }
+    // 14 (hc only): the shipped alert/badge pattern `text-<semantic> bg-<semantic>/N` (N <= 10, e.g. `text-warning bg-warning/10`
+    // in the desktop-capability badge and tool warning banners) sits on bg or panel, and its text is small (text-ui /
+    // text-ui-xs, never "large"), so error/warning/success on their own 5%/10% wash must reach 7:1 in hc. info banners use
+    // `text-text` (glyph keeps `text-info`), so info is not text on its own wash; keep it that way (see header, rule 14).
+    if (hc) {
+      for (const s of ['error', 'warning', 'success']) {
+        for (const alpha of [5, 10]) {
+          for (const [sname, sbg] of surfaces.slice(0, 2)) {
+            min('14 semantic on own wash (hc, 7:1)', `${s} on ${s}/${alpha} over ${sname}`, sem[s], blendAlpha(sem[s], sbg, alpha), 7);
+          }
+        }
+      }
+    }
     // 11: text on the semantic highlight washes
     for (const s of ['error', 'warning', 'success', 'info']) {
       for (const alpha of HIGHLIGHT_ALPHAS) {
@@ -322,14 +350,22 @@ function run() {
     // 9
     if (semantic === 'cvd') {
       const trio = ['error', 'success', 'warning'];
-      for (const [sim, matrix] of Object.entries(CVD_MATRICES)) {
-        for (let i = 0; i < trio.length; i++) {
-          for (let j = i + 1; j < trio.length; j++) {
-            checks++;
-            const ca = simulate(sem[trio[i]], matrix), cb = simulate(sem[trio[j]], matrix);
-            const de = deltaE76(ca, cb);
-            if (de < 20) fail('9 cvd distinguishability', `${trio[i]} vs ${trio[j]} under ${sim} deltaE ${de.toFixed(1)} < 20`);
-          }
+      const pairs = [];
+      for (let i = 0; i < trio.length; i++) {
+        for (let j = i + 1; j < trio.length; j++) pairs.push([trio[i], trio[j], CVD_SEMANTIC_MIN_DELTA_E]);
+        pairs.push([trio[i], 'info', CVD_INFO_MIN_DELTA_E]);
+      }
+      for (const [sim, matrix] of Object.entries({ normal: null, ...CVD_MATRICES })) {
+        for (const [a, b, threshold] of pairs) {
+          checks++;
+          const ca = matrix ? simulate(sem[a], matrix) : sem[a], cb = matrix ? simulate(sem[b], matrix) : sem[b];
+          const de = deltaE76(ca, cb);
+          const group = b === 'info' ? 'info' : 'trio';
+          const statKey = `${theme}/${contrastMode}/${group}`;
+          const seen = semStats.get(statKey) ?? { min: Infinity, pair: '', threshold };
+          if (de < seen.min) { seen.min = de; seen.pair = `${a}/${b} ${sim}`; }
+          semStats.set(statKey, seen);
+          if (de < threshold) fail('9 cvd distinguishability', `${a} vs ${b} under ${sim} deltaE ${de.toFixed(1)} < ${threshold}`);
         }
       }
     }
@@ -359,6 +395,7 @@ function run() {
 
   if (process.argv.includes('--table')) {
     console.log(rows.join('\n'));
+    for (const [k, s] of semStats) console.log(`cvd semantics  ${k.padEnd(28)} min pairwise deltaE ${s.min.toFixed(2)} (${s.pair}, threshold ${s.threshold})`);
     for (const [k, s] of cvdStats) console.log(`cvd categories ${k.padEnd(28)} min pairwise deltaE ${s.min.toFixed(2)} (${s.pair}, threshold ${CVD_CATEGORY_MIN_DELTA_E})`);
   }
   if (failures.size) {

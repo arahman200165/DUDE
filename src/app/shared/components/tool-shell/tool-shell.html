@@ -48,17 +48,20 @@
       <app-desktop-capability-badge [definition]="definition()" />
       <app-offline-badge [show]="showOfflineBadge()" />
       <span
-        class="rounded border px-1.5 py-0.5 font-mono text-ui-xs uppercase tracking-wide"
+        class="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 font-mono text-ui-xs uppercase tracking-wide"
         [class]="statusBadge().classes"
         [title]="statusBadge().title || null"
-        >{{ statusBadge().label }}</span
+        ><app-status-glyph [kind]="statusBadge().glyph" />{{ statusBadge().label }}</span
       >
     </div>
   </header>
   <div class="flex-1 overflow-auto p-3">
     @if (loadedFromLink()) {
-      <div class="mb-3 flex items-center justify-between gap-2 rounded-sm border border-info/40 bg-info/10 px-2 py-1 text-ui text-info" role="status">
-        <span>Input loaded from a shared link. Nothing was run or saved beyond this tool's usual settings. Review it before use.</span>
+      <div class="mb-3 flex items-center justify-between gap-2 rounded-sm border border-info/40 bg-info/10 px-2 py-1 text-ui text-text" role="status">
+        <span class="inline-flex items-center gap-1.5">
+          <app-status-glyph kind="info" class="text-info" />
+          <span>Input loaded from a shared link. Nothing was run or saved beyond this tool's usual settings. Review it before use.</span>
+        </span>
         <button type="button" class="rounded-sm border border-info/40 px-1.5 py-0.5 text-ui-xs" (click)="share.dismissReceived()">Dismiss</button>
       </div>
     }

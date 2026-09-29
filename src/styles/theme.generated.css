@@ -333,7 +333,7 @@
   --dude-cat-documents: #8c2a7b;
 }
 
-:root:not([data-theme="light"]):not([data-contrast="high"]) {
+:root:not([data-semantic="cvd"]):not([data-theme="light"]):not([data-contrast="high"]) {
   --dude-error: #ff5757;
   --dude-warning: #d99a00;
   --dude-success: #46e05a;
@@ -342,7 +342,7 @@
   --dude-offline: #8c97a8;
 }
 
-:root:not([data-theme="light"])[data-contrast="high"] {
+:root:not([data-semantic="cvd"]):not([data-theme="light"])[data-contrast="high"] {
   --dude-error: #ff8686;
   --dude-warning: #e3a100;
   --dude-success: #4fe162;
@@ -351,7 +351,7 @@
   --dude-offline: #a1aab8;
 }
 
-:root[data-theme="light"]:not([data-contrast="high"]) {
+:root:not([data-semantic="cvd"])[data-theme="light"]:not([data-contrast="high"]) {
   --dude-error: #a91b1b;
   --dude-warning: #6f5700;
   --dude-success: #106810;
@@ -360,12 +360,48 @@
   --dude-offline: #4f5b6d;
 }
 
-:root[data-theme="light"][data-contrast="high"] {
+:root:not([data-semantic="cvd"])[data-theme="light"][data-contrast="high"] {
   --dude-error: #961a18;
   --dude-warning: #594600;
   --dude-success: #0d550d;
   --dude-info: #1143b3;
   --dude-busy: #7c1799;
+  --dude-offline: #424c5b;
+}
+
+:root[data-semantic="cvd"]:not([data-theme="light"]):not([data-contrast="high"]) {
+  --dude-error: #fe594d;
+  --dude-warning: #d9d026;
+  --dude-success: #6198e0;
+  --dude-info: #7fe8fd;
+  --dude-busy: #ffa6d5;
+  --dude-offline: #8c97a8;
+}
+
+:root[data-semantic="cvd"]:not([data-theme="light"])[data-contrast="high"] {
+  --dude-error: #ff8177;
+  --dude-warning: #ddd12c;
+  --dude-success: #7aabf0;
+  --dude-info: #02bdd2;
+  --dude-busy: #d997fe;
+  --dude-offline: #a1aab8;
+}
+
+:root[data-semantic="cvd"][data-theme="light"]:not([data-contrast="high"]) {
+  --dude-error: #7b0222;
+  --dude-warning: #6f5701;
+  --dude-success: #194fcc;
+  --dude-info: #003047;
+  --dude-busy: #712484;
+  --dude-offline: #4f5b6d;
+}
+
+:root[data-semantic="cvd"][data-theme="light"][data-contrast="high"] {
+  --dude-error: #6c021e;
+  --dude-warning: #5f4b00;
+  --dude-success: #023dc7;
+  --dude-info: #4e4e74;
+  --dude-busy: #5e296b;
   --dude-offline: #424c5b;
 }
 

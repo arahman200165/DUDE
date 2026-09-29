@@ -32,6 +32,11 @@ export class DiffView {
 
   protected readonly hasEntries = computed(() => this.entries().length > 0);
 
+  /** Fixed-width gutter marker so add/remove/change reads without color: + added, − removed, ~ changed. */
+  protected marker(op: DiffOp): string {
+    return op === 'add' ? '+' : op === 'remove' ? '−' : '~';
+  }
+
   protected formatValue(value: unknown): string {
     if (value === undefined) return '';
     if (typeof value === 'string') return value;

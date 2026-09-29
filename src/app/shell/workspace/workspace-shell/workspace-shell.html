@@ -1,7 +1,7 @@
 <div class="flex h-full flex-col">
   <app-template-gallery />
   @if (layout.changedInAnotherTab()) {
-    <div class="flex flex-wrap items-center gap-2 border-b border-info/40 bg-info/10 px-3 py-1 text-ui text-info" role="status">
+    <div class="flex flex-wrap items-center gap-2 border-b border-info/40 bg-info/10 px-3 py-1 text-ui text-text" role="status">
       <span class="flex-1">Your workspace layout changed in another DUDE tab.</span>
       <button type="button" class="rounded-sm border border-info/40 px-1.5 py-0.5 text-ui-xs" (click)="layout.adoptOtherTabLayout()">Use that layout</button>
       <button type="button" class="rounded-sm border border-info/40 px-1.5 py-0.5 text-ui-xs" (click)="layout.keepThisTabLayout()">Keep mine</button>

@@ -8,6 +8,7 @@ import { CATEGORY_METADATA, ToolCategory, TOOL_CATEGORIES } from '../../shared/m
 import { ToolDefinition } from '../../shared/models/tool-definition.model';
 import { DataTable, DataTableColumn } from '../../shared/components/data-table/data-table';
 import { DataTableCellDef } from '../../shared/components/data-table/data-table-cell.directive';
+import { StatusGlyph } from '../../shared/components/status-glyph/status-glyph';
 import { ToolGrid } from '../../shared/components/tool-grid/tool-grid';
 import { CategoryIcon } from '../../shared/components/category-icon/category-icon';
 import { OfflineAvailability } from '../../shared/components/offline-badge/offline-availability.directive';
@@ -15,7 +16,7 @@ import { DesktopCapabilityBadge } from '../../shared/components/desktop-capabili
 import { BrowseQueryHelp } from '../../shared/components/browse-query-help/browse-query-help';
 import { ShortcutHint } from '../../shared/components/shortcut-hint/shortcut-hint';
 import { Disclosure } from '../../shared/components/disclosure/disclosure';
-import { toolCapabilitySummary, toolStatusClass, toolStatusLabel } from '../../shared/utils/tool-status';
+import { toolCapabilitySummary, toolStatusClass, toolStatusGlyph, toolStatusLabel } from '../../shared/utils/tool-status';
 import { CommandPaletteService } from '../command-palette/command-palette.service';
 import { parseBrowseQuery, ParsedBrowseQuery } from '../../core/registry/browse-tools-query';
 import { filterTools } from '../../core/registry/browse-tools-filter';
@@ -64,6 +65,7 @@ const VIEW_MODE_VALUES: readonly BrowseToolsViewMode[] = ['table', 'grid'];
     OfflineAvailability,
     DesktopCapabilityBadge,
     Disclosure,
+    StatusGlyph,
   ],
   templateUrl: './browse-tools.html',
 })
@@ -197,6 +199,7 @@ export class BrowseTools {
 
   protected readonly statusLabel = toolStatusLabel;
   protected readonly statusClass = toolStatusClass;
+  protected readonly statusGlyph = toolStatusGlyph;
 
   protected trackToolId(_index: number, tool: ToolDefinition): string {
     return tool.id;

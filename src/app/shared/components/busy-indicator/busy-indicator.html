@@ -1,26 +1,34 @@
-<span class="inline-flex items-center gap-1.5 font-mono text-ui">
-  <span
-    class="h-1.5 w-1.5 rounded-full forced-colors:forced-color-adjust-none"
-    [class.bg-busy]="status() === 'running'"
-    [class.bg-success]="status() === 'done'"
-    [class.bg-error]="status() === 'error'"
-    [class.bg-text-muted]="status() === 'idle' || status() === 'cancelled'"
-  ></span>
+<span class="inline-flex items-center gap-1.5 font-mono text-ui" [attr.data-status]="status()">
   @switch (status()) {
     @case ('running') {
-      <span class="text-busy">Running{{ progress() !== null ? ' — ' + progress() + '%' : '…' }}</span>
+      <span class="inline-flex items-center gap-1.5 text-busy">
+        <app-status-glyph kind="busy" />
+        <span>Running{{ progress() !== null ? ' — ' + progress() + '%' : '…' }}</span>
+      </span>
     }
     @case ('done') {
-      <span class="text-success">Done</span>
+      <span class="inline-flex items-center gap-1.5 text-success">
+        <app-status-glyph kind="success" />
+        <span>Done</span>
+      </span>
     }
     @case ('error') {
-      <span class="text-error">Failed</span>
+      <span class="inline-flex items-center gap-1.5 text-error">
+        <app-status-glyph kind="error" />
+        <span>Failed</span>
+      </span>
     }
     @case ('cancelled') {
-      <span class="text-text-muted">Cancelled</span>
+      <span class="inline-flex items-center gap-1.5 text-text-muted">
+        <app-status-glyph kind="cancelled" />
+        <span>Cancelled</span>
+      </span>
     }
     @default {
-      <span class="text-text-muted">Idle</span>
+      <span class="inline-flex items-center gap-1.5 text-text-muted">
+        <app-status-glyph kind="idle" />
+        <span>Idle</span>
+      </span>
     }
   }
 </span>

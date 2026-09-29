@@ -74,4 +74,15 @@ describe('DesktopCapabilityBadge', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Some features need desktop');
   });
+
+  it('shows a warning glyph (aria-hidden) with the text when a feature is unavailable on web', () => {
+    const fixture = withPlatform(false);
+    fixture.componentRef.setInput('definition', { ...base, capabilities: [{ kind: 'platform', id: 'llm-proxy', web: 'unavailable', note: 'AI explain' }] });
+    fixture.detectChanges();
+
+    const glyph = fixture.nativeElement.querySelector('app-status-glyph');
+    expect(glyph.getAttribute('data-glyph')).toBe('warning');
+    expect(glyph.querySelector('svg').getAttribute('aria-hidden')).toBe('true');
+    expect(fixture.nativeElement.textContent).toContain('Some features need desktop');
+  });
 });
