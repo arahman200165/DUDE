@@ -43,6 +43,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'registry-editor': 'the live registry tree, search results and any open edit or preview are desktop-only session state, not restorable renderer content',
   'process-viewer': 'the live process list and selection are desktop-only session state, not restorable renderer content',
   'event-log-viewer': 'the loaded events, selection and live-tail buffer are desktop-only session state, not restorable renderer content',
+  'scheduled-tasks': 'the task list, selection and any open change preview are live desktop session state, not restorable renderer content',
   'services-viewer': 'the live service list, selection and any open action preview are desktop-only session state, not restorable renderer content',
   'port-process-lookup': 'the live socket table and selection are desktop-only session state, not restorable renderer content',
   'certificate-watch-list': 'the watch list is a live monitoring dashboard whose state lives in the main process, not restorable renderer content',

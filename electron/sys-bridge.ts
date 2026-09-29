@@ -2,8 +2,9 @@ import { ipcMain } from 'electron';
 import type { SysResult } from '../src/shared-logic/system/system-types';
 import { validateSysCall } from './sys-validation';
 import { sysHelper } from './sys-helper';
-import { pwshStatus } from './sys-pwsh';
+import { pwshStatus, runFixedScript } from './sys-pwsh';
 import { isInsideGrantedRoot } from './fs-grants';
+import type { ScheduledTaskDetail, ScheduledTaskSummary } from '../src/shared-logic/system/task-types';
 
 // Reserved for later milestones: `dude:sys:event` carries streamed helper events (SysStreamEvent).
 
@@ -18,4 +19,14 @@ export function registerSysHandlers(): void {
     }
   });
   ipcMain.handle('dude:sys:pwshStatus', (_event, refresh: unknown) => pwshStatus(refresh === true));
+  ipcMain.handle('dude:sys:taskList', async (): Promise<ScheduledTaskSummary[]> => {
+    const value = await runFixedScript('task.list', {}, new AbortController().signal);
+    return Array.isArray(value) ? value as ScheduledTaskSummary[] : value ? [value as ScheduledTaskSummary] : [];
+  });
+  ipcMain.handle('dude:sys:taskInfo', async (_event, taskPath: unknown, taskName: unknown): Promise<ScheduledTaskDetail> => {
+    if (typeof taskPath !== 'string' || taskPath.length > 1024 || !taskPath.startsWith('\\') || /[\u0000-\u001f\u007f]/.test(taskPath) || taskPath.includes('..') || (taskPath !== '\\' && !taskPath.endsWith('\\'))) throw new Error('Invalid Task Scheduler folder path.');
+    if (typeof taskName !== 'string' || taskName.length < 1 || taskName.length > 512 || /[\\/\u0000-\u001f\u007f]/.test(taskName) || taskName === '.' || taskName === '..') throw new Error('Invalid scheduled task name.');
+    const value = await runFixedScript('task.detail', { taskPath, taskName }, new AbortController().signal);
+    return value as ScheduledTaskDetail;
+  });
 }

@@ -48,7 +48,7 @@ describe('RuntimeDetectorTool', () => {
     const probe = vi.fn(async (commands: readonly { id: string; exe: string }[]) => commands.map((c) => ({
       id: c.id, ok: true, stdout: /nodea/i.test(c.exe) ? 'v18.0.1' : /nodeb/i.test(c.exe) ? 'v22.1.0' : '', stderr: /java/i.test(c.exe) ? 'openjdk version "17.0.9" 2023' : '', exitCode: 0,
     })));
-    installBridge(fakeElectronBridge({ sys: { call: fakeSysCall(methods) as never, pwshStatus: async () => ({ available: false }), onEvent: () => () => {} }, runtime: { probe } }));
+    installBridge(fakeElectronBridge({ sys: { ...fakeElectronBridge().sys, call: fakeSysCall(methods) as never, pwshStatus: async () => ({ available: false }), onEvent: () => () => {} }, runtime: { probe } }));
     TestBed.configureTestingModule({ providers: [provideRouter([])] });
     const fixture = TestBed.createComponent(RuntimeDetectorTool);
     const element = fixture.nativeElement as HTMLElement;

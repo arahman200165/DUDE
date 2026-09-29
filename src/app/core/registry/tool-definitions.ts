@@ -261,6 +261,7 @@ import { manifest as richTextEditorManifest } from '../../tools/rich-text-editor
 import { manifest as rotCipherManifest } from '../../tools/rot-cipher/rot-cipher.manifest';
 import { manifest as routeComparisonManifest } from '../../tools/route-comparison/route-comparison.manifest';
 import { manifest as runtimeDetectorManifest } from '../../tools/runtime-detector/runtime-detector.manifest';
+import { manifest as scheduledTasksManifest } from '../../tools/scheduled-tasks/scheduled-tasks.manifest';
 import { manifest as schemaDiffManifest } from '../../tools/schema-diff/schema-diff.manifest';
 import { manifest as scientificNotationConverterManifest } from '../../tools/scientific-notation-converter/scientific-notation-converter.manifest';
 import { manifest as secretDetectorManifest } from '../../tools/secret-detector/secret-detector.manifest';
@@ -586,6 +587,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   rotCipherManifest,
   routeComparisonManifest,
   runtimeDetectorManifest,
+  scheduledTasksManifest,
   schemaDiffManifest,
   scientificNotationConverterManifest,
   secretDetectorManifest,

@@ -83,6 +83,15 @@ export const FIXED_SCRIPTS: Record<string, string> = {
   'net.neighbors': 'Get-NetNeighbor | Select-Object IPAddress,LinkLayerAddress,State,InterfaceAlias,AddressFamily',
   'net.routes': 'Get-NetRoute | Select-Object DestinationPrefix,NextHop,RouteMetric,InterfaceAlias,AddressFamily',
   'net.interfaces': 'Get-NetIPConfiguration | Select-Object InterfaceAlias,InterfaceDescription,IPv4Address,IPv6Address,IPv4DefaultGateway,DNSServer',
+  'task.list': `Get-ScheduledTask | ForEach-Object {
+  $task = $_
+  $info = Get-ScheduledTaskInfo -TaskName $task.TaskName -TaskPath $task.TaskPath -ErrorAction SilentlyContinue
+  [pscustomobject]@{ taskPath=$task.TaskPath; taskName=$task.TaskName; state=[string]$task.State; enabled=($task.State -ne 'Disabled'); lastRunTime=if ($info) { $info.LastRunTime.ToString('o') } else { $null }; nextRunTime=if ($info) { $info.NextRunTime.ToString('o') } else { $null }; lastTaskResult=if ($info) { $info.LastTaskResult } else { $null } }
+}`,
+  'task.detail': `$task = Get-ScheduledTask -TaskPath ([string]$DudeArgs.taskPath) -TaskName ([string]$DudeArgs.taskName) -ErrorAction Stop
+$info = Get-ScheduledTaskInfo -TaskName $task.TaskName -TaskPath $task.TaskPath -ErrorAction SilentlyContinue
+[pscustomobject]@{ taskPath=$task.TaskPath; taskName=$task.TaskName; state=[string]$task.State; enabled=($task.State -ne 'Disabled'); lastRunTime=if ($info) { $info.LastRunTime.ToString('o') } else { $null }; nextRunTime=if ($info) { $info.NextRunTime.ToString('o') } else { $null }; lastTaskResult=if ($info) { $info.LastTaskResult } else { $null }; triggers=@($task.Triggers | ForEach-Object { [pscustomobject]@{ type=$_.CimClass.CimClassName; enabled=$_.Enabled; startBoundary=$_.StartBoundary; endBoundary=$_.EndBoundary; repetition=$_.Repetition.Interval; daysOfWeek=$_.DaysOfWeek; weeksInterval=$_.WeeksInterval } }); actions=@($task.Actions | ForEach-Object { [pscustomobject]@{ type=$_.CimClass.CimClassName; execute=$_.Execute; arguments=$_.Arguments; workingDirectory=$_.WorkingDirectory; classId=$_.ClassId } }); principal=[pscustomobject]@{ userId=$task.Principal.UserId; groupId=$task.Principal.GroupId; logonType=[string]$task.Principal.LogonType; runLevel=[string]$task.Principal.RunLevel } }`,
+  'task.setEnabled': `if ([bool]$DudeArgs.enabled) { Enable-ScheduledTask -TaskPath ([string]$DudeArgs.taskPath) -TaskName ([string]$DudeArgs.taskName) -ErrorAction Stop | Out-Null } else { Disable-ScheduledTask -TaskPath ([string]$DudeArgs.taskPath) -TaskName ([string]$DudeArgs.taskName) -ErrorAction Stop | Out-Null }; [pscustomobject]@{ enabled=[bool]$DudeArgs.enabled }`,
 };
 
 export function buildFixedScriptCommand(name: string, args: unknown): string {
