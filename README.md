@@ -124,6 +124,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system changes | Desktop-only feature | ends, restarts, suspends, reprioritises and dumps processes through the desktop system mutation engine |
 | [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Regex Tester](https://arahman200165.github.io/DUDE/tools/regex) | Local LLM proxy | Desktop-only feature | AI-assisted explain/generate via a local LLM proxy, no cloud key required |
+| [Registry Editor](https://arahman200165.github.io/DUDE/tools/registry-editor) | Native Windows system access | Desktop-only feature | enumerates, searches and exports registry keys through the desktop system helper |
+| [Registry Editor](https://arahman200165.github.io/DUDE/tools/registry-editor) | Native Windows system changes | Desktop-only feature | creates keys and sets or deletes values through the desktop system mutation engine |
 | [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Certificate Revocation Inspector](https://arahman200165.github.io/DUDE/tools/revocation-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
@@ -154,7 +156,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-320 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+321 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -446,6 +448,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Regex Flavor Converter](https://arahman200165.github.io/DUDE/tools/regex-flavor-converter) | Developer | Translates a regex pattern between JavaScript, Python, Java, .NET, PCRE, and Go RE2 syntax, flagging constructs the target flavor cannot represent. |
 | [Regex Generator](https://arahman200165.github.io/DUDE/tools/regex-generator) | Developer | Generalizes a pattern from example strings (non-AI, heuristic), validated against every example and counter-example before being shown. |
 | [Regex Visualizer](https://arahman200165.github.io/DUDE/tools/regex-visualizer) | Developer | Renders a regular expression as a railroad syntax diagram. |
+| [Registry Editor](https://arahman200165.github.io/DUDE/tools/registry-editor) | Developer | Browse the Windows registry lazily, view values by type, search keys, value names and data with a bounded scan, export .reg files, diff a key against a snapshot or a .reg file, and create keys or set and delete values through a previewed, confirmed change. |
 | [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Developer | Resolve an IP address to PTR records. |
 | [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | Developer | Compare two network traces or before and after traces. |
 | [Runtime Detector](https://arahman200165.github.io/DUDE/tools/runtime-detector) | Developer | Find every installed developer runtime (Git, Node, Python, Java, .NET, Go, Rust, Docker and more) from PATH, known folders and the registry, see where each lives and which version manager shims it, and spot version conflicts. Live version probes run only when you preview and confirm them. |

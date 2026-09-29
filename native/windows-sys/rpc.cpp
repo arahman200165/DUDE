@@ -65,6 +65,8 @@ std::string handleLine(const std::string& line) {
   else if (method == "net.udp") ok = sys::handleNetUdp(result, err);
   else if (method == "reg.enumKey") ok = sys::handleRegEnumKey(params, result, err);
   else if (method == "reg.getValues") ok = sys::handleRegGetValues(params, result, err);
+  else if (method == "reg.search") ok = sys::handleRegSearch(params, result, err);
+  else if (method == "reg.export") ok = sys::handleRegExport(params, result, err);
   else if (method == "fs.probeDirs") ok = sys::handleFsProbeDirs(params, result, err);
   else if (method == "proc.terminate") ok = sys::handleProcTerminate(params, result, err);
   else if (method == "proc.tree") ok = sys::handleProcTree(params, result, err);
@@ -78,6 +80,7 @@ std::string handleLine(const std::string& line) {
   else if (method == "reg.setValue") ok = sys::handleRegSetValue(params, result, err);
   else if (method == "reg.deleteValue") ok = sys::handleRegDeleteValue(params, result, err);
   else if (method == "reg.createKey") ok = sys::handleRegCreateKey(params, result, err);
+  else if (method == "reg.deleteKeyIfEmpty") ok = sys::handleRegDeleteKeyIfEmpty(params, result, err);
   else if (method == "env.broadcast") ok = sys::handleEnvBroadcast(result, err);
   else return failureLine(id, sys::plainFailure("Unknown method."));
 

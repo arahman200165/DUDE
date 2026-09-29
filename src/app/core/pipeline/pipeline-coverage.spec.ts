@@ -37,6 +37,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'runtime-detector': 'detecting installed runtimes needs the desktop system helper, and its version probes execute programs only on an explicit user action, never invisibly in a pipeline',
   'path-editor': 'reading and editing the live Windows PATH needs the desktop system helper and a user-directed, previewed session, not an invisible pipeline step',
   'environment-variables': 'reading and editing the live Windows registry environment needs the desktop system helper and a user-directed, previewed session, not an invisible pipeline step',
+  'registry-editor': 'browsing and editing the live Windows registry needs the desktop system helper and a user-directed, previewed session, not an invisible pipeline step',
   'process-viewer': 'reading live Windows process state needs the desktop system helper and a user-directed session, not an invisible pipeline step',
   'port-process-lookup': 'reading live socket tables needs the desktop system helper and a user-directed session, and ending a process must never run invisibly in a pipeline',
   'certificate-watch-list': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',

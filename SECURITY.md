@@ -67,6 +67,7 @@ database-write) have no rows below until a tool claims them.
 | [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Network Scanning | experimental |
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Process Management | experimental |
 | [Python Playground](https://arahman200165.github.io/DUDE/tools/python-playground) | Code Execution | verified — Fuzz-tested the pure sandbox-event reducer for transcript and outcome shape. |
+| [Registry Editor](https://arahman200165.github.io/DUDE/tools/registry-editor) | Registry | experimental |
 | [Runtime Detector](https://arahman200165.github.io/DUDE/tools/runtime-detector) | Code Execution | experimental |
 | [Secret Detector](https://arahman200165.github.io/DUDE/tools/secret-detector) | Secret Management | verified — Fuzz-tested with generated text up to 5000 chars, asserting it never throws and never takes more than 500ms -- guards against regex catastrophic backtracking. |
 | [SSH Key Generator & Inspector](https://arahman200165.github.io/DUDE/tools/ssh-key-tools) | Crypto | verified — SHA256/MD5 fingerprints for Ed25519/RSA-2048/ECDSA-P256 keys matched byte-for-byte against real ssh-keygen output. |
@@ -166,6 +167,7 @@ browser sandbox.
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system access; Native Windows system changes; Native filesystem access |
 | [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | Native network diagnostics |
 | [Regex Tester](https://arahman200165.github.io/DUDE/tools/regex) | Local LLM proxy |
+| [Registry Editor](https://arahman200165.github.io/DUDE/tools/registry-editor) | Native Windows system access; Native Windows system changes |
 | [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Native network diagnostics |
 | [Certificate Revocation Inspector](https://arahman200165.github.io/DUDE/tools/revocation-inspector) | Native network diagnostics |
 | [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | Native network diagnostics |
@@ -240,6 +242,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system changes | Desktop-only feature | ends, restarts, suspends, reprioritises and dumps processes through the desktop system mutation engine |
 | [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Regex Tester](https://arahman200165.github.io/DUDE/tools/regex) | Local LLM proxy | Desktop-only feature | AI-assisted explain/generate via a local LLM proxy, no cloud key required |
+| [Registry Editor](https://arahman200165.github.io/DUDE/tools/registry-editor) | Native Windows system access | Desktop-only feature | enumerates, searches and exports registry keys through the desktop system helper |
+| [Registry Editor](https://arahman200165.github.io/DUDE/tools/registry-editor) | Native Windows system changes | Desktop-only feature | creates keys and sets or deletes values through the desktop system mutation engine |
 | [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Certificate Revocation Inspector](https://arahman200165.github.io/DUDE/tools/revocation-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |

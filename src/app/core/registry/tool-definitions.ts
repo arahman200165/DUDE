@@ -250,6 +250,7 @@ import { manifest as regexFlavorConverterManifest } from '../../tools/regex-flav
 import { manifest as regexGeneratorManifest } from '../../tools/regex-generator/regex-generator.manifest';
 import { manifest as regexVisualizerManifest } from '../../tools/regex-visualizer/regex-visualizer.manifest';
 import { manifest as regexManifest } from '../../tools/regex/regex.manifest';
+import { manifest as registryEditorManifest } from '../../tools/registry-editor/registry-editor.manifest';
 import { manifest as relativeTimeParserManifest } from '../../tools/relative-time-parser/relative-time-parser.manifest';
 import { manifest as resolutionCalculatorManifest } from '../../tools/resolution-calculator/resolution-calculator.manifest';
 import { manifest as resxToolManifest } from '../../tools/resx-tool/resx-tool.manifest';
@@ -572,6 +573,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   regexGeneratorManifest,
   regexVisualizerManifest,
   regexManifest,
+  registryEditorManifest,
   relativeTimeParserManifest,
   resolutionCalculatorManifest,
   resxToolManifest,

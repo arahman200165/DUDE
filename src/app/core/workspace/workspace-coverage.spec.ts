@@ -40,6 +40,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'runtime-detector': 'the detected runtimes and any version probe results are desktop-only session state, not restorable renderer content',
   'path-editor': 'the live PATH, its directory probes and any open edit or preview are desktop-only session state, not restorable renderer content',
   'environment-variables': 'the live registry environment and any open edit or preview are desktop-only session state, not restorable renderer content',
+  'registry-editor': 'the live registry tree, search results and any open edit or preview are desktop-only session state, not restorable renderer content',
   'process-viewer': 'the live process list and selection are desktop-only session state, not restorable renderer content',
   'port-process-lookup': 'the live socket table and selection are desktop-only session state, not restorable renderer content',
   'certificate-watch-list': 'the watch list is a live monitoring dashboard whose state lives in the main process, not restorable renderer content',

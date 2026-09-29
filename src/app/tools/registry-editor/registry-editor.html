@@ -1,0 +1,205 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning/40 bg-warning/5 p-4 text-ui text-text-muted">
+      Registry Editor browses the Windows registry lazily, shows values by type, searches keys, value names and data, exports .reg files, diffs a key against a snapshot or a .reg file, and creates keys or sets and deletes values through a previewed change. It reads and writes the registry through the Windows desktop app, so it needs Desktop DUDE.
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <app-desktop-only-control capability="native-system" label="Browse, search and export the registry" />
+      <app-desktop-only-control capability="native-system-write" label="Create keys, set or delete values" />
+    </div>
+  } @else {
+    <div class="flex flex-col gap-2 text-ui">
+      <div class="flex flex-wrap items-center gap-2">
+        <input class="min-w-64 flex-1 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" aria-label="Registry path" placeholder="HKLM\SOFTWARE\..., Computer\HKEY_LOCAL_MACHINE\... or HKLM:\SOFTWARE\..." data-testid="path" [value]="pathInput()" (input)="pathInput.set(asInput($event))" (keydown.enter)="go()" />
+        <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" data-testid="go" (click)="go()">Go</button>
+        <label class="flex items-center gap-1 text-text-muted">Registry view
+          <select class="rounded-sm border border-border bg-panel px-1 py-0.5 text-text" aria-label="Registry view" data-testid="view" (change)="setView($any(asInput($event)))">
+            <option value="default" [selected]="view() === 'default'">Default</option>
+            <option value="64" [selected]="view() === '64'">64-bit</option>
+            <option value="32" [selected]="view() === '32'">32-bit (WOW64)</option>
+          </select>
+        </label>
+        @if (selected()) {
+          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" data-testid="favorite" [attr.aria-pressed]="isFavorite()" (click)="toggleFavorite()">{{ isFavorite() ? 'Remove favorite' : 'Add favorite' }}</button>
+        }
+      </div>
+      @if (pathError()) { <div role="alert" class="flex items-center gap-1 text-error"><app-status-glyph kind="error" />{{ pathError() }}</div> }
+      @if (favorites().length) {
+        <div class="flex flex-wrap items-center gap-1 text-ui-xs" aria-label="Favorites" role="group">
+          <span class="text-text-muted">Favorites</span>
+          @for (f of favorites(); track f) {
+            <button type="button" class="max-w-72 truncate rounded-sm border border-border px-1.5 py-0.5 font-mono text-text hover:bg-panel-elevated" [title]="f" (click)="openFavorite(f)">{{ f }}</button>
+          }
+        </div>
+      }
+      @if (error()) { <div role="alert" class="flex items-center gap-1 rounded-sm border border-error/50 bg-error/5 p-2 text-error" data-testid="error"><app-status-glyph kind="error" />{{ error() }}</div> }
+      @if (message()) { <div role="status" class="flex items-center gap-1 text-success" data-testid="message"><app-status-glyph kind="success" />{{ message() }}</div> }
+
+      <div class="grid gap-2 md:grid-cols-[minmax(14rem,24rem)_1fr]">
+        <div class="h-[64vh] overflow-auto rounded-sm border border-border bg-panel p-1" data-testid="tree">
+          <ul role="tree" aria-label="Registry keys" class="flex flex-col">
+            @for (row of rows(); track row.id) {
+              <li role="treeitem" class="list-none" [attr.aria-level]="row.depth + 1" [attr.aria-expanded]="row.expandable ? row.expanded : null" [attr.aria-selected]="selected() && selectedPath() === (row.ref.path ? row.ref.hive + '\\' + row.ref.path : row.ref.hive)">
+                <div class="flex items-center gap-1 font-mono text-ui-xs" [style.padding-left.rem]="row.depth * 0.9">
+                  @if (row.expandable) {
+                    <button type="button" class="w-4 shrink-0 text-text-muted hover:text-text" [attr.aria-label]="(row.expanded ? 'Collapse ' : 'Expand ') + row.label" [attr.data-testid]="'toggle-' + row.id" (click)="toggle(row)">{{ row.loading ? '…' : row.expanded ? '▾' : '▸' }}</button>
+                  } @else { <span class="w-4 shrink-0"></span> }
+                  <button type="button" class="truncate text-left hover:bg-panel-elevated" [class.text-accent]="selectedPath() === (row.ref.path ? row.ref.hive + '\\' + row.ref.path : row.ref.hive)" [class.text-text]="selectedPath() !== (row.ref.path ? row.ref.hive + '\\' + row.ref.path : row.ref.hive)" [attr.data-testid]="'key-' + row.id" (click)="select(row.ref)">{{ row.label }}</button>
+                </div>
+                @if (row.error) { <div class="text-ui-xs text-error" [style.padding-left.rem]="row.depth * 0.9 + 1.25">{{ row.error }}</div> }
+              </li>
+            }
+          </ul>
+          <p class="p-1 text-ui-xs text-text-muted">HKEY_USERS lists each loaded user profile by SID.</p>
+        </div>
+
+        <div class="flex min-w-0 flex-col gap-2">
+          @if (selected(); as sel) {
+            <div class="flex flex-wrap items-center gap-2 rounded-sm border border-border bg-panel p-2">
+              <span class="min-w-0 flex-1 truncate font-mono text-text" data-testid="selected-path" [title]="selectedPath()">{{ selectedPath() }}</span>
+              <app-copy-button [text]="selectedPath()" label="Copy key path" />
+              <app-copy-button [text]="regExe()" label="Copy as reg.exe" />
+              <app-copy-button [text]="powerShell()" label="Copy as PowerShell" />
+            </div>
+
+            <div class="flex" role="tablist" aria-label="Panel">
+              @for (p of [['values', 'Values'], ['search', 'Search'], ['diff', 'Compare & export']]; track p[0]) {
+                <button type="button" role="tab" class="border border-border px-2 py-0.5 hover:bg-panel-elevated" [class.rounded-l-sm]="$first" [class.rounded-r-sm]="$last" [class.border-l-0]="!$first" [class.text-accent]="panel() === p[0]" [class.text-text]="panel() !== p[0]" [attr.aria-selected]="panel() === p[0]" [attr.data-testid]="'panel-' + p[0]" (click)="p[0] === 'diff' ? openDiff() : panel.set($any(p[0]))">{{ p[1] }}</button>
+              }
+            </div>
+          }
+
+          @if (panel() === 'values') {
+            <app-elevation-banner [required]="elevationNeeded()" feature="Editing this registry location" />
+            @if (selected()) {
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated disabled:opacity-50" data-testid="new-value" [disabled]="!selected()!.path" (click)="startNewValue()">New value…</button>
+                <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated disabled:opacity-50" data-testid="edit-value" [disabled]="!selectedValue()" (click)="startEditValue()">Edit value…</button>
+                <button type="button" class="rounded-sm border border-warning px-2 py-0.5 text-warning disabled:opacity-50" data-testid="delete-value" [disabled]="!selectedValue() || planning()" (click)="previewDelete()">Delete value…</button>
+                <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" data-testid="new-key" (click)="newKeyOpen.set(true); editor.set(null)">New key…</button>
+                <app-desktop-only-control capability="native-system-write" label="Create keys, set or delete values" />
+                @if (selectedValue(); as sv) { <span class="text-ui-xs text-text-muted">Selected: <span class="font-mono text-text">{{ sv.label }}</span></span> }
+              </div>
+            }
+
+            @if (editor(); as e) {
+              <div class="flex flex-col gap-2 rounded-sm border border-border bg-panel p-2" data-testid="editor">
+                <div class="flex flex-wrap items-center gap-2">
+                  <label class="flex items-center gap-1 text-text-muted">Name
+                    <input class="w-56 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text disabled:opacity-60" aria-label="Value name" placeholder="(Default) when empty" data-testid="editor-name" [disabled]="e.kind === 'edit'" [value]="e.name" (input)="patchEditor({ name: asInput($event) })" />
+                  </label>
+                  <label class="flex items-center gap-1 text-text-muted">Type
+                    <select class="rounded-sm border border-border bg-panel px-1 py-1 text-text" aria-label="Value type" data-testid="editor-type" (change)="patchEditor({ type: $any(asInput($event)) })">
+                      @for (t of editableTypes; track t) { <option [value]="t" [selected]="e.type === t">{{ t }}</option> }
+                    </select>
+                  </label>
+                </div>
+                <textarea class="min-h-16 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" aria-label="Value data" data-testid="editor-data" [value]="e.text" (input)="patchEditor({ text: asInput($event) })"></textarea>
+                <p class="text-ui-xs text-text-muted">Multi-string: one entry per line. DWORD/QWORD: decimal or 0x hex. Binary: hex bytes.</p>
+                @if (editorError()) { <div role="alert" class="flex items-center gap-1 text-error"><app-status-glyph kind="error" />{{ editorError() }}</div> }
+                <div class="flex items-center gap-2">
+                  <button type="button" class="rounded-sm border border-warning px-2 py-0.5 text-warning disabled:opacity-50" data-testid="editor-preview" [disabled]="planning()" (click)="previewSet()">Preview…</button>
+                  <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" data-testid="editor-cancel" (click)="editor.set(null)">Cancel</button>
+                </div>
+              </div>
+            }
+
+            @if (newKeyOpen()) {
+              <div class="flex flex-col gap-2 rounded-sm border border-border bg-panel p-2" data-testid="new-key-form">
+                <label class="flex items-center gap-1 text-text-muted">New subkey of <span class="font-mono text-text">{{ selectedPath() }}</span>
+                  <input class="w-56 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" aria-label="New key name" data-testid="new-key-name" [value]="newKeyName()" (input)="newKeyName.set(asInput($event))" />
+                </label>
+                @if (editorError()) { <div role="alert" class="flex items-center gap-1 text-error"><app-status-glyph kind="error" />{{ editorError() }}</div> }
+                <div class="flex items-center gap-2">
+                  <button type="button" class="rounded-sm border border-warning px-2 py-0.5 text-warning disabled:opacity-50" data-testid="new-key-preview" [disabled]="planning()" (click)="previewNewKey()">Preview…</button>
+                  <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" (click)="newKeyOpen.set(false)">Cancel</button>
+                </div>
+              </div>
+            }
+
+            @if (planning()) { <div class="flex items-center gap-1 text-accent" role="status"><app-status-glyph kind="busy" />Building preview…</div> }
+            <app-system-change-preview [preview]="preview()" (applied)="onApplied($event)" (discarded)="preview.set(null)" />
+
+            @if (selected(); as sel) {
+              <div class="h-[40vh] rounded-sm border border-border bg-panel">
+                @if (valuesLoading()) {
+                  <div class="p-4 text-text-muted" role="status">Reading values…</div>
+                } @else if (!sel.path) {
+                  <div class="p-4 text-text-muted">Hives have no values. Expand a key to browse.</div>
+                } @else {
+                  <app-data-table [columns]="valueColumns" [rows]="valueRows()" [trackByFn]="trackValue" [dense]="true" ariaLabel="Registry values" (rowOpened)="selectValue($event)" />
+                }
+              </div>
+            } @else {
+              <div class="rounded-sm border border-border bg-panel p-4 text-text-muted">Select a key in the tree, or type a path above, to see its values.</div>
+            }
+          } @else if (panel() === 'search') {
+            <div class="flex flex-col gap-2" data-testid="search">
+              <div class="text-ui-xs text-text-muted" data-testid="search-scope">Searching under <span class="font-mono text-text">{{ searchScope() }}</span>. The scan is bounded by a match limit and a time budget.</div>
+              <div class="flex flex-wrap items-center gap-2">
+                <input class="min-w-48 flex-1 rounded-sm border border-border bg-panel px-2 py-1 text-text" type="search" aria-label="Search text" placeholder="Search text" data-testid="search-query" [value]="query()" (input)="query.set(asInput($event))" (keydown.enter)="runSearch()" />
+                <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="regex()" (change)="regex.set(asChecked($event))" />regex</label>
+                <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="matchKeys()" (change)="matchKeys.set(asChecked($event))" />keys</label>
+                <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="matchNames()" (change)="matchNames.set(asChecked($event))" />value names</label>
+                <label class="flex items-center gap-1 text-text"><input type="checkbox" [checked]="matchData()" (change)="matchData.set(asChecked($event))" />value data</label>
+                <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-accent hover:bg-panel-elevated disabled:opacity-50" data-testid="search-run" [disabled]="searching() || !query().trim()" (click)="runSearch()">Search</button>
+              </div>
+              @if (searching()) { <div class="flex items-center gap-1 text-accent" role="status"><app-status-glyph kind="busy" />Searching…</div> }
+              @if (searchResult(); as r) {
+                <div class="text-ui-xs text-text-muted" data-testid="search-summary">{{ r.matches.length }} matches, {{ r.keysScanned }} keys scanned.
+                  @if (r.truncated) { <span class="text-warning" data-testid="search-truncated">Stopped early at the match limit or time budget; narrow the scope to see more.</span> }
+                </div>
+                <ul class="flex max-h-[48vh] flex-col overflow-auto rounded-sm border border-border bg-panel">
+                  @for (m of r.matches; track $index) {
+                    <li class="border-b border-border last:border-b-0">
+                      <button type="button" class="flex w-full flex-col items-start px-2 py-1 text-left hover:bg-panel-elevated" data-testid="search-hit" (click)="jump(m)">
+                        <span class="font-mono text-ui-xs text-text">{{ m.keyPath }}</span>
+                        <span class="text-ui-xs text-text-muted">{{ matchLabel(m) }}@if (m.preview) { = {{ m.preview }} }</span>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          } @else {
+            <div class="flex flex-col gap-3" data-testid="diff">
+              <div class="flex flex-wrap items-center gap-2 rounded-sm border border-border bg-panel p-2">
+                <label class="flex items-center gap-1 text-text">Export <input type="checkbox" [checked]="recursive()" (change)="recursive.set(asChecked($event))" data-testid="export-recursive" />with subkeys</label>
+                <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" data-testid="export" (click)="exportReg()">Export .reg…</button>
+                <span class="ml-auto flex items-center gap-1">
+                  <input class="w-40 rounded-sm border border-border bg-panel px-2 py-0.5 text-text" aria-label="Snapshot name" placeholder="Snapshot name" data-testid="snapshot-name" [value]="snapshotName()" (input)="snapshotName.set(asInput($event))" />
+                  <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" data-testid="save-snapshot" (click)="saveSnapshot()">Save key as snapshot</button>
+                </span>
+              </div>
+              <div class="flex flex-col gap-2 rounded-sm border border-border bg-panel p-2">
+                <div class="text-text-muted">Compare <span class="font-mono text-text">{{ selectedPath() }}</span> (live) against</div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <select class="rounded-sm border border-border bg-panel px-1 py-0.5 text-text" aria-label="Compare against" data-testid="diff-source" (change)="diffSource.set($any(asInput($event)))">
+                    <option value="snapshot" [selected]="diffSource() === 'snapshot'">a saved snapshot</option>
+                    <option value="file" [selected]="diffSource() === 'file'">an imported .reg file</option>
+                  </select>
+                  @if (diffSource() === 'snapshot') {
+                    <select class="rounded-sm border border-border bg-panel px-1 py-0.5 text-text" aria-label="Snapshot" data-testid="diff-snapshot" (change)="snapshotId.set(asInput($event))">
+                      <option value="">Choose a snapshot…</option>
+                      @for (h of snapshotChoices(); track h.id) { <option [value]="h.id" [selected]="snapshotId() === h.id">{{ h.name }} ({{ h.createdAt.slice(0, 10) }})</option> }
+                    </select>
+                  } @else {
+                    <input type="file" accept=".reg,text/plain" aria-label="Import a .reg file" data-testid="diff-file" class="text-text" (change)="onRegFile($event)" />
+                  }
+                  <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-accent hover:bg-panel-elevated" data-testid="run-compare" (click)="compare()">Compare</button>
+                </div>
+              </div>
+              @if (diffError()) { <div role="alert" class="flex items-center gap-1 text-error"><app-status-glyph kind="error" />{{ diffError() }}</div> }
+              @if (diffView(); as dv) {
+                <div class="flex flex-col gap-2" data-testid="diff-result">
+                  <div class="text-ui-xs text-text-muted">{{ diffLabel() }}</div>
+                  <app-diff-view [entries]="dv.entries" [summary]="dv.summary" />
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</app-tool-shell>

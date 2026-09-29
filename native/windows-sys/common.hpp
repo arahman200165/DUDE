@@ -98,6 +98,8 @@ bool handleNetTcp(std::string& result, Failure& err);
 bool handleNetUdp(std::string& result, Failure& err);
 bool handleRegEnumKey(const JsonValue* params, std::string& result, Failure& err);
 bool handleRegGetValues(const JsonValue* params, std::string& result, Failure& err);
+bool handleRegSearch(const JsonValue* params, std::string& result, Failure& err);
+bool handleRegExport(const JsonValue* params, std::string& result, Failure& err);
 bool handleFsProbeDirs(const JsonValue* params, std::string& result, Failure& err);
 // Mutating process operations (process_ops.cpp), reached only from confirmed engine plans.
 bool handleProcTerminate(const JsonValue* params, std::string& result, Failure& err);
@@ -113,6 +115,7 @@ bool handleProcDump(const JsonValue* params, std::string& result, Failure& err);
 bool handleRegSetValue(const JsonValue* params, std::string& result, Failure& err);
 bool handleRegDeleteValue(const JsonValue* params, std::string& result, Failure& err);
 bool handleRegCreateKey(const JsonValue* params, std::string& result, Failure& err);
+bool handleRegDeleteKeyIfEmpty(const JsonValue* params, std::string& result, Failure& err);
 bool handleEnvBroadcast(std::string& result, Failure& err);
 
 }  // namespace sys

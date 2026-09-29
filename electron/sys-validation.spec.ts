@@ -105,4 +105,24 @@ describe('validateSysCall', () => {
       for (const bad of [undefined, {}, [], { path: 'C:\\a', extra: 1 }, { file: 'C:\\a' }]) expect(() => validateSysCall(method, bad)).toThrow();
     }
   });
+
+  it('validates reg.search params with optional flags and limits', () => {
+    const search = (over: Record<string, unknown> = {}) => ({ ...reg(), query: 'foo', ...over });
+    expect(validateSysCall('reg.search', search()).params).toEqual(search());
+    const full = search({ regex: true, caseSensitive: false, matchKeys: true, matchValueNames: false, matchValueData: true, limit: 50, timeBudgetMs: 2000 });
+    expect(validateSysCall('reg.search', full).params).toEqual(full);
+    for (const bad of [
+      undefined, [], reg(), search({ query: '' }), search({ query: 'x'.repeat(1025) }), search({ query: 5 }), search({ extra: 1 }),
+      search({ regex: 'yes' }), search({ limit: 0 }), search({ limit: 1.5 }), search({ timeBudgetMs: -1 }), search({ hive: 'HKXX' }),
+      search({ view: '16' }), search({ path: '\bad' }), search({ recursive: true }),
+    ]) expect(() => validateSysCall('reg.search', bad)).toThrow();
+  });
+
+  it('validates reg.export params', () => {
+    expect(validateSysCall('reg.export', reg()).params).toEqual(reg());
+    expect(validateSysCall('reg.export', reg({ recursive: false })).params).toEqual(reg({ recursive: false }));
+    for (const bad of [undefined, [], reg({ recursive: 'no' }), reg({ query: 'x' }), reg({ hive: 'nope' }), reg({ view: 'x' }), { hive: 'HKLM', view: 'default' }]) {
+      expect(() => validateSysCall('reg.export', bad)).toThrow();
+    }
+  });
 });

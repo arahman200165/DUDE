@@ -229,6 +229,32 @@ bool handleRegCreateKey(const JsonValue* params, std::string& result, Failure& e
   return true;
 }
 
+// Deletes a key only when it has no subkeys and no values (the undo of a key this tool created).
+bool handleRegDeleteKeyIfEmpty(const JsonValue* params, std::string& result, Failure& err) {
+  KeyRef k;
+  if (!parseKeyRef(params, k) || k.path.empty()) { err = plainFailure("Invalid parameters."); return false; }
+  if (isProtectedLocation(k, nullptr)) return denied(err);
+  HKEY key = nullptr;
+  LONG rc = RegOpenKeyExW(k.hive, k.path.c_str(), 0, KEY_QUERY_VALUE | k.viewFlag, &key);
+  if (rc == ERROR_FILE_NOT_FOUND || rc == ERROR_PATH_NOT_FOUND) {
+    err = plainFailure("The key does not exist.");
+    err.code = ERROR_FILE_NOT_FOUND;
+    err.hasCode = true;
+    return false;
+  }
+  if (rc != ERROR_SUCCESS) { err = win32Failure((DWORD)rc); return false; }
+  DWORD subkeys = 0, values = 0;
+  rc = RegQueryInfoKeyW(key, nullptr, nullptr, nullptr, &subkeys, nullptr, nullptr, &values, nullptr, nullptr, nullptr, nullptr);
+  RegCloseKey(key);
+  if (rc != ERROR_SUCCESS) { err = win32Failure((DWORD)rc); return false; }
+  if (subkeys != 0 || values != 0) { err = plainFailure("The key is not empty."); return false; }
+  // RegDeleteKeyExW refuses keys that still have subkeys, so this can never delete recursively.
+  rc = RegDeleteKeyExW(k.hive, k.path.c_str(), k.viewFlag, 0);
+  if (rc != ERROR_SUCCESS) { err = win32Failure((DWORD)rc); return false; }
+  result = "{\"ok\":true}";
+  return true;
+}
+
 bool handleEnvBroadcast(std::string& result, Failure& err) {
   DWORD_PTR ignored = 0;
   SetLastError(0);

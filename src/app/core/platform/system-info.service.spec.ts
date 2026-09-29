@@ -75,4 +75,15 @@ describe('SystemInfoService', () => {
     expect(new SystemCallError('x', 2).accessDenied).toBe(false);
     expect(new SystemCallError('x').accessDenied).toBe(false);
   });
+
+  it('forwards registry search and export', async () => {
+    const call = vi.fn(async () => ({ ok: true as const, data: { matches: [], truncated: false, keysScanned: 0 } }));
+    installBridge(fakeElectronBridge({ sys: { ...fakeElectronBridge().sys, call: call as never } }));
+    const service = TestBed.inject(SystemInfoService);
+    const key = { hive: 'HKCU' as const, path: 'Software', view: 'default' as const };
+    await service.searchRegistry({ ...key, query: 'foo', limit: 10 });
+    expect(call).toHaveBeenLastCalledWith('reg.search', { ...key, query: 'foo', limit: 10 });
+    await service.exportRegistry({ ...key, recursive: false });
+    expect(call).toHaveBeenLastCalledWith('reg.export', { ...key, recursive: false });
+  });
 });

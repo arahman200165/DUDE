@@ -11,7 +11,7 @@
 /** Renderer-callable read methods. Grows one milestone at a time; main rejects anything else. */
 export const SYS_READ_METHODS = [
   'helper.info', 'process.list', 'process.detail', 'process.modules', 'process.threads', 'process.handles',
-  'file.version', 'file.signature', 'svc.list', 'net.tcp', 'net.udp', 'reg.enumKey', 'reg.getValues', 'fs.probeDirs',
+  'file.version', 'file.signature', 'svc.list', 'net.tcp', 'net.udp', 'reg.enumKey', 'reg.getValues', 'fs.probeDirs', 'reg.search', 'reg.export',
 ] as const;
 export type SysReadMethod = (typeof SYS_READ_METHODS)[number];
 
@@ -244,6 +244,62 @@ export interface RegistryValuesResult {
   readonly values: readonly RegistryValue[];
 }
 
+// ---- reg.search (bounded, non-recursive-safe registry search) ----------------------------------
+
+export interface RegistrySearchParams {
+  readonly hive: RegistryHive;
+  /** Subkey to search under ('' = hive root). */
+  readonly path: string;
+  readonly view: RegistryView;
+  /** The search text (or regex source when `regex` is set). */
+  readonly query: string;
+  readonly regex?: boolean;
+  readonly caseSensitive?: boolean;
+  /** What to match against. At least one should be true; the helper defaults to all three. */
+  readonly matchKeys?: boolean;
+  readonly matchValueNames?: boolean;
+  readonly matchValueData?: boolean;
+  /** Stop after this many matches (helper caps it, e.g. 5000). */
+  readonly limit?: number;
+  /** Stop after roughly this many milliseconds of scanning (helper caps it, e.g. 10000). */
+  readonly timeBudgetMs?: number;
+}
+
+export interface RegistrySearchMatch {
+  /** Full path of the key the match is in, e.g. `HKLM\SOFTWARE\Foo`. */
+  readonly keyPath: string;
+  /** 'key' = the key name matched; 'value-name'/'value-data' = a value under the key matched. */
+  readonly matchIn: 'key' | 'value-name' | 'value-data';
+  /** The value name when matchIn is a value ('' = default value). */
+  readonly valueName?: string;
+  readonly valueType?: RegistryValueType;
+  /** A short preview of the matched value's data. */
+  readonly preview?: string;
+}
+
+export interface RegistrySearchResult {
+  readonly matches: readonly RegistrySearchMatch[];
+  /** True when the scan stopped at the match limit or time budget before finishing. */
+  readonly truncated: boolean;
+  readonly keysScanned: number;
+}
+
+// ---- reg.export (REGEDIT5 .reg text) -----------------------------------------------------------
+
+export interface RegistryExportParams {
+  readonly hive: RegistryHive;
+  readonly path: string;
+  readonly view: RegistryView;
+  /** Include all descendant keys (default true). */
+  readonly recursive?: boolean;
+}
+
+export interface RegistryExportResult {
+  /** UTF-16 REGEDIT5 `.reg` text (as a UTF-8 string here; the caller writes the file). */
+  readonly text: string;
+  readonly keysExported: number;
+}
+
 // ---- method → params/result map ----------------------------------------------------------------
 
 export interface SysMethodMap {
@@ -261,6 +317,8 @@ export interface SysMethodMap {
   'reg.enumKey': { params: RegistryKeyParams; result: RegistryEnumResult };
   'reg.getValues': { params: RegistryKeyParams; result: RegistryValuesResult };
   'fs.probeDirs': { params: ProbeDirsParams; result: ProbeDirsResult };
+  'reg.search': { params: RegistrySearchParams; result: RegistrySearchResult };
+  'reg.export': { params: RegistryExportParams; result: RegistryExportResult };
 }
 
 // ---- fs.probeDirs (PATH directory probe for the PATH Editor & Conflict Detector) ----------------

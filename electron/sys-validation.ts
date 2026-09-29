@@ -17,7 +17,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return proto === Object.prototype || proto === null;
 }
 
-function validateRegistryPath(path: unknown): string {
+export function validateRegistryPath(path: unknown): string {
   if (typeof path !== 'string') throw new Error('Registry path must be a string.');
   if (path.length > MAX_PATH) throw new Error('Registry path is too long.');
   if (/[\u0000-\u001f]/.test(path)) throw new Error('Registry path contains control characters.');
@@ -46,6 +46,41 @@ function validateFilePath(path: unknown): string {
   if (/[\u0000-\u001f\u007f]/.test(path)) throw new Error('File path contains control characters.');
   if (!/^(?:[A-Za-z]:[\\/]|\\\\[^\\])/.test(path)) throw new Error('File path must be an absolute Windows path.');
   return path;
+}
+
+const SEARCH_FLAGS = ['regex', 'caseSensitive', 'matchKeys', 'matchValueNames', 'matchValueData'] as const;
+const SEARCH_KEYS: readonly string[] = ['hive', 'path', 'view', 'query', 'limit', 'timeBudgetMs', ...SEARCH_FLAGS];
+const EXPORT_KEYS: readonly string[] = ['hive', 'path', 'view', 'recursive'];
+const MAX_QUERY = 1024;
+
+function validateRegistryScan(name: 'reg.search' | 'reg.export', params: unknown): object {
+  if (!isPlainObject(params)) throw new Error('Registry parameters must be an object.');
+  const allowed = name === 'reg.search' ? SEARCH_KEYS : EXPORT_KEYS;
+  for (const key of Object.keys(params)) if (!allowed.includes(key)) throw new Error(`Unknown registry parameter: ${key}.`);
+  if (typeof params['hive'] !== 'string' || !(REGISTRY_HIVES as readonly string[]).includes(params['hive'])) throw new Error('Unknown registry hive.');
+  if (typeof params['view'] !== 'string' || !VIEWS.includes(params['view'])) throw new Error('Unknown registry view.');
+  const out: Record<string, unknown> = { hive: params['hive'], path: validateRegistryPath(params['path']), view: params['view'] };
+  const optionalBoolean = (key: string): void => {
+    const value = params[key];
+    if (value === undefined) return;
+    if (typeof value !== 'boolean') throw new Error(`Registry parameter ${key} must be a boolean.`);
+    out[key] = value;
+  };
+  if (name === 'reg.export') {
+    optionalBoolean('recursive');
+    return out;
+  }
+  const query = params['query'];
+  if (typeof query !== 'string' || query.length < 1 || query.length > MAX_QUERY) throw new Error('Search query must be 1 to 1024 characters.');
+  out['query'] = query;
+  for (const flag of SEARCH_FLAGS) optionalBoolean(flag);
+  for (const key of ['limit', 'timeBudgetMs']) {
+    const value = params[key];
+    if (value === undefined) continue;
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) throw new Error(`Registry parameter ${key} must be a positive integer.`);
+    out[key] = value;
+  }
+  return out;
 }
 
 /** Validates a renderer-supplied system call; throws a short `Error` on anything invalid. */
@@ -85,6 +120,7 @@ export function validateSysCall(method: unknown, params: unknown): { method: Sys
     }
     return { method: name, params: out };
   }
+  if (name === 'reg.search' || name === 'reg.export') return { method: name, params: validateRegistryScan(name, params) };
   if (!REGISTRY_METHODS.includes(name)) {
     if (params === undefined || params === null) return { method: name, params: {} };
     if (!isPlainObject(params) || Object.keys(params).length > 0) throw new Error('This method takes no parameters.');
