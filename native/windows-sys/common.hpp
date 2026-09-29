@@ -108,5 +108,10 @@ bool handleProcSetAffinity(const JsonValue* params, std::string& result, Failure
 bool handleProcStartInfo(const JsonValue* params, std::string& result, Failure& err);
 bool handleProcCreate(const JsonValue* params, std::string& result, Failure& err);
 bool handleProcDump(const JsonValue* params, std::string& result, Failure& err);
+// Mutating registry / environment operations (registry_ops.cpp), reached only from confirmed engine plans.
+bool handleRegSetValue(const JsonValue* params, std::string& result, Failure& err);
+bool handleRegDeleteValue(const JsonValue* params, std::string& result, Failure& err);
+bool handleRegCreateKey(const JsonValue* params, std::string& result, Failure& err);
+bool handleEnvBroadcast(std::string& result, Failure& err);
 
 }  // namespace sys

@@ -74,6 +74,10 @@ std::string handleLine(const std::string& line) {
   else if (method == "proc.startInfo") ok = sys::handleProcStartInfo(params, result, err);
   else if (method == "proc.create") ok = sys::handleProcCreate(params, result, err);
   else if (method == "proc.dump") ok = sys::handleProcDump(params, result, err);
+  else if (method == "reg.setValue") ok = sys::handleRegSetValue(params, result, err);
+  else if (method == "reg.deleteValue") ok = sys::handleRegDeleteValue(params, result, err);
+  else if (method == "reg.createKey") ok = sys::handleRegCreateKey(params, result, err);
+  else if (method == "env.broadcast") ok = sys::handleEnvBroadcast(result, err);
   else return failureLine(id, sys::plainFailure("Unknown method."));
 
   if (!ok) return failureLine(id, err);

@@ -1,0 +1,131 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning/40 bg-warning/5 p-4 text-ui text-text-muted">
+      Environment Variables shows the user, machine and volatile variables of this Windows PC, raw and expanded, lets you add, edit or delete them through a previewed change, and diffs two environments. It reads and writes the registry through the Windows desktop app, so it needs Desktop DUDE.
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <app-desktop-only-control capability="native-system" label="Read environment variables" />
+      <app-desktop-only-control capability="native-system-write" label="Add, edit or delete a variable" />
+    </div>
+  } @else {
+    <div class="flex flex-col gap-2 text-ui">
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div class="flex" role="group" aria-label="Mode">
+          <button type="button" class="rounded-l-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" [class.text-accent]="mode() === 'variables'" [class.text-text]="mode() !== 'variables'" [attr.aria-pressed]="mode() === 'variables'" data-testid="mode-variables" (click)="mode.set('variables')">Variables</button>
+          <button type="button" class="rounded-r-sm border border-l-0 border-border px-2 py-0.5 hover:bg-panel-elevated" [class.text-accent]="mode() === 'compare'" [class.text-text]="mode() !== 'compare'" [attr.aria-pressed]="mode() === 'compare'" data-testid="mode-compare" (click)="openCompare()">Compare…</button>
+        </div>
+        <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" data-testid="reload" (click)="reload()">Reload</button>
+      </div>
+
+      <p class="text-ui-xs text-text-muted">Changes affect new processes only (Windows is notified with WM_SETTINGCHANGE); programs and shells that are already running keep their current environment.</p>
+
+      @if (error()) { <div role="alert" class="flex items-center gap-1 rounded-sm border border-error/50 bg-error/5 p-2 text-error"><app-status-glyph kind="error" />{{ error() }}</div> }
+      @if (message()) { <div role="status" class="flex items-center gap-1 text-success" data-testid="message"><app-status-glyph kind="success" />{{ message() }}</div> }
+
+      @if (mode() === 'variables') {
+        <app-elevation-banner [required]="scope() === 'machine'" feature="Editing machine environment variables" />
+
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="flex" role="tablist" aria-label="Scope">
+            @for (s of scopes; track s) {
+              <button type="button" role="tab" class="border border-border px-2 py-0.5 hover:bg-panel-elevated" [class.rounded-l-sm]="$first" [class.rounded-r-sm]="$last" [class.border-l-0]="!$first" [class.text-accent]="scope() === s" [class.text-text]="scope() !== s" [attr.aria-selected]="scope() === s" [attr.data-testid]="'scope-' + s" (click)="setScope(s)">{{ label[s] }}</button>
+            }
+          </div>
+          <input class="min-w-48 flex-1 rounded-sm border border-border bg-panel px-2 py-1 text-text" type="search" aria-label="Filter variables" placeholder="Filter by name or value" data-testid="filter" [value]="query()" (input)="query.set($any($event.target).value)" />
+          <span class="text-ui-xs text-text-muted" data-testid="count">{{ filtered().length }} of {{ rows().length }} variables</span>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          @if (editable()) {
+            <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" data-testid="add" (click)="startAdd()">Add…</button>
+            <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated disabled:opacity-50" data-testid="edit" [disabled]="!selected()" (click)="startEdit()">Edit…</button>
+            <button type="button" class="rounded-sm border border-warning px-2 py-0.5 text-warning disabled:opacity-50" data-testid="delete" [disabled]="!selected() || planning()" (click)="previewDelete()">Delete…</button>
+          } @else {
+            <span class="text-ui-xs text-text-muted">Volatile variables are created by Windows at sign-in and are read-only here.</span>
+          }
+          <app-desktop-only-control capability="native-system-write" label="Add, edit or delete a variable" />
+          @if (selected(); as sel) { <span class="text-ui-xs text-text-muted">Selected: <span class="font-mono text-text">{{ sel.name }}</span></span> }
+          <span class="ml-auto flex items-center gap-1">
+            <input class="w-40 rounded-sm border border-border bg-panel px-2 py-0.5 text-text" aria-label="Snapshot name" placeholder="Snapshot name" data-testid="snapshot-name" [value]="snapshotName()" (input)="snapshotName.set($any($event.target).value)" />
+            <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" data-testid="save-snapshot" (click)="saveSnapshot()">Save {{ label[scope()] }} as snapshot</button>
+          </span>
+        </div>
+
+        @if (editor(); as e) {
+          <div class="flex flex-col gap-2 rounded-sm border border-border bg-panel p-2" data-testid="editor">
+            <div class="flex flex-wrap items-center gap-2">
+              <label class="flex items-center gap-1 text-text-muted">Name
+                <input class="w-56 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text disabled:opacity-60" aria-label="Variable name" data-testid="editor-name" [disabled]="e.kind === 'edit'" [value]="e.name" (input)="patchEditor({ name: $any($event.target).value })" />
+              </label>
+              <label class="flex items-center gap-1 text-text"><input type="checkbox" data-testid="editor-expandable" [checked]="e.expandable" (change)="patchEditor({ expandable: $any($event.target).checked })" />expandable (REG_EXPAND_SZ)</label>
+            </div>
+            <textarea class="min-h-16 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" aria-label="Variable value" data-testid="editor-value" [value]="e.value" (input)="patchEditor({ value: $any($event.target).value })"></textarea>
+            @if (editorError()) { <div role="alert" class="flex items-center gap-1 text-error"><app-status-glyph kind="error" />{{ editorError() }}</div> }
+            <div class="flex items-center gap-2">
+              <button type="button" class="rounded-sm border border-warning px-2 py-0.5 text-warning disabled:opacity-50" data-testid="editor-preview" [disabled]="planning()" (click)="previewSet()">Preview…</button>
+              <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" data-testid="editor-cancel" (click)="editor.set(null)">Cancel</button>
+            </div>
+          </div>
+        }
+
+        @if (planning()) { <div class="flex items-center gap-1 text-accent" role="status"><app-status-glyph kind="busy" />Building preview…</div> }
+        <app-system-change-preview [preview]="preview()" (applied)="onApplied($event)" (discarded)="preview.set(null)" />
+
+        <div class="h-[52vh] rounded-sm border border-border bg-panel">
+          @if (loading() && !rows().length) {
+            <div class="p-4 text-text-muted" role="status">Reading environment…</div>
+          } @else {
+            <app-data-table [columns]="columns" [rows]="filtered()" [trackByFn]="trackRow" [dense]="true" ariaLabel="Environment variables" (rowOpened)="select($event)">
+              <ng-template appDataTableCell="name" let-r>
+                <span class="truncate font-mono" [class.text-accent]="selectedName() === r.name" [class.font-semibold]="selectedName() === r.name" [attr.aria-current]="selectedName() === r.name ? 'true' : null">{{ r.name }}</span>
+              </ng-template>
+            </app-data-table>
+          }
+        </div>
+      } @else {
+        <div class="flex flex-col gap-3" data-testid="compare">
+          <div class="grid gap-3 md:grid-cols-2">
+            @for (side of [{ key: 'a', state: sideA() }, { key: 'b', state: sideB() }]; track side.key) {
+              <div class="flex flex-col gap-2 rounded-sm border border-border bg-panel p-2">
+                <label class="flex items-center gap-1 text-text-muted">Side {{ side.key.toUpperCase() }}
+                  <select class="rounded-sm border border-border bg-panel px-1 py-0.5 text-text" [attr.aria-label]="'Side ' + side.key + ' source'" [attr.data-testid]="'source-' + side.key" (change)="setSource($any(side.key), $any($event.target).value)">
+                    @for (s of scopes; track s) { <option [value]="s" [selected]="side.state.source === s">{{ label[s] }} (live)</option> }
+                    <option value="snapshot" [selected]="side.state.source === 'snapshot'">Saved snapshot</option>
+                    <option value="paste" [selected]="side.state.source === 'paste'">Pasted dump</option>
+                  </select>
+                </label>
+                @if (side.state.source === 'snapshot') {
+                  <select class="rounded-sm border border-border bg-panel px-1 py-0.5 text-text" [attr.aria-label]="'Side ' + side.key + ' snapshot'" [attr.data-testid]="'snapshot-' + side.key" (change)="patchSide($any(side.key), { snapshotId: $any($event.target).value })">
+                    <option value="">Choose a snapshot…</option>
+                    @for (h of snapshotChoices(); track h.id) { <option [value]="h.id" [selected]="side.state.snapshotId === h.id">{{ h.name }} ({{ h.createdAt.slice(0, 10) }})</option> }
+                  </select>
+                } @else if (side.state.source === 'paste') {
+                  <textarea class="min-h-24 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [attr.aria-label]="'Side ' + side.key + ' pasted environment'" placeholder="Paste a set dump, .env text or a JSON object" [attr.data-testid]="'paste-' + side.key" [value]="side.state.paste" (input)="patchSide($any(side.key), { paste: $any($event.target).value })"></textarea>
+                }
+              </div>
+            }
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-accent hover:bg-panel-elevated" data-testid="run-compare" (click)="compare()">Compare</button>
+            <span class="text-ui-xs text-text-muted">Live sides compare raw (unexpanded) registry values.</span>
+          </div>
+          @if (diffError()) { <div role="alert" class="flex items-center gap-1 text-error"><app-status-glyph kind="error" />{{ diffError() }}</div> }
+          @if (diffView(); as dv) {
+            <div class="flex flex-col gap-2" data-testid="diff-result">
+              <div class="text-ui-xs text-text-muted">{{ diffLabels()?.a }} → {{ diffLabels()?.b }}</div>
+              <app-diff-view [entries]="dv.entries" [summary]="dv.summary" />
+              @for (p of dv.paths; track p.name) {
+                <div class="rounded-sm border border-border bg-panel p-2" data-testid="path-breakdown">
+                  <div class="font-mono text-text">{{ p.name }}</div>
+                  @for (s of p.pathBreakdown!.added; track s) { <div class="flex items-center gap-1 font-mono text-ui-xs text-success"><span aria-hidden="true">+</span>{{ s }}</div> }
+                  @for (s of p.pathBreakdown!.removed; track s) { <div class="flex items-center gap-1 font-mono text-ui-xs text-error"><span aria-hidden="true">−</span>{{ s }}</div> }
+                  @if (p.pathBreakdown!.reordered) { <div class="text-ui-xs text-warning">Entries were reordered.</div> }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</app-tool-shell>

@@ -93,6 +93,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Duplicate Files](https://arahman200165.github.io/DUDE/tools/duplicate-files) | Native filesystem access | Desktop-only feature | scans and hashes real folders and drives in the desktop fs worker |
 | [Duplicate Files](https://arahman200165.github.io/DUDE/tools/duplicate-files) | Native filesystem write | Desktop-only feature | moves selected extra copies to the Recycle Bin through a previewed, journaled plan |
 | [Email Auth Inspector](https://arahman200165.github.io/DUDE/tools/email-auth-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Environment Variables](https://arahman200165.github.io/DUDE/tools/environment-variables) | Native Windows system access | Desktop-only feature | reads the user, machine and volatile environment from the registry through the desktop system helper |
+| [Environment Variables](https://arahman200165.github.io/DUDE/tools/environment-variables) | Native Windows system changes | Desktop-only feature | adds, edits and deletes environment variables through the desktop system mutation engine |
 | [File Split & Join](https://arahman200165.github.io/DUDE/tools/file-split-join) | Native filesystem access | Desktop-only feature | reads real files and part folders in the desktop fs worker |
 | [File Split & Join](https://arahman200165.github.io/DUDE/tools/file-split-join) | Native filesystem write | Desktop-only feature | writes parts and joined files only through a previewed, verified, journaled plan |
 | [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Native filesystem access | Desktop-only feature | scans real folders and drives in the desktop fs worker |
@@ -149,7 +151,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-317 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+318 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -367,6 +369,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [.env Editor](https://arahman200165.github.io/DUDE/tools/env-editor) | Developer | Edits a .env file as a key/value list or raw text, with quoting handled automatically. |
 | [.env ↔ JSON](https://arahman200165.github.io/DUDE/tools/env-json-converter) | Developer | Converts a .env file to a flat JSON object, or the reverse. |
 | [.env Validator](https://arahman200165.github.io/DUDE/tools/env-validator) | Developer | Validates a .env file against a required-keys list with lightweight number/boolean/url type hints. |
+| [Environment Variables](https://arahman200165.github.io/DUDE/tools/environment-variables) | Developer | View the user, machine and volatile Windows environment variables raw and expanded, add, edit or delete them through a previewed, confirmed change, and diff two environments (live, saved snapshot or pasted dump) with a PATH-aware breakdown. |
 | [Error Code Reference](https://arahman200165.github.io/DUDE/tools/error-code-reference) | Developer | Searchable reference of Windows/Win32/HRESULT, POSIX errno, Linux signals, SQL, TLS alert, and DNS response codes. |
 | [Expression Evaluator](https://arahman200165.github.io/DUDE/tools/expression-evaluator) | Developer | Evaluates a math expression with named variables, functions, units, and matrices via a sandboxed expression parser. |
 | [File Entropy Analyzer](https://arahman200165.github.io/DUDE/tools/file-entropy-analyzer) | Developer | Computes an uploaded file's Shannon byte-distribution entropy overall and in sliding windows, to spot packed, encrypted, or compressed regions. |

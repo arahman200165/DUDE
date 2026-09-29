@@ -35,6 +35,7 @@ database-write) have no rows below until a tool claims them.
 | [CSR Generator & Inspector](https://arahman200165.github.io/DUDE/tools/csr-generator-inspector) | Crypto | verified — Parses a real openssl-generated CSR, correctly extracting subject/key-size/signature validity that openssl req -text independently confirms. |
 | [Directory Tree Generator](https://arahman200165.github.io/DUDE/tools/directory-tree-generator) | Filesystem Write | experimental |
 | [Duplicate Files](https://arahman200165.github.io/DUDE/tools/duplicate-files) | Filesystem Write | experimental |
+| [Environment Variables](https://arahman200165.github.io/DUDE/tools/environment-variables) | Registry | experimental |
 | [File Split & Join](https://arahman200165.github.io/DUDE/tools/file-split-join) | Filesystem Write | experimental |
 | [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Filesystem Write | experimental |
 | [Hash Generator](https://arahman200165.github.io/DUDE/tools/hash) | Crypto | verified — Every one of the 15 supported algorithms is tested against its official published test vector, not just self round-trip. |
@@ -137,6 +138,7 @@ browser sandbox.
 | [DNSSEC Inspector](https://arahman200165.github.io/DUDE/tools/dnssec-inspector) | Native network diagnostics |
 | [Duplicate Files](https://arahman200165.github.io/DUDE/tools/duplicate-files) | Native filesystem access; Native filesystem write |
 | [Email Auth Inspector](https://arahman200165.github.io/DUDE/tools/email-auth-inspector) | Native network diagnostics |
+| [Environment Variables](https://arahman200165.github.io/DUDE/tools/environment-variables) | Native Windows system access; Native Windows system changes |
 | [File Split & Join](https://arahman200165.github.io/DUDE/tools/file-split-join) | Native filesystem access; Native filesystem write |
 | [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Native filesystem access; Native filesystem write |
 | [Git Repo Browser](https://arahman200165.github.io/DUDE/tools/git-diff) | Native filesystem access; File watching |
@@ -203,6 +205,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Duplicate Files](https://arahman200165.github.io/DUDE/tools/duplicate-files) | Native filesystem access | Desktop-only feature | scans and hashes real folders and drives in the desktop fs worker |
 | [Duplicate Files](https://arahman200165.github.io/DUDE/tools/duplicate-files) | Native filesystem write | Desktop-only feature | moves selected extra copies to the Recycle Bin through a previewed, journaled plan |
 | [Email Auth Inspector](https://arahman200165.github.io/DUDE/tools/email-auth-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Environment Variables](https://arahman200165.github.io/DUDE/tools/environment-variables) | Native Windows system access | Desktop-only feature | reads the user, machine and volatile environment from the registry through the desktop system helper |
+| [Environment Variables](https://arahman200165.github.io/DUDE/tools/environment-variables) | Native Windows system changes | Desktop-only feature | adds, edits and deletes environment variables through the desktop system mutation engine |
 | [File Split & Join](https://arahman200165.github.io/DUDE/tools/file-split-join) | Native filesystem access | Desktop-only feature | reads real files and part folders in the desktop fs worker |
 | [File Split & Join](https://arahman200165.github.io/DUDE/tools/file-split-join) | Native filesystem write | Desktop-only feature | writes parts and joined files only through a previewed, verified, journaled plan |
 | [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Native filesystem access | Desktop-only feature | scans real folders and drives in the desktop fs worker |

@@ -101,6 +101,7 @@ import { manifest as envDiffManifest } from '../../tools/env-diff/env-diff.manif
 import { manifest as envEditorManifest } from '../../tools/env-editor/env-editor.manifest';
 import { manifest as envJsonConverterManifest } from '../../tools/env-json-converter/env-json-converter.manifest';
 import { manifest as envValidatorManifest } from '../../tools/env-validator/env-validator.manifest';
+import { manifest as environmentVariablesManifest } from '../../tools/environment-variables/environment-variables.manifest';
 import { manifest as epochTimelineVisualizerManifest } from '../../tools/epoch-timeline-visualizer/epoch-timeline-visualizer.manifest';
 import { manifest as errorCodeReferenceManifest } from '../../tools/error-code-reference/error-code-reference.manifest';
 import { manifest as escapeUnescapeToolkitManifest } from '../../tools/escape-unescape-toolkit/escape-unescape-toolkit.manifest';
@@ -420,6 +421,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   envEditorManifest,
   envJsonConverterManifest,
   envValidatorManifest,
+  environmentVariablesManifest,
   epochTimelineVisualizerManifest,
   errorCodeReferenceManifest,
   escapeUnescapeToolkitManifest,
