@@ -5,6 +5,8 @@ import { sysHelper } from './sys-helper';
 import { pwshStatus, runFixedScript } from './sys-pwsh';
 import { isInsideGrantedRoot } from './fs-grants';
 import type { ScheduledTaskDetail, ScheduledTaskSummary } from '../src/shared-logic/system/task-types';
+import type { StartupProgramsResult } from '../src/shared-logic/system/startup-types';
+import { readStartupPrograms } from './startup-programs';
 
 // Reserved for later milestones: `dude:sys:event` carries streamed helper events (SysStreamEvent).
 
@@ -29,4 +31,6 @@ export function registerSysHandlers(): void {
     const value = await runFixedScript('task.detail', { taskPath, taskName }, new AbortController().signal);
     return value as ScheduledTaskDetail;
   });
+  ipcMain.handle('dude:sys:startupList', (): Promise<StartupProgramsResult> =>
+    readStartupPrograms((method, params) => sysHelper().call(method, params)));
 }

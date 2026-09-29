@@ -3,6 +3,7 @@ import type { ChangeEvent, FolderWatchSettings, FolderWatchState, TimelineQuery,
 import type { ApplyResult, FsJobEvent, FsJobRequest, FsResult, JournalEntry, MutationSettings, PickedFile, PlanPreview, RememberedFolder } from '../../../shared-logic/fs/fs-types';
 import type { PwshStatus, SysMethodMap, SysReadMethod, SysResult, SysStreamEvent } from '../../../shared-logic/system/system-types';
 import type { ScheduledTaskDetail, ScheduledTaskSummary } from '../../../shared-logic/system/task-types';
+import type { StartupProgramsResult } from '../../../shared-logic/system/startup-types';
 import type { SysApplyResult, SysJournalEntry, SysMutationSettings, SysMutResult, SysPlanPreview, SysPlanRequest, SysSnapshot, SysSnapshotHeader, SysSnapshotKind } from '../../../shared-logic/system/sys-mutation-types';
 import type { NetworkRequest, NetworkJobEvent, NetworkStartResult, NetworkPrepareResult, WatchEntry, WatchSettings, WatchState, WatchResult } from './network-types';
 export interface NativeStat {
@@ -192,6 +193,7 @@ export interface DudeElectronBridge {
     pwshStatus(refresh?: boolean): Promise<PwshStatus>;
     taskList(): Promise<readonly ScheduledTaskSummary[]>;
     taskInfo(taskPath: string, taskName: string): Promise<ScheduledTaskDetail>;
+    startupList(): Promise<StartupProgramsResult>;
     onEvent(callback: (event: SysStreamEvent) => void): () => void;
   };
   /**

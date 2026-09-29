@@ -1,0 +1,53 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning bg-panel p-4 text-ui text-text-muted">Startup Programs reads local Windows startup registrations and needs Desktop DUDE.</div>
+    <div class="flex gap-2"><app-desktop-only-control capability="native-system" label="Inspect startup entries" /><app-desktop-only-control capability="native-system-write" label="Enable or disable supported entries" /></div>
+  } @else {
+    <div class="flex flex-col gap-2 text-ui">
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" class="rounded-sm border border-border px-2 py-1 text-text hover:bg-panel-elevated" [disabled]="loading()" (click)="refresh()">{{ loading() ? 'Loading…' : 'Refresh' }}</button>
+        <input type="search" class="min-w-52 flex-1 rounded-sm border border-border bg-panel px-2 py-1 text-text" aria-label="Search startup entries" placeholder="Search name, command, publisher…" [value]="query()" (input)="query.set($any($event.target).value)" />
+        <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" aria-label="Filter startup source" [value]="source()" (change)="source.set($any($event.target).value)">
+          <option value="all">All sources</option><option value="registry-run">Run / RunOnce</option><option value="startup-folder">Startup folders</option><option value="scheduled-task">Logon / boot tasks</option><option value="service">Auto-start services</option>
+        </select>
+        <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" aria-label="Filter startup state" [value]="state()" (change)="state.set($any($event.target).value)">
+          <option value="all">Any state</option><option value="enabled">Enabled</option><option value="disabled">Disabled</option><option value="unknown">Unknown</option>
+        </select>
+        <span class="text-ui-xs text-text-muted">{{ rows().length }} of {{ entries().length }}</span>
+      </div>
+      @if (error()) { <div role="alert" class="flex items-center gap-1 text-error"><app-status-glyph kind="error" />{{ error() }}</div> }
+      @for (warning of warnings(); track warning) { <div class="flex items-center gap-1 text-warning"><app-status-glyph kind="warning" />{{ warning }}</div> }
+      <div class="grid h-[75vh] min-h-96 gap-2 lg:grid-cols-[minmax(0,1.5fr)_minmax(18rem,1fr)]">
+        <div class="min-w-0 rounded-sm border border-border bg-panel">
+          <app-data-table [columns]="columns" [rows]="rows()" [trackByFn]="trackEntry" [dense]="true" ariaLabel="Windows startup entries" (rowOpened)="selectedId.set($event.id); preview.set(null)" >
+            <ng-template appDataTableCell="name" let-entry><span class="truncate" [class.text-accent]="selectedId() === entry.id">{{ entry.name }}</span></ng-template>
+            <ng-template appDataTableCell="state" let-entry><span class="flex items-center gap-1"><app-status-glyph [kind]="entry.state === 'enabled' ? 'success' : entry.state === 'disabled' ? 'idle' : 'warning'" />{{ entry.state }}</span></ng-template>
+          </app-data-table>
+        </div>
+        <aside class="min-w-0 overflow-auto rounded-sm border border-border bg-panel p-3">
+          @if (selected(); as entry) {
+            <div class="flex flex-col gap-3">
+              <div><h2 class="break-words text-base font-semibold text-text">{{ entry.name }}</h2><div class="text-ui-xs text-text-muted">{{ sourceLabel(entry) }} · {{ entry.scope }}</div></div>
+              @if (entry.source === 'scheduled-task' && entry.task) { <a routerLink="/tools/scheduled-tasks" class="text-accent underline">Open Scheduled Tasks</a> }
+              @if (entry.source === 'service' && entry.serviceName) { <a routerLink="/tools/services-viewer" class="text-accent underline">Open Services · {{ entry.serviceName }}</a> }
+              <dl class="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-2 gap-y-1 text-ui-xs">
+                <dt class="text-text-muted">State</dt><dd>{{ entry.state }} @if (entry.approved) { <span class="text-text-muted">(StartupApproved)</span> }</dd>
+                <dt class="text-text-muted">Publisher</dt><dd class="break-words">{{ entry.publisher ?? 'Unknown' }}</dd>
+                <dt class="text-text-muted">Signature</dt><dd>{{ signatureLabel(entry) }}</dd>
+                <dt class="text-text-muted">Target exists</dt><dd>{{ entry.exists === null ? 'Unknown' : entry.exists ? 'Yes' : 'No' }}</dd>
+                @if (entry.targetPath) { <dt class="text-text-muted">Target</dt><dd class="break-all font-mono">{{ entry.targetPath }}</dd> }
+                @if (entry.command) { <dt class="text-text-muted">Command</dt><dd class="break-all font-mono">{{ entry.command }}</dd> }
+                @if (entry.detail) { <dt class="text-text-muted">Details</dt><dd class="break-words">{{ entry.detail }}</dd> }
+              </dl>
+              @if (entry.approved && (entry.state === 'enabled' || entry.state === 'disabled')) {
+                <button type="button" class="self-start rounded-sm border border-warning px-2 py-1 text-warning disabled:opacity-50" data-testid="startup-toggle-preview" [disabled]="planning()" (click)="previewToggle()">{{ planning() ? 'Preparing…' : (entry.state === 'enabled' ? 'Preview disable…' : 'Preview enable…') }}</button>
+              } @else if (entry.source !== 'service' && entry.source !== 'scheduled-task') { <p class="text-ui-xs text-text-muted">No supported StartupApproved value is available for changing this entry.</p> }
+              @if (planError()) { <div role="alert" class="text-error">{{ planError() }}</div> }
+              <app-system-change-preview [preview]="preview()" (applied)="onApplied($event)" (discarded)="clearPreview()" />
+            </div>
+          } @else { <p class="text-text-muted">Select a startup entry to inspect its command, publisher, signature and target status.</p> }
+        </aside>
+      </div>
+    </div>
+  }
+</app-tool-shell>

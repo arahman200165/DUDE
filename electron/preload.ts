@@ -208,6 +208,7 @@ const bridge: DudeElectronBridge = {
     pwshStatus: (refresh) => ipcRenderer.invoke('dude:sys:pwshStatus', refresh),
     taskList: () => ipcRenderer.invoke('dude:sys:taskList'),
     taskInfo: (taskPath, taskName) => ipcRenderer.invoke('dude:sys:taskInfo', taskPath, taskName),
+    startupList: () => ipcRenderer.invoke('dude:sys:startupList'),
     onEvent: (callback) => {
       const listener = (_event: Electron.IpcRendererEvent, value: import('../src/shared-logic/system/system-types').SysStreamEvent) => callback(value);
       ipcRenderer.on('dude:sys:event', listener);

@@ -112,6 +112,7 @@ export function fakeElectronBridge(overrides: Partial<DudeElectronBridge> = {}):
       pwshStatus: async () => ({ available: false, reason: 'unavailable' }),
       taskList: async () => [],
       taskInfo: async (taskPath: string, taskName: string) => ({ taskPath, taskName, state: 'Unknown', enabled: false, lastRunTime: null, nextRunTime: null, lastTaskResult: null, triggers: [], actions: [], principal: { userId: null, groupId: null, logonType: null, runLevel: null } }),
+      startupList: async () => ({ entries: [], warnings: [] }),
       onEvent: () => () => {},
     },
     sysMutation: {

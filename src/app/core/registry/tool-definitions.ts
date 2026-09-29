@@ -280,6 +280,7 @@ import { manifest as sqliteViewerManifest } from '../../tools/sqlite-viewer/sqli
 import { manifest as sshKeyToolsManifest } from '../../tools/ssh-key-tools/ssh-key-tools.manifest';
 import { manifest as stackTraceFormatterManifest } from '../../tools/stack-trace-formatter/stack-trace-formatter.manifest';
 import { manifest as starttlsInspectorManifest } from '../../tools/starttls-inspector/starttls-inspector.manifest';
+import { manifest as startupProgramsManifest } from '../../tools/startup-programs/startup-programs.manifest';
 import { manifest as statisticsCalculatorManifest } from '../../tools/statistics-calculator/statistics-calculator.manifest';
 import { manifest as stopwatchCountdownManifest } from '../../tools/stopwatch-countdown/stopwatch-countdown.manifest';
 import { manifest as stringSimilarityCalculatorManifest } from '../../tools/string-similarity-calculator/string-similarity-calculator.manifest';
@@ -606,6 +607,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   sshKeyToolsManifest,
   stackTraceFormatterManifest,
   starttlsInspectorManifest,
+  startupProgramsManifest,
   statisticsCalculatorManifest,
   stopwatchCountdownManifest,
   stringSimilarityCalculatorManifest,

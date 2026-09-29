@@ -92,6 +92,24 @@ export const FIXED_SCRIPTS: Record<string, string> = {
 $info = Get-ScheduledTaskInfo -TaskName $task.TaskName -TaskPath $task.TaskPath -ErrorAction SilentlyContinue
 [pscustomobject]@{ taskPath=$task.TaskPath; taskName=$task.TaskName; state=[string]$task.State; enabled=($task.State -ne 'Disabled'); lastRunTime=if ($info) { $info.LastRunTime.ToString('o') } else { $null }; nextRunTime=if ($info) { $info.NextRunTime.ToString('o') } else { $null }; lastTaskResult=if ($info) { $info.LastTaskResult } else { $null }; triggers=@($task.Triggers | ForEach-Object { [pscustomobject]@{ type=$_.CimClass.CimClassName; enabled=$_.Enabled; startBoundary=$_.StartBoundary; endBoundary=$_.EndBoundary; repetition=$_.Repetition.Interval; daysOfWeek=$_.DaysOfWeek; weeksInterval=$_.WeeksInterval } }); actions=@($task.Actions | ForEach-Object { [pscustomobject]@{ type=$_.CimClass.CimClassName; execute=$_.Execute; arguments=$_.Arguments; workingDirectory=$_.WorkingDirectory; classId=$_.ClassId } }); principal=[pscustomobject]@{ userId=$task.Principal.UserId; groupId=$task.Principal.GroupId; logonType=[string]$task.Principal.LogonType; runLevel=[string]$task.Principal.RunLevel } }`,
   'task.setEnabled': `if ([bool]$DudeArgs.enabled) { Enable-ScheduledTask -TaskPath ([string]$DudeArgs.taskPath) -TaskName ([string]$DudeArgs.taskName) -ErrorAction Stop | Out-Null } else { Disable-ScheduledTask -TaskPath ([string]$DudeArgs.taskPath) -TaskName ([string]$DudeArgs.taskName) -ErrorAction Stop | Out-Null }; [pscustomobject]@{ enabled=[bool]$DudeArgs.enabled }`,
+  // M605: folders plus logon/boot task links. Inputs are fixed; no paths reach this script.
+  'startup.list': `$shell = New-Object -ComObject WScript.Shell
+$folders = @()
+foreach ($folder in @(@{ path=[Environment]::GetFolderPath('Startup'); scope='user' }, @{ path=[Environment]::GetFolderPath('CommonStartup'); scope='common' })) {
+  if (-not $folder.path -or -not (Test-Path -LiteralPath $folder.path)) { continue }
+  Get-ChildItem -LiteralPath $folder.path -Force -ErrorAction SilentlyContinue | ForEach-Object {
+    $target = $_.FullName
+    if ($_.Extension -ieq '.lnk') { try { $target = $shell.CreateShortcut($_.FullName).TargetPath } catch {} }
+    [pscustomobject]@{ name=$_.Name; path=$_.FullName; target=$target; exists=(Test-Path -LiteralPath $target -PathType Leaf); scope=$folder.scope }
+  } | ForEach-Object { $folders += $_ }
+}
+$tasks = @()
+Get-ScheduledTask -ErrorAction SilentlyContinue | ForEach-Object {
+  $task = $_
+  $startupTriggers = @($task.Triggers | Where-Object { $_.CimClass.CimClassName -match 'LogonTrigger|BootTrigger' })
+  if ($startupTriggers.Count -gt 0) { $tasks += [pscustomobject]@{ taskPath=$task.TaskPath; taskName=$task.TaskName; state=[string]$task.State; enabled=($task.State -ne 'Disabled'); lastRunTime=$null; nextRunTime=$null; lastTaskResult=$null } }
+}
+[pscustomobject]@{ folders=$folders; tasks=$tasks }`,
 };
 
 export function buildFixedScriptCommand(name: string, args: unknown): string {
