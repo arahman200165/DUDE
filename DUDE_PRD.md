@@ -2987,8 +2987,17 @@ Secondary explanation appears on demand.
 
 #### Exit criteria
 
-- [ ] Category color is primarily structural/semantic rather than large-area decoration.
-- [ ] Workbench shell changes do not prematurely couple to theming/density customization; the dedicated appearance work remains separately defined for Phase 30K.
+- [x] Category color is primarily structural/semantic rather than large-area decoration. Resting panels, tool cards and rail/related chips are neutral `bg-panel` with a 2px category rule; the category wash is hover-only.
+- [x] Workbench shell changes do not prematurely couple to theming/density customization; the dedicated appearance work remains separately defined for Phase 30K. Density is a fixed baseline in `tokens.css`/`styles.css`; no user-facing setting or persisted appearance state was added.
+
+#### Shipped (Milestones 572–575)
+
+- **M572 — Density baseline.** Retired the 13px x 1.5 UI scale (a 19.5px root, which is what made the shell read as loose). Root is now 16px, so Tailwind spacing is the PRD scale (`p-1`=4 ... `p-6`=24) and `text-xs` is 12px. `text-ui`/`-sm`/`-xs` re-based to 13/12/11px. Added `--dude-space-*`, `--dude-control-h` (28px), `--dude-row-h`, `--dude-radius` tokens. `scripts/check-design-tokens.mjs` flags off-scale spacing, arbitrary sizes, radii above 5px, raw hex and resting category wash in `shell/` and `shared/`; it runs with `--enforce` inside `npm run lint` (`npm run check:design`).
+- **M573 — Color.** Semantic colors re-picked (`error #ff4d4d`, `warning #d99a00`, `success #46e05a`, `info #1a79ff`, `busy #c233ff`, `offline #717f94`). Rule: each is >=22deg hue or >=12 HSL-lightness points from every category and the accent, and >=4.5:1 on `--color-panel` (`scripts/check-semantic-palette.mjs`, also in `check:design`). The 30-degree/15-point version was not satisfiable for info/busy: eight categories plus six semantic colors do not fit on one hue wheel. Category hexes are unchanged.
+- **M574 — Spacing + primitives.** `dude-input`, `dude-chip`, `dude-chip-on/off` utilities replace the class strings that were copy-pasted across shell templates. All off-scale values in Onboarding, Settings, sidebar and shared components fixed.
+- **M575 — Progressive disclosure.** New `shared/components/disclosure` (`aria-expanded`/`aria-controls`, badge, collapsed summary, state not persisted). Browse category/status/sort selects and catalog counts sit behind "Filters" with an active-filter badge; Smart Paste, Insights and the desktop-only panel card explanations collapse to a one-line summary.
+
+*Status (Milestones 572–575):* verified in the dev server on Home, Browse (table, grid, filtered), a tool workspace, Insights and the command palette; unit tests, lint and `ng build` pass. **Still owed:** the production-build direct-route check (`/DUDE/tools/<id>`); a per-category sample of tool workspaces at the new 16px root; a browser pass of Settings sections and Onboarding; and disclosure for category-preview contents, full Recent Activity and long tool descriptions (not started). Platform chips, Favorites and Recent stay visible in Browse because the web-companion e2e depends on them.
 
 ### Phase 30K — Theming, Appearance, and Accessibility Expansion
 
