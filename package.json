@@ -11,7 +11,7 @@
   "scripts": {
     "ng": "ng",
     "lint": "eslint . && npm run check:design",
-    "check:design": "node scripts/check-design-tokens.mjs --enforce && node scripts/check-semantic-palette.mjs",
+    "check:design": "node scripts/check-design-tokens.mjs --enforce && node scripts/generate-theme-css.mjs --check && node scripts/check-theme-contrast.mjs",
     "prestart": "npm run generate:registry",
     "start": "ng serve",
     "build": "ng build",
@@ -25,7 +25,7 @@
     "test:perf": "vitest run --config vitest.perf.config.mts",
     "test:high-consequence": "node scripts/check-high-consequence-gate.mjs",
     "playwright:install": "playwright install chromium",
-    "generate:registry": "node scripts/generate-tool-registry.mjs && node scripts/generate-panel-registry.mjs && node scripts/generate-file-associations.mjs && node scripts/generate-readme-tools.mjs && node scripts/generate-security-doc.mjs && node scripts/generate-web-manifest.mjs",
+    "generate:registry": "node scripts/generate-theme-css.mjs && node scripts/generate-tool-registry.mjs && node scripts/generate-panel-registry.mjs && node scripts/generate-file-associations.mjs && node scripts/generate-readme-tools.mjs && node scripts/generate-security-doc.mjs && node scripts/generate-web-manifest.mjs",
     "generate:brand-assets": "node scripts/generate-brand-assets.mjs",
     "electron:helper": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-network-helper.ps1",
     "preelectron:dev": "npm run electron:helper",

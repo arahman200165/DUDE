@@ -5,7 +5,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="direction() === 'encode'"
-        [class.text-bg]="direction() === 'encode'"
+        [class.text-on-accent]="direction() === 'encode'"
         [class.text-text-muted]="direction() !== 'encode'"
         (click)="setDirection('encode')"
       >
@@ -15,7 +15,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="direction() === 'decode'"
-        [class.text-bg]="direction() === 'decode'"
+        [class.text-on-accent]="direction() === 'decode'"
         [class.text-text-muted]="direction() !== 'decode'"
         (click)="setDirection('decode')"
       >

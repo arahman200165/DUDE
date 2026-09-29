@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="mode() === 'rot13'"
-          [class.text-bg]="mode() === 'rot13'"
+          [class.text-on-accent]="mode() === 'rot13'"
           [class.text-text-muted]="mode() !== 'rot13'"
           (click)="setMode('rot13')"
         >
@@ -16,7 +16,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="mode() === 'rot47'"
-          [class.text-bg]="mode() === 'rot47'"
+          [class.text-on-accent]="mode() === 'rot47'"
           [class.text-text-muted]="mode() !== 'rot47'"
           (click)="setMode('rot47')"
         >

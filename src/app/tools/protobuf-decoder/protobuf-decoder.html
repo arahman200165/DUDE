@@ -27,7 +27,7 @@
                   type="button"
                   class="px-2 py-0.5"
                   [class.bg-accent]="name === selectedMessageType()"
-                  [class.text-bg]="name === selectedMessageType()"
+                  [class.text-on-accent]="name === selectedMessageType()"
                   [class.text-text-muted]="name !== selectedMessageType()"
                   (click)="selectMessageType(name)"
                 >

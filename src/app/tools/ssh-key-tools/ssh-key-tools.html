@@ -5,7 +5,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="mode() === 'generate'"
-        [class.text-bg]="mode() === 'generate'"
+        [class.text-on-accent]="mode() === 'generate'"
         [class.text-text-muted]="mode() !== 'generate'"
         (click)="setMode('generate')"
       >
@@ -15,7 +15,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="mode() === 'inspect'"
-        [class.text-bg]="mode() === 'inspect'"
+        [class.text-on-accent]="mode() === 'inspect'"
         [class.text-text-muted]="mode() !== 'inspect'"
         (click)="setMode('inspect')"
       >
@@ -36,7 +36,7 @@
             type="button"
             class="px-2 py-0.5"
             [class.bg-accent]="family() === 'ed25519'"
-            [class.text-bg]="family() === 'ed25519'"
+            [class.text-on-accent]="family() === 'ed25519'"
             [class.text-text-muted]="family() !== 'ed25519'"
             (click)="setFamily('ed25519')"
           >
@@ -46,7 +46,7 @@
             type="button"
             class="px-2 py-0.5"
             [class.bg-accent]="family() === 'rsa'"
-            [class.text-bg]="family() === 'rsa'"
+            [class.text-on-accent]="family() === 'rsa'"
             [class.text-text-muted]="family() !== 'rsa'"
             (click)="setFamily('rsa')"
           >
@@ -56,7 +56,7 @@
             type="button"
             class="px-2 py-0.5"
             [class.bg-accent]="family() === 'ec'"
-            [class.text-bg]="family() === 'ec'"
+            [class.text-on-accent]="family() === 'ec'"
             [class.text-text-muted]="family() !== 'ec'"
             (click)="setFamily('ec')"
           >

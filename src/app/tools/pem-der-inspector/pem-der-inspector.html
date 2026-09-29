@@ -5,7 +5,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="inputMode() === 'paste'"
-        [class.text-bg]="inputMode() === 'paste'"
+        [class.text-on-accent]="inputMode() === 'paste'"
         [class.text-text-muted]="inputMode() !== 'paste'"
         (click)="setInputMode('paste')"
       >
@@ -15,7 +15,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="inputMode() === 'file'"
-        [class.text-bg]="inputMode() === 'file'"
+        [class.text-on-accent]="inputMode() === 'file'"
         [class.text-text-muted]="inputMode() !== 'file'"
         (click)="setInputMode('file')"
       >
@@ -59,7 +59,7 @@
               type="button"
               class="px-2 py-0.5"
               [class.bg-accent]="viewMode() === 'tree'"
-              [class.text-bg]="viewMode() === 'tree'"
+              [class.text-on-accent]="viewMode() === 'tree'"
               [class.text-text-muted]="viewMode() !== 'tree'"
               (click)="setViewMode('tree')"
             >
@@ -69,7 +69,7 @@
               type="button"
               class="px-2 py-0.5"
               [class.bg-accent]="viewMode() === 'hex'"
-              [class.text-bg]="viewMode() === 'hex'"
+              [class.text-on-accent]="viewMode() === 'hex'"
               [class.text-text-muted]="viewMode() !== 'hex'"
               (click)="setViewMode('hex')"
             >

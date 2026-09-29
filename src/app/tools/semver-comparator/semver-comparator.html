@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="tab() === option.id"
-          [class.text-bg]="tab() === option.id"
+          [class.text-on-accent]="tab() === option.id"
           [class.text-text-muted]="tab() !== option.id"
           (click)="setTab(option.id)"
         >
@@ -76,7 +76,7 @@
               type="button"
               class="px-2 py-0.5"
               [class.bg-accent]="sortDirection() === 'asc'"
-              [class.text-bg]="sortDirection() === 'asc'"
+              [class.text-on-accent]="sortDirection() === 'asc'"
               (click)="setSortDirection('asc')"
             >
               Ascending
@@ -85,7 +85,7 @@
               type="button"
               class="px-2 py-0.5"
               [class.bg-accent]="sortDirection() === 'desc'"
-              [class.text-bg]="sortDirection() === 'desc'"
+              [class.text-on-accent]="sortDirection() === 'desc'"
               (click)="setSortDirection('desc')"
             >
               Descending

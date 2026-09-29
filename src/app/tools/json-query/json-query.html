@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="language() === 'jsonpath'"
-          [class.text-bg]="language() === 'jsonpath'"
+          [class.text-on-accent]="language() === 'jsonpath'"
           [class.text-text-muted]="language() !== 'jsonpath'"
           (click)="setLanguage('jsonpath')"
         >
@@ -16,7 +16,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="language() === 'jmespath'"
-          [class.text-bg]="language() === 'jmespath'"
+          [class.text-on-accent]="language() === 'jmespath'"
           [class.text-text-muted]="language() !== 'jmespath'"
           (click)="setLanguage('jmespath')"
         >

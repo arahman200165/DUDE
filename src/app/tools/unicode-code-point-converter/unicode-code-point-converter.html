@@ -5,7 +5,7 @@
         type="button"
         class="px-3 py-1"
         [class.bg-accent]="mode() === 'single'"
-        [class.text-bg]="mode() === 'single'"
+        [class.text-on-accent]="mode() === 'single'"
         (click)="setMode('single')"
       >
         Single
@@ -14,7 +14,7 @@
         type="button"
         class="border-l border-border px-3 py-1"
         [class.bg-accent]="mode() === 'bulk'"
-        [class.text-bg]="mode() === 'bulk'"
+        [class.text-on-accent]="mode() === 'bulk'"
         (click)="setMode('bulk')"
       >
         Bulk

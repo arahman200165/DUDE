@@ -1,13 +1,13 @@
 <app-tool-shell>
   <div class="flex h-full flex-col gap-3">
     <div class="flex w-fit overflow-hidden rounded-sm border border-border text-ui text-text-muted">
-      <button type="button" class="px-2 py-0.5" [class.bg-accent]="mode() === 'normalize'" [class.text-bg]="mode() === 'normalize'" (click)="setMode('normalize')">
+      <button type="button" class="px-2 py-0.5" [class.bg-accent]="mode() === 'normalize'" [class.text-on-accent]="mode() === 'normalize'" (click)="setMode('normalize')">
         Normalize
       </button>
-      <button type="button" class="px-2 py-0.5" [class.bg-accent]="mode() === 'resolve'" [class.text-bg]="mode() === 'resolve'" (click)="setMode('resolve')">
+      <button type="button" class="px-2 py-0.5" [class.bg-accent]="mode() === 'resolve'" [class.text-on-accent]="mode() === 'resolve'" (click)="setMode('resolve')">
         Resolve
       </button>
-      <button type="button" class="px-2 py-0.5" [class.bg-accent]="mode() === 'compare'" [class.text-bg]="mode() === 'compare'" (click)="setMode('compare')">
+      <button type="button" class="px-2 py-0.5" [class.bg-accent]="mode() === 'compare'" [class.text-on-accent]="mode() === 'compare'" (click)="setMode('compare')">
         Compare
       </button>
     </div>

@@ -6,7 +6,7 @@
           type="button"
           class="px-3 py-1"
           [class.bg-accent]="options().direction === 'to-straight'"
-          [class.text-bg]="options().direction === 'to-straight'"
+          [class.text-on-accent]="options().direction === 'to-straight'"
           (click)="setDirection('to-straight')"
         >
           Curly → Straight
@@ -15,7 +15,7 @@
           type="button"
           class="border-l border-border px-3 py-1"
           [class.bg-accent]="options().direction === 'to-curly'"
-          [class.text-bg]="options().direction === 'to-curly'"
+          [class.text-on-accent]="options().direction === 'to-curly'"
           (click)="setDirection('to-curly')"
         >
           Straight → Curly

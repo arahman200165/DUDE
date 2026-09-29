@@ -8,7 +8,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="direction() === 'csv-to-json'"
-          [class.text-bg]="direction() === 'csv-to-json'"
+          [class.text-on-accent]="direction() === 'csv-to-json'"
           [class.text-text-muted]="direction() !== 'csv-to-json'"
           (click)="setDirection('csv-to-json')"
         >
@@ -18,7 +18,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="direction() === 'json-to-csv'"
-          [class.text-bg]="direction() === 'json-to-csv'"
+          [class.text-on-accent]="direction() === 'json-to-csv'"
           [class.text-text-muted]="direction() !== 'json-to-csv'"
           (click)="setDirection('json-to-csv')"
         >
@@ -83,7 +83,7 @@
                     type="button"
                     class="px-2 py-0.5"
                     [class.bg-accent]="outputView() === 'table'"
-                    [class.text-bg]="outputView() === 'table'"
+                    [class.text-on-accent]="outputView() === 'table'"
                     [class.text-text-muted]="outputView() !== 'table'"
                     (click)="setOutputView('table')"
                   >
@@ -93,7 +93,7 @@
                     type="button"
                     class="px-2 py-0.5"
                     [class.bg-accent]="outputView() === 'json'"
-                    [class.text-bg]="outputView() === 'json'"
+                    [class.text-on-accent]="outputView() === 'json'"
                     [class.text-text-muted]="outputView() !== 'json'"
                     (click)="setOutputView('json')"
                   >

@@ -19,7 +19,7 @@
               type="button"
               class="px-2 py-0.5"
               [class.bg-accent]="table.name === activeTable()?.name"
-              [class.text-bg]="table.name === activeTable()?.name"
+              [class.text-on-accent]="table.name === activeTable()?.name"
               [class.text-text-muted]="table.name !== activeTable()?.name"
               (click)="selectTable(table.name)"
             >

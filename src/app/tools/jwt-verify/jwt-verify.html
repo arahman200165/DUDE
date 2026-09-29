@@ -18,7 +18,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="mode() === 'hmac'"
-        [class.text-bg]="mode() === 'hmac'"
+        [class.text-on-accent]="mode() === 'hmac'"
         [class.text-text-muted]="mode() !== 'hmac'"
         (click)="setMode('hmac')"
       >
@@ -28,7 +28,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="mode() === 'public-key'"
-        [class.text-bg]="mode() === 'public-key'"
+        [class.text-on-accent]="mode() === 'public-key'"
         [class.text-text-muted]="mode() !== 'public-key'"
         (click)="setMode('public-key')"
       >
@@ -38,7 +38,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="mode() === 'jwks'"
-        [class.text-bg]="mode() === 'jwks'"
+        [class.text-on-accent]="mode() === 'jwks'"
         [class.text-text-muted]="mode() !== 'jwks'"
         (click)="setMode('jwks')"
       >
@@ -63,7 +63,7 @@
             type="button"
             class="px-2 py-0.5"
             [class.bg-accent]="keyFormat() === 'pem'"
-            [class.text-bg]="keyFormat() === 'pem'"
+            [class.text-on-accent]="keyFormat() === 'pem'"
             [class.text-text-muted]="keyFormat() !== 'pem'"
             (click)="setKeyFormat('pem')"
           >
@@ -73,7 +73,7 @@
             type="button"
             class="px-2 py-0.5"
             [class.bg-accent]="keyFormat() === 'jwk'"
-            [class.text-bg]="keyFormat() === 'jwk'"
+            [class.text-on-accent]="keyFormat() === 'jwk'"
             [class.text-text-muted]="keyFormat() !== 'jwk'"
             (click)="setKeyFormat('jwk')"
           >

@@ -10,7 +10,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="mode() === 'generate'"
-        [class.text-bg]="mode() === 'generate'"
+        [class.text-on-accent]="mode() === 'generate'"
         [class.text-text-muted]="mode() !== 'generate'"
         (click)="setMode('generate')"
       >
@@ -20,7 +20,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="mode() === 'inspect'"
-        [class.text-bg]="mode() === 'inspect'"
+        [class.text-on-accent]="mode() === 'inspect'"
         [class.text-text-muted]="mode() !== 'inspect'"
         (click)="setMode('inspect')"
       >

@@ -5,7 +5,7 @@
         type="button"
         class="rounded-sm border border-border px-2 py-1 text-ui"
         [class.bg-accent]="direction() === 'html-to-jsx'"
-        [class.text-bg]="direction() === 'html-to-jsx'"
+        [class.text-on-accent]="direction() === 'html-to-jsx'"
         [class.text-text-muted]="direction() !== 'html-to-jsx'"
         (click)="setDirection('html-to-jsx')"
       >
@@ -15,7 +15,7 @@
         type="button"
         class="rounded-sm border border-border px-2 py-1 text-ui"
         [class.bg-accent]="direction() === 'jsx-to-html'"
-        [class.text-bg]="direction() === 'jsx-to-html'"
+        [class.text-on-accent]="direction() === 'jsx-to-html'"
         [class.text-text-muted]="direction() !== 'jsx-to-html'"
         (click)="setDirection('jsx-to-html')"
       >

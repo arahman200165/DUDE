@@ -6,7 +6,7 @@
           type="button"
           class="px-3 py-1"
           [class.bg-accent]="mode() === 'tokenize'"
-          [class.text-bg]="mode() === 'tokenize'"
+          [class.text-on-accent]="mode() === 'tokenize'"
           (click)="setMode('tokenize')"
         >
           Tokenize
@@ -15,7 +15,7 @@
           type="button"
           class="border-l border-border px-3 py-1"
           [class.bg-accent]="mode() === 'ngram'"
-          [class.text-bg]="mode() === 'ngram'"
+          [class.text-on-accent]="mode() === 'ngram'"
           (click)="setMode('ngram')"
         >
           N-Gram

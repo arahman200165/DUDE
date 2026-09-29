@@ -3,6 +3,43 @@
   <head>
     <meta charset="utf-8" />
     <title>DUDE — Developer Utility Dashboard Engine</title>
+    <script id="dude-appearance-prepaint" type="text/javascript">
+      // Phase 30K: apply the saved appearance to <html> before the first paint (no flash of the
+      // default theme). Mirrors sanitize/resolveEffective in core/appearance/appearance.model.ts;
+      // appearance-prepaint.spec.ts keeps the key and attribute list in sync. Unknown values are
+      // harmless: the generated CSS falls back to the default block. Fonts are set by the service.
+      (function () {
+        try {
+          var raw = localStorage.getItem('dude:v1:settings:appearance');
+          var prefs = raw && JSON.parse(raw);
+          if (!prefs || typeof prefs !== 'object') return;
+          var media = function (query) {
+            return !!(window.matchMedia && window.matchMedia(query).matches);
+          };
+          var axes = [
+            ['mode', 'data-theme'],
+            ['contrast', 'data-contrast'],
+            ['accent', 'data-accent'],
+            ['catset', 'data-catset'],
+            ['semantic', 'data-semantic'],
+            ['density', 'data-density'],
+          ];
+          for (var i = 0; i < axes.length; i++) {
+            var value = prefs[axes[i][0]];
+            if (typeof value !== 'string' || !/^[a-z0-9-]{1,32}$/.test(value)) continue;
+            if (value === 'system') {
+              // Absent attribute = default, so only the non-default outcome needs setting.
+              if (axes[i][0] === 'mode' && media('(prefers-color-scheme: light)')) value = 'light';
+              else if (axes[i][0] === 'contrast' && media('(prefers-contrast: more)')) value = 'high';
+              else continue;
+            }
+            document.documentElement.setAttribute(axes[i][1], value);
+          }
+        } catch (e) {
+          /* storage unavailable or malformed: the defaults apply */
+        }
+      })();
+    </script>
     <script type="text/javascript">
       // Single Page Apps for GitHub Pages
       // https://github.com/rafgraph/spa-github-pages

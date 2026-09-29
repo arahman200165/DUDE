@@ -5,7 +5,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="direction() === 'env-to-json'"
-        [class.text-bg]="direction() === 'env-to-json'"
+        [class.text-on-accent]="direction() === 'env-to-json'"
         [class.text-text-muted]="direction() !== 'env-to-json'"
         (click)="setDirection('env-to-json')"
       >
@@ -15,7 +15,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="direction() === 'json-to-env'"
-        [class.text-bg]="direction() === 'json-to-env'"
+        [class.text-on-accent]="direction() === 'json-to-env'"
         [class.text-text-muted]="direction() !== 'json-to-env'"
         (click)="setDirection('json-to-env')"
       >

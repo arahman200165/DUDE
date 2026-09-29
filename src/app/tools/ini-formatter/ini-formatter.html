@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="direction() === 'ini-to-json'"
-          [class.text-bg]="direction() === 'ini-to-json'"
+          [class.text-on-accent]="direction() === 'ini-to-json'"
           [class.text-text-muted]="direction() !== 'ini-to-json'"
           (click)="setDirection('ini-to-json')"
         >
@@ -16,7 +16,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="direction() === 'json-to-ini'"
-          [class.text-bg]="direction() === 'json-to-ini'"
+          [class.text-on-accent]="direction() === 'json-to-ini'"
           [class.text-text-muted]="direction() !== 'json-to-ini'"
           (click)="setDirection('json-to-ini')"
         >

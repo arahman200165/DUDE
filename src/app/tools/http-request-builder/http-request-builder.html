@@ -1,10 +1,10 @@
 <app-tool-shell>
   <div class="flex h-full min-h-0 flex-col gap-3">
     <div class="flex w-fit overflow-hidden rounded-sm border border-border text-ui text-text-muted">
-      <button type="button" class="px-2 py-0.5" [class.bg-accent]="inputMode() === 'build'" [class.text-bg]="inputMode() === 'build'" (click)="setInputMode('build')">
+      <button type="button" class="px-2 py-0.5" [class.bg-accent]="inputMode() === 'build'" [class.text-on-accent]="inputMode() === 'build'" (click)="setInputMode('build')">
         Build from fields
       </button>
-      <button type="button" class="px-2 py-0.5" [class.bg-accent]="inputMode() === 'paste'" [class.text-bg]="inputMode() === 'paste'" (click)="setInputMode('paste')">
+      <button type="button" class="px-2 py-0.5" [class.bg-accent]="inputMode() === 'paste'" [class.text-on-accent]="inputMode() === 'paste'" (click)="setInputMode('paste')">
         Paste raw HTTP request
       </button>
     </div>
@@ -64,10 +64,10 @@
         <div class="flex items-center gap-3 text-ui text-text-muted">
           <span>Assume scheme when target is not absolute:</span>
           <div class="flex overflow-hidden rounded-sm border border-border">
-            <button type="button" class="px-2 py-0.5" [class.bg-accent]="assumeScheme() === 'https'" [class.text-bg]="assumeScheme() === 'https'" (click)="setAssumeScheme('https')">
+            <button type="button" class="px-2 py-0.5" [class.bg-accent]="assumeScheme() === 'https'" [class.text-on-accent]="assumeScheme() === 'https'" (click)="setAssumeScheme('https')">
               https
             </button>
-            <button type="button" class="px-2 py-0.5" [class.bg-accent]="assumeScheme() === 'http'" [class.text-bg]="assumeScheme() === 'http'" (click)="setAssumeScheme('http')">
+            <button type="button" class="px-2 py-0.5" [class.bg-accent]="assumeScheme() === 'http'" [class.text-on-accent]="assumeScheme() === 'http'" (click)="setAssumeScheme('http')">
               http
             </button>
           </div>

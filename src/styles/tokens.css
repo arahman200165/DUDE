@@ -1,83 +1,78 @@
 /**
- * DUDE design tokens — the single source of truth for the dark base scale,
- * category accent colors, and semantic status colors (PRD Section 8.5).
- * Every shell component and tool should reuse these rather than inventing
- * one-off colors.
+ * DUDE design tokens (PRD Section 8.5). The values no longer live here: they are
+ * declared in src/styles/theme/theme-tokens.json and generated into
+ * theme.generated.css (scripts/generate-theme-css.mjs) as --dude-* custom
+ * properties, keyed by data-* attributes on <html> (data-theme, data-contrast,
+ * data-accent, data-catset, data-semantic, data-density) so they are
+ * runtime-overridable by core/appearance (Phase 30K). This @theme block only
+ * maps Tailwind names to those variables, so every utility resolves through
+ * var() at use time. Every shell component and tool should reuse these rather
+ * than inventing one-off colors.
  */
 @theme {
-  /* Dark base scale */
-  --color-bg: #0a0e14;
-  --color-panel: #10151d;
-  --color-panel-elevated: #161c26;
-  --color-border: #232b38;
-  --color-text: #e6e9ef;
-  --color-text-muted: #8b93a3;
+  /* Base scale */
+  --color-bg: var(--dude-bg);
+  --color-panel: var(--dude-panel);
+  --color-panel-elevated: var(--dude-panel-elevated);
+  --color-border: var(--dude-border);
+  --color-text: var(--dude-text);
+  --color-text-muted: var(--dude-text-muted);
 
-  /* Category accents — one bold, mutually distinct hue per Section 12.3 category */
-  --color-cat-data: #22d3ee;
-  --color-cat-text: #a3e635;
-  --color-cat-encoding: #fb923c;
-  --color-cat-security: #e879f9;
-  --color-cat-date-time: #a78bfa;
-  --color-cat-web: #60a5fa;
-  --color-cat-developer: #34d399;
-  --color-cat-documents: #f472b6;
+  /* Category accents, one hue per Section 12.3 category */
+  --color-cat-data: var(--dude-cat-data);
+  --color-cat-text: var(--dude-cat-text);
+  --color-cat-encoding: var(--dude-cat-encoding);
+  --color-cat-security: var(--dude-cat-security);
+  --color-cat-date-time: var(--dude-cat-date-time);
+  --color-cat-web: var(--dude-cat-web);
+  --color-cat-developer: var(--dude-cat-developer);
+  --color-cat-documents: var(--dude-cat-documents);
 
-  /* Per-category "wash" (panel surface tinted toward the category hue, for card/group
-     backgrounds) and "tint" (hue lightened toward white, for legible body text),
-     pre-mixed as real colors so applying them does not just replace the whole panel
-     surface with a flat, mostly-transparent color. */
-  --color-cat-data-wash: color-mix(in srgb, var(--color-panel), var(--color-cat-data) 8%);
-  --color-cat-text-wash: color-mix(in srgb, var(--color-panel), var(--color-cat-text) 8%);
-  --color-cat-encoding-wash: color-mix(in srgb, var(--color-panel), var(--color-cat-encoding) 8%);
-  --color-cat-security-wash: color-mix(in srgb, var(--color-panel), var(--color-cat-security) 8%);
-  --color-cat-date-time-wash: color-mix(in srgb, var(--color-panel), var(--color-cat-date-time) 8%);
-  --color-cat-web-wash: color-mix(in srgb, var(--color-panel), var(--color-cat-web) 8%);
-  --color-cat-developer-wash: color-mix(in srgb, var(--color-panel), var(--color-cat-developer) 8%);
-  --color-cat-documents-wash: color-mix(in srgb, var(--color-panel), var(--color-cat-documents) 8%);
+  /* Per-category "wash" (panel surface tinted toward the category hue) and "tint"
+     (hue lightened for legible body text). The color-mix formulas live in the
+     generated CSS, so they follow runtime palette changes. */
+  --color-cat-data-wash: var(--dude-cat-data-wash);
+  --color-cat-text-wash: var(--dude-cat-text-wash);
+  --color-cat-encoding-wash: var(--dude-cat-encoding-wash);
+  --color-cat-security-wash: var(--dude-cat-security-wash);
+  --color-cat-date-time-wash: var(--dude-cat-date-time-wash);
+  --color-cat-web-wash: var(--dude-cat-web-wash);
+  --color-cat-developer-wash: var(--dude-cat-developer-wash);
+  --color-cat-documents-wash: var(--dude-cat-documents-wash);
 
-  --color-cat-data-tint: color-mix(in srgb, var(--color-cat-data), white 20%);
-  --color-cat-text-tint: color-mix(in srgb, var(--color-cat-text), white 20%);
-  --color-cat-encoding-tint: color-mix(in srgb, var(--color-cat-encoding), white 20%);
-  --color-cat-security-tint: color-mix(in srgb, var(--color-cat-security), white 20%);
-  --color-cat-date-time-tint: color-mix(in srgb, var(--color-cat-date-time), white 20%);
-  --color-cat-web-tint: color-mix(in srgb, var(--color-cat-web), white 20%);
-  --color-cat-developer-tint: color-mix(in srgb, var(--color-cat-developer), white 20%);
-  --color-cat-documents-tint: color-mix(in srgb, var(--color-cat-documents), white 20%);
+  --color-cat-data-tint: var(--dude-cat-data-tint);
+  --color-cat-text-tint: var(--dude-cat-text-tint);
+  --color-cat-encoding-tint: var(--dude-cat-encoding-tint);
+  --color-cat-security-tint: var(--dude-cat-security-tint);
+  --color-cat-date-time-tint: var(--dude-cat-date-time-tint);
+  --color-cat-web-tint: var(--dude-cat-web-tint);
+  --color-cat-developer-tint: var(--dude-cat-developer-tint);
+  --color-cat-documents-tint: var(--dude-cat-documents-tint);
 
-  /* Fixed semantic status colors, shared by error/warning/success/info/busy UI */
-  --color-error: #ff4d4d;
-  --color-warning: #d99a00;
-  --color-success: #46e05a;
-  --color-info: #1a79ff;
-  --color-busy: #c233ff;
-  --color-offline: #717f94;
+  /* Semantic status colors, shared by error/warning/success/info/busy UI */
+  --color-error: var(--dude-error);
+  --color-warning: var(--dude-warning);
+  --color-success: var(--dude-success);
+  --color-info: var(--dude-info);
+  --color-busy: var(--dude-busy);
+  --color-offline: var(--dude-offline);
 
-  /* Active/focus accent used by sidebar selection, focus rings, primary buttons */
-  --color-accent: #38d8ff;
+  /* Active/focus accent (sidebar selection, focus rings, primary buttons) and the
+     foreground color used on accent fills */
+  --color-accent: var(--dude-accent);
+  --color-on-accent: var(--dude-on-accent);
 
-  /* Chrome type sizes for labels, meta rows, badges and keycaps (Phase 30J
-     baseline: shell text ~12-13px, secondary metadata ~11-12px). In rem against
-     the 16px root in styles.css. */
-  --text-ui: 0.8125rem; /* 13px */
-  --text-ui-sm: 0.75rem; /* 12px */
-  --text-ui-xs: 0.6875rem; /* 11px */
+  /* Chrome type sizes for labels, meta rows, badges and keycaps */
+  --text-ui: var(--dude-text-ui);
+  --text-ui-sm: var(--dude-text-ui-sm);
+  --text-ui-xs: var(--dude-text-ui-xs);
 
-  /* Compact density baseline (Phase 30J.2). Fixed defaults, not user presets;
-     Density Presets are Phase 30K. Used via var() where a utility cannot express
-     the value (control/row heights, panel padding) and named by the
-     check-design-tokens script. */
-  --dude-space-micro: 0.25rem; /* 4px  */
-  --dude-space-normal: 0.5rem; /* 8px  gap between panels/controls */
-  --dude-space-panel: 0.75rem; /* 12px panel padding / section gap */
-  --dude-space-major: 1rem; /* 16px major separation */
-  --dude-space-exceptional: 1.5rem; /* 24px rare */
-  --dude-control-h: 1.75rem; /* 28px compact control (max 32px) */
-  --dude-row-h: 1.75rem; /* 28px table/tool row */
-  --dude-radius: 0.25rem; /* 4px small radius (3-5px band) */
+  /* Base spacing unit; every p-/m-/gap-/size utility is calc(var(--spacing) * n) */
+  --spacing: var(--dude-spacing);
 
-  /* Monospace stack for data/code-like values (Section 8.4) */
-  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  /* Font stacks (UI sans and monospace for data/code-like values, Section 8.4) */
+  --font-sans: var(--dude-font-sans);
+  --font-mono: var(--dude-font-mono);
 }
 
 /*

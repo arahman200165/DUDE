@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="mode() === 'encode'"
-          [class.text-bg]="mode() === 'encode'"
+          [class.text-on-accent]="mode() === 'encode'"
           [class.text-text-muted]="mode() !== 'encode'"
           (click)="setMode('encode')"
         >
@@ -16,7 +16,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="mode() === 'decode'"
-          [class.text-bg]="mode() === 'decode'"
+          [class.text-on-accent]="mode() === 'decode'"
           [class.text-text-muted]="mode() !== 'decode'"
           (click)="setMode('decode')"
         >

@@ -6,7 +6,7 @@
           type="button"
           class="rounded-sm border border-border px-2 py-0.5"
           [class.bg-accent]="grantType() === gt"
-          [class.text-bg]="grantType() === gt"
+          [class.text-on-accent]="grantType() === gt"
           [class.text-text-muted]="grantType() !== gt"
           (click)="setGrantType(gt)"
         >
@@ -20,7 +20,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="subMode() === 'build'"
-        [class.text-bg]="subMode() === 'build'"
+        [class.text-on-accent]="subMode() === 'build'"
         (click)="setSubMode('build')"
       >
         Build
@@ -29,7 +29,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="subMode() === 'inspect'"
-        [class.text-bg]="subMode() === 'inspect'"
+        [class.text-on-accent]="subMode() === 'inspect'"
         (click)="setSubMode('inspect')"
       >
         Inspect

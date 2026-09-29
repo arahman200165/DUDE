@@ -4,7 +4,7 @@
       <span>Width</span>
       <div class="flex overflow-hidden rounded-sm border border-border">
         @for (w of widths; track w) {
-          <button type="button" class="px-2 py-0.5" [class.bg-accent]="width() === w" [class.text-bg]="width() === w" (click)="setWidth(w)">
+          <button type="button" class="px-2 py-0.5" [class.bg-accent]="width() === w" [class.text-on-accent]="width() === w" (click)="setWidth(w)">
             {{ w }}-bit
           </button>
         }
@@ -39,7 +39,7 @@
                 type="button"
                 class="h-5 w-5 rounded-sm border border-border font-mono text-ui-xs"
                 [class.bg-accent]="bit"
-                [class.text-bg]="bit"
+                [class.text-on-accent]="bit"
                 [class.text-text-muted]="!bit"
                 (click)="toggleBitA($index)"
               >
@@ -89,7 +89,7 @@
                 <span
                   class="flex h-5 w-5 items-center justify-center rounded-sm border border-accent/40 font-mono text-ui-xs"
                   [class.bg-accent]="bit"
-                  [class.text-bg]="bit"
+                  [class.text-on-accent]="bit"
                   [class.text-text-muted]="!bit"
                 >
                   {{ bit ? '1' : '0' }}

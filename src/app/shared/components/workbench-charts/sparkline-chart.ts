@@ -1,5 +1,6 @@
 import { Component, DestroyRef, ElementRef, computed, effect, inject, input } from '@angular/core';
 import type { ECharts } from 'echarts/core';
+import { AppearanceService } from '../../../core/appearance/appearance.service';
 import { loadEcharts, readColorToken } from './echarts-loader';
 import { SparklinePoint, buildSparklineOption, summarizeSparkline } from './sparkline-chart-option';
 
@@ -15,6 +16,7 @@ import { SparklinePoint, buildSparklineOption, summarizeSparkline } from './spar
 export class SparklineChart {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly appearance = inject(AppearanceService);
   private chart: ECharts | undefined;
 
   readonly points = input.required<readonly SparklinePoint[]>();
@@ -27,6 +29,7 @@ export class SparklineChart {
 
     effect(() => {
       const points = this.points();
+      this.appearance.revision(); // re-read the color tokens after a theme change
       void this.render(points);
     });
 

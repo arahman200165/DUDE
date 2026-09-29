@@ -5,7 +5,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="mode() === 'grid'"
-        [class.text-bg]="mode() === 'grid'"
+        [class.text-on-accent]="mode() === 'grid'"
         [class.text-text-muted]="mode() !== 'grid'"
         (click)="setMode('grid')"
       >
@@ -15,7 +15,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="mode() === 'pairwise'"
-        [class.text-bg]="mode() === 'pairwise'"
+        [class.text-on-accent]="mode() === 'pairwise'"
         [class.text-text-muted]="mode() !== 'pairwise'"
         (click)="setMode('pairwise')"
       >

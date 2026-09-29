@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="mode() === 'format'"
-          [class.text-bg]="mode() === 'format'"
+          [class.text-on-accent]="mode() === 'format'"
           [class.text-text-muted]="mode() !== 'format'"
           (click)="setMode('format')"
         >
@@ -16,7 +16,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="mode() === 'minify'"
-          [class.text-bg]="mode() === 'minify'"
+          [class.text-on-accent]="mode() === 'minify'"
           [class.text-text-muted]="mode() !== 'minify'"
           (click)="setMode('minify')"
         >
@@ -26,7 +26,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="mode() === 'validate'"
-          [class.text-bg]="mode() === 'validate'"
+          [class.text-on-accent]="mode() === 'validate'"
           [class.text-text-muted]="mode() !== 'validate'"
           (click)="setMode('validate')"
         >

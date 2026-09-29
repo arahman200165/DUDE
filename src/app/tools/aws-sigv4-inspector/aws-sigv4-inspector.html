@@ -5,7 +5,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="mode() === 'build'"
-        [class.text-bg]="mode() === 'build'"
+        [class.text-on-accent]="mode() === 'build'"
         (click)="setMode('build')"
       >
         Build
@@ -14,7 +14,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="mode() === 'inspect'"
-        [class.text-bg]="mode() === 'inspect'"
+        [class.text-on-accent]="mode() === 'inspect'"
         (click)="setMode('inspect')"
       >
         Inspect

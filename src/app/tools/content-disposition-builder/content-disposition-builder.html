@@ -14,10 +14,10 @@
     </div>
 
     <div class="flex w-fit overflow-hidden rounded-sm border border-border text-ui text-text-muted">
-      <button type="button" class="px-2 py-0.5" [class.bg-accent]="disposition().type === 'attachment'" [class.text-bg]="disposition().type === 'attachment'" (click)="setType('attachment')">
+      <button type="button" class="px-2 py-0.5" [class.bg-accent]="disposition().type === 'attachment'" [class.text-on-accent]="disposition().type === 'attachment'" (click)="setType('attachment')">
         attachment
       </button>
-      <button type="button" class="px-2 py-0.5" [class.bg-accent]="disposition().type === 'inline'" [class.text-bg]="disposition().type === 'inline'" (click)="setType('inline')">
+      <button type="button" class="px-2 py-0.5" [class.bg-accent]="disposition().type === 'inline'" [class.text-on-accent]="disposition().type === 'inline'" (click)="setType('inline')">
         inline
       </button>
     </div>

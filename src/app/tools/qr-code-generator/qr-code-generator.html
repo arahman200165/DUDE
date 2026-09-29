@@ -7,7 +7,7 @@
             type="button"
             class="px-2 py-0.5"
             [class.bg-accent]="preset() === item.id"
-            [class.text-bg]="preset() === item.id"
+            [class.text-on-accent]="preset() === item.id"
             [class.text-text-muted]="preset() !== item.id"
             (click)="setPreset($any(item.id))"
           >

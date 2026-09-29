@@ -9,3 +9,6 @@ export const APP_SETTINGS_NAMESPACE = 'settings';
 export const LLM_BASE_URL_KEY = 'llmBaseUrl';
 export const LLM_MODEL_KEY = 'llmModel';
 export const LLM_API_KEY_KEY = 'llmApiKey';
+
+/** The persisted appearance preferences (`core/appearance/`), stored as `dude:v1:settings:appearance`. */
+export const APPEARANCE_KEY = 'appearance';

@@ -15,7 +15,7 @@
             type="button"
             class="px-2 py-0.5"
             [class.bg-accent]="mode() === 'dimensions'"
-            [class.text-bg]="mode() === 'dimensions'"
+            [class.text-on-accent]="mode() === 'dimensions'"
             [class.text-text-muted]="mode() !== 'dimensions'"
             (click)="mode.set('dimensions')"
           >
@@ -25,7 +25,7 @@
             type="button"
             class="px-2 py-0.5"
             [class.bg-accent]="mode() === 'percent'"
-            [class.text-bg]="mode() === 'percent'"
+            [class.text-on-accent]="mode() === 'percent'"
             [class.text-text-muted]="mode() !== 'percent'"
             (click)="mode.set('percent')"
           >

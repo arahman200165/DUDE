@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="direction() === 'toHex'"
-          [class.text-bg]="direction() === 'toHex'"
+          [class.text-on-accent]="direction() === 'toHex'"
           [class.text-text-muted]="direction() !== 'toHex'"
           (click)="setDirection('toHex')"
         >
@@ -16,7 +16,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="direction() === 'toText'"
-          [class.text-bg]="direction() === 'toText'"
+          [class.text-on-accent]="direction() === 'toText'"
           [class.text-text-muted]="direction() !== 'toText'"
           (click)="setDirection('toText')"
         >

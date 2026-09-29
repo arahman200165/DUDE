@@ -1,0 +1,98 @@
+{
+  "axes": {
+    "theme": { "attr": "data-theme", "values": ["dark"], "default": "dark" },
+    "contrast": { "attr": "data-contrast", "values": ["standard"], "default": "standard" },
+    "accent": { "attr": "data-accent", "values": ["cyan"], "default": "cyan" },
+    "catset": { "attr": "data-catset", "values": ["vivid"], "default": "vivid" },
+    "semantic": { "attr": "data-semantic", "values": ["standard"], "default": "standard" },
+    "density": { "attr": "data-density", "values": ["compact"], "default": "compact" }
+  },
+  "bases": {
+    "dark": {
+      "standard": {
+        "bg": "#0a0e14",
+        "panel": "#10151d",
+        "panel-elevated": "#161c26",
+        "border": "#232b38",
+        "text": "#e6e9ef",
+        "text-muted": "#8b93a3",
+        "focus-width": "2px",
+        "color-scheme": "dark",
+        "wash-pct": "8%",
+        "tint-toward": "white",
+        "tint-pct": "20%"
+      }
+    }
+  },
+  "accents": {
+    "cyan": {
+      "dark": {
+        "standard": { "accent": "#38d8ff", "on-accent": "#0a0e14" }
+      }
+    }
+  },
+  "categorySets": {
+    "vivid": {
+      "dark": {
+        "standard": {
+          "data": "#22d3ee",
+          "text": "#a3e635",
+          "encoding": "#fb923c",
+          "security": "#e879f9",
+          "date-time": "#a78bfa",
+          "web": "#60a5fa",
+          "developer": "#34d399",
+          "documents": "#f472b6"
+        }
+      }
+    }
+  },
+  "semanticSets": {
+    "standard": {
+      "dark": {
+        "standard": {
+          "error": "#ff4d4d",
+          "warning": "#d99a00",
+          "success": "#46e05a",
+          "info": "#1a79ff",
+          "busy": "#c233ff",
+          "offline": "#717f94"
+        }
+      }
+    }
+  },
+  "density": {
+    "compact": {
+      "spacing": "0.25rem",
+      "control-h": "1.75rem",
+      "row-h": "1.75rem",
+      "radius": "0.25rem",
+      "text-ui": "0.8125rem",
+      "text-ui-sm": "0.75rem",
+      "text-ui-xs": "0.6875rem",
+      "space-micro": "0.25rem",
+      "space-normal": "0.5rem",
+      "space-panel": "0.75rem",
+      "space-major": "1rem",
+      "space-exceptional": "1.5rem"
+    }
+  },
+  "fonts": {
+    "ui": [
+      {
+        "id": "system",
+        "label": "System UI",
+        "stack": "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"
+      }
+    ],
+    "mono": [
+      {
+        "id": "default",
+        "label": "JetBrains Mono / Fira Code",
+        "stack": "'JetBrains Mono', 'Fira Code', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace"
+      }
+    ],
+    "defaultUi": "system",
+    "defaultMono": "default"
+  }
+}

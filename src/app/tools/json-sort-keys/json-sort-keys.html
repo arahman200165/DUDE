@@ -11,7 +11,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="order() === 'asc'"
-          [class.text-bg]="order() === 'asc'"
+          [class.text-on-accent]="order() === 'asc'"
           [class.text-text-muted]="order() !== 'asc'"
           (click)="setOrder('asc')"
         >
@@ -21,7 +21,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="order() === 'desc'"
-          [class.text-bg]="order() === 'desc'"
+          [class.text-on-accent]="order() === 'desc'"
           [class.text-text-muted]="order() !== 'desc'"
           (click)="setOrder('desc')"
         >

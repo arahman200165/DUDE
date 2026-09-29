@@ -98,7 +98,7 @@
           <button type="button" class="rounded border border-border px-4 py-2" (click)="flow.skip()">Skip for now</button>
           <div class="flex-1"></div>
           <button type="button" class="rounded border border-border px-4 py-2" [disabled]="flow.step() === 0" (click)="back()">Back</button>
-          <button type="button" class="rounded bg-accent px-4 py-2 font-semibold text-bg" (click)="next()">{{ flow.step() === pages.length - 1 ? 'Finish' : 'Next' }}</button>
+          <button type="button" class="rounded bg-accent px-4 py-2 font-semibold text-on-accent" (click)="next()">{{ flow.step() === pages.length - 1 ? 'Finish' : 'Next' }}</button>
         </footer>
       </div>
     </div>

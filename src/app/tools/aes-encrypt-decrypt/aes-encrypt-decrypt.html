@@ -10,7 +10,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="opMode() === 'encrypt'"
-        [class.text-bg]="opMode() === 'encrypt'"
+        [class.text-on-accent]="opMode() === 'encrypt'"
         [class.text-text-muted]="opMode() !== 'encrypt'"
         (click)="setOpMode('encrypt')"
       >
@@ -20,7 +20,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="opMode() === 'decrypt'"
-        [class.text-bg]="opMode() === 'decrypt'"
+        [class.text-on-accent]="opMode() === 'decrypt'"
         [class.text-text-muted]="opMode() !== 'decrypt'"
         (click)="setOpMode('decrypt')"
       >

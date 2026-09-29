@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="inputMode() === 'paste'"
-          [class.text-bg]="inputMode() === 'paste'"
+          [class.text-on-accent]="inputMode() === 'paste'"
           [class.text-text-muted]="inputMode() !== 'paste'"
           (click)="setInputMode('paste')"
         >
@@ -16,7 +16,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="inputMode() === 'file'"
-          [class.text-bg]="inputMode() === 'file'"
+          [class.text-on-accent]="inputMode() === 'file'"
           [class.text-text-muted]="inputMode() !== 'file'"
           (click)="setInputMode('file')"
         >
@@ -29,7 +29,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="mode() === 'text'"
-          [class.text-bg]="mode() === 'text'"
+          [class.text-on-accent]="mode() === 'text'"
           [class.text-text-muted]="mode() !== 'text'"
           (click)="setMode('text')"
         >
@@ -39,7 +39,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="mode() === 'semantic-json'"
-          [class.text-bg]="mode() === 'semantic-json'"
+          [class.text-on-accent]="mode() === 'semantic-json'"
           [class.text-text-muted]="mode() !== 'semantic-json'"
           (click)="setMode('semantic-json')"
         >
@@ -49,7 +49,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="mode() === 'semantic-yaml'"
-          [class.text-bg]="mode() === 'semantic-yaml'"
+          [class.text-on-accent]="mode() === 'semantic-yaml'"
           [class.text-text-muted]="mode() !== 'semantic-yaml'"
           (click)="setMode('semantic-yaml')"
         >
@@ -59,7 +59,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="mode() === 'semantic-xml'"
-          [class.text-bg]="mode() === 'semantic-xml'"
+          [class.text-on-accent]="mode() === 'semantic-xml'"
           [class.text-text-muted]="mode() !== 'semantic-xml'"
           (click)="setMode('semantic-xml')"
         >
@@ -69,7 +69,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="mode() === 'image'"
-          [class.text-bg]="mode() === 'image'"
+          [class.text-on-accent]="mode() === 'image'"
           [class.text-text-muted]="mode() !== 'image'"
           (click)="setMode('image')"
         >
@@ -83,7 +83,7 @@
             type="button"
             class="px-2 py-0.5"
             [class.bg-accent]="granularity() === 'line'"
-            [class.text-bg]="granularity() === 'line'"
+            [class.text-on-accent]="granularity() === 'line'"
             [class.text-text-muted]="granularity() !== 'line'"
             (click)="setGranularity('line')"
           >
@@ -93,7 +93,7 @@
             type="button"
             class="px-2 py-0.5"
             [class.bg-accent]="granularity() === 'word'"
-            [class.text-bg]="granularity() === 'word'"
+            [class.text-on-accent]="granularity() === 'word'"
             [class.text-text-muted]="granularity() !== 'word'"
             (click)="setGranularity('word')"
           >
@@ -103,7 +103,7 @@
             type="button"
             class="px-2 py-0.5"
             [class.bg-accent]="granularity() === 'char'"
-            [class.text-bg]="granularity() === 'char'"
+            [class.text-on-accent]="granularity() === 'char'"
             [class.text-text-muted]="granularity() !== 'char'"
             (click)="setGranularity('char')"
           >
@@ -118,7 +118,7 @@
             type="button"
             class="px-2 py-0.5"
             [class.bg-accent]="viewMode() === 'diff'"
-            [class.text-bg]="viewMode() === 'diff'"
+            [class.text-on-accent]="viewMode() === 'diff'"
             [class.text-text-muted]="viewMode() !== 'diff'"
             (click)="setViewMode('diff')"
           >
@@ -128,7 +128,7 @@
             type="button"
             class="px-2 py-0.5"
             [class.bg-accent]="viewMode() === 'merge'"
-            [class.text-bg]="viewMode() === 'merge'"
+            [class.text-on-accent]="viewMode() === 'merge'"
             [class.text-text-muted]="viewMode() !== 'merge'"
             (click)="setViewMode('merge')"
           >
@@ -142,7 +142,7 @@
               type="button"
               class="px-2 py-0.5"
               [class.bg-accent]="mergeMode() === 'two-way'"
-              [class.text-bg]="mergeMode() === 'two-way'"
+              [class.text-on-accent]="mergeMode() === 'two-way'"
               [class.text-text-muted]="mergeMode() !== 'two-way'"
               (click)="setMergeMode('two-way')"
             >
@@ -152,7 +152,7 @@
               type="button"
               class="px-2 py-0.5"
               [class.bg-accent]="mergeMode() === 'three-way'"
-              [class.text-bg]="mergeMode() === 'three-way'"
+              [class.text-on-accent]="mergeMode() === 'three-way'"
               [class.text-text-muted]="mergeMode() !== 'three-way'"
               (click)="setMergeMode('three-way')"
             >

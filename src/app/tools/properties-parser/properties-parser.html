@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="direction() === 'properties-to-json'"
-          [class.text-bg]="direction() === 'properties-to-json'"
+          [class.text-on-accent]="direction() === 'properties-to-json'"
           [class.text-text-muted]="direction() !== 'properties-to-json'"
           (click)="setDirection('properties-to-json')"
         >
@@ -16,7 +16,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="direction() === 'json-to-properties'"
-          [class.text-bg]="direction() === 'json-to-properties'"
+          [class.text-on-accent]="direction() === 'json-to-properties'"
           [class.text-text-muted]="direction() !== 'json-to-properties'"
           (click)="setDirection('json-to-properties')"
         >

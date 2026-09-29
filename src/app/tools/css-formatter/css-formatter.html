@@ -5,7 +5,7 @@
         type="button"
         class="rounded-sm border border-border px-2 py-1 text-ui"
         [class.bg-accent]="mode() === 'pretty'"
-        [class.text-bg]="mode() === 'pretty'"
+        [class.text-on-accent]="mode() === 'pretty'"
         [class.text-text-muted]="mode() !== 'pretty'"
         (click)="setMode('pretty')"
       >
@@ -15,7 +15,7 @@
         type="button"
         class="rounded-sm border border-border px-2 py-1 text-ui"
         [class.bg-accent]="mode() === 'minify'"
-        [class.text-bg]="mode() === 'minify'"
+        [class.text-on-accent]="mode() === 'minify'"
         [class.text-text-muted]="mode() !== 'minify'"
         (click)="setMode('minify')"
       >

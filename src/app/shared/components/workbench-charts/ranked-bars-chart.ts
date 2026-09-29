@@ -1,5 +1,6 @@
 import { Component, DestroyRef, ElementRef, effect, inject, input } from '@angular/core';
 import type { ECharts } from 'echarts/core';
+import { AppearanceService } from '../../../core/appearance/appearance.service';
 import { loadEcharts, readColorToken } from './echarts-loader';
 import { buildRankedBarsOption } from './ranked-bars-chart-option';
 
@@ -22,6 +23,7 @@ export interface RankedBarInput {
 export class RankedBarsChart {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly appearance = inject(AppearanceService);
   private chart: ECharts | undefined;
 
   readonly items = input.required<readonly RankedBarInput[]>();
@@ -36,6 +38,7 @@ export class RankedBarsChart {
 
     effect(() => {
       const items = this.items();
+      this.appearance.revision(); // re-read the color tokens after a theme change
       void this.render(items);
     });
 

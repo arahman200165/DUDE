@@ -7,7 +7,7 @@
             type="button"
             class="px-2 py-0.5"
             [class.bg-accent]="mode() === 'pretty'"
-            [class.text-bg]="mode() === 'pretty'"
+            [class.text-on-accent]="mode() === 'pretty'"
             [class.text-text-muted]="mode() !== 'pretty'"
             (click)="setMode('pretty')"
           >
@@ -17,7 +17,7 @@
             type="button"
             class="px-2 py-0.5"
             [class.bg-accent]="mode() === 'minify'"
-            [class.text-bg]="mode() === 'minify'"
+            [class.text-on-accent]="mode() === 'minify'"
             [class.text-text-muted]="mode() !== 'minify'"
             (click)="setMode('minify')"
           >
@@ -27,7 +27,7 @@
             type="button"
             class="px-2 py-0.5"
             [class.bg-accent]="mode() === 'validate'"
-            [class.text-bg]="mode() === 'validate'"
+            [class.text-on-accent]="mode() === 'validate'"
             [class.text-text-muted]="mode() !== 'validate'"
             (click)="setMode('validate')"
           >
@@ -41,7 +41,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="view() === 'text'"
-          [class.text-bg]="view() === 'text'"
+          [class.text-on-accent]="view() === 'text'"
           [class.text-text-muted]="view() !== 'text'"
           (click)="setView('text')"
         >
@@ -52,7 +52,7 @@
             type="button"
             class="px-2 py-0.5"
             [class.bg-accent]="view() === 'tree'"
-            [class.text-bg]="view() === 'tree'"
+            [class.text-on-accent]="view() === 'tree'"
             [class.text-text-muted]="view() !== 'tree'"
             (click)="setView('tree')"
           >
@@ -63,7 +63,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="view() === 'compare'"
-          [class.text-bg]="view() === 'compare'"
+          [class.text-on-accent]="view() === 'compare'"
           [class.text-text-muted]="view() !== 'compare'"
           (click)="setView('compare')"
         >

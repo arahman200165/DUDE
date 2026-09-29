@@ -40,7 +40,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="direction() === 'next'"
-          [class.text-bg]="direction() === 'next'"
+          [class.text-on-accent]="direction() === 'next'"
           [class.text-text-muted]="direction() !== 'next'"
           (click)="setDirection('next')"
         >
@@ -50,7 +50,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="direction() === 'previous'"
-          [class.text-bg]="direction() === 'previous'"
+          [class.text-on-accent]="direction() === 'previous'"
           [class.text-text-muted]="direction() !== 'previous'"
           (click)="setDirection('previous')"
         >

@@ -6,7 +6,7 @@
           type="button"
           class="px-3 py-1"
           [class.bg-accent]="options().source === 'classic'"
-          [class.text-bg]="options().source === 'classic'"
+          [class.text-on-accent]="options().source === 'classic'"
           (click)="setSource('classic')"
         >
           Classic
@@ -15,7 +15,7 @@
           type="button"
           class="border-l border-border px-3 py-1"
           [class.bg-accent]="options().source === 'faker'"
-          [class.text-bg]="options().source === 'faker'"
+          [class.text-on-accent]="options().source === 'faker'"
           (click)="setSource('faker')"
         >
           Placeholder (faker)

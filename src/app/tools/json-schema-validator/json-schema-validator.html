@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="draftMode() === 'auto'"
-          [class.text-bg]="draftMode() === 'auto'"
+          [class.text-on-accent]="draftMode() === 'auto'"
           [class.text-text-muted]="draftMode() !== 'auto'"
           (click)="setDraftMode('auto')"
         >
@@ -16,7 +16,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="draftMode() === 'draft-07'"
-          [class.text-bg]="draftMode() === 'draft-07'"
+          [class.text-on-accent]="draftMode() === 'draft-07'"
           [class.text-text-muted]="draftMode() !== 'draft-07'"
           (click)="setDraftMode('draft-07')"
         >
@@ -26,7 +26,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="draftMode() === '2020-12'"
-          [class.text-bg]="draftMode() === '2020-12'"
+          [class.text-on-accent]="draftMode() === '2020-12'"
           [class.text-text-muted]="draftMode() !== '2020-12'"
           (click)="setDraftMode('2020-12')"
         >

@@ -1,4 +1,4 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners, isDevMode } from '@angular/core';
+import { ApplicationConfig, inject, provideAppInitializer, provideBrowserGlobalErrorListeners, isDevMode } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { routes } from './core/routing/app.routes';
 import { provideServiceWorker } from '@angular/service-worker';
@@ -12,6 +12,7 @@ import { RECENTS_COMMAND_SOURCE_PROVIDERS } from './core/recents/recents-command
 import { PREFERENCES_COMMAND_SOURCE_PROVIDERS } from './core/platform/preferences-command-source';
 import { SHARE_COMMAND_SOURCE_PROVIDERS } from './core/share/share-command-source';
 import { DESKTOP_HANDOFF_COMMAND_SOURCE_PROVIDERS } from './core/deep-link/desktop-handoff-command-source';
+import { AppearanceService } from './core/appearance/appearance.service';
 import { provideStorageMigrations } from './core/persistence/storage-migrations';
 import { NAVIGATION_COMMAND_SOURCE_PROVIDERS } from './shell/navigation-command-source';
 
@@ -19,6 +20,10 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideStorageMigrations(),
+    // Applies the saved theme/density/fonts to <html> at bootstrap (index.html pre-paints the attributes).
+    provideAppInitializer(() => {
+      inject(AppearanceService);
+    }),
     ...TOOL_COMMAND_SOURCE_PROVIDERS,
     ...NAVIGATION_COMMAND_SOURCE_PROVIDERS,
     ...WORKSPACE_COMMAND_SOURCE_PROVIDERS,

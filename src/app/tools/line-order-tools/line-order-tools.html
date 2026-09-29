@@ -6,7 +6,7 @@
           type="button"
           class="px-3 py-1"
           [class.bg-accent]="operation() === 'sort'"
-          [class.text-bg]="operation() === 'sort'"
+          [class.text-on-accent]="operation() === 'sort'"
           (click)="setOperation('sort')"
         >
           Sort
@@ -15,7 +15,7 @@
           type="button"
           class="border-l border-border px-3 py-1"
           [class.bg-accent]="operation() === 'shuffle'"
-          [class.text-bg]="operation() === 'shuffle'"
+          [class.text-on-accent]="operation() === 'shuffle'"
           (click)="setOperation('shuffle')"
         >
           Shuffle
@@ -24,7 +24,7 @@
           type="button"
           class="border-l border-border px-3 py-1"
           [class.bg-accent]="operation() === 'reverse'"
-          [class.text-bg]="operation() === 'reverse'"
+          [class.text-on-accent]="operation() === 'reverse'"
           (click)="setOperation('reverse')"
         >
           Reverse

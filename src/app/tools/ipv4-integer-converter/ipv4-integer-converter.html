@@ -5,7 +5,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="direction() === 'ip-to-int'"
-        [class.text-bg]="direction() === 'ip-to-int'"
+        [class.text-on-accent]="direction() === 'ip-to-int'"
         [class.text-text-muted]="direction() !== 'ip-to-int'"
         (click)="setDirection('ip-to-int')"
       >
@@ -15,7 +15,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="direction() === 'int-to-ip'"
-        [class.text-bg]="direction() === 'int-to-ip'"
+        [class.text-on-accent]="direction() === 'int-to-ip'"
         [class.text-text-muted]="direction() !== 'int-to-ip'"
         (click)="setDirection('int-to-ip')"
       >

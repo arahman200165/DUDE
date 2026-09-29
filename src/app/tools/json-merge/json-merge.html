@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="strategy() === 'deep'"
-          [class.text-bg]="strategy() === 'deep'"
+          [class.text-on-accent]="strategy() === 'deep'"
           [class.text-text-muted]="strategy() !== 'deep'"
           (click)="setStrategy('deep')"
         >
@@ -16,7 +16,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="strategy() === 'rfc7396'"
-          [class.text-bg]="strategy() === 'rfc7396'"
+          [class.text-on-accent]="strategy() === 'rfc7396'"
           [class.text-text-muted]="strategy() !== 'rfc7396'"
           (click)="setStrategy('rfc7396')"
         >

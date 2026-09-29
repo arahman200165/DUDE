@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="mode() === 'multi'"
-          [class.text-bg]="mode() === 'multi'"
+          [class.text-on-accent]="mode() === 'multi'"
           [class.text-text-muted]="mode() !== 'multi'"
           (click)="setMode('multi')"
         >
@@ -16,7 +16,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="mode() === 'range'"
-          [class.text-bg]="mode() === 'range'"
+          [class.text-on-accent]="mode() === 'range'"
           [class.text-text-muted]="mode() !== 'range'"
           (click)="setMode('range')"
         >

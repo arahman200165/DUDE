@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="mode() === 'view'"
-          [class.text-bg]="mode() === 'view'"
+          [class.text-on-accent]="mode() === 'view'"
           [class.text-text-muted]="mode() !== 'view'"
           (click)="setMode('view')"
         >
@@ -16,7 +16,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="mode() === 'clean'"
-          [class.text-bg]="mode() === 'clean'"
+          [class.text-on-accent]="mode() === 'clean'"
           [class.text-text-muted]="mode() !== 'clean'"
           (click)="setMode('clean')"
         >

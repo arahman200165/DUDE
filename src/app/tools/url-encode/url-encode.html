@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="operation() === 'encode'"
-          [class.text-bg]="operation() === 'encode'"
+          [class.text-on-accent]="operation() === 'encode'"
           [class.text-text-muted]="operation() !== 'encode'"
           (click)="setOperation('encode')"
         >
@@ -16,7 +16,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="operation() === 'decode'"
-          [class.text-bg]="operation() === 'decode'"
+          [class.text-on-accent]="operation() === 'decode'"
           [class.text-text-muted]="operation() !== 'decode'"
           (click)="setOperation('decode')"
         >

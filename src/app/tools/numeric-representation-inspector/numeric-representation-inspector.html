@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="tab() === option.id"
-          [class.text-bg]="tab() === option.id"
+          [class.text-on-accent]="tab() === option.id"
           [class.text-text-muted]="tab() !== option.id"
           (click)="setTab(option.id)"
         >
@@ -25,7 +25,7 @@
                 type="button"
                 class="px-2 py-0.5"
                 [class.bg-accent]="endiannessWidth() === width"
-                [class.text-bg]="endiannessWidth() === width"
+                [class.text-on-accent]="endiannessWidth() === width"
                 (click)="setEndiannessWidth(width)"
               >
                 {{ width }}-bit
@@ -78,7 +78,7 @@
               type="button"
               class="px-2 py-0.5"
               [class.bg-accent]="floatPrecision() === 32"
-              [class.text-bg]="floatPrecision() === 32"
+              [class.text-on-accent]="floatPrecision() === 32"
               (click)="setFloatPrecision(32)"
             >
               32-bit (float)
@@ -87,7 +87,7 @@
               type="button"
               class="px-2 py-0.5"
               [class.bg-accent]="floatPrecision() === 64"
-              [class.text-bg]="floatPrecision() === 64"
+              [class.text-on-accent]="floatPrecision() === 64"
               (click)="setFloatPrecision(64)"
             >
               64-bit (double)

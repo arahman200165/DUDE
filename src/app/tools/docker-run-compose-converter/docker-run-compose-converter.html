@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="direction() === 'run-to-compose'"
-          [class.text-bg]="direction() === 'run-to-compose'"
+          [class.text-on-accent]="direction() === 'run-to-compose'"
           [class.text-text-muted]="direction() !== 'run-to-compose'"
           (click)="setDirection('run-to-compose')"
         >
@@ -16,7 +16,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="direction() === 'compose-to-run'"
-          [class.text-bg]="direction() === 'compose-to-run'"
+          [class.text-on-accent]="direction() === 'compose-to-run'"
           [class.text-text-muted]="direction() !== 'compose-to-run'"
           (click)="setDirection('compose-to-run')"
         >

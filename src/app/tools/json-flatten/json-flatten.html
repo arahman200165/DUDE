@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="direction() === 'flatten'"
-          [class.text-bg]="direction() === 'flatten'"
+          [class.text-on-accent]="direction() === 'flatten'"
           [class.text-text-muted]="direction() !== 'flatten'"
           (click)="setDirection('flatten')"
         >
@@ -16,7 +16,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="direction() === 'unflatten'"
-          [class.text-bg]="direction() === 'unflatten'"
+          [class.text-on-accent]="direction() === 'unflatten'"
           [class.text-text-muted]="direction() !== 'unflatten'"
           (click)="setDirection('unflatten')"
         >

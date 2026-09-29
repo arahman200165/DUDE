@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="mode() === 'view'"
-          [class.text-bg]="mode() === 'view'"
+          [class.text-on-accent]="mode() === 'view'"
           [class.text-text-muted]="mode() !== 'view'"
           (click)="setMode('view')"
         >
@@ -16,7 +16,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="mode() === 'tokens'"
-          [class.text-bg]="mode() === 'tokens'"
+          [class.text-on-accent]="mode() === 'tokens'"
           [class.text-text-muted]="mode() !== 'tokens'"
           (click)="setMode('tokens')"
         >
@@ -26,7 +26,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="mode() === 'diff'"
-          [class.text-bg]="mode() === 'diff'"
+          [class.text-on-accent]="mode() === 'diff'"
           [class.text-text-muted]="mode() !== 'diff'"
           (click)="setMode('diff')"
         >
@@ -36,7 +36,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="mode() === 'merge'"
-          [class.text-bg]="mode() === 'merge'"
+          [class.text-on-accent]="mode() === 'merge'"
           [class.text-text-muted]="mode() !== 'merge'"
           (click)="setMode('merge')"
         >

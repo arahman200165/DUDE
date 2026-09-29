@@ -5,7 +5,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="inputMode() === 'paste'"
-        [class.text-bg]="inputMode() === 'paste'"
+        [class.text-on-accent]="inputMode() === 'paste'"
         [class.text-text-muted]="inputMode() !== 'paste'"
         (click)="setInputMode('paste')"
       >
@@ -15,7 +15,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="inputMode() === 'file'"
-        [class.text-bg]="inputMode() === 'file'"
+        [class.text-on-accent]="inputMode() === 'file'"
         [class.text-text-muted]="inputMode() !== 'file'"
         (click)="setInputMode('file')"
       >
@@ -68,7 +68,7 @@
             type="button"
             class="px-2 py-0.5"
             [class.bg-accent]="tab() === 'overview'"
-            [class.text-bg]="tab() === 'overview'"
+            [class.text-on-accent]="tab() === 'overview'"
             [class.text-text-muted]="tab() !== 'overview'"
             (click)="setTab('overview')"
           >
@@ -78,7 +78,7 @@
             type="button"
             class="px-2 py-0.5"
             [class.bg-accent]="tab() === 'san'"
-            [class.text-bg]="tab() === 'san'"
+            [class.text-on-accent]="tab() === 'san'"
             [class.text-text-muted]="tab() !== 'san'"
             (click)="setTab('san')"
           >
@@ -88,7 +88,7 @@
             type="button"
             class="px-2 py-0.5"
             [class.bg-accent]="tab() === 'extensions'"
-            [class.text-bg]="tab() === 'extensions'"
+            [class.text-on-accent]="tab() === 'extensions'"
             [class.text-text-muted]="tab() !== 'extensions'"
             (click)="setTab('extensions')"
           >
@@ -98,7 +98,7 @@
             type="button"
             class="px-2 py-0.5"
             [class.bg-accent]="tab() === 'fingerprints'"
-            [class.text-bg]="tab() === 'fingerprints'"
+            [class.text-on-accent]="tab() === 'fingerprints'"
             [class.text-text-muted]="tab() !== 'fingerprints'"
             (click)="setTab('fingerprints')"
           >

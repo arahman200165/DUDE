@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="viewMode() === 'table'"
-          [class.text-bg]="viewMode() === 'table'"
+          [class.text-on-accent]="viewMode() === 'table'"
           [class.text-text-muted]="viewMode() !== 'table'"
           (click)="setViewMode('table')"
         >
@@ -16,7 +16,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="viewMode() === 'array'"
-          [class.text-bg]="viewMode() === 'array'"
+          [class.text-on-accent]="viewMode() === 'array'"
           [class.text-text-muted]="viewMode() !== 'array'"
           (click)="setViewMode('array')"
         >

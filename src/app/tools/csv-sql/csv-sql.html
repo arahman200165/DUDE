@@ -8,7 +8,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="direction() === 'csv-to-sql'"
-          [class.text-bg]="direction() === 'csv-to-sql'"
+          [class.text-on-accent]="direction() === 'csv-to-sql'"
           [class.text-text-muted]="direction() !== 'csv-to-sql'"
           (click)="setDirection('csv-to-sql')"
         >
@@ -18,7 +18,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="direction() === 'sql-to-csv'"
-          [class.text-bg]="direction() === 'sql-to-csv'"
+          [class.text-on-accent]="direction() === 'sql-to-csv'"
           [class.text-text-muted]="direction() !== 'sql-to-csv'"
           (click)="setDirection('sql-to-csv')"
         >
@@ -28,7 +28,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="direction() === 'json-to-sql'"
-          [class.text-bg]="direction() === 'json-to-sql'"
+          [class.text-on-accent]="direction() === 'json-to-sql'"
           [class.text-text-muted]="direction() !== 'json-to-sql'"
           (click)="setDirection('json-to-sql')"
         >

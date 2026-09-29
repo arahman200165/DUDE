@@ -1,24 +1,24 @@
 <app-tool-shell>
   <div class="flex h-full min-h-0 flex-col gap-2">
     <div class="flex flex-wrap items-center gap-1 text-ui text-text-muted">
-      <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" [class.bg-accent]="isActive('bold')" [class.text-bg]="isActive('bold')" (click)="toggleBold()"><strong>B</strong></button>
-      <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" [class.bg-accent]="isActive('italic')" [class.text-bg]="isActive('italic')" (click)="toggleItalic()"><em>I</em></button>
-      <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" [class.bg-accent]="isActive('underline')" [class.text-bg]="isActive('underline')" (click)="toggleUnderline()"><span class="underline">U</span></button>
-      <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" [class.bg-accent]="isActive('strike')" [class.text-bg]="isActive('strike')" (click)="toggleStrike()"><span class="line-through">S</span></button>
+      <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" [class.bg-accent]="isActive('bold')" [class.text-on-accent]="isActive('bold')" (click)="toggleBold()"><strong>B</strong></button>
+      <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" [class.bg-accent]="isActive('italic')" [class.text-on-accent]="isActive('italic')" (click)="toggleItalic()"><em>I</em></button>
+      <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" [class.bg-accent]="isActive('underline')" [class.text-on-accent]="isActive('underline')" (click)="toggleUnderline()"><span class="underline">U</span></button>
+      <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" [class.bg-accent]="isActive('strike')" [class.text-on-accent]="isActive('strike')" (click)="toggleStrike()"><span class="line-through">S</span></button>
 
       <span class="mx-1 h-4 w-px bg-border"></span>
 
-      <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" [class.bg-accent]="isActive('heading')" [class.text-bg]="isActive('heading')" (click)="toggleHeading(1)">H1</button>
+      <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" [class.bg-accent]="isActive('heading')" [class.text-on-accent]="isActive('heading')" (click)="toggleHeading(1)">H1</button>
       <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" (click)="toggleHeading(2)">H2</button>
       <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" (click)="toggleHeading(3)">H3</button>
 
       <span class="mx-1 h-4 w-px bg-border"></span>
 
-      <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" [class.bg-accent]="isActive('bulletList')" [class.text-bg]="isActive('bulletList')" (click)="toggleBulletList()">&bull; List</button>
-      <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" [class.bg-accent]="isActive('orderedList')" [class.text-bg]="isActive('orderedList')" (click)="toggleOrderedList()">1. List</button>
-      <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" [class.bg-accent]="isActive('blockquote')" [class.text-bg]="isActive('blockquote')" (click)="toggleBlockquote()">Quote</button>
-      <button type="button" class="rounded-sm border border-border px-2 py-0.5 font-mono hover:bg-panel-elevated" [class.bg-accent]="isActive('codeBlock')" [class.text-bg]="isActive('codeBlock')" (click)="toggleCodeBlock()">Code</button>
-      <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" [class.bg-accent]="isActive('link')" [class.text-bg]="isActive('link')" (click)="openLinkPrompt()">Link</button>
+      <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" [class.bg-accent]="isActive('bulletList')" [class.text-on-accent]="isActive('bulletList')" (click)="toggleBulletList()">&bull; List</button>
+      <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" [class.bg-accent]="isActive('orderedList')" [class.text-on-accent]="isActive('orderedList')" (click)="toggleOrderedList()">1. List</button>
+      <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" [class.bg-accent]="isActive('blockquote')" [class.text-on-accent]="isActive('blockquote')" (click)="toggleBlockquote()">Quote</button>
+      <button type="button" class="rounded-sm border border-border px-2 py-0.5 font-mono hover:bg-panel-elevated" [class.bg-accent]="isActive('codeBlock')" [class.text-on-accent]="isActive('codeBlock')" (click)="toggleCodeBlock()">Code</button>
+      <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" [class.bg-accent]="isActive('link')" [class.text-on-accent]="isActive('link')" (click)="openLinkPrompt()">Link</button>
       <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" (click)="setHorizontalRule()">HR</button>
 
       <span class="mx-1 h-4 w-px bg-border"></span>

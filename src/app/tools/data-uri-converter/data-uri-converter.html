@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="direction() === 'generate'"
-          [class.text-bg]="direction() === 'generate'"
+          [class.text-on-accent]="direction() === 'generate'"
           [class.text-text-muted]="direction() !== 'generate'"
           (click)="setDirection('generate')"
         >
@@ -16,7 +16,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="direction() === 'decode'"
-          [class.text-bg]="direction() === 'decode'"
+          [class.text-on-accent]="direction() === 'decode'"
           [class.text-text-muted]="direction() !== 'decode'"
           (click)="setDirection('decode')"
         >

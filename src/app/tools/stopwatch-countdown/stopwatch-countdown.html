@@ -5,7 +5,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="mode() === 'stopwatch'"
-        [class.text-bg]="mode() === 'stopwatch'"
+        [class.text-on-accent]="mode() === 'stopwatch'"
         [class.text-text-muted]="mode() !== 'stopwatch'"
         (click)="setMode('stopwatch')"
       >
@@ -15,7 +15,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="mode() === 'countdown'"
-        [class.text-bg]="mode() === 'countdown'"
+        [class.text-on-accent]="mode() === 'countdown'"
         [class.text-text-muted]="mode() !== 'countdown'"
         (click)="setMode('countdown')"
       >

@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="direction() === 'yaml-to-json'"
-          [class.text-bg]="direction() === 'yaml-to-json'"
+          [class.text-on-accent]="direction() === 'yaml-to-json'"
           [class.text-text-muted]="direction() !== 'yaml-to-json'"
           (click)="setDirection('yaml-to-json')"
         >
@@ -16,7 +16,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="direction() === 'json-to-yaml'"
-          [class.text-bg]="direction() === 'json-to-yaml'"
+          [class.text-on-accent]="direction() === 'json-to-yaml'"
           [class.text-text-muted]="direction() !== 'json-to-yaml'"
           (click)="setDirection('json-to-yaml')"
         >

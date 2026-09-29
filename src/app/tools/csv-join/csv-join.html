@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="joinType() === 'inner'"
-          [class.text-bg]="joinType() === 'inner'"
+          [class.text-on-accent]="joinType() === 'inner'"
           [class.text-text-muted]="joinType() !== 'inner'"
           (click)="setJoinType('inner')"
         >
@@ -16,7 +16,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="joinType() === 'left'"
-          [class.text-bg]="joinType() === 'left'"
+          [class.text-on-accent]="joinType() === 'left'"
           [class.text-text-muted]="joinType() !== 'left'"
           (click)="setJoinType('left')"
         >

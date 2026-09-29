@@ -6,7 +6,7 @@
           type="button"
           class="px-3 py-1"
           [class.bg-accent]="mode() === 'prefix-suffix'"
-          [class.text-bg]="mode() === 'prefix-suffix'"
+          [class.text-on-accent]="mode() === 'prefix-suffix'"
           (click)="setMode('prefix-suffix')"
         >
           Prefix/Suffix
@@ -15,7 +15,7 @@
           type="button"
           class="border-l border-border px-3 py-1"
           [class.bg-accent]="mode() === 'add-numbers'"
-          [class.text-bg]="mode() === 'add-numbers'"
+          [class.text-on-accent]="mode() === 'add-numbers'"
           (click)="setMode('add-numbers')"
         >
           Add Numbers
@@ -24,7 +24,7 @@
           type="button"
           class="border-l border-border px-3 py-1"
           [class.bg-accent]="mode() === 'remove-numbers'"
-          [class.text-bg]="mode() === 'remove-numbers'"
+          [class.text-on-accent]="mode() === 'remove-numbers'"
           (click)="setMode('remove-numbers')"
         >
           Remove Numbers
@@ -33,7 +33,7 @@
           type="button"
           class="border-l border-border px-3 py-1"
           [class.bg-accent]="mode() === 'transform'"
-          [class.text-bg]="mode() === 'transform'"
+          [class.text-on-accent]="mode() === 'transform'"
           (click)="setMode('transform')"
         >
           Per-Line Transform

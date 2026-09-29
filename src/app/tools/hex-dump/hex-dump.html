@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="direction() === 'toHexDump'"
-          [class.text-bg]="direction() === 'toHexDump'"
+          [class.text-on-accent]="direction() === 'toHexDump'"
           [class.text-text-muted]="direction() !== 'toHexDump'"
           (click)="setDirection('toHexDump')"
         >
@@ -16,7 +16,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="direction() === 'toFile'"
-          [class.text-bg]="direction() === 'toFile'"
+          [class.text-on-accent]="direction() === 'toFile'"
           [class.text-text-muted]="direction() !== 'toFile'"
           (click)="setDirection('toFile')"
         >

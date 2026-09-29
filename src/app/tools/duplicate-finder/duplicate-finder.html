@@ -6,7 +6,7 @@
           type="button"
           class="px-3 py-1"
           [class.bg-accent]="mode() === 'lines'"
-          [class.text-bg]="mode() === 'lines'"
+          [class.text-on-accent]="mode() === 'lines'"
           (click)="setMode('lines')"
         >
           Lines
@@ -15,7 +15,7 @@
           type="button"
           class="border-l border-border px-3 py-1"
           [class.bg-accent]="mode() === 'words'"
-          [class.text-bg]="mode() === 'words'"
+          [class.text-on-accent]="mode() === 'words'"
           (click)="setMode('words')"
         >
           Words

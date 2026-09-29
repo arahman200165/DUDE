@@ -6,7 +6,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="method() === 'S256'"
-          [class.text-bg]="method() === 'S256'"
+          [class.text-on-accent]="method() === 'S256'"
           [class.text-text-muted]="method() !== 'S256'"
           (click)="setMethod('S256')"
         >
@@ -16,7 +16,7 @@
           type="button"
           class="px-2 py-0.5"
           [class.bg-accent]="method() === 'plain'"
-          [class.text-bg]="method() === 'plain'"
+          [class.text-on-accent]="method() === 'plain'"
           [class.text-text-muted]="method() !== 'plain'"
           (click)="setMethod('plain')"
         >

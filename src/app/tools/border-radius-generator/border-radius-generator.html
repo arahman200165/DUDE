@@ -7,8 +7,8 @@
           Link all corners
         </label>
         <div class="flex items-center gap-1">
-          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui" [class.bg-accent]="unit() === 'px'" [class.text-bg]="unit() === 'px'" (click)="setUnit('px')">px</button>
-          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui" [class.bg-accent]="unit() === '%'" [class.text-bg]="unit() === '%'" (click)="setUnit('%')">%</button>
+          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui" [class.bg-accent]="unit() === 'px'" [class.text-on-accent]="unit() === 'px'" (click)="setUnit('px')">px</button>
+          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui" [class.bg-accent]="unit() === '%'" [class.text-on-accent]="unit() === '%'" (click)="setUnit('%')">%</button>
         </div>
       </div>
 

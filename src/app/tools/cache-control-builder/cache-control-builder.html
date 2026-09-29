@@ -1,10 +1,10 @@
 <app-tool-shell>
   <div class="flex h-full flex-col gap-3">
     <div class="flex w-fit overflow-hidden rounded-sm border border-border text-ui text-text-muted">
-      <button type="button" class="px-2 py-0.5" [class.bg-accent]="context() === 'response'" [class.text-bg]="context() === 'response'" (click)="setContext('response')">
+      <button type="button" class="px-2 py-0.5" [class.bg-accent]="context() === 'response'" [class.text-on-accent]="context() === 'response'" (click)="setContext('response')">
         Response
       </button>
-      <button type="button" class="px-2 py-0.5" [class.bg-accent]="context() === 'request'" [class.text-bg]="context() === 'request'" (click)="setContext('request')">
+      <button type="button" class="px-2 py-0.5" [class.bg-accent]="context() === 'request'" [class.text-on-accent]="context() === 'request'" (click)="setContext('request')">
         Request
       </button>
     </div>

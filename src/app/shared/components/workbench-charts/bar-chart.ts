@@ -1,5 +1,6 @@
 import { Component, DestroyRef, ElementRef, effect, inject, input, signal } from '@angular/core';
 import type { ECharts } from 'echarts/core';
+import { AppearanceService } from '../../../core/appearance/appearance.service';
 import { loadEcharts, readColorToken } from './echarts-loader';
 import { BarChartInput, buildBarChartOption } from './bar-chart-option';
 
@@ -16,6 +17,7 @@ import { BarChartInput, buildBarChartOption } from './bar-chart-option';
 export class BarChart {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly appearance = inject(AppearanceService);
   private chart: ECharts | undefined;
 
   readonly bars = input.required<readonly BarChartInput[]>();
@@ -39,6 +41,7 @@ export class BarChart {
 
     effect(() => {
       const bars = this.bars();
+      this.appearance.revision(); // re-read the color tokens after a theme change
       void this.render(bars);
     });
 

@@ -130,7 +130,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="mode() === 'match'"
-        [class.text-bg]="mode() === 'match'"
+        [class.text-on-accent]="mode() === 'match'"
         [class.text-text-muted]="mode() !== 'match'"
         (click)="setMode('match')"
       >
@@ -140,7 +140,7 @@
         type="button"
         class="px-2 py-0.5"
         [class.bg-accent]="mode() === 'replace'"
-        [class.text-bg]="mode() === 'replace'"
+        [class.text-on-accent]="mode() === 'replace'"
         [class.text-text-muted]="mode() !== 'replace'"
         (click)="setMode('replace')"
       >

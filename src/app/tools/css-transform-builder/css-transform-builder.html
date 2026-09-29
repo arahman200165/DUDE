@@ -40,7 +40,7 @@
             type="button"
             class="rounded-sm border border-border px-1.5 py-0.5 text-ui"
             [class.bg-accent]="state().origin === origin"
-            [class.text-bg]="state().origin === origin"
+            [class.text-on-accent]="state().origin === origin"
             [class.text-text-muted]="state().origin !== origin"
             (click)="setOrigin(origin)"
           >
