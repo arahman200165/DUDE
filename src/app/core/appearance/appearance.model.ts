@@ -1,16 +1,22 @@
-import tokens from '../../../styles/theme/theme-tokens.json';
+import { APPEARANCE_AXES_DATA, APPEARANCE_FONTS_DATA } from './appearance-axes.generated';
 
 /**
  * Pure appearance model (Phase 30K): the shape of the persisted appearance preferences, their
  * sanitizer and the resolution of `'system'` against media queries. Every allowed value is derived
- * from `styles/theme/theme-tokens.json` — the same file the generated CSS is built from — so adding
- * a theme/accent/font there needs no change here. No Angular imports; the service lives beside it.
+ * from `styles/theme/theme-tokens.json` — the same file the generated CSS is built from — via the
+ * generated `appearance-axes.generated.ts` (axes + fonts only, so the initial bundle does not carry
+ * every color), so adding a theme/accent/font there needs no change here. No Angular imports; the
+ * service lives beside it.
  */
+
+const tokens = { axes: APPEARANCE_AXES_DATA, fonts: APPEARANCE_FONTS_DATA };
 
 export interface AppearanceAxis {
   readonly attr: string;
   readonly values: readonly string[];
   readonly default: string;
+  /** Display names keyed by value; a value without one is shown as its id. */
+  readonly labels?: Readonly<Record<string, string>>;
 }
 
 export type AppearanceAxes = Readonly<Record<string, AppearanceAxis>>;

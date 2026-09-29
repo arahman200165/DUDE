@@ -1,5 +1,5 @@
-import { Component, computed, inject } from '@angular/core';
-import { APPEARANCE_AXES, SYSTEM } from '../../../core/appearance/appearance.model';
+import { Component, InjectionToken, computed, inject } from '@angular/core';
+import { APPEARANCE_AXES, AppearanceAxes, AppearancePrefs, SYSTEM } from '../../../core/appearance/appearance.model';
 import { AppearanceService } from '../../../core/appearance/appearance.service';
 import { CATEGORY_METADATA, TOOL_CATEGORIES } from '../../../shared/models/tool-category.model';
 
@@ -13,7 +13,35 @@ interface SwatchChip {
   readonly classes: string;
 }
 
-const CHIP_BASE = 'rounded-sm border border-border px-2 py-0.5 text-ui-xs';
+/** The axes the page renders rows for; overridable so tests can supply single- and multi-value axes. */
+export const APPEARANCE_SETTINGS_AXES = new InjectionToken<AppearanceAxes>('APPEARANCE_SETTINGS_AXES', {
+  providedIn: 'root',
+  factory: () => APPEARANCE_AXES,
+});
+
+/** A generic chip row bound to one axis; Theme is special-cased (it adds `system`), the rest go here. */
+interface AxisRowSpec {
+  readonly axisKey: string;
+  readonly prefsKey: Exclude<keyof AppearancePrefs, 'uiFont' | 'monoFont'>;
+  readonly label: string;
+  readonly help?: string;
+}
+
+interface AxisRow extends AxisRowSpec {
+  readonly options: readonly ThemeOption[];
+}
+
+const AXIS_ROWS: readonly AxisRowSpec[] = [
+  { axisKey: 'accent', prefsKey: 'accent', label: 'Accent' },
+  {
+    axisKey: 'catset',
+    prefsKey: 'catset',
+    label: 'Category palette',
+    help: 'Changes the 8 category colors; icons and labels always identify categories too.',
+  },
+];
+
+const CHIP_BASE ='rounded-sm border border-border px-2 py-0.5 text-ui-xs';
 
 /** Surface and text tokens, drawn as filled chips so the base palette is visible at a glance. */
 const SURFACE_SWATCHES: readonly SwatchChip[] = [
@@ -51,12 +79,22 @@ function capitalize(value: string): string {
 export class AppearanceSettings {
   protected readonly appearance = inject(AppearanceService);
 
-  protected readonly themeOptions: readonly ThemeOption[] = [...APPEARANCE_AXES['theme'].values, SYSTEM].map((value) => ({
+  private readonly axes = inject(APPEARANCE_SETTINGS_AXES);
+
+  protected readonly themeOptions: readonly ThemeOption[] = [...this.axes['theme'].values, SYSTEM].map((value) => ({
     value,
     label: value === SYSTEM ? 'System (follows OS)' : capitalize(value),
   }));
 
-  protected readonly resolvedTheme = computed(() => capitalize(this.appearance.effective()['theme'] ?? APPEARANCE_AXES['theme'].default));
+  /** Rows for axes that actually offer a choice (more than one value); labels prefer the axis' own `labels`. */
+  protected readonly axisRows: readonly AxisRow[] = AXIS_ROWS.flatMap((spec) => {
+    const axis = this.axes[spec.axisKey];
+    if (!axis || axis.values.length < 2) return [];
+    const labels = (axis as { labels?: Readonly<Record<string, string>> }).labels;
+    return [{ ...spec, options: axis.values.map((value) => ({ value, label: labels?.[value] ?? capitalize(value) })) }];
+  });
+
+  protected readonly resolvedTheme = computed(() => capitalize(this.appearance.effective()['theme'] ?? this.axes['theme'].default));
 
   protected readonly surfaceSwatches = SURFACE_SWATCHES;
   protected readonly statusSwatches = STATUS_SWATCHES;
@@ -67,6 +105,10 @@ export class AppearanceSettings {
 
   protected setMode(mode: string): void {
     this.appearance.set({ mode });
+  }
+
+  protected setAxis(row: AxisRow, value: string): void {
+    this.appearance.set({ [row.prefsKey]: value });
   }
 
   protected resetToDefaults(): void {

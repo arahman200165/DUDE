@@ -23,6 +23,8 @@
  *   9. for a semantic set with id "cvd": under simulated protanopia, deuteranopia and tritanopia
  *      (Machado et al. 2009, severity 1.0, applied in linear RGB) error, success and warning must
  *      be pairwise distinct: CIE76 deltaE >= 20 for every pair under every simulation.
+ *      For a category set with id "cvd": under the same three simulations (and unsimulated vision)
+ *      every pair of the 8 category colors must reach CIE76 deltaE >= CVD_CATEGORY_MIN_DELTA_E.
  *
  *  10. text on its own wash: Tailwind `bg-x/N` is color-mix(in oklab, x N%, transparent), i.e. the color
  *      at alpha N%. For N in WASH_ALPHAS (the opacities the app uses for tinted chips/badges: 5, 10, 20, plus 15) the
@@ -47,6 +49,15 @@ const SEM = ['error', 'warning', 'success', 'info', 'busy', 'offline'];
 // Category colors are only used as fills via the 8% *-wash tokens (rule 12), never bg-cat-*/N.
 const WASH_ALPHAS = [5, 10, 15, 20];
 const HIGHLIGHT_ALPHAS = [30, 40];
+// Minimum CIE76 deltaE between any two of the 8 category colors of the "cvd" set, under protanopia,
+// deuteranopia, tritanopia and normal vision. Achieved threshold: 16. Every category color must also
+// clear 4.5:1 as text on all surfaces (raw and tinted) in BOTH themes; on the near-white light surfaces
+// that confines all 8 to dark colors (Lab L* roughly 28-45), which is what limits the light theme. The
+// unconstrained optimum is ~22 but needs near-black swatches (e.g. #000400) that read as text, not
+// category color; requiring L* >= 28 and chroma >= 30 gives ~16.1 (the shipped light set is 16.09, the
+// dark set ~19.6). Categories always ship with an icon and a text label, so color is a secondary cue and
+// 16 (a clearly visible difference in CIE76 terms) is enough. Do not lower this to make a change pass.
+const CVD_CATEGORY_MIN_DELTA_E = 16;
 
 // ---------------------------------------------------------------- color math
 
@@ -189,6 +200,8 @@ function run() {
   /** rule -> Set of "combination: message" (deduped) */
   const failures = new Map();
   const rows = [];
+  /** "theme/contrast/vision" -> smallest pairwise deltaE among the cvd category set */
+  const cvdStats = new Map();
   let checks = 0;
 
   for (const [theme, contrastMode, catset, accent, semantic] of combos) {
@@ -302,10 +315,33 @@ function run() {
       }
     }
 
+    if (catset === 'cvd') {
+      const vision = { normal: null, ...CVD_MATRICES };
+      for (const [sim, matrix] of Object.entries(vision)) {
+        const seen = cvdStats.get(`${theme}/${contrastMode}/${sim}`) ?? { min: Infinity, pair: '' };
+        for (let i = 0; i < CATS.length; i++) {
+          for (let j = i + 1; j < CATS.length; j++) {
+            checks++;
+            const ca = matrix ? simulate(cats[CATS[i]], matrix) : cats[CATS[i]];
+            const cb = matrix ? simulate(cats[CATS[j]], matrix) : cats[CATS[j]];
+            const de = deltaE76(ca, cb);
+            if (de < seen.min) { seen.min = de; seen.pair = `${CATS[i]}/${CATS[j]}`; }
+            if (de < CVD_CATEGORY_MIN_DELTA_E) {
+              fail('9 cvd distinguishability', `cvd categories ${CATS[i]} vs ${CATS[j]} under ${sim} deltaE ${de.toFixed(1)} < ${CVD_CATEGORY_MIN_DELTA_E}`);
+            }
+          }
+        }
+        cvdStats.set(`${theme}/${contrastMode}/${sim}`, seen);
+      }
+    }
+
     rows.push(`${key.padEnd(44)} ${combFails ? `FAIL(${combFails})` : 'ok     '} text/panel ${textPanel.toFixed(2).padStart(5)}  accent/panel ${accentPanel.toFixed(2).padStart(5)}  cat min(all surfaces) ${catMin.toFixed(2).padStart(5)}  sem min ${semMin.toFixed(2).padStart(5)}  wash min ${washMin.toFixed(2).padStart(5)}`);
   }
 
-  if (process.argv.includes('--table')) console.log(rows.join('\n'));
+  if (process.argv.includes('--table')) {
+    console.log(rows.join('\n'));
+    for (const [k, s] of cvdStats) console.log(`cvd categories ${k.padEnd(28)} min pairwise deltaE ${s.min.toFixed(2)} (${s.pair}, threshold ${CVD_CATEGORY_MIN_DELTA_E})`);
+  }
   if (failures.size) {
     for (const rule of [...failures.keys()].sort()) {
       console.log(`\nRule ${rule}`);

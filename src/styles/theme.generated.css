@@ -51,17 +51,67 @@
   color-scheme: light;
 }
 
-:root:not([data-theme="light"]) {
+:root:not([data-accent="blue"]):not([data-accent="violet"]):not([data-accent="green"]):not([data-accent="amber"]):not([data-accent="magenta"]):not([data-theme="light"]) {
   --dude-accent: #38d8ff;
   --dude-on-accent: #0a0e14;
 }
 
-:root[data-theme="light"] {
+:root:not([data-accent="blue"]):not([data-accent="violet"]):not([data-accent="green"]):not([data-accent="amber"]):not([data-accent="magenta"])[data-theme="light"] {
   --dude-accent: #035e91;
   --dude-on-accent: #ffffff;
 }
 
-:root:not([data-theme="light"]) {
+:root[data-accent="blue"]:not([data-theme="light"]) {
+  --dude-accent: #80b0ff;
+  --dude-on-accent: #0a0e14;
+}
+
+:root[data-accent="blue"][data-theme="light"] {
+  --dude-accent: #003fa3;
+  --dude-on-accent: #ffffff;
+}
+
+:root[data-accent="violet"]:not([data-theme="light"]) {
+  --dude-accent: #a280ff;
+  --dude-on-accent: #0a0e14;
+}
+
+:root[data-accent="violet"][data-theme="light"] {
+  --dude-accent: #4900b8;
+  --dude-on-accent: #ffffff;
+}
+
+:root[data-accent="green"]:not([data-theme="light"]) {
+  --dude-accent: #66ff94;
+  --dude-on-accent: #0a0e14;
+}
+
+:root[data-accent="green"][data-theme="light"] {
+  --dude-accent: #006627;
+  --dude-on-accent: #ffffff;
+}
+
+:root[data-accent="amber"]:not([data-theme="light"]) {
+  --dude-accent: #ffc042;
+  --dude-on-accent: #0a0e14;
+}
+
+:root[data-accent="amber"][data-theme="light"] {
+  --dude-accent: #993d00;
+  --dude-on-accent: #ffffff;
+}
+
+:root[data-accent="magenta"]:not([data-theme="light"]) {
+  --dude-accent: #ff42ba;
+  --dude-on-accent: #0a0e14;
+}
+
+:root[data-accent="magenta"][data-theme="light"] {
+  --dude-accent: #a30067;
+  --dude-on-accent: #ffffff;
+}
+
+:root:not([data-catset="soft"]):not([data-catset="cvd"]):not([data-theme="light"]) {
   --dude-cat-data: #22d3ee;
   --dude-cat-text: #a3e635;
   --dude-cat-encoding: #fb923c;
@@ -72,7 +122,7 @@
   --dude-cat-documents: #f472b6;
 }
 
-:root[data-theme="light"] {
+:root:not([data-catset="soft"]):not([data-catset="cvd"])[data-theme="light"] {
   --dude-cat-data: #0c6179;
   --dude-cat-text: #3e640c;
   --dude-cat-encoding: #944008;
@@ -81,6 +131,50 @@
   --dude-cat-web: #4338ca;
   --dude-cat-developer: #03654a;
   --dude-cat-documents: #a61f51;
+}
+
+:root[data-catset="soft"]:not([data-theme="light"]) {
+  --dude-cat-data: #3fb8ca;
+  --dude-cat-text: #9acd47;
+  --dude-cat-encoding: #d3935f;
+  --dude-cat-security: #e090de;
+  --dude-cat-date-time: #ad9be4;
+  --dude-cat-web: #9bbbe4;
+  --dude-cat-developer: #3bc995;
+  --dude-cat-documents: #dd83b2;
+}
+
+:root[data-catset="soft"][data-theme="light"] {
+  --dude-cat-data: #206274;
+  --dude-cat-text: #45641b;
+  --dude-cat-encoding: #844b24;
+  --dude-cat-security: #942981;
+  --dude-cat-date-time: #6431b4;
+  --dude-cat-web: #4d43cb;
+  --dude-cat-developer: #195c4a;
+  --dude-cat-documents: #a02c57;
+}
+
+:root[data-catset="cvd"]:not([data-theme="light"]) {
+  --dude-cat-data: #50ecec;
+  --dude-cat-text: #cce494;
+  --dude-cat-encoding: #f4b858;
+  --dude-cat-security: #d86cc4;
+  --dude-cat-date-time: #9884fc;
+  --dude-cat-web: #84bcfc;
+  --dude-cat-developer: #00ac60;
+  --dude-cat-documents: #f45898;
+}
+
+:root[data-catset="cvd"][data-theme="light"] {
+  --dude-cat-data: #0058a0;
+  --dude-cat-text: #4c602c;
+  --dude-cat-encoding: #861600;
+  --dude-cat-security: #a61664;
+  --dude-cat-date-time: #561ea6;
+  --dude-cat-web: #540cd6;
+  --dude-cat-developer: #024e30;
+  --dude-cat-documents: #880470;
 }
 
 :root:not([data-theme="light"]) {

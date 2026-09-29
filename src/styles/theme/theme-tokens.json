@@ -1,11 +1,48 @@
 {
   "axes": {
-    "theme": { "attr": "data-theme", "values": ["dark", "light"], "default": "dark" },
-    "contrast": { "attr": "data-contrast", "values": ["standard"], "default": "standard" },
-    "accent": { "attr": "data-accent", "values": ["cyan"], "default": "cyan" },
-    "catset": { "attr": "data-catset", "values": ["vivid"], "default": "vivid" },
-    "semantic": { "attr": "data-semantic", "values": ["standard"], "default": "standard" },
-    "density": { "attr": "data-density", "values": ["compact"], "default": "compact" }
+    "theme": {
+      "attr": "data-theme",
+      "values": ["dark", "light"],
+      "default": "dark",
+      "labels": { "dark": "Dark", "light": "Light" }
+    },
+    "contrast": {
+      "attr": "data-contrast",
+      "values": ["standard"],
+      "default": "standard",
+      "labels": { "standard": "Standard" }
+    },
+    "accent": {
+      "attr": "data-accent",
+      "values": ["cyan", "blue", "violet", "green", "amber", "magenta"],
+      "default": "cyan",
+      "labels": {
+        "cyan": "Cyan",
+        "blue": "Blue",
+        "violet": "Violet",
+        "green": "Green",
+        "amber": "Amber",
+        "magenta": "Magenta"
+      }
+    },
+    "catset": {
+      "attr": "data-catset",
+      "values": ["vivid", "soft", "cvd"],
+      "default": "vivid",
+      "labels": { "vivid": "Vivid", "soft": "Soft", "cvd": "Color-blind safe" }
+    },
+    "semantic": {
+      "attr": "data-semantic",
+      "values": ["standard"],
+      "default": "standard",
+      "labels": { "standard": "Standard" }
+    },
+    "density": {
+      "attr": "data-density",
+      "values": ["compact"],
+      "default": "compact",
+      "labels": { "compact": "Compact" }
+    }
   },
   "bases": {
     "dark": {
@@ -49,6 +86,46 @@
       "light": {
         "standard": { "accent": "#035e91", "on-accent": "#ffffff" }
       }
+    },
+    "blue": {
+      "dark": {
+        "standard": { "accent": "#80b0ff", "on-accent": "#0a0e14" }
+      },
+      "light": {
+        "standard": { "accent": "#003fa3", "on-accent": "#ffffff" }
+      }
+    },
+    "violet": {
+      "dark": {
+        "standard": { "accent": "#a280ff", "on-accent": "#0a0e14" }
+      },
+      "light": {
+        "standard": { "accent": "#4900b8", "on-accent": "#ffffff" }
+      }
+    },
+    "green": {
+      "dark": {
+        "standard": { "accent": "#66ff94", "on-accent": "#0a0e14" }
+      },
+      "light": {
+        "standard": { "accent": "#006627", "on-accent": "#ffffff" }
+      }
+    },
+    "amber": {
+      "dark": {
+        "standard": { "accent": "#ffc042", "on-accent": "#0a0e14" }
+      },
+      "light": {
+        "standard": { "accent": "#993d00", "on-accent": "#ffffff" }
+      }
+    },
+    "magenta": {
+      "dark": {
+        "standard": { "accent": "#ff42ba", "on-accent": "#0a0e14" }
+      },
+      "light": {
+        "standard": { "accent": "#a30067", "on-accent": "#ffffff" }
+      }
     }
   },
   "categorySets": {
@@ -75,6 +152,58 @@
           "web": "#4338ca",
           "developer": "#03654a",
           "documents": "#a61f51"
+        }
+      }
+    },
+    "soft": {
+      "dark": {
+        "standard": {
+          "data": "#3fb8ca",
+          "text": "#9acd47",
+          "encoding": "#d3935f",
+          "security": "#e090de",
+          "date-time": "#ad9be4",
+          "web": "#9bbbe4",
+          "developer": "#3bc995",
+          "documents": "#dd83b2"
+        }
+      },
+      "light": {
+        "standard": {
+          "data": "#206274",
+          "text": "#45641b",
+          "encoding": "#844b24",
+          "security": "#942981",
+          "date-time": "#6431b4",
+          "web": "#4d43cb",
+          "developer": "#195c4a",
+          "documents": "#a02c57"
+        }
+      }
+    },
+    "cvd": {
+      "dark": {
+        "standard": {
+          "data": "#50ecec",
+          "text": "#cce494",
+          "encoding": "#f4b858",
+          "security": "#d86cc4",
+          "date-time": "#9884fc",
+          "web": "#84bcfc",
+          "developer": "#00ac60",
+          "documents": "#f45898"
+        }
+      },
+      "light": {
+        "standard": {
+          "data": "#0058a0",
+          "text": "#4c602c",
+          "encoding": "#861600",
+          "security": "#a61664",
+          "date-time": "#561ea6",
+          "web": "#540cd6",
+          "developer": "#024e30",
+          "documents": "#880470"
         }
       }
     }

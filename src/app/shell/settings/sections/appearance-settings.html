@@ -19,6 +19,28 @@
     }
   </div>
 
+  @for (row of axisRows; track row.axisKey) {
+    <div data-setting class="flex flex-col gap-1" [attr.data-testid]="'row-' + row.axisKey">
+      <span class="text-ui text-text">{{ row.label }}</span>
+      <div class="flex flex-wrap items-center gap-2" role="group" [attr.aria-label]="row.label">
+        @for (option of row.options; track option.value) {
+          <button
+            type="button"
+            class="dude-chip"
+            [class]="appearance.prefs()[row.prefsKey] === option.value ? 'dude-chip-on' : 'dude-chip-off'"
+            [attr.aria-pressed]="appearance.prefs()[row.prefsKey] === option.value"
+            (click)="setAxis(row, option.value)"
+          >
+            {{ option.label }}
+          </button>
+        }
+      </div>
+      @if (row.help) {
+        <span class="text-ui-xs text-text-muted">{{ row.help }}</span>
+      }
+    </div>
+  }
+
   <section data-setting aria-labelledby="appearance-swatch-title" class="flex flex-col gap-2">
     <h3 id="appearance-swatch-title" class="text-ui-sm font-semibold text-text">Palette preview</h3>
     <ul class="m-0 flex list-none flex-wrap gap-1 p-0" aria-label="Surface and accent colors" data-testid="swatches-surface">

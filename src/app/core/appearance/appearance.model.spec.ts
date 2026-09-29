@@ -40,6 +40,30 @@ describe('appearance model', () => {
     });
   });
 
+  describe('generated axes', () => {
+    it('list the shipped accents and category sets, defaults first', () => {
+      expect(APPEARANCE_AXES['accent'].values).toEqual(['cyan', 'blue', 'violet', 'green', 'amber', 'magenta']);
+      expect(APPEARANCE_AXES['catset'].values).toEqual(['vivid', 'soft', 'cvd']);
+    });
+
+    it('carry a display label for every value and none for unknown values', () => {
+      for (const axis of Object.values(APPEARANCE_AXES)) {
+        const labels = axis.labels ?? {};
+        expect(Object.keys(labels).sort()).toEqual([...axis.values].sort());
+        expect(Object.values(labels).every((label) => label.trim() !== '')).toBe(true);
+      }
+    });
+
+    it('accept every shipped accent and category set through the sanitizer', () => {
+      for (const accent of APPEARANCE_AXES['accent'].values) {
+        expect(sanitizeAppearance({ accent }).accent).toBe(accent);
+      }
+      for (const catset of APPEARANCE_AXES['catset'].values) {
+        expect(sanitizeAppearance({ catset }).catset).toBe(catset);
+      }
+    });
+  });
+
   describe('sanitizeAppearance', () => {
     it.each([null, undefined, 'dark', 42, true, [], ['mode']])('returns defaults for non-object %j', (raw) => {
       expect(sanitizeAppearance(raw)).toEqual(DEFAULT_APPEARANCE);
@@ -61,7 +85,7 @@ describe('appearance model', () => {
     it('keeps allowed values from a richer axes set', () => {
       const result = sanitizeAppearance({ mode: 'light', contrast: 'high', accent: 'violet', density: 'comfortable' }, RICH_AXES);
       expect(result).toMatchObject({ mode: 'light', contrast: 'high', accent: 'violet', density: 'comfortable' });
-      expect(sanitizeAppearance({ mode: 'neon', accent: 'violet' })).toMatchObject({ mode: DEFAULT_APPEARANCE.mode, accent: DEFAULT_APPEARANCE.accent });
+      expect(sanitizeAppearance({ mode: 'neon', accent: 'chartreuse' })).toMatchObject({ mode: DEFAULT_APPEARANCE.mode, accent: DEFAULT_APPEARANCE.accent });
     });
 
     it('drops unknown keys', () => {
