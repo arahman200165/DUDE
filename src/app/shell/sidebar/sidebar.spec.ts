@@ -1,3 +1,5 @@
+import { ApplicationRef } from '@angular/core';
+import { PersistenceService } from '../../core/persistence/persistence.service';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { Sidebar } from './sidebar';
@@ -123,5 +125,63 @@ describe('Sidebar', () => {
 
     favoriteButton!.click();
     expect(openSpy).toHaveBeenCalledWith(tool);
+  });
+});
+
+describe('Sidebar category expand persistence (Phase 30I.3)', () => {
+  const KEY = 'dude:v1:__sidebar__:openCategories';
+  const stable = () => TestBed.inject(ApplicationRef).whenStable();
+
+  function mount() {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
+    const fixture = TestBed.createComponent(Sidebar);
+    fixture.detectChanges();
+    return { fixture, el: fixture.nativeElement as HTMLElement };
+  }
+  const caret = (el: HTMLElement, verb: 'Expand' | 'Collapse') =>
+    Array.from(el.querySelectorAll('button')).find((b) => b.getAttribute('aria-label') === `${verb} Security`);
+
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
+  it('keeps an expanded category open in the next session, and a collapse is remembered too', async () => {
+    let { fixture, el } = mount();
+    caret(el, 'Expand')!.click();
+    fixture.detectChanges();
+    await stable();
+    expect(localStorage.getItem(KEY)).toBe('["security"]');
+
+    ({ fixture, el } = mount());
+    expect(caret(el, 'Collapse')).toBeTruthy();
+
+    caret(el, 'Collapse')!.click();
+    fixture.detectChanges();
+    await stable();
+    ({ el } = mount());
+    expect(caret(el, 'Expand')).toBeTruthy();
+    expect(localStorage.getItem(KEY)).toBe('[]');
+  });
+
+  it('ignores unknown or malformed stored values instead of breaking the sidebar', () => {
+    localStorage.setItem(KEY, '["security","not-a-category",5]');
+    const { el } = mount();
+    expect(caret(el, 'Collapse')).toBeTruthy();
+
+    localStorage.setItem(KEY, '"garbage"');
+    expect(() => mount()).not.toThrow();
+  });
+
+  it('is removed by Clear all local data', async () => {
+    const { fixture, el } = mount();
+    caret(el, 'Expand')!.click();
+    fixture.detectChanges();
+    await stable();
+    expect(localStorage.getItem(KEY)).not.toBeNull();
+
+    TestBed.inject(PersistenceService).clearAll();
+    expect(localStorage.getItem(KEY)).toBeNull();
   });
 });

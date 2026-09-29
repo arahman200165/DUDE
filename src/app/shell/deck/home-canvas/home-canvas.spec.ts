@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { HomeLayoutService } from '../../../core/home-layout/home-layout.service';
 import { PlatformService } from '../../../core/platform/platform.service';
 import { PANEL_DEFINITIONS } from '../../../core/registry/panel-definitions';
@@ -26,6 +26,12 @@ describe('HomeCanvas', () => {
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
+  });
+
+  // Panels load through dynamic imports; let them settle so none resolve after the test environment
+  // is torn down.
+  afterEach(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 150));
   });
 
   it('renders the manifest-generated default on the web, omitting desktop-only and empty panels', () => {

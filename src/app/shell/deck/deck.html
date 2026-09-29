@@ -1,4 +1,13 @@
 <div class="p-3">
-  <h1 class="mb-1.5 font-mono text-sm font-semibold text-text">Dashboard</h1>
+  <div class="mb-1.5 flex items-center justify-between gap-2">
+    <h1 class="font-mono text-sm font-semibold text-text">Dashboard</h1>
+    <a
+      routerLink="/settings/home-layout"
+      class="rounded-sm border border-border px-1.5 py-0.5 text-ui-xs text-text-muted hover:border-accent hover:text-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+      title="Choose and arrange the panels on Home"
+    >
+      Edit Home
+    </a>
+  </div>
   <app-home-canvas />
 </div>

@@ -87,7 +87,8 @@ export class BrowseTools {
   protected readonly statusFacet = signal<StatusFacet>('all');
   protected readonly favoritesOnly = signal(false);
   protected readonly recentOnly = signal(false);
-  protected readonly sortMode = signal<BrowseToolsSortMode>('recommended');
+  /** Persisted preference (Phase 30I.3); an explicit `?sort=` in the URL still overrides it. */
+  protected readonly sortMode = this.persistence.signal<BrowseToolsSortMode>(BROWSE_TOOLS_NAMESPACE, 'sortMode', 'local', 'recommended');
   protected readonly selectedIndex = signal(0);
 
   protected readonly platformFacets = [
@@ -215,6 +216,9 @@ export class BrowseTools {
   }
 
   constructor() {
+    // A stored value is untrusted (hand-edited, or from another version): fall back to the default.
+    if (!SORT_MODE_VALUES.includes(this.sortMode())) this.sortMode.set('recommended');
+    if (!VIEW_MODE_VALUES.includes(this.viewMode())) this.viewMode.set('table');
     this.seedFromUrl();
 
     effect(() => {

@@ -9,6 +9,7 @@ import { computeCatalogCounts } from '../../core/registry/browse-tools-counts';
 import { WorkspaceLayoutService } from '../../core/workspace/workspace-layout.service';
 import { FavoritesService } from '../../core/favorites/favorites.service';
 import { UnifiedRecentsService } from '../../core/recents/unified-recents.service';
+import { PersistenceService } from '../../core/persistence/persistence.service';
 import { ToolLauncherService } from '../../core/registry/tool-launcher.service';
 import { CommandPaletteService } from '../command-palette/command-palette.service';
 import { CategoryIcon } from '../../shared/components/category-icon/category-icon';
@@ -63,9 +64,21 @@ export class Sidebar {
   /** Pinned favorites, capped for the compact sidebar section -- "See all" links to Browse Tools. */
   protected readonly favoriteTools = computed(() => this.favorites.pinnedTools().slice(0, RECENTS_LIMIT));
 
-  /** Explicit user expand/collapse overrides, session-only (no persistence, per the locked 30B
-   *  decision) -- absent from this map, a category falls back to "expanded iff it's the active
-   *  route's category" (see `isExpanded`). */
+  /**
+   * Categories the user keeps open across sessions (Phase 30I.3 -- this reverses 30B's "session-only"
+   * decision, but only for *keeping open*: the default for a category stays collapsed unless it is
+   * the active route's category, so a Ctrl+K jump into a collapsed category still lands expanded).
+   * Namespaced `'__sidebar__'` so "Clear all local data" removes it. Untrusted on read.
+   */
+  private readonly persistence = inject(PersistenceService);
+  private readonly openCategories = this.persistence.signal<readonly string[]>('__sidebar__', 'openCategories', 'local', []);
+  private readonly keptOpen = computed(() => {
+    const stored: unknown = this.openCategories();
+    return new Set(Array.isArray(stored) ? stored.filter((c): c is ToolCategory => TOOL_CATEGORIES.includes(c as ToolCategory)) : []);
+  });
+
+  /** Explicit expand/collapse choices made this session; they win over the persisted set and the
+   *  active-route default (see `isExpanded`). */
   private readonly expandOverrides = signal<ReadonlyMap<ToolCategory, boolean>>(new Map());
 
   private readonly currentUrl = toSignal(
@@ -83,15 +96,22 @@ export class Sidebar {
   protected readonly isExpanded = computed(() => {
     const active = this.activeCategory();
     const overrides = this.expandOverrides();
-    return (category: ToolCategory) => overrides.get(category) ?? category === active;
+    const keptOpen = this.keptOpen();
+    return (category: ToolCategory) => overrides.get(category) ?? (keptOpen.has(category) || category === active);
   });
 
   protected toggleCategory(category: ToolCategory, event: Event): void {
     event.preventDefault();
     event.stopPropagation();
+    const expand = !this.isExpanded()(category);
     const next = new Map(this.expandOverrides());
-    next.set(category, !this.isExpanded()(category));
+    next.set(category, expand);
     this.expandOverrides.set(next);
+
+    const kept = new Set(this.keptOpen());
+    if (expand) kept.add(category);
+    else kept.delete(category);
+    this.openCategories.set(TOOL_CATEGORIES.filter((c) => kept.has(c)));
   }
 
   /** Sidebar is visible on every route including `/workspace`, so tool opens go through

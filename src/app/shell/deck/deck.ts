@@ -1,4 +1,5 @@
 import { Component, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { HomeLayoutService } from '../../core/home-layout/home-layout.service';
 import { HomePanelService } from '../../core/home-panel/home-panel.service';
 import { HomeCanvas } from './home-canvas/home-canvas';
@@ -14,7 +15,7 @@ import { migrateLegacyHomePanel } from './user-panels/legacy-home-panel-migratio
  */
 @Component({
   selector: 'app-deck',
-  imports: [HomeCanvas],
+  imports: [HomeCanvas, RouterLink],
   templateUrl: './deck.html',
 })
 export class Deck {
