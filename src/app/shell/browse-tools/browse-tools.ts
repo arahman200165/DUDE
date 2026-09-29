@@ -14,6 +14,7 @@ import { OfflineAvailability } from '../../shared/components/offline-badge/offli
 import { DesktopCapabilityBadge } from '../../shared/components/desktop-capability-badge/desktop-capability-badge';
 import { BrowseQueryHelp } from '../../shared/components/browse-query-help/browse-query-help';
 import { ShortcutHint } from '../../shared/components/shortcut-hint/shortcut-hint';
+import { Disclosure } from '../../shared/components/disclosure/disclosure';
 import { toolCapabilitySummary, toolStatusClass, toolStatusLabel } from '../../shared/utils/tool-status';
 import { CommandPaletteService } from '../command-palette/command-palette.service';
 import { parseBrowseQuery, ParsedBrowseQuery } from '../../core/registry/browse-tools-query';
@@ -62,6 +63,7 @@ const VIEW_MODE_VALUES: readonly BrowseToolsViewMode[] = ['table', 'grid'];
     CategoryIcon,
     OfflineAvailability,
     DesktopCapabilityBadge,
+    Disclosure,
   ],
   templateUrl: './browse-tools.html',
 })
@@ -89,6 +91,10 @@ export class BrowseTools {
   protected readonly recentOnly = signal(false);
   /** Persisted preference (Phase 30I.3); an explicit `?sort=` in the URL still overrides it. */
   protected readonly sortMode = this.persistence.signal<BrowseToolsSortMode>(BROWSE_TOOLS_NAMESPACE, 'sortMode', 'local', 'recommended');
+  /** Filters tucked inside the collapsed "Filters" disclosure that are currently non-default (30J.4). */
+  protected readonly advancedFilterCount = computed(
+    () => (this.categoryFacet() !== 'all' ? 1 : 0) + (this.statusFacet() !== 'all' ? 1 : 0) + (this.sortMode() !== 'recommended' ? 1 : 0),
+  );
   protected readonly selectedIndex = signal(0);
 
   protected readonly platformFacets = [

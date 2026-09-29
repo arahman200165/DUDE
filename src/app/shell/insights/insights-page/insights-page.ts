@@ -1,3 +1,4 @@
+import { Disclosure } from '../../../shared/components/disclosure/disclosure';
 import { Component } from '@angular/core';
 import { InsightsSection } from '../insights-section/insights-section';
 
@@ -7,7 +8,7 @@ import { InsightsSection } from '../insights-section/insights-section';
  */
 @Component({
   selector: 'app-insights-page',
-  imports: [InsightsSection],
+  imports: [InsightsSection, Disclosure],
   templateUrl: './insights-page.html',
 })
 export class InsightsPage {}

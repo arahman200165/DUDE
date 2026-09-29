@@ -11,10 +11,12 @@
   </header>
 
   <div class="flex flex-1 flex-col gap-3 overflow-auto p-3">
-    <p class="text-ui text-text-muted">
-      Paste something you don't recognize — a JSON blob, a JWT, a UUID, a URL, and more — to jump
-      straight to the tool that understands it. Nothing pasted here is ever saved.
-    </p>
+    <app-disclosure label="How Smart Paste works" summary="nothing pasted here is ever saved">
+      <p class="text-ui text-text-muted">
+        Paste something you don't recognize — a JSON blob, a JWT, a UUID, a URL, and more — to jump
+        straight to the tool that understands it. Nothing pasted here is ever saved.
+      </p>
+    </app-disclosure>
 
     <app-paste-detect-panel #panel />
   </div>

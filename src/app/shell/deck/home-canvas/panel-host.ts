@@ -1,6 +1,7 @@
 import { Component, computed, input } from '@angular/core';
 import { unavailableReason } from '../../../core/home-layout/panel-availability';
 import type { HomeCell } from '../../../core/home-layout/home-cells';
+import { Disclosure } from '../../../shared/components/disclosure/disclosure';
 import { PanelSlot } from './panel-slot';
 
 /**
@@ -10,12 +11,14 @@ import { PanelSlot } from './panel-slot';
  */
 @Component({
   selector: 'app-panel-host',
-  imports: [PanelSlot],
+  imports: [PanelSlot, Disclosure],
   template: `
     @if (cell().availability === 'explain') {
       <section class="rounded-sm border border-border bg-panel px-3 py-2" [attr.aria-label]="cell().def.title">
         <h2 class="text-ui-sm font-semibold uppercase tracking-wider text-text-muted">{{ cell().def.title }}</h2>
-        <p class="mt-1 text-ui-xs text-text-muted">{{ reason() }}</p>
+        <app-disclosure class="mt-1 block" label="Desktop only" summary="why this isn't available here">
+          <p class="text-ui-xs text-text-muted">{{ reason() }}</p>
+        </app-disclosure>
       </section>
     } @else if (cell().def.deferUntilVisible) {
       @defer (on viewport) {

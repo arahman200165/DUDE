@@ -1,0 +1,23 @@
+<div>
+  <button
+    type="button"
+    class="flex items-center gap-1.5 rounded-sm text-ui-xs text-text-muted hover:text-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+    [attr.aria-expanded]="open()"
+    [attr.aria-controls]="panelId"
+    (click)="open.set(!open())"
+  >
+    <span aria-hidden="true">{{ open() ? '▾' : '▸' }}</span>
+    <span>{{ label() }}</span>
+    @if (hasBadge()) {
+      <span class="rounded-sm border border-accent/60 bg-accent/10 px-1 text-accent" data-testid="disclosure-badge">{{ badge() }}</span>
+    }
+    @if (!open() && summary()) {
+      <span class="truncate text-text-muted/70">— {{ summary() }}</span>
+    }
+  </button>
+  @if (open()) {
+    <div [id]="panelId" class="mt-1">
+      <ng-content />
+    </div>
+  }
+</div>

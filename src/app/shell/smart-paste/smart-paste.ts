@@ -1,3 +1,4 @@
+import { Disclosure } from '../../shared/components/disclosure/disclosure';
 import { Component } from '@angular/core';
 import { PasteDetectPanel } from '../../shared/components/paste-detect-panel/paste-detect-panel';
 
@@ -10,7 +11,7 @@ import { PasteDetectPanel } from '../../shared/components/paste-detect-panel/pas
  */
 @Component({
   selector: 'app-smart-paste',
-  imports: [PasteDetectPanel],
+  imports: [PasteDetectPanel, Disclosure],
   templateUrl: './smart-paste.html',
 })
 export class SmartPaste {}
