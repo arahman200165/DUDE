@@ -9,13 +9,13 @@ test('Browse Tools direct route renders the full catalog with the shell intact',
   await expect(page).toHaveURL(/\/DUDE\/tools$/);
   await expect(page.getByRole('heading', { name: 'Browse Tools' })).toBeVisible();
   await expect(page.locator('app-sidebar')).toBeVisible();
-  await expect(page.locator('app-tool-table [role="row"]').first()).toBeVisible();
+  await expect(page.locator('app-data-table [role="row"]').first()).toBeVisible();
 });
 
 test('Browse Tools search narrows the catalog and updates the URL', async ({ page }) => {
   await page.goto('/DUDE/tools');
   await page.getByPlaceholder(/Search tools/).fill('json formatter');
-  await expect(page.locator('app-tool-table a', { hasText: 'JSON Formatter' })).toBeVisible();
+  await expect(page.locator('app-data-table').getByRole('link', { name: 'JSON Formatter' })).toBeVisible();
   await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe('json formatter');
 });
 

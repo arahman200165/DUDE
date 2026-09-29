@@ -26,10 +26,10 @@ for (const [id, title] of routes) {
   });
 }
 
-test('Phase 29 tools appear in deck search and command palette', async ({ page }) => {
-  await page.goto('/DUDE/');
-  await page.locator('app-deck').getByPlaceholder(/Search tools/).fill('Watched Folders');
-  await expect(page.locator('app-deck').getByRole('link', { name: 'Watched Folders & Change Timeline' })).toBeVisible();
+test('Phase 29 tools appear in Browse Tools search and command palette', async ({ page }) => {
+  await page.goto('/DUDE/tools');
+  await page.locator('app-browse-tools').getByPlaceholder(/Search tools/).fill('Watched Folders');
+  await expect(page.locator('app-browse-tools').getByRole('link', { name: 'Watched Folders & Change Timeline' })).toBeVisible();
   await page.keyboard.press('Control+k');
   const palette = page.locator('app-command-palette');
   await palette.getByPlaceholder(/Search tools/).fill('Tree Search');

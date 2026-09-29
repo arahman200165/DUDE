@@ -307,6 +307,7 @@ function run() {
     }
     // 13 (hc only): the shipped chip/badge/selected-row pattern `text-accent bg-accent/N` (N <= 10) sits on any of the three
     // surfaces (hovered rows and elevated panels included), so accent text on its own 5%/10% wash must reach 7:1 there.
+    // Heavier accent washes (/15, /20) are clamped to 10% under data-contrast=high in styles.css (M585), so 10 covers them.
     if (hc) {
       for (const alpha of [5, 10]) {
         for (const [sname, sbg] of surfaces) {

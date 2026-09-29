@@ -9,9 +9,9 @@ test('network tools stay discoverable on web and hand off to desktop without run
   await expect(page.getByRole('heading', { name: 'Ping' })).toBeVisible();
   await expect(page.getByText('Live network checks require the Windows desktop app.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Run check' })).toHaveCount(0);
-  await page.goto('/DUDE/');
-  await page.locator('app-deck').getByPlaceholder(/Search tools/).fill('DNS Propagation');
-  await expect(page.locator('app-deck').getByRole('link', { name: 'DNS Propagation' })).toBeVisible();
+  await page.goto('/DUDE/tools');
+  await page.locator('app-browse-tools').getByPlaceholder(/Search tools/).fill('DNS Propagation');
+  await expect(page.locator('app-browse-tools').getByRole('link', { name: 'DNS Propagation' })).toBeVisible();
   await page.keyboard.press('Control+k');
   const palette = page.locator('app-command-palette');
   await palette.getByPlaceholder(/Search tools/).fill('Port Scanner');

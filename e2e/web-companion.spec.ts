@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 // Phase 26 Items 7–9 on the production web build: the generated manifest resolves under /DUDE/
 // with installable metadata, desktop-only features are badged rather than silently missing,
 // "Open in Desktop DUDE" falls back to a download link when no desktop app takes the link, and
-// the platform facet filters the deck.
+// the platform facet filters Browse Tools.
 
 test('the generated manifest resolves with shortcuts, file handlers, a protocol handler, and a maskable icon', async ({ page, request }) => {
   await page.goto('/DUDE/');
@@ -38,16 +38,16 @@ test('Open in Desktop DUDE offers the download when no desktop app takes the lin
   await expect(page.getByRole('link', { name: 'Get Desktop DUDE' })).toHaveAttribute('href', /github\.com\/.+\/releases/);
 });
 
-test('the platform facet filters the deck to tools that work fully in the browser', async ({ page }) => {
-  await page.goto('/DUDE/');
-  const deck = page.locator('app-deck');
-  await deck.getByRole('radio', { name: 'Desktop-enhanced' }).click();
-  await expect(deck.getByRole('link', { name: 'Regex Tester' })).toBeVisible();
-  await expect(deck.getByRole('link', { name: 'Base64 Encoder / Decoder' })).toHaveCount(0);
+test('the platform facet filters Browse Tools to tools that work fully in the browser', async ({ page }) => {
+  await page.goto('/DUDE/tools');
+  const browse = page.locator('app-browse-tools');
+  await browse.getByRole('radio', { name: 'Desktop-enhanced' }).click();
+  await expect(browse.getByRole('link', { name: 'Regex Tester' })).toBeVisible();
+  await expect(browse.getByRole('link', { name: 'Base64 Encoder / Decoder' })).toHaveCount(0);
 
-  await deck.getByRole('radio', { name: 'Works fully in browser' }).click();
-  await expect(deck.getByRole('link', { name: 'Base64 Encoder / Decoder' })).toBeVisible();
-  await expect(deck.getByRole('link', { name: 'Regex Tester' })).toHaveCount(0);
+  await browse.getByRole('radio', { name: 'Works fully in browser' }).click();
+  await expect(browse.getByRole('link', { name: 'Base64 Encoder / Decoder' })).toBeVisible();
+  await expect(browse.getByRole('link', { name: 'Regex Tester' })).toHaveCount(0);
 });
 
 test('a web+dude:// link from the protocol handler navigates through the strict deep-link parser', async ({ page }) => {

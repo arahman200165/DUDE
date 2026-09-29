@@ -146,6 +146,15 @@ body {
 }
 
 /*
+ * High contrast accent washes (Phase 30K, M585). Accent text on a 15-20% accent wash drops below the
+ * 7:1 HC bar for some accents (as low as 5.7:1); a 10% wash keeps every accent >= 7.1:1 on panel and
+ * elevated surfaces, so HC clamps the heavier washes to 10%. Standard contrast is unchanged.
+ */
+:root[data-contrast='high'] :is(.bg-accent\/15, .bg-accent\/20, .hover\:bg-accent\/15:hover, .hover\:bg-accent\/20:hover) {
+  background-color: color-mix(in oklab, var(--color-accent) 10%, transparent);
+}
+
+/*
  * Windows Contrast Themes / forced-colors (Phase 30K, M580). The browser replaces author colors with
  * system colors, so state carried only by a background tint, a ring (box-shadow) or a text color
  * disappears. This block re-expresses focus, selected and disabled state with system colors and
