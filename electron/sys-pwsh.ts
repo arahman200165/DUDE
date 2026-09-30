@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { lstatSync } from 'node:fs';
-import { delimiter, join } from 'node:path';
+import { win32 } from 'node:path';
 import type { PwshStatus } from '../src/shared-logic/system/system-types';
 import { WINDOWS_FEATURE_SCRIPTS } from './windows-features';
 
@@ -39,19 +39,19 @@ const realDeps: PwshDeps = { env: process.env, exists: pathExists, run: (file, a
 function candidates(deps: PwshDeps): { path: string; source: NonNullable<PwshStatus['source']> }[] {
   const list: { path: string; source: NonNullable<PwshStatus['source']> }[] = [];
   const pathVar = deps.env['PATH'] ?? deps.env['Path'] ?? '';
-  for (const raw of pathVar.split(delimiter)) {
+  for (const raw of pathVar.split(win32.delimiter)) {
     const dir = raw.trim().replace(/^"|"$/g, '');
     if (!dir) continue;
-    const path = join(dir, 'pwsh.exe');
+    const path = win32.join(dir, 'pwsh.exe');
     if (deps.exists(path)) {
       list.push({ path, source: /\\microsoft\\windowsapps/i.test(dir) ? 'windows-apps' : 'path' });
       break;
     }
   }
   const programFiles = deps.env['ProgramFiles'];
-  if (programFiles) list.push({ path: join(programFiles, 'PowerShell', '7', 'pwsh.exe'), source: 'program-files' });
+  if (programFiles) list.push({ path: win32.join(programFiles, 'PowerShell', '7', 'pwsh.exe'), source: 'program-files' });
   const localAppData = deps.env['LOCALAPPDATA'];
-  if (localAppData) list.push({ path: join(localAppData, 'Microsoft', 'WindowsApps', 'pwsh.exe'), source: 'windows-apps' });
+  if (localAppData) list.push({ path: win32.join(localAppData, 'Microsoft', 'WindowsApps', 'pwsh.exe'), source: 'windows-apps' });
   return list;
 }
 

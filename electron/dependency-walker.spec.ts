@@ -4,6 +4,8 @@ import { basename, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { isSafeModulePath, walkDependencies, type DependencyPeImage } from './dependency-walker';
 
+// Fixtures are real files under tmpdir(), and the walker only accepts drive-letter paths, so they run on Windows only.
+const onWindows = process.platform === 'win32';
 const roots: string[] = [];
 async function fixture(images: Readonly<Record<string, DependencyPeImage>>, options: { maxDepth?: number } = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'dude-forwarders-'));
@@ -29,7 +31,7 @@ function image(overrides: Partial<DependencyPeImage> = {}): DependencyPeImage {
 
 afterEach(async () => { await Promise.all(roots.splice(0).map((path) => rm(path, { recursive: true, force: true }))); });
 
-describe('Dependency Walker export forwarder chains', () => {
+describe.runIf(onWindows)('Dependency Walker export forwarder chains', () => {
   it('follows a multi-hop chain to the exported terminal symbol', async () => {
     const result = await fixture({
       'root.exe': image({ imports: [{ name: 'A.dll', symbols: [{ name: 'Start' }] }] }),
@@ -90,17 +92,20 @@ describe('Dependency Walker hostile paths', () => {
     expect(isSafeModulePath('\\\\?\\UNC\\server\\share\\picked.exe', true)).toBe(false);
   });
 
-  it('refuses a device-path root and reports hostile import names as missing without reading them', async () => {
+  it('refuses a device-path root', async () => {
     const options = { search: { applicationDirectory: 'C:\\Nonexistent', windowsDirectory: 'C:\\Nonexistent\\Windows', systemDirectory: 'C:\\Nonexistent\\System32', targetArchitecture: 'x64' as const, pathDirectories: [] } };
     await expect(walkDependencies('\\\\.\\PhysicalDrive0', options)).rejects.toThrow();
     await expect(walkDependencies('\\\\?\\C:\\x\\root.exe', options)).rejects.toThrow();
+  });
+
+  it.runIf(onWindows)('reports hostile import names as missing without reading them', async () => {
     const result = await fixture({
       'root.exe': image({ imports: [{ name: '\\\\server\\share\\evil.dll' }, { name: '..\\..\\evil.dll' }, { name: '\\\\?\\C:\\evil.dll' }] }),
     });
     expect(result?.status).toBe('missing');
   });
 
-  it('caps the header read at maxHeaderBytes', async () => {
+  it.runIf(onWindows)('caps the header read at maxHeaderBytes', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'dude-cap-'));
     roots.push(directory);
     const root = join(directory, 'root.exe');
