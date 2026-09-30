@@ -96,7 +96,7 @@ for (const [id, files] of Object.entries(owned)) {
 const shellRoots = Object.keys(outputs).filter(
   (file) => file.endsWith('.js') && !prefetched.has(file) && /^src\/app\/(shell|core|shared)\//.test(outputs[file].entryPoint ?? ''),
 );
-const shell = closure(undefined, shellRoots, false);
+const shell = closure(undefined, shellRoots, true);
 
 // Shared chunks recur across hundreds of tools, so tools and groups reference one deduplicated
 // `files`/`sizes` table by index. The map ships in the prefetched shell, so its size counts

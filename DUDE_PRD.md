@@ -10,13 +10,13 @@
 **Primary frontend framework:** Angular  
 **Primary audience:** The developer building and using it first; later, other developers  
 **Delivery horizon:** Framework and first 10 tools delivered in one weekend; ongoing roadmap-driven development from there, now extending through a deliberately long-horizon Phase 100  
-**Status:** V1 and Phases 1–29 shipped; Windows desktop packaging is real and shipped; Phases 30–100 remain roadmap/horizon work rather than a fixed schedule
+**Status:** V1 and Phases 1–31 shipped; Windows desktop packaging is real and shipped; Phases 32–100 remain roadmap/horizon work rather than a fixed schedule
 
 ---
 
 # 1. Executive Summary
 
-DUDE is a dense, colorful, local-first **desktop developer workbench** built with Angular and Electron, with a highly capable static web/PWA companion generated from the same shared core. The Windows desktop application is now the canonical product surface because DUDE has already shipped capabilities that a browser sandbox cannot reproduce: native filesystem access, OS-level secret storage, local backend processes, system integration, collaboration infrastructure, and future live networking/database/process tooling. The GitHub Pages build remains a permanent zero-install companion for every capability that can run safely in-browser.
+DUDE is a dense, colorful, local-first **desktop developer workbench** built with Angular and Electron, with a highly capable static web/PWA companion generated from the same shared core. The Windows desktop application is now the canonical product surface because DUDE has already shipped capabilities that a browser sandbox cannot reproduce: native filesystem access, OS-level secret storage, local backend processes, system integration, collaboration infrastructure, and live networking, filesystem and Windows process/system tooling, with database tooling still ahead. The GitHub Pages build remains a permanent zero-install companion for every capability that can run safely in-browser.
 
 Visually, DUDE is dark-first, but not monochrome or subdued. The default UI uses a dark base and a bright, bold, highly saturated accent-color system functionally — for categories, status, and structure — rather than decoratively. Since Phase 30K (Milestones 577–585), that dark theme is the default of a controlled set of first-party appearance options: Dark / Light / System themes, high contrast, accent and category palettes, color-blind-safe status colors, density presets, UI and data font preferences, and reduced motion, all generated from one shared token source. See Section 8 for the full visual direction.
 
@@ -56,9 +56,9 @@ The product then continued through **Phases 1–21, all of which are complete**.
 
 **Phase 8 (Downloadable Desktop App with a Bundled Backend) is complete** and is the turning point for the product hierarchy. Its eight shipped stages remain: Electron shell; native file access; OS-level secret storage; local LLM proxy + AI regex features; desktop shell chrome; local collab server; BYO relay server; auto-update + distribution. Those shipped details remain documented in §21 Phase 8.
 
-**Phases 22–30 are also complete**: Phase 22 (Platform Hardening, Trust & Desktop-First Pivot) consolidated metadata/registry structure, trust, testing, and cache/bundle control; Phase 23 (Correctness, Verification & High-Consequence Tool Hardening) brought every one of the 277 tool manifests to a `verified` confidence tier; Phase 24 (Smart Entry, Discovery & Personal DUDE) turned Phase 21's Smart Paste/pipelines/workspaces/history into the primary paste-first, personalized entry experience — Recently Used, Favorites, Pinned Pipelines, Related-Tool and Pipeline Suggestions, Workspace Templates, Quick Run, and Unified Recents, all private-by-construction with no analytics or server telemetry; Phase 25 (Desktop-First Shell & Native Product Experience) finished that positioning change technically — Projects, a Desktop-Native Home, `dude://` deep links, a native OS menu, a six-source Command Palette, a Native File Recent List, crash/restart recovery, a Quick Launcher, native drag-and-drop routing, a generated file-association framework, Desktop Capability Indicators, desktop-first documentation, and a measured startup/parallelization pass — all shipped as Milestones 421–455. Phase 26 (Web Companion & PWA Efficiency) added selective offline readiness, install/share/handoff flows, browser-safe pipeline and workspace support, and web/desktop parity tests, shipped as Milestones 482–488. Phase 27 (Networking Toolkit) began the native expansion. It shipped 18 desktop network-diagnostics tools over a main-process-enforced IPC bridge and a bundled Windows ICMP helper, as Milestones 489–508. Phase 28 shipped live DNS, TLS and certificate inspection as Milestones 509–522. Phase 29 shipped filesystem scanning, watching and previewed mutation as Milestones 523–536. Phase 30 (Workbench Shell, Tool Discovery, Local Insights & Appearance) turned the tool deck into a bounded, user-designed workbench with a dedicated Browse Tools catalog, local insights, controlled theming, and an integrated scale/keyboard/platform verification gate, shipped as Milestones 537–592.
+**Phases 22–31 are also complete**: Phase 22 (Platform Hardening, Trust & Desktop-First Pivot) consolidated metadata/registry structure, trust, testing, and cache/bundle control; Phase 23 (Correctness, Verification & High-Consequence Tool Hardening) brought every one of the 277 tool manifests to a `verified` confidence tier; Phase 24 (Smart Entry, Discovery & Personal DUDE) turned Phase 21's Smart Paste/pipelines/workspaces/history into the primary paste-first, personalized entry experience — Recently Used, Favorites, Pinned Pipelines, Related-Tool and Pipeline Suggestions, Workspace Templates, Quick Run, and Unified Recents, all private-by-construction with no analytics or server telemetry; Phase 25 (Desktop-First Shell & Native Product Experience) finished that positioning change technically — Projects, a Desktop-Native Home, `dude://` deep links, a native OS menu, a six-source Command Palette, a Native File Recent List, crash/restart recovery, a Quick Launcher, native drag-and-drop routing, a generated file-association framework, Desktop Capability Indicators, desktop-first documentation, and a measured startup/parallelization pass — all shipped as Milestones 421–455. Phase 26 (Web Companion & PWA Efficiency) added selective offline readiness, install/share/handoff flows, browser-safe pipeline and workspace support, and web/desktop parity tests, shipped as Milestones 482–488. Phase 27 (Networking Toolkit) began the native expansion. It shipped 18 desktop network-diagnostics tools over a main-process-enforced IPC bridge and a bundled Windows ICMP helper, as Milestones 489–508. Phase 28 shipped live DNS, TLS and certificate inspection as Milestones 509–522. Phase 29 shipped filesystem scanning, watching and previewed mutation as Milestones 523–536. Phase 30 (Workbench Shell, Tool Discovery, Local Insights & Appearance) turned the tool deck into a bounded, user-designed workbench with a dedicated Browse Tools catalog, local insights, controlled theming, and an integrated scale/keyboard/platform verification gate, shipped as Milestones 537–592. Phase 31 (Windows & Process Tools) turned the desktop build into a Windows troubleshooting workbench, shipped as Milestones 593–614: a bundled native `windows-sys.exe` helper and fixed PowerShell 7 scripts for reads, plus the second local mutation engine (§5.2.1) with a System Changes journal and previewed undo, delivered as 19 new routes (System Changes plus 18 tools) and two upgrades to existing tools (Local Network and PE Header Viewer; see §21 Phase 31).
 
-The roadmap is now one linear product horizon through **Phase 100**. Completed Phases 22–26 consolidated platform structure, trust, discovery, desktop UX, and web/PWA efficiency. Phases 27–38 form the next major product expansion: Phases 27–29 shipped networking, live DNS/TLS and filesystem workflows; Phase 30 shipped the workbench shell, discovery, insights, appearance and its 30L integrated verification gate; and Phases 31–38 continue across Windows/process tooling, local API/server development, live databases, containers, OS integration, AI-assisted utilities, VS Code integration, and browser-extension integration. Later phases extend into cross-platform desktop, automation, Git/SSH/package/build/log/proxy/database/container/Kubernetes workflows, secrets/PKI, collaboration/workspaces/pipelines, plugins/extensions, CLI/SDK/headless automation, AI, project/code/runtime tooling, and a deliberately distant platform/ecosystem horizon.
+The roadmap is now one linear product horizon through **Phase 100**. Completed Phases 22–26 consolidated platform structure, trust, discovery, desktop UX, and web/PWA efficiency. Phases 27–38 form the next major product expansion: Phases 27–29 shipped networking, live DNS/TLS and filesystem workflows; Phase 30 shipped the workbench shell, discovery, insights, appearance and its 30L integrated verification gate; Phase 31 shipped Windows/process/system tooling; and Phases 32–38 continue across local API/server development, live databases, containers, OS integration, AI-assisted utilities, VS Code integration, and browser-extension integration. Later phases extend into cross-platform desktop, automation, Git/SSH/package/build/log/proxy/database/container/Kubernetes workflows, secrets/PKI, collaboration/workspaces/pipelines, plugins/extensions, CLI/SDK/headless automation, AI, project/code/runtime tooling, and a deliberately distant platform/ecosystem horizon.
 
 ---
 
@@ -287,7 +287,7 @@ These constraints survive roadmap growth unless the owner makes an explicit futu
 
 ## 5.2.1 Destructive-Action Contract
 
-Durable constraint #4 above is a principle; this is the concrete contract every `filesystem-write`, `process-management`, `registry`, or `database-write` tool must implement. Phase 29 is the first local implementation, through the filesystem mutation engine (§21 Phase 29); later native write capabilities must meet the same boundary:
+Durable constraint #4 above is a principle; this is the concrete contract every `filesystem-write`, `process-management`, `registry`, `system-config`, or `database-write` tool must implement. Phase 29 is the first local implementation, through the filesystem mutation engine (§21 Phase 29); Phase 31 adds the second, the Windows system mutation engine (§21 Phase 31); later native write capabilities must meet the same boundary:
 
 1. **Two-step confirmation.** A mutating action always has a distinct preview/dry-run step (what will change) and a separate, explicit confirm step (do it) — never a single click/keystroke that both previews and commits.
 2. **No incidental triggering.** Opening a file, importing data, running a detector, or otherwise inspecting input must never itself cause the destructive effect — the mutating action must be its own deliberate user gesture, reachable only after the preview step.
@@ -295,6 +295,8 @@ Durable constraint #4 above is a principle; this is the concrete contract every 
 4. **A confirmation-boundary test.** The tool's own spec asserts the destructive effect cannot fire without going through both steps above — this is the "Destructive-Action Harness" (Phase 23 Item 8) in practice: enforced per-tool at the point each such tool ships, not as a separate suite run against nothing.
 
 Phase 27 applied the same shape to its non-local high-consequence checks. A `network-scanning` or `remote-write` run first gets a main-process preview. It then needs a single-use confirmation token, bound to the requesting window and the unchanged request, which expires after 60 seconds. `electron/network-bridge.spec.ts` covers that boundary, including an attempted renderer-side limit bypass. Phase 29's filesystem mutation engine is the first local implementation: it previews exact paths and preconditions, issues a 60-second single-use token bound to the requesting window and plan digest, rechecks files at apply time, journals per-operation results and supports previewed undo. Trash operations use the Recycle Bin. Engine and tool confirmation-boundary tests cover token replay, conflicts and the no-incidental-trigger rule.
+
+Phase 31 adds the second local mutation engine, `sys-mutation`, for Windows system changes: processes, environment variables and PATH, registry values, services, scheduled tasks, startup entries, Windows features, software uninstall and ACLs. The token, digest and journal primitives were extracted from the filesystem engine into a shared `mutation-core` with no behavior change to Phase 29. Every change is a previewed plan of per-operation rows (target, before → after, elevation and conflict badges). Applying it needs a 60-second single-use token bound to the requesting window and the plan digest, and each operation re-checks its own precondition at apply time (process PID + creation time + image path, registry/env type + data hash, service state/config, task/startup enabled state, prior SDDL, feature state). A mismatch skips that operation as a conflict instead of overwriting. For critical processes and services (System, csrss, wininit, smss, lsass, services, winlogon, DUDE's own processes; critical services), the typed-name confirmation is enforced in main at `issueToken`, not only in the UI. Non-critical targets are warn-only by product choice. A plan that needs elevation is rejected at preview in a non-elevated session. Outcomes go to a journal, and reversible operations get previewed undo (itself a plan) from the System Changes route; kill, restart, uninstall, PowerShell and minidump operations are `noUndo` and need an explicit acknowledgment. Renderer-callable helper methods are a closed read-only allowlist, so a mutating helper method can only be reached through the engine. PowerShell execution (`powershell-builder`) uses the same confirmation primitives bound to the script's SHA-256, and never reruns from history. Each mutating route ships a colocated confirmation-boundary spec. The engine's new `ConsequenceClass` is `system-config`; the registry (`registry`) and process-management (`process-management`) classes are now in active use.
 
 ## 5.3 Historical Exclusions Now Treated as Roadmap Territory
 
@@ -367,7 +369,7 @@ These items are not failures of the original product and are handled by the road
 - Cross-tool I/O, pipelines, Smart Paste, workspace/Saved Sessions, and local history (Phase 21) — ✅ shipped.
 - Platform hardening/correctness/discovery/desktop shell/web efficiency (Phases 22–26) — completed consolidation wave.
 - Native network diagnostics (Phase 27) — ✅ shipped.
-- TLS, filesystem, theming, Windows/process, API/server, database, container, OS-integration, AI, and editor/browser integration work is tracked authoritatively in Phases 28–38. TLS and filesystem expansion shipped in Phases 28–29, and theming/appearance shipped in Phase 30K (Phase 30 is complete); the Windows/process through browser-integration work remains tracked in Phases 31–38.
+- TLS, filesystem, theming, Windows/process, API/server, database, container, OS-integration, AI, and editor/browser integration work is tracked authoritatively in Phases 28–38. TLS and filesystem expansion shipped in Phases 28–29, theming/appearance shipped in Phase 30K (Phase 30 is complete), and Windows/process tooling shipped in Phase 31 (✅ Complete); the API/server through browser-integration work remains tracked in Phases 32–38.
 - Long-horizon additions through Phase 100 are roadmap directions, not a fixed commitment or schedule.
 
 ---
@@ -1076,7 +1078,7 @@ Every feature and every originally-deferred capability across these 10 tools was
 
 The roadmap deliberately extends beyond what any single delivery phase covers.
 
-Phase 0 was the weekend commitment; it is complete. **Phases 1–30 are also complete.** Phase 8 established the Windows desktop track, Phase 21 established the cross-tool workflow foundations, and Phase 22 hardened the platform (distributed manifests, single-sourced metadata, structural validation, generated docs, dependency boundaries, chunk/cache budgets) for the next several hundred tools. Phase 30 (30A–30L) shipped the workbench shell, discovery, insights, appearance, and verification program. Phase 31 and later roadmap work is taken up as decided rather than on any fixed schedule.
+Phase 0 was the weekend commitment; it is complete. **Phases 1–31 are also complete.** Phase 8 established the Windows desktop track, Phase 21 established the cross-tool workflow foundations, and Phase 22 hardened the platform (distributed manifests, single-sourced metadata, structural validation, generated docs, dependency boundaries, chunk/cache budgets) for the next several hundred tools. Phase 30 (30A–30L) shipped the workbench shell, discovery, insights, appearance, and verification program. Phase 31 (Milestones 593–614) shipped the Windows process/system troubleshooting tools and the second local mutation engine. Phase 32 and later roadmap work is taken up as decided rather than on any fixed schedule.
 
 From Phase 22 onward, the roadmap deliberately stops treating raw tool count as the primary measure of progress. Platform trust, correctness, composition, native capability, local/offline strength, automation safety, discoverability, and reuse across surfaces matter more.
 
@@ -1801,9 +1803,9 @@ DUDE now handles cryptography, authentication material, certificates, binary for
 
 6. Golden Corpus Tests — maintain representative real-world samples for PE, ELF, Mach-O, certificates, JSON/YAML/XML, SQL, logs, Git data, archives, images, and other complex formats. **✅ Rolled out (Milestones 314-406)**: the `__fixtures__/` convention now covers PE/ELF/Mach-O, a real X.509 certificate, JSON/YAML/XML, SQLite, ZIP/TAR, and PNG. Fixture provenance and independent checks are documented alongside the samples; add further corpora as new format-specific risks arise.
 
-7. High-Consequence Tool Matrix — explicitly identify crypto, authentication, code-execution, filesystem-write, process-management, registry, network-scanning, database-write, and secret-management tools as requiring stronger review. **✅ Shipped (Milestone 309)**: `ConsequenceClass` on `ToolDefinition`; every shipped crypto/authentication/code-execution/secret-management tool tagged. The native-capability classes were initially reserved for the tools that would use them. Phase 27 (Milestone 489) put `network-scanning` into use (Port Scanner, guided Diagnostic Bundle). It also added a tenth class, `remote-write`, for HTTP methods that can change server state (TCP/HTTP Connectivity Tester). `filesystem-write` is now used by Phase 29's previewed, journaled local file changes. `registry` and `database-write` remain reserved; `process-management` is used by Phase 28's gated packet capture.
+7. High-Consequence Tool Matrix — explicitly identify crypto, authentication, code-execution, filesystem-write, process-management, registry, network-scanning, database-write, and secret-management tools as requiring stronger review. **✅ Shipped (Milestone 309)**: `ConsequenceClass` on `ToolDefinition`; every shipped crypto/authentication/code-execution/secret-management tool tagged. The native-capability classes were initially reserved for the tools that would use them. Phase 27 (Milestone 489) put `network-scanning` into use (Port Scanner, guided Diagnostic Bundle). It also added a tenth class, `remote-write`, for HTTP methods that can change server state (TCP/HTTP Connectivity Tester). `filesystem-write` is now used by Phase 29's previewed, journaled local file changes. Phase 31 put `process-management` (also used earlier by Phase 28's gated packet capture) and `registry` into wide use for Process Viewer, Port → Process Lookup, Environment Variables, PATH Editor, Registry Editor and related tools. It added an eleventh class, `system-config`, for services, scheduled tasks, startup entries, Windows features, software uninstall and ACL changes. Only `database-write` remains reserved.
 
-8. Destructive-Action Harness — verify that every destructive desktop action has an explicit confirmation boundary and cannot be triggered merely by opening/importing data. **✅ Contract documented (Milestone 311)**: §5.2.1 spells out the two-step-confirm/no-incidental-trigger/tagging/test requirements. Phase 29's filesystem mutation engine now enforces plan preview, a short-lived single-use token, precondition checks, journaling and previewed undo; mutating tools have colocated confirmation-boundary tests.
+8. Destructive-Action Harness — verify that every destructive desktop action has an explicit confirmation boundary and cannot be triggered merely by opening/importing data. **✅ Contract documented (Milestone 311)**: §5.2.1 spells out the two-step-confirm/no-incidental-trigger/tagging/test requirements. Phase 29's filesystem mutation engine and Phase 31's system mutation engine now enforce plan preview, a short-lived single-use token, precondition checks, journaling and previewed undo; mutating tools have colocated confirmation-boundary tests.
 
 9. Sandbox Regression Suite — continuously verify the Phase 6 arbitrary-code isolation assumptions and Electron "contextIsolation"/preload boundaries. **✅ Shipped (Milestones 315-406)**: real-browser Playwright tests cover opaque-origin isolation, CSP denial of unallowlisted scripts, `Worker.terminate()`'s hard stop, and Python iframe recreation; `npm run test:electron` covers the preload/path boundary and `main.ts`'s `webPreferences`.
 
@@ -1941,7 +1943,7 @@ Give DUDE a native network-diagnostics surface that a sandboxed browser cannot p
    - TCP, UDP, or both, with at most 16 concurrent probes.
 
    An over-limit CIDR is rejected, never truncated. A preview shows the exact targets, ports, protocols, and probe count, and the run needs a separate, single-use confirmation.
-10–15, 17. **Local Port / Active Connections / Listening Process / ARP Table / Route Table / Network Interface Viewers and Local IP Detector** — **✅ Shipped as one Local Network tool (Milestone 498)**: seven views built on read-only Windows `Get-Net*` queries and Node's interface list. It runs with current permissions first. **Relaunch as Administrator** is a deliberate action that marks the elevated session, and nothing reruns after a relaunch or a refused UAC prompt.
+10–15, 17. **Local Port / Active Connections / Listening Process / ARP Table / Route Table / Network Interface Viewers and Local IP Detector** — **✅ Shipped as one Local Network tool (Milestone 498)**: seven views built on read-only Windows `Get-Net*` queries and Node's interface list. It runs with current permissions first. **Relaunch as Administrator** is a deliberate action that marks the elevated session, and nothing reruns after a relaunch or a refused UAC prompt. **Updated by Phase 31 (Milestone 597), a deliberate behavior change:** the ports, connections and processes views now read the `windows-sys` helper's `net.tcp`/`net.udp` tables and `process.list` (the same source as Port → Process Lookup), while neighbors, routes and interfaces run as fixed PowerShell 7 scripts. Those three views therefore now require PowerShell 7 and show a "PowerShell 7 required" notice when it is missing; Windows PowerShell 5.1 is no longer used. The Network Diagnostic Bundle's local section follows.
 16. **Public IP Detector** — **✅ Shipped (Milestone 499)**: queries IPv4 and IPv6 separately, only on Run.
 18. **Hostname Resolver** — **✅ Shipped (Milestone 500)**: OS resolution (`dns.lookup`), kept distinct from DNS record queries.
 19. **WHOIS Lookup** — **✅ Shipped (Milestone 501)**: prefers IANA-discovered RDAP, with a bounded TCP/43 referral fallback and an optional custom server.
@@ -3347,46 +3349,95 @@ The original V1 all-tools-on-Deck requirement remains in those sections only as 
 
 ---
 
-## Phase 31 — Windows & Process Tools
+## Phase 31 — Windows & Process Tools (✅ Complete — shipped as Milestones 593–614)
 
 Make DUDE genuinely useful for day-to-day Windows developer/system troubleshooting now that it has a native process and a controlled preload/IPC boundary.
 
-1. **Environment Variable Viewer**
-2. **PATH Editor**
-3. **Registry Viewer**
-4. **Registry Diff**
-5. **Services Viewer**
-6. **Process Viewer** — CPU, memory, threads, command line, environment, loaded modules, open ports, open files, parent/child relationships
-7. **Process Tree**
-8. **Kill Process**
-9. **Restart Process**
-10. **Port → Process Lookup**
-11. **Windows Event Log Viewer**
-12. **Scheduled Tasks Viewer**
-13. **Startup Programs Viewer**
-14. **Installed Software Viewer**
-15. **Windows Feature Viewer**
-16. **DLL Inspector**
-17. **Executable Dependency Viewer**
-18. **Windows SID Inspector / Account Resolver**
-19. **PowerShell Command Builder + explicit execution**
-20. **Environment Variable Diff**
-21. **PATH Conflict Detector**
-22. **Runtime Installation Detector**
-23. **Process Environment Diff**
-24. **Service Dependency Viewer**
-25. **Event Log Filters / Saved Queries**
-26. **Windows Permission / ACL Inspector**
-27. **File Lock / “Who Has This Open?” Inspector**
-28. **Process Diagnostic Bundle**
+The 28 items below shipped as **19 new routes** (System Changes plus 18 tools) and **two upgrades to existing tools** (`local-network`, `pe-header-viewer`), following Phase 29's "fewer, bigger" shape: viewers absorbed their diff, tree, dependency and filter items, and kill/restart are Process Viewer actions.
 
-### Notes
+1. **Environment Variable Viewer** — **✅ shipped (M598)** via `environment-variables`.
+2. **PATH Editor** — **✅ shipped (M599)** via `path-editor`.
+3. **Registry Viewer** — **✅ shipped (M601)** via `registry-editor`.
+4. **Registry Diff** — **✅ shipped (M601)** via `registry-editor`.
+5. **Services Viewer** — **✅ shipped (M602)** via `services-viewer`.
+6. **Process Viewer** — CPU, memory, threads, command line, environment, loaded modules, open ports, open files, parent/child relationships — **✅ shipped (M595)** via `process-viewer`.
+7. **Process Tree** — **✅ shipped (M595)** via `process-viewer`.
+8. **Kill Process** — **✅ shipped (M596)** via `process-viewer` actions (also from `port-process-lookup` and `file-lock-inspector`).
+9. **Restart Process** — **✅ shipped (M596)** via `process-viewer` actions.
+10. **Port → Process Lookup** — **✅ shipped (M597)** via `port-process-lookup`, with the `local-network` upgrade.
+11. **Windows Event Log Viewer** — **✅ shipped (M603)** via `event-log-viewer`.
+12. **Scheduled Tasks Viewer** — **✅ shipped (M604)** via `scheduled-tasks`.
+13. **Startup Programs Viewer** — **✅ shipped (M605)** via `startup-programs`.
+14. **Installed Software Viewer** — **✅ shipped (M606)** via `installed-software`.
+15. **Windows Feature Viewer** — **✅ shipped (M607)** via `windows-features`.
+16. **DLL Inspector** — **✅ shipped (M608)** via the `pe-header-viewer` upgrade (delay-load imports, ordinal/forwarded exports, version resource, Authenticode presence, CLR header, debug/PDB) and `dependency-walker`.
+17. **Executable Dependency Viewer** — **✅ shipped (M608)** via `dependency-walker` (real Windows DLL search order).
+18. **Windows SID Inspector / Account Resolver** — **✅ shipped (M609)** via `sid-account-resolver`.
+19. **PowerShell Command Builder + explicit execution** — **✅ shipped (M612)** via `powershell-builder`.
+20. **Environment Variable Diff** — **✅ shipped (M598)** via `environment-variables`.
+21. **PATH Conflict Detector** — **✅ shipped (M599)** via `path-editor`.
+22. **Runtime Installation Detector** — **✅ shipped (M600)** via `runtime-detector`.
+23. **Process Environment Diff** — **✅ shipped (M595)** via `process-viewer`.
+24. **Service Dependency Viewer** — **✅ shipped (M602)** via `services-viewer`.
+25. **Event Log Filters / Saved Queries** — **✅ shipped (M603)** via `event-log-viewer`.
+26. **Windows Permission / ACL Inspector** — **✅ shipped (M610)** via `acl-inspector`.
+27. **File Lock / “Who Has This Open?” Inspector** — **✅ shipped (M611)** via `file-lock-inspector`.
+28. **Process Diagnostic Bundle** — **✅ shipped (M613)** via `process-diagnostic-bundle`.
 
-Static Windows error/HRESULT decoding is reference data and remains covered by the Error Code Reference in Phase 18; a hypothetical value captured directly from a running process would be a native/runtime concern here.
+Also shipped: `system-changes` (M594), the journal and previewed-undo route for the system mutation engine (§5.2.1), plus the native/PowerShell foundation (M593).
 
-Tools in this phase should be **read-first**. Any operation that changes system state — process termination/restart, PATH/environment edits, registry writes, service changes, scheduled-task changes, permission changes, or PowerShell execution — must satisfy §31's security boundaries: explicit intent, clear target, preview where practical, and an unambiguous confirmation step proportional to risk.
+### Route map
 
-**Goal:** make DUDE genuinely useful for routine Windows developer/system troubleshooting without becoming a general-purpose system-administration suite.
+| Route | Title | PRD items | Category |
+|---|---|---|---|
+| `system-changes` | System Changes | engine journal/undo, snapshot library, retention | developer |
+| `process-viewer` | Process Viewer | 6, 7, 8, 9, 23 | developer |
+| `port-process-lookup` (+ `local-network` upgrade) | Port → Process Lookup | 10 | developer |
+| `environment-variables` | Environment Variables | 1, 20 | developer |
+| `path-editor` | PATH Editor | 2, 21 | developer |
+| `runtime-detector` | Runtime Detector | 22 | developer |
+| `registry-editor` | Registry Editor | 3, 4 | developer |
+| `services-viewer` | Services Viewer | 5, 24 | developer |
+| `event-log-viewer` | Event Log Viewer | 11, 25 | developer |
+| `scheduled-tasks` | Scheduled Tasks | 12 | developer |
+| `startup-programs` | Startup Programs | 13 | developer |
+| `installed-software` | Installed Software | 14 | developer |
+| `windows-features` | Windows Features | 15 | developer |
+| `dependency-walker` (+ `pe-header-viewer` upgrade) | Dependency Walker | 16, 17 | developer |
+| `sid-account-resolver` | SID & Account Resolver | 18 | security |
+| `acl-inspector` | ACL Inspector | 26 | security |
+| `file-lock-inspector` | File Lock Inspector | 27 | developer |
+| `powershell-builder` | PowerShell Builder | 19 | developer |
+| `process-diagnostic-bundle` | Process Diagnostic Bundle | 28 | developer |
+
+### Architecture and notes
+
+- **Native access is hybrid.** One long-lived C++ helper, `windows-sys.exe` (`native/windows-sys/`), speaks JSON lines and covers processes, modules, threads, handles, ports, registry, services, the event log, SIDs/ACLs, Restart Manager, the API-set map and minidumps. Renderer-callable helper methods are a closed read-only allowlist validated in main; mutating methods are reachable only through the engine. The rarer data (scheduled tasks, Windows features, Store/Appx packages, and Local Network neighbors/routes/interfaces) comes from fixed **PowerShell 7** scripts whose arguments pass only as a base64-JSON parameter. A missing PowerShell 7 shows a "PowerShell 7 required" notice on the affected views only.
+- **Elevation.** Every route runs with current permissions first, with per-row admin markers. The Phase 27 **Relaunch as Administrator** action is reused, and nothing reruns after a relaunch. HKLM registry writes require an elevated session; a hard denylist covers `HKLM\SAM`, `SECURITY`, `BCD00000000` and service `ImagePath`/`ServiceDll` values.
+- **Writes** all go through the §5.2.1 system mutation engine (previewed plan, 60 s single-use token, apply-time preconditions, journal, previewed undo in System Changes). Consequence classes: `process-management` (process operations), `registry` (registry and env/PATH), `system-config` (services, tasks, startup entries, features, uninstall, ACLs), `code-execution` (PowerShell and Runtime Detector's version probes).
+- **Secrets are shown and persisted as-is** (snapshots, run history, bundles): a deliberate product choice, so there is no masking or redaction layer.
+- **Web:** every new capability is desktop-only and shows the desktop-only control on the web build. The `pe-header-viewer` upgrade stays browser-capable because it is an existing browser tool.
+- **Cross-checked against the real tools:** `Get-Process`, `reg export`, `sc qc`, `wevtutil qe`, `Get-ScheduledTask`, `dumpbin /dependents /imports`, `icacls`/`Get-Acl`, `whoami /all`, and PowerShell's own parser for the builder's quoting (`scripts/pwsh-crosscheck`).
+
+### Deviations from the plan, as shipped
+
+- The SID tool's id is `sid-account-resolver` (planned as `sid-resolver`).
+- The Process Diagnostic Bundle's minidump defaults to `MiniDumpNormal`, with an optional full-memory checkbox (full dumps can be very large and contain everything in process memory). Main takes the dump directly into a private staging file, streams it into the ZIP and deletes it, rather than going through the engine's `process.dump` operation: the target is a private temporary file and consent is the explicit Export click plus the save-path grant.
+- The bundle ZIP is written to a single-use, exact-file save grant from the native save dialog (`fs-grants`).
+- Restart Manager graceful release/restart is the preferred path in File Lock Inspector; a handle is never force-closed.
+- PowerShell Builder's quoting is checked by the `scripts/pwsh-crosscheck` corpus (about 3,000 generated pipelines round-tripped through `[Parser]::ParseInput` on PowerShell 7.6.6, 0 failures).
+- The system preview UI is a new `app-system-change-preview` component, not a generalized `app-mutation-preview`, so the Phase 29 filesystem preview and its specs stay untouched.
+- PowerShell 7 detection also accepts the `%LOCALAPPDATA%\Microsoft\WindowsApps` App Execution Alias (winget installs it as MSIX), and Windows features are listed through CIM because importing the DISM module requires elevation.
+
+### Scope ceiling
+
+**Phase 31 is a Windows troubleshooting workbench, not a system-administration suite.** Explicitly out of scope: remote machines, GPO/AD administration, and user/group management; creating or deleting services and driver control; creating or editing scheduled tasks (enable/disable only); deleting registry keys (values can be deleted; a key DUDE created can be removed only while it is still empty); recursive ACL reset or propagation rewrites (ACL edits cover a single object); and force-closing handles.
+
+Static Windows error/HRESULT decoding is reference data and remains covered by the Error Code Reference in Phase 18; the Event Log Viewer and Scheduled Tasks link status codes to it.
+
+Every operation that changes system state — process termination/restart, PATH/environment edits, registry writes, service changes, scheduled-task and startup-entry changes, Windows feature changes, software uninstall, permission changes, or PowerShell execution — satisfies §31's security boundaries and the §5.2.1 contract: explicit intent, clear target, a preview, and a confirmation proportional to risk.
+
+**Goal achieved:** DUDE is genuinely useful for routine Windows developer/system troubleshooting without becoming a general-purpose system-administration suite.
 
 ---
 
@@ -3523,7 +3574,7 @@ Mutating daemon/cluster operations must display the target context/namespace/res
 Create the “why doesn't this work on my machine?” surface and the native conveniences that make DUDE feel like part of the operating system rather than a website contained in one window.
 
 1. **System Information Dashboard** — OS, architecture, CPU, RAM, GPU, disks, network adapters, monitors, installed runtimes, hostname, logged-in user, uptime, and virtualization status
-2. **Export Diagnostic Bundle** — one explicit action packages the selected diagnostic information for a bug/support report
+2. **Export Diagnostic Bundle** — one explicit action packages the selected diagnostic information for a bug/support report (the system-wide bundle; the per-process bundle already shipped in Phase 31 as Process Diagnostic Bundle, and this item builds on Phase 31's `sys-bundle` ZIP-writing code, `electron/sys-bundle.ts`)
 3. **Clipboard History**
 4. **Clipboard Monitor** — continuous monitoring, for example detecting/optionally offering to format copied JSON
 5. **Screen Ruler**
@@ -3535,8 +3586,8 @@ Create the “why doesn't this work on my machine?” surface and the native con
 11. **Batch Processing Across Dropped Files**
 12. **Multi-Window Workflows** — multiple DUDE windows/process-backed windows as genuine OS/window-management behavior, distinct from Phase 21's in-app tabs/panels
 13. **Local Secrets Vault** — general-purpose local secrets management built on the `secure-local`/OS-keychain tier shipped in Phase 8 Stage 3; not a hosted secret-storage service
-14. **Developer Environment Inspector** — installed Git/Node/Python/Java/.NET/Docker/PowerShell/Go/Rust versions and other relevant developer-runtime state
-15. **Runtime Version Conflict Detector** — including multiple-runtime/PATH conflicts
+14. **Developer Environment Inspector** — installed Git/Node/Python/Java/.NET/Docker/PowerShell/Go/Rust versions and other relevant developer-runtime state — **✅ delivered by Phase 31 (M600)** as `runtime-detector`
+15. **Runtime Version Conflict Detector** — including multiple-runtime/PATH conflicts — **✅ delivered by Phase 31 (M599–M600)** through `path-editor` (PATH Conflict Detector) and `runtime-detector`
 16. **Disk Space / Mount Inspector**
 17. **Monitor/DPI Inspector**
 18. **Default Application Inspector**
