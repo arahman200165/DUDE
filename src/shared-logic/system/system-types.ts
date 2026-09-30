@@ -11,7 +11,7 @@
 /** Renderer-callable read methods. Grows one milestone at a time; main rejects anything else. */
 export const SYS_READ_METHODS = [
   'helper.info', 'process.list', 'process.detail', 'process.modules', 'process.threads', 'process.handles',
-  'file.version', 'file.signature', 'svc.list', 'svc.config', 'evt.channels', 'evt.query', 'evt.queryFile', 'net.tcp', 'net.udp', 'reg.enumKey', 'reg.getValues', 'fs.probeDirs', 'reg.search', 'reg.export', 'pe.apisetmap',
+  'file.version', 'file.signature', 'svc.list', 'svc.config', 'evt.channels', 'evt.query', 'evt.queryFile', 'net.tcp', 'net.udp', 'reg.enumKey', 'reg.getValues', 'fs.probeDirs', 'reg.search', 'reg.export', 'sid.decode', 'sid.wellKnown', 'sid.lookup', 'account.token', 'account.localAccounts', 'account.localGroups', 'account.profiles', 'pe.apisetmap',
 ] as const;
 export type SysReadMethod = (typeof SYS_READ_METHODS)[number];
 
@@ -19,6 +19,19 @@ export type SysResult<T> =
   | { readonly ok: true; readonly data: T }
   | { readonly ok: false; readonly error: string; /** Win32 error code when the helper reported one (5 = access denied). */ readonly code?: number };
 
+export type SidInputFormat = 'sid' | 'binary-base64' | 'binary-hex';
+export interface SidDecodeParams { readonly inputFormat: SidInputFormat; readonly input: string; }
+export interface SidDecodeResult { readonly sid: string; readonly revision: number; readonly identifierAuthority: number; readonly subAuthorities: readonly number[]; readonly binaryHex: string; readonly base64: string; }
+export interface WellKnownSidEntry { readonly name: string; readonly sid: string; }
+export interface SidWellKnownResult { readonly entries: readonly WellKnownSidEntry[]; }
+export interface SidLookupParams { readonly query: string; readonly lookupKind: 'account' | 'sid'; }
+export interface SidLookupResult { readonly sid: string; readonly accountName: string; readonly domain: string; readonly use: string; readonly dcLookupDisclosure: string; }
+export interface TokenGroupInfo { readonly sid: string; readonly name: string; readonly domain: string; readonly attributes: number; }
+export interface TokenPrivilegeInfo { readonly name: string; readonly enabled: boolean; readonly attributes: number; }
+export interface TokenInfoResult { readonly user: { readonly name: string; readonly domain: string; readonly sid: string }; readonly groups: readonly TokenGroupInfo[]; readonly privileges: readonly TokenPrivilegeInfo[]; readonly integrity: { readonly level: string; readonly rid: number }; }
+export interface LocalAccountsResult { readonly accounts: readonly { readonly name: string; readonly comment: string; readonly disabled: boolean; readonly sid: string | null }[]; readonly truncated: boolean; }
+export interface LocalGroupsResult { readonly groups: readonly { readonly name: string; readonly comment: string; readonly sid: string }[]; readonly truncated: boolean; }
+export interface ProfilesResult { readonly profiles: readonly { readonly sid: string; readonly path: string }[]; }
 // ---- helper.info -------------------------------------------------------------------------------
 
 export interface HelperInfo {
@@ -467,4 +480,11 @@ export interface PwshStatus {
   readonly source?: 'path' | 'program-files' | 'windows-apps';
   /** Why it isn't available (not found, or found but < 7). */
   readonly reason?: string;
+  'sid.decode': { params: SidDecodeParams; result: SidDecodeResult };
+  'sid.wellKnown': { params: Record<string, never>; result: SidWellKnownResult };
+  'sid.lookup': { params: SidLookupParams; result: SidLookupResult };
+  'account.token': { params: Record<string, never>; result: TokenInfoResult };
+  'account.localAccounts': { params: Record<string, never>; result: LocalAccountsResult };
+  'account.localGroups': { params: Record<string, never>; result: LocalGroupsResult };
+  'account.profiles': { params: Record<string, never>; result: ProfilesResult };
 }

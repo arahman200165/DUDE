@@ -75,6 +75,13 @@ std::string handleLine(const std::string& line) {
   else if (method == "reg.export") ok = sys::handleRegExport(params, result, err);
   else if (method == "fs.probeDirs") ok = sys::handleFsProbeDirs(params, result, err);
   else if (method == "pe.apisetmap") ok = sys::handlePeApiSetMap(result, err);
+  else if (method == "sid.decode") ok = sys::handleSidDecode(params, result, err);
+  else if (method == "sid.wellKnown") ok = sys::handleSidWellKnown(result, err);
+  else if (method == "sid.lookup") ok = sys::handleSidLookup(params, result, err);
+  else if (method == "account.token") ok = sys::handleAccountToken(result, err);
+  else if (method == "account.localAccounts") ok = sys::handleAccountLocalAccounts(result, err);
+  else if (method == "account.localGroups") ok = sys::handleAccountLocalGroups(result, err);
+  else if (method == "account.profiles") ok = sys::handleAccountProfiles(result, err);
   else if (method == "proc.terminate") ok = sys::handleProcTerminate(params, result, err);
   else if (method == "proc.tree") ok = sys::handleProcTree(params, result, err);
   else if (method == "proc.suspend") ok = sys::handleProcSuspend(params, result, err);

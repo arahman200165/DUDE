@@ -182,6 +182,7 @@ browser sandbox.
 | [Runtime Detector](https://arahman200165.github.io/DUDE/tools/runtime-detector) | Native Windows system access |
 | [Scheduled Tasks](https://arahman200165.github.io/DUDE/tools/scheduled-tasks) | Native Windows system access; Native Windows system changes |
 | [Services Viewer](https://arahman200165.github.io/DUDE/tools/services-viewer) | Native Windows system access; Native Windows system changes |
+| [SID & Account Resolver](https://arahman200165.github.io/DUDE/tools/sid-account-resolver) | Native Windows system access |
 | [SQL Formatter / Minifier](https://arahman200165.github.io/DUDE/tools/sql-formatter-tool) | Desktop file/folder open |
 | [STARTTLS Inspector](https://arahman200165.github.io/DUDE/tools/starttls-inspector) | Native network diagnostics |
 | [Startup Programs](https://arahman200165.github.io/DUDE/tools/startup-programs) | Native Windows system access; Native Windows system changes |
@@ -270,6 +271,7 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Scheduled Tasks](https://arahman200165.github.io/DUDE/tools/scheduled-tasks) | Native Windows system changes | Desktop-only feature | enables or disables tasks through the desktop system mutation engine |
 | [Services Viewer](https://arahman200165.github.io/DUDE/tools/services-viewer) | Native Windows system access | Desktop-only feature | lists services and reads their configuration and dependencies through the desktop system helper |
 | [Services Viewer](https://arahman200165.github.io/DUDE/tools/services-viewer) | Native Windows system changes | Desktop-only feature | starts, stops, restarts and reconfigures services through the desktop system mutation engine |
+| [SID & Account Resolver](https://arahman200165.github.io/DUDE/tools/sid-account-resolver) | Native Windows system access | Desktop-only feature | resolves Windows SIDs and reads the current token, local accounts, groups and user profiles on Desktop DUDE |
 | [STARTTLS Inspector](https://arahman200165.github.io/DUDE/tools/starttls-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Startup Programs](https://arahman200165.github.io/DUDE/tools/startup-programs) | Native Windows system access | Desktop-only feature | inspects local Windows startup registrations through the desktop system helper |
 | [Startup Programs](https://arahman200165.github.io/DUDE/tools/startup-programs) | Native Windows system changes | Desktop-only feature | changes supported StartupApproved states through the desktop system mutation engine |

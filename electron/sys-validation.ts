@@ -10,6 +10,8 @@ const MAX_PATH = 1024;
 const MAX_PROBE_DIRS = 256;
 const MAX_PROBE_EXTENSIONS = 64;
 const MAX_SEGMENT = 255;
+const MAX_SID_INPUT = 4096;
+const MAX_SID_QUERY = 512;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
@@ -172,6 +174,30 @@ export function validateSysCall(method: unknown, params: unknown): { method: Sys
       });
     }
     return { method: name, params: out };
+  }
+  if (name === 'sid.decode') {
+    if (!isPlainObject(params)) throw new Error('SID decode parameters must be an object.');
+    exactKeys(params, ['input', 'inputFormat'], 'SID decode parameters must be exactly input and inputFormat.');
+    const format = params['inputFormat'];
+    const input = params['input'];
+    if (format !== 'sid' && format !== 'binary-base64' && format !== 'binary-hex') throw new Error('Unknown SID input format.');
+    if (typeof input !== 'string' || input.length < 1 || input.length > MAX_SID_INPUT) throw new Error('SID input must be 1 to 4096 characters.');
+    if (/[\u0000-\u001f\u007f]/.test(input)) throw new Error('SID input contains control characters.');
+    if (format === 'sid' && !/^S-\d-(?:\d+)(?:-\d+){0,15}$/i.test(input)) throw new Error('SID string has an invalid shape.');
+    if (format === 'binary-hex' && (!/^(?:[0-9a-f]{2})+$/i.test(input) || input.length > 136)) throw new Error('SID hex input must be 1 to 68 bytes of hexadecimal data.');
+    if (format === 'binary-base64' && !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(input)) throw new Error('SID base64 input is invalid.');
+    return { method: name, params: { inputFormat: format, input } };
+  }
+  if (name === 'sid.lookup') {
+    if (!isPlainObject(params)) throw new Error('SID lookup parameters must be an object.');
+    exactKeys(params, ['lookupKind', 'query'], 'SID lookup parameters must be exactly lookupKind and query.');
+    const kind = params['lookupKind'];
+    const query = params['query'];
+    if (kind !== 'account' && kind !== 'sid') throw new Error('lookupKind must be account or sid.');
+    if (typeof query !== 'string' || query.length < 1 || query.length > MAX_SID_QUERY) throw new Error('SID lookup query must be 1 to 512 characters.');
+    if (/[\u0000-\u001f\u007f]/.test(query)) throw new Error('SID lookup query contains control characters.');
+    if (kind === 'sid' && !/^S-\d-(?:\d+)(?:-\d+){0,15}$/i.test(query)) throw new Error('SID query has an invalid shape.');
+    return { method: name, params: { lookupKind: kind, query } };
   }
   if (name === 'svc.config') {
     if (!isPlainObject(params)) throw new Error('Service parameters must be an object.');

@@ -105,6 +105,14 @@ bool handleRegGetValues(const JsonValue* params, std::string& result, Failure& e
 bool handleRegSearch(const JsonValue* params, std::string& result, Failure& err);
 bool handleRegExport(const JsonValue* params, std::string& result, Failure& err);
 bool handleFsProbeDirs(const JsonValue* params, std::string& result, Failure& err);
+// SID and account inspection (Milestone 609), read-only.
+bool handleSidDecode(const JsonValue* params, std::string& result, Failure& err);
+bool handleSidWellKnown(std::string& result, Failure& err);
+bool handleSidLookup(const JsonValue* params, std::string& result, Failure& err);
+bool handleAccountToken(std::string& result, Failure& err);
+bool handleAccountLocalAccounts(std::string& result, Failure& err);
+bool handleAccountLocalGroups(std::string& result, Failure& err);
+bool handleAccountProfiles(std::string& result, Failure& err);
 // Current helper process API-set namespace for API-MS/EXT-MS contract resolution.
 bool handlePeApiSetMap(std::string& result, Failure& err);
 // Mutating process operations (process_ops.cpp), reached only from confirmed engine plans.

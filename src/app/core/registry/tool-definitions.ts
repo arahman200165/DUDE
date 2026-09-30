@@ -269,6 +269,7 @@ import { manifest as scientificNotationConverterManifest } from '../../tools/sci
 import { manifest as secretDetectorManifest } from '../../tools/secret-detector/secret-detector.manifest';
 import { manifest as semverComparatorManifest } from '../../tools/semver-comparator/semver-comparator.manifest';
 import { manifest as servicesViewerManifest } from '../../tools/services-viewer/services-viewer.manifest';
+import { manifest as sidAccountResolverManifest } from '../../tools/sid-account-resolver/sid-account-resolver.manifest';
 import { manifest as slugGeneratorManifest } from '../../tools/slug-generator/slug-generator.manifest';
 import { manifest as smartQuotesNormalizerManifest } from '../../tools/smart-quotes-normalizer/smart-quotes-normalizer.manifest';
 import { manifest as snowflakeIdToolsManifest } from '../../tools/snowflake-id-tools/snowflake-id-tools.manifest';
@@ -599,6 +600,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   secretDetectorManifest,
   semverComparatorManifest,
   servicesViewerManifest,
+  sidAccountResolverManifest,
   slugGeneratorManifest,
   smartQuotesNormalizerManifest,
   snowflakeIdToolsManifest,

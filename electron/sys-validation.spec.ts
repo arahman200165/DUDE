@@ -156,11 +156,36 @@ describe('validateSysCall', () => {
       expect(() => validateSysCall('reg.export', bad)).toThrow();
     }
   });
+  it('accepts bounded SID decode and lookup inputs', () => {
+    expect(validateSysCall('sid.decode', { inputFormat: 'sid', input: 'S-1-5-18' })).toEqual({ method: 'sid.decode', params: { inputFormat: 'sid', input: 'S-1-5-18' } });
+    expect(validateSysCall('sid.decode', { inputFormat: 'binary-hex', input: '010100000000000512000000' }).method).toBe('sid.decode');
+    expect(validateSysCall('sid.decode', { inputFormat: 'binary-base64', input: 'AQEAAAAAAAUAAAAA' }).method).toBe('sid.decode');
+    expect(validateSysCall('sid.lookup', { lookupKind: 'account', query: 'DOMAIN\\user' }).params).toEqual({ lookupKind: 'account', query: 'DOMAIN\\user' });
+    expect(validateSysCall('sid.lookup', { lookupKind: 'sid', query: 'S-1-5-18' }).method).toBe('sid.lookup');
+  });
+
+  it('rejects malformed, extra, and oversized SID parameters before IPC', () => {
+    for (const params of [undefined, { inputFormat: 'sid', input: 'S-1-5-18', extra: true }, { inputFormat: 'sid', input: 'not-a-sid' }, { inputFormat: 'binary-hex', input: '12xz' }, { inputFormat: 'binary-base64', input: '!!!!' }, { inputFormat: 'sid', input: 'S-1-5-18\n' }, { inputFormat: 'sid', input: 'x'.repeat(4097) }]) {
+      expect(() => validateSysCall('sid.decode', params)).toThrow();
+    }
+    for (const params of [undefined, { lookupKind: 'account', query: 'x', extra: 1 }, { lookupKind: 'other', query: 'x' }, { lookupKind: 'sid', query: 'user' }, { lookupKind: 'account', query: 'x\0y' }, { lookupKind: 'account', query: 'x'.repeat(513) }]) {
+      expect(() => validateSysCall('sid.lookup', params)).toThrow();
+    }
+  });
+
   it('allows pe.apisetmap only without parameters', () => {
     expect(SYS_READ_METHODS).toContain('pe.apisetmap');
     expect(validateSysCall('pe.apisetmap', undefined)).toEqual({ method: 'pe.apisetmap', params: {} });
     expect(validateSysCall('pe.apisetmap', {})).toEqual({ method: 'pe.apisetmap', params: {} });
     expect(() => validateSysCall('pe.apisetmap', { path: 'C:\\x.dll' })).toThrow();
     expect(() => validateSysCall('pe.apisetmap', ['x'])).toThrow();
+  });
+
+  it('keeps M609 read methods on the allowlist and parameterless calls strict', () => {
+    for (const method of ['sid.wellKnown', 'account.token', 'account.localAccounts', 'account.localGroups', 'account.profiles']) {
+      expect(SYS_READ_METHODS).toContain(method);
+      expect(validateSysCall(method, {})).toEqual({ method, params: {} });
+      expect(() => validateSysCall(method, { extra: true })).toThrow();
+    }
   });
 });

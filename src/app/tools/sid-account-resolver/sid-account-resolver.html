@@ -1,0 +1,50 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning/40 bg-warning/5 p-4 text-ui text-text-muted">
+      SID and account queries read Windows security information through Desktop DUDE. The web companion cannot access Windows accounts or tokens.
+    </div>
+    <app-desktop-only-control capability="native-system" label="Resolve SIDs and inspect Windows accounts" />
+  } @else {
+    <div class="flex flex-col gap-3 text-ui">
+      <nav class="flex flex-wrap gap-1 border-b border-border" aria-label="SID resolver views">
+        <button type="button" class="rounded-t-sm border border-border px-3 py-1 hover:bg-panel-elevated" [class.text-accent]="view() === 'resolve'" data-testid="tab-resolve" (click)="view.set('resolve')">SID &amp; name</button>
+        <button type="button" class="rounded-t-sm border border-border px-3 py-1 hover:bg-panel-elevated" [class.text-accent]="view() === 'well-known'" data-testid="tab-well-known" (click)="loadWellKnown()">Well-known SIDs</button>
+        <button type="button" class="rounded-t-sm border border-border px-3 py-1 hover:bg-panel-elevated" [class.text-accent]="view() === 'token'" data-testid="tab-token" (click)="load('token')">Current token</button>
+        <button type="button" class="rounded-t-sm border border-border px-3 py-1 hover:bg-panel-elevated" [class.text-accent]="view() === 'accounts'" data-testid="tab-accounts" (click)="load('accounts')">Local accounts</button>
+        <button type="button" class="rounded-t-sm border border-border px-3 py-1 hover:bg-panel-elevated" [class.text-accent]="view() === 'groups'" data-testid="tab-groups" (click)="loadGroups()">Local groups</button>
+        <button type="button" class="rounded-t-sm border border-border px-3 py-1 hover:bg-panel-elevated" [class.text-accent]="view() === 'profiles'" data-testid="tab-profiles" (click)="load('profiles')">Profiles</button>
+      </nav>
+
+      @if (view() === 'resolve') {
+        <section class="grid gap-3 rounded-sm border border-border bg-panel p-3 lg:grid-cols-2" aria-label="Resolve SID or account name">
+          <div class="flex flex-col gap-2">
+            <label for="sid-input" class="font-semibold text-text">SID value</label>
+            <select class="w-fit rounded-sm border border-border bg-bg px-2 py-1 text-text" aria-label="SID input format" data-testid="input-format" [value]="inputFormat()" (change)="inputFormat.set($any($event.target).value)"><option value="sid">SID string</option><option value="binary-base64">Binary SID (Base64)</option><option value="binary-hex">Binary SID (hex)</option></select>
+            <textarea id="sid-input" class="min-h-24 rounded-sm border border-border bg-bg px-2 py-1 font-mono text-text" placeholder="S-1-5-18 or encoded binary SID" spellcheck="false" data-testid="sid-input" [value]="input()" (input)="input.set($any($event.target).value)"></textarea>
+            <div class="flex flex-wrap gap-2"><button type="button" class="w-fit rounded-sm bg-accent px-3 py-1 text-on-accent disabled:opacity-50" data-testid="resolve-sid" [disabled]="!input().trim() || loading()" (click)="resolve()">Decode SID</button><button type="button" class="w-fit rounded-sm border border-border px-3 py-1 text-text hover:bg-panel-elevated disabled:opacity-50" data-testid="lookup-sid" [disabled]="!input().trim() || inputFormat() !== 'sid' || loading()" (click)="lookupSid()">Resolve SID to account</button></div>
+            <p class="text-ui-xs text-text-muted">Select SID text, Base64 binary, or hexadecimal binary input. Well-known identifiers are annotated when recognized.</p>
+          </div>
+          <div class="flex flex-col gap-2">
+            <label for="account-name" class="font-semibold text-text">Account name or SID</label>
+            <input id="account-name" class="rounded-sm border border-border bg-bg px-2 py-1 text-text" placeholder="DOMAIN\user, COMPUTER\user, or S-1-5-18" data-testid="account-name" [value]="name()" (input)="name.set($any($event.target).value)" />
+            <button type="button" class="w-fit rounded-sm border border-border px-3 py-1 text-text hover:bg-panel-elevated disabled:opacity-50" data-testid="resolve-name" [disabled]="!name().trim() || loading()" (click)="lookupName()">Resolve name</button>
+            <p class="rounded-sm border border-warning/40 bg-warning/5 p-2 text-ui-xs text-text-muted">Resolving a domain name or SID may contact a domain controller. No lookup runs until you choose Resolve name or Resolve SID to account.</p>
+          </div>
+        </section>
+      }
+
+      @if (error()) { <div role="alert" class="flex items-center gap-1 rounded-sm border border-error/50 bg-error/5 p-2 text-error"><app-status-glyph kind="error" />{{ error() }}</div> }
+      @if (loading()) { <div role="status" class="text-text-muted">Reading Windows security information…</div> }
+      @if (data() !== null) {
+        <section class="flex min-h-0 flex-col gap-2 rounded-sm border border-border bg-panel p-3" aria-label="Resolver result" data-testid="result">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="font-semibold text-text">{{ view() === 'resolve' ? 'Resolution result' : view() === 'token' ? 'Current token' : view() === 'accounts' ? 'Local accounts' : view() === 'groups' ? 'Local groups' : view() === 'well-known' ? 'Well-known SIDs' : 'User profiles' }}</span>
+            <button type="button" class="ml-auto rounded-sm border border-border px-2 py-1 text-text hover:bg-panel-elevated" data-testid="export-json" (click)="exportJson()">Export JSON</button>
+          </div>
+          <app-copy-button [text]="outputText()" label="Copy JSON" />
+          <pre class="max-h-[65vh] overflow-auto whitespace-pre-wrap break-words rounded-sm border border-border bg-bg p-3 font-mono text-ui-xs text-text" data-testid="result-json">{{ outputText() }}</pre>
+        </section>
+      }
+    </div>
+  }
+</app-tool-shell>
