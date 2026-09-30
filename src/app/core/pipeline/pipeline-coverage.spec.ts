@@ -66,6 +66,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'packet-loss': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'mtu-discovery': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'route-comparison': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
+  'process-diagnostic-bundle': 'collecting a process and writing a ZIP (with a minidump) needs the desktop system helper and an explicit save-dialog step, not an invisible pipeline step',
   'network-diagnostic-bundle': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
 
   // Network-required (a pipeline must never make an invisible mid-chain network call).

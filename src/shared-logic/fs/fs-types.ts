@@ -103,6 +103,15 @@ export interface PickedFile {
   readonly size: number;
 }
 
+export interface SaveFileFilter { readonly name: string; readonly extensions: readonly string[] }
+export interface SavePathRequest {
+  /** A bare file name (no directory) the dialog pre-fills. */
+  readonly defaultName?: string;
+  readonly filters?: readonly SaveFileFilter[];
+}
+/** `path` is a single-use write grant for exactly that file; nothing else becomes writable. */
+export type PickedSavePath = { readonly canceled: true } | { readonly canceled: false; readonly path: string; readonly name: string };
+
 // ---- Mutation engine (DUDE_PRD.md §5.2.1) ----
 
 export interface Precondition {

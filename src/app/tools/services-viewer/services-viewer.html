@@ -68,7 +68,7 @@
                     <dd class="flex items-start gap-2"><span class="min-w-0 break-all font-mono text-ui-xs" data-testid="detail-binary">{{ c.binaryPath }}</span><app-copy-button [text]="c.binaryPath" label="Copy path" /></dd>
                     @if (c.pid) {
                       <dt class="text-text-muted">PID</dt>
-                      <dd class="flex items-center gap-2"><span class="font-mono">{{ c.pid }}</span><a routerLink="/tools/process-viewer" class="text-accent underline" data-testid="open-process-viewer">Open in Process Viewer</a></dd>
+                      <dd class="flex items-center gap-2"><span class="font-mono">{{ c.pid }}</span><a routerLink="/tools/process-viewer" [queryParams]="{ pid: c.pid }" class="text-accent underline" data-testid="open-process-viewer">Open in Process Viewer</a></dd>
                     }
                   </dl>
                   <section aria-label="Dependencies">

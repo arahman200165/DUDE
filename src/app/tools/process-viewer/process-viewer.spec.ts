@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import type { ProcessListResult, ProcessSummary } from '../../../shared-logic/system/system-types';
 import { fakeElectronBridge } from '../../core/platform/testing/fake-electron-bridge';
 import { installBridge, removeBridge, settleFsJobs } from '../../core/platform/testing/recording-fs-bridge';
@@ -16,7 +16,7 @@ const list = (at: number, cpu: number): ProcessListResult => ({
 describe('ProcessViewerTool', () => {
   afterEach(() => removeBridge());
 
-  function render() {
+  function render(query: Record<string, string> = {}) {
     const methods: string[] = [];
     let samples = 0;
     const call = async (method: string, params: unknown) => {
@@ -30,7 +30,7 @@ describe('ProcessViewerTool', () => {
       }
     };
     installBridge(fakeElectronBridge({ sys: { ...fakeElectronBridge().sys, call: call as never } }));
-    TestBed.configureTestingModule({ providers: [provideRouter([])] });
+    TestBed.configureTestingModule({ providers: [provideRouter([]), { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap(query) } } }] });
     const fixture = TestBed.createComponent(ProcessViewerTool);
     const element = fixture.nativeElement as HTMLElement;
     const clickText = async (selector: string, text: string) => {
@@ -69,6 +69,25 @@ describe('ProcessViewerTool', () => {
     expect(element.textContent).toContain('ntdll.dll');
     expect(methods).toContain('process.modules');
   }, 30_000);
+
+  it('a ?pid= link (no startKey) selects that PID and offers the diagnostic bundle hand-off', async () => {
+    const { fixture, element, clickText } = render({ pid: '200' });
+    fixture.detectChanges();
+    await clickText('button', 'Refresh now');
+    expect(element.querySelector('[data-testid="process-detail"]')?.textContent).toContain('node.exe');
+    const link = element.querySelector<HTMLAnchorElement>('[data-testid="action-bundle"]')!;
+    expect(link.getAttribute('href')).toContain('/tools/process-diagnostic-bundle');
+    expect(link.getAttribute('href')).toContain('pid=200');
+    expect(link.getAttribute('href')).toContain('startKey=200');
+  });
+
+  it('a ?pid= link for a PID that is not running shows a notice and selects nothing', async () => {
+    const { fixture, element, clickText } = render({ pid: '9999' });
+    fixture.detectChanges();
+    await clickText('button', 'Refresh now');
+    expect(element.querySelector('[data-testid="process-detail"]')).toBeNull();
+    expect(element.textContent).toContain('No running process has that PID.');
+  });
 
   it('shows a desktop-only explanation on the web', () => {
     TestBed.configureTestingModule({ providers: [provideRouter([])] });

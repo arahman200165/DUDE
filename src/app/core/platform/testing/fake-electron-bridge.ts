@@ -19,6 +19,7 @@ export function fakeElectronBridge(overrides: Partial<DudeElectronBridge> = {}):
     fs: {
       pickDirectory: async () => ({ canceled: true }),
       pickFile: async () => ({ canceled: true }),
+      pickSavePath: async () => ({ canceled: true }),
       readRange: async () => ({ ok: true, data: new ArrayBuffer(0), size: 0 }),
       listRemembered: async () => [],
       remember: async () => ({ ok: true, folders: [] }),
@@ -137,6 +138,10 @@ export function fakeElectronBridge(overrides: Partial<DudeElectronBridge> = {}):
       getSettings: async () => ({ ok: true as const, value: { settings: { retentionDays: 30, maxBackupBytes: 500 * 1024 ** 2 }, backupBytes: 0 } }),
       setSettings: async () => ({ ok: false as const, error: 'unavailable' }), purgeBackups: async () => ({ ok: false as const, error: 'unavailable' }),
       onProgress: () => () => {},
+    },
+    sysBundle: {
+      estimate: async () => ({ ok: false as const, error: 'unavailable' }), write: async () => ({ ok: false as const, error: 'unavailable' }),
+      cancel: async () => false, reveal: async () => false, onProgress: () => () => {},
     },
     sysSnapshots: {
       list: async () => ({ ok: true as const, value: [] }),

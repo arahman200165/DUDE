@@ -172,14 +172,16 @@ export class ProcessViewerTool {
     return samples.map((v, i) => `${(i * step).toFixed(1)},${(14 - (v / peak) * 13).toFixed(1)}`).join(' ');
   }
 
-  private parseRouteTarget(): { readonly pid: number; readonly startKey: string } | null {
+  /** `?pid=<n>` selects that PID's current instance; adding `&startKey=<filetime>` pins the exact instance. */
+  private parseRouteTarget(): { readonly pid: number; readonly startKey: string | null } | null {
     const params = this.route.snapshot.queryParamMap;
     const pidText = params.get('pid') ?? '';
-    const startKey = params.get('startKey') ?? '';
-    if (!/^[1-9][0-9]{0,9}$/.test(pidText) || !/^[0-9]{1,20}$/.test(startKey)) return null;
+    const startKey = params.get('startKey');
+    if (!/^[1-9][0-9]{0,9}$/.test(pidText)) return null;
+    if (startKey !== null && !/^[0-9]{1,20}$/.test(startKey)) return null;
     const pid = Number(pidText);
     try {
-      if (!Number.isSafeInteger(pid) || pid > 0xffffffff || BigInt(startKey) > 18446744073709551615n) return null;
+      if (!Number.isSafeInteger(pid) || pid > 0xffffffff || (startKey !== null && BigInt(startKey) > 18446744073709551615n)) return null;
     } catch { return null; }
     return { pid, startKey };
   }
@@ -195,9 +197,9 @@ export class ProcessViewerTool {
       this.error.set('');
       if (!this.routeHandoffApplied && this.routeTarget) {
         this.routeHandoffApplied = true;
-        const target = next.processes.find((p) => p.pid === this.routeTarget!.pid && p.startKey === this.routeTarget!.startKey);
+        const target = next.processes.find((p) => p.pid === this.routeTarget!.pid && (this.routeTarget!.startKey === null || p.startKey === this.routeTarget!.startKey));
         if (target) this.selectKey(processKey(target));
-        else this.routeNotice.set('That process instance is no longer running; the PID was not reused for this link.');
+        else this.routeNotice.set(this.routeTarget.startKey === null ? 'No running process has that PID.' : 'That process instance is no longer running; the PID was not reused for this link.');
       }
       const key = this.selectedKey();
       const current = key ? next.processes.find((p) => processKey(p) === key) : undefined;

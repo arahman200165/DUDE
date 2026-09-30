@@ -69,6 +69,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'packet-loss': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
   'mtu-discovery': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
   'route-comparison': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
+  'process-diagnostic-bundle': 'the chosen process, section toggles and export progress are desktop-only session state, not restorable renderer content',
   'network-diagnostic-bundle': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
 
   // Sensitive-by-design (DUDE_PRD.md §30) — live keys/secrets/tokens/passwords, or a tool whose

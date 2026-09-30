@@ -3,11 +3,11 @@ import { mkdtempSync, mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const mock = vi.hoisted(() => ({ userData: '', handles: new Map<string, (...args: any[]) => any>(), dialogResult: { canceled: true, filePaths: [] as string[] } }));
+const mock = vi.hoisted(() => ({ userData: '', handles: new Map<string, (...args: any[]) => any>(), dialogResult: { canceled: true, filePaths: [] as string[] }, saveResult: { canceled: true, filePath: undefined as string | undefined }, saveOptions: undefined as unknown }));
 vi.mock('electron', () => ({
   app: { getPath: () => mock.userData },
   BrowserWindow: { fromWebContents: () => null },
-  dialog: { showOpenDialog: vi.fn(async () => mock.dialogResult) },
+  dialog: { showOpenDialog: vi.fn(async () => mock.dialogResult), showSaveDialog: vi.fn(async (...args: unknown[]) => { mock.saveOptions = args[args.length - 1]; return mock.saveResult; }) },
   ipcMain: { handle: (channel: string, handler: (...args: any[]) => any) => mock.handles.set(channel, handler) },
 }));
 
@@ -76,5 +76,29 @@ describe('fs grants', () => {
     const result = await grants.forgetRoot(project);
     expect(result.ok && result.folders).toEqual([]);
     expect(forgotten).toEqual([project]);
+  });
+
+  it('save-path picks grant exactly one file, once, and nothing else', async () => {
+    const grants = await import('./fs-grants');
+    grants.registerGrantHandlers();
+    const pick = mock.handles.get('dude:fs:pickSavePath')!;
+    const target = join(root, 'bundle.zip');
+
+    mock.saveResult = { canceled: true, filePath: undefined };
+    expect(await pick({ sender: {} }, { defaultName: 'x.zip' })).toEqual({ canceled: true });
+    expect(grants.consumeSavePath(target)).toBe(false);
+
+    mock.saveResult = { canceled: false, filePath: target };
+    const picked = await pick({ sender: {} }, { defaultName: '..\evil\bundle.zip', filters: [{ name: 'ZIP', extensions: ['zip', '../x'] }, { name: 3 }] });
+    expect(picked).toEqual({ canceled: false, path: target, name: 'bundle.zip' });
+    const options = mock.saveOptions as { defaultPath: string; filters: { extensions: string[] }[] };
+    expect(options.defaultPath).not.toMatch(/[\/]/);
+    expect(options.filters).toEqual([{ name: 'ZIP', extensions: ['zip'] }]);
+    // A save grant never makes the folder or the file readable.
+    expect(grants.isRootGranted(target)).toBe(false);
+    expect(grants.isInsideGrantedRoot(target)).toBe(false);
+    expect(grants.consumeSavePath(join(root, 'other.zip'))).toBe(false);
+    expect(grants.consumeSavePath(target.toUpperCase())).toBe(true);
+    expect(grants.consumeSavePath(target)).toBe(false);
   });
 });

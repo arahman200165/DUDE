@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import type { PickedSavePath, SavePathRequest } from '../../../shared-logic/fs/fs-types';
 import type { NativeStat } from './electron-bridge';
 
 /**
@@ -27,6 +28,11 @@ export class NativeFsService {
   /** Grants one file (Phase 29: Large-File Inspector, File Split & Join). */
   async pickFile(defaultPath?: string): Promise<{ canceled: true } | { canceled: false; path: string; name: string; size: number }> {
     return this.bridge.pickFile(defaultPath);
+  }
+
+  /** Native save dialog. The chosen file becomes a single-use write grant; nothing else is granted. */
+  async pickSavePath(request?: SavePathRequest): Promise<PickedSavePath> {
+    return this.bridge.pickSavePath(request);
   }
 
   /** Ranged read (≤ 1 MB per call) of a granted file or a file inside a granted root. */

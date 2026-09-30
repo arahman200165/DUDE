@@ -1,0 +1,134 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning/40 bg-warning/5 p-4 text-ui text-text-muted">
+      Process Diagnostic Bundle gathers a running process's command line, environment, modules, threads, handles, ports, related Event Log entries, CPU and memory samples and a minidump into one ZIP. It reads them through the Windows desktop app's system helper, so it needs Desktop DUDE.
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <app-desktop-only-control capability="native-system" label="Collect a process diagnostic bundle" />
+      <app-desktop-only-control capability="native-fs" label="Choose where to save the ZIP" />
+    </div>
+  } @else {
+    <div class="flex flex-col gap-3 text-ui">
+      @if (notice()) { <div role="status" class="rounded-sm border border-border bg-panel p-2 text-text-muted" data-testid="route-notice">{{ notice() }}</div> }
+
+      <section class="flex flex-col gap-2" aria-label="Choose a process">
+        <div class="flex flex-wrap items-center gap-2">
+          <h2 class="text-ui-xs font-semibold uppercase text-text-muted">1. Process</h2>
+          <input class="min-w-48 flex-1 rounded-sm border border-border bg-panel px-2 py-1 text-text" type="search" aria-label="Filter processes" placeholder="Filter by name or PID" data-testid="target-filter" [value]="query()" (input)="query.set($any($event.target).value)" />
+          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" data-testid="reload-list" (click)="loadProcesses()">Reload list</button>
+        </div>
+        @if (listError()) { <div role="alert" class="flex items-center gap-1 text-error"><app-status-glyph kind="error" />{{ listError() }}</div> }
+        <div class="max-h-48 overflow-auto rounded-sm border border-border bg-panel" role="listbox" aria-label="Processes" data-testid="target-list">
+          @if (listing() === null && !listError()) { <div class="p-2 text-text-muted" role="status">Reading processes…</div> }
+          @for (p of visible().rows; track trackProcess($index, p)) {
+            <button type="button" role="option" class="flex w-full items-center gap-3 px-2 py-0.5 text-left hover:bg-panel-elevated focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+              [class.text-accent]="target()?.pid === p.pid && target()?.startKey === p.startKey" [class.text-text]="!(target()?.pid === p.pid && target()?.startKey === p.startKey)"
+              [attr.aria-selected]="target()?.pid === p.pid && target()?.startKey === p.startKey" [attr.data-testid]="'target-' + p.pid" (click)="choose(p)">
+              <span class="min-w-40 truncate font-mono">{{ p.name }}</span>
+              <span class="font-mono text-ui-xs text-text-muted">PID {{ p.pid }}</span>
+              <span class="ml-auto font-mono text-ui-xs text-text-muted">{{ format.bytes(p.privateBytes) }} private</span>
+            </button>
+          }
+        </div>
+        @if (visible().total > visible().rows.length) { <div class="text-ui-xs text-text-muted">Showing {{ visible().rows.length }} of {{ visible().total }}; refine the filter to see the rest.</div> }
+      </section>
+
+      @if (target(); as t) {
+        <section class="flex flex-col gap-2" aria-label="Choose sections">
+          <div class="flex flex-wrap items-center gap-2">
+            <h2 class="text-ui-xs font-semibold uppercase text-text-muted">2. What goes in the bundle</h2>
+            <span class="font-mono text-text" data-testid="target-name">{{ t.name }} (PID {{ t.pid }})</span>
+            <span class="ml-auto flex items-center gap-2">
+              <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" data-testid="all-on" (click)="setAll(true)">All on</button>
+              <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" data-testid="all-off" (click)="setAll(false)">All off</button>
+            </span>
+          </div>
+
+          <app-elevation-banner [required]="!!estimate() && !estimate()!.elevated && toggles().handles" feature="Handle names" />
+          @if (estimating()) { <div class="text-text-muted" role="status">Measuring the process…</div> }
+          @if (estimateError()) {
+            <div role="alert" class="flex flex-wrap items-center gap-2 text-error" data-testid="estimate-error"><app-status-glyph kind="error" />{{ estimateError() }}
+              <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" (click)="loadEstimate()">Try again</button>
+            </div>
+          }
+
+          @if (estimate()) {
+            <ul class="flex flex-col divide-y divide-border rounded-sm border border-border bg-panel" data-testid="section-list">
+              @for (row of rows(); track trackId($index, row)) {
+                <li class="flex flex-col gap-1 p-2">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <label class="flex items-center gap-2 text-text">
+                      <input type="checkbox" [attr.data-testid]="'section-' + row.id" [checked]="row.on" [disabled]="running()" (change)="toggle(row.id, $any($event.target).checked)" />
+                      <span class="font-semibold">{{ row.label }}</span>
+                    </label>
+                    <span class="font-mono text-ui-xs text-text-muted">{{ row.file }}</span>
+                    <span class="ml-auto font-mono text-text-muted" [attr.data-testid]="'size-' + row.id">≈ {{ format.bytes(row.estimateBytes) }}</span>
+                  </div>
+                  @if (row.note) { <div class="flex items-center gap-1 text-ui-xs text-warning"><app-status-glyph kind="warning" />{{ row.note }}</div> }
+                  @if (row.id === 'events') {
+                    <label class="flex items-center gap-2 text-text-muted">Look back
+                      <input class="w-16 rounded-sm border border-border bg-panel px-1 py-0.5 text-text" type="number" min="1" max="168" aria-label="Event look-back hours" data-testid="event-hours" [value]="eventHours()" [disabled]="running()" (change)="setNumber('eventHours', $any($event.target).value)" /> hours
+                    </label>
+                  }
+                  @if (row.id === 'samples') {
+                    <label class="flex items-center gap-2 text-text-muted">Sample for
+                      <input class="w-16 rounded-sm border border-border bg-panel px-1 py-0.5 text-text" type="number" min="1" max="120" aria-label="Sample seconds" data-testid="sample-seconds" [value]="sampleSeconds()" [disabled]="running()" (change)="setNumber('sampleSeconds', $any($event.target).value)" /> seconds
+                    </label>
+                  }
+                  @if (row.id === 'minidump') {
+                    <label class="flex items-center gap-2 text-text-muted">
+                      <input type="checkbox" data-testid="full-dump" [checked]="fullDump()" [disabled]="running()" (change)="fullDump.set($any($event.target).checked)" />
+                      Full-memory dump instead of a minidump (much larger)
+                    </label>
+                  }
+                  <app-disclosure label="Fields" [badge]="row.fields.length">
+                    <ul class="list-disc pl-5 text-ui-xs text-text-muted">
+                      @for (field of row.fields; track field) { <li>{{ field }}</li> }
+                    </ul>
+                  </app-disclosure>
+                </li>
+              }
+            </ul>
+
+            <div class="flex flex-wrap items-center gap-3 rounded-sm border border-border bg-panel p-2">
+              <span class="text-text">Selected: <span class="font-mono" data-testid="total-size">≈ {{ format.bytes(total()) }}</span> in {{ count() }} section{{ count() === 1 ? '' : 's' }} (uncompressed estimate)</span>
+              @if (warning()) { <span class="flex items-center gap-1 text-warning" data-testid="size-warning"><app-status-glyph kind="warning" />{{ warning() }}</span> }
+            </div>
+            <div class="text-ui-xs text-text-muted">Everything is included as-is: environment values and any secrets in them or in the dump are not redacted. Review the bundle before sharing it.</div>
+          }
+        </section>
+
+        <section class="flex flex-col gap-2" aria-label="Export">
+          <h2 class="text-ui-xs font-semibold uppercase text-text-muted">3. Export</h2>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" class="rounded-sm bg-accent px-3 py-1 text-on-accent hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" data-testid="export" [disabled]="!canExport()" (click)="export()">Export…</button>
+            @if (running()) { <button type="button" class="rounded-sm border border-border px-2 py-1 text-text hover:bg-panel-elevated" data-testid="cancel-export" (click)="cancel()">Cancel</button> }
+            <span class="text-ui-xs text-text-muted">Export asks where to save the ZIP first; nothing is collected until you confirm the save dialog.</span>
+          </div>
+
+          @if (running()) {
+            <div class="flex flex-col gap-1" role="status" data-testid="export-progress">
+              <div class="flex items-center gap-1 text-accent"><app-status-glyph kind="busy" />{{ progressLabel() }}</div>
+              <progress class="h-2 w-full" max="100" [value]="percent()" aria-label="Export progress"></progress>
+            </div>
+          }
+          @if (exportError()) { <div role="alert" class="flex items-center gap-1 text-error" data-testid="export-error"><app-status-glyph kind="error" />{{ exportError() }}</div> }
+          @if (result(); as r) {
+            <div class="flex flex-col gap-1 rounded-sm border border-border bg-panel p-2" data-testid="export-done">
+              <div class="flex flex-wrap items-center gap-2 text-success"><app-status-glyph kind="success" />Saved {{ format.bytes(r.bytes) }}
+                <span class="break-all font-mono text-text">{{ r.path }}</span>
+                <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" data-testid="reveal" (click)="reveal()">Show in folder</button>
+              </div>
+              @if (failedSections().length) {
+                <ul class="text-ui-xs text-warning" data-testid="section-errors">
+                  @for (s of failedSections(); track s.id) { <li><span class="font-mono">{{ s.file }}</span>: {{ s.error }}</li> }
+                </ul>
+                <div class="text-ui-xs text-text-muted">A section that fails is left out and listed in manifest.json; the rest of the bundle is intact.</div>
+              }
+            </div>
+          }
+        </section>
+      }
+    </div>
+  }
+</app-tool-shell>

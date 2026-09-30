@@ -2,7 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import { promises as fs } from 'node:fs';
 import { basename, isAbsolute, join, sep } from 'node:path';
 import { normalizeRoot } from './fs-paths';
-import type { FsResult, PickedFile, RememberedFolder } from '../src/shared-logic/fs/fs-types';
+import type { FsResult, PickedFile, PickedSavePath, RememberedFolder, SaveFileFilter } from '../src/shared-logic/fs/fs-types';
 export { normalizeRoot, resolveInRoot, toPosixRelative } from './fs-paths';
 
 /**
@@ -23,6 +23,41 @@ export function grantPath(path: string): string {
   const key = normalizeRoot(path);
   granted.add(key);
   return key;
+}
+
+// ---- Single-use save grants ----
+
+const saveGrants = new Set<string>();
+const MAX_SAVE_GRANTS = 16;
+const saveKey = (path: string): string => normalizeRoot(path).toLowerCase();
+
+/** A path the user just chose in the native *save* dialog: writable once, for that exact file only. */
+export function grantSavePath(path: string): string {
+  const key = saveKey(path);
+  if (saveGrants.size >= MAX_SAVE_GRANTS) saveGrants.delete(saveGrants.values().next().value as string);
+  saveGrants.add(key);
+  return normalizeRoot(path);
+}
+
+/** Consumes the grant: true exactly once per save-dialog confirmation. */
+export function consumeSavePath(path: unknown): path is string {
+  return typeof path === 'string' && saveGrants.delete(saveKey(path));
+}
+
+/** A bare, safe file name for the dialog to pre-fill (never a directory or a reserved character). */
+export function sanitizeDefaultName(name: unknown): string {
+  if (typeof name !== 'string') return '';
+  return name.replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').replace(/^\.+/, '').slice(0, 120);
+}
+
+export function sanitizeSaveFilters(filters: unknown): SaveFileFilter[] {
+  if (!Array.isArray(filters)) return [];
+  return filters.slice(0, 8).flatMap((item): SaveFileFilter[] => {
+    const f = item as { name?: unknown; extensions?: unknown } | null;
+    if (!f || typeof f.name !== 'string' || !Array.isArray(f.extensions)) return [];
+    const extensions = f.extensions.filter((e): e is string => typeof e === 'string' && /^[A-Za-z0-9]{1,16}$/.test(e)).slice(0, 16);
+    return extensions.length ? [{ name: f.name.slice(0, 80), extensions }] : [];
+  });
 }
 
 export function isRootGranted(rootPath: unknown): rootPath is string {
@@ -131,6 +166,18 @@ export function registerGrantHandlers(): void {
     const path = grantPath(result.filePaths[0]);
     const info = await fs.stat(path);
     return { canceled: false, path, name: basename(path), size: info.size };
+  });
+
+  ipcMain.handle('dude:fs:pickSavePath', async (event, request?: unknown): Promise<PickedSavePath> => {
+    const req = (request && typeof request === 'object' ? request : {}) as { defaultName?: unknown; filters?: unknown };
+    const defaultName = sanitizeDefaultName(req.defaultName);
+    const filters = sanitizeSaveFilters(req.filters).map((f) => ({ name: f.name, extensions: [...f.extensions] }));
+    const options: Electron.SaveDialogOptions = { ...(defaultName ? { defaultPath: defaultName } : {}), ...(filters.length ? { filters } : {}), properties: ['showOverwriteConfirmation'] };
+    const window = ownerWindow(event.sender);
+    const result = window ? await dialog.showSaveDialog(window, options) : await dialog.showSaveDialog(options);
+    if (result.canceled || !result.filePath || !isAbsolute(result.filePath)) return { canceled: true };
+    const path = grantSavePath(result.filePath);
+    return { canceled: false, path, name: basename(path) };
   });
 
   ipcMain.handle('dude:fs:listRemembered', () => listRemembered());

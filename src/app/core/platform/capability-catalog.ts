@@ -57,7 +57,7 @@ export const PLATFORM_CAPABILITIES: Readonly<Record<PlatformCapabilityId, Platfo
     label: 'Native Windows system access',
     description: 'Reads Windows process, port, registry, service, event-log, security and executable dependency state through the desktop system helper.',
     service: 'SystemInfoService',
-    alsoVia: ['PwshStatusService', 'SystemSnapshotService'],
+    alsoVia: ['PwshStatusService', 'SystemSnapshotService', 'SystemBundleService'],
   },
   'native-system-write': {
     label: 'Native Windows system changes',

@@ -29,7 +29,7 @@
             <ng-template appDataTableCell="process" let-r><span class="font-mono" [class.text-text-muted]="!canEnd(r)">{{ r.processName }}</span></ng-template>
             <ng-template appDataTableCell="actions" let-r>
               <span class="flex items-center gap-2">
-                <a routerLink="/tools/process-viewer" class="text-accent underline" [attr.data-testid]="'open-viewer-' + r.pid" (click)="$event.stopPropagation()">Open in Process Viewer</a>
+                <a routerLink="/tools/process-viewer" [queryParams]="{ pid: r.pid }" class="text-accent underline" [attr.data-testid]="'open-viewer-' + r.pid" (click)="$event.stopPropagation()">Open in Process Viewer</a>
                 <button type="button" class="rounded-sm border border-warning px-1.5 text-warning disabled:opacity-50" data-testid="end-owner" [disabled]="busy() || !canEnd(r)" (click)="endOwner(r); $event.stopPropagation()">End owner…</button>
               </span>
             </ng-template>

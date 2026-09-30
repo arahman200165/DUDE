@@ -32,6 +32,9 @@ type Chooser = 'priority' | 'affinity' | 'dump' | null;
           <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated disabled:opacity-50" [disabled]="busy() || exited()" [class.text-accent]="chooser() === 'priority'" data-testid="action-priority" (click)="toggleChooser('priority')">Priority…</button>
           <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated disabled:opacity-50" [disabled]="busy() || exited()" [class.text-accent]="chooser() === 'affinity'" data-testid="action-affinity" (click)="toggleChooser('affinity')">Affinity…</button>
           <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated disabled:opacity-50" [disabled]="busy() || exited()" [class.text-accent]="chooser() === 'dump'" data-testid="action-dump" (click)="toggleChooser('dump')">Crash dump…</button>
+          @if (!exited()) {
+            <a routerLink="/tools/process-diagnostic-bundle" [queryParams]="{ pid: p.pid, startKey: p.startKey }" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" data-testid="action-bundle">Diagnostic bundle…</a>
+          }
           <a routerLink="/tools/system-changes" class="ml-auto text-ui-xs text-accent underline">Journal &amp; undo</a>
         </div>
 

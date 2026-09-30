@@ -68,6 +68,7 @@ const bridge: DudeElectronBridge = {
   fs: {
     pickDirectory: (defaultPath) => ipcRenderer.invoke('dude:fs:pickDirectory', defaultPath),
     pickFile: (defaultPath) => ipcRenderer.invoke('dude:fs:pickFile', defaultPath),
+    pickSavePath: (request) => ipcRenderer.invoke('dude:fs:pickSavePath', request),
     readRange: (rootPath, relativePath, offset, length) => ipcRenderer.invoke('dude:fs:readRange', rootPath, relativePath, offset, length),
     listRemembered: () => ipcRenderer.invoke('dude:fs:listRemembered'),
     remember: (rootPath) => ipcRenderer.invoke('dude:fs:remember', rootPath),
@@ -249,6 +250,17 @@ const bridge: DudeElectronBridge = {
       const listener = (_event: Electron.IpcRendererEvent, value: { planId: string; done: number; total: number }) => callback(value);
       ipcRenderer.on('dude:sysmut:progress', listener);
       return () => ipcRenderer.removeListener('dude:sysmut:progress', listener);
+    },
+  },
+  sysBundle: {
+    estimate: (request) => ipcRenderer.invoke('dude:sys-bundle:estimate', request),
+    write: (request) => ipcRenderer.invoke('dude:sys-bundle:write', request),
+    cancel: (exportId) => ipcRenderer.invoke('dude:sys-bundle:cancel', exportId),
+    reveal: (path) => ipcRenderer.invoke('dude:sys-bundle:reveal', path),
+    onProgress: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, value: import('../src/shared-logic/system/bundle-types').BundleProgress) => callback(value);
+      ipcRenderer.on('dude:sys-bundle:progress', listener);
+      return () => ipcRenderer.removeListener('dude:sys-bundle:progress', listener);
     },
   },
   sysSnapshots: {

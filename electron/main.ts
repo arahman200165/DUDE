@@ -11,6 +11,7 @@ import { registerNetworkHandlers, cancelAllNetworkJobs } from './network-bridge'
 import { registerSysHandlers } from './sys-bridge';
 import { cancelAllPowerShellRuns, registerPowerShellWorkbenchHandlers } from './powershell-workbench';
 import { registerSysMutationHandlers } from './sys-mutation';
+import { cancelAllBundles, registerSysBundleHandlers } from './sys-bundle';
 import { registerRuntimeProbeHandlers } from './runtime-probe';
 import { registerSysSnapshotHandlers } from './sys-snapshots';
 import { registerElevationHandlers } from './elevation-bridge';
@@ -158,6 +159,7 @@ if (hasSingleInstanceLock) void app.whenReady().then(async () => {
   registerNetworkHandlers();
   registerSysHandlers();
   registerSysMutationHandlers();
+  registerSysBundleHandlers();
   registerPowerShellWorkbenchHandlers();
   registerSysSnapshotHandlers();
   registerRuntimeProbeHandlers();
@@ -190,6 +192,7 @@ app.on('will-quit', () => {
   stopFsWorker();
   stopFolderWatches();
   cancelAllNetworkJobs();
+  cancelAllBundles();
   stopSysHelper();
   cancelAllPowerShellRuns();
   stopWatchScheduler();

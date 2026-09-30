@@ -1,6 +1,6 @@
 import type { SnapshotDiff, SnapshotHeader } from '../../../shared-logic/fs/snapshot-diff';
 import type { ChangeEvent, FolderWatchSettings, FolderWatchState, TimelineQuery, WatchedFolder } from '../../../shared-logic/fs/watch-types';
-import type { ApplyResult, FsJobEvent, FsJobRequest, FsResult, JournalEntry, MutationSettings, PickedFile, PlanPreview, RememberedFolder } from '../../../shared-logic/fs/fs-types';
+import type { ApplyResult, FsJobEvent, FsJobRequest, FsResult, JournalEntry, MutationSettings, PickedFile, PickedSavePath, PlanPreview, RememberedFolder, SavePathRequest } from '../../../shared-logic/fs/fs-types';
 import type { PwshStatus, SysMethodMap, SysReadMethod, SysResult, SysStreamEvent } from '../../../shared-logic/system/system-types';
 import type { ScheduledTaskDetail, ScheduledTaskSummary } from '../../../shared-logic/system/task-types';
 import type { StartupProgramsResult } from '../../../shared-logic/system/startup-types';
@@ -82,6 +82,8 @@ export interface DudeElectronBridge {
   readonly fs: {
     pickDirectory(defaultPath?: string): Promise<{ readonly canceled: true } | { readonly canceled: false; readonly rootPath: string; readonly rootName: string }>;
     pickFile(defaultPath?: string): Promise<{ readonly canceled: true } | ({ readonly canceled: false } & PickedFile)>;
+    /** Native save dialog; the chosen path becomes a single-use write grant for that exact file. */
+    pickSavePath(request?: SavePathRequest): Promise<PickedSavePath>;
     readRange(rootPath: string, relativePath: string, offset: number, length: number): Promise<NativeFsResult<{ data: ArrayBuffer; size: number }>>;
     listRemembered(): Promise<readonly RememberedFolder[]>;
     remember(rootPath: string): Promise<FsResult<{ folders: readonly RememberedFolder[] }>>;
@@ -236,6 +238,17 @@ export interface DudeElectronBridge {
     setSettings(patch: Partial<SysMutationSettings>): Promise<SysMutResult<SysMutationSettings>>;
     purgeBackups(planId?: string): Promise<SysMutResult<void>>;
     onProgress(callback: (event: { readonly planId: string; readonly done: number; readonly total: number }) => void): () => void;
+  };
+  /**
+   * Process Diagnostic Bundle (Phase 31 Milestone 613). Main re-collects everything itself; `write` needs a
+   * `savePath` freshly returned by `fs.pickSavePath` (a single-use write grant).
+   */
+  readonly sysBundle: {
+    estimate(request: import('../../../shared-logic/system/bundle-types').BundleEstimateRequest): Promise<import('../../../shared-logic/system/bundle-types').BundleResult<import('../../../shared-logic/system/bundle-types').BundleEstimate>>;
+    write(request: import('../../../shared-logic/system/bundle-types').BundleWriteRequest): Promise<import('../../../shared-logic/system/bundle-types').BundleResult<import('../../../shared-logic/system/bundle-types').BundleWriteResult>>;
+    cancel(exportId: string): Promise<boolean>;
+    reveal(path: string): Promise<boolean>;
+    onProgress(callback: (event: import('../../../shared-logic/system/bundle-types').BundleProgress) => void): () => void;
   };
   /** The userData snapshot library behind Phase 31's env/PATH/registry/process-environment diffs. */
   readonly sysSnapshots: {

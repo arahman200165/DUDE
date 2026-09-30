@@ -59,7 +59,7 @@
                       <td class="pr-3 text-text">{{ o.sessionId }}</td>
                       <td>
                         <span class="flex flex-wrap items-center gap-2">
-                          <a routerLink="/tools/process-viewer" class="text-accent underline" [attr.data-testid]="'open-viewer-' + o.pid">Open in Process Viewer</a>
+                          <a routerLink="/tools/process-viewer" [queryParams]="{ pid: o.pid }" class="text-accent underline" [attr.data-testid]="'open-viewer-' + o.pid">Open in Process Viewer</a>
                           <button type="button" class="rounded-sm border border-warning px-1.5 text-warning disabled:opacity-50" [attr.data-testid]="'end-owner-' + o.pid" [disabled]="busy() || o.applicationType === 1000" (click)="endOwner(o)">End owner process…</button>
                         </span>
                       </td>
