@@ -47,6 +47,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'startup-programs': 'the live startup registrations and any open change preview are desktop-only session state, not restorable renderer content',
   'installed-software': 'the installed software list and any open uninstaller preview are live desktop session state, not restorable renderer content',
   'windows-features': 'the feature and capability lists and any change preview are live desktop session state, not restorable renderer content',
+  'powershell-builder': 'the cmdlet catalog, script, live run output and any open run confirmation are desktop-only session state; saved scripts stay in local preferences',
   'dependency-walker': 'the picker grant, Windows DLL search context and resolved dependency tree are desktop-only session state',
   'sid-account-resolver': 'the current token, local accounts and lookup results are live desktop session state and may contain sensitive identifiers',
   'acl-inspector': 'security descriptors and picker grants are live desktop state and should be read again when revisiting the tool',

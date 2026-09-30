@@ -190,6 +190,23 @@ export interface DudeElectronBridge {
     };
   };
   /** Windows system reads through the `windows-sys.exe` helper (DUDE_PRD.md §21 Phase 31, Milestone 593). */
+  /**
+   * PowerShell Builder workbench (Milestone 612). `preview` returns the exact script, SHA-256, working directory and
+   * elevation state; `confirm` issues a single-use ~60 s token bound to this window and that preview; only `run` starts
+   * pwsh, and only with a fresh token. History is metadata only and can never rerun anything.
+   */
+  readonly powershell: {
+    catalog(refresh?: boolean): Promise<{ readonly version: string; readonly commands: readonly import('../../../shared-logic/system/powershell-builder').PowerShellCmdletDefinition[] }>;
+    /** A blank `cwd` means the user's home folder. */
+    preview(script: string, cwd: string): Promise<import('../../../shared-logic/system/powershell-types').PowerShellRunPreview>;
+    discard(previewId: string): Promise<boolean>;
+    confirm(previewId: string): Promise<{ readonly token: string; readonly expiresAt: string }>;
+    run(previewId: string, token: string, timeoutMs?: number): Promise<{ readonly runId: string }>;
+    cancel(runId: string): Promise<boolean>;
+    history(): Promise<readonly import('../../../shared-logic/system/powershell-types').PowerShellHistoryEntry[]>;
+    clearHistory(): Promise<void>;
+    onEvent(callback: (event: import('../../../shared-logic/system/powershell-types').PowerShellRunEvent) => void): () => void;
+  };
   readonly dependencyWalker: { walk(path: string): Promise<import('../../../shared-logic/system/dependency-walker-types').DependencyNode> };
   readonly sys: {
     call<M extends SysReadMethod>(method: M, params: SysMethodMap[M]['params']): Promise<SysResult<SysMethodMap[M]['result']>>;

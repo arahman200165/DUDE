@@ -131,6 +131,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Port → Process Lookup](https://arahman200165.github.io/DUDE/tools/port-process-lookup) | Native Windows system access | Desktop-only feature | reads the TCP and UDP socket tables and running processes through the desktop system helper |
 | [Port → Process Lookup](https://arahman200165.github.io/DUDE/tools/port-process-lookup) | Native Windows system changes | Desktop-only feature | ends the process that owns a port through the desktop system mutation engine |
 | [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [PowerShell Builder](https://arahman200165.github.io/DUDE/tools/powershell-builder) | Native Windows system access | Desktop-only feature | reads the PowerShell 7 cmdlet catalog (Get-Command metadata) in Desktop DUDE |
+| [PowerShell Builder](https://arahman200165.github.io/DUDE/tools/powershell-builder) | Native Windows system changes | Desktop-only feature | runs a reviewed PowerShell script (which may change anything the account can) after a previewed, single-use confirmation in Desktop DUDE |
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native filesystem access | Desktop-only feature | grants the folder a crash dump is written into |
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system access | Desktop-only feature | reads running processes and their details through the desktop system helper |
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system changes | Desktop-only feature | ends, restarts, suspends, reprioritises and dumps processes through the desktop system mutation engine |
@@ -177,7 +179,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-331 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+332 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -464,6 +466,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Pixel Color Picker](https://arahman200165.github.io/DUDE/tools/pixel-color-picker) | Developer | Reads the exact color of any pixel in an uploaded image. |
 | [Port → Process Lookup](https://arahman200165.github.io/DUDE/tools/port-process-lookup) | Developer | Find which process owns a port: a live, filterable table of every TCP and UDP socket joined to its owning process. Type 3000 to see who is using :3000, open the owner in Process Viewer, or end it through a previewed, confirmed change. |
 | [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Developer | Probe a bounded TCP and UDP port set on one host or CIDR. |
+| [PowerShell Builder](https://arahman200165.github.io/DUDE/tools/powershell-builder) | Developer | Build PowerShell 7 commands from the real cmdlet catalog (parameter sets, types, ValidateSet), or write a script by hand, review the exact text with its SHA-256, and run it only after an explicit confirmation. |
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Developer | Task manager for Windows: live CPU and memory, a parent/child process tree, and per-process command line, environment (with diffs and snapshots), modules with versions and signers, threads, handles and ports. End, restart, suspend, reprioritise or dump a process through a previewed, confirmed change. |
 | [Programmer Calculator](https://arahman200165.github.io/DUDE/tools/programmer-calculator) | Developer | Arithmetic and bitwise (AND/OR/XOR/NOT/shift) calculator with an interactive bit grid, two’s-complement, and 8/16/32/64-bit widths. |
 | [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | Developer | Detect public IPv4 and IPv6 addresses on explicit request. |

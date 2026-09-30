@@ -68,6 +68,7 @@ database-write) have no rows below until a tool claims them.
 | [PKCS#12 / PFX Inspector](https://arahman200165.github.io/DUDE/tools/pkcs12-inspector) | Crypto | verified — Correctly extracts leaf/intermediate certs and friendlyName from a real openssl-generated .p12 using modern PBES2 encryption. |
 | [Port → Process Lookup](https://arahman200165.github.io/DUDE/tools/port-process-lookup) | Process Management | experimental |
 | [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Network Scanning | experimental |
+| [PowerShell Builder](https://arahman200165.github.io/DUDE/tools/powershell-builder) | Code Execution | experimental — Literal quoting is property-tested with fast-check and cross-checked against the PowerShell 7 parser (Parser::ParseInput) over thousands of generated commands. |
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Process Management | experimental |
 | [Python Playground](https://arahman200165.github.io/DUDE/tools/python-playground) | Code Execution | verified — Fuzz-tested the pure sandbox-event reducer for transcript and outcome shape. |
 | [Registry Editor](https://arahman200165.github.io/DUDE/tools/registry-editor) | Registry | experimental |
@@ -176,6 +177,7 @@ browser sandbox.
 | [Ping](https://arahman200165.github.io/DUDE/tools/ping) | Native network diagnostics |
 | [Port → Process Lookup](https://arahman200165.github.io/DUDE/tools/port-process-lookup) | Native Windows system access; Native Windows system changes |
 | [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Native network diagnostics |
+| [PowerShell Builder](https://arahman200165.github.io/DUDE/tools/powershell-builder) | Native Windows system access; Native Windows system changes |
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system access; Native Windows system changes; Native filesystem access |
 | [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | Native network diagnostics |
 | [Regex Tester](https://arahman200165.github.io/DUDE/tools/regex) | Local LLM proxy |
@@ -266,6 +268,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Port → Process Lookup](https://arahman200165.github.io/DUDE/tools/port-process-lookup) | Native Windows system access | Desktop-only feature | reads the TCP and UDP socket tables and running processes through the desktop system helper |
 | [Port → Process Lookup](https://arahman200165.github.io/DUDE/tools/port-process-lookup) | Native Windows system changes | Desktop-only feature | ends the process that owns a port through the desktop system mutation engine |
 | [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [PowerShell Builder](https://arahman200165.github.io/DUDE/tools/powershell-builder) | Native Windows system access | Desktop-only feature | reads the PowerShell 7 cmdlet catalog (Get-Command metadata) in Desktop DUDE |
+| [PowerShell Builder](https://arahman200165.github.io/DUDE/tools/powershell-builder) | Native Windows system changes | Desktop-only feature | runs a reviewed PowerShell script (which may change anything the account can) after a previewed, single-use confirmation in Desktop DUDE |
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native filesystem access | Desktop-only feature | grants the folder a crash dump is written into |
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system access | Desktop-only feature | reads running processes and their details through the desktop system helper |
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system changes | Desktop-only feature | ends, restarts, suspends, reprioritises and dumps processes through the desktop system mutation engine |

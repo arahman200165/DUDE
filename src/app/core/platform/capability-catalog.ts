@@ -63,7 +63,7 @@ export const PLATFORM_CAPABILITIES: Readonly<Record<PlatformCapabilityId, Platfo
     label: 'Native Windows system changes',
     description: 'Changes processes, environment variables, the registry, services, tasks, features and permissions only through a previewed, confirmed and journaled plan.',
     service: 'SystemMutationService',
-    alsoVia: ['SystemChangePreview'],
+    alsoVia: ['SystemChangePreview', 'PowerShellWorkbenchService'],
   },
 };
 

@@ -203,6 +203,21 @@ const bridge: DudeElectronBridge = {
       },
     },
   },
+  powershell: {
+    catalog: (refresh) => ipcRenderer.invoke('dude:powershell:catalog', refresh),
+    preview: (script, cwd) => ipcRenderer.invoke('dude:powershell:preview', script, cwd),
+    discard: (previewId) => ipcRenderer.invoke('dude:powershell:discard', previewId),
+    confirm: (previewId) => ipcRenderer.invoke('dude:powershell:confirm', previewId),
+    run: (previewId, token, timeoutMs) => ipcRenderer.invoke('dude:powershell:run', previewId, token, timeoutMs),
+    cancel: (runId) => ipcRenderer.invoke('dude:powershell:cancel', runId),
+    history: () => ipcRenderer.invoke('dude:powershell:history'),
+    clearHistory: () => ipcRenderer.invoke('dude:powershell:clearHistory'),
+    onEvent: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, value: import('../src/shared-logic/system/powershell-types').PowerShellRunEvent) => callback(value);
+      ipcRenderer.on('dude:powershell:event', listener);
+      return () => ipcRenderer.removeListener('dude:powershell:event', listener);
+    },
+  },
   dependencyWalker: { walk: (path) => ipcRenderer.invoke('dude:dependency:walk', path) },
   sys: {
     call: (method, params) => ipcRenderer.invoke('dude:sys:call', method, params),

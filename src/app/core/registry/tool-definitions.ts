@@ -236,6 +236,7 @@ import { manifest as pkceVerifierManifest } from '../../tools/pkce-verifier/pkce
 import { manifest as pkcs12InspectorManifest } from '../../tools/pkcs12-inspector/pkcs12-inspector.manifest';
 import { manifest as portProcessLookupManifest } from '../../tools/port-process-lookup/port-process-lookup.manifest';
 import { manifest as portScannerManifest } from '../../tools/port-scanner/port-scanner.manifest';
+import { manifest as powershellBuilderManifest } from '../../tools/powershell-builder/powershell-builder.manifest';
 import { manifest as processViewerManifest } from '../../tools/process-viewer/process-viewer.manifest';
 import { manifest as programmerCalculatorManifest } from '../../tools/programmer-calculator/programmer-calculator.manifest';
 import { manifest as propertiesParserManifest } from '../../tools/properties-parser/properties-parser.manifest';
@@ -569,6 +570,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   pkcs12InspectorManifest,
   portProcessLookupManifest,
   portScannerManifest,
+  powershellBuilderManifest,
   processViewerManifest,
   programmerCalculatorManifest,
   propertiesParserManifest,

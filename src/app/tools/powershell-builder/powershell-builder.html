@@ -1,0 +1,153 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning/40 bg-warning/5 p-4 text-ui text-text-muted">PowerShell Builder reads the PowerShell 7 cmdlet catalog and runs reviewed scripts on this PC, so it needs Desktop DUDE.</div>
+    <div class="flex flex-wrap gap-2"><app-desktop-only-control capability="native-system" label="Load the cmdlet catalog" /><app-desktop-only-control capability="native-system-write" label="Run a PowerShell script" /></div>
+  } @else {
+    <app-pwsh-required feature="PowerShell Builder">
+      <div class="flex flex-col gap-3 text-ui">
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="flex rounded-sm border border-border p-0.5" role="group" aria-label="Editing mode">
+            <button type="button" class="rounded-sm px-2 py-1 text-text hover:bg-panel-elevated" [class.bg-panel-elevated]="mode() === 'builder'" [attr.aria-pressed]="mode() === 'builder'" data-testid="mode-builder" (click)="setMode('builder')">Command builder</button>
+            <button type="button" class="rounded-sm px-2 py-1 text-text hover:bg-panel-elevated" [class.bg-panel-elevated]="mode() === 'script'" [attr.aria-pressed]="mode() === 'script'" data-testid="mode-script" (click)="editAsScript()">Script editor</button>
+          </div>
+          <span class="text-ui-xs text-text-muted">
+            @if (catalogLoading()) { Reading the cmdlet catalog (first load can take about 30 seconds)… }
+            @else if (catalog().length) { {{ catalog().length }} cmdlets · PowerShell {{ catalogVersion() }} }
+          </span>
+          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated disabled:opacity-50" data-testid="reload-catalog" [disabled]="catalogLoading()" (click)="loadCatalog(true)">Reload catalog</button>
+        </div>
+        @if (catalogError()) { <div role="alert" class="flex items-center gap-1 text-error"><app-status-glyph kind="error" />{{ catalogError() }}</div> }
+
+        @if (mode() === 'builder') {
+          <section class="flex flex-col gap-2" aria-label="Pipeline stages">
+            <datalist id="pwsh-cmdlets">@for (name of cmdletNames(); track name) { <option [value]="name"></option> }</datalist>
+            @for (stage of stages(); track $index; let i = $index) {
+              <div class="flex flex-col gap-2 rounded-sm border border-border bg-panel p-2" [attr.data-testid]="'stage-' + i">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="text-ui-xs text-text-muted">{{ i === 0 ? 'Start with' : 'Pipe to' }}</span>
+                  <input type="text" list="pwsh-cmdlets" class="min-w-56 flex-1 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [attr.aria-label]="'Cmdlet for stage ' + (i + 1)" placeholder="Get-Process" [value]="stage.cmdlet" (change)="setCmdlet(i, valueOf($event))" [attr.data-testid]="'cmdlet-' + i" />
+                  <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [attr.aria-label]="'Add parameter to stage ' + (i + 1)" (change)="addParameter(i, valueOf($event)); $any($event.target).value = ''">
+                    <option value="">Add parameter…</option>
+                    @for (parameter of parameterChoices(stage); track parameter.name) { <option [value]="parameter.name">-{{ parameter.name }}{{ parameter.mandatory ? ' (required)' : '' }}</option> }
+                  </select>
+                  <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" (click)="removeStage(i)">Remove stage</button>
+                </div>
+                @for (parameter of stage.parameters; track parameter.name) {
+                  @let definition = definitionFor(stage.cmdlet, parameter.name);
+                  <div class="flex flex-wrap items-start gap-2">
+                    <span class="w-40 break-all pt-1 font-mono text-text">-{{ parameter.name }}</span>
+                    @if (definition?.validateSet?.length) {
+                      <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [attr.aria-label]="parameter.name" [value]="parameter.raw" (change)="setParameter(i, parameter.name, valueOf($event))">
+                        @for (option of definition?.validateSet; track option) { <option [value]="option">{{ option }}</option> }
+                      </select>
+                    } @else if (definition?.type === 'boolean' || definition?.type === 'switch') {
+                      <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [attr.aria-label]="parameter.name" [value]="parameter.raw" (change)="setParameter(i, parameter.name, valueOf($event))">
+                        <option value="true">$true</option><option value="false">$false</option>
+                      </select>
+                    } @else if (definition?.type === 'string[]' || definition?.type === 'number[]' || definition?.type === 'hashtable') {
+                      <textarea class="min-h-14 min-w-56 flex-1 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [attr.aria-label]="parameter.name" [placeholder]="definition?.type === 'hashtable' ? 'key=value, one per line' : definition?.type === 'number[]' ? '1, 2, 3' : 'one value per line'" [value]="parameter.raw" (input)="setParameter(i, parameter.name, valueOf($event))"></textarea>
+                    } @else {
+                      <input [type]="definition?.type === 'number' ? 'number' : 'text'" class="min-w-56 flex-1 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" [attr.aria-label]="parameter.name" [value]="parameter.raw" (input)="setParameter(i, parameter.name, valueOf($event))" />
+                    }
+                    <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" (click)="removeParameter(i, parameter.name)">Remove</button>
+                  </div>
+                }
+              </div>
+            }
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" data-testid="add-stage" (click)="addStage()">Add pipeline stage</button>
+              <label class="flex items-center gap-1 text-text-muted">Output
+                <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" aria-label="Output format" [value]="formatKind()" (change)="formatKind.set($any(valueOf($event)))">
+                  <option value="none">Default</option><option value="table">Format-Table</option><option value="list">Format-List</option><option value="select">Select-Object</option><option value="json">ConvertTo-Json</option><option value="csv">ConvertTo-Csv</option>
+                </select>
+              </label>
+              @if (formatKind() !== 'none') {
+                <input type="text" class="min-w-48 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" aria-label="Output format detail" [placeholder]="formatKind() === 'json' ? 'Depth (default 2)' : formatKind() === 'csv' ? 'Delimiter (default ,)' : 'Properties, comma separated'" [value]="formatText()" (input)="formatText.set(valueOf($event))" />
+              }
+              <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated" (click)="editAsScript()">Edit result as script</button>
+            </div>
+            @let built = this.built();
+            @if (built && !built.ok) { <div class="text-text-muted" data-testid="build-message">{{ built.message }}</div> }
+          </section>
+        }
+
+        <label class="flex flex-col gap-1 text-text-muted">{{ mode() === 'builder' ? 'Generated script (read only until you choose Edit as script)' : 'Script' }}
+          <textarea class="min-h-32 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" spellcheck="false" aria-label="PowerShell script" data-testid="script" [readOnly]="mode() === 'builder'" [value]="script()" (input)="onScriptInput(valueOf($event))"></textarea>
+        </label>
+
+        @if (warnings().length) {
+          <ul class="flex flex-col gap-1 rounded-sm border border-warning/40 bg-warning/5 p-2 text-warning" aria-label="Script warnings" data-testid="script-warnings">
+            @for (warning of warnings(); track warning.code + warning.cmdlet) { <li class="flex items-start gap-1"><app-status-glyph kind="warning" /><span><span class="font-mono">{{ warning.cmdlet }}</span> — {{ warning.message }}</span></li> }
+          </ul>
+        }
+
+        <div class="flex flex-wrap items-center gap-2">
+          <label class="flex items-center gap-1 text-text-muted">Working directory
+            <input type="text" class="min-w-64 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-text" aria-label="Working directory" placeholder="Blank = your home folder" [value]="cwd()" (input)="cwd.set(valueOf($event))" />
+          </label>
+          <label class="flex items-center gap-1 text-text-muted">Time limit
+            <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" aria-label="Time limit" [value]="timeoutSeconds()" (change)="timeoutSeconds.set(+valueOf($event))">
+              <option value="15">15 s</option><option value="60">1 min</option><option value="180">3 min</option><option value="300">5 min</option>
+            </select>
+          </label>
+          <button type="button" class="rounded-sm border border-warning px-2 py-0.5 text-warning disabled:opacity-50" data-testid="preview-run" [disabled]="!canPreview()" (click)="previewRun()">Preview run…</button>
+        </div>
+        @if (error()) { <div role="alert" class="flex items-center gap-1 text-error"><app-status-glyph kind="error" />{{ error() }}</div> }
+
+        @if (preview(); as plan) {
+          <section class="flex flex-col gap-2 rounded-sm border border-warning bg-panel p-3" aria-label="Run confirmation" data-testid="run-preview">
+            <div class="flex items-center gap-1 font-semibold text-warning"><app-status-glyph kind="warning" />This exact script will run on this PC</div>
+            <pre class="max-h-64 overflow-auto whitespace-pre-wrap break-all rounded-sm border border-border bg-panel-elevated p-2 font-mono text-text" data-testid="preview-script">{{ plan.script }}</pre>
+            <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-ui-xs">
+              <dt class="text-text-muted">SHA-256</dt><dd class="break-all font-mono text-text" data-testid="preview-sha">{{ plan.sha256 }}</dd>
+              <dt class="text-text-muted">Working directory</dt><dd class="break-all font-mono text-text">{{ plan.cwd }}</dd>
+              <dt class="text-text-muted">Session</dt><dd class="text-text">{{ plan.elevated ? 'Elevated (administrator): the script can change the whole system' : 'Standard (non-elevated) session' }}</dd>
+              <dt class="text-text-muted">Time limit</dt><dd class="text-text">{{ timeoutSeconds() }} seconds</dd>
+            </dl>
+            @for (warning of plan.warnings; track warning.code + warning.cmdlet) { <span class="flex items-center gap-1 text-ui-xs text-warning"><app-status-glyph kind="warning" /><span class="font-mono">{{ warning.cmdlet }}</span> — {{ warning.message }}</span> }
+            <p class="text-ui-xs text-text-muted">PowerShell can do anything your account can do. Warnings are advice from a text scan, not a guarantee. Confirming is single-use and expires after about a minute.</p>
+            <div class="flex gap-2">
+              <button type="button" class="rounded-sm border border-warning px-2 py-1 text-warning hover:bg-panel-elevated disabled:opacity-50" data-testid="run-confirm" [disabled]="busy()" (click)="confirmRun()">Run this script</button>
+              <button type="button" class="rounded-sm border border-border px-2 py-1 text-text hover:bg-panel-elevated" data-testid="run-discard" (click)="discardPreview()">Discard</button>
+            </div>
+          </section>
+        }
+
+        @if (runId() || result()) {
+          <section class="flex flex-col gap-2" aria-label="Run output" data-testid="run-output">
+            <div class="flex flex-wrap items-center gap-2">
+              @if (running()) {
+                <span role="status" class="text-text-muted">Running…</span>
+                <button type="button" class="rounded-sm border border-error px-2 py-0.5 text-error" data-testid="run-cancel" (click)="cancelRun()">Cancel</button>
+              } @else if (result(); as done) {
+                <span role="status" class="flex items-center gap-1" [class.text-success]="done.exitCode === 0" [class.text-error]="done.exitCode !== 0">
+                  <app-status-glyph [kind]="done.exitCode === 0 ? 'success' : 'error'" />
+                  {{ done.cancelled ? 'Cancelled' : done.timedOut ? 'Stopped at the time limit' : 'Finished' }} · exit code {{ done.exitCode ?? 'none' }}{{ done.truncated ? ' · output truncated' : '' }}{{ done.error ? ' · ' + done.error : '' }}
+                </span>
+              }
+            </div>
+            <div class="grid gap-2 md:grid-cols-2">
+              <div class="flex flex-col gap-1"><span class="text-ui-xs text-text-muted">stdout</span><pre class="max-h-72 min-h-16 overflow-auto whitespace-pre-wrap break-all rounded-sm border border-border bg-panel p-2 font-mono text-text" data-testid="stdout">{{ stdout() }}</pre></div>
+              <div class="flex flex-col gap-1"><span class="text-ui-xs text-text-muted">stderr</span><pre class="max-h-72 min-h-16 overflow-auto whitespace-pre-wrap break-all rounded-sm border border-border bg-panel p-2 font-mono text-error" data-testid="stderr">{{ stderr() }}</pre></div>
+            </div>
+          </section>
+        }
+
+        <section class="flex flex-col gap-1" aria-label="Run history">
+          <div class="flex items-center gap-2"><h3 class="font-semibold text-text">Run history</h3>
+            <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated disabled:opacity-50" [disabled]="!history().length" (click)="clearHistory()">Clear history and saved scripts</button></div>
+          <p class="text-ui-xs text-text-muted">History keeps the digest, folder, time and exit code. Loading a saved script only fills the editor; nothing is ever rerun from history.</p>
+          @for (entry of history(); track entry.id) {
+            <div class="flex flex-wrap items-center gap-2 rounded-sm border border-border px-2 py-1" data-testid="history-row">
+              <span class="text-text-muted">{{ entry.completedAt }}</span>
+              <span class="font-mono text-ui-xs text-text">{{ entry.sha256.slice(0, 12) }}</span>
+              <span class="text-text-muted">exit {{ entry.exitCode ?? 'none' }}{{ entry.cancelled ? ' · cancelled' : '' }}{{ entry.timedOut ? ' · timed out' : '' }}</span>
+              <span class="min-w-0 flex-1 truncate font-mono text-ui-xs text-text-muted" [title]="entry.cwd">{{ entry.cwd }}</span>
+              <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text hover:bg-panel-elevated disabled:opacity-50" data-testid="history-load" [disabled]="!hasScript(entry)" (click)="loadEntry(entry)">Load into editor</button>
+            </div>
+          } @empty { <span class="text-text-muted">No runs yet.</span> }
+        </section>
+      </div>
+    </app-pwsh-required>
+  }
+</app-tool-shell>

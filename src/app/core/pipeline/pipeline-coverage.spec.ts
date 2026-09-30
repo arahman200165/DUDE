@@ -44,6 +44,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'startup-programs': 'reading and changing Windows startup registrations needs the desktop helper and a user-directed, previewed session, not an invisible pipeline step',
   'installed-software': 'reading installed Windows software is a live desktop session and launching an uninstaller requires a reviewed user action',
   'windows-features': 'reading and changing live Windows optional features needs a user-directed desktop session and a previewed confirmation',
+  'powershell-builder': 'running a PowerShell script is arbitrary code execution and needs a previewed, single-use confirmation per run, not an invisible pipeline step',
   'dependency-walker': 'resolving live Windows DLL search context requires a user-picked executable and desktop system helper',
   'sid-account-resolver': 'local account and token inspection is live desktop state and name lookup may contact a domain controller',
   'acl-inspector': 'file and registry permissions are live desktop security state and file targets need a picker grant',

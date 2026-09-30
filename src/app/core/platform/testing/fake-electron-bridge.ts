@@ -107,6 +107,17 @@ export function fakeElectronBridge(overrides: Partial<DudeElectronBridge> = {}):
       participantCount: async () => 0,
     },
     network: { prepare: async () => ({ ok: false, error: 'unavailable' }), start: async () => ({ ok: false, error: 'unavailable' }), cancel: async () => false, adminStatus: async () => false, relaunchAsAdmin: async () => false, onEvent: () => () => {}, watch: { get: async () => ({ ok: true, state: { settings: { enabled: false, intervalHours: 24, thresholds: [30, 14, 7, 1], failureAlertAfter: 3, notifications: true }, entries: [] } }), upsert: async () => ({ ok: false, error: 'unavailable' }), remove: async () => ({ ok: true }), clearPrepare: async () => ({ ok: true, token: 't', count: 0 }), clearConfirm: async () => ({ ok: true }), setSettings: async () => ({ ok: false, error: 'unavailable' }), checkNow: async () => ({ ok: false, error: 'unavailable' }), export: async () => ({ ok: true, json: '{}' }), import: async () => ({ ok: false, error: 'unavailable' }), onChanged: () => () => {} } },
+    powershell: {
+      catalog: async () => ({ version: '7.6.0', commands: [] }),
+      preview: async () => { throw new Error('unavailable'); },
+      discard: async () => false,
+      confirm: async () => { throw new Error('unavailable'); },
+      run: async () => { throw new Error('unavailable'); },
+      cancel: async () => false,
+      history: async () => [],
+      clearHistory: async () => {},
+      onEvent: () => () => {},
+    },
     dependencyWalker: { walk: async () => { throw new Error('unavailable'); } },
     sys: {
       call: async () => ({ ok: false, error: 'unavailable' }),

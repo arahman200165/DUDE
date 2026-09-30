@@ -9,6 +9,7 @@ import { registerSnapshotHandlers } from './fs-snapshots';
 import { loadFolderWatches, registerFolderWatchHandlers, setFolderWatchTrayUpdater, stopFolderWatches } from './fs-watch-service';
 import { registerNetworkHandlers, cancelAllNetworkJobs } from './network-bridge';
 import { registerSysHandlers } from './sys-bridge';
+import { cancelAllPowerShellRuns, registerPowerShellWorkbenchHandlers } from './powershell-workbench';
 import { registerSysMutationHandlers } from './sys-mutation';
 import { registerRuntimeProbeHandlers } from './runtime-probe';
 import { registerSysSnapshotHandlers } from './sys-snapshots';
@@ -157,6 +158,7 @@ if (hasSingleInstanceLock) void app.whenReady().then(async () => {
   registerNetworkHandlers();
   registerSysHandlers();
   registerSysMutationHandlers();
+  registerPowerShellWorkbenchHandlers();
   registerSysSnapshotHandlers();
   registerRuntimeProbeHandlers();
   registerElevationHandlers();
@@ -189,6 +191,7 @@ app.on('will-quit', () => {
   stopFolderWatches();
   cancelAllNetworkJobs();
   stopSysHelper();
+  cancelAllPowerShellRuns();
   stopWatchScheduler();
   stopCollabServerOnQuit();
 });
