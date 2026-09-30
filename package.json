@@ -1,6 +1,6 @@
 {
   "name": "dude",
-  "version": "0.0.42",
+  "version": "0.0.43",
   "description": "DUDE — Developer Utility Dashboard Engine: a dark-first, themeable, offline-capable PWA of client-side developer micro-tools, also shipping as a Windows Electron desktop build.",
   "author": "arahman200165",
   "main": "dist/electron/main.js",
