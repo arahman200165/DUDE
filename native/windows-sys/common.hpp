@@ -117,6 +117,11 @@ bool handleAccountProfiles(std::string& result, Failure& err);
 bool handleAclGet(const JsonValue* params, std::string& result, Failure& err);
 // Mutating ACL operation (acl.cpp), reached only from confirmed engine plans: writes the DACL only.
 bool handleAclSet(const JsonValue* params, std::string& result, Failure& err);
+// File lock inspection (Milestone 611), read-only.
+bool handleLockRmList(const JsonValue* params, std::string& result, Failure& err);
+// Graceful Restart Manager release (mutating; reached only from confirmed engine plans).
+bool handleLockRmRelease(const JsonValue* params, std::string& result, Failure& err);
+bool handleLockHandleScan(const JsonValue* params, std::string& result, Failure& err);
 // Current helper process API-set namespace for API-MS/EXT-MS contract resolution.
 bool handlePeApiSetMap(std::string& result, Failure& err);
 // Mutating process operations (process_ops.cpp), reached only from confirmed engine plans.

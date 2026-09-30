@@ -37,6 +37,7 @@ database-write) have no rows below until a tool claims them.
 | [Directory Tree Generator](https://arahman200165.github.io/DUDE/tools/directory-tree-generator) | Filesystem Write | experimental |
 | [Duplicate Files](https://arahman200165.github.io/DUDE/tools/duplicate-files) | Filesystem Write | experimental |
 | [Environment Variables](https://arahman200165.github.io/DUDE/tools/environment-variables) | Registry | experimental |
+| [File Lock Inspector](https://arahman200165.github.io/DUDE/tools/file-lock-inspector) | Process Management | experimental — Restart Manager listing was verified against a real process holding a file open with no sharing; the graceful release is bounded (cancel, then abandon) and reports applications that did not respond. The handle scan needs an elevated helper and was not exercised interactively. |
 | [File Split & Join](https://arahman200165.github.io/DUDE/tools/file-split-join) | Filesystem Write | experimental |
 | [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Filesystem Write | experimental |
 | [Hash Generator](https://arahman200165.github.io/DUDE/tools/hash) | Crypto | verified — Every one of the 15 supported algorithms is tested against its official published test vector, not just self round-trip. |
@@ -151,6 +152,7 @@ browser sandbox.
 | [Email Auth Inspector](https://arahman200165.github.io/DUDE/tools/email-auth-inspector) | Native network diagnostics |
 | [Environment Variables](https://arahman200165.github.io/DUDE/tools/environment-variables) | Native Windows system access; Native Windows system changes |
 | [Event Log Viewer](https://arahman200165.github.io/DUDE/tools/event-log-viewer) | Native Windows system access; Native filesystem access |
+| [File Lock Inspector](https://arahman200165.github.io/DUDE/tools/file-lock-inspector) | Native Windows system access; Native Windows system changes; Native filesystem access |
 | [File Split & Join](https://arahman200165.github.io/DUDE/tools/file-split-join) | Native filesystem access; Native filesystem write |
 | [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Native filesystem access; Native filesystem write |
 | [Git Repo Browser](https://arahman200165.github.io/DUDE/tools/git-diff) | Native filesystem access; File watching |
@@ -235,6 +237,9 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Environment Variables](https://arahman200165.github.io/DUDE/tools/environment-variables) | Native Windows system changes | Desktop-only feature | adds, edits and deletes environment variables through the desktop system mutation engine |
 | [Event Log Viewer](https://arahman200165.github.io/DUDE/tools/event-log-viewer) | Native filesystem access | Desktop-only feature | grants the .evtx file you choose to open |
 | [Event Log Viewer](https://arahman200165.github.io/DUDE/tools/event-log-viewer) | Native Windows system access | Desktop-only feature | reads event log channels and events through the desktop system helper |
+| [File Lock Inspector](https://arahman200165.github.io/DUDE/tools/file-lock-inspector) | Native filesystem access | Desktop-only feature | uses a native picker to grant the file or folder to inspect |
+| [File Lock Inspector](https://arahman200165.github.io/DUDE/tools/file-lock-inspector) | Native Windows system access | Desktop-only feature | lists lock owners through Restart Manager and, when elevated, scans process handles through the desktop system helper |
+| [File Lock Inspector](https://arahman200165.github.io/DUDE/tools/file-lock-inspector) | Native Windows system changes | Desktop-only feature | releases a lock through a graceful Restart Manager shutdown or restart, or ends the owner process, via the desktop system mutation engine |
 | [File Split & Join](https://arahman200165.github.io/DUDE/tools/file-split-join) | Native filesystem access | Desktop-only feature | reads real files and part folders in the desktop fs worker |
 | [File Split & Join](https://arahman200165.github.io/DUDE/tools/file-split-join) | Native filesystem write | Desktop-only feature | writes parts and joined files only through a previewed, verified, journaled plan |
 | [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Native filesystem access | Desktop-only feature | scans real folders and drives in the desktop fs worker |

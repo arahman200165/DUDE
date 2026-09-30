@@ -155,6 +155,12 @@ export function validateAclTarget(target: unknown): { kind: 'file'; path: string
 export function validateSysCall(method: unknown, params: unknown): { method: SysReadMethod; params: object } {
   if (typeof method !== 'string' || !(SYS_READ_METHODS as readonly string[]).includes(method)) throw new Error('Unknown system method.');
   const name = method as SysReadMethod;
+  if (name === 'lock.rmList' || name === 'lock.handleScan') {
+    if (!isPlainObject(params)) throw new Error('File lock parameters must be an object.');
+    exactKeys(params, ['path'], 'File lock parameters must contain exactly path.');
+    return { method: name, params: { path: validateFilePath(params['path']) } };
+  }
+
   if (PROCESS_REF_METHODS.includes(name)) {
     if (!isPlainObject(params)) throw new Error('Process parameters must be an object.');
     exactKeys(params, ['pid', 'startKey'], 'Process parameters must be exactly pid and startKey.');

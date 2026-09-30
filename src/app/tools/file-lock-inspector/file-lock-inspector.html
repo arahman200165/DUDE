@@ -1,0 +1,109 @@
+<app-tool-shell>
+  @if (!platform.isDesktop()) {
+    <div class="rounded-sm border border-warning/40 bg-warning/5 p-4 text-ui text-text-muted">
+      File Lock Inspector answers "what is using this file?": it lists the applications and services holding a file or folder, then lets you close them gracefully (Windows Restart Manager) or end the owning process. It reads locks through the Windows desktop app's system helper, so it needs Desktop DUDE.
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <app-desktop-only-control capability="native-fs" label="Choose a file or folder" />
+      <app-desktop-only-control capability="native-system" label="Find the processes locking a file" />
+      <app-desktop-only-control capability="native-system-write" label="Release a lock or end its owner" />
+    </div>
+  } @else {
+    <div class="flex flex-col gap-3 text-ui">
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" class="rounded-sm border border-border px-2 py-1 text-text hover:bg-panel-elevated" data-testid="pick-file" (click)="pickFile()">Choose file…</button>
+        <button type="button" class="rounded-sm border border-border px-2 py-1 text-text hover:bg-panel-elevated" data-testid="pick-folder" (click)="pickFolder()">Choose folder…</button>
+        @if (target(); as t) {
+          <span class="min-w-0 break-all font-mono text-text" data-testid="lock-target">{{ t.path }}</span>
+          <span class="text-ui-xs text-text-muted">{{ t.folder ? 'folder (every file inside is checked)' : 'file' }}</span>
+        } @else {
+          <span class="text-text-muted">Pick a file or folder; the native picker grants it for this inspection.</span>
+        }
+      </div>
+
+      @if (target()) {
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" class="rounded-sm border border-accent px-2 py-1 text-accent disabled:opacity-50" data-testid="find-locks" [disabled]="busy()" (click)="find()">Find locking processes</button>
+          <button type="button" class="rounded-sm border border-border px-2 py-1 text-text disabled:opacity-50" data-testid="scan-handles" [disabled]="busy() || !canScanHandles()" (click)="scanHandles()">Scan handles (admin)</button>
+        </div>
+      }
+      @if (!canScanHandles()) {
+        <app-elevation-banner [required]="true" feature="Scanning every process for exact handle values" />
+      }
+
+      @if (error()) { <div role="alert" class="flex items-center gap-1 rounded-sm border border-error/50 bg-error/5 p-2 text-error"><app-status-glyph kind="error" />{{ error() }}</div> }
+      @if (actionError()) { <div role="alert" class="flex items-center gap-1 text-error"><app-status-glyph kind="error" />{{ actionError() }}</div> }
+      @if (busy()) { <div class="flex items-center gap-1 text-accent" role="status"><app-status-glyph kind="busy" />Working…</div> }
+
+      @if (listing(); as found) {
+        <section class="flex flex-col gap-2 rounded-sm border border-border bg-panel p-3" aria-label="Locking applications" data-testid="lock-results">
+          <h3 class="font-semibold text-text">Restart Manager: {{ owners().length }} {{ owners().length === 1 ? 'owner' : 'owners' }}</h3>
+          @if (found.warning) { <span class="flex items-center gap-1 text-ui-xs text-warning" data-testid="rm-warning"><app-status-glyph kind="warning" />{{ found.warning }}</span> }
+          @if (reboot()) { <span class="flex items-center gap-1 text-ui-xs text-warning"><app-status-glyph kind="warning" />Restart Manager reports that a reboot may be needed to fully release these files.</span> }
+          @if (!owners().length) {
+            <p class="text-text-muted" data-testid="no-owners">No application or service holds this path according to Restart Manager. Handles held by kernel drivers or the System process are not reported here.</p>
+          } @else {
+            <div class="overflow-x-auto">
+              <table class="w-full text-left" data-testid="owner-table">
+                <thead class="text-ui-xs text-text-muted">
+                  <tr><th class="pr-3 font-normal">Process</th><th class="pr-3 font-normal">PID</th><th class="pr-3 font-normal">Type</th><th class="pr-3 font-normal">Service</th><th class="pr-3 font-normal">Restartable</th><th class="pr-3 font-normal">Session</th><th class="font-normal">Actions</th></tr>
+                </thead>
+                <tbody>
+                  @for (o of owners(); track trackOwner($index, o)) {
+                    <tr class="border-t border-border" [attr.data-testid]="'owner-' + o.pid">
+                      <td class="py-1 pr-3 font-mono text-text">{{ o.name }}</td>
+                      <td class="pr-3 font-mono text-text">{{ o.pid }}</td>
+                      <td class="pr-3 text-text">{{ appType(o.applicationType) }}</td>
+                      <td class="pr-3 font-mono text-text">{{ o.service || '-' }}</td>
+                      <td class="pr-3 text-text">{{ o.restartable ? 'yes' : 'no' }}</td>
+                      <td class="pr-3 text-text">{{ o.sessionId }}</td>
+                      <td>
+                        <span class="flex flex-wrap items-center gap-2">
+                          <a routerLink="/tools/process-viewer" class="text-accent underline" [attr.data-testid]="'open-viewer-' + o.pid">Open in Process Viewer</a>
+                          <button type="button" class="rounded-sm border border-warning px-1.5 text-warning disabled:opacity-50" [attr.data-testid]="'end-owner-' + o.pid" [disabled]="busy() || o.applicationType === 1000" (click)="endOwner(o)">End owner process…</button>
+                        </span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 border-t border-border pt-2">
+              <button type="button" class="rounded-sm bg-accent px-3 py-1 font-semibold text-on-accent disabled:opacity-50" data-testid="release-graceful" [disabled]="busy() || !releasable()" (click)="release(false)">Release gracefully (Restart Manager)…</button>
+              <button type="button" class="rounded-sm border border-border px-3 py-1 text-text disabled:opacity-50" data-testid="release-restart" [disabled]="busy() || !releasable()" (click)="release(true)">Release and restart…</button>
+              <span class="text-ui-xs text-text-muted">Preferred: applications are asked to close and may prompt to save. Console programs and apps without a window often do not respond; ending the owner is then the fallback.</span>
+            </div>
+          }
+        </section>
+      }
+
+      @if (handles(); as scan) {
+        <section class="flex flex-col gap-2 rounded-sm border border-border bg-panel p-3" aria-label="Open handles" data-testid="handle-results">
+          <h3 class="font-semibold text-text">Handle scan: {{ scan.owners.length }} {{ scan.owners.length === 1 ? 'handle' : 'handles' }}</h3>
+          <p class="text-ui-xs text-text-muted" data-testid="no-force-close">Handles are shown for diagnosis only. DUDE never force-closes a handle in another process; close the owning application, release it gracefully, or end the owner process.</p>
+          @if (scan.warning) { <span class="flex items-center gap-1 text-ui-xs text-warning" data-testid="scan-warning"><app-status-glyph kind="warning" />{{ scan.warning }}</span> }
+          @if (scan.partial && !scan.warning) { <span class="flex items-center gap-1 text-ui-xs text-warning"><app-status-glyph kind="warning" />Results are partial.</span> }
+          @if (scan.owners.length) {
+            <div class="overflow-x-auto">
+              <table class="w-full text-left">
+                <thead class="text-ui-xs text-text-muted"><tr><th class="pr-3 font-normal">Process</th><th class="pr-3 font-normal">PID</th><th class="pr-3 font-normal">Handle</th><th class="font-normal">Path</th></tr></thead>
+                <tbody>
+                  @for (h of scan.owners; track $index) {
+                    <tr class="border-t border-border">
+                      <td class="py-1 pr-3 font-mono text-text">{{ h.name }}</td>
+                      <td class="pr-3 font-mono text-text">{{ h.pid }}</td>
+                      <td class="pr-3 font-mono text-text">{{ h.handle }}</td>
+                      <td class="break-all font-mono text-text">{{ h.path }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+      }
+
+      <app-system-change-preview [preview]="preview()" (applied)="onApplied($event)" (discarded)="preview.set(null)" />
+    </div>
+  }
+</app-tool-shell>

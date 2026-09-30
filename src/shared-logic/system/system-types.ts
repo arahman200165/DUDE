@@ -10,7 +10,7 @@
 
 /** Renderer-callable read methods. Grows one milestone at a time; main rejects anything else. */
 export const SYS_READ_METHODS = [
-  'helper.info', 'process.list', 'process.detail', 'process.modules', 'process.threads', 'process.handles',
+  'helper.info', 'process.list', 'process.detail', 'process.modules', 'process.threads', 'process.handles', 'lock.rmList', 'lock.handleScan',
   'file.version', 'file.signature', 'svc.list', 'svc.config', 'evt.channels', 'evt.query', 'evt.queryFile', 'net.tcp', 'net.udp', 'reg.enumKey', 'reg.getValues', 'fs.probeDirs', 'reg.search', 'reg.export', 'sid.decode', 'sid.wellKnown', 'sid.lookup', 'account.token', 'account.localAccounts', 'account.localGroups', 'account.profiles', 'pe.apisetmap', 'acl.get',
 ] as const;
 export type SysReadMethod = (typeof SYS_READ_METHODS)[number];
@@ -410,6 +410,16 @@ export interface RegistryExportResult {
 
 export interface ApiSetMapResult { readonly version: number; readonly contracts: Readonly<Record<string, readonly string[]>>; }
 
+export interface FileLockHandleScanResult { readonly owners: readonly { readonly pid: number; readonly startKey: string; readonly name: string; readonly handle: string; readonly path: string }[]; readonly partial: boolean; readonly warning?: string; }
+
+export interface FileLockListResult {
+  readonly owners: readonly { readonly pid: number; readonly startKey: string; readonly name: string; readonly service: string; readonly applicationType: number; readonly restartable: boolean; readonly appStatus: number; readonly sessionId: number }[];
+  /** RM_REBOOT_REASON bit mask; 0 when no reboot is needed. */
+  readonly rebootReasons: number;
+  readonly partial: boolean;
+  readonly warning?: string;
+}
+
 // ---- method → params/result map ----------------------------------------------------------------
 
 export type AclTarget = { readonly kind: 'file'; readonly path: string } | { readonly kind: 'registry'; readonly hive: RegistryHive; readonly path: string; readonly view: RegistryView };
@@ -455,6 +465,8 @@ export interface AclGetResult {
 }
 
 export interface SysMethodMap {
+  'lock.rmList': { params: { path: string }; result: FileLockListResult };
+  'lock.handleScan': { params: { path: string }; result: FileLockHandleScanResult };
   'helper.info': { params: Record<string, never>; result: HelperInfo };
   'pe.apisetmap': { params: Record<string, never>; result: ApiSetMapResult };
   'process.list': { params: Record<string, never>; result: ProcessListResult };

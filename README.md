@@ -102,6 +102,9 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Environment Variables](https://arahman200165.github.io/DUDE/tools/environment-variables) | Native Windows system changes | Desktop-only feature | adds, edits and deletes environment variables through the desktop system mutation engine |
 | [Event Log Viewer](https://arahman200165.github.io/DUDE/tools/event-log-viewer) | Native filesystem access | Desktop-only feature | grants the .evtx file you choose to open |
 | [Event Log Viewer](https://arahman200165.github.io/DUDE/tools/event-log-viewer) | Native Windows system access | Desktop-only feature | reads event log channels and events through the desktop system helper |
+| [File Lock Inspector](https://arahman200165.github.io/DUDE/tools/file-lock-inspector) | Native filesystem access | Desktop-only feature | uses a native picker to grant the file or folder to inspect |
+| [File Lock Inspector](https://arahman200165.github.io/DUDE/tools/file-lock-inspector) | Native Windows system access | Desktop-only feature | lists lock owners through Restart Manager and, when elevated, scans process handles through the desktop system helper |
+| [File Lock Inspector](https://arahman200165.github.io/DUDE/tools/file-lock-inspector) | Native Windows system changes | Desktop-only feature | releases a lock through a graceful Restart Manager shutdown or restart, or ends the owner process, via the desktop system mutation engine |
 | [File Split & Join](https://arahman200165.github.io/DUDE/tools/file-split-join) | Native filesystem access | Desktop-only feature | reads real files and part folders in the desktop fs worker |
 | [File Split & Join](https://arahman200165.github.io/DUDE/tools/file-split-join) | Native filesystem write | Desktop-only feature | writes parts and joined files only through a previewed, verified, journaled plan |
 | [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Native filesystem access | Desktop-only feature | scans real folders and drives in the desktop fs worker |
@@ -174,7 +177,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-330 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+331 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -401,6 +404,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Expression Evaluator](https://arahman200165.github.io/DUDE/tools/expression-evaluator) | Developer | Evaluates a math expression with named variables, functions, units, and matrices via a sandboxed expression parser. |
 | [File Entropy Analyzer](https://arahman200165.github.io/DUDE/tools/file-entropy-analyzer) | Developer | Computes an uploaded file's Shannon byte-distribution entropy overall and in sliding windows, to spot packed, encrypted, or compressed regions. |
 | [File Inspector](https://arahman200165.github.io/DUDE/tools/file-inspector) | Developer | A "file forensics" summary: detected signature/container format, Shannon entropy verdict, and a sample of extracted strings, all in one dashboard. |
+| [File Lock Inspector](https://arahman200165.github.io/DUDE/tools/file-lock-inspector) | Developer | Find out what is using a file or folder: lists the applications and services holding it (Windows Restart Manager, no admin needed), scans exact handles when elevated, and releases the lock through a previewed, confirmed change: a graceful Restart Manager shutdown or restart first, ending the owner process as the fallback. Handles are never force-closed. |
 | [File Split & Join](https://arahman200165.github.io/DUDE/tools/file-split-join) | Developer | Split a file by size, part count or whole lines (repeat a CSV header) with .001 / split-style / -001.ext naming and a SHA-256 checksum file; detect part sets and join them back with verification. |
 | [File Signature & Type Detector](https://arahman200165.github.io/DUDE/tools/file-type-detector) | Developer | Identifies an uploaded file's real format from its magic bytes, disambiguates ZIP-based containers like docx/xlsx/pptx/jar, and flags a mismatch against the declared file extension. |
 | [Flexbox Playground](https://arahman200165.github.io/DUDE/tools/flexbox-playground) | Developer | Interactively builds flex container and item CSS with a live preview of editable, addable items. |

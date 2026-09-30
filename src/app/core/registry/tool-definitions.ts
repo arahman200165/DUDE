@@ -115,6 +115,7 @@ import { manifest as fileBase64Manifest } from '../../tools/file-base64/file-bas
 import { manifest as fileEntropyAnalyzerManifest } from '../../tools/file-entropy-analyzer/file-entropy-analyzer.manifest';
 import { manifest as fileHashManifest } from '../../tools/file-hash/file-hash.manifest';
 import { manifest as fileInspectorManifest } from '../../tools/file-inspector/file-inspector.manifest';
+import { manifest as fileLockInspectorManifest } from '../../tools/file-lock-inspector/file-lock-inspector.manifest';
 import { manifest as fileSplitJoinManifest } from '../../tools/file-split-join/file-split-join.manifest';
 import { manifest as fileTypeDetectorManifest } from '../../tools/file-type-detector/file-type-detector.manifest';
 import { manifest as findReplaceTextManifest } from '../../tools/find-replace-text/find-replace-text.manifest';
@@ -447,6 +448,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   fileEntropyAnalyzerManifest,
   fileHashManifest,
   fileInspectorManifest,
+  fileLockInspectorManifest,
   fileSplitJoinManifest,
   fileTypeDetectorManifest,
   findReplaceTextManifest,

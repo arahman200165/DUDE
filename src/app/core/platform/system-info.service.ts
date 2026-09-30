@@ -65,6 +65,8 @@ export class SystemInfoService {
   processModules(ref: ProcessRef): Promise<ProcessModulesResult> { return this.call('process.modules', ref); }
   processThreads(pid: number): Promise<ProcessThreadsResult> { return this.call('process.threads', { pid }); }
   processHandles(ref: ProcessRef): Promise<ProcessHandlesResult> { return this.call('process.handles', ref); }
+  lockOwners(path: string) { return this.call('lock.rmList', { path }); }
+  lockHandles(path: string) { return this.call('lock.handleScan', { path }); }
   fileVersion(path: string): Promise<FileVersionResult> { return this.call('file.version', { path }); }
   fileSignature(path: string): Promise<FileSignatureResult> { return this.call('file.signature', { path }); }
   listServices(): Promise<ServiceListResult> { return this.call('svc.list', {}); }

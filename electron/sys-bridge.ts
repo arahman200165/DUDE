@@ -53,6 +53,7 @@ export function registerSysHandlers(): void {
     try {
       const call = validateSysCall(method, params);
       if (call.method === 'evt.queryFile' && !isInsideGrantedRoot((call.params as { path: string }).path)) throw new Error('Pick the .evtx file with the native file picker before opening it.');
+      if ((call.method === 'lock.rmList' || call.method === 'lock.handleScan') && !isInsideGrantedRoot((call.params as { path: string }).path)) throw new Error('Pick the file or folder with the native file picker before inspecting locks.');
       if (call.method === 'acl.get' && (call.params as { target?: { kind?: string; path?: string } }).target?.kind === 'file' && !isInsideGrantedRoot((call.params as { target: { path: string } }).target.path)) throw new Error('Pick the file or folder with the native file picker before inspecting its permissions.');
       return await sysHelper().call(call.method, call.params);
     } catch (error) {

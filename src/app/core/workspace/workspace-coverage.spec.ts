@@ -51,6 +51,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'sid-account-resolver': 'the current token, local accounts and lookup results are live desktop session state and may contain sensitive identifiers',
   'acl-inspector': 'security descriptors and picker grants are live desktop state and should be read again when revisiting the tool',
   'services-viewer': 'the live service list, selection and any open action preview are desktop-only session state, not restorable renderer content',
+  'file-lock-inspector': 'the picked path, lock owners and handle scan are desktop-only session state, not restorable renderer content',
   'port-process-lookup': 'the live socket table and selection are desktop-only session state, not restorable renderer content',
   'certificate-watch-list': 'the watch list is a live monitoring dashboard whose state lives in the main process, not restorable renderer content',
   'reverse-dns': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',

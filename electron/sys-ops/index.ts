@@ -7,6 +7,7 @@ import { registerTaskOps } from './task';
 import { registerStartupOps } from './startup';
 import { registerSoftwareOps } from './software';
 import { registerFeatureOps } from './feature';
+import { registerFileLockOps } from './file-lock';
 import { registerAclOps } from './acl';
 
 /**
@@ -24,5 +25,6 @@ export function registerBuiltinSysOps(register: <P>(def: SysOpDefinition<P>) => 
   registerStartupOps(register);
   registerSoftwareOps(register);
   registerFeatureOps(register);
+  registerFileLockOps(register);
   registerAclOps(register);
 }

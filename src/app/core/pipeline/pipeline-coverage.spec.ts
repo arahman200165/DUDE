@@ -48,6 +48,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'sid-account-resolver': 'local account and token inspection is live desktop state and name lookup may contact a domain controller',
   'acl-inspector': 'file and registry permissions are live desktop security state and file targets need a picker grant',
   'services-viewer': 'reading and controlling Windows services needs the desktop system helper and a user-directed, previewed session, not an invisible pipeline step',
+  'file-lock-inspector': 'inspecting file locks needs the desktop system helper and a picker grant, and releasing a lock or ending its owner must never run invisibly in a pipeline',
   'port-process-lookup': 'reading live socket tables needs the desktop system helper and a user-directed session, and ending a process must never run invisibly in a pipeline',
   'certificate-watch-list': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'reverse-dns': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
