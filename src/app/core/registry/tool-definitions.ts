@@ -78,6 +78,7 @@ import { manifest as curlConverterManifest } from '../../tools/curl-converter/cu
 import { manifest as dataUriConverterManifest } from '../../tools/data-uri-converter/data-uri-converter.manifest';
 import { manifest as dateCalculatorManifest } from '../../tools/date-calculator/date-calculator.manifest';
 import { manifest as dependencyVersionComparatorManifest } from '../../tools/dependency-version-comparator/dependency-version-comparator.manifest';
+import { manifest as dependencyWalkerManifest } from '../../tools/dependency-walker/dependency-walker.manifest';
 import { manifest as devSnippetsReferenceManifest } from '../../tools/dev-snippets-reference/dev-snippets-reference.manifest';
 import { manifest as diffManifest } from '../../tools/diff/diff.manifest';
 import { manifest as directoryDiffManifest } from '../../tools/directory-diff/directory-diff.manifest';
@@ -407,6 +408,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   dataUriConverterManifest,
   dateCalculatorManifest,
   dependencyVersionComparatorManifest,
+  dependencyWalkerManifest,
   devSnippetsReferenceManifest,
   diffManifest,
   directoryDiffManifest,

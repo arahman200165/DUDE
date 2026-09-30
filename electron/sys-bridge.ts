@@ -1,4 +1,9 @@
 import { ipcMain } from 'electron';
+import { promises as fs } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { walkDependencies } from './dependency-walker';
+import type { DllSearchContext } from '../src/shared-logic/system/dll-search-order';
+import type { DependencyNode } from '../src/shared-logic/system/dependency-walker-types';
 import type { SysResult } from '../src/shared-logic/system/system-types';
 import { validateSysCall } from './sys-validation';
 import { sysHelper } from './sys-helper';
@@ -14,6 +19,36 @@ import type { WindowsCapability, WindowsFeature } from '../src/shared-logic/syst
 // Reserved for later milestones: `dude:sys:event` carries streamed helper events (SysStreamEvent).
 
 export function registerSysHandlers(): void {
+  ipcMain.handle('dude:dependency:walk', async (_event, path: unknown): Promise<DependencyNode> => {
+    if (typeof path !== 'string' || path.length > 32767 || /[\u0000-\u001f\u007f]/.test(path) || !/^(?:[A-Za-z]:[\\/]|\\\\[^\\])/.test(path)) throw new Error('Choose an absolute Windows executable path.');
+    if (!isInsideGrantedRoot(path)) throw new Error('Pick the executable with the native file picker before inspecting dependencies.');
+    const stats = await fs.stat(path);
+    if (!stats.isFile()) throw new Error('The selected path is not a file.');
+    const root = process.env.SystemRoot ?? process.env.WINDIR;
+    if (!root) throw new Error('Windows directory is unavailable in this process environment.');
+    const apiResult = await sysHelper().call('pe.apisetmap', {});
+    if (!apiResult.ok) throw new Error(`Could not read Windows API-set map: ${apiResult.error}`);
+    const apiSetMap = (apiResult.data as { contracts?: Record<string, string[]> }).contracts ?? {};
+    const knownResult = await sysHelper().call('reg.getValues', { hive: 'HKLM', path: 'SYSTEM\\CurrentControlSet\\Control\\Session Manager\\KnownDLLs', view: '64' });
+    if (!knownResult.ok) throw new Error(`Could not read Windows KnownDLLs: ${knownResult.error}`);
+    const knownDlls: Record<string, true> = {};
+    for (const value of (knownResult.data as { values: readonly { name: string; data: unknown }[] }).values) {
+      if (value.name && typeof value.data === 'string' && !/[\\/]/.test(value.data)) knownDlls[value.data] = true;
+    }
+    const known32Result = await sysHelper().call('reg.getValues', { hive: 'HKLM', path: 'SYSTEM\\CurrentControlSet\\Control\\Session Manager\\KnownDLLs', view: '32' });
+    if (!known32Result.ok) throw new Error('Could not read 32-bit Windows KnownDLLs: ' + known32Result.error);
+    const knownDllsX86: Record<string, true> = {};
+    for (const value of (known32Result.data as { values: readonly { name: string; data: unknown }[] }).values) {
+      if (value.name && typeof value.data === 'string' && !/[\\/]/.test(value.data)) knownDllsX86[value.data] = true;
+    }
+    const context: DllSearchContext = {
+      applicationDirectory: dirname(path), windowsDirectory: root, systemDirectory: join(root, 'System32'),
+      syswow64Directory: join(root, 'SysWOW64'), targetArchitecture: 'unknown',
+      pathDirectories: (process.env.PATH ?? '').split(';').map((entry) => entry.trim().replace(/^"|"$/g, '')).filter(Boolean),
+      knownDlls, knownDllsX86, apiSetMap,
+    };
+    return walkDependencies(path, { search: context });
+  });
   ipcMain.handle('dude:sys:call', async (_event, method: unknown, params: unknown): Promise<SysResult<unknown>> => {
     try {
       const call = validateSysCall(method, params);

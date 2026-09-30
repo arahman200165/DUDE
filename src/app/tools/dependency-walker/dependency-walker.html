@@ -1,0 +1,21 @@
+<app-tool-shell>
+  <section class="space-y-3">
+    <p class="text-text-muted">Walks static and delay-loaded imports using Windows KnownDLLs, API-set mappings, the executable directory, Windows system directories, and PATH. Side-by-side manifest activation contexts are reported as unresolved.</p>
+    <div class="flex flex-wrap items-center gap-2">
+      <button type="button" class="rounded-sm bg-accent px-3 py-1.5 text-on-accent" [disabled]="loading() || !platform.isDesktop()" (click)="choose()">{{ loading() ? 'Scanning…' : 'Choose executable' }}</button>
+      <app-desktop-only-control capability="native-system" label="Dependency scan" />
+      <app-desktop-only-control capability="native-fs" label="Executable picker" />
+      @if (rootPath()) { <span class="break-all font-mono text-ui text-text-muted">{{ rootPath() }}</span> }
+    </div>
+    @if (error()) { <p role="alert" class="text-error">{{ error() }}</p> }
+    @if (root(); as image) {
+      <div class="space-y-1 rounded-sm border border-border p-2 text-ui"><div><strong>{{ image.name }}</strong> · {{ image.machine }} · {{ image.imports.length }} imports</div>
+        @if (image.error) { <p class="text-error">{{ image.error }}</p> }
+        @for (limitation of image.limitations ?? []; track limitation) { <p class="text-warning">{{ limitation }}</p> }
+      </div>
+      @if (rows().length) { <div class="overflow-auto rounded-sm border border-border"><table class="w-full text-left text-ui"><thead class="bg-panel"><tr><th class="p-2">Module</th><th class="p-2">Result</th><th class="p-2">Location</th><th class="p-2">Details</th></tr></thead><tbody>
+        @for (row of rows(); track $index) { <tr class="border-t border-border"><td class="p-2 font-mono" [style.padding-left.rem]="0.5 + row.depth">{{ row.module }}</td><td class="p-2">{{ row.result }}</td><td class="break-all p-2 font-mono">{{ row.location }}</td><td class="p-2">{{ row.detail }}</td></tr> }
+      </tbody></table></div> }
+    }
+  </section>
+</app-tool-shell>

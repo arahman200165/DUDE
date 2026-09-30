@@ -1,5 +1,5 @@
 import { PipelineStep, PipelineStepResult, PipelineValue } from '../../shared/models/pipeline-step.model';
-import { parsePeHeaders } from './pe-header-viewer-logic';
+import { parsePeHeaders } from '../../../shared-logic/pe/pe-parser';
 
 /** Pipeline-step adapter for the PE Header Viewer tool. */
 export const pipelineStep: PipelineStep = {

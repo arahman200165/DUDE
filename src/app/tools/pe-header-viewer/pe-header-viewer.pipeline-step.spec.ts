@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { pipelineStep } from './pe-header-viewer.pipeline-step';
 
-/** Builds a minimal, valid PE32+ (x64) executable with one ".text" section and no data directories -- mirrors `pe-header-viewer-logic.spec.ts`'s builder. */
+/** Builds a minimal, valid PE32+ (x64) executable with one ".text" section and no data directories -- mirrors `src/shared-logic/pe/pe-parser.spec.ts`'s builder. */
 function buildMinimalPe(): Uint8Array {
   const bytes = new Uint8Array(240);
   const view = new DataView(bytes.buffer);

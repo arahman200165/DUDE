@@ -74,6 +74,7 @@ std::string handleLine(const std::string& line) {
   else if (method == "reg.search") ok = sys::handleRegSearch(params, result, err);
   else if (method == "reg.export") ok = sys::handleRegExport(params, result, err);
   else if (method == "fs.probeDirs") ok = sys::handleFsProbeDirs(params, result, err);
+  else if (method == "pe.apisetmap") ok = sys::handlePeApiSetMap(result, err);
   else if (method == "proc.terminate") ok = sys::handleProcTerminate(params, result, err);
   else if (method == "proc.tree") ok = sys::handleProcTree(params, result, err);
   else if (method == "proc.suspend") ok = sys::handleProcSuspend(params, result, err);

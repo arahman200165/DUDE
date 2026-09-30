@@ -11,7 +11,7 @@
 /** Renderer-callable read methods. Grows one milestone at a time; main rejects anything else. */
 export const SYS_READ_METHODS = [
   'helper.info', 'process.list', 'process.detail', 'process.modules', 'process.threads', 'process.handles',
-  'file.version', 'file.signature', 'svc.list', 'svc.config', 'evt.channels', 'evt.query', 'evt.queryFile', 'net.tcp', 'net.udp', 'reg.enumKey', 'reg.getValues', 'fs.probeDirs', 'reg.search', 'reg.export',
+  'file.version', 'file.signature', 'svc.list', 'svc.config', 'evt.channels', 'evt.query', 'evt.queryFile', 'net.tcp', 'net.udp', 'reg.enumKey', 'reg.getValues', 'fs.probeDirs', 'reg.search', 'reg.export', 'pe.apisetmap',
 ] as const;
 export type SysReadMethod = (typeof SYS_READ_METHODS)[number];
 
@@ -395,10 +395,13 @@ export interface RegistryExportResult {
   readonly keysExported: number;
 }
 
+export interface ApiSetMapResult { readonly version: number; readonly contracts: Readonly<Record<string, readonly string[]>>; }
+
 // ---- method → params/result map ----------------------------------------------------------------
 
 export interface SysMethodMap {
   'helper.info': { params: Record<string, never>; result: HelperInfo };
+  'pe.apisetmap': { params: Record<string, never>; result: ApiSetMapResult };
   'process.list': { params: Record<string, never>; result: ProcessListResult };
   'process.detail': { params: ProcessRef; result: ProcessDetail };
   'process.modules': { params: ProcessRef; result: ProcessModulesResult };

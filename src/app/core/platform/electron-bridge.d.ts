@@ -190,6 +190,7 @@ export interface DudeElectronBridge {
     };
   };
   /** Windows system reads through the `windows-sys.exe` helper (DUDE_PRD.md §21 Phase 31, Milestone 593). */
+  readonly dependencyWalker: { walk(path: string): Promise<import('../../../shared-logic/system/dependency-walker-types').DependencyNode> };
   readonly sys: {
     call<M extends SysReadMethod>(method: M, params: SysMethodMap[M]['params']): Promise<SysResult<SysMethodMap[M]['result']>>;
     pwshStatus(refresh?: boolean): Promise<PwshStatus>;

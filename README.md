@@ -83,6 +83,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Certificate Watch List](https://arahman200165.github.io/DUDE/tools/certificate-watch-list) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [TCP/HTTP Connectivity Tester](https://arahman200165.github.io/DUDE/tools/connectivity-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Certificate Transparency Lookup](https://arahman200165.github.io/DUDE/tools/ct-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Dependency Walker](https://arahman200165.github.io/DUDE/tools/dependency-walker) | Native filesystem access | Desktop-only feature | opens the selected executable through the desktop file picker |
+| [Dependency Walker](https://arahman200165.github.io/DUDE/tools/dependency-walker) | Native Windows system access | Desktop-only feature | resolves Windows DLL dependencies using live operating-system search context in Desktop DUDE |
 | [Directory Diff](https://arahman200165.github.io/DUDE/tools/directory-diff) | File watching | Desktop-only feature | optionally rescans open folders when their contents change |
 | [Directory Diff](https://arahman200165.github.io/DUDE/tools/directory-diff) | Native filesystem access | Works — weaker browser fallback | compares real folders on disk, not zipped/pasted file lists |
 | [Directory Tree Generator](https://arahman200165.github.io/DUDE/tools/directory-tree-generator) | Native filesystem access | Desktop-only feature | walks real folders on disk in the desktop fs worker |
@@ -95,6 +97,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Email Auth Inspector](https://arahman200165.github.io/DUDE/tools/email-auth-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Environment Variables](https://arahman200165.github.io/DUDE/tools/environment-variables) | Native Windows system access | Desktop-only feature | reads the user, machine and volatile environment from the registry through the desktop system helper |
 | [Environment Variables](https://arahman200165.github.io/DUDE/tools/environment-variables) | Native Windows system changes | Desktop-only feature | adds, edits and deletes environment variables through the desktop system mutation engine |
+| [Event Log Viewer](https://arahman200165.github.io/DUDE/tools/event-log-viewer) | Native filesystem access | Desktop-only feature | grants the .evtx file you choose to open |
+| [Event Log Viewer](https://arahman200165.github.io/DUDE/tools/event-log-viewer) | Native Windows system access | Desktop-only feature | reads event log channels and events through the desktop system helper |
 | [File Split & Join](https://arahman200165.github.io/DUDE/tools/file-split-join) | Native filesystem access | Desktop-only feature | reads real files and part folders in the desktop fs worker |
 | [File Split & Join](https://arahman200165.github.io/DUDE/tools/file-split-join) | Native filesystem write | Desktop-only feature | writes parts and joined files only through a previewed, verified, journaled plan |
 | [Folder Size Analyzer](https://arahman200165.github.io/DUDE/tools/folder-size-analyzer) | Native filesystem access | Desktop-only feature | scans real folders and drives in the desktop fs worker |
@@ -104,6 +108,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Hash Manifest & Snapshot](https://arahman200165.github.io/DUDE/tools/hash-manifest) | Native filesystem access | Desktop-only feature | streams and hashes whole folders in the desktop fs worker |
 | [Hostname Resolver](https://arahman200165.github.io/DUDE/tools/hostname-resolver) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [HTTPS Configuration Analyzer](https://arahman200165.github.io/DUDE/tools/https-config-analyzer) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Installed Software](https://arahman200165.github.io/DUDE/tools/installed-software) | Native Windows system access | Desktop-only feature | reads uninstall registry entries and installed Appx packages on Windows |
+| [Installed Software](https://arahman200165.github.io/DUDE/tools/installed-software) | Native Windows system changes | Desktop-only feature | launches a registered interactive vendor uninstaller after a reviewed no-undo system plan |
 | [Large-File Streaming Inspector](https://arahman200165.github.io/DUDE/tools/large-file-inspector) | File watching | Desktop-only feature | follows a growing file (tail -f) |
 | [Large-File Streaming Inspector](https://arahman200165.github.io/DUDE/tools/large-file-inspector) | Native filesystem access | Desktop-only feature | reads byte ranges and streams search over files of any size on disk |
 | [Continuous Ping / Latency Graph](https://arahman200165.github.io/DUDE/tools/latency-monitor) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
@@ -130,9 +136,13 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Certificate Revocation Inspector](https://arahman200165.github.io/DUDE/tools/revocation-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Runtime Detector](https://arahman200165.github.io/DUDE/tools/runtime-detector) | Native Windows system access | Desktop-only feature | reads PATH, registry install keys and executable file versions through the desktop system helper; the optional version probe runs discovered programs on an explicit, previewed action |
+| [Scheduled Tasks](https://arahman200165.github.io/DUDE/tools/scheduled-tasks) | Native Windows system access | Desktop-only feature | reads scheduled tasks through a fixed PowerShell 7 script in the desktop app |
+| [Scheduled Tasks](https://arahman200165.github.io/DUDE/tools/scheduled-tasks) | Native Windows system changes | Desktop-only feature | enables or disables tasks through the desktop system mutation engine |
 | [Services Viewer](https://arahman200165.github.io/DUDE/tools/services-viewer) | Native Windows system access | Desktop-only feature | lists services and reads their configuration and dependencies through the desktop system helper |
 | [Services Viewer](https://arahman200165.github.io/DUDE/tools/services-viewer) | Native Windows system changes | Desktop-only feature | starts, stops, restarts and reconfigures services through the desktop system mutation engine |
 | [STARTTLS Inspector](https://arahman200165.github.io/DUDE/tools/starttls-inspector) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Startup Programs](https://arahman200165.github.io/DUDE/tools/startup-programs) | Native Windows system access | Desktop-only feature | inspects local Windows startup registrations through the desktop system helper |
+| [Startup Programs](https://arahman200165.github.io/DUDE/tools/startup-programs) | Native Windows system changes | Desktop-only feature | changes supported StartupApproved states through the desktop system mutation engine |
 | [System Changes](https://arahman200165.github.io/DUDE/tools/system-changes) | Native Windows system access | Desktop-only feature | manages the local snapshot library used by the environment, PATH and registry diffs |
 | [System Changes](https://arahman200165.github.io/DUDE/tools/system-changes) | Native Windows system changes | Desktop-only feature | undoes journaled Windows system changes through the desktop system mutation engine |
 | [TCP Port Tester](https://arahman200165.github.io/DUDE/tools/tcp-port-tester) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
@@ -144,6 +154,8 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Watched Folders & Change Timeline](https://arahman200165.github.io/DUDE/tools/watched-folders) | File watching | Desktop-only feature | watches remembered folders in the desktop main process, including while hidden to the tray |
 | [Watched Folders & Change Timeline](https://arahman200165.github.io/DUDE/tools/watched-folders) | Native filesystem access | Desktop-only feature | picks and remembers the folders to watch |
 | [WHOIS Lookup](https://arahman200165.github.io/DUDE/tools/whois-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
+| [Windows Features](https://arahman200165.github.io/DUDE/tools/windows-features) | Native Windows system access | Desktop-only feature | reads Windows optional features and capabilities through PowerShell 7 in Desktop DUDE |
+| [Windows Features](https://arahman200165.github.io/DUDE/tools/windows-features) | Native Windows system changes | Desktop-only feature | enables or disables optional features through the previewed desktop system mutation engine |
 
 Optional runtimes are cached on demand by the web service worker the first time the tool needs
 them (never prefetched), and ship locally inside the desktop app.
@@ -158,7 +170,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-322 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+328 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -360,6 +372,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Cubic-Bezier Editor](https://arahman200165.github.io/DUDE/tools/cubic-bezier-editor) | Developer | Interactive cubic-bezier() easing curve editor with draggable control points and a live animated preview. |
 | [CUID Generator](https://arahman200165.github.io/DUDE/tools/cuid-generator) | Developer | Generates collision-resistant CUID2 identifiers with a configurable count and length. |
 | [Dependency Version Comparator](https://arahman200165.github.io/DUDE/tools/dependency-version-comparator) | Developer | Diffs two pasted dependency lists (package.json-style), classifying each change as added, removed, or a major/minor/patch upgrade or downgrade. |
+| [Dependency Walker](https://arahman200165.github.io/DUDE/tools/dependency-walker) | Developer | Recursively resolves Windows PE imports and delay-loads, checking architecture, imported symbols, forwarders, and unresolved modules. |
 | [Dev Snippets Reference](https://arahman200165.github.io/DUDE/tools/dev-snippets-reference) | Developer | Searchable reference of common HTTP headers, regex syntax, git/docker commands, shell idioms, SQL, CSS, HTML, Unicode, MIME types, cron syntax, and chmod. |
 | [DNS Lookup](https://arahman200165.github.io/DUDE/tools/dns-lookup) | Developer | Query live DNS records (incl. CAA, DNSSEC, TLSA, HTTPS/SVCB) over system, custom, DoH, or DoT resolvers, with flags and transport diagnostics. |
 | [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Developer | Compare one DNS record across public presets, the system resolver, and up to five custom classic, DoH, or DoT resolvers. |
@@ -378,6 +391,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [.env Validator](https://arahman200165.github.io/DUDE/tools/env-validator) | Developer | Validates a .env file against a required-keys list with lightweight number/boolean/url type hints. |
 | [Environment Variables](https://arahman200165.github.io/DUDE/tools/environment-variables) | Developer | View the user, machine and volatile Windows environment variables raw and expanded, add, edit or delete them through a previewed, confirmed change, and diff two environments (live, saved snapshot or pasted dump) with a PATH-aware breakdown. |
 | [Error Code Reference](https://arahman200165.github.io/DUDE/tools/error-code-reference) | Developer | Searchable reference of Windows/Win32/HRESULT, POSIX errno, Linux signals, SQL, TLS alert, and DNS response codes. |
+| [Event Log Viewer](https://arahman200165.github.io/DUDE/tools/event-log-viewer) | Developer | Read any Windows event log channel or an opened .evtx file: build a filter (level, provider, event ID, time, text) that generates the XPath, or edit the XPath directly; save queries, import and export Event Viewer custom views, correlate by ActivityID, and follow new events with incremental polling. |
 | [Expression Evaluator](https://arahman200165.github.io/DUDE/tools/expression-evaluator) | Developer | Evaluates a math expression with named variables, functions, units, and matrices via a sandboxed expression parser. |
 | [File Entropy Analyzer](https://arahman200165.github.io/DUDE/tools/file-entropy-analyzer) | Developer | Computes an uploaded file's Shannon byte-distribution entropy overall and in sliding windows, to spot packed, encrypted, or compressed regions. |
 | [File Inspector](https://arahman200165.github.io/DUDE/tools/file-inspector) | Developer | A "file forensics" summary: detected signature/container format, Shannon entropy verdict, and a sample of extracted strings, all in one dashboard. |
@@ -400,6 +414,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [HTML Formatter / Minifier](https://arahman200165.github.io/DUDE/tools/html-formatter) | Developer | Pretty-prints or minifies HTML by walking the parsed DOM, preserving <pre>/<script>/<style> content verbatim. |
 | [HTML ↔ JSX Converter](https://arahman200165.github.io/DUDE/tools/html-jsx-converter) | Developer | Converts HTML to JSX (className, htmlFor, style objects, self-closing void tags) or JSX back to HTML, best-effort. |
 | [HTML Preview](https://arahman200165.github.io/DUDE/tools/html-preview) | Developer | Live-render an HTML document — including its own inline <script>/<style> — inside a network-isolated sandbox with captured console output. |
+| [Installed Software](https://arahman200165.github.io/DUDE/tools/installed-software) | Developer | Search, sort, export and review installed Windows software, with previewed interactive uninstallers and copyable Appx removal commands. |
 | [IP Address Inspector](https://arahman200165.github.io/DUDE/tools/ip-address-inspector) | Developer | Inspects an IPv4 or IPv6 address — canonical form, classification (private/loopback/multicast/etc.), and binary/expanded/integer view. |
 | [IPv4 ↔ Integer Converter](https://arahman200165.github.io/DUDE/tools/ipv4-integer-converter) | Developer | Converts an IPv4 address to its 32-bit unsigned integer form, or the reverse. |
 | [IPv6 Explorer](https://arahman200165.github.io/DUDE/tools/ipv6-explorer) | Developer | Shows an IPv6 address's compressed and expanded forms, its classification, and any embedded IPv4 address. |
@@ -433,7 +448,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Package Metadata Inspector](https://arahman200165.github.io/DUDE/tools/package-metadata-inspector) | Developer | Looks up a package's latest version, description, license, and dependency count on npm, PyPI, crates.io, or NuGet. |
 | [Packet-Loss Measurement](https://arahman200165.github.io/DUDE/tools/packet-loss) | Developer | Measure ICMP packet loss over a bounded probe sample. |
 | [PATH Editor](https://arahman200165.github.io/DUDE/tools/path-editor) | Developer | Edit the user and machine PATH with per-entry checks (missing, duplicate, unresolved, relative, quoted, not a folder), reorder and de-duplicate through a previewed, confirmed change, and see which executables shadow which (which node, git or java wins). |
-| [PE Header Viewer](https://arahman200165.github.io/DUDE/tools/pe-header-viewer) | Developer | Parses a Windows PE executable's DOS/COFF/Optional headers, section table, data directories, and basic import/export table into a browsable tree. |
+| [PE Header Viewer](https://arahman200165.github.io/DUDE/tools/pe-header-viewer) | Developer | Parses a Windows PE executable's DOS/COFF/Optional headers, section table, data directories, imports and delay-load imports, exports (ordinal and forwarded), version resource, Authenticode presence, CLR header and PDB/CodeView debug data into a browsable tree. |
 | [Percentage & Ratio Calculator](https://arahman200165.github.io/DUDE/tools/percentage-ratio-calculator) | Developer | Percentage of, percent-of-what, percent change, ratio simplification, and proportion solving. |
 | [Ping](https://arahman200165.github.io/DUDE/tools/ping) | Developer | Send ICMP echo requests and show round-trip latency. |
 | [Pixel Color Picker](https://arahman200165.github.io/DUDE/tools/pixel-color-picker) | Developer | Reads the exact color of any pixel in an uploaded image. |
@@ -454,12 +469,14 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Developer | Resolve an IP address to PTR records. |
 | [Route Comparison](https://arahman200165.github.io/DUDE/tools/route-comparison) | Developer | Compare two network traces or before and after traces. |
 | [Runtime Detector](https://arahman200165.github.io/DUDE/tools/runtime-detector) | Developer | Find every installed developer runtime (Git, Node, Python, Java, .NET, Go, Rust, Docker and more) from PATH, known folders and the registry, see where each lives and which version manager shims it, and spot version conflicts. Live version probes run only when you preview and confirm them. |
+| [Scheduled Tasks](https://arahman200165.github.io/DUDE/tools/scheduled-tasks) | Developer | Inspect Windows scheduled tasks, triggers, actions, principals and run results. Enable or disable a task through a previewed system change. |
 | [Scientific Notation Converter](https://arahman200165.github.io/DUDE/tools/scientific-notation-converter) | Developer | Converts a number between standard, scientific, and engineering notation with adjustable significant digits. |
 | [Secret Detector](https://arahman200165.github.io/DUDE/tools/secret-detector) | Developer | Flags likely credentials and keys in pasted text or config — AWS/GitHub/Slack tokens, PEM private keys, JWTs, generic key=value assignments, and high-entropy strings. |
 | [Semantic Version Comparator](https://arahman200165.github.io/DUDE/tools/semver-comparator) | Developer | Compare, sort, and range-check versions against the Semantic Versioning spec. |
 | [Services Viewer](https://arahman200165.github.io/DUDE/tools/services-viewer) | Developer | Windows services with live state, startup type, account and binary path, plus dependency and dependent trees (copyable as Mermaid). Start, stop, restart or change the startup type of a service through a previewed, confirmed change that lists the dependents a stop would take down. |
 | [Snowflake ID Generator / Inspector](https://arahman200165.github.io/DUDE/tools/snowflake-id-tools) | Developer | Generates a Snowflake id (Twitter/X, Discord, Instagram, or custom epoch/bit layout), and inspects an existing id to decode its embedded timestamp, worker id, and sequence. |
 | [Stack Trace Formatter](https://arahman200165.github.io/DUDE/tools/stack-trace-formatter) | Developer | Auto-detects and cleans up a Java, .NET, JavaScript, or Python stack trace, tagging library frames and Caused-by/inner-exception chains. |
+| [Startup Programs](https://arahman200165.github.io/DUDE/tools/startup-programs) | Developer | Inspect Windows logon startup entries, startup folders, tasks and auto-start services; change supported StartupApproved states through a reviewed system plan. |
 | [Statistics Calculator](https://arahman200165.github.io/DUDE/tools/statistics-calculator) | Developer | Count, sum, mean, median, mode, range, quartiles/IQR, and population/sample variance and standard deviation. |
 | [Subnet Calculator](https://arahman200165.github.io/DUDE/tools/subnet-calculator) | Developer | Splits an IPv4 network into a chosen number of equal subnets, or into subnets of a given prefix length. |
 | [System Changes](https://arahman200165.github.io/DUDE/tools/system-changes) | Developer | Journal of every Windows system change DUDE applied — processes, environment variables, registry, services, tasks, startup entries, features and permissions — with per-change outcomes, previewed undo, backups, retention, and the snapshot library. |
@@ -471,6 +488,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [UUID Generator / Inspector](https://arahman200165.github.io/DUDE/tools/uuid) | Developer | Generate v1/v3/v4/v5/v6/v7 UUIDs (with namespace support), inspect an existing UUID and its embedded timestamp, and bulk-export the generated list. |
 | [Watched Folders & Change Timeline](https://arahman200165.github.io/DUDE/tools/watched-folders) | Developer | Watch remembered folders in the background while DUDE runs and keep a searchable timeline of created, modified, deleted and renamed files — with notifications and optional before/after content capture. |
 | [WHOIS Lookup](https://arahman200165.github.io/DUDE/tools/whois-lookup) | Developer | Query RDAP registration data with classic WHOIS fallback. |
+| [Windows Features](https://arahman200165.github.io/DUDE/tools/windows-features) | Developer | Inspect Windows optional features and Features on Demand, and preview elevated enable or disable changes. |
 | [Aspect Ratio Calculator](https://arahman200165.github.io/DUDE/tools/aspect-ratio-calculator) | Documents | Simplifies a width/height pair to its lowest-terms ratio (e.g. 1920x1080 -> 16:9), or solves for a missing width/height given a target ratio. |
 | [DPI Calculator](https://arahman200165.github.io/DUDE/tools/dpi-calculator) | Documents | Converts between pixel dimensions, physical print size, and DPI -- find the DPI of an image at a given print size, the pixels needed for a target DPI, or the print size a given pixel count supports. |
 | [EXIF Viewer / Cleaner](https://arahman200165.github.io/DUDE/tools/exif-viewer) | Documents | Views an image's embedded EXIF metadata, or strips it entirely by re-encoding the image through canvas. |

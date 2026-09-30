@@ -156,4 +156,11 @@ describe('validateSysCall', () => {
       expect(() => validateSysCall('reg.export', bad)).toThrow();
     }
   });
+  it('allows pe.apisetmap only without parameters', () => {
+    expect(SYS_READ_METHODS).toContain('pe.apisetmap');
+    expect(validateSysCall('pe.apisetmap', undefined)).toEqual({ method: 'pe.apisetmap', params: {} });
+    expect(validateSysCall('pe.apisetmap', {})).toEqual({ method: 'pe.apisetmap', params: {} });
+    expect(() => validateSysCall('pe.apisetmap', { path: 'C:\\x.dll' })).toThrow();
+    expect(() => validateSysCall('pe.apisetmap', ['x'])).toThrow();
+  });
 });

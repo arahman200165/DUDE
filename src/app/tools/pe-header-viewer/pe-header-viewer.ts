@@ -3,7 +3,7 @@ import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { BinaryFormatViewer } from '../../shared/components/binary-format-viewer/binary-format-viewer';
 import { BusyIndicatorStatus } from '../../shared/components/busy-indicator/busy-indicator';
 import { binaryValueToTree } from '../../shared/components/binary-format-viewer/binary-value-tree';
-import { parsePeHeaders, PeParseError, PeReport } from './pe-header-viewer-logic';
+import { parsePeHeaders, PeParseError, PeReport } from '../../../shared-logic/pe/pe-parser';
 
 @Component({
   selector: 'app-pe-header-viewer',

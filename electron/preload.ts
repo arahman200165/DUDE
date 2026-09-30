@@ -203,6 +203,7 @@ const bridge: DudeElectronBridge = {
       },
     },
   },
+  dependencyWalker: { walk: (path) => ipcRenderer.invoke('dude:dependency:walk', path) },
   sys: {
     call: (method, params) => ipcRenderer.invoke('dude:sys:call', method, params),
     pwshStatus: (refresh) => ipcRenderer.invoke('dude:sys:pwshStatus', refresh),

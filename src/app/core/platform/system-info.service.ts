@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import type { StartupProgramsResult } from '../../../shared-logic/system/startup-types';
 import type { InstalledSoftware } from '../../../shared-logic/system/software-types';
 import type { WindowsCapability, WindowsFeature } from '../../../shared-logic/system/feature-types';
+import type { DependencyNode } from '../../../shared-logic/system/dependency-walker-types';
 import type {
   EventChannelsResult, EventQueryFileParams, EventQueryParams, EventQueryResult, FileSignatureResult, FileVersionResult, HelperInfo, ProcessDetail, ProcessHandlesResult, ProcessListResult, ProcessModulesResult,
   ProbeDirsResult, ProcessRef, ProcessThreadsResult, ServiceListResult, ServiceConfigResult, RegistryEnumResult, RegistryExportParams, RegistryExportResult, RegistryKeyParams, RegistrySearchParams, RegistrySearchResult, RegistryValuesResult, SocketTableResult, SysMethodMap, SysReadMethod,
@@ -52,6 +53,11 @@ export class SystemInfoService {
     const sys = window.dude?.sys;
     if (!sys) throw new Error(UNAVAILABLE);
     return sys.featureCapabilities();
+  }
+  walkDependencies(path: string): Promise<DependencyNode> {
+    const walker = window.dude?.dependencyWalker;
+    if (!walker) throw new Error(UNAVAILABLE);
+    return walker.walk(path);
   }
   helperInfo(): Promise<HelperInfo> { return this.call('helper.info', {}); }
   listProcesses(): Promise<ProcessListResult> { return this.call('process.list', {}); }
