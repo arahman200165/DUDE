@@ -49,6 +49,7 @@ const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
   'windows-features': 'the feature and capability lists and any change preview are live desktop session state, not restorable renderer content',
   'dependency-walker': 'the picker grant, Windows DLL search context and resolved dependency tree are desktop-only session state',
   'sid-account-resolver': 'the current token, local accounts and lookup results are live desktop session state and may contain sensitive identifiers',
+  'acl-inspector': 'security descriptors and picker grants are live desktop state and should be read again when revisiting the tool',
   'services-viewer': 'the live service list, selection and any open action preview are desktop-only session state, not restorable renderer content',
   'port-process-lookup': 'the live socket table and selection are desktop-only session state, not restorable renderer content',
   'certificate-watch-list': 'the watch list is a live monitoring dashboard whose state lives in the main process, not restorable renderer content',

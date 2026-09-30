@@ -138,6 +138,19 @@ function validateEventQuery(name: 'evt.query' | 'evt.queryFile', params: unknown
   return out;
 }
 
+/** The shared ACL target check for `acl.get` and the `acl.set-dacl` op. */
+export function validateAclTarget(target: unknown): { kind: 'file'; path: string } | { kind: 'registry'; hive: string; path: string; view: string } {
+  if (!isPlainObject(target)) throw new Error('ACL target must be an object.');
+  if (target['kind'] === 'file') { exactKeys(target, ['kind', 'path'], 'File ACL target must contain kind and path.'); return { kind: 'file', path: validateFilePath(target['path']) }; }
+  if (target['kind'] === 'registry') {
+    exactKeys(target, ['hive', 'kind', 'path', 'view'], 'Registry ACL target must contain kind, hive, path and view.');
+    if (typeof target['hive'] !== 'string' || !(REGISTRY_HIVES as readonly string[]).includes(target['hive'])) throw new Error('Unknown registry hive.');
+    if (typeof target['view'] !== 'string' || !VIEWS.includes(target['view'])) throw new Error('Unknown registry view.');
+    return { kind: 'registry', hive: target['hive'], path: validateRegistryPath(target['path']), view: target['view'] };
+  }
+  throw new Error('Unknown ACL target kind.');
+}
+
 /** Validates a renderer-supplied system call; throws a short `Error` on anything invalid. */
 export function validateSysCall(method: unknown, params: unknown): { method: SysReadMethod; params: object } {
   if (typeof method !== 'string' || !(SYS_READ_METHODS as readonly string[]).includes(method)) throw new Error('Unknown system method.');
@@ -174,6 +187,14 @@ export function validateSysCall(method: unknown, params: unknown): { method: Sys
       });
     }
     return { method: name, params: out };
+  }
+  if (name === 'acl.get') {
+    if (!isPlainObject(params)) throw new Error('ACL parameters must be an object.');
+    exactKeys(params, params['account'] === undefined ? ['target'] : ['account', 'target'], 'ACL parameters must contain target and optional account.');
+    const safeTarget = validateAclTarget(params['target']);
+    const account = params['account'];
+    if (account !== undefined && (typeof account !== 'string' || account.length < 1 || account.length > 512 || /[\u0000-\u001f\u007f]/.test(account))) throw new Error('Account must be 1 to 512 characters without control characters.');
+    return { method: name, params: { target: safeTarget, ...(account !== undefined ? { account } : {}) } };
   }
   if (name === 'sid.decode') {
     if (!isPlainObject(params)) throw new Error('SID decode parameters must be an object.');

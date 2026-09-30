@@ -11,7 +11,7 @@
 /** Renderer-callable read methods. Grows one milestone at a time; main rejects anything else. */
 export const SYS_READ_METHODS = [
   'helper.info', 'process.list', 'process.detail', 'process.modules', 'process.threads', 'process.handles',
-  'file.version', 'file.signature', 'svc.list', 'svc.config', 'evt.channels', 'evt.query', 'evt.queryFile', 'net.tcp', 'net.udp', 'reg.enumKey', 'reg.getValues', 'fs.probeDirs', 'reg.search', 'reg.export', 'sid.decode', 'sid.wellKnown', 'sid.lookup', 'account.token', 'account.localAccounts', 'account.localGroups', 'account.profiles', 'pe.apisetmap',
+  'file.version', 'file.signature', 'svc.list', 'svc.config', 'evt.channels', 'evt.query', 'evt.queryFile', 'net.tcp', 'net.udp', 'reg.enumKey', 'reg.getValues', 'fs.probeDirs', 'reg.search', 'reg.export', 'sid.decode', 'sid.wellKnown', 'sid.lookup', 'account.token', 'account.localAccounts', 'account.localGroups', 'account.profiles', 'pe.apisetmap', 'acl.get',
 ] as const;
 export type SysReadMethod = (typeof SYS_READ_METHODS)[number];
 
@@ -412,6 +412,48 @@ export interface ApiSetMapResult { readonly version: number; readonly contracts:
 
 // ---- method → params/result map ----------------------------------------------------------------
 
+export type AclTarget = { readonly kind: 'file'; readonly path: string } | { readonly kind: 'registry'; readonly hive: RegistryHive; readonly path: string; readonly view: RegistryView };
+export interface AclAce {
+  /** Null for ACE layouts the helper cannot read a SID from. */
+  readonly sid: string | null;
+  /** DOMAIN\name from LookupAccountSid; null when Windows cannot resolve it. */
+  readonly account: string | null;
+  /** Coarse class; `other` covers alarm, object, callback, label and resource ACEs. */
+  readonly type: 'allow' | 'deny' | 'audit' | 'other';
+  /** Raw ACE_HEADER.AceType byte (see `aceTypeFromByte` in sddl.ts). */
+  readonly aceType: number;
+  /** Raw ACE_HEADER.AceFlags byte (see `aceFlagsFromByte` in sddl.ts). */
+  readonly flags: number;
+  /** Raw access mask; decode with `describeRights` in sddl.ts. */
+  readonly mask: number;
+  readonly inherited: boolean;
+  /** Ancestor path an inherited file ACE came from (GetInheritanceSourceW); null when explicit or unknown. */
+  readonly inheritedFrom: string | null;
+}
+export interface AclGetParams { readonly target: AclTarget; readonly account?: string; }
+export interface AclEffective { readonly account: string; readonly mask: number; readonly nullDacl: boolean; readonly uncertain: boolean; readonly disclosure: string }
+export interface AclGetResult {
+  readonly target: AclTarget;
+  /** True for folders and registry keys (containers). */
+  readonly isContainer: boolean;
+  readonly owner: string | null;
+  readonly ownerName: string | null;
+  readonly group: string | null;
+  readonly groupName: string | null;
+  readonly sddl: string;
+  readonly dacl: readonly AclAce[];
+  /** True when the descriptor has no DACL (everyone has full access). */
+  readonly daclNull: boolean;
+  /** Null when the SACL could not be read; see `saclUnreadable`. */
+  readonly sacl: readonly AclAce[] | null;
+  /** Reading the SACL needs SeSecurityPrivilege (an elevated session). */
+  readonly saclUnreadable: boolean;
+  readonly needsElevation: boolean;
+  readonly inheritanceProtected: boolean;
+  readonly effective: AclEffective | null;
+  readonly errors: readonly string[];
+}
+
 export interface SysMethodMap {
   'helper.info': { params: Record<string, never>; result: HelperInfo };
   'pe.apisetmap': { params: Record<string, never>; result: ApiSetMapResult };
@@ -434,6 +476,14 @@ export interface SysMethodMap {
   'fs.probeDirs': { params: ProbeDirsParams; result: ProbeDirsResult };
   'reg.search': { params: RegistrySearchParams; result: RegistrySearchResult };
   'reg.export': { params: RegistryExportParams; result: RegistryExportResult };
+  'sid.decode': { params: SidDecodeParams; result: SidDecodeResult };
+  'sid.wellKnown': { params: Record<string, never>; result: SidWellKnownResult };
+  'sid.lookup': { params: SidLookupParams; result: SidLookupResult };
+  'account.token': { params: Record<string, never>; result: TokenInfoResult };
+  'account.localAccounts': { params: Record<string, never>; result: LocalAccountsResult };
+  'account.localGroups': { params: Record<string, never>; result: LocalGroupsResult };
+  'account.profiles': { params: Record<string, never>; result: ProfilesResult };
+  'acl.get': { params: AclGetParams; result: AclGetResult };
 }
 
 // ---- fs.probeDirs (PATH directory probe for the PATH Editor & Conflict Detector) ----------------
@@ -480,11 +530,4 @@ export interface PwshStatus {
   readonly source?: 'path' | 'program-files' | 'windows-apps';
   /** Why it isn't available (not found, or found but < 7). */
   readonly reason?: string;
-  'sid.decode': { params: SidDecodeParams; result: SidDecodeResult };
-  'sid.wellKnown': { params: Record<string, never>; result: SidWellKnownResult };
-  'sid.lookup': { params: SidLookupParams; result: SidLookupResult };
-  'account.token': { params: Record<string, never>; result: TokenInfoResult };
-  'account.localAccounts': { params: Record<string, never>; result: LocalAccountsResult };
-  'account.localGroups': { params: Record<string, never>; result: LocalGroupsResult };
-  'account.profiles': { params: Record<string, never>; result: ProfilesResult };
 }

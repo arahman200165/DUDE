@@ -21,6 +21,7 @@ database-write) have no rows below until a tool claims them.
 
 | Tool | Consequence class | Status |
 | --- | --- | --- |
+| [ACL Inspector](https://arahman200165.github.io/DUDE/tools/acl-inspector) | System Configuration | experimental — SDDL parse/format round-trips real Windows descriptors; the helper output was compared with Get-Acl and icacls on files, folders and registry keys. DACL edits were applied and undone through the helper on a temp folder (add an explicit (OI)(CI) entry, disable inheritance with convert, restore) and on HKCU\Software\DUDE-Test, checked with icacls and Get-Acl, and the folder SDDL came back byte-identical after undo; the registry key differs only by the auto-inherit AI flag Windows sets on any DACL write. |
 | [AES Encrypt / Decrypt](https://arahman200165.github.io/DUDE/tools/aes-encrypt-decrypt) | Crypto | verified — Decrypts AES-256-GCM/CBC ciphertext built independently by Node's OpenSSL-backed crypto module, not just its own round-trip. |
 | [Asymmetric Key Generator](https://arahman200165.github.io/DUDE/tools/asymmetric-key-generator) | Crypto | verified — A generated RSA-2048 private key was independently loaded, signed, and verified by openssl, confirming standards-compliant PKCS#8 output. |
 | [AWS Signature V4 Inspector](https://arahman200165.github.io/DUDE/tools/aws-sigv4-inspector) | Authentication | verified — Signature computation matches AWS's own documented worked example exactly, cross-checked independently via Node's crypto. |
@@ -131,6 +132,7 @@ browser sandbox.
 
 | Tool | Native capability |
 | --- | --- |
+| [ACL Inspector](https://arahman200165.github.io/DUDE/tools/acl-inspector) | Native Windows system access; Native filesystem access; Native Windows system changes |
 | [Batch Operations](https://arahman200165.github.io/DUDE/tools/batch-operations) | Native filesystem write |
 | [Batch Rename](https://arahman200165.github.io/DUDE/tools/batch-rename) | Native filesystem access; Native filesystem write |
 | [Batch Text Converter](https://arahman200165.github.io/DUDE/tools/batch-text-converter) | Native filesystem access; Native filesystem write |
@@ -206,6 +208,9 @@ Every tool not listed here behaves identically on the web companion and the desk
 
 | Tool | Desktop capability | On the web | What desktop adds |
 | --- | --- | --- | --- |
+| [ACL Inspector](https://arahman200165.github.io/DUDE/tools/acl-inspector) | Native filesystem access | Desktop-only feature | uses a native picker to grant a file or folder for ACL inspection and editing |
+| [ACL Inspector](https://arahman200165.github.io/DUDE/tools/acl-inspector) | Native Windows system access | Desktop-only feature | reads security descriptors for native file, folder and registry targets |
+| [ACL Inspector](https://arahman200165.github.io/DUDE/tools/acl-inspector) | Native Windows system changes | Desktop-only feature | edits the DACL of one file, folder or registry key through the desktop system mutation engine (never the owner or audit rules) |
 | [Batch Operations](https://arahman200165.github.io/DUDE/tools/batch-operations) | Native filesystem write | Desktop-only feature | undoes journaled file changes through the desktop mutation engine |
 | [Batch Rename](https://arahman200165.github.io/DUDE/tools/batch-rename) | Native filesystem access | Desktop-only feature | lists real folders in the desktop fs worker |
 | [Batch Rename](https://arahman200165.github.io/DUDE/tools/batch-rename) | Native filesystem write | Desktop-only feature | renames only through a previewed, journaled, undoable plan |

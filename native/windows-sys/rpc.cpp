@@ -82,6 +82,8 @@ std::string handleLine(const std::string& line) {
   else if (method == "account.localAccounts") ok = sys::handleAccountLocalAccounts(result, err);
   else if (method == "account.localGroups") ok = sys::handleAccountLocalGroups(result, err);
   else if (method == "account.profiles") ok = sys::handleAccountProfiles(result, err);
+  else if (method == "acl.get") ok = sys::handleAclGet(params, result, err);
+  else if (method == "acl.set") ok = sys::handleAclSet(params, result, err);
   else if (method == "proc.terminate") ok = sys::handleProcTerminate(params, result, err);
   else if (method == "proc.tree") ok = sys::handleProcTree(params, result, err);
   else if (method == "proc.suspend") ok = sys::handleProcSuspend(params, result, err);

@@ -4,6 +4,7 @@
 
 import type { ToolDefinition } from '../../shared/models/tool-definition.model';
 import { manifest as acceptHeaderBuilderManifest } from '../../tools/accept-header-builder/accept-header-builder.manifest';
+import { manifest as aclInspectorManifest } from '../../tools/acl-inspector/acl-inspector.manifest';
 import { manifest as advancedDiffManifest } from '../../tools/advanced-diff/advanced-diff.manifest';
 import { manifest as aesEncryptDecryptManifest } from '../../tools/aes-encrypt-decrypt/aes-encrypt-decrypt.manifest';
 import { manifest as archiveToolManifest } from '../../tools/archive-tool/archive-tool.manifest';
@@ -335,6 +336,7 @@ import { manifest as yamlPathManifest } from '../../tools/yaml-path/yaml-path.ma
 
 export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   acceptHeaderBuilderManifest,
+  aclInspectorManifest,
   advancedDiffManifest,
   aesEncryptDecryptManifest,
   archiveToolManifest,

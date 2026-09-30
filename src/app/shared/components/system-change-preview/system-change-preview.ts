@@ -39,7 +39,7 @@ const LONG_VALUE = 120;
                 @if (op.noUndo) { <span class="rounded-sm border border-error px-1 text-ui-xs text-error">no undo</span> }
                 @if (blockedReason(op.index); as reason) { <span class="flex items-center gap-1 text-ui-xs text-error"><app-status-glyph kind="error" />Blocked: {{ reason }}</span> }
               </div>
-              <span class="text-text-muted">{{ op.summary }}</span>
+              <span class="whitespace-pre-line text-text-muted">{{ op.summary }}</span>
               @if (op.before !== undefined || op.after !== undefined) {
                 <div class="grid gap-1 font-mono text-ui-xs md:grid-cols-2">
                   @if (op.before !== undefined) { <div class="min-w-0"><span class="text-text-muted">before</span> @if (isLong(op.before)) { <details><summary class="cursor-pointer text-text">{{ op.before.slice(0, 80) }}…</summary><pre class="whitespace-pre-wrap break-all text-text">{{ op.before }}</pre></details> } @else { <span class="whitespace-pre-wrap break-all text-text">{{ op.before }}</span> }</div> }

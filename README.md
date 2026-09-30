@@ -75,6 +75,9 @@ Every tool not listed here behaves identically on the web companion and the desk
 
 | Tool | Desktop capability | On the web | What desktop adds |
 | --- | --- | --- | --- |
+| [ACL Inspector](https://arahman200165.github.io/DUDE/tools/acl-inspector) | Native filesystem access | Desktop-only feature | uses a native picker to grant a file or folder for ACL inspection and editing |
+| [ACL Inspector](https://arahman200165.github.io/DUDE/tools/acl-inspector) | Native Windows system access | Desktop-only feature | reads security descriptors for native file, folder and registry targets |
+| [ACL Inspector](https://arahman200165.github.io/DUDE/tools/acl-inspector) | Native Windows system changes | Desktop-only feature | edits the DACL of one file, folder or registry key through the desktop system mutation engine (never the owner or audit rules) |
 | [Batch Operations](https://arahman200165.github.io/DUDE/tools/batch-operations) | Native filesystem write | Desktop-only feature | undoes journaled file changes through the desktop mutation engine |
 | [Batch Rename](https://arahman200165.github.io/DUDE/tools/batch-rename) | Native filesystem access | Desktop-only feature | lists real folders in the desktop fs worker |
 | [Batch Rename](https://arahman200165.github.io/DUDE/tools/batch-rename) | Native filesystem write | Desktop-only feature | renames only through a previewed, journaled, undoable plan |
@@ -171,7 +174,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-329 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+330 tools ship today, each self-registered in [`tool-definitions.ts`](src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -275,6 +278,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [SVG ↔ Data URI](https://arahman200165.github.io/DUDE/tools/svg-data-uri) | Encoding | Converts SVG markup to a data:image/svg+xml URI (URL-encoded or base64) and back. |
 | [Tailwind Color Matcher](https://arahman200165.github.io/DUDE/tools/tailwind-color-matcher) | Encoding | Finds the nearest Tailwind CSS v4 default-palette colors to an arbitrary color, ranked by OKLab perceptual distance. |
 | [URL Encoder / Decoder](https://arahman200165.github.io/DUDE/tools/url-encode) | Encoding | Percent-encode or decode text as a URL component or a full URI. |
+| [ACL Inspector](https://arahman200165.github.io/DUDE/tools/acl-inspector) | Security | Inspect Windows file, folder and registry security descriptors: owner, DACL and SACL entries, decoded rights, inheritance and SDDL; add or remove a permission entry or change inheritance through a reviewed, undoable system plan. |
 | [AES Encrypt / Decrypt](https://arahman200165.github.io/DUDE/tools/aes-encrypt-decrypt) | Security | Encrypts or decrypts text with AES-GCM or AES-CBC, using a passphrase-derived (PBKDF2) key. |
 | [Asymmetric Key Generator](https://arahman200165.github.io/DUDE/tools/asymmetric-key-generator) | Security | Generates an RSA, EC, or Ed25519 key pair in-browser, exported as PEM or JWK. |
 | [Basic Auth Header Generator](https://arahman200165.github.io/DUDE/tools/basic-auth-generator) | Security | Builds (or decodes) an HTTP Basic Authorization header from a username and password. |

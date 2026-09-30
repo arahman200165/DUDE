@@ -113,6 +113,10 @@ bool handleAccountToken(std::string& result, Failure& err);
 bool handleAccountLocalAccounts(std::string& result, Failure& err);
 bool handleAccountLocalGroups(std::string& result, Failure& err);
 bool handleAccountProfiles(std::string& result, Failure& err);
+// ACL inspection (Milestone 610), read-only.
+bool handleAclGet(const JsonValue* params, std::string& result, Failure& err);
+// Mutating ACL operation (acl.cpp), reached only from confirmed engine plans: writes the DACL only.
+bool handleAclSet(const JsonValue* params, std::string& result, Failure& err);
 // Current helper process API-set namespace for API-MS/EXT-MS contract resolution.
 bool handlePeApiSetMap(std::string& result, Failure& err);
 // Mutating process operations (process_ops.cpp), reached only from confirmed engine plans.

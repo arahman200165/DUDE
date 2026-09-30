@@ -1,0 +1,211 @@
+<app-tool-shell>
+  @if (!systemAvailable()) {
+    <div class="flex flex-col gap-3 rounded-sm border border-border bg-panel p-4 text-ui">
+      <p class="text-text-muted">Inspect Windows access control entries and security descriptors in Desktop DUDE.</p>
+      <app-desktop-only-control capability="native-system" label="Read Windows security descriptors" />
+      <app-desktop-only-control capability="native-fs" label="Choose a file or folder" />
+    </div>
+  } @else {
+    <div class="flex flex-col gap-3 text-ui">
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" class="rounded-sm border border-border px-2 py-1 text-text hover:bg-panel-elevated" (click)="pickFile()">Choose file…</button>
+        <button type="button" class="rounded-sm border border-border px-2 py-1 text-text hover:bg-panel-elevated" (click)="pickFolder()">Choose folder…</button>
+        <span class="text-text-muted">Native picker selections grant the target path for this read.</span>
+      </div>
+
+      <section class="flex flex-wrap items-end gap-2 rounded-sm border border-border bg-panel p-2" aria-label="Registry key target">
+        <label class="flex min-w-56 flex-1 flex-col gap-1 text-text-muted">Registry key
+          <input class="rounded-sm border border-border bg-bg px-2 py-1 font-mono text-text" placeholder="HKLM\SOFTWARE\Microsoft   (also HKEY_…, Computer\…, HKLM:\…)" [value]="registryPath()" (input)="onRegistryInput($event)" (keydown.enter)="inspectRegistry()" />
+        </label>
+        <label class="flex flex-col gap-1 text-text-muted">Registry view
+          <select class="rounded-sm border border-border bg-bg px-2 py-1 text-text" [value]="view()" (change)="setView($event)">
+            <option value="default">Default</option><option value="64">64-bit</option><option value="32">32-bit</option>
+          </select>
+        </label>
+        <button type="button" class="rounded-sm border border-border px-2 py-1 text-text hover:bg-panel-elevated" (click)="inspectRegistry()">Inspect key</button>
+      </section>
+
+      @if (error()) { <div role="alert" class="flex items-center gap-1 text-error"><app-status-glyph kind="error" />{{ error() }}</div> }
+      @if (loading()) { <div role="status" class="flex items-center gap-1 text-accent"><app-status-glyph kind="busy" />Reading security descriptor…</div> }
+
+      @if (result(); as acl) {
+        <section class="flex flex-col gap-3">
+          <header class="flex flex-wrap items-center gap-2 rounded-sm border border-border bg-panel p-2">
+            <span class="min-w-0 flex-1 break-all font-mono text-text">{{ targetLabel() }}</span>
+            <app-copy-button [text]="acl.sddl" label="Copy SDDL" />
+            <app-save-text-file [text]="acl.sddl" fileName="security-descriptor.sddl" label="Export SDDL…" />
+            <app-copy-button [text]="descriptorJson()" label="Copy report" />
+            <app-save-text-file [text]="descriptorJson()" fileName="acl-report.json" extension=".json" label="Export report…" mimeType="application/json;charset=utf-8" />
+          </header>
+
+          <div class="grid gap-2 md:grid-cols-3">
+            <div class="rounded-sm border border-border bg-panel p-2">
+              <h2 class="mb-1 font-semibold text-text">Owner</h2>
+              <p class="break-all text-text">{{ acl.ownerName ?? acl.owner ?? 'Owner unavailable' }}</p>
+              @if (acl.owner) { <p class="break-all font-mono text-ui-xs text-text-muted">{{ acl.owner }}</p> }
+            </div>
+            <div class="rounded-sm border border-border bg-panel p-2">
+              <h2 class="mb-1 font-semibold text-text">Primary group</h2>
+              <p class="break-all text-text">{{ acl.groupName ?? acl.group ?? 'Group unavailable' }}</p>
+              @if (acl.group) { <p class="break-all font-mono text-ui-xs text-text-muted">{{ acl.group }}</p> }
+            </div>
+            <div class="rounded-sm border border-border bg-panel p-2">
+              <h2 class="mb-1 font-semibold text-text">Inheritance</h2>
+              <p class="text-text">{{ acl.inheritanceProtected ? 'Protected: parent permissions are not inherited' : 'Enabled: inherits from the parent' }}</p>
+              @if (acl.daclNull) { <p class="mt-1 text-ui-xs text-warning">This object has no DACL, so everyone has full access.</p> }
+              @if (canEdit()) {
+                <div class="mt-2 flex flex-col gap-1 text-ui-xs">
+                  @if (acl.inheritanceProtected) {
+                    <button type="button" class="self-start rounded-sm border border-warning px-2 py-1 text-warning disabled:opacity-50" data-testid="acl-enable-inheritance" [disabled]="planning()" (click)="previewInheritance('enable')">Preview enable inheritance…</button>
+                  } @else {
+                    <label class="flex flex-col gap-1 text-text-muted">When disabling inheritance
+                      <select class="rounded-sm border border-border bg-bg px-2 py-1 text-text" aria-label="Disable inheritance mode" [value]="disableChoice()" (change)="disableChoice.set($any($event.target).value)">
+                        <option value="convert">Convert inherited entries to explicit</option>
+                        <option value="remove">Remove inherited entries</option>
+                      </select>
+                    </label>
+                    <button type="button" class="self-start rounded-sm border border-warning px-2 py-1 text-warning disabled:opacity-50" data-testid="acl-disable-inheritance" [disabled]="planning()" (click)="previewInheritance(disableChoice())">Preview disable inheritance…</button>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          @if (acl.needsElevation) {
+            <app-elevation-banner [required]="true" feature="Reading the audit rules (SACL)" />
+          }
+
+          <section class="rounded-sm border border-border bg-panel p-2" aria-label="Discretionary ACL">
+            <h2 class="mb-2 font-semibold text-text">Permissions (DACL) <span class="text-ui-xs font-normal text-text-muted">{{ daclRows().length }} {{ daclRows().length === 1 ? 'entry' : 'entries' }}</span></h2>
+            @if (!daclRows().length) {
+              <p class="text-ui-xs text-text-muted">{{ acl.daclNull ? 'No DACL: access is unrestricted.' : 'Empty DACL: nobody has access.' }}</p>
+            } @else {
+              <ng-container *ngTemplateOutlet="aceTable; context: { rows: daclRows(), editable: canEdit() }" />
+            }
+            @if (canEdit()) {
+              <div class="mt-2 flex flex-col gap-2 border-t border-border pt-2 text-ui-xs">
+                <button type="button" class="self-start rounded-sm border border-border px-2 py-1 text-text hover:bg-panel-elevated" data-testid="acl-add-toggle" [attr.aria-expanded]="addOpen()" (click)="toggleAdd()">{{ addOpen() ? 'Close add entry' : 'Add entry…' }}</button>
+                @if (addOpen()) {
+                  <form class="flex flex-wrap items-end gap-2" (submit)="$event.preventDefault(); previewAdd()">
+                    <label class="flex min-w-48 flex-1 flex-col gap-1 text-text-muted">Account name or SID
+                      <input class="rounded-sm border border-border bg-bg px-2 py-1 font-mono text-text" data-testid="acl-add-principal" [value]="principal()" (input)="onPrincipalInput($event)" placeholder="BUILTIN\Users or S-1-5-32-545" />
+                    </label>
+                    <label class="flex flex-col gap-1 text-text-muted">Type
+                      <select class="rounded-sm border border-border bg-bg px-2 py-1 text-text" aria-label="Entry type" [value]="aceKind()" (change)="aceKind.set($any($event.target).value)"><option value="allow">Allow</option><option value="deny">Deny</option></select>
+                    </label>
+                    <label class="flex flex-col gap-1 text-text-muted">Rights
+                      <select class="rounded-sm border border-border bg-bg px-2 py-1 text-text" aria-label="Rights preset" [value]="preset()" (change)="onPreset($event)">
+                        @for (item of presets(); track item.id) { <option [value]="item.id">{{ item.label }}</option> }
+                        <option value="custom">Custom mask…</option>
+                      </select>
+                    </label>
+                    @if (preset() === 'custom') {
+                      <label class="flex flex-col gap-1 text-text-muted">Access mask
+                        <input class="w-32 rounded-sm border border-border bg-bg px-2 py-1 font-mono text-text" aria-label="Custom access mask" [value]="customMask()" (input)="customMask.set($any($event.target).value)" placeholder="0x1200a9" />
+                      </label>
+                    }
+                    @if (acl.isContainer) {
+                      <label class="flex flex-col gap-1 text-text-muted">Applies to
+                        <select class="rounded-sm border border-border bg-bg px-2 py-1 text-text" aria-label="Applies to" [value]="scope()" (change)="onScope($event)">
+                          @for (option of scopeOptions(); track option.value) { <option [value]="option.value">{{ option.label }}</option> }
+                        </select>
+                      </label>
+                      <label class="flex items-center gap-1 text-text-muted"><input type="checkbox" [checked]="inheritOnly()" [disabled]="scope() === 'this'" (change)="inheritOnly.set($any($event.target).checked)" />Inherit only (IO)</label>
+                      <label class="flex items-center gap-1 text-text-muted"><input type="checkbox" [checked]="noPropagate()" [disabled]="scope() === 'this'" (change)="noPropagate.set($any($event.target).checked)" />No propagate (NP)</label>
+                    }
+                    <button type="submit" class="rounded-sm border border-warning px-2 py-1 text-warning disabled:opacity-50" data-testid="acl-add-preview" [disabled]="planning()">{{ planning() ? 'Preparing…' : 'Preview change…' }}</button>
+                  </form>
+                }
+              </div>
+            }
+            @if (planError()) { <div role="alert" class="mt-2 flex items-center gap-1 text-error"><app-status-glyph kind="error" />{{ planError() }}</div> }
+            <app-system-change-preview [preview]="preview()" (applied)="onApplied($event)" (discarded)="clearPreview()" />
+          </section>
+
+          <section class="rounded-sm border border-border bg-panel p-2" aria-label="System ACL">
+            <h2 class="mb-2 font-semibold text-text">Auditing (SACL) <span class="text-ui-xs font-normal text-text-muted">{{ saclRows() === null ? 'not readable' : saclRows()!.length + ' entries' }}</span></h2>
+            @if (saclRows() === null) {
+              <p class="text-ui-xs text-warning">The audit rules could not be read. Reading a SACL needs SeSecurityPrivilege, which an elevated session holds.</p>
+            } @else if (!saclRows()!.length) {
+              <p class="text-ui-xs text-text-muted">No audit entries.</p>
+            } @else {
+              <ng-container *ngTemplateOutlet="aceTable; context: { rows: saclRows() }" />
+            }
+          </section>
+
+          <section class="rounded-sm border border-border bg-panel p-2">
+            <h2 class="mb-1 font-semibold text-text">Effective access</h2>
+            <label class="flex flex-wrap items-center gap-2 text-ui-xs text-text-muted">Account name or SID
+              <input class="min-w-56 rounded-sm border border-border bg-bg px-2 py-1 font-mono text-text" [value]="account()" (input)="account.set($any($event.target).value)" (keydown.enter)="calculateEffective()" aria-label="Account for effective access" />
+              <button type="button" class="rounded-sm border border-border px-2 py-1 text-text hover:bg-panel-elevated" [disabled]="!account().trim() || loading()" (click)="calculateEffective()">Calculate DACL rights</button>
+            </label>
+            <p class="my-1 text-ui-xs text-text-muted">This lookup may contact a domain controller. The result is an estimate from the DACL; token privileges, logon groups, owner rights and parent rules are excluded.</p>
+            @if (effective(); as effective) {
+              <p class="text-text"><span class="font-mono">{{ effective.account }}</span>: {{ effective.rights.summary }} <span class="font-mono text-text-muted">({{ effective.rights.short || effective.rights.hex }})</span></p>
+              @if (effective.nullDacl) { <p class="text-ui-xs text-warning">The object has no DACL, so full access is reported.</p> }
+              <p class="text-ui-xs text-text-muted">{{ effective.rights.names.join(', ') || 'No rights granted.' }}</p>
+              <p class="text-ui-xs text-text-muted">{{ effective.disclosure }}</p>
+            } @else {
+              <p class="text-ui-xs text-text-muted">Enter an account and choose Calculate DACL rights. Windows may be unable to enumerate some group memberships.</p>
+            }
+          </section>
+
+          @if (acl.errors.length) {
+            <section class="rounded-sm border border-warning bg-panel p-2"><h2 class="font-semibold text-text">Read limitations</h2><ul class="list-disc pl-5 text-ui-xs text-text-muted">@for (issue of acl.errors; track issue) { <li>{{ issue }}</li> }</ul></section>
+          }
+
+          <details class="rounded-sm border border-border bg-panel p-2">
+            <summary class="cursor-pointer text-text">Security descriptor (SDDL)</summary>
+            <pre class="mt-2 overflow-auto whitespace-pre-wrap break-all font-mono text-ui-xs text-text">{{ acl.sddl }}</pre>
+            <pre class="mt-2 overflow-auto whitespace-pre-wrap break-all font-mono text-ui-xs text-text-muted" aria-label="SDDL breakdown">{{ sddlLines().join('\n') }}</pre>
+          </details>
+        </section>
+      } @else if (!loading()) {
+        <div class="rounded-sm border border-border bg-panel p-4 text-text-muted">Choose a file or folder, or inspect a registry key, to read its owner and access control entries.</div>
+      }
+    </div>
+  }
+</app-tool-shell>
+
+<ng-template #aceTable let-rows="rows" let-editable="editable">
+  <div class="overflow-x-auto">
+    <table class="w-full border-collapse text-left text-ui-xs">
+      <thead>
+        <tr class="border-b border-border text-text-muted">
+          <th class="px-1 py-1 font-medium">Type</th>
+          <th class="px-1 py-1 font-medium">Principal</th>
+          <th class="px-1 py-1 font-medium">Access</th>
+          <th class="px-1 py-1 font-medium">Applies to</th>
+          <th class="px-1 py-1 font-medium">Inherited from</th>
+          @if (editable) { <th class="px-1 py-1 font-medium"><span class="sr-only">Actions</span></th> }
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows; track row.key) {
+          <tr class="border-b border-border align-top">
+            <td class="px-1 py-1 font-medium" [class]="categoryClass(row.category)">{{ row.type }}@if (row.auditFlags) { <span class="block font-normal text-text-muted">{{ row.auditFlags }}</span> }</td>
+            <td class="px-1 py-1">
+              <span class="block break-all text-text">{{ row.principal }}</span>
+              @if (row.named && row.sid) { <span class="block break-all font-mono text-text-muted">{{ row.sid }}</span> }
+            </td>
+            <td class="px-1 py-1">
+              <span class="block text-text">{{ row.summary }} @if (row.short) { <span class="font-mono text-text-muted">({{ row.short }})</span> }</span>
+              <details>
+                <summary class="cursor-pointer text-text-muted">{{ row.details.length }} rights · <span class="font-mono">{{ row.hex }}</span></summary>
+                <span class="block text-text-muted">{{ row.details.join(', ') || 'None' }}</span>
+              </details>
+            </td>
+            <td class="px-1 py-1 text-text">{{ row.scope }} @if (row.icacls) { <span class="font-mono text-text-muted">{{ row.icacls }}</span> }</td>
+            <td class="px-1 py-1 text-text-muted">{{ row.inherited ? (row.inheritedFrom ?? 'Inherited (source unknown)') : 'Explicit' }}</td>
+            @if (editable) {
+              <td class="px-1 py-1">
+                <button type="button" class="rounded-sm border border-warning px-2 py-0.5 text-warning disabled:opacity-50" data-testid="acl-remove-preview"
+                  [disabled]="row.inherited || planning()" [attr.title]="row.inherited ? 'Inherited from the parent. Change it there, or disable inheritance to edit a copy.' : null" [attr.aria-label]="'Remove entry for ' + row.principal" (click)="previewRemove(row)">Remove…</button>
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</ng-template>
