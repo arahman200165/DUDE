@@ -2,7 +2,7 @@
 
 DUDE is a local-first, client-side app: by default, everything you paste, upload, or generate stays in your browser tab (or, on desktop, on your machine) and is never sent anywhere. This document is the concrete, current-state accounting of the handful of places that isn't strictly true, what gets stored and where, the sandbox execution model's guarantees and limits, the Electron desktop app's process/IPC boundaries, and how to report a vulnerability.
 
-See [`README.md`](../README.md) for the product overview and [`DUDE_PRD.md`](../DUDE_PRD.md) §29–31 for the underlying product requirements (Large Inputs, Sensitive Inputs, Security Boundaries) this document reports the current implementation of.
+See [`README.md`](../README.md) for the product overview and the master [PRD](DUDE_PRD.md), plus [Large Inputs](product/PRODUCT_SPEC.md#large-inputs), [Sensitive Inputs](architecture/SECURITY_ARCHITECTURE.md#sensitive-inputs) and [Security Boundaries](architecture/SECURITY_ARCHITECTURE.md#security-boundaries) for the underlying product requirements (Large Inputs, Sensitive Inputs, Security Boundaries) this document reports the current implementation of.
 
 ## What leaves the device
 
@@ -48,7 +48,7 @@ All four are network-isolated by policy (`network: { required: false }` — see 
 
 ## Electron desktop app
 
-The Windows desktop build (`DUDE_PRD.md` §21 Phase 8) adds a bundled local backend on top of the same web app, with the following boundaries:
+The Windows desktop build ([Phase 8](history/DELIVERY_HISTORY.md#phase-8)) adds a bundled local backend on top of the same web app, with the following boundaries:
 
 - The renderer (the Angular app) runs with `contextIsolation: true`, `nodeIntegration: false`, and `sandbox: true` — no direct Node.js or filesystem access, no exceptions. Every native capability (file dialogs, OS-keychain secret storage, the local LLM proxy, the collab server) is exposed only through `preload.ts`'s `contextBridge.exposeInMainWorld(...)`, never by relaxing those three flags.
 - Every local backend process the desktop app starts — the static server serving the built app, the LLM proxy, the collab server — binds `127.0.0.1` (loopback) only, never an external network interface.

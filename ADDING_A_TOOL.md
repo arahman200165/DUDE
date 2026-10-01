@@ -1,6 +1,6 @@
 # Adding a Tool
 
-DUDE's framework goal (PRD §2) is that a new simple tool with existing transformation logic can be added in **30 minutes or less**, without touching the application shell, navigation, command palette, search, routing, PWA, or persistence/worker infrastructure. This doc walks through exactly how, using the real `base64` tool (`src/app/tools/base64/`) as the worked example throughout.
+DUDE's framework goal ([Core Product Goal](docs/DUDE_PRD.md#core-product-goal)) is that a new simple tool with existing transformation logic can be added in **30 minutes or less**, without touching the application shell, navigation, command palette, search, routing, PWA, or persistence/worker infrastructure. This doc walks through exactly how, using the real `base64` tool (`src/app/tools/base64/`) as the worked example throughout.
 
 If following these steps ever requires editing `ShellLayout`, `app.routes.ts`, or a shared service in `src/app/core/`, that's an architecture gap — file it, don't route around it.
 
@@ -21,7 +21,7 @@ Keeping the transform pure and framework-free (like `json-format.ts` or `text-di
 
 ## 2. Define metadata
 
-Create `src/app/tools/<id>/<id>.manifest.ts`, exporting a `manifest: ToolDefinition` (`src/app/shared/models/tool-definition.model.ts`) — this is the tool's **only** registration point (DUDE_PRD.md §21 Phase 22 Item 1: distributed manifests, composed at build time, rather than one multi-thousand-line hand-edited array). `load`'s import path is relative to the manifest's own folder, i.e. just `./<id>`:
+Create `src/app/tools/<id>/<id>.manifest.ts`, exporting a `manifest: ToolDefinition` (`src/app/shared/models/tool-definition.model.ts`) — this is the tool's **only** registration point ([Phase 22](docs/history/DELIVERY_HISTORY.md#phase-22) Item 1: distributed manifests, composed at build time, rather than one multi-thousand-line hand-edited array). `load`'s import path is relative to the manifest's own folder, i.e. just `./<id>`:
 
 ```ts
 import type { ToolDefinition } from '../../shared/models/tool-definition.model';
@@ -48,7 +48,7 @@ export const manifest: ToolDefinition = {
 
 ### Status & confidence tiers
 
-`status` is one of three tiers (DUDE_PRD.md §21 Phase 23 Item 1) — pick the one that honestly describes how the tool has actually been tested, not how finished the UI looks:
+`status` is one of three tiers ([Phase 23](docs/history/DELIVERY_HISTORY.md#phase-23) Item 1) — pick the one that honestly describes how the tool has actually been tested, not how finished the UI looks:
 
 - **`experimental`** — the default assumption for anything new or still settling. Fine for a first cut.
 - **`stable`** — the transform logic has real test coverage and the UI has been manually exercised end-to-end; this is the bar nearly every tool ships at today.
@@ -64,7 +64,7 @@ Wrap the tool's content in `<app-tool-shell>` (`src/app/shared/components/tool-s
 </app-tool-shell>
 ```
 
-`ToolShell` resolves its title, status badge, and (by default) network-required badge directly from the registered `ToolDefinition` — no inputs needed for the common case (DUDE_PRD.md §21 Phase 22 Items 2/6: single source of truth, not duplicated at every call site). Only pass `[networkRequired]="someExpression()"` explicitly if the tool's network need is a genuinely dynamic, runtime condition the static registry value can't express (e.g. only fetching when a particular panel is open — see `jwt-verify`, `markdown-workspace`, `package-metadata-inspector`, or `text-inspector` for the pattern); when provided, it overrides the registry value.
+`ToolShell` resolves its title, status badge, and (by default) network-required badge directly from the registered `ToolDefinition` — no inputs needed for the common case ([Phase 22](docs/history/DELIVERY_HISTORY.md#phase-22) Items 2/6: single source of truth, not duplicated at every call site). Only pass `[networkRequired]="someExpression()"` explicitly if the tool's network need is a genuinely dynamic, runtime condition the static registry value can't express (e.g. only fetching when a particular panel is open — see `jwt-verify`, `markdown-workspace`, `package-metadata-inspector`, or `text-inspector` for the pattern); when provided, it overrides the registry value.
 
 Import other shared primitives as needed: `ErrorPanel`, `BusyIndicator` (for worker-backed tools), `OfflineBadge` (already included inside `ToolShell` itself).
 
@@ -79,7 +79,7 @@ Import other shared primitives as needed: `ErrorPanel`, `BusyIndicator` (for wor
   ```
 - *Text output* gets `<app-save-text-file [text]="output()" [source]="open" />` next to its copy button (pass `extension=".json"` when the output format differs from the input's). A tool rendering it must declare `file` in `io.produces`, and a `fileInput` tool `file` in `io.accepts` (`tool-conformance.spec.ts` checks both).
 
-**Colors and appearance.** Dark is the default, but your tool also renders in Light, high contrast, six accents, three category palette sets, the color-blind-safe status set, and three densities (DUDE_PRD.md §8.1, §8.5, §19). Use theme tokens only:
+**Colors and appearance.** Dark is the default, but your tool also renders in Light, high contrast, six accents, three category palette sets, the color-blind-safe status set, and three densities ([Theme](docs/product/UX_SPEC.md#theme), [Color System](docs/product/UX_SPEC.md#color-system), [Accessibility](docs/product/UX_SPEC.md#accessibility)). Use theme tokens only:
 
 - Surfaces and text: `bg-bg`, `bg-panel`, `bg-panel-elevated`, `border-border`, `text-text`, `text-text-muted`; status: `text-error`/`-warning`/`-success`/`-info`/`-busy`/`-offline`; category: `text-cat-<category>`; interaction: `accent`. Text on a filled accent surface is `text-on-accent`.
 - `npm run lint` runs `scripts/check-design-tokens.mjs`, which fails a tool on raw Tailwind palette colors (`text-red-400`, `bg-white`, `bg-black/75`), the retired `text-bg`, an opacity modifier on a text color (`text-text-muted/70`), or a hex color in its `.html`/`.css`. A hex value in the tool's `.ts` is allowed when it is tool data (a color converter's input, a palette generator's output). The same lint runs `check-theme-contrast.mjs`, which proves the tokens themselves in every combination; it can only vouch for your tool if the tool uses them.
@@ -138,7 +138,7 @@ and bind the returned `WorkerJob`'s `status()` / `progress()` / `result()` / `er
 
 ## 6. Choose a network policy
 
-If the tool genuinely needs network access, set `network: { required: true }` in the manifest — `ToolShell` picks this up automatically (step 3), no template binding needed unless the need is dynamic. Most tools set this to false/omit it. Per the PRD's scope gate (§35), think hard before requiring network — there's no backend and no API-key infrastructure wired into most showcase tools.
+If the tool genuinely needs network access, set `network: { required: true }` in the manifest — `ToolShell` picks this up automatically (step 3), no template binding needed unless the need is dynamic. Most tools set this to false/omit it. Per the PRD's scope gate ([Historical V1 Definition of Done](docs/history/DELIVERY_HISTORY.md#historical-v1-definition-of-done)), think hard before requiring network — there's no backend and no API-key infrastructure wired into most showcase tools.
 
 **Platform capabilities and runtimes.** If the tool injects a desktop-only service (`NativeFsService`, `FileWatchService`, `LlmProxyService`, `CollabService`, `SecureLocalService`) or loads a vendored runtime (`assets/vendor/pyodide`, `sql.js`, `xmllint-wasm`, `assets/vendor/ejs.min.js`), declare it in `capabilities` using the closed vocabulary in `src/app/shared/models/tool-capability.model.ts`. For example: `capabilities: [{ kind: 'platform', id: 'native-fs', web: 'fallback', note: 'reads a real folder on disk' }]` or `[{ kind: 'runtime', runtime: 'pyodide' }]`. Use `web: 'fallback'` when the tool still does its job in a browser, and `'unavailable'` when that one feature is absent there. `tool-conformance.spec.ts` fails in both directions: an undeclared import, or a declaration with no matching import. `npm run generate:registry` turns these declarations into the Web Capability Matrix in `SECURITY.md` and `README.md`.
 
@@ -161,18 +161,18 @@ Prefer valid, deterministic vectors with an explicit expected output. If a step 
 
 ## 7. Declare I/O capabilities
 
-Set `io: { accepts: [...], produces: [...] }` in the `ToolDefinition` — the field is required (`io:`, not `io?:`) so the compiler rejects a tool that forgets it. Use the shared vocabulary in `src/app/shared/models/tool-io.model.ts` (`DudeDataType`: `text`, `json`, `bytes`, `file`, `table`, `url`, `http-response`). This is the "Universal Input/Output Contract" from PRD §21 Phase 21 — like `persistence`/`execution`/`network`, it's declarative documentation only (not read by the shell at runtime yet), but it's what a future pipeline/Smart-Paste feature would build on, so keep it honest: describe what the tool's UI/logic actually consumes and emits today, not aspirational future capability. `tool-count.spec.ts`'s "Universal I/O contract coverage" spec still guards against a technically-present-but-empty `accepts`/`produces` array, which the required-field type check alone doesn't catch.
+Set `io: { accepts: [...], produces: [...] }` in the `ToolDefinition` — the field is required (`io:`, not `io?:`) so the compiler rejects a tool that forgets it. Use the shared vocabulary in `src/app/shared/models/tool-io.model.ts` (`DudeDataType`: `text`, `json`, `bytes`, `file`, `table`, `url`, `http-response`). This is the "Universal Input/Output Contract" from [Phase 21](docs/history/DELIVERY_HISTORY.md#phase-21) — like `persistence`/`execution`/`network`, it's declarative documentation only (not read by the shell at runtime yet), but it's what a future pipeline/Smart-Paste feature would build on, so keep it honest: describe what the tool's UI/logic actually consumes and emits today, not aspirational future capability. `tool-count.spec.ts`'s "Universal I/O contract coverage" spec still guards against a technically-present-but-empty `accepts`/`produces` array, which the required-field type check alone doesn't catch.
 
 Milestone 282 audited all 277 existing entries and fixed the drift it found; apply these conventions rather than reinventing them per tool:
 
 - **A download/export button means `file` belongs in `produces`.** This was the single most common miss — a tool with a "Download" affordance that only declared `text`/`json`. If the component calls `downloadFile(...)` or otherwise hands the user a file to save, `file` must be in `produces`.
 - **A pure knob/option generator with no paste-and-parse or inspect mode declares `accepts: ['json']`** — its discrete form controls are conceptually a config object (see `password-generator`, `pkce-generator`, `lorem-ipsum-generator`). A generator that *also* accepts pasted text to inspect/decode an existing value (see `uuid`, `ulid-tools`) keeps `text` too.
 - **A tool that decodes/analyzes input into itemized structured fields** (not just a pass/fail message) should include `json` in `produces` alongside any human-readable text — see the JWT/OAuth cluster (`jwt`, `oauth-token-inspector`) and the ID-inspector cluster (`uuid`, `ulid-tools`, `snowflake-id-tools`, `ksuid-tools`).
-- A tool whose declared `io` can't honestly represent something it does (e.g. a live webcam/camera input stream, as in `qr-code-scanner`) should still declare the closest reasonable fit rather than a wrong one — don't stretch an existing `DudeDataType` to cover a genuinely different capability. Vocabulary gaps like this are a known, accepted limitation of the current 7-type set (see `DUDE_PRD.md` §21's Phase 21 note), not something to work around per-tool.
+- A tool whose declared `io` can't honestly represent something it does (e.g. a live webcam/camera input stream, as in `qr-code-scanner`) should still declare the closest reasonable fit rather than a wrong one — don't stretch an existing `DudeDataType` to cover a genuinely different capability. Vocabulary gaps like this are a known, accepted limitation of the current 7-type set (see [Roadmap Direction](docs/delivery/ROADMAP.md#roadmap-direction)'s Phase 21 note), not something to work around per-tool.
 
 ## 8. Choose your workspace/history participation
 
-Optional — a tool with no `<id>.workspace-step.ts` file simply isn't eligible for live tab/panel mirroring (§21 Phase 21 Item 4) or Local History (Item 5); that's a normal, common outcome, not an error (`core/workspace/workspace-coverage.spec.ts` tracks every tool's decision either way). If the tool has a real, restorable content field (not just a live-clock/interactive-only state, and not a File/Blob that never touches `PersistenceService`), add `src/app/tools/<id>/<id>.workspace-step.ts` exporting `workspaceStep: WorkspaceStep` (`src/app/shared/models/workspace-step.model.ts`):
+Optional — a tool with no `<id>.workspace-step.ts` file simply isn't eligible for live tab/panel mirroring ([Phase 21](docs/history/DELIVERY_HISTORY.md#phase-21) Item 4) or Local History (Item 5); that's a normal, common outcome, not an error (`core/workspace/workspace-coverage.spec.ts` tracks every tool's decision either way). If the tool has a real, restorable content field (not just a live-clock/interactive-only state, and not a File/Blob that never touches `PersistenceService`), add `src/app/tools/<id>/<id>.workspace-step.ts` exporting `workspaceStep: WorkspaceStep` (`src/app/shared/models/workspace-step.model.ts`):
 
 ```ts
 export const workspaceStep: WorkspaceStep = {
@@ -208,13 +208,13 @@ The panel component reads and writes the tool's own `local` `persistence.signal(
 
 ## 9. Expose the lazy route/component
 
-Nothing to do beyond step 2. `buildToolRoutes()` (`src/app/core/registry/tool-routes.ts`) automatically turns every `TOOL_DEFINITIONS` entry into a lazy `loadComponent` route nested under the root `ShellLayout` (`src/app/core/routing/app.routes.ts`). No route file edits needed — this is the "shell generated from tool metadata" promise (PRD §12.2) actually working.
+Nothing to do beyond step 2. `buildToolRoutes()` (`src/app/core/registry/tool-routes.ts`) automatically turns every `TOOL_DEFINITIONS` entry into a lazy `loadComponent` route nested under the root `ShellLayout` (`src/app/core/routing/app.routes.ts`). No route file edits needed — this is the "shell generated from tool metadata" promise ([Registry responsibilities](docs/architecture/SYSTEM_ARCHITECTURE.md#registry-responsibilities)) actually working.
 
 ## 10. Add tests where appropriate
 
-A framework-free `.spec.ts` for the pure transform is the highest-value test (fast, no TestBed) — see `base64-codec.spec.ts`. Only add a component-level spec if there's real branching logic in the component itself (e.g. json's worker-threshold test, `src/app/tools/json/json.spec.ts`). Don't chase coverage for its own sake (PRD §18 — "ship first").
+A framework-free `.spec.ts` for the pure transform is the highest-value test (fast, no TestBed) — see `base64-codec.spec.ts`. Only add a component-level spec if there's real branching logic in the component itself (e.g. json's worker-threshold test, `src/app/tools/json/json.spec.ts`). Don't chase coverage for its own sake ([Testing Strategy](docs/delivery/QUALITY_AND_RELEASE.md#testing-strategy) — "ship first").
 
-If the transform is round-trip-capable (an `encode`/`decode` or `parse`/`format` pair, or any `f`/`f⁻¹`), add one `fast-check` property case alongside the example-based tests (DUDE_PRD.md §21 Phase 23 Item 4) — it catches the edge cases hand-picked examples miss:
+If the transform is round-trip-capable (an `encode`/`decode` or `parse`/`format` pair, or any `f`/`f⁻¹`), add one `fast-check` property case alongside the example-based tests ([Phase 23](docs/history/DELIVERY_HISTORY.md#phase-23) Item 4) — it catches the edge cases hand-picked examples miss:
 
 ```ts
 import fc from 'fast-check';
@@ -233,7 +233,7 @@ it('decodeX(encodeX(x)) === x for any input', () => {
 
 See `base64-codec.spec.ts`, `url-encode-codec.spec.ts`, and `number-base-convert.spec.ts` for real examples. Don't force this onto a transform that isn't genuinely round-trip-capable (e.g. a lossy formatter, or one direction only) — it isn't a mandatory addition to every tool's spec.
 
-If the tool parses structured/untrusted input (JSON, YAML, XML, a config format, a binary format, a URL, an expression), add a `fast-check` fuzz case asserting the parse function never throws uncaught and always returns its typed `Result` — never semantic correctness, just crash-safety against adversarial input (DUDE_PRD.md §21 Phase 23 Item 5):
+If the tool parses structured/untrusted input (JSON, YAML, XML, a config format, a binary format, a URL, an expression), add a `fast-check` fuzz case asserting the parse function never throws uncaught and always returns its typed `Result` — never semantic correctness, just crash-safety against adversarial input ([Phase 23](docs/history/DELIVERY_HISTORY.md#phase-23) Item 5):
 
 ```ts
 it('never throws for arbitrary text input', () => {
@@ -247,7 +247,7 @@ it('never throws for arbitrary text input', () => {
 
 See `json-format.spec.ts`, `yaml-convert.spec.ts`, and `xml-format.spec.ts` for real examples.
 
-If the tool parses a complex real-world binary/structured format (PE, ELF, Mach-O, a certificate, a container format), don't rely solely on a hand-synthesized minimal fixture built byte-by-byte in the spec — also add a **golden corpus** fixture (DUDE_PRD.md §21 Phase 23 Item 6): a real sample under `<id>/__fixtures__/`, read via `readFileSync(resolve(process.cwd(), 'src/app/tools/<id>/__fixtures__/<name>'))`, with expected field values taken from an independent reference tool/library — never derived by running DUDE's own parser and copying its output. `__fixtures__/` is never referenced by `angular.json`'s `assets` globs, so nothing there ships in the app bundle. Document the fixture's exact provenance (how it was produced) and the independent cross-check tool/command in a short `__fixtures__/README.md`. See `pe-header-viewer`, `elf-header-viewer`, and `macho-header-viewer` for real examples — all three fixtures are genuine binaries produced by `dotnet publish -r <rid>` (which fetches the real prebuilt apphost package for that platform, no cross-compiler needed) and cross-checked with `pefile`/`pyelftools`/`lief` respectively.
+If the tool parses a complex real-world binary/structured format (PE, ELF, Mach-O, a certificate, a container format), don't rely solely on a hand-synthesized minimal fixture built byte-by-byte in the spec — also add a **golden corpus** fixture ([Phase 23](docs/history/DELIVERY_HISTORY.md#phase-23) Item 6): a real sample under `<id>/__fixtures__/`, read via `readFileSync(resolve(process.cwd(), 'src/app/tools/<id>/__fixtures__/<name>'))`, with expected field values taken from an independent reference tool/library — never derived by running DUDE's own parser and copying its output. `__fixtures__/` is never referenced by `angular.json`'s `assets` globs, so nothing there ships in the app bundle. Document the fixture's exact provenance (how it was produced) and the independent cross-check tool/command in a short `__fixtures__/README.md`. See `pe-header-viewer`, `elf-header-viewer`, and `macho-header-viewer` for real examples — all three fixtures are genuine binaries produced by `dotnet publish -r <rid>` (which fetches the real prebuilt apphost package for that platform, no cross-compiler needed) and cross-checked with `pefile`/`pyelftools`/`lief` respectively.
 
 ## 11. Verify search/sidebar/command palette discovery
 
