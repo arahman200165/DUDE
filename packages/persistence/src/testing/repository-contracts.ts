@@ -16,7 +16,6 @@ import type {
 export interface ContractHarness {
   describe(name: string, fn: () => void): void;
   it(name: string, fn: () => void | Promise<void>): void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   expect(value: unknown): any;
 }
 

@@ -19,7 +19,6 @@ export { homeLayoutCodec, isNewerHomeLayoutDocument, decodeHomeLayoutReadOnly } 
 export type { HomeLayoutCodecContext } from './home-layout.codec.js';
 export { sanitizePanelTree } from './codec-helpers.js';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const ENTITY_CODECS: Readonly<Record<string, EntityCodec<any, any>>> = {
   [favoriteCodec.entityType]: favoriteCodec,
   [pipelineCodec.entityType]: pipelineCodec,

@@ -670,7 +670,7 @@
     },
     {
       "source": "apps/web/src/app/core/persistence/persistence.service.ts",
-      "line": 95,
+      "line": 99,
       "operation": "backend.set(storageKey, json, meta)",
       "namespace": null,
       "key": null,
@@ -684,7 +684,7 @@
     },
     {
       "source": "apps/web/src/app/core/persistence/persistence.service.ts",
-      "line": 82,
+      "line": 86,
       "operation": "backend.set(storageKey, JSON.stringify(value()), meta)",
       "namespace": null,
       "key": null,
@@ -698,7 +698,7 @@
     },
     {
       "source": "apps/web/src/app/core/persistence/persistence.service.ts",
-      "line": 120,
+      "line": 124,
       "operation": "this.local.set(buildConsentKey(toolId, key), JSON.stringify(granted), { policy: 'local', scope: 'device' })",
       "namespace": null,
       "key": null,
@@ -712,12 +712,12 @@
     },
     {
       "source": "apps/web/src/app/core/persistence/persistence.service.ts",
-      "line": 138,
-      "operation": "this.local.set(targetKey, raw, { policy: 'local', scope: resolveKvScope(toToolId, toKey, 'local') })",
+      "line": 142,
+      "operation": "this.local.set(targetKey, raw, { policy: 'local', scope: resolveKvScope(toToolId, toKey, 'local', MANIFEST_SCOPES) })",
       "namespace": null,
       "key": null,
       "storage": "this.local",
-      "storageLocation": "this.local.set(targetKey, raw, { policy: 'local', scope: resolveKvScope(toToolId, toKey, 'local') })",
+      "storageLocation": "this.local.set(targetKey, raw, { policy: 'local', scope: resolveKvScope(toToolId, toKey, 'local', MANIFEST_SCOPES) })",
       "retention": "owned by the referenced backend; no policy change",
       "scope": "local-only",
       "sensitivity": "sensitive",

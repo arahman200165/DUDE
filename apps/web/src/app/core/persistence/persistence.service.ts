@@ -1,7 +1,8 @@
 import { Injectable, Injector, Signal, WritableSignal, effect, inject, signal } from '@angular/core';
 import { PersistencePolicy } from "@dude/shared-types/shared/models/persistence-policy.model";
 import { StorageBackend, StorageWriteMeta, createStorageBackend } from './storage-backend';
-import { resolveKvScope } from './scope-resolver';
+import { createManifestScopeLookup, resolveKvScope } from '@dude/persistence';
+import { TOOL_METADATA } from '@dude/tool-registry';
 import { DEVICE_NAMESPACE } from '../device/device-identity.service';
 import {
   NAMESPACE_PREFIX,
@@ -21,6 +22,9 @@ import {
  * Omitted means today's behaviour: independent per tab.
  */
 export type CrossTabSync = 'live' | 'notify';
+
+/** Manifest `settingScopes` overrides, indexed once from the generated registry so core never names a tool. */
+const MANIFEST_SCOPES = createManifestScopeLookup(TOOL_METADATA);
 
 @Injectable({ providedIn: 'root' })
 export class PersistenceService {
@@ -71,7 +75,7 @@ export class PersistenceService {
 
     const storageKey = buildStorageKey(toolId, key);
 
-    const meta: StorageWriteMeta = { policy, scope: resolveKvScope(toolId, key, policy) };
+    const meta: StorageWriteMeta = { policy, scope: resolveKvScope(toolId, key, policy, MANIFEST_SCOPES) };
 
     if (policy === 'user-choice') {
       const consent = this.getConsentSignal(toolId, key);
@@ -135,7 +139,7 @@ export class PersistenceService {
     if (raw === null) return false;
 
     const targetKey = buildStorageKey(toToolId, toKey);
-    const copied = this.local.get(targetKey) === null && this.local.set(targetKey, raw, { policy: 'local', scope: resolveKvScope(toToolId, toKey, 'local') });
+    const copied = this.local.get(targetKey) === null && this.local.set(targetKey, raw, { policy: 'local', scope: resolveKvScope(toToolId, toKey, 'local', MANIFEST_SCOPES) });
     this.local.remove(sourceKey);
     return copied;
   }

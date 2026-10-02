@@ -24,6 +24,7 @@
       ],
       "tests": [
         "apps/web/src/app/app.spec.ts",
+        "apps/web/src/app/core/appearance/appearance-prepaint-mirror.spec.ts",
         "apps/web/src/app/core/appearance/appearance-prepaint.spec.ts",
         "apps/web/src/app/core/appearance/appearance.service.spec.ts",
         "apps/web/src/app/shell/settings/sections/appearance-settings.spec.ts"
@@ -784,11 +785,7 @@
       "source": "apps/web/src/app/core/persistence/storage-backend.ts",
       "destination": "apps/web/src/app/core/persistence/storage-backend.ts",
       "classification": "host-adapter",
-      "hostDependencies": [
-        "host import: @angular/core",
-        "host API: Storage",
-        "host API: window"
-      ],
+      "hostDependencies": [],
       "tests": [
         "apps/web/src/app/core/persistence/storage-backend.spec.ts"
       ],
@@ -1281,10 +1278,11 @@
       "destination": "apps/web/src/app/core/platform/onboarding.service.ts",
       "classification": "host-adapter",
       "hostDependencies": [
-        "host import: @angular/core",
-        "host API: localStorage"
+        "host import: @angular/core"
       ],
-      "tests": [],
+      "tests": [
+        "apps/web/src/app/core/platform/onboarding.service.spec.ts"
+      ],
       "remainingAdapterCode": "apps/web/src/app/core/platform/onboarding.service.ts"
     },
     {

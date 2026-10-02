@@ -8,6 +8,8 @@ export type { EnvironmentRecord } from './device/environment.model.js';
 export type { SettingStorage, SettingDefinition } from './settings/setting-definition.model.js';
 export { SETTING_DEFINITIONS, findSettingDefinition } from './settings/core-setting-definitions.js';
 export { resolveToolKeyScope } from './settings/scope-rules.js';
+export { resolveKvScope, createManifestScopeLookup } from './settings/kv-scope.js';
+export type { ManifestScopeLookup } from './settings/kv-scope.js';
 export type { ToolSettingScopeOverride } from './settings/scope-rules.js';
 export * from './codecs/index.js';
 export type {
