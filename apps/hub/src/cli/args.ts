@@ -5,6 +5,7 @@ export type ParsedCommand =
   | { command: 'status'; dataDir?: string }
   | { command: 'setup-token'; dataDir?: string; deliverTo?: string; nonce?: string }
   | { command: 'owner-reset'; dataDir?: string; confirm?: string }
+  | { command: 'tls'; action: 'status' | 'rotate' | 'activate'; dataDir?: string; restage?: boolean; force?: boolean; confirm?: string }
   | { command: 'version' }
   | { command: 'help' };
 
@@ -19,6 +20,9 @@ Usage:
   dude-hub status [--data-dir <dir>]
   dude-hub setup-token [--data-dir <dir>] [--deliver-to <SID> --nonce <n>]
   dude-hub owner reset [--data-dir <dir>] [--confirm <token>]
+  dude-hub tls status [--data-dir <dir>]
+  dude-hub tls rotate [--restage] [--data-dir <dir>]
+  dude-hub tls activate [--force] [--confirm <token>] [--data-dir <dir>]
   dude-hub version
   dude-hub help
 
@@ -54,6 +58,26 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
       const name = eq >= 0 ? flag.slice(0, eq) : flag;
       const inline = eq >= 0 ? flag.slice(eq + 1) : undefined;
       if (name !== '--data-dir' && name !== '--confirm') throw new UsageError(`Unknown flag "${flag}". Run "dude-hub help".`);
+      const next = inline ?? flags[++i];
+      if (next === undefined || (inline === undefined && next.startsWith('--'))) throw new UsageError(`Flag ${name} needs a value.`);
+      if (name === '--data-dir') result.dataDir = next;
+      else result.confirm = next;
+    }
+    return result;
+  }
+  if (command === 'tls') {
+    const action = rest[0];
+    if (action !== 'status' && action !== 'rotate' && action !== 'activate') throw new UsageError('Usage: dude-hub tls status|rotate|activate. Run "dude-hub help".');
+    const result: Extract<ParsedCommand, { command: 'tls' }> = { command: 'tls', action };
+    const flags = rest.slice(1);
+    for (let i = 0; i < flags.length; i++) {
+      const flag = flags[i]!;
+      const eq = flag.startsWith('--') ? flag.indexOf('=') : -1;
+      const name = eq >= 0 ? flag.slice(0, eq) : flag;
+      const inline = eq >= 0 ? flag.slice(eq + 1) : undefined;
+      if (name === '--restage' && action === 'rotate' && inline === undefined) { result.restage = true; continue; }
+      if (name === '--force' && action === 'activate' && inline === undefined) { result.force = true; continue; }
+      if (name !== '--data-dir' && !(name === '--confirm' && action === 'activate')) throw new UsageError(`Unknown flag "${flag}". Run "dude-hub help".`);
       const next = inline ?? flags[++i];
       if (next === undefined || (inline === undefined && next.startsWith('--'))) throw new UsageError(`Flag ${name} needs a value.`);
       if (name === '--data-dir') result.dataDir = next;

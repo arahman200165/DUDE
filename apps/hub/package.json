@@ -9,7 +9,9 @@
     "@dude/persistence": "*",
     "@dude/sqlite-store": "*",
     "@fastify/type-provider-typebox": "6.1.0",
-    "fastify": "5.12.5"
+    "@fastify/websocket": "11.3.1",
+    "fastify": "5.12.5",
+    "ws": "^8.21.3"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",

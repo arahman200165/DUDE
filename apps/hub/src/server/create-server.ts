@@ -18,6 +18,8 @@ import { ConfirmationStore } from '../security/confirmation-store.js';
 import type { PasswordParams } from '../auth/password.js';
 import { createStaticHandler } from './static.js';
 import { ensureActiveTlsPin } from './tls-pins.js';
+import { registerRealtime } from '../realtime/realtime.js';
+import type { RealtimeTimings } from '../realtime/realtime.js';
 import type { HubLoggerOptions } from './logger.js';
 import { startAuditPruning } from '../security/audit.js';
 import { registerSecurityHeaders } from '../security/headers.js';
@@ -39,6 +41,8 @@ export interface CreateHubServerOptions {
   /** Additional accepted Host names (without port). */
   extraHosts?: readonly string[];
   rateLimit?: RateLimiterOptions;
+  /** Realtime timers and limits (tests inject short ones). */
+  realtime?: Partial<RealtimeTimings>;
   /** Registers routes before the server is ready (the security hooks are already installed). */
   configure?: (app: FastifyInstance) => void;
   tls: { keyPem: string; certPem: string; spkiSha256: string };
@@ -93,6 +97,14 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
     ...(options.passwordParams ? { passwordParams: options.passwordParams } : {}),
   });
 
+  const activeSpki = (): string => {
+    const row = options.hub.db.prepare("SELECT spki_sha256 FROM tls_pins WHERE state = 'active' LIMIT 1").get() as { spki_sha256: string } | undefined;
+    return row?.spki_sha256 ?? options.tls.spkiSha256;
+  };
+  const realtime = registerRealtime(app, {
+    db: options.hub.db, now, hostGuard, activeSpki, ...(options.realtime ? { timings: options.realtime } : {}),
+  });
+
   const confirmations = new ConfirmationStore();
   const authOptions = {
     db: options.hub.db,
@@ -108,7 +120,7 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   registerDeviceAuthRoutes(app, { db: options.hub.db, now, hubInstanceId: options.hub.hubInstanceId });
   registerDeviceRoutes(app, {
     db: options.hub.db, now, confirmations, requireOwner: authOptions.requireOwner, requireDevice: createRequireDevice({ db: options.hub.db, now }),
-    hostGuard, spkiSha256: options.tls.spkiSha256,
+    hostGuard, spkiSha256: activeSpki, isDeviceOnline: realtime.isDeviceOnline,
   });
 
   const serveStatic = createStaticHandler({ root: options.config.webRoot ?? options.paths.webRoot });

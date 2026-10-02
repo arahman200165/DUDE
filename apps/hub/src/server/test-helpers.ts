@@ -16,6 +16,7 @@ import type { RateLimiterOptions } from '../security/rate-limit.js';
 import type { CsrfVerifier } from '../security/request-guard.js';
 import type { PasswordParams } from '../auth/password.js';
 import { createHubServer } from './create-server.js';
+import type { RealtimeTimings } from '../realtime/realtime.js';
 
 export interface TestHub {
   app: FastifyInstance;
@@ -47,6 +48,7 @@ export interface TestHubOptions {
   rateLimit?: RateLimiterOptions;
   configure?: (app: FastifyInstance) => void;
   passwordParams?: PasswordParams;
+  realtime?: Partial<RealtimeTimings>;
 }
 
 export async function startTestHub(config: Partial<HubConfig> = {}, extra: TestHubOptions = {}): Promise<TestHub> {

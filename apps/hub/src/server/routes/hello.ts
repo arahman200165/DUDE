@@ -19,6 +19,7 @@ export function registerHelloRoute(app: FastifyInstance, options: HelloRouteOpti
       const environment = options.db.prepare('SELECT environment_id FROM environment LIMIT 1').get() as { environment_id: string } | undefined;
       const owner = options.db.prepare('SELECT 1 AS x FROM owner LIMIT 1').get();
       const next = options.db.prepare("SELECT spki_sha256 FROM tls_pins WHERE state = 'next' LIMIT 1").get() as { spki_sha256: string } | undefined;
+      const active = options.db.prepare("SELECT spki_sha256 FROM tls_pins WHERE state = 'active' LIMIT 1").get() as { spki_sha256: string } | undefined;
       void reply.header('Cache-Control', 'no-store');
       return {
         service: HUB_SERVICE_ID,
@@ -28,7 +29,7 @@ export function registerHelloRoute(app: FastifyInstance, options: HelloRouteOpti
         hubInstanceId: options.hubInstanceId,
         environmentId: environment?.environment_id ?? null,
         bootstrapped: owner !== undefined,
-        tls: { spkiSha256: options.spkiSha256, nextSpkiSha256: next?.spki_sha256 ?? null },
+        tls: { spkiSha256: active?.spki_sha256 ?? options.spkiSha256, nextSpkiSha256: next?.spki_sha256 ?? null },
       } as const;
     },
   );

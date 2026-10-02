@@ -1,7 +1,7 @@
 import { HUB_API_PREFIX } from '@dude/contracts/hub';
 import { ensureSetupToken } from '../auth/setup-token.js';
 import { request, startTestHub } from './test-helpers.js';
-import type { RawResponse, TestHub } from './test-helpers.js';
+import type { RawResponse, TestHub, TestHubOptions } from './test-helpers.js';
 
 export const CHEAP = { v: 1, m: 64, t: 1, p: 1, len: 32 } as const;
 export const PASSWORD = 'a very long password';
@@ -33,11 +33,12 @@ export interface Signed { cookie: string; csrf: string; body: any; setCookie: st
 
 export const cookieValueOf = (setCookie: string | undefined): string => /__Host-dude_session=([^;]*)/.exec(setCookie ?? '')?.[1] ?? '';
 
-export async function startAuthHub(): Promise<AuthHub> {
+export async function startAuthHub(extra: Pick<TestHubOptions, 'realtime'> = {}): Promise<AuthHub> {
   const clock = { t: START };
   const hub = await startTestHub({}, {
     now: () => clock.t,
     passwordParams: CHEAP,
+    ...extra,
     rateLimit: { auth: { perMinute: 600_000, burst: 100_000 }, global: { perMinute: 600_000, burst: 100_000 } },
   });
   const call = async (method: string, path: string, options: CallOptions = {}): Promise<ApiResult> => {

@@ -30,7 +30,9 @@ export interface DeviceRouteOptions {
   requireOwner: Preparer;
   requireDevice: Preparer;
   hostGuard: HostGuard;
-  spkiSha256: string;
+  /** The current serving pin (changes after a rotation). */
+  spkiSha256: () => string;
+  isDeviceOnline?: (deviceId: string) => boolean;
 }
 
 export const REVOKE_DEVICE_ACTION = 'devices.revoke';
@@ -98,10 +100,10 @@ export function registerDeviceRoutes(app: FastifyInstance, options: DeviceRouteO
       audit(db, { event: 'pairing.created', outcome: 'success', actorKind: 'owner', actorId: ctx.ownerId, ip: ipOf(request), detail: { host, expiresAt: created.expiresAt }, now: now() });
       return reply.code(200).send({
         pairingCode: displayPairingCode(created.code),
-        pairingString: formatPairingString({ host, port, code: created.code, spkiSha256: options.spkiSha256 }),
+        pairingString: formatPairingString({ host, port, code: created.code, spkiSha256: options.spkiSha256() }),
         expiresAt: created.expiresAt,
         hubUrl: `https://${host}${port === 443 ? '' : `:${port}`}`,
-        spkiSha256: options.spkiSha256,
+        spkiSha256: options.spkiSha256(),
       });
     },
   );
@@ -112,7 +114,7 @@ export function registerDeviceRoutes(app: FastifyInstance, options: DeviceRouteO
     async (request, reply) => {
       nostore(reply);
       const ctx = request.owner as OwnerContext;
-      return reply.code(200).send(listDevices(db, ctx.deviceId));
+      return reply.code(200).send(listDevices(db, ctx.deviceId).map((d) => ({ ...d, online: options.isDeviceOnline?.(d.deviceId) ?? false })));
     },
   );
 

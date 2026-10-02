@@ -1,4 +1,5 @@
 import path from 'node:path';
+import type { Server as TlsServer } from 'node:tls';
 import type { FastifyInstance } from 'fastify';
 import { ensureLayout, resolveDataDir } from '../config/data-dir.js';
 import { bindAddress, loadOrCreateHubConfig } from '../config/hub-config.js';
@@ -14,6 +15,8 @@ import { audit } from '../security/audit.js';
 import { emitRevoked } from '../auth/hub-events.js';
 import { runOwnerReset } from './owner-reset.js';
 import { runSetupToken } from './setup-token.js';
+import { runTls } from './tls.js';
+import { createTlsRotation } from '../tls/rotation.js';
 import { HELP_TEXT, UsageError, parseArgs } from './args.js';
 
 export const EXIT_OK = 0;
@@ -61,6 +64,15 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   if (parsed.command === 'status') return runStatus(parsed.dataDir);
   if (parsed.command === 'owner-reset') {
     return runOwnerReset({ ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.confirm !== undefined ? { confirm: parsed.confirm } : {}) });
+  }
+  if (parsed.command === 'tls') {
+    return runTls({
+      action: parsed.action,
+      ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}),
+      ...(parsed.restage ? { restage: true } : {}),
+      ...(parsed.force ? { force: true } : {}),
+      ...(parsed.confirm !== undefined ? { confirm: parsed.confirm } : {}),
+    });
   }
   if (parsed.command === 'setup-token') {
     return runSetupToken({
@@ -119,6 +131,11 @@ export async function runCli(argv: readonly string[]): Promise<number> {
       hubInstanceId: hub.hubInstanceId,
       methods: buildAdminMethods({
         db: hub.db, hubVersion: hubVersion(), hubInstanceId: hub.hubInstanceId, bind: config.bind, getPort: () => port, startedAt, configDir: paths.configDir, spkiSha256: tls.spkiSha256,
+        tls: createTlsRotation({
+          db: hub.db, tlsDir: paths.tlsDir, hubInstanceId: hub.hubInstanceId,
+          applySecureContext: (context) => (server.server as unknown as TlsServer).setSecureContext(context),
+          announceNext: (spkiSha256) => server.hubEvents.emit('tls-next-pin', { spkiSha256 }),
+        }),
         onSessionsRevoked: (sessions) => emitRevoked(server, sessions, 'owner-reset'),
       }),
     });

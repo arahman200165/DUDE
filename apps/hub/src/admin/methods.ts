@@ -10,6 +10,8 @@ import { revokeAllSessions } from '../auth/sessions.js';
 import type { RevokedSession } from '../auth/sessions.js';
 import { audit } from '../security/audit.js';
 import { ConfirmationStore } from '../security/confirmation-store.js';
+import { RotationError } from '../tls/rotation.js';
+import type { TlsRotation } from '../tls/rotation.js';
 
 export interface AdminMethodContext {
   db: Db;
@@ -24,6 +26,8 @@ export interface AdminMethodContext {
   /** Staged confirmations for admin-channel actions (default: a private store). */
   confirmations?: ConfirmationStore;
   /** Called with sessions revoked by an admin action, so the server can emit realtime events. */
+  /** Certificate rotation (dual pin). Absent in contexts that cannot swap the listener. */
+  tls?: TlsRotation;
   onSessionsRevoked?: (sessions: readonly RevokedSession[]) => void;
 }
 
@@ -43,7 +47,26 @@ export function buildAdminMethods(context: AdminMethodContext): Record<string, A
     return { sessions: Number(sessions.n), devices: Number(devices.n) };
   };
   const digestOf = (summary: { sessions: number; devices: number }): string => createHash('sha256').update(`${summary.sessions}:${summary.devices}`).digest('hex');
+  const rotation = (): TlsRotation => {
+    if (!context.tls) throw new AdminError('unavailable', 'Certificate rotation is not available.');
+    return context.tls;
+  };
+  const rotate = <T>(run: () => T): T => {
+    try { return run(); } catch (error) {
+      if (error instanceof RotationError) throw new AdminError(error.code, error.message);
+      throw error;
+    }
+  };
+  const flag = (params: unknown, name: string): boolean => (params as Record<string, unknown> | null)?.[name] === true;
   return {
+    'tls.status': () => rotation().status(),
+    'tls.stage': (params) => rotate(() => rotation().stage({ restage: flag(params, 'restage') })),
+    'tls.activate.preview': (params) => rotate(() => rotation().previewActivate({ force: flag(params, 'force') })),
+    'tls.activate.apply': (params) => {
+      const confirmToken = (params as { confirmToken?: unknown } | null)?.confirmToken;
+      if (typeof confirmToken !== 'string') throw new AdminError('bad-request', 'confirmToken is required.');
+      return rotate(() => rotation().applyActivate({ confirmToken, force: flag(params, 'force') }));
+    },
     /** Delivers the one-time setup token to an elevated local admin; refused once an owner exists. */
     'setup.token': () => {
       const token = ensureSetupToken(context.db, context.configDir, now());

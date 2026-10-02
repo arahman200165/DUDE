@@ -8,10 +8,12 @@ export interface SessionRevokedEvent extends RevokedSession {
 
 export interface HubEventMap {
   'session-revoked': [SessionRevokedEvent];
-  /** The realtime milestone closes the sockets of this device. */
+  /** The realtime socket layer closes the sockets of this device. */
   'device-revoked': [{ deviceId: string }];
   'device-unenrolled': [{ deviceId: string }];
-  'device-registry-changed': [{ deviceId: string; change: 'enrolled' | 'renamed' | 'revoked' | 'unenrolled' | 'recovery-trust' | 'updated' }];
+  'device-registry-changed': [{ deviceId: string; change: 'enrolled' | 'renamed' | 'revoked' | 'unenrolled' | 'recovery-trust' | 'updated' | 'presence' }];
+  /** A next TLS pin was staged. */
+  'tls-next-pin': [{ spkiSha256: string }];
 }
 
 /** Internal in-process events (consumed by the realtime milestone). Never carries credentials. */
