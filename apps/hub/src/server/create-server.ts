@@ -6,6 +6,12 @@ import type { HubPaths } from '../config/data-dir.js';
 import { envelope, hubErrorHandler } from './errors.js';
 import { registerHelloRoute } from './routes/hello.js';
 import { registerBootstrapRoute } from './routes/bootstrap.js';
+import { registerAuthRoutes } from './routes/auth.js';
+import { registerSessionRoutes } from './routes/sessions.js';
+import { HubEvents } from '../auth/hub-events.js';
+import { createRequireOwner } from '../auth/owner-auth.js';
+import { verifyCsrf } from '../auth/sessions.js';
+import { ConfirmationStore } from '../security/confirmation-store.js';
 import type { PasswordParams } from '../auth/password.js';
 import { createStaticHandler } from './static.js';
 import { ensureActiveTlsPin } from './tls-pins.js';
@@ -25,7 +31,7 @@ export interface CreateHubServerOptions {
   config: Pick<HubConfig, 'webRoot'> & Partial<Pick<HubConfig, 'bind'>>;
   /** Injected clock for rate limiting and audit pruning (tests). */
   now?: () => number;
-  /** Verifies the CSRF header against the session cookie; sessions land in M634, so the default rejects. */
+  /** Overrides how the CSRF header is verified against the session cookie (default: the session store). */
   csrfVerifier?: CsrfVerifier;
   /** Additional accepted Host names (without port). */
   extraHosts?: readonly string[];
@@ -52,6 +58,7 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   });
 
   app.setErrorHandler(hubErrorHandler);
+  app.decorate('hubEvents', new HubEvents());
 
   // Order: rate limit, host guard, request guard, routes. Headers are added to every response.
   const now = options.now ?? Date.now;
@@ -63,7 +70,8 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   registerRateLimit(app, createRateLimiter({ now, ...options.rateLimit }));
   const hostGuard = createHostGuard({ bind: options.config.bind ?? 'loopback', ...(options.extraHosts ? { extraHosts: options.extraHosts } : {}) }, getPort);
   registerHostGuard(app, hostGuard);
-  registerRequestGuard(app, { hostGuard, ...(options.csrfVerifier ? { csrfVerifier: options.csrfVerifier } : {}) });
+  const csrfVerifier: CsrfVerifier = options.csrfVerifier ?? ((cookie, header) => verifyCsrf(options.hub.db, cookie, header, now()));
+  registerRequestGuard(app, { hostGuard, csrfVerifier });
   const stopPruning = startAuditPruning(options.hub.db, now);
   app.addHook('onClose', async () => { stopPruning(); });
   options.configure?.(app);
@@ -81,6 +89,19 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
     now,
     ...(options.passwordParams ? { passwordParams: options.passwordParams } : {}),
   });
+
+  const confirmations = new ConfirmationStore();
+  const authOptions = {
+    db: options.hub.db,
+    configDir: options.paths.configDir,
+    now,
+    confirmations,
+    requireOwner: createRequireOwner({ db: options.hub.db, now }),
+    requireCookieOwner: createRequireOwner({ db: options.hub.db, now, kinds: ['cookie'] }),
+    ...(options.passwordParams ? { passwordParams: options.passwordParams } : {}),
+  };
+  registerAuthRoutes(app, authOptions);
+  registerSessionRoutes(app, authOptions);
 
   const serveStatic = createStaticHandler({ root: options.config.webRoot ?? options.paths.webRoot });
   app.setNotFoundHandler(async (request, reply) => {

@@ -24,3 +24,12 @@ export function parseCookies(header: string | undefined): ParsedCookies {
   }
   return { values, duplicates };
 }
+
+const COOKIE_ATTRIBUTES = 'Path=/; Secure; HttpOnly; SameSite=Strict';
+
+/** `Set-Cookie` value for a new session; Max-Age is the absolute lifetime. */
+export const sessionCookie = (token: string, maxAgeSeconds: number): string =>
+  `${SESSION_COOKIE}=${token}; ${COOKIE_ATTRIBUTES}; Max-Age=${Math.max(0, Math.floor(maxAgeSeconds))}`;
+
+/** `Set-Cookie` value that clears the session cookie (sign-out). */
+export const clearedSessionCookie = (): string => `${SESSION_COOKIE}=; ${COOKIE_ATTRIBUTES}; Max-Age=0`;

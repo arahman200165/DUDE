@@ -18,7 +18,7 @@ export const defaultExec: ExecFn = (file, args) =>
     execFile(file, [...args], { shell: false, windowsHide: true, timeout: 15_000, encoding: 'utf8' }, (error, stdout) => (error ? reject(error) : resolve({ stdout })));
   });
 
-export interface SetupTokenPayload { token: string; spkiSha256: string; port: number; hubInstanceId: string }
+export interface SetupTokenPayload { token: string; purpose?: string; spkiSha256: string; port: number; hubInstanceId: string }
 
 export interface SetupTokenDeps {
   exec?: ExecFn;
@@ -101,7 +101,7 @@ export async function runSetupToken(options: SetupTokenOptions, deps: SetupToken
   }
 
   if (!deliver) {
-    out(`${JSON.stringify({ token: payload.token, spkiSha256: payload.spkiSha256, port: payload.port })}\n`);
+    out(`${JSON.stringify({ token: payload.token, ...(payload.purpose !== undefined ? { purpose: payload.purpose } : {}), spkiSha256: payload.spkiSha256, port: payload.port })}\n`);
     return 0;
   }
   try {

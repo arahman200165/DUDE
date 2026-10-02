@@ -4,6 +4,7 @@ export type ParsedCommand =
   | { command: 'run'; dataDir?: string; port?: number; bind?: HubBindMode; webRoot?: string }
   | { command: 'status'; dataDir?: string }
   | { command: 'setup-token'; dataDir?: string; deliverTo?: string; nonce?: string }
+  | { command: 'owner-reset'; dataDir?: string; confirm?: string }
   | { command: 'version' }
   | { command: 'help' };
 
@@ -17,6 +18,7 @@ Usage:
   dude-hub run [--data-dir <dir>] [--port <n>] [--bind loopback|lan|container] [--web-root <dir>]
   dude-hub status [--data-dir <dir>]
   dude-hub setup-token [--data-dir <dir>] [--deliver-to <SID> --nonce <n>]
+  dude-hub owner reset [--data-dir <dir>] [--confirm <token>]
   dude-hub version
   dude-hub help
 
@@ -41,6 +43,23 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
       else throw new UsageError(`Unknown flag "${flag}". Run "dude-hub help".`);
     }
     return status;
+  }
+  if (command === 'owner') {
+    if (rest[0] !== 'reset') throw new UsageError('Usage: dude-hub owner reset [--data-dir <dir>] [--confirm <token>].');
+    const result: Extract<ParsedCommand, { command: 'owner-reset' }> = { command: 'owner-reset' };
+    const flags = rest.slice(1);
+    for (let i = 0; i < flags.length; i++) {
+      const flag = flags[i]!;
+      const eq = flag.startsWith('--') ? flag.indexOf('=') : -1;
+      const name = eq >= 0 ? flag.slice(0, eq) : flag;
+      const inline = eq >= 0 ? flag.slice(eq + 1) : undefined;
+      if (name !== '--data-dir' && name !== '--confirm') throw new UsageError(`Unknown flag "${flag}". Run "dude-hub help".`);
+      const next = inline ?? flags[++i];
+      if (next === undefined || (inline === undefined && next.startsWith('--'))) throw new UsageError(`Flag ${name} needs a value.`);
+      if (name === '--data-dir') result.dataDir = next;
+      else result.confirm = next;
+    }
+    return result;
   }
   if (command === 'setup-token') {
     const result: Extract<ParsedCommand, { command: 'setup-token' }> = { command: 'setup-token' };

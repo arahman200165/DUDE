@@ -43,7 +43,7 @@ describe('POST /bootstrap', () => {
       db: hub.hub.db, hubVersion: 't', hubInstanceId: hub.hub.hubInstanceId, bind: 'loopback', getPort: () => hub.port, startedAt: 0,
       configDir: hub.paths.configDir, spkiSha256: hub.tls.spkiSha256,
     });
-    expect(await methods['setup.token']!({})).toEqual({ token, spkiSha256: hub.tls.spkiSha256, port: hub.port, hubInstanceId: hub.hub.hubInstanceId });
+    expect(await methods['setup.token']!({})).toEqual({ token, purpose: 'bootstrap', spkiSha256: hub.tls.spkiSha256, port: hub.port, hubInstanceId: hub.hub.hubInstanceId });
     const hubBefore = await hello();
     expect(hubBefore.bootstrapped).toBe(false);
   });

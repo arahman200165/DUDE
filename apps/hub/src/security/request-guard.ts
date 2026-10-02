@@ -62,7 +62,17 @@ function hasBody(request: FastifyRequest): boolean {
   return (length !== undefined && length !== '0') || request.headers['transfer-encoding'] !== undefined;
 }
 
-async function evaluate(request: FastifyRequest, options: RequestGuardOptions): Promise<Rejection | null> {
+declare module 'fastify' {
+  interface FastifyContextConfig {
+    /**
+     * The route authenticates with something other than a session (password, recovery code, setup/reset token), so a
+     * stale session cookie must not demand a CSRF token. Origin and Fetch-Metadata checks still apply.
+     */
+    credentialless?: boolean;
+  }
+}
+
+async function evaluate(request: FastifyRequest, options: RequestGuardOptions, credentialless: boolean): Promise<Rejection | null> {
   const credential = classifyCredential(request);
   if (credential.conflict) return { status: 400, code: 'bad-request', message: 'Send one credential type per request.' };
   if (credential.duplicateSession) return { status: 400, code: 'bad-request', message: 'The request is not valid.' };
@@ -90,7 +100,7 @@ async function evaluate(request: FastifyRequest, options: RequestGuardOptions): 
   if (site !== undefined && site !== 'same-origin') {
     return { status: 403, code: 'forbidden', message: 'Cross-site requests are not allowed.' };
   }
-  if (credential.kind === 'cookie') {
+  if (credential.kind === 'cookie' && !credentialless) {
     const csrf = header(request, CSRF_HEADER);
     if (csrf === undefined || csrf.length === 0 || credential.sessionCookie === undefined) {
       return { status: 403, code: 'forbidden', message: 'Missing CSRF token.' };
@@ -108,7 +118,7 @@ export function registerRequestGuard(app: FastifyInstance, options: RequestGuard
   app.addHook('onRequest', async (request, reply) => {
     const pathname = request.url.split('?')[0] ?? '/';
     if (!MUTATING.has(request.method) || !(pathname === prefix || pathname.startsWith(`${prefix}/`))) return;
-    const rejection = await evaluate(request, options);
+    const rejection = await evaluate(request, options, request.routeOptions.config?.credentialless === true);
     if (rejection === null) return;
     return reply.code(rejection.status).type('application/json').header('Cache-Control', 'no-store').send(envelope(rejection.code, rejection.message));
   });

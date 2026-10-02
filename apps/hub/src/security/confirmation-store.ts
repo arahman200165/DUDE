@@ -35,13 +35,23 @@ export class ConfirmationStore {
     return token;
   }
 
-  consume(input: ConsumeInput): boolean {
-    if (typeof input.token !== 'string' || input.token.length === 0) return false;
+  /** Single-use consume that says why it failed: a changed digest is distinguishable from an unknown/expired/foreign token. */
+  consumeDetailed(input: ConsumeInput): 'ok' | 'invalid' | 'digest-mismatch' {
+    if (typeof input.token !== 'string' || input.token.length === 0) return 'invalid';
     const hash = sha256(input.token).toString('hex');
     const value = this.staged.get(hash);
     this.staged.delete(hash);
-    if (value === undefined) return false;
-    const fieldsMatch = [equal(value.action, input.action), equal(value.digest, input.digest), equal(value.bindingId, input.bindingId)];
-    return fieldsMatch.every(Boolean) && value.expires >= input.now;
+    if (value === undefined || value.expires < input.now) return 'invalid';
+    if (!equal(value.action, input.action) || !equal(value.bindingId, input.bindingId)) return 'invalid';
+    return equal(value.digest, input.digest) ? 'ok' : 'digest-mismatch';
+  }
+
+  consume(input: ConsumeInput): boolean {
+    return this.consumeDetailed(input) === 'ok';
+  }
+
+  /** ISO expiry of a token issued at `now`. */
+  static expiresAt(now: number): string {
+    return new Date(now + CONFIRMATION_TTL_MS).toISOString();
   }
 }

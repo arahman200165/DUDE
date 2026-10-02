@@ -27,7 +27,7 @@ export function registerBootstrapRoute(app: FastifyInstance, options: BootstrapR
   const { db } = options;
   app.withTypeProvider<TypeBoxTypeProvider>().post(
     `${HUB_API_PREFIX}/bootstrap`,
-    { config: { authLimited: true }, schema: { body: BootstrapRequest, response: { 201: BootstrapResponse, 400: ErrorEnvelope, 401: ErrorEnvelope, 409: ErrorEnvelope } } },
+    { config: { authLimited: true, credentialless: true }, schema: { body: BootstrapRequest, response: { 201: BootstrapResponse, 400: ErrorEnvelope, 401: ErrorEnvelope, 409: ErrorEnvelope } } },
     async (request, reply) => {
       void reply.header('Cache-Control', 'no-store');
       const ip = request.socket.remoteAddress ?? 'unknown';
