@@ -75,6 +75,11 @@ export interface AgentMethodMap {
   'reset.apply': { params: { kind: ResetKind; digest: string }; result: { ok: true } | { ok: false; error: string } };
   /** Implemented by the legacy import (M621). */
   'legacy.import': { params: { legacyDir: string; sources: unknown }; result: LegacyImportResult };
+  /**
+   * Clean-exit marker. `launch` reports how the previous run ended (`none` on a first launch) and marks this
+   * run unclean; `quit` marks it clean. `check` only reads.
+   */
+  'store.cleanExit': { params: { action: 'launch' | 'quit' | 'check' }; result: { previous: 'none' | 'clean' | 'unclean' } };
   'store.shutdown': { params: Record<string, never>; result: { ok: true } };
 }
 
@@ -100,7 +105,7 @@ export const AGENT_METHODS = [
   'powershell.add', 'powershell.list', 'powershell.clear',
   'docs.get', 'docs.set', 'docs.remove',
   'secrets.status', 'secrets.list', 'secrets.set', 'secrets.remove', 'secrets.getCiphertext',
-  'device.rename', 'reset.preview', 'reset.apply', 'legacy.import', 'store.shutdown',
+  'device.rename', 'reset.preview', 'reset.apply', 'legacy.import', 'store.cleanExit', 'store.shutdown',
 ] as const satisfies readonly AgentMethod[];
 
 // Compile-time exhaustiveness: fails if a method is added to the map but not to AGENT_METHODS.

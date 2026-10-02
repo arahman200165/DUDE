@@ -123,6 +123,14 @@ describe('rpc server dispatch', () => {
     expect(ok(await call('store.hydrate')).device?.displayName).toBe('Desk PC');
   });
 
+  it('tracks the clean-exit marker across launches', async () => {
+    const { call } = make();
+    expect(ok(await call('store.cleanExit', { action: 'launch' }))).toEqual({ previous: 'none' });
+    expect(ok(await call('store.cleanExit', { action: 'launch' }))).toEqual({ previous: 'unclean' });
+    expect(ok(await call('store.cleanExit', { action: 'quit' }))).toEqual({ previous: 'unclean' });
+    expect(ok(await call('store.cleanExit', { action: 'check' }))).toEqual({ previous: 'clean' });
+  });
+
   it('shutdown checkpoints, then every call returns closed', async () => {
     const { server, call } = make();
     expect(ok(await call('store.shutdown'))).toEqual({ ok: true });

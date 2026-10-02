@@ -7,6 +7,7 @@
     "@dude/collab-protocol": "*",
     "@dude/contracts": "*",
     "@dude/crypto": "*",
+    "@dude/persistence": "*",
     "@dude/shared-types": "*",
     "@dude/tool-engine": "*",
     "electron": "^44.0.0",

@@ -122,3 +122,40 @@ describe('llm boundary', () => {
     expect(preloadSource).toMatch(/ipcRenderer\.invoke\('dude:llm:chat', request\)/);
   });
 });
+
+// Device State Store broker (Phase 31B, M620): renderer to preload to main only, never a port.
+describe('device store boundary', () => {
+  const mainSource = readFileSync(resolve(__dirname, 'main.ts'), 'utf-8');
+  const preloadSource = readFileSync(resolve(__dirname, 'preload.ts'), 'utf-8');
+  const bridgeSource = readFileSync(resolve(__dirname, 'device-store/store-bridge.ts'), 'utf-8');
+
+  it('registers the handlers for the window and starts the store before preferences', () => {
+    expect(mainSource).toMatch(/registerDeviceStoreHandlers\(window\)/);
+    expect(mainSource.indexOf('await startDeviceStore()')).toBeGreaterThan(-1);
+    expect(mainSource.indexOf('await startDeviceStore()')).toBeLessThan(mainSource.indexOf('await loadDesktopPreferences()'));
+  });
+
+  it('sender-checks every ipcMain handler and listener', () => {
+    const registrations = bridgeSource.match(/ipcMain\.(handle|on)\(/g) ?? [];
+    expect(registrations.length).toBeGreaterThanOrEqual(9);
+    const bodies = bridgeSource.split(/ipcMain\.(?:handle|on)\(/).slice(1);
+    for (const body of bodies) {
+      // The flush reply listener is registered inside requestRendererFlush and checks the sender in its own body.
+      if (body.startsWith("'dude:store:flushed'")) continue;
+      expect(body.slice(0, 400)).toMatch(/own\(event\.sender\)/);
+    }
+    expect(bridgeSource).toMatch(/event\.sender !== window\.webContents \|\| replyId !== id/);
+  });
+
+  it('validates renderer payloads before calling the host', () => {
+    for (const validator of ['validateKvBatch', 'validateEntityCommit', 'validateEntityBatch', 'validateDisplayName']) {
+      expect(bridgeSource.indexOf(validator)).toBeGreaterThan(-1);
+    }
+  });
+
+  it('keeps ports out of the preload and the renderer-facing contract', () => {
+    expect(preloadSource).not.toMatch(/MessagePort|MessageChannel|\.ports\b|postMessage/);
+    expect(preloadSource).toMatch(/ipcRenderer\.invoke\('dude:store:hydrate'\)/);
+    expect(preloadSource).toMatch(/ipcRenderer\.send\('dude:store:flushed', id\)/);
+  });
+});

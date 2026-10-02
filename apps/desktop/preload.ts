@@ -35,6 +35,30 @@ const bridge: PlatformBridge = {
   external: {
     open: (url) => ipcRenderer.invoke('dude:external:open', url),
   },
+  store: {
+    hydrate: () => ipcRenderer.invoke('dude:store:hydrate'),
+    commitKv: (mutations) => ipcRenderer.invoke('dude:store:kv:commit', mutations),
+    commitKvNoWait: (mutations) => ipcRenderer.send('dude:store:kv:commitNoWait', mutations),
+    commitEntity: (commit) => ipcRenderer.invoke('dude:store:entity:commit', commit),
+    importEntities: (commits) => ipcRenderer.invoke('dude:store:entity:importMany', commits),
+    status: () => ipcRenderer.invoke('dude:store:status'),
+    onFlushRequest: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, id: number) => {
+        void Promise.resolve().then(callback).catch(() => undefined).finally(() => ipcRenderer.send('dude:store:flushed', id));
+      };
+      ipcRenderer.on('dude:store:flush', listener);
+      return () => ipcRenderer.removeListener('dude:store:flush', listener);
+    },
+    onHealth: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, health: Parameters<typeof callback>[0]) => callback(health);
+      ipcRenderer.on('dude:store:health', listener);
+      return () => ipcRenderer.removeListener('dude:store:health', listener);
+    },
+  },
+  device: {
+    get: () => ipcRenderer.invoke('dude:device:get'),
+    rename: (displayName) => ipcRenderer.invoke('dude:device:rename', displayName),
+  },
   appearance: {
     setNative: (mode, background) => ipcRenderer.invoke('dude:appearance:set', { mode, background }),
   },

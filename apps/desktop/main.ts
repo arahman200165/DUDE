@@ -37,7 +37,12 @@ import { applyNativeThemeSource, loadNativeAppearance, registerAppearanceBridge 
 import { registerNativeMenu } from './native-menu';
 import { registerQuickLauncherHotkey, registerQuickLauncherRenderer } from './quick-launcher';
 import { isAllowedRendererNavigation } from './navigation-guard';
-import { checkAndMarkLaunch } from './crash-detection';
+import { checkAndMarkLaunch, markCleanExit } from './crash-detection';
+import { currentAppInfo, deviceCapabilities, startDeviceAgent } from './device-store/agent-host';
+import { readMachineGuid } from './device-store/machine-fingerprint';
+import { installQuitCoordinator } from './device-store/quit-coordinator';
+import { getDeviceStoreHost, setDeviceStoreHost } from './device-store/store-client';
+import { registerDeviceStoreHandlers } from './device-store/store-bridge';
 import { markPerf } from './perf-log';
 
 // Must run before app ready: the privileged scheme gives the renderer a stable secure origin.
@@ -113,6 +118,7 @@ async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
   registerOpenHandlers(window);
   registerDeepLinkHandlers(window);
   registerExternalLinkHandlers(window);
+  registerDeviceStoreHandlers(window);
   registerLlmHandlers(window);
   registerAppearanceBridge(window);
   registerSmartPasteRenderer(window);
@@ -133,6 +139,25 @@ async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
   checkForUpdatesOnStartup();
 }
 
+/**
+ * Starts the Device State Store first so everything after it can use it. Bounded: a store that
+ * fails or stalls never blocks the app, it just starts degraded (the host reports its status).
+ */
+async function startDeviceStore(): Promise<void> {
+  try {
+    const machineGuid = await readMachineGuid();
+    const host = await startDeviceAgent({
+      userDataDir: app.getPath('userData'),
+      appInfo: currentAppInfo(),
+      capabilities: deviceCapabilities(),
+      machineGuid,
+    });
+    setDeviceStoreHost(host);
+  } catch {
+    setDeviceStoreHost(null);
+  }
+}
+
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 if (!hasSingleInstanceLock) app.quit();
 else {
@@ -144,8 +169,21 @@ else {
   });
 }
 
+// Orderly quit: renderer flush, clean-exit marker, store checkpoint, then the real quit. Not for a
+// second instance that is about to exit: it must not touch the first instance's markers.
+if (hasSingleInstanceLock) {
+  installQuitCoordinator({
+    app,
+    getWindow: () => BrowserWindow.getAllWindows()[0] ?? null,
+    host: getDeviceStoreHost,
+    markCleanExit,
+  });
+}
+
 if (hasSingleInstanceLock) void app.whenReady().then(async () => {
   markPerf('app-ready');
+  await startDeviceStore();
+  markPerf('device-store-started');
   await loadDesktopPreferences();
   markPerf('preferences-loaded');
   const wasRestoredAfterCrash = await checkAndMarkLaunch();

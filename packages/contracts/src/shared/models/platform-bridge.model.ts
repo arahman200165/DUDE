@@ -8,6 +8,7 @@ import type { StartupProgramsResult } from "../../system/startup-types.js";
 import type { InstalledSoftware } from "../../system/software-types.js";
 import type { WindowsCapability, WindowsFeature } from "../../system/feature-types.js";
 import type { SysApplyResult, SysJournalEntry, SysMutationSettings, SysMutResult, SysPlanPreview, SysPlanRequest, SysSnapshot, SysSnapshotHeader, SysSnapshotKind } from "../../system/sys-mutation-types.js";
+import type { DeviceStoreBoot, DeviceStoreDevice, EntityCommit, EntityCommitResult, KvMutation, StoreHealth } from "../../device-store/device-store.model.js";
 import type { NetworkRequest, NetworkJobEvent, NetworkStartResult, NetworkPrepareResult, WatchEntry, WatchSettings, WatchState, WatchResult } from "../../core/platform/network-types.js";
 export interface NativeStat {
   readonly isFile: boolean;
@@ -57,6 +58,27 @@ export interface PlatformBridge {
   readonly external: {
     /** Opens an http(s) link in the default browser; main re-validates and refuses anything else. */
     open(url: string): Promise<VoidResult>;
+  };
+  /**
+   * Device State Store broker (Phase 31B). Every call goes through main, which validates it; the
+   * renderer never holds a store port. A degraded store hydrates empty and commits report `ok: false`.
+   */
+  readonly store: {
+    hydrate(): Promise<DeviceStoreBoot>;
+    commitKv(mutations: readonly KvMutation[]): Promise<{ readonly ok: true; readonly count: number } | { readonly ok: false; readonly error: string }>;
+    /** One-way, fire and forget: for page-hide flushes where a reply cannot be awaited. */
+    commitKvNoWait(mutations: readonly KvMutation[]): void;
+    commitEntity(commit: EntityCommit): Promise<EntityCommitResult>;
+    /** Upserts of a single entity type, committed in one transaction. */
+    importEntities(commits: readonly EntityCommit[]): Promise<{ readonly ok: true; readonly count: number; readonly backpressure: boolean } | { readonly ok: false; readonly error: string }>;
+    status(): Promise<StoreHealth>;
+    /** Main asks the renderer to flush pending writes before quit; the returned promise settles the handshake. */
+    onFlushRequest(callback: () => void | Promise<void>): () => void;
+    onHealth(callback: (health: StoreHealth) => void): () => void;
+  };
+  readonly device: {
+    get(): Promise<DeviceStoreDevice | null>;
+    rename(displayName: string): Promise<{ readonly ok: true; readonly displayName: string } | { readonly ok: false; readonly error: string }>;
   };
   readonly appearance?: {
     /** Syncs Electron's native theme source and window background; main validates and may reject. */

@@ -6,7 +6,7 @@ import { isSecretPurpose, uuidv7 } from '@dude/persistence';
 import type { SecretPurpose } from '@dude/persistence';
 import type { DeviceStore } from '../store/open-store.js';
 import type { Db } from '../store/sqlite.js';
-import { getMeta } from '../store/sqlite.js';
+import { getMeta, setMeta } from '../store/sqlite.js';
 import { readDeviceRecord, renameDevice } from '../store/identity.js';
 import { commitEntity, importMany, listRecords } from '../store/entity-commit.js';
 import type { CommitContext } from '../store/entity-commit.js';
@@ -215,6 +215,15 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
     },
     // The legacy userData import is implemented in M621; until then nothing is imported.
     'legacy.import': () => ({ status: 'none', imported: {}, warnings: [] }),
+    'store.cleanExit': (p) => {
+      const database = db();
+      const stored = getMeta(database, 'last_clean_exit');
+      const previous = stored === undefined ? 'none' : stored === 'pending' ? 'unclean' : 'clean';
+      if (p.action === 'launch') setMeta(database, 'last_clean_exit', 'pending');
+      else if (p.action === 'quit') setMeta(database, 'last_clean_exit', deps.now().toISOString());
+      else if (p.action !== 'check') throw invalid('action must be launch, quit or check.');
+      return { previous };
+    },
     'store.shutdown': () => {
       if (store) {
         try { store.db.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch { /* best effort; close still runs */ }

@@ -26,7 +26,7 @@
     },
     {
       "source": "apps/desktop/crash-detection.ts",
-      "line": 25,
+      "line": 30,
       "operation": "fs.writeFile(path(), JSON.stringify({ cleanExit }), 'utf8')",
       "namespace": null,
       "key": null,

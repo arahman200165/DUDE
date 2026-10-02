@@ -2,7 +2,6 @@ import { app, BrowserWindow, ipcMain, Menu, nativeImage, shell, Tray } from 'ele
 import { dirname, join } from 'node:path';
 import { promises as fs } from 'node:fs';
 import { parseFileAssociations } from './file-association-marker';
-import { markCleanExit } from './crash-detection';
 import { sendMenuAction } from './native-menu';
 
 /**
@@ -22,7 +21,6 @@ export function isAppQuitting(): boolean {
 
 app.on('before-quit', () => {
   isQuitting = true;
-  markCleanExit();
 });
 
 let trayRef: Tray | null = null;

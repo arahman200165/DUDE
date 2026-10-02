@@ -1,4 +1,5 @@
 import type { PlatformBridge } from "@dude/contracts/shared/models/platform-bridge.model";
+import type { DeviceStoreDevice, KvMutation, StoreHealth } from "@dude/contracts";
 
 /**
  * A full `PlatformBridge` stub with a sensible "nothing configured yet"
@@ -12,6 +13,8 @@ export function fakeElectronBridge(overrides: Partial<PlatformBridge> = {}): Pla
     platform: { isDesktop: true, wasRestoredAfterCrash: false },
     deepLink: { ready: () => {}, onItem: () => () => {} },
     external: { open: async () => ({ ok: true }) },
+    store: fakeStore(),
+    device: fakeDevice(),
     menu: { ready: () => {}, onAction: () => () => {}, setToolMenuData: async () => ({ ok: true }) },
     quickLauncher: { ready: () => {}, onOpen: () => () => {}, onDismissed: () => () => {}, dismiss: async () => ({ ok: true }), promote: async () => ({ ok: true }), getHotkey: async () => null, setHotkey: async () => ({ ok: true }) },
     preferences: { get: async () => ({ closeToTray: true, launchMinimized: false, startupDestination: 'workspace', preferredDisplayId: null, rememberWindowBounds: true, updateMode: 'auto-download', notifyUpdates: true, notifyCollaboration: true }), set: async () => ({ ok: true, value: { closeToTray: true, launchMinimized: false, startupDestination: 'workspace', preferredDisplayId: null, rememberWindowBounds: true, updateMode: 'auto-download', notifyUpdates: true, notifyCollaboration: true } }), displays: async () => [], setupRequest: async () => null },
@@ -164,5 +167,53 @@ export function fakeElectronBridge(overrides: Partial<PlatformBridge> = {}): Pla
       onUpdateError: () => () => {},
     },
     ...overrides,
+  };
+}
+
+/** In-memory device store: kv and entity commits are kept so specs can inspect what the renderer wrote. */
+export function fakeStore(): PlatformBridge['store'] {
+  const kv = new Map<string, unknown>();
+  const records = new Map<string, unknown>();
+  const flushListeners = new Set<() => void | Promise<void>>();
+  const healthListeners = new Set<(health: StoreHealth) => void>();
+  const health: StoreHealth = { status: 'ready', schemaVersion: 1, minReaderVersion: 1, sizeBytes: 0, outbox: { pending: 0, maxRows: 0, backpressure: false }, legacyImport: 'none' };
+  let revision = 0;
+  const apply = (m: KvMutation): void => {
+    const key = `${m.namespace}\u001f${m.key}`;
+    if (m.remove) kv.delete(key); else kv.set(key, m.value);
+  };
+  return {
+    hydrate: async () => ({
+      status: 'ready',
+      device: fakeDeviceRecord,
+      kv: [...kv].map(([k, value]) => { const [namespace, key] = k.split('\u001f'); return { namespace, key, value }; }),
+      records: [...records].map(([k, payload]) => { const [entityType, entityId] = k.split('\u001f'); return { entityType, entityId, payload }; }),
+    }),
+    commitKv: async (mutations) => { mutations.forEach(apply); return { ok: true, count: mutations.length }; },
+    commitKvNoWait: (mutations) => { mutations.forEach(apply); },
+    commitEntity: async (commit) => {
+      const key = `${commit.entityType}\u001f${commit.entityId}`;
+      if (commit.op === 'delete') records.delete(key); else records.set(key, commit.payload);
+      return { ok: true, localRevision: ++revision };
+    },
+    importEntities: async (commits) => {
+      for (const c of commits) records.set(`${c.entityType}\u001f${c.entityId}`, c.payload);
+      return { ok: true, count: commits.length, backpressure: false };
+    },
+    status: async () => health,
+    onFlushRequest: (callback) => { flushListeners.add(callback); return () => { flushListeners.delete(callback); }; },
+    onHealth: (callback) => { healthListeners.add(callback); return () => { healthListeners.delete(callback); }; },
+  };
+}
+
+const fakeDeviceRecord: DeviceStoreDevice = {
+  deviceId: 'fake-device', environmentId: 'fake-environment', displayName: 'Test device', platform: 'windows', appVersion: '0.0.0', enrollmentState: 'standalone',
+};
+
+export function fakeDevice(): PlatformBridge['device'] {
+  let record = fakeDeviceRecord;
+  return {
+    get: async () => record,
+    rename: async (displayName) => { record = { ...record, displayName }; return { ok: true, displayName }; },
   };
 }
