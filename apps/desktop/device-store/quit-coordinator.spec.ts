@@ -6,7 +6,7 @@ function setup(over: Record<string, unknown> = {}) {
   const log: string[] = [];
   let listener: (event: { preventDefault(): void }) => void = () => undefined;
   const app = { on: (_e: string, l: typeof listener) => { listener = l; }, quit: vi.fn(() => { log.push('quit'); }) };
-  const host = { shutdown: vi.fn(async () => { log.push('shutdown'); }) };
+  const host = { shutdown: vi.fn(async () => { log.push('shutdown'); }), detach: vi.fn(async () => { log.push('detach'); }) };
   installQuitCoordinator({
     app,
     getWindow: () => ({}) as never,
@@ -27,6 +27,22 @@ describe('quit coordinator', () => {
     expect(fire().prevented).toBe(true);
     await vi.waitFor(() => expect(log).toContain('quit'));
     expect(log).toEqual(['flush', 'mark', 'shutdown', 'quit']);
+  });
+
+  it('detaches instead of shutting the agent down when it should keep running', async () => {
+    const { fire, log, host } = setup({ keepAgentRunning: () => true });
+    fire();
+    await vi.waitFor(() => expect(log).toContain('quit'));
+    expect(log).toEqual(['flush', 'mark', 'detach', 'quit']);
+    expect(host.shutdown).not.toHaveBeenCalled();
+  });
+
+  it('shuts the agent down when the user opted out of background running', async () => {
+    const { fire, log, host } = setup({ keepAgentRunning: () => false });
+    fire();
+    await vi.waitFor(() => expect(log).toContain('quit'));
+    expect(log).toEqual(['flush', 'mark', 'shutdown', 'quit']);
+    expect(host.detach).not.toHaveBeenCalled();
   });
 
   it('lets the second before-quit pass through, and ignores one that arrives mid-sequence', async () => {

@@ -84,6 +84,10 @@ const bridge: PlatformBridge = {
   device: {
     get: () => ipcRenderer.invoke('dude:device:get'),
     rename: (displayName) => ipcRenderer.invoke('dude:device:rename', displayName),
+    agentStatus: () => ipcRenderer.invoke('dude:device:agentStatus'),
+    setAgentAutostart: (enabled) => ipcRenderer.invoke('dude:device:setAgentAutostart', enabled),
+    stopAgent: () => ipcRenderer.invoke('dude:device:stopAgent'),
+    startAgent: () => ipcRenderer.invoke('dude:device:startAgent'),
   },
   appearance: {
     setNative: (mode, background) => ipcRenderer.invoke('dude:appearance:set', { mode, background }),

@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import type { QuarantinePreview, ResetApplyError, ResetKind, ResetPreview } from '@dude/contracts';
 import { validateDisplayName } from '@dude/persistence';
+import { DeviceAgentService } from '../../../core/device/device-agent.service';
 import { DeviceIdentityService } from '../../../core/device/device-identity.service';
 import { DeviceResetService } from '../../../core/device/device-reset.service';
 import { DeviceStoreHealthService } from '../../../core/device/device-store-health.service';
@@ -46,6 +47,7 @@ export class ThisDeviceSettings {
   private readonly health = inject(DeviceStoreHealthService);
   private readonly outboxStatus = inject(OutboxStatusService);
   private readonly resets = inject(DeviceResetService);
+  private readonly agent = inject(DeviceAgentService);
 
   protected readonly identity = this.identityService.identity;
   protected readonly isDesktopStore = this.health.isDesktopStore;
@@ -56,6 +58,20 @@ export class ThisDeviceSettings {
   protected readonly storeReady = computed(() => !this.isDesktopStore || this.storeStatus() === 'ready');
   protected readonly canRetry = computed(() => this.isDesktopStore && (this.storeStatus() === 'unavailable' || this.storeStatus() === 'degraded'));
   protected readonly canQuarantine = computed(() => this.isDesktopStore && (this.storeStatus() === 'incompatible' || this.storeStatus() === 'corrupt'));
+
+  protected readonly agentAvailable = this.agent.available;
+  protected readonly agentStatus = this.agent.status;
+  protected readonly agentBusy = this.agent.busy;
+  protected readonly agentError = this.agent.error;
+  protected readonly agentState = computed(() => {
+    const status = this.agentStatus();
+    if (!status) return 'Checking…';
+    if (status.running) return 'Running';
+    return status.stoppedByUser ? 'Stopped' : 'Not running';
+  });
+  protected readonly autostartDev = computed(() => this.agentStatus()?.autostart === 'unsupported-in-dev');
+  protected readonly autostartSupported = computed(() => { const a = this.agentStatus()?.autostart; return a === 'enabled' || a === 'disabled'; });
+  protected readonly autostartOn = computed(() => this.agentStatus()?.autostart === 'enabled');
 
   protected readonly nameDraft = signal<string | null>(null);
   protected readonly nameError = signal<string | null>(null);
@@ -73,6 +89,14 @@ export class ThisDeviceSettings {
     const bytes = this.storeHealth()?.sizeBytes ?? 0;
     return bytes >= 1_048_576 ? `${(bytes / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
   });
+
+  constructor() {
+    if (this.isDesktopStore) void this.agent.refresh();
+  }
+
+  protected onAutostartToggle(event: Event): void { void this.agent.setAutostart((event.target as HTMLInputElement).checked); }
+  protected stopAgent(): void { void this.agent.stop(); }
+  protected startAgent(): void { void this.agent.start(); }
 
   protected kindLabel(kind: ResetKind): string { return KIND_LABEL[kind]; }
 

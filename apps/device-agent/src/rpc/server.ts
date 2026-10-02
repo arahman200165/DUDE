@@ -229,6 +229,10 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
     },
     // Reached only with an open store, which must never be quarantined (the unavailable path is in `handle`).
     'store.quarantine': () => { throw new RpcError('forbidden', 'The device store is open and cannot be quarantined.'); },
+    'store.checkpoint': () => {
+      (store as DeviceStore).db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+      return { ok: true };
+    },
     'store.shutdown': () => {
       if (store) {
         try { store.db.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch { /* best effort; close still runs */ }

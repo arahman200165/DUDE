@@ -114,6 +114,14 @@ export interface PlatformBridge {
   readonly device: {
     get(): Promise<DeviceStoreDevice | null>;
     rename(displayName: string): Promise<{ readonly ok: true; readonly displayName: string } | { readonly ok: false; readonly error: string }>;
+    /** The resident background Device Agent (desktop only, Settings > This Device). */
+    agentStatus(): Promise<BackgroundAgentStatus>;
+    /** Turns "start at sign-in" on or off for the background agent and remembers the choice. */
+    setAgentAutostart(enabled: boolean): Promise<BackgroundAgentResult>;
+    /** Stops the background agent. The device store is unavailable until it is started again. */
+    stopAgent(): Promise<BackgroundAgentResult>;
+    /** Starts the background agent again after a stop. */
+    startAgent(): Promise<BackgroundAgentResult>;
   };
   readonly appearance?: {
     /** Syncs Electron's native theme source and window background; main validates and may reject. */
@@ -375,6 +383,18 @@ export interface SecretStatusView {
   /** `store-unavailable` when the device store is down. */
   readonly error?: string;
 }
+/** `unsupported-in-dev`: an unpackaged build never installs a sign-in entry. */
+export type BackgroundAgentAutostart = 'enabled' | 'disabled' | 'unsupported-in-dev' | 'unsupported-platform';
+export interface BackgroundAgentStatus {
+  /** An authenticated connection to a running agent exists. */
+  readonly running: boolean;
+  /** The user stopped it from Settings and it has not been started again. */
+  readonly stoppedByUser: boolean;
+  readonly autostart: BackgroundAgentAutostart;
+  /** What starts it at sign-in, when enabled. */
+  readonly mechanism: 'task' | 'run-key' | null;
+}
+export type BackgroundAgentResult = { readonly ok: true; readonly status: BackgroundAgentStatus } | { readonly ok: false; readonly error: string };
 export interface AiProviderConfig { readonly baseUrl: string; readonly model: string }
 export interface AiProviderConfigView extends AiProviderConfig { readonly apiKey: SecretStatusView }
 export type SecretVoidResult = { readonly ok: true } | { readonly ok: false; readonly error: string };

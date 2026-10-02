@@ -48,5 +48,9 @@ export function createInProcessClient(handle: (request: unknown) => Promise<Agen
     onHealth(listener) { listeners.add(listener); return () => { listeners.delete(listener); }; },
     async retry() { /* the in-process client never stops by itself */ },
     async shutdown() { await handle({ id: nextId++, method: 'store.shutdown', params: {} }); status = 'unavailable'; },
+    async detach() { await handle({ id: nextId++, method: 'store.checkpoint', params: {} }); status = 'unavailable'; },
+    async stopAgent() { await handle({ id: nextId++, method: 'store.shutdown', params: {} }); status = 'unavailable'; },
+    agentRunning: () => status !== 'unavailable',
+    stoppedByUser: () => false,
   };
 }

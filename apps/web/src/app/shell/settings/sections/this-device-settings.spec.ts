@@ -1,6 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import type { StoreHealth, StoreStatus } from '@dude/contracts';
+import type { BackgroundAgentStatus, StoreHealth, StoreStatus } from '@dude/contracts';
+import { DeviceAgentService } from '../../../core/device/device-agent.service';
 import { DeviceIdentityService } from '../../../core/device/device-identity.service';
 import { DeviceResetService } from '../../../core/device/device-reset.service';
 import { DeviceStoreHealthService } from '../../../core/device/device-store-health.service';
@@ -14,12 +15,23 @@ function health(partial: Partial<StoreHealth> = {}): StoreHealth {
   return { status: 'ready', schemaVersion: 4, minReaderVersion: 1, sizeBytes: 2_097_152, outbox: { pending: 0, maxRows: 100, backpressure: false }, legacyImport: 'done', ...partial };
 }
 
-interface Options { desktop?: boolean; status?: StoreStatus; health?: StoreHealth | null; outbox?: { pending: number; maxRows: number; backpressure: boolean } | null; identity?: typeof IDENTITY | null }
+interface Options { desktop?: boolean; status?: StoreStatus; health?: StoreHealth | null; outbox?: { pending: number; maxRows: number; backpressure: boolean } | null; identity?: typeof IDENTITY | null; agent?: BackgroundAgentStatus | null; error?: string | null }
 
 function setup(options: Options = {}) {
   const desktop = options.desktop ?? true;
   const rename = vi.fn(async (name: string) => ({ ok: true as const, displayName: name }));
   const retry = vi.fn(async () => undefined);
+  const agentStatus = signal<BackgroundAgentStatus | null>(options.agent ?? null);
+  const agent = {
+    available: options.agent !== undefined,
+    status: agentStatus,
+    busy: signal(false),
+    error: signal<string | null>(options.error ?? null),
+    refresh: vi.fn(async () => undefined),
+    setAutostart: vi.fn(async () => undefined),
+    stop: vi.fn(async () => undefined),
+    start: vi.fn(async () => undefined),
+  };
   const resets = { preview: vi.fn(), apply: vi.fn(), quarantinePreview: vi.fn(), quarantineApply: vi.fn(), openFolder: vi.fn(async () => ({ ok: true })) };
   TestBed.configureTestingModule({
     providers: [
@@ -30,13 +42,14 @@ function setup(options: Options = {}) {
       },
       { provide: OutboxStatusService, useValue: { status: signal(options.outbox ?? null) } },
       { provide: DeviceResetService, useValue: resets },
+      { provide: DeviceAgentService, useValue: agent },
     ],
   });
   const fixture = TestBed.createComponent(ThisDeviceSettings);
   fixture.detectChanges();
   const el = fixture.nativeElement as HTMLElement;
   const button = (text: string): HTMLButtonElement | undefined => Array.from(el.querySelectorAll('button')).find((b) => b.textContent?.trim() === text);
-  return { fixture, el, rename, retry, resets, button };
+  return { fixture, el, rename, retry, resets, button, agent, agentStatus };
 }
 
 describe('ThisDeviceSettings', () => {
@@ -147,5 +160,57 @@ describe('ThisDeviceSettings', () => {
   it('shows a notice when the identity is unavailable', () => {
     const { el } = setup({ identity: null, status: 'unavailable' });
     expect(el.querySelector('[data-testid="no-identity"]')).not.toBeNull();
+  });
+
+  describe('background agent', () => {
+    const RUNNING: BackgroundAgentStatus = { running: true, stoppedByUser: false, autostart: 'enabled', mechanism: 'run-key' };
+
+    it('is hidden on web', () => {
+      const { el } = setup({ desktop: false });
+      expect(el.querySelector('[data-testid="background-agent"]')).toBeNull();
+    });
+
+    it('shows the plain description, a running state and a checked sign-in toggle, and refreshes on open', () => {
+      const { el, agent } = setup({ agent: RUNNING });
+      expect(agent.refresh).toHaveBeenCalled();
+      expect(el.querySelector('[data-testid="background-agent"]')?.textContent).toContain('Keeps your device store available to DUDE when the window is closed.');
+      expect(el.querySelector('[data-testid="agent-state"]')?.textContent).toBe('Running');
+      expect((el.querySelector('[data-testid="agent-autostart"]') as HTMLInputElement).checked).toBe(true);
+      expect(el.querySelector('[data-testid="agent-dev-note"]')).toBeNull();
+    });
+
+    it('toggling start at sign-in and stopping call the service', () => {
+      const { fixture, el, agent, button } = setup({ agent: { ...RUNNING, autostart: 'disabled', mechanism: null } });
+      const toggle = el.querySelector('[data-testid="agent-autostart"]') as HTMLInputElement;
+      expect(toggle.checked).toBe(false);
+      toggle.checked = true;
+      toggle.dispatchEvent(new Event('change'));
+      expect(agent.setAutostart).toHaveBeenCalledWith(true);
+      button('Stop background agent')!.click();
+      expect(agent.stop).toHaveBeenCalledTimes(1);
+      fixture.detectChanges();
+    });
+
+    it('a stopped agent shows Stopped and a Start action instead of Stop', () => {
+      const { fixture, el, agent, agentStatus, button } = setup({ agent: { ...RUNNING, running: false, stoppedByUser: true } });
+      expect(el.querySelector('[data-testid="agent-state"]')?.textContent).toBe('Stopped');
+      expect(button('Stop background agent')).toBeUndefined();
+      button('Start')!.click();
+      expect(agent.start).toHaveBeenCalledTimes(1);
+      agentStatus.set({ ...RUNNING, running: false, stoppedByUser: false });
+      fixture.detectChanges();
+      expect(el.querySelector('[data-testid="agent-state"]')?.textContent).toBe('Not running');
+    });
+
+    it('a development build disables the toggle and says it is not available', () => {
+      const { el } = setup({ agent: { running: true, stoppedByUser: false, autostart: 'unsupported-in-dev', mechanism: null } });
+      expect((el.querySelector('[data-testid="agent-autostart"]') as HTMLInputElement).disabled).toBe(true);
+      expect(el.querySelector('[data-testid="agent-dev-note"]')?.textContent).toContain('Not available in development build');
+    });
+
+    it('shows why an action failed', () => {
+      const { el } = setup({ agent: RUNNING, error: 'Could not set DUDE to start at sign-in.' });
+      expect(el.querySelector('[data-testid="agent-error"]')?.textContent).toContain('Could not set DUDE to start at sign-in.');
+    });
   });
 });

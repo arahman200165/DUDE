@@ -1,5 +1,5 @@
 import type { PlatformBridge } from "@dude/contracts/shared/models/platform-bridge.model";
-import type { DeviceStoreDevice, KvMutation, StoreHealth } from "@dude/contracts";
+import type { BackgroundAgentStatus, DeviceStoreDevice, KvMutation, StoreHealth } from "@dude/contracts";
 import type { HistoryRetention, NetworkRunRetention } from "@dude/persistence";
 import { InMemoryHistoryRepository, InMemoryNetworkRunRepository } from "@dude/persistence/testing";
 
@@ -230,9 +230,14 @@ const fakeDeviceRecord: DeviceStoreDevice = {
 
 export function fakeDevice(): PlatformBridge['device'] {
   let record = fakeDeviceRecord;
+  let agent: BackgroundAgentStatus = { running: true, stoppedByUser: false, autostart: 'disabled', mechanism: null };
   return {
     get: async () => record,
     rename: async (displayName) => { record = { ...record, displayName }; return { ok: true, displayName }; },
+    agentStatus: async () => ({ ...agent }),
+    setAgentAutostart: async (enabled) => { agent = { ...agent, autostart: enabled ? 'enabled' : 'disabled', mechanism: enabled ? 'run-key' : null }; return { ok: true, status: { ...agent } }; },
+    stopAgent: async () => { agent = { ...agent, running: false, stoppedByUser: true }; return { ok: true, status: { ...agent } }; },
+    startAgent: async () => { agent = { ...agent, running: true, stoppedByUser: false }; return { ok: true, status: { ...agent } }; },
   };
 }
 

@@ -15,6 +15,11 @@ export interface QuitCoordinatorOptions {
   getWindow: () => BrowserWindow | null;
   host: () => DeviceStoreHost | null;
   markCleanExit: () => Promise<void> | void;
+  /**
+   * True when the agent should keep running after the app quits (a packaged build whose "start at sign-in"
+   * preference is on). Then quit detaches from the agent; otherwise it shuts the agent down. Defaults to false.
+   */
+  keepAgentRunning?: () => boolean;
   /** Test seam; defaults to the renderer flush handshake. */
   flush?: (window: BrowserWindow, timeoutMs: number) => Promise<void>;
   flushTimeoutMs?: number;
@@ -23,8 +28,8 @@ export interface QuitCoordinatorOptions {
 
 /**
  * Orderly quit for the device store. The first `before-quit` is cancelled; then, in order, the
- * renderer flushes its debounced writes, the clean-exit marker is written, the state service
- * checkpoints and exits, and `app.quit()` runs again (that second `before-quit` passes through).
+ * renderer flushes its debounced writes, the clean-exit marker is written, the Device Agent
+ * either checkpoints and keeps running (detach, when the user keeps it resident) or checkpoints and exits, and `app.quit()` runs again (that second `before-quit` passes through).
  * The whole sequence is capped so a hung renderer or agent can never keep the app open.
  *
  * `autoUpdater.quitAndInstall()` is unaffected: electron-updater spawns the installer
@@ -41,7 +46,10 @@ export function installQuitCoordinator(options: QuitCoordinatorOptions): void {
     const window = options.getWindow();
     if (window) await flush(window, flushTimeout);
     await options.markCleanExit();
-    await options.host()?.shutdown();
+    const host = options.host();
+    if (!host) return;
+    if (options.keepAgentRunning?.()) await host.detach();
+    else await host.shutdown();
   };
 
   options.app.on('before-quit', (event) => {

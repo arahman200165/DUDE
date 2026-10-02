@@ -1,4 +1,5 @@
 import { spawn as spawnChild } from 'node:child_process';
+import type { SpawnOptions } from 'node:child_process';
 import { join } from 'node:path';
 import { AgentConnectError, connectAgentPipe } from '@dude/agent-pipe';
 import type { AgentClientConfig, AgentPipeClient, ConnectAgentPipeOptions } from '@dude/agent-pipe';
@@ -56,6 +57,14 @@ export function resolveAgentLaunch(opts: { isPackaged: boolean; resourcesPath: s
   };
 }
 
+/**
+ * The agent outlives the desktop (PD-026): detached into its own process group with no inherited stdio,
+ * then unreferenced, so quitting Electron neither stops it nor waits for it.
+ */
+export function agentSpawnOptions(launch: AgentLaunch): SpawnOptions {
+  return { windowsHide: true, stdio: 'ignore', detached: true, shell: false, env: launch.env ?? process.env };
+}
+
 function adapt(client: AgentPipeClient): AgentConnection {
   return {
     boot: client.boot,
@@ -72,7 +81,7 @@ export function createPipeTransport(options: PipeTransportOptions): AgentTranspo
   const now = options.now ?? Date.now;
   const log = options.log ?? ((message: string) => console.warn(`[device-agent] ${message}`));
   const spawnProcess = options.spawnProcess ?? ((launch: AgentLaunch): void => {
-    const child = spawnChild(launch.command, launch.args, { windowsHide: true, stdio: 'ignore', detached: false, env: launch.env ?? process.env });
+    const child = spawnChild(launch.command, launch.args, agentSpawnOptions(launch));
     child.on('error', (error) => log(`could not start the agent: ${error.message}`));
     child.unref();
   });

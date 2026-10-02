@@ -29,7 +29,16 @@ export interface DeviceStoreHost {
   onHealth(listener: (health: StoreHealth) => void): () => void;
   /** Manual retry: when unavailable, clears the crash history and restarts the agent connection. Resolves once that attempt settles. */
   retry(): Promise<void>;
+  /** Stops the agent for good (checkpoint, close, exit) and waits for it; used on quit and by reset/quarantine. */
   shutdown(): Promise<void>;
+  /** Quit while the agent keeps running: checkpoints, then drops the connection without stopping the agent. */
+  detach(): Promise<void>;
+  /** The user's explicit stop (Settings): shuts the agent down and does NOT respawn it or count a crash; `retry()` starts it again. */
+  stopAgent(): Promise<void>;
+  /** Whether an authenticated connection to a running agent exists. */
+  agentRunning(): boolean;
+  /** True after `stopAgent()` until the agent is started again. */
+  stoppedByUser(): boolean;
 }
 
 export interface StartOptions {
@@ -49,7 +58,7 @@ export const CRASH_WINDOW_MS = 2 * 60_000;
 export const MAX_CRASHES_IN_WINDOW = 3;
 const DEFAULT_CALL_TIMEOUT_MS = 10_000;
 
-type Phase = 'starting' | 'running' | 'restarting' | 'unavailable' | 'stopped';
+type Phase = 'starting' | 'running' | 'restarting' | 'unavailable' | 'stopped' | 'paused';
 
 interface Pending {
   resolve: (value: unknown) => void;
@@ -151,7 +160,7 @@ class AgentHost implements DeviceStoreHost {
       this.registerCrash();
     }, READY_TIMEOUT_MS);
     connecting.then((conn) => {
-      if (this.attempt !== attempt || this.phase === 'stopped') { conn.close(); return; }
+      if (this.attempt !== attempt || this.phase === 'stopped' || this.phase === 'paused') { conn.close(); return; }
       this.conn = conn;
       conn.onMessage((message) => { if (this.conn === conn) this.onMessage(message); });
       conn.onClose(() => this.onExit(conn));
@@ -208,7 +217,7 @@ class AgentHost implements DeviceStoreHost {
     const waiters = this.exitWaiters;
     this.exitWaiters = [];
     for (const w of waiters) w();
-    if (this.phase === 'stopped') return;
+    if (this.phase === 'stopped' || this.phase === 'paused') return;
     this.registerCrash();
   }
 
@@ -262,7 +271,7 @@ class AgentHost implements DeviceStoreHost {
   }
 
   call<M extends AgentMethod>(method: M, params: AgentMethodMap[M]['params'], options: CallOptions = {}): Promise<AgentMethodMap[M]['result']> {
-    if (this.phase === 'unavailable' || this.phase === 'stopped') {
+    if (this.phase === 'unavailable' || this.phase === 'stopped' || this.phase === 'paused') {
       return Promise.reject(new DeviceStoreError('unavailable', 'The device store is unavailable.'));
     }
     return this.enqueue(method, params, options.timeoutMs ?? DEFAULT_CALL_TIMEOUT_MS, this.phase === 'running') as Promise<AgentMethodMap[M]['result']>;
@@ -287,7 +296,7 @@ class AgentHost implements DeviceStoreHost {
   }
 
   status(): StoreStatus {
-    if (this.phase === 'unavailable' || this.phase === 'stopped') return 'unavailable';
+    if (this.phase === 'unavailable' || this.phase === 'stopped' || this.phase === 'paused') return 'unavailable';
     if (this.phase === 'running') return this.reported;
     return 'degraded';
   }
@@ -299,8 +308,12 @@ class AgentHost implements DeviceStoreHost {
     return () => { this.listeners.delete(listener); };
   }
 
+  agentRunning(): boolean { return this.phase === 'running' && this.conn !== null; }
+
+  stoppedByUser(): boolean { return this.phase === 'paused'; }
+
   retry(): Promise<void> {
-    if (this.phase !== 'unavailable') return Promise.resolve();
+    if (this.phase !== 'unavailable' && this.phase !== 'paused') return Promise.resolve();
     this.crashes = [];
     this.lastHealth = syntheticHealth('degraded', 'The device store is restarting.');
     this.reported = 'degraded';
@@ -311,14 +324,39 @@ class AgentHost implements DeviceStoreHost {
     });
   }
 
-  async shutdown(): Promise<void> {
-    const wasRunning = this.phase === 'running';
+  shutdown(): Promise<void> { return this.terminate('stopped'); }
+
+  async stopAgent(): Promise<void> {
+    if (this.phase === 'paused' || this.phase === 'stopped') return;
+    await this.terminate('paused');
+    this.reported = 'unavailable';
+    this.lastHealth = syntheticHealth('unavailable', 'The background agent was stopped. Start it again from Settings > This Device.');
+    this.emit();
+  }
+
+  async detach(): Promise<void> {
     const conn = this.conn;
+    const wasRunning = this.phase === 'running';
+    this.halt('stopped');
+    if (!conn) return;
+    if (wasRunning) await this.enqueue('store.checkpoint', {}, SHUTDOWN_EXIT_CAP_MS, true).catch(() => undefined);
+    // Closing our end leaves the agent serving; the close event is ignored because the phase is already stopped.
+    try { conn.close(); } catch { /* already gone */ }
+  }
+
+  /** Cancels timers, abandons any connect in flight and refuses further calls. */
+  private halt(final: 'stopped' | 'paused'): void {
     this.attempt++;
-    this.phase = 'stopped';
+    this.phase = final;
     if (this.restartTimer) { clearTimeout(this.restartTimer); this.restartTimer = null; }
     if (this.readyTimer) { clearTimeout(this.readyTimer); this.readyTimer = null; }
-    this.rejectQueue('unavailable', 'The device store is shutting down.');
+    this.rejectQueue('unavailable', final === 'paused' ? 'The background agent was stopped.' : 'The device store is shutting down.');
+  }
+
+  private async terminate(final: 'stopped' | 'paused'): Promise<void> {
+    const wasRunning = this.phase === 'running';
+    const conn = this.conn;
+    this.halt(final);
     if (!conn) return;
     const exited = new Promise<void>((resolve) => { this.exitWaiters.push(resolve); });
     if (wasRunning) {

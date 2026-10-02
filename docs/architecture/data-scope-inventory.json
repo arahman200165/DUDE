@@ -10,7 +10,7 @@
     "Retention consent is independent of future synchronization consent; no synchronization consent is implied"
   ],
   "classificationCounts": {
-    "device-doc": 31,
+    "device-doc": 33,
     "regex-heuristic (review flag)": 49,
     "agent-table": 13,
     "hub-table": 20,
@@ -505,6 +505,34 @@
       "key": "desktop-preferences",
       "storage": "Device Store device_docs",
       "storageLocation": "device_docs row desktop-preferences",
+      "retention": "until changed/reset",
+      "scope": "device",
+      "sensitivity": "sensitive",
+      "classificationBasis": "device-doc",
+      "syncConsent": "not granted"
+    },
+    {
+      "source": "apps/desktop/device-store/agent-background.ts",
+      "line": 122,
+      "operation": "loadDoc<boolean | null>(DOC, decodeAutostartDoc, null)",
+      "namespace": null,
+      "key": "agent-autostart",
+      "storage": "Device Store device_docs",
+      "storageLocation": "device_docs row agent-autostart",
+      "retention": "until changed/reset",
+      "scope": "device",
+      "sensitivity": "sensitive",
+      "classificationBasis": "device-doc",
+      "syncConsent": "not granted"
+    },
+    {
+      "source": "apps/desktop/device-store/agent-background.ts",
+      "line": 123,
+      "operation": "saveDoc(DOC, { enabled })",
+      "namespace": null,
+      "key": "agent-autostart",
+      "storage": "Device Store device_docs",
+      "storageLocation": "device_docs row agent-autostart",
       "retention": "until changed/reset",
       "scope": "device",
       "sensitivity": "sensitive",

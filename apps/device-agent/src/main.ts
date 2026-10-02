@@ -1,4 +1,5 @@
 import { runAgent } from './agent.js';
+import { stopWindowsSysClient } from './native/windows-sys-client.js';
 
 /** Replaced at build time (`--define:__DUDE_VERSION__`); 'dev' when running unbundled. */
 declare const __DUDE_VERSION__: string | undefined;
@@ -19,7 +20,7 @@ async function main(): Promise<void> {
     process.stderr.write('dude-agent: --store-dir <dir> is required\n');
     process.exit(2);
   }
-  const agent = await runAgent({ storeDir, agentVersion: AGENT_VERSION, onExit: (code) => process.exit(code) });
+  const agent = await runAgent({ storeDir, agentVersion: AGENT_VERSION, onExit: (code) => { stopWindowsSysClient(); process.exit(code); } });
   // Another agent already serves this store directory; nothing to do.
   if (agent.status === 'already-running') process.exit(0);
 }

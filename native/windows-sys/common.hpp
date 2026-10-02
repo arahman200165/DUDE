@@ -143,5 +143,8 @@ bool handleEnvBroadcast(std::string& result, Failure& err);
 // Mutating service operations (services.cpp), reached only from confirmed engine plans.
 bool handleSvcControl(const JsonValue* params, std::string& result, Failure& err);
 bool handleSvcSetStartType(const JsonValue* params, std::string& result, Failure& err);
+// DPAPI CurrentUser wrap/unwrap (dpapi.cpp): Device Agent only, never in SYS_READ_METHODS.
+bool handleDpapiProtect(const JsonValue* params, std::string& result, Failure& err);
+bool handleDpapiUnprotect(const JsonValue* params, std::string& result, Failure& err);
 
 }  // namespace sys

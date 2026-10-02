@@ -80,6 +80,8 @@ export interface AgentMethodMap {
    * run unclean; `quit` marks it clean. `check` only reads.
    */
   'store.cleanExit': { params: { action: 'launch' | 'quit' | 'check' }; result: { previous: 'none' | 'clean' | 'unclean' } };
+  /** Folds the write-ahead log into the database file without closing anything; the desktop sends it before detaching on quit. */
+  'store.checkpoint': { params: Record<string, never>; result: { ok: true } };
   /** Checkpoints, closes the store and exits the agent process. */
   'store.shutdown': { params: Record<string, never>; result: { ok: true } };
   /**
@@ -112,7 +114,7 @@ export const AGENT_METHODS = [
   'powershell.add', 'powershell.list', 'powershell.clear',
   'docs.get', 'docs.set', 'docs.remove',
   'secrets.status', 'secrets.list', 'secrets.set', 'secrets.remove', 'secrets.getCiphertext',
-  'device.rename', 'reset.preview', 'reset.apply', 'legacy.import', 'store.cleanExit', 'store.shutdown', 'store.quarantine',
+  'device.rename', 'reset.preview', 'reset.apply', 'legacy.import', 'store.cleanExit', 'store.checkpoint', 'store.shutdown', 'store.quarantine',
 ] as const satisfies readonly AgentMethod[];
 
 // Compile-time exhaustiveness: fails if a method is added to the map but not to AGENT_METHODS.

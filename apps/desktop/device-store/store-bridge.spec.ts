@@ -33,6 +33,10 @@ function fakeHost() {
     onHealth: (l) => { healthListeners.push(l); return () => undefined; },
     retry: async () => undefined,
     shutdown: async () => undefined,
+    detach: async () => undefined,
+    stopAgent: async () => undefined,
+    agentRunning: () => true,
+    stoppedByUser: () => false,
   };
   return { host, calls, healthListeners };
 }

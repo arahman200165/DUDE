@@ -1,6 +1,6 @@
 import { AgentConnectError } from '@dude/agent-pipe';
 import type { AgentPipeClient, ConnectAgentPipeOptions } from '@dude/agent-pipe';
-import { createPipeTransport, resolveAgentLaunch } from './agent-transport';
+import { agentSpawnOptions, createPipeTransport, resolveAgentLaunch } from './agent-transport';
 
 const CONFIG = { appInfo: { appVersion: '1.0.0' }, capabilities: {}, machineGuid: 'g' };
 
@@ -112,5 +112,15 @@ describe('resolveAgentLaunch', () => {
     expect(launch.args[0]).toMatch(/device-agent\.js$/);
     expect(launch.args.slice(1)).toEqual(['--store-dir', 'S']);
     expect(launch.env?.ELECTRON_RUN_AS_NODE).toBe('1');
+  });
+});
+
+describe('agent spawn options', () => {
+  it('detaches the agent so it survives the desktop, with no stdio and no shell', () => {
+    expect(agentSpawnOptions({ command: 'a', args: [] })).toMatchObject({ detached: true, stdio: 'ignore', windowsHide: true, shell: false });
+  });
+
+  it('passes the launch environment through', () => {
+    expect(agentSpawnOptions({ command: 'a', args: [], env: { ELECTRON_RUN_AS_NODE: '1' } }).env).toEqual({ ELECTRON_RUN_AS_NODE: '1' });
   });
 });

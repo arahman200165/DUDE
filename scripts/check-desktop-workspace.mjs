@@ -54,8 +54,9 @@ async function expectIndent(page){
 }
 const storeDir=path.join(profile,'device-store');
 const agentPid=path.join(storeDir,'agent.pid');
-// The desktop shuts its agent down on quit (this milestone). Make sure none outlives the run: ask it to shut down over
-// the pipe, then fall back to the pid it recorded.
+// This harness runs the unpackaged app, which cannot install a sign-in entry, so it shuts its agent down on quit (a packaged
+// build with start-at-sign-in on detaches instead and leaves the agent running). Make sure none outlives the run: ask it to
+// shut down over the pipe, then fall back to the pid it recorded.
 async function stopLeftoverAgent(){
  try{
   const client=await connectAgentPipe({storeDir,config:{appInfo:{},capabilities:{},machineGuid:null},timeoutMs:3000});
@@ -70,7 +71,7 @@ async function stopLeftoverAgent(){
 }
 async function waitForAgentExit(){
  for(let i=0;i<50&&existsSync(agentPid);i++)await new Promise(resolve=>setTimeout(resolve,100));
- assert.equal(existsSync(agentPid),false,'the Device Agent exited with the desktop');
+ assert.equal(existsSync(agentPid),false,'the Device Agent exited with the unpackaged desktop (no sign-in entry, so quit shuts it down)');
 }
 let active;
 try{

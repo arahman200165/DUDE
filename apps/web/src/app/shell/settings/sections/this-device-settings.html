@@ -79,6 +79,39 @@
         </p>
       }
 
+      @if (agentAvailable) {
+        <div data-setting class="flex flex-col gap-2 border-t border-border pt-3" data-testid="background-agent">
+          <h4 class="text-ui font-semibold text-text">Background agent</h4>
+          <p class="text-ui text-text-muted">Keeps your device store available to DUDE when the window is closed.</p>
+          <dl class="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 text-ui">
+            <dt class="text-text-muted">State</dt>
+            <dd class="text-text" data-testid="agent-state">{{ agentState() }}</dd>
+          </dl>
+          <label class="flex items-center gap-2 text-ui text-text">
+            <input
+              type="checkbox"
+              class="accent-accent"
+              data-testid="agent-autostart"
+              [checked]="autostartOn()"
+              [disabled]="agentBusy() || !autostartSupported()"
+              (change)="onAutostartToggle($event)"
+            />
+            Start at sign-in
+          </label>
+          @if (autostartDev()) {
+            <p class="text-ui text-text-muted" data-testid="agent-dev-note">Not available in development build.</p>
+          }
+          <div class="flex flex-wrap items-center gap-2">
+            @if (agentStatus()?.running) {
+              <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated disabled:opacity-50" [disabled]="agentBusy()" (click)="stopAgent()">Stop background agent</button>
+            } @else {
+              <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10 disabled:opacity-50" [disabled]="agentBusy()" (click)="startAgent()">Start</button>
+            }
+          </div>
+          @if (agentError()) { <p class="text-ui text-error" role="alert" data-testid="agent-error">{{ agentError() }}</p> }
+        </div>
+      }
+
       @if (canRetry() || canQuarantine() || !storeReady()) {
         <div class="flex flex-col gap-2 rounded-sm border border-warning/40 p-3" data-testid="recovery">
           <h4 class="text-ui font-semibold text-warning">Recovery</h4>

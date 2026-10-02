@@ -101,6 +101,8 @@ std::string handleLine(const std::string& line) {
   else if (method == "reg.createKey") ok = sys::handleRegCreateKey(params, result, err);
   else if (method == "reg.deleteKeyIfEmpty") ok = sys::handleRegDeleteKeyIfEmpty(params, result, err);
   else if (method == "env.broadcast") ok = sys::handleEnvBroadcast(result, err);
+  else if (method == "dpapi.protect") ok = sys::handleDpapiProtect(params, result, err);
+  else if (method == "dpapi.unprotect") ok = sys::handleDpapiUnprotect(params, result, err);
   else return failureLine(id, sys::plainFailure("Unknown method."));
 
   if (!ok) return failureLine(id, err);

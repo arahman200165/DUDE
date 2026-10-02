@@ -244,4 +244,78 @@ describe('agent host', () => {
     await done;
     expect(h.attempts[0].conn.closeCalls).toBe(1);
   });
+
+  describe('background agent control', () => {
+    async function running(h: Harness) {
+      const starting = begin(h);
+      await ready(h);
+      return starting;
+    }
+
+    it('detach checkpoints, closes only the connection and never sends store.shutdown', async () => {
+      const h = makeHarness();
+      const host = await running(h);
+      const conn = h.attempts[0].conn;
+      conn.onPost = (m) => { const r = m as { id: number; method: string }; if (r.method === 'store.checkpoint') conn.deliver({ id: r.id, ok: true, result: { ok: true } }); };
+      await host.detach();
+      const methods = (conn.sent as Array<{ method: string }>).map((r) => r.method);
+      expect(methods).toEqual(['store.checkpoint']);
+      expect(conn.closeCalls).toBe(1);
+      expect(host.status()).toBe('unavailable');
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(h.attempts).toHaveLength(1);
+    });
+
+    it('detach still closes the connection when the checkpoint is never answered', async () => {
+      const h = makeHarness();
+      const host = await running(h);
+      const detaching = host.detach();
+      await vi.advanceTimersByTimeAsync(3_000);
+      await detaching;
+      expect(h.attempts[0].conn.closeCalls).toBe(1);
+    });
+
+    it('an intentional stop sends store.shutdown, does not respawn or spiral to unavailable-by-crash, and start recovers', async () => {
+      const h = makeHarness();
+      const host = await running(h);
+      const conn = h.attempts[0].conn;
+      conn.onPost = (m) => { const r = m as { id: number; method: string }; if (r.method === 'store.shutdown') { conn.deliver({ id: r.id, ok: true, result: { ok: true } }); conn.drop(); } };
+      expect(host.agentRunning()).toBe(true);
+      await host.stopAgent();
+      expect((conn.sent as Array<{ method: string }>).map((r) => r.method)).toEqual(['store.shutdown']);
+      expect(host.stoppedByUser()).toBe(true);
+      expect(host.agentRunning()).toBe(false);
+      expect(host.status()).toBe('unavailable');
+      expect(host.health()).toMatchObject({ status: 'unavailable' });
+      await expect(host.call('docs.get', { name: 'x' })).rejects.toMatchObject({ code: 'unavailable' });
+
+      // Well past every backoff step: nothing reconnects by itself.
+      await vi.advanceTimersByTimeAsync(5 * 60_000);
+      expect(h.attempts).toHaveLength(1);
+
+      const starting = host.retry();
+      expect(h.attempts).toHaveLength(2);
+      h.attempts[1].resolve({ type: 'ready', status: 'ready', health: HEALTH });
+      await vi.advanceTimersByTimeAsync(0);
+      await starting;
+      expect(host.stoppedByUser()).toBe(false);
+      expect(host.agentRunning()).toBe(true);
+      expect(host.status()).toBe('ready');
+    });
+
+    it('a stop followed by crashes of the next agent still gets the normal crash policy', async () => {
+      const h = makeHarness();
+      const host = await running(h);
+      const conn = h.attempts[0].conn;
+      conn.onPost = (m) => { const r = m as { id: number; method: string }; if (r.method === 'store.shutdown') { conn.deliver({ id: r.id, ok: true, result: { ok: true } }); conn.drop(); } };
+      await host.stopAgent();
+      void host.retry();
+      h.attempts[1].resolve({ type: 'ready', status: 'ready', health: HEALTH });
+      await vi.advanceTimersByTimeAsync(0);
+      h.attempts[1].conn.drop();
+      expect(host.status()).toBe('degraded');
+      await vi.advanceTimersByTimeAsync(500);
+      expect(h.attempts).toHaveLength(3);
+    });
+  });
 });

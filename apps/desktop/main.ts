@@ -40,7 +40,8 @@ import { registerQuickLauncherHotkey, registerQuickLauncherRenderer } from './qu
 import { isAllowedRendererNavigation } from './navigation-guard';
 import { checkAndMarkLaunch, markCleanExit } from './crash-detection';
 import { currentAppInfo, deviceCapabilities, startDeviceAgent } from './device-store/agent-host';
-import { readMachineGuid } from './device-store/machine-fingerprint';
+import { getAgentBackground } from './device-store/agent-background';
+import { registerAgentHandlers } from './device-store/agent-bridge';
 import { installQuitCoordinator } from './device-store/quit-coordinator';
 import { getDeviceStoreHost, setDeviceStoreHost } from './device-store/store-client';
 import { startStoreMaintenance } from './device-store/store-maintenance';
@@ -123,6 +124,7 @@ async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
   registerDeepLinkHandlers(window);
   registerExternalLinkHandlers(window);
   registerDeviceStoreHandlers(window);
+  registerAgentHandlers(window);
   registerStoreResetHandlers(window, defaultStoreResetDeps(() => app.getPath('userData'), async () => {
     await startDeviceStore();
     const host = getDeviceStoreHost();
@@ -157,12 +159,10 @@ async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
  */
 async function startDeviceStore(): Promise<void> {
   try {
-    const machineGuid = await readMachineGuid();
     const host = await startDeviceAgent({
       userDataDir: app.getPath('userData'),
       appInfo: currentAppInfo(),
       capabilities: deviceCapabilities(),
-      machineGuid,
     });
     setDeviceStoreHost(host);
   } catch {
@@ -189,6 +189,8 @@ if (hasSingleInstanceLock) {
     getWindow: () => BrowserWindow.getAllWindows()[0] ?? null,
     host: getDeviceStoreHost,
     markCleanExit,
+    // A packaged build with "start at sign-in" on leaves the agent running after quit; everything else shuts it down.
+    keepAgentRunning: () => getAgentBackground().keepAgentRunning(),
   });
 }
 
@@ -200,6 +202,7 @@ if (hasSingleInstanceLock) void app.whenReady().then(async () => {
   startStoreMaintenance();
   await loadDesktopPreferences();
   markPerf('preferences-loaded');
+  void getAgentBackground().init();
   const wasRestoredAfterCrash = await checkAndMarkLaunch();
   enqueueCommandLine(process.argv);
   enqueueDeepLinkArguments(process.argv);
