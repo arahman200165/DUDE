@@ -8,6 +8,7 @@ import type { StartupProgramsResult } from "../../system/startup-types.js";
 import type { InstalledSoftware } from "../../system/software-types.js";
 import type { WindowsCapability, WindowsFeature } from "../../system/feature-types.js";
 import type { SysApplyResult, SysJournalEntry, SysMutationSettings, SysMutResult, SysPlanPreview, SysPlanRequest, SysSnapshot, SysSnapshotHeader, SysSnapshotKind } from "../../system/sys-mutation-types.js";
+import type { AgentHistoryRecord, AgentNetworkRun } from "../../device-store/agent-protocol.js";
 import type { DeviceStoreBoot, DeviceStoreDevice, EntityCommit, EntityCommitResult, KvMutation, StoreHealth } from "../../device-store/device-store.model.js";
 import type { NetworkRequest, NetworkJobEvent, NetworkStartResult, NetworkPrepareResult, WatchEntry, WatchSettings, WatchState, WatchResult } from "../../core/platform/network-types.js";
 export interface NativeStat {
@@ -35,6 +36,9 @@ export type DesktopOpenItem =
   | { readonly kind: 'file'; readonly path: string; readonly name: string; readonly extension: string; readonly text: string }
   | { readonly kind: 'directory'; readonly path: string; readonly name: string }
   | { readonly kind: 'error'; readonly path: string; readonly message: string };
+
+export type StoreRecordResult = { readonly ok: true } | { readonly ok: false; readonly error: string };
+export type StoreRecordAddResult = { readonly ok: true; readonly evicted: number } | { readonly ok: false; readonly error: string };
 
 export interface PlatformBridge {
   readonly preferences: {
@@ -77,6 +81,24 @@ export interface PlatformBridge {
     /** Main asks the renderer to flush pending writes before quit; the returned promise settles the handshake. */
     onFlushRequest(callback: () => void | Promise<void>): () => void;
     onHealth(callback: (health: StoreHealth) => void): () => void;
+    /** Local History in the device store (Phase 31B). The store enforces the retention caps in each add. */
+    readonly history: {
+      add(entry: AgentHistoryRecord): Promise<StoreRecordAddResult>;
+      /** Newest first; with a `toolId` only that tool's entries. */
+      list(query?: { readonly toolId?: string; readonly limit?: number }): Promise<readonly AgentHistoryRecord[]>;
+      get(id: string): Promise<AgentHistoryRecord | null>;
+      remove(id: string): Promise<StoreRecordResult>;
+      clear(): Promise<StoreRecordResult>;
+      clearTool(toolId: string): Promise<StoreRecordResult>;
+    };
+    /** Saved network runs in the device store; the renderer scrubs secrets before `add`. */
+    readonly network: {
+      add(run: AgentNetworkRun): Promise<StoreRecordAddResult>;
+      list(query?: { readonly limit?: number }): Promise<readonly AgentNetworkRun[]>;
+      get(id: string): Promise<AgentNetworkRun | null>;
+      remove(id: string): Promise<StoreRecordResult>;
+      clear(): Promise<StoreRecordResult>;
+    };
   };
   readonly device: {
     get(): Promise<DeviceStoreDevice | null>;

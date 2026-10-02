@@ -43,6 +43,21 @@ const bridge: PlatformBridge = {
     importEntities: (commits) => ipcRenderer.invoke('dude:store:entity:importMany', commits),
     status: () => ipcRenderer.invoke('dude:store:status'),
     retry: () => ipcRenderer.invoke('dude:store:retry'),
+    history: {
+      add: (entry) => ipcRenderer.invoke('dude:store:history:add', entry),
+      list: (query) => ipcRenderer.invoke('dude:store:history:list', query),
+      get: (id) => ipcRenderer.invoke('dude:store:history:get', id),
+      remove: (id) => ipcRenderer.invoke('dude:store:history:remove', id),
+      clear: () => ipcRenderer.invoke('dude:store:history:clear'),
+      clearTool: (toolId) => ipcRenderer.invoke('dude:store:history:clearTool', toolId),
+    },
+    network: {
+      add: (run) => ipcRenderer.invoke('dude:store:network:add', run),
+      list: (query) => ipcRenderer.invoke('dude:store:network:list', query),
+      get: (id) => ipcRenderer.invoke('dude:store:network:get', id),
+      remove: (id) => ipcRenderer.invoke('dude:store:network:remove', id),
+      clear: () => ipcRenderer.invoke('dude:store:network:clear'),
+    },
     onFlushRequest: (callback) => {
       const listener = (_event: Electron.IpcRendererEvent, id: number) => {
         void Promise.resolve().then(callback).catch(() => undefined).finally(() => ipcRenderer.send('dude:store:flushed', id));

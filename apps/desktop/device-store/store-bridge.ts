@@ -1,10 +1,10 @@
 import { ipcMain, type BrowserWindow } from 'electron';
-import type { DeviceStoreBoot, DeviceStoreDevice, EntityCommitResult, StoreHealth } from '@dude/contracts';
+import type { AgentHistoryRecord, AgentNetworkRun, DeviceStoreBoot, DeviceStoreDevice, EntityCommitResult, StoreHealth } from '@dude/contracts';
 import { validateDisplayName } from '@dude/persistence';
 import { DeviceStoreError } from './agent-host';
 import type { DeviceStoreHost } from './agent-host';
 import { getDeviceStoreHost } from './store-client';
-import { validateEntityBatch, validateEntityCommit, validateKvBatch } from './store-validation';
+import { validateEntityBatch, validateEntityCommit, validateHistoryQuery, validateHistoryRecord, validateKvBatch, validateNetworkQuery, validateNetworkRun, validateRecordId } from './store-validation';
 
 /**
  * The renderer's whole route to the device store: `dude:store:*` and `dude:device:*`. Main is the
@@ -136,6 +136,8 @@ export function registerDeviceStoreHandlers(window: BrowserWindow, host: () => D
     }
   });
 
+  registerRecordHandlers(own, host);
+
   // Health pushes: the host reports status changes (restart, unavailable); the renderer shows a banner.
   host()?.onHealth((health) => {
     if (!window.isDestroyed() && !window.webContents.isDestroyed()) window.webContents.send('dude:store:health', health);
@@ -166,4 +168,77 @@ export function requestRendererFlush(window: BrowserWindow, timeoutMs: number): 
     timer = setTimeout(done, timeoutMs);
     try { window.webContents.send('dude:store:flush', id); } catch { done(); }
   });
+}
+
+type RecordResult = { ok: true } | { ok: false; error: string };
+type RecordAddResult = { ok: true; evicted: number } | { ok: false; error: string };
+
+/** History and network-run channels: sender-checked, validated, then forwarded; the agent enforces retention. */
+function registerRecordHandlers(own: (sender: unknown) => boolean, host: () => DeviceStoreHost | null): void {
+  // Reads resolve to an empty result when the store is not ready or the request is invalid.
+  const read = <T>(channel: string, empty: T, run: (h: DeviceStoreHost, raw: unknown) => Promise<T> | null): void => {
+    ipcMain.handle(channel, async (event, raw?: unknown): Promise<T> => {
+      if (!own(event.sender)) throw new Error(FORBIDDEN);
+      const h = host();
+      if (!h || h.status() !== 'ready') return empty;
+      try {
+        return (await run(h, raw)) ?? empty;
+      } catch {
+        return empty;
+      }
+    });
+  };
+  const write = <T extends RecordResult | RecordAddResult>(channel: string, run: (h: DeviceStoreHost, raw: unknown) => Promise<T> | { error: string }): void => {
+    ipcMain.handle(channel, async (event, raw?: unknown): Promise<T | { ok: false; error: string }> => {
+      if (!own(event.sender)) return { ok: false, error: FORBIDDEN };
+      const h = host();
+      if (!h) return { ok: false, error: 'unavailable' };
+      try {
+        const out = run(h, raw);
+        return out instanceof Promise ? await out : { ok: false, error: out.error };
+      } catch (error) {
+        return { ok: false, error: messageOf(error) };
+      }
+    });
+  };
+
+  write<RecordAddResult>('dude:store:history:add', (h, raw) => {
+    const v = validateHistoryRecord(raw);
+    return v.ok ? h.call('history.add', { entry: v.value }) : { error: v.error };
+  });
+  read<AgentHistoryRecord[]>('dude:store:history:list', [], (h, raw) => {
+    const v = validateHistoryQuery(raw);
+    return v.ok ? h.call('history.list', v.value) : null;
+  });
+  read<AgentHistoryRecord | null>('dude:store:history:get', null, (h, raw) => {
+    const v = validateRecordId(raw);
+    return v.ok ? h.call('history.get', { id: v.value }) : null;
+  });
+  write<RecordResult>('dude:store:history:remove', (h, raw) => {
+    const v = validateRecordId(raw);
+    return v.ok ? h.call('history.remove', { id: v.value }) : { error: v.error };
+  });
+  write<RecordResult>('dude:store:history:clear', (h) => h.call('history.clear', {}));
+  write<RecordResult>('dude:store:history:clearTool', (h, raw) => {
+    const v = validateRecordId(raw, 'toolId');
+    return v.ok ? h.call('history.clearTool', { toolId: v.value }) : { error: v.error };
+  });
+
+  write<RecordAddResult>('dude:store:network:add', (h, raw) => {
+    const v = validateNetworkRun(raw);
+    return v.ok ? h.call('network.add', { run: v.value }) : { error: v.error };
+  });
+  read<AgentNetworkRun[]>('dude:store:network:list', [], (h, raw) => {
+    const v = validateNetworkQuery(raw);
+    return v.ok ? h.call('network.list', v.value) : null;
+  });
+  read<AgentNetworkRun | null>('dude:store:network:get', null, (h, raw) => {
+    const v = validateRecordId(raw);
+    return v.ok ? h.call('network.get', { id: v.value }) : null;
+  });
+  write<RecordResult>('dude:store:network:remove', (h, raw) => {
+    const v = validateRecordId(raw);
+    return v.ok ? h.call('network.remove', { id: v.value }) : { error: v.error };
+  });
+  write<RecordResult>('dude:store:network:clear', (h) => h.call('network.clear', {}));
 }

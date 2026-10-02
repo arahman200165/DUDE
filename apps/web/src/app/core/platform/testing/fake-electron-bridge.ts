@@ -1,5 +1,7 @@
 import type { PlatformBridge } from "@dude/contracts/shared/models/platform-bridge.model";
 import type { DeviceStoreDevice, KvMutation, StoreHealth } from "@dude/contracts";
+import type { HistoryRetention, NetworkRunRetention } from "@dude/persistence";
+import { InMemoryHistoryRepository, InMemoryNetworkRunRepository } from "@dude/persistence/testing";
 
 /**
  * A full `PlatformBridge` stub with a sensible "nothing configured yet"
@@ -206,6 +208,8 @@ export function fakeStore(): PlatformBridge['store'] {
     },
     status: async () => health,
     retry: async () => health,
+    history: fakeHistory(),
+    network: fakeNetwork(),
     onFlushRequest: (callback) => { flushListeners.add(callback); return () => { flushListeners.delete(callback); }; },
     onHealth: (callback) => { healthListeners.add(callback); return () => { healthListeners.delete(callback); }; },
   };
@@ -220,5 +224,31 @@ export function fakeDevice(): PlatformBridge['device'] {
   return {
     get: async () => record,
     rename: async (displayName) => { record = { ...record, displayName }; return { ok: true, displayName }; },
+  };
+}
+
+const DAY = 24 * 60 * 60 * 1000;
+
+/** In-memory history with the real retention caps, backed by the portable in-memory adapter. */
+export function fakeHistory(retention: HistoryRetention = { maxPerTool: 200, maxTotal: 5000, maxAgeMs: 90 * DAY, maxEntryBytes: 256 * 1024 }, now: () => number = Date.now): PlatformBridge['store']['history'] {
+  const repo = new InMemoryHistoryRepository(retention, now);
+  return {
+    add: (entry) => repo.add(entry),
+    list: async (query) => (query?.toolId !== undefined ? (await repo.listByTool(query.toolId)).slice(0, query.limit) : repo.listRecent(query?.limit ?? 5000)),
+    get: async (id) => (await repo.get(id)) ?? null,
+    remove: async (id) => { await repo.remove(id); return { ok: true }; },
+    clear: async () => { await repo.clear(); return { ok: true }; },
+    clearTool: async (toolId) => { await repo.clearTool(toolId); return { ok: true }; },
+  };
+}
+
+export function fakeNetwork(retention: NetworkRunRetention = { maxRuns: 100, maxAgeMs: 30 * DAY, maxTotalBytes: 50_000_000 }, now: () => number = Date.now): PlatformBridge['store']['network'] {
+  const repo = new InMemoryNetworkRunRepository(retention, now);
+  return {
+    add: (run) => repo.add(run),
+    list: async (query) => (await repo.list()).slice(0, query?.limit),
+    get: async (id) => (await repo.get(id)) ?? null,
+    remove: async (id) => { await repo.remove(id); return { ok: true }; },
+    clear: async () => { await repo.clear(); return { ok: true }; },
   };
 }

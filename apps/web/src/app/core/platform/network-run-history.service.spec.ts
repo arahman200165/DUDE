@@ -1,10 +1,15 @@
 import 'fake-indexeddb/auto';
+import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { provideBootSnapshot } from '../persistence/device-store/boot-snapshot';
+import { NETWORK_RUN_REPOSITORY } from './network-run-repository';
+import { fakeElectronBridge } from './testing/fake-electron-bridge';
 import { NetworkRunHistoryService } from './network-run-history.service';
 import type { NetworkRun } from './network-diagnostics.service';
 
 let history: NetworkRunHistoryService;
-beforeEach(async () => { history = new NetworkRunHistoryService(); await history.clear(); });
+const create = () => TestBed.runInInjectionContext(() => new NetworkRunHistoryService());
+beforeEach(async () => { TestBed.configureTestingModule({}); history = create(); await history.clear(); });
 
 describe('selected network history', () => {
   it('scrubs request secrets and downloaded HTTP body while keeping diagnostic metadata', async () => {
@@ -37,7 +42,7 @@ describe('selected network history', () => {
     await history.save({ id: 'old', createdAt: new Date(Date.now() - 31 * 86400000).toISOString(), request: { kind: 'ping', target: '127.0.0.1' }, result: { sent: 1 } });
     expect(history.saved()).toHaveLength(0);
     await history.save({ id: 'new', createdAt: new Date().toISOString(), request: { kind: 'ping', target: '127.0.0.1' }, result: { sent: 2 } });
-    const second = new NetworkRunHistoryService();
+    const second = create();
     await second.refresh();
     expect(second.saved()).toEqual(history.saved());
   });
@@ -48,5 +53,26 @@ describe('selected network history', () => {
       await history.save({ id: `run-${index}`, createdAt: timestamp, request: { kind: 'ping', target: '127.0.0.1' }, result: { sent: index } });
     }
     expect(history.saved()).toHaveLength(100);
+  });
+});
+
+describe('network history on the desktop device store', () => {
+  it('saves scrubbed runs through the device repository and clears them', async () => {
+    const bridge = fakeElectronBridge();
+    (window as unknown as { dude: unknown }).dude = bridge;
+    try {
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({ providers: [provideBootSnapshot({ boot: await bridge.store.hydrate() })] });
+      expect(TestBed.inject(NETWORK_RUN_REPOSITORY).kind).toBe('device');
+      const service = TestBed.inject(NetworkRunHistoryService);
+      await service.save({ id: 'r1', createdAt: new Date().toISOString(), request: { kind: 'ping', target: 'x', headers: { a: 'b' } }, result: { sent: 1 } });
+      expect(service.saved().map((r) => r.id)).toEqual(['r1']);
+      expect(service.saved()[0].request.headers).toBeUndefined();
+      expect(await bridge.store.network.list()).toHaveLength(1);
+      await service.clear();
+      expect(await bridge.store.network.list()).toHaveLength(0);
+    } finally {
+      delete (window as unknown as { dude?: unknown }).dude;
+    }
   });
 });

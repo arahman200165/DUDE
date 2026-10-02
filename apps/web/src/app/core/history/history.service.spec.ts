@@ -1,7 +1,9 @@
 import 'fake-indexeddb/auto';
 import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { provideBootSnapshot } from '../persistence/device-store/boot-snapshot';
+import { fakeElectronBridge } from '../platform/testing/fake-electron-bridge';
 import { HistoryService } from './history.service';
 import { clearAllEntries } from './history-db';
 import { MAX_ENTRIES_PER_TOOL, MAX_ENTRY_SIZE_BYTES } from "@dude/domain/core/history/history.model";
@@ -89,5 +91,42 @@ describe('HistoryService', () => {
 
   it('starts with no error', () => {
     expect(service.lastError()).toBeNull();
+  });
+});
+
+describe('HistoryService on the desktop device store', () => {
+  afterEach(() => { delete (window as unknown as { dude?: unknown }).dude; });
+
+  it('records, restores a stored entry by id and clears through the device repository', async () => {
+    const bridge = fakeElectronBridge();
+    (window as unknown as { dude: unknown }).dude = bridge;
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ providers: [provideBootSnapshot({ boot: await bridge.store.hydrate() })] });
+    const service = TestBed.inject(HistoryService);
+
+    await service.record('base64', 'Encoding "hi"', { input: 'hi' });
+
+    expect(await bridge.store.history.list()).toHaveLength(1);
+    expect(service.recent()[0].summary).toBe('Encoding "hi"');
+    // Restoring only reads the stored state back; nothing here can run a tool.
+    expect((await service.getById(service.recent()[0].id))?.state).toEqual({ input: 'hi' });
+
+    await service.clearAll();
+    expect(await bridge.store.history.list()).toHaveLength(0);
+    expect(service.recent()).toEqual([]);
+  });
+
+  it('reports an entry the store refuses as too large', async () => {
+    const bridge = fakeElectronBridge();
+    bridge.store.history.add = async () => ({ ok: false, error: 'too-large' });
+    (window as unknown as { dude: unknown }).dude = bridge;
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ providers: [provideBootSnapshot({ boot: await bridge.store.hydrate() })] });
+    const service = TestBed.inject(HistoryService);
+
+    await service.record('base64', 'x', { input: 'x' });
+
+    expect(service.lastError()).toContain('too large');
+    expect(service.recent()).toEqual([]);
   });
 });

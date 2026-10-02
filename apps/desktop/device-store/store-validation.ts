@@ -1,5 +1,5 @@
 import { isKnownEntityType } from '@dude/persistence';
-import type { EntityCommit, KvMutation, KvScope } from '@dude/contracts';
+import type { AgentHistoryRecord, AgentNetworkRun, EntityCommit, KvMutation, KvScope } from '@dude/contracts';
 
 /** Bounds and shapes for everything the renderer may send to the device store. Main never trusts the renderer. */
 export const MAX_VALUE_BYTES = 2 * 1024 * 1024;
@@ -80,4 +80,74 @@ export function validateEntityBatch(raw: unknown): Validated<EntityCommit[]> {
     out.push(result.value);
   }
   return { ok: true, value: out };
+}
+
+/** Local History records are capped at 256 KiB by the store; main refuses anything past this looser bound first. */
+export const MAX_HISTORY_RECORD_BYTES = 300 * 1024;
+/** Network runs are capped at 50 MB by the store; main allows a little headroom for the envelope. */
+export const MAX_NETWORK_RUN_BYTES = 51 * 1000 * 1000;
+export const MAX_RECORD_ID_LENGTH = 200;
+const MAX_LIST_LIMIT = 5000;
+
+export function validateRecordId(raw: unknown, label = 'id'): Validated<string> {
+  if (typeof raw !== 'string' || raw.length === 0 || raw.length > MAX_RECORD_ID_LENGTH) return fail(`Invalid ${label}.`);
+  return { ok: true, value: raw };
+}
+
+function validateLimit(raw: unknown): Validated<number | undefined> {
+  if (raw === undefined) return { ok: true, value: undefined };
+  if (typeof raw !== 'number' || !Number.isInteger(raw) || raw < 1 || raw > MAX_LIST_LIMIT) return fail('Invalid limit.');
+  return { ok: true, value: raw };
+}
+
+function validateRecordBody(raw: unknown, maxBytes: number): Validated<{ id: string; createdAt: number; sizeBytes: number; payload: unknown; source: Record<string, unknown> }> {
+  if (!isObject(raw)) return fail('Record must be an object.');
+  const id = validateRecordId(raw['id']);
+  if (!id.ok) return id;
+  const { createdAt, sizeBytes, payload } = raw;
+  if (typeof createdAt !== 'number' || !Number.isFinite(createdAt) || createdAt < 0) return fail('Invalid createdAt.');
+  if (typeof sizeBytes !== 'number' || !Number.isFinite(sizeBytes) || sizeBytes < 0) return fail('Invalid sizeBytes.');
+  const size = jsonSize(payload);
+  if (size === null) return fail('Payload is not JSON serializable.');
+  if (size > maxBytes) return fail('Payload is too large.');
+  return { ok: true, value: { id: id.value, createdAt, sizeBytes, payload, source: raw } };
+}
+
+export function validateHistoryRecord(raw: unknown): Validated<AgentHistoryRecord> {
+  const body = validateRecordBody(raw, MAX_HISTORY_RECORD_BYTES);
+  if (!body.ok) return body;
+  const toolId = validateRecordId(body.value.source['toolId'], 'toolId');
+  if (!toolId.ok) return toolId;
+  const { id, createdAt, sizeBytes, payload } = body.value;
+  return { ok: true, value: { id, toolId: toolId.value, createdAt, sizeBytes, payload } };
+}
+
+export function validateNetworkRun(raw: unknown): Validated<AgentNetworkRun> {
+  const body = validateRecordBody(raw, MAX_NETWORK_RUN_BYTES);
+  if (!body.ok) return body;
+  const { id, createdAt, sizeBytes, payload } = body.value;
+  return { ok: true, value: { id, createdAt, sizeBytes, payload } };
+}
+
+export function validateHistoryQuery(raw: unknown): Validated<{ toolId?: string; limit?: number }> {
+  if (raw === undefined || raw === null) return { ok: true, value: {} };
+  if (!isObject(raw)) return fail('Query must be an object.');
+  const out: { toolId?: string; limit?: number } = {};
+  if (raw['toolId'] !== undefined) {
+    const toolId = validateRecordId(raw['toolId'], 'toolId');
+    if (!toolId.ok) return toolId;
+    out.toolId = toolId.value;
+  }
+  const limit = validateLimit(raw['limit']);
+  if (!limit.ok) return limit;
+  if (limit.value !== undefined) out.limit = limit.value;
+  return { ok: true, value: out };
+}
+
+export function validateNetworkQuery(raw: unknown): Validated<{ limit?: number }> {
+  if (raw === undefined || raw === null) return { ok: true, value: {} };
+  if (!isObject(raw)) return fail('Query must be an object.');
+  const limit = validateLimit(raw['limit']);
+  if (!limit.ok) return limit;
+  return { ok: true, value: limit.value === undefined ? {} : { limit: limit.value } };
 }

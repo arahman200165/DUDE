@@ -44,6 +44,17 @@ const INVOKE_CHANNELS: Array<[string, unknown[]]> = [
   ['dude:store:entity:importMany', [[{ entityType: 'favorite', entityId: 'x', op: 'upsert', payload: {} }]]],
   ['dude:store:status', []],
   ['dude:store:retry', []],
+  ['dude:store:history:add', [{ id: 'h', toolId: 't', createdAt: 1, sizeBytes: 2, payload: {} }]],
+  ['dude:store:history:list', [{}]],
+  ['dude:store:history:get', ['h']],
+  ['dude:store:history:remove', ['h']],
+  ['dude:store:history:clear', []],
+  ['dude:store:history:clearTool', ['t']],
+  ['dude:store:network:add', [{ id: 'n', createdAt: 1, sizeBytes: 2, payload: {} }]],
+  ['dude:store:network:list', [{}]],
+  ['dude:store:network:get', ['n']],
+  ['dude:store:network:remove', ['n']],
+  ['dude:store:network:clear', []],
   ['dude:device:get', []],
   ['dude:device:rename', ['Desk']],
 ];
@@ -86,6 +97,47 @@ describe('device store bridge', () => {
     ])).toMatchObject({ ok: false });
     expect(await mock.handlers.get('dude:device:rename')!({ sender: own }, '')).toMatchObject({ ok: false });
     mock.listeners.get('dude:store:kv:commitNoWait')![0]({ sender: own }, bad);
+    expect(ctx.calls).toEqual([]);
+  });
+
+  it('forwards valid history and network-run calls to the agent', async () => {
+    const entry = { id: 'h', toolId: 't', createdAt: 1, sizeBytes: 2, payload: { a: 1 } };
+    const run = { id: 'n', createdAt: 1, sizeBytes: 2, payload: { b: 1 } };
+    const call = (channel: string, ...args: unknown[]) => mock.handlers.get(channel)!({ sender: own }, ...args);
+    await call('dude:store:history:add', entry);
+    await call('dude:store:history:list', { toolId: 't', limit: 5 });
+    await call('dude:store:history:get', 'h');
+    await call('dude:store:history:remove', 'h');
+    await call('dude:store:history:clear');
+    await call('dude:store:history:clearTool', 't');
+    await call('dude:store:network:add', run);
+    await call('dude:store:network:list', { limit: 10 });
+    await call('dude:store:network:get', 'n');
+    await call('dude:store:network:remove', 'n');
+    await call('dude:store:network:clear');
+    expect(ctx.calls).toEqual([
+      ['history.add', { entry }], ['history.list', { toolId: 't', limit: 5 }], ['history.get', { id: 'h' }], ['history.remove', { id: 'h' }],
+      ['history.clear', {}], ['history.clearTool', { toolId: 't' }],
+      ['network.add', { run }], ['network.list', { limit: 10 }], ['network.get', { id: 'n' }], ['network.remove', { id: 'n' }], ['network.clear', {}],
+    ]);
+  });
+
+  it('rejects invalid history and network-run payloads before they reach the agent', async () => {
+    const call = (channel: string, ...args: unknown[]) => mock.handlers.get(channel)!({ sender: own }, ...args);
+    const entry = { id: 'h', toolId: 't', createdAt: 1, sizeBytes: 2, payload: {} };
+    expect(await call('dude:store:history:add', { ...entry, toolId: 'x'.repeat(201) })).toMatchObject({ ok: false });
+    expect(await call('dude:store:history:add', { ...entry, id: '' })).toMatchObject({ ok: false });
+    expect(await call('dude:store:history:add', { ...entry, payload: 'x'.repeat(300 * 1024 + 1) })).toMatchObject({ ok: false });
+    expect(await call('dude:store:history:add', 'nope')).toMatchObject({ ok: false });
+    expect(await call('dude:store:history:remove', 42)).toMatchObject({ ok: false });
+    expect(await call('dude:store:history:clearTool', 'y'.repeat(201))).toMatchObject({ ok: false });
+    expect(await call('dude:store:history:list', { limit: 0 })).toEqual([]);
+    expect(await call('dude:store:history:list', { limit: 5001 })).toEqual([]);
+    expect(await call('dude:store:history:get', {})).toBeNull();
+    expect(await call('dude:store:network:add', { id: 'n', createdAt: 'x', sizeBytes: 1, payload: {} })).toMatchObject({ ok: false });
+    expect(await call('dude:store:network:add', { id: 'n', createdAt: 1, sizeBytes: 1, payload: 'z'.repeat(51 * 1000 * 1000 + 1) })).toMatchObject({ ok: false });
+    expect(await call('dude:store:network:remove', null)).toMatchObject({ ok: false });
+    expect(await call('dude:store:network:list', { limit: -1 })).toEqual([]);
     expect(ctx.calls).toEqual([]);
   });
 

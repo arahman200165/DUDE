@@ -1,19 +1,8 @@
-import { Injectable, signal } from '@angular/core';
-import {
-  clearAllEntries,
-  countAll,
-  countByTool,
-  deleteAllByTool,
-  deleteEntry,
-  deleteOldestByTool,
-  deleteOldestOverall,
-  deleteOlderThan,
-  getEntry,
-  listByTool,
-  listRecent,
-  putEntry,
-} from './history-db';
-import { HistoryEntry, MAX_ENTRIES_PER_TOOL, MAX_ENTRY_AGE_MS, MAX_ENTRY_SIZE_BYTES, MAX_TOTAL_ENTRIES, createHistoryEntry } from "@dude/domain/core/history/history.model";
+import { Injectable, inject, signal } from '@angular/core';
+import { HistoryEntry, MAX_ENTRIES_PER_TOOL, MAX_ENTRY_SIZE_BYTES, createHistoryEntry } from "@dude/domain/core/history/history.model";
+import { BOOT_SNAPSHOT } from '../persistence/device-store/boot-snapshot';
+import { currentPlatformBridge } from '../platform/platform-bridge.adapter';
+import { HISTORY_REPOSITORY, entryToRecord, importLegacyHistory, jsonByteLength, recordToEntry } from './history-repository';
 
 const RECENT_FEED_SIZE = 500;
 
@@ -27,42 +16,45 @@ const RECENT_FEED_SIZE = 500;
 export class HistoryService {
   readonly recent = signal<readonly HistoryEntry[]>([]);
   readonly lastError = signal<string | null>(null);
+  private readonly repository = inject(HISTORY_REPOSITORY);
+  /** Desktop only: the old IndexedDB history moves into the device store before the first read or write. */
+  private readonly ready: Promise<void> = this.repository.kind === 'device'
+    ? importLegacyHistory(this.repository, currentPlatformBridge(), inject(BOOT_SNAPSHOT))
+    : Promise.resolve();
 
   constructor() {
     // Guards against ever starting the refresh chain in an environment with no `indexedDB` at all
     // (every real browser has it) rather than letting the resulting rejection propagate through
     // Angular's DI factory during construction.
-    if (typeof indexedDB !== 'undefined') void this.refresh();
+    if (this.repository.kind === 'device' || typeof indexedDB !== 'undefined') void this.refresh();
   }
 
   async record(toolId: string, summary: string, state: Readonly<Record<string, unknown>>): Promise<void> {
-    const serialized = JSON.stringify(state);
-    const oversized = serialized.length > MAX_ENTRY_SIZE_BYTES;
-    const entry: HistoryEntry = oversized
-      ? { ...createHistoryEntry(toolId, summary, { preview: serialized.slice(0, 1000) }), truncated: true }
-      : createHistoryEntry(toolId, summary, state);
-
-    try {
-      await putEntry(entry);
-    } catch (error) {
-      if (!(await this.recoverFromQuotaError(entry))) {
-        this.lastError.set('History storage is full; some entries may not be saved.');
-        console.warn('[HistoryService] failed to record entry', error);
-        return;
-      }
+    await this.ready;
+    let entry: HistoryEntry = createHistoryEntry(toolId, summary, state);
+    if (jsonByteLength(entry) > MAX_ENTRY_SIZE_BYTES) {
+      entry = { ...createHistoryEntry(toolId, summary, { preview: JSON.stringify(state).slice(0, 1000) }), truncated: true };
     }
 
     try {
-      await this.enforceRetention(toolId);
+      const result = await this.repository.add(entryToRecord(entry));
+      if (!result.ok) {
+        this.lastError.set('This history entry is too large to save.');
+        return;
+      }
     } catch (error) {
-      console.warn('[HistoryService] failed to enforce retention', error);
+      this.lastError.set('History storage is full; some entries may not be saved.');
+      console.warn('[HistoryService] failed to record entry', error);
+      return;
     }
     await this.refresh();
   }
 
   async listByTool(toolId: string, limit = MAX_ENTRIES_PER_TOOL): Promise<HistoryEntry[]> {
     try {
-      return await listByTool(toolId, limit);
+      await this.ready;
+      const records = await this.repository.listByTool(toolId);
+      return records.slice(0, limit).flatMap((record) => recordToEntry(record) ?? []);
     } catch (error) {
       console.warn('[HistoryService] failed to list entries', error);
       return [];
@@ -71,7 +63,9 @@ export class HistoryService {
 
   async getById(id: string): Promise<HistoryEntry | undefined> {
     try {
-      return await getEntry(id);
+      await this.ready;
+      const record = await this.repository.get(id);
+      return record ? recordToEntry(record) : undefined;
     } catch (error) {
       console.warn('[HistoryService] failed to get entry', error);
       return undefined;
@@ -86,41 +80,21 @@ export class HistoryService {
    * "fail loudly and break something else."
    */
   async deleteOne(id: string): Promise<void> {
-    await this.runMutation(() => deleteEntry(id), 'delete entry');
+    await this.runMutation(() => this.repository.remove(id), 'delete entry');
   }
 
   async clearTool(toolId: string): Promise<void> {
-    await this.runMutation(() => deleteAllByTool(toolId), 'clear tool history');
+    await this.runMutation(() => this.repository.clearTool(toolId), 'clear tool history');
   }
 
   async clearAll(): Promise<void> {
-    await this.runMutation(() => clearAllEntries(), 'clear all history');
-  }
-
-  private async recoverFromQuotaError(entry: HistoryEntry): Promise<boolean> {
-    try {
-      const total = await countAll();
-      await deleteOldestOverall(Math.max(1, Math.floor(total * 0.1)));
-      await putEntry(entry);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  private async enforceRetention(toolId: string): Promise<void> {
-    const perTool = await countByTool(toolId);
-    if (perTool > MAX_ENTRIES_PER_TOOL) await deleteOldestByTool(toolId, perTool - MAX_ENTRIES_PER_TOOL);
-
-    const total = await countAll();
-    if (total > MAX_TOTAL_ENTRIES) await deleteOldestOverall(total - MAX_TOTAL_ENTRIES);
-
-    await deleteOlderThan(new Date(Date.now() - MAX_ENTRY_AGE_MS).toISOString());
+    await this.runMutation(() => this.repository.clear(), 'clear all history');
   }
 
   private async refresh(): Promise<void> {
     try {
-      this.recent.set(await listRecent(RECENT_FEED_SIZE));
+      await this.ready;
+      this.recent.set((await this.repository.listRecent(RECENT_FEED_SIZE)).flatMap((record) => recordToEntry(record) ?? []));
     } catch (error) {
       console.warn('[HistoryService] failed to refresh recent entries', error);
     }
@@ -128,6 +102,7 @@ export class HistoryService {
 
   private async runMutation(operation: () => Promise<void>, label: string): Promise<void> {
     try {
+      await this.ready;
       await operation();
     } catch (error) {
       console.warn(`[HistoryService] failed to ${label}`, error);
