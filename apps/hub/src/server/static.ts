@@ -24,8 +24,8 @@ const CONTENT_TYPES: Readonly<Record<string, string>> = {
   '.txt': 'text/plain; charset=utf-8',
 };
 
-/** Angular content-hashed asset names, e.g. `main-ABCD1234.js` or `chunk-ABCD1234.js`. */
-const HASHED_NAME = /[-.][A-Z0-9]{8}\.[A-Za-z0-9]+$/;
+/** Angular content-hashed asset names: `<base>-<8 base64url-ish chars>.<ext>`, e.g. `main-MVP2NQLU.js`, `chunk-CzvplghU.js`, `chunk-__rv9DXh.js`. */
+const HASHED_NAME = /^[^/\\]+-[A-Za-z0-9_]{8}\.[A-Za-z0-9]+$/;
 
 export const WEB_ASSETS_MISSING_MESSAGE = 'DUDE Hub web assets are not installed.';
 

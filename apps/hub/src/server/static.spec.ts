@@ -28,9 +28,15 @@ describe('static hosting', () => {
     expect(asset.headers['cache-control']).toBe('public, max-age=31536000, immutable');
     expect(String(asset.headers['content-type'])).toContain('text/javascript');
 
-    const unhashed = await get('/favicon.ico');
-    expect(unhashed.status).toBe(200);
-    expect(unhashed.headers['cache-control']).toBe('no-cache');
+    const mixed = await get('/chunk-CzvplghU.js');
+    expect(mixed.status).toBe(200);
+    expect(mixed.headers['cache-control']).toBe('public, max-age=31536000, immutable');
+
+    for (const name of ['/favicon.ico', '/index.html', '/manifest.webmanifest']) {
+      const res = await get(name);
+      expect(res.status, name).toBe(200);
+      expect(res.headers['cache-control'], name).toBe('no-cache');
+    }
 
     expect((await get('/missing.js')).status).toBe(404);
 

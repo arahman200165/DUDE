@@ -55,6 +55,19 @@ describe('HubSetupPage', () => {
     expect((fixture.nativeElement.querySelector('input[name="setup-token"]') as HTMLInputElement).value).toBe(SETUP_TOKEN_VALUE);
   });
 
+  it('picks up a token from a hash-only navigation and strips it', async () => {
+    configure(fakeHubAdmin());
+    const fixture = TestBed.createComponent(HubSetupPage);
+    await settle(fixture);
+    const input = fixture.nativeElement.querySelector('input[name="setup-token"]') as HTMLInputElement;
+    expect(input.value).toBe('');
+    history.replaceState(null, '', `/hub/setup#token=${SETUP_TOKEN_VALUE}`);
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    await settle(fixture);
+    expect(location.hash).toBe('');
+    expect(input.value).toBe(SETUP_TOKEN_VALUE);
+  });
+
   it('validates the form, shows the codes once and signs in only after they are acknowledged', async () => {
     history.replaceState(null, '', `/hub/setup#token=${SETUP_TOKEN_VALUE}`);
     const admin = fakeHubAdmin();
@@ -137,6 +150,20 @@ describe('HubSignInPage', () => {
     admin.signIn.mockRejectedValueOnce(new HubAdminError('unauthorized', 'x'));
     const bad = await signIn(undefined, admin);
     expect(text(bad.el, 'error')).toContain('not correct');
+  });
+
+  it('clears the password on a wrong-password response', async () => {
+    const admin = fakeHubAdmin();
+    admin.signIn.mockRejectedValueOnce(new HubAdminError('unauthorized', 'x'));
+    const bad = await signIn(undefined, admin);
+    expect((bad.el.querySelector('input[name="password"]') as HTMLInputElement).value).toBe('');
+  });
+
+  it.each(['rate-limited', 'locked', 'network'] as const)('keeps the password on a %s response', async (code) => {
+    const admin = fakeHubAdmin();
+    admin.signIn.mockRejectedValueOnce(new HubAdminError(code, 'x', 5_000));
+    const res = await signIn(undefined, admin);
+    expect((res.el.querySelector('input[name="password"]') as HTMLInputElement).value).toBe('hunter2hunter2');
   });
 
   it('shows a lock countdown and disables submit', async () => {

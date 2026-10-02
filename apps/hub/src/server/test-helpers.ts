@@ -37,6 +37,8 @@ export function makeWebRoot(): string {
   writeFileSync(path.join(root, 'index.html'), '<!doctype html><title>DUDE</title>');
   writeFileSync(path.join(root, 'main-ABC12345.js'), 'console.log(1);');
   writeFileSync(path.join(root, 'favicon.ico'), 'ico');
+  writeFileSync(path.join(root, 'chunk-CzvplghU.js'), 'console.log(2);');
+  writeFileSync(path.join(root, 'manifest.webmanifest'), '{}');
   mkdirSync(path.join(root, 'assets'));
   return root;
 }

@@ -43,6 +43,7 @@ __screenshots__/
 # Playwright
 /e2e/.tmp
 /playwright-report
+/playwright-report-hub
 /test-results
 
 # System files

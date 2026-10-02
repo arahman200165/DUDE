@@ -1,4 +1,6 @@
 import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { fromEvent } from 'rxjs';
 import { Router, RouterLink } from '@angular/router';
 import { HUB_ADMIN } from '../../core/hub/hub-admin.token';
 import { HubCard } from './hub-card';
@@ -91,6 +93,13 @@ export class HubSetupPage {
   protected readonly alreadySetUp = signal(false);
 
   constructor() {
+    // A hash-only navigation (`/hub/setup#token=...` while already on /hub/setup) does not recreate the page.
+    if (typeof globalThis.addEventListener === 'function') {
+      fromEvent(globalThis, 'hashchange').pipe(takeUntilDestroyed()).subscribe(() => {
+        const token = takeFragmentToken();
+        if (token !== '') this.token.set(token);
+      });
+    }
     // Codes and the password are dropped with the component; nothing is written to storage or the console.
     inject(DestroyRef).onDestroy(() => {
       this.codes.set([]);

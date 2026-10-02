@@ -62,7 +62,8 @@ export class HubSignInPage {
       const d = describeHubError(e, { unauthorized: 'That password is not correct.' });
       this.error.set(d.message);
       this.countdown.start(d.retryAfterMs);
-      this.password.set('');
+      // Only a definitive wrong password clears the field; rate-limit, lock and network errors keep it so nothing is retyped.
+      if (d.code === 'unauthorized') this.password.set('');
     } finally {
       this.busy.set(false);
     }

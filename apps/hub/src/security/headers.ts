@@ -1,8 +1,10 @@
 import type { FastifyInstance } from 'fastify';
 
+// `connect-src blob:`: tools re-read their own object URLs with fetch() (Image Compressor's Download, others that save
+// a generated Blob); without it the fetch is blocked and the download silently never happens. Found by the Hub e2e CSP sweep.
 const HUB_WEB_CSP_TAIL =
   "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; " +
-  "font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; " +
+  "font-src 'self' data:; connect-src 'self' blob:; worker-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; " +
   "base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
 
 /**
