@@ -3,14 +3,18 @@ import path from 'node:path';
 import ts from 'typescript';
 import { files, source, imports, resolveImport, hostReasons } from './phase31a-inventory.mjs';
 const failures=[];
-for(const app of ['web','desktop','collab-relay']){
+for(const app of ['web','desktop','collab-relay','device-agent']){
  const manifest=JSON.parse(readFileSync(`apps/${app}/package.json`,'utf8'));
  const declared={...manifest.dependencies,...manifest.devDependencies};
  for(const file of files(`apps/${app}`).filter(f=>f.endsWith('.ts')&&!/[\\/](dist|node_modules)[\\/]/.test(f))){
   for(const imp of imports(source(file))){
+   if(app==='web'&&(imp.text==='node:sqlite'||imp.text==='sqlite'))failures.push(`${file}: web must not import ${imp.text}`);
    if(imp.text.startsWith('.')||imp.text.startsWith('node:'))continue;
    const name=imp.text.startsWith('@')?imp.text.split('/').slice(0,2).join('/'):imp.text.split('/')[0];
    if(name!==manifest.name&&!declared[name])failures.push(`${file}: undeclared application dependency ${name}`);
+   if(app==='device-agent'&&(name==='electron'||name.startsWith('@angular/')))failures.push(`${file}: device-agent must not import ${imp.text}`);
+   if(app==='device-agent'&&!['@dude/persistence','@dude/sync','@dude/contracts','@dude/domain','@dude/shared-types','@dude/device-agent'].includes(name)&&name.startsWith('@dude/'))failures.push(`${file}: device-agent may only depend on persistence, sync, contracts, domain, shared-types (${imp.text})`);
+   if(app==='web'&&(imp.text.startsWith('@dude/device-agent')))failures.push(`${file}: web must not import ${imp.text}`);
   }
  }
 }

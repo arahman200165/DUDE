@@ -50,7 +50,7 @@ export interface EntityCommit {
 }
 
 export type EntityCommitResult =
-  | { ok: true; localRevision: number; outboxOpId?: string }
+  | { ok: true; localRevision: number; outboxOpId?: string; backpressure?: boolean }
   | { ok: false; error: string };
 
 export type ResetKind = 'clear-data' | 'reset-device';

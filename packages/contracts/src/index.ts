@@ -9,7 +9,7 @@ export type {
 } from "./device-store/device-store.model.js";
 export type {
   AgentMethodMap, AgentMethod, AgentRequest, AgentResponse, AgentHistoryRecord, AgentNetworkRun, JournalEngine,
-  AgentJournalEntry, AgentSecretPurpose, AgentSecretStatus, LegacyImportResult,
+  AgentJournalEntry, AgentSecretPurpose, AgentSecretStatus, AgentSnapshotHeader, AgentResetPreview, LegacyImportResult,
 } from "./device-store/agent-protocol.js";
 export { AGENT_METHODS, isAgentMethod } from "./device-store/agent-protocol.js";
 export type { DeviceRegistrationRequest, DeviceRegistrationResponse } from "./device/device-registration.model.js";

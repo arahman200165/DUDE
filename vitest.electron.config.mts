@@ -9,7 +9,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['apps/desktop/**/*.spec.ts'],
+    include: ['apps/desktop/**/*.spec.ts', 'apps/device-agent/**/*.spec.ts'],
     globals: true,
     setupFiles: ['tests/engine-host.setup.ts'],
     maxWorkers: 4,
