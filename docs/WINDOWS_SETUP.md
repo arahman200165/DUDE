@@ -1,6 +1,6 @@
 # Windows setup and onboarding
 
-The GitHub Releases `DUDE-Setup-<version>.exe` is an NSIS installer. It has a native setup wizard followed by a first-launch wizard inside DUDE. The separately packaged MSIX/appx uses Windows' managed installation flow and does not show the NSIS pages.
+The GitHub Releases `DUDE-Setup-<version>.exe` is an NSIS installer. It has a native setup wizard followed by a first-launch wizard inside DUDE. The desktop ships as NSIS only (the MSIX/appx target was dropped, PD-025).
 
 ## Installer choices
 
@@ -24,11 +24,52 @@ The installer saves its choices for a later manual `.exe` reinstall or upgrade. 
 
 If Setup says DUDE cannot be closed but no DUDE process is running, check the registered uninstall path before retrying. A registration with an empty install location and an uninstall command like `"\Uninstall DUDE.exe" /allusers` can point at the drive root. Do not run that uninstaller. For the known 0.0.26 root-path case, `scripts/repair-broken-nsis-install.ps1` verifies the exact registration and quarantines DUDE-owned root files. For the 0.0.27 shared `C:\Program Files` case, `scripts/repair-shared-program-files-install.ps1` compares installed files with the local package before quarantining only those DUDE files. Both scripts back up registry keys, require administrator rights for repair, and support `-VerifyOnly` for a read-only check. Then rerun Setup and confirm the review page shows `C:\Program Files\DUDE` or another dedicated DUDE folder.
 
+## The DUDE Hub (optional)
+
+The Hub is a separate, optional Windows service that lets your devices sync through this computer. It has its own installer and its own **Apps & Features** entry ("DUDE Hub"); it installs to `%ProgramFiles%\DUDE Hub` and keeps its data in `%ProgramData%\DUDE\Hub`.
+
+### Installing the Hub
+
+- **From the desktop installer.** An interactive install shows an optional page, **Also install the DUDE Hub (runs as a Windows service on this computer)**, off by default, with a LAN sub-option. When ticked, Setup runs the embedded `DUDE-Hub-Setup.exe /S [/LAN]` after the desktop files are installed. Silent and auto-update runs never install the Hub, and the page is skipped when a Hub is already installed.
+- **Standalone.** Download `DUDE-Hub-Setup.exe` from the GitHub release (it is also in the DUDE folder under `resources`). It asks for administrator permission, offers the LAN checkbox (default off) and installs and starts the service. `DUDE-Hub-Setup.exe /S` is silent; add `/LAN` for LAN mode. Running it again on an installed Hub updates it.
+
+LAN mode lets other computers on your private network reach the Hub. It opens a Windows Firewall rule for the Private network profile only. The Hub is HTTPS-only and devices pin its certificate.
+
+### Managing the service
+
+Run these from an elevated prompt (the Hub CLI is `"%ProgramFiles%\DUDE Hub\dude-hub.exe"`):
+
+| Command | What it does |
+| --- | --- |
+| `dude-hub service status` / `restart` | Service state, reachability and the registered-device count; stop and start the service. |
+| `dude-hub network lan on` / `off` / `status` | Turn LAN mode (and its firewall rule) on or off. |
+| `dude-hub doctor` | Diagnose the service, certificates, port and firewall rule. |
+| `dude-hub setup-token` | Print or deliver the one-time token for first-owner setup. |
+| `dude-hub owner reset` | Start a two-step owner reset (confirm with the printed token). |
+
+### Updating the Hub
+
+A DUDE update never touches the Hub. When the desktop notices that the bundled Hub is newer than the installed one, it offers **Update Hub** in the app; that elevates the bundled `<DUDE folder>\resources\DUDE-Hub-Setup.exe /S /UPDATE` (stop, replace, start; data migrates when the service starts; only offered for a per-machine DUDE install). You can also run the newer `DUDE-Hub-Setup.exe` yourself.
+
+### Uninstalling the Hub
+
+Uninstalling DUDE never removes the Hub. Remove it from **Apps & Features → DUDE Hub**. The uninstaller shows how many devices are registered ("they will lose their connection until you reinstall or move the Hub") and has a **Also delete all Hub data** checkbox, off by default; ticking it needs a second confirmation and then runs `dude-hub purge` (preview, then confirm with the typed phrase). By default the data stays in `%ProgramData%\DUDE\Hub` and the path is shown. Backups are kept even when you purge.
+
+### Binaries are unsigned
+
+The DUDE and Hub installers and executables are not code-signed. Windows SmartScreen shows "Windows protected your PC": choose **More info → Run anyway**. **Smart App Control** (Windows 11) can block unsigned executables outright, including the background agent and Hub when they start at sign-in; if it does, turn Smart App Control off or run DUDE without the background agent or Hub. Verify downloads against the `SHA256SUMS.txt` published with each release (`Get-FileHash <file> -Algorithm SHA256`); the staged Hub folder carries its own `SHA256SUMS`.
+
+## Background Device Agent
+
+DUDE starts a small per-user background process, `dude-agent.exe` (shown as **Background agent** in Settings), that holds your device identity and sync state so they keep working when the DUDE window is closed. It starts when you sign in (a per-user `HKCU\...\Run` value `DUDEDeviceAgent`, or a per-user scheduled task named `DUDE\Device Agent <id>`; no administrator rights are needed) and when DUDE starts. Turn the sign-in start on or off in Settings.
+
+Because a running executable is locked, Setup and the uninstaller stop your agent first (`taskkill /F /IM dude-agent.exe` limited to your account, then a short wait) and the desktop starts it again at the next launch. For an all-users install, Setup cannot stop another Windows account's agent: if one is still running it says so (**close DUDE on other accounts**, then Retry). An agent left running that way is replaced by the desktop on that account's next launch when its version does not match. The uninstaller also removes the sign-in start for the uninstalling account (not on an update); other accounts' entries stay and do nothing.
+
 ## First launch
 
 The desktop app opens a resumable wizard for workspace and startup destination, window behavior, updates and notifications, global hotkeys, optional AI provider credentials, tool settings (such as the collaboration relay), and review. Optional pages may be skipped. Open **Settings › General → Run setup wizard again** to change those choices later. A manual installer run reopens the wizard with current values filled in; a silent auto-update does not.
 
-Window settings include close to tray or quit, launch minimized, preferred monitor, and remembered size and position. If the chosen monitor is absent, DUDE centers its window on the primary display. AI credentials use the existing OS-backed secure store. The theme remains dark.
+Window settings include close to tray or quit, launch minimized, preferred monitor, and remembered size and position. If the chosen monitor is absent, DUDE centers its window on the primary display. AI credentials use the existing OS-backed secure store. Appearance (theme, contrast mode, palette, density) is set in **Settings**; dark is the default.
 
 Updates have three modes: automatic download, check and notify, or manual check. Installing a downloaded update always requires **Restart & Install**. Update readiness and collaboration participant changes have separate notification switches.
 
@@ -38,4 +79,4 @@ An Explorer launch starts DUDE if necessary or forwards the path to the existing
 
 ## Build and verification
 
-From the repo root, `npm run electron:package` builds Angular, compiles Electron, and packages both NSIS and MSIX/appx. `npm test` runs unit tests and `npm run test:e2e` runs browser end-to-end tests. Windows installer smoke checks should cover each preset, Custom, current-user/all-users scopes, cancellation, a manual reinstall, a silent update, uninstall, Explorer file and folder actions, default-app guidance, and restored window placement after a monitor is disconnected. Use a disposable Windows environment for installation tests.
+From the repo root, `npm run electron:package` builds Angular, compiles Electron, builds the Device Agent and the Hub (`hub:stage`, `hub:installer`), and packages NSIS. `npm test` runs unit tests and `npm run test:e2e` runs browser end-to-end tests. Windows installer smoke checks should cover each preset, Custom, current-user/all-users scopes, cancellation, a manual reinstall, a silent update, uninstall, Explorer file and folder actions, default-app guidance, and restored window placement after a monitor is disconnected. Use a disposable Windows environment for installation tests.

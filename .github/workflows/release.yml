@@ -88,6 +88,15 @@ jobs:
       - name: Build the Device Agent executable
         run: node scripts/build-sea.mjs --bundle dist/electron/device-agent.js --out dist/agent --name dude-agent
 
+      # The optional DUDE Hub (PD-025): the Hub web build, SEA, WinSW and the standalone DUDE-Hub-Setup.exe.
+      # The desktop installer embeds the Hub installer (extraResources; in-app Update Hub runs it with /UPDATE), so it
+      # must exist before electron-builder runs. Hub binaries ship unsigned (SHA256 sums are published).
+      - name: Build the Hub web build
+        run: npm run build:hub-web
+
+      - name: Stage the Hub and build DUDE-Hub-Setup.exe
+        run: npm run hub:stage && npm run hub:installer
+
       - name: Package and publish (NSIS)
         run: npx electron-builder --config electron-builder.yml --win nsis --publish always
         env:
@@ -102,3 +111,25 @@ jobs:
           $agent = (Get-FileHash dist\agent\dude-agent.exe).Hash
           $packagedAgent = (Get-FileHash release\win-unpacked\resources\dude-agent.exe).Hash
           if ($agent -ne $packagedAgent) { throw 'NSIS source tree does not contain the Device Agent.' }
+
+      - name: Publish DUDE-Hub-Setup.exe and checksums
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $tag = "v$version"
+          if ($env:GITHUB_REF_TYPE -eq 'tag') { $tag = $env:GITHUB_REF_NAME }
+          $hub = 'dist\hub-installer\DUDE-Hub-Setup.exe'
+          $desktop = "release\DUDE-Setup-$version.exe"
+          $lines = foreach ($f in @($desktop, $hub)) { "{0}  {1}" -f (Get-FileHash $f -Algorithm SHA256).Hash.ToLower(), (Split-Path $f -Leaf) }
+          Set-Content -Path release\SHA256SUMS.txt -Value $lines -Encoding ascii
+          Get-Content release\SHA256SUMS.txt
+          gh release upload $tag $hub release\SHA256SUMS.txt --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify the desktop installer embeds the Hub installer
+        shell: pwsh
+        run: |
+          $hubInstaller = (Get-FileHash dist\hub-installer\DUDE-Hub-Setup.exe).Hash
+          $packagedHub = (Get-FileHash release\win-unpacked\resources\DUDE-Hub-Setup.exe).Hash
+          if ($hubInstaller -ne $packagedHub) { throw 'NSIS source tree does not contain the Hub installer.' }

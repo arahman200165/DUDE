@@ -126,6 +126,58 @@ Function un.DudeRecursiveDelete
 FunctionEnd
 !endif
 
+; Stop the resident per-user Device Agent (dude-agent.exe, resources\dude-agent.exe) before its
+; executable is replaced or removed: a running image is locked on Windows. The agent has no window and
+; exits gracefully only over its named pipe (`store.shutdown`), which NSIS cannot speak, so the last-resort
+; forced `taskkill /F` is used, limited to the installing Windows account (%USERNAME%) and followed by a
+; short wait. Agents of OTHER Windows accounts cannot be stopped from here: an interactive Setup tells the
+; user to close DUDE on those accounts (Retry/Cancel); a silent update continues, and the desktop restarts
+; a version-mismatched agent on its next launch. The agent restarts with DUDE (and at sign-in through its
+; HKCU Run value / per-user task, which Setup leaves in place when updating).
+!macro DudeStopAgentBody
+  Push $0
+  Push $1
+  Push $2
+  agent_kill:
+  ReadEnvStr $0 "USERNAME"
+  ${If} $0 != ""
+    nsExec::ExecToStack '"$SYSDIR\taskkill.exe" /F /IM dude-agent.exe /FI "USERNAME eq $0"'
+    Pop $1
+    Pop $1
+  ${EndIf}
+  StrCpy $2 "0"
+  agent_wait:
+    nsExec::ExecToStack 'cmd.exe /c ""$SYSDIR\tasklist.exe" /FI "IMAGENAME eq dude-agent.exe" /NH | "$SYSDIR\find.exe" /I "dude-agent.exe" >nul"'
+    Pop $1
+    Pop $0
+    ${If} $1 != "0"
+      Goto agent_done
+    ${EndIf}
+    IntOp $2 $2 + 1
+    ${If} $2 < 8
+      Sleep 500
+      Goto agent_wait
+    ${EndIf}
+  ${IfNot} ${Silent}
+    MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "The DUDE background agent (dude-agent.exe) is still running, probably under another Windows account. Close DUDE on other accounts (or end dude-agent.exe in Task Manager), then choose Retry. Cancel continues; files that are in use may fail to update." IDRETRY agent_kill
+  ${EndIf}
+  agent_done:
+  Pop $2
+  Pop $1
+  Pop $0
+!macroend
+
+!ifndef BUILD_UNINSTALLER
+Function DudeStopAgent
+  !insertmacro DudeStopAgentBody
+FunctionEnd
+!endif
+!ifdef BUILD_UNINSTALLER
+Function un.DudeStopAgent
+  !insertmacro DudeStopAgentBody
+FunctionEnd
+!endif
+
 ; Reject empty, relative, and drive/share-root install paths before NSIS can
 ; install or recursively uninstall files there.
 !macro DudePathIsSafe PATH RESULT ALLOW_MISSING
@@ -253,6 +305,11 @@ FunctionEnd
       ${EndIf}
     ${EndIf}
   !endif
+  !ifdef BUILD_UNINSTALLER
+    Call un.DudeStopAgent
+  !else
+    Call DudeStopAgent
+  !endif
   !insertmacro IS_POWERSHELL_AVAILABLE
   !insertmacro _CHECK_APP_RUNNING
 !macroend
@@ -322,6 +379,11 @@ Var DudeManualRadio
 Var DudeExplorerCheck
 Var DudeFoldersCheck
 Var DudeProtocolCheck
+Var DudeHub
+Var DudeHubLan
+Var DudeHubCheck
+Var DudeHubLanCheck
+Var DudeUpdatedRun
 ; BEGIN GENERATED FILE ASSOCIATIONS VARS
 Var DudeExt0
 Var DudeExt1
@@ -343,6 +405,12 @@ Var DudeExt13
 !ifndef BUILD_UNINSTALLER
 !macro customInit
   StrCpy $DudePresetChanged "0"
+  StrCpy $DudeHub "0"
+  StrCpy $DudeHubLan "0"
+  StrCpy $DudeUpdatedRun "0"
+  ${If} ${isUpdated}
+    StrCpy $DudeUpdatedRun "1"
+  ${EndIf}
   StrCpy $DudeExistingInstall "0"
   StrCpy $DudeMaintenanceAction "repair"
   StrCpy $DudeMaintenanceReady "0"
@@ -722,17 +790,17 @@ Function DudeSyncOptionsForScope
   ${EndIf}
 FunctionEnd
 
-; Fresh installs have four preset pages or eight Custom pages. Repair has four;
+; Fresh installs have five preset pages or nine Custom pages (including the optional Hub page). Repair has five;
 ; data reset and uninstall end after their second confirmation page.
 ; The built-in scope page is skipped in preset mode.
 Function DudeSetStepHeader
-  StrCpy $DudeStepTotal "4"
+  StrCpy $DudeStepTotal "5"
   ${If} $DudeExistingInstall == "1"
     ${If} $DudeMaintenanceAction != "repair"
       StrCpy $DudeStepTotal "2"
     ${EndIf}
   ${ElseIf} $DudeCustomize == "1"
-    StrCpy $DudeStepTotal "8"
+    StrCpy $DudeStepTotal "9"
   ${EndIf}
   !insertmacro MUI_HEADER_TEXT "Step $0 of $DudeStepTotal" "$1"
 FunctionEnd
@@ -744,10 +812,10 @@ Function DudeModeShow
 FunctionEnd
 
 Function DudeInstallShow
-  StrCpy $0 "3"
+  StrCpy $0 "4"
   ${If} $DudeExistingInstall != "1"
   ${AndIf} $DudeCustomize == "1"
-    StrCpy $0 "7"
+    StrCpy $0 "8"
   ${EndIf}
   StrCpy $1 "Installing DUDE"
   Call DudeSetStepHeader
@@ -756,6 +824,7 @@ FunctionEnd
   Page custom DudePathCreate DudePathLeave
   Page custom DudeOptionsCreate DudeOptionsLeave
   Page custom DudeExplorerCreate DudeExplorerLeave
+  Page custom DudeHubCreate DudeHubLeave
   Page custom DudeReviewCreate
 Function DudeReviewCreate
   ${If} ${Silent}
@@ -764,9 +833,9 @@ Function DudeReviewCreate
   ${EndIf}
   nsDialogs::Create 1018
   Pop $0
-  StrCpy $0 "2"
+  StrCpy $0 "3"
   ${If} $DudeCustomize == "1"
-    StrCpy $0 "6"
+    StrCpy $0 "7"
   ${EndIf}
   StrCpy $1 "Review before installing"
   Call DudeSetStepHeader
@@ -827,12 +896,23 @@ FunctionEnd
 
 !macro customInstall
   Call DudeInstallOptions
+  ; The optional Hub is installed only after an explicit interactive choice: $DudeHub stays "0" in silent
+  ; and auto-update runs because DudeHubCreate never shows its page there.
+  ${IfNot} ${Silent}
+  ${AndIfNot} ${isUpdated}
+  ${AndIf} $DudeHub == "1"
+    Call DudeInstallHub
+  ${EndIf}
 !macroend
 
 !endif
 
+; The desktop uninstaller never touches the DUDE Hub (its own installer, service and Apps & Features entry).
 !macro customUnInstall
   Call un.DudeRemoveOptions
+  ${IfNot} ${isUpdated}
+    Call un.DudeRemoveAgentAutostart
+  ${EndIf}
   ${If} $DudeDeleteData == "1"
     Call un.DudeDeleteUserData
   ${EndIf}
@@ -999,6 +1079,70 @@ Function DudePathLeave
       MessageBox MB_OK|MB_ICONEXCLAMATION "Choose a dedicated DUDE folder outside the drive root and source checkout."
       Abort
     ${EndIf}
+  ${EndIf}
+FunctionEnd
+
+; Optional DUDE Hub (PD-025). The embedded DUDE-Hub-Setup.exe is its own elevated installer with its own
+; Apps & Features entry; once installed, desktop updates and uninstalls never stop or remove it.
+Function DudeHubCreate
+  ${If} ${Silent}
+  ${OrIf} $DudeUpdatedRun == "1"
+    Abort
+  ${EndIf}
+  ${If} ${FileExists} "$PROGRAMFILES64\DUDE Hub\dude-hub.exe"
+    Abort
+  ${EndIf}
+  nsDialogs::Create 1018
+  Pop $0
+  StrCpy $0 "2"
+  ${If} $DudeExistingInstall == "1"
+    StrCpy $0 "3"
+  ${ElseIf} $DudeCustomize == "1"
+    StrCpy $0 "6"
+  ${EndIf}
+  StrCpy $1 "Optional: DUDE Hub"
+  Call DudeSetStepHeader
+  ${NSD_CreateCheckbox} 0 0 100% 12u "Also install the DUDE Hub (runs as a Windows service on this computer)"
+  Pop $DudeHubCheck
+  ${NSD_CreateLabel} 12u 16u 94% 52u "The Hub lets your devices sync with each other through this computer. It is a separate, elevated installer with its own entry in Apps && Features; installing, updating or uninstalling DUDE never stops or removes it, and uninstalling the Hub keeps its data (in %ProgramData%\DUDE\Hub) unless you ask for it to be deleted. Leave this off if you do not need a Hub."
+  Pop $0
+  ${NSD_CreateCheckbox} 12u 74u 94% 24u "Let other computers on my private network reach the Hub (LAN mode; opens a Private-profile firewall rule; HTTPS-only with pinned certificates)"
+  Pop $DudeHubLanCheck
+  nsDialogs::Show
+FunctionEnd
+
+Function DudeHubLeave
+  ${NSD_GetState} $DudeHubCheck $0
+  StrCpy $DudeHub "0"
+  ${If} $0 == ${BST_CHECKED}
+    StrCpy $DudeHub "1"
+  ${EndIf}
+  ${NSD_GetState} $DudeHubLanCheck $0
+  StrCpy $DudeHubLan "0"
+  ${If} $0 == ${BST_CHECKED}
+    StrCpy $DudeHubLan "1"
+  ${EndIf}
+  ; LAN only means something when the Hub is installed.
+  ${If} $DudeHub != "1"
+    StrCpy $DudeHubLan "0"
+  ${EndIf}
+FunctionEnd
+
+Function DudeInstallHub
+  ${IfNot} ${FileExists} "$INSTDIR\resources\DUDE-Hub-Setup.exe"
+    MessageBox MB_OK|MB_ICONEXCLAMATION "DUDE is installed, but its bundled Hub installer is missing, so the Hub was not installed."
+    Return
+  ${EndIf}
+  DetailPrint "Installing the DUDE Hub..."
+  StrCpy $0 "/S"
+  ${If} $DudeHubLan == "1"
+    StrCpy $0 "/S /LAN"
+  ${EndIf}
+  ClearErrors
+  ExecWait '"$INSTDIR\resources\DUDE-Hub-Setup.exe" $0' $1
+  ${If} ${Errors}
+  ${OrIf} $1 != "0"
+    MessageBox MB_OK|MB_ICONEXCLAMATION "DUDE is installed, but the DUDE Hub installer did not finish (exit code $1). Run resources\DUDE-Hub-Setup.exe from the DUDE folder to try again."
   ${EndIf}
 FunctionEnd
 
@@ -1385,10 +1529,27 @@ Function un.DudeRemoveOptions
   DeleteRegKey SHELL_CONTEXT "Software\Classes\Directory\shell\OpenWithDUDE"
   !insertmacro DudeRemoveProtocol
   DeleteRegValue SHELL_CONTEXT "Software\RegisteredApplications" "DUDE"
-  DeleteRegKey SHELL_CONTEXT "Software\DUDE"
+  ; Delete only the desktop's own subkeys: HKLM\Software\DUDE\Hub belongs to the separate Hub installer
+  ; and must survive desktop updates (which run this uninstaller) and uninstalls.
+  DeleteRegKey SHELL_CONTEXT "Software\DUDE\Installer"
+  DeleteRegKey SHELL_CONTEXT "Software\DUDE\Capabilities"
+  DeleteRegKey /ifempty SHELL_CONTEXT "Software\DUDE"
+FunctionEnd
+
+; Remove the uninstalling account's agent autostart: the HKCU Run value `DUDEDeviceAgent` and the per-user
+; Task Scheduler task `DUDE\Device Agent <hash of store dir>` (names from device-store/agent-autostart.ts;
+; the hash depends on the store directory, so match the name prefix and this account's principal).
+; Other accounts' entries are theirs and stay (they point at a missing exe and do nothing).
+; Skipped on an update, where the new version keeps the registration and the desktop restarts the agent.
+Function un.DudeRemoveAgentAutostart
+  DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "DUDEDeviceAgent"
+  nsExec::ExecToStack '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "Get-ScheduledTask -TaskPath \"\DUDE\\\" -ErrorAction SilentlyContinue | Where-Object { $$_.TaskName -like \"Device Agent *\" -and $$_.Principal.UserId -like (\"*\" + $$env:USERNAME) } | Unregister-ScheduledTask -Confirm:$$false"'
+  Pop $0
+  Pop $0
 FunctionEnd
 
 Function un.DudeDeleteUserData
+  Call un.DudeStopAgent
   ; Resolve the profile at runtime, in the user's own process.
   ReadEnvStr $0 "APPDATA"
   ${If} $0 == ""

@@ -29,6 +29,11 @@ extraResources:
   # The resident per-user Device Agent (PD-026), built by `npm run agent:sea`.
   - from: dist/agent/dude-agent.exe
     to: dude-agent.exe
+  # The optional Hub (PD-025): its own elevated installer, launched only on an explicit interactive choice,
+  # also elevated by the in-app "Update Hub" flow as `<resources>\DUDE-Hub-Setup.exe /S /UPDATE` (the ~96 MB Hub
+  # ships once, inside the installer). Built by `npm run hub:stage && npm run hub:installer`.
+  - from: dist/hub-installer/DUDE-Hub-Setup.exe
+    to: DUDE-Hub-Setup.exe
 
 icon: build/icon.ico
 
