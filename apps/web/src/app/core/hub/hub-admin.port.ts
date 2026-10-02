@@ -44,6 +44,13 @@ export interface HubAdminPort {
   regenerateRecoveryCodes(confirmToken: string): Promise<RecoveryCodesResponse>;
   changePassword(currentPassword: string, newPassword: string): Promise<OkResponse>;
 
+  /** Desktop only: pushed whenever the Device Agent's Hub connection state changes. Returns the unsubscribe function. */
+  onStatusChanged?(callback: (status: DesktopHubStatus) => void): () => void;
+  /** Desktop only: device-assisted owner recovery from a recovery-trusted desktop, after Windows confirms the user. */
+  recoverOwner?(newPassword: string): Promise<{ readonly ok: true }>;
+  /** Hub-served web build only: the Hub's TLS public-key pin (and the pending next pin during rotation). */
+  tlsFingerprint?(): Promise<{ readonly spkiSha256: string; readonly nextSpkiSha256: string | null }>;
+
   // Hub-served web build only (rejects `unavailable` elsewhere).
   bootstrap(request: BootstrapRequest): Promise<BootstrapResponse>;
   signIn(password: string): Promise<SignInResponse>;

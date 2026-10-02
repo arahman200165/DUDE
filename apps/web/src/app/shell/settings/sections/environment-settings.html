@@ -1,0 +1,188 @@
+<div class="flex flex-col gap-4">
+  <p class="text-ui text-text-muted">
+    @if (isHubWeb) {
+      You are managing this Hub from its own web page. Opening this page never changes anything.
+    } @else {
+      Connect this device to a DUDE Hub on your network. Connecting registers this device; no tool data is sent to the Hub. Opening this page never changes anything.
+    }
+  </p>
+
+  @if (loadError(); as message) {
+    <p class="text-ui text-error" role="alert" data-testid="load-error">{{ message }}</p>
+  }
+
+  @if (status(); as s) {
+    <div data-setting class="flex flex-col gap-2" data-testid="hub-status">
+      <h3 class="text-ui-sm font-semibold text-text">{{ isHubWeb ? 'This Hub' : 'Connection' }}</h3>
+      <dl class="grid grid-cols-[max-content_1fr] items-center gap-x-3 gap-y-1 text-ui">
+        @if (!isHubWeb) {
+          <dt class="text-text-muted">State</dt>
+          <dd><app-hub-status-badge [kind]="kind()!" /></dd>
+        }
+        @if (s.hubUrl) {
+          <dt class="text-text-muted">Hub URL</dt>
+          <dd class="flex items-center gap-2"><code class="font-mono text-text" data-testid="hub-url">{{ s.hubUrl }}</code></dd>
+        }
+        @if (s.environmentId) {
+          <dt class="text-text-muted">Environment ID</dt>
+          <dd class="flex items-center gap-2">
+            <code class="font-mono text-text" data-testid="environment-id" [attr.title]="s.environmentId">{{ short(s.environmentId) }}</code>
+            <app-copy-button [text]="s.environmentId" label="Copy" />
+          </dd>
+        }
+        @if (isHubWeb) {
+          @if (s.hubVersion) {
+            <dt class="text-text-muted">Hub version</dt>
+            <dd class="text-text" data-testid="hub-version">{{ s.hubVersion }}</dd>
+          }
+          @if (s.hubInstanceId) {
+            <dt class="text-text-muted">Instance</dt>
+            <dd class="flex items-center gap-2">
+              <code class="font-mono text-text" data-testid="hub-instance">{{ short(s.hubInstanceId) }}</code>
+              <app-copy-button [text]="s.hubInstanceId" label="Copy" />
+            </dd>
+          }
+        } @else if (s.enrollmentState !== 'standalone') {
+          <dt class="text-text-muted">Last contact</dt>
+          <dd class="text-text" data-testid="last-contact">{{ lastContact() }}</dd>
+        }
+      </dl>
+      @if (!isHubWeb) {
+        <p class="text-ui text-text-muted" data-testid="state-detail">{{ stateDetail() }}</p>
+        @if (s.lastError) {
+          <p class="text-ui text-error" data-testid="last-error">Last error: {{ s.lastError }}</p>
+        }
+      }
+    </div>
+  }
+
+  @if (isHubWeb && tls(); as pin) {
+    <div data-setting class="flex flex-col gap-2" data-testid="tls">
+      <h3 class="text-ui-sm font-semibold text-text">TLS fingerprint</h3>
+      <p class="text-ui text-text-muted">Devices pin this public-key fingerprint when they pair. Compare it with what a new device shows before trusting it.</p>
+      <div class="flex flex-wrap items-center gap-2">
+        <code class="break-all font-mono text-ui text-text" data-testid="spki">{{ group(pin.spkiSha256) }}</code>
+        <app-copy-button [text]="pin.spkiSha256" label="Copy" />
+      </div>
+      @if (pin.nextSpkiSha256) {
+        <p class="text-ui text-text-muted">A new certificate is waiting to take over:</p>
+        <code class="break-all font-mono text-ui text-text" data-testid="spki-next">{{ group(pin.nextSpkiSha256) }}</code>
+      }
+    </div>
+  }
+
+  @if (isHubWeb) {
+    <div data-setting class="flex flex-col gap-2" data-testid="owner-session">
+      <h3 class="text-ui-sm font-semibold text-text">Owner session</h3>
+      <app-owner-gate />
+    </div>
+
+    <div data-setting class="flex flex-col gap-2" data-testid="network-exposure">
+      <h3 class="text-ui-sm font-semibold text-text">Network exposure</h3>
+      <p class="text-ui text-text-muted">
+        Whether this Hub listens on the loopback only or on your local network cannot be read from this page yet. Changing it needs an administrator on the Hub machine, so run one of these in an elevated terminal there:
+      </p>
+      <ul class="flex flex-col gap-1">
+        <li class="flex flex-wrap items-center gap-2">
+          <code class="font-mono text-ui text-text">dude-hub network lan on</code>
+          <app-copy-button text="dude-hub network lan on" label="Copy" />
+          <span class="text-ui text-text-muted">Let devices on your LAN connect.</span>
+        </li>
+        <li class="flex flex-wrap items-center gap-2">
+          <code class="font-mono text-ui text-text">dude-hub network lan off</code>
+          <app-copy-button text="dude-hub network lan off" label="Copy" />
+          <span class="text-ui text-text-muted">Back to loopback only.</span>
+        </li>
+      </ul>
+    </div>
+  } @else {
+    @if (enrolled()) {
+      <div data-setting class="flex flex-col gap-2" data-testid="owner-session">
+        <h3 class="text-ui-sm font-semibold text-text">Owner session</h3>
+        <app-owner-gate />
+      </div>
+    }
+
+    @if (canConnect()) {
+      <div data-setting class="flex flex-col gap-2" data-testid="connect">
+        <h3 class="text-ui-sm font-semibold text-text">Connect to a Hub</h3>
+        <p class="text-ui text-text-muted">On the Hub, open Settings › Devices › Pair a device, then paste the pairing string here.</p>
+        <label class="text-ui text-text-muted" for="pairing-string">Pairing string</label>
+        <input
+          id="pairing-string"
+          type="text"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="dude-pair:v1:…"
+          class="w-full max-w-xl rounded-sm border border-border bg-panel px-2 py-0.5 font-mono text-text"
+          [attr.aria-invalid]="pairingProblem() ? 'true' : null"
+          [attr.aria-describedby]="pairingProblem() ? 'pairing-problem' : null"
+          [value]="pairingText()"
+          [disabled]="connecting()"
+          (input)="onPairingInput($event)"
+        />
+        @if (pairingProblem(); as problem) {
+          <p id="pairing-problem" class="text-ui text-error" role="alert" data-testid="pairing-problem">{{ problem }}</p>
+        }
+        @if (parsed(); as p) {
+          <div class="flex flex-col gap-2 rounded-sm border border-border p-3" data-testid="connect-disclosure">
+            <p class="text-ui text-text">Hub: <code class="font-mono" data-testid="parsed-host">{{ p.host }}:{{ p.port }}</code></p>
+            <p class="text-ui text-text-muted">
+              The Hub at {{ p.host }}:{{ p.port }} will learn this device's name, platform and app version. Nothing else is uploaded now.
+            </p>
+            <div class="flex items-center gap-2">
+              <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10 disabled:opacity-50" [disabled]="connecting()" (click)="connect()">Connect to this Hub</button>
+            </div>
+          </div>
+        }
+        <div aria-live="polite">
+          @if (connecting()) { <p class="text-ui text-text-muted" data-testid="connecting">Connecting to the Hub…</p> }
+          @if (connectError(); as message) { <p class="text-ui text-error" role="alert" data-testid="connect-error">{{ message }}</p> }
+          @if (connectDone(); as message) { <p class="text-ui text-success" data-testid="connect-done">{{ message }}</p> }
+        </div>
+      </div>
+    }
+
+    @if (canDisconnect()) {
+      <div data-setting class="flex flex-col gap-2 rounded-sm border border-error/40 p-3" data-testid="disconnect" (keydown.escape)="onEscape()">
+        <h3 class="text-ui-sm font-semibold text-error">Disconnect from this Hub</h3>
+        @if (step() === 'idle') {
+          <p class="text-ui text-text-muted">Removes this device from its Hub. You will see exactly what happens before anything changes.</p>
+          <div class="flex gap-2">
+            <button type="button" class="rounded-sm border border-error/40 px-2 py-0.5 text-ui text-error hover:bg-error/10" (click)="startDisconnect()">Disconnect from this Hub…</button>
+          </div>
+        } @else if (step() === 'confirm') {
+          <div class="flex flex-col gap-2" role="alertdialog" aria-label="Confirm disconnect from this Hub" data-testid="disconnect-confirm">
+            <p class="text-ui text-text">The Hub will be told this device is leaving. Local data stays on this device. To reconnect you must pair this device again.</p>
+            <div class="flex gap-2">
+              <button #confirmButton type="button" class="rounded-sm border border-error px-2 py-0.5 text-ui text-error hover:bg-error/10 disabled:opacity-50" [disabled]="disconnecting()" (click)="confirmDisconnect()">Confirm disconnect</button>
+              <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated" (click)="cancelDisconnect()">Cancel</button>
+            </div>
+          </div>
+        } @else if (step() === 'unreachable') {
+          <div class="flex flex-col gap-2" role="alertdialog" aria-label="The Hub is unreachable" data-testid="disconnect-unreachable">
+            <p class="text-ui text-text">The Hub could not be reached, so it was not told. Try again later, or disconnect on this device only.</p>
+            <div class="flex gap-2">
+              <button #confirmButton type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text hover:bg-panel-elevated" (click)="startLocalOnly()">Disconnect locally only…</button>
+              <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated" (click)="cancelDisconnect()">Cancel</button>
+            </div>
+          </div>
+        } @else {
+          <div class="flex flex-col gap-2" role="alertdialog" aria-label="Confirm disconnect on this device only" data-testid="disconnect-force-confirm">
+            <p class="text-ui text-warning">The Hub keeps listing this device until the owner revokes it there. This device forgets the Hub immediately and local data stays. You must pair again to reconnect.</p>
+            <div class="flex gap-2">
+              <button #confirmButton type="button" class="rounded-sm border border-error px-2 py-0.5 text-ui text-error hover:bg-error/10 disabled:opacity-50" [disabled]="disconnecting()" (click)="confirmLocalOnly()">Confirm disconnect locally only</button>
+              <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated" (click)="cancelDisconnect()">Cancel</button>
+            </div>
+          </div>
+        }
+        <div aria-live="polite">
+          @if (disconnectError(); as message) { <p class="text-ui text-error" role="alert" data-testid="disconnect-error">{{ message }}</p> }
+        </div>
+      </div>
+    }
+    <div aria-live="polite">
+      @if (disconnectDone(); as message) { <p class="text-ui text-info" data-testid="disconnect-done">{{ message }}</p> }
+    </div>
+  }
+</div>

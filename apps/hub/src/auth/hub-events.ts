@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import type { RevokedSession } from './sessions.js';
 
 export interface SessionRevokedEvent extends RevokedSession {
-  reason: 'revoked' | 'device-revoked' | 'device-unenrolled' | 'revoke-all' | 'sign-out' | 'password-changed' | 'recovery' | 'owner-reset';
+  reason: 'revoked' | 'device-revoked' | 'device-unenrolled' | 'revoke-all' | 'sign-out' | 'password-changed' | 'recovery' | 'owner-reset' | 'device-recovery';
 }
 
 export interface HubEventMap {
@@ -14,6 +14,8 @@ export interface HubEventMap {
   'device-registry-changed': [{ deviceId: string; change: 'enrolled' | 'renamed' | 'revoked' | 'unenrolled' | 'recovery-trust' | 'updated' | 'presence' }];
   /** A next TLS pin was staged. */
   'tls-next-pin': [{ spkiSha256: string }];
+  /** Device-assisted owner recovery completed (PD-029); broadcast to the remaining owner/device connections. */
+  'owner-recovered': [{ deviceId: string; at: string }];
 }
 
 /** Internal in-process events (consumed by the realtime milestone). Never carries credentials. */

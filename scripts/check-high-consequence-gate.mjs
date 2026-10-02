@@ -11,6 +11,9 @@ run('node_modules/vitest/vitest.mjs',['run','--config','vitest.packages.config.m
 run('node_modules/@angular/cli/bin/ng.js',['test',...ids.map(id=>`--include=apps/web/src/app/tools/${id}`),'--watch=false']);
 // Core (non-tool) destructive actions: boundary specs that no tool manifest declares. Settings > This Device
 // (Clear data / Reset this device / quarantine) is `database-write` and `filesystem-write` class.
-const coreBoundarySpecs=['apps/web/src/app/shell/settings/sections/this-device-settings.confirmation-boundary.spec.ts'];
+const coreBoundarySpecs=[
+  'apps/web/src/app/shell/settings/sections/this-device-settings.confirmation-boundary.spec.ts',
+  'apps/web/src/app/shell/settings/sections/security-settings.confirmation-boundary.spec.ts',
+];
 run('node_modules/@angular/cli/bin/ng.js',['test',...coreBoundarySpecs.map(spec=>`--include=${spec}`),'--watch=false']);
 run('node_modules/vitest/vitest.mjs',['run','--config','vitest.electron.config.mts','apps/desktop/device-store/store-reset.confirmation-boundary.spec.ts']);

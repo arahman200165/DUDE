@@ -94,7 +94,7 @@ describe('Hub entry routes', () => {
   }
 
   it('renders /hub/* only on hub-web', async () => {
-    expect(await navigate('hub-web', '/hub/sign-in')).toContain('Hub sign-in');
+    expect(await navigate('hub-web', '/hub/sign-in')).toContain('Sign in to this Hub');
   });
 
   it.each(['web-standalone', 'desktop'] as const)('does not match /hub/* on %s', async (host) => {

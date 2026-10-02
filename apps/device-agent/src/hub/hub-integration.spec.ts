@@ -223,4 +223,30 @@ describe('device agent against a real Hub', () => {
     expect(a.hub.manager.status()).toMatchObject({ state: 'standalone', enrollment: null });
     expect(getEnrollment(a.store.db)).toBeNull();
   }, 60_000);
+  it('recovers the owner password from a recovery-trusted device only', async () => {
+    // The Hub's per-IP credential-endpoint bucket (burst 10, 20 a minute) was drained by the previous case; let it refill.
+    await new Promise((resolve) => setTimeout(resolve, 30_000));
+    const dpapi = fakeDpapi();
+    const NEW_PASSWORD = 'a recovered long password';
+    const signIn = await rawRequest('POST', '/api/v1/auth/sign-in', { password: PASSWORD });
+    expect(signIn.status).toBe(200);
+    const headers = { cookie: String((signIn.headers['set-cookie'] as string[])[0]).split(';')[0]!, origin: `https://127.0.0.1:${port}`, 'x-dude-csrf': String(signIn.body['csrfToken']) };
+    const pairing = String((await rawRequest('POST', '/api/v1/pairing-codes', { host: '127.0.0.1' }, headers)).body['pairingString']);
+
+    const agent = startAgent(dpapi);
+    await agent.rpc('hub.enroll', { pairingString: pairing });
+    await waitFor('online', () => agent.hub.manager.status().state === 'online');
+    // Not recovery-trusted yet: the Hub refuses.
+    await expect(agent.rpc('hub.recoverOwner', { newPassword: NEW_PASSWORD })).rejects.toMatchObject({ code: 'not-trusted' });
+
+    await agent.rpc('hub.owner.signIn', { password: PASSWORD });
+    const deviceId = readDeviceRecord(agent.store.db, CAPABILITIES).deviceId;
+    await agent.rpc('hub.owner.setRecoveryTrust', { deviceId, password: PASSWORD, trusted: true });
+    expect(await agent.rpc('hub.recoverOwner', { newPassword: NEW_PASSWORD })).toEqual({ ok: true });
+    // The Hub revoked every owner session, so the held bearer is gone and the old password no longer works.
+    await expect(agent.rpc('hub.owner.listDevices', {})).rejects.toMatchObject({ code: 'owner-not-signed-in' });
+    expect((await rawRequest('GET', '/api/v1/auth/session', undefined, { cookie: headers.cookie, origin: headers.origin })).status).toBe(401);
+    expect((await rawRequest('POST', '/api/v1/auth/sign-in', { password: NEW_PASSWORD })).status).toBe(200);
+    await agent.rpc('hub.unenroll', { force: true });
+  }, 90_000);
 });

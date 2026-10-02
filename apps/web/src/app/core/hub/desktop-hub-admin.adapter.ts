@@ -43,6 +43,8 @@ export function createDesktopHubAdmin(bridge: () => DesktopHubBridge | undefined
     recoveryCodesPreview: () => run((h) => h.recoveryCodesPreview()),
     regenerateRecoveryCodes: (token) => run((h) => h.regenerateRecoveryCodes(token)),
     changePassword: (current, next) => run((h) => h.changePassword(current, next)),
+    recoverOwner: (newPassword) => run((h) => h.recoverOwner(newPassword)),
+    onStatusChanged: (callback) => bridge()?.onStatusChanged(callback) ?? (() => undefined),
     bootstrap: unavailable.bootstrap,
     signIn: unavailable.signIn,
     currentSession: unavailable.currentSession,

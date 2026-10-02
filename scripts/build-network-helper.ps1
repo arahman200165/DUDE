@@ -21,7 +21,7 @@ try {
   if (-not (Test-Path -LiteralPath 'build\fs-attrs.exe')) { throw 'Filesystem attribute helper output is missing.' }
   # Phase 31 (Milestone 593): the Windows system helper (read-only process/network/registry RPC).
   New-Item -ItemType Directory -Path 'build\windows-sys' -Force | Out-Null
-  $compileSys = '"{0}" >nul && cl /nologo /std:c++17 /EHsc /O2 /W4 /Fo:build\windows-sys\ /Fe:build\windows-sys.exe native\windows-sys\*.cpp /link advapi32.lib iphlpapi.lib ws2_32.lib ntdll.lib version.lib wintrust.lib crypt32.lib dbghelp.lib user32.lib wevtapi.lib netapi32.lib' -f $vcvars
+  $compileSys = '"{0}" >nul && cl /nologo /std:c++17 /EHsc /O2 /W4 /Fo:build\windows-sys\ /Fe:build\windows-sys.exe native\windows-sys\*.cpp /link advapi32.lib iphlpapi.lib ws2_32.lib ntdll.lib version.lib wintrust.lib crypt32.lib dbghelp.lib user32.lib wevtapi.lib netapi32.lib credui.lib ole32.lib windowsapp.lib' -f $vcvars
   & cmd.exe /c $compileSys
   if ($LASTEXITCODE -ne 0) { throw "Windows system helper compilation failed with code $LASTEXITCODE." }
   if (-not (Test-Path -LiteralPath 'build\windows-sys.exe')) { throw 'Windows system helper output is missing.' }

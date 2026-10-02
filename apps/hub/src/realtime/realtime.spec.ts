@@ -5,7 +5,7 @@ import tls from 'node:tls';
 import type { Server as TlsServer } from 'node:tls';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
-import { HUB_REALTIME_PATH, REALTIME_CLOSE_CODES, REALTIME_MAX_MESSAGE_BYTES } from '@dude/contracts/hub';
+import { HUB_REALTIME_PATH, REALTIME_CLOSE_CODES, REALTIME_MAX_MESSAGE_BYTES, ownerRecoveryMessage } from '@dude/contracts/hub';
 import { startAuthHub } from '../server/auth-test-helpers.js';
 import type { AuthHub, Signed } from '../server/auth-test-helpers.js';
 import { enrolled } from '../server/device-test-helpers.js';
@@ -190,6 +190,23 @@ describe('realtime socket', () => {
     expect(other.ws.readyState).toBe(WebSocket.OPEN); // the owner's own cookie session is untouched
     other.ws.close();
     expect(await refused(h, { authorization: `Bearer ${token}` })).toBe(401);
+  });
+
+  it('closes owner sockets and notifies the remaining connections after a device-assisted owner recovery', async () => {
+    const trusted = await enrolled(h, owner);
+    expect((await h.call('PUT', `/devices/${trusted.device.deviceId}/recovery-trust`, { cookie: owner.cookie, csrf: owner.csrf, body: { password: 'a very long password', trusted: true } })).status).toBe(200);
+    const bystander = await enrolled(h, owner);
+    const ownerSocket = track((await welcomed(h, ownerHeaders(h, owner))).client);
+    const bystanderSocket = track((await welcomed(h, { authorization: `Bearer ${bystander.token}` })).client);
+    const challenge = await h.call('POST', '/auth/device-recovery/challenge', { bearer: trusted.token });
+    const signature = trusted.device.sign(ownerRecoveryMessage({ hubInstanceId: h.hub.hub.hubInstanceId, nonce: challenge.json.nonce, deviceId: trusted.device.deviceId }));
+    expect((await h.call('POST', '/auth/device-recovery', { bearer: trusted.token, body: { nonce: challenge.json.nonce, signature, newPassword: 'a very long password' } })).status).toBe(200);
+    expect(await withClose(ownerSocket)).toBe(REALTIME_CLOSE_CODES.revoked);
+    expect(ownerSocket.messages.some((m) => m.event === 'session-revoked')).toBe(true);
+    const notice = await bystanderSocket.next((m) => m.event === 'owner-recovered');
+    expect(notice.data).toMatchObject({ deviceId: trusted.device.deviceId });
+    expect(bystanderSocket.ws.readyState).toBe(WebSocket.OPEN);
+    owner = await h.signIn();
   });
 
   it('closes the sockets of a revoked session with 4003', async () => {

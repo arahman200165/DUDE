@@ -119,20 +119,20 @@ export const CORE_SETTINGS_SECTIONS: readonly CoreSettingsSection[] = [
     title: 'Environment & Hub',
     keywords: ['environment', 'hub', 'enroll', 'pairing', 'pairing code', 'unenroll', 'lan', 'tls', 'certificate'],
     hosts: ['desktop', 'hub-web'],
-    load: () => import('./sections/hub-placeholder-settings').then((m) => m.EnvironmentSettingsPlaceholder),
+    load: () => import('./sections/environment-settings').then((m) => m.EnvironmentSettings),
   },
   {
     id: 'devices',
     title: 'Devices',
     keywords: ['devices', 'device', 'pairing', 'pairing code', 'revoke', 'rename', 'recovery trust', 'hub'],
     hosts: ['desktop', 'hub-web'],
-    load: () => import('./sections/hub-placeholder-settings').then((m) => m.DevicesSettingsPlaceholder),
+    load: () => import('./sections/devices-settings').then((m) => m.DevicesSettings),
   },
   {
     id: 'security',
     title: 'Security & Sessions',
     keywords: ['security', 'sessions', 'sign out', 'revoke sessions', 'audit', 'audit log', 'recovery codes', 'password', 'owner', 'hub'],
     hosts: ['desktop', 'hub-web'],
-    load: () => import('./sections/hub-placeholder-settings').then((m) => m.SecuritySettingsPlaceholder),
+    load: () => import('./sections/hub/owner-gated-security').then((m) => m.OwnerGatedSecuritySettings),
   },
 ];

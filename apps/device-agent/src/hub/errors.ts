@@ -6,7 +6,9 @@ export type HubManagerErrorCode =
   | 'enrollment-revoked'
   | 'owner-not-signed-in'
   | 'owner-session-expired'
-  | 'tls-untrusted';
+  | 'tls-untrusted'
+  | 'not-trusted'
+  | 'owner-recovery-failed';
 
 /** A typed, user-presentable failure of the Hub connection layer. The message never carries credentials. */
 export class HubManagerError extends Error {

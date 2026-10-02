@@ -23,6 +23,8 @@ const ARGS: Record<string, readonly unknown[]> = {
   deviceSelf: ['t'],
   updateDeviceSelf: ['t', {}],
   unenrollSelf: ['t'],
+  deviceRecoveryChallenge: ['t'],
+  deviceRecover: ['t', { nonce: 'n', signature: 's', newPassword: 'pw' }],
   ownerBearer: ['t', 'pw'],
   signOut: ['t'],
   listDevices: ['t'],

@@ -146,5 +146,7 @@ bool handleSvcSetStartType(const JsonValue* params, std::string& result, Failure
 // DPAPI CurrentUser wrap/unwrap (dpapi.cpp): Device Agent only, never in SYS_READ_METHODS.
 bool handleDpapiProtect(const JsonValue* params, std::string& result, Failure& err);
 bool handleDpapiUnprotect(const JsonValue* params, std::string& result, Failure& err);
+// User-presence check (user_consent.cpp): Windows Hello with a CredUI fallback. Desktop main only, never in SYS_READ_METHODS.
+bool handleUserConsent(const JsonValue* params, std::string& result, Failure& err);
 
 }  // namespace sys

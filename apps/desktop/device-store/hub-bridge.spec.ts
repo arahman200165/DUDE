@@ -11,11 +11,12 @@ import type { AgentHubStatus, AgentHubStatusEvent } from '@dude/contracts';
 import type { DesktopHubBridge } from '@dude/contracts/shared/models/platform-bridge.model';
 import { DeviceStoreError } from './agent-host';
 import type { DeviceStoreHost } from './agent-host';
-import { registerHubHandlers, scrubCredentials, toDesktopStatus } from './hub-bridge';
+import { nativeHandleString, registerHubHandlers, scrubCredentials, toDesktopStatus } from './hub-bridge';
+import type { ConsentOutcome } from './user-consent';
 
 const own = { id: 'own', send: vi.fn(), isDestroyed: () => false };
 const foreign = { id: 'foreign' };
-const window = { webContents: own, isDestroyed: () => false } as any;
+const window = { webContents: own, isDestroyed: () => false, getNativeWindowHandle: () => { const b = Buffer.alloc(8); b.writeBigUInt64LE(0x1234n); return b; } } as any;
 
 const UUID = '0190aaaa-0000-7000-8000-000000000001';
 const TOKEN = 'abcDEF_-123';
@@ -54,6 +55,7 @@ const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged'>, { channe
   listAudit: { channel: 'dude:hub:owner:listAudit', args: [10], invalid: [['10'], [-1], [1.5], [1, 2]] },
   recoveryCodesPreview: { channel: 'dude:hub:owner:recoveryCodesPreview', args: [], invalid: [[1]] },
   regenerateRecoveryCodes: { channel: 'dude:hub:owner:regenerateRecoveryCodes', args: [TOKEN], invalid: [[], ['a b'], [{}]] },
+  recoverOwner: { channel: 'dude:hub:recoverOwner', args: ['a recovered long password'], invalid: [[], [''], ['short'], ['a'.repeat(1025)], [1], ['a recovered long password', 'x']] },
   changePassword: { channel: 'dude:hub:owner:changePassword', args: ['old', 'new'], invalid: [['old'], ['', 'new'], ['old', ''], [1, 2]] },
 };
 
@@ -74,11 +76,19 @@ function fakeHost(handler: (method: string, params: unknown) => unknown = () => 
 
 describe('hub bridge', () => {
   let ctx: ReturnType<typeof fakeHost>;
+  let consentCalls: Array<{ hwnd: string; message: string }> = [];
+  let consentOutcome: ConsentOutcome | Error = { status: 'verified', method: 'hello' };
   const setup = (handler?: (method: string, params: unknown) => unknown) => {
     mock.handlers.clear();
     own.send.mockClear();
     ctx = fakeHost(handler);
-    registerHubHandlers(window, () => ctx.host);
+    consentCalls = [];
+    consentOutcome = { status: 'verified', method: 'hello' };
+    registerHubHandlers(window, () => ctx.host, async (hwnd, message) => {
+      consentCalls.push({ hwnd, message });
+      if (consentOutcome instanceof Error) throw consentOutcome;
+      return consentOutcome;
+    });
   };
   beforeEach(() => setup());
 
@@ -109,6 +119,54 @@ describe('hub bridge', () => {
     expect(ctx.calls.length).toBeGreaterThan(0);
   });
 
+  describe('recoverOwner (PD-029)', () => {
+    const PW = 'a recovered long password';
+    it('never reaches the agent when the presence check does not verify', async () => {
+      consentOutcome = { status: 'unavailable' };
+      expect(await call('dude:hub:recoverOwner', own, PW)).toMatchObject({ ok: false, error: { code: 'unavailable' } });
+      consentOutcome = new Error('boom');
+      expect(await call('dude:hub:recoverOwner', own, PW)).toMatchObject({ ok: false, error: { code: 'not-verified' } });
+      consentOutcome = { status: 'denied', reason: 'canceled' };
+      expect(await call('dude:hub:recoverOwner', own, PW)).toMatchObject({ ok: false, error: { code: 'not-verified' } });
+      expect(ctx.calls).toEqual([]);
+    });
+
+    it('calls the agent exactly once after a verified presence check, with the window handle and the fixed message', async () => {
+      const result = await call('dude:hub:recoverOwner', own, PW);
+      expect(result).toEqual({ ok: true, result: { ok: true } });
+      expect(consentCalls).toEqual([{ hwnd: '4660', message: "Confirm it's you to reset the DUDE Hub owner password" }]);
+      expect(ctx.calls).toEqual([{ method: 'hub.recoverOwner', params: { newPassword: PW } }]);
+    });
+
+    it('maps agent errors and never asks consent for a foreign sender or an invalid payload', async () => {
+      setup((method) => (method === 'hub.recoverOwner' ? new DeviceStoreError('not-trusted', 'The Hub does not trust this device for owner recovery.') : { ok: true }));
+      expect(await call('dude:hub:recoverOwner', own, PW)).toEqual({ ok: false, error: { code: 'not-trusted', message: 'The Hub does not trust this device for owner recovery.' } });
+      await call('dude:hub:recoverOwner', foreign, PW);
+      await call('dude:hub:recoverOwner', own, 'short');
+      expect(consentCalls).toHaveLength(1);
+    });
+
+    it('allows one confirmation at a time', async () => {
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => { release = resolve; });
+      mock.handlers.clear();
+      ctx = fakeHost();
+      registerHubHandlers(window, () => ctx.host, async () => { await gate; return { status: 'verified', method: 'hello' }; });
+      const first = call('dude:hub:recoverOwner', own, PW);
+      expect(await call('dude:hub:recoverOwner', own, PW)).toMatchObject({ ok: false, error: { code: 'busy' } });
+      release();
+      expect(await first).toMatchObject({ ok: true });
+      expect(ctx.calls).toHaveLength(1);
+    });
+
+    it('reads the native handle as a little-endian pointer-size integer', () => {
+      const wide = Buffer.alloc(8); wide.writeBigUInt64LE(0x0000_0002_0000_00ffn);
+      expect(nativeHandleString(wide)).toBe('8589934847');
+      const narrow = Buffer.alloc(4); narrow.writeUInt32LE(0x1234);
+      expect(nativeHandleString(narrow)).toBe('4660');
+    });
+  });
+
   it('accepts omitted optionals (undefined trailing argument)', async () => {
     setup(() => ({ found: false, bootstrapped: null, hubInstanceId: null, spkiSha256: null, compatibility: null }));
     expect(await call('dude:hub:probeLocal', own, undefined)).toMatchObject({ ok: true, result: { found: false, port: null } });
@@ -117,7 +175,7 @@ describe('hub bridge', () => {
 
   it('maps agent results to the renderer shapes', async () => {
     setup((m) => (m === 'hub.status' ? ENROLLED : { signedIn: true, displayName: 'Owner', expiresAt: 'e' }));
-    expect(await call('dude:hub:status', own)).toEqual({ ok: true, result: { enrollmentState: 'enrolled', hubUrl: 'https://hub.local:47600', environmentId: 'env-1', hubInstanceId: 'hub-1', hubVersion: null, reachable: true } });
+    expect(await call('dude:hub:status', own)).toEqual({ ok: true, result: { enrollmentState: 'enrolled', hubUrl: 'https://hub.local:47600', environmentId: 'env-1', hubInstanceId: 'hub-1', hubVersion: null, reachable: true, connection: 'online', lastError: null, lastContactAt: null } });
     expect(await call('dude:hub:owner:status', own)).toEqual({ ok: true, result: { signedIn: true, ownerDisplayName: 'Owner', expiresAt: 'e' } });
     expect(toDesktopStatus({ ...ENROLLED, enrollment: null, state: 'standalone' })).toMatchObject({ enrollmentState: 'standalone', reachable: null });
     expect(toDesktopStatus({ ...ENROLLED, state: 'offline' }).reachable).toBe(false);

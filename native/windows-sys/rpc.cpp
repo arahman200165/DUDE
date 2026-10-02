@@ -103,6 +103,7 @@ std::string handleLine(const std::string& line) {
   else if (method == "env.broadcast") ok = sys::handleEnvBroadcast(result, err);
   else if (method == "dpapi.protect") ok = sys::handleDpapiProtect(params, result, err);
   else if (method == "dpapi.unprotect") ok = sys::handleDpapiUnprotect(params, result, err);
+  else if (method == "user-consent") ok = sys::handleUserConsent(params, result, err);
   else return failureLine(id, sys::plainFailure("Unknown method."));
 
   if (!ok) return failureLine(id, err);

@@ -51,9 +51,9 @@ export async function deviceToken(h: AuthHub, device: SimDevice): Promise<{ toke
 }
 
 /** Pairing code, enroll and token for a new device. */
-export async function enrolled(h: AuthHub, owner: Signed, device: SimDevice = newDevice()): Promise<{ device: SimDevice; token: string; enroll: ApiResult }> {
+export async function enrolled(h: AuthHub, owner: Signed, device: SimDevice = newDevice(), meta?: Record<string, unknown>): Promise<{ device: SimDevice; token: string; enroll: ApiResult }> {
   const code = (await createPairingCode(h, owner)).json.pairingCode as string;
-  const result = await enroll(h, device, { code });
+  const result = await enroll(h, device, { code, ...(meta ? { meta } : {}) });
   if (result.status !== 200) throw new Error(`enroll failed: ${result.status} ${result.raw.body}`);
   return { device, token: (await deviceToken(h, device)).token, enroll: result };
 }

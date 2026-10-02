@@ -164,6 +164,26 @@ export function deviceAuthMessage(input: { hubInstanceId: string; nonce: string;
   return `dude-device-auth:v1|${input.hubInstanceId}|${input.nonce}|${input.deviceId}`;
 }
 
+// --- Device-assisted owner recovery (PD-029) ----------------------------------------------------------------------
+
+export const OWNER_RECOVERY_CHALLENGE_PURPOSE = 'owner-recovery';
+/** Desktop platforms that may be marked recovery-trusted. */
+export const OWNER_RECOVERY_PLATFORMS = ['windows', 'macos', 'linux'] as const;
+
+export const DeviceRecoveryChallengeResponse = Type.Object({ nonce: Type.String(), expiresAt: Iso });
+export type DeviceRecoveryChallengeResponse = Static<typeof DeviceRecoveryChallengeResponse>;
+
+export const DeviceRecoveryRequest = Type.Object(
+  { nonce: Type.String({ minLength: 1, maxLength: 128 }), signature: Type.String({ pattern: SIGNATURE_PATTERN }), newPassword: Type.String({ minLength: 12, maxLength: 1024 }) },
+  { additionalProperties: false },
+);
+export type DeviceRecoveryRequest = Static<typeof DeviceRecoveryRequest>;
+
+/** Message the recovery-trusted device signs: `dude-owner-recovery:v1|<hubInstanceId>|<nonce>|<deviceId>`. */
+export function ownerRecoveryMessage(input: { hubInstanceId: string; nonce: string; deviceId: string }): string {
+  return `dude-owner-recovery:v1|${input.hubInstanceId}|${input.nonce}|${input.deviceId}`;
+}
+
 // --- Registry views ----------------------------------------------------------------------------------------------
 
 export const DeviceInfo = Type.Object({

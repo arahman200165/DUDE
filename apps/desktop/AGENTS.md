@@ -52,7 +52,7 @@ One long-lived native helper serves all Windows process/handle/port/registry/ser
 
 **The renderer read path is a closed allowlist.** `SYS_READ_METHODS` (`packages/contracts/src/system/system-types.ts`) plus the per-method validators in `sys-validation.ts` gate every `dude:sys:*` read handled by `sys-bridge.ts`. Mutating helper methods (terminate, `reg.setValue`, `svc.control`, `acl.set`, `proc.dump`, ...) are absent from that list, so they are never renderer-callable; only `sys-mutation.ts` ops (and `sys-bundle.ts` for its private staging dump) call them.
 
-Adding a read method end to end: implement it in the matching `native/windows-sys/*.cpp`; add the name to `SYS_READ_METHODS` and its result type to `system-types.ts`; add a bounded-input validator in `sys-validation.ts` (and to `sys-validation.spec.ts`); expose it through `sys-bridge.ts`/`preload.ts`/`electron-bridge.d.ts` and `SystemInfoService` (plus `testing/fake-electron-bridge.ts`). Never widen the allowlist to make a write reachable.
+Adding a read method end to end: implement it in the matching `native/windows-sys/*.cpp`; add the name to `SYS_READ_METHODS` and its result type to `system-types.ts`; add a bounded-input validator in `sys-validation.ts` (and to `sys-validation.spec.ts`); expose it through `sys-bridge.ts`/`preload.ts`/`electron-bridge.d.ts` and `SystemInfoService` (plus `testing/fake-electron-bridge.ts`). Never widen the allowlist to make a write reachable. `user-consent` (Windows Hello with a CredUI fallback, `user_consent.cpp`) and `dpapi.*` are likewise outside `SYS_READ_METHODS`: only `device-store/user-consent.ts` calls `user-consent`, as the client-side presence gate of device-assisted owner recovery (PD-029).
 
 ## System mutation engine: `sys-mutation` (Phase 31)
 

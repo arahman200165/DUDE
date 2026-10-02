@@ -52,6 +52,11 @@ export interface DesktopHubStatus {
   readonly hubVersion: string | null;
   /** Whether the Hub answered its last reachability check; null when never checked or not enrolled. */
   readonly reachable: boolean | null;
+  /** The agent's connection state when enrolled (richer than `reachable`); absent from older hosts and Hub-served builds. */
+  readonly connection?: 'connecting' | 'online' | 'offline' | 'incompatible' | 'untrusted-tls';
+  /** The last connection error text, when there is one. */
+  readonly lastError?: string | null;
+  readonly lastContactAt?: string | null;
 }
 export interface DesktopHubProbe {
   readonly found: boolean;
@@ -99,6 +104,12 @@ export interface DesktopHubBridge {
   recoveryCodesPreview(): Promise<DesktopHubResult<ConfirmPreview>>;
   regenerateRecoveryCodes(confirmToken: string): Promise<DesktopHubResult<RecoveryCodesResponse>>;
   changePassword(currentPassword: string, newPassword: string): Promise<DesktopHubResult<OkResponse>>;
+  /**
+   * Device-assisted owner recovery (PD-029), from a recovery-trusted device only. Main runs the Windows Hello (CredUI
+   * fallback) presence check first; error codes: `not-verified`, `unavailable`, `busy`, `not-trusted`,
+   * `owner-recovery-failed`, `hub-*`. The caller must have completed its own two-step confirm before calling.
+   */
+  recoverOwner(newPassword: string): Promise<DesktopHubResult<OkResponse>>;
   /** Pushed by main whenever the Device Agent's Hub connection state changes. Returns the unsubscribe function. */
   onStatusChanged(callback: (status: DesktopHubStatus) => void): () => void;
 }

@@ -5,6 +5,8 @@ import { isUuidShaped, validateDisplayName } from '@dude/persistence';
 import { DeviceStoreError } from './agent-host';
 import type { DeviceStoreHost } from './agent-host';
 import { getDeviceStoreHost } from './store-client';
+import { requestUserConsent } from './user-consent';
+import type { UserConsent } from './user-consent';
 
 /**
  * Hub administration for the renderer: `dude:hub:<method>` (one per `DesktopHubBridge` method) and the
@@ -54,6 +56,9 @@ export function toDesktopStatus(status: AgentHubStatus): DesktopHubStatus {
     hubInstanceId: enrollment?.hubInstanceId ?? null,
     hubVersion: null,
     reachable: enrollment ? (status.state === 'online' ? true : status.state === 'offline' ? false : null) : null,
+    ...(enrollment && status.state !== 'standalone' && status.state !== 'revoked' ? { connection: status.state } : {}),
+    lastError: status.lastError,
+    lastContactAt: status.lastContactAt,
   };
 }
 
@@ -70,7 +75,14 @@ const none = (args: readonly unknown[]): Parsed<Record<string, never>> => (args.
 const uuidArg = (v: unknown): v is string => isUuidShaped(v);
 const tokenArg = (v: unknown): v is string => typeof v === 'string' && BASE64URL.test(v);
 
-export function registerHubHandlers(window: BrowserWindow, host: () => DeviceStoreHost | null = getDeviceStoreHost): void {
+export const RECOVERY_CONSENT_MESSAGE = "Confirm it's you to reset the DUDE Hub owner password";
+
+/** The window handle as a decimal string: the little-endian pointer-size integer Electron returns. */
+export function nativeHandleString(handle: Buffer): string {
+  return handle.length >= 8 ? handle.readBigUInt64LE(0).toString() : handle.readUInt32LE(0).toString();
+}
+
+export function registerHubHandlers(window: BrowserWindow, host: () => DeviceStoreHost | null = getDeviceStoreHost, consent: UserConsent = requestUserConsent): void {
   const own = (sender: unknown): boolean => sender === window.webContents;
 
   const define = <M extends AgentMethod, P = undefined, R = AgentMethodMap[M]['result']>(def: Definition<M, P, R>): void => {
@@ -218,6 +230,39 @@ export function registerHubHandlers(window: BrowserWindow, host: () => DeviceSto
     channel: 'dude:hub:owner:changePassword', method: 'hub.owner.changePassword',
     parse: (args) => (args.length === 2 && isString(args[0], 1, 1024) && isString(args[1], 1, 1024)
       ? { ok: true, params: { currentPassword: args[0], newPassword: args[1] } } : bad()),
+  });
+
+  // Device-assisted owner recovery (PD-029): validate, then the user-presence gate (Hello/CredUI, a client-side UI gate the
+  // Hub cannot verify), and only a verified person reaches the agent. One prompt at a time.
+  let recovering = false;
+  ipcMain.handle('dude:hub:recoverOwner', async (event, ...args: unknown[]): Promise<DesktopHubResult<{ readonly ok: true }>> => {
+    if (!own(event.sender)) return fail(FORBIDDEN, 'forbidden');
+    if (args.length !== 1 || !isString(args[0], 12, 1024)) return fail('bad-request', 'Invalid request.');
+    const newPassword = args[0];
+    const h = host();
+    if (!h) return fail('unavailable', 'The device agent is not running.');
+    if (window.isDestroyed()) return fail('unavailable', 'The window is not available.');
+    if (recovering) return fail('busy', 'A confirmation is already in progress.');
+    recovering = true;
+    try {
+      let outcome: Awaited<ReturnType<UserConsent>>;
+      try {
+        outcome = await consent(nativeHandleString(window.getNativeWindowHandle()), RECOVERY_CONSENT_MESSAGE);
+      } catch {
+        return fail('not-verified', 'Windows could not confirm it was you.');
+      }
+      if (outcome.status === 'unavailable') return fail('unavailable', 'Confirming your identity is not available on this device.');
+      if (outcome.status !== 'verified') return fail('not-verified', `Windows did not confirm it was you (${outcome.reason}).`);
+      try {
+        await h.call('hub.recoverOwner', { newPassword });
+        return { ok: true, result: { ok: true } };
+      } catch (error) {
+        if (error instanceof DeviceStoreError) return fail(error.code, error.message);
+        return fail('internal', 'The Hub request failed.');
+      }
+    } finally {
+      recovering = false;
+    }
   });
 
   // Status pushes: the agent reports every Hub connection change; the renderer gets the same shape `status()` returns.

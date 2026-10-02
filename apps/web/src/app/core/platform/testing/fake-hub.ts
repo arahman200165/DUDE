@@ -115,6 +115,10 @@ export function fakeHub(options: { password?: string } = {}): DesktopHubBridge &
       if (!consume(token)) return badConfirm();
       return ok({ recoveryCodes: Array.from({ length: 10 }, (_, i) => `ABCDE-0000${i}`) });
     }),
+    recoverOwner: track('recoverOwner', async (next: string) => {
+      if (next.length < 12) return fail('bad-request', 'The new password is too short.');
+      return ok({ ok: true as const });
+    }),
     changePassword: track('changePassword', async (current: string, next: string) => {
       if (current !== password) return fail('forbidden', 'The current password is incorrect.');
       if (next.length < 12) return fail('bad-request', 'The new password is too short.');

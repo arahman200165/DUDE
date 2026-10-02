@@ -1,0 +1,146 @@
+<div class="flex flex-col gap-4" (keydown.escape)="onEscape()">
+  <p class="text-ui text-text-muted">The devices registered with this environment's Hub. Opening this page never changes anything.</p>
+
+  @if (pairDesktopHint) {
+    <div data-setting class="flex flex-col gap-1 rounded-sm border border-accent p-3" role="note" data-testid="pair-desktop-hint">
+      <h3 class="text-ui-sm font-semibold text-text">Pair this desktop</h3>
+      <p class="text-ui text-text-muted">
+        Create a pairing string below with Pair a device. Then open DUDE on your desktop, go to Settings › Environment &amp; Hub › Connect to a Hub, and paste the pairing string there.
+      </p>
+    </div>
+  }
+
+  <div data-setting data-testid="owner">
+    <app-owner-gate />
+  </div>
+
+  @if (session.signedIn()) {
+    <div data-setting class="flex flex-col gap-2" data-testid="devices">
+      <div class="flex flex-wrap items-center gap-2">
+        <h3 class="text-ui-sm font-semibold text-text">Devices</h3>
+        <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10 disabled:opacity-50" [disabled]="busy()" (click)="pair()">Pair a device</button>
+        <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated disabled:opacity-50" [disabled]="loading()" (click)="load()">Refresh</button>
+      </div>
+
+      @if (pairing(); as code) {
+        <app-pairing-code-panel [code]="code" (renew)="pair()" (dismiss)="pairing.set(null)" />
+      }
+
+      @if (loadError(); as text) { <p class="text-ui text-error" role="alert" data-testid="load-error">{{ text }}</p> }
+      @if (loading() && devices().length === 0) { <p class="text-ui text-text-muted" role="status">Loading devicesâ€¦</p> }
+
+      @if (devices().length > 0) {
+        <div class="overflow-x-auto">
+          <table class="w-full border-collapse text-ui" data-testid="device-table">
+            <caption class="sr-only">Registered devices</caption>
+            <thead>
+              <tr class="border-b border-border text-left text-text-muted">
+                <th scope="col" class="py-1 pr-3 font-normal">Name</th>
+                <th scope="col" class="py-1 pr-3 font-normal">Platform</th>
+                <th scope="col" class="py-1 pr-3 font-normal">Version</th>
+                <th scope="col" class="py-1 pr-3 font-normal">Status</th>
+                <th scope="col" class="py-1 pr-3 font-normal">Last seen</th>
+                <th scope="col" class="py-1 pr-3 font-normal">Tags</th>
+                <th scope="col" class="py-1 font-normal"><span class="sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (device of devices(); track device.deviceId) {
+                <tr class="border-b border-border align-top" [attr.data-testid]="'device-row-' + device.deviceId">
+                  <td class="py-1 pr-3">
+                    @if (renaming() === device.deviceId) {
+                      <div class="flex flex-wrap items-center gap-2">
+                        <input
+                          #renameField
+                          type="text"
+                          [attr.aria-label]="'New name for ' + device.displayName"
+                          class="w-48 rounded-sm border border-border bg-panel px-2 py-0.5 text-text"
+                          [attr.aria-invalid]="nameError() ? 'true' : null"
+                          [value]="nameDraft()"
+                          (input)="nameDraft.set($any($event.target).value)"
+                          (keydown.enter)="saveRename(device)"
+                        />
+                        <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10 disabled:opacity-50" [disabled]="nameError() !== null || busy()" (click)="saveRename(device)">Save name</button>
+                        <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated" (click)="cancelRename()">Cancel</button>
+                      </div>
+                      @if (nameError(); as problem) { <p class="text-ui text-error" role="alert" data-testid="name-error">{{ problem }}</p> }
+                    } @else {
+                      <span class="text-text" data-testid="device-name">{{ device.displayName }}</span>
+                      @if (device.current) { <span class="ml-1 rounded-sm border border-border px-1 text-ui-sm text-text-muted">This device</span> }
+                    }
+                  </td>
+                  <td class="py-1 pr-3 text-text">{{ device.platform }}</td>
+                  <td class="py-1 pr-3 text-text">{{ device.appVersion }}</td>
+                  <td class="py-1 pr-3">
+                    @if (device.online) {
+                      <span class="inline-flex items-center gap-1 text-success"><app-status-glyph kind="success" />Online</span>
+                    } @else {
+                      <span class="inline-flex items-center gap-1 text-text-muted"><app-status-glyph kind="idle" />Offline</span>
+                    }
+                  </td>
+                  <td class="py-1 pr-3 text-text-muted">{{ seen(device) }}</td>
+                  <td class="py-1 pr-3">
+                    <span class="flex flex-wrap gap-1">
+                      @if (device.revokedAt) { <span class="rounded-sm border border-error px-1 text-ui-sm text-error">Revoked</span> }
+                      @if (device.unenrolledAt) { <span class="rounded-sm border border-border px-1 text-ui-sm text-text-muted">Unenrolled</span> }
+                      @if (device.recoveryTrusted) { <span class="rounded-sm border border-border px-1 text-ui-sm text-text">Recovery-trusted</span> }
+                    </span>
+                  </td>
+                  <td class="py-1">
+                    <span class="flex flex-wrap gap-1">
+                      <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated disabled:opacity-50" [attr.aria-label]="'Rename ' + device.displayName" [disabled]="busy()" (click)="startRename(device)">Rename</button>
+                      @if (canTrust(device)) {
+                        <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated disabled:opacity-50" [attr.aria-label]="(device.recoveryTrusted ? 'Remove recovery trust from ' : 'Trust for recovery: ') + device.displayName" [disabled]="busy()" (click)="startTrust(device)">{{ device.recoveryTrusted ? 'Remove recovery trust' : 'Trust for recovery' }}</button>
+                      }
+                      @if (canRevoke(device)) {
+                        <button type="button" class="rounded-sm border border-error/40 px-2 py-0.5 text-ui text-error hover:bg-error/10 disabled:opacity-50" [attr.aria-label]="'Revoke ' + device.displayName + 'â€¦'" [disabled]="busy()" (click)="startRevoke(device)">Revokeâ€¦</button>
+                      }
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else if (!loading() && !loadError()) {
+        <p class="text-ui text-text-muted" data-testid="no-devices">No devices are registered yet. Use Pair a device to add one.</p>
+      }
+
+      @if (trust(); as t) {
+        <form class="flex flex-col gap-2 rounded-sm border border-border p-3" role="group" [attr.aria-label]="'Recovery trust for ' + t.device.displayName" data-testid="trust-prompt" (submit)="$event.preventDefault(); confirmTrust()">
+          <p class="text-ui text-text">
+            @if (t.trusted) {
+              Trusting {{ t.device.displayName }} means this desktop may reset the owner password after Windows confirms it's you.
+            } @else {
+              {{ t.device.displayName }} will no longer be able to reset the owner password.
+            }
+          </p>
+          <div class="flex flex-wrap items-center gap-2">
+            <label class="text-ui text-text-muted" for="trust-password">Owner password</label>
+            <input #trustField id="trust-password" type="password" autocomplete="current-password" class="w-64 rounded-sm border border-border bg-panel px-2 py-0.5 text-text" [value]="trustPassword()" (input)="trustPassword.set($any($event.target).value)" />
+            <button type="submit" class="rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10 disabled:opacity-50" [disabled]="trustPassword() === '' || busy()">{{ t.trusted ? 'Trust this device' : 'Remove trust' }}</button>
+            <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated" (click)="cancelTrust()">Cancel</button>
+          </div>
+        </form>
+      }
+
+      @if (revoke(); as r) {
+        <div class="flex flex-col gap-2 rounded-sm border border-error/40 p-3" role="alertdialog" [attr.aria-label]="'Confirm revoke ' + r.device.displayName" data-testid="revoke-confirm">
+          <p class="text-ui text-text">Revoking <strong>{{ r.device.displayName }}</strong> ends its enrollment: it is disconnected from the Hub now and cannot reconnect until it is paired again. Its local data is not touched.</p>
+          @if (r.device.current) {
+            <p class="text-ui text-warning" data-testid="revoke-current-warning">This is the device you are using. After revoking it this device is cut off from the Hub and must be paired again to reconnect.</p>
+          }
+          <div class="flex gap-2">
+            <button #confirmButton type="button" class="rounded-sm border border-error px-2 py-0.5 text-ui text-error hover:bg-error/10 disabled:opacity-50" [disabled]="busy()" (click)="confirmRevoke()">Confirm revoke {{ r.device.displayName }}</button>
+            <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated" (click)="cancelRevoke()">Cancel</button>
+          </div>
+        </div>
+      }
+
+      <div aria-live="polite">
+        @if (message(); as text) { <p class="text-ui text-info" data-testid="message">{{ text }}</p> }
+        @if (actionError(); as text) { <p class="text-ui text-error" role="alert" data-testid="action-error">{{ text }}</p> }
+      </div>
+    </div>
+  }
+</div>

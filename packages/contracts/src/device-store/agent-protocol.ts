@@ -119,6 +119,11 @@ export interface AgentMethodMap {
   'hub.owner.recoveryCodesPreview': { params: Record<string, never>; result: ConfirmPreview };
   'hub.owner.regenerateRecoveryCodes': { params: { confirmToken: string }; result: RecoveryCodesResponse };
   'hub.owner.changePassword': { params: { currentPassword: string; newPassword: string }; result: { ok: true } };
+  /**
+   * Device-assisted owner recovery (PD-029). The caller (desktop main) must have passed the user-presence gate first;
+   * the new password is a parameter only. Errors: `not-trusted`, `owner-recovery-failed`, `hub-*`.
+   */
+  'hub.recoverOwner': { params: { newPassword: string }; result: { ok: true } };
   /** Implemented by the legacy import (M621). */
   'legacy.import': { params: { legacyDir: string; sources: unknown }; result: LegacyImportResult };
   /**
@@ -164,7 +169,7 @@ export const AGENT_METHODS = [
   'hub.status', 'hub.probeLocal', 'hub.enroll', 'hub.unenroll', 'hub.owner.signIn', 'hub.owner.signOut', 'hub.owner.status',
   'hub.owner.listDevices', 'hub.owner.createPairingCode', 'hub.owner.renameDevice', 'hub.owner.revokeDevicePreview', 'hub.owner.revokeDevice',
   'hub.owner.setRecoveryTrust', 'hub.owner.listSessions', 'hub.owner.revokeSession', 'hub.owner.revokeAllPreview', 'hub.owner.revokeAll',
-  'hub.owner.listAudit', 'hub.owner.recoveryCodesPreview', 'hub.owner.regenerateRecoveryCodes', 'hub.owner.changePassword',
+  'hub.owner.listAudit', 'hub.owner.recoveryCodesPreview', 'hub.owner.regenerateRecoveryCodes', 'hub.owner.changePassword', 'hub.recoverOwner',
   'legacy.import', 'store.cleanExit', 'store.checkpoint', 'store.shutdown', 'store.quarantine',
 ] as const satisfies readonly AgentMethod[];
 

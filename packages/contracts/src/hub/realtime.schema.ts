@@ -27,7 +27,7 @@ export const RealtimeClientMessage = Type.Union([
 export type RealtimeClientMessage = Static<typeof RealtimeClientMessage>;
 
 export const REALTIME_SESSION_KINDS = ['owner-cookie', 'owner-bearer', 'device'] as const;
-export const REALTIME_EVENTS = ['device-registry-changed', 'session-revoked', 'device-revoked', 'tls-next-pin'] as const;
+export const REALTIME_EVENTS = ['device-registry-changed', 'session-revoked', 'device-revoked', 'tls-next-pin', 'owner-recovered'] as const;
 
 export const RealtimeServerMessage = Type.Union([
   Type.Object({
@@ -40,7 +40,7 @@ export const RealtimeServerMessage = Type.Union([
   }),
   Type.Object({
     type: Type.Literal('event'),
-    event: Type.Union([Type.Literal('device-registry-changed'), Type.Literal('session-revoked'), Type.Literal('device-revoked'), Type.Literal('tls-next-pin')]),
+    event: Type.Union([Type.Literal('device-registry-changed'), Type.Literal('session-revoked'), Type.Literal('device-revoked'), Type.Literal('tls-next-pin'), Type.Literal('owner-recovered')]),
     data: Type.Record(Type.String(), Type.Unknown()),
   }),
   Type.Object({ type: Type.Literal('error'), code: Type.String() }),

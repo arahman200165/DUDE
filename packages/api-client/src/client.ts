@@ -3,7 +3,7 @@ import type { TSchema, Static } from 'typebox';
 import {
   HUB_API_PREFIX, HelloResponse, ErrorEnvelope, checkProtocolCompatibility,
   BootstrapResponse, TlsCertificatesResponse, AuditListResponse,
-  EnrollResponse, DeviceChallengeResponse, DeviceTokenResponse, DeviceInfo, DeviceListResponse, OwnerBearerResponse, PairingCodeResponse,
+  EnrollResponse, DeviceChallengeResponse, DeviceRecoveryChallengeResponse, DeviceTokenResponse, DeviceInfo, DeviceListResponse, OwnerBearerResponse, PairingCodeResponse,
   OkResponse, ConfirmPreview, SessionListResponse, RecoveryCodesResponse,
   SignInResponse, CurrentSessionResponse, OwnerResetResponse,
 } from '@dude/contracts/hub';
@@ -40,6 +40,10 @@ export interface HubClient {
   deviceSelf(auth: Bearer): Promise<DeviceInfo>;
   updateDeviceSelf(auth: Bearer, body: DeviceSelfUpdate): Promise<DeviceInfo>;
   unenrollSelf(auth: Bearer): Promise<OkResponse>;
+  /** Device token required: a 60 s nonce for device-assisted owner recovery (recovery-trusted desktop only). */
+  deviceRecoveryChallenge(auth: Bearer): Promise<DeviceRecoveryChallengeResponse>;
+  /** Device token required: signed nonce plus the new owner password. Revokes every owner session. */
+  deviceRecover(auth: Bearer, body: { nonce: string; signature: string; newPassword: string }): Promise<OkResponse>;
   /** Device token required: exchanges the owner password for an owner bearer session. */
   ownerBearer(auth: Bearer, password: string): Promise<OwnerBearerResponse>;
 
@@ -95,6 +99,8 @@ export function createHubClient(transport: HubTransport, opts: HubClientOptions)
     deviceSelf: (auth) => call(DeviceInfo, { method: 'GET', path: `${P}/devices/self` }, auth),
     updateDeviceSelf: (auth, body) => call(DeviceInfo, { method: 'PATCH', path: `${P}/devices/self`, body }, auth),
     unenrollSelf: (auth) => call(OkResponse, { method: 'POST', path: `${P}/devices/self/unenroll` }, auth),
+    deviceRecoveryChallenge: (auth) => call(DeviceRecoveryChallengeResponse, { method: 'POST', path: `${P}/auth/device-recovery/challenge` }, auth),
+    deviceRecover: (auth, body) => call(OkResponse, { method: 'POST', path: `${P}/auth/device-recovery`, body }, auth),
     ownerBearer: (auth, password) => call(OwnerBearerResponse, { method: 'POST', path: `${P}/auth/owner/bearer`, body: { password } }, auth),
 
     signOut: (auth) => call(OkResponse, { method: 'POST', path: `${P}/auth/sign-out` }, auth),

@@ -1,0 +1,154 @@
+<div class="flex flex-col gap-4">
+  <p class="text-ui text-text-muted">
+    Owner sessions, recovery codes, your password and the Hub's audit log. Opening this page never changes anything.
+  </p>
+
+  <section data-setting class="flex flex-col gap-2" data-testid="sessions" aria-labelledby="sessions-h">
+    <h3 id="sessions-h" class="text-ui-sm font-semibold text-text">Sessions</h3>
+    @if (sessionsError()) { <p class="text-ui text-error" role="alert" data-testid="sessions-error">{{ sessionsError() }}</p> }
+    @if (sessionNotice()) { <p class="text-ui text-success" role="status" data-testid="sessions-notice">{{ sessionNotice() }}</p> }
+    @if (sessionsLoaded() && sessions().length === 0 && !sessionsError()) {
+      <p class="text-ui text-text-muted">No active sessions.</p>
+    }
+    <ul class="flex flex-col gap-1">
+      @for (s of sessions(); track s.sessionId) {
+        <li class="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-sm border border-border bg-panel px-2 py-1 text-ui" data-testid="session-row">
+          <div class="flex min-w-0 flex-1 flex-col">
+            <span class="flex flex-wrap items-center gap-2 text-text">
+              {{ shortAgent(s.userAgent) }}
+              <span class="rounded-sm border border-border px-1 text-ui-sm text-text-muted">{{ s.kind }}</span>
+              @if (s.current) { <span class="rounded-sm border border-accent px-1 text-ui-sm text-accent" data-testid="current-tag">This session</span> }
+            </span>
+            <span class="text-ui-sm text-text-muted">
+              {{ s.ip ?? 'unknown IP' }} · created {{ formatTime(s.createdAt) }} · last active {{ formatTime(s.lastActiveAt) }}
+            </span>
+            <span class="text-ui-sm text-text-muted">
+              Idle expiry {{ formatTime(s.idleExpiresAt) }} · absolute expiry {{ formatTime(s.absoluteExpiresAt) }}
+              @if (s.kind === 'bearer' && s.deviceId) { · device <code class="font-mono">{{ s.deviceId }}</code> }
+            </span>
+          </div>
+          <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10"
+            [attr.aria-label]="(s.current ? 'Sign out of this session' : 'Revoke session ') + (s.current ? '' : s.sessionId)" (click)="revokeSession(s)">
+            {{ s.current ? 'Sign out' : 'Revoke' }}
+          </button>
+        </li>
+      }
+    </ul>
+
+    <div class="flex flex-col gap-2">
+      @if (revokeAll().type === 'idle') {
+        <div>
+          <button type="button" class="rounded-sm border border-error px-2 py-0.5 text-ui text-error hover:bg-error/10" data-testid="revoke-all" (click)="startRevokeAll()">Sign out all other sessions…</button>
+        </div>
+      } @else {
+        <div role="alertdialog" aria-label="Confirm signing out other sessions" class="flex flex-col gap-2 rounded-sm border border-error bg-panel p-2" data-testid="revoke-all-confirm">
+          <p class="text-ui text-text">
+            This signs out {{ revokeAllCount() }} other {{ revokeAllCount() === 1 ? 'session' : 'sessions' }}. This session stays signed in.
+          </p>
+          <div class="flex gap-2">
+            <button type="button" class="rounded-sm border border-error px-3 py-1 text-ui font-semibold text-error disabled:opacity-50" data-testid="revoke-all-apply"
+              [disabled]="revokeAll().type === 'working'" (click)="confirmRevokeAll()">Confirm sign out</button>
+            <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text" data-testid="revoke-all-cancel" (click)="cancelRevokeAll()">Cancel</button>
+          </div>
+        </div>
+      }
+      @if (revokeAllError()) { <p class="text-ui text-error" role="alert" data-testid="revoke-all-error">{{ revokeAllError() }}</p> }
+    </div>
+  </section>
+
+  <section data-setting class="flex flex-col gap-2" data-testid="recovery" aria-labelledby="recovery-h">
+    <h3 id="recovery-h" class="text-ui-sm font-semibold text-text">Recovery codes</h3>
+    <p class="text-ui text-text" data-testid="remaining-codes">
+      @if (remainingCodes() === null) { Recovery codes are used to reset the owner password if you forget it. }
+      @else { {{ remainingCodes() }} of 10 recovery codes remaining. }
+    </p>
+    @switch (codes().type) {
+      @case ('idle') {
+        <div><button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10" data-testid="codes-generate" (click)="startCodes()">Generate new recovery codes…</button></div>
+      }
+      @case ('show') {
+        <app-recovery-codes-display [codes]="shownCodes()" continueLabel="Done" (done)="dismissCodes()" />
+      }
+      @default {
+        <div role="alertdialog" aria-label="Confirm new recovery codes" class="flex flex-col gap-2 rounded-sm border border-error bg-panel p-2" data-testid="codes-confirm">
+          <p class="text-ui text-text">Generating new recovery codes makes all your existing codes stop working. The new codes are shown once.</p>
+          <div class="flex gap-2">
+            <button type="button" class="rounded-sm border border-error px-3 py-1 text-ui font-semibold text-error disabled:opacity-50" data-testid="codes-apply"
+              [disabled]="codes().type === 'working'" (click)="confirmCodes()">Replace my recovery codes</button>
+            <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text" data-testid="codes-cancel" (click)="cancelCodes()">Cancel</button>
+          </div>
+        </div>
+      }
+    }
+    @if (codesError()) { <p class="text-ui text-error" role="alert" data-testid="codes-error">{{ codesError() }}</p> }
+  </section>
+
+  <section data-setting class="flex flex-col gap-2" data-testid="password" aria-labelledby="password-h">
+    <h3 id="password-h" class="text-ui-sm font-semibold text-text">Change password</h3>
+    <form class="flex max-w-sm flex-col gap-2" (submit)="$event.preventDefault(); changePassword()">
+      <label class="flex flex-col gap-1 text-ui text-text">Current password
+        <input type="password" name="current-password" class="rounded-sm border border-border bg-panel px-2 py-1 text-text" autocomplete="current-password"
+          [value]="currentPassword()" (input)="currentPassword.set($any($event.target).value)" />
+      </label>
+      <label class="flex flex-col gap-1 text-ui text-text">New password
+        <input type="password" name="new-password" class="rounded-sm border border-border bg-panel px-2 py-1 text-text" autocomplete="new-password" aria-describedby="sec-pw-hint"
+          [value]="newPassword()" (input)="newPassword.set($any($event.target).value)" />
+      </label>
+      <p id="sec-pw-hint" class="text-ui-sm" [class.text-text-muted]="newPassword().length >= minPassword" [class.text-warning]="newPassword().length < minPassword">At least {{ minPassword }} characters.</p>
+      <label class="flex flex-col gap-1 text-ui text-text">Confirm new password
+        <input type="password" name="confirm-password" class="rounded-sm border border-border bg-panel px-2 py-1 text-text" autocomplete="new-password"
+          [value]="confirmPassword()" (input)="confirmPassword.set($any($event.target).value)" />
+      </label>
+      @if (confirmPassword() !== '' && confirmPassword() !== newPassword()) { <p class="text-ui-sm text-warning">The passwords do not match.</p> }
+      <div aria-live="assertive" role="alert" data-testid="password-error">
+        @if (passwordError()) { <p class="text-ui text-error">{{ passwordError() }}@if (passwordCountdown.seconds() > 0) { Try again in {{ passwordCountdown.seconds() }} s. }</p> }
+      </div>
+      @if (passwordDone()) { <p class="text-ui text-success" role="status" data-testid="password-done">Password changed.</p> }
+      <div>
+        <button type="submit" class="rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10 disabled:opacity-50" data-testid="password-submit"
+          [disabled]="!passwordValid() || passwordBusy() || passwordCountdown.seconds() > 0">Change password</button>
+      </div>
+    </form>
+  </section>
+
+  <section data-setting class="flex flex-col gap-2" data-testid="audit" aria-labelledby="audit-h">
+    <h3 id="audit-h" class="text-ui-sm font-semibold text-text">Audit log</h3>
+    @if (auditError()) { <p class="text-ui text-error" role="alert" data-testid="audit-error">{{ auditError() }}</p> }
+    @if (auditLoaded() && audit().length === 0 && !auditError()) {
+      <p class="text-ui text-text-muted" data-testid="audit-empty">No audit events yet.</p>
+    }
+    @if (audit().length > 0) {
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-ui">
+          <thead>
+            <tr class="text-ui-sm text-text-muted">
+              <th scope="col" class="py-1 pr-3 font-normal">Time</th>
+              <th scope="col" class="py-1 pr-3 font-normal">Event</th>
+              <th scope="col" class="py-1 pr-3 font-normal">Outcome</th>
+              <th scope="col" class="py-1 pr-3 font-normal">Actor</th>
+              <th scope="col" class="py-1 font-normal">IP</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (e of audit(); track e.seq) {
+              <tr class="border-t border-border align-top" data-testid="audit-row">
+                <td class="whitespace-nowrap py-1 pr-3 text-text-muted">{{ formatTime(e.at) }}</td>
+                <td class="py-1 pr-3 text-text">
+                  {{ auditLabel(e.event) }}
+                  @if (auditDetail(e.detail)) { <div class="font-mono text-ui-sm text-text-muted">{{ auditDetail(e.detail) }}</div> }
+                </td>
+                <td class="py-1 pr-3" [class.text-text]="e.outcome === 'success'" [class.text-error]="e.outcome !== 'success'">{{ e.outcome }}</td>
+                <td class="py-1 pr-3 text-text-muted">{{ e.actorKind }}</td>
+                <td class="py-1 text-text-muted">{{ e.ip ?? '' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+    @if (auditNext() !== null) {
+      <div><button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10 disabled:opacity-50" data-testid="audit-older"
+        [disabled]="auditBusy()" (click)="loadAudit(false)">Load older</button></div>
+    }
+  </section>
+</div>

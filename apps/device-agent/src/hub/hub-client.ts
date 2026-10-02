@@ -7,7 +7,7 @@ import type { HubClient, HubTransport } from '@dude/api-client';
 import type { AgentHubState, AgentHubStatus } from '@dude/contracts';
 import {
   DEVICE_TOKEN_TTL_MS, HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION, HUB_REALTIME_PATH, REALTIME_CLOSE_CODES, REALTIME_HEARTBEAT_INTERVAL_MS,
-  RealtimeServerMessage, deviceAuthMessage,
+  RealtimeServerMessage, deviceAuthMessage, ownerRecoveryMessage,
 } from '@dude/contracts/hub';
 import type { Db } from '@dude/sqlite-store';
 import { clearEnrollment, getEnrollment, markRevoked, promoteNextPin, publicEnrollment, setNextPin, touchContact } from '../store/repos/hub-enrollment.repo.js';
@@ -66,6 +66,12 @@ export interface HubConnectionManager {
   call<T>(fn: (api: HubClient) => Promise<T>): Promise<T>;
   /** Call with a valid device token; refreshes once on 401/403 and handles revocation. */
   deviceCall<T>(fn: (api: HubClient, deviceToken: string) => Promise<T>, options?: { authRetryOn403?: boolean }): Promise<T>;
+  /**
+   * Device-assisted owner recovery (PD-029): challenge, sign with the device key, POST the new password. Fails with
+   * `not-trusted` (the Hub does not trust this device for recovery) or `owner-recovery-failed`. The caller is
+   * responsible for the user-presence gate; the password is never stored or logged.
+   */
+  recoverOwner(newPassword: string): Promise<void>;
   /** Tells the Hub (online) then clears the local enrollment. */
   unenroll(options?: { force?: boolean }): Promise<{ hubStillListsDevice: boolean }>;
 }
@@ -448,6 +454,25 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
     },
     stop() {
       stopLoop();
+    },
+    async recoverOwner(newPassword) {
+      const key = await loadKey();
+      const enrollment = requireEnrollment();
+      const { deviceId } = deps.device();
+      try {
+        await deviceCall(async (api, value) => {
+          const challenge = await api.deviceRecoveryChallenge(value);
+          const message = ownerRecoveryMessage({ hubInstanceId: enrollment.hubInstanceId, nonce: challenge.nonce, deviceId });
+          const signature = sign(null, Buffer.from(message, 'utf8'), key).toString('base64url');
+          return api.deviceRecover(value, { nonce: challenge.nonce, signature, newPassword });
+        }, { authRetryOn403: false });
+      } catch (error) {
+        if (error instanceof HubApiError && error.status === 403) throw new HubManagerError('not-trusted', 'The Hub does not trust this device for owner recovery.');
+        if (error instanceof HubApiError && error.status === 401) throw new HubManagerError('owner-recovery-failed', 'The Hub could not verify the recovery request.');
+        throw error;
+      }
+      // Every owner session was revoked by the Hub, including the bearer held in memory.
+      owner.clear();
     },
     async unenroll(options = {}) {
       const enrollment = getEnrollment(deps.db);

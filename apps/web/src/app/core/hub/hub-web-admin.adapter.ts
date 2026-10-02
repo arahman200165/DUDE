@@ -70,6 +70,7 @@ export function createHubWebAdmin(options: HubWebAdminOptions): HubAdminPort {
         const hello = await client.hello();
         return { enrollmentState: 'enrolled', hubUrl: origin(), environmentId: hello.environmentId, hubInstanceId: hello.hubInstanceId, hubVersion: hello.hubVersion, reachable: true };
       }),
+    tlsFingerprint: () => viaClient(async (client) => (await client.hello()).tls),
     probeLocal: () =>
       viaClient(async (client): Promise<HubProbe> => {
         const hello = await client.hello();

@@ -158,7 +158,11 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
   const onNextPin = (data: HubEventMap['tls-next-pin'][0]): void => {
     for (const conn of where(() => true)) sendEvent(conn, 'tls-next-pin', { spkiSha256: data.spkiSha256 });
   };
+  const onOwnerRecovered = (data: HubEventMap['owner-recovered'][0]): void => {
+    for (const conn of where(() => true)) sendEvent(conn, 'owner-recovered', { deviceId: data.deviceId, at: data.at });
+  };
   app.hubEvents.on('device-registry-changed', onRegistryChanged);
+  app.hubEvents.on('owner-recovered', onOwnerRecovered);
   app.hubEvents.on('session-revoked', onSessionRevoked);
   app.hubEvents.on('device-revoked', onDeviceGone);
   app.hubEvents.on('device-unenrolled', onDeviceGone);
@@ -178,6 +182,7 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
   });
   app.addHook('onClose', async () => {
     app.hubEvents.off('device-registry-changed', onRegistryChanged);
+    app.hubEvents.off('owner-recovered', onOwnerRecovered);
     app.hubEvents.off('session-revoked', onSessionRevoked);
     app.hubEvents.off('device-revoked', onDeviceGone);
     app.hubEvents.off('device-unenrolled', onDeviceGone);
