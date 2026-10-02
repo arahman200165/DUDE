@@ -11,7 +11,7 @@ import { tempDir } from '../server/test-helpers.js';
 import { generateSelfSigned } from '../tls/self-signed.js';
 import { runDoctor, redactLine } from './doctor.js';
 import { runServiceInstall } from './install.js';
-import { runServiceControl, runServiceStatus, runServiceUninstall, runServiceUpdate } from './lifecycle.js';
+import { copyWhenUnlocked, runServiceControl, runServiceStatus, runServiceUninstall, runServiceUpdate } from './lifecycle.js';
 import { runNetwork } from './network.js';
 import { fixture, helloFor } from './test-helpers.js';
 import { buildServiceXml, quoteArg, xmlEscape } from './winsw-xml.js';
@@ -225,6 +225,23 @@ describe('service lifecycle', () => {
     expect(existsSync(path.join(f.installDir, 'service', 'web', 'new.html'))).toBe(true);
     expect(existsSync(path.join(f.installDir, 'service', 'web', 'index.html'))).toBe(false);
     expect(JSON.parse(f.out.join(''))).toMatchObject({ updated: true, oldHubVersion: '1.0.0', newHubVersion: '2.0.0', registeredDevices: 2 });
+  });
+
+  it('update retries the binary swap while the stopped service still holds the executable, and gives up on other errors', async () => {
+    let clock = 0;
+    const d = { now: () => clock, sleep: async (ms: number) => { clock += ms; } };
+    const lockedError = (code: string) => Object.assign(new Error(code), { code });
+    let attempts = 0;
+    await copyWhenUnlocked(d, () => {
+      attempts += 1;
+      if (attempts < 3) throw lockedError('EPERM');
+    });
+    expect(attempts).toBe(3);
+
+    await expect(copyWhenUnlocked(d, () => { throw lockedError('EBUSY'); }, 2_000)).rejects.toThrow('EBUSY');
+    let other = 0;
+    await expect(copyWhenUnlocked(d, () => { other += 1; throw lockedError('ENOENT'); })).rejects.toThrow('ENOENT');
+    expect(other).toBe(1);
   });
 
   it('update validates its source', async () => {

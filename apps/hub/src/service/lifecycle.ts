@@ -33,7 +33,27 @@ async function stopAndWait(d: ResolvedDeps, installDir: string): Promise<string 
   return null;
 }
 
-const deviceCountOf = (status: Record<string, unknown> | null): number | null => (typeof status?.['deviceCount'] === 'number' ? status['deviceCount'] : null);
+const LOCKED_CODES = new Set(['EPERM', 'EBUSY', 'EACCES']);
+
+/**
+ * Runs `copy`, retrying while the target is still locked. The SCM can report the service stopped before Windows
+ * releases the executable image (process teardown, an antivirus scan of the old binary), so the swap can fail
+ * with EPERM/EBUSY for a moment after `stopAndWait`.
+ */
+export async function copyWhenUnlocked(d: Pick<ResolvedDeps, 'now' | 'sleep'>, copy: () => void, timeoutMs = 30_000): Promise<void> {
+  const deadline = d.now() + timeoutMs;
+  for (;;) {
+    try {
+      copy();
+      return;
+    } catch (error) {
+      if (!LOCKED_CODES.has((error as NodeJS.ErrnoException).code ?? '') || d.now() >= deadline) throw error;
+      await d.sleep(500);
+    }
+  }
+}
+
+const deviceCountOf =(status: Record<string, unknown> | null): number | null => (typeof status?.['deviceCount'] === 'number' ? status['deviceCount'] : null);
 
 /** `service start|stop|restart`. */
 export async function runServiceControl(action: 'start' | 'stop' | 'restart', options: LifecycleOptions, deps: ServiceDeps = {}): Promise<number> {
@@ -141,7 +161,7 @@ export async function runServiceUpdate(options: UpdateOptions, deps: ServiceDeps
   const problem = await stopAndWait(d, installDir);
   if (problem) { d.err(`${problem}\n`); return EXIT_FAILURE; }
   try {
-    copyStagedFiles(source, installDir, { wrapperToo: false });
+    await copyWhenUnlocked(d, () => copyStagedFiles(source, installDir, { wrapperToo: false }));
   } catch (error) {
     d.err(`Replacing the binaries failed: ${(error as Error).message}\nStarting the previous version again.\n`);
     await wrapper(d, installDir, 'start');
