@@ -23,6 +23,10 @@ import { publicEnrollment } from '../store/repos/hub-enrollment.repo.js';
 import { applyReset, previewReset } from '../store/reset.js';
 import { DEFAULT_HISTORY_RETENTION } from '../store/repos/retention.js';
 import { quarantineStore } from '../store/open-store.js';
+import { HubApiError, HubProtocolError } from '@dude/api-client';
+import type { HubClient } from '@dude/api-client';
+import { HubManagerError } from '../hub/errors.js';
+import type { HubRuntime } from '../hub/index.js';
 
 export interface RpcDeps {
   now: () => Date;
@@ -33,6 +37,8 @@ export interface RpcDeps {
   unavailable?: { status: 'incompatible' | 'corrupt'; message: string };
   /** The store directory; needed by `store.quarantine`, which only runs while the store is unavailable. */
   storeDir?: string;
+  /** Hub connection runtime; absent in tests that do not exercise the Hub. */
+  hub?: HubRuntime;
 }
 
 export interface RpcServer {
@@ -71,6 +77,19 @@ function entryOf(v: unknown): AgentJournalEntry {
   return v as AgentJournalEntry;
 }
 
+/** Maps Hub-layer failures to RPC errors. Messages never carry credentials. */
+async function hubGuard<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    if (error instanceof RpcError) throw error;
+    if (error instanceof HubManagerError) throw new RpcError(error.code, error.message);
+    if (error instanceof HubApiError) throw new RpcError(`hub-${error.code}`, error.message);
+    if (error instanceof HubProtocolError) throw new RpcError('hub-protocol', 'The Hub answered with an unexpected response.');
+    throw error;
+  }
+}
+
 const statusOf = (row: SecretStatusRow): AgentSecretStatus => ({ ...row });
 
 function storeHealthUnavailable(deps: RpcDeps): StoreHealth {
@@ -105,6 +124,12 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
       network: new SqliteNetworkRunRepository(database, undefined, nowMs),
     };
   };
+
+  const hubRuntime = (): HubRuntime => {
+    if (!deps.hub) throw new RpcError('unavailable', 'Hub support is not available.');
+    return deps.hub;
+  };
+  const owner = <T>(fn: (api: HubClient, ownerToken: string) => Promise<T>): Promise<T> => hubGuard(() => hubRuntime().manager.owner.withOwner(fn));
 
   const handlers: Handlers = {
     'store.open': () => (store as DeviceStore).health(),
@@ -219,6 +244,37 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
       return result.ok ? result : { ok: false, error: result.error };
     },
     'hub.enrollment': () => publicEnrollment(db()),
+    'hub.status': () => hubRuntime().manager.status(),
+    'hub.probeLocal': (p) => {
+      if (p.port !== undefined && (!Number.isInteger(p.port) || p.port < 1 || p.port > 65535)) throw invalid('port must be a TCP port.');
+      return hubRuntime().probeLocal(p.port);
+    },
+    'hub.enroll': (p) => hubGuard(() => hubRuntime().enroll(str(p.pairingString, 'pairingString'))),
+    'hub.unenroll': (p) => hubGuard(async () => {
+      const { hubStillListsDevice } = await hubRuntime().manager.unenroll({ force: p.force === true });
+      return { ok: true as const, hubStillListsDevice };
+    }),
+    'hub.owner.signIn': (p) => hubGuard(() => hubRuntime().manager.owner.signIn(str(p.password, 'password'))),
+    'hub.owner.signOut': async () => { await hubRuntime().manager.owner.signOut(); return { ok: true }; },
+    'hub.owner.status': () => hubRuntime().manager.owner.status(),
+    'hub.owner.listDevices': () => owner((api, t) => api.listDevices(t)),
+    'hub.owner.createPairingCode': (p) => owner((api, t) => api.createPairingCode(t, p.host === undefined ? {} : { host: str(p.host, 'host') })),
+    'hub.owner.renameDevice': (p) => owner((api, t) => api.renameDevice(t, str(p.deviceId, 'deviceId'), str(p.displayName, 'displayName'))),
+    'hub.owner.revokeDevicePreview': (p) => owner((api, t) => api.revokeDevicePreview(t, str(p.deviceId, 'deviceId'))),
+    'hub.owner.revokeDevice': (p) => owner((api, t) => api.revokeDevice(t, str(p.deviceId, 'deviceId'), str(p.confirmToken, 'confirmToken'))),
+    'hub.owner.setRecoveryTrust': (p) => {
+      if (typeof p.trusted !== 'boolean') throw invalid('trusted must be a boolean.');
+      const trusted = p.trusted;
+      return owner((api, t) => api.setRecoveryTrust(t, str(p.deviceId, 'deviceId'), str(p.password, 'password'), trusted));
+    },
+    'hub.owner.listSessions': () => owner((api, t) => api.listSessions(t)),
+    'hub.owner.revokeSession': (p) => owner((api, t) => api.revokeSession(t, str(p.sessionId, 'sessionId'))),
+    'hub.owner.revokeAllPreview': () => owner((api, t) => api.revokeAllPreview(t)),
+    'hub.owner.revokeAll': (p) => owner((api, t) => api.revokeAll(t, str(p.confirmToken, 'confirmToken'))),
+    'hub.owner.listAudit': (p) => owner((api, t) => api.listAudit(t, { ...(p.beforeSeq === undefined ? {} : { beforeSeq: Number(p.beforeSeq) }), ...(p.limit === undefined ? {} : { limit: Number(p.limit) }) })),
+    'hub.owner.recoveryCodesPreview': () => owner((api, t) => api.recoveryCodesPreview(t)),
+    'hub.owner.regenerateRecoveryCodes': (p) => owner((api, t) => api.regenerateRecoveryCodes(t, str(p.confirmToken, 'confirmToken'))),
+    'hub.owner.changePassword': (p) => owner((api, t) => api.changePassword(t, str(p.currentPassword, 'currentPassword'), str(p.newPassword, 'newPassword'))),
     // The legacy userData import is implemented in M621; until then nothing is imported.
     'legacy.import': () => ({ status: 'none', imported: {}, warnings: [] }),
     'store.cleanExit': (p) => {
@@ -237,6 +293,7 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
       return { ok: true };
     },
     'store.shutdown': () => {
+      deps.hub?.manager.stop();
       if (store) {
         try { store.db.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch { /* best effort; close still runs */ }
         store.close();

@@ -42,6 +42,23 @@ describe('agent host', () => {
     expect(host.health()).toEqual(HEALTH);
   });
 
+  it('delivers typed hub.status event frames to listeners and ignores other frames', async () => {
+    const h = makeHarness();
+    const starting = begin(h);
+    await ready(h);
+    const host = await starting;
+    const seen: unknown[] = [];
+    const off = host.onEvent!((event) => seen.push(event.status));
+    const conn = h.attempts[0].conn;
+    conn.deliver({ type: 'event', event: 'hub.status', status: { state: 'online' } });
+    conn.deliver({ type: 'event', event: 'other', status: {} });
+    conn.deliver({ type: 'event', event: 'hub.status' });
+    expect(seen).toEqual([{ state: 'online' }]);
+    off();
+    conn.deliver({ type: 'event', event: 'hub.status', status: { state: 'offline' } });
+    expect(seen).toHaveLength(1);
+  });
+
   it('waits for the ready handshake and reports an incompatible store', async () => {
     const h = makeHarness();
     const starting = begin(h);

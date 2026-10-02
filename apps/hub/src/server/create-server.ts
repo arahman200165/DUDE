@@ -9,6 +9,7 @@ import { registerBootstrapRoute } from './routes/bootstrap.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerSessionRoutes } from './routes/sessions.js';
 import { registerDeviceRoutes } from './routes/devices.js';
+import { registerTlsAuditRoutes } from './routes/tls-audit.js';
 import { registerDeviceAuthRoutes } from './routes/device-auth.js';
 import { createRequireDevice } from '../auth/device-auth.js';
 import { HubEvents } from '../auth/hub-events.js';
@@ -117,6 +118,7 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   };
   registerAuthRoutes(app, authOptions);
   registerSessionRoutes(app, authOptions);
+  registerTlsAuditRoutes(app, { db: options.hub.db, requireOwner: authOptions.requireOwner });
   registerDeviceAuthRoutes(app, { db: options.hub.db, now, hubInstanceId: options.hub.hubInstanceId });
   registerDeviceRoutes(app, {
     db: options.hub.db, now, confirmations, requireOwner: authOptions.requireOwner, requireDevice: createRequireDevice({ db: options.hub.db, now }),

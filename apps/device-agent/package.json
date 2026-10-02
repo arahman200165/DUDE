@@ -5,12 +5,15 @@
   "description": "Device State Store state service (utilityProcess owning the SQLite store)",
   "dependencies": {
     "@dude/agent-pipe": "*",
+    "@dude/api-client": "*",
     "@dude/contracts": "*",
     "@dude/domain": "*",
     "@dude/persistence": "*",
     "@dude/shared-types": "*",
     "@dude/sqlite-store": "*",
-    "@dude/sync": "*"
+    "@dude/sync": "*",
+    "typebox": "1.3.34",
+    "ws": "^8.21.3"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",

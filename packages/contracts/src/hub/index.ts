@@ -7,3 +7,4 @@ export * from './bootstrap.schema.js';
 export * from './auth.schema.js';
 export * from './devices.schema.js';
 export * from './realtime.schema.js';
+export * from './tls-audit.schema.js';

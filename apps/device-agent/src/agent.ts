@@ -11,6 +11,11 @@ import type { RpcServer } from './rpc/server.js';
 import { parseAgentConfig, readAgentConfig, saveAgentConfig } from './agent-config.js';
 import type { StoredAgentConfig } from './agent-config.js';
 import { readMachineGuid } from './machine-fingerprint.js';
+import { windowsDpapi } from './native/windows-sys-client.js';
+import type { DpapiPort } from './native/windows-sys-client.js';
+import { readDeviceRecord } from './store/identity.js';
+import { createHubRuntime } from './hub/index.js';
+import type { HubRuntime, HubRuntimeDeps } from './hub/index.js';
 
 /** Sent as `ready.boot` on every authenticated connection before any request is served. */
 export type AgentReadyEvent =
@@ -28,6 +33,10 @@ export interface RunAgentOptions {
   /** Test seam; defaults to reading the Windows MachineGuid. The agent reads it itself so clone detection never depends on the desktop. */
   machineGuid?: () => Promise<string | null>;
   randomBytes?: (n: number) => Uint8Array;
+  /** Test seams for the Hub connection; production uses the Windows DPAPI port, the pinned node:https transport and the real timings. */
+  dpapi?: DpapiPort;
+  hubTimings?: HubRuntimeDeps['timings'];
+  hubCreateTransport?: HubRuntimeDeps['createTransport'];
 }
 
 export type RunningAgent =
@@ -40,7 +49,7 @@ export type RunningAgent =
   }
   | { status: 'already-running' };
 
-interface Opened { server: RpcServer; store: DeviceStore | null; event: AgentReadyEvent }
+interface Opened { server: RpcServer; store: DeviceStore | null; event: AgentReadyEvent; hub?: HubRuntime }
 
 const NO_CONFIG_MESSAGE = 'The agent has not received its configuration from the desktop yet.';
 
@@ -58,6 +67,7 @@ export async function runAgent(options: RunAgentOptions): Promise<RunningAgent> 
   let openPromise: Promise<Opened> | null = null;
   let stored: StoredAgentConfig | null = null;
   let exiting = false;
+  const connections = new Set<AgentPipeConnection>();
 
   const open = async (config: StoredAgentConfig): Promise<Opened> => {
     const machineGuid = await readGuid().catch(() => null);
@@ -70,10 +80,22 @@ export async function runAgent(options: RunAgentOptions): Promise<RunningAgent> 
       randomBytes: bytes,
     });
     if (result.status === 'ready') {
+      const store = result.store;
+      const hub = createHubRuntime({
+        db: store.db, dpapi: options.dpapi ?? windowsDpapi, now, timings: options.hubTimings, createTransport: options.hubCreateTransport,
+        device: () => readDeviceRecord(store.db, config.capabilities),
+      });
+      // Push every Hub state change to all connected desktops (frames without an id; clients ignore frames they do not know).
+      hub.manager.onChange((status) => {
+        for (const connection of [...connections]) void connection.send({ type: 'event', event: 'hub.status', status }).catch(() => undefined);
+      });
+      // The Hub connection lives as long as the store is open, with or without a desktop attached.
+      try { hub.manager.start(); } catch { /* the store stays usable; the connection reports its own state */ }
       return {
-        server: createRpcServer(result.store, { now, randomBytes: bytes, storeDir: options.storeDir }),
-        store: result.store,
+        server: createRpcServer(store, { now, randomBytes: bytes, storeDir: options.storeDir, hub }),
+        store,
         event: { type: 'ready', status: 'ready', health: result.health },
+        hub,
       };
     }
     return {
@@ -104,6 +126,8 @@ export async function runAgent(options: RunAgentOptions): Promise<RunningAgent> 
       // With neither a stored config nor a usable one from this client the store cannot open: serve a placeholder
       // (health, shutdown) that is not cached, so the first real desktop connection still opens the store.
       const current = openPromise ? await openPromise : placeholder();
+      connections.add(connection);
+      connection.onClose(() => { connections.delete(connection); });
       // Requests on one connection are answered in order; node:sqlite serialises the work itself.
       let chain: Promise<void> = Promise.resolve();
       connection.onMessage((message) => {
@@ -130,6 +154,7 @@ export async function runAgent(options: RunAgentOptions): Promise<RunningAgent> 
   const close = async (): Promise<void> => {
     // Close the store cleanly (checkpoint) unless a shutdown request already did.
     const current = await openPromise?.catch(() => null);
+    current?.hub?.manager.stop();
     if (current && !current.server.closed) await current.server.handle({ id: 0, method: 'store.shutdown', params: {} }).catch(() => undefined);
     try { rmSync(path.join(options.storeDir, PID_FILE), { force: true }); } catch { /* ignore */ }
     await started.close();

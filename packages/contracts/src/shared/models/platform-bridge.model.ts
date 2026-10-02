@@ -1,3 +1,4 @@
+import type { AuditListResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, OkResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse } from "../../hub/index.js";
 import type { LlmChatRequest, LlmChatResult } from "./llm-chat.model.js";
 import type { SnapshotDiff, SnapshotHeader } from "../../fs/snapshot-diff.js";
 import type { ChangeEvent, FolderWatchSettings, FolderWatchState, TimelineQuery, WatchedFolder } from "../../fs/watch-types.js";
@@ -40,7 +41,71 @@ export type DesktopOpenItem =
 export type StoreRecordResult = { readonly ok: true } | { readonly ok: false; readonly error: string };
 export type StoreRecordAddResult = { readonly ok: true; readonly evicted: number } | { readonly ok: false; readonly error: string };
 
+/** Result envelope of every `window.dude.hub` call: the main process never throws across the bridge. */
+export type DesktopHubResult<T> = { readonly ok: true; readonly result: T } | { readonly ok: false; readonly error: { readonly code: string; readonly message: string; readonly retryAfterMs?: number } };
+
+export interface DesktopHubStatus {
+  readonly enrollmentState: 'standalone' | 'enrolled' | 'revoked';
+  readonly hubUrl: string | null;
+  readonly environmentId: string | null;
+  readonly hubInstanceId: string | null;
+  readonly hubVersion: string | null;
+  /** Whether the Hub answered its last reachability check; null when never checked or not enrolled. */
+  readonly reachable: boolean | null;
+}
+export interface DesktopHubProbe {
+  readonly found: boolean;
+  readonly port: number | null;
+  readonly hubInstanceId: string | null;
+  readonly hubVersion: string | null;
+  readonly bootstrapped: boolean | null;
+}
+export interface DesktopHubEnrollment {
+  readonly deviceId: string;
+  readonly environmentId: string;
+  readonly hubInstanceId: string;
+  readonly hubUrl: string;
+}
+export interface DesktopHubOwnerStatus {
+  readonly signedIn: boolean;
+  readonly ownerDisplayName: string | null;
+  /** The hard expiry of the owner session; null when signed out. */
+  readonly expiresAt: string | null;
+}
+
+/**
+ * Hub administration from the desktop shell. The main process holds the pinned-TLS transport and the owner
+ * bearer session; the renderer never sees a Hub credential. Absent outside the desktop app.
+ */
+export interface DesktopHubBridge {
+  status(): Promise<DesktopHubResult<DesktopHubStatus>>;
+  probeLocal(port?: number): Promise<DesktopHubResult<DesktopHubProbe>>;
+  enroll(pairingString: string): Promise<DesktopHubResult<DesktopHubEnrollment>>;
+  unenroll(force?: boolean): Promise<DesktopHubResult<{ readonly unenrolled: boolean; readonly hubNotified: boolean }>>;
+  ownerStatus(): Promise<DesktopHubResult<DesktopHubOwnerStatus>>;
+  ownerSignIn(password: string): Promise<DesktopHubResult<DesktopHubOwnerStatus>>;
+  ownerSignOut(): Promise<DesktopHubResult<OkResponse>>;
+  listDevices(): Promise<DesktopHubResult<DeviceListResponse>>;
+  createPairingCode(host?: string): Promise<DesktopHubResult<PairingCodeResponse>>;
+  renameDevice(deviceId: string, displayName: string): Promise<DesktopHubResult<DeviceInfo>>;
+  revokeDevicePreview(deviceId: string): Promise<DesktopHubResult<ConfirmPreview>>;
+  revokeDevice(deviceId: string, confirmToken: string): Promise<DesktopHubResult<OkResponse>>;
+  setRecoveryTrust(deviceId: string, password: string, trusted: boolean): Promise<DesktopHubResult<DeviceInfo>>;
+  listSessions(): Promise<DesktopHubResult<SessionListResponse>>;
+  revokeSession(sessionId: string): Promise<DesktopHubResult<OkResponse>>;
+  revokeAllPreview(): Promise<DesktopHubResult<ConfirmPreview>>;
+  revokeAll(confirmToken: string): Promise<DesktopHubResult<OkResponse>>;
+  listAudit(beforeSeq?: number): Promise<DesktopHubResult<AuditListResponse>>;
+  recoveryCodesPreview(): Promise<DesktopHubResult<ConfirmPreview>>;
+  regenerateRecoveryCodes(confirmToken: string): Promise<DesktopHubResult<RecoveryCodesResponse>>;
+  changePassword(currentPassword: string, newPassword: string): Promise<DesktopHubResult<OkResponse>>;
+  /** Pushed by main whenever the Device Agent's Hub connection state changes. Returns the unsubscribe function. */
+  onStatusChanged(callback: (status: DesktopHubStatus) => void): () => void;
+}
+
 export interface PlatformBridge {
+  /** Absent until the Electron main/preload implementation of Hub administration ships. */
+  readonly hub?: DesktopHubBridge;
   readonly preferences: {
     get(): Promise<DesktopPreferences>;
     set(patch: Partial<DesktopPreferences>): Promise<{ readonly ok: true; readonly value: DesktopPreferences } | { readonly ok: false; readonly error: string }>;

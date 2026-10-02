@@ -14,5 +14,7 @@ await build({
   format: 'cjs',
   outfile: path.join(root, 'dist/electron/device-agent.js'),
   define: { __DUDE_VERSION__: JSON.stringify(version) },
+  // ws loads these optional native speedups in try/catch; the bundle uses its pure-JS fallbacks.
+  external: ['bufferutil', 'utf-8-validate'],
   logLevel: 'info',
 });

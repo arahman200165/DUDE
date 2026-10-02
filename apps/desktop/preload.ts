@@ -89,6 +89,34 @@ const bridge: PlatformBridge = {
     stopAgent: () => ipcRenderer.invoke('dude:device:stopAgent'),
     startAgent: () => ipcRenderer.invoke('dude:device:startAgent'),
   },
+  hub: {
+    status: () => ipcRenderer.invoke('dude:hub:status'),
+    probeLocal: (a) => ipcRenderer.invoke('dude:hub:probeLocal', a),
+    enroll: (a) => ipcRenderer.invoke('dude:hub:enroll', a),
+    unenroll: (a) => ipcRenderer.invoke('dude:hub:unenroll', a),
+    ownerStatus: () => ipcRenderer.invoke('dude:hub:owner:status'),
+    ownerSignIn: (a) => ipcRenderer.invoke('dude:hub:owner:signIn', a),
+    ownerSignOut: () => ipcRenderer.invoke('dude:hub:owner:signOut'),
+    listDevices: () => ipcRenderer.invoke('dude:hub:owner:listDevices'),
+    createPairingCode: (a) => ipcRenderer.invoke('dude:hub:owner:createPairingCode', a),
+    renameDevice: (a, b) => ipcRenderer.invoke('dude:hub:owner:renameDevice', a, b),
+    revokeDevicePreview: (a) => ipcRenderer.invoke('dude:hub:owner:revokeDevicePreview', a),
+    revokeDevice: (a, b) => ipcRenderer.invoke('dude:hub:owner:revokeDevice', a, b),
+    setRecoveryTrust: (a, b, c) => ipcRenderer.invoke('dude:hub:owner:setRecoveryTrust', a, b, c),
+    listSessions: () => ipcRenderer.invoke('dude:hub:owner:listSessions'),
+    revokeSession: (a) => ipcRenderer.invoke('dude:hub:owner:revokeSession', a),
+    revokeAllPreview: () => ipcRenderer.invoke('dude:hub:owner:revokeAllPreview'),
+    revokeAll: (a) => ipcRenderer.invoke('dude:hub:owner:revokeAll', a),
+    listAudit: (a) => ipcRenderer.invoke('dude:hub:owner:listAudit', a),
+    recoveryCodesPreview: () => ipcRenderer.invoke('dude:hub:owner:recoveryCodesPreview'),
+    regenerateRecoveryCodes: (a) => ipcRenderer.invoke('dude:hub:owner:regenerateRecoveryCodes', a),
+    changePassword: (a, b) => ipcRenderer.invoke('dude:hub:owner:changePassword', a, b),
+    onStatusChanged: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, status: Parameters<typeof callback>[0]) => callback(status);
+      ipcRenderer.on('dude:hub:statusChanged', listener);
+      return () => ipcRenderer.removeListener('dude:hub:statusChanged', listener);
+    },
+  },
   appearance: {
     setNative: (mode, background) => ipcRenderer.invoke('dude:appearance:set', { mode, background }),
   },

@@ -1,0 +1,178 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const mock = vi.hoisted(() => ({ handlers: new Map<string, (...args: any[]) => unknown>() }));
+vi.mock('electron', () => ({
+  app: { getPath: () => 'C:/ud', isPackaged: false },
+  ipcMain: { handle: (channel: string, handler: (...args: any[]) => unknown) => mock.handlers.set(channel, handler) },
+}));
+
+import type { AgentHubStatus, AgentHubStatusEvent } from '@dude/contracts';
+import type { DesktopHubBridge } from '@dude/contracts/shared/models/platform-bridge.model';
+import { DeviceStoreError } from './agent-host';
+import type { DeviceStoreHost } from './agent-host';
+import { registerHubHandlers, scrubCredentials, toDesktopStatus } from './hub-bridge';
+
+const own = { id: 'own', send: vi.fn(), isDestroyed: () => false };
+const foreign = { id: 'foreign' };
+const window = { webContents: own, isDestroyed: () => false } as any;
+
+const UUID = '0190aaaa-0000-7000-8000-000000000001';
+const TOKEN = 'abcDEF_-123';
+const PAIRING = 'dude-pair:v1:hub.local:47600:ABCD2345:AAAA';
+
+const ENROLLED: AgentHubStatus = {
+  state: 'online', lastError: null, lastContactAt: null, ownerSignedIn: false,
+  enrollment: {
+    state: 'enrolled', hubInstanceId: 'hub-1', environmentId: 'env-1', hubUrl: 'https://hub.local:47600', protocolVersion: 1,
+    spkiActive: 'x', spkiNext: null, enrolledAt: '2026-01-01T00:00:00.000Z', lastContactAt: null, revokedAt: null,
+  },
+};
+
+type Handler = (event: { sender: unknown }, ...args: unknown[]) => Promise<any>;
+const call = (channel: string, sender: unknown, ...args: unknown[]) => (mock.handlers.get(channel) as Handler)({ sender }, ...args);
+
+// Every bridge method with a valid argument list; `satisfies` makes tsc fail when the type gains or loses a method.
+const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged'>, { channel: string; args: unknown[]; invalid: unknown[][] }> = {
+  status: { channel: 'dude:hub:status', args: [], invalid: [[1]] },
+  probeLocal: { channel: 'dude:hub:probeLocal', args: [47600], invalid: [['47600'], [0], [70000], [1.5], [1, 2]] },
+  enroll: { channel: 'dude:hub:enroll', args: [PAIRING], invalid: [[], ['x'], ['https://evil'], ['dude-pair:v1:' + 'a'.repeat(512)], [PAIRING, 1]] },
+  unenroll: { channel: 'dude:hub:unenroll', args: [true], invalid: [['yes'], [1], [true, true]] },
+  ownerStatus: { channel: 'dude:hub:owner:status', args: [], invalid: [[1]] },
+  ownerSignIn: { channel: 'dude:hub:owner:signIn', args: ['pw'], invalid: [[], [''], ['a'.repeat(1025)], [1], ['a', 'b']] },
+  ownerSignOut: { channel: 'dude:hub:owner:signOut', args: [], invalid: [[1]] },
+  listDevices: { channel: 'dude:hub:owner:listDevices', args: [], invalid: [[1]] },
+  createPairingCode: { channel: 'dude:hub:owner:createPairingCode', args: ['hub.local'], invalid: [[1], ['bad host'], ['a'.repeat(256)]] },
+  renameDevice: { channel: 'dude:hub:owner:renameDevice', args: [UUID, 'Desk'], invalid: [[], ['nope', 'Desk'], [UUID, ''], [UUID, 5], [UUID, 'Desk', 'x']] },
+  revokeDevicePreview: { channel: 'dude:hub:owner:revokeDevicePreview', args: [UUID], invalid: [[], ['../x'], [1]] },
+  revokeDevice: { channel: 'dude:hub:owner:revokeDevice', args: [UUID, TOKEN], invalid: [[UUID], [UUID, 'a b'], [UUID, 'a'.repeat(129)], ['x', TOKEN]] },
+  setRecoveryTrust: { channel: 'dude:hub:owner:setRecoveryTrust', args: [UUID, 'pw', true], invalid: [[UUID, 'pw'], [UUID, 'pw', 'true'], [UUID, '', true], ['x', 'pw', true]] },
+  listSessions: { channel: 'dude:hub:owner:listSessions', args: [], invalid: [[1]] },
+  revokeSession: { channel: 'dude:hub:owner:revokeSession', args: ['0123456789abcdef'], invalid: [[], ['ZZZZZZZZZZZZZZZZ'], ['abc'], [1]] },
+  revokeAllPreview: { channel: 'dude:hub:owner:revokeAllPreview', args: [], invalid: [[1]] },
+  revokeAll: { channel: 'dude:hub:owner:revokeAll', args: [TOKEN], invalid: [[], ['a b'], [1]] },
+  listAudit: { channel: 'dude:hub:owner:listAudit', args: [10], invalid: [['10'], [-1], [1.5], [1, 2]] },
+  recoveryCodesPreview: { channel: 'dude:hub:owner:recoveryCodesPreview', args: [], invalid: [[1]] },
+  regenerateRecoveryCodes: { channel: 'dude:hub:owner:regenerateRecoveryCodes', args: [TOKEN], invalid: [[], ['a b'], [{}]] },
+  changePassword: { channel: 'dude:hub:owner:changePassword', args: ['old', 'new'], invalid: [['old'], ['', 'new'], ['old', ''], [1, 2]] },
+};
+
+function fakeHost(handler: (method: string, params: unknown) => unknown = () => ({ ok: true })) {
+  const calls: Array<{ method: string; params: unknown }> = [];
+  const listeners = new Set<(e: AgentHubStatusEvent) => void>();
+  const host = {
+    call: async (method: string, params: unknown) => {
+      calls.push({ method, params });
+      const out = handler(method, params);
+      if (out instanceof Error) throw out;
+      return out;
+    },
+    onEvent: (l: (e: AgentHubStatusEvent) => void) => { listeners.add(l); return () => { listeners.delete(l); }; },
+  } as unknown as DeviceStoreHost;
+  return { host, calls, push: (status: AgentHubStatus) => listeners.forEach((l) => l({ type: 'event', event: 'hub.status', status })) };
+}
+
+describe('hub bridge', () => {
+  let ctx: ReturnType<typeof fakeHost>;
+  const setup = (handler?: (method: string, params: unknown) => unknown) => {
+    mock.handlers.clear();
+    own.send.mockClear();
+    ctx = fakeHost(handler);
+    registerHubHandlers(window, () => ctx.host);
+  };
+  beforeEach(() => setup());
+
+  it('registers exactly one channel per bridge method', () => {
+    expect([...mock.handlers.keys()].sort()).toEqual(Object.values(VALID).map((v) => v.channel).sort());
+  });
+
+  it.each(Object.entries(VALID))('%s rejects a foreign sender before the agent', async (_name, v) => {
+    const result = await call(v.channel, foreign, ...v.args);
+    expect(result).toEqual({ ok: false, error: { code: 'forbidden', message: 'forbidden' } });
+    expect(ctx.calls).toEqual([]);
+  });
+
+  it.each(Object.entries(VALID))('%s rejects invalid payloads before the agent', async (_name, v) => {
+    for (const args of v.invalid) {
+      const result = await call(v.channel, own, ...args);
+      expect(result, JSON.stringify(args)).toMatchObject({ ok: false, error: { code: 'bad-request' } });
+    }
+    expect(ctx.calls).toEqual([]);
+  });
+
+  it.each(Object.entries(VALID))('%s forwards valid payloads from this window', async (_name, v) => {
+    setup((method) => (method === 'hub.status' || method === 'hub.enroll' ? ENROLLED : method === 'hub.probeLocal' ? { found: true, bootstrapped: true, hubInstanceId: 'h', spkiSha256: 's', compatibility: 'compatible' }
+      : method === 'hub.unenroll' ? { ok: true, hubStillListsDevice: false } : method === 'hub.owner.status' || method === 'hub.owner.signIn' ? { signedIn: true, displayName: 'O', expiresAt: null }
+      : method === 'store.hydrate' ? { device: { deviceId: UUID } } : { ok: true }));
+    const result = await call(v.channel, own, ...v.args);
+    expect(result.ok, JSON.stringify(result)).toBe(true);
+    expect(ctx.calls.length).toBeGreaterThan(0);
+  });
+
+  it('accepts omitted optionals (undefined trailing argument)', async () => {
+    setup(() => ({ found: false, bootstrapped: null, hubInstanceId: null, spkiSha256: null, compatibility: null }));
+    expect(await call('dude:hub:probeLocal', own, undefined)).toMatchObject({ ok: true, result: { found: false, port: null } });
+    expect(ctx.calls[0]).toEqual({ method: 'hub.probeLocal', params: {} });
+  });
+
+  it('maps agent results to the renderer shapes', async () => {
+    setup((m) => (m === 'hub.status' ? ENROLLED : { signedIn: true, displayName: 'Owner', expiresAt: 'e' }));
+    expect(await call('dude:hub:status', own)).toEqual({ ok: true, result: { enrollmentState: 'enrolled', hubUrl: 'https://hub.local:47600', environmentId: 'env-1', hubInstanceId: 'hub-1', hubVersion: null, reachable: true } });
+    expect(await call('dude:hub:owner:status', own)).toEqual({ ok: true, result: { signedIn: true, ownerDisplayName: 'Owner', expiresAt: 'e' } });
+    expect(toDesktopStatus({ ...ENROLLED, enrollment: null, state: 'standalone' })).toMatchObject({ enrollmentState: 'standalone', reachable: null });
+    expect(toDesktopStatus({ ...ENROLLED, state: 'offline' }).reachable).toBe(false);
+  });
+
+  it('maps agent errors without stack traces and hides unknown failures', async () => {
+    setup(() => new DeviceStoreError('tls-pin-mismatch', 'The Hub certificate changed.'));
+    expect(await call('dude:hub:enroll', own, PAIRING)).toEqual({ ok: false, error: { code: 'tls-pin-mismatch', message: 'The Hub certificate changed.' } });
+    setup(() => new TypeError('boom at C:\\secret\\file.ts:12'));
+    const result = await call('dude:hub:status', own);
+    expect(result).toEqual({ ok: false, error: { code: 'internal', message: 'The Hub request failed.' } });
+    expect(JSON.stringify(result)).not.toMatch(/secret|boom|\.ts/);
+  });
+
+  it('reports unavailable when no agent host exists', async () => {
+    mock.handlers.clear();
+    registerHubHandlers(window, () => null);
+    expect(await call('dude:hub:status', own)).toMatchObject({ ok: false, error: { code: 'unavailable' } });
+  });
+
+  it('never returns credential-like keys, whatever the agent sends', async () => {
+    setup(() => ({ items: [{ deviceId: UUID, accessToken: 'a', nested: { privateKey: 'k', wrapped: 'w', token: 't', keep: 1 } }], token: 'x', confirmToken: 'c' }));
+    const result = await call('dude:hub:owner:listDevices', own);
+    expect(JSON.stringify(result)).not.toMatch(/accessToken|privateKey|wrapped|"token"/);
+    expect(result.result).toEqual({ items: [{ deviceId: UUID, nested: { keep: 1 } }], confirmToken: 'c' });
+  });
+
+  it('scrubCredentials is case-insensitive and tolerates deep or primitive input', () => {
+    expect(scrubCredentials({ AccessToken: 1, a: [{ PrivateKey: 2, ok: 3 }] })).toEqual({ a: [{ ok: 3 }] });
+    expect(scrubCredentials('x')).toBe('x');
+    expect(scrubCredentials(null)).toBeNull();
+  });
+
+  it('pushes status changes to this window only, scrubbed and mapped', () => {
+    ctx.push(ENROLLED);
+    expect(own.send).toHaveBeenCalledWith('dude:hub:statusChanged', expect.objectContaining({ enrollmentState: 'enrolled', reachable: true }));
+    expect(JSON.stringify(own.send.mock.calls)).not.toMatch(/spkiActive|enrollment"/);
+  });
+
+  it('never logs payloads', () => {
+    const source = readFileSync(resolve(__dirname, 'hub-bridge.ts'), 'utf-8');
+    expect(source).not.toMatch(/console\./);
+  });
+});
+
+describe('preload hub surface', () => {
+  const preload = readFileSync(resolve(__dirname, '..', 'preload.ts'), 'utf-8');
+  const block = preload.slice(preload.indexOf('  hub: {'), preload.indexOf('  appearance: {'));
+
+  it('exposes exactly the DesktopHubBridge methods, each on its own channel, with no generic invoke', () => {
+    const keys = [...block.matchAll(/^    (\w+): /gm)].map((m) => m[1]);
+    expect(keys.sort()).toEqual([...Object.keys(VALID), 'onStatusChanged'].sort());
+    const channels = [...block.matchAll(/ipcRenderer\.invoke\('(dude:hub:[\w:]+)'/g)].map((m) => m[1]);
+    expect(channels.sort()).toEqual(Object.values(VALID).map((v) => v.channel).sort());
+    expect(block).toMatch(/ipcRenderer\.on\('dude:hub:statusChanged'/);
+    expect(block).not.toMatch(/invoke:\s|ipcRenderer\.invoke\([a-z]/);
+  });
+});

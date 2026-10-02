@@ -1,3 +1,4 @@
+import type { ConfirmPreview, DeviceInfo, DeviceListResponse, PairingCodeResponse, SessionListResponse, AuditListResponse, RecoveryCodesResponse } from '../hub/index.js';
 import type { EntityCommit, EntityCommitResult, KvMutation, ResetKind, StoreHealth, DeviceStoreBoot } from './device-store.model.js';
 
 /** Row shapes exchanged with the state service; payloads are opaque JSON. */
@@ -21,6 +22,21 @@ export interface AgentHubEnrollment {
   state: 'enrolled' | 'revoked'; hubInstanceId: string; environmentId: string; hubUrl: string; protocolVersion: number;
   spkiActive: string; spkiNext: string | null; enrolledAt: string; lastContactAt: string | null; revokedAt: string | null;
 }
+/** Hub connection state machine (PD-034). `standalone` means no enrollment. */
+export type AgentHubState = 'standalone' | 'connecting' | 'online' | 'offline' | 'revoked' | 'incompatible' | 'untrusted-tls';
+export interface AgentHubStatus {
+  state: AgentHubState; lastError: string | null; lastContactAt: string | null; ownerSignedIn: boolean; enrollment: AgentHubEnrollment | null;
+}
+/** Typed enrollment failures (the RPC error `code`). */
+export type AgentHubEnrollError =
+  | 'invalid-pairing-string' | 'already-enrolled' | 'tls-pin-mismatch' | 'hub-unreachable' | 'incompatible' | 'pairing-rejected' | 'dpapi-unavailable' | 'conflict';
+export interface AgentHubProbe {
+  found: boolean; bootstrapped: boolean | null; hubInstanceId: string | null; spkiSha256: string | null;
+  compatibility: 'compatible' | 'client-too-old' | 'hub-too-old' | null;
+}
+export interface AgentHubOwnerStatus { signedIn: boolean; displayName: string | null; expiresAt: string | null }
+/** Pushed to connected desktops (no `id`) whenever the Hub connection state changes. */
+export interface AgentHubStatusEvent { type: 'event'; event: 'hub.status'; status: AgentHubStatus }
 export interface LegacyImportResult { status: 'none' | 'done' | 'partial'; imported: Record<string, number>; warnings: string[] }
 
 /**
@@ -80,6 +96,29 @@ export interface AgentMethodMap {
   'reset.apply': { params: { kind: ResetKind; digest: string }; result: { ok: true } | { ok: false; error: string } };
   /** Public Hub enrollment, or null when standalone. Deliberately carries no key material. */
   'hub.enrollment': { params: Record<string, never>; result: AgentHubEnrollment | null };
+  'hub.status': { params: Record<string, never>; result: AgentHubStatus };
+  'hub.probeLocal': { params: { port?: number }; result: AgentHubProbe };
+  'hub.enroll': { params: { pairingString: string }; result: AgentHubStatus };
+  /** Online: tells the Hub then clears. Offline: `hub-unreachable` unless `force`, which clears locally only. */
+  'hub.unenroll': { params: { force?: boolean }; result: { ok: true; hubStillListsDevice: boolean } };
+  /** The password is only a parameter; the owner bearer lives in agent memory and is never returned. */
+  'hub.owner.signIn': { params: { password: string }; result: AgentHubOwnerStatus };
+  'hub.owner.signOut': { params: Record<string, never>; result: { ok: true } };
+  'hub.owner.status': { params: Record<string, never>; result: AgentHubOwnerStatus };
+  'hub.owner.listDevices': { params: Record<string, never>; result: DeviceListResponse };
+  'hub.owner.createPairingCode': { params: { host?: string }; result: PairingCodeResponse };
+  'hub.owner.renameDevice': { params: { deviceId: string; displayName: string }; result: DeviceInfo };
+  'hub.owner.revokeDevicePreview': { params: { deviceId: string }; result: ConfirmPreview };
+  'hub.owner.revokeDevice': { params: { deviceId: string; confirmToken: string }; result: { ok: true } };
+  'hub.owner.setRecoveryTrust': { params: { deviceId: string; password: string; trusted: boolean }; result: DeviceInfo };
+  'hub.owner.listSessions': { params: Record<string, never>; result: SessionListResponse };
+  'hub.owner.revokeSession': { params: { sessionId: string }; result: { ok: true } };
+  'hub.owner.revokeAllPreview': { params: Record<string, never>; result: ConfirmPreview };
+  'hub.owner.revokeAll': { params: { confirmToken: string }; result: { ok: true } };
+  'hub.owner.listAudit': { params: { beforeSeq?: number; limit?: number }; result: AuditListResponse };
+  'hub.owner.recoveryCodesPreview': { params: Record<string, never>; result: ConfirmPreview };
+  'hub.owner.regenerateRecoveryCodes': { params: { confirmToken: string }; result: RecoveryCodesResponse };
+  'hub.owner.changePassword': { params: { currentPassword: string; newPassword: string }; result: { ok: true } };
   /** Implemented by the legacy import (M621). */
   'legacy.import': { params: { legacyDir: string; sources: unknown }; result: LegacyImportResult };
   /**
@@ -121,7 +160,12 @@ export const AGENT_METHODS = [
   'powershell.add', 'powershell.list', 'powershell.clear',
   'docs.get', 'docs.set', 'docs.remove',
   'secrets.status', 'secrets.list', 'secrets.set', 'secrets.remove', 'secrets.getCiphertext',
-  'device.rename', 'reset.preview', 'reset.apply', 'hub.enrollment', 'legacy.import', 'store.cleanExit', 'store.checkpoint', 'store.shutdown', 'store.quarantine',
+  'device.rename', 'reset.preview', 'reset.apply', 'hub.enrollment',
+  'hub.status', 'hub.probeLocal', 'hub.enroll', 'hub.unenroll', 'hub.owner.signIn', 'hub.owner.signOut', 'hub.owner.status',
+  'hub.owner.listDevices', 'hub.owner.createPairingCode', 'hub.owner.renameDevice', 'hub.owner.revokeDevicePreview', 'hub.owner.revokeDevice',
+  'hub.owner.setRecoveryTrust', 'hub.owner.listSessions', 'hub.owner.revokeSession', 'hub.owner.revokeAllPreview', 'hub.owner.revokeAll',
+  'hub.owner.listAudit', 'hub.owner.recoveryCodesPreview', 'hub.owner.regenerateRecoveryCodes', 'hub.owner.changePassword',
+  'legacy.import', 'store.cleanExit', 'store.checkpoint', 'store.shutdown', 'store.quarantine',
 ] as const satisfies readonly AgentMethod[];
 
 // Compile-time exhaustiveness: fails if a method is added to the map but not to AGENT_METHODS.

@@ -16,7 +16,7 @@ for(const app of ['web','desktop','collab-relay','device-agent','hub']){
    const name=imp.text.startsWith('@')?imp.text.split('/').slice(0,2).join('/'):imp.text.split('/')[0];
    if(name!==manifest.name&&!declared[name])failures.push(`${file}: undeclared application dependency ${name}`);
    if(app==='device-agent'&&(name==='electron'||name.startsWith('@angular/')))failures.push(`${file}: device-agent must not import ${imp.text}`);
-   if(app==='device-agent'&&!['@dude/persistence','@dude/sync','@dude/contracts','@dude/domain','@dude/shared-types','@dude/sqlite-store','@dude/agent-pipe','@dude/device-agent'].includes(name)&&name.startsWith('@dude/'))failures.push(`${file}: device-agent may only depend on persistence, sync, contracts, domain, shared-types, sqlite-store, agent-pipe (${imp.text})`);
+   if(app==='device-agent'&&!['@dude/persistence','@dude/sync','@dude/contracts','@dude/domain','@dude/shared-types','@dude/sqlite-store','@dude/agent-pipe','@dude/api-client','@dude/device-agent'].includes(name)&&name.startsWith('@dude/'))failures.push(`${file}: device-agent may only depend on persistence, sync, contracts, domain, shared-types, sqlite-store, agent-pipe, api-client (${imp.text})`);
    if(app==='hub'&&(name==='electron'||name.startsWith('@angular/')||['@dude/web','@dude/desktop','@dude/device-agent'].includes(name)))failures.push(`${file}: hub must not import ${imp.text}`);
    if((app==='web'||app==='device-agent'||app==='desktop')&&name==='@dude/hub')failures.push(`${file}: ${app} must not import @dude/hub`);
    if(app==='web'&&(imp.text.startsWith('@dude/sqlite-store')||imp.text.startsWith('@dude/agent-pipe')))failures.push(`${file}: web must not import ${imp.text}`);
