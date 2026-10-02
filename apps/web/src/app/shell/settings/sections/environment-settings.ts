@@ -7,7 +7,9 @@ import { CopyButton } from '../../../shared/components/copy-button/copy-button';
 import { connectionKind, groupFingerprint, hubErrorText, relativeTime, shortId, HUB_CONNECTION_COPY } from './hub/hub-format';
 import { HubOwnerSession } from './hub/hub-owner-session.service';
 import { HubStatusBadge } from './hub/hub-status-badge';
+import { LocalHubPanel } from './hub/local-hub-panel';
 import { OwnerGate } from './hub/owner-gate';
+import { OwnerRecoveryPanel } from './hub/owner-recovery-panel';
 
 type DisconnectStep = 'idle' | 'confirm' | 'unreachable' | 'force-confirm';
 
@@ -19,7 +21,7 @@ type DisconnectStep = 'idle' | 'confirm' | 'unreachable' | 'force-confirm';
  */
 @Component({
   selector: 'app-environment-settings',
-  imports: [CopyButton, HubStatusBadge, OwnerGate],
+  imports: [CopyButton, HubStatusBadge, LocalHubPanel, OwnerGate, OwnerRecoveryPanel],
   templateUrl: './environment-settings.html',
 })
 export class EnvironmentSettings {

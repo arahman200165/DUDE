@@ -2,8 +2,15 @@ import type {
   AuditListResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse,
   OwnerResetResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SignInResponse,
 } from '@dude/contracts/hub';
-import type { DesktopHubEnrollment, DesktopHubOwnerStatus, DesktopHubProbe, DesktopHubStatus } from '@dude/contracts/shared/models/platform-bridge.model';
+import type {
+  DesktopHubEnrollment, DesktopHubOwnerStatus, DesktopHubProbe, DesktopHubStatus, DesktopLocalHubInfo, DesktopLocalHubSetupRequest, DesktopLocalHubSetupResult,
+  DesktopLocalHubUpdateResult,
+} from '@dude/contracts/shared/models/platform-bridge.model';
 
+export type {
+  DesktopLocalHubInfo as LocalHubInfo, DesktopLocalHubSetupRequest as LocalHubSetupRequest, DesktopLocalHubSetupResult as LocalHubSetupResult,
+  DesktopLocalHubUpdateResult as LocalHubUpdateResult,
+};
 export type { DesktopHubEnrollment as HubEnrollment, DesktopHubOwnerStatus as HubOwnerStatus, DesktopHubProbe as HubProbe, DesktopHubStatus as HubStatus };
 
 /** Every Hub administration failure, whichever host produced it. `unavailable` means this host cannot administer a Hub at all. */
@@ -48,6 +55,12 @@ export interface HubAdminPort {
   onStatusChanged?(callback: (status: DesktopHubStatus) => void): () => void;
   /** Desktop only: device-assisted owner recovery from a recovery-trusted desktop, after Windows confirms the user. */
   recoverOwner?(newPassword: string): Promise<{ readonly ok: true }>;
+  /** Desktop only: the Hub on this PC (installed, running, set up, version, bundled update available). */
+  localHubInfo?(): Promise<DesktopLocalHubInfo>;
+  /** Desktop only: first-run setup of the installed Hub (UAC prompt, bootstrap, pairs this PC, signs the owner in). The result carries the one-time recovery codes. */
+  setupLocalHub?(request: DesktopLocalHubSetupRequest): Promise<DesktopLocalHubSetupResult>;
+  /** Desktop only: updates the installed Hub from the Hub bundled with the app (UAC prompt; the Hub is briefly down). */
+  updateLocalHub?(): Promise<DesktopLocalHubUpdateResult>;
   /** Hub-served web build only: the Hub's TLS public-key pin (and the pending next pin during rotation). */
   tlsFingerprint?(): Promise<{ readonly spkiSha256: string; readonly nextSpkiSha256: string | null }>;
 

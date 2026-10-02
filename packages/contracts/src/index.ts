@@ -10,7 +10,7 @@ export type {
 } from "./device-store/device-store.model.js";
 export type {
   AgentMethodMap, AgentMethod, AgentRequest, AgentResponse, AgentHistoryRecord, AgentNetworkRun, JournalEngine,
-  AgentJournalEntry, AgentSecretPurpose, AgentSecretStatus, AgentSnapshotHeader, AgentResetPreview, LegacyImportResult, AgentHubEnrollment, AgentHubState, AgentHubStatus, AgentHubEnrollError, AgentHubProbe, AgentHubOwnerStatus, AgentHubStatusEvent,
+  AgentJournalEntry, AgentSecretPurpose, AgentSecretStatus, AgentSnapshotHeader, AgentResetPreview, LegacyImportResult, AgentHubEnrollment, AgentHubState, AgentHubStatus, AgentHubEnrollError, AgentHubProbe, AgentHubBootstrapError, AgentHubBootstrapResult, AgentHubOwnerStatus, AgentHubStatusEvent,
 } from "./device-store/agent-protocol.js";
 export { AGENT_METHODS, isAgentMethod } from "./device-store/agent-protocol.js";
 export type { DeviceRegistrationRequest, DeviceRegistrationResponse } from "./device/device-registration.model.js";

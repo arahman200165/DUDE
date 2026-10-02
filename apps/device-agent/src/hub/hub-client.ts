@@ -109,10 +109,13 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
   let token: { value: string; refreshAtMs: number } | null = null;
   let tokenFlight: Promise<string> | null = null;
   let nextPinChain: Promise<void> = Promise.resolve();
+  let hubVersion: string | null = null;
+  let recoveryTrusted: boolean | null = null;
+  let metaFlight: Promise<void> | null = null;
 
   const status = (): AgentHubStatus => {
     const enrollment = publicEnrollment(deps.db);
-    return { state, lastError, lastContactAt: enrollment?.lastContactAt ?? null, ownerSignedIn: owner.status().signedIn, enrollment };
+    return { state, lastError, lastContactAt: enrollment?.lastContactAt ?? null, ownerSignedIn: owner.status().signedIn, enrollment, hubVersion, recoveryTrusted };
   };
   const emit = (): void => {
     const snapshot = status();
@@ -265,8 +268,24 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
     }
   }
 
+  /** Refreshes the Hub version (public hello) and this device's recovery trust (GET /devices/self); pushes status when either changed. */
+  function refreshMeta(): void {
+    metaFlight ??= (async () => {
+      const gen = generation;
+      let changed = false;
+      try {
+        const hello = await call((api) => api.hello());
+        if (hello.hubVersion !== hubVersion) { hubVersion = hello.hubVersion; changed = true; }
+        const info = await deviceCall((api, value) => api.deviceSelf(value));
+        if (gen === generation && info.recoveryTrusted !== recoveryTrusted) { recoveryTrusted = info.recoveryTrusted; changed = true; }
+      } catch { /* informational; the next connect or registry change retries */ }
+      if (changed) emit();
+    })().finally(() => { metaFlight = null; });
+  }
+
   function stopLoop(): void {
     running = false;
+    recoveryTrusted = null;
     generation++;
     if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
     clearSocket();
@@ -367,8 +386,16 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
         }, interval);
         heartbeatTimer.unref();
         if (parsed.tls.nextSpkiSha256 !== null) queueNextPin(parsed.tls.nextSpkiSha256, send);
+        refreshMeta();
         return;
       }
+      if (parsed.type === 'event' && parsed.event === 'owner-recovered') {
+        // Every owner session was revoked by the Hub (device-assisted recovery): the held bearer is dead.
+        owner.clear();
+        emit();
+        return;
+      }
+      if (parsed.type === 'event' && parsed.event === 'device-registry-changed') { refreshMeta(); return; }
       if (parsed.type === 'event' && parsed.event === 'tls-next-pin') {
         const announced = parsed.data['spkiSha256'];
         if (typeof announced === 'string') queueNextPin(announced, send);

@@ -1,6 +1,6 @@
 import { createDesktopHubAdmin } from './desktop-hub-admin.adapter';
 import { HubAdminError } from './hub-admin.port';
-import { fakeHub, FAKE_HUB_PAIRING_STRING } from '../platform/testing/fake-hub';
+import { fakeHub, FAKE_HUB_PAIRING_STRING, type FakeLocalHubScenario } from '../platform/testing/fake-hub';
 import { fakeElectronBridge } from '../platform/testing/fake-electron-bridge';
 
 describe('desktop Hub admin adapter', () => {
@@ -46,6 +46,31 @@ describe('desktop Hub admin adapter', () => {
     const preview = await admin.revokeDevicePreview(device.deviceId);
     await expect(admin.revokeDevice(device.deviceId, preview.confirmToken)).resolves.toEqual({ ok: true });
     await expect(admin.revokeDevice(device.deviceId, preview.confirmToken)).rejects.toMatchObject({ code: 'forbidden' });
+  });
+
+  const adminFor = (localHub: FakeLocalHubScenario) => {
+    const hub = fakeHub({ localHub });
+    return createDesktopHubAdmin(() => hub);
+  };
+
+  it('drives the local Hub scenarios through the optional desktop methods', async () => {
+    const none = adminFor('not-installed');
+    await expect(none.localHubInfo!()).resolves.toMatchObject({ installed: false, installDir: null });
+    await expect(none.setupLocalHub!({ environmentName: 'Home', ownerDisplayName: 'Me', password: 'a long password' })).rejects.toMatchObject({ code: 'not-installed' });
+
+    const fresh = adminFor('installed-unbootstrapped');
+    await expect(fresh.localHubInfo!()).resolves.toMatchObject({ installed: true, bootstrapped: false, updateAvailable: false });
+    const set = await fresh.setupLocalHub!({ environmentName: 'Home', ownerDisplayName: 'Me', password: 'a long password' });
+    expect(set.recoveryCodes).toHaveLength(10);
+    await expect(fresh.localHubInfo!()).resolves.toMatchObject({ bootstrapped: true });
+    await expect(fresh.ownerStatus()).resolves.toMatchObject({ signedIn: true });
+    await expect(fresh.setupLocalHub!({ environmentName: 'Home', ownerDisplayName: 'Me', password: 'a long password' })).rejects.toMatchObject({ code: 'already-bootstrapped' });
+
+    const old = adminFor('update-available');
+    await expect(old.localHubInfo!()).resolves.toMatchObject({ updateAvailable: true, hubVersion: '0.0.1', bundledHubVersion: '0.0.44' });
+    await expect(old.updateLocalHub!()).resolves.toEqual({ fromVersion: '0.0.1', toVersion: '0.0.44' });
+    await expect(old.localHubInfo!()).resolves.toMatchObject({ updateAvailable: false });
+    await expect(old.updateLocalHub!()).rejects.toMatchObject({ code: 'no-update' });
   });
 
   it('keeps the hub-web-only methods unavailable', async () => {

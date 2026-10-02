@@ -1,7 +1,8 @@
-import type { AgentHubEnrollError } from '@dude/contracts';
+import type { AgentHubBootstrapError, AgentHubEnrollError } from '@dude/contracts';
 
 export type HubManagerErrorCode =
   | AgentHubEnrollError
+  | AgentHubBootstrapError
   | 'not-enrolled'
   | 'enrollment-revoked'
   | 'owner-not-signed-in'

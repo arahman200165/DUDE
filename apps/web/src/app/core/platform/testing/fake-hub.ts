@@ -1,16 +1,31 @@
-import type { DesktopHubBridge, DesktopHubOwnerStatus } from '@dude/contracts/shared/models/platform-bridge.model';
+import type { DesktopHubBridge, DesktopHubOwnerStatus, DesktopLocalHubInfo } from '@dude/contracts/shared/models/platform-bridge.model';
 import type { DeviceInfo, SessionInfo } from '@dude/contracts/hub';
 
 export const FAKE_HUB_DEVICE_ID = '0190aaaa-0000-7000-8000-000000000001';
 export const FAKE_HUB_PAIRING_STRING = 'dude-pair:v1:hub.local:47600:ABCD2345:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 
+/** Where the local Hub starts: nothing installed, installed but not set up, set up, or set up with a newer Hub bundled in the app. */
+export type FakeLocalHubScenario = 'not-installed' | 'installed-unbootstrapped' | 'bootstrapped' | 'update-available';
+
 /**
  * In-memory Hub for specs: one owner (default password `correct horse battery`), a device list, sessions and a
  * one-shot confirm-token store, so preview/confirm flows can be driven end to end. `calls` records method names.
  */
-export function fakeHub(options: { password?: string } = {}): DesktopHubBridge & { readonly calls: string[] } {
+export function fakeHub(options: { password?: string; localHub?: FakeLocalHubScenario } = {}): DesktopHubBridge & { readonly calls: string[] } {
   const password = options.password ?? 'correct horse battery';
   const calls: string[] = [];
+  const scenario = options.localHub ?? 'bootstrapped';
+  const local = {
+    installed: scenario !== 'not-installed',
+    bootstrapped: scenario === 'bootstrapped' || scenario === 'update-available',
+    hubVersion: scenario === 'update-available' ? '0.0.1' : '0.0.44',
+    bundled: scenario === 'update-available' ? '0.0.44' : scenario === 'not-installed' ? null : '0.0.44',
+  };
+  const localInfo = (): DesktopLocalHubInfo => ({
+    installed: local.installed, installDir: local.installed ? 'C:\\Program Files\\DUDE Hub' : null,
+    found: local.installed, bootstrapped: local.installed ? local.bootstrapped : null, hubVersion: local.installed ? local.hubVersion : null,
+    bundledHubVersion: local.bundled, updateAvailable: local.installed && local.bundled !== null && local.bundled !== local.hubVersion,
+  });
   let enrolled = false;
   let signedIn = false;
   const tokens = new Set<string>();
@@ -51,10 +66,14 @@ export function fakeHub(options: { password?: string } = {}): DesktopHubBridge &
         hubUrl: enrolled ? 'https://hub.local:47600' : null,
         environmentId: enrolled ? 'fake-environment' : null,
         hubInstanceId: enrolled ? 'fake-hub' : null,
-        hubVersion: enrolled ? '0.0.0' : null,
+        hubVersion: enrolled ? local.hubVersion : null,
+        recoveryTrusted: enrolled ? false : null,
         reachable: enrolled ? true : null,
       })),
-    probeLocal: track('probeLocal', async (port?: number) => ok({ found: true, port: port ?? 47600, hubInstanceId: 'fake-hub', hubVersion: '0.0.0', bootstrapped: true })),
+    probeLocal: track('probeLocal', async (port?: number) =>
+      local.installed
+        ? ok({ found: true, port: port ?? 47600, hubInstanceId: 'fake-hub', hubVersion: local.hubVersion, bootstrapped: local.bootstrapped })
+        : ok({ found: false, port: null, hubInstanceId: null, hubVersion: null, bootstrapped: null })),
     enroll: track('enroll', async (pairingString: string) => {
       if (pairingString !== FAKE_HUB_PAIRING_STRING) return fail('bad-request', 'That pairing string is not valid.');
       enrolled = true;
@@ -114,6 +133,29 @@ export function fakeHub(options: { password?: string } = {}): DesktopHubBridge &
     regenerateRecoveryCodes: track('regenerateRecoveryCodes', async (token: string) => {
       if (!consume(token)) return badConfirm();
       return ok({ recoveryCodes: Array.from({ length: 10 }, (_, i) => `ABCDE-0000${i}`) });
+    }),
+    localHubInfo: track('localHubInfo', async () => ok(localInfo())),
+    setupLocalHub: track('setupLocalHub', async (request) => {
+      if (!local.installed) return fail('not-installed', 'The DUDE Hub is not installed on this PC.');
+      if (local.bootstrapped) return fail('already-bootstrapped', 'This Hub already has an owner.');
+      if (request.password.length < 12) return fail('bad-request', 'Invalid request.');
+      local.bootstrapped = true;
+      enrolled = true;
+      signedIn = true;
+      return ok({
+        recoveryCodes: Array.from({ length: 10 }, (_, i) => `ABCDE-0000${i}`),
+        status: {
+          enrollmentState: 'enrolled' as const, hubUrl: 'https://127.0.0.1:47600', environmentId: 'fake-environment', hubInstanceId: 'fake-hub',
+          hubVersion: local.hubVersion, recoveryTrusted: false, reachable: true, connection: 'online' as const,
+        },
+      });
+    }),
+    updateLocalHub: track('updateLocalHub', async () => {
+      const info = localInfo();
+      if (!info.updateAvailable) return fail('no-update', 'There is no Hub update to install.');
+      const fromVersion = local.hubVersion;
+      local.hubVersion = local.bundled!;
+      return ok({ fromVersion, toVersion: local.hubVersion });
     }),
     recoverOwner: track('recoverOwner', async (next: string) => {
       if (next.length < 12) return fail('bad-request', 'The new password is too short.');

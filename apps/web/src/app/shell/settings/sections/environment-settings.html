@@ -96,11 +96,16 @@
       </ul>
     </div>
   } @else {
+    <app-local-hub-panel [standalone]="status()?.enrollmentState === 'standalone'" (changed)="refresh()" />
+
     @if (enrolled()) {
       <div data-setting class="flex flex-col gap-2" data-testid="owner-session">
         <h3 class="text-ui-sm font-semibold text-text">Owner session</h3>
         <app-owner-gate />
       </div>
+      @if (status()?.recoveryTrusted === true) {
+        <app-owner-recovery-panel (changed)="refresh()" />
+      }
     }
 
     @if (canConnect()) {

@@ -112,6 +112,9 @@ const bridge: PlatformBridge = {
     regenerateRecoveryCodes: (a) => ipcRenderer.invoke('dude:hub:owner:regenerateRecoveryCodes', a),
     changePassword: (a, b) => ipcRenderer.invoke('dude:hub:owner:changePassword', a, b),
     recoverOwner: (a) => ipcRenderer.invoke('dude:hub:recoverOwner', a),
+    localHubInfo: () => ipcRenderer.invoke('dude:hub:localHubInfo'),
+    setupLocalHub: (a) => ipcRenderer.invoke('dude:hub:setupLocalHub', a),
+    updateLocalHub: () => ipcRenderer.invoke('dude:hub:updateLocalHub'),
     onStatusChanged: (callback) => {
       const listener = (_event: Electron.IpcRendererEvent, status: Parameters<typeof callback>[0]) => callback(status);
       ipcRenderer.on('dude:hub:statusChanged', listener);

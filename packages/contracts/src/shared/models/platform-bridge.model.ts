@@ -57,6 +57,8 @@ export interface DesktopHubStatus {
   /** The last connection error text, when there is one. */
   readonly lastError?: string | null;
   readonly lastContactAt?: string | null;
+  /** Whether the Hub trusts this device for owner recovery; null/absent until known. */
+  readonly recoveryTrusted?: boolean | null;
 }
 export interface DesktopHubProbe {
   readonly found: boolean;
@@ -76,6 +78,38 @@ export interface DesktopHubOwnerStatus {
   readonly ownerDisplayName: string | null;
   /** The hard expiry of the owner session; null when signed out. */
   readonly expiresAt: string | null;
+}
+
+/** What the desktop knows about the Hub on this machine (installed by the DUDE installer or by `dude-hub service install`). */
+export interface DesktopLocalHubInfo {
+  /** `dude-hub.exe` found in the Hub install directory. */
+  readonly installed: boolean;
+  readonly installDir: string | null;
+  /** The Hub answered on 127.0.0.1. */
+  readonly found: boolean;
+  readonly bootstrapped: boolean | null;
+  /** The running Hub's version, from its public hello. */
+  readonly hubVersion: string | null;
+  /** The Hub version bundled in this packaged desktop build; null in dev builds or when the build ships no Hub. */
+  readonly bundledHubVersion: string | null;
+  /** installed and a bundled Hub is newer than the running one. */
+  readonly updateAvailable: boolean;
+}
+export interface DesktopLocalHubSetupRequest {
+  readonly environmentName: string;
+  readonly ownerDisplayName: string;
+  readonly password: string;
+}
+export interface DesktopLocalHubSetupResult {
+  /** Shown to the user once; the Hub keeps only hashes. */
+  readonly recoveryCodes: readonly string[];
+  readonly status: DesktopHubStatus;
+  /** Set when the Hub was set up but pairing this device or signing in failed afterwards. */
+  readonly followUpError?: { readonly code: string; readonly message: string };
+}
+export interface DesktopLocalHubUpdateResult {
+  readonly fromVersion: string | null;
+  readonly toVersion: string | null;
 }
 
 /**
@@ -110,6 +144,17 @@ export interface DesktopHubBridge {
    * `owner-recovery-failed`, `hub-*`. The caller must have completed its own two-step confirm before calling.
    */
   recoverOwner(newPassword: string): Promise<DesktopHubResult<OkResponse>>;
+  /** The Hub on this machine: installed, running, bootstrapped, version, and whether a bundled update is available. */
+  localHubInfo(): Promise<DesktopHubResult<DesktopLocalHubInfo>>;
+  /**
+   * First-run setup of the installed Hub: main UAC-elevates `dude-hub setup-token --deliver-to`, the agent consumes the
+   * hand-off, bootstraps, pairs this device and signs the owner in. The setup token never reaches the renderer. Error
+   * codes: `unsupported-platform`, `busy`, `not-installed`, `elevation-cancelled`, `elevation-failed`, `setup-token-failed`,
+   * `handoff-missing`, `handoff-expired`, `already-bootstrapped`, `tls-pin-mismatch`, `hub-*`.
+   */
+  setupLocalHub(request: DesktopLocalHubSetupRequest): Promise<DesktopHubResult<DesktopLocalHubSetupResult>>;
+  /** Updates the installed Hub from the Hub bundled in this build (UAC-elevated). Codes also include `unsupported-in-dev`, `no-update`, `update-failed`. */
+  updateLocalHub(): Promise<DesktopHubResult<DesktopLocalHubUpdateResult>>;
   /** Pushed by main whenever the Device Agent's Hub connection state changes. Returns the unsubscribe function. */
   onStatusChanged(callback: (status: DesktopHubStatus) => void): () => void;
 }

@@ -26,13 +26,25 @@ export interface AgentHubEnrollment {
 export type AgentHubState = 'standalone' | 'connecting' | 'online' | 'offline' | 'revoked' | 'incompatible' | 'untrusted-tls';
 export interface AgentHubStatus {
   state: AgentHubState; lastError: string | null; lastContactAt: string | null; ownerSignedIn: boolean; enrollment: AgentHubEnrollment | null;
+  /** From the last public hello; null until one succeeded. */
+  hubVersion: string | null;
+  /** Whether the Hub trusts this device for owner recovery (GET /devices/self); null until known or when not connected. */
+  recoveryTrusted: boolean | null;
 }
 /** Typed enrollment failures (the RPC error `code`). */
 export type AgentHubEnrollError =
   | 'invalid-pairing-string' | 'already-enrolled' | 'tls-pin-mismatch' | 'hub-unreachable' | 'incompatible' | 'pairing-rejected' | 'dpapi-unavailable' | 'conflict';
+/** Typed failures of `hub.bootstrapLocal` (besides the enrollment ones and `hub-*` codes). */
+export type AgentHubBootstrapError = 'handoff-missing' | 'handoff-expired' | 'already-bootstrapped';
+export interface AgentHubBootstrapResult {
+  recoveryCodes: string[]; status: AgentHubStatus;
+  /** Set when the Hub was bootstrapped (the recovery codes are real) but a later step failed; this device is then not paired or not signed in. */
+  followUpError?: { code: string; message: string };
+}
 export interface AgentHubProbe {
   found: boolean; bootstrapped: boolean | null; hubInstanceId: string | null; spkiSha256: string | null;
   compatibility: 'compatible' | 'client-too-old' | 'hub-too-old' | null;
+  hubVersion: string | null;
 }
 export interface AgentHubOwnerStatus { signedIn: boolean; displayName: string | null; expiresAt: string | null }
 /** Pushed to connected desktops (no `id`) whenever the Hub connection state changes. */
@@ -99,6 +111,12 @@ export interface AgentMethodMap {
   'hub.status': { params: Record<string, never>; result: AgentHubStatus };
   'hub.probeLocal': { params: { port?: number }; result: AgentHubProbe };
   'hub.enroll': { params: { pairingString: string }; result: AgentHubStatus };
+  /**
+   * First-run local Hub setup: reads and deletes `%LOCALAPPDATA%\DUDE\hub-handoff-<nonce>.json` (written by the elevated
+   * `dude-hub setup-token --deliver-to`), bootstraps the Hub, self-enrolls through the normal pairing path and signs the
+   * owner in. Errors: `handoff-missing`, `handoff-expired`, `already-bootstrapped`, `tls-pin-mismatch`, enrollment codes, `hub-*`.
+   */
+  'hub.bootstrapLocal': { params: { nonce: string; environmentName: string; ownerDisplayName: string; password: string }; result: AgentHubBootstrapResult };
   /** Online: tells the Hub then clears. Offline: `hub-unreachable` unless `force`, which clears locally only. */
   'hub.unenroll': { params: { force?: boolean }; result: { ok: true; hubStillListsDevice: boolean } };
   /** The password is only a parameter; the owner bearer lives in agent memory and is never returned. */
@@ -166,7 +184,7 @@ export const AGENT_METHODS = [
   'docs.get', 'docs.set', 'docs.remove',
   'secrets.status', 'secrets.list', 'secrets.set', 'secrets.remove', 'secrets.getCiphertext',
   'device.rename', 'reset.preview', 'reset.apply', 'hub.enrollment',
-  'hub.status', 'hub.probeLocal', 'hub.enroll', 'hub.unenroll', 'hub.owner.signIn', 'hub.owner.signOut', 'hub.owner.status',
+  'hub.status', 'hub.probeLocal', 'hub.enroll', 'hub.bootstrapLocal', 'hub.unenroll', 'hub.owner.signIn', 'hub.owner.signOut', 'hub.owner.status',
   'hub.owner.listDevices', 'hub.owner.createPairingCode', 'hub.owner.renameDevice', 'hub.owner.revokeDevicePreview', 'hub.owner.revokeDevice',
   'hub.owner.setRecoveryTrust', 'hub.owner.listSessions', 'hub.owner.revokeSession', 'hub.owner.revokeAllPreview', 'hub.owner.revokeAll',
   'hub.owner.listAudit', 'hub.owner.recoveryCodesPreview', 'hub.owner.regenerateRecoveryCodes', 'hub.owner.changePassword', 'hub.recoverOwner',

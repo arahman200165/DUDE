@@ -96,7 +96,10 @@ export function createPinnedTransport(target: PinnedTarget, timeoutMs = HUB_REQU
                 try { body = JSON.parse(text); } catch { reject(new HubTransportError('not-json', 'The Hub returned invalid JSON.')); return; }
               }
               const out: Record<string, string> = {};
-              for (const [k, v] of Object.entries(res.headers)) if (typeof v === 'string') out[k] = v;
+              for (const [k, v] of Object.entries(res.headers)) {
+                if (typeof v === 'string') out[k] = v;
+                else if (Array.isArray(v)) out[k] = v.join('\n'); // set-cookie: one cookie per line
+              }
               resolve({ status: res.statusCode ?? 0, headers: out, body });
             });
           },

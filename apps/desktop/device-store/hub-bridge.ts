@@ -5,6 +5,8 @@ import { isUuidShaped, validateDisplayName } from '@dude/persistence';
 import { DeviceStoreError } from './agent-host';
 import type { DeviceStoreHost } from './agent-host';
 import { getDeviceStoreHost } from './store-client';
+import { registerLocalHubHandlers } from './local-hub';
+import type { LocalHubDeps } from './local-hub';
 import { requestUserConsent } from './user-consent';
 import type { UserConsent } from './user-consent';
 
@@ -54,7 +56,8 @@ export function toDesktopStatus(status: AgentHubStatus): DesktopHubStatus {
     hubUrl: enrollment?.hubUrl ?? null,
     environmentId: enrollment?.environmentId ?? null,
     hubInstanceId: enrollment?.hubInstanceId ?? null,
-    hubVersion: null,
+    hubVersion: status.hubVersion,
+    recoveryTrusted: enrollment ? status.recoveryTrusted : null,
     reachable: enrollment ? (status.state === 'online' ? true : status.state === 'offline' ? false : null) : null,
     ...(enrollment && status.state !== 'standalone' && status.state !== 'revoked' ? { connection: status.state } : {}),
     lastError: status.lastError,
@@ -82,7 +85,9 @@ export function nativeHandleString(handle: Buffer): string {
   return handle.length >= 8 ? handle.readBigUInt64LE(0).toString() : handle.readUInt32LE(0).toString();
 }
 
-export function registerHubHandlers(window: BrowserWindow, host: () => DeviceStoreHost | null = getDeviceStoreHost, consent: UserConsent = requestUserConsent): void {
+export function registerHubHandlers(
+  window: BrowserWindow, host: () => DeviceStoreHost | null = getDeviceStoreHost, consent: UserConsent = requestUserConsent, localHub: Partial<LocalHubDeps> = {},
+): void {
   const own = (sender: unknown): boolean => sender === window.webContents;
 
   const define = <M extends AgentMethod, P = undefined, R = AgentMethodMap[M]['result']>(def: Definition<M, P, R>): void => {
@@ -117,7 +122,7 @@ export function registerHubHandlers(window: BrowserWindow, host: () => DeviceSto
       return isPort(port) ? { ok: true, params: { port }, ctx: port as number | null } : bad('Invalid port.');
     },
     map: (probe, port): DesktopHubProbe => ({
-      found: probe.found, port: probe.found ? (port ?? null) : null, hubInstanceId: probe.hubInstanceId, hubVersion: null, bootstrapped: probe.bootstrapped,
+      found: probe.found, port: probe.found ? (port ?? null) : null, hubInstanceId: probe.hubInstanceId, hubVersion: probe.hubVersion, bootstrapped: probe.bootstrapped,
     }),
   });
 
@@ -264,6 +269,8 @@ export function registerHubHandlers(window: BrowserWindow, host: () => DeviceSto
       recovering = false;
     }
   });
+
+  registerLocalHubHandlers(window, host, localHub, { toStatus: toDesktopStatus, scrub: scrubCredentials });
 
   // Status pushes: the agent reports every Hub connection change; the renderer gets the same shape `status()` returns.
   host()?.onEvent?.((frame) => {

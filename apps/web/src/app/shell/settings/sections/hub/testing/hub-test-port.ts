@@ -7,7 +7,7 @@ import { createDesktopHubAdmin } from '../../../../../core/hub/desktop-hub-admin
 import { HubAdminPort } from '../../../../../core/hub/hub-admin.port';
 import { HUB_ADMIN } from '../../../../../core/hub/hub-admin.token';
 import { PlatformService } from '../../../../../core/platform/platform.service';
-import { fakeHub } from '../../../../../core/platform/testing/fake-hub';
+import { fakeHub, type FakeLocalHubScenario } from '../../../../../core/platform/testing/fake-hub';
 
 type Spied = { [K in keyof HubAdminPort]: ReturnType<typeof vi.fn> & HubAdminPort[K] };
 
@@ -28,8 +28,8 @@ export function device(id: string, displayName: string, extra: Partial<DeviceInf
  * A Hub admin port for component specs: the in-memory fake Hub behind the real desktop adapter, every method wrapped in
  * a `vi.fn` so specs can assert calls, with per-test overrides and a way to push live status events.
  */
-export function createTestPort(overrides: Partial<HubAdminPort> = {}): { readonly port: Spied; emit(status: DesktopHubStatus): void; readonly bridge: ReturnType<typeof fakeHub> } {
-  const bridge = fakeHub();
+export function createTestPort(overrides: Partial<HubAdminPort> = {}, options: { localHub?: FakeLocalHubScenario } = {}): { readonly port: Spied; emit(status: DesktopHubStatus): void; readonly bridge: ReturnType<typeof fakeHub> } {
+  const bridge = fakeHub(options.localHub ? { localHub: options.localHub } : {});
   let listener: ((status: DesktopHubStatus) => void) | undefined;
   const base = createDesktopHubAdmin(() => ({
     ...bridge,

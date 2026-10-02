@@ -11,6 +11,7 @@ import type { AgentHubStatus, AgentHubStatusEvent } from '@dude/contracts';
 import type { DesktopHubBridge } from '@dude/contracts/shared/models/platform-bridge.model';
 import { DeviceStoreError } from './agent-host';
 import type { DeviceStoreHost } from './agent-host';
+import type { LocalHubDeps } from './local-hub';
 import { nativeHandleString, registerHubHandlers, scrubCredentials, toDesktopStatus } from './hub-bridge';
 import type { ConsentOutcome } from './user-consent';
 
@@ -23,7 +24,7 @@ const TOKEN = 'abcDEF_-123';
 const PAIRING = 'dude-pair:v1:hub.local:47600:ABCD2345:AAAA';
 
 const ENROLLED: AgentHubStatus = {
-  state: 'online', lastError: null, lastContactAt: null, ownerSignedIn: false,
+  state: 'online', lastError: null, lastContactAt: null, ownerSignedIn: false, hubVersion: '0.1.0', recoveryTrusted: true,
   enrollment: {
     state: 'enrolled', hubInstanceId: 'hub-1', environmentId: 'env-1', hubUrl: 'https://hub.local:47600', protocolVersion: 1,
     spkiActive: 'x', spkiNext: null, enrolledAt: '2026-01-01T00:00:00.000Z', lastContactAt: null, revokedAt: null,
@@ -56,6 +57,13 @@ const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged'>, { channe
   recoveryCodesPreview: { channel: 'dude:hub:owner:recoveryCodesPreview', args: [], invalid: [[1]] },
   regenerateRecoveryCodes: { channel: 'dude:hub:owner:regenerateRecoveryCodes', args: [TOKEN], invalid: [[], ['a b'], [{}]] },
   recoverOwner: { channel: 'dude:hub:recoverOwner', args: ['a recovered long password'], invalid: [[], [''], ['short'], ['a'.repeat(1025)], [1], ['a recovered long password', 'x']] },
+  localHubInfo: { channel: 'dude:hub:localHubInfo', args: [], invalid: [[1]] },
+  setupLocalHub: {
+    channel: 'dude:hub:setupLocalHub', args: [{ environmentName: 'Home', ownerDisplayName: 'Me', password: 'a long password!' }],
+    invalid: [[], ['x'], [{}], [{ environmentName: 'Home', ownerDisplayName: 'Me', password: 'short' }], [{ environmentName: '', ownerDisplayName: 'Me', password: 'a long password!' }],
+      [{ environmentName: 'Home', ownerDisplayName: 'Me', password: 'a long password!', token: 'x' }], [{ environmentName: 'Home', ownerDisplayName: 'Me', password: 'a long password!' }, 1]],
+  },
+  updateLocalHub: { channel: 'dude:hub:updateLocalHub', args: [], invalid: [[1]] },
   changePassword: { channel: 'dude:hub:owner:changePassword', args: ['old', 'new'], invalid: [['old'], ['', 'new'], ['old', ''], [1, 2]] },
 };
 
@@ -74,6 +82,14 @@ function fakeHost(handler: (method: string, params: unknown) => unknown = () => 
   return { host, calls, push: (status: AgentHubStatus) => listeners.forEach((l) => l({ type: 'event', event: 'hub.status', status })) };
 }
 
+const SID = 'S-1-5-21-111-222-333-1001';
+const localDeps = (): Partial<LocalHubDeps> => ({
+  platform: 'win32', env: { ProgramFiles: 'C:\\Program Files', ProgramData: 'C:\\ProgramData' }, isPackaged: () => true, resourcesPath: () => 'C:\\Program Files\\DUDE\\resources', appVersion: () => '0.2.0',
+  exists: () => true, randomBytes: (n) => Buffer.alloc(n, 7), updateWaitMs: 0, sleep: async () => undefined,
+  exec: async (file) => (file === 'whoami' ? { stdout: `"PC\me","${SID}"
+`, code: 0 } : file === 'reg.exe' ? { stdout: '', code: 1 } : { stdout: '', code: 0 }),
+});
+
 describe('hub bridge', () => {
   let ctx: ReturnType<typeof fakeHost>;
   let consentCalls: Array<{ hwnd: string; message: string }> = [];
@@ -88,7 +104,7 @@ describe('hub bridge', () => {
       consentCalls.push({ hwnd, message });
       if (consentOutcome instanceof Error) throw consentOutcome;
       return consentOutcome;
-    });
+    }, localDeps());
   };
   beforeEach(() => setup());
 
@@ -111,7 +127,8 @@ describe('hub bridge', () => {
   });
 
   it.each(Object.entries(VALID))('%s forwards valid payloads from this window', async (_name, v) => {
-    setup((method) => (method === 'hub.status' || method === 'hub.enroll' ? ENROLLED : method === 'hub.probeLocal' ? { found: true, bootstrapped: true, hubInstanceId: 'h', spkiSha256: 's', compatibility: 'compatible' }
+    setup((method) => (method === 'hub.status' || method === 'hub.enroll' ? ENROLLED : method === 'hub.probeLocal' ? { found: true, bootstrapped: true, hubInstanceId: 'h', spkiSha256: 's', compatibility: 'compatible', hubVersion: '0.1.0' }
+      : method === 'hub.bootstrapLocal' ? { recoveryCodes: ['A'], status: ENROLLED }
       : method === 'hub.unenroll' ? { ok: true, hubStillListsDevice: false } : method === 'hub.owner.status' || method === 'hub.owner.signIn' ? { signedIn: true, displayName: 'O', expiresAt: null }
       : method === 'store.hydrate' ? { device: { deviceId: UUID } } : { ok: true }));
     const result = await call(v.channel, own, ...v.args);
@@ -175,7 +192,7 @@ describe('hub bridge', () => {
 
   it('maps agent results to the renderer shapes', async () => {
     setup((m) => (m === 'hub.status' ? ENROLLED : { signedIn: true, displayName: 'Owner', expiresAt: 'e' }));
-    expect(await call('dude:hub:status', own)).toEqual({ ok: true, result: { enrollmentState: 'enrolled', hubUrl: 'https://hub.local:47600', environmentId: 'env-1', hubInstanceId: 'hub-1', hubVersion: null, reachable: true, connection: 'online', lastError: null, lastContactAt: null } });
+    expect(await call('dude:hub:status', own)).toEqual({ ok: true, result: { enrollmentState: 'enrolled', hubUrl: 'https://hub.local:47600', environmentId: 'env-1', hubInstanceId: 'hub-1', hubVersion: '0.1.0', recoveryTrusted: true, reachable: true, connection: 'online', lastError: null, lastContactAt: null } });
     expect(await call('dude:hub:owner:status', own)).toEqual({ ok: true, result: { signedIn: true, ownerDisplayName: 'Owner', expiresAt: 'e' } });
     expect(toDesktopStatus({ ...ENROLLED, enrollment: null, state: 'standalone' })).toMatchObject({ enrollmentState: 'standalone', reachable: null });
     expect(toDesktopStatus({ ...ENROLLED, state: 'offline' }).reachable).toBe(false);

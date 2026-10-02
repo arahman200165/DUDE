@@ -101,7 +101,7 @@ describe('pin probe', () => {
       res.end(JSON.stringify(hello));
     }));
     await expect(probeLocalHub(server.port)).resolves.toEqual({
-      found: true, bootstrapped: true, hubInstanceId: hello.hubInstanceId, spkiSha256: a.spki, compatibility: 'compatible',
+      found: true, bootstrapped: true, hubInstanceId: hello.hubInstanceId, spkiSha256: a.spki, compatibility: 'compatible', hubVersion: hello.hubVersion,
     });
     expect(seenAuth).toEqual([undefined]);
     await expect(probeLocalHub(1, 1_000)).resolves.toMatchObject({ found: false });

@@ -49,7 +49,7 @@ export function probePin(host: string, port: number, expectedSpki: string, timeo
  * be used to trust the peer: pairing re-verifies the pin from the pairing string.
  */
 export function probeLocalHub(port: number = HUB_DEFAULT_PORT, timeoutMs = 3_000): Promise<AgentHubProbe> {
-  const notFound: AgentHubProbe = { found: false, bootstrapped: null, hubInstanceId: null, spkiSha256: null, compatibility: null };
+  const notFound: AgentHubProbe = { found: false, bootstrapped: null, hubInstanceId: null, spkiSha256: null, compatibility: null, hubVersion: null };
   return new Promise<AgentHubProbe>((resolve) => {
     const req = https.request(
       { host: '127.0.0.1', port, method: 'GET', path: `${HUB_API_PREFIX}/hello`, agent: false, rejectUnauthorized: false, headers: { accept: 'application/json' } },
@@ -65,7 +65,7 @@ export function probeLocalHub(port: number = HUB_DEFAULT_PORT, timeoutMs = 3_000
             const body: unknown = JSON.parse(Buffer.concat(chunks).toString('utf8'));
             if (!Value.Check(HelloResponse, body)) { resolve(notFound); return; }
             resolve({
-              found: true, bootstrapped: body.bootstrapped, hubInstanceId: body.hubInstanceId, spkiSha256: spki,
+              found: true, bootstrapped: body.bootstrapped, hubInstanceId: body.hubInstanceId, spkiSha256: spki, hubVersion: body.hubVersion,
               compatibility: checkProtocolCompatibility(body, { protocolVersion: HUB_PROTOCOL_VERSION, minHubProtocol: HUB_MIN_CLIENT_PROTOCOL }),
             });
           } catch { resolve(notFound); }
