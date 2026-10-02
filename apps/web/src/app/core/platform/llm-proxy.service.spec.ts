@@ -5,11 +5,9 @@ import { fakeElectronBridge } from './testing/fake-electron-bridge';
 
 describe('LlmProxyService', () => {
   const originalDude = window.dude;
-  const originalFetch = window.fetch;
 
   afterEach(() => {
     Object.defineProperty(window, 'dude', { value: originalDude, configurable: true });
-    window.fetch = originalFetch;
   });
 
   function withBridge(llm: PlatformBridge['llm']): LlmProxyService {
@@ -33,27 +31,20 @@ describe('LlmProxyService', () => {
   });
 
   it('throws a friendly error when no key is configured', async () => {
-    const service = withBridge({ isConfigured: async () => false, getEndpoint: async () => ({ ok: false, error: 'not-configured' }) });
+    const service = withBridge({ isConfigured: async () => false, chat: async () => ({ ok: false, error: 'not-configured' }) });
     await expect(service.chat([{ role: 'user', content: 'hi' }])).rejects.toThrow(/Configure an LLM provider/);
   });
 
-  it('fetches the local proxy and returns the assistant content', async () => {
-    const service = withBridge({ isConfigured: async () => true, getEndpoint: async () => ({ ok: true, port: 4321 }) });
-
-    let calledUrl = '';
-    window.fetch = vi.fn(async (url: string | URL) => {
-      calledUrl = String(url);
-      return new Response(JSON.stringify({ choices: [{ message: { content: 'hello there' } }] }), { status: 200 });
-    }) as typeof fetch;
+  it('calls the bridge and returns the assistant content', async () => {
+    const chat = vi.fn(async () => ({ ok: true as const, content: 'hello there' }));
+    const service = withBridge({ isConfigured: async () => true, chat });
 
     expect(await service.chat([{ role: 'user', content: 'hi' }])).toBe('hello there');
-    expect(calledUrl).toBe('http://127.0.0.1:4321/v1/chat');
+    expect(chat).toHaveBeenCalledWith({ messages: [{ role: 'user', content: 'hi' }] });
   });
 
-  it('throws the upstream error message on a non-ok response', async () => {
-    const service = withBridge({ isConfigured: async () => true, getEndpoint: async () => ({ ok: true, port: 4321 }) });
-    window.fetch = vi.fn(async () => new Response(JSON.stringify({ error: 'bad request' }), { status: 400 })) as typeof fetch;
-
+  it('throws the bridge error message on failure', async () => {
+    const service = withBridge({ isConfigured: async () => true, chat: async () => ({ ok: false, error: 'bad request' }) });
     await expect(service.chat([{ role: 'user', content: 'hi' }])).rejects.toThrow(/bad request/);
   });
 });

@@ -136,7 +136,7 @@ const bridge: PlatformBridge = {
   },
   llm: {
     isConfigured: () => ipcRenderer.invoke('dude:llm:isConfigured'),
-    getEndpoint: () => ipcRenderer.invoke('dude:llm:getEndpoint'),
+    chat: (request) => ipcRenderer.invoke('dude:llm:chat', request),
   },
   shell: {
     getLaunchOnLogin: () => ipcRenderer.invoke('dude:shell:getLaunchOnLogin'),

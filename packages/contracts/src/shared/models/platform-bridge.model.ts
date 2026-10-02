@@ -1,3 +1,4 @@
+import type { LlmChatRequest, LlmChatResult } from "./llm-chat.model.js";
 import type { SnapshotDiff, SnapshotHeader } from "../../fs/snapshot-diff.js";
 import type { ChangeEvent, FolderWatchSettings, FolderWatchState, TimelineQuery, WatchedFolder } from "../../fs/watch-types.js";
 import type { ApplyResult, FsJobEvent, FsJobRequest, FsResult, JournalEntry, MutationSettings, PickedFile, PickedSavePath, PlanPreview, RememberedFolder, SavePathRequest } from "../../fs/fs-types.js";
@@ -139,7 +140,7 @@ export interface PlatformBridge {
   };
   readonly llm: {
     isConfigured(): Promise<boolean>;
-    getEndpoint(): Promise<{ readonly ok: true; readonly port: number } | { readonly ok: false; readonly error: string }>;
+    chat(request: LlmChatRequest): Promise<LlmChatResult>;
   };
   readonly shell: {
     getLaunchOnLogin(): Promise<boolean>;

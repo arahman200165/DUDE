@@ -113,6 +113,7 @@ async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
   registerOpenHandlers(window);
   registerDeepLinkHandlers(window);
   registerExternalLinkHandlers(window);
+  registerLlmHandlers(window);
   registerAppearanceBridge(window);
   registerSmartPasteRenderer(window);
   registerUpdateHandlers(window);
@@ -170,7 +171,6 @@ if (hasSingleInstanceLock) void app.whenReady().then(async () => {
   registerElevationHandlers();
   registerWatchHandlers();
   registerSecretsHandlers();
-  registerLlmHandlers();
   registerShellChromeHandlers();
   registerNotificationHandlers();
   registerFileWatchHandlers();

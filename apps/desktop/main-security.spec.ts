@@ -99,3 +99,26 @@ describe('app protocol boundary', () => {
     expect(existsSync(resolve(__dirname, 'static-server.ts'))).toBe(false);
   });
 });
+
+// The LLM integration is an IPC call (Phase 31B), not a loopback HTTP proxy.
+describe('llm boundary', () => {
+  const mainSource = readFileSync(resolve(__dirname, 'main.ts'), 'utf-8');
+  const preloadSource = readFileSync(resolve(__dirname, 'preload.ts'), 'utf-8');
+  const bridgeSource = readFileSync(resolve(__dirname, 'llm-bridge.ts'), 'utf-8');
+
+  it('has no loopback LLM proxy server left', () => {
+    expect(existsSync(resolve(__dirname, 'llm-proxy-server.ts'))).toBe(false);
+    expect(bridgeSource).not.toMatch(/llm-proxy-server|createServer|node:http|getEndpoint/);
+    expect(mainSource).not.toMatch(/llm-proxy-server/);
+    expect(preloadSource).not.toMatch(/getEndpoint/);
+  });
+
+  it('checks the sender and validates the payload before touching the provider', () => {
+    expect(mainSource).toMatch(/registerLlmHandlers\(window\)/);
+    const handler = bridgeSource.slice(bridgeSource.indexOf("'dude:llm:chat'"));
+    expect(handler).toMatch(/event\.sender !== window\.webContents/);
+    expect(handler.indexOf('parseChatRequest(payload)')).toBeGreaterThan(handler.indexOf('event.sender !== window.webContents'));
+    expect(handler.indexOf('chat(messages)')).toBeGreaterThan(handler.indexOf('parseChatRequest(payload)'));
+    expect(preloadSource).toMatch(/ipcRenderer\.invoke\('dude:llm:chat', request\)/);
+  });
+});

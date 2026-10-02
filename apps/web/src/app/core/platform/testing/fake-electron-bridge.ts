@@ -75,7 +75,7 @@ export function fakeElectronBridge(overrides: Partial<PlatformBridge> = {}): Pla
     },
     llm: {
       isConfigured: async () => false,
-      getEndpoint: async () => ({ ok: false, error: 'not-configured' }),
+      chat: async () => ({ ok: false, error: 'not-configured' }),
     },
     shell: {
       getLaunchOnLogin: async () => false,

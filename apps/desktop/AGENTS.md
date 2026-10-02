@@ -4,7 +4,7 @@ The Electron main process and preload script for DUDE's desktop build (Phase 8 o
 
 ## The rule
 
-The renderer (`apps/web/src/app/`) keeps `contextIsolation: true`, `nodeIntegration: false`, and `sandbox: true` (set in `main.ts`'s `BrowserWindow` `webPreferences`) — no exceptions. Every capability the renderer needs from the OS (file dialogs, secure storage, IPC to a local backend, etc., as later Phase 8 stages add them) is exposed through `preload.ts`'s `contextBridge.exposeInMainWorld(...)` call, never by relaxing those three flags. Any bundled local backend process this folder starts (the LLM proxy and collab server; the renderer itself is served over the `dude-app://` scheme, not a socket) binds `127.0.0.1` only — never an external interface.
+The renderer (`apps/web/src/app/`) keeps `contextIsolation: true`, `nodeIntegration: false`, and `sandbox: true` (set in `main.ts`'s `BrowserWindow` `webPreferences`) — no exceptions. Every capability the renderer needs from the OS (file dialogs, secure storage, IPC to a local backend, etc., as later Phase 8 stages add them) is exposed through `preload.ts`'s `contextBridge.exposeInMainWorld(...)` call, never by relaxing those three flags. Any bundled local backend process this folder starts (the collab server; the renderer itself is served over the `dude-app://` scheme, not a socket) binds `127.0.0.1` only — never an external interface.
 
 ## Verification
 
@@ -21,6 +21,10 @@ The packaged renderer loads from the privileged custom scheme `dude-app` (`app-p
 ## External links: one narrow route out
 
 The renderer can't open windows (`setWindowOpenHandler` denies everything) and `will-navigate` is pinned to the app's own origin. The single exception is `external-link-bridge.ts` (`dude:external:open`, exposed as `window.dude.external.open`), added for Phase 30H.6's user-saved Home links. Main — not the renderer — is the trust boundary: it accepts the request only from this window's own `webContents`, re-validates the URL (absolute `http:`/`https:`, real host, no embedded credentials, ≤ 2048 chars; never `file:`, `javascript:`, `data:`, custom protocol handlers or UNC paths), and only then calls `shell.openExternal` with the normalized href. `main-security.spec.ts` and `external-link-bridge.spec.ts` pin this; widen the allowed schemes only with the same review a new IPC surface gets.
+
+## LLM chat: `dude:llm:chat`
+
+`llm-bridge.ts` performs the user's OpenAI-compatible chat request in main (the old loopback HTTP proxy was removed in Phase 31B: a `dude-app://` renderer can't call it cross-origin). It accepts requests only from this window's `webContents`, strictly validates `{ messages: [{ role, content }] }` (<= 200 messages, <= 1 MB of content, nothing else), reads base URL/model/API key from the secure store in main, times out after 120 s, and returns `{ ok, content | error }` with the key scrubbed from any error. Non-streaming only. `llm-bridge.spec.ts` and `main-security.spec.ts` pin it.
 
 ## Native theme sync: `dude:appearance:set`
 
