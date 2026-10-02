@@ -10,4 +10,13 @@ describe('renderer navigation origin guard', () => {
     expect(isAllowedRendererNavigation('dude://open/tool/json', base)).toBe(false);
     expect(isAllowedRendererNavigation('not a URL', base)).toBe(false);
   });
+
+  it('keeps the packaged dude-app origin and nothing else', () => {
+    const appBase = 'dude-app://app/';
+    expect(isAllowedRendererNavigation('dude-app://app/tools/x', appBase)).toBe(true);
+    expect(isAllowedRendererNavigation('dude-app://evil/', appBase)).toBe(false);
+    expect(isAllowedRendererNavigation('foo://x', appBase)).toBe(false);
+    expect(isAllowedRendererNavigation('https://example.com', appBase)).toBe(false);
+    expect(isAllowedRendererNavigation('file:///C:/secret.txt', appBase)).toBe(false);
+  });
 });

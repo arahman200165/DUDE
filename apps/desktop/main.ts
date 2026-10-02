@@ -1,7 +1,7 @@
 import { app, BrowserWindow } from 'electron';
 import './engine-host.adapter';
 import { join, resolve } from 'node:path';
-import { startStaticServer } from './static-server';
+import { APP_BASE_URL, installAppProtocol, registerAppSchemePrivileges } from './app-protocol';
 import { registerFsHandlers } from './fs-bridge';
 import { loadRememberedGrants } from './fs-grants';
 import { registerFsJobHandlers, stopFsWorker } from './fs-jobs-bridge';
@@ -40,6 +40,9 @@ import { isAllowedRendererNavigation } from './navigation-guard';
 import { checkAndMarkLaunch } from './crash-detection';
 import { markPerf } from './perf-log';
 
+// Must run before app ready: the privileged scheme gives the renderer a stable secure origin.
+registerAppSchemePrivileges();
+
 const DEV_SERVER_URL = process.env['DUDE_ELECTRON_DEV_SERVER_URL'];
 
 async function resolveWindowUrl(): Promise<string> {
@@ -52,16 +55,16 @@ async function resolveWindowUrl(): Promise<string> {
   // launched with a direct file path (`electron dist/electron/main.js`)
   // rather than a project directory.
   const browserDistRoot = join(__dirname, '../dude/browser');
-  const { port } = await startStaticServer(browserDistRoot);
-  return `http://127.0.0.1:${port}/`;
+  installAppProtocol(browserDistRoot);
+  return APP_BASE_URL;
 }
 
 async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
   markPerf('createWindow-start');
   const preferences = getDesktopPreferences();
   // Neither depends on the other -- start both now instead of waiting on bounds resolution
-  // (reads window-bounds.json + queries connected displays) before even starting the static
-  // server, since window construction below only ever needs `bounds`.
+  // (reads window-bounds.json + queries connected displays) before even installing the app
+  // protocol, since window construction below only ever needs `bounds`.
   const boundsPromise = initialWindowBounds();
   const baseUrlPromise = resolveWindowUrl();
   const nativeAppearancePromise = loadNativeAppearance();
@@ -118,7 +121,7 @@ async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
 
   markPerf('window-constructed');
   const baseUrl = await baseUrlPromise;
-  markPerf('static-server-started');
+  markPerf('app-protocol-ready');
   window.webContents.on('will-navigate', (event, target) => {
     if (!isAllowedRendererNavigation(target, baseUrl)) event.preventDefault();
   });

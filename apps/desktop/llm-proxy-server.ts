@@ -4,7 +4,7 @@ import { createServer, type Server } from 'node:http';
  * A minimal loopback HTTP proxy (Phase 8 Stage 4) that forwards a chat
  * request to the user's configured OpenAI-compatible endpoint, injecting
  * the API key server-side so it never reaches the renderer/devtools. Bound
- * to `127.0.0.1` on an OS-assigned port, same pattern as `static-server.ts`.
+ * to `127.0.0.1` on an OS-assigned port, a loopback-only pattern like the bundled collab server.
  *
  * Deliberately non-streaming: the proxy is a dumb pass-through (auth
  * injection + JSON forwarding) rather than an SSE relay, since Regex

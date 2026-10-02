@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 // Regression guard for apps/desktop/AGENTS.md's one rule: contextIsolation: true, nodeIntegration:
@@ -77,5 +77,25 @@ describe('appearance boundary', () => {
     expect(bridgeSource).toMatch(/event\.sender !== window\.webContents/);
     expect(bridgeSource.indexOf('parseNativeAppearance(payload)')).toBeLessThan(bridgeSource.indexOf('theme.themeSource = '));
     expect(preloadSource).toMatch(/ipcRenderer\.invoke\('dude:appearance:set', \{ mode, background \}\)/);
+  });
+});
+
+// The packaged renderer is served from a privileged custom scheme (Phase 31B), not a loopback server.
+describe('app protocol boundary', () => {
+  const mainSource = readFileSync(resolve(__dirname, 'main.ts'), 'utf-8');
+  const protocolSource = readFileSync(resolve(__dirname, 'app-protocol.ts'), 'utf-8');
+
+  it('registers the dude-app scheme before ready, without CSP bypass or service workers', () => {
+    expect(mainSource).toMatch(/^registerAppSchemePrivileges\(\);/m);
+    const privileges = protocolSource.match(/registerSchemesAsPrivileged\(([\s\S]*?)\);/)?.[1] ?? '';
+    expect(privileges).toMatch(/scheme: APP_SCHEME/);
+    expect(privileges).not.toMatch(/bypassCSP/);
+    expect(privileges).not.toMatch(/allowServiceWorkers/);
+  });
+
+  it('guards file resolution with resolveWithinRoot and no longer uses a loopback static server', () => {
+    expect(protocolSource).toMatch(/resolveWithinRoot\(normalizedRoot, url\.pathname\)/);
+    expect(mainSource).not.toMatch(/startStaticServer|static-server/);
+    expect(existsSync(resolve(__dirname, 'static-server.ts'))).toBe(false);
   });
 });

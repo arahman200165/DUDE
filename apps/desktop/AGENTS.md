@@ -4,15 +4,19 @@ The Electron main process and preload script for DUDE's desktop build (Phase 8 o
 
 ## The rule
 
-The renderer (`apps/web/src/app/`) keeps `contextIsolation: true`, `nodeIntegration: false`, and `sandbox: true` (set in `main.ts`'s `BrowserWindow` `webPreferences`) — no exceptions. Every capability the renderer needs from the OS (file dialogs, secure storage, IPC to a local backend, etc., as later Phase 8 stages add them) is exposed through `preload.ts`'s `contextBridge.exposeInMainWorld(...)` call, never by relaxing those three flags. Any bundled local backend process this folder starts (the static server today; the LLM proxy and collab server in later stages) binds `127.0.0.1` only — never an external interface.
+The renderer (`apps/web/src/app/`) keeps `contextIsolation: true`, `nodeIntegration: false`, and `sandbox: true` (set in `main.ts`'s `BrowserWindow` `webPreferences`) — no exceptions. Every capability the renderer needs from the OS (file dialogs, secure storage, IPC to a local backend, etc., as later Phase 8 stages add them) is exposed through `preload.ts`'s `contextBridge.exposeInMainWorld(...)` call, never by relaxing those three flags. Any bundled local backend process this folder starts (the LLM proxy and collab server; the renderer itself is served over the `dude-app://` scheme, not a socket) binds `127.0.0.1` only — never an external interface.
 
 ## Verification
 
-`npm run test:electron` runs a small, separate Vitest project (`vitest.electron.config.mts`) scoped to `apps/desktop/**/*.spec.ts` — kept out of the main `npm test` run since this directory is deliberately outside `tsconfig.app.json`'s scope. Run it after touching anything here, especially `static-server.ts`'s `resolveWithinRoot` (the path-traversal guard shared by the static server and `fs-bridge.ts`) or `main.ts`'s `webPreferences` (DUDE_PRD.md §21 Phase 23 Item 9).
+`npm run test:electron` runs a small, separate Vitest project (`vitest.electron.config.mts`) scoped to `apps/desktop/**/*.spec.ts` — kept out of the main `npm test` run since this directory is deliberately outside `tsconfig.app.json`'s scope. Run it after touching anything here, especially `app-protocol.ts`'s `resolveWithinRoot` (the path-traversal guard for the app protocol handler) or `main.ts`'s `webPreferences` (DUDE_PRD.md §21 Phase 23 Item 9).
 
 ## Two build targets, one repo
 
-`main.ts`/`preload.ts`/`static-server.ts` are plain TypeScript type-checked by `apps/desktop/tsconfig.json` (ES modules with bundler resolution and Node types; esbuild emits CommonJS) — a sibling to `tsconfig.worker.json`'s precedent for a second narrow build target that must never leak into `tsconfig.app.json`'s `include`. Type-only imports from `apps/web/src/app/` (e.g. `DudeElectronBridge` in `electron-bridge.d.ts`) are fine and erased at build time; runtime imports from `apps/web/src/app/` are not — the two processes only ever talk over `contextBridge`/IPC.
+`main.ts`/`preload.ts`/`app-protocol.ts` are plain TypeScript type-checked by `apps/desktop/tsconfig.json` (ES modules with bundler resolution and Node types; esbuild emits CommonJS) — a sibling to `tsconfig.worker.json`'s precedent for a second narrow build target that must never leak into `tsconfig.app.json`'s `include`. Type-only imports from `apps/web/src/app/` (e.g. `DudeElectronBridge` in `electron-bridge.d.ts`) are fine and erased at build time; runtime imports from `apps/web/src/app/` are not — the two processes only ever talk over `contextBridge`/IPC.
+
+## Renderer origin: `dude-app://app/` (Phase 31B)
+
+The packaged renderer loads from the privileged custom scheme `dude-app` (`app-protocol.ts`): `registerAppSchemePrivileges()` runs at `main.ts` top level (standard, secure, fetch/CORS/stream/codeCache; never `bypassCSP` or `allowServiceWorkers`) and `installAppProtocol(root)` serves `dist/dude/browser` via `protocol.handle` with the same traversal guard and extensionless-to-`index.html` fallback the old loopback server had. The fixed origin keeps localStorage/IndexedDB across launches. `URL.origin`/`location.origin` is `'null'` for this scheme, so build origins as `${location.protocol}//${location.host}` and compare by protocol+host (see `navigation-guard.ts`). The dev server path (`DUDE_ELECTRON_DEV_SERVER_URL`) is unchanged.
 
 ## External links: one narrow route out
 

@@ -3,7 +3,6 @@
 import { _electron, expect } from '@playwright/test';
 import electron from 'electron';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
-import { createServer } from 'node:net';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 
@@ -13,10 +12,6 @@ const profile=mkdtempSync(path.join(root,'tmp/desktop-workspace-'));
 const fixture=path.join(profile,'fixtures');mkdirSync(fixture);
 const input=path.join(fixture,'acceptance.json');writeFileSync(input,'{"phase":31,"portable":true}');
 writeFileSync(path.join(profile,'desktop-preferences.json'),JSON.stringify({closeToTray:false,updateMode:'manual',startupDestination:'deck'}));
-// Keep the fixture origin stable across cold/warm launches so renderer persistence
-// is tested independently of the production server's OS-assigned port policy.
-const probe=createServer();await new Promise(resolve=>probe.listen(0,'127.0.0.1',resolve));
-const port=probe.address().port;await new Promise(resolve=>probe.close(resolve));
 const bootstrap=path.join(profile,'bootstrap.cjs');
 writeFileSync(bootstrap,`
  const {app,BrowserWindow,dialog}=require('electron');
@@ -26,8 +21,6 @@ writeFileSync(bootstrap,`
  BrowserWindow.prototype.show=function(){};
  BrowserWindow.prototype.focus=function(){};
  dialog.showOpenDialog=async(_window,options)=>({canceled:false,filePaths:[options.properties.includes('openDirectory')?${JSON.stringify(fixture)}:${JSON.stringify(input)}]});
- const {Server}=require('node:net'),listen=Server.prototype.listen;
- Server.prototype.listen=function(...args){if(args[0]===0&&args[1]==='127.0.0.1')args[0]=${port};return listen.apply(this,args);};
  require(${JSON.stringify(path.join(root,'dist/electron/main.js'))});
 `);
 const launches=[];
@@ -47,6 +40,7 @@ try{
  const {app,page,marks}=active;
  await page.getByRole('button',{name:'Skip for now',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Base64 Encoder / Decoder',exact:true})).toBeVisible();
+ assert(page.url().startsWith('dude-app://app/'),`Unexpected renderer URL ${page.url()}`);
  const isolation=await page.evaluate(()=>({desktop:window.dude?.platform.isDesktop,node:typeof window.require}));
  assert.deepEqual(isolation,{desktop:true,node:'undefined'});
  const preferences=await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences());
@@ -73,6 +67,6 @@ try{
  assert.equal((await active.page.evaluate(()=>window.dude.preferences.get())).startupDestination,'workspace');
  launches.push({kind:'warm',marks:active.marks.join('')});
  await active.app.close();active=null;
- writeFileSync(path.join(root,'tmp/phase31a-desktop-evidence.json'),JSON.stringify({profile,fixtureOrigin:`http://127.0.0.1:${port}`,checks:['production preload isolation','native helper read','mutation read-allowlist rejection','picker grant and walk','deep-link navigation','picker file handoff','command-line file handoff','renderer reload and warm persistence','native preference persistence'],launches},null,2)+'\n');
+ writeFileSync(path.join(root,'tmp/phase31a-desktop-evidence.json'),JSON.stringify({profile,fixtureOrigin:'dude-app://app',checks:['production preload isolation','native helper read','mutation read-allowlist rejection','picker grant and walk','deep-link navigation','picker file handoff','command-line file handoff','stable-origin renderer reload and warm persistence','native preference persistence'],launches},null,2)+'\n');
  console.log('Cold/warm production desktop, preload, deep-link, file-open, native helper and isolated saved-state acceptance pass.');
 }finally{if(active)await active.app.close();}

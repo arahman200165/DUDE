@@ -45,7 +45,8 @@ export class PythonSandboxHost implements OnDestroy {
 
   protected readonly srcdoc = computed<SafeHtml>(() => {
     const pyodideDirUrl = new URL('assets/vendor/pyodide/', document.baseURI).href;
-    const doc = buildPythonSandboxDoc(pyodideDirUrl, window.location.origin);
+    // `location.origin` is the opaque string 'null' under the desktop's custom `dude-app://` scheme.
+    const doc = buildPythonSandboxDoc(pyodideDirUrl, `${window.location.protocol}//${window.location.host}`);
     return this.sanitizer.bypassSecurityTrustHtml(doc);
   });
 
