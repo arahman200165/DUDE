@@ -31,6 +31,7 @@ function fakeHost() {
     status: () => 'ready',
     health: () => null,
     onHealth: (l) => { healthListeners.push(l); return () => undefined; },
+    retry: async () => undefined,
     shutdown: async () => undefined,
   };
   return { host, calls, healthListeners };
@@ -42,6 +43,7 @@ const INVOKE_CHANNELS: Array<[string, unknown[]]> = [
   ['dude:store:entity:commit', [{ entityType: 'favorite', entityId: 'x', op: 'upsert', payload: {} }]],
   ['dude:store:entity:importMany', [[{ entityType: 'favorite', entityId: 'x', op: 'upsert', payload: {} }]]],
   ['dude:store:status', []],
+  ['dude:store:retry', []],
   ['dude:device:get', []],
   ['dude:device:rename', ['Desk']],
 ];
@@ -101,6 +103,16 @@ describe('device store bridge', () => {
     mock.handlers.clear();
     registerDeviceStoreHandlers(window, () => ({ ...ctx.host, status: () => 'degraded' }));
     expect(await mock.handlers.get('dude:store:hydrate')!({ sender: own })).toMatchObject({ status: 'degraded', device: null, kv: [] });
+  });
+
+  it('retry is sender-checked and asks the host to restart', async () => {
+    const retry = vi.fn(async () => undefined);
+    mock.handlers.clear();
+    registerDeviceStoreHandlers(window, () => ({ ...ctx.host, retry, status: () => 'degraded', health: () => ({ status: 'degraded' }) as never }));
+    await expect(mock.handlers.get('dude:store:retry')!({ sender: {} })).rejects.toThrow('forbidden');
+    expect(retry).not.toHaveBeenCalled();
+    expect(await mock.handlers.get('dude:store:retry')!({ sender: own })).toEqual({ status: 'degraded' });
+    expect(retry).toHaveBeenCalledOnce();
   });
 
   it('pushes health changes to the renderer', () => {

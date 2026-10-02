@@ -5,7 +5,7 @@ export type { PlatformBridgePort } from "./platform-ports.js";
 export type { EngineHostPorts } from "./engine-host.js";
 export type { ReadableFilePort, ReadableFileListPort } from "./file-ports.js";
 export type {
-  StoreStatus, DeviceStoreDevice, DeviceStoreBoot, StoreHealth, KvMutation, EntityCommit, EntityCommitResult, ResetKind, ResetPreview,
+  StoreStatus, DeviceStoreDevice, DeviceStoreBoot, StoreHealth, KvMutation, KvScope, EntityCommit, EntityCommitResult, ResetKind, ResetPreview,
 } from "./device-store/device-store.model.js";
 export type {
   AgentMethodMap, AgentMethod, AgentRequest, AgentResponse, AgentHistoryRecord, AgentNetworkRun, JournalEngine,

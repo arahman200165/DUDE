@@ -46,6 +46,7 @@ export function createInProcessClient(handle: (request: unknown) => Promise<Agen
     status: () => status,
     health: () => null,
     onHealth(listener) { listeners.add(listener); return () => { listeners.delete(listener); }; },
+    async retry() { /* the in-process client never stops by itself */ },
     async shutdown() { await handle({ id: nextId++, method: 'store.shutdown', params: {} }); status = 'unavailable'; },
   };
 }

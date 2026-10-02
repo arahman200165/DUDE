@@ -1,76 +1,33 @@
-import { isDevMode } from '@angular/core';
+import type { DataScope } from '@dude/domain';
+import type { PersistencePolicy } from '@dude/shared-types/shared/models/persistence-policy.model';
+import { activeLocalBackend } from './local-backend-registry';
+import { createWindowStorageBackend } from './window-storage-backend';
 
 export type StorageKind = 'local' | 'session';
 
+/** Extra context for a write. Window storage ignores it; the device kv backend forwards it to the store. */
+export interface StorageWriteMeta {
+  readonly policy?: PersistencePolicy;
+  readonly scope?: DataScope;
+}
+
 export interface StorageBackend {
   get(key: string): string | null;
-  set(key: string, value: string): boolean;
+  set(key: string, value: string, meta?: StorageWriteMeta): boolean;
   remove(key: string): void;
   keys(prefix: string): string[];
 }
 
-function resolveStorage(kind: StorageKind): Storage | null {
-  try {
-    return kind === 'local' ? window.localStorage : window.sessionStorage;
-  } catch {
-    return null;
-  }
-}
-
-function warn(action: string, error: unknown): void {
-  if (isDevMode()) {
-    console.warn(`[PersistenceService] failed to ${action}`, error);
-  }
-}
-
+/**
+ * `'local'` is a thin proxy that resolves the active backend on every call, so the device-store
+ * backend installed in `main.ts` (before bootstrap) is picked up even by module-level constants.
+ */
 export function createStorageBackend(kind: StorageKind): StorageBackend {
+  if (kind === 'session') return createWindowStorageBackend('session');
   return {
-    get(key: string): string | null {
-      try {
-        return resolveStorage(kind)?.getItem(key) ?? null;
-      } catch (error) {
-        warn(`read "${key}"`, error);
-        return null;
-      }
-    },
-
-    set(key: string, value: string): boolean {
-      try {
-        const storage = resolveStorage(kind);
-        if (!storage) return false;
-        storage.setItem(key, value);
-        return true;
-      } catch (error) {
-        warn(`write "${key}"`, error);
-        return false;
-      }
-    },
-
-    remove(key: string): void {
-      try {
-        resolveStorage(kind)?.removeItem(key);
-      } catch (error) {
-        warn(`remove "${key}"`, error);
-      }
-    },
-
-    keys(prefix: string): string[] {
-      try {
-        const storage = resolveStorage(kind);
-        if (!storage) return [];
-
-        const matched: string[] = [];
-        for (let i = 0; i < storage.length; i++) {
-          const key = storage.key(i);
-          if (key?.startsWith(prefix)) {
-            matched.push(key);
-          }
-        }
-        return matched;
-      } catch (error) {
-        warn(`enumerate keys with prefix "${prefix}"`, error);
-        return [];
-      }
-    },
+    get: (key) => activeLocalBackend().get(key),
+    set: (key, value, meta) => activeLocalBackend().set(key, value, meta),
+    remove: (key) => activeLocalBackend().remove(key),
+    keys: (prefix) => activeLocalBackend().keys(prefix),
   };
 }

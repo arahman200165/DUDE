@@ -42,6 +42,7 @@ const bridge: PlatformBridge = {
     commitEntity: (commit) => ipcRenderer.invoke('dude:store:entity:commit', commit),
     importEntities: (commits) => ipcRenderer.invoke('dude:store:entity:importMany', commits),
     status: () => ipcRenderer.invoke('dude:store:status'),
+    retry: () => ipcRenderer.invoke('dude:store:retry'),
     onFlushRequest: (callback) => {
       const listener = (_event: Electron.IpcRendererEvent, id: number) => {
         void Promise.resolve().then(callback).catch(() => undefined).finally(() => ipcRenderer.send('dude:store:flushed', id));

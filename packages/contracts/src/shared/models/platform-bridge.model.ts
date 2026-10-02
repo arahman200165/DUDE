@@ -72,6 +72,8 @@ export interface PlatformBridge {
     /** Upserts of a single entity type, committed in one transaction. */
     importEntities(commits: readonly EntityCommit[]): Promise<{ readonly ok: true; readonly count: number; readonly backpressure: boolean } | { readonly ok: false; readonly error: string }>;
     status(): Promise<StoreHealth>;
+    /** Asks main to restart a stopped store service; resolves with the resulting health. */
+    retry(): Promise<StoreHealth>;
     /** Main asks the renderer to flush pending writes before quit; the returned promise settles the handshake. */
     onFlushRequest(callback: () => void | Promise<void>): () => void;
     onHealth(callback: (health: StoreHealth) => void): () => void;

@@ -6,6 +6,7 @@ import { DudeDataType } from "@dude/shared-types/shared/models/tool-io.model";
 import { PersistencePolicy } from "@dude/shared-types/shared/models/persistence-policy.model";
 import { ConsequenceClass } from '../../shared/models/tool-definition.model';
 import { PLATFORM_CAPABILITY_IDS, RUNTIME_IDS, RuntimeId } from "@dude/shared-types/shared/models/tool-capability.model";
+import { isDataScope } from '@dude/domain';
 import { PLATFORM_CAPABILITIES } from "@dude/contracts/core/platform/capability-catalog";
 
 // One authoritative structural-validation pass over the real registry (DUDE_PRD.md §21 Phase
@@ -52,6 +53,45 @@ function toolSource(id: string): string {
     .map((file) => readFileSync(resolve(dir, file), 'utf8')))
     .join('\n');
 }
+
+// Per-key settingScopes (Phase 31B): main validates every kv key against this pattern, so a manifest
+// key that can't pass would be refused at runtime, and a key no signal ever uses is dead metadata.
+const SETTING_KEY = /^[A-Za-z0-9_.:-]{1,128}$/;
+const VALID_SENSITIVITIES = ['non-sensitive', 'sensitive', 'secret'];
+
+function listSources(dir: string): string[] {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = resolve(dir, entry.name);
+    if (entry.isDirectory()) return listSources(path);
+    return entry.name.endsWith('.ts') && !entry.name.endsWith('.spec.ts') ? [readFileSync(path, 'utf8')] : [];
+  });
+}
+
+/** Problems with a `settingScopes` map; `sources` are the tool's non-spec .ts files. Empty means valid. */
+export function checkSettingScopes(scopes: Record<string, unknown>, sources: readonly string[]): string[] {
+  const problems: string[] = [];
+  for (const [key, entry] of Object.entries(scopes)) {
+    if (!SETTING_KEY.test(key)) problems.push(`key "${key}" does not match ${SETTING_KEY}`);
+    const value = entry as { scope?: unknown; sensitivity?: unknown } | null;
+    if (!value || !isDataScope(value.scope)) problems.push(`key "${key}" has an invalid scope`);
+    if (value && value.sensitivity !== undefined && !VALID_SENSITIVITIES.includes(value.sensitivity as string)) problems.push(`key "${key}" has an invalid sensitivity`);
+    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const used = new RegExp(`['"]${escaped}['"]\\s*,\\s*['"](?:local|session|secure-local|user-choice|none)['"]`);
+    if (!sources.some((source) => used.test(source))) problems.push(`key "${key}" is not a persistence.signal key in the tool's sources`);
+  }
+  return problems;
+}
+
+describe('checkSettingScopes', () => {
+  const source = "readonly indent = this.persistence.signal<number>('json', 'indent', 'local', 2);";
+  it('accepts a real key with a valid scope and sensitivity', () => {
+    expect(checkSettingScopes({ indent: { scope: 'environment', sensitivity: 'non-sensitive' } }, [source])).toEqual([]);
+  });
+  it('rejects a bad key, scope, sensitivity and an unused key', () => {
+    expect(checkSettingScopes({ 'bad key!': { scope: 'nope', sensitivity: 'x' } }, [source])).toHaveLength(4);
+  });
+});
 
 describe('Tool conformance harness', () => {
   it('has at least one registered tool', () => {
@@ -209,6 +249,12 @@ describe('Tool conformance harness', () => {
         for (const preference of section.workspaceOverridable ?? []) {
           expect(preference.label.trim().length, `${definition.id} workspaceOverridable "${preference.key}" has a blank label`).toBeGreaterThan(0);
         }
+      });
+
+      it('declares settingScopes whose keys are valid, scoped and really persisted by the tool, when present', () => {
+        if (!definition.settingScopes) return;
+        const sources = listSources(resolve(process.cwd(), 'apps/web/src/app/tools', definition.id));
+        expect(checkSettingScopes(definition.settingScopes, sources), `${definition.id} settingScopes`).toEqual([]);
       });
 
       it('declares storageMigrations that never move a key onto itself, when present', () => {

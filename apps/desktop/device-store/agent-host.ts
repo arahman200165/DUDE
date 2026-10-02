@@ -24,6 +24,8 @@ export interface DeviceStoreHost {
   status(): StoreStatus;
   health(): StoreHealth | null;
   onHealth(listener: (health: StoreHealth) => void): () => void;
+  /** Manual retry: when unavailable, clears the crash history and restarts the child. Resolves once that attempt settles. */
+  retry(): Promise<void>;
   shutdown(): Promise<void>;
 }
 
@@ -291,6 +293,18 @@ class AgentHost implements DeviceStoreHost {
   onHealth(listener: (health: StoreHealth) => void): () => void {
     this.listeners.add(listener);
     return () => { this.listeners.delete(listener); };
+  }
+
+  retry(): Promise<void> {
+    if (this.phase !== 'unavailable') return Promise.resolve();
+    this.crashes = [];
+    this.lastHealth = syntheticHealth('degraded', 'The device store is restarting.');
+    this.reported = 'degraded';
+    this.emit();
+    return new Promise<void>((resolve) => {
+      this.firstSettled = resolve;
+      this.spawn();
+    });
   }
 
   async shutdown(): Promise<void> {

@@ -35,6 +35,20 @@ async function launch(args){
  await expect(page.locator('app-sidebar')).toBeVisible();
  return {app,page,marks};
 }
+const kvValue=(page,namespace,key)=>page.evaluate(async([n,k])=>{
+ const boot=await window.dude.store.hydrate();
+ return boot.kv.find(e=>e.namespace===n&&e.key===k)?.value;
+},[namespace,key]);
+// The value must be present in the hydrated store, and the one-shot import must have consumed the legacy key
+// (only the appearance mirror may remain in localStorage).
+async function expectIndent(page){
+ assert.equal(await kvValue(page,'json','indent'),4,'json indent hydrated from the device store');
+ assert.equal(await kvValue(page,'__onboarding__','completed'),true,'onboarding completion hydrated from the device store');
+ assert.equal(await page.evaluate(()=>localStorage.getItem('dude:v1:json:indent')),null,'legacy localStorage key was consumed by the import');
+ const leftovers=await page.evaluate(()=>Object.keys(localStorage).filter(k=>k.startsWith('dude:v1:')));
+ assert.ok(leftovers.every(k=>k.includes(':settings:')||k.includes('__device__')||k.includes('appearance')),`unexpected localStorage keys: ${leftovers}`);
+ await expect(page.getByText('Device Store unavailable')).toHaveCount(0);
+}
 let active;
 try{
  active=await launch(['dude://open/tool/base64']);
@@ -56,16 +70,27 @@ try{
  await page.evaluate(()=>{window.dude.open.ready();return window.dude.open.pickFile();});
  await expect(page.getByRole('heading',{name:'JSON Formatter',exact:true})).toBeVisible();
  await expect(page.locator('textarea').first()).toHaveValue('{"phase":31,"portable":true}');
- await page.evaluate(()=>{localStorage.setItem('dude:v1:desktop:onboarding-completed','true');localStorage.setItem('dude:v1:json:indent','4');});
+ // Seed through the Device Store (the renderer's only durable path), then prove the one-shot legacy
+ // localStorage import: clear its marker, plant a legacy key, and reload so the import runs again.
+ const seeded=await page.evaluate(async()=>{
+  const seed=await window.dude.store.commitKv([
+   {namespace:'__onboarding__',key:'completed',value:true,policy:'local'},
+   {namespace:'__renderer-import__',key:'done',remove:true,policy:'local'},
+  ]);
+  localStorage.setItem('dude:v1:json:indent','4');
+  return seed;
+ });
+ assert.equal(seeded.ok,true);
  await page.reload();
- assert.equal(await page.evaluate(()=>localStorage.getItem('dude:v1:json:indent')),'4');
+ await expect(page.locator('app-sidebar')).toBeVisible();
+ await expect(page.getByRole('button',{name:'Skip for now',exact:true})).toHaveCount(0);
+ await expectIndent(page);
  launches.push({kind:'cold',marks:marks.join('')});
  await app.close();active=null;
  active=await launch(['--open-with-dude',input]);
  await expect(active.page.getByRole('heading',{name:'JSON Formatter',exact:true})).toBeVisible();
  await expect(active.page.locator('textarea').first()).toHaveValue('{"phase":31,"portable":true}');
- assert.equal(await active.page.evaluate(()=>localStorage.getItem('dude:v1:json:indent')),'4');
- assert.equal((await active.page.evaluate(()=>window.dude.preferences.get())).startupDestination,'workspace');
+ await expectIndent(active.page);
  launches.push({kind:'warm',marks:active.marks.join('')});
  await active.app.close();active=null;
  // Legacy userData import: the seeded JSON was moved to legacy-import/<ts>/ and its values are in the device store.
@@ -79,6 +104,12 @@ try{
   assert.ok(row,'device_docs has a desktop-preferences row');
   const stored=JSON.parse(row.value_json);
   assert.equal(stored.closeToTray,false);assert.equal(stored.updateMode,'manual');
+  const kv=(namespace,key)=>db.prepare('SELECT * FROM kv WHERE namespace = ? AND key = ?').get(namespace,key);
+  const indent=kv('json','indent');
+  assert.ok(indent,'kv has the legacy-imported json indent row');
+  assert.equal(JSON.parse(indent.value_json),4);assert.equal(indent.policy,'local');assert.equal(indent.scope,'environment','a local tool preference is environment-scoped');
+  assert.equal(JSON.parse(kv('__onboarding__','completed').value_json),true,'kv has the commitKv-seeded onboarding row');
+  assert.ok(kv('__renderer-import__','done'),'kv has the renderer legacy-import marker');
   assert.ok(db.prepare("SELECT value FROM meta WHERE key = 'device_id'").get(),'meta has a device_id');
  }finally{db.close();}
  writeFileSync(path.join(root,'tmp/phase31a-desktop-evidence.json'),JSON.stringify({profile,fixtureOrigin:'dude-app://app',checks:['production preload isolation','native helper read','mutation read-allowlist rejection','picker grant and walk','deep-link navigation','picker file handoff','command-line file handoff','stable-origin renderer reload and warm persistence','native preference persistence'],launches},null,2)+'\n');

@@ -24,7 +24,7 @@ export function commitKvBatch(db: Db, mutations: readonly KvMutation[], scopeOf:
   transaction(db, () => {
     for (const m of mutations) {
       if (m.remove) db.prepare('DELETE FROM kv WHERE namespace = ? AND key = ?').run(m.namespace, m.key);
-      else upsert(db, m.namespace, m.key, m.value, m.policy, scopeOf(m.policy), stamp);
+      else upsert(db, m.namespace, m.key, m.value, m.policy, m.scope ?? scopeOf(m.policy), stamp);
     }
   });
 }

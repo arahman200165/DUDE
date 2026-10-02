@@ -13,6 +13,7 @@
     "@dude/contracts": "*",
     "@dude/crypto": "*",
     "@dude/domain": "*",
+    "@dude/persistence": "*",
     "@dude/shared-types": "*",
     "@dude/tool-engine": "*",
     "@dude/tool-registry": "*",

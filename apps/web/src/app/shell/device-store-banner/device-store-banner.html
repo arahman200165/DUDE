@@ -1,0 +1,15 @@
+@if (visible()) {
+  <div class="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-warning/50 bg-panel px-3 py-1.5 text-ui text-warning" role="alert">
+    <span class="inline-flex items-center gap-1.5">
+      <app-status-glyph kind="warning" />
+      <span>Device Store unavailable — changes won't be saved.</span>
+    </span>
+    @if (reason()) {
+      <span class="text-text-muted">{{ reason() }}</span>
+    }
+    <span class="ml-auto inline-flex gap-3">
+      <button type="button" class="underline disabled:opacity-60" [disabled]="retrying()" (click)="retry()">Retry</button>
+      <button type="button" class="underline" (click)="details()">Details</button>
+    </span>
+  </div>
+}

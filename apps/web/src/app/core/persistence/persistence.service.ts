@@ -1,6 +1,8 @@
 import { Injectable, Injector, Signal, WritableSignal, effect, inject, signal } from '@angular/core';
 import { PersistencePolicy } from "@dude/shared-types/shared/models/persistence-policy.model";
-import { StorageBackend, createStorageBackend } from './storage-backend';
+import { StorageBackend, StorageWriteMeta, createStorageBackend } from './storage-backend';
+import { resolveKvScope } from './scope-resolver';
+import { DEVICE_NAMESPACE } from '../device/device-identity.service';
 import {
   NAMESPACE_PREFIX,
   buildConsentKey,
@@ -69,13 +71,15 @@ export class PersistenceService {
 
     const storageKey = buildStorageKey(toolId, key);
 
+    const meta: StorageWriteMeta = { policy, scope: resolveKvScope(toolId, key, policy) };
+
     if (policy === 'user-choice') {
       const consent = this.getConsentSignal(toolId, key);
       const value = signal(this.readValue(consent() ? this.local : this.session, storageKey, initialValue));
       effect(
         () => {
           const backend = consent() ? this.local : this.session;
-          backend.set(storageKey, JSON.stringify(value()));
+          backend.set(storageKey, JSON.stringify(value()), meta);
         },
         { injector: this.injector },
       );
@@ -88,7 +92,7 @@ export class PersistenceService {
       () => {
         const json = JSON.stringify(value());
         // Skipping an identical write keeps a value adopted from another tab from echoing back.
-        if (backend.get(storageKey) !== json) backend.set(storageKey, json);
+        if (backend.get(storageKey) !== json) backend.set(storageKey, json, meta);
       },
       { injector: this.injector },
     );
@@ -113,7 +117,7 @@ export class PersistenceService {
 
   setConsent(toolId: string, key: string, granted: boolean): void {
     this.getConsentSignal(toolId, key).set(granted);
-    this.local.set(buildConsentKey(toolId, key), JSON.stringify(granted));
+    this.local.set(buildConsentKey(toolId, key), JSON.stringify(granted), { policy: 'local', scope: 'device' });
 
     if (!granted) {
       this.local.remove(buildStorageKey(toolId, key));
@@ -131,7 +135,7 @@ export class PersistenceService {
     if (raw === null) return false;
 
     const targetKey = buildStorageKey(toToolId, toKey);
-    const copied = this.local.get(targetKey) === null && this.local.set(targetKey, raw);
+    const copied = this.local.get(targetKey) === null && this.local.set(targetKey, raw, { policy: 'local', scope: resolveKvScope(toToolId, toKey, 'local') });
     this.local.remove(sourceKey);
     return copied;
   }
@@ -150,6 +154,8 @@ export class PersistenceService {
   clearAll(): void {
     for (const backend of [this.local, this.session]) {
       for (const storedKey of backend.keys(NAMESPACE_PREFIX)) {
+        // The web installation record is the device's identity, not user data.
+        if (storedKey.startsWith(`${NAMESPACE_PREFIX}:${DEVICE_NAMESPACE}:`)) continue;
         backend.remove(storedKey);
       }
     }

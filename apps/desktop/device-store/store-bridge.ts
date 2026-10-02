@@ -105,6 +105,17 @@ export function registerDeviceStoreHandlers(window: BrowserWindow, host: () => D
     return h.health() ?? unavailableHealth(h.status(), 'The device store is not ready.');
   });
 
+  ipcMain.handle('dude:store:retry', async (event): Promise<StoreHealth> => {
+    if (!own(event.sender)) throw new Error(FORBIDDEN);
+    const h = host();
+    if (!h) return unavailableHealth('unavailable', 'The device store is not running.');
+    try { await h.retry(); } catch { /* report whatever state results */ }
+    if (h.status() === 'ready') {
+      try { return await h.call('store.health', {}); } catch { /* fall through */ }
+    }
+    return h.health() ?? unavailableHealth(h.status(), 'The device store is not ready.');
+  });
+
   ipcMain.handle('dude:device:get', async (event): Promise<DeviceStoreDevice | null> => {
     if (!own(event.sender)) throw new Error(FORBIDDEN);
     const h = host();

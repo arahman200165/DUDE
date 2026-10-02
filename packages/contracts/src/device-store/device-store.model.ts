@@ -40,7 +40,11 @@ export interface KvMutation {
   value?: unknown;
   remove?: boolean;
   policy: PersistencePolicy;
+  /** Resolved by the renderer (settings definition, manifest override, policy rule); omitted means derive from policy. */
+  scope?: KvScope;
 }
+
+export type KvScope = 'environment' | 'workspace' | 'device' | 'local-only';
 
 export interface EntityCommit {
   entityType: string;

@@ -127,6 +127,27 @@ describe('agent host', () => {
     await expect(host.call('docs.get', { name: 'x' })).rejects.toMatchObject({ code: 'unavailable' });
   });
 
+  it('retry restarts an unavailable host and resets the crash counter', async () => {
+    const h = makeHarness();
+    const starting = begin(h);
+    ready(h);
+    const host = await starting;
+    h.children[0].exit(1);
+    await vi.advanceTimersByTimeAsync(500);
+    h.children[1].exit(1);
+    await vi.advanceTimersByTimeAsync(2000);
+    h.children[2].exit(1);
+    await vi.advanceTimersByTimeAsync(8000);
+    h.children[3].exit(1);
+    expect(host.status()).toBe('unavailable');
+
+    const retried = host.retry();
+    expect(h.children).toHaveLength(5);
+    ready(h);
+    await retried;
+    expect(host.status()).toBe('ready');
+  });
+
   it('queues calls made while restarting and flushes them once the new child is ready', async () => {
     const h = makeHarness();
     const starting = begin(h);

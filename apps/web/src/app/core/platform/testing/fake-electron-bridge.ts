@@ -205,6 +205,7 @@ export function fakeStore(): PlatformBridge['store'] {
       return { ok: true, count: commits.length, backpressure: false };
     },
     status: async () => health,
+    retry: async () => health,
     onFlushRequest: (callback) => { flushListeners.add(callback); return () => { flushListeners.delete(callback); }; },
     onHealth: (callback) => { healthListeners.add(callback); return () => { healthListeners.delete(callback); }; },
   };

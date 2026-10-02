@@ -1,11 +1,12 @@
 import { isKnownEntityType } from '@dude/persistence';
-import type { EntityCommit, KvMutation } from '@dude/contracts';
+import type { EntityCommit, KvMutation, KvScope } from '@dude/contracts';
 
 /** Bounds and shapes for everything the renderer may send to the device store. Main never trusts the renderer. */
 export const MAX_VALUE_BYTES = 2 * 1024 * 1024;
 export const MAX_BATCH = 1000;
 const NAMESPACE = /^[A-Za-z0-9_.-]{1,64}$/;
 const KEY = /^[A-Za-z0-9_.:-]{1,128}$/;
+const SCOPES = new Set(['environment', 'workspace', 'device', 'local-only']);
 const POLICIES = new Set(['none', 'session', 'local', 'user-choice']);
 
 export type Validated<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: string };
@@ -29,14 +30,16 @@ function payloadError(value: unknown): string | null {
 
 export function validateKvMutation(raw: unknown): Validated<KvMutation> {
   if (!isObject(raw)) return fail('Mutation must be an object.');
-  const { namespace, key, value, remove, policy } = raw;
+  const { namespace, key, value, remove, policy, scope } = raw;
   if (typeof namespace !== 'string' || !NAMESPACE.test(namespace)) return fail('Invalid namespace.');
   if (typeof key !== 'string' || !KEY.test(key)) return fail('Invalid key.');
   if (typeof policy !== 'string' || !POLICIES.has(policy)) return fail('Invalid policy.');
   if (remove !== undefined && typeof remove !== 'boolean') return fail('Invalid remove flag.');
+  if (scope !== undefined && (typeof scope !== 'string' || !SCOPES.has(scope))) return fail('Invalid scope.');
   const error = payloadError(value);
   if (error) return fail(error);
   const mutation: KvMutation = { namespace, key, policy: policy as KvMutation['policy'] };
+  if (scope !== undefined) mutation.scope = scope as KvScope;
   if (remove === true) mutation.remove = true;
   else if (value !== undefined) mutation.value = value;
   return { ok: true, value: mutation };

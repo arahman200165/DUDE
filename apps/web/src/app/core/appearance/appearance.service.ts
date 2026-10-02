@@ -3,6 +3,8 @@ import { PLATFORM_BRIDGE } from '../platform/platform-bridge.adapter';
 import { DestroyRef, Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { APPEARANCE_KEY, APP_SETTINGS_NAMESPACE } from "@dude/tool-engine/core/persistence/app-settings";
 import { PersistenceService } from '../persistence/persistence.service';
+import { hasInstalledLocalBackend } from '../persistence/local-backend-registry';
+import { mirrorAppearanceForPrepaint } from './appearance-prepaint-mirror';
 import {
   APPEARANCE_AXES,
   AppearancePrefs,
@@ -59,6 +61,12 @@ export class AppearanceService {
     this.watchMedia(LIGHT_QUERY, this.prefersLight);
     this.watchMedia(MORE_CONTRAST_QUERY, this.prefersMoreContrast);
     this.watchMedia(REDUCED_MOTION_QUERY, this.prefersReducedMotion);
+
+    // Desktop: the store owns appearance; index.html's pre-paint script still needs a localStorage copy.
+    effect(() => {
+      const stored = this.stored();
+      if (hasInstalledLocalBackend()) mirrorAppearanceForPrepaint(stored);
+    });
 
     effect(() => {
       const effective = this.effective();
