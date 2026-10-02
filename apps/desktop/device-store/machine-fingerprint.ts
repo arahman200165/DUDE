@@ -21,7 +21,7 @@ const defaultExec: ExecFn = (file, args, options) => new Promise((resolve, rejec
 export async function readMachineGuid(exec: ExecFn = defaultExec, platform: string = process.platform): Promise<string | null> {
   if (platform !== 'win32') return null;
   try {
-    const out = await exec('reg.exe', ['query', 'HKLM\SOFTWARE\Microsoft\Cryptography', '/v', 'MachineGuid'], { shell: false, windowsHide: true, timeout: 2000 });
+    const out = await exec('reg.exe', ['query', 'HKLM\\SOFTWARE\\Microsoft\\Cryptography', '/v', 'MachineGuid'], { shell: false, windowsHide: true, timeout: 2000 });
     return parseMachineGuid(out);
   } catch {
     return null;
