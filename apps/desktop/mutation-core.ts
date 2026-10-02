@@ -1,6 +1,8 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
+import { isDeviceStoreReady, storeCall } from './device-store/store-client';
+import { StoreJournal } from './device-store/store-journal';
 
 /**
  * Electron-free building blocks of the Destructive-Action Contract (DUDE_PRD.md §5.2.1): a pending-plan
@@ -85,7 +87,20 @@ export class ConfirmationStore<P extends StoredPlanBase> {
 
 const JOURNAL_ID = /^[0-9a-f-]{36}$/;
 
-export class JsonJournal<E extends { readonly planId: string; readonly appliedAt: string }> {
+export interface JournalEntryBase { readonly planId: string; readonly appliedAt: string }
+
+/** The journal surface the fs and sys engines use; implemented over JSON files and over the Device State Store. */
+export interface MutationJournal<E extends JournalEntryBase> {
+  write(entry: E): Promise<void>;
+  read(planId: string): Promise<E | null>;
+  /** Newest first. */
+  list(): Promise<E[]>;
+  remove(planId: string): Promise<void>;
+  /** Drops the oldest entries beyond `maxEntries` (default: the configured cap), passing each to `onRemove` first. */
+  trimTo(maxEntries?: number, onRemove?: (entry: E) => Promise<void> | void): Promise<void>;
+}
+
+export class JsonJournal<E extends JournalEntryBase> implements MutationJournal<E> {
   constructor(private readonly dir: () => string, private readonly maxEntries: number) {}
 
   async write(entry: E): Promise<void> {
@@ -123,4 +138,43 @@ export class JsonJournal<E extends { readonly planId: string; readonly appliedAt
       await this.remove(entry.planId);
     }
   }
+}
+
+/**
+ * The journal an engine uses: the Device State Store when it is ready, else the legacy JSON directory
+ * (degraded mode). Entries written while degraded are moved into the store by `drainLegacyJournal`.
+ */
+export function createMutationJournal<E extends JournalEntryBase>(engine: 'fs' | 'sys', legacyDir: string | (() => string), max: number): MutationJournal<E> {
+  const json = new JsonJournal<E>(typeof legacyDir === 'function' ? legacyDir : () => legacyDir, max);
+  const store = new StoreJournal<E>(engine, max);
+  const pick = (): MutationJournal<E> => (isDeviceStoreReady() ? store : json);
+  return {
+    write: (entry) => pick().write(entry),
+    read: (planId) => pick().read(planId),
+    list: () => pick().list(),
+    remove: (planId) => pick().remove(planId),
+    trimTo: (maxEntries, onRemove) => pick().trimTo(maxEntries, onRemove),
+  };
+}
+
+/**
+ * Moves every JSON journal entry in `legacyDir` into the store (an upsert, so it is idempotent) and then
+ * deletes the drained files, leaving the directory. Imports pre-31B journals once and recovers entries
+ * written while degraded. Returns how many entries were moved. A file that fails to parse is left alone.
+ */
+export async function drainLegacyJournal(engine: 'fs' | 'sys', legacyDir: string): Promise<number> {
+  if (!isDeviceStoreReady()) return 0;
+  const files = (await fs.readdir(legacyDir).catch(() => [] as string[])).filter((file) => file.endsWith('.json') && JOURNAL_ID.test(file.slice(0, -5)));
+  let moved = 0;
+  for (const file of files) {
+    const path = join(legacyDir, file);
+    let entry: JournalEntryBase;
+    try { entry = JSON.parse(await fs.readFile(path, 'utf8')) as JournalEntryBase; } catch { continue; }
+    if (!entry || entry.planId !== file.slice(0, -5) || typeof entry.appliedAt !== 'string') continue;
+    const existing = await storeCall('journal.get', { engine, planId: entry.planId });
+    if (!existing || JSON.stringify(existing) !== JSON.stringify(entry)) await storeCall('journal.append', { engine, entry: entry as never });
+    await fs.rm(path, { force: true });
+    moved++;
+  }
+  return moved;
 }

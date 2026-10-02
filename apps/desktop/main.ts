@@ -42,6 +42,8 @@ import { currentAppInfo, deviceCapabilities, startDeviceAgent } from './device-s
 import { readMachineGuid } from './device-store/machine-fingerprint';
 import { installQuitCoordinator } from './device-store/quit-coordinator';
 import { getDeviceStoreHost, setDeviceStoreHost } from './device-store/store-client';
+import { startStoreMaintenance } from './device-store/store-maintenance';
+import { importLegacyUserData } from './device-store/legacy-import';
 import { registerDeviceStoreHandlers } from './device-store/store-bridge';
 import { markPerf } from './perf-log';
 
@@ -184,6 +186,8 @@ if (hasSingleInstanceLock) void app.whenReady().then(async () => {
   markPerf('app-ready');
   await startDeviceStore();
   markPerf('device-store-started');
+  await importLegacyUserData(app.getPath('userData'));
+  startStoreMaintenance();
   await loadDesktopPreferences();
   markPerf('preferences-loaded');
   const wasRestoredAfterCrash = await checkAndMarkLaunch();

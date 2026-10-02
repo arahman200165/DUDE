@@ -1,6 +1,7 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron';
+import { BrowserWindow, dialog, ipcMain } from 'electron';
 import { promises as fs } from 'node:fs';
-import { basename, isAbsolute, join, sep } from 'node:path';
+import { basename, isAbsolute, sep } from 'node:path';
+import { loadDoc, saveDoc } from './device-store/device-docs';
 import { normalizeRoot } from './fs-paths';
 import type { FsResult, PickedFile, PickedSavePath, RememberedFolder, SaveFileFilter } from "@dude/contracts/fs/fs-types";
 export { normalizeRoot, resolveInRoot, toPosixRelative } from './fs-paths';
@@ -9,7 +10,7 @@ export { normalizeRoot, resolveInRoot, toPosixRelative } from './fs-paths';
  * Filesystem grants (Phase 8 Stage 2, extended in Phase 29 / Milestone 523). A path only becomes
  * readable after the user picks it in a native OS dialog this session — or after they explicitly
  * asked DUDE to *remember* a picked folder, in which case it is re-granted on launch only if it
- * still exists. Remembered folders live in `userData/remembered-folders.json`, are listed and
+ * still exists. Remembered folders live in the device store (`remembered-folders` doc), are listed and
  * revocable from Settings, and are the only roots background folder watching may use. A typed path
  * is never granted directly: it opens the picker pre-navigated there and the user confirms.
  */
@@ -76,13 +77,16 @@ export function isInsideGrantedRoot(absolute: string): boolean {
 
 // ---- Remembered folders ----
 
-function rememberedPath(): string { return join(app.getPath('userData'), 'remembered-folders.json'); }
+type RememberedEntry = { path: string; name: string; addedAt: string };
+
+/** Legacy-import decoder and load sanitizer: absolute-path entries, capped. */
+export function decodeRememberedFolders(raw: unknown): RememberedEntry[] | null {
+  if (!Array.isArray(raw)) return null;
+  return raw.filter((item): item is RememberedEntry => !!item && typeof item.path === 'string' && isAbsolute(item.path)).slice(0, MAX_REMEMBERED);
+}
 
 async function saveRemembered(): Promise<void> {
-  const target = rememberedPath();
-  const temp = `${target}.tmp`;
-  await fs.writeFile(temp, JSON.stringify(remembered, null, 2), 'utf8');
-  await fs.rename(temp, target);
+  await saveDoc('remembered-folders', remembered);
 }
 
 async function isDirectory(path: string): Promise<boolean> {
@@ -92,12 +96,7 @@ async function isDirectory(path: string): Promise<boolean> {
 /** Startup: re-grant every remembered folder that still exists. */
 export async function loadRememberedGrants(): Promise<readonly RememberedFolder[]> {
   if (!rememberedLoaded) {
-    try {
-      const raw = JSON.parse(await fs.readFile(rememberedPath(), 'utf8')) as unknown;
-      remembered = Array.isArray(raw)
-        ? raw.filter((item): item is { path: string; name: string; addedAt: string } => !!item && typeof item.path === 'string' && isAbsolute(item.path)).slice(0, MAX_REMEMBERED)
-        : [];
-    } catch { remembered = []; }
+    remembered = await loadDoc<RememberedEntry[]>('remembered-folders', decodeRememberedFolders, []);
     rememberedLoaded = true;
   }
   return listRemembered(true);

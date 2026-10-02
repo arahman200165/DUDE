@@ -6,6 +6,7 @@ import type { WalkEntry } from "@dude/contracts/fs/fs-types";
 import { sanitizeWalkOptions } from "@dude/tool-engine/shared/fs/walk-filter";
 import { merkleHash, type ManifestEntry, type ParsedLine } from "@dude/tool-engine/shared/fs/manifest-format";
 import { diffSnapshots, type Snapshot, type SnapshotFile, type SnapshotHeader } from "@dude/contracts/fs/snapshot-diff";
+import { upsertSnapshotHeader } from './device-store/snapshot-index';
 import { registerFsJob, type FsJobContext } from './fs-jobs';
 import { algorithmsOf, paramsOf } from './fs-job-walk';
 import { hashFile } from './fs-hash';
@@ -159,6 +160,7 @@ registerFsJob('snapshot-take', async (context) => {
   await fs.mkdir(snapshotsDir(userData), { recursive: true });
   await fs.writeFile(join(snapshotsDir(userData), `${header.id}.json`), JSON.stringify({ ...header, entries: body.entries, directories: body.directories }), 'utf8');
   await fs.writeFile(join(snapshotsDir(userData), `${header.id}.header.json`), JSON.stringify(header), 'utf8');
+  await upsertSnapshotHeader('fs', header.id, header, header.takenAt);
   return { header };
 });
 

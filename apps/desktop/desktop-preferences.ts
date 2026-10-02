@@ -1,6 +1,7 @@
 import { app, ipcMain, screen, type BrowserWindow } from 'electron';
 import { promises as fs } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { loadDoc, saveDoc } from './device-store/device-docs';
 
 export type UpdateMode = 'auto-download' | 'notify' | 'manual';
 export interface DesktopPreferences {
@@ -28,19 +29,14 @@ const DEFAULTS: DesktopPreferences = {
 let preferences: DesktopPreferences = { ...DEFAULTS };
 let lastInstallerRequest = '';
 
-function path(): string { return join(app.getPath('userData'), 'desktop-preferences.json'); }
-
 export function getDesktopPreferences(): DesktopPreferences { return { ...preferences }; }
 
 export async function loadDesktopPreferences(): Promise<void> {
-  try {
-    const parsed: unknown = JSON.parse(await fs.readFile(path(), 'utf8'));
-    if (parsed && typeof parsed === 'object') {
-      preferences = sanitize(parsed as Record<string, unknown>);
-      lastInstallerRequest = typeof (parsed as Record<string, unknown>)['lastInstallerRequest'] === 'string'
-        ? (parsed as Record<string, string>)['lastInstallerRequest'] : '';
-    }
-  } catch { /* A new profile has no preferences file. */ }
+  const stored = await loadDoc<Record<string, unknown> | null>('desktop-preferences', decodeDesktopPreferencesDoc, null);
+  if (stored) {
+    preferences = sanitize(stored);
+    lastInstallerRequest = typeof stored['lastInstallerRequest'] === 'string' ? stored['lastInstallerRequest'] : '';
+  }
   if (!app.isPackaged) return;
   try {
     const folder = dirname(app.getPath('exe'));
@@ -54,6 +50,11 @@ export async function loadDesktopPreferences(): Promise<void> {
     lastInstallerRequest = request;
     await save();
   } catch { /* An install without setup options uses existing settings. */ }
+}
+
+/** Legacy-import decoder: a plain object, kept raw (sanitize runs on load). */
+export function decodeDesktopPreferencesDoc(raw: unknown): Record<string, unknown> | null {
+  return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as Record<string, unknown> : null;
 }
 
 function sanitize(input: Record<string, unknown>): DesktopPreferences {
@@ -70,10 +71,7 @@ function sanitize(input: Record<string, unknown>): DesktopPreferences {
 }
 
 async function save(): Promise<void> {
-  const destination = path();
-  const temporary = `${destination}.tmp`;
-  await fs.writeFile(temporary, JSON.stringify({ ...preferences, lastInstallerRequest }), 'utf8');
-  await fs.rename(temporary, destination);
+  await saveDoc('desktop-preferences', { ...preferences, lastInstallerRequest });
 }
 
 export function registerDesktopPreferencesHandlers(window: BrowserWindow): void {

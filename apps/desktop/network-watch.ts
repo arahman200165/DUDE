@@ -1,8 +1,7 @@
-import { app, ipcMain, Notification, powerMonitor, type WebContents } from 'electron';
-import { promises as fs } from 'node:fs';
-import { join } from 'node:path';
+import { ipcMain, Notification, powerMonitor, type WebContents } from 'electron';
 import { randomUUID } from 'node:crypto';
 import type { WatchCheck, WatchEntry, WatchResult, WatchSettings, WatchState, WatchStatus } from "@dude/contracts/core/platform/network-types";
+import { loadDoc, saveDoc } from './device-store/device-docs';
 import { tlsHandshake } from './network-tls';
 import { startTlsUpgrade } from './network-starttls';
 
@@ -87,20 +86,23 @@ export const liveProbe: CertProbe = async (entry, signal) => {
 };
 
 // ---- Persistent store ----
-function storePath(): string { return join(app.getPath('userData'), 'certificate-watch-list.json'); }
+/** Legacy-import decoder: a plain object (entries/settings are normalized on load). */
+export function decodeCertificateWatchDoc(raw: unknown): WatchState | null {
+  return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as WatchState : null;
+}
 let state: WatchState = { settings: DEFAULT_SETTINGS, entries: [] };
 let loaded = false;
 
 async function load(): Promise<void> {
   if (loaded) return;
   try {
-    const raw = JSON.parse(await fs.readFile(storePath(), 'utf8')) as WatchState;
+    const raw = await loadDoc<WatchState>('certificate-watch-list', decodeCertificateWatchDoc, { settings: DEFAULT_SETTINGS, entries: [] });
     state = { settings: { ...DEFAULT_SETTINGS, ...raw.settings }, entries: (raw.entries ?? []).slice(0, MAX_ENTRIES), lastPassAt: raw.lastPassAt, nextPassAt: raw.nextPassAt };
   } catch { state = { settings: DEFAULT_SETTINGS, entries: [] }; }
   loaded = true;
 }
 let saveQueue: Promise<unknown> = Promise.resolve();
-function save(): Promise<void> { saveQueue = saveQueue.then(() => fs.writeFile(storePath(), JSON.stringify(state), 'utf8')).catch(() => {}); return saveQueue as Promise<void>; }
+function save(): Promise<void> { saveQueue = saveQueue.then(() => saveDoc('certificate-watch-list', state)).catch(() => {}); return saveQueue as Promise<void>; }
 
 // ---- Scheduler ----
 let timer: NodeJS.Timeout | null = null;

@@ -1,6 +1,5 @@
-import { app, ipcMain, nativeTheme, type BrowserWindow } from 'electron';
-import { promises as fs } from 'node:fs';
-import { join } from 'node:path';
+import { ipcMain, nativeTheme, type BrowserWindow } from 'electron';
+import { loadDoc, saveDoc } from './device-store/device-docs';
 import tokens from "../web/src/styles/theme/theme-tokens.json";
 
 export type NativeAppearanceMode = 'dark' | 'light';
@@ -35,15 +34,9 @@ export interface AppearanceBridgeDeps {
   readonly persist?: (appearance: NativeAppearance) => void | Promise<void>;
 }
 
-function storePath(): string { return join(app.getPath('userData'), 'native-appearance.json'); }
-
-/** Last good appearance from disk (or the dark default). Call before creating the window. */
+/** Last good appearance from the device store (or the dark default). Call before creating the window. */
 export async function loadNativeAppearance(): Promise<NativeAppearance> {
-  try {
-    return parseNativeAppearance(JSON.parse(await fs.readFile(storePath(), 'utf8'))) ?? DEFAULT_NATIVE_APPEARANCE;
-  } catch {
-    return DEFAULT_NATIVE_APPEARANCE;
-  }
+  return loadDoc('native-appearance', parseNativeAppearance, DEFAULT_NATIVE_APPEARANCE);
 }
 
 /** Applies the native theme source before any window paints, so there is no light/dark flash. */
@@ -52,7 +45,7 @@ export function applyNativeThemeSource(appearance: NativeAppearance, target: The
 }
 
 async function persistToDisk(appearance: NativeAppearance): Promise<void> {
-  await fs.writeFile(storePath(), JSON.stringify(appearance), 'utf8');
+  await saveDoc('native-appearance', appearance);
 }
 
 /**

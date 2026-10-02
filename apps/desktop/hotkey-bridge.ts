@@ -1,7 +1,6 @@
-import { app, clipboard, globalShortcut, ipcMain } from 'electron';
+import { clipboard, globalShortcut, ipcMain } from 'electron';
 import { randomUUID } from 'node:crypto';
-import { promises as fs } from 'node:fs';
-import { join } from 'node:path';
+import { loadDoc, saveDoc } from './device-store/device-docs';
 import { decodeBase64, encodeBase64 } from "@dude/crypto/base64-codec";
 import { computeHash } from "@dude/crypto/hash-compute";
 
@@ -61,20 +60,20 @@ const QUICK_ACTIONS: readonly QuickAction[] = [
 
 const bindings = new Map<string, string>(); // actionId -> Electron accelerator string
 
-function bindingsPath(): string {
-  return join(app.getPath('userData'), 'hotkey-bindings.json');
+/** Legacy-import decoder: actionId -> accelerator string map. */
+export function decodeHotkeyBindings(raw: unknown): Record<string, string> | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(raw)) if (typeof v === 'string') out[k] = v;
+  return out;
 }
 
 async function loadPersistedBindings(): Promise<Record<string, string>> {
-  try {
-    return JSON.parse(await fs.readFile(bindingsPath(), 'utf8')) as Record<string, string>;
-  } catch {
-    return {};
-  }
+  return loadDoc('hotkey-bindings', decodeHotkeyBindings, {});
 }
 
 async function savePersistedBindings(): Promise<void> {
-  await fs.writeFile(bindingsPath(), JSON.stringify(Object.fromEntries(bindings)), 'utf8');
+  await saveDoc('hotkey-bindings', Object.fromEntries(bindings));
 }
 
 function findAction(actionId: string): QuickAction | undefined {

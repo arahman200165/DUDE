@@ -2,6 +2,8 @@ import { app, ipcMain } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
+import { isDeviceStoreReady } from './device-store/store-client';
+import { listSnapshotHeaders, reconcileSnapshotIndex, removeSnapshotHeader, upsertSnapshotHeader } from './device-store/snapshot-index';
 import { SYS_SNAPSHOT_KINDS, type SysMutResult, type SysSnapshot, type SysSnapshotHeader, type SysSnapshotKind } from "@dude/contracts/system/sys-mutation-types";
 
 /**
@@ -41,7 +43,9 @@ async function write(snapshot: SysSnapshot): Promise<SysSnapshotHeader> {
   await fs.mkdir(join(root(), full.kind), { recursive: true });
   await fs.writeFile(`${target}.tmp`, JSON.stringify(full), 'utf8');
   await fs.rename(`${target}.tmp`, target);
-  return header(full);
+  const written = header(full);
+  await upsertSnapshotHeader(full.kind, full.id, written, full.createdAt);
+  return written;
 }
 
 export async function saveSnapshot(kind: unknown, name: unknown, source: unknown, data: unknown): Promise<SysSnapshotHeader> {
@@ -60,6 +64,12 @@ export async function getSnapshot(kind: unknown, id: unknown): Promise<SysSnapsh
 export async function listSnapshots(kind?: unknown): Promise<SysSnapshotHeader[]> {
   const kinds = kind === undefined ? [...SYS_SNAPSHOT_KINDS] : [checkKind(kind)];
   const headers: SysSnapshotHeader[] = [];
+  if (isDeviceStoreReady()) {
+    try {
+      for (const k of kinds) headers.push(...await listSnapshotHeaders<SysSnapshotHeader>(k));
+      return headers.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    } catch { headers.length = 0; /* fall back to the directory scan */ }
+  }
   for (const k of kinds) {
     for (const file of await fs.readdir(join(root(), k)).catch(() => [] as string[])) {
       if (!file.endsWith('.json') || !ID_PATTERN.test(file.slice(0, -5))) continue;
@@ -70,7 +80,17 @@ export async function listSnapshots(kind?: unknown): Promise<SysSnapshotHeader[]
 }
 
 export async function removeSnapshot(kind: unknown, id: unknown): Promise<void> {
-  await fs.rm(fileOf(checkKind(kind), checkId(id)), { force: true });
+  const checked = checkKind(kind);
+  const safe = checkId(id);
+  await fs.rm(fileOf(checked, safe), { force: true });
+  await removeSnapshotHeader(checked, safe);
+}
+
+/** Rebuilds each kind's header index from the snapshot files (startup, when the store is ready). */
+export async function reconcileSysSnapshotIndex(): Promise<void> {
+  for (const kind of SYS_SNAPSHOT_KINDS) {
+    await reconcileSnapshotIndex(kind, join(root(), kind), { toHeader: (parsed) => header(parsed as unknown as SysSnapshot) });
+  }
 }
 
 export async function exportSnapshot(kind: unknown, id: unknown): Promise<string> {

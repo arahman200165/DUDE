@@ -1,6 +1,5 @@
-import { app, BrowserWindow, globalShortcut, ipcMain, screen, type Rectangle } from 'electron';
-import { promises as fs } from 'node:fs';
-import { join } from 'node:path';
+import { BrowserWindow, globalShortcut, ipcMain, screen, type Rectangle } from 'electron';
+import { loadDoc, saveDoc } from './device-store/device-docs';
 
 const DEFAULT_ACCELERATOR = 'CommandOrControl+Shift+Space';
 let accelerator: string | null = null;
@@ -10,17 +9,15 @@ let pendingOpen: { compact: boolean } | null = null;
 let originalBounds: Rectangle | null = null;
 let restoringGeometry = false;
 
-function bindingPath(): string {
-  return join(app.getPath('userData'), 'quick-launcher-hotkey-binding.json');
+/** Legacy-import decoder: `{ accelerator: string | null }`. */
+export function decodeQuickLauncherBinding(raw: unknown): { accelerator: string | null } | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const value = (raw as { accelerator?: unknown }).accelerator;
+  return value === null || typeof value === 'string' ? { accelerator: value } : null;
 }
 
 async function loadBinding(): Promise<string | null> {
-  try {
-    const value = JSON.parse(await fs.readFile(bindingPath(), 'utf8')) as { accelerator?: unknown };
-    return value.accelerator === null || typeof value.accelerator === 'string' ? value.accelerator : DEFAULT_ACCELERATOR;
-  } catch {
-    return DEFAULT_ACCELERATOR;
-  }
+  return (await loadDoc('quick-launcher-hotkey', decodeQuickLauncherBinding, { accelerator: DEFAULT_ACCELERATOR })).accelerator;
 }
 
 function flush(): void {
@@ -128,7 +125,7 @@ export async function registerQuickLauncherHotkey(): Promise<void> {
     accelerator = next;
     if (previous) globalShortcut.unregister(previous);
     try {
-      await fs.writeFile(bindingPath(), JSON.stringify({ accelerator }), 'utf8');
+      await saveDoc('quick-launcher-hotkey', { accelerator });
       return { ok: true };
     } catch {
       if (accelerator) globalShortcut.unregister(accelerator);

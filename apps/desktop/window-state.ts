@@ -1,10 +1,14 @@
-import { app, screen, type BrowserWindow, type Rectangle } from 'electron';
-import { promises as fs } from 'node:fs';
-import { join } from 'node:path';
+import { screen, type BrowserWindow, type Rectangle } from 'electron';
+import { loadDoc, saveDoc } from './device-store/device-docs';
 import { getDesktopPreferences } from './desktop-preferences';
 import { isQuickLauncherGeometry } from './quick-launcher';
 
-function path(): string { return join(app.getPath('userData'), 'window-bounds.json'); }
+export function decodeWindowBounds(raw: unknown): Rectangle | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+  const ok = (['x', 'y', 'width', 'height'] as const).every((k) => typeof r[k] === 'number' && Number.isFinite(r[k]));
+  return ok ? { x: r['x'] as number, y: r['y'] as number, width: r['width'] as number, height: r['height'] as number } : null;
+}
 
 function fitsDisplay(bounds: Rectangle, display: Electron.Display): boolean {
   const area = display.workArea;
@@ -18,10 +22,8 @@ export async function initialWindowBounds(): Promise<Rectangle> {
   const displays = screen.getAllDisplays();
   const preferred = displays.find((display) => display.id === prefs.preferredDisplayId);
   if (prefs.rememberWindowBounds && (prefs.preferredDisplayId === null || preferred)) {
-    try {
-      const stored = JSON.parse(await fs.readFile(path(), 'utf8')) as Rectangle;
-      if (preferred ? fitsDisplay(stored, preferred) : displays.some((display) => fitsDisplay(stored, display))) return stored;
-    } catch { /* First launch has no bounds. */ }
+    const stored = await loadDoc<Rectangle | null>('window-bounds', decodeWindowBounds, null);
+    if (stored && (preferred ? fitsDisplay(stored, preferred) : displays.some((display) => fitsDisplay(stored, display)))) return stored;
   }
   const area = (preferred ?? screen.getPrimaryDisplay()).workArea;
   const width = Math.min(1280, area.width);
@@ -35,7 +37,7 @@ export function trackWindowBounds(window: BrowserWindow): void {
     if (!getDesktopPreferences().rememberWindowBounds || window.isMaximized() || window.isMinimized() || isQuickLauncherGeometry(window)) return;
     if (timer) clearTimeout(timer);
     timer = setTimeout(() => {
-      if (!isQuickLauncherGeometry(window)) void fs.writeFile(path(), JSON.stringify(window.getBounds()), 'utf8').catch(() => {});
+      if (!isQuickLauncherGeometry(window)) void saveDoc('window-bounds', window.getBounds()).catch(() => {});
     }, 500);
   };
   window.on('resize', persist);

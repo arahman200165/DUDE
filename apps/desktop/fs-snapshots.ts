@@ -2,6 +2,8 @@ import { app, ipcMain } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
+import { isDeviceStoreReady } from './device-store/store-client';
+import { listSnapshotHeaders, reconcileSnapshotIndex, removeSnapshotHeader, upsertSnapshotHeader } from './device-store/snapshot-index';
 import type { FsResult } from "@dude/contracts/fs/fs-types";
 import { diffSnapshots, parseSnapshot, type Snapshot, type SnapshotDiff, type SnapshotHeader } from "@dude/contracts/fs/snapshot-diff";
 
@@ -16,7 +18,13 @@ const MAX_IMPORT_BYTES = 512 * 1024 * 1024;
 function dir(): string { return join(app.getPath('userData'), 'snapshots'); }
 function isId(value: unknown): value is string { return typeof value === 'string' && /^[0-9a-f-]{36}$/.test(value); }
 
+/** Rebuilds the header index from the header files (startup, when the store is ready). */
+export function reconcileFsSnapshotIndex(): Promise<void> { return reconcileSnapshotIndex('fs', dir()); }
+
 export async function listSnapshots(): Promise<SnapshotHeader[]> {
+  if (isDeviceStoreReady()) {
+    try { return (await listSnapshotHeaders<SnapshotHeader>('fs')).sort((a, b) => b.takenAt.localeCompare(a.takenAt)); } catch { /* fall back to the directory scan */ }
+  }
   const files = (await fs.readdir(dir()).catch(() => [] as string[])).filter((file) => file.endsWith('.header.json'));
   const headers = await Promise.all(files.map(async (file) => {
     try { return JSON.parse(await fs.readFile(join(dir(), file), 'utf8')) as SnapshotHeader; } catch { return null; }
@@ -38,6 +46,7 @@ export async function importSnapshot(json: unknown): Promise<SnapshotHeader> {
   await fs.mkdir(dir(), { recursive: true });
   await fs.writeFile(join(dir(), `${header.id}.json`), JSON.stringify({ ...header, entries, directories }), 'utf8');
   await fs.writeFile(join(dir(), `${header.id}.header.json`), JSON.stringify(header), 'utf8');
+  await upsertSnapshotHeader('fs', header.id, header, header.takenAt);
   return header;
 }
 
@@ -45,6 +54,7 @@ export async function deleteSnapshot(id: unknown): Promise<void> {
   if (!isId(id)) throw new Error('Unknown snapshot.');
   await fs.rm(join(dir(), `${id}.json`), { force: true });
   await fs.rm(join(dir(), `${id}.header.json`), { force: true });
+  await removeSnapshotHeader('fs', id);
 }
 
 export async function compareSnapshots(baseId: unknown, compareId: unknown): Promise<SnapshotDiff> {

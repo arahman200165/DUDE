@@ -26,6 +26,7 @@ vi.mock('node:fs', () => ({
   promises: { readFile: async () => { throw new Error('missing'); }, writeFile: mock.writeFile },
 }));
 
+import { loadDoc } from './device-store/device-docs';
 import { isQuickLauncherGeometry, registerQuickLauncherHotkey, registerQuickLauncherRenderer, triggerQuickLauncher } from './quick-launcher';
 
 describe('Quick Launcher main process', () => {
@@ -78,7 +79,7 @@ describe('Quick Launcher main process', () => {
     expect(mock.bounds).toEqual(original);
 
     expect(await mock.handlers.get('dude:quickLauncher:setHotkey')!(null, 'Control+Alt+L')).toEqual({ ok: true });
-    expect(mock.writeFile).toHaveBeenCalledWith(expect.stringContaining('quick-launcher-hotkey-binding.json'), JSON.stringify({ accelerator: 'Control+Alt+L' }), 'utf8');
+    expect(await loadDoc('quick-launcher-hotkey', (raw) => raw, null)).toEqual({ accelerator: 'Control+Alt+L' });
     expect(mock.unregister).toHaveBeenCalledWith('CommandOrControl+Shift+Space');
   });
 });

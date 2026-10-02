@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const mock = vi.hoisted(() => ({ userData: '', handles: new Map<string, (...args: any[]) => any>(), dialogResult: { canceled: true, filePaths: [] as string[] }, saveResult: { canceled: true, filePath: undefined as string | undefined }, saveOptions: undefined as unknown }));
+const mock = vi.hoisted(() => ({ docs: new Map<string, unknown>(), userData: '', handles: new Map<string, (...args: any[]) => any>(), dialogResult: { canceled: true, filePaths: [] as string[] }, saveResult: { canceled: true, filePath: undefined as string | undefined }, saveOptions: undefined as unknown }));
 vi.mock('electron', () => ({
   app: { getPath: () => mock.userData },
   BrowserWindow: { fromWebContents: () => null },
@@ -11,11 +11,18 @@ vi.mock('electron', () => ({
   ipcMain: { handle: (channel: string, handler: (...args: any[]) => any) => mock.handles.set(channel, handler) },
 }));
 
+// Stand-in for the device store that survives vi.resetModules, so a simulated restart keeps its docs.
+vi.mock('./device-store/device-docs', () => ({
+  loadDoc: async (name: string, decode: (raw: unknown) => unknown, fallback: unknown) => (mock.docs.has(name) ? decode(mock.docs.get(name)) ?? fallback : fallback),
+  saveDoc: async (name: string, value: unknown) => { mock.docs.set(name, JSON.parse(JSON.stringify(value))); },
+}));
+
 describe('fs grants', () => {
   let root: string;
   beforeEach(() => {
     vi.resetModules();
     mock.handles.clear();
+    mock.docs.clear();
     root = mkdtempSync(join(tmpdir(), 'dude-grants-'));
     mock.userData = mkdtempSync(join(tmpdir(), 'dude-userdata-'));
     mkdirSync(join(root, 'project'));

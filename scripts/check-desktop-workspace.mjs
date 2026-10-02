@@ -2,7 +2,8 @@
 // Uses an isolated profile and fixture pickers; never installs protocol/login settings.
 import { _electron, expect } from '@playwright/test';
 import electron from 'electron';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync } from 'node:fs';
+import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 
@@ -67,6 +68,19 @@ try{
  assert.equal((await active.page.evaluate(()=>window.dude.preferences.get())).startupDestination,'workspace');
  launches.push({kind:'warm',marks:active.marks.join('')});
  await active.app.close();active=null;
+ // Legacy userData import: the seeded JSON was moved to legacy-import/<ts>/ and its values are in the device store.
+ const legacyRuns=readdirSync(path.join(profile,'legacy-import'));
+ assert.ok(legacyRuns.length>0,'legacy-import/<timestamp> folder exists');
+ assert.ok(legacyRuns.some(run=>existsSync(path.join(profile,'legacy-import',run,'desktop-preferences.json'))),'legacy desktop-preferences.json was moved');
+ assert.equal(existsSync(path.join(profile,'desktop-preferences.json')),false,'original desktop-preferences.json is gone');
+ const db=new DatabaseSync(path.join(profile,'device-store','dude-device.db'),{readOnly:true});
+ try{
+  const row=db.prepare('SELECT * FROM device_docs WHERE name = ?').get('desktop-preferences');
+  assert.ok(row,'device_docs has a desktop-preferences row');
+  const stored=JSON.parse(row.value_json);
+  assert.equal(stored.closeToTray,false);assert.equal(stored.updateMode,'manual');
+  assert.ok(db.prepare("SELECT value FROM meta WHERE key = 'device_id'").get(),'meta has a device_id');
+ }finally{db.close();}
  writeFileSync(path.join(root,'tmp/phase31a-desktop-evidence.json'),JSON.stringify({profile,fixtureOrigin:'dude-app://app',checks:['production preload isolation','native helper read','mutation read-allowlist rejection','picker grant and walk','deep-link navigation','picker file handoff','command-line file handoff','stable-origin renderer reload and warm persistence','native preference persistence'],launches},null,2)+'\n');
  console.log('Cold/warm production desktop, preload, deep-link, file-open, native helper and isolated saved-state acceptance pass.');
 }finally{if(active)await active.app.close();}

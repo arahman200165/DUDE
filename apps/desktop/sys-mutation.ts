@@ -8,7 +8,8 @@ import {
   type SysOpOutcome, type SysOpRequest, type SysPlanPreview, type SysPreviewOp,
 } from "@dude/contracts/system/sys-mutation-types";
 import type { SysResult } from "@dude/contracts/system/system-types";
-import { ConfirmationStore, JsonJournal, digestOf } from './mutation-core';
+import { loadDoc, resetDeviceDocsForTesting, saveDoc } from './device-store/device-docs';
+import { ConfirmationStore, createMutationJournal, digestOf, drainLegacyJournal } from './mutation-core';
 import { sysHelper } from './sys-helper';
 import { registerBuiltinSysOps } from "./sys-ops/index";
 
@@ -88,12 +89,15 @@ export function setSysMutationRootForTesting(dir: string | null): void {
   rootOverride = dir;
   settings = DEFAULT_SYS_MUTATION_SETTINGS;
   settingsLoaded = false;
+  resetDeviceDocsForTesting();
 }
 function userData(): string { return rootOverride ?? app.getPath('userData'); }
 function backupsRoot(): string { return join(userData(), 'sys-backups'); }
-function settingsPath(): string { return join(userData(), 'sys-mutation-settings.json'); }
+const SETTINGS_DOC = 'sys-mutation-settings';
 
-const journal = new JsonJournal<SysJournalEntry>(() => join(userData(), 'sys-journal'), MAX_JOURNAL);
+const journal = createMutationJournal<SysJournalEntry>('sys', () => join(userData(), 'sys-journal'), MAX_JOURNAL);
+/** Moves JSON journal entries (pre-31B or written while degraded) into the store once it is ready. */
+export function drainSysJournal(): Promise<number> { return drainLegacyJournal('sys', join(userData(), 'sys-journal')); }
 const applying = new Map<string, AbortController>();
 const applyingOwners = new Set<number>();
 
@@ -299,7 +303,8 @@ let settingsLoaded = false;
 
 async function loadSettings(): Promise<void> {
   if (settingsLoaded) return;
-  try { settings = sanitizeSysSettings(JSON.parse(await fs.readFile(settingsPath(), 'utf8'))); } catch { settings = DEFAULT_SYS_MUTATION_SETTINGS; }
+  const stored = await loadDoc<SysMutationSettings | null>(SETTINGS_DOC, sanitizeSysSettings, null);
+  if (stored) settings = stored;
   settingsLoaded = true;
 }
 
@@ -316,8 +321,7 @@ export function sanitizeSysSettings(raw: unknown): SysMutationSettings {
 export async function setSysSettings(patch: unknown): Promise<SysMutationSettings> {
   await loadSettings();
   settings = sanitizeSysSettings({ ...settings, ...(patch && typeof patch === 'object' ? patch : {}) });
-  await fs.mkdir(userData(), { recursive: true });
-  await fs.writeFile(settingsPath(), JSON.stringify(settings), 'utf8');
+  await saveDoc(SETTINGS_DOC, settings);
   await pruneSystemBackups();
   return settings;
 }

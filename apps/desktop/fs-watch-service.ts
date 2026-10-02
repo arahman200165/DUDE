@@ -6,6 +6,7 @@ import type { FsResult } from "@dude/contracts/fs/fs-types";
 import type { ChangeEvent, FolderWatchSettings, FolderWatchState, TimelineQuery, WatchedFolder, WatchedFolderStatus } from "@dude/contracts/fs/watch-types";
 import { createPathFilter, DEFAULT_WALK_OPTIONS } from "@dude/tool-engine/shared/fs/walk-filter";
 import { isProbablyBinary } from "@dude/tool-engine/shared/fs/text-normalize";
+import { loadDoc, saveDoc } from './device-store/device-docs';
 import { isRemembered, isRootGranted, normalizeRoot, onRootForgotten, resolveInRoot } from './fs-grants';
 import { onPlanApplying } from './fs-mutation';
 import { classify, isNoise, shouldNotify, summarize, type RawObservation } from './fs-watch-logic';
@@ -55,7 +56,6 @@ let trayUpdater: ((summary: { folders: number; changesToday: number }) => void) 
 export function setFolderWatchTrayUpdater(updater: (summary: { folders: number; changesToday: number }) => void): void { trayUpdater = updater; }
 
 function userData(): string { return app.getPath('userData'); }
-function statePath(): string { return join(userData(), 'watched-folders.json'); }
 function timelinePath(id: string): string { return join(userData(), 'watch-timeline', `${id}.json`); }
 function contentDir(id: string): string { return join(userData(), 'watch-content', id); }
 
@@ -67,7 +67,14 @@ async function writeJson(path: string, value: unknown): Promise<void> {
   await fs.rename(`${path}.tmp`, path);
 }
 
-async function saveState(): Promise<void> { await writeJson(statePath(), { settings, folders }); }
+type WatchedFoldersDoc = { settings?: Partial<FolderWatchSettings>; folders?: WatchedFolder[] };
+
+/** Legacy-import decoder: a plain object with optional settings/folders. */
+export function decodeWatchedFoldersDoc(raw: unknown): WatchedFoldersDoc | null {
+  return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as WatchedFoldersDoc : null;
+}
+
+async function saveState(): Promise<void> { await saveDoc('watched-folders', { settings, folders }); }
 
 function scheduleSave(): void {
   if (saveTimer) return;
@@ -311,7 +318,7 @@ export function queryTimeline(query: TimelineQuery): ChangeEvent[] {
 
 export async function loadFolderWatches(): Promise<void> {
   try {
-    const raw = JSON.parse(await fs.readFile(statePath(), 'utf8')) as { settings?: Partial<FolderWatchSettings>; folders?: WatchedFolder[] };
+    const raw = await loadDoc<WatchedFoldersDoc>('watched-folders', decodeWatchedFoldersDoc, {});
     settings = { ...DEFAULT_SETTINGS, ...raw.settings };
     folders = (raw.folders ?? []).filter((folder) => typeof folder?.path === 'string').slice(0, MAX_FOLDERS).map((folder) => ({ ...sanitizeFolder(folder, { ...folder, exclude: folder.exclude ?? [] }), id: folder.id, path: normalizeRoot(folder.path) }));
   } catch { settings = DEFAULT_SETTINGS; folders = []; }

@@ -1,6 +1,7 @@
 import { app, ipcMain, shell, type WebContents } from 'electron';
 import { createHash, randomUUID } from 'node:crypto';
-import { ConfirmationStore, digestOf, JsonJournal } from './mutation-core';
+import { loadDoc, saveDoc } from './device-store/device-docs';
+import { ConfirmationStore, createMutationJournal, digestOf, drainLegacyJournal } from './mutation-core';
 import { createReadStream, createWriteStream, promises as fs } from 'node:fs';
 import { once } from 'node:events';
 import { basename, dirname, isAbsolute, join, normalize, sep } from 'node:path';
@@ -55,7 +56,7 @@ const store = new ConfirmationStore<StoredPlan>({
   isBusy: (id) => applying.has(id),
   onExpire: (plan) => { void discardStaging(plan); },
 });
-const journalStore = new JsonJournal<JournalEntry>(() => journalRoot(), MAX_JOURNAL);
+const journalStore = createMutationJournal<JournalEntry>('fs', () => journalRoot(), MAX_JOURNAL);
 let settings: MutationSettings = DEFAULT_MUTATION_SETTINGS;
 let settingsLoaded = false;
 
@@ -71,7 +72,9 @@ function userData(): string { return app.getPath('userData'); }
 export function stagingRoot(): string { return join(userData(), 'fs-staging'); }
 function backupsRoot(): string { return join(userData(), 'fs-backups'); }
 function journalRoot(): string { return join(userData(), 'fs-journal'); }
-function settingsPath(): string { return join(userData(), 'fs-mutation-settings.json'); }
+/** Moves JSON journal entries (pre-31B or written while degraded) into the store once it is ready. */
+export function drainFsJournal(): Promise<number> { return drainLegacyJournal('fs', journalRoot()); }
+const SETTINGS_DOC = 'fs-mutation-settings';
 
 function within(parent: string, child: string): boolean {
   const base = normalizeRoot(parent).toLowerCase();
@@ -413,7 +416,8 @@ export async function planUndo(owner: Pick<WebContents, 'id'>, planId: string): 
 
 async function loadSettings(): Promise<void> {
   if (settingsLoaded) return;
-  try { settings = sanitizeSettings(JSON.parse(await fs.readFile(settingsPath(), 'utf8'))); } catch { settings = DEFAULT_MUTATION_SETTINGS; }
+  const stored = await loadDoc<MutationSettings | null>(SETTINGS_DOC, sanitizeSettings, null);
+  if (stored) settings = stored;
   settingsLoaded = true;
 }
 
@@ -430,8 +434,7 @@ export function sanitizeSettings(raw: unknown): MutationSettings {
 export async function setSettings(patch: unknown): Promise<MutationSettings> {
   await loadSettings();
   settings = sanitizeSettings({ ...settings, ...(patch && typeof patch === 'object' ? patch : {}) });
-  await fs.mkdir(userData(), { recursive: true });
-  await fs.writeFile(settingsPath(), JSON.stringify(settings), 'utf8');
+  await saveDoc(SETTINGS_DOC, settings);
   await pruneBackups();
   return settings;
 }

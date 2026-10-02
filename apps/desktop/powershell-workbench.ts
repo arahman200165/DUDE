@@ -1,3 +1,5 @@
+import { loadDoc, saveDoc } from './device-store/device-docs';
+import { isDeviceStoreReady, storeCall } from './device-store/store-client';
 import { app, ipcMain, type WebContents } from 'electron';
 import { createHash, randomUUID } from 'node:crypto';
 import { spawn, type ChildProcess } from 'node:child_process';
@@ -26,6 +28,7 @@ const TOKEN_TTL_MS = 60_000;
 const PLAN_TTL_MS = 15 * 60_000;
 const MAX_PLANS = 24;
 const MAX_HISTORY = 100;
+const LEGACY_STATE_DOC = 'legacy-import-state';
 const MAX_SCRIPT_BYTES = 1_000_000;
 const MAX_OUTPUT_BYTES = 2_000_000;
 const MAX_STREAM_CHUNK_BYTES = 64_000;
@@ -180,6 +183,13 @@ export async function getPowerShellCatalog(refresh = false): Promise<{ version: 
 }
 
 async function readHistory(): Promise<PowerShellHistoryEntry[]> {
+  if (isDeviceStoreReady()) {
+    try { return await storeCall('powershell.list', {}) as PowerShellHistoryEntry[]; } catch { /* fall back to the file */ }
+  }
+  return readHistoryFile();
+}
+
+async function readHistoryFile(): Promise<PowerShellHistoryEntry[]> {
   try {
     const parsed: unknown = JSON.parse(await fs.readFile(historyFile(), 'utf8'));
     return Array.isArray(parsed) ? parsed as PowerShellHistoryEntry[] : [];
@@ -188,7 +198,10 @@ async function readHistory(): Promise<PowerShellHistoryEntry[]> {
 
 async function appendHistory(entry: PowerShellHistoryEntry): Promise<void> {
   const write = async () => {
-    const entries = await readHistory();
+    if (isDeviceStoreReady()) {
+      try { await storeCall('powershell.add', { entry: { ...entry } }); return; } catch { /* fall back to the file */ }
+    }
+    const entries = await readHistoryFile();
     entries.unshift(entry);
     await fs.mkdir(deps.userData(), { recursive: true });
     await fs.writeFile(historyFile(), JSON.stringify(entries.slice(0, MAX_HISTORY)), 'utf8');
@@ -198,10 +211,28 @@ async function appendHistory(entry: PowerShellHistoryEntry): Promise<void> {
   await historyQueue;
 }
 
+/**
+ * One-shot import of `powershell-history.json` into the store on the first healthy start. The file is left
+ * in place (the legacy import moves it later); a `legacy-import-state` doc flag prevents a second import,
+ * so history cleared in the store never comes back.
+ */
+export async function importLegacyPowerShellHistory(): Promise<number> {
+  if (!isDeviceStoreReady()) return 0;
+  const state = await loadDoc<Record<string, unknown>>(LEGACY_STATE_DOC, (raw) => (raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as Record<string, unknown> : null), {});
+  if (state['powershellHistory'] === true) return 0;
+  const entries = (await readHistoryFile()).filter((entry) => entry && typeof entry.id === 'string' && entry.id.length > 0);
+  for (const entry of entries.slice(0, MAX_HISTORY).reverse()) await storeCall('powershell.add', { entry: { ...entry } });
+  await saveDoc(LEGACY_STATE_DOC, { ...state, powershellHistory: true });
+  return entries.length;
+}
+
 export async function listPowerShellHistory(): Promise<PowerShellHistoryEntry[]> { await historyQueue.catch(() => undefined); return readHistory(); }
 
 export async function clearPowerShellHistory(): Promise<void> {
   await historyQueue.catch(() => undefined);
+  if (isDeviceStoreReady()) {
+    try { await storeCall('powershell.clear', {}); } catch { /* the file is cleared below regardless */ }
+  }
   await fs.rm(historyFile(), { force: true });
 }
 

@@ -1,6 +1,5 @@
-import { BrowserWindow, app, clipboard, globalShortcut, ipcMain } from 'electron';
-import { promises as fs } from 'node:fs';
-import { join } from 'node:path';
+import { BrowserWindow, clipboard, globalShortcut, ipcMain } from 'electron';
+import { loadDoc, saveDoc } from './device-store/device-docs';
 
 /**
  * Desktop Global Smart Paste Hotkey (DUDE_PRD.md §21 Phase 24 Item 3) -- a sibling module to
@@ -24,21 +23,19 @@ let receiver: BrowserWindow | null = null;
 let rendererReady = false;
 const queue: string[] = [];
 
-function bindingPath(): string {
-  return join(app.getPath('userData'), 'smart-paste-hotkey-binding.json');
+/** Legacy-import decoder: `{ accelerator: string | null }`. */
+export function decodeSmartPasteBinding(raw: unknown): { accelerator: string | null } | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const value = (raw as { accelerator?: unknown }).accelerator;
+  return value === null || value === undefined ? { accelerator: null } : typeof value === 'string' ? { accelerator: value } : null;
 }
 
 async function loadPersistedBinding(): Promise<string | null> {
-  try {
-    const raw = JSON.parse(await fs.readFile(bindingPath(), 'utf8')) as { accelerator?: string | null };
-    return raw.accelerator ?? null;
-  } catch {
-    return null;
-  }
+  return (await loadDoc('smart-paste-hotkey', decodeSmartPasteBinding, { accelerator: null })).accelerator;
 }
 
 async function savePersistedBinding(): Promise<void> {
-  await fs.writeFile(bindingPath(), JSON.stringify({ accelerator }), 'utf8');
+  await saveDoc('smart-paste-hotkey', { accelerator });
 }
 
 function flush(): void {
