@@ -72,9 +72,13 @@ export function fakeElectronBridge(overrides: Partial<PlatformBridge> = {}): Pla
       onProgress: () => () => {},
     },
     secrets: {
-      get: async () => ({ ok: true, value: null }),
+      status: async (purpose) => ({ purpose, isSet: false, hint: null, needsReentry: false }),
       set: async () => ({ ok: true }),
       remove: async () => ({ ok: true }),
+    },
+    ai: {
+      getConfig: async () => ({ baseUrl: '', model: '', apiKey: { purpose: 'ai.llmApiKey', isSet: false, hint: null, needsReentry: false } }),
+      setConfig: async () => ({ ok: true }),
     },
     llm: {
       isConfigured: async () => false,

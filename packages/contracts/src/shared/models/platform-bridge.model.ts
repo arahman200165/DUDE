@@ -156,9 +156,13 @@ export interface PlatformBridge {
     onProgress(callback: (event: { readonly planId: string; readonly done: number; readonly total: number }) => void): () => void;
   };
   readonly secrets: {
-    get(key: string): Promise<SecretResult<{ value: string | null }>>;
-    set(key: string, value: string): Promise<SecretVoidResult>;
-    remove(key: string): Promise<SecretVoidResult>;
+    status(purpose: string): Promise<SecretStatusView>;
+    set(purpose: string, value: string): Promise<SecretVoidResult>;
+    remove(purpose: string): Promise<SecretVoidResult>;
+  };
+  readonly ai: {
+    getConfig(): Promise<AiProviderConfigView | null>;
+    setConfig(config: Partial<AiProviderConfig>): Promise<SecretVoidResult>;
   };
   readonly llm: {
     isConfigured(): Promise<boolean>;
@@ -327,6 +331,16 @@ export interface QuickActionInfo {
 
 export type FileWatchEvent = { readonly id: string; readonly kind: 'changed'; readonly relativePath?: string | null } | { readonly id: string; readonly kind: 'error'; readonly error: string };
 
-export type SecretResult<T> = ({ readonly ok: true } & T) | { readonly ok: false; readonly error: string };
+/** What the renderer may know about a secret: presence and a masked hint, never the value. Structurally matches `@dude/persistence`'s `SecretStatus`. */
+export interface SecretStatusView {
+  readonly purpose: string;
+  readonly isSet: boolean;
+  readonly hint: string | null;
+  readonly needsReentry: boolean;
+  /** `store-unavailable` when the device store is down. */
+  readonly error?: string;
+}
+export interface AiProviderConfig { readonly baseUrl: string; readonly model: string }
+export interface AiProviderConfigView extends AiProviderConfig { readonly apiKey: SecretStatusView }
 export type SecretVoidResult = { readonly ok: true } | { readonly ok: false; readonly error: string };
 export type VoidResult = { readonly ok: true } | { readonly ok: false; readonly error: string };

@@ -1,12 +1,16 @@
 const mock = vi.hoisted(() => ({
   handlers: new Map<string, (...args: any[]) => unknown>(),
-  secrets: {} as Record<string, string | null>,
+  apiKey: null as string | null,
+  provider: { baseUrl: '', model: '' },
 }));
 vi.mock('electron', () => ({
   ipcMain: { handle: (channel: string, handler: (...args: any[]) => unknown) => mock.handlers.set(channel, handler) },
 }));
 vi.mock('./secrets-bridge', () => ({
-  getSecretValue: async (key: string) => mock.secrets[key] ?? null,
+  getSecretValue: async (purpose: string) => (purpose === 'ai.llmApiKey' ? mock.apiKey : null),
+}));
+vi.mock('./ai-provider-config', () => ({
+  loadAiProvider: async () => mock.provider,
 }));
 
 import { registerLlmHandlers } from './llm-bridge';
@@ -26,11 +30,8 @@ describe('dude:llm:chat', () => {
   beforeEach(() => {
     fetchMock.mockReset();
     vi.stubGlobal('fetch', fetchMock);
-    mock.secrets = {
-      'dude:v1:settings:llmBaseUrl': 'https://api.example.com/v1/',
-      'dude:v1:settings:llmModel': 'gpt-test',
-      'dude:v1:settings:llmApiKey': API_KEY,
-    };
+    mock.provider = { baseUrl: 'https://api.example.com/v1/', model: 'gpt-test' };
+    mock.apiKey = API_KEY;
     registerLlmHandlers(window as never);
   });
 
@@ -59,7 +60,13 @@ describe('dude:llm:chat', () => {
   });
 
   it('reports not-configured when no key is stored', async () => {
-    mock.secrets = {};
+    mock.apiKey = null;
+    await expect(chat(good)).resolves.toEqual({ ok: false, error: 'not-configured' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('reports not-configured when no base URL is stored', async () => {
+    mock.provider = { baseUrl: '', model: 'gpt-test' };
     await expect(chat(good)).resolves.toEqual({ ok: false, error: 'not-configured' });
     expect(fetchMock).not.toHaveBeenCalled();
   });

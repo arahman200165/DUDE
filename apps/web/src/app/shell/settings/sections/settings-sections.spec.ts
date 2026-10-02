@@ -1,8 +1,8 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import fc from 'fast-check';
 import { PlatformService } from '../../../core/platform/platform.service';
-import { SecureLocalService } from '../../../core/persistence/secure-local.service';
+import { SecretsService } from '../../../core/persistence/secrets.service';
+import { AiProviderConfigService } from '../../../core/persistence/ai-provider-config.service';
 import { WorkspaceLayoutService } from '../../../core/workspace/workspace-layout.service';
 import { ClearAllDataService } from '../../../core/workspace/clear-all-data';
 import { ShellChromeService } from '../../../core/platform/shell-chrome.service';
@@ -30,7 +30,9 @@ function buttonWithText(root: HTMLElement, text: string): HTMLButtonElement {
 
 describe('Settings sections', () => {
   let desktop: boolean;
-  let secureLocal: { get: ReturnType<typeof vi.fn>; set: ReturnType<typeof vi.fn>; remove: ReturnType<typeof vi.fn> };
+  let secureLocal: { status: ReturnType<typeof vi.fn>; set: ReturnType<typeof vi.fn>; remove: ReturnType<typeof vi.fn> };
+  let aiConfig: { get: ReturnType<typeof vi.fn>; set: ReturnType<typeof vi.fn> };
+  const keyStatus = (isSet: boolean, hint: string | null = null, needsReentry = false) => ({ purpose: 'ai.llmApiKey', isSet, hint, needsReentry });
   let clearAll: ReturnType<typeof vi.fn>;
   let reopenOnRestart: ReturnType<typeof signal<boolean>>;
   let desktopPrefsSet: ReturnType<typeof vi.fn>;
@@ -49,10 +51,11 @@ describe('Settings sections', () => {
     nativeRecentsClearAll = vi.fn();
     desktopPrefsSet = vi.fn().mockResolvedValue({ ok: true });
     secureLocal = {
-      get: vi.fn().mockResolvedValue({ ok: true, value: null }),
+      status: vi.fn().mockResolvedValue(keyStatus(false)),
       set: vi.fn().mockResolvedValue({ ok: true }),
       remove: vi.fn().mockResolvedValue({ ok: true }),
     };
+    aiConfig = { get: vi.fn().mockResolvedValue({ baseUrl: '', model: '', apiKey: keyStatus(false) }), set: vi.fn().mockResolvedValue({ ok: true }) };
     clearAll = vi.fn().mockResolvedValue(undefined);
     shellChrome = {
       getLaunchOnLogin: vi.fn().mockResolvedValue(false),
@@ -66,7 +69,8 @@ describe('Settings sections', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: PlatformService, useValue: { isDesktop: () => desktop } },
-        { provide: SecureLocalService, useValue: secureLocal },
+        { provide: SecretsService, useValue: secureLocal },
+        { provide: AiProviderConfigService, useValue: aiConfig },
         { provide: WorkspaceLayoutService, useValue: { reopenOnRestart } },
         { provide: ClearAllDataService, useValue: { clearAll } },
         { provide: ShellChromeService, useValue: shellChrome },
@@ -88,7 +92,7 @@ describe('Settings sections', () => {
   afterEach(() => vi.restoreAllMocks());
 
   describe('AI / LLM Provider', () => {
-    it('persists trimmed provider fields under the app settings namespace and clears each secure-local entry', async () => {
+    it('saves trimmed base URL and model through the config service and the key as a secret', async () => {
       const fixture = TestBed.createComponent(AiProviderSettings);
       await fixture.whenStable();
       const component = fixture.componentInstance as any;
@@ -98,46 +102,74 @@ describe('Settings sections', () => {
 
       await component.save();
 
-      expect(secureLocal.set.mock.calls).toEqual([
-        ['settings', 'llmBaseUrl', 'https://proxy.example/v1'],
-        ['settings', 'llmModel', 'model-x'],
-        ['settings', 'llmApiKey', 'secret'],
-      ]);
+      expect(aiConfig.set).toHaveBeenCalledWith({ baseUrl: 'https://proxy.example/v1', model: 'model-x' });
+      expect(secureLocal.set.mock.calls).toEqual([['ai.llmApiKey', 'secret']]);
       expect(component['saveStatus']()).toBe('saved');
+      expect(component['apiKey']()).toBe('');
 
       await component.clear();
-      expect(secureLocal.remove.mock.calls).toEqual([
-        ['settings', 'llmBaseUrl'],
-        ['settings', 'llmModel'],
-        ['settings', 'llmApiKey'],
-      ]);
+      expect(aiConfig.set).toHaveBeenLastCalledWith({ baseUrl: '', model: '' });
+      expect(secureLocal.remove.mock.calls).toEqual([['ai.llmApiKey']]);
       expect([component['baseUrl'](), component['model'](), component['apiKey']()]).toEqual(['', '', '']);
       fixture.destroy();
     });
 
-    it('saves generated field values after trimming, then clears all three keys', async () => {
+    it('does not touch the stored key when none was typed', async () => {
       const fixture = TestBed.createComponent(AiProviderSettings);
       await fixture.whenStable();
       const component = fixture.componentInstance as any;
+      component['model'].set('only-model');
+      await component.save();
+      expect(secureLocal.set).not.toHaveBeenCalled();
+      fixture.destroy();
+    });
 
-      await fc.assert(
-        fc.asyncProperty(fc.tuple(fc.string(), fc.string(), fc.string()), async ([url, model, key]) => {
-          secureLocal.set.mockClear();
-          secureLocal.remove.mockClear();
-          component['baseUrl'].set(` ${url} `);
-          component['model'].set(` ${model} `);
-          component['apiKey'].set(` ${key} `);
-          await component.save();
-          expect(secureLocal.set.mock.calls).toEqual([
-            ['settings', 'llmBaseUrl', url.trim()],
-            ['settings', 'llmModel', model.trim()],
-            ['settings', 'llmApiKey', key.trim()],
-          ]);
-          await component.clear();
-          expect(secureLocal.remove.mock.calls.map((call: unknown[]) => call[1])).toEqual(['llmBaseUrl', 'llmModel', 'llmApiKey']);
-        }),
-        { numRuns: 50 },
-      );
+    it('shows a saved key as a masked hint only; Replace reveals an empty input and Remove confirms first', async () => {
+      aiConfig.get.mockResolvedValue({ baseUrl: 'https://x/v1', model: 'm', apiKey: keyStatus(true, '••••abcd') });
+      const fixture = TestBed.createComponent(AiProviderSettings);
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelector('[data-testid="key-saved"]')!.textContent).toContain('Saved (••••abcd)');
+      expect(el.querySelector('input[type="password"]')).toBeNull();
+
+      buttonWithText(el, 'Replace').click();
+      fixture.detectChanges();
+      expect((el.querySelector('input[type="password"]') as HTMLInputElement).value).toBe('');
+
+      buttonWithText(el, 'Cancel').click();
+      fixture.detectChanges();
+      buttonWithText(el, 'Remove').click();
+      fixture.detectChanges();
+      expect(secureLocal.remove).not.toHaveBeenCalled();
+      secureLocal.status.mockResolvedValue(keyStatus(false));
+      buttonWithText(el, 'Remove key').click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(secureLocal.remove).toHaveBeenCalledWith('ai.llmApiKey');
+      expect(el.querySelector('[data-testid="key-saved"]')).toBeNull();
+      fixture.destroy();
+    });
+
+    it('asks the user to re-enter a key that needs re-entry', async () => {
+      aiConfig.get.mockResolvedValue({ baseUrl: 'https://x/v1', model: 'm', apiKey: keyStatus(true, null, true) });
+      const fixture = TestBed.createComponent(AiProviderSettings);
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelector('[data-testid="key-reentry"]')!.textContent).toContain('Re-enter your API key');
+      expect(el.querySelector('input[type="password"]')).not.toBeNull();
+      fixture.destroy();
+    });
+
+    it('surfaces an invalid base URL from main', async () => {
+      aiConfig.set.mockResolvedValue({ ok: false, error: 'invalid-config' });
+      const fixture = TestBed.createComponent(AiProviderSettings);
+      await fixture.whenStable();
+      const component = fixture.componentInstance as any;
+      await component.save();
+      expect(component['saveStatus']()).toBe('error');
+      expect(component['saveError']()).toContain('http(s)');
       fixture.destroy();
     });
 

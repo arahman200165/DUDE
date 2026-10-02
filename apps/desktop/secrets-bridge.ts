@@ -1,103 +1,85 @@
-import { app, ipcMain, safeStorage } from 'electron';
-import { promises as fs } from 'node:fs';
-import { join } from 'node:path';
+import { ipcMain, safeStorage, type BrowserWindow } from 'electron';
+import { SECRET_PURPOSES, isSecretPurpose, maskSecretHint } from '@dude/persistence';
+import type { SecretPurpose, SecretStatus } from '@dude/persistence';
+import { isDeviceStoreReady, storeCall } from './device-store/store-client';
 
 /**
- * OS-keychain-backed secret storage (Phase 8 Stage 3), for things like the
- * Stage 4 LLM proxy's API key. `safeStorage` only encrypts/decrypts
- * in-memory buffers — it persists nothing itself — so this module also owns
- * a small on-disk JSON store mapping `key -> base64(encryptedBuffer)`.
- * General-purpose: any future desktop feature can use this same store via
- * `SecureLocalService`, not just the LLM key.
+ * Secrets live in the Device State Store as `safeStorage` ciphertext (Phase 31B, M622). Main encrypts
+ * and decrypts; the store only ever holds ciphertext. The renderer can learn whether a secret is set
+ * and a masked hint (computed here), and can replace or remove it. There is deliberately NO channel
+ * that returns a value: plaintext is readable only in-process via `getSecretValue` (e.g. `llm-bridge.ts`).
  */
 
-interface SecretStore {
-  [key: string]: string;
-}
+export type SecretWriteResult = { readonly ok: true } | { readonly ok: false; readonly error: string };
 
-function storePath(): string {
-  return join(app.getPath('userData'), 'secure-store.json');
-}
+const unavailable = (purpose: SecretPurpose, error: 'store-unavailable'): SecretStatus & { readonly error: string } => ({ purpose, isSet: false, hint: null, needsReentry: false, error });
 
-async function readStore(): Promise<SecretStore> {
+/** In-process read for other main modules. Null when unset, undecryptable or the store is down. */
+export async function getSecretValue(purpose: SecretPurpose): Promise<string | null> {
+  if (!isDeviceStoreReady()) return null;
   try {
-    const raw = await fs.readFile(storePath(), 'utf8');
-    return JSON.parse(raw) as SecretStore;
+    const { ciphertext } = await storeCall('secrets.getCiphertext', { purpose });
+    if (!ciphertext) return null;
+    return safeStorage.decryptString(Buffer.from(ciphertext));
   } catch {
-    return {};
+    return null;
   }
 }
 
-async function writeStore(store: SecretStore): Promise<void> {
-  await fs.writeFile(storePath(), JSON.stringify(store), 'utf8');
+export async function setSecretValue(purpose: SecretPurpose, value: string): Promise<SecretWriteResult> {
+  if (!isDeviceStoreReady()) return { ok: false, error: 'store-unavailable' };
+  if (!safeStorage.isEncryptionAvailable()) return { ok: false, error: 'encryption-unavailable' };
+  try {
+    await storeCall('secrets.set', { purpose, ciphertext: new Uint8Array(safeStorage.encryptString(value)) });
+    return { ok: true };
+  } catch {
+    return { ok: false, error: 'store-unavailable' };
+  }
 }
 
-// Serializes every read-modify-write against the on-disk store so concurrent
-// IPC calls (set/remove racing on the same file) can't clobber each other.
-let queue: Promise<unknown> = Promise.resolve();
-function enqueue<T>(fn: () => Promise<T>): Promise<T> {
-  const result = queue.then(fn, fn);
-  queue = result.catch(() => undefined);
-  return result;
+export async function removeSecret(purpose: SecretPurpose): Promise<SecretWriteResult> {
+  if (!isDeviceStoreReady()) return { ok: false, error: 'store-unavailable' };
+  try {
+    await storeCall('secrets.remove', { purpose });
+    return { ok: true };
+  } catch {
+    return { ok: false, error: 'store-unavailable' };
+  }
 }
 
-type SecretResult<T> = ({ readonly ok: true } & T) | { readonly ok: false; readonly error: string };
-type SecretVoidResult = { readonly ok: true } | { readonly ok: false; readonly error: string };
-
-/**
- * In-process (no IPC) read of a stored secret, for other main-process
- * modules that need one directly — e.g. `llm-bridge.ts` reading the LLM
- * config Settings (AI / LLM Provider) wrote via `SecureLocalService`, without a
- * second "push config to main" IPC round trip or a second on-disk store.
- */
-export async function getSecretValue(key: string): Promise<string | null> {
-  return enqueue(async () => {
-    const store = await readStore();
-    const encoded = store[key];
-    if (encoded === undefined) return null;
-    try {
-      return safeStorage.decryptString(Buffer.from(encoded, 'base64'));
-    } catch {
-      return null;
-    }
-  });
+/** Presence, a masked hint and the re-entry flag. The hint is derived in main; the value never leaves it. */
+export async function secretStatus(purpose: SecretPurpose): Promise<SecretStatus & { readonly error?: string }> {
+  if (!isDeviceStoreReady()) return unavailable(purpose, 'store-unavailable');
+  try {
+    const row = await storeCall('secrets.status', { purpose });
+    if (!row.isSet) return { purpose, isSet: false, hint: null, needsReentry: row.needsReentry };
+    if (row.needsReentry) return { purpose, isSet: true, hint: null, needsReentry: true };
+    const value = await getSecretValue(purpose);
+    if (value === null) return { purpose, isSet: true, hint: null, needsReentry: true };
+    return { purpose, isSet: true, hint: maskSecretHint(value), needsReentry: false };
+  } catch {
+    return unavailable(purpose, 'store-unavailable');
+  }
 }
 
-export function registerSecretsHandlers(): void {
-  ipcMain.handle('dude:secrets:get', async (_event, key: string): Promise<SecretResult<{ value: string | null }>> => {
-    return enqueue(async () => {
-      const store = await readStore();
-      const encoded = store[key];
-      if (encoded === undefined) return { ok: true, value: null };
+export function registerSecretsHandlers(window: BrowserWindow): void {
+  const fromWindow = (event: { sender: unknown }): boolean => event.sender === window.webContents;
 
-      try {
-        const value = safeStorage.decryptString(Buffer.from(encoded, 'base64'));
-        return { ok: true, value };
-      } catch {
-        return { ok: false, error: 'decrypt-failed' };
-      }
-    });
+  ipcMain.handle('dude:secrets:status', async (event, purpose: unknown) => {
+    if (!fromWindow(event) || !isSecretPurpose(purpose)) return { purpose: String(purpose), isSet: false, hint: null, needsReentry: false, error: 'rejected' };
+    return secretStatus(purpose);
   });
 
-  ipcMain.handle('dude:secrets:set', async (_event, key: string, value: string): Promise<SecretVoidResult> => {
-    if (!safeStorage.isEncryptionAvailable()) {
-      return { ok: false, error: 'encryption-unavailable' };
-    }
-
-    return enqueue(async () => {
-      const store = await readStore();
-      store[key] = safeStorage.encryptString(value).toString('base64');
-      await writeStore(store);
-      return { ok: true };
-    });
+  ipcMain.handle('dude:secrets:set', async (event, purpose: unknown, value: unknown): Promise<SecretWriteResult> => {
+    if (!fromWindow(event)) return { ok: false, error: 'rejected' };
+    if (!isSecretPurpose(purpose)) return { ok: false, error: 'unknown-purpose' };
+    if (typeof value !== 'string' || value.length === 0 || value.length > SECRET_PURPOSES[purpose].maxLength) return { ok: false, error: 'invalid-value' };
+    return setSecretValue(purpose, value);
   });
 
-  ipcMain.handle('dude:secrets:remove', async (_event, key: string): Promise<SecretVoidResult> => {
-    return enqueue(async () => {
-      const store = await readStore();
-      delete store[key];
-      await writeStore(store);
-      return { ok: true };
-    });
+  ipcMain.handle('dude:secrets:remove', async (event, purpose: unknown): Promise<SecretWriteResult> => {
+    if (!fromWindow(event)) return { ok: false, error: 'rejected' };
+    if (!isSecretPurpose(purpose)) return { ok: false, error: 'unknown-purpose' };
+    return removeSecret(purpose);
   });
 }

@@ -756,16 +756,29 @@
       "remainingAdapterCode": "apps/web/src/app/core/persistence/persistence.service.ts"
     },
     {
+      "source": "apps/web/src/app/core/persistence/secure-local.service.spec.ts",
+      "destination": "apps/web/src/app/core/persistence/secrets.service.spec.ts",
+      "classification": "application-test-or-declaration",
+      "hostDependencies": [
+        "host import: @angular/core/testing",
+        "host API: window"
+      ],
+      "tests": [
+        "apps/web/src/app/core/persistence/secrets.service.spec.ts"
+      ],
+      "remainingAdapterCode": "apps/web/src/app/core/persistence/secrets.service.spec.ts"
+    },
+    {
       "source": "apps/web/src/app/core/persistence/secure-local.service.ts",
-      "destination": "apps/web/src/app/core/persistence/secure-local.service.ts",
+      "destination": "apps/web/src/app/core/persistence/secrets.service.ts",
       "classification": "host-adapter",
       "hostDependencies": [
         "host import: @angular/core"
       ],
       "tests": [
-        "apps/web/src/app/core/persistence/secure-local.service.spec.ts"
+        "apps/web/src/app/core/persistence/secrets.service.spec.ts"
       ],
-      "remainingAdapterCode": "apps/web/src/app/core/persistence/secure-local.service.ts"
+      "remainingAdapterCode": "apps/web/src/app/core/persistence/secrets.service.ts"
     },
     {
       "source": "apps/web/src/app/core/persistence/storage-backend.ts",

@@ -89,7 +89,17 @@
               <div class="grid gap-3">
                 <label class="grid gap-1">OpenAI-compatible base URL<input class="rounded border border-border bg-panel p-2" [value]="baseUrl()" (input)="baseUrl.set($any($event.target).value)" /></label>
                 <label class="grid gap-1">Model<input class="rounded border border-border bg-panel p-2" [value]="model()" (input)="model.set($any($event.target).value)" /></label>
-                <label class="grid gap-1">API key<input type="password" class="rounded border border-border bg-panel p-2" [value]="apiKey()" (input)="apiKey.set($any($event.target).value)" /></label>
+                @if (keyStatus()?.needsReentry) {
+                  <p class="text-warning" data-testid="key-reentry">Re-enter your API key (this device's store was copied from another machine).</p>
+                }
+                @if (keyStatus()?.isSet && !keyStatus()?.needsReentry && !replacingKey()) {
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span data-testid="key-saved">API key saved ({{ keyStatus()?.hint }})</span>
+                    <button type="button" class="rounded border border-border px-3 py-1" (click)="replacingKey.set(true)">Replace</button>
+                  </div>
+                } @else {
+                  <label class="grid gap-1">API key<input type="password" autocomplete="off" class="rounded border border-border bg-panel p-2" [value]="apiKey()" (input)="apiKey.set($any($event.target).value)" /></label>
+                }
                 <button type="button" class="w-fit rounded border border-accent px-3 py-2 text-accent" [disabled]="saving()" (click)="saveAi()">Save AI configuration</button>
               </div>
             }

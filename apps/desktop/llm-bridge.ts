@@ -1,18 +1,15 @@
 import { ipcMain, type BrowserWindow } from 'electron';
 import { getSecretValue } from './secrets-bridge';
+import { loadAiProvider } from './ai-provider-config';
 
 /**
  * IPC for the desktop LLM integration. Reads Settings' (/settings, AI / LLM Provider) stored
- * config directly from the secure store (same process, see `getSecretValue` in `secrets-bridge.ts`),
- * so the API key is written to disk once and never reaches the renderer. `dude:llm:chat` performs the
+ * config in-process: base URL and model from the `ai-provider` device doc (`ai-provider-config.ts`) and the
+ * API key via `getSecretValue('ai.llmApiKey')`, so the key never reaches the renderer. `dude:llm:chat` performs the
  * provider request in main (non-streaming; Regex Tester's AI features need a short, complete reply)
  * and accepts requests only from this window's own renderer. The renderer is served from the
  * `dude-app://` scheme, so it cannot call a loopback HTTP proxy cross-origin; IPC replaces it.
  */
-
-const KEY_BASE_URL = 'dude:v1:settings:llmBaseUrl';
-const KEY_MODEL = 'dude:v1:settings:llmModel';
-const KEY_API_KEY = 'dude:v1:settings:llmApiKey';
 
 const MAX_MESSAGES = 200;
 const MAX_TOTAL_CONTENT = 1024 * 1024;
@@ -27,9 +24,9 @@ interface ChatMessage {
 }
 
 async function readConfig(): Promise<{ baseUrl: string; model: string; apiKey: string } | null> {
-  const [baseUrl, model, apiKey] = await Promise.all([getSecretValue(KEY_BASE_URL), getSecretValue(KEY_MODEL), getSecretValue(KEY_API_KEY)]);
+  const [{ baseUrl, model }, apiKey] = await Promise.all([loadAiProvider(), getSecretValue('ai.llmApiKey')]);
   if (!baseUrl || !apiKey) return null;
-  return { baseUrl, model: model ?? '', apiKey };
+  return { baseUrl, model, apiKey };
 }
 
 /** Strict payload check: exactly `{ messages: [{ role, content }] }` within the size bounds. */

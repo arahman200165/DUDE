@@ -2,7 +2,7 @@
   <p class="text-ui text-text-muted">
     Powers Regex Tester's AI features (natural-language regex generation, AI-assisted explanation). Any OpenAI-compatible
     endpoint works — OpenAI, an Anthropic-compatible gateway, local Ollama, OpenRouter, etc. The key is stored encrypted via
-    your OS keychain and never leaves this machine except in requests to the endpoint you configure.
+    your OS keychain and, once saved, is never shown again or sent anywhere except in requests to the endpoint you configure.
   </p>
 
   @if (loading()) {
@@ -30,16 +30,42 @@
       />
     </label>
 
-    <label data-setting class="flex flex-col gap-1">
+    <div data-setting class="flex flex-col gap-1">
       <span class="text-ui text-text-muted">API Key</span>
-      <input
-        type="password"
-        class="rounded-sm border border-border bg-panel px-2 py-1 font-mono text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
-        placeholder="sk-…"
-        [value]="apiKey()"
-        (input)="onInput('apiKey', $event)"
-      />
-    </label>
+      @if (keyStatus().needsReentry) {
+        <p class="text-ui text-warning" data-testid="key-reentry">Re-enter your API key (this device's store was copied from another machine).</p>
+      } @else if (keyStatus().isSet && !replacing()) {
+        <div class="flex flex-wrap items-center gap-2 text-ui text-text">
+          <span data-testid="key-saved">Saved ({{ keyStatus().hint }})</span>
+          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text-muted hover:bg-panel-elevated" (click)="startReplace()">Replace</button>
+          @if (!confirmingRemove()) {
+            <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text-muted hover:bg-panel-elevated" (click)="confirmingRemove.set(true)">Remove</button>
+          } @else {
+            <span class="flex flex-wrap items-center gap-2" role="alertdialog" aria-label="Confirm remove API key">
+              <span>Remove the saved API key?</span>
+              <button type="button" class="rounded-sm border border-error px-2 py-0.5 text-error hover:bg-error/10" (click)="removeKey()">Remove key</button>
+              <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-text-muted hover:bg-panel-elevated" (click)="confirmingRemove.set(false)">Cancel</button>
+            </span>
+          }
+        </div>
+      }
+      @if (showKeyInput()) {
+        <div class="flex flex-wrap items-center gap-2">
+          <input
+            type="password"
+            autocomplete="off"
+            class="min-w-0 flex-1 rounded-sm border border-border bg-panel px-2 py-1 font-mono text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
+            placeholder="sk-…"
+            aria-label="API Key"
+            [value]="apiKey()"
+            (input)="onInput('apiKey', $event)"
+          />
+          @if (replacing()) {
+            <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated" (click)="cancelReplace()">Cancel</button>
+          }
+        </div>
+      }
+    </div>
 
     <div class="flex flex-wrap items-center gap-3 text-ui text-text-muted">
       <button
@@ -50,7 +76,7 @@
       >
         Save
       </button>
-      <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" (click)="clear()">Clear</button>
+      <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" (click)="clear()">Clear all</button>
       @if (saveStatus() === 'saved') {
         <span class="text-success">Saved.</span>
       } @else if (hasUnsavedChanges()) {

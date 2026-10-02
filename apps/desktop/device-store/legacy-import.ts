@@ -13,6 +13,7 @@ import { sanitizeSettings } from '../fs-mutation';
 import { sanitizeSysSettings } from '../sys-mutation';
 import { loadDoc, saveDoc } from './device-docs';
 import { isDeviceStoreReady, storeCall } from './store-client';
+import { importLegacySecureStore } from './legacy-secure-store-import';
 
 /**
  * One-shot, best-effort import of the pre-31B JSON files under userData into device docs. Each file
@@ -99,6 +100,6 @@ let inFlight: Promise<void> | null = null;
 
 export function importLegacyUserData(userData: string): Promise<void> {
   if (!isDeviceStoreReady()) return Promise.resolve();
-  if (!inFlight) inFlight = runImport(userData).catch((error) => { console.error('[legacy-import] failed:', error instanceof Error ? error.message : error); }).finally(() => { inFlight = null; });
+  if (!inFlight) inFlight = runImport(userData).then(() => importLegacySecureStore(userData)).catch((error) => { console.error('[legacy-import] failed:', error instanceof Error ? error.message : error); }).finally(() => { inFlight = null; });
   return inFlight;
 }

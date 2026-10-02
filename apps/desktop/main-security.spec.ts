@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 // Regression guard for apps/desktop/AGENTS.md's one rule: contextIsolation: true, nodeIntegration:
@@ -120,6 +120,28 @@ describe('llm boundary', () => {
     expect(handler.indexOf('parseChatRequest(payload)')).toBeGreaterThan(handler.indexOf('event.sender !== window.webContents'));
     expect(handler.indexOf('chat(messages)')).toBeGreaterThan(handler.indexOf('parseChatRequest(payload)'));
     expect(preloadSource).toMatch(/ipcRenderer\.invoke\('dude:llm:chat', request\)/);
+  });
+});
+
+// Secrets (Phase 31B, M622): the renderer can learn status and replace/remove, never read a value.
+describe('secrets boundary', () => {
+  const read = (name: string): string => readFileSync(resolve(__dirname, name), 'utf-8');
+  const preloadSource = read('preload.ts');
+  const bridgeSource = read('secrets-bridge.ts');
+
+  it('has no secrets get channel anywhere in apps/desktop and no secrets.get in the preload', () => {
+    const sources = readdirSync(__dirname, { recursive: true, encoding: 'utf8' })
+      .filter((file) => file.endsWith('.ts') && !file.endsWith('.spec.ts'))
+      .map((file) => readFileSync(resolve(__dirname, file), 'utf-8'));
+    for (const source of sources) expect(source).not.toContain('dude:secrets:get');
+    expect(preloadSource).not.toMatch(/secrets:\s*\{[^}]*get/);
+    expect(preloadSource).toMatch(/dude:secrets:status/);
+  });
+
+  it('registers the handlers for the window and the secure-store file is gone from the live code', () => {
+    expect(read('main.ts')).toMatch(/registerSecretsHandlers\(window\)/);
+    expect(bridgeSource).not.toMatch(/secure-store\.json/);
+    expect(bridgeSource.match(/event\.sender|fromWindow\(event\)/g)!.length).toBeGreaterThanOrEqual(3);
   });
 });
 

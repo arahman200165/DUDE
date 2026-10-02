@@ -21,6 +21,7 @@ import { registerWatchHandlers, stopWatchScheduler, setTrayUpdater } from './net
 import { updateFolderWatchTray, updateWatchTray } from './tray';
 import { registerSecretsHandlers } from './secrets-bridge';
 import { registerLlmHandlers } from './llm-bridge';
+import { registerAiProviderHandlers } from './ai-provider-config';
 import { createTray, isAppQuitting, registerShellChromeHandlers } from './tray';
 import { registerHotkeyHandlers, unregisterAllHotkeys } from './hotkey-bridge';
 import { registerSmartPasteHotkey, registerSmartPasteRenderer } from './smart-paste-hotkey';
@@ -122,6 +123,8 @@ async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
   registerExternalLinkHandlers(window);
   registerDeviceStoreHandlers(window);
   registerLlmHandlers(window);
+  registerAiProviderHandlers(window);
+  registerSecretsHandlers(window);
   registerAppearanceBridge(window);
   registerSmartPasteRenderer(window);
   registerUpdateHandlers(window);
@@ -212,7 +215,6 @@ if (hasSingleInstanceLock) void app.whenReady().then(async () => {
   registerRuntimeProbeHandlers();
   registerElevationHandlers();
   registerWatchHandlers();
-  registerSecretsHandlers();
   registerShellChromeHandlers();
   registerNotificationHandlers();
   registerFileWatchHandlers();

@@ -154,9 +154,13 @@ const bridge: PlatformBridge = {
     },
   },
   secrets: {
-    get: (key) => ipcRenderer.invoke('dude:secrets:get', key),
-    set: (key, value) => ipcRenderer.invoke('dude:secrets:set', key, value),
-    remove: (key) => ipcRenderer.invoke('dude:secrets:remove', key),
+    status: (purpose) => ipcRenderer.invoke('dude:secrets:status', purpose),
+    set: (purpose, value) => ipcRenderer.invoke('dude:secrets:set', purpose, value),
+    remove: (purpose) => ipcRenderer.invoke('dude:secrets:remove', purpose),
+  },
+  ai: {
+    getConfig: () => ipcRenderer.invoke('dude:ai:getConfig'),
+    setConfig: (config) => ipcRenderer.invoke('dude:ai:setConfig', config),
   },
   llm: {
     isConfigured: () => ipcRenderer.invoke('dude:llm:isConfigured'),

@@ -207,20 +207,6 @@
       "syncConsent": "not granted"
     },
     {
-      "source": "apps/desktop/secrets-bridge.ts",
-      "line": 32,
-      "operation": "fs.writeFile(storePath(), JSON.stringify(store), 'utf8')",
-      "namespace": null,
-      "key": null,
-      "storage": "fs",
-      "storageLocation": "fs.writeFile(storePath(), JSON.stringify(store), 'utf8')",
-      "retention": "owned by the referenced backend; no policy change",
-      "scope": "local-only",
-      "sensitivity": "secret",
-      "classificationBasis": "private content/security/activity",
-      "syncConsent": "not granted"
-    },
-    {
       "source": "apps/desktop/sys-mutation.ts",
       "line": 247,
       "operation": "fs.writeFile(join(dir, `${index}-${safeName(name)}`), content)",
@@ -683,13 +669,13 @@
       "syncConsent": "not granted"
     },
     {
-      "source": "apps/web/src/app/core/persistence/secure-local.service.ts",
-      "line": 33,
-      "operation": "this.platformBridgePort.get()!.secrets.set(buildStorageKey(toolId, key), value)",
+      "source": "apps/web/src/app/core/persistence/secrets.service.ts",
+      "line": 25,
+      "operation": "this.platformBridgePort.get()!.secrets.set(purpose, value)",
       "namespace": null,
       "key": null,
       "storage": "this.platformBridgePort.get()!.secrets",
-      "storageLocation": "this.platformBridgePort.get()!.secrets.set(buildStorageKey(toolId, key), value)",
+      "storageLocation": "this.platformBridgePort.get()!.secrets.set(purpose, value)",
       "retention": "owned by the referenced backend; no policy change",
       "scope": "local-only",
       "sensitivity": "secret",
@@ -1394,6 +1380,34 @@
       "scope": "local-only",
       "sensitivity": "sensitive",
       "classificationBasis": "checked conservative local classification; promotion requires a separate field/schema review",
+      "syncConsent": "not granted"
+    },
+    {
+      "source": "apps/web/src/app/shell/onboarding/onboarding.ts",
+      "line": 139,
+      "operation": "this.secrets.set('ai.llmApiKey', key)",
+      "namespace": null,
+      "key": "ai.llmApiKey",
+      "storage": "this.secrets",
+      "storageLocation": "this.secrets.set('ai.llmApiKey', key)",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "secret",
+      "classificationBasis": "private content/security/activity",
+      "syncConsent": "not granted"
+    },
+    {
+      "source": "apps/web/src/app/shell/settings/sections/ai-provider-settings.ts",
+      "line": 111,
+      "operation": "this.secrets.set(API_KEY_PURPOSE, key)",
+      "namespace": null,
+      "key": "ai.llmApiKey",
+      "storage": "this.secrets",
+      "storageLocation": "this.secrets.set(API_KEY_PURPOSE, key)",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "secret",
+      "classificationBasis": "private content/security/activity",
       "syncConsent": "not granted"
     },
     {

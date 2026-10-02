@@ -4,10 +4,10 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { DesktopPreferencesService } from '../../core/platform/desktop-preferences.service';
 import { OnboardingService } from '../../core/platform/onboarding.service';
 import { ShellChromeService } from '../../core/platform/shell-chrome.service';
-import { SecureLocalService } from '../../core/persistence/secure-local.service';
-import { APP_SETTINGS_NAMESPACE, LLM_API_KEY_KEY, LLM_BASE_URL_KEY, LLM_MODEL_KEY } from "@dude/tool-engine/core/persistence/app-settings";
+import { SecretsService } from '../../core/persistence/secrets.service';
+import { AiProviderConfigService } from '../../core/persistence/ai-provider-config.service';
 import { WorkspaceLayoutService } from '../../core/workspace/workspace-layout.service';
-import type { DesktopPreferences, QuickActionInfo } from "@dude/contracts/shared/models/platform-bridge.model";
+import type { DesktopPreferences, QuickActionInfo, SecretStatusView } from "@dude/contracts/shared/models/platform-bridge.model";
 import { ToolRegistryService } from '../../core/registry/tool-registry.service';
 import { AppearanceService } from '../../core/appearance/appearance.service';
 import { APPEARANCE_AXES, SYSTEM, type AppearancePrefs } from "@dude/domain/core/appearance/appearance.model";
@@ -55,7 +55,8 @@ export class Onboarding {
   protected readonly desktop = inject(DesktopPreferencesService);
   protected readonly workspace = inject(WorkspaceLayoutService);
   private readonly shell = inject(ShellChromeService);
-  private readonly secure = inject(SecureLocalService);
+  private readonly secrets = inject(SecretsService);
+  private readonly aiConfig = inject(AiProviderConfigService);
   protected readonly pages = PAGES;
   /** The active page; a stored/out-of-range step index is clamped so the wizard can never render nothing. */
   protected readonly currentPage = computed(() => PAGES[Math.min(PAGES.length - 1, Math.max(0, this.flow.step()))]);
@@ -73,7 +74,10 @@ export class Onboarding {
   protected readonly hotkeyDrafts = signal<Record<string, string>>({});
   protected readonly baseUrl = signal('');
   protected readonly model = signal('');
+  /** A new key being typed; the stored key is never read back, only its status. */
   protected readonly apiKey = signal('');
+  protected readonly keyStatus = signal<SecretStatusView | null>(null);
+  protected readonly replacingKey = signal(false);
   /** Tool-contributed Settings sections that opted into the wizard (`settingsSection.onboarding`). */
   protected readonly toolSections = inject(ToolRegistryService).settingsSections().filter((section) => section.onboarding);
   protected readonly message = signal('');
@@ -87,12 +91,12 @@ export class Onboarding {
     const hotkeys = await this.shell.listQuickActions();
     this.hotkeys.set(hotkeys);
     this.hotkeyDrafts.set(Object.fromEntries(hotkeys.map((item) => [item.id, item.hotkey ?? ''])));
-    const [url, model, key] = await Promise.all([
-      this.secure.get(APP_SETTINGS_NAMESPACE, LLM_BASE_URL_KEY), this.secure.get(APP_SETTINGS_NAMESPACE, LLM_MODEL_KEY), this.secure.get(APP_SETTINGS_NAMESPACE, LLM_API_KEY_KEY),
-    ]);
-    if (url.ok) this.baseUrl.set(url.value ?? '');
-    if (model.ok) this.model.set(model.value ?? '');
-    if (key.ok) this.apiKey.set(key.value ?? '');
+    const view = await this.aiConfig.get();
+    if (view) {
+      this.baseUrl.set(view.baseUrl);
+      this.model.set(view.model);
+      this.keyStatus.set(view.apiKey);
+    }
   }
 
   protected async preference<K extends keyof DesktopPreferences>(key: K, value: DesktopPreferences[K]): Promise<void> {
@@ -127,14 +131,21 @@ export class Onboarding {
   protected async saveAi(): Promise<boolean> {
     this.saving.set(true);
     this.message.set('');
-    const results = await Promise.all([
-      this.secure.set(APP_SETTINGS_NAMESPACE, LLM_BASE_URL_KEY, this.baseUrl().trim()),
-      this.secure.set(APP_SETTINGS_NAMESPACE, LLM_MODEL_KEY, this.model().trim()),
-      this.secure.set(APP_SETTINGS_NAMESPACE, LLM_API_KEY_KEY, this.apiKey().trim()),
-    ]);
+    let error = '';
+    const config = await this.aiConfig.set({ baseUrl: this.baseUrl().trim(), model: this.model().trim() });
+    if (!config.ok) error = config.error;
+    const key = this.apiKey().trim();
+    if (!error && key) {
+      const result = await this.secrets.set('ai.llmApiKey', key);
+      if (!result.ok) error = result.error;
+    }
+    if (!error) {
+      this.apiKey.set('');
+      this.replacingKey.set(false);
+      this.keyStatus.set(await this.secrets.status('ai.llmApiKey'));
+    }
     this.saving.set(false);
-    const error = results.find((result) => !result.ok);
-    this.message.set(error && !error.ok ? error.error : 'AI configuration saved.');
+    this.message.set(error ? (error === 'invalid-config' ? 'The base URL must be a valid http(s) address.' : error) : 'AI configuration saved.');
     return !error;
   }
 

@@ -17,7 +17,7 @@ const session = createStorageBackend('session');
  *
  * Only `'session'`/`'local'`/`'user-choice'` are supported here — `'none'`-policy tools never
  * touch storage at all (use `WorkspaceHandoffService` instead, once it ships) and `'secure-local'`
- * is async/OS-keychain-only (`SecureLocalService`), out of scope for this synchronous bridge.
+ * is async/OS-keychain-only (`SecretsService`), out of scope for this synchronous bridge.
  */
 function resolveBackend(toolId: string, key: string, policy: BridgePolicy) {
   if (policy === 'user-choice') {

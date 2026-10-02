@@ -3,7 +3,8 @@ import { TestBed } from '@angular/core/testing';
 import { OnboardingService } from '../../core/platform/onboarding.service';
 import { DESKTOP_PREFERENCE_DEFAULTS, DesktopPreferencesService } from '../../core/platform/desktop-preferences.service';
 import { ShellChromeService } from '../../core/platform/shell-chrome.service';
-import { SecureLocalService } from '../../core/persistence/secure-local.service';
+import { SecretsService } from '../../core/persistence/secrets.service';
+import { AiProviderConfigService } from '../../core/persistence/ai-provider-config.service';
 import { ToolRegistryService } from '../../core/registry/tool-registry.service';
 import { AppearanceService } from '../../core/appearance/appearance.service';
 import { Onboarding } from './onboarding';
@@ -11,7 +12,7 @@ import { Onboarding } from './onboarding';
 @Component({ selector: 'app-fake-relay-section', template: '<label>Relay URL</label>' })
 class FakeRelaySection {}
 
-function setup(step: number, opts: { hotkeys?: unknown[]; prefs?: Record<string, string>; effective?: Record<string, string> } = {}) {
+function setup(step: number, opts: { hotkeys?: unknown[]; prefs?: Record<string, string>; effective?: Record<string, string>; aiKey?: { isSet: boolean; hint: string | null; needsReentry: boolean } } = {}) {
   const flow = { visible: signal(true), step: signal(step), setStep: vi.fn(), skip: vi.fn(), complete: vi.fn() };
   const appearance = {
     prefs: signal({ mode: 'dark', density: 'compact', contrast: 'standard', ...opts.prefs }),
@@ -23,14 +24,17 @@ function setup(step: number, opts: { hotkeys?: unknown[]; prefs?: Record<string,
     listQuickActions: vi.fn().mockResolvedValue(opts.hotkeys ?? []),
     setQuickActionHotkey: vi.fn().mockResolvedValue({ ok: true }),
   };
-  const secure = { get: vi.fn().mockResolvedValue({ ok: true, value: null }), set: vi.fn().mockResolvedValue({ ok: true }) };
+  const keyStatus = { purpose: 'ai.llmApiKey', ...(opts.aiKey ?? { isSet: false, hint: null, needsReentry: false }) };
+  const secure = { status: vi.fn().mockResolvedValue(keyStatus), set: vi.fn().mockResolvedValue({ ok: true }), remove: vi.fn() };
+  const aiConfig = { get: vi.fn().mockResolvedValue({ baseUrl: 'https://api.example.com/v1', model: 'm', apiKey: keyStatus }), set: vi.fn().mockResolvedValue({ ok: true }) };
   TestBed.configureTestingModule({
     providers: [
       { provide: OnboardingService, useValue: flow },
       { provide: AppearanceService, useValue: appearance },
       { provide: DesktopPreferencesService, useValue: { load: vi.fn().mockResolvedValue(undefined), set: vi.fn(), current: signal(DESKTOP_PREFERENCE_DEFAULTS), displays: signal([]) } },
       { provide: ShellChromeService, useValue: shell },
-      { provide: SecureLocalService, useValue: secure },
+      { provide: SecretsService, useValue: secure },
+      { provide: AiProviderConfigService, useValue: aiConfig },
       {
         provide: ToolRegistryService,
         useValue: {
@@ -44,7 +48,7 @@ function setup(step: number, opts: { hotkeys?: unknown[]; prefs?: Record<string,
       },
     ],
   });
-  return { flow, appearance, shell, secure };
+  return { flow, appearance, shell, secure, aiConfig };
 }
 
 async function render(): Promise<{ el: HTMLElement; fixture: ReturnType<typeof TestBed.createComponent<Onboarding>> }> {
@@ -94,13 +98,32 @@ describe('Onboarding', () => {
     expect(flow.setStep).toHaveBeenCalledWith(5);
   });
 
-  it('Next on the AI page saves the AI configuration before advancing', async () => {
-    const { flow, secure } = setup(5);
+  it('Next on the AI page saves the config, and the key only when one was typed', async () => {
+    const { flow, secure, aiConfig } = setup(5);
     const { el, fixture } = await render();
     button(el, 'Next').click();
     await fixture.whenStable();
-    expect(secure.set).toHaveBeenCalledTimes(3);
+    expect(aiConfig.set).toHaveBeenCalledWith({ baseUrl: 'https://api.example.com/v1', model: 'm' });
+    expect(secure.set).not.toHaveBeenCalled();
     expect(flow.setStep).toHaveBeenCalledWith(6);
+  });
+
+  it('shows a saved key as a masked hint without any key value, and Replace reveals an empty input', async () => {
+    setup(5, { aiKey: { isSet: true, hint: '••••abcd', needsReentry: false } });
+    const { el, fixture } = await render();
+    expect(el.querySelector('[data-testid="key-saved"]')!.textContent).toContain('••••abcd');
+    expect(el.querySelector('input[type="password"]')).toBeNull();
+    button(el, 'Replace').click();
+    fixture.detectChanges();
+    const input = el.querySelector('input[type="password"]') as HTMLInputElement;
+    expect(input.value).toBe('');
+  });
+
+  it('asks for re-entry when the stored key cannot be used on this device', async () => {
+    setup(5, { aiKey: { isSet: true, hint: null, needsReentry: true } });
+    const { el } = await render();
+    expect(el.querySelector('[data-testid="key-reentry"]')!.textContent).toContain('Re-enter your API key');
+    expect(el.querySelector('input[type="password"]')).not.toBeNull();
   });
 
   it('Finish on the review page completes the wizard', async () => {

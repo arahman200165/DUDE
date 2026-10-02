@@ -24,7 +24,11 @@ The renderer can't open windows (`setWindowOpenHandler` denies everything) and `
 
 ## LLM chat: `dude:llm:chat`
 
-`llm-bridge.ts` performs the user's OpenAI-compatible chat request in main (the old loopback HTTP proxy was removed in Phase 31B: a `dude-app://` renderer can't call it cross-origin). It accepts requests only from this window's `webContents`, strictly validates `{ messages: [{ role, content }] }` (<= 200 messages, <= 1 MB of content, nothing else), reads base URL/model/API key from the secure store in main, times out after 120 s, and returns `{ ok, content | error }` with the key scrubbed from any error. Non-streaming only. `llm-bridge.spec.ts` and `main-security.spec.ts` pin it.
+`llm-bridge.ts` performs the user's OpenAI-compatible chat request in main (the old loopback HTTP proxy was removed in Phase 31B: a `dude-app://` renderer can't call it cross-origin). It accepts requests only from this window's `webContents`, strictly validates `{ messages: [{ role, content }] }` (<= 200 messages, <= 1 MB of content, nothing else), reads base URL/model from the `ai-provider` device doc and the API key via `getSecretValue('ai.llmApiKey')` in main, times out after 120 s, and returns `{ ok, content | error }` with the key scrubbed from any error. Non-streaming only. `llm-bridge.spec.ts` and `main-security.spec.ts` pin it.
+
+## Secrets and AI provider config (Phase 31B, M622)
+
+`secrets-bridge.ts` keeps secrets in the Device State Store as `safeStorage` ciphertext, addressed by a closed `SecretPurpose` (`@dude/persistence`). Main-only `getSecretValue(purpose)` decrypts in-process; the renderer gets `dude:secrets:status|set|remove` only (sender-checked, purpose allowlisted, length-capped) and the status carries a hint masked in main. **There is no channel that returns a secret value, and none may be added** (`main-security.spec.ts` pins it). `set` refuses with `encryption-unavailable` / `store-unavailable` instead of ever storing plaintext. The AI base URL/model are the main-owned `ai-provider` device doc (`ai-provider-config.ts`, `dude:ai:getConfig|setConfig`, sender-checked). `device-store/legacy-secure-store-import.ts` imports the old `secure-store.json` once (key ciphertext copied unchanged).
 
 ## Native theme sync: `dude:appearance:set`
 

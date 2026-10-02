@@ -51,7 +51,7 @@ export const PLATFORM_CAPABILITIES: Readonly<Record<PlatformCapabilityId, Platfo
   'secure-keychain': {
     label: 'OS keychain storage',
     description: 'Stores secrets encrypted by the operating system keychain (Electron safeStorage).',
-    service: 'SecureLocalService',
+    service: 'SecretsService',
   },
   'native-system': {
     label: 'Native Windows system access',
