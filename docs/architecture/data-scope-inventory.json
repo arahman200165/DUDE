@@ -1626,7 +1626,7 @@
     {
       "source": "apps/web/src/app/core/appearance/appearance.service.ts",
       "line": 37,
-      "operation": "this.persistence.signal<unknown>(APP_SETTINGS_NAMESPACE, APPEARANCE_KEY, 'local', DEFAULT_APPEARANCE, {\r\n    crossTab: 'live',\r\n  })",
+      "operation": "this.persistence.signal<unknown>(APP_SETTINGS_NAMESPACE, APPEARANCE_KEY, 'local', DEFAULT_APPEARANCE, {\n    crossTab: 'live',\n  })",
       "namespace": "settings",
       "key": "appearance",
       "storage": "PersistenceService",
@@ -2008,7 +2008,7 @@
     {
       "source": "apps/web/src/app/core/pipeline/user-script-store.service.ts",
       "line": 17,
-      "operation": "inject(ENTITY_STORE).collection(\r\n    userScriptCodec,\r\n    {\r\n      namespace: 'user-scripts',\r\n      key: 'library',\r\n      toItems: (blob) => (isRecord(blob) && Array.isArray(blob['scripts']) ? blob['scripts'] : []),\r\n      fromItems: (scripts) => ({ ...EMPTY_USER_SCRIPT_STORE, scripts }),\r\n    },\r\n    { compare: (a, b) => a.createdAt.localeCompare(b.createdAt) },\r\n  )",
+      "operation": "inject(ENTITY_STORE).collection(\n    userScriptCodec,\n    {\n      namespace: 'user-scripts',\n      key: 'library',\n      toItems: (blob) => (isRecord(blob) && Array.isArray(blob['scripts']) ? blob['scripts'] : []),\n      fromItems: (scripts) => ({ ...EMPTY_USER_SCRIPT_STORE, scripts }),\n    },\n    { compare: (a, b) => a.createdAt.localeCompare(b.createdAt) },\n  )",
       "namespace": "user-scripts",
       "key": "library",
       "storage": "EntityStore",
@@ -2093,7 +2093,7 @@
     {
       "source": "apps/web/src/app/core/project/project.service.ts",
       "line": 18,
-      "operation": "inject(ENTITY_STORE).collection(\r\n    projectCodec,\r\n    {\r\n      namespace: '__projects__',\r\n      key: 'projects',\r\n      toItems: (blob) => (typeof blob === 'object' && blob !== null && Array.isArray((blob as { projects?: unknown }).projects) ? (blob as { projects: unknown[] }).projects : []),\r\n      fromItems: (projects) => ({ ...EMPTY_PROJECT_STORE, projects }),\r\n    },\r\n    { compare: (a, b) => a.createdAt.localeCompare(b.createdAt) },\r\n  )",
+      "operation": "inject(ENTITY_STORE).collection(\n    projectCodec,\n    {\n      namespace: '__projects__',\n      key: 'projects',\n      toItems: (blob) => (typeof blob === 'object' && blob !== null && Array.isArray((blob as { projects?: unknown }).projects) ? (blob as { projects: unknown[] }).projects : []),\n      fromItems: (projects) => ({ ...EMPTY_PROJECT_STORE, projects }),\n    },\n    { compare: (a, b) => a.createdAt.localeCompare(b.createdAt) },\n  )",
       "namespace": "__projects__",
       "key": "projects",
       "storage": "EntityStore",
@@ -2321,7 +2321,7 @@
     {
       "source": "apps/web/src/app/core/workspace/workspace-template.service.ts",
       "line": 38,
-      "operation": "inject(ENTITY_STORE).collection(\r\n    workspaceTemplateCodec,\r\n    {\r\n      namespace: NAMESPACE,\r\n      key: 'userTemplates',\r\n      toItems: (blob) => (typeof blob === 'object' && blob !== null && Array.isArray((blob as { userTemplates?: unknown }).userTemplates) ? (blob as { userTemplates: unknown[] }).userTemplates : []),\r\n      fromItems: (userTemplates) => ({ schemaVersion: 1, userTemplates }),\r\n    },\r\n    { compare: (a, b) => a.name.localeCompare(b.name) },\r\n  )",
+      "operation": "inject(ENTITY_STORE).collection(\n    workspaceTemplateCodec,\n    {\n      namespace: NAMESPACE,\n      key: 'userTemplates',\n      toItems: (blob) => (typeof blob === 'object' && blob !== null && Array.isArray((blob as { userTemplates?: unknown }).userTemplates) ? (blob as { userTemplates: unknown[] }).userTemplates : []),\n      fromItems: (userTemplates) => ({ schemaVersion: 1, userTemplates }),\n    },\n    { compare: (a, b) => a.name.localeCompare(b.name) },\n  )",
       "namespace": "__workspace-templates__",
       "key": "userTemplates",
       "storage": "EntityStore",
@@ -2336,7 +2336,7 @@
     {
       "source": "apps/web/src/app/core/workspace/workspace-template.service.ts",
       "line": 49,
-      "operation": "inject(PersistenceService).signal<readonly string[]>(NAMESPACE, 'recentlyApplied', 'local', legacyRecentlyApplied(), {\r\n    crossTab: 'live',\r\n  })",
+      "operation": "inject(PersistenceService).signal<readonly string[]>(NAMESPACE, 'recentlyApplied', 'local', legacyRecentlyApplied(), {\n    crossTab: 'live',\n  })",
       "namespace": "__workspace-templates__",
       "key": "recentlyApplied",
       "storage": "PersistenceService",
@@ -3274,7 +3274,7 @@
     {
       "source": "apps/web/src/app/tools/box-shadow-generator/box-shadow-generator.ts",
       "line": 18,
-      "operation": "this.persistence.signal<readonly ShadowLayer[]>('box-shadow-generator', 'layers', 'session', [\r\n    DEFAULT_SHADOW_LAYER,\r\n  ])",
+      "operation": "this.persistence.signal<readonly ShadowLayer[]>('box-shadow-generator', 'layers', 'session', [\n    DEFAULT_SHADOW_LAYER,\n  ])",
       "namespace": "box-shadow-generator",
       "key": "layers",
       "storage": "PersistenceService",
@@ -3946,7 +3946,7 @@
     {
       "source": "apps/web/src/app/tools/css-animation-builder/css-animation-builder.ts",
       "line": 28,
-      "operation": "this.persistence.signal<AnimationSettings>(\r\n    'css-animation-builder',\r\n    'settings',\r\n    'session',\r\n    DEFAULT_ANIMATION_SETTINGS,\r\n  )",
+      "operation": "this.persistence.signal<AnimationSettings>(\n    'css-animation-builder',\n    'settings',\n    'session',\n    DEFAULT_ANIMATION_SETTINGS,\n  )",
       "namespace": "css-animation-builder",
       "key": "settings",
       "storage": "PersistenceService",
@@ -4058,7 +4058,7 @@
     {
       "source": "apps/web/src/app/tools/css-specificity-calculator/css-specificity-calculator.ts",
       "line": 14,
-      "operation": "this.persistence.signal(\r\n    'css-specificity-calculator',\r\n    'input',\r\n    'session',\r\n    '#header .nav a:hover, .nav a, a',\r\n  )",
+      "operation": "this.persistence.signal(\n    'css-specificity-calculator',\n    'input',\n    'session',\n    '#header .nav a:hover, .nav a, a',\n  )",
       "namespace": "css-specificity-calculator",
       "key": "input",
       "storage": "PersistenceService",
@@ -5752,7 +5752,7 @@
     {
       "source": "apps/web/src/app/tools/file-hash/file-hash.ts",
       "line": 36,
-      "operation": "this.persistence.signal<readonly HashAlgorithm[]>(\r\n    'file-hash',\r\n    'algorithms',\r\n    'local',\r\n    ['SHA-256'],\r\n  )",
+      "operation": "this.persistence.signal<readonly HashAlgorithm[]>(\n    'file-hash',\n    'algorithms',\n    'local',\n    ['SHA-256'],\n  )",
       "namespace": "file-hash",
       "key": "algorithms",
       "storage": "PersistenceService",
@@ -6270,7 +6270,7 @@
     {
       "source": "apps/web/src/app/tools/gradient-generator/gradient-generator.ts",
       "line": 19,
-      "operation": "this.persistence.signal<readonly GradientStop[]>('gradient-generator', 'stops', 'session', [\r\n    { color: '#3b82f6', position: 0 },\r\n    { color: '#a855f7', position: 100 },\r\n  ])",
+      "operation": "this.persistence.signal<readonly GradientStop[]>('gradient-generator', 'stops', 'session', [\n    { color: '#3b82f6', position: 0 },\n    { color: '#a855f7', position: 100 },\n  ])",
       "namespace": "gradient-generator",
       "key": "stops",
       "storage": "PersistenceService",
@@ -8566,7 +8566,7 @@
     {
       "source": "apps/web/src/app/tools/model-generator/model-generator.ts",
       "line": 18,
-      "operation": "this.persistence.signal(\r\n    'model-generator',\r\n    'input',\r\n    'session',\r\n    '{\\n  \"id\": 1,\\n  \"name\": \"Ada Lovelace\",\\n  \"address\": {\\n    \"city\": \"London\"\\n  },\\n  \"tags\": [\"math\", \"computing\"]\\n}',\r\n  )",
+      "operation": "this.persistence.signal(\n    'model-generator',\n    'input',\n    'session',\n    '{\\n  \"id\": 1,\\n  \"name\": \"Ada Lovelace\",\\n  \"address\": {\\n    \"city\": \"London\"\\n  },\\n  \"tags\": [\"math\", \"computing\"]\\n}',\n  )",
       "namespace": "model-generator",
       "key": "input",
       "storage": "PersistenceService",
@@ -10624,7 +10624,7 @@
     {
       "source": "apps/web/src/app/tools/schema-diff/schema-diff.ts",
       "line": 21,
-      "operation": "this.persistence.signal(\r\n    'schema-diff',\r\n    'after',\r\n    'session',\r\n    'CREATE TABLE users (id INT NOT NULL, name VARCHAR(255), email VARCHAR(255))',\r\n  )",
+      "operation": "this.persistence.signal(\n    'schema-diff',\n    'after',\n    'session',\n    'CREATE TABLE users (id INT NOT NULL, name VARCHAR(255), email VARCHAR(255))',\n  )",
       "namespace": "schema-diff",
       "key": "after",
       "storage": "PersistenceService",
@@ -10708,7 +10708,7 @@
     {
       "source": "apps/web/src/app/tools/semver-comparator/semver-comparator.ts",
       "line": 34,
-      "operation": "this.persistence.signal(\r\n    'semver-comparator',\r\n    'list',\r\n    'session',\r\n    '1.2.3\\n1.0.0\\n2.0.0-beta.1\\n1.10.0',\r\n  )",
+      "operation": "this.persistence.signal(\n    'semver-comparator',\n    'list',\n    'session',\n    '1.2.3\\n1.0.0\\n2.0.0-beta.1\\n1.10.0',\n  )",
       "namespace": "semver-comparator",
       "key": "list",
       "storage": "PersistenceService",
@@ -10792,7 +10792,7 @@
     {
       "source": "apps/web/src/app/tools/semver-comparator/semver-comparator.ts",
       "line": 40,
-      "operation": "this.persistence.signal<SortDirection>(\r\n    'semver-comparator',\r\n    'sortDirection',\r\n    'local',\r\n    'asc',\r\n  )",
+      "operation": "this.persistence.signal<SortDirection>(\n    'semver-comparator',\n    'sortDirection',\n    'local',\n    'asc',\n  )",
       "namespace": "semver-comparator",
       "key": "sortDirection",
       "storage": "PersistenceService",
@@ -11576,7 +11576,7 @@
     {
       "source": "apps/web/src/app/tools/svg-data-uri/svg-data-uri.ts",
       "line": 23,
-      "operation": "this.persistence.signal(\r\n    'svg-data-uri',\r\n    'svgInput',\r\n    'session',\r\n    '<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" width=\"24\" height=\"24\"><circle cx=\"12\" cy=\"12\" r=\"10\" fill=\"#38bdf8\"/></svg>',\r\n  )",
+      "operation": "this.persistence.signal(\n    'svg-data-uri',\n    'svgInput',\n    'session',\n    '<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" width=\"24\" height=\"24\"><circle cx=\"12\" cy=\"12\" r=\"10\" fill=\"#38bdf8\"/></svg>',\n  )",
       "namespace": "svg-data-uri",
       "key": "svgInput",
       "storage": "PersistenceService",

@@ -47,7 +47,8 @@ const REVIEWED_HEURISTICS = {
 };
 
 // ---- declarations -------------------------------------------------------------------------
-const parse = f => ts.createSourceFile(f, readFileSync(f, 'utf8'), ts.ScriptTarget.Latest, true);
+// Normalize line endings so `operation` snippets are identical on a CRLF (Windows autocrlf) and an LF checkout.
+const parse = f => ts.createSourceFile(f, readFileSync(f, 'utf8').replaceAll('\r\n', '\n'), ts.ScriptTarget.Latest, true);
 const str = n => n && (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) ? n.text : undefined;
 const prop = (o, name) => o.properties.find(p => ts.isPropertyAssignment(p) && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) && p.name.text === name);
 
