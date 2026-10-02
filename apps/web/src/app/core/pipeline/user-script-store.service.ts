@@ -1,7 +1,9 @@
 import { Injectable, computed, inject } from '@angular/core';
-import { PersistenceService } from '../persistence/persistence.service';
-import { EMPTY_USER_SCRIPT_STORE, UserScriptDefinition, UserScriptStore, migrateUserScriptStore } from "@dude/domain/core/pipeline/pipeline.model";
-import { upsertById } from "@dude/tool-engine/core/backup/upsert-by-id";
+import { ENTITY_STORE, type EntityWriteResult } from '../persistence/entities/entity-store';
+import { userScriptCodec } from '@dude/persistence';
+import { EMPTY_USER_SCRIPT_STORE, UserScriptDefinition } from "@dude/domain/core/pipeline/pipeline.model";
+
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /**
  * A library of user-authored pipeline scripts, independent of any one saved pipeline — a
@@ -12,37 +14,34 @@ import { upsertById } from "@dude/tool-engine/core/backup/upsert-by-id";
  */
 @Injectable({ providedIn: 'root' })
 export class UserScriptStoreService {
-  private readonly persistence = inject(PersistenceService);
-  private readonly store = this.persistence.signal<UserScriptStore>('user-scripts', 'library', 'local', EMPTY_USER_SCRIPT_STORE, {
-    crossTab: 'live',
-  });
+  private readonly collection = inject(ENTITY_STORE).collection(
+    userScriptCodec,
+    {
+      namespace: 'user-scripts',
+      key: 'library',
+      toItems: (blob) => (isRecord(blob) && Array.isArray(blob['scripts']) ? blob['scripts'] : []),
+      fromItems: (scripts) => ({ ...EMPTY_USER_SCRIPT_STORE, scripts }),
+    },
+    { compare: (a, b) => a.createdAt.localeCompare(b.createdAt) },
+  );
 
-  constructor() {
-    const migrated = migrateUserScriptStore(this.store());
-    if (migrated !== this.store()) this.store.set(migrated);
-  }
-
-  readonly scripts = computed(() => this.store().scripts);
+  readonly scripts = computed<readonly UserScriptDefinition[]>(() => this.collection.items());
 
   getById(id: string): UserScriptDefinition | undefined {
-    return this.store().scripts.find((script) => script.id === id);
+    return this.collection.get(id);
   }
 
-  save(script: UserScriptDefinition): void {
-    const existing = this.store().scripts;
-    const index = existing.findIndex((candidate) => candidate.id === script.id);
-    const updated = { ...script, updatedAt: new Date().toISOString() };
-    const scripts = index === -1 ? [...existing, updated] : existing.map((candidate, i) => (i === index ? updated : candidate));
-    this.store.set({ ...this.store(), scripts });
+  save(script: UserScriptDefinition): Promise<EntityWriteResult> {
+    return this.collection.upsert({ ...script, updatedAt: new Date().toISOString() });
   }
 
-  remove(id: string): void {
-    this.store.set({ ...this.store(), scripts: this.store().scripts.filter((script) => script.id !== id) });
+  remove(id: string): Promise<EntityWriteResult> {
+    return this.collection.remove(id);
   }
 
   /** Bundle import (Phase 26 Item 14). Imported scripts carry `imported: true` until reviewed. */
-  importScripts(scripts: readonly UserScriptDefinition[]): void {
-    this.store.set({ ...this.store(), scripts: upsertById(this.store().scripts, scripts) });
+  importScripts(scripts: readonly UserScriptDefinition[]): Promise<EntityWriteResult> {
+    return this.collection.importMany(scripts);
   }
 
   /** The explicit "I've read this code" step that lets an imported script run in pipelines. */
@@ -50,6 +49,6 @@ export class UserScriptStoreService {
     const script = this.getById(id);
     if (!script?.imported) return;
     const { imported: _imported, ...reviewed } = script;
-    this.save(reviewed);
+    void this.save(reviewed);
   }
 }

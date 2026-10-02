@@ -107,27 +107,3 @@ export function sanitizeBuckets(raw: unknown): readonly DailyUsageBucket[] {
   const sorted = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
   return sorted.slice(-MAX_DAILY_BUCKETS);
 }
-
-/**
- * Defensive parse + schema migration. v1 (counts + recentLog only) is upgraded to v2 keeping both
- * intact, with no buckets and no tracking start — daily tracking begins with the next open, and
- * the log is deliberately never used to reconstruct days. A newer/unknown schema that still has the
- * v1 fields keeps its lifetime counts and log rather than wiping them. Anything else resets.
- */
-export function migrateUsageStore(raw: unknown): UsageStore {
-  if (!isRecord(raw)) return EMPTY_USAGE_STORE;
-  if (!isRecord(raw.counts) || !Array.isArray(raw.recentLog)) return EMPTY_USAGE_STORE;
-  if (typeof raw.schemaVersion !== 'number' || raw.schemaVersion < 1) return EMPTY_USAGE_STORE;
-
-  const counts = raw.counts as UsageStore['counts'];
-  const recentLog = raw.recentLog as UsageStore['recentLog'];
-
-  if (raw.schemaVersion === USAGE_STORE_SCHEMA_VERSION) {
-    const dailyBuckets = sanitizeBuckets(raw.dailyBuckets);
-    const start = raw.trackingStartedOn;
-    const trackingStartedOn =
-      typeof start === 'string' && parseLocalDay(start) !== null ? start : (dailyBuckets[0]?.date ?? null);
-    return { schemaVersion: 2, counts, recentLog, dailyBuckets, trackingStartedOn };
-  }
-  return { schemaVersion: 2, counts, recentLog, dailyBuckets: [], trackingStartedOn: null };
-}

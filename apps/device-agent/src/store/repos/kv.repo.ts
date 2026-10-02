@@ -1,10 +1,13 @@
-import { resolveToolKeyScope } from '@dude/persistence';
+import { findSettingDefinition, resolveToolKeyScope } from '@dude/persistence';
 import type { KeyValueRepository, KvEntry, KvKey, KvWriteMeta } from '@dude/persistence';
 import type { KvMutation } from '@dude/contracts';
 import type { DataScope } from '@dude/domain';
 import type { PersistencePolicy } from '@dude/shared-types/shared/models/persistence-policy.model';
 import type { Db } from '../sqlite.js';
 import { transaction } from '../sqlite.js';
+import { recordOutboxOp } from '../entity-commit.js';
+import type { CommitContext } from '../entity-commit.js';
+import { OUTBOX_SCHEMA_VERSION } from '@dude/sync';
 
 interface KvRow { namespace: string; key: string; value_json: string }
 
@@ -18,13 +21,39 @@ function upsert(db: Db, namespace: string, key: string, value: unknown, policy: 
   ).run(namespace, key, json, policy, scope, now);
 }
 
-/** Apply a batch of key/value mutations in one transaction (all or nothing). */
-export function commitKvBatch(db: Db, mutations: readonly KvMutation[], scopeOf: ScopeResolver = (p) => resolveToolKeyScope(p), now: () => Date = () => new Date()): void {
+/** Entity type of a journaled kv setting's outbox op; the id is `<namespace>:<key>`. Needs no entity codec. */
+export const SETTING_ENTITY_TYPE = 'setting';
+
+/**
+ * Apply a batch of key/value mutations in one transaction (all or nothing). With `outbox` supplied, every
+ * mutation of a key whose `SETTING_DEFINITIONS` entry has `journal: true` also writes its coalesced outbox op in
+ * that same transaction; the store decides journaling, the renderer cannot force it.
+ */
+export function commitKvBatch(
+  db: Db,
+  mutations: readonly KvMutation[],
+  scopeOf: ScopeResolver = (p) => resolveToolKeyScope(p),
+  now: () => Date = () => new Date(),
+  outbox?: CommitContext,
+): void {
   const stamp = now().toISOString();
   transaction(db, () => {
     for (const m of mutations) {
       if (m.remove) db.prepare('DELETE FROM kv WHERE namespace = ? AND key = ?').run(m.namespace, m.key);
       else upsert(db, m.namespace, m.key, m.value, m.policy, m.scope ?? scopeOf(m.policy), stamp);
+      if (outbox && findSettingDefinition(m.namespace, m.key)?.journal === true) {
+        const entityId = `${m.namespace}:${m.key}`;
+        const prev = db.prepare('SELECT local_revision FROM outbox WHERE entity_type = ? AND entity_id = ?').get(SETTING_ENTITY_TYPE, entityId) as { local_revision: number } | undefined;
+        recordOutboxOp(db, outbox, {
+          entityType: SETTING_ENTITY_TYPE,
+          entityId,
+          opKind: m.remove ? 'delete' : 'upsert',
+          schemaVersion: OUTBOX_SCHEMA_VERSION,
+          basedOnRevision: null,
+          localRevision: (prev?.local_revision ?? 0) + 1,
+          payload: m.remove ? null : (m.value === undefined ? null : m.value),
+        });
+      }
     }
   });
 }

@@ -2,7 +2,6 @@ import { hostCrypto } from "@dude/crypto/host";
 import { Project } from "../project/project.model.js";
 import { Pipeline, PipelineStepRef, UserScriptDefinition } from "../pipeline/pipeline.model.js";
 import { WorkspaceTemplate } from "../workspace/workspace-template.model.js";
-import { HomePanelContent, hasHomePanelContent, mergeHomePanel, sanitizeHomePanel } from "../home-panel/home-panel.model.js";
 import { AppearancePrefs, DEFAULT_APPEARANCE, sanitizeAppearance } from "../appearance/appearance.model.js";
 import type { HomeLayoutData } from "../home-layout/home-layout-store.model.js";
 
@@ -32,16 +31,10 @@ export interface DudeBundle {
   /** Opt-in at export time. `toolId → its declared text input`. */
   readonly toolInputs?: Readonly<Record<string, string>>;
   /**
-   * The user-authored Home note + links (Phase 30H.6) — the one Home store that is the user's own
-   * content, so unlike usage stats it is exported. Optional: absent when the panel is empty and in
-   * bundles written before it existed. Re-sanitized on parse and again on apply.
-   */
-  readonly homePanel?: HomePanelContent;
-  /**
    * The user-designed Home (Phase 30I): panel instances, both placements, and user-authored panel
-   * content. Additive and optional like `homePanel` (so the bundle schema version is unchanged and
+   * content. Additive and optional (so the bundle schema version is unchanged and
    * older bundles still import). Re-sanitized against the panel registry on parse (`sanitizeLayout`)
-   * and again on apply. Supersedes `homePanel`, which is still read from older bundles.
+   * and again on apply.
    */
   readonly homeLayout?: HomeLayoutData;
   /**
@@ -60,8 +53,6 @@ export interface ExistingIds {
   readonly workspaceTemplates: ReadonlySet<string>;
   readonly pipelines: ReadonlySet<string>;
   readonly userScripts: ReadonlySet<string>;
-  /** The Home panel currently stored (treated as empty when omitted). */
-  readonly homePanel?: HomePanelContent;
   /** The Home layout currently stored (treated as untouched when omitted). */
   readonly homeLayout?: HomeLayoutData;
   /** The appearance currently stored (treated as the defaults when omitted). */
@@ -80,8 +71,6 @@ export interface ImportPlan {
   readonly workspaceTemplates: SectionPlan<WorkspaceTemplate>;
   readonly pipelines: SectionPlan<Pipeline>;
   readonly userScripts: SectionPlan<UserScriptDefinition>;
-  /** At most one item: the Home panel to write, already merged per the conflict mode. */
-  readonly homePanel: SectionPlan<HomePanelContent>;
   /** At most one item: the sanitized incoming layout; `apply` merges it per `conflictMode`. */
   readonly homeLayout: SectionPlan<HomeLayoutData>;
   /**
@@ -194,7 +183,6 @@ export function parseBundle(text: string, sanitizeLayout?: (raw: unknown) => Hom
     userScripts: section(raw['userScripts'], isUserScript),
     toolPreferences,
     toolInputs: raw['toolInputs'] === undefined ? undefined : stringRecord(raw['toolInputs']),
-    homePanel: raw['homePanel'] === undefined ? undefined : sanitizeHomePanel(raw['homePanel']),
     homeLayout: raw['homeLayout'] === undefined || !sanitizeLayout ? undefined : sanitizeLayout(raw['homeLayout']),
     appearance: appearanceValid ? sanitizeAppearance(appearanceRaw) : undefined,
   };
@@ -238,7 +226,6 @@ export function planImport(bundle: DudeBundle, existing: ExistingIds, mode: Conf
   const pipelines = resolve(bundle.pipelines, existing.pipelines, renamed.pipelines);
   const projects = resolve(bundle.projects, existing.projects);
   const templates = resolve(bundle.workspaceTemplates, existing.workspaceTemplates);
-  const homePanel = planHomePanel(bundle.homePanel, existing.homePanel, mode);
 
   return {
     userScripts: { ...scripts, items: scripts.items.map((script) => ({ ...script, imported: true })) },
@@ -259,7 +246,6 @@ export function planImport(bundle: DudeBundle, existing: ExistingIds, mode: Conf
       })),
     },
     workspaceTemplates: templates,
-    homePanel,
     homeLayout: planHomeLayout(bundle.homeLayout, existing.homeLayout, mode),
     appearance: planAppearance(bundle.appearance, existing.appearance, mode),
     conflictMode: mode,
@@ -267,15 +253,6 @@ export function planImport(bundle: DudeBundle, existing: ExistingIds, mode: Conf
     toolInputs: bundle.toolInputs ?? {},
     invalid: 0,
   };
-}
-
-function planHomePanel(incoming: HomePanelContent | undefined, existing: HomePanelContent | undefined, mode: ConflictMode): SectionPlan<HomePanelContent> {
-  const none = { items: [], added: 0, replaced: 0, skipped: 0 };
-  if (!incoming || !hasHomePanelContent(incoming)) return none;
-  if (!existing || !hasHomePanelContent(existing)) return { ...none, items: [incoming], added: 1 };
-  if (mode === 'skip') return { ...none, skipped: 1 };
-  const merged = mergeHomePanel(existing, incoming, mode);
-  return mode === 'replace' ? { ...none, items: [merged], replaced: 1 } : { ...none, items: [merged], added: 1 };
 }
 
 const hasLayoutData = (data: HomeLayoutData | undefined): data is HomeLayoutData => !!data && (data.customized || Object.keys(data.content).length > 0);

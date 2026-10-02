@@ -5,7 +5,6 @@ import {
   EMPTY_WORKSPACE_TEMPLATE_STORE,
   WorkspaceTemplateStore,
   createWorkspaceTemplate,
-  migrateWorkspaceTemplateStore,
 } from "@dude/domain/core/workspace/workspace-template.model";
 import { findLeafByToolId } from "@dude/domain/core/workspace/workspace.model";
 
@@ -46,29 +45,3 @@ describe('createWorkspaceTemplate', () => {
   });
 });
 
-describe('migrateWorkspaceTemplateStore', () => {
-  it('returns the empty store for null/non-object/mismatched-schema input', () => {
-    expect(migrateWorkspaceTemplateStore(null)).toEqual(EMPTY_WORKSPACE_TEMPLATE_STORE);
-    expect(migrateWorkspaceTemplateStore('garbage')).toEqual(EMPTY_WORKSPACE_TEMPLATE_STORE);
-    expect(migrateWorkspaceTemplateStore({ schemaVersion: 2, userTemplates: [] })).toEqual(EMPTY_WORKSPACE_TEMPLATE_STORE);
-  });
-
-  it('returns the empty store when userTemplates is missing or malformed', () => {
-    expect(migrateWorkspaceTemplateStore({ schemaVersion: 1 })).toEqual(EMPTY_WORKSPACE_TEMPLATE_STORE);
-    expect(migrateWorkspaceTemplateStore({ schemaVersion: 1, userTemplates: 'nope' })).toEqual(EMPTY_WORKSPACE_TEMPLATE_STORE);
-  });
-
-  it('passes through a well-formed store unchanged', () => {
-    const valid: WorkspaceTemplateStore = {
-      schemaVersion: 1,
-      userTemplates: [createWorkspaceTemplate('Custom', null, ['json'])],
-      recentlyAppliedIds: [],
-    };
-    expect(migrateWorkspaceTemplateStore(valid)).toEqual(valid);
-  });
-
-  it('defaults recentlyAppliedIds to an empty array when missing from persisted data', () => {
-    const result = migrateWorkspaceTemplateStore({ schemaVersion: 1, userTemplates: [] });
-    expect(result.recentlyAppliedIds).toEqual([]);
-  });
-});

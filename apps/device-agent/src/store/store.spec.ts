@@ -61,6 +61,40 @@ describe('kv batch', () => {
   });
 });
 
+describe('journaled kv settings', () => {
+  it('a journaled setting write produces a setting op with the value', () => {
+    const store = openReady(tempDir());
+    const ctx = commitContext(store);
+    commitKvBatch(store.db, [{ namespace: '__workspace__', key: 'reopenOnRestart', value: true, policy: 'local' }], undefined, undefined, ctx);
+    expect(listOutbox(store.db, 10)).toMatchObject([{ entityType: 'setting', entityId: '__workspace__:reopenOnRestart', opKind: 'upsert', payload: true }]);
+  });
+
+  it('a non-journaled kv write produces no op', () => {
+    const store = openReady(tempDir());
+    commitKvBatch(store.db, [{ namespace: 'settings.ai', key: 'model', value: 'x', policy: 'local' }, { namespace: 'tool.a', key: 'k', value: 1, policy: 'local' }], undefined, undefined, commitContext(store));
+    expect(listOutbox(store.db, 10)).toHaveLength(0);
+  });
+
+  it('two writes coalesce into one op with the latest value', () => {
+    const store = openReady(tempDir());
+    const ctx = commitContext(store);
+    const write = (value: unknown) => commitKvBatch(store.db, [{ namespace: 'settings', key: 'appearance', value, policy: 'local' }], undefined, undefined, ctx);
+    write({ theme: 'dark' });
+    write({ theme: 'light' });
+    const ops = listOutbox(store.db, 10);
+    expect(ops).toHaveLength(1);
+    expect(ops[0]).toMatchObject({ entityId: 'settings:appearance', payload: { theme: 'light' } });
+  });
+
+  it('create then remove of a never-sent setting leaves no op', () => {
+    const store = openReady(tempDir());
+    const ctx = commitContext(store);
+    commitKvBatch(store.db, [{ namespace: 'settings', key: 'appearance', value: 1, policy: 'local' }], undefined, undefined, ctx);
+    commitKvBatch(store.db, [{ namespace: 'settings', key: 'appearance', remove: true, policy: 'local' }], undefined, undefined, ctx);
+    expect(listOutbox(store.db, 10)).toEqual([]);
+  });
+});
+
 describe('entity commit and outbox', () => {
   it('pinning a favorite writes the record and one op', () => {
     const store = openReady(tempDir());

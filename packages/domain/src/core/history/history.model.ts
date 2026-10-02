@@ -22,18 +22,3 @@ export function createHistoryEntry(toolId: string, summary: string, state: Reado
   return { id: hostCrypto().randomUUID(), schemaVersion: HISTORY_ENTRY_SCHEMA_VERSION, toolId, createdAt: new Date().toISOString(), summary, state };
 }
 
-/** Defensive parse: an unrecognized/corrupt record is dropped rather than thrown on. */
-export function migrateHistoryEntry(raw: unknown): HistoryEntry | undefined {
-  if (!raw || typeof raw !== 'object') return undefined;
-  const candidate = raw as Partial<HistoryEntry>;
-  if (
-    candidate.schemaVersion === HISTORY_ENTRY_SCHEMA_VERSION &&
-    typeof candidate.id === 'string' &&
-    typeof candidate.toolId === 'string' &&
-    typeof candidate.createdAt === 'string' &&
-    typeof candidate.summary === 'string'
-  ) {
-    return candidate as HistoryEntry;
-  }
-  return undefined;
-}

@@ -1,6 +1,5 @@
 import { hostCrypto } from "@dude/crypto/host";
 import type { UserContentKind } from "../../shared/models/panel-definition.model.js";
-import { HomePanelLink, MAX_LABEL_CHARS, validateLink } from "../home-panel/home-panel.model.js";
 
 /**
  * User-authored Home panel content (DUDE_PRD.md Phase 30I). Like the M561 notes it replaces, this is
@@ -14,11 +13,19 @@ export const MAX_TEXT_CHARS = 2000;
 export const MAX_PANEL_LINKS = 10;
 export const MAX_SHORTCUTS = 12;
 export const MAX_REF_CHARS = 200;
+export const MAX_LABEL_CHARS = 60;
+export const MAX_URL_CHARS = 500;
 
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 
 export const SHORTCUT_TARGET_KINDS = ['tool', 'destination', 'settings', 'command'] as const;
 export type ShortcutTargetKind = (typeof SHORTCUT_TARGET_KINDS)[number];
+
+export interface UserContentLink {
+  readonly id: string;
+  readonly label: string;
+  readonly url: string;
+}
 
 export interface ShortcutTarget {
   readonly id: string;
@@ -37,7 +44,7 @@ export interface TextContent {
 export interface LinkContent {
   readonly kind: 'link';
   readonly title: string;
-  readonly links: readonly HomePanelLink[];
+  readonly links: readonly UserContentLink[];
 }
 export interface ShortcutContent {
   readonly kind: 'shortcut';
@@ -57,11 +64,36 @@ export function emptyUserContent(kind: UserContentKind): UserContent {
   }
 }
 
+export type LinkValidation = { readonly ok: true; readonly link: Omit<UserContentLink, 'id'> } | { readonly ok: false; readonly error: string };
+
+/** Only absolute http(s) URLs, no embedded credentials, bounded length. Returns the normalized href. */
+export function normalizeExternalUrl(input: string): string | null {
+  const trimmed = input.trim();
+  if (trimmed.length === 0 || trimmed.length > MAX_URL_CHARS) return null;
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+  if (url.username !== '' || url.password !== '') return null;
+  return url.href;
+}
+
+/** Validates user-entered link fields; a blank label falls back to the URL's host. */
+export function validateLink(label: string, url: string): LinkValidation {
+  const href = normalizeExternalUrl(url);
+  if (!href) return { ok: false, error: 'Enter a full http:// or https:// address (no username or password).' };
+  const cleanLabel = label.trim().slice(0, MAX_LABEL_CHARS) || new URL(href).host;
+  return { ok: true, link: { label: cleanLabel, url: href } };
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 const str = (value: unknown, max: number): string => (typeof value === 'string' ? value.slice(0, max) : '');
 
-function sanitizeLinks(raw: unknown, newId: () => string): HomePanelLink[] {
-  const links: HomePanelLink[] = [];
+function sanitizeLinks(raw: unknown, newId: () => string): UserContentLink[] {
+  const links: UserContentLink[] = [];
   const seenUrls = new Set<string>();
   const seenIds = new Set<string>();
   for (const item of Array.isArray(raw) ? raw : []) {

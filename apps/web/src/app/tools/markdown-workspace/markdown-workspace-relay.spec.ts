@@ -1,8 +1,6 @@
 import { ApplicationRef, Injector, runInInjectionContext } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { PersistenceService } from '../../core/persistence/persistence.service';
-import { runStorageMigrations } from '../../core/persistence/storage-migrations';
-import { TOOL_DEFINITIONS } from '../../core/registry/tool-definitions';
 import { ToolRegistryService } from '../../core/registry/tool-registry.service';
 import { WorkspaceLayoutService } from '../../core/workspace/workspace-layout.service';
 import { resolvePreference } from '../../core/workspace/workspace-preference';
@@ -13,15 +11,6 @@ describe('Markdown Workspace relay preference', () => {
   beforeEach(() => {
     localStorage.clear();
     TestBed.configureTestingModule({});
-  });
-
-  it('migrates the legacy settings:relayUrl value into the tool namespace via its manifest', () => {
-    localStorage.setItem('dude:v1:settings:relayUrl', JSON.stringify('ws://legacy:8080'));
-
-    runStorageMigrations(TOOL_DEFINITIONS, TestBed.inject(PersistenceService));
-
-    expect(localStorage.getItem('dude:v1:markdown-workspace:relayUrl')).toBe(JSON.stringify('ws://legacy:8080'));
-    expect(localStorage.getItem('dude:v1:settings:relayUrl')).toBeNull();
   });
 
   it('contributes a desktop-only, onboarding-visible Settings section with an overridable relay URL', () => {

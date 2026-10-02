@@ -51,16 +51,6 @@ export function createScriptStep(scriptId: string, label?: string): ScriptPipeli
   return { kind: 'script', stepId: hostCrypto().randomUUID(), scriptId, label };
 }
 
-/** Defensive parse: unknown/corrupt persisted data resets to an empty store rather than throwing. */
-export function migratePipelineStore(raw: unknown): PipelineStore {
-  if (!raw || typeof raw !== 'object') return EMPTY_PIPELINE_STORE;
-  const candidate = raw as Partial<PipelineStore>;
-  if (candidate.schemaVersion === 1 && Array.isArray(candidate.pipelines)) {
-    return { schemaVersion: 1, pipelines: candidate.pipelines };
-  }
-  return EMPTY_PIPELINE_STORE;
-}
-
 export interface UserScriptDefinition {
   readonly id: string;
   readonly name: string;
@@ -90,11 +80,3 @@ export function createUserScript(name: string): UserScriptDefinition {
   return { id: hostCrypto().randomUUID(), name, body: '', accepts: ['text'], produces: ['text'], timeoutMs: 3000, createdAt: now, updatedAt: now };
 }
 
-export function migrateUserScriptStore(raw: unknown): UserScriptStore {
-  if (!raw || typeof raw !== 'object') return EMPTY_USER_SCRIPT_STORE;
-  const candidate = raw as Partial<UserScriptStore>;
-  if (candidate.schemaVersion === 1 && Array.isArray(candidate.scripts)) {
-    return { schemaVersion: 1, scripts: candidate.scripts };
-  }
-  return EMPTY_USER_SCRIPT_STORE;
-}

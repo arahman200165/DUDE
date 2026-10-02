@@ -1,7 +1,7 @@
 import { Injectable, computed, inject } from '@angular/core';
-import { PersistenceService } from '../persistence/persistence.service';
-import { EMPTY_PIPELINE_STORE, Pipeline, PipelineStore, migratePipelineStore } from "@dude/domain/core/pipeline/pipeline.model";
-import { upsertById } from "@dude/tool-engine/core/backup/upsert-by-id";
+import { ENTITY_STORE, type EntityWriteResult } from '../persistence/entities/entity-store';
+import { pipelineCodec } from '@dude/persistence';
+import { EMPTY_PIPELINE_STORE, Pipeline } from "@dude/domain/core/pipeline/pipeline.model";
 
 /**
  * Saved pipelines live in their own store, not appended to `TOOL_DEFINITIONS` — a pipeline is
@@ -9,37 +9,39 @@ import { upsertById } from "@dude/tool-engine/core/backup/upsert-by-id";
  * synthetic pseudo-toolId (the same trick `persistence-keys.ts`'s `__consent__` already plays),
  * which gets this store `PersistenceService.clearAll()` participation for free.
  */
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
+
 @Injectable({ providedIn: 'root' })
 export class PipelineStoreService {
-  private readonly persistence = inject(PersistenceService);
-  private readonly store = this.persistence.signal<PipelineStore>('__pipelines__', 'saved', 'local', EMPTY_PIPELINE_STORE, { crossTab: 'live' });
+  private readonly collection = inject(ENTITY_STORE).collection(
+    pipelineCodec,
+    {
+      namespace: '__pipelines__',
+      key: 'saved',
+      toItems: (blob) => (isRecord(blob) && Array.isArray(blob['pipelines']) ? blob['pipelines'] : []),
+      fromItems: (pipelines) => ({ ...EMPTY_PIPELINE_STORE, pipelines }),
+    },
+    { compare: (a, b) => a.createdAt.localeCompare(b.createdAt) },
+  );
 
-  constructor() {
-    const migrated = migratePipelineStore(this.store());
-    if (migrated !== this.store()) this.store.set(migrated);
-  }
-
-  readonly pipelines = computed(() => this.store().pipelines);
+  readonly pipelines = computed<readonly Pipeline[]>(() => this.collection.items());
 
   getById(id: string): Pipeline | undefined {
-    return this.store().pipelines.find((pipeline) => pipeline.id === id);
+    return this.collection.get(id);
   }
 
-  save(pipeline: Pipeline): void {
-    const existing = this.store().pipelines;
-    const index = existing.findIndex((candidate) => candidate.id === pipeline.id);
-    const updated = { ...pipeline, updatedAt: new Date().toISOString() };
-    const pipelines = index === -1 ? [...existing, updated] : existing.map((candidate, i) => (i === index ? updated : candidate));
-    this.store.set({ ...this.store(), pipelines });
+  /** Optimistic: `pipelines()` updates at once; a failed commit rolls it back and is logged. */
+  save(pipeline: Pipeline): Promise<EntityWriteResult> {
+    return this.collection.upsert({ ...pipeline, updatedAt: new Date().toISOString() });
   }
 
-  remove(id: string): void {
-    this.store.set({ ...this.store(), pipelines: this.store().pipelines.filter((pipeline) => pipeline.id !== id) });
+  remove(id: string): Promise<EntityWriteResult> {
+    return this.collection.remove(id);
   }
 
-  /** Bundle import (Phase 26 Item 14): upsert by id, conflicts already resolved by `planImport`. */
-  importPipelines(pipelines: readonly Pipeline[]): void {
-    this.store.set({ ...this.store(), pipelines: upsertById(this.store().pipelines, pipelines) });
+  /** Bundle import (Phase 26 Item 14): upsert by id, conflicts already resolved by `planImport`. One transaction on desktop. */
+  importPipelines(pipelines: readonly Pipeline[]): Promise<EntityWriteResult> {
+    return this.collection.importMany(pipelines);
   }
 
   duplicate(id: string): Pipeline | undefined {
@@ -56,7 +58,7 @@ export class PipelineStoreService {
       lastRunAt: undefined,
       lastRunStatus: undefined,
     };
-    this.save(copy);
+    void this.save(copy);
     return copy;
   }
 }

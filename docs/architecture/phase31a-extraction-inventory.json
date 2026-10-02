@@ -538,38 +538,6 @@
       "remainingAdapterCode": null
     },
     {
-      "source": "apps/web/src/app/core/home-panel/home-panel.model.spec.ts",
-      "destination": "packages/domain/src/core/home-panel/home-panel.model.spec.ts",
-      "classification": "portable",
-      "hostDependencies": [],
-      "tests": [
-        "packages/domain/src/core/home-panel/home-panel.model.spec.ts"
-      ],
-      "remainingAdapterCode": null
-    },
-    {
-      "source": "apps/web/src/app/core/home-panel/home-panel.model.ts",
-      "destination": "packages/domain/src/core/home-panel/home-panel.model.ts",
-      "classification": "portable",
-      "hostDependencies": [],
-      "tests": [
-        "packages/domain/src/core/home-panel/home-panel.model.spec.ts"
-      ],
-      "remainingAdapterCode": null
-    },
-    {
-      "source": "apps/web/src/app/core/home-panel/home-panel.service.ts",
-      "destination": "apps/web/src/app/core/home-panel/home-panel.service.ts",
-      "classification": "host-adapter",
-      "hostDependencies": [
-        "host import: @angular/core"
-      ],
-      "tests": [
-        "apps/web/src/app/core/home-panel/home-panel.service.spec.ts"
-      ],
-      "remainingAdapterCode": "apps/web/src/app/core/home-panel/home-panel.service.ts"
-    },
-    {
       "source": "apps/web/src/app/core/native-recents/native-recent.model.spec.ts",
       "destination": "packages/domain/src/core/native-recents/native-recent.model.spec.ts",
       "classification": "portable",
@@ -792,18 +760,6 @@
       "remainingAdapterCode": "apps/web/src/app/core/persistence/storage-backend.ts"
     },
     {
-      "source": "apps/web/src/app/core/persistence/storage-migrations.ts",
-      "destination": "apps/web/src/app/core/persistence/storage-migrations.ts",
-      "classification": "host-adapter",
-      "hostDependencies": [
-        "host import: @angular/core"
-      ],
-      "tests": [
-        "apps/web/src/app/core/persistence/storage-migrations.spec.ts"
-      ],
-      "remainingAdapterCode": "apps/web/src/app/core/persistence/storage-migrations.ts"
-    },
-    {
       "source": "apps/web/src/app/core/pipeline/pipeline-command-source.ts",
       "destination": "apps/web/src/app/core/pipeline/pipeline-command-source.ts",
       "classification": "host-adapter",
@@ -961,23 +917,11 @@
       "remainingAdapterCode": "apps/web/src/app/core/pipeline/pipeline-workers.generated.ts"
     },
     {
-      "source": "apps/web/src/app/core/pipeline/pipeline.model.spec.ts",
-      "destination": "packages/domain/src/core/pipeline/pipeline.model.spec.ts",
-      "classification": "portable",
-      "hostDependencies": [],
-      "tests": [
-        "packages/domain/src/core/pipeline/pipeline.model.spec.ts"
-      ],
-      "remainingAdapterCode": null
-    },
-    {
       "source": "apps/web/src/app/core/pipeline/pipeline.model.ts",
       "destination": "packages/domain/src/core/pipeline/pipeline.model.ts",
       "classification": "portable",
       "hostDependencies": [],
-      "tests": [
-        "packages/domain/src/core/pipeline/pipeline.model.spec.ts"
-      ],
+      "tests": [],
       "remainingAdapterCode": null
     },
     {
@@ -1982,7 +1926,8 @@
       "destination": "apps/web/src/app/core/usage/usage.service.ts",
       "classification": "host-adapter",
       "hostDependencies": [
-        "host import: @angular/core"
+        "host import: @angular/core",
+        "host API: window"
       ],
       "tests": [
         "apps/web/src/app/core/usage/usage.service.spec.ts"
@@ -4505,16 +4450,6 @@
         "apps/web/src/app/shell/deck/resume-work-panel/resume-work-panel.spec.ts"
       ],
       "remainingAdapterCode": "apps/web/src/app/shell/deck/resume-work-panel/resume-work-panel.ts"
-    },
-    {
-      "source": "apps/web/src/app/shell/deck/user-panels/legacy-home-panel-migration.ts",
-      "destination": "apps/web/src/app/shell/deck/user-panels/legacy-home-panel-migration.ts",
-      "classification": "host-adapter",
-      "hostDependencies": [],
-      "tests": [
-        "apps/web/src/app/shell/deck/user-panels/legacy-home-panel-migration.spec.ts"
-      ],
-      "remainingAdapterCode": "apps/web/src/app/shell/deck/user-panels/legacy-home-panel-migration.ts"
     },
     {
       "source": "apps/web/src/app/shell/deck/user-panels/shortcut-resolver.service.ts",

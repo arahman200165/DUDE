@@ -5,7 +5,6 @@ import {
   findFirstLeaf,
   findLeafByToolId,
   findNodeById,
-  migrateWorkspaceLayout,
   prunePanelTree,
   pruneUnknownTools,
   removeLeafById,
@@ -21,26 +20,6 @@ const split = (nodeId: string, a: PanelNode, b: PanelNode): PanelNode => ({
   ratio: 0.5,
   a,
   b,
-});
-
-describe('migrateWorkspaceLayout', () => {
-  it('resets to empty for corrupt/unrecognized data', () => {
-    expect(migrateWorkspaceLayout(null)).toEqual(EMPTY_WORKSPACE_LAYOUT);
-    expect(migrateWorkspaceLayout({ schemaVersion: 2 })).toEqual(EMPTY_WORKSPACE_LAYOUT);
-    expect(migrateWorkspaceLayout('garbage')).toEqual(EMPTY_WORKSPACE_LAYOUT);
-  });
-
-  it('passes through a valid layout', () => {
-    const layout = { schemaVersion: 1 as const, openTabs: ['base64'], panelTree: leaf('n1', 'base64'), focusedNodeId: 'n1' };
-    expect(migrateWorkspaceLayout(layout)).toEqual(layout);
-  });
-
-  it('passes through well-formed preference overrides and drops malformed ones', () => {
-    const base = { schemaVersion: 1 as const, openTabs: [], panelTree: null, focusedNodeId: null };
-    expect(migrateWorkspaceLayout({ ...base, preferenceOverrides: { tool: { key: 'v' } } }).preferenceOverrides).toEqual({ tool: { key: 'v' } });
-    expect(migrateWorkspaceLayout({ ...base, preferenceOverrides: { tool: { key: 4 } } })).toEqual(base);
-    expect(migrateWorkspaceLayout({ ...base, preferenceOverrides: 'garbage' })).toEqual(base);
-  });
 });
 
 describe('preference overrides', () => {

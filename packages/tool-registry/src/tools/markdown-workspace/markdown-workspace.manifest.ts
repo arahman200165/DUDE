@@ -43,6 +43,5 @@ export const manifest: ToolMetadata = {
         desktopOnly: true,
         onboarding: true,
         workspaceOverridable: [{ key: 'relayUrl', label: 'Relay URL', type: 'url' }]
-    },
-    storageMigrations: [{ fromNamespace: 'settings', fromKey: 'relayUrl', toKey: 'relayUrl' }]
+    }
 };

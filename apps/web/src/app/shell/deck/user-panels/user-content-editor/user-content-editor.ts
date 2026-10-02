@@ -8,7 +8,7 @@ import {
   ShortcutTargetKind,
   UserContent,
 } from "@dude/domain/core/home-layout/user-content.model";
-import { MAX_LABEL_CHARS, MAX_URL_CHARS, validateLink } from "@dude/domain/core/home-panel/home-panel.model";
+import { MAX_LABEL_CHARS, MAX_URL_CHARS, validateLink } from "@dude/domain/core/home-layout/user-content.model";
 import { ShortcutOption, ShortcutResolverService } from '../shortcut-resolver.service';
 
 const KIND_LABELS: Record<ShortcutTargetKind, string> = {

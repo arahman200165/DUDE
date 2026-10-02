@@ -20,16 +20,6 @@ export interface NativeRecentsStore {
 
 export const EMPTY_NATIVE_RECENTS_STORE: NativeRecentsStore = { schemaVersion: 1, entries: [] };
 
-/** Defensive parse: unrecognized/corrupt persisted data resets to an empty store rather than throwing. */
-export function migrateNativeRecentsStore(raw: unknown): NativeRecentsStore {
-  if (!raw || typeof raw !== 'object') return EMPTY_NATIVE_RECENTS_STORE;
-  const candidate = raw as Partial<NativeRecentsStore>;
-  if (candidate.schemaVersion === NATIVE_RECENTS_STORE_SCHEMA_VERSION && Array.isArray(candidate.entries)) {
-    return { schemaVersion: 1, entries: candidate.entries };
-  }
-  return EMPTY_NATIVE_RECENTS_STORE;
-}
-
 /** Dedupes by path (re-opening a file moves it back to the front rather than duplicating it), caps at `MAX_NATIVE_RECENTS`. */
 export function recordNativeRecent(store: NativeRecentsStore, entry: NativeRecentEntry): NativeRecentsStore {
   const deduped = store.entries.filter((existing) => existing.path !== entry.path);

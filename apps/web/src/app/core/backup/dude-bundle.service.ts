@@ -1,15 +1,16 @@
 import { Injectable, inject } from '@angular/core';
+import { pipelineCodec, projectCodec, userScriptCodec, workspaceTemplateCodec } from '@dude/persistence';
+import type { EntityCodec } from '@dude/persistence';
+import type { EntityWriteResult } from '../persistence/entities/entity-store';
 import { AppearanceService } from '../appearance/appearance.service';
 import { DEFAULT_APPEARANCE, sanitizeAppearance } from "@dude/domain/core/appearance/appearance.model";
 import { ProjectService } from '../project/project.service';
 import { PipelineStoreService } from '../pipeline/pipeline-store.service';
 import { UserScriptStoreService } from '../pipeline/user-script-store.service';
 import { WorkspaceTemplateService } from '../workspace/workspace-template.service';
-import { HomePanelService } from '../home-panel/home-panel.service';
 import { HomeLayoutService } from '../home-layout/home-layout.service';
 import { KindCatalog, sanitizeHomeLayoutData } from "@dude/domain/core/home-layout/home-layout-store.model";
 import { PanelRegistryService } from '../registry/panel-registry.service';
-import { sanitizeHomePanel } from "@dude/domain/core/home-panel/home-panel.model";
 import { ToolRegistryService } from '../registry/tool-registry.service';
 import { createStorageBackend } from '../persistence/storage-backend';
 import { buildStorageKey, buildToolPrefix } from "@dude/tool-engine/core/persistence/persistence-keys";
@@ -18,6 +19,23 @@ import { readStorageValue, writeStorageValue } from '../workspace/workspace-stor
 import { BUNDLE_FORMAT, BUNDLE_SCHEMA_VERSION, ConflictMode, DudeBundle, ImportPlan, parseBundle, planImport } from "@dude/domain/core/backup/dude-bundle.model";
 
 const STORAGE_KEY_PATTERN = /^[A-Za-z0-9_.-]{1,100}$/;
+
+/** Outcome of `apply`: entity imports settle once the store committed them (one transaction per type on desktop). */
+export interface ApplyResult {
+  readonly ok: boolean;
+  /** Items the codecs rejected (counted, never written). */
+  readonly invalid: number;
+  readonly errors: readonly string[];
+}
+
+function decodeAll<T>(codec: EntityCodec<T>, items: readonly unknown[]): { valid: T[]; invalid: number } {
+  const valid: T[] = [];
+  for (const item of items) {
+    const value = codec.decode(item, undefined as never);
+    if (value !== null && value !== undefined) valid.push(value);
+  }
+  return { valid, invalid: items.length - valid.length };
+}
 
 export type ImportPreview = { readonly ok: true; readonly plan: ImportPlan } | { readonly ok: false; readonly error: string };
 
@@ -37,7 +55,6 @@ export class DudeBundleService {
   private readonly pipelines = inject(PipelineStoreService);
   private readonly scripts = inject(UserScriptStoreService);
   private readonly templates = inject(WorkspaceTemplateService);
-  private readonly homePanel = inject(HomePanelService);
   private readonly homeLayout = inject(HomeLayoutService);
   private readonly appearance = inject(AppearanceService);
   private readonly panels = inject(PanelRegistryService);
@@ -76,8 +93,6 @@ export class DudeBundleService {
       userScripts: this.scripts.scripts(),
       toolPreferences,
       ...(options.includeInputs ? { toolInputs } : {}),
-      // Legacy M561 notes are exported only until the Home migration has moved them into the layout.
-      ...(this.homePanel.hasContent() ? { homePanel: this.homePanel.content() } : {}),
       ...(this.homeLayout.customized() || Object.keys(this.homeLayout.content()).length > 0 ? { homeLayout: this.homeLayout.data() } : {}),
       // Like homeLayout, omitted while untouched (equal to the defaults).
       ...(JSON.stringify(this.appearance.prefs()) !== JSON.stringify(DEFAULT_APPEARANCE) ? { appearance: this.appearance.prefs() } : {}),
@@ -92,13 +107,20 @@ export class DudeBundleService {
     return { ok: true, plan: { ...plan, invalid: parsed.invalid } };
   }
 
-  apply(plan: ImportPlan): void {
-    this.scripts.importScripts(plan.userScripts.items);
-    this.pipelines.importPipelines(plan.pipelines.items);
-    this.projects.importProjects(plan.projects.items);
-    this.templates.importUserTemplates(plan.workspaceTemplates.items);
-    // `importContent` re-sanitizes; the extra pass keeps `apply` from trusting a hand-built plan.
-    for (const content of plan.homePanel.items) this.homePanel.importContent(sanitizeHomePanel(content));
+  apply(plan: ImportPlan): Promise<ApplyResult> {
+    // Each entity type goes through its codec and one `importMany` (a single transaction on desktop).
+    const scripts = decodeAll(userScriptCodec, plan.userScripts.items);
+    const pipelines = decodeAll(pipelineCodec, plan.pipelines.items);
+    const projects = decodeAll(projectCodec, plan.projects.items);
+    const templates = decodeAll(workspaceTemplateCodec, plan.workspaceTemplates.items);
+    const invalid = scripts.invalid + pipelines.invalid + projects.invalid + templates.invalid;
+    if (invalid > 0) console.warn(`[bundle-import] skipped ${invalid} invalid item(s)`);
+    const writes: Promise<EntityWriteResult>[] = [
+      this.scripts.importScripts(scripts.valid),
+      this.pipelines.importPipelines(pipelines.valid),
+      this.projects.importProjects(projects.valid),
+      this.templates.importUserTemplates(templates.valid),
+    ];
     // `importData` re-sanitizes against the panel registry and merges per the previewed conflict mode.
     for (const layout of plan.homeLayout.items) this.homeLayout.importData(layout, plan.conflictMode ?? 'skip');
     // Re-sanitized again so a hand-built plan can't smuggle values past the model. `set` persists
@@ -123,6 +145,11 @@ export class DudeBundleService {
       // Imported text is gated like an opened file (e.g. HTML Preview asks before rendering it).
       recordImportedFileFlags(`imported${input.extensions[0] ?? ''}`);
     }
+
+    return Promise.all(writes).then((results) => {
+      const errors = results.flatMap((result) => (result.ok ? [] : [result.error]));
+      return { ok: errors.length === 0, invalid, errors };
+    });
   }
 
   private existingIds() {
@@ -131,7 +158,6 @@ export class DudeBundleService {
       workspaceTemplates: new Set(this.templates.templates().map((template) => template.id)),
       pipelines: new Set(this.pipelines.pipelines().map((pipeline) => pipeline.id)),
       userScripts: new Set(this.scripts.scripts().map((script) => script.id)),
-      homePanel: this.homePanel.content(),
       homeLayout: this.homeLayout.data(),
       appearance: this.appearance.prefs(),
     };

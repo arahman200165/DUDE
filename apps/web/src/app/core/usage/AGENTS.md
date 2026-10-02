@@ -31,7 +31,7 @@ first open recorded under v2). `perTool` is tool id → count only — enough fo
 time-bounded category views, never content. `UsageService` stays the **only** recorder: the buckets
 are written by the same `recordUsage` call as `counts`/`recentLog`.
 
-- **Migration:** `migrateUsageStore` upgrades v1 keeping `counts` and `recentLog`, with no buckets and
+- **Migration:** `usageCodec.decode` (`@dude/persistence`) upgrades v1 keeping `counts` and `recentLog`, with no buckets and
   `trackingStartedOn: null`. The recent log is deliberately **never** used to backfill days — it is
   capped at 200 and can't guarantee a complete period. A newer/unknown schema that still has the v1
   fields keeps its lifetime data instead of resetting. Persisted buckets are re-validated on load

@@ -1,9 +1,9 @@
 import { Injectable, computed, inject } from '@angular/core';
+import { nativeRecentsCodec } from '@dude/persistence';
 import { PersistenceService } from '../persistence/persistence.service';
 import {
   EMPTY_NATIVE_RECENTS_STORE,
   NativeRecentEntry,
-  migrateNativeRecentsStore,
   recordNativeRecent,
   removeNativeRecent,
 } from "@dude/domain/core/native-recents/native-recent.model";
@@ -18,13 +18,10 @@ import {
 @Injectable({ providedIn: 'root' })
 export class NativeRecentsService {
   private readonly persistence = inject(PersistenceService);
-  private readonly store = this.persistence.signal('__native-recents__', 'entries', 'local', EMPTY_NATIVE_RECENTS_STORE);
+  private readonly store = this.persistence.signal('__native-recents__', 'entries', 'local', EMPTY_NATIVE_RECENTS_STORE, {
+    decode: (raw) => nativeRecentsCodec.decode(raw),
+  });
   readonly enabled = this.persistence.signal('__native-recents__', 'enabled', 'local', true);
-
-  constructor() {
-    const migrated = migrateNativeRecentsStore(this.store());
-    if (migrated !== this.store()) this.store.set(migrated);
-  }
 
   readonly entries = computed(() => this.store().entries);
 

@@ -1,15 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
-import { migrateFavoritesStore } from '@dude/domain/core/favorites/favorites.model';
-import { migratePipelineStore, migrateUserScriptStore } from '@dude/domain/core/pipeline/pipeline.model';
-import { migrateProjectStore } from '@dude/domain/core/project/project.model';
-import { migrateWorkspaceTemplateStore } from '@dude/domain/core/workspace/workspace-template.model';
-import { migrateWorkspaceLayout } from '@dude/domain/core/workspace/workspace.model';
-import { migrateScratchpadStore } from '@dude/domain/core/workspace/scratchpad.model';
-import { migrateUsageStore } from '@dude/domain/core/usage/usage.model';
-import { migrateNativeRecentsStore } from '@dude/domain/core/native-recents/native-recent.model';
-import { migrateHistoryEntry } from '@dude/domain/core/history/history.model';
-import { migrateHomeLayoutStore } from '@dude/domain/core/home-layout/home-layout-store.model';
 import type { KindCatalog } from '@dude/domain/core/home-layout/home-layout-store.model';
 import { sanitizeAppearance, DEFAULT_APPEARANCE } from '@dude/domain/core/appearance/appearance.model';
 import {
@@ -67,8 +57,8 @@ describe('registry', () => {
 describe('favorites', () => {
   const store = { schemaVersion: 1 as const, toolIds: ['json', 'base64'], pipelineIds: ['p1'] };
 
-  it('matches migrateFavoritesStore and round-trips through helpers', () => {
-    const migrated = migrateFavoritesStore(store);
+  it('splits a legacy store into items and round-trips through helpers', () => {
+    const migrated = store;
     const items = favoritesToItems(migrated);
     expect(items.map((i) => i.id)).toEqual(['tool:json', 'tool:base64', 'pipeline:p1']);
     for (const item of items) expect(roundTrip(favoriteCodec, item, undefined)).toEqual(item);
@@ -100,9 +90,9 @@ describe('pipelines and user scripts', () => {
   };
   const script = { id: 'u1', name: 'S', body: 'return x', accepts: ['text' as const], produces: ['json' as const], timeoutMs: 3000, createdAt: T, updatedAt: T, imported: true };
 
-  it('equals migrateX output for valid items', () => {
-    for (const item of migratePipelineStore({ schemaVersion: 1, pipelines: [pipeline] }).pipelines) expect(roundTrip(pipelineCodec, item, undefined)).toEqual(item);
-    for (const item of migrateUserScriptStore({ schemaVersion: 1, scripts: [script] }).scripts) expect(roundTrip(userScriptCodec, item, undefined)).toEqual(item);
+  it('round-trips valid items unchanged', () => {
+    expect(roundTrip(pipelineCodec, pipeline, undefined)).toEqual(pipeline);
+    expect(roundTrip(userScriptCodec, script, undefined)).toEqual(script);
   });
 
   it('rejects malformed items and sanitizes junk', () => {
@@ -122,11 +112,9 @@ describe('projects and workspace templates', () => {
   const project = { id: 'pr', name: 'P', createdAt: T, lastActivatedAt: T, panelTree: tree, openTabs: ['json'], pinnedPipelineIds: ['p1'], preferenceOverrides: { json: { indent: '4' } } };
   const template = { id: 't', name: 'T', description: 'x', builtIn: false, panelTree: tree, openTabs: ['json', 'base64'], preferenceOverrides: { json: { indent: '2' } } };
 
-  it('equals migrateX output for valid items', () => {
-    for (const item of migrateProjectStore({ schemaVersion: 1, projects: [project] }).projects) expect(roundTrip(projectCodec, item as never, undefined)).toEqual(item);
-    for (const item of migrateWorkspaceTemplateStore({ schemaVersion: 1, userTemplates: [template], recentlyAppliedIds: [] }).userTemplates) {
-      expect(roundTrip(workspaceTemplateCodec, item as never, undefined)).toEqual(item);
-    }
+  it('round-trips valid items unchanged', () => {
+    expect(roundTrip(projectCodec, project as never, undefined)).toEqual(project);
+    expect(roundTrip(workspaceTemplateCodec, template as never, undefined)).toEqual(template);
   });
 
   it('sanitizes bad nested data like the domain helpers', () => {
@@ -157,18 +145,18 @@ describe('usage', () => {
     dailyBuckets: [{ date: '2026-01-01', opens: 3, perTool: { json: 3 } }], trackingStartedOn: '2026-01-01',
   };
 
-  it('equals migrateUsageStore for v2, v1 and newer', () => {
-    expect(usageCodec.decode(v2)).toEqual(migrateUsageStore(v2));
+  it('keeps v2, upgrades v1 and best-effort reads newer schemas', () => {
+    expect(usageCodec.decode(v2)).toEqual(v2);
     const v1 = { schemaVersion: 1, counts: v2.counts, recentLog: v2.recentLog };
-    expect(usageCodec.decode(v1)).toEqual(migrateUsageStore(v1));
+    expect(usageCodec.decode(v1)).toEqual({ ...v1, schemaVersion: 2, dailyBuckets: [], trackingStartedOn: null });
     const v3 = { ...v2, schemaVersion: 3 };
-    expect(usageCodec.decode(v3)).toEqual(migrateUsageStore(v3));
-    expect(roundTrip(usageCodec, migrateUsageStore(v2), undefined)).toEqual(migrateUsageStore(v2));
+    expect(usageCodec.decode(v3)).toEqual({ ...v1, schemaVersion: 2, dailyBuckets: [], trackingStartedOn: null });
+    expect(roundTrip(usageCodec, v2 as never, undefined)).toEqual(v2);
   });
 
-  it('sanitizes bad buckets/start like migrateUsageStore and drops bad entries', () => {
+  it('sanitizes bad buckets/start and drops bad entries', () => {
     const dirty = { ...v2, dailyBuckets: [{ date: 'bad', opens: 1, perTool: {} }, ...v2.dailyBuckets, { date: '2026-01-02', opens: -1 }], trackingStartedOn: 'nope' };
-    expect(usageCodec.decode(dirty)).toEqual(migrateUsageStore(dirty));
+    expect(usageCodec.decode(dirty)).toEqual(v2);
     const bad = { ...v2, counts: { json: { count: 'x' }, ok: v2.counts.json }, recentLog: [1, { toolId: 1 }, v2.recentLog[0]] };
     expect(usageCodec.decode(bad)).toMatchObject({ counts: { ok: v2.counts.json }, recentLog: v2.recentLog });
     expect(usageCodec.decode({ ...v2, schemaVersion: 0 })).toBeNull();
@@ -177,38 +165,37 @@ describe('usage', () => {
 });
 
 describe('workspace layout, scratchpad, native recents, history', () => {
-  it('workspace layout equals migrateWorkspaceLayout (pruning stays caller-side)', () => {
+  it('workspace layout sanitizes overrides (pruning stays caller-side)', () => {
     const layout = { schemaVersion: 1, openTabs: ['json'], panelTree: tree, focusedNodeId: 'l1', preferenceOverrides: { json: { a: 'b', c: 1 } } };
-    expect(workspaceLayoutCodec.decode(layout)).toEqual(migrateWorkspaceLayout(layout));
-    const migrated = migrateWorkspaceLayout(layout);
+    const migrated = { ...layout, preferenceOverrides: { json: { a: 'b' } } };
+    expect(workspaceLayoutCodec.decode(layout)).toEqual(migrated);
     expect(roundTrip(workspaceLayoutCodec, migrated, undefined)).toEqual(migrated);
     expect(workspaceLayoutCodec.decode({ ...layout, schemaVersion: 2 })).toBeNull();
     expect(workspaceLayoutCodec.decode({ ...layout, panelTree: 'x', focusedNodeId: 4 })).toMatchObject({ panelTree: null, focusedNodeId: null });
   });
 
-  it('scratchpad equals migrateScratchpadStore', () => {
+  it('scratchpad keeps valid snippets and drops bad ones', () => {
     const store = { schemaVersion: 1, snippets: [{ id: 's', title: 't', body: 'b', sourceToolId: 'json', createdAt: T }], drawerExpanded: true };
-    expect(scratchpadCodec.decode(store)).toEqual(migrateScratchpadStore(store));
-    expect(roundTrip(scratchpadCodec, migrateScratchpadStore(store), undefined)).toEqual(store);
+    expect(scratchpadCodec.decode(store)).toEqual(store);
+    expect(roundTrip(scratchpadCodec, store as never, undefined)).toEqual(store);
     expect(scratchpadCodec.decode({ ...store, snippets: [store.snippets[0], { id: 1 }, null] })!.snippets).toHaveLength(1);
     expect(scratchpadCodec.decode({ ...store, drawerExpanded: 'yes' })!.drawerExpanded).toBe(false);
   });
 
-  it('native recents equals migrateNativeRecentsStore', () => {
+  it('native recents keeps valid entries, drops bad ones and caps the list', () => {
     const store = { schemaVersion: 1, entries: [{ path: 'C:\\a.json', name: 'a.json', extension: '.json', openedAt: T }] };
-    expect(nativeRecentsCodec.decode(store)).toEqual(migrateNativeRecentsStore(store));
+    expect(nativeRecentsCodec.decode(store)).toEqual(store);
     expect(nativeRecentsCodec.decode({ ...store, entries: [...store.entries, { path: 1 }, 'x'] })!.entries).toEqual(store.entries);
     const many = { ...store, entries: Array.from({ length: 80 }, (_, i) => ({ ...store.entries[0], path: `p${i}` })) };
     expect(nativeRecentsCodec.decode(many)!.entries).toHaveLength(50);
   });
 
-  it('history entry equals migrateHistoryEntry', () => {
+  it('history entry decodes valid records and rejects malformed ones', () => {
     const entry = { id: 'h', schemaVersion: 1, toolId: 'json', createdAt: T, summary: 's', state: { a: 1 }, truncated: true };
-    expect(historyEntryCodec.decode(entry)).toEqual(migrateHistoryEntry(entry));
+    expect(historyEntryCodec.decode(entry)).toEqual(entry);
     expect(historyEntryCodec.decode({ ...entry, junk: 1 })).not.toHaveProperty('junk');
     for (const bad of [{ ...entry, id: 5 }, { ...entry, schemaVersion: 2 }, { ...entry, summary: null }, null]) {
       expect(historyEntryCodec.decode(bad)).toBeNull();
-      expect(migrateHistoryEntry(bad)).toBeUndefined();
     }
   });
 });
@@ -225,9 +212,10 @@ describe('home layout', () => {
     wide: [{ id: 'notes-1', x: 0, y: 0, w: 6, h: 2 }], narrow: [], content: {},
   };
 
-  it('equals migrateHomeLayoutStore and is idempotent', () => {
-    const migrated = migrateHomeLayoutStore(doc, catalog, defaults);
-    expect(homeLayoutCodec.decode(doc, ctx)).toEqual(migrated);
+  it('sanitizes a stored document and is idempotent', () => {
+    const migrated = homeLayoutCodec.decode(doc, ctx)!;
+    expect(migrated).toMatchObject({ schemaVersion: 1, customized: true, narrowCustomized: false });
+    expect(migrated.instances.map((i) => i.id)).toContain('notes-1');
     expect(roundTrip(homeLayoutCodec, migrated, ctx)).toEqual(migrated);
   });
 
@@ -236,7 +224,7 @@ describe('home layout', () => {
     expect(isNewerHomeLayoutDocument(newer)).toBe(true);
     expect(isNewerHomeLayoutDocument(doc)).toBe(false);
     expect(homeLayoutCodec.decode(newer, ctx)).toBeNull();
-    expect(decodeHomeLayoutReadOnly(newer, ctx)).toEqual(migrateHomeLayoutStore(newer, catalog, defaults));
+    expect(decodeHomeLayoutReadOnly(newer, ctx)).toEqual(homeLayoutCodec.decode(doc, ctx));
   });
 
   it('rejects non-records and unknown older schemas', () => {

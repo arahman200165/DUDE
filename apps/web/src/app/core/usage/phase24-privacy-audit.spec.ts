@@ -2,7 +2,6 @@ import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { UsageService } from './usage.service';
-import { HomePanelService } from '../home-panel/home-panel.service';
 import { FavoritesService } from '../favorites/favorites.service';
 import { SuggestionDismissalService } from '../suggestions/suggestion-dismissal.service';
 import { WorkspaceTemplateService } from '../workspace/workspace-template.service';
@@ -86,20 +85,6 @@ describe('Phase 24 store shapes never carry tool content', () => {
       }
       expect(Object.values(bucket.perTool).reduce((a, b) => a + b, 0)).toBe(bucket.opens);
     }
-  });
-
-  it('__home__:panel (user-authored) has only its fixed keys, and its text never reaches the usage store', async () => {
-    const panel = TestBed.inject(HomePanelService);
-    panel.setNote('a private note about acme-secret-project');
-    panel.addLink('Docs', 'https://example.com/acme-secret-project');
-    TestBed.inject(UsageService).recordOpen(TOOL_DEFINITIONS[0].id);
-
-    const home = await readStore('dude:v1:__home__:panel');
-    assertOnlyKeys(home, ['schemaVersion', 'note', 'links']);
-    assertOnlyKeys((home as { links: unknown[] }).links, ['id', 'label', 'url']);
-
-    // Panel content is the user's own local content; usage metrics must stay content-free.
-    expect(JSON.stringify(await readStore('dude:v1:__usage__:activity'))).not.toContain('acme-secret-project');
   });
 
   it('__favorites__:pinned only ever has schemaVersion/toolIds/pipelineIds', async () => {

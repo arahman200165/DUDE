@@ -3,7 +3,6 @@ import {
   EMPTY_USAGE_STORE,
   MAX_DAILY_BUCKETS,
   MAX_RECENT_LOG,
-  migrateUsageStore,
   recordUsage,
   UsageStore,
 } from "./usage.model.js";
@@ -79,62 +78,3 @@ describe('recordUsage daily buckets', () => {
   });
 });
 
-describe('migrateUsageStore', () => {
-  it('returns the empty store for null/non-object input', () => {
-    expect(migrateUsageStore(null)).toEqual(EMPTY_USAGE_STORE);
-    expect(migrateUsageStore(undefined)).toEqual(EMPTY_USAGE_STORE);
-    expect(migrateUsageStore('garbage')).toEqual(EMPTY_USAGE_STORE);
-  });
-
-  it('returns the empty store when counts or recentLog are missing/malformed', () => {
-    expect(migrateUsageStore({ schemaVersion: 1, recentLog: [] })).toEqual(EMPTY_USAGE_STORE);
-    expect(migrateUsageStore({ schemaVersion: 1, counts: {}, recentLog: 'nope' })).toEqual(EMPTY_USAGE_STORE);
-    expect(migrateUsageStore({ schemaVersion: 'x', counts: {}, recentLog: [] })).toEqual(EMPTY_USAGE_STORE);
-  });
-
-  it('upgrades v1 keeping counts and recent log, with no buckets and no tracking start', () => {
-    const v1 = {
-      schemaVersion: 1,
-      counts: { base64: { count: 3, lastUsedAt: '2026-01-01T00:00:00.000Z' } },
-      recentLog: [{ toolId: 'base64', at: '2026-01-01T00:00:00.000Z' }],
-    };
-    expect(migrateUsageStore(v1)).toEqual({ ...v1, schemaVersion: 2, dailyBuckets: [], trackingStartedOn: null });
-  });
-
-  it('keeps lifetime data from a newer schema instead of wiping it', () => {
-    const future = { schemaVersion: 9, counts: { base64: { count: 4, lastUsedAt: 'x' } }, recentLog: [], extra: 1 };
-    const migrated = migrateUsageStore(future);
-    expect(migrated.counts['base64'].count).toBe(4);
-    expect(migrated.dailyBuckets).toEqual([]);
-    expect(migrated.trackingStartedOn).toBeNull();
-  });
-
-  it('passes through a well-formed v2 store unchanged', () => {
-    const valid: UsageStore = {
-      schemaVersion: 2,
-      counts: { base64: { count: 3, lastUsedAt: '2026-01-01T00:00:00.000Z' } },
-      recentLog: [{ toolId: 'base64', at: '2026-01-01T00:00:00.000Z' }],
-      dailyBuckets: [{ date: '2026-01-01', opens: 3, perTool: { base64: 3 } }],
-      trackingStartedOn: '2026-01-01',
-    };
-    expect(migrateUsageStore(valid)).toEqual(valid);
-  });
-
-  it('drops malformed buckets and bad tool ids from a v2 store', () => {
-    const migrated = migrateUsageStore({
-      schemaVersion: 2,
-      counts: {},
-      recentLog: [],
-      dailyBuckets: [
-        { date: '2026-01-01', opens: 2, perTool: { base64: 1, 'Bad Id!': 1, json: -3 } },
-        { date: '2026-13-45', opens: 1, perTool: {} },
-        { date: '2026-01-02', opens: -1, perTool: {} },
-        { date: '2026-01-03', opens: 1.5, perTool: {} },
-        'junk',
-      ],
-      trackingStartedOn: 'nope',
-    });
-    expect(migrated.dailyBuckets).toEqual([{ date: '2026-01-01', opens: 2, perTool: { base64: 1 } }]);
-    expect(migrated.trackingStartedOn).toBe('2026-01-01');
-  });
-});

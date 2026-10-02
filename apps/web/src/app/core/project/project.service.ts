@@ -1,10 +1,10 @@
 import { Injectable, computed, inject } from '@angular/core';
-import { PersistenceService } from '../persistence/persistence.service';
+import { ENTITY_STORE, type EntityWriteResult } from '../persistence/entities/entity-store';
+import { projectCodec } from '@dude/persistence';
 import { WorkspaceLayoutService } from '../workspace/workspace-layout.service';
 import { UnifiedRecentsService } from '../recents/unified-recents.service';
 import { UnifiedRecentEntry } from "@dude/domain/core/recents/unified-recents.model";
-import { EMPTY_PROJECT_STORE, Project, createProject, migrateProjectStore } from "@dude/domain/core/project/project.model";
-import { upsertById } from "@dude/tool-engine/core/backup/upsert-by-id";
+import { EMPTY_PROJECT_STORE, Project, createProject } from "@dude/domain/core/project/project.model";
 
 /**
  * Projects (DUDE_PRD.md §21 Phase 25 Item 1) — persist under the synthetic pseudo-tool-id
@@ -15,17 +15,21 @@ import { upsertById } from "@dude/tool-engine/core/backup/upsert-by-id";
 export class ProjectService {
   private readonly workspaceLayout = inject(WorkspaceLayoutService);
   private readonly unifiedRecents = inject(UnifiedRecentsService);
-  private readonly store = inject(PersistenceService).signal('__projects__', 'projects', 'local', EMPTY_PROJECT_STORE, { crossTab: 'live' });
+  private readonly collection = inject(ENTITY_STORE).collection(
+    projectCodec,
+    {
+      namespace: '__projects__',
+      key: 'projects',
+      toItems: (blob) => (typeof blob === 'object' && blob !== null && Array.isArray((blob as { projects?: unknown }).projects) ? (blob as { projects: unknown[] }).projects : []),
+      fromItems: (projects) => ({ ...EMPTY_PROJECT_STORE, projects }),
+    },
+    { compare: (a, b) => a.createdAt.localeCompare(b.createdAt) },
+  );
 
-  constructor() {
-    const migrated = migrateProjectStore(this.store());
-    if (migrated !== this.store()) this.store.set(migrated);
-  }
-
-  readonly projects = computed<readonly Project[]>(() => this.store().projects);
+  readonly projects = computed<readonly Project[]>(() => this.collection.items());
 
   getById(id: string): Project | undefined {
-    return this.store().projects.find((project) => project.id === id);
+    return this.collection.get(id);
   }
 
   create(name: string): Project {
@@ -35,7 +39,7 @@ export class ProjectService {
       this.workspaceLayout.openTabs(),
       this.workspaceLayout.preferenceOverrides(),
     );
-    this.store.set({ ...this.store(), projects: [...this.store().projects, project] });
+    void this.collection.upsert(project);
     return project;
   }
 
@@ -43,13 +47,13 @@ export class ProjectService {
     this.updateProject(id, (project) => ({ ...project, name }));
   }
 
-  remove(id: string): void {
-    this.store.set({ ...this.store(), projects: this.store().projects.filter((project) => project.id !== id) });
+  remove(id: string): Promise<EntityWriteResult> {
+    return this.collection.remove(id);
   }
 
   /** Bundle import (Phase 26 Item 14): upsert by id, conflicts already resolved by `planImport`. */
-  importProjects(projects: readonly Project[]): void {
-    this.store.set({ ...this.store(), projects: upsertById(this.store().projects, projects) });
+  importProjects(projects: readonly Project[]): Promise<EntityWriteResult> {
+    return this.collection.importMany(projects);
   }
 
   /**
@@ -110,9 +114,9 @@ export class ProjectService {
   }
 
   private updateProject(id: string, updater: (project: Project) => Project): void {
-    this.store.set({
-      ...this.store(),
-      projects: this.store().projects.map((project) => (project.id === id ? updater(project) : project)),
-    });
+    const project = this.getById(id);
+    if (!project) return;
+    const updated = updater(project);
+    if (updated !== project) void this.collection.upsert(updated);
   }
 }

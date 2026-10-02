@@ -75,11 +75,15 @@ export class DataPrivacySettings {
     this.preview();
   }
 
-  protected confirmImport(): void {
+  protected async confirmImport(): Promise<void> {
     const plan = this.importPlan();
     if (!plan) return;
-    this.bundles.apply(plan);
+    const result = await this.bundles.apply(plan);
     this.cancelImport();
+    if (!result.ok) {
+      this.bundleMessage.set(`Import finished with errors: ${result.errors.join('; ')}`);
+      return;
+    }
     this.bundleMessage.set(
       plan.userScripts.items.length
         ? 'Imported. Imported scripts need a review under Pipelines › Scripts before they can run.'
@@ -97,7 +101,7 @@ export class DataPrivacySettings {
   }
 
   protected conflictSummary(plan: ImportPlan): { skipped: number; replaced: number } {
-    const sections = [plan.projects, plan.workspaceTemplates, plan.pipelines, plan.userScripts, plan.homePanel, plan.homeLayout, plan.appearance];
+    const sections = [plan.projects, plan.workspaceTemplates, plan.pipelines, plan.userScripts, plan.homeLayout, plan.appearance];
     return {
       skipped: sections.reduce((total, section) => total + section.skipped, 0),
       replaced: sections.reduce((total, section) => total + section.replaced, 0),

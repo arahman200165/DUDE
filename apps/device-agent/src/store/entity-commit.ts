@@ -73,11 +73,7 @@ function apply(db: Db, ctx: CommitContext, commit: EntityCommit): { localRevisio
 
   if (!codec.journaled) return { localRevision };
 
-  const prevRow = db.prepare('SELECT * FROM outbox WHERE entity_type = ? AND entity_id = ?').get(commit.entityType, commit.entityId) as unknown as OutboxRow | undefined;
-  const next: OutboxOp = {
-    opId: ctx.newOpId(),
-    environmentId: ctx.environmentId,
-    deviceId: ctx.deviceId,
+  return recordOutboxOp(db, ctx, {
     entityType: commit.entityType,
     entityId: commit.entityId,
     opKind: commit.op,
@@ -85,14 +81,36 @@ function apply(db: Db, ctx: CommitContext, commit: EntityCommit): { localRevisio
     basedOnRevision: existing?.hub_revision ?? null,
     localRevision,
     payload: commit.op === 'upsert' ? encoded : null,
+  });
+}
+
+export interface OutboxOpDraft {
+  entityType: string;
+  entityId: string;
+  opKind: OutboxOp['opKind'];
+  schemaVersion: number;
+  basedOnRevision: number | null;
+  localRevision: number;
+  payload: unknown;
+}
+
+/** Writes (or coalesces into) the single outbox op for an entity; call inside the transaction that changed its row. */
+export function recordOutboxOp(db: Db, ctx: CommitContext, draft: OutboxOpDraft): { localRevision: number; outboxOpId?: string } {
+  const stamp = ctx.now().toISOString();
+  const prevRow = db.prepare('SELECT * FROM outbox WHERE entity_type = ? AND entity_id = ?').get(draft.entityType, draft.entityId) as unknown as OutboxRow | undefined;
+  const next: OutboxOp = {
+    opId: ctx.newOpId(),
+    environmentId: ctx.environmentId,
+    deviceId: ctx.deviceId,
+    ...draft,
     status: 'unsent-standalone',
     createdAt: stamp,
     updatedAt: stamp,
   };
   const merged = coalesceOutbox(prevRow ? rowToOp(prevRow) : undefined, next);
   if (merged === null) {
-    db.prepare('DELETE FROM outbox WHERE entity_type = ? AND entity_id = ?').run(commit.entityType, commit.entityId);
-    return { localRevision };
+    db.prepare('DELETE FROM outbox WHERE entity_type = ? AND entity_id = ?').run(draft.entityType, draft.entityId);
+    return { localRevision: draft.localRevision };
   }
   db.prepare(
     `INSERT INTO outbox(op_id, entity_type, entity_id, environment_id, device_id, op_kind, schema_version, based_on_revision, local_revision, payload_json, status, created_at, updated_at)
@@ -105,7 +123,7 @@ function apply(db: Db, ctx: CommitContext, commit: EntityCommit): { localRevisio
     merged.opId, merged.entityType, merged.entityId, merged.environmentId, merged.deviceId, merged.opKind, merged.schemaVersion,
     merged.basedOnRevision, merged.localRevision, merged.payload === null ? null : JSON.stringify(merged.payload), merged.status, merged.createdAt, merged.updatedAt,
   );
-  return { localRevision, outboxOpId: merged.opId };
+  return { localRevision: draft.localRevision, outboxOpId: merged.opId };
 }
 
 const overLimit = (db: Db, ctx: CommitContext): boolean => outboxCount(db) >= (ctx.maxOutboxRows ?? OUTBOX_MAX_ROWS);

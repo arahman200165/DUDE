@@ -41,22 +41,6 @@ export const EMPTY_WORKSPACE_LAYOUT: WorkspaceLayout = {
   focusedNodeId: null,
 };
 
-/** Defensive parse: unknown/corrupt persisted data resets to an empty layout rather than throwing. */
-export function migrateWorkspaceLayout(raw: unknown): WorkspaceLayout {
-  if (!raw || typeof raw !== 'object') return EMPTY_WORKSPACE_LAYOUT;
-  const candidate = raw as Partial<WorkspaceLayout>;
-  if (candidate.schemaVersion === 1 && Array.isArray(candidate.openTabs)) {
-    return {
-      schemaVersion: 1,
-      openTabs: candidate.openTabs,
-      panelTree: candidate.panelTree ?? null,
-      focusedNodeId: candidate.focusedNodeId ?? null,
-      ...withPreferenceOverrides(sanitizePreferenceOverrides(candidate.preferenceOverrides)),
-    };
-  }
-  return EMPTY_WORKSPACE_LAYOUT;
-}
-
 /** Keeps only well-formed `string -> string -> string` entries; `undefined` when nothing survives. */
 export function sanitizePreferenceOverrides(raw: unknown): PreferenceOverrides | undefined {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;

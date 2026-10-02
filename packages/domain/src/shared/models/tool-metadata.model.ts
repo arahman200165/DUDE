@@ -94,17 +94,6 @@ export interface ToolSettingsSection {
   readonly workspaceOverridable?: readonly WorkspaceOverridablePreference[];
 }
 
-/**
- * A one-time move of a legacy `local` storage value into this tool's own namespace, run once at
- * bootstrap by `core/persistence/storage-migrations.ts` (copy only when the target is empty, then
- * delete the source). The target namespace is always the declaring tool's id.
- */
-export interface ToolStorageMigration {
-  readonly fromNamespace: string;
-  readonly fromKey: string;
-  readonly toKey: string;
-}
-
 export interface ToolMetadata {
   readonly id: string;
   /** Per-key override of the policy-based scope rule (key = persistence key within the tool's namespace). */
@@ -143,6 +132,4 @@ export interface ToolMetadata {
   readonly pwaShortcut?: { readonly order: number };
   /** A Settings section this tool contributes — see `ToolSettingsSection`. */
   readonly settingsSection?: ToolSettingsSection;
-  /** Legacy storage keys moved into this tool's namespace at bootstrap — see `ToolStorageMigration`. */
-  readonly storageMigrations?: readonly ToolStorageMigration[];
 }

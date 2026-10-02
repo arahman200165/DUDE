@@ -1,4 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { workspaceLayoutCodec } from '@dude/persistence';
 import { PersistenceService } from '../persistence/persistence.service';
 import { createStorageBackend } from '../persistence/storage-backend';
 import { buildStorageKey } from "@dude/tool-engine/core/persistence/persistence-keys";
@@ -11,7 +12,6 @@ import {
   findFirstLeaf,
   findLeafByToolId,
   findNodeById,
-  migrateWorkspaceLayout,
   pruneUnknownTools,
   removeLeafById,
   replaceNode,
@@ -36,7 +36,7 @@ export class WorkspaceLayoutService {
     'layout',
     'local',
     EMPTY_WORKSPACE_LAYOUT,
-    { crossTab: 'notify' },
+    { crossTab: 'notify', decode: (raw) => workspaceLayoutCodec.decode(raw) },
   );
 
   /**
@@ -53,7 +53,7 @@ export class WorkspaceLayoutService {
     const raw = createStorageBackend('local').get(buildStorageKey('__workspace__', 'layout'));
     if (raw !== null) {
       try {
-        this.layout.set(pruneUnknownTools(migrateWorkspaceLayout(JSON.parse(raw)), this.isKnownTool));
+        this.layout.set(pruneUnknownTools(workspaceLayoutCodec.decode(JSON.parse(raw)) ?? EMPTY_WORKSPACE_LAYOUT, this.isKnownTool));
       } catch {
         // Unreadable: keep this tab's layout.
       }
@@ -77,8 +77,8 @@ export class WorkspaceLayoutService {
   readonly reopenOnRestart = this.persistence.signal('__workspace__', 'reopenOnRestart', 'local', true);
 
   constructor() {
-    const migrated = pruneUnknownTools(migrateWorkspaceLayout(this.layout()), this.isKnownTool);
-    const layout = this.reopenOnRestart() ? migrated : EMPTY_WORKSPACE_LAYOUT;
+    const pruned = pruneUnknownTools(this.layout(), this.isKnownTool);
+    const layout = this.reopenOnRestart() ? pruned : EMPTY_WORKSPACE_LAYOUT;
     if (layout !== this.layout()) this.layout.set(layout);
   }
 

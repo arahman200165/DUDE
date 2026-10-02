@@ -257,15 +257,6 @@ describe('Tool conformance harness', () => {
         expect(checkSettingScopes(definition.settingScopes, sources), `${definition.id} settingScopes`).toEqual([]);
       });
 
-      it('declares storageMigrations that never move a key onto itself, when present', () => {
-        for (const migration of definition.storageMigrations ?? []) {
-          expect(
-            migration.fromNamespace === definition.id && migration.fromKey === migration.toKey,
-            `${definition.id} declares a storage migration from its own "${migration.toKey}" key onto itself`,
-          ).toBe(false);
-        }
-      });
-
       it('has a lazy load() function, never eagerly resolved', () => {
         expect(typeof definition.load).toBe('function');
       });

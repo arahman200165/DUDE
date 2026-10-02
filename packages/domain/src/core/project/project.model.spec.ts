@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EMPTY_PROJECT_STORE, ProjectStore, createProject, migrateProjectStore } from "./project.model.js";
+import { createProject } from "./project.model.js";
 
 describe('createProject', () => {
   it('creates a project with a fresh id, timestamp, and empty pinned pipelines', () => {
@@ -13,23 +13,3 @@ describe('createProject', () => {
   });
 });
 
-describe('migrateProjectStore', () => {
-  it('returns the empty store for null/non-object/mismatched-schema input', () => {
-    expect(migrateProjectStore(null)).toEqual(EMPTY_PROJECT_STORE);
-    expect(migrateProjectStore('garbage')).toEqual(EMPTY_PROJECT_STORE);
-    expect(migrateProjectStore({ schemaVersion: 2, projects: [] })).toEqual(EMPTY_PROJECT_STORE);
-  });
-
-  it('returns the empty store when projects is missing or malformed', () => {
-    expect(migrateProjectStore({ schemaVersion: 1 })).toEqual(EMPTY_PROJECT_STORE);
-    expect(migrateProjectStore({ schemaVersion: 1, projects: 'nope' })).toEqual(EMPTY_PROJECT_STORE);
-  });
-
-  it('passes through a well-formed store unchanged', () => {
-    const valid: ProjectStore = {
-      schemaVersion: 1,
-      projects: [createProject('Custom', null, ['json'])],
-    };
-    expect(migrateProjectStore(valid)).toEqual(valid);
-  });
-});

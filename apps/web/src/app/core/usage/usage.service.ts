@@ -1,7 +1,13 @@
-import { Injectable, inject } from '@angular/core';
-import { PersistenceService } from '../persistence/persistence.service';
-import { EMPTY_USAGE_STORE, UsageLogEntry, migrateUsageStore, recordUsage } from "@dude/domain/core/usage/usage.model";
+import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
+import { usageCodec } from '@dude/persistence';
+import { ENTITY_STORE } from '../persistence/entities/entity-store';
+import { currentPlatformBridge } from '../platform/platform-bridge.adapter';
+import { EMPTY_USAGE_STORE, UsageLogEntry, recordUsage } from "@dude/domain/core/usage/usage.model";
+import type { UsageStore } from "@dude/domain/core/usage/usage.model";
 import { ActivityPeriod, lifetimeToolCounts, selectActivityPeriod } from "@dude/tool-engine/core/usage/activity-summary";
+
+/** Desktop commits to the Device Store at most this often; `flush()` (quit/window close) commits any pending write at once. */
+export const USAGE_COMMIT_DEBOUNCE_MS = 2000;
 
 /**
  * Local usage tracking (DUDE_PRD.md §21 Phase 24 Items 5/6/14) — uniform across all 277 tools,
@@ -12,17 +18,56 @@ import { ActivityPeriod, lifetimeToolCounts, selectActivityPeriod } from "@dude/
  */
 @Injectable({ providedIn: 'root' })
 export class UsageService {
-  private readonly persistence = inject(PersistenceService);
-  private readonly store = this.persistence.signal('__usage__', 'activity', 'local', EMPTY_USAGE_STORE);
+  /** One `usage` document (record id `DOCUMENT_ID`); the web build keeps its original `__usage__:activity` blob. */
+  private readonly collection = inject(ENTITY_STORE).collection(usageCodec, {
+    namespace: '__usage__',
+    key: 'activity',
+    toItems: (blob) => [blob],
+    fromItems: (items) => items[0] ?? EMPTY_USAGE_STORE,
+  });
+  /** Opens recorded since the last commit (desktop debounce); reads see it at once. */
+  private readonly pending = signal<UsageStore | null>(null);
+  private readonly store = computed<UsageStore>(() => this.pending() ?? this.collection.items()[0] ?? EMPTY_USAGE_STORE);
+  private readonly debounced = currentPlatformBridge()?.store !== undefined;
+  private timer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
-    const migrated = migrateUsageStore(this.store());
-    if (migrated !== this.store()) this.store.set(migrated);
+    const bridge = currentPlatformBridge()?.store;
+    if (!bridge) return;
+    // Opens are frequent and coalesce into one outbox op anyway, so desktop commits are debounced and flushed on quit / hide.
+    const unsubscribe = bridge.onFlushRequest(() => this.flush());
+    const onHide = (): void => void this.flush();
+    if (typeof window !== 'undefined') window.addEventListener('pagehide', onHide);
+    inject(DestroyRef).onDestroy(() => {
+      unsubscribe();
+      if (typeof window !== 'undefined') window.removeEventListener('pagehide', onHide);
+      if (this.timer !== null) clearTimeout(this.timer);
+    });
   }
 
   /** `now` is injectable so day-boundary behavior is testable without fake timers. */
   recordOpen(toolId: string, now: Date = new Date()): void {
-    this.store.set(recordUsage(this.store(), toolId, now.toISOString()));
+    const next = recordUsage(this.store(), toolId, now.toISOString());
+    if (!this.debounced) {
+      void this.collection.upsert(next);
+      return;
+    }
+    this.pending.set(next);
+    this.timer ??= setTimeout(() => void this.flush(), USAGE_COMMIT_DEBOUNCE_MS);
+  }
+
+  /** Commits any pending write now (store flush request, window hide). Never rejects. */
+  async flush(): Promise<void> {
+    if (this.timer !== null) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    const next = this.pending();
+    if (next === null) return;
+    // The collection updates its own signal synchronously, so reads never see a gap.
+    const committed = this.collection.upsert(next);
+    this.pending.set(null);
+    await committed.catch(() => undefined);
   }
 
   /** The trailing `days` local days with tracked/untracked distinction (Phase 30H.2). */

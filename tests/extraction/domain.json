@@ -48,10 +48,6 @@
     "packages/domain/src/core/home-layout/user-content.model.ts"
   ],
   [
-    "apps/web/src/app/core/home-panel/home-panel.model.ts",
-    "packages/domain/src/core/home-panel/home-panel.model.ts"
-  ],
-  [
     "apps/web/src/app/core/native-recents/native-recent.model.ts",
     "packages/domain/src/core/native-recents/native-recent.model.ts"
   ],
@@ -148,20 +144,12 @@
     "packages/domain/src/shared/models/home-cells.spec.ts"
   ],
   [
-    "apps/web/src/app/core/home-panel/home-panel.model.spec.ts",
-    "packages/domain/src/core/home-panel/home-panel.model.spec.ts"
-  ],
-  [
     "apps/web/src/app/core/native-recents/native-recent.model.spec.ts",
     "packages/domain/src/core/native-recents/native-recent.model.spec.ts"
   ],
   [
     "apps/web/src/app/core/offline/offline-map.model.spec.ts",
     "packages/domain/src/core/offline/offline-map.model.spec.ts"
-  ],
-  [
-    "apps/web/src/app/core/pipeline/pipeline.model.spec.ts",
-    "packages/domain/src/core/pipeline/pipeline.model.spec.ts"
   ],
   [
     "apps/web/src/app/core/project/project.model.spec.ts",

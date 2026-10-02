@@ -34,7 +34,7 @@ export const usageCodec: EntityCodec<UsageStore> = {
   sensitivity: 'non-sensitive',
   journaled: true,
   idOf: () => DOCUMENT_ID,
-  /** v1 documents upgrade to v2; a newer schema keeps its v1 fields (best-effort), as `migrateUsageStore` did. */
+  /** v1 documents upgrade to v2; a newer schema keeps its v1 fields (best-effort). */
   decode(raw) {
     if (!isRecord(raw) || !isRecord(raw['counts']) || !Array.isArray(raw['recentLog'])) return null;
     const version = raw['schemaVersion'];

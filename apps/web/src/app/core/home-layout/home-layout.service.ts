@@ -1,5 +1,7 @@
 import { Injectable, computed, inject } from '@angular/core';
-import { PersistenceService } from '../persistence/persistence.service';
+import { decodeHomeLayoutReadOnly, homeLayoutCodec } from '@dude/persistence';
+import type { EntityCodec, HomeLayoutCodecContext } from '@dude/persistence';
+import { ENTITY_STORE } from '../persistence/entities/entity-store';
 import { PanelRegistryService } from '../registry/panel-registry.service';
 import { LayoutIssue, firstFit, validateLayout } from "@dude/domain/core/home-layout/grid-engine";
 import { defaultConfig } from "@dude/domain/core/home-layout/panel-config";
@@ -10,13 +12,12 @@ import {
   EMPTY_HOME_LAYOUT_STORE,
   HomeLayoutData,
   HomeLayoutMergeMode,
+  HomeLayoutStore,
   KindCatalog,
   MAX_INSTANCES,
   contentAfterReset,
   effectiveLayout,
-  isNewerHomeLayoutSchema,
   mergeHomeLayout,
-  migrateHomeLayoutStore,
   newInstanceId,
   sanitizeHomeLayoutData,
 } from "@dude/domain/core/home-layout/home-layout-store.model";
@@ -32,24 +33,27 @@ export type SaveLayoutResult = { readonly ok: true } | { readonly ok: false; rea
  */
 @Injectable({ providedIn: 'root' })
 export class HomeLayoutService {
-  private readonly persistence = inject(PersistenceService);
   private readonly registry = inject(PanelRegistryService);
-  private readonly store = this.persistence.signal('__home-layout__', 'layout', 'local', EMPTY_HOME_LAYOUT_STORE, { crossTab: 'live' });
-
   private readonly catalog: KindCatalog = { resolve: (id) => this.registry.resolveKind(id) };
 
-  /** In-memory view: a newer-schema record is sanitized for display but the stored record stays untouched. */
-  private readonly state = computed<HomeLayoutData>(() => {
-    const raw = this.store();
-    return isNewerHomeLayoutSchema(raw) ? migrateHomeLayoutStore(raw, this.catalog, this.registry.defaultLayout()) : raw;
-  });
+  /**
+   * One `home-layout` document (record id `DOCUMENT_ID`). Reads go through the read-only decoder so a
+   * newer-schema document is shown best-effort (the strict codec would drop it); nothing is ever written
+   * on load, so such a document stays untouched until the user explicitly saves.
+   */
+  private readonly collection = inject(ENTITY_STORE).collection<HomeLayoutStore, HomeLayoutCodecContext>(
+    { ...homeLayoutCodec, decode: decodeHomeLayoutReadOnly } satisfies EntityCodec<HomeLayoutStore, HomeLayoutCodecContext>,
+    {
+      namespace: '__home-layout__',
+      key: 'layout',
+      toItems: (blob) => (blob === EMPTY_HOME_LAYOUT_STORE ? [] : [blob]),
+      fromItems: (items) => items[0] ?? EMPTY_HOME_LAYOUT_STORE,
+    },
+    { context: { catalog: this.catalog, defaults: this.registry.defaultLayout() } },
+  );
 
-  constructor() {
-    // Never write on load for a newer schema (another DUDE build's layout); older/garbage records are normalized as before.
-    if (isNewerHomeLayoutSchema(this.store())) return;
-    const migrated = migrateHomeLayoutStore(this.store(), this.catalog, this.registry.defaultLayout());
-    if (JSON.stringify(migrated) !== JSON.stringify(this.store())) this.store.set(migrated);
-  }
+  /** In-memory view: the stored (or newer-schema, sanitized) document, else the empty store. */
+  private readonly state = computed<HomeLayoutData>(() => this.collection.items()[0] ?? EMPTY_HOME_LAYOUT_STORE);
 
   /** The layout Home renders right now, for both widths. */
   readonly layout = computed<HomeLayout>(() => effectiveLayout(this.state(), this.registry.defaultLayout(), this.catalog));
@@ -140,6 +144,7 @@ export class HomeLayoutService {
   // An explicit user save/reset/import may replace a newer-schema record (downgrading it to v1): that is the user's deliberate choice.
   private write(data: HomeLayoutData): void {
     const defaults = this.registry.defaultLayout();
-    this.store.set({ schemaVersion: 1, ...sanitizeHomeLayoutData(data, this.catalog, defaults) });
+    // Validated with the live catalog before it reaches the store (the agent only checks structure).
+    void this.collection.upsert({ schemaVersion: 1, ...sanitizeHomeLayoutData(data, this.catalog, defaults) });
   }
 }

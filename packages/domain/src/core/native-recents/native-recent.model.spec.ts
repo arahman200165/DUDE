@@ -3,7 +3,6 @@ import {
   EMPTY_NATIVE_RECENTS_STORE,
   MAX_NATIVE_RECENTS,
   NativeRecentEntry,
-  migrateNativeRecentsStore,
   recordNativeRecent,
   removeNativeRecent,
 } from "./native-recent.model.js";
@@ -11,20 +10,6 @@ import {
 function entry(path: string): NativeRecentEntry {
   return { path, name: path.split('/').pop()!, extension: '.txt', openedAt: new Date().toISOString() };
 }
-
-describe('migrateNativeRecentsStore', () => {
-  it('returns the empty store for null/non-object/mismatched-schema/malformed input', () => {
-    expect(migrateNativeRecentsStore(null)).toEqual(EMPTY_NATIVE_RECENTS_STORE);
-    expect(migrateNativeRecentsStore('garbage')).toEqual(EMPTY_NATIVE_RECENTS_STORE);
-    expect(migrateNativeRecentsStore({ schemaVersion: 2, entries: [] })).toEqual(EMPTY_NATIVE_RECENTS_STORE);
-    expect(migrateNativeRecentsStore({ schemaVersion: 1, entries: 'nope' })).toEqual(EMPTY_NATIVE_RECENTS_STORE);
-  });
-
-  it('passes through a well-formed store unchanged', () => {
-    const valid = { schemaVersion: 1 as const, entries: [entry('C:/a.txt')] };
-    expect(migrateNativeRecentsStore(valid)).toEqual(valid);
-  });
-});
 
 describe('recordNativeRecent', () => {
   it('adds an entry to the front', () => {

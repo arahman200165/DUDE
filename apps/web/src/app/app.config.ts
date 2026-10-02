@@ -13,13 +13,11 @@ import { PREFERENCES_COMMAND_SOURCE_PROVIDERS } from './core/platform/preference
 import { SHARE_COMMAND_SOURCE_PROVIDERS } from './core/share/share-command-source';
 import { DESKTOP_HANDOFF_COMMAND_SOURCE_PROVIDERS } from './core/deep-link/desktop-handoff-command-source';
 import { AppearanceService } from './core/appearance/appearance.service';
-import { provideStorageMigrations } from './core/persistence/storage-migrations';
 import { NAVIGATION_COMMAND_SOURCE_PROVIDERS } from './shell/navigation-command-source';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideStorageMigrations(),
     // Applies the saved theme/density/fonts to <html> at bootstrap (index.html pre-paints the attributes).
     provideAppInitializer(() => {
       inject(AppearanceService);

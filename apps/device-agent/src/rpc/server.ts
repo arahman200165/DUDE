@@ -125,7 +125,7 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
     },
     'kv.commit': (p) => {
       if (!Array.isArray(p.mutations)) throw invalid('mutations must be an array.');
-      commitKvBatch(db(), p.mutations, undefined, deps.now);
+      commitKvBatch(db(), p.mutations, undefined, deps.now, commitCtx());
       return { count: p.mutations.length };
     },
     'entity.commit': (p) => commitEntity(db(), commitCtx(), p),

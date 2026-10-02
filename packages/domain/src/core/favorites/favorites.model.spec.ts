@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   EMPTY_FAVORITES_STORE,
   FavoritesStore,
-  migrateFavoritesStore,
   togglePipelineId,
   toggleToolId,
 } from "./favorites.model.js";
@@ -35,20 +34,3 @@ describe('togglePipelineId', () => {
   });
 });
 
-describe('migrateFavoritesStore', () => {
-  it('returns the empty store for null/non-object/mismatched-schema input', () => {
-    expect(migrateFavoritesStore(null)).toEqual(EMPTY_FAVORITES_STORE);
-    expect(migrateFavoritesStore('garbage')).toEqual(EMPTY_FAVORITES_STORE);
-    expect(migrateFavoritesStore({ schemaVersion: 2, toolIds: [], pipelineIds: [] })).toEqual(EMPTY_FAVORITES_STORE);
-  });
-
-  it('returns the empty store when toolIds/pipelineIds are missing or malformed', () => {
-    expect(migrateFavoritesStore({ schemaVersion: 1, toolIds: [] })).toEqual(EMPTY_FAVORITES_STORE);
-    expect(migrateFavoritesStore({ schemaVersion: 1, toolIds: 'nope', pipelineIds: [] })).toEqual(EMPTY_FAVORITES_STORE);
-  });
-
-  it('passes through a well-formed store unchanged', () => {
-    const valid: FavoritesStore = { schemaVersion: 1, toolIds: ['base64'], pipelineIds: ['p1'] };
-    expect(migrateFavoritesStore(valid)).toEqual(valid);
-  });
-});

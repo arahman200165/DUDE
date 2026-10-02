@@ -1,5 +1,9 @@
 import { collectFromCursor, deleteFromCursor, openDatabase, promisifyRequest, promisifyTransaction } from '../storage/indexed-db';
-import { HistoryEntry, migrateHistoryEntry } from "@dude/domain/core/history/history.model";
+import type { HistoryEntry } from "@dude/domain/core/history/history.model";
+import { historyEntryCodec } from "@dude/persistence";
+
+/** Stored records are decoded by the codec; an unrecognized or corrupt one is dropped rather than thrown on. */
+const decodeEntry = (raw: unknown): HistoryEntry | undefined => historyEntryCodec.decode(raw) ?? undefined;
 
 const DB_NAME = 'dude:v1:history';
 const DB_VERSION = 1;
@@ -49,7 +53,7 @@ export async function getEntry(id: string): Promise<HistoryEntry | undefined> {
   const db = await getDb();
   const tx = db.transaction(STORE, 'readonly');
   const raw = await promisifyRequest(tx.objectStore(STORE).get(id));
-  return raw ? migrateHistoryEntry(raw) : undefined;
+  return raw ? decodeEntry(raw) : undefined;
 }
 
 export async function deleteEntry(id: string): Promise<void> {
@@ -63,14 +67,14 @@ export async function listRecent(limit: number): Promise<HistoryEntry[]> {
   const db = await getDb();
   const tx = db.transaction(STORE, 'readonly');
   const request = tx.objectStore(STORE).index('by-createdAt').openCursor(null, 'prev');
-  return collectFromCursor<HistoryEntry, HistoryEntry>(request, limit, migrateHistoryEntry);
+  return collectFromCursor<HistoryEntry, HistoryEntry>(request, limit, decodeEntry);
 }
 
 export async function listByTool(toolId: string, limit: number): Promise<HistoryEntry[]> {
   const db = await getDb();
   const tx = db.transaction(STORE, 'readonly');
   const request = tx.objectStore(STORE).index('by-toolId-createdAt').openCursor(toolRange(toolId), 'prev');
-  return collectFromCursor<HistoryEntry, HistoryEntry>(request, limit, migrateHistoryEntry);
+  return collectFromCursor<HistoryEntry, HistoryEntry>(request, limit, decodeEntry);
 }
 
 export async function countByTool(toolId: string): Promise<number> {

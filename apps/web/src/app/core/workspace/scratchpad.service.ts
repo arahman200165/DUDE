@@ -1,11 +1,11 @@
 import { Injectable, computed, inject } from '@angular/core';
+import { scratchpadCodec } from '@dude/persistence';
 import { PersistenceService } from '../persistence/persistence.service';
 import {
   EMPTY_SCRATCHPAD_STORE,
   ScratchpadStore,
   WorkspaceSnippet,
   createSnippet,
-  migrateScratchpadStore,
 } from "@dude/domain/core/workspace/scratchpad.model";
 
 /**
@@ -23,12 +23,8 @@ export class ScratchpadService {
     'scratchpad',
     'local',
     EMPTY_SCRATCHPAD_STORE,
+    { decode: (raw) => scratchpadCodec.decode(raw) },
   );
-
-  constructor() {
-    const migrated = migrateScratchpadStore(this.store());
-    if (migrated !== this.store()) this.store.set(migrated);
-  }
 
   readonly snippets = computed(() => this.store().snippets);
   readonly drawerExpanded = computed(() => this.store().drawerExpanded);

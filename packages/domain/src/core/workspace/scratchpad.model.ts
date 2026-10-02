@@ -20,12 +20,3 @@ export function createSnippet(title: string, body: string, sourceToolId?: string
   return { id: hostCrypto().randomUUID(), title, body, sourceToolId, createdAt: new Date().toISOString() };
 }
 
-/** Defensive parse: unknown/corrupt persisted data resets to an empty store rather than throwing. */
-export function migrateScratchpadStore(raw: unknown): ScratchpadStore {
-  if (!raw || typeof raw !== 'object') return EMPTY_SCRATCHPAD_STORE;
-  const candidate = raw as Partial<ScratchpadStore>;
-  if (candidate.schemaVersion === 1 && Array.isArray(candidate.snippets)) {
-    return { schemaVersion: 1, snippets: candidate.snippets, drawerExpanded: candidate.drawerExpanded ?? false };
-  }
-  return EMPTY_SCRATCHPAD_STORE;
-}

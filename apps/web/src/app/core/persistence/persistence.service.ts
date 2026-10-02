@@ -33,7 +33,7 @@ export class PersistenceService {
   private readonly session: StorageBackend = createStorageBackend('session');
   private readonly consentSignals = new Map<string, WritableSignal<boolean>>();
   // Only root-level stores opt in, so holding their signals for the app's lifetime is intended.
-  private readonly liveSignals = new Map<string, Set<WritableSignal<unknown>>>();
+  private readonly liveSignals = new Map<string, Set<(raw: unknown) => void>>();
   private readonly externalChangeCounters = new Map<string, WritableSignal<number>>();
 
   constructor() {
@@ -49,7 +49,7 @@ export class PersistenceService {
       } catch {
         return;
       }
-      for (const value of live) value.set(parsed);
+      for (const adopt of live) adopt(parsed);
     });
   }
 
@@ -64,7 +64,9 @@ export class PersistenceService {
    * `user-choice` behaves like `session` until the user opts in via
    * `setConsent`, after which future writes land in `local`.
    */
-  signal<T>(toolId: string, key: string, policy: PersistencePolicy, initialValue: T, options?: { readonly crossTab?: CrossTabSync }): WritableSignal<T> {
+  signal<T>(toolId: string, key: string, policy: PersistencePolicy, initialValue: T,
+    options?: { readonly crossTab?: CrossTabSync; readonly decode?: (raw: unknown) => T | null },
+  ): WritableSignal<T> {
     if (policy === 'none') {
       return signal(initialValue);
     }
@@ -79,7 +81,7 @@ export class PersistenceService {
 
     if (policy === 'user-choice') {
       const consent = this.getConsentSignal(toolId, key);
-      const value = signal(this.readValue(consent() ? this.local : this.session, storageKey, initialValue));
+      const value = signal(this.readValue(consent() ? this.local : this.session, storageKey, initialValue, options?.decode));
       effect(
         () => {
           const backend = consent() ? this.local : this.session;
@@ -91,7 +93,7 @@ export class PersistenceService {
     }
 
     const backend = policy === 'local' ? this.local : this.session;
-    const value = signal(this.readValue(backend, storageKey, initialValue));
+    const value = signal(this.readValue(backend, storageKey, initialValue, options?.decode));
     effect(
       () => {
         const json = JSON.stringify(value());
@@ -103,7 +105,8 @@ export class PersistenceService {
     if (policy === 'local' && options?.crossTab === 'live') {
       let set = this.liveSignals.get(storageKey);
       if (!set) this.liveSignals.set(storageKey, (set = new Set()));
-      set.add(value as WritableSignal<unknown>);
+      const decode = options.decode;
+      set.add((raw) => value.set(decode ? (decode(raw) ?? initialValue) : (raw as T)));
     }
     if (policy === 'local' && options?.crossTab === 'notify') this.counterFor(storageKey);
     return value;
@@ -126,22 +129,6 @@ export class PersistenceService {
     if (!granted) {
       this.local.remove(buildStorageKey(toolId, key));
     }
-  }
-
-  /**
-   * One-time move of a `local` value from one namespace/key to another: copies only when the
-   * target is empty (a value already written under the new key always wins), then removes the
-   * source either way. Returns whether a value was copied. Idempotent.
-   */
-  moveLocalValue(fromToolId: string, fromKey: string, toToolId: string, toKey: string): boolean {
-    const sourceKey = buildStorageKey(fromToolId, fromKey);
-    const raw = this.local.get(sourceKey);
-    if (raw === null) return false;
-
-    const targetKey = buildStorageKey(toToolId, toKey);
-    const copied = this.local.get(targetKey) === null && this.local.set(targetKey, raw, { policy: 'local', scope: resolveKvScope(toToolId, toKey, 'local', MANIFEST_SCOPES) });
-    this.local.remove(sourceKey);
-    return copied;
   }
 
   clearTool(toolId: string): void {
@@ -177,12 +164,13 @@ export class PersistenceService {
     return consentSignal;
   }
 
-  private readValue<T>(backend: StorageBackend, storageKey: string, initialValue: T): T {
+  private readValue<T>(backend: StorageBackend, storageKey: string, initialValue: T, decode?: (raw: unknown) => T | null): T {
     const raw = backend.get(storageKey);
     if (raw === null) return initialValue;
 
     try {
-      return JSON.parse(raw) as T;
+      const parsed: unknown = JSON.parse(raw);
+      return decode ? (decode(parsed) ?? initialValue) : (parsed as T);
     } catch {
       return initialValue;
     }

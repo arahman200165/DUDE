@@ -29,16 +29,6 @@ export interface ProjectStore {
 
 export const EMPTY_PROJECT_STORE: ProjectStore = { schemaVersion: 1, projects: [] };
 
-/** Defensive parse: unrecognized/corrupt persisted data resets to an empty store rather than throwing. */
-export function migrateProjectStore(raw: unknown): ProjectStore {
-  if (!raw || typeof raw !== 'object') return EMPTY_PROJECT_STORE;
-  const candidate = raw as Partial<ProjectStore>;
-  if (candidate.schemaVersion === PROJECT_STORE_SCHEMA_VERSION && Array.isArray(candidate.projects)) {
-    return { schemaVersion: 1, projects: candidate.projects };
-  }
-  return EMPTY_PROJECT_STORE;
-}
-
 export function createProject(
   name: string,
   panelTree: PanelNode | null,

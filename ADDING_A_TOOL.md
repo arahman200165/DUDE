@@ -207,7 +207,7 @@ settingsSection: {
 
 Declare `settingsLoad: () => import('./my-tool.settings').then(m => m.MyToolSettings)` in the app binding, never in portable metadata.
 
-The panel component reads and writes the tool's own `local` `persistence.signal(...)` keys. For a key listed in `workspaceOverridable`, the tool reads it through `resolvePreference(toolId, key, globalSignal)` (`core/workspace/workspace-preference.ts`); the Workspace settings popover and templates/projects handle the rest generically. If you are moving a value out of another namespace, add `storageMigrations: [{ fromNamespace, fromKey, toKey }]` and it moves once at startup. `tools/markdown-workspace/` is the worked example.
+The panel component reads and writes the tool's own `local` `persistence.signal(...)` keys. For a key listed in `workspaceOverridable`, the tool reads it through `resolvePreference(toolId, key, globalSignal)` (`core/workspace/workspace-preference.ts`); the Workspace settings popover and templates/projects handle the rest generically. There are no storage-key migrations; treat persisted keys as stable. `tools/markdown-workspace/` is the worked example.
 
 ## 9. Expose the lazy route/component
 

@@ -1,7 +1,7 @@
 import type { DataScope, DataSensitivity } from '@dude/domain';
 
 /**
- * Row codec for one entity type; replaces the legacy `migrateX` functions for hydration and import.
+ * Row codec for one entity type, used for hydration and import.
  * `decode` returns null for unrecoverable garbage and never throws.
  */
 export interface EntityCodec<T, Ctx = void> {
