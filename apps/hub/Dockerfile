@@ -1,9 +1,9 @@
-# Standalone BYO collab relay (Phase 8 Stage 7) — self-hosted, not run by
-# DUDE. Build: `docker build -f apps/collab-relay/Dockerfile -t dude-collab-relay .`
-# (from the repo root, so the build context includes packages/collab-protocol).
-# Run:   `docker run -p 8080:8080 dude-collab-relay`
-# Ships ws:// (unencrypted) — put a TLS-terminating reverse proxy in front
-# if exposing this beyond your own LAN.
+# DUDE Hub container image (Phase 31C) — self-hosted, never run by DUDE.
+# Build (from the repo root):  docker build -f apps/hub/Dockerfile -t dude-hub .
+# Run:    docker run -d --name dude-hub -p 127.0.0.1:47600:47600 -v dude-hub:/data dude-hub
+# Setup:  docker exec dude-hub node /opt/dude-hub/dude-hub.cjs setup-token
+# The Hub serves HTTPS with a self-signed certificate it creates under /data/config/tls;
+# only publish the port beyond loopback deliberately (container bind mode listens on all interfaces).
 #
 # Every workspace package.json must be copied before `npm ci` or the lockfile
 # no longer matches; `npm run check:dockerfiles` enforces this.
@@ -31,14 +31,20 @@ COPY packages/tool-registry/package.json ./packages/tool-registry/package.json
 COPY packages/validation/package.json ./packages/validation/package.json
 RUN npm ci --ignore-scripts
 COPY tsconfig.json tsconfig.packages.json ./
+COPY scripts ./scripts
 COPY packages ./packages
-COPY apps/collab-relay ./apps/collab-relay
-RUN npm run build --workspace=@dude/collab-protocol
-RUN npx esbuild apps/collab-relay/index.ts --bundle --platform=node --format=cjs --outfile=dist/relay.js
+COPY apps/hub ./apps/hub
+RUN npm run build:packages
+RUN node scripts/build-hub.mjs
+RUN mkdir -p /out/service && cp dist/hub/dude-hub.cjs /out/  && if [ -d dist/hub-web/browser ]; then cp -r dist/hub-web/browser /out/service/web; fi
 
 FROM node:24-alpine
-WORKDIR /app
-COPY --from=build /app/dist/relay.js ./relay.js
-ENV PORT=8080
-EXPOSE 8080
-CMD ["node", "relay.js"]
+RUN addgroup -g 10001 dude && adduser -D -u 10001 -G dude dude  && mkdir -p /data /opt/dude-hub && chown dude:dude /data
+COPY --from=build /out/ /opt/dude-hub/
+COPY apps/hub/healthcheck.cjs /opt/dude-hub/healthcheck.cjs
+USER dude
+ENV DUDE_HUB_DATA_DIR=/data
+VOLUME /data
+EXPOSE 47600
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3   CMD ["node", "/opt/dude-hub/healthcheck.cjs"]
+ENTRYPOINT ["node", "/opt/dude-hub/dude-hub.cjs", "run", "--bind", "container"]

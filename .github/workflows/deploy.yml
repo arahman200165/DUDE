@@ -46,6 +46,9 @@ jobs:
       - name: Lint (dependency/platform boundaries)
         run: npm run lint
 
+      - name: Verify Dockerfiles copy every workspace manifest
+        run: npm run check:dockerfiles
+
       - name: Independent portable-core consumption
         run: npm run check:portable
 
@@ -78,6 +81,58 @@ jobs:
         uses: actions/upload-pages-artifact@v5
         with:
           path: dist/dude/browser
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Build relay image
+        run: docker build -f apps/collab-relay/Dockerfile -t dude-collab-relay .
+
+      - name: Build hub image
+        run: docker build -f apps/hub/Dockerfile -t dude-hub .
+
+      - name: Start hub container with a named volume
+        run: docker run -d --name hub -p 127.0.0.1:47600:47600 -v dude-hub-data:/data dude-hub
+
+      - name: Wait for health
+        run: |
+          for i in $(seq 1 60); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' hub)
+            echo "health: $status"
+            [ "$status" = healthy ] && exit 0
+            sleep 2
+          done
+          docker logs hub
+          exit 1
+
+      - name: Bootstrap the owner and verify it survives a restart
+        run: |
+          set -euo pipefail
+          docker cp hub:/data/config/tls/cert.pem cert.pem
+          CURL="curl -sS --fail-with-body --cacert cert.pem --resolve localhost:47600:127.0.0.1"
+          URL=https://localhost:47600
+          hello=$($CURL $URL/api/v1/hello)
+          echo "$hello"
+          echo "$hello" | jq -e '.bootstrapped == false'
+          token=$(docker exec hub node /opt/dude-hub/dude-hub.cjs setup-token | jq -r .token)
+          body=$(jq -n --arg t "$token" '{setupToken:$t, ownerDisplayName:"CI Owner", environmentName:"CI", password:"correct horse battery staple 42"}')
+          $CURL -X POST -H "Origin: $URL" -H 'Content-Type: application/json' -d "$body" $URL/api/v1/bootstrap | jq -e '.recoveryCodes | length == 10'
+          $CURL $URL/api/v1/hello | jq -e '.bootstrapped == true'
+          docker restart hub
+          for i in $(seq 1 60); do
+            [ "$(docker inspect -f '{{.State.Health.Status}}' hub)" = healthy ] && break
+            sleep 2
+          done
+          docker cp hub:/data/config/tls/cert.pem cert-after.pem
+          cmp cert.pem cert-after.pem
+          $CURL $URL/api/v1/hello | jq -e '.bootstrapped == true'
+
+      - name: Hub logs on failure
+        if: failure()
+        run: docker logs hub || true
 
   deploy:
     needs: build

@@ -7,3 +7,7 @@ tmp
 release
 test-results
 playwright-report
+.hub-dev
+e2e/test-results
+e2e/.artifacts
+**/*.log
