@@ -1,0 +1,81 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+// Regression guard for apps/desktop/AGENTS.md's one rule: contextIsolation: true, nodeIntegration:
+// false, and sandbox: true, with no exceptions (DUDE_PRD.md §21 Phase 23 Item 9). A text-based
+// check over the real source, not a mocked import -- main.ts pulls in the real 'electron'
+// module plus every IPC bridge at module scope, so actually constructing a BrowserWindow here
+// would mean mocking the whole module graph for very little extra safety over reading the one
+// object literal that matters. Mirrors the regex-extraction style already used by
+// scripts/generate-security-doc.mjs for the same "cheap, real check over source text" tradeoff.
+
+describe('BrowserWindow security preferences', () => {
+  const mainSource = readFileSync(resolve(__dirname, 'main.ts'), 'utf-8');
+
+  it('never constructs a BrowserWindow without the three required webPreferences flags', () => {
+    const webPreferencesBlocks = [...mainSource.matchAll(/webPreferences:\s*\{([^}]*)\}/g)];
+    expect(webPreferencesBlocks.length, 'main.ts should construct at least one BrowserWindow').toBeGreaterThan(0);
+
+    for (const [, block] of webPreferencesBlocks) {
+      expect(block, 'webPreferences must set contextIsolation: true').toMatch(/contextIsolation:\s*true/);
+      expect(block, 'webPreferences must set nodeIntegration: false').toMatch(/nodeIntegration:\s*false/);
+      expect(block, 'webPreferences must set sandbox: true').toMatch(/sandbox:\s*true/);
+    }
+  });
+});
+
+// Command-line protocol strings must never become BrowserWindow navigation targets.
+describe('navigation boundary', () => {
+  const mainSource = readFileSync(resolve(__dirname, 'main.ts'), 'utf-8');
+
+  it('guards all document navigations and denies new windows', () => {
+    expect(mainSource).toMatch(/webContents\.on\('will-navigate'/);
+    expect(mainSource).toMatch(/isAllowedRendererNavigation\(target, baseUrl\)/);
+    expect(mainSource).toMatch(/setWindowOpenHandler\(\(\) => \(\{ action: 'deny' \}\)\)/);
+  });
+});
+
+describe('deep-link argv boundary', () => {
+  const mainSource = readFileSync(resolve(__dirname, 'main.ts'), 'utf-8');
+
+  it('queues cold and second-instance arguments for renderer interpretation', () => {
+    expect(mainSource).toMatch(/enqueueDeepLinkArguments\(process\.argv\)/);
+    expect(mainSource).toMatch(/second-instance[\s\S]*enqueueDeepLinkArguments\(args\)/);
+    expect(mainSource).not.toMatch(/loadURL\(args|loadURL\(process\.argv/);
+  });
+});
+
+// The one route out of the app to the user's browser (Phase 30H.6 saved links). Windows still can't
+// be opened from the renderer; this narrow, validated IPC is the only exception.
+describe('external link boundary', () => {
+  const mainSource = readFileSync(resolve(__dirname, 'main.ts'), 'utf-8');
+  const preloadSource = readFileSync(resolve(__dirname, 'preload.ts'), 'utf-8');
+  const bridgeSource = readFileSync(resolve(__dirname, 'external-link-bridge.ts'), 'utf-8');
+
+  it('registers the handler and keeps denying renderer window opens', () => {
+    expect(mainSource).toMatch(/registerExternalLinkHandlers\(window\)/);
+    expect(mainSource).toMatch(/setWindowOpenHandler\(\(\) => \(\{ action: 'deny' \}\)\)/);
+  });
+
+  it('is the only place that calls shell.openExternal with renderer-supplied input, and validates it first', () => {
+    expect(bridgeSource).toMatch(/event\.sender !== window\.webContents/);
+    expect(bridgeSource.indexOf('normalizeExternalUrl(url)')).toBeGreaterThan(-1);
+    expect(bridgeSource.indexOf('normalizeExternalUrl(url)')).toBeLessThan(bridgeSource.indexOf('shell.openExternal(href)'));
+    expect(preloadSource).toMatch(/ipcRenderer\.invoke\('dude:external:open', url\)/);
+  });
+});
+
+// Native theme sync (Phase 30K): validated in main, accepted only from this window's renderer.
+describe('appearance boundary', () => {
+  const mainSource = readFileSync(resolve(__dirname, 'main.ts'), 'utf-8');
+  const preloadSource = readFileSync(resolve(__dirname, 'preload.ts'), 'utf-8');
+  const bridgeSource = readFileSync(resolve(__dirname, 'appearance-bridge.ts'), 'utf-8');
+
+  it('registers the handler, checks the sender and validates before touching the window', () => {
+    expect(mainSource).toMatch(/registerAppearanceBridge\(window\)/);
+    expect(mainSource).toMatch(/backgroundColor: nativeAppearance\.background/);
+    expect(bridgeSource).toMatch(/event\.sender !== window\.webContents/);
+    expect(bridgeSource.indexOf('parseNativeAppearance(payload)')).toBeLessThan(bridgeSource.indexOf('theme.themeSource = '));
+    expect(preloadSource).toMatch(/ipcRenderer\.invoke\('dude:appearance:set', \{ mode, background \}\)/);
+  });
+});

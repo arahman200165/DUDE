@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/registry-editor/registry-editor-logic.ts",
+    "packages/tool-engine/src/tools/registry-editor/registry-editor-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/registry-editor/registry-editor-logic.spec.ts",
+    "packages/tool-engine/src/tools/registry-editor/registry-editor-logic.spec.ts"
+  ]
+]

@@ -1,0 +1,14 @@
+[
+  [
+    "apps/web/src/app/tools/template-renderer/ejs-runtime.ts",
+    "packages/tool-engine/src/tools/template-renderer/ejs-runtime.ts"
+  ],
+  [
+    "apps/web/src/app/tools/template-renderer/template-render.ts",
+    "packages/tool-engine/src/tools/template-renderer/template-render.ts"
+  ],
+  [
+    "apps/web/src/app/tools/template-renderer/template-render.spec.ts",
+    "packages/tool-engine/src/tools/template-renderer/template-render.spec.ts"
+  ]
+]

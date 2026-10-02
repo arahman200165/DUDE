@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/ini-formatter/ini-convert-payload.ts",
+    "packages/tool-engine/src/tools/ini-formatter/ini-convert-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/ini-formatter/ini-convert.ts",
+    "packages/tool-engine/src/tools/ini-formatter/ini-convert.ts"
+  ],
+  [
+    "apps/web/src/app/tools/ini-formatter/ini-formatter.pipeline-step.ts",
+    "packages/tool-engine/src/tools/ini-formatter/ini-formatter.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/ini-formatter/ini-convert.spec.ts",
+    "packages/tool-engine/src/tools/ini-formatter/ini-convert.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/ini-formatter/ini-formatter.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/ini-formatter/ini-formatter.pipeline-step.spec.ts"
+  ]
+]

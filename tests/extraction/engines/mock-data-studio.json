@@ -1,0 +1,26 @@
+[
+  [
+    "apps/web/src/app/tools/mock-data-studio/mock-data-export.ts",
+    "packages/tool-engine/src/tools/mock-data-studio/mock-data-export.ts"
+  ],
+  [
+    "apps/web/src/app/tools/mock-data-studio/mock-data-schema.ts",
+    "packages/tool-engine/src/tools/mock-data-studio/mock-data-schema.ts"
+  ],
+  [
+    "apps/web/src/app/tools/mock-data-studio/mock-data-studio.pipeline-step.ts",
+    "packages/tool-engine/src/tools/mock-data-studio/mock-data-studio.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/mock-data-studio/mock-data-export.spec.ts",
+    "packages/tool-engine/src/tools/mock-data-studio/mock-data-export.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/mock-data-studio/mock-data-schema.spec.ts",
+    "packages/tool-engine/src/tools/mock-data-studio/mock-data-schema.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/mock-data-studio/mock-data-studio.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/mock-data-studio/mock-data-studio.pipeline-step.spec.ts"
+  ]
+]

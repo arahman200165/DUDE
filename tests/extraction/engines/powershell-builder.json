@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/powershell-builder/powershell-builder-logic.ts",
+    "packages/tool-engine/src/tools/powershell-builder/powershell-builder-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/powershell-builder/powershell-builder-logic.spec.ts",
+    "packages/tool-engine/src/tools/powershell-builder/powershell-builder-logic.spec.ts"
+  ]
+]

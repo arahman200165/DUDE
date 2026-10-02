@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/hex-editor/hex-editor-logic.ts",
+    "packages/tool-engine/src/tools/hex-editor/hex-editor-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/hex-editor/hex-editor-logic.spec.ts",
+    "packages/tool-engine/src/tools/hex-editor/hex-editor-logic.spec.ts"
+  ]
+]

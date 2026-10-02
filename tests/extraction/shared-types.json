@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/shared/utils/file-signatures.ts",
+    "packages/shared-types/src/shared/utils/file-signatures.ts"
+  ],
+  [
+    "apps/web/src/shared-logic/file-signatures.ts",
+    "packages/shared-types/src/shared/file-signatures.ts"
+  ]
+]

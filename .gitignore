@@ -55,3 +55,8 @@ Thumbs.db
 /build/fs-attrs.obj
 /build/windows-sys.exe
 /build/windows-sys/
+
+# Workspace build outputs
+/packages/*/dist/
+/apps/*/node_modules/
+/packages/*/node_modules/

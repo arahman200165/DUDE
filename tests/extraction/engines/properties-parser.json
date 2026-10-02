@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/properties-parser/properties-convert-payload.ts",
+    "packages/tool-engine/src/tools/properties-parser/properties-convert-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/properties-parser/properties-convert.ts",
+    "packages/tool-engine/src/tools/properties-parser/properties-convert.ts"
+  ],
+  [
+    "apps/web/src/app/tools/properties-parser/properties-parser.pipeline-step.ts",
+    "packages/tool-engine/src/tools/properties-parser/properties-parser.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/properties-parser/properties-convert.spec.ts",
+    "packages/tool-engine/src/tools/properties-parser/properties-convert.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/properties-parser/properties-parser.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/properties-parser/properties-parser.pipeline-step.spec.ts"
+  ]
+]

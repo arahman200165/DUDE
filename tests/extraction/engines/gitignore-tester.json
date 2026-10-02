@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/gitignore-tester/gitignore-tester-logic.ts",
+    "packages/tool-engine/src/tools/gitignore-tester/gitignore-tester-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/gitignore-tester/gitignore-tester-logic.spec.ts",
+    "packages/tool-engine/src/tools/gitignore-tester/gitignore-tester-logic.spec.ts"
+  ]
+]

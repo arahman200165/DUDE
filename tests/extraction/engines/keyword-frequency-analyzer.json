@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/keyword-frequency-analyzer/keyword-frequency-analyzer.pipeline-step.ts",
+    "packages/tool-engine/src/tools/keyword-frequency-analyzer/keyword-frequency-analyzer.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/keyword-frequency-analyzer/keyword-frequency.ts",
+    "packages/tool-engine/src/tools/keyword-frequency-analyzer/keyword-frequency.ts"
+  ],
+  [
+    "apps/web/src/app/tools/keyword-frequency-analyzer/stop-words-data.ts",
+    "packages/tool-engine/src/tools/keyword-frequency-analyzer/stop-words-data.ts"
+  ],
+  [
+    "apps/web/src/app/tools/keyword-frequency-analyzer/keyword-frequency-analyzer.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/keyword-frequency-analyzer/keyword-frequency-analyzer.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/keyword-frequency-analyzer/keyword-frequency.spec.ts",
+    "packages/tool-engine/src/tools/keyword-frequency-analyzer/keyword-frequency.spec.ts"
+  ]
+]

@@ -1,0 +1,30 @@
+[
+  [
+    "apps/web/src/app/tools/file-base64/file-base64-codec.ts",
+    "packages/tool-engine/src/tools/file-base64/file-base64-codec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/file-base64/file-base64-worker-payload.ts",
+    "packages/tool-engine/src/tools/file-base64/file-base64-worker-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/file-base64/file-base64.pipeline-step.ts",
+    "packages/tool-engine/src/tools/file-base64/file-base64.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/file-base64/file-signature.ts",
+    "packages/tool-engine/src/tools/file-base64/file-signature.ts"
+  ],
+  [
+    "apps/web/src/app/tools/file-base64/file-base64-codec.spec.ts",
+    "packages/tool-engine/src/tools/file-base64/file-base64-codec.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/file-base64/file-base64.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/file-base64/file-base64.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/file-base64/file-signature.spec.ts",
+    "packages/tool-engine/src/tools/file-base64/file-signature.spec.ts"
+  ]
+]

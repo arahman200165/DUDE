@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/csv-filter-sort/csv-filter-sort-payload.ts",
+    "packages/tool-engine/src/tools/csv-filter-sort/csv-filter-sort-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-filter-sort/csv-filter-sort-transform.ts",
+    "packages/tool-engine/src/tools/csv-filter-sort/csv-filter-sort-transform.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-filter-sort/csv-filter-sort.pipeline-step.ts",
+    "packages/tool-engine/src/tools/csv-filter-sort/csv-filter-sort.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-filter-sort/csv-filter-sort-transform.spec.ts",
+    "packages/tool-engine/src/tools/csv-filter-sort/csv-filter-sort-transform.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-filter-sort/csv-filter-sort.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/csv-filter-sort/csv-filter-sort.pipeline-step.spec.ts"
+  ]
+]

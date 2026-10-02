@@ -1,0 +1,8 @@
+[
+ ["apps/web/src/app/shared/models/tool-category.model.ts","packages/shared-types/src/shared/models/tool-category.model.ts"],
+ ["apps/web/src/app/shared/models/tool-capability.model.ts","packages/shared-types/src/shared/models/tool-capability.model.ts"],
+ ["apps/web/src/app/shared/models/tool-io.model.ts","packages/shared-types/src/shared/models/tool-io.model.ts"],
+ ["apps/web/src/app/shared/models/persistence-policy.model.ts","packages/shared-types/src/shared/models/persistence-policy.model.ts"],
+ ["apps/web/src/app/shared/models/key-value-pair.model.ts","packages/shared-types/src/shared/models/key-value-pair.model.ts"],
+ ["apps/web/src/app/shared/models/status-glyph.model.ts","packages/shared-types/src/shared/models/status-glyph.model.ts"]
+]

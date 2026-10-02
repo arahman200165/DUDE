@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/encoding-detector/encoding-detector.pipeline-step.ts",
+    "packages/tool-engine/src/tools/encoding-detector/encoding-detector.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/encoding-detector/encoding-detector.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/encoding-detector/encoding-detector.pipeline-step.spec.ts"
+  ]
+]

@@ -1,0 +1,6 @@
+[
+  [
+    "apps/web/src/app/tools/path-editor/path-editor.fixtures.ts",
+    "packages/tool-engine/src/tools/path-editor/path-editor.fixtures.ts"
+  ]
+]

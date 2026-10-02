@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/date-calculator/date-calc.ts",
+    "packages/tool-engine/src/tools/date-calculator/date-calc.ts"
+  ],
+  [
+    "apps/web/src/app/tools/date-calculator/date-calc.spec.ts",
+    "packages/tool-engine/src/tools/date-calculator/date-calc.spec.ts"
+  ]
+]

@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/csv-pivot/csv-pivot-payload.ts",
+    "packages/tool-engine/src/tools/csv-pivot/csv-pivot-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-pivot/csv-pivot-transform.ts",
+    "packages/tool-engine/src/tools/csv-pivot/csv-pivot-transform.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-pivot/csv-pivot.pipeline-step.ts",
+    "packages/tool-engine/src/tools/csv-pivot/csv-pivot.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-pivot/csv-pivot-transform.spec.ts",
+    "packages/tool-engine/src/tools/csv-pivot/csv-pivot-transform.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-pivot/csv-pivot.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/csv-pivot/csv-pivot.pipeline-step.spec.ts"
+  ]
+]

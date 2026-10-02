@@ -1,0 +1,8 @@
+[
+ ["apps/web/src/app/shared/http-request/http-request.model.ts", "packages/domain/src/shared/http-request/http-request.model.ts"],
+ ["apps/web/src/app/shared/http-request/http-request.model.spec.ts", "packages/domain/src/shared/http-request/http-request.model.spec.ts"],
+ ["apps/web/src/app/shared/components/timeline/timeline-layout.ts", "packages/tool-engine/src/shared/components/timeline/timeline-layout.ts"],
+ ["apps/web/src/app/shared/components/timeline/timeline-layout.spec.ts", "packages/tool-engine/src/shared/components/timeline/timeline-layout.spec.ts"],
+ ["apps/web/src/app/shared/code-sandbox/code-sandbox-doc.ts", "packages/tool-engine/src/shared/code-sandbox/code-sandbox-doc.ts"],
+ ["apps/web/src/app/shared/code-sandbox/code-sandbox-doc.spec.ts", "packages/tool-engine/src/shared/code-sandbox/code-sandbox-doc.spec.ts"]
+]

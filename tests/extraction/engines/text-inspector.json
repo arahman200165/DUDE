@@ -1,0 +1,34 @@
+[
+  [
+    "apps/web/src/app/tools/text-inspector/grammar-check.ts",
+    "packages/tool-engine/src/tools/text-inspector/grammar-check.ts"
+  ],
+  [
+    "apps/web/src/app/tools/text-inspector/language-detect.ts",
+    "packages/tool-engine/src/tools/text-inspector/language-detect.ts"
+  ],
+  [
+    "apps/web/src/app/tools/text-inspector/readability.ts",
+    "packages/tool-engine/src/tools/text-inspector/readability.ts"
+  ],
+  [
+    "apps/web/src/app/tools/text-inspector/text-metrics.ts",
+    "packages/tool-engine/src/tools/text-inspector/text-metrics.ts"
+  ],
+  [
+    "apps/web/src/app/tools/text-inspector/grammar-check.spec.ts",
+    "packages/tool-engine/src/tools/text-inspector/grammar-check.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/text-inspector/language-detect.spec.ts",
+    "packages/tool-engine/src/tools/text-inspector/language-detect.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/text-inspector/readability.spec.ts",
+    "packages/tool-engine/src/tools/text-inspector/readability.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/text-inspector/text-metrics.spec.ts",
+    "packages/tool-engine/src/tools/text-inspector/text-metrics.spec.ts"
+  ]
+]

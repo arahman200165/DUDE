@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/hash/hash-compute-payload.ts",
+    "packages/tool-engine/src/tools/hash/hash-compute-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/hash/hash.parity-fixtures.ts",
+    "packages/tool-engine/src/tools/hash/hash.parity-fixtures.ts"
+  ],
+  [
+    "apps/web/src/app/tools/hash/hash.pipeline-step.ts",
+    "packages/tool-engine/src/tools/hash/hash.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/hash/hash.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/hash/hash.pipeline-step.spec.ts"
+  ]
+]

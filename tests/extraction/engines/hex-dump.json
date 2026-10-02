@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/hex-dump/hex-dump-codec.ts",
+    "packages/tool-engine/src/tools/hex-dump/hex-dump-codec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/hex-dump/hex-dump-worker-payload.ts",
+    "packages/tool-engine/src/tools/hex-dump/hex-dump-worker-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/hex-dump/hex-dump.pipeline-step.ts",
+    "packages/tool-engine/src/tools/hex-dump/hex-dump.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/hex-dump/hex-dump-codec.spec.ts",
+    "packages/tool-engine/src/tools/hex-dump/hex-dump-codec.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/hex-dump/hex-dump.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/hex-dump/hex-dump.pipeline-step.spec.ts"
+  ]
+]

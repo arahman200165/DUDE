@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/duplicate-finder/duplicate-finder-logic.ts",
+    "packages/tool-engine/src/tools/duplicate-finder/duplicate-finder-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/duplicate-finder/duplicate-finder.pipeline-step.ts",
+    "packages/tool-engine/src/tools/duplicate-finder/duplicate-finder.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/duplicate-finder/duplicate-finder-logic.spec.ts",
+    "packages/tool-engine/src/tools/duplicate-finder/duplicate-finder-logic.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/duplicate-finder/duplicate-finder.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/duplicate-finder/duplicate-finder.pipeline-step.spec.ts"
+  ]
+]

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Refreshes the bundled Phase 28 reference data under electron/data/ (DUDE_PRD.md §21 Phase 28):
+ * Refreshes the bundled Phase 28 reference data under apps/desktop/data/ (DUDE_PRD.md §21 Phase 28):
  *   - public-suffix-rules.json — Mozilla Public Suffix List rules (DMARC organizational domain)
  *   - ct-log-list.json         — Google/Chrome CT log list v3 (SCT log names and keys)
  *

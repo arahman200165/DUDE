@@ -1,0 +1,6 @@
+[
+  [
+    "apps/web/src/app/tools/services-viewer/services-viewer-logic.ts",
+    "packages/tool-engine/src/tools/services-viewer/services-viewer-logic.ts"
+  ]
+]

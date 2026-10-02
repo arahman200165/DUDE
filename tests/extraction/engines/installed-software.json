@@ -1,0 +1,6 @@
+[
+  [
+    "apps/web/src/app/tools/installed-software/installed-software-logic.ts",
+    "packages/tool-engine/src/tools/installed-software/installed-software-logic.ts"
+  ]
+]

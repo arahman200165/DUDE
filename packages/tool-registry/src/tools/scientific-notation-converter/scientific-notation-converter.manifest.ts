@@ -1,0 +1,23 @@
+import type { ToolMetadata } from "@dude/domain/shared/models/tool-metadata.model";
+export const manifest: ToolMetadata = {
+    id: 'scientific-notation-converter',
+    title: 'Scientific Notation Converter',
+    description: 'Converts a number between standard, scientific, and engineering notation with adjustable significant digits.',
+    category: 'developer',
+    keywords: [
+        'scientific notation',
+        'engineering notation',
+        'exponent',
+        'mantissa',
+        'significant figures',
+    ],
+    route: '/tools/scientific-notation-converter',
+    status: 'verified',
+    verification: {
+        propertyTested: true,
+        summary: 'Round-trip tested bounded finite integers through scientific notation.',
+    },
+    persistence: { input: 'session', preferences: 'local' },
+    execution: { worker: 'none' },
+    io: { accepts: ['text'], produces: ['text'] }
+};

@@ -31,7 +31,7 @@ Related: [DUDE — Product Requirements](../DUDE_PRD.md) · [Quality and Release
 | Horizon | Status |
 |---|---|
 | Phases 0–31 | Complete; Phase 31 closed at Milestone 614 |
-| Phases 31A–31J | Next distributed foundation and collaboration depth; all planned, delivered in order |
+| Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A complete (Milestone 615), 31B–31J planned |
 | Phase 32 | Core expansion begins only after every phase from 31A through 31J is complete |
 | Phases 33–100 | Retained long-horizon scope, subject to dependencies and product boundaries |
 
@@ -39,7 +39,7 @@ Related: [DUDE — Product Requirements](../DUDE_PRD.md) · [Quality and Release
 
 The roadmap deliberately extends beyond what any single delivery phase covers.
 
-Phase 0 was the weekend commitment; it is complete. **Phases 1–31 are also complete.** Phase 8 established the Windows desktop track, Phase 21 established the cross-tool workflow foundations, and Phase 22 hardened the platform (distributed manifests, single-sourced metadata, structural validation, generated docs, dependency boundaries, chunk/cache budgets) for the next several hundred tools. Phase 30 (30A–30L) shipped the workbench shell, discovery, insights, appearance, and verification program. Phase 31 (Milestones 593–614) shipped the Windows process/system troubleshooting tools and the second local mutation engine. The next priority is to complete Phases 31A–31J strictly in order before beginning Phase 32 tool expansion. Existing Phase 32–100 identifiers and feature inventories are retained; delivered milestones remain 593–614 for Phase 31 and no new milestone numbers are claimed.
+Phase 0 was the weekend commitment; it is complete. **Phases 1–31 are also complete.** Phase 8 established the Windows desktop track, Phase 21 established the cross-tool workflow foundations, and Phase 22 hardened the platform (distributed manifests, single-sourced metadata, structural validation, generated docs, dependency boundaries, chunk/cache budgets) for the next several hundred tools. Phase 30 (30A–30L) shipped the workbench shell, discovery, insights, appearance, and verification program. Phase 31 (Milestones 593–614) shipped the Windows process/system troubleshooting tools and the second local mutation engine. The next priority is to complete Phases 31A–31J strictly in order before beginning Phase 32 tool expansion. Existing Phase 32–100 identifiers and feature inventories are retained; delivered milestones remain 593–614 for Phase 31. Milestone 615 records the Phase 31A implementation, and Phase 31A is complete.
 
 From Phase 22 onward, the roadmap deliberately stops treating raw tool count as the primary measure of progress. Platform trust, correctness, composition, native capability, local/offline strength, automation safety, discoverability, and reuse across surfaces matter more.
 
@@ -79,6 +79,7 @@ From Phase 22 onward, the roadmap deliberately stops treating raw tool count as 
 | Phase 29 | ✅ Complete | Filesystem scans, watching and previewed mutation. | [Phase 29](../history/DELIVERY_HISTORY.md#phase-29) |
 | Phase 30 | ✅ Complete | Workbench Home, Browse Tools, insights, appearance and integrated verification. | [Phase 30](../history/DELIVERY_HISTORY.md#phase-30) |
 | Phase 31 | ✅ Complete | Windows process/system troubleshooting and the system mutation engine. | [Phase 31](../history/DELIVERY_HISTORY.md#phase-31) |
+| Phase 31A | ✅ Complete | npm workspaces, portable core packages, registry-owned manifests, platform ports and data-scope types. | [Phase 31A acceptance](PHASE31A_ACCEPTANCE.md) |
 
 <a id="near-term-roadmap"></a>
 
@@ -98,9 +99,11 @@ Backup/transfer is deliberately moved ahead of mobile delivery, and security con
 
 <a id="phase-31a"></a>
 
-### Phase 31A — DUDE Core and Workspace Extraction (Planned)
+### Phase 31A — DUDE Core and Workspace Extraction (Complete)
 
 **Depends on:** Phase 31 complete.
+
+**Implementation status:** complete. Milestone 615 records the workspace/core extraction; the inherited dependency-audit blocker was then closed by upgrading Angular and DOMPurify and accepting one unpatched node-forge advisory under `npm run audit:prod`. See [acceptance evidence](PHASE31A_ACCEPTANCE.md). Phase 31B is next.
 
 - formalize monorepo/workspaces;
 - extract framework-neutral tool engines;
@@ -444,14 +447,14 @@ Mutating daemon/cluster operations must display the target context/namespace/res
 Create the “why doesn't this work on my machine?” surface and the native conveniences that make DUDE feel like part of the operating system rather than a website contained in one window.
 
 1. **System Information Dashboard** — OS, architecture, CPU, RAM, GPU, disks, network adapters, monitors, installed runtimes, hostname, logged-in user, uptime, and virtualization status
-2. **Export Diagnostic Bundle** — one explicit action packages the selected diagnostic information for a bug/support report (the system-wide bundle; the per-process bundle already shipped in Phase 31 as Process Diagnostic Bundle, and this item builds on Phase 31's `sys-bundle` ZIP-writing code, `electron/sys-bundle.ts`)
+2. **Export Diagnostic Bundle** — one explicit action packages the selected diagnostic information for a bug/support report (the system-wide bundle; the per-process bundle already shipped in Phase 31 as Process Diagnostic Bundle, and this item builds on Phase 31's `sys-bundle` ZIP-writing code, `apps/desktop/sys-bundle.ts`)
 3. **Clipboard History**
 4. **Clipboard Monitor** — continuous monitoring, for example detecting/optionally offering to format copied JSON
 5. **Screen Ruler**
 6. **Live Pixel Color Picker** — screen-coordinate based, distinct from Phase 17's upload-image Pixel Color Picker
 7. **Context-Menu Actions** — e.g. “Hash file,” “Format JSON” as new Explorer right-click entries (distinct from “Open with DUDE,” already available today via Phase 25's File Association Framework, which registers DUDE as an Explorer “Open with” candidate per file extension)
 8. **Global Keyboard Shortcuts** — system-wide, not merely in-app (three fixed global hotkeys already exist and are independently rebindable: Phase 8 Stage 5's clipboard quick-actions, Phase 24's Smart Paste hotkey, and Phase 25's Quick Launcher hotkey; this item is about arbitrary user-defined global bindings beyond those three)
-9. **System Tray Presence and Actions** — already shipped in Phase 8 Stage 5 (`electron/tray.ts`); nothing left here unless a later item needs new tray behavior
+9. **System Tray Presence and Actions** — already shipped in Phase 8 Stage 5 (`apps/desktop/tray.ts`); nothing left here unless a later item needs new tray behavior
 10. **Drag-and-Drop File Handling / “Open With” Integration** — in-window drop routing and Explorer “Open with” both already shipped (Phase 25 items 8–9); what remains is OS-shell-level drop targets (e.g. dropping a file onto DUDE's taskbar/desktop icon to launch-and-open, rather than dropping into an already-open window)
 11. **Batch Processing Across Dropped Files**
 12. **Multi-Window Workflows** — multiple DUDE windows/process-backed windows as genuine OS/window-management behavior, distinct from Phase 21's in-app tabs/panels
@@ -541,7 +544,7 @@ Ship a VS Code extension that surfaces DUDE's pure, framework-neutral transform/
 
 This is a separate distribution/integration target, not merely another Angular tool. It needs its own packaging, permissions, lifecycle, compatibility, and release design.
 
-The architecture is supported by existing precedent: most deterministic tool logic is framework-free/unit-testable, and Phase 8 Stage 5 established `src/shared-logic/` specifically so non-Angular runtimes can reuse transforms. Phase 22 expands that boundary, and the parity invariant in [Build and Deployment](QUALITY_AND_RELEASE.md#build-and-deployment) requires shared semantics not to fork.
+The architecture is supported by existing precedent: most deterministic tool logic is framework-free/unit-testable, and Phase 8 Stage 5 established `apps/web/src/shared-logic/` specifically so non-Angular runtimes can reuse transforms. Phase 22 expands that boundary, and the parity invariant in [Build and Deployment](QUALITY_AND_RELEASE.md#build-and-deployment) requires shared semantics not to fork.
 
 **Goal:** bring DUDE's most useful deterministic transformations to where developers already spend much of their time.
 

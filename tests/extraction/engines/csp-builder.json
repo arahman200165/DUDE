@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/csp-builder/csp-builder.pipeline-step.ts",
+    "packages/tool-engine/src/tools/csp-builder/csp-builder.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csp-builder/csp.ts",
+    "packages/tool-engine/src/tools/csp-builder/csp.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csp-builder/csp-builder.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/csp-builder/csp-builder.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csp-builder/csp.spec.ts",
+    "packages/tool-engine/src/tools/csp-builder/csp.spec.ts"
+  ]
+]

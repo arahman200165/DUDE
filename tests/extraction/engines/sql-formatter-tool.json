@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/sql-formatter-tool/sql-formatter-logic.ts",
+    "packages/tool-engine/src/tools/sql-formatter-tool/sql-formatter-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/sql-formatter-tool/sql-formatter-tool.pipeline-step.ts",
+    "packages/tool-engine/src/tools/sql-formatter-tool/sql-formatter-tool.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/sql-formatter-tool/sql-formatter-logic.spec.ts",
+    "packages/tool-engine/src/tools/sql-formatter-tool/sql-formatter-logic.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/sql-formatter-tool/sql-formatter-tool.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/sql-formatter-tool/sql-formatter-tool.pipeline-step.spec.ts"
+  ]
+]

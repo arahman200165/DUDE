@@ -1,0 +1,17 @@
+{
+  "name": "@dude/collab-relay",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Standalone BYO collaboration relay",
+  "dependencies": {
+    "@dude/collab-protocol": "*",
+    "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.1"
+  },
+  "scripts": {
+    "build": "cd ../.. && npm run relay:compile",
+    "start": "cd ../.. && npm run relay:dev"
+  }
+}

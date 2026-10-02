@@ -1,0 +1,6 @@
+[
+  [
+    "apps/web/src/app/tools/yaml-anchors/yaml-anchors-payload.ts",
+    "packages/tool-engine/src/tools/yaml-anchors/yaml-anchors-payload.ts"
+  ]
+]

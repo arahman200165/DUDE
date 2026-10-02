@@ -1,0 +1,121 @@
+/**
+ * DUDE design tokens (PRD Section 8.5). The values no longer live here: they are
+ * declared in apps/web/src/styles/theme/theme-tokens.json and generated into
+ * theme.generated.css (scripts/generate-theme-css.mjs) as --dude-* custom
+ * properties, keyed by data-* attributes on <html> (data-theme, data-contrast,
+ * data-accent, data-catset, data-semantic, data-density, data-ui-size,
+ * data-mono-size, data-ligatures) so they are
+ * runtime-overridable by core/appearance (Phase 30K). This @theme block only
+ * maps Tailwind names to those variables, so every utility resolves through
+ * var() at use time. Every shell component and tool should reuse these rather
+ * than inventing one-off colors.
+ */
+@theme {
+  /* Base scale */
+  --color-bg: var(--dude-bg);
+  --color-panel: var(--dude-panel);
+  --color-panel-elevated: var(--dude-panel-elevated);
+  --color-border: var(--dude-border);
+  --color-text: var(--dude-text);
+  --color-text-muted: var(--dude-text-muted);
+  --color-scrim: var(--dude-scrim);
+
+  /* Category accents, one hue per Section 12.3 category */
+  --color-cat-data: var(--dude-cat-data);
+  --color-cat-text: var(--dude-cat-text);
+  --color-cat-encoding: var(--dude-cat-encoding);
+  --color-cat-security: var(--dude-cat-security);
+  --color-cat-date-time: var(--dude-cat-date-time);
+  --color-cat-web: var(--dude-cat-web);
+  --color-cat-developer: var(--dude-cat-developer);
+  --color-cat-documents: var(--dude-cat-documents);
+
+  /* Per-category "wash" (panel surface tinted toward the category hue) and "tint"
+     (hue lightened for legible body text). The color-mix formulas live in the
+     generated CSS, so they follow runtime palette changes. */
+  --color-cat-data-wash: var(--dude-cat-data-wash);
+  --color-cat-text-wash: var(--dude-cat-text-wash);
+  --color-cat-encoding-wash: var(--dude-cat-encoding-wash);
+  --color-cat-security-wash: var(--dude-cat-security-wash);
+  --color-cat-date-time-wash: var(--dude-cat-date-time-wash);
+  --color-cat-web-wash: var(--dude-cat-web-wash);
+  --color-cat-developer-wash: var(--dude-cat-developer-wash);
+  --color-cat-documents-wash: var(--dude-cat-documents-wash);
+
+  --color-cat-data-tint: var(--dude-cat-data-tint);
+  --color-cat-text-tint: var(--dude-cat-text-tint);
+  --color-cat-encoding-tint: var(--dude-cat-encoding-tint);
+  --color-cat-security-tint: var(--dude-cat-security-tint);
+  --color-cat-date-time-tint: var(--dude-cat-date-time-tint);
+  --color-cat-web-tint: var(--dude-cat-web-tint);
+  --color-cat-developer-tint: var(--dude-cat-developer-tint);
+  --color-cat-documents-tint: var(--dude-cat-documents-tint);
+
+  /* Semantic status colors, shared by error/warning/success/info/busy UI */
+  --color-error: var(--dude-error);
+  --color-warning: var(--dude-warning);
+  --color-success: var(--dude-success);
+  --color-info: var(--dude-info);
+  --color-busy: var(--dude-busy);
+  --color-offline: var(--dude-offline);
+
+  /* Active/focus accent (sidebar selection, focus rings, primary buttons) and the
+     foreground color used on accent fills */
+  --color-accent: var(--dude-accent);
+  --color-on-accent: var(--dude-on-accent);
+
+  /* UI size step (data-ui-size): Tailwind's text scale is multiplied by --dude-ui-scale
+     (1 by default, so the default look is unchanged). The --text-*--line-height ratios keep
+     Tailwind's defaults. Mono subtrees rebind these against --dude-mono-scale in styles.css. */
+  --text-xs: calc(0.75rem * var(--dude-ui-scale));
+  --text-sm: calc(0.875rem * var(--dude-ui-scale));
+  --text-base: calc(1rem * var(--dude-ui-scale));
+  --text-lg: calc(1.125rem * var(--dude-ui-scale));
+  --text-xl: calc(1.25rem * var(--dude-ui-scale));
+  --text-2xl: calc(1.5rem * var(--dude-ui-scale));
+
+  /* Chrome type sizes for labels, meta rows, badges and keycaps (density base x UI size step) */
+  --text-ui: calc(var(--dude-text-ui) * var(--dude-ui-scale));
+  --text-ui-sm: calc(var(--dude-text-ui-sm) * var(--dude-ui-scale));
+  --text-ui-xs: calc(var(--dude-text-ui-xs) * var(--dude-ui-scale));
+
+  /* Base spacing unit; every p-/m-/gap-/size utility is calc(var(--spacing) * n) */
+  --spacing: var(--dude-spacing);
+
+  /* Font stacks (UI sans and monospace for data/code-like values, Section 8.4) */
+  --font-sans: var(--dude-font-sans);
+  --font-mono: var(--dude-font-mono);
+}
+
+/*
+ * Category color classes are applied dynamically (per-category, driven by
+ * CATEGORY_METADATA) rather than as literal class names in a template, so
+ * Tailwind's content scanner can't discover them on its own. Force their
+ * generation explicitly.
+ */
+@source inline(
+  '{bg,text,border,border-t,border-b,border-l}-cat-{data,text,encoding,security,date-time,web,developer,documents}'
+);
+@source inline(
+  'border-cat-{data,text,encoding,security,date-time,web,developer,documents}/40'
+);
+@source inline(
+  'hover:bg-cat-{data,text,encoding,security,date-time,web,developer,documents}/10'
+);
+@source inline(
+  'border-cat-{data,text,encoding,security,date-time,web,developer,documents}/60'
+);
+@source inline(
+  'bg-cat-{data,text,encoding,security,date-time,web,developer,documents}/15'
+);
+@source inline(
+  'bg-cat-{data,text,encoding,security,date-time,web,developer,documents}/20'
+);
+/* Wash is a state cue only (hover / selected / active filter), never a resting surface. */
+@source inline(
+  '{hover:,}bg-cat-{data,text,encoding,security,date-time,web,developer,documents}-wash'
+);
+@source inline(
+  'text-cat-{data,text,encoding,security,date-time,web,developer,documents}-tint'
+);
+

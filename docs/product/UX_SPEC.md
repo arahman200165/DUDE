@@ -126,11 +126,11 @@ Since Phase 30K (M582), the UI font and the data/code (monospace) font are user 
 
 ### Color System
 
-The palette is defined once, as data, and shared by the shell and every tool through the design-token/theming layer ([Delivered Repository Architecture](../architecture/SYSTEM_ARCHITECTURE.md#delivered-repository-architecture), `shared/`, and `src/styles/`):
+The palette is defined once, as data, and shared by the shell and every tool through the design-token/theming layer ([Delivered Repository Architecture](../architecture/SYSTEM_ARCHITECTURE.md#delivered-repository-architecture), `shared/`, and `apps/web/src/styles/`):
 
-- `src/styles/theme/theme-tokens.json` is the single machine-readable token source: the base scale per theme and contrast mode, the accents, the category palette sets, the status (semantic) color sets, density steps, text-size steps and font stacks, plus the axis list itself.
-- `scripts/generate-theme-css.mjs` generates `src/styles/theme.generated.css` — plain `:root` and `:root[data-*]` custom properties (`--dude-*`), with each default expressed through `:not(...)` so an absent or unknown attribute value falls back to the default — and `src/app/core/appearance/appearance-axes.generated.ts`. Both are generated, never hand-edited; `generate-theme-css.mjs --check` in `npm run lint` fails when they are stale.
-- `src/styles/tokens.css`'s Tailwind `@theme` block only maps Tailwind names to `var(--dude-*)`, so every utility resolves at use time and follows a runtime appearance change.
+- `apps/web/src/styles/theme/theme-tokens.json` is the single machine-readable token source: the base scale per theme and contrast mode, the accents, the category palette sets, the status (semantic) color sets, density steps, text-size steps and font stacks, plus the axis list itself.
+- `scripts/generate-theme-css.mjs` generates `apps/web/src/styles/theme.generated.css` — plain `:root` and `:root[data-*]` custom properties (`--dude-*`), with each default expressed through `:not(...)` so an absent or unknown attribute value falls back to the default — and `packages/domain/src/core/appearance/appearance-axes.generated.ts`. Both are generated, never hand-edited; `generate-theme-css.mjs --check` in `npm run lint` fails when they are stale.
+- `apps/web/src/styles/tokens.css`'s Tailwind `@theme` block only maps Tailwind names to `var(--dude-*)`, so every utility resolves at use time and follows a runtime appearance change.
 - Text on a filled surface uses a paired `on-*` token (today `--color-on-accent`, used as `text-on-accent`), never the page background color; the old `text-bg`-on-fill pattern is retired.
 
 Required elements:
@@ -170,7 +170,7 @@ The selected model is a hybrid. Since Phase 30 (verified by the Phase 30L gate) 
 
 ### Home / Workbench Dashboard
 
-The Phase 30D default Home is a bounded, action-first workbench surface. It prioritizes Smart Entry, personalized tool launch, resuming projects/workspaces/pipelines, and Quick Run. Local activity summaries and a compact, capped catalog preview may appear, but the complete registry is never Home's dominant content. Phase 30I made the layout user-designed: first-party panels plus user text/link/shortcut panels, arranged in independent wide and narrow layouts from Settings › Home layout. The exhaustive registry belongs to Browse Tools; category navigation, search, and the Command Palette provide the other discovery paths. The Home/panel contract is documented next to the implementation in `src/app/shell/deck/AGENTS.md`.
+The Phase 30D default Home is a bounded, action-first workbench surface. It prioritizes Smart Entry, personalized tool launch, resuming projects/workspaces/pipelines, and Quick Run. Local activity summaries and a compact, capped catalog preview may appear, but the complete registry is never Home's dominant content. Phase 30I made the layout user-designed: first-party panels plus user text/link/shortcut panels, arranged in independent wide and narrow layouts from Settings › Home layout. The exhaustive registry belongs to Browse Tools; category navigation, search, and the Command Palette provide the other discovery paths. The Home/panel contract is documented next to the implementation in `apps/web/src/app/shell/deck/AGENTS.md`.
 
 For the original V1 deck, a tool list/grid with all registered tools was required while recent and favorite tools were optional. That remains only as the historical V1 acceptance record. Phase 24 made personalization first-class, and the Phase 30D default Home replaced that V1 layout.
 

@@ -1,5 +1,5 @@
 // Regenerates README.md's tool count and Tools table from the distributed
-// src/app/tools/**/<id>.manifest.ts files (DUDE_PRD.md Phase 22 Item 4) — these were
+// apps/web/src/app/tools/**/<id>.manifest.ts files (DUDE_PRD.md Phase 22 Item 4) — these were
 // previously hand-maintained and only drift-checked (tool-count.spec.ts) rather than
 // generated outright.
 //
@@ -8,14 +8,15 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readManifests } from './tool-manifests.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
-const TOOLS_DIR = path.join(ROOT, 'src/app/tools');
+const TOOLS_DIR = path.join(ROOT, 'packages/tool-registry/src/tools');
 const README_PATH = path.join(ROOT, 'README.md');
 const BASE_URL = 'https://arahman200165.github.io/DUDE';
 
-// Mirrors src/app/shared/models/tool-category.model.ts's CATEGORY_METADATA order/labels.
+// Mirrors packages/shared-types/src/shared/models/tool-category.model.ts's CATEGORY_METADATA order/labels.
 // Categories are a closed, rarely-changed 8-value set (root AGENTS.md) — if that file ever
 // gains/renames a category, update this alongside it.
 const CATEGORY_LABELS = {
@@ -57,18 +58,7 @@ function extractField(text, field) {
   return unescapeQuoted(match[1]);
 }
 
-const manifestPaths = findManifests(TOOLS_DIR);
-const tools = manifestPaths
-  .map((manifestPath) => {
-    const text = readFileSync(manifestPath, 'utf8');
-    return {
-      id: extractField(text, 'id'),
-      title: extractField(text, 'title'),
-      description: extractField(text, 'description'),
-      category: extractField(text, 'category'),
-      route: extractField(text, 'route'),
-    };
-  });
+const tools = readManifests().map(({metadata}) => metadata);
 
 const grouped = new Map(CATEGORY_ORDER.map((category) => [category, []]));
 for (const tool of tools) {

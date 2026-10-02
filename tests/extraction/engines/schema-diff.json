@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/schema-diff/schema-diff-logic.ts",
+    "packages/tool-engine/src/tools/schema-diff/schema-diff-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/schema-diff/schema-diff-logic.spec.ts",
+    "packages/tool-engine/src/tools/schema-diff/schema-diff-logic.spec.ts"
+  ]
+]

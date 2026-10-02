@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/json-pointer/json-pointer-payload.ts",
+    "packages/tool-engine/src/tools/json-pointer/json-pointer-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/json-pointer/json-pointer-transform.ts",
+    "packages/tool-engine/src/tools/json-pointer/json-pointer-transform.ts"
+  ],
+  [
+    "apps/web/src/app/tools/json-pointer/json-pointer.pipeline-step.ts",
+    "packages/tool-engine/src/tools/json-pointer/json-pointer.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/json-pointer/json-pointer-transform.spec.ts",
+    "packages/tool-engine/src/tools/json-pointer/json-pointer-transform.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/json-pointer/json-pointer.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/json-pointer/json-pointer.pipeline-step.spec.ts"
+  ]
+]

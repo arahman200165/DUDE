@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/opengraph-preview/opengraph-logic.ts",
+    "packages/tool-engine/src/tools/opengraph-preview/opengraph-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/opengraph-preview/opengraph-preview.pipeline-step.ts",
+    "packages/tool-engine/src/tools/opengraph-preview/opengraph-preview.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/opengraph-preview/opengraph-logic.spec.ts",
+    "packages/tool-engine/src/tools/opengraph-preview/opengraph-logic.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/opengraph-preview/opengraph-preview.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/opengraph-preview/opengraph-preview.pipeline-step.spec.ts"
+  ]
+]

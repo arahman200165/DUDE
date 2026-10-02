@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/hex-text-converter/hex-text-convert.ts",
+    "packages/tool-engine/src/tools/hex-text-converter/hex-text-convert.ts"
+  ],
+  [
+    "apps/web/src/app/tools/hex-text-converter/hex-text-converter.pipeline-step.ts",
+    "packages/tool-engine/src/tools/hex-text-converter/hex-text-converter.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/hex-text-converter/hex-text-convert.spec.ts",
+    "packages/tool-engine/src/tools/hex-text-converter/hex-text-convert.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/hex-text-converter/hex-text-converter.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/hex-text-converter/hex-text-converter.pipeline-step.spec.ts"
+  ]
+]

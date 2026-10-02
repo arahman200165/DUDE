@@ -1,0 +1,6 @@
+[
+  [
+    "apps/web/src/app/tools/event-log-viewer/event-log-viewer-logic.ts",
+    "packages/tool-engine/src/tools/event-log-viewer/event-log-viewer-logic.ts"
+  ]
+]

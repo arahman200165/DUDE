@@ -1,7 +1,7 @@
 // Manual local benchmark for desktop cold-start (DUDE_PRD.md §21 Phase 25 Item 12) -- never wired
 // into CI, consistent with the existing `perf/` corpus's "reported, not gating" posture (§18.2).
 // Spawns the already-built `dist/electron/main.js` with DUDE_PERF_LOG set, parses the `PERF <label>
-// <elapsedMs>` lines `electron/perf-log.ts` prints, and reports a before/after-style table of
+// <elapsedMs>` lines `apps/desktop/perf-log.ts` prints, and reports a before/after-style table of
 // deltas between consecutive marks.
 //
 // Usage: run `npm run electron:start`'s build step once, then:

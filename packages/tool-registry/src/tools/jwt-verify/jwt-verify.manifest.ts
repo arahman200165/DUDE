@@ -1,0 +1,38 @@
+import type { ToolMetadata } from "@dude/domain/shared/models/tool-metadata.model";
+export const manifest: ToolMetadata = {
+    id: 'jwt-verify',
+    title: 'JWT Signature Verifier',
+    shortTitle: 'JWT Verify',
+    description: 'Verify a JWT signature locally against a shared secret or public key, or a fetched JWKS — with named presets for Auth0, Okta, Azure AD, and Google.',
+    category: 'security',
+    keywords: [
+        'jwt',
+        'verify',
+        'signature',
+        'jwk',
+        'jwks',
+        'hmac',
+        'rsa',
+        'ecdsa',
+        'ps256',
+        'auth',
+        'token',
+        'oidc',
+        'auth0',
+        'okta',
+        'azure ad',
+        'entra',
+        'google',
+    ],
+    route: '/tools/jwt-verify',
+    status: 'verified',
+    verification: {
+        vectors: ['RFC 7515 Appendix A.2 RS256 JWS and its published RSA public key'],
+        crossChecked: ["Node's crypto.createHmac (independent of jose's own signing)"],
+        summary: "Verifies a token signed by hand with Node's HMAC-SHA256, and rejects it when a single signature byte is flipped — not just a token jose signed and jose verified.",
+    },
+    consequenceClass: ['authentication'],
+    persistence: { input: 'none', preferences: 'local' },
+    network: { required: true, detail: 'JWKS / OIDC discovery' },
+    io: { accepts: ['text', 'url'], produces: ['json'] }
+};

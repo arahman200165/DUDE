@@ -1,5 +1,5 @@
-// Regenerates src/app/core/registry/panel-definitions.ts from the distributed
-// src/app/**/<kind-id>.panel-manifest.ts files (DUDE_PRD.md Phase 30I).
+// Regenerates apps/web/src/app/core/registry/panel-definitions.ts from the distributed
+// apps/web/src/app/**/<kind-id>.panel-manifest.ts files (DUDE_PRD.md Phase 30I).
 //
 // Panels are feature-owned: a manifest sits next to the component it renders, wherever that
 // feature lives. The `.panel-manifest.ts` suffix is deliberately distinct from `.manifest.ts` so
@@ -13,8 +13,8 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
-const APP_DIR = path.join(ROOT, 'src/app');
-const REGISTRY_FILE = path.join(ROOT, 'src/app/core/registry/panel-definitions.ts');
+const APP_DIR = path.join(ROOT, 'apps/web/src/app');
+const REGISTRY_FILE = path.join(ROOT, 'apps/web/src/app/core/registry/panel-definitions.ts');
 const SUFFIX = '.panel-manifest.ts';
 
 function findManifests(dir) {
@@ -64,7 +64,7 @@ const output = [
   '// Run `npm run generate:registry` after adding, removing, or editing a <kind-id>.panel-manifest.ts',
   '// file. See ADDING_A_TOOL.md ("Adding a Home panel").',
   '',
-  "import type { PanelDefinition } from '../../shared/models/panel-definition.model';",
+  "import type { PanelDefinition } from '@dude/domain/shared/models/panel-definition.model';",
   ...imports,
   '',
   'export const PANEL_DEFINITIONS: readonly PanelDefinition[] = [',

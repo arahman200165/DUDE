@@ -1,7 +1,7 @@
 import budget from './perf-budget.json';
 import { buildBinary } from './perf-fixtures';
-import { createZip, extractZip } from '../src/app/tools/archive-tool/archive-tool-zip';
-import { ArchiveEntry } from '../src/app/tools/archive-tool/archive-tool-types';
+import { createZip, extractZip } from "@dude/tool-engine/tools/archive-tool/archive-tool-zip";
+import { ArchiveEntry } from "@dude/tool-engine/tools/archive-tool/archive-tool-types";
 
 const ARCHIVE_FILE_COUNT = 256;
 const ARCHIVE_FILE_SIZE = 16 * 1024;
@@ -9,7 +9,7 @@ const ARCHIVE_FILE_SIZE = 16 * 1024;
 describe('archive extraction performance', () => {
   it(`extracts a ~4MB ZIP archive in under ${budget.archiveExtract4MbZip}ms`, () => {
     const entries: ArchiveEntry[] = Array.from({ length: ARCHIVE_FILE_COUNT }, (_, index) => ({
-      name: `src/module-${String(index).padStart(3, '0')}.bin`,
+      name: `apps/web/src/module-${String(index).padStart(3, '0')}.bin`,
       data: buildBinary(ARCHIVE_FILE_SIZE, index),
     }));
     const archive = createZip(entries);

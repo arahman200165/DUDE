@@ -1,0 +1,26 @@
+[
+  [
+    "apps/web/src/app/tools/jwt/jwt-decode.ts",
+    "packages/tool-engine/src/tools/jwt/jwt-decode.ts"
+  ],
+  [
+    "apps/web/src/app/tools/jwt/jwt.pipeline-step.ts",
+    "packages/tool-engine/src/tools/jwt/jwt.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/jwt/jwt.workspace-step.ts",
+    "packages/tool-engine/src/tools/jwt/jwt.workspace-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/jwt/jwt-decode.spec.ts",
+    "packages/tool-engine/src/tools/jwt/jwt-decode.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/jwt/jwt.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/jwt/jwt.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/jwt/jwt.workspace-step.spec.ts",
+    "packages/tool-engine/src/tools/jwt/jwt.workspace-step.spec.ts"
+  ]
+]

@@ -708,7 +708,7 @@
     "status": "verified",
     "recipe": "FUZZ",
     "milestone": 373,
-    "notes": "flagged: touches shared code in src/app/shared/utils/aspect-ratio.ts -- simplifyRatio(w, h) returns \"Infinity:Infinity\" instead of a well-formed ratio when both w and h round to 0 (e.g. simplifyRatio(0.3, 0.3)), since gcd(0, 0) is 0 and the division-by-zero case isn't guarded; not fixed here since the function is shared with image-metadata-inspector."
+    "notes": "flagged: touches shared code in apps/web/src/app/shared/utils/aspect-ratio.ts -- simplifyRatio(w, h) returns \"Infinity:Infinity\" instead of a well-formed ratio when both w and h round to 0 (e.g. simplifyRatio(0.3, 0.3)), since gcd(0, 0) is 0 and the division-by-zero case isn't guarded; not fixed here since the function is shared with image-metadata-inspector."
   },
   {
     "id": "dpi-calculator",

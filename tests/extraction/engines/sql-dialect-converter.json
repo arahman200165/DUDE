@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/sql-dialect-converter/sql-dialect-converter-logic.ts",
+    "packages/tool-engine/src/tools/sql-dialect-converter/sql-dialect-converter-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/sql-dialect-converter/sql-dialect-converter.pipeline-step.ts",
+    "packages/tool-engine/src/tools/sql-dialect-converter/sql-dialect-converter.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/sql-dialect-converter/sql-dialect-converter-logic.spec.ts",
+    "packages/tool-engine/src/tools/sql-dialect-converter/sql-dialect-converter-logic.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/sql-dialect-converter/sql-dialect-converter.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/sql-dialect-converter/sql-dialect-converter.pipeline-step.spec.ts"
+  ]
+]

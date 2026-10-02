@@ -1,0 +1,26 @@
+[
+  [
+    "apps/web/src/app/tools/git-diff/git-diff-service.ts",
+    "packages/tool-engine/src/tools/git-diff/git-diff-service.ts"
+  ],
+  [
+    "apps/web/src/app/tools/git-diff/git-fs-errors.ts",
+    "packages/tool-engine/src/tools/git-diff/git-fs-errors.ts"
+  ],
+  [
+    "apps/web/src/app/tools/git-diff/git-fs-shim.ts",
+    "packages/tool-engine/src/tools/git-diff/git-fs-shim.ts"
+  ],
+  [
+    "apps/web/src/app/tools/git-diff/git-web-files.ts",
+    "packages/tool-engine/src/tools/git-diff/git-web-files.ts"
+  ],
+  [
+    "apps/web/src/app/tools/git-diff/git-diff-service.spec.ts",
+    "packages/tool-engine/src/tools/git-diff/git-diff-service.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/git-diff/git-fs-shim.spec.ts",
+    "packages/tool-engine/src/tools/git-diff/git-fs-shim.spec.ts"
+  ]
+]

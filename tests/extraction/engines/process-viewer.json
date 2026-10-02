@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/process-viewer/process-actions-logic.ts",
+    "packages/tool-engine/src/tools/process-viewer/process-actions-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/process-viewer/process-viewer-logic.ts",
+    "packages/tool-engine/src/tools/process-viewer/process-viewer-logic.ts"
+  ]
+]

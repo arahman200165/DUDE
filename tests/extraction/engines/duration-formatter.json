@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/duration-formatter/duration-convert.ts",
+    "packages/tool-engine/src/tools/duration-formatter/duration-convert.ts"
+  ],
+  [
+    "apps/web/src/app/tools/duration-formatter/duration-formatter.pipeline-step.ts",
+    "packages/tool-engine/src/tools/duration-formatter/duration-formatter.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/duration-formatter/duration-convert.spec.ts",
+    "packages/tool-engine/src/tools/duration-formatter/duration-convert.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/duration-formatter/duration-formatter.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/duration-formatter/duration-formatter.pipeline-step.spec.ts"
+  ]
+]

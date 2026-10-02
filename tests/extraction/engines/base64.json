@@ -1,0 +1,14 @@
+[
+  [
+    "apps/web/src/app/tools/base64/base64.parity-fixtures.ts",
+    "packages/tool-engine/src/tools/base64/base64.parity-fixtures.ts"
+  ],
+  [
+    "apps/web/src/app/tools/base64/base64.pipeline-step.ts",
+    "packages/tool-engine/src/tools/base64/base64.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/base64/base64.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/base64/base64.pipeline-step.spec.ts"
+  ]
+]

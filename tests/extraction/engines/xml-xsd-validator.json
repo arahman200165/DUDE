@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/xml-xsd-validator/xsd-validate.ts",
+    "packages/tool-engine/src/tools/xml-xsd-validator/xsd-validate.ts"
+  ],
+  [
+    "apps/web/src/app/tools/xml-xsd-validator/xsd-validate.spec.ts",
+    "packages/tool-engine/src/tools/xml-xsd-validator/xsd-validate.spec.ts"
+  ]
+]

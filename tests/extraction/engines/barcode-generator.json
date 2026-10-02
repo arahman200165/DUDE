@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/barcode-generator/barcode-validate.ts",
+    "packages/tool-engine/src/tools/barcode-generator/barcode-validate.ts"
+  ],
+  [
+    "apps/web/src/app/tools/barcode-generator/barcode-validate.spec.ts",
+    "packages/tool-engine/src/tools/barcode-generator/barcode-validate.spec.ts"
+  ]
+]

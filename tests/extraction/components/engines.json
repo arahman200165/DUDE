@@ -1,0 +1,2783 @@
+[
+  {
+    "source": "apps/web/src/app/tools/acl-inspector/acl-inspector.ts",
+    "destination": "packages/tool-engine/src/tools/acl-inspector/acl-inspector.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "categoryClass",
+        "engineName": "AclInspectorTool_categoryClass",
+        "start": 12324,
+        "end": 12541,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 1716,
+        "end": 2207,
+        "name": "AceRow",
+        "kind": "InterfaceDeclaration",
+        "text": "export interface AceRow {\n  readonly key: number;\n  readonly type: string;\n  readonly category: 'allow' | 'deny' | 'audit' | 'other';\n  readonly principal: string;\n  readonly sid: string;\n  readonly named: boolean;\n  readonly summary: string;\n  readonly short: string;\n  readonly details: readonly string[];\n  readonly hex: string;\n  readonly icacls: string;\n  readonly scope: string;\n  readonly inherited: boolean;\n  readonly inheritedFrom: string | null;\n  readonly auditFlags: string;\n}"
+      },
+      {
+        "start": 12324,
+        "end": 12541,
+        "name": "categoryClass",
+        "kind": "MethodDeclaration",
+        "text": "protected categoryClass(category: AceRow['category']): string {\n    return category === 'allow' ? 'text-success' : category === 'deny' ? 'text-error' : category === 'audit' ? 'text-warning' : 'text-text-muted';\n  }"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/advanced-diff/advanced-diff.ts",
+    "destination": "packages/tool-engine/src/tools/advanced-diff/advanced-diff.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "lineClasses",
+        "engineName": "AdvancedDiff_lineClasses",
+        "start": 12462,
+        "end": 12552,
+        "static": false
+      },
+      {
+        "name": "lineMarker",
+        "engineName": "AdvancedDiff_lineMarker",
+        "start": 12552,
+        "end": 12640,
+        "static": false
+      },
+      {
+        "name": "segmentClasses",
+        "engineName": "AdvancedDiff_segmentClasses",
+        "start": 12640,
+        "end": 12739,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 2409,
+        "end": 2567,
+        "kind": "FirstStatement",
+        "text": "const LINE_CLASSES: Record<DiffLineType, string> = {\n  add: 'bg-success/10 text-success',\n  remove: 'bg-error/10 text-error',\n  equal: 'text-text-muted',\n};"
+      },
+      {
+        "start": 2567,
+        "end": 2734,
+        "kind": "FirstStatement",
+        "text": "const LINE_MARKER: Record<DiffLineType, string> = { add: '+', remove: '−', equal: '' };"
+      },
+      {
+        "start": 2734,
+        "end": 2902,
+        "kind": "FirstStatement",
+        "text": "const SEGMENT_CLASSES: Record<DiffSegmentType, string> = {\n  add: 'bg-success/30 text-text underline',\n  remove: 'bg-error/30 text-text line-through',\n  equal: '',\n};"
+      },
+      {
+        "start": 12462,
+        "end": 12552,
+        "name": "lineClasses",
+        "kind": "MethodDeclaration",
+        "text": "protected lineClasses(type: DiffLineType): string {\n    return LINE_CLASSES[type];\n  }"
+      },
+      {
+        "start": 12552,
+        "end": 12640,
+        "name": "lineMarker",
+        "kind": "MethodDeclaration",
+        "text": "protected lineMarker(type: DiffLineType): string {\n    return LINE_MARKER[type];\n  }"
+      },
+      {
+        "start": 12640,
+        "end": 12739,
+        "name": "segmentClasses",
+        "kind": "MethodDeclaration",
+        "text": "protected segmentClasses(type: DiffSegmentType): string {\n    return SEGMENT_CLASSES[type];\n  }"
+      }
+    ],
+    "imports": [
+      "import { DiffLineType } from \"@dude/tool-engine/tools/diff/text-diff\";",
+      "import { DiffSegmentType } from \"@dude/tool-engine/tools/advanced-diff/char-word-diff\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/advanced-diff/semantic-diff-view/semantic-diff-view.ts",
+    "destination": "packages/tool-engine/src/tools/advanced-diff/semantic-diff-view/semantic-diff-view.embedded-engine.ts",
+    "functions": [
+      "formatValue"
+    ],
+    "methods": [],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 321,
+        "end": 477,
+        "name": "formatValue",
+        "kind": "FunctionDeclaration",
+        "text": "function formatValue(value: unknown): string {\n  if (value === undefined) return '';\n  return typeof value === 'string' ? value : JSON.stringify(value);\n}"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/batch-operations/batch-operations.ts",
+    "destination": "packages/tool-engine/src/tools/batch-operations/batch-operations.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "when",
+        "engineName": "BatchOperationsTool_when",
+        "start": 3485,
+        "end": 3571,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 3485,
+        "end": 3571,
+        "name": "when",
+        "kind": "MethodDeclaration",
+        "text": "protected when(iso: string): string { return iso.slice(0, 16).replace('T', ' '); }"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/batch-rename/batch-rename.ts",
+    "destination": "packages/tool-engine/src/tools/batch-rename/batch-rename.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "statusClass",
+        "engineName": "BatchRenameTool_statusClass",
+        "start": 8038,
+        "end": 8218,
+        "static": false
+      },
+      {
+        "name": "trackProposal",
+        "engineName": "BatchRenameTool_trackProposal",
+        "start": 8218,
+        "end": 8320,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 8038,
+        "end": 8218,
+        "name": "statusClass",
+        "kind": "MethodDeclaration",
+        "text": "protected statusClass(status: RenameProposal['status']): string {\n    return status === 'rename' ? 'text-accent' : status === 'unchanged' ? 'text-text-muted' : 'text-error';\n  }"
+      },
+      {
+        "start": 8218,
+        "end": 8320,
+        "name": "trackProposal",
+        "kind": "MethodDeclaration",
+        "text": "protected trackProposal(_index: number, proposal: RenameProposal): string { return proposal.path; }"
+      }
+    ],
+    "imports": [
+      "import { computeRenames, DEFAULT_RENAME, type RenameOptions, type RenameProposal } from \"@dude/tool-engine/shared/fs/rename-pattern\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/batch-text-converter/batch-text-converter.ts",
+    "destination": "packages/tool-engine/src/tools/batch-text-converter/batch-text-converter.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "trackRow",
+        "engineName": "BatchTextConverterTool_trackRow",
+        "start": 6738,
+        "end": 6823,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 1278,
+        "end": 1422,
+        "name": "InventoryRow",
+        "kind": "InterfaceDeclaration",
+        "text": "interface InventoryRow extends TextInventory { readonly path: string; readonly size: number; readonly encoding: string; readonly bom: boolean }"
+      },
+      {
+        "start": 6738,
+        "end": 6823,
+        "name": "trackRow",
+        "kind": "MethodDeclaration",
+        "text": "protected trackRow(_index: number, row: InventoryRow): string { return row.path; }"
+      }
+    ],
+    "imports": [
+      "import { DEFAULT_CONVERT, type ConvertOptions, type TextInventory } from \"@dude/tool-engine/shared/fs/text-convert\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/binary-strings-extractor/binary-strings-extractor.ts",
+    "destination": "packages/tool-engine/src/tools/binary-strings-extractor/binary-strings-extractor.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "hexOffset",
+        "engineName": "BinaryStringsExtractor_hexOffset",
+        "start": 4451,
+        "end": 4560,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 4451,
+        "end": 4560,
+        "name": "hexOffset",
+        "kind": "MethodDeclaration",
+        "text": "protected hexOffset(offset: number): string {\n    return '0x' + offset.toString(16).padStart(8, '0');\n  }"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/byte-frequency-analyzer/byte-frequency-analyzer.ts",
+    "destination": "packages/tool-engine/src/tools/byte-frequency-analyzer/byte-frequency-analyzer.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "hex",
+        "engineName": "ByteFrequencyAnalyzer_hex",
+        "start": 2500,
+        "end": 2594,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 2500,
+        "end": 2594,
+        "name": "hex",
+        "kind": "MethodDeclaration",
+        "text": "protected hex(value: number): string {\n    return value.toString(16).padStart(2, '0');\n  }"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/certificate-chain-tools/certificate-chain-tools.ts",
+    "destination": "packages/tool-engine/src/tools/certificate-chain-tools/certificate-chain-tools.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "dnSummary",
+        "engineName": "CertificateChainTools_dnSummary",
+        "start": 3351,
+        "end": 3502,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 3351,
+        "end": 3502,
+        "name": "dnSummary",
+        "kind": "MethodDeclaration",
+        "text": "protected dnSummary(fields: readonly X509NameField[]): string {\n    return fields.map((f) => `${f.shortName || f.name}=${f.value}`).join(', ');\n  }"
+      }
+    ],
+    "imports": [
+      "import { X509NameField } from \"@dude/tool-engine/shared/utils/x509-fields\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/certificate-watch-list/certificate-watch-list.ts",
+    "destination": "packages/tool-engine/src/tools/certificate-watch-list/certificate-watch-list.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "statusClass",
+        "engineName": "CertificateWatchListTool_statusClass",
+        "start": 4193,
+        "end": 4437,
+        "static": false
+      },
+      {
+        "name": "days",
+        "engineName": "CertificateWatchListTool_days",
+        "start": 4437,
+        "end": 4623,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 4193,
+        "end": 4437,
+        "name": "statusClass",
+        "kind": "MethodDeclaration",
+        "text": "protected statusClass(status?: string): string {\n    return status === 'ok' ? 'text-success' : status === 'warning' || status === 'changed' ? 'text-warning' : status === 'expired' || status === 'error' ? 'text-error' : 'text-text-muted';\n  }"
+      },
+      {
+        "start": 4437,
+        "end": 4623,
+        "name": "days",
+        "kind": "MethodDeclaration",
+        "text": "protected days(entry: WatchEntry): string {\n    const days = entry.last?.daysRemaining;\n    return days === undefined ? '—' : days < 0 ? `expired ${-days}d ago` : `${days}d left`;\n  }"
+      }
+    ],
+    "imports": [
+      "import { STARTTLS_PROTOCOLS, type StartTlsProtocol, type WatchEntry } from \"@dude/contracts/core/platform/network-types\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/compression-lab/compression-lab.ts",
+    "destination": "packages/tool-engine/src/tools/compression-lab/compression-lab.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "formatBytes",
+        "engineName": "CompressionLab_formatBytes",
+        "start": 3924,
+        "end": 4153,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 3924,
+        "end": 4153,
+        "name": "formatBytes",
+        "kind": "MethodDeclaration",
+        "text": "protected formatBytes(bytes: number): string {\r\n    if (bytes < 1024) return `${bytes} B`;\r\n    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;\r\n    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;\r\n  }"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/css-selector-tester/css-selector-tester.ts",
+    "destination": "packages/tool-engine/src/tools/css-selector-tester/css-selector-tester.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "formatElement",
+        "engineName": "CssSelectorTester_formatElement",
+        "start": 1442,
+        "end": 1710,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 1442,
+        "end": 1710,
+        "name": "formatElement",
+        "kind": "MethodDeclaration",
+        "text": "protected formatElement(el: { tag: string; id: string | null; classes: readonly string[] }): string {\r\n    const id = el.id ? `#${el.id}` : '';\r\n    const classes = el.classes.length ? `.${el.classes.join('.')}` : '';\r\n    return `${el.tag}${id}${classes}`;\r\n  }"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/ct-lookup/ct-lookup.ts",
+    "destination": "packages/tool-engine/src/tools/ct-lookup/ct-lookup.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "view",
+        "engineName": "CtLookupTool_view",
+        "start": 2097,
+        "end": 2218,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 2097,
+        "end": 2218,
+        "name": "view",
+        "kind": "MethodDeclaration",
+        "text": "protected view(result: unknown): CtView | null { return result && (result as CtView).scts ? result as CtView : null; }"
+      }
+    ],
+    "imports": [
+      "import type { CtView } from \"@dude/contracts/core/platform/network-live-types\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/cubic-bezier-editor/cubic-bezier-editor.ts",
+    "destination": "packages/tool-engine/src/tools/cubic-bezier-editor/cubic-bezier-editor.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "toSvgX",
+        "engineName": "CubicBezierEditor_toSvgX",
+        "start": 2007,
+        "end": 2081,
+        "static": false
+      },
+      {
+        "name": "toSvgY",
+        "engineName": "CubicBezierEditor_toSvgY",
+        "start": 2081,
+        "end": 2188,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 633,
+        "end": 783,
+        "kind": "FirstStatement",
+        "text": "const SVG_SIZE = 200;"
+      },
+      {
+        "start": 783,
+        "end": 804,
+        "kind": "FirstStatement",
+        "text": "const Y_MIN = -0.5;"
+      },
+      {
+        "start": 804,
+        "end": 824,
+        "kind": "FirstStatement",
+        "text": "const Y_RANGE = 2;"
+      },
+      {
+        "start": 2007,
+        "end": 2081,
+        "name": "toSvgX",
+        "kind": "MethodDeclaration",
+        "text": "protected toSvgX(x: number): number {\r\n    return x * SVG_SIZE;\r\n  }"
+      },
+      {
+        "start": 2081,
+        "end": 2188,
+        "name": "toSvgY",
+        "kind": "MethodDeclaration",
+        "text": "protected toSvgY(y: number): number {\r\n    return SVG_SIZE - ((y - Y_MIN) / Y_RANGE) * SVG_SIZE;\r\n  }"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/date-calculator/date-calculator.ts",
+    "destination": "packages/tool-engine/src/tools/date-calculator/date-calculator.embedded-engine.ts",
+    "functions": [
+      "today"
+    ],
+    "methods": [],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 413,
+        "end": 491,
+        "name": "today",
+        "kind": "FunctionDeclaration",
+        "text": "function today(): string {\n  return new Date().toISOString().slice(0, 10);\n}"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/dependency-version-comparator/dependency-version-comparator.ts",
+    "destination": "packages/tool-engine/src/tools/dependency-version-comparator/dependency-version-comparator.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "kindLabel",
+        "engineName": "DependencyVersionComparator_kindLabel",
+        "start": 1374,
+        "end": 1894,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 1374,
+        "end": 1894,
+        "name": "kindLabel",
+        "kind": "MethodDeclaration",
+        "text": "protected kindLabel(kind: string): string {\r\n    switch (kind) {\r\n      case 'added':\r\n        return 'Added';\r\n      case 'removed':\r\n        return 'Removed';\r\n      case 'unchanged':\r\n        return 'Unchanged';\r\n      case 'upgraded-major':\r\n        return 'Major upgrade';\r\n      case 'upgraded-minor':\r\n        return 'Minor upgrade';\r\n      case 'upgraded-patch':\r\n        return 'Patch upgrade';\r\n      case 'downgraded':\r\n        return 'Downgraded';\r\n      default:\r\n        return 'Changed';\r\n    }\r\n  }"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/dependency-walker/dependency-walker.ts",
+    "destination": "packages/tool-engine/src/tools/dependency-walker/dependency-walker.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "details",
+        "engineName": "DependencyWalkerTool_details",
+        "start": 2164,
+        "end": 2764,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 2164,
+        "end": 2764,
+        "name": "details",
+        "kind": "MethodDeclaration",
+        "text": "private details(item: DependencyImportResult): string {\n    const chains = item.forwarderChains?.map((chain) => 'Forwarder chain (' + chain.status + '): ' + chain.chain.join(' → ') + (chain.note ? ' · ' + chain.note : '')) ?? [];\n    return [item.delayLoad ? 'Delay-load' : undefined, item.source, ...(item.missingSymbols?.length ? ['Missing symbols: ' + item.missingSymbols.join(', ')] : []), ...(item.forwardedSymbols?.length ? ['Forwarded: ' + item.forwardedSymbols.map((value) => value.symbol + ' → ' + value.forwarder).join(', ')] : []), ...chains, item.note].filter(Boolean).join(' · ');\n  }"
+      }
+    ],
+    "imports": [
+      "import type { DependencyImportResult, DependencyNode } from \"@dude/contracts/system/dependency-walker-types\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/diff/diff.ts",
+    "destination": "packages/tool-engine/src/tools/diff/diff.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "lineClasses",
+        "engineName": "Diff_lineClasses",
+        "start": 3047,
+        "end": 3141,
+        "static": false
+      },
+      {
+        "name": "linePrefix",
+        "engineName": "Diff_linePrefix",
+        "start": 3141,
+        "end": 3233,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 972,
+        "end": 1136,
+        "kind": "FirstStatement",
+        "text": "const LINE_CLASSES: Record<DiffLineType, string> = {\r\n  add: 'bg-success/10 text-success',\r\n  remove: 'bg-error/10 text-error',\r\n  equal: 'text-text-muted',\r\n};"
+      },
+      {
+        "start": 1136,
+        "end": 1242,
+        "kind": "FirstStatement",
+        "text": "const LINE_PREFIX: Record<DiffLineType, string> = {\r\n  add: '+ ',\r\n  remove: '- ',\r\n  equal: '  ',\r\n};"
+      },
+      {
+        "start": 3047,
+        "end": 3141,
+        "name": "lineClasses",
+        "kind": "MethodDeclaration",
+        "text": "protected lineClasses(type: DiffLineType): string {\r\n    return LINE_CLASSES[type];\r\n  }"
+      },
+      {
+        "start": 3141,
+        "end": 3233,
+        "name": "linePrefix",
+        "kind": "MethodDeclaration",
+        "text": "protected linePrefix(type: DiffLineType): string {\r\n    return LINE_PREFIX[type];\r\n  }"
+      }
+    ],
+    "imports": [
+      "import { DiffLineType, DiffResult } from \"@dude/tool-engine/tools/diff/text-diff\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/directory-diff/directory-diff.ts",
+    "destination": "packages/tool-engine/src/tools/directory-diff/directory-diff.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "buildPayloadEntries",
+        "engineName": "DirectoryDiff_buildPayloadEntries",
+        "start": 11677,
+        "end": 11990,
+        "static": false
+      },
+      {
+        "name": "hex",
+        "engineName": "DirectoryDiff_hex",
+        "start": 13364,
+        "end": 13474,
+        "static": false
+      },
+      {
+        "name": "lineClasses",
+        "engineName": "DirectoryDiff_lineClasses",
+        "start": 13474,
+        "end": 13568,
+        "static": false
+      },
+      {
+        "name": "linePrefix",
+        "engineName": "DirectoryDiff_linePrefix",
+        "start": 13568,
+        "end": 13660,
+        "static": false
+      },
+      {
+        "name": "chunkRowClasses",
+        "engineName": "DirectoryDiff_chunkRowClasses",
+        "start": 13660,
+        "end": 13762,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 1887,
+        "end": 2051,
+        "kind": "FirstStatement",
+        "text": "const LINE_CLASSES: Record<DiffLineType, string> = {\r\n  add: 'bg-success/10 text-success',\r\n  remove: 'bg-error/10 text-error',\r\n  equal: 'text-text-muted',\r\n};"
+      },
+      {
+        "start": 2051,
+        "end": 2146,
+        "kind": "FirstStatement",
+        "text": "const LINE_PREFIX: Record<DiffLineType, string> = { add: '+ ', remove: '- ', equal: '  ' };"
+      },
+      {
+        "start": 11677,
+        "end": 11990,
+        "name": "buildPayloadEntries",
+        "kind": "MethodDeclaration",
+        "text": "private async buildPayloadEntries(files: readonly ScannedFile[]): Promise<DirectoryDiffFileEntry[]> {\r\n    return Promise.all(\r\n      files.map(async (scanned) => {\r\n        const buffer = await scanned.read();\r\n        return { path: scanned.path, size: buffer.byteLength, buffer };\r\n      }),\r\n    );\r\n  }"
+      },
+      {
+        "start": 13364,
+        "end": 13474,
+        "name": "hex",
+        "kind": "MethodDeclaration",
+        "text": "protected hex(bytes: Uint8Array | null): string {\r\n    return bytes ? bytesToHexSpaced(bytes) : '';\r\n  }"
+      },
+      {
+        "start": 13474,
+        "end": 13568,
+        "name": "lineClasses",
+        "kind": "MethodDeclaration",
+        "text": "protected lineClasses(type: DiffLineType): string {\r\n    return LINE_CLASSES[type];\r\n  }"
+      },
+      {
+        "start": 13568,
+        "end": 13660,
+        "name": "linePrefix",
+        "kind": "MethodDeclaration",
+        "text": "protected linePrefix(type: DiffLineType): string {\r\n    return LINE_PREFIX[type];\r\n  }"
+      },
+      {
+        "start": 13660,
+        "end": 13762,
+        "name": "chunkRowClasses",
+        "kind": "MethodDeclaration",
+        "text": "protected chunkRowClasses(equal: boolean): string {\r\n    return equal ? '' : 'bg-error/10';\r\n  }"
+      }
+    ],
+    "imports": [
+      "import { scanFileList, scanNativeEntries, ScannedFile } from \"@dude/tool-engine/tools/directory-diff/directory-tree-scan\";",
+      "import { DirectoryDiffFileEntry, DirectoryDiffPayload, EntryStatus, TreeDiffEntry } from \"@dude/tool-engine/tools/directory-diff/directory-tree-diff\";",
+      "import { bytesToHexSpaced } from \"@dude/tool-engine/shared/utils/byte-codec\";",
+      "import { computeLineDiff, DiffLineType, DiffResult } from \"@dude/tool-engine/tools/diff/text-diff\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/dns-lookup/dns-lookup.ts",
+    "destination": "packages/tool-engine/src/tools/dns-lookup/dns-lookup.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "view",
+        "engineName": "DnsLookupTool_view",
+        "start": 2761,
+        "end": 2846,
+        "static": false
+      },
+      {
+        "name": "policyText",
+        "engineName": "DnsLookupTool_policyText",
+        "start": 2846,
+        "end": 3040,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 2761,
+        "end": 2846,
+        "name": "view",
+        "kind": "MethodDeclaration",
+        "text": "protected view(result: unknown): DnsLookupView { return result as DnsLookupView; }"
+      },
+      {
+        "start": 2846,
+        "end": 3040,
+        "name": "policyText",
+        "kind": "MethodDeclaration",
+        "text": "protected policyText(policy: string): string {\n    return policy === 'unrestricted' ? 'any CA may issue' : policy === 'none-allowed' ? 'no CA may issue' : 'only the listed CAs may issue';\n  }"
+      }
+    ],
+    "imports": [
+      "import type { DnsLookupView } from \"@dude/contracts/core/platform/network-live-types\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/dns-propagation/dns-propagation.ts",
+    "destination": "packages/tool-engine/src/tools/dns-propagation/dns-propagation.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "view",
+        "engineName": "DnsPropagationTool_view",
+        "start": 3074,
+        "end": 3161,
+        "static": false
+      },
+      {
+        "name": "lookup",
+        "engineName": "DnsPropagationTool_lookup",
+        "start": 3161,
+        "end": 3302,
+        "static": false
+      },
+      {
+        "name": "valuesFor",
+        "engineName": "DnsPropagationTool_valuesFor",
+        "start": 3302,
+        "end": 3484,
+        "static": false
+      },
+      {
+        "name": "isDivergent",
+        "engineName": "DnsPropagationTool_isDivergent",
+        "start": 3484,
+        "end": 3681,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 3074,
+        "end": 3161,
+        "name": "view",
+        "kind": "MethodDeclaration",
+        "text": "protected view(result: unknown): ComparatorView { return result as ComparatorView; }"
+      },
+      {
+        "start": 3161,
+        "end": 3302,
+        "name": "lookup",
+        "kind": "MethodDeclaration",
+        "text": "protected lookup(entry: ComparatorEntryView): DnsLookupView | null { return entry.error || !entry.flags ? null : entry as DnsLookupView; }"
+      },
+      {
+        "start": 3302,
+        "end": 3484,
+        "name": "valuesFor",
+        "kind": "MethodDeclaration",
+        "text": "protected valuesFor(view: ComparatorView, label: string): readonly string[] {\n    return view.comparison.valuesByResolver.find((entry) => entry.label === label)?.values ?? [];\n  }"
+      },
+      {
+        "start": 3484,
+        "end": 3681,
+        "name": "isDivergent",
+        "kind": "MethodDeclaration",
+        "text": "protected isDivergent(view: ComparatorView, label: string, value: string): boolean {\n    return view.comparison.onlyIn.some((entry) => entry.label === label && entry.values.includes(value));\n  }"
+      }
+    ],
+    "imports": [
+      "import type { ComparatorEntryView, ComparatorView, DnsLookupView } from \"@dude/contracts/core/platform/network-live-types\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/dnssec-inspector/dnssec-inspector.ts",
+    "destination": "packages/tool-engine/src/tools/dnssec-inspector/dnssec-inspector.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "view",
+        "engineName": "DnssecInspectorTool_view",
+        "start": 2049,
+        "end": 2128,
+        "static": false
+      },
+      {
+        "name": "statusClass",
+        "engineName": "DnssecInspectorTool_statusClass",
+        "start": 2213,
+        "end": 2436,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 2049,
+        "end": 2128,
+        "name": "view",
+        "kind": "MethodDeclaration",
+        "text": "protected view(result: unknown): DnssecView { return result as DnssecView; }"
+      },
+      {
+        "start": 2213,
+        "end": 2436,
+        "name": "statusClass",
+        "kind": "MethodDeclaration",
+        "text": "protected statusClass(status: string): string {\n    return status === 'secure' || status === 'anchor' ? 'text-success' : status === 'insecure' ? 'text-warning' : status === 'bogus' ? 'text-error' : 'text-text-muted';\n  }"
+      }
+    ],
+    "imports": [
+      "import type { DnssecView } from \"@dude/contracts/core/platform/network-live-types\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/duplicate-files/duplicate-files.ts",
+    "destination": "packages/tool-engine/src/tools/duplicate-files/duplicate-files.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "date",
+        "engineName": "DuplicateFilesTool_date",
+        "start": 6624,
+        "end": 6741,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 6624,
+        "end": 6741,
+        "name": "date",
+        "kind": "MethodDeclaration",
+        "text": "protected date(mtimeMs: number): string { return new Date(mtimeMs).toISOString().slice(0, 16).replace('T', ' '); }"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/email-auth-inspector/email-auth-inspector.ts",
+    "destination": "packages/tool-engine/src/tools/email-auth-inspector/email-auth-inspector.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "view",
+        "engineName": "EmailAuthInspectorTool_view",
+        "start": 2918,
+        "end": 3003,
+        "static": false
+      },
+      {
+        "name": "tagEntries",
+        "engineName": "EmailAuthInspectorTool_tagEntries",
+        "start": 3213,
+        "end": 3338,
+        "static": false
+      },
+      {
+        "name": "qualifierClass",
+        "engineName": "EmailAuthInspectorTool_qualifierClass",
+        "start": 3338,
+        "end": 3538,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 2918,
+        "end": 3003,
+        "name": "view",
+        "kind": "MethodDeclaration",
+        "text": "protected view(result: unknown): EmailAuthView { return result as EmailAuthView; }"
+      },
+      {
+        "start": 3213,
+        "end": 3338,
+        "name": "tagEntries",
+        "kind": "MethodDeclaration",
+        "text": "protected tagEntries(tags: Readonly<Record<string, string>>): readonly [string, string][] { return Object.entries(tags); }"
+      },
+      {
+        "start": 3338,
+        "end": 3538,
+        "name": "qualifierClass",
+        "kind": "MethodDeclaration",
+        "text": "protected qualifierClass(qualifier?: string): string {\n    return qualifier === '-' ? 'text-error' : qualifier === '~' ? 'text-warning' : qualifier === '?' ? 'text-text-muted' : 'text-success';\n  }"
+      }
+    ],
+    "imports": [
+      "import type { EmailAuthView } from \"@dude/contracts/core/platform/network-live-types\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/epoch-timeline-visualizer/epoch-timeline-visualizer.ts",
+    "destination": "packages/tool-engine/src/tools/epoch-timeline-visualizer/epoch-timeline-visualizer.embedded-engine.ts",
+    "functions": [
+      "toDateTimeLocalValue"
+    ],
+    "methods": [],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 555,
+        "end": 810,
+        "name": "toDateTimeLocalValue",
+        "kind": "FunctionDeclaration",
+        "text": "function toDateTimeLocalValue(date: Date): string {\n  const pad = (value: number) => String(value).padStart(2, '0');\n  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;\n}"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/event-log-viewer/event-log-viewer.ts",
+    "destination": "packages/tool-engine/src/tools/event-log-viewer/event-log-viewer.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "keyOf",
+        "engineName": "EventLogViewerTool_keyOf",
+        "start": 7228,
+        "end": 7310,
+        "static": false
+      },
+      {
+        "name": "message",
+        "engineName": "EventLogViewerTool_message",
+        "start": 7574,
+        "end": 7688,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 7228,
+        "end": 7310,
+        "name": "keyOf",
+        "kind": "MethodDeclaration",
+        "text": "private keyOf(e: EventRecord): string { return `${e.channel}#${e.recordId}`; }"
+      },
+      {
+        "start": 7574,
+        "end": 7688,
+        "name": "message",
+        "kind": "MethodDeclaration",
+        "text": "private message(caught: unknown): string { return caught instanceof Error ? caught.message : String(caught); }"
+      }
+    ],
+    "imports": [
+      "import type { EventChannel, EventChannelsResult, EventLevel, EventQueryFileParams, EventQueryParams, EventQueryResult, EventRecord } from \"@dude/contracts/system/system-types\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/folder-size-analyzer/folder-size-analyzer.ts",
+    "destination": "packages/tool-engine/src/tools/folder-size-analyzer/folder-size-analyzer.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "trackRow",
+        "engineName": "FolderSizeAnalyzerTool_trackRow",
+        "start": 7346,
+        "end": 7432,
+        "static": false
+      },
+      {
+        "name": "percent",
+        "engineName": "FolderSizeAnalyzerTool_percent",
+        "start": 7842,
+        "end": 7951,
+        "static": false
+      },
+      {
+        "name": "ageDate",
+        "engineName": "FolderSizeAnalyzerTool_ageDate",
+        "start": 7951,
+        "end": 8054,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 7346,
+        "end": 7432,
+        "name": "trackRow",
+        "kind": "MethodDeclaration",
+        "text": "protected trackRow(_index: number, row: SizeRow): string { return row.node.path; }"
+      },
+      {
+        "start": 7842,
+        "end": 7951,
+        "name": "percent",
+        "kind": "MethodDeclaration",
+        "text": "protected percent(share: number): string { return `${Math.max(0.5, Math.round(share * 1000) / 10)}%`; }"
+      },
+      {
+        "start": 7951,
+        "end": 8054,
+        "name": "ageDate",
+        "kind": "MethodDeclaration",
+        "text": "protected ageDate(mtimeMs: number): string { return new Date(mtimeMs).toISOString().slice(0, 10); }"
+      }
+    ],
+    "imports": [
+      "import { buildTree, nameOf, normalizeSelection, parentPath, reportToCsv, squarify, treemapItems, visibleRows, type SizeSort, type SizeRow } from \"@dude/tool-engine/tools/folder-size-analyzer/folder-size-logic\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/git-diff/git-diff.ts",
+    "destination": "packages/tool-engine/src/tools/git-diff/git-diff.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "lineClasses",
+        "engineName": "GitDiff_lineClasses",
+        "start": 11012,
+        "end": 11106,
+        "static": false
+      },
+      {
+        "name": "linePrefix",
+        "engineName": "GitDiff_linePrefix",
+        "start": 11106,
+        "end": 11198,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 1352,
+        "end": 1516,
+        "kind": "FirstStatement",
+        "text": "const LINE_CLASSES: Record<DiffLineType, string> = {\r\n  add: 'bg-success/10 text-success',\r\n  remove: 'bg-error/10 text-error',\r\n  equal: 'text-text-muted',\r\n};"
+      },
+      {
+        "start": 1516,
+        "end": 1609,
+        "kind": "FirstStatement",
+        "text": "const LINE_PREFIX: Record<DiffLineType, string> = { add: '+ ', remove: '- ', equal: '  ' };"
+      },
+      {
+        "start": 11012,
+        "end": 11106,
+        "name": "lineClasses",
+        "kind": "MethodDeclaration",
+        "text": "protected lineClasses(type: DiffLineType): string {\r\n    return LINE_CLASSES[type];\r\n  }"
+      },
+      {
+        "start": 11106,
+        "end": 11198,
+        "name": "linePrefix",
+        "kind": "MethodDeclaration",
+        "text": "protected linePrefix(type: DiffLineType): string {\r\n    return LINE_PREFIX[type];\r\n  }"
+      }
+    ],
+    "imports": [
+      "import { DiffLineType, DiffResult } from \"@dude/tool-engine/tools/diff/text-diff\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/hash-manifest/hash-manifest.ts",
+    "destination": "packages/tool-engine/src/tools/hash-manifest/hash-manifest.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "trackEntry",
+        "engineName": "HashManifestTool_trackEntry",
+        "start": 12270,
+        "end": 12362,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 12270,
+        "end": 12362,
+        "name": "trackEntry",
+        "kind": "MethodDeclaration",
+        "text": "protected trackEntry(_index: number, entry: ManifestEntry): string { return entry.path; }"
+      }
+    ],
+    "imports": [
+      "import { formatBsd, formatCsv, formatGnu, formatJson, MERKLE_DESCRIPTION, parseManifest, type ManifestEntry } from \"@dude/tool-engine/shared/fs/manifest-format\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/hex-diff/hex-diff.ts",
+    "destination": "packages/tool-engine/src/tools/hex-diff/hex-diff.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "hex",
+        "engineName": "HexDiff_hex",
+        "start": 2030,
+        "end": 2136,
+        "static": false
+      },
+      {
+        "name": "offsetHex",
+        "engineName": "HexDiff_offsetHex",
+        "start": 2136,
+        "end": 2238,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 2030,
+        "end": 2136,
+        "name": "hex",
+        "kind": "MethodDeclaration",
+        "text": "protected hex(bytes: Uint8Array | null): string {\n    return bytes ? bytesToHexSpaced(bytes) : '';\n  }"
+      },
+      {
+        "start": 2136,
+        "end": 2238,
+        "name": "offsetHex",
+        "kind": "MethodDeclaration",
+        "text": "protected offsetHex(offset: number): string {\n    return offset.toString(16).padStart(8, '0');\n  }"
+      }
+    ],
+    "imports": [
+      "import { bytesToHexSpaced } from \"@dude/tool-engine/shared/utils/byte-codec\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/hex-editor/hex-editor.ts",
+    "destination": "packages/tool-engine/src/tools/hex-editor/hex-editor.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "charFor",
+        "engineName": "HexEditor_charFor",
+        "start": 2897,
+        "end": 3019,
+        "static": false
+      },
+      {
+        "name": "offsetHex",
+        "engineName": "HexEditor_offsetHex",
+        "start": 3019,
+        "end": 3121,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 2897,
+        "end": 3019,
+        "name": "charFor",
+        "kind": "MethodDeclaration",
+        "text": "protected charFor(byte: number): string {\n    return isPrintableAsciiByte(byte) ? String.fromCharCode(byte) : '.';\n  }"
+      },
+      {
+        "start": 3019,
+        "end": 3121,
+        "name": "offsetHex",
+        "kind": "MethodDeclaration",
+        "text": "protected offsetHex(offset: number): string {\n    return offset.toString(16).padStart(8, '0');\n  }"
+      }
+    ],
+    "imports": [
+      "import { chunkIntoRows, formatHexByte, isPrintableAsciiByte, parseHexByte, setByteAt } from \"@dude/tool-engine/tools/hex-editor/hex-editor-logic\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/http-digest-auth-helper/http-digest-auth-helper.ts",
+    "destination": "packages/tool-engine/src/tools/http-digest-auth-helper/http-digest-auth-helper.embedded-engine.ts",
+    "functions": [
+      "secureRandomHex"
+    ],
+    "methods": [],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 590,
+        "end": 805,
+        "name": "secureRandomHex",
+        "kind": "FunctionDeclaration",
+        "text": "function secureRandomHex(byteLength: number): string {\n  const bytes = new Uint8Array(byteLength);\n  crypto.getRandomValues(bytes);\n  return [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');\n}"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/https-config-analyzer/https-config-analyzer.ts",
+    "destination": "packages/tool-engine/src/tools/https-config-analyzer/https-config-analyzer.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "view",
+        "engineName": "HttpsConfigAnalyzerTool_view",
+        "start": 1358,
+        "end": 1516,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 1358,
+        "end": 1516,
+        "name": "view",
+        "kind": "MethodDeclaration",
+        "text": "protected view(result: unknown): HttpsAnalysisView | null { return result && (result as HttpsAnalysisView).findings ? result as HttpsAnalysisView : null; }"
+      }
+    ],
+    "imports": [
+      "import type { HttpsAnalysisView } from \"@dude/contracts/core/platform/network-live-types\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/json/json.ts",
+    "destination": "packages/tool-engine/src/tools/json/json.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "format",
+        "engineName": "Json_format",
+        "start": 7578,
+        "end": 7662,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 7578,
+        "end": 7662,
+        "name": "format",
+        "kind": "MethodDeclaration",
+        "text": "protected format(value: unknown): string {\n    return JSON.stringify(value);\n  }"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/jwks-to-pem/jwks-to-pem.ts",
+    "destination": "packages/tool-engine/src/tools/jwks-to-pem/jwks-to-pem.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "raw",
+        "engineName": "JwksToPem_raw",
+        "start": 1860,
+        "end": 1955,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 527,
+        "end": 584,
+        "name": "ConvertedKey",
+        "kind": "TypeAliasDeclaration",
+        "text": "type ConvertedKey = JwksKeyEntry & PemConversionResult;"
+      },
+      {
+        "start": 1860,
+        "end": 1955,
+        "name": "raw",
+        "kind": "MethodDeclaration",
+        "text": "protected raw(key: ConvertedKey): string {\n    return JSON.stringify(key.raw, null, 2);\n  }"
+      }
+    ],
+    "imports": [
+      "import { JwksKeyEntry, PemConversionResult, convertAllToPem, parseJwksKeys } from \"@dude/tool-engine/tools/jwks-to-pem/jwks-to-pem-logic\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/jwks-viewer/jwks-viewer.ts",
+    "destination": "packages/tool-engine/src/tools/jwks-viewer/jwks-viewer.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "rowsFor",
+        "engineName": "JwksViewer_rowsFor",
+        "start": 1823,
+        "end": 2135,
+        "static": false
+      },
+      {
+        "name": "raw",
+        "engineName": "JwksViewer_raw",
+        "start": 2135,
+        "end": 2228,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 1823,
+        "end": 2135,
+        "name": "rowsFor",
+        "kind": "MethodDeclaration",
+        "text": "private rowsFor(keys: readonly JwkSummary[]): readonly (readonly string[])[] {\n    return keys.map((key) => [\n      key.kid ?? '—',\n      key.kty ?? '—',\n      key.use ?? '—',\n      key.alg ?? '—',\n      key.importable ? 'Yes' : 'No',\n      key.warnings.length > 0 ? key.warnings.join(' ') : '—',\n    ]);\n  }"
+      },
+      {
+        "start": 2135,
+        "end": 2228,
+        "name": "raw",
+        "kind": "MethodDeclaration",
+        "text": "protected raw(key: JwkSummary): string {\n    return JSON.stringify(key.raw, null, 2);\n  }"
+      }
+    ],
+    "imports": [
+      "import { JwkSummary, JwksParseResult, parseJwks } from \"@dude/tool-engine/tools/jwks-viewer/jwks-viewer-logic\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/jwt/jwt.ts",
+    "destination": "packages/tool-engine/src/tools/jwt/jwt.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "format",
+        "engineName": "Jwt_format",
+        "start": 2549,
+        "end": 2646,
+        "static": false
+      },
+      {
+        "name": "expiryBadgeClasses",
+        "engineName": "Jwt_expiryBadgeClasses",
+        "start": 2646,
+        "end": 2766,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 509,
+        "end": 748,
+        "kind": "FirstStatement",
+        "text": "const EXPIRY_BADGE_CLASSES: Record<JwtExpiryStatus['kind'], string> = {\r\n  expired: 'border-error/40 bg-error/10 text-error',\r\n  valid: 'border-success/40 bg-success/10 text-success',\r\n  'no-claim': 'border-border text-text-muted',\r\n};"
+      },
+      {
+        "start": 2549,
+        "end": 2646,
+        "name": "format",
+        "kind": "MethodDeclaration",
+        "text": "protected format(value: unknown): string {\r\n    return JSON.stringify(value, null, 2);\r\n  }"
+      },
+      {
+        "start": 2646,
+        "end": 2766,
+        "name": "expiryBadgeClasses",
+        "kind": "MethodDeclaration",
+        "text": "protected expiryBadgeClasses(kind: JwtExpiryStatus['kind']): string {\r\n    return EXPIRY_BADGE_CLASSES[kind];\r\n  }"
+      }
+    ],
+    "imports": [
+      "import { JwtExpiryStatus, decodeJwt, decodeTemporalClaim } from \"@dude/tool-engine/tools/jwt/jwt-decode\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/jwt-claims-analyzer/jwt-claims-analyzer.ts",
+    "destination": "packages/tool-engine/src/tools/jwt-claims-analyzer/jwt-claims-analyzer.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "format",
+        "engineName": "JwtClaimsAnalyzer_format",
+        "start": 1597,
+        "end": 1690,
+        "static": false
+      },
+      {
+        "name": "severityClass",
+        "engineName": "JwtClaimsAnalyzer_severityClass",
+        "start": 1690,
+        "end": 1903,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 1597,
+        "end": 1690,
+        "name": "format",
+        "kind": "MethodDeclaration",
+        "text": "protected format(value: unknown): string {\n    return JSON.stringify(value, null, 2);\n  }"
+      },
+      {
+        "start": 1690,
+        "end": 1903,
+        "name": "severityClass",
+        "kind": "MethodDeclaration",
+        "text": "protected severityClass(severity: ClaimFinding['severity']): string {\n    if (severity === 'error') return 'text-error';\n    if (severity === 'warning') return 'text-warning';\n    return 'text-text-muted';\n  }"
+      }
+    ],
+    "imports": [
+      "import { ClaimFinding, analyzeClaims } from \"@dude/tool-engine/tools/jwt-claims-analyzer/jwt-claims-analyzer-logic\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/jwt-expiration-visualizer/jwt-expiration-visualizer.ts",
+    "destination": "packages/tool-engine/src/tools/jwt-expiration-visualizer/jwt-expiration-visualizer.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "statusLabel",
+        "engineName": "JwtExpirationVisualizer_statusLabel",
+        "start": 1318,
+        "end": 1615,
+        "static": false
+      },
+      {
+        "name": "statusClasses",
+        "engineName": "JwtExpirationVisualizer_statusClasses",
+        "start": 1615,
+        "end": 2037,
+        "static": false
+      },
+      {
+        "name": "barFillClasses",
+        "engineName": "JwtExpirationVisualizer_barFillClasses",
+        "start": 2037,
+        "end": 2210,
+        "static": false
+      },
+      {
+        "name": "formatDuration",
+        "engineName": "JwtExpirationVisualizer_formatDuration",
+        "start": 2210,
+        "end": 2737,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 1318,
+        "end": 1615,
+        "name": "statusLabel",
+        "kind": "MethodDeclaration",
+        "text": "protected statusLabel(status: JwtTimelineStatus): string {\n    switch (status) {\n      case 'not-yet-valid':\n        return 'Not yet valid';\n      case 'active':\n        return 'Active';\n      case 'expired':\n        return 'Expired';\n      default:\n        return 'No expiry claim';\n    }\n  }"
+      },
+      {
+        "start": 1615,
+        "end": 2037,
+        "name": "statusClasses",
+        "kind": "MethodDeclaration",
+        "text": "protected statusClasses(status: JwtTimelineStatus): string {\n    switch (status) {\n      case 'expired':\n        return 'border-error/40 bg-error/10 text-error';\n      case 'not-yet-valid':\n        return 'border-warning/40 bg-warning/10 text-warning';\n      case 'active':\n        return 'border-success/40 bg-success/10 text-success';\n      default:\n        return 'border-border bg-panel text-text-muted';\n    }\n  }"
+      },
+      {
+        "start": 2037,
+        "end": 2210,
+        "name": "barFillClasses",
+        "kind": "MethodDeclaration",
+        "text": "protected barFillClasses(status: JwtTimelineStatus): string {\n    return status === 'expired' ? 'bg-error' : status === 'not-yet-valid' ? 'bg-warning' : 'bg-accent';\n  }"
+      },
+      {
+        "start": 2210,
+        "end": 2737,
+        "name": "formatDuration",
+        "kind": "MethodDeclaration",
+        "text": "protected formatDuration(ms: number): string {\n    const abs = Math.abs(ms);\n    const seconds = Math.floor(abs / 1000);\n    const minutes = Math.floor(seconds / 60);\n    const hours = Math.floor(minutes / 60);\n    const days = Math.floor(hours / 24);\n    const prefix = ms < 0 ? '-' : '';\n    if (days > 0) return `${prefix}${days}d ${hours % 24}h`;\n    if (hours > 0) return `${prefix}${hours}h ${minutes % 60}m`;\n    if (minutes > 0) return `${prefix}${minutes}m ${seconds % 60}s`;\n    return `${prefix}${seconds}s`;\n  }"
+      }
+    ],
+    "imports": [
+      "import { JwtTimelineStatus, buildTimeline } from \"@dude/tool-engine/tools/jwt-expiration-visualizer/jwt-expiration-visualizer-logic\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/jwt-signer/jwt-signer.ts",
+    "destination": "packages/tool-engine/src/tools/jwt-signer/jwt-signer.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "format",
+        "engineName": "JwtSigner_format",
+        "start": 4280,
+        "end": 4373,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 4280,
+        "end": 4373,
+        "name": "format",
+        "kind": "MethodDeclaration",
+        "text": "protected format(value: unknown): string {\n    return JSON.stringify(value, null, 2);\n  }"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/jwt-verify/jwt-verify.ts",
+    "destination": "packages/tool-engine/src/tools/jwt-verify/jwt-verify.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "format",
+        "engineName": "JwtVerify_format",
+        "start": 5785,
+        "end": 5878,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 5785,
+        "end": 5878,
+        "name": "format",
+        "kind": "MethodDeclaration",
+        "text": "protected format(value: unknown): string {\n    return JSON.stringify(value, null, 2);\n  }"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/k8s-resource-calculator/k8s-resource-calculator.ts",
+    "destination": "packages/tool-engine/src/tools/k8s-resource-calculator/k8s-resource-calculator.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "formatCpu",
+        "engineName": "K8sResourceCalculator_formatCpu",
+        "start": 1422,
+        "end": 1535,
+        "static": false
+      },
+      {
+        "name": "formatMemory",
+        "engineName": "K8sResourceCalculator_formatMemory",
+        "start": 1535,
+        "end": 1630,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 1422,
+        "end": 1535,
+        "name": "formatCpu",
+        "kind": "MethodDeclaration",
+        "text": "protected formatCpu(cores: number): string {\n    return `${formatQuantity(cores, 'm')} (${cores} cores)`;\n  }"
+      },
+      {
+        "start": 1535,
+        "end": 1630,
+        "name": "formatMemory",
+        "kind": "MethodDeclaration",
+        "text": "protected formatMemory(bytes: number): string {\n    return formatQuantity(bytes, 'Mi');\n  }"
+      }
+    ],
+    "imports": [
+      "import { formatQuantity } from \"@dude/tool-engine/tools/k8s-quantity-converter/k8s-quantity-converter-logic\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/kubeconfig-inspector/kubeconfig-inspector.ts",
+    "destination": "packages/tool-engine/src/tools/kubeconfig-inspector/kubeconfig-inspector.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "secretEntries",
+        "engineName": "KubeconfigInspector_secretEntries",
+        "start": 1708,
+        "end": 1849,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 1708,
+        "end": 1849,
+        "name": "secretEntries",
+        "kind": "MethodDeclaration",
+        "text": "protected secretEntries(user: KubeconfigUser): readonly (readonly [string, string])[] {\n    return Object.entries(user.secretFields);\n  }"
+      }
+    ],
+    "imports": [
+      "import { inspectKubeconfig, redactSecret, type KubeconfigUser } from \"@dude/tool-engine/tools/kubeconfig-inspector/kubeconfig-inspector-logic\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/large-file-inspector/large-file-inspector.ts",
+    "destination": "packages/tool-engine/src/tools/large-file-inspector/large-file-inspector.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "segments",
+        "engineName": "LargeFileInspectorTool_segments",
+        "start": 14116,
+        "end": 14418,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 1582,
+        "end": 1754,
+        "name": "TextFind",
+        "kind": "InterfaceDeclaration",
+        "text": "interface TextFind { readonly line: number; readonly column: number; readonly offset: number; readonly length: number; readonly text: string; readonly textColumn: number }"
+      },
+      {
+        "start": 14116,
+        "end": 14418,
+        "name": "segments",
+        "kind": "MethodDeclaration",
+        "text": "protected segments(find: TextFind): { before: string; hit: string; after: string } {\n    return { before: find.text.slice(0, find.textColumn), hit: find.text.slice(find.textColumn, find.textColumn + Math.max(1, find.length)), after: find.text.slice(find.textColumn + Math.max(1, find.length)) };\n  }"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/markdown-workspace/markdown-workspace.ts",
+    "destination": "packages/tool-engine/src/tools/markdown-workspace/markdown-workspace.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "formatFrontMatterValue",
+        "engineName": "MarkdownWorkspace_formatFrontMatterValue",
+        "start": 17946,
+        "end": 18082,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 17946,
+        "end": 18082,
+        "name": "formatFrontMatterValue",
+        "kind": "MethodDeclaration",
+        "text": "protected formatFrontMatterValue(value: unknown): string {\n    return typeof value === 'string' ? value : JSON.stringify(value);\n  }"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/matrix-calculator/matrix-calculator.ts",
+    "destination": "packages/tool-engine/src/tools/matrix-calculator/matrix-calculator.embedded-engine.ts",
+    "functions": [
+      "roundDisplay"
+    ],
+    "methods": [
+      {
+        "name": "formatMatrix",
+        "engineName": "MatrixCalculatorTool_formatMatrix",
+        "start": 4759,
+        "end": 4902,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 4759,
+        "end": 4902,
+        "name": "formatMatrix",
+        "kind": "MethodDeclaration",
+        "text": "protected formatMatrix(matrix: Matrix): string {\n    return matrix.map((row) => row.map((v) => roundDisplay(v)).join('\\t')).join('\\n');\n  }"
+      },
+      {
+        "start": 4904,
+        "end": 4994,
+        "name": "roundDisplay",
+        "kind": "FunctionDeclaration",
+        "text": "function roundDisplay(value: number): number {\n  return Math.round(value * 1e8) / 1e8;\n}"
+      }
+    ],
+    "imports": [
+      "import { Matrix, MatrixOp, MatrixOpResult, computeMatrixOp, parseMatrix } from \"@dude/tool-engine/tools/matrix-calculator/matrix-calculate\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/mock-data-studio/mock-data-studio.ts",
+    "destination": "packages/tool-engine/src/tools/mock-data-studio/mock-data-studio.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "toDisplayValue",
+        "engineName": "MockDataStudio_toDisplayValue",
+        "start": 3582,
+        "end": 3781,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 3582,
+        "end": 3781,
+        "name": "toDisplayValue",
+        "kind": "MethodDeclaration",
+        "text": "private toDisplayValue(value: unknown): string {\n    if (value instanceof Date) return value.toISOString();\n    if (value === null || value === undefined) return '';\n    return String(value);\n  }"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/multipart-form-builder/multipart-form-builder.ts",
+    "destination": "packages/tool-engine/src/tools/multipart-form-builder/multipart-form-builder.embedded-engine.ts",
+    "functions": [
+      "randomHex"
+    ],
+    "methods": [],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 439,
+        "end": 625,
+        "name": "randomHex",
+        "kind": "FunctionDeclaration",
+        "text": "function randomHex(byteCount: number): string {\n  return Array.from(crypto.getRandomValues(new Uint8Array(byteCount)))\n    .map((b) => b.toString(16).padStart(2, '0'))\n    .join('');\n}"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/number-base/number-base.ts",
+    "destination": "packages/tool-engine/src/tools/number-base/number-base.embedded-engine.ts",
+    "functions": [
+      "clampBase"
+    ],
+    "methods": [],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 2660,
+        "end": 2796,
+        "name": "clampBase",
+        "kind": "FunctionDeclaration",
+        "text": "function clampBase(base: number): number {\n  if (Number.isNaN(base)) return 2;\n  return Math.min(36, Math.max(2, Math.trunc(base)));\n}"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/number-theory-toolkit/number-theory-toolkit.ts",
+    "destination": "packages/tool-engine/src/tools/number-theory-toolkit/number-theory-toolkit.embedded-engine.ts",
+    "functions": [
+      "parseBigIntOrNull",
+      "parseBigIntList"
+    ],
+    "methods": [],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 485,
+        "end": 650,
+        "name": "parseBigIntOrNull",
+        "kind": "FunctionDeclaration",
+        "text": "function parseBigIntOrNull(input: string): bigint | null {\n  const trimmed = input.trim();\n  if (!/^-?\\d+$/.test(trimmed)) return null;\n  return BigInt(trimmed);\n}"
+      },
+      {
+        "start": 650,
+        "end": 969,
+        "name": "parseBigIntList",
+        "kind": "FunctionDeclaration",
+        "text": "function parseBigIntList(input: string): readonly bigint[] | null {\n  const parts = input\n    .split(/[\\s,]+/)\n    .map((s) => s.trim())\n    .filter(Boolean);\n  if (parts.length === 0) return null;\n  const values = parts.map(parseBigIntOrNull);\n  return values.every((v): v is bigint => v !== null) ? values : null;\n}"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/oauth-playground/oauth-playground.ts",
+    "destination": "packages/tool-engine/src/tools/oauth-playground/oauth-playground.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "format",
+        "engineName": "OAuthPlayground_format",
+        "start": 7707,
+        "end": 7800,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 7707,
+        "end": 7800,
+        "name": "format",
+        "kind": "MethodDeclaration",
+        "text": "protected format(value: unknown): string {\n    return JSON.stringify(value, null, 2);\n  }"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/oauth-token-inspector/oauth-token-inspector.ts",
+    "destination": "packages/tool-engine/src/tools/oauth-token-inspector/oauth-token-inspector.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "format",
+        "engineName": "OAuthTokenInspector_format",
+        "start": 1029,
+        "end": 1122,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 1029,
+        "end": 1122,
+        "name": "format",
+        "kind": "MethodDeclaration",
+        "text": "protected format(value: unknown): string {\n    return JSON.stringify(value, null, 2);\n  }"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/oidc-discovery-inspector/oidc-discovery-inspector.ts",
+    "destination": "packages/tool-engine/src/tools/oidc-discovery-inspector/oidc-discovery-inspector.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "format",
+        "engineName": "OidcDiscoveryInspector_format",
+        "start": 1926,
+        "end": 2019,
+        "static": false
+      },
+      {
+        "name": "severityClass",
+        "engineName": "OidcDiscoveryInspector_severityClass",
+        "start": 2019,
+        "end": 2319,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 1926,
+        "end": 2019,
+        "name": "format",
+        "kind": "MethodDeclaration",
+        "text": "protected format(value: unknown): string {\n    return JSON.stringify(value, null, 2);\n  }"
+      },
+      {
+        "start": 2019,
+        "end": 2319,
+        "name": "severityClass",
+        "kind": "MethodDeclaration",
+        "text": "protected severityClass(severity: 'error' | 'warning' | 'info'): string {\n    if (severity === 'error') return 'border-error/40 bg-error/10 text-error';\n    if (severity === 'warning') return 'border-warning/40 bg-warning/10 text-warning';\n    return 'border-border bg-panel text-text-muted';\n  }"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/pem-der-inspector/pem-der-inspector.ts",
+    "destination": "packages/tool-engine/src/tools/pem-der-inspector/pem-der-inspector.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "hex",
+        "engineName": "PemDerInspector_hex",
+        "start": 3487,
+        "end": 3567,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 3487,
+        "end": 3567,
+        "name": "hex",
+        "kind": "MethodDeclaration",
+        "text": "protected hex(bytes: Uint8Array): string {\n    return bytesToHex(bytes);\n  }"
+      }
+    ],
+    "imports": [
+      "import { bytesToHex } from \"@dude/tool-engine/shared/utils/byte-codec\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/percentage-ratio-calculator/percentage-ratio-calculator.ts",
+    "destination": "packages/tool-engine/src/tools/percentage-ratio-calculator/percentage-ratio-calculator.embedded-engine.ts",
+    "functions": [
+      "parseBigIntOrNull"
+    ],
+    "methods": [],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 4709,
+        "end": 4874,
+        "name": "parseBigIntOrNull",
+        "kind": "FunctionDeclaration",
+        "text": "function parseBigIntOrNull(input: string): bigint | null {\n  const trimmed = input.trim();\n  if (!/^-?\\d+$/.test(trimmed)) return null;\n  return BigInt(trimmed);\n}"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/pkcs12-inspector/pkcs12-inspector.ts",
+    "destination": "packages/tool-engine/src/tools/pkcs12-inspector/pkcs12-inspector.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "dnSummary",
+        "engineName": "Pkcs12Inspector_dnSummary",
+        "start": 2055,
+        "end": 2206,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 2055,
+        "end": 2206,
+        "name": "dnSummary",
+        "kind": "MethodDeclaration",
+        "text": "protected dnSummary(fields: readonly X509NameField[]): string {\n    return fields.map((f) => `${f.shortName || f.name}=${f.value}`).join(', ');\n  }"
+      }
+    ],
+    "imports": [
+      "import { X509NameField } from \"@dude/tool-engine/shared/utils/x509-fields\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/port-process-lookup/port-process-lookup.ts",
+    "destination": "packages/tool-engine/src/tools/port-process-lookup/port-process-lookup.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "canEnd",
+        "engineName": "PortProcessLookupTool_canEnd",
+        "start": 5310,
+        "end": 5385,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 5310,
+        "end": 5385,
+        "name": "canEnd",
+        "kind": "MethodDeclaration",
+        "text": "protected canEnd(row: PortRow): boolean { return row.startKey !== ''; }"
+      }
+    ],
+    "imports": [
+      "import {\n  endOwnerRequest, filterByQuery, formatEndpoint, isListening, joinSocketsToProcesses, rowKey, type PortRow,\n} from \"@dude/tool-engine/tools/port-process-lookup/port-process-lookup-logic\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/powershell-builder/powershell-builder.ts",
+    "destination": "packages/tool-engine/src/tools/powershell-builder/powershell-builder.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "parameterDefinition",
+        "engineName": "PowerShellBuilderTool_parameterDefinition",
+        "start": 7128,
+        "end": 7474,
+        "static": false
+      },
+      {
+        "name": "messageFor",
+        "engineName": "PowerShellBuilderTool_messageFor",
+        "start": 13242,
+        "end": 13359,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 7128,
+        "end": 7474,
+        "name": "parameterDefinition",
+        "kind": "MethodDeclaration",
+        "text": "private parameterDefinition(command: PowerShellCmdletDefinition, name: string): PowerShellParameterDefinition | undefined {\n    for (const set of command.parameterSets) {\n      const found = set.parameters.find((parameter) => parameter.name.toLowerCase() === name.toLowerCase());\n      if (found) return found;\n    }\n    return undefined;\n  }"
+      },
+      {
+        "start": 13242,
+        "end": 13359,
+        "name": "messageFor",
+        "kind": "MethodDeclaration",
+        "text": "private messageFor(caught: unknown): string { return caught instanceof Error ? caught.message : String(caught); }"
+      }
+    ],
+    "imports": [
+      "import {\n  analyzePowerShellScript, buildPowerShellScript, type PowerShellCmdletDefinition, type PowerShellOutputFormat, type PowerShellParameterDefinition,\n} from \"@dude/contracts/shared/system/powershell-builder\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/recurrence-rule/recurrence-rule.ts",
+    "destination": "packages/tool-engine/src/tools/recurrence-rule/recurrence-rule.embedded-engine.ts",
+    "functions": [
+      "today"
+    ],
+    "methods": [],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 459,
+        "end": 537,
+        "name": "today",
+        "kind": "FunctionDeclaration",
+        "text": "function today(): string {\n  return new Date().toISOString().slice(0, 10);\n}"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/regex-generator/regex-generator.ts",
+    "destination": "packages/tool-engine/src/tools/regex-generator/regex-generator.embedded-engine.ts",
+    "functions": [
+      "linesOf"
+    ],
+    "methods": [],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 469,
+        "end": 549,
+        "name": "linesOf",
+        "kind": "FunctionDeclaration",
+        "text": "function linesOf(raw: string): readonly string[] {\n  return raw.split('\\n');\n}"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/registry-editor/registry-editor.ts",
+    "destination": "packages/tool-engine/src/tools/registry-editor/registry-editor.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "matchLabel",
+        "engineName": "RegistryEditorTool_matchLabel",
+        "start": 16437,
+        "end": 16660,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 16437,
+        "end": 16660,
+        "name": "matchLabel",
+        "kind": "MethodDeclaration",
+        "text": "protected matchLabel(m: RegistrySearchMatch): string {\r\n    if (m.matchIn === 'key') return 'key name';\r\n    return `${m.matchIn === 'value-name' ? 'value name' : 'value data'}: ${valueLabel(m.valueName ?? '')}`;\r\n  }"
+      }
+    ],
+    "imports": [
+      "import { REGISTRY_HIVES, type RegistrySearchMatch, type RegistrySearchResult, type RegistrySubkey, type RegistryValue, type RegistryValueType, type RegistryView } from \"@dude/contracts/system/system-types\";",
+      "import {\r\n  EDITABLE_TYPES, TOOL_ID, createKeyRequest, decodeRegBytes, deleteValueRequest, displayPath, encodeUtf16leWithBom, exportFileName, joinPath, keyId,\r\n  longPath, needsElevation, parseRegistryPath, parseValueText, powerShellCommand, regExeCommand, setValueRequest, subtreeOf, validateKeyName, valueLabel, valueToText,\r\n  type KeyRef,\r\n} from \"@dude/tool-engine/tools/registry-editor/registry-editor-logic\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/relative-time-parser/relative-time-parser.ts",
+    "destination": "packages/tool-engine/src/tools/relative-time-parser/relative-time-parser.embedded-engine.ts",
+    "functions": [
+      "toDateTimeLocalValue"
+    ],
+    "methods": [],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 501,
+        "end": 756,
+        "name": "toDateTimeLocalValue",
+        "kind": "FunctionDeclaration",
+        "text": "function toDateTimeLocalValue(date: Date): string {\n  const pad = (value: number) => String(value).padStart(2, '0');\n  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;\n}"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/revocation-inspector/revocation-inspector.ts",
+    "destination": "packages/tool-engine/src/tools/revocation-inspector/revocation-inspector.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "view",
+        "engineName": "RevocationInspectorTool_view",
+        "start": 2201,
+        "end": 2346,
+        "static": false
+      },
+      {
+        "name": "statusClass",
+        "engineName": "RevocationInspectorTool_statusClass",
+        "start": 2346,
+        "end": 2497,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 2201,
+        "end": 2346,
+        "name": "view",
+        "kind": "MethodDeclaration",
+        "text": "protected view(result: unknown): RevocationView | null { return result && (result as RevocationView).urls ? result as RevocationView : null; }"
+      },
+      {
+        "start": 2346,
+        "end": 2497,
+        "name": "statusClass",
+        "kind": "MethodDeclaration",
+        "text": "protected statusClass(status?: string): string { return status === 'good' ? 'text-success' : status === 'revoked' ? 'text-error' : 'text-warning'; }"
+      }
+    ],
+    "imports": [
+      "import type { RevocationView } from \"@dude/contracts/core/platform/network-live-types\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/scheduled-tasks/scheduled-tasks.ts",
+    "destination": "packages/tool-engine/src/tools/scheduled-tasks/scheduled-tasks.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "resultHex",
+        "engineName": "ScheduledTasksTool_resultHex",
+        "start": 6086,
+        "end": 6208,
+        "static": false
+      },
+      {
+        "name": "folderName",
+        "engineName": "ScheduledTasksTool_folderName",
+        "start": 6208,
+        "end": 6343,
+        "static": false
+      },
+      {
+        "name": "message",
+        "engineName": "ScheduledTasksTool_message",
+        "start": 6343,
+        "end": 6457,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 6086,
+        "end": 6208,
+        "name": "resultHex",
+        "kind": "MethodDeclaration",
+        "text": "protected resultHex(value: number): string { return `0x${(value >>> 0).toString(16).toUpperCase().padStart(8, '0')}`; }"
+      },
+      {
+        "start": 6208,
+        "end": 6343,
+        "name": "folderName",
+        "kind": "MethodDeclaration",
+        "text": "protected folderName(path: string): string { return path === '\\\\' ? 'All tasks' : path.split('\\\\').filter(Boolean).at(-1) ?? path; }"
+      },
+      {
+        "start": 6343,
+        "end": 6457,
+        "name": "message",
+        "kind": "MethodDeclaration",
+        "text": "private message(caught: unknown): string { return caught instanceof Error ? caught.message : String(caught); }"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/starttls-inspector/starttls-inspector.ts",
+    "destination": "packages/tool-engine/src/tools/starttls-inspector/starttls-inspector.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "view",
+        "engineName": "StarttlsInspectorTool_view",
+        "start": 1943,
+        "end": 2087,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 1943,
+        "end": 2087,
+        "name": "view",
+        "kind": "MethodDeclaration",
+        "text": "protected view(result: unknown): StartTlsView | null { return result && 'transcript' in (result as object) ? result as StartTlsView : null; }"
+      }
+    ],
+    "imports": [
+      "import type { StartTlsView } from \"@dude/contracts/core/platform/network-live-types\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/startup-programs/startup-programs.ts",
+    "destination": "packages/tool-engine/src/tools/startup-programs/startup-programs.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "sourceLabel",
+        "engineName": "StartupProgramsTool_sourceLabel",
+        "start": 4683,
+        "end": 5113,
+        "static": false
+      },
+      {
+        "name": "signatureLabel",
+        "engineName": "StartupProgramsTool_signatureLabel",
+        "start": 5113,
+        "end": 5277,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 4683,
+        "end": 5113,
+        "name": "sourceLabel",
+        "kind": "MethodDeclaration",
+        "text": "protected sourceLabel(entry: StartupEntry): string {\r\n    if (entry.source === 'registry-run') return (entry.detail?.includes('RunOnce') ? 'RunOnce' : 'Run') + ' · ' + (entry.id.split('|')[1]?.toUpperCase() ?? 'Registry') + ' · ' + (entry.id.split('|')[3] === '32' ? '32-bit view' : '64-bit view');\r\n    return entry.source === 'startup-folder' ? 'Startup folder' : entry.source === 'scheduled-task' ? 'Task' : 'Service';\r\n  }"
+      },
+      {
+        "start": 5113,
+        "end": 5277,
+        "name": "signatureLabel",
+        "kind": "MethodDeclaration",
+        "text": "protected signatureLabel(entry: StartupEntry): string {\r\n    return entry.signature === 'catalog-signed' ? 'Catalog signed' : entry.signature ?? 'Unknown';\r\n  }"
+      }
+    ],
+    "imports": [
+      "import type { StartupEntry, StartupProgramsResult } from \"@dude/contracts/system/startup-types\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/statistics-calculator/statistics-calculator.ts",
+    "destination": "packages/tool-engine/src/tools/statistics-calculator/statistics-calculator.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "formatNumber",
+        "engineName": "StatisticsCalculator_formatNumber",
+        "start": 1326,
+        "end": 1477,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 1326,
+        "end": 1477,
+        "name": "formatNumber",
+        "kind": "MethodDeclaration",
+        "text": "protected formatNumber(value: number): string {\n    return Number.isInteger(value) ? value.toString() : value.toFixed(4).replace(/\\.?0+$/, '');\n  }"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/string-similarity-calculator/string-similarity-calculator.ts",
+    "destination": "packages/tool-engine/src/tools/string-similarity-calculator/string-similarity-calculator.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "percent",
+        "engineName": "StringSimilarityCalculator_percent",
+        "start": 1104,
+        "end": 1197,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 1104,
+        "end": 1197,
+        "name": "percent",
+        "kind": "MethodDeclaration",
+        "text": "protected percent(value: number): string {\n    return `${(value * 100).toFixed(1)}%`;\n  }"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/system-changes/system-changes.ts",
+    "destination": "packages/tool-engine/src/tools/system-changes/system-changes.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "when",
+        "engineName": "SystemChangesTool_when",
+        "start": 3963,
+        "end": 4048,
+        "static": false
+      },
+      {
+        "name": "glyph",
+        "engineName": "SystemChangesTool_glyph",
+        "start": 5686,
+        "end": 5912,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 3963,
+        "end": 4048,
+        "name": "when",
+        "kind": "MethodDeclaration",
+        "text": "protected when(iso: string): string { return iso.slice(0, 16).replace('T', ' '); }"
+      },
+      {
+        "start": 5686,
+        "end": 5912,
+        "name": "glyph",
+        "kind": "MethodDeclaration",
+        "text": "protected glyph(outcome: SysOpOutcome): 'success' | 'warning' | 'error' | 'cancelled' {\n    return outcome === 'applied' ? 'success' : outcome === 'failed' ? 'error' : outcome === 'cancelled' ? 'cancelled' : 'warning';\n  }"
+      }
+    ],
+    "imports": [
+      "import type { SysApplyResult, SysJournalEntry, SysOpOutcome, SysPlanPreview, SysSnapshotHeader } from \"@dude/contracts/system/sys-mutation-types\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/text-inspector/text-inspector.ts",
+    "destination": "packages/tool-engine/src/tools/text-inspector/text-inspector.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "readingEaseLabel",
+        "engineName": "TextInspector_readingEaseLabel",
+        "start": 2377,
+        "end": 2476,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 2377,
+        "end": 2476,
+        "name": "readingEaseLabel",
+        "kind": "MethodDeclaration",
+        "text": "protected readingEaseLabel(score: number): string {\r\n    return readingEaseLabel(score);\r\n  }"
+      }
+    ],
+    "imports": [
+      "import { computeReadability, readingEaseLabel } from \"@dude/tool-engine/tools/text-inspector/readability\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/timezone-converter/timezone-converter.ts",
+    "destination": "packages/tool-engine/src/tools/timezone-converter/timezone-converter.embedded-engine.ts",
+    "functions": [
+      "pad"
+    ],
+    "methods": [],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 673,
+        "end": 755,
+        "name": "pad",
+        "kind": "FunctionDeclaration",
+        "text": "function pad(value: number): string {\n  return String(value).padStart(2, '0');\n}"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/timezone-offset-comparator/timezone-offset-comparator.ts",
+    "destination": "packages/tool-engine/src/tools/timezone-offset-comparator/timezone-offset-comparator.embedded-engine.ts",
+    "functions": [
+      "toDateTimeLocalValue"
+    ],
+    "methods": [],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 831,
+        "end": 1086,
+        "name": "toDateTimeLocalValue",
+        "kind": "FunctionDeclaration",
+        "text": "function toDateTimeLocalValue(date: Date): string {\n  const pad = (value: number) => String(value).padStart(2, '0');\n  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;\n}"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/tls-inspector/tls-inspector.ts",
+    "destination": "packages/tool-engine/src/tools/tls-inspector/tls-inspector.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "captureView",
+        "engineName": "TlsInspectorTool_captureView",
+        "start": 3856,
+        "end": 4191,
+        "static": false
+      },
+      {
+        "name": "enumView",
+        "engineName": "TlsInspectorTool_enumView",
+        "start": 4461,
+        "end": 4628,
+        "static": false
+      },
+      {
+        "name": "supportedCiphers",
+        "engineName": "TlsInspectorTool_supportedCiphers",
+        "start": 4628,
+        "end": 4786,
+        "static": false
+      },
+      {
+        "name": "view",
+        "engineName": "TlsInspectorTool_view",
+        "start": 5311,
+        "end": 5461,
+        "static": false
+      },
+      {
+        "name": "http3View",
+        "engineName": "TlsInspectorTool_http3View",
+        "start": 5461,
+        "end": 5612,
+        "static": false
+      },
+      {
+        "name": "statusClass",
+        "engineName": "TlsInspectorTool_statusClass",
+        "start": 6314,
+        "end": 6461,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 3856,
+        "end": 4191,
+        "name": "captureView",
+        "kind": "MethodDeclaration",
+        "text": "protected captureView(result: unknown): { inspection: TlsInspectView; capture: { available: boolean; packets: number | null; pcapngBase64: string | null; filter: string; note: string; error?: string } } | null {\n    return result && 'capture' in (result as object) && 'inspection' in (result as object) ? result as never : null;\n  }"
+      },
+      {
+        "start": 4461,
+        "end": 4628,
+        "name": "enumView",
+        "kind": "MethodDeclaration",
+        "text": "protected enumView(result: unknown): TlsEnumerationView | null { return result && 'supportedVersions' in (result as object) ? result as TlsEnumerationView : null; }"
+      },
+      {
+        "start": 4628,
+        "end": 4786,
+        "name": "supportedCiphers",
+        "kind": "MethodDeclaration",
+        "text": "protected supportedCiphers(view: TlsEnumerationView): TlsEnumerationView['ciphers'] { return view.ciphers.filter((probe) => probe.state === 'supported'); }"
+      },
+      {
+        "start": 5311,
+        "end": 5461,
+        "name": "view",
+        "kind": "MethodDeclaration",
+        "text": "protected view(result: unknown): TlsInspectView | null { return result && (result as TlsInspectView).handshake ? result as TlsInspectView : null; }"
+      },
+      {
+        "start": 5461,
+        "end": 5612,
+        "name": "http3View",
+        "kind": "MethodDeclaration",
+        "text": "protected http3View(result: unknown): Http3View | null { return result && 'negotiatedProtocol' in (result as object) ? result as Http3View : null; }"
+      },
+      {
+        "start": 6314,
+        "end": 6461,
+        "name": "statusClass",
+        "kind": "MethodDeclaration",
+        "text": "protected statusClass(status: string): string { return status === 'fail' ? 'text-error' : status === 'warn' ? 'text-warning' : 'text-success'; }"
+      }
+    ],
+    "imports": [
+      "import type { Http3View, TlsEnumerationView, TlsInspectView } from \"@dude/contracts/core/platform/network-live-types\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/tree-search/tree-search.ts",
+    "destination": "packages/tool-engine/src/tools/tree-search/tree-search.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "matchId",
+        "engineName": "TreeSearchTool_matchId",
+        "start": 7243,
+        "end": 7363,
+        "static": false
+      },
+      {
+        "name": "segments",
+        "engineName": "TreeSearchTool_segments",
+        "start": 9139,
+        "end": 9427,
+        "static": false
+      },
+      {
+        "name": "list",
+        "engineName": "TreeSearchTool_list",
+        "start": 9709,
+        "end": 9851,
+        "static": false
+      },
+      {
+        "name": "metaDate",
+        "engineName": "TreeSearchTool_metaDate",
+        "start": 12449,
+        "end": 12553,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 1663,
+        "end": 1824,
+        "name": "ContentHit",
+        "kind": "InterfaceDeclaration",
+        "text": "interface ContentHit { readonly path: string; readonly size: number; readonly encoding: string; readonly total: number; readonly matches: readonly LineMatch[] }"
+      },
+      {
+        "start": 7243,
+        "end": 7363,
+        "name": "matchId",
+        "kind": "MethodDeclaration",
+        "text": "protected matchId(hit: ContentHit, match: LineMatch): string { return `${hit.path}#${match.line}:${match.column}`; }"
+      },
+      {
+        "start": 9139,
+        "end": 9427,
+        "name": "segments",
+        "kind": "MethodDeclaration",
+        "text": "protected segments(match: LineMatch): { before: string; hit: string; after: string } {\n    return { before: match.text.slice(0, match.textColumn), hit: match.text.slice(match.textColumn, match.textColumn + match.length), after: match.text.slice(match.textColumn + match.length) };\n  }"
+      },
+      {
+        "start": 9709,
+        "end": 9851,
+        "name": "list",
+        "kind": "MethodDeclaration",
+        "text": "private list(value: string): string[] { return value.split(/[,\\s]+/).map((item) => item.trim()).filter(Boolean); }"
+      },
+      {
+        "start": 12449,
+        "end": 12553,
+        "name": "metaDate",
+        "kind": "MethodDeclaration",
+        "text": "protected metaDate(mtimeMs: number): string { return new Date(mtimeMs).toISOString().slice(0, 10); }"
+      }
+    ],
+    "imports": [
+      "import type { LineMatch } from \"@dude/tool-engine/shared/fs/text-search\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/url-inspector/url-inspector.ts",
+    "destination": "packages/tool-engine/src/tools/url-inspector/url-inspector.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "kindClass",
+        "engineName": "UrlInspector_kindClass",
+        "start": 2538,
+        "end": 2630,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 864,
+        "end": 1197,
+        "kind": "FirstStatement",
+        "text": "const KIND_CLASSES: Record<UriComponentKind, string> = {\n  scheme: 'text-cat-web-tint',\n  userinfo: 'text-cat-security-tint',\n  host: 'text-cat-developer-tint',\n  port: 'text-cat-text-tint',\n  path: 'text-cat-data-tint',\n  query: 'text-cat-documents-tint',\n  fragment: 'text-cat-encoding-tint',\n  punctuation: 'text-text-muted',\n};"
+      },
+      {
+        "start": 2538,
+        "end": 2630,
+        "name": "kindClass",
+        "kind": "MethodDeclaration",
+        "text": "protected kindClass(kind: UriComponentKind): string {\n    return KIND_CLASSES[kind];\n  }"
+      }
+    ],
+    "imports": [
+      "import { URI_COMPONENT_LEGEND, UriComponentKind, segmentUri } from \"@dude/tool-engine/tools/url-inspector/uri-component-visualizer\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/watched-folders/watched-folders.ts",
+    "destination": "packages/tool-engine/src/tools/watched-folders/watched-folders.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "delta",
+        "engineName": "WatchedFoldersTool_delta",
+        "start": 6760,
+        "end": 6861,
+        "static": false
+      },
+      {
+        "name": "time",
+        "engineName": "WatchedFoldersTool_time",
+        "start": 6861,
+        "end": 6946,
+        "static": false
+      },
+      {
+        "name": "kindClass",
+        "engineName": "WatchedFoldersTool_kindClass",
+        "start": 7044,
+        "end": 7293,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 6760,
+        "end": 6861,
+        "name": "delta",
+        "kind": "MethodDeclaration",
+        "text": "protected delta(event: ChangeEvent): string { return signedBytes(event.sizeDelta, formatBytes); }"
+      },
+      {
+        "start": 6861,
+        "end": 6946,
+        "name": "time",
+        "kind": "MethodDeclaration",
+        "text": "protected time(iso: string): string { return new Date(iso).toLocaleTimeString(); }"
+      },
+      {
+        "start": 7044,
+        "end": 7293,
+        "name": "kindClass",
+        "kind": "MethodDeclaration",
+        "text": "protected kindClass(kind: ChangeKind): string {\n    return ({ created: 'text-success', modified: 'text-warning', deleted: 'text-error', renamed: 'text-accent', dude: 'text-text-muted', gap: 'text-error' } as Record<ChangeKind, string>)[kind];\n  }"
+      }
+    ],
+    "imports": [
+      "import type { ChangeEvent, ChangeKind, WatchedFolderStatus } from \"@dude/contracts/fs/watch-types\";",
+      "import { describeEvent, groupByDay, signedBytes, timelineToCsv } from \"@dude/tool-engine/tools/watched-folders/timeline-logic\";",
+      "import { formatBytes } from \"@dude/tool-engine/shared/fs/format-size\";"
+    ]
+  },
+  {
+    "source": "apps/web/src/app/tools/week-number-calculator/week-number-calculator.ts",
+    "destination": "packages/tool-engine/src/tools/week-number-calculator/week-number-calculator.embedded-engine.ts",
+    "functions": [
+      "today"
+    ],
+    "methods": [],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 400,
+        "end": 478,
+        "name": "today",
+        "kind": "FunctionDeclaration",
+        "text": "function today(): string {\n  return new Date().toISOString().slice(0, 10);\n}"
+      }
+    ],
+    "imports": []
+  },
+  {
+    "source": "apps/web/src/app/tools/windows-features/windows-features.ts",
+    "destination": "packages/tool-engine/src/tools/windows-features/windows-features.embedded-engine.ts",
+    "functions": [],
+    "methods": [
+      {
+        "name": "stateLabel",
+        "engineName": "WindowsFeaturesTool_stateLabel",
+        "start": 5291,
+        "end": 5433,
+        "static": false
+      },
+      {
+        "name": "featureCanChange",
+        "engineName": "WindowsFeaturesTool_featureCanChange",
+        "start": 5433,
+        "end": 5571,
+        "static": false
+      },
+      {
+        "name": "messageFor",
+        "engineName": "WindowsFeaturesTool_messageFor",
+        "start": 5571,
+        "end": 5690,
+        "static": false
+      }
+    ],
+    "rejected": [],
+    "declarations": [
+      {
+        "start": 5291,
+        "end": 5433,
+        "name": "stateLabel",
+        "kind": "MethodDeclaration",
+        "text": "protected stateLabel(state: WindowsFeature['state'] | WindowsCapability['state']): string {\r\n    return state.replaceAll('-', ' ');\r\n  }"
+      },
+      {
+        "start": 5433,
+        "end": 5571,
+        "name": "featureCanChange",
+        "kind": "MethodDeclaration",
+        "text": "protected featureCanChange(feature: WindowsFeature): boolean { return feature.state === 'enabled' || feature.state === 'disabled'; }"
+      },
+      {
+        "start": 5571,
+        "end": 5690,
+        "name": "messageFor",
+        "kind": "MethodDeclaration",
+        "text": "private messageFor(caught: unknown): string { return caught instanceof Error ? caught.message : String(caught); }"
+      }
+    ],
+    "imports": [
+      "import type { WindowsCapability, WindowsFeature } from \"@dude/contracts/system/feature-types\";"
+    ]
+  }
+]

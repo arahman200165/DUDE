@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/aspect-ratio-calculator/aspect-ratio-calculator.pipeline-step.ts",
+    "packages/tool-engine/src/tools/aspect-ratio-calculator/aspect-ratio-calculator.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/aspect-ratio-calculator/aspect-ratio-calculator.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/aspect-ratio-calculator/aspect-ratio-calculator.pipeline-step.spec.ts"
+  ]
+]

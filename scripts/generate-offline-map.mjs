@@ -4,9 +4,9 @@
 // answer "is this tool available offline?" or "how big is the pyodide runtime?" without it.
 //
 // Sources:
-// - dist/dude/stats.json: the esbuild metafile, emitted by `statsJson: true` in angular.json's
+// - dist/dude/browser-stats.json: the esbuild metafile, emitted by `statsJson: true` in angular.json's
 //   production config.
-//   - A tool's files are every output whose entryPoint lives under src/app/tools/<id>/ (its
+//   - A tool's files are every output whose entryPoint lives under apps/web/src/app/tools/<id>/ (its
 //     component chunk, pipeline/workspace step chunks, and workers), plus the transitive static and
 //     dynamic imports of those outputs.
 //   - The traversal stops at outputs that belong to another tool and at prefetched `app`-group
@@ -27,10 +27,10 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const BROWSER_DIR = path.join(ROOT, 'dist/dude/browser');
-const STATS_PATH = path.join(ROOT, 'dist/dude/stats.json');
+const STATS_PATH = path.join(ROOT, 'dist/dude/browser-stats.json');
 const NGSW_PATH = path.join(BROWSER_DIR, 'ngsw.json');
 const MAP_NAME = 'offline-map.json';
-const TOOL_ENTRY = /^src\/app\/tools\/([^/]+)\//;
+const TOOL_ENTRY = /^(?:apps\/web\/src\/app|packages\/tool-engine\/dist)\/tools\/([^/]+)\//;
 
 if (!existsSync(NGSW_PATH)) {
   console.log('No ngsw.json (service worker disabled for this build configuration), so skipping the offline map.');
@@ -46,6 +46,8 @@ const ngsw = JSON.parse(readFileSync(NGSW_PATH, 'utf8'));
 const basePrefix = ngsw.index.replace(/index\.html$/, '');
 const relative = (url) => (url.startsWith(basePrefix) ? url.slice(basePrefix.length) : url.replace(/^\//, ''));
 const sizeOf = (file) => statSync(path.join(BROWSER_DIR, file), { throwIfNoEntry: false })?.size ?? 0;
+// Never silently declare an unavailable chunk cacheable.
+function verifyOutput(file) { if(!existsSync(path.join(BROWSER_DIR,file)))throw new Error(`Offline dependency is missing: ${file}`); }
 
 const prefetched = new Set(
   ngsw.assetGroups.filter((group) => group.installMode === 'prefetch').flatMap((group) => group.urls.map(relative)),
@@ -83,10 +85,15 @@ for (const file of Object.keys(outputs)) {
 // `extra` is everything else the tool can pull in later: workers, pipeline/workspace step chunks,
 // and lazily imported libraries. "Make available offline" downloads both.
 const tools = {};
+// A host-supplied WASM factory is no longer imported by an engine's chunk. Include its
+// shared lazy resources in "Make available offline" so changing host ownership preserves execution.
+const hostRuntimeRoots = Object.keys(outputs).filter(file => /node_modules\/xxhash-wasm\//.test(outputs[file].entryPoint ?? ''));
+const hostRuntimeFiles = closure(undefined, hostRuntimeRoots, true);
 for (const [id, files] of Object.entries(owned)) {
-  const component = files.filter((file) => outputs[file].entryPoint === `src/app/tools/${id}/${id}.ts`);
+  const component = files.filter((file) => outputs[file].entryPoint === `apps/web/src/app/tools/${id}/${id}.ts`);
   const open = closure(id, component.length ? component : files, false);
   const all = closure(id, files, true);
+  for (const file of hostRuntimeFiles) all.add(file);
   tools[id] = { open, extra: new Set([...all].filter((file) => !open.has(file))) };
 }
 
@@ -94,7 +101,7 @@ for (const [id, files] of Object.entries(owned)) {
 // can't be opened offline until cached. They're too large to prefetch (~0.8 MB), so they're listed
 // for "Make available offline" instead.
 const shellRoots = Object.keys(outputs).filter(
-  (file) => file.endsWith('.js') && !prefetched.has(file) && /^src\/app\/(shell|core|shared)\//.test(outputs[file].entryPoint ?? ''),
+  (file) => file.endsWith('.js') && !prefetched.has(file) && /^apps\/web\/src\/app\/(shell|core|shared)\//.test(outputs[file].entryPoint ?? ''),
 );
 const shell = closure(undefined, shellRoots, true);
 
@@ -105,6 +112,7 @@ const fileIndex = new Map();
 const files = [];
 const sizes = [];
 const indexOf = (file) => {
+  verifyOutput(file);
   if (!fileIndex.has(file)) {
     fileIndex.set(file, files.length);
     files.push(file);

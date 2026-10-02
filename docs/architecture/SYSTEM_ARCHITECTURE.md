@@ -2,6 +2,8 @@
 
 The desktop is the privileged local workbench; the planned Hub is authoritative for synchronized shared state. Delivered paths are described separately from the target package/service architecture. No new Hub framework, workspace manager or resident Agent process is treated as already selected.
 
+Workspace implementation and host ownership are documented in [Portable Core](PORTABLE_CORE.md). Hub/mobile, sync and API-client reservations provide no new runtime capabilities.
+
 Read [the master PRD](../DUDE_PRD.md) first. Product direction and invariants live there; this document owns the detailed contracts in its domain.
 
 Related: [DUDE Product Specification](../product/PRODUCT_SPEC.md) · [Data, Persistence and Synchronization](DATA_SYNC_ARCHITECTURE.md) · [DUDE Security Architecture](SECURITY_ARCHITECTURE.md) · [Quality and Release Specification](../delivery/QUALITY_AND_RELEASE.md).
@@ -73,6 +75,8 @@ Tools should share a common contract where useful, while retaining freedom for d
 Each tool should define metadata equivalent to:
 
 ```ts
+// Angular composition shape: portable ToolMetadata plus application UI bindings.
+// ToolMetadata itself has no load functions or component types.
 interface ToolDefinition {
   id: string;
   title: string;
@@ -350,66 +354,26 @@ Each API-backed tool should declare:
 
 Exact naming may evolve, but keep the separation of responsibilities and the **shared-core rule**. The repository should not fork into unrelated web and desktop implementations.
 
-The baseline repository organization is preserved below for migration context. The target workspace/package layout is [DUDE Core / Shared Logic Refactor](#dude-core--shared-logic-refactor); file paths elsewhere in this PRD describe the delivered baseline until an actual migration changes them.
+The implementation uses npm workspaces with the current Node/npm pins, one root lockfile and root-controlled release versioning. See [Portable Core](PORTABLE_CORE.md) for the ownership and acceptance contract.
 
 ```text
-src/
-  app/
-    core/
-      registry/
-        manifests/
-        validation/
-      persistence/
-      workers/
-      network/
-      routing/
-      errors/
-      history/
-      workspace/
-      pipelines/
-      paste-detect/
-      platform/
-    shell/
-      layout/
-      sidebar/
-      deck/
-      command-palette/
-      search/
-      smart-paste/
-      workspace/
-      history/
-      pipelines/
-    shared/
-      components/
-      directives/
-      pipes/
-      utilities/
-      models/
-    tools/
-      <category-or-tool>/
-        <tool>.tool.ts
-        <tool>.component.ts
-        <tool>.component.html
-        <tool>.component.css
-        <tool>.logic.ts
-        <tool>.pipeline-step.ts
-        <tool>.workspace-step.ts
-        <tool>.worker.ts
-        <tool>.spec.ts
-  shared-logic/
-    # framework-neutral transforms/codecs reused by Angular, Electron,
-    # CLI, extensions, tests, SDKs, and later integrations
-
-electron/
-  # main process, preload, native adapters, local services
-
-relay/
-  # user-self-hosted collaboration relay shipped in Phase 8
-
-cli/                 # future Phase 60+
-sdk/                 # future Phase 62/97+
-extensions/          # future VS Code/browser/IDE/plugin work
+apps/web/                Angular renderer, assets, UI bindings and browser adapters
+apps/desktop/            Electron composition and native adapters
+apps/collab-relay/       Existing standalone relay
+apps/hub/, apps/mobile/  Documented future placeholders
+packages/shared-types/  Closed vocabularies
+packages/domain/        Workbench entities, metadata and scope
+packages/contracts/     Execution, worker and native/host ports
+packages/validation/    Portable validation
+packages/crypto/        Crypto and host installation
+packages/tool-engine/   Transforms, composition, tests and fixtures
+packages/tool-registry/  Authoritative manifests and generated metadata
+packages/sync/           Empty buildable future reservation
+packages/api-client/     Empty buildable future reservation
+packages/collab-protocol/ Existing Node-only Yjs rooms (not portable core)
+infrastructure/          Documented deployment/database/networking/packaging reservations
 ```
+
 
 The original V1 architectural shape — `core/`, `shell/`, `shared/`, and `tools/` under Angular — remains valid and is preserved by this expansion. Not every tool needs every file. Avoid ceremony for small utilities.
 
@@ -425,7 +389,7 @@ The renderer keeps `contextIsolation`; no direct Node access is introduced for c
 
 #### Shared logic
 
-`src/shared-logic/` was established in Phase 8 Stage 5 when Base64/hash logic needed reuse by Electron shell actions. Phase 22 broadens that precedent: if logic can reasonably be framework-neutral, it should be extractable and testable outside Angular so CLI, IDE extensions, browser extensions, SDKs, workers, Electron, and tests can reuse the same implementation.
+`apps/web/src/shared-logic/` was established in Phase 8 Stage 5 when Base64/hash logic needed reuse by Electron shell actions. Phase 22 broadens that precedent: if logic can reasonably be framework-neutral, it should be extractable and testable outside Angular so CLI, IDE extensions, browser extensions, SDKs, workers, Electron, and tests can reuse the same implementation.
 
 ### Target Architecture
 
@@ -546,10 +510,10 @@ The highest-return prerequisite remains extracting framework-independent logic.
 Current concepts such as:
 
 ```text
-src/app/tools
-src/app/core
-src/app/shared
-src/shared-logic
+apps/web/src/app/tools
+apps/web/src/app/core
+apps/web/src/app/shared
+apps/web/src/shared-logic
 ```
 
 should evolve toward reusable packages.
@@ -627,19 +591,18 @@ Migrate packages incrementally, maintaining buildable desktop and standalone web
 
 ## Suggested Tool Definition Pattern
 
-A tool should be close to self-registering and should own its canonical metadata beside its implementation.
+A tool owns canonical metadata in `packages/tool-registry/src/tools/<id>/<id>.manifest.ts`, portable engines in their package owner, and literal lazy bindings beside the Angular component. Generation joins these owners without manual core/shell registration.
 
 Conceptual example:
 
 ```ts
-export const JSON_TOOL: ToolDefinition = {
+export const manifest: ToolMetadata = {
   id: 'json',
   title: 'JSON Formatter',
   description: 'Validate, format, and minify JSON.',
   category: 'data',
   keywords: ['json', 'format', 'validate', 'pretty', 'minify'],
   route: '/tools/json',
-  load: () => import('./json.component'),
   persistence: {
     input: 'none',
     preferences: 'local'
@@ -758,7 +721,7 @@ A straightforward in-memory search is sufficient.
 
 Added in [Phase 8](../history/DELIVERY_HISTORY.md#phase-8) Stage 1 as the seam every desktop-only stage conditions on. Responsibilities:
 
-- detect the Electron desktop shell via the flag `electron/preload.ts` injects through `contextBridge` — never `navigator.userAgent` sniffing;
+- detect the Electron desktop shell via the flag `apps/desktop/preload.ts` injects through `contextBridge` — never `navigator.userAgent` sniffing;
 - expose the result as a readonly `isDesktop` signal, same shape as the Connectivity Service's `online` signal;
 - stay tool-agnostic — a boolean primitive the shell or any tool can read, never a place for desktop-feature logic itself.
 

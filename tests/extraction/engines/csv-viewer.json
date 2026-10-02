@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/csv-viewer/csv-convert-payload.ts",
+    "packages/tool-engine/src/tools/csv-viewer/csv-convert-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-viewer/csv-convert.ts",
+    "packages/tool-engine/src/tools/csv-viewer/csv-convert.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-viewer/csv-viewer.pipeline-step.ts",
+    "packages/tool-engine/src/tools/csv-viewer/csv-viewer.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-viewer/csv-convert.spec.ts",
+    "packages/tool-engine/src/tools/csv-viewer/csv-convert.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-viewer/csv-viewer.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/csv-viewer/csv-viewer.pipeline-step.spec.ts"
+  ]
+]

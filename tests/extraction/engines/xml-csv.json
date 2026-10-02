@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/xml-csv/xml-csv-payload.ts",
+    "packages/tool-engine/src/tools/xml-csv/xml-csv-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/xml-csv/xml-csv-transform.ts",
+    "packages/tool-engine/src/tools/xml-csv/xml-csv-transform.ts"
+  ],
+  [
+    "apps/web/src/app/tools/xml-csv/xml-csv.pipeline-step.ts",
+    "packages/tool-engine/src/tools/xml-csv/xml-csv.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/xml-csv/xml-csv-transform.spec.ts",
+    "packages/tool-engine/src/tools/xml-csv/xml-csv-transform.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/xml-csv/xml-csv.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/xml-csv/xml-csv.pipeline-step.spec.ts"
+  ]
+]

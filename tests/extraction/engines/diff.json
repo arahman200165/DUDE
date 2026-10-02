@@ -1,0 +1,14 @@
+[
+  [
+    "apps/web/src/app/tools/diff/text-diff-payload.ts",
+    "packages/tool-engine/src/tools/diff/text-diff-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/diff/text-diff.ts",
+    "packages/tool-engine/src/tools/diff/text-diff.ts"
+  ],
+  [
+    "apps/web/src/app/tools/diff/text-diff.spec.ts",
+    "packages/tool-engine/src/tools/diff/text-diff.spec.ts"
+  ]
+]

@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/tailwind-color-matcher/tailwind-color-matcher-logic.ts",
+    "packages/tool-engine/src/tools/tailwind-color-matcher/tailwind-color-matcher-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/tailwind-color-matcher/tailwind-color-matcher.pipeline-step.ts",
+    "packages/tool-engine/src/tools/tailwind-color-matcher/tailwind-color-matcher.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/tailwind-color-matcher/tailwind-palette-data.ts",
+    "packages/tool-engine/src/tools/tailwind-color-matcher/tailwind-palette-data.ts"
+  ],
+  [
+    "apps/web/src/app/tools/tailwind-color-matcher/tailwind-color-matcher-logic.spec.ts",
+    "packages/tool-engine/src/tools/tailwind-color-matcher/tailwind-color-matcher-logic.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/tailwind-color-matcher/tailwind-color-matcher.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/tailwind-color-matcher/tailwind-color-matcher.pipeline-step.spec.ts"
+  ]
+]

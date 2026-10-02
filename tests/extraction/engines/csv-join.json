@@ -1,0 +1,14 @@
+[
+  [
+    "apps/web/src/app/tools/csv-join/csv-join-payload.ts",
+    "packages/tool-engine/src/tools/csv-join/csv-join-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-join/csv-join-transform.ts",
+    "packages/tool-engine/src/tools/csv-join/csv-join-transform.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-join/csv-join-transform.spec.ts",
+    "packages/tool-engine/src/tools/csv-join/csv-join-transform.spec.ts"
+  ]
+]

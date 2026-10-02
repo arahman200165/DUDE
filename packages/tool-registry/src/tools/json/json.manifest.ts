@@ -1,0 +1,30 @@
+import type { ToolMetadata } from "@dude/domain/shared/models/tool-metadata.model";
+export const manifest: ToolMetadata = {
+    id: 'json',
+    desktopOpen: { extensions: ['.json'], inputKey: 'input' },
+    title: 'JSON Formatter',
+    description: 'Validate, format, and minify JSON, with an editable tree view, structural compare, and malformed-JSON repair.',
+    category: 'data',
+    keywords: [
+        'json',
+        'format',
+        'validate',
+        'pretty',
+        'minify',
+        'tree',
+        'edit',
+        'compare',
+        'diff',
+        'repair',
+    ],
+    route: '/tools/json',
+    pwaShortcut: { order: 1 },
+    status: 'verified',
+    verification: {
+        propertyTested: true,
+        summary: 'Property-tested with fast-check using round-trip checks against arbitrary valid or malformed input.',
+    },
+    persistence: { input: 'session', preferences: 'local' },
+    execution: { worker: 'optional' },
+    io: { accepts: ['text', 'json', 'file'], produces: ['json', 'text', 'file'] }
+};

@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/duplicate-files/duplicate-rules.ts",
+    "packages/tool-engine/src/tools/duplicate-files/duplicate-rules.ts"
+  ],
+  [
+    "apps/web/src/app/tools/duplicate-files/duplicate-rules.spec.ts",
+    "packages/tool-engine/src/tools/duplicate-files/duplicate-rules.spec.ts"
+  ]
+]

@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/bom-detector/bom-detector.pipeline-step.ts",
+    "packages/tool-engine/src/tools/bom-detector/bom-detector.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/bom-detector/bom-detector.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/bom-detector/bom-detector.pipeline-step.spec.ts"
+  ]
+]

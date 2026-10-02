@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
-// Verifies the GitHub Pages SPA-fallback round trip (public/404.html's
-// redirect script -> src/index.html's decode script -> Angular router)
+// Verifies the GitHub Pages SPA-fallback round trip (apps/web/public/404.html's
+// redirect script -> apps/web/src/index.html's decode script -> Angular router)
 // actually resolves a direct/bookmarked/refreshed deep tool URL, not just
 // in-app client-side navigation.
 test('direct-navigating to a nested tool URL resolves the correct tool', async ({ page }) => {

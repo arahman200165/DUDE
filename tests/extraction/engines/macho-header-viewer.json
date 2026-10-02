@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/macho-header-viewer/macho-header-viewer-logic.ts",
+    "packages/tool-engine/src/tools/macho-header-viewer/macho-header-viewer-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/macho-header-viewer/macho-header-viewer.pipeline-step.ts",
+    "packages/tool-engine/src/tools/macho-header-viewer/macho-header-viewer.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/macho-header-viewer/macho-header-viewer-logic.spec.ts",
+    "packages/tool-engine/src/tools/macho-header-viewer/macho-header-viewer-logic.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/macho-header-viewer/macho-header-viewer.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/macho-header-viewer/macho-header-viewer.pipeline-step.spec.ts"
+  ]
+]

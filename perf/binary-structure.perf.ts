@@ -1,6 +1,6 @@
 import budget from './perf-budget.json';
 import { buildBinary } from './perf-fixtures';
-import { parseStruct, StructFieldDef } from '../src/app/tools/binary-structure-inspector/binary-structure-inspector-logic';
+import { parseStruct, StructFieldDef } from "@dude/tool-engine/tools/binary-structure-inspector/binary-structure-inspector-logic";
 
 const FIELD_COUNT = 16_384;
 

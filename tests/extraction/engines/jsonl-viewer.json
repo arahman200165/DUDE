@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/jsonl-viewer/jsonl-viewer-payload.ts",
+    "packages/tool-engine/src/tools/jsonl-viewer/jsonl-viewer-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/jsonl-viewer/jsonl-viewer-transform.ts",
+    "packages/tool-engine/src/tools/jsonl-viewer/jsonl-viewer-transform.ts"
+  ],
+  [
+    "apps/web/src/app/tools/jsonl-viewer/jsonl-viewer.pipeline-step.ts",
+    "packages/tool-engine/src/tools/jsonl-viewer/jsonl-viewer.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/jsonl-viewer/jsonl-viewer-transform.spec.ts",
+    "packages/tool-engine/src/tools/jsonl-viewer/jsonl-viewer-transform.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/jsonl-viewer/jsonl-viewer.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/jsonl-viewer/jsonl-viewer.pipeline-step.spec.ts"
+  ]
+]

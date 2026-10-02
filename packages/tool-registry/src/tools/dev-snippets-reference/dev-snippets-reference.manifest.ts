@@ -1,0 +1,31 @@
+import type { ToolMetadata } from "@dude/domain/shared/models/tool-metadata.model";
+export const manifest: ToolMetadata = {
+    id: 'dev-snippets-reference',
+    title: 'Dev Snippets Reference',
+    description: 'Searchable reference of common HTTP headers, regex syntax, git/docker commands, shell idioms, SQL, CSS, HTML, Unicode, MIME types, cron syntax, and chmod.',
+    category: 'developer',
+    keywords: [
+        'snippets',
+        'reference',
+        'cheatsheet',
+        'git',
+        'docker',
+        'bash',
+        'powershell',
+        'sql',
+        'css',
+        'html',
+        'cron',
+        'chmod',
+        'headers',
+        'regex',
+    ],
+    route: '/tools/dev-snippets-reference',
+    status: 'verified',
+    verification: {
+        propertyTested: true,
+        summary: 'Fuzz-tested (fast-check): arbitrary queries filter matching entries into category groups without throwing.',
+    },
+    persistence: { input: 'local', preferences: 'none' },
+    io: { accepts: ['text'], produces: ['text'] }
+};

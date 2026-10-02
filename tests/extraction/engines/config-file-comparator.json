@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/config-file-comparator/config-file-comparator-logic.ts",
+    "packages/tool-engine/src/tools/config-file-comparator/config-file-comparator-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/config-file-comparator/config-file-comparator-logic.spec.ts",
+    "packages/tool-engine/src/tools/config-file-comparator/config-file-comparator-logic.spec.ts"
+  ]
+]

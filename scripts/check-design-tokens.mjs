@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Phase 30J/30K design-token guard. Scans src/app/shell, src/app/shared and
- * src/app/tools (templates, inline templates, component CSS; specs excluded).
+ * Phase 30J/30K design-token guard. Scans apps/web/src/app/shell, apps/web/src/app/shared and
+ * apps/web/src/app/tools (templates, inline templates, component CSS; specs excluded).
  *
  * shell/ and shared/ are checked against every rule below. tools/ is checked
  * ONLY against the color rules (palette, text-bg, hex in .html/.css) because the
@@ -19,7 +19,7 @@
  *   text-opacity - an opacity modifier on a text-color token (`text-text-muted/70`,
  *               `placeholder:text-text-muted/60`, `hover:text-accent/80` ...). Alpha silently drops
  *               text below the 4.5:1 that check-theme-contrast.mjs proves for the solid token, so
- *               drop the modifier (`text-text-muted`). Also scans src/styles.css (dude-* utilities).
+ *               drop the modifier (`text-text-muted`). Also scans apps/web/src/styles.css (dude-* utilities).
  *
  * `hex` also applies to tools/**\/*.html and *.css (hex in tool .ts is data).
  * Per-rule exemptions live in scripts/design-token-allowlist.json
@@ -37,9 +37,9 @@ import { join, relative, sep } from 'node:path';
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 const SCAN_DIRS = [
-  { dir: 'src/app/shell', full: true },
-  { dir: 'src/app/shared', full: true },
-  { dir: 'src/app/tools', full: false },
+  { dir: 'apps/web/src/app/shell', full: true },
+  { dir: 'apps/web/src/app/shared', full: true },
+  { dir: 'apps/web/src/app/tools', full: false },
 ];
 const EXTENSIONS = new Set(['.html', '.ts', '.css']);
 const enforce = process.argv.includes('--enforce');
@@ -66,7 +66,7 @@ const PALETTE_RE = new RegExp(
 );
 const TEXT_BG_RE = /(?<![\w-])text-bg(?![\w-])/g;
 
-// Color tokens from src/styles/tokens.css @theme that can follow `text-` (longest alternatives first).
+// Color tokens from apps/web/src/styles/tokens.css @theme that can follow `text-` (longest alternatives first).
 const COLOR_TOKENS =
   'text-muted|on-accent|cat-(?:data|text|encoding|security|date-time|web|developer|documents)(?:-wash|-tint)?|text|accent|error|warning|success|info|busy|offline';
 const TEXT_OPACITY_RE = new RegExp(
@@ -143,9 +143,9 @@ for (const { dir, full } of SCAN_DIRS) {
   }
 }
 {
-  const file = join(ROOT, 'src/styles.css');
+  const file = join(ROOT, 'apps/web/src/styles.css');
   const text = readFileSync(file, 'utf8');
-  if (!allowed('text-opacity', 'src/styles.css')) {
+  if (!allowed('text-opacity', 'apps/web/src/styles.css')) {
     for (const m of text.matchAll(TEXT_OPACITY_RE)) add('text-opacity', file, text, m);
   }
 }

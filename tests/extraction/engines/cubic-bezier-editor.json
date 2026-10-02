@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/cubic-bezier-editor/cubic-bezier-editor.pipeline-step.ts",
+    "packages/tool-engine/src/tools/cubic-bezier-editor/cubic-bezier-editor.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/cubic-bezier-editor/cubic-bezier-logic.ts",
+    "packages/tool-engine/src/tools/cubic-bezier-editor/cubic-bezier-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/cubic-bezier-editor/cubic-bezier-editor.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/cubic-bezier-editor/cubic-bezier-editor.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/cubic-bezier-editor/cubic-bezier-logic.spec.ts",
+    "packages/tool-engine/src/tools/cubic-bezier-editor/cubic-bezier-logic.spec.ts"
+  ]
+]

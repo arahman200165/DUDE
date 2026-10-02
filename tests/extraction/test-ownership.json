@@ -1,0 +1,4 @@
+[
+ ["apps/web/src/testing/property-harness.ts", "tests/property-harness.ts"],
+ ["packages/tool-engine/src/core/workspace/workspace-step-loader.spec.ts", "apps/web/src/app/core/workspace/workspace-step-loader.spec.ts"]
+]

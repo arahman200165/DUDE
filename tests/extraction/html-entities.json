@@ -1,0 +1,6 @@
+[
+ ["apps/web/src/app/tools/html-entities/html-entity-codec.ts", "packages/tool-engine/src/tools/html-entities/html-entity-codec.ts"],
+ ["apps/web/src/app/tools/html-entities/html-entity-codec.spec.ts", "packages/tool-engine/src/tools/html-entities/html-entity-codec.spec.ts"],
+ ["apps/web/src/app/tools/html-entities/html-entities.pipeline-step.ts", "packages/tool-engine/src/tools/html-entities/html-entities.pipeline-step.ts"],
+ ["apps/web/src/app/tools/html-entities/html-entities.pipeline-step.spec.ts", "packages/tool-engine/src/tools/html-entities/html-entities.pipeline-step.spec.ts"]
+]

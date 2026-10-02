@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/environment-variables/environment-variables-logic.ts",
+    "packages/tool-engine/src/tools/environment-variables/environment-variables-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/environment-variables/environment-variables-logic.spec.ts",
+    "packages/tool-engine/src/tools/environment-variables/environment-variables-logic.spec.ts"
+  ]
+]

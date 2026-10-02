@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/url-encode/url-encode-codec.ts",
+    "packages/tool-engine/src/tools/url-encode/url-encode-codec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/url-encode/url-encode.pipeline-step.ts",
+    "packages/tool-engine/src/tools/url-encode/url-encode.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/url-encode/url-encode-codec.spec.ts",
+    "packages/tool-engine/src/tools/url-encode/url-encode-codec.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/url-encode/url-encode.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/url-encode/url-encode.pipeline-step.spec.ts"
+  ]
+]

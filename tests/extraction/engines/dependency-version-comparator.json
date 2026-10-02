@@ -1,0 +1,6 @@
+[
+  [
+    "apps/web/src/app/tools/dependency-version-comparator/dependency-version-compare.ts",
+    "packages/tool-engine/src/tools/dependency-version-comparator/dependency-version-compare.ts"
+  ]
+]

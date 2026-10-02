@@ -28,7 +28,7 @@ export function desktopOnlyPanelIds(): string[] {
       }
     }
   };
-  walk(path.join(repoRoot, 'src', 'app'));
+  walk(path.join(repoRoot, 'apps', 'web', 'src', 'app'));
   return out;
 }
 

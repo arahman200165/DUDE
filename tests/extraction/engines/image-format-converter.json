@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/image-format-converter/format-mime.ts",
+    "packages/tool-engine/src/tools/image-format-converter/format-mime.ts"
+  ],
+  [
+    "apps/web/src/app/tools/image-format-converter/format-mime.spec.ts",
+    "packages/tool-engine/src/tools/image-format-converter/format-mime.spec.ts"
+  ]
+]

@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/find-replace-text/find-replace-logic.ts",
+    "packages/tool-engine/src/tools/find-replace-text/find-replace-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/find-replace-text/find-replace-text.pipeline-step.ts",
+    "packages/tool-engine/src/tools/find-replace-text/find-replace-text.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/find-replace-text/find-replace-logic.spec.ts",
+    "packages/tool-engine/src/tools/find-replace-text/find-replace-logic.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/find-replace-text/find-replace-text.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/find-replace-text/find-replace-text.pipeline-step.spec.ts"
+  ]
+]

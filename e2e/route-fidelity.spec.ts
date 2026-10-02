@@ -1,7 +1,7 @@
 import { Page, expect, test } from '@playwright/test';
 
 // GitHub Pages direct-route recovery (DUDE_PRD.md §10, §21 Phase 26 Item 11). A cold hit on a deep
-// URL goes through public/404.html → index.html's decode script → the Angular router. A
+// URL goes through apps/web/public/404.html → index.html's decode script → the Angular router. A
 // SW-controlled hit is served index.html directly by ngsw. Either way the final URL must equal
 // what was requested, including query and fragment. Share links (Item 12) carry tool input in the
 // fragment, so fragment fidelity is load-bearing, not cosmetic.
@@ -31,7 +31,7 @@ async function normalize(page: Page, url: string): Promise<string> {
   }, url);
 }
 
-test.describe('cold load (no service worker: public/404.html round trip)', () => {
+test.describe('cold load (no service worker: apps/web/public/404.html round trip)', () => {
   for (const { name, url, expected } of CASES) {
     test(name, async ({ page }) => {
       await page.goto(url);

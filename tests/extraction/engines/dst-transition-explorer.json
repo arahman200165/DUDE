@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/dst-transition-explorer/dst-transition-explorer-logic.ts",
+    "packages/tool-engine/src/tools/dst-transition-explorer/dst-transition-explorer-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/dst-transition-explorer/dst-transition-explorer.pipeline-step.ts",
+    "packages/tool-engine/src/tools/dst-transition-explorer/dst-transition-explorer.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/dst-transition-explorer/dst-transition-explorer-logic.spec.ts",
+    "packages/tool-engine/src/tools/dst-transition-explorer/dst-transition-explorer-logic.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/dst-transition-explorer/dst-transition-explorer.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/dst-transition-explorer/dst-transition-explorer.pipeline-step.spec.ts"
+  ]
+]

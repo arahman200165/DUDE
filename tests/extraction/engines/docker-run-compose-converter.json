@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/docker-run-compose-converter/docker-run-compose-converter-logic.ts",
+    "packages/tool-engine/src/tools/docker-run-compose-converter/docker-run-compose-converter-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/docker-run-compose-converter/docker-run-compose-converter.pipeline-step.ts",
+    "packages/tool-engine/src/tools/docker-run-compose-converter/docker-run-compose-converter.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/docker-run-compose-converter/docker-run-compose-converter-logic.spec.ts",
+    "packages/tool-engine/src/tools/docker-run-compose-converter/docker-run-compose-converter-logic.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/docker-run-compose-converter/docker-run-compose-converter.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/docker-run-compose-converter/docker-run-compose-converter.pipeline-step.spec.ts"
+  ]
+]

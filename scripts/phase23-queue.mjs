@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
-const TOOLS_DIR = path.join(ROOT, 'src/app/tools');
+const TOOLS_DIR = path.join(ROOT, 'apps/web/src/app/tools');
 const OUT_DIR = path.join(ROOT, '.phase23');
 const OUT_FILE = path.join(OUT_DIR, 'ledger.json');
 

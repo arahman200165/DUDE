@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/csv-cleaner/csv-clean-payload.ts",
+    "packages/tool-engine/src/tools/csv-cleaner/csv-clean-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-cleaner/csv-clean.ts",
+    "packages/tool-engine/src/tools/csv-cleaner/csv-clean.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-cleaner/csv-cleaner.pipeline-step.ts",
+    "packages/tool-engine/src/tools/csv-cleaner/csv-cleaner.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-cleaner/csv-clean.spec.ts",
+    "packages/tool-engine/src/tools/csv-cleaner/csv-clean.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-cleaner/csv-cleaner.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/csv-cleaner/csv-cleaner.pipeline-step.spec.ts"
+  ]
+]

@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/matrix-calculator/matrix-calculate.ts",
+    "packages/tool-engine/src/tools/matrix-calculator/matrix-calculate.ts"
+  ],
+  [
+    "apps/web/src/app/tools/matrix-calculator/matrix-calculator.pipeline-step.ts",
+    "packages/tool-engine/src/tools/matrix-calculator/matrix-calculator.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/matrix-calculator/matrix-worker-payload.ts",
+    "packages/tool-engine/src/tools/matrix-calculator/matrix-worker-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/matrix-calculator/matrix-calculate.spec.ts",
+    "packages/tool-engine/src/tools/matrix-calculator/matrix-calculate.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/matrix-calculator/matrix-calculator.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/matrix-calculator/matrix-calculator.pipeline-step.spec.ts"
+  ]
+]

@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/dev-snippets-reference/dev-snippets-data.ts",
+    "packages/tool-engine/src/tools/dev-snippets-reference/dev-snippets-data.ts"
+  ],
+  [
+    "apps/web/src/app/tools/dev-snippets-reference/dev-snippets-reference.pipeline-step.ts",
+    "packages/tool-engine/src/tools/dev-snippets-reference/dev-snippets-reference.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/dev-snippets-reference/dev-snippets-search.ts",
+    "packages/tool-engine/src/tools/dev-snippets-reference/dev-snippets-search.ts"
+  ],
+  [
+    "apps/web/src/app/tools/dev-snippets-reference/dev-snippets-reference.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/dev-snippets-reference/dev-snippets-reference.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/dev-snippets-reference/dev-snippets-search.spec.ts",
+    "packages/tool-engine/src/tools/dev-snippets-reference/dev-snippets-search.spec.ts"
+  ]
+]

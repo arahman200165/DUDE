@@ -1,6 +1,6 @@
 import budget from './perf-budget.json';
 import { buildDiffPair } from './perf-fixtures';
-import { computeLineDiff } from '../src/app/tools/diff/text-diff';
+import { computeLineDiff } from "@dude/tool-engine/tools/diff/text-diff";
 
 describe('computeLineDiff performance', () => {
   it(`diffs two 10,000-line texts in under ${budget.textDiff10kLines}ms`, () => {

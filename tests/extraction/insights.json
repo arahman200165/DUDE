@@ -1,0 +1,4 @@
+[
+ ["apps/web/src/app/shell/insights/insights-model.ts", "packages/tool-engine/src/shell/insights/insights-model.ts"],
+ ["apps/web/src/app/shell/insights/insights-model.spec.ts", "packages/tool-engine/src/shell/insights/insights-model.spec.ts"]
+]

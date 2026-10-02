@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/curl-converter/curl-converter.pipeline-step.ts",
+    "packages/tool-engine/src/tools/curl-converter/curl-converter.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/curl-converter/curl-parse.ts",
+    "packages/tool-engine/src/tools/curl-converter/curl-parse.ts"
+  ],
+  [
+    "apps/web/src/app/tools/curl-converter/curl-shell-lex.ts",
+    "packages/tool-engine/src/tools/curl-converter/curl-shell-lex.ts"
+  ],
+  [
+    "apps/web/src/app/tools/curl-converter/curl-converter.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/curl-converter/curl-converter.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/curl-converter/curl-shell-lex.spec.ts",
+    "packages/tool-engine/src/tools/curl-converter/curl-shell-lex.spec.ts"
+  ]
+]

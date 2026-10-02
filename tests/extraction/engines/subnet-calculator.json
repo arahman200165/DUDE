@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/subnet-calculator/subnet-calculator-logic.ts",
+    "packages/tool-engine/src/tools/subnet-calculator/subnet-calculator-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/subnet-calculator/subnet-calculator.pipeline-step.ts",
+    "packages/tool-engine/src/tools/subnet-calculator/subnet-calculator.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/subnet-calculator/subnet-calculator-logic.spec.ts",
+    "packages/tool-engine/src/tools/subnet-calculator/subnet-calculator-logic.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/subnet-calculator/subnet-calculator.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/subnet-calculator/subnet-calculator.pipeline-step.spec.ts"
+  ]
+]

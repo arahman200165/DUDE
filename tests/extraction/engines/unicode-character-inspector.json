@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/unicode-character-inspector/unicode-char-analyze.ts",
+    "packages/tool-engine/src/tools/unicode-character-inspector/unicode-char-analyze.ts"
+  ],
+  [
+    "apps/web/src/app/tools/unicode-character-inspector/unicode-character-inspector.pipeline-step.ts",
+    "packages/tool-engine/src/tools/unicode-character-inspector/unicode-character-inspector.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/unicode-character-inspector/unicode-name.d.ts",
+    "packages/tool-engine/src/tools/unicode-character-inspector/unicode-name.d.ts"
+  ],
+  [
+    "apps/web/src/app/tools/unicode-character-inspector/unicode-char-analyze.spec.ts",
+    "packages/tool-engine/src/tools/unicode-character-inspector/unicode-char-analyze.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/unicode-character-inspector/unicode-character-inspector.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/unicode-character-inspector/unicode-character-inspector.pipeline-step.spec.ts"
+  ]
+]

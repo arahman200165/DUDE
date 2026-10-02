@@ -4,7 +4,7 @@ Automated sweep of every Settings › Appearance axis combination against the pr
 
 ## What it covers
 
-- `combos.ts` reads `src/styles/theme/theme-tokens.json` at runtime and builds the full cross-product of every color-affecting axis in `axes` (the `SIZE_AXES` uiSize, monoSize and ligatures are pinned to defaults: 2 x 2 x 6 x 3 x 2 x 3 x 2 = 864 combos). New values or axes added by later milestones are picked up with no test edits.
+- `combos.ts` reads `apps/web/src/styles/theme/theme-tokens.json` at runtime and builds the full cross-product of every color-affecting axis in `axes` (the `SIZE_AXES` uiSize, monoSize and ligatures are pinned to defaults: 2 x 2 x 6 x 3 x 2 x 3 x 2 = 864 combos). New values or axes added by later milestones are picked up with no test edits.
 - `matrix.spec.ts`, one test per combination. Preferences are seeded into `dude:v1:settings:appearance` before any page script runs. Pages visited: Home, the Ctrl+K command palette (opened, populated, closed), Browse Tools, Settings › Appearance, and one tool (rotates through 8 tools, one per category, by combination index).
 - Checks per page (all `expect.soft`, so one test reports every failure for its combination):
   - pre-paint: `<html>` `data-*` attributes are already correct when the first `<body>` element appears (MutationObserver probe, see `checks.ts`), and still correct after Angular boots;

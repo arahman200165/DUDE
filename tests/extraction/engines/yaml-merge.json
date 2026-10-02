@@ -1,0 +1,14 @@
+[
+  [
+    "apps/web/src/app/tools/yaml-merge/yaml-merge-payload.ts",
+    "packages/tool-engine/src/tools/yaml-merge/yaml-merge-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/yaml-merge/yaml-merge-transform.ts",
+    "packages/tool-engine/src/tools/yaml-merge/yaml-merge-transform.ts"
+  ],
+  [
+    "apps/web/src/app/tools/yaml-merge/yaml-merge-transform.spec.ts",
+    "packages/tool-engine/src/tools/yaml-merge/yaml-merge-transform.spec.ts"
+  ]
+]

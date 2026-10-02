@@ -1,0 +1,6 @@
+[
+  [
+    "apps/web/src/app/tools/html-entity-explorer/html-entity-names.ts",
+    "packages/tool-engine/src/tools/html-entity-explorer/html-entity-names.ts"
+  ]
+]

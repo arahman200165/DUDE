@@ -1,0 +1,26 @@
+[
+  [
+    "apps/web/src/app/tools/cookie-tools/cookie-header.ts",
+    "packages/tool-engine/src/tools/cookie-tools/cookie-header.ts"
+  ],
+  [
+    "apps/web/src/app/tools/cookie-tools/cookie-tools.pipeline-step.ts",
+    "packages/tool-engine/src/tools/cookie-tools/cookie-tools.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/cookie-tools/set-cookie.ts",
+    "packages/tool-engine/src/tools/cookie-tools/set-cookie.ts"
+  ],
+  [
+    "apps/web/src/app/tools/cookie-tools/cookie-header.spec.ts",
+    "packages/tool-engine/src/tools/cookie-tools/cookie-header.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/cookie-tools/cookie-tools.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/cookie-tools/cookie-tools.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/cookie-tools/set-cookie.spec.ts",
+    "packages/tool-engine/src/tools/cookie-tools/set-cookie.spec.ts"
+  ]
+]

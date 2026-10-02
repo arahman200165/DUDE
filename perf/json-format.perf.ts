@@ -1,6 +1,6 @@
 import budget from './perf-budget.json';
 import { buildLargeJsonText } from './perf-fixtures';
-import { processJson } from '../src/app/tools/json/json-format';
+import { processJson } from "@dude/tool-engine/tools/json/json-format";
 
 describe('processJson performance', () => {
   it(`pretty-prints a ~5MB JSON document in under ${budget.jsonFormat5MbPrettyPrint}ms`, () => {

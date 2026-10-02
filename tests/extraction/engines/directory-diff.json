@@ -1,0 +1,26 @@
+[
+  [
+    "apps/web/src/app/tools/directory-diff/directory-tree-diff.ts",
+    "packages/tool-engine/src/tools/directory-diff/directory-tree-diff.ts"
+  ],
+  [
+    "apps/web/src/app/tools/directory-diff/directory-tree-scan.ts",
+    "packages/tool-engine/src/tools/directory-diff/directory-tree-scan.ts"
+  ],
+  [
+    "apps/web/src/app/tools/directory-diff/directory-diff.parity.spec.ts",
+    "packages/tool-engine/src/tools/directory-diff/directory-diff.parity.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/directory-diff/directory-diff.property.spec.ts",
+    "packages/tool-engine/src/tools/directory-diff/directory-diff.property.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/directory-diff/directory-tree-diff.spec.ts",
+    "packages/tool-engine/src/tools/directory-diff/directory-tree-diff.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/directory-diff/directory-tree-scan.spec.ts",
+    "packages/tool-engine/src/tools/directory-diff/directory-tree-scan.spec.ts"
+  ]
+]

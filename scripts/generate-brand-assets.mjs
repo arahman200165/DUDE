@@ -115,7 +115,7 @@ function buildOgSvg() {
 }
 
 // Light-surface variant of the (hand-maintained) dark lockup at
-// public/brand/dude-logo-lockup.svg: the light-on-dark wordmark/tagline/icon
+// apps/web/public/brand/dude-logo-lockup.svg: the light-on-dark wordmark/tagline/icon
 // outline/divider are swapped for dark-on-light equivalents, and the cyan bars
 // use the darker accent so they read on a white/light panel. The purple play
 // glyph reads on both surfaces and is kept.

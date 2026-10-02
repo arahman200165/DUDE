@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/compression-lab/compression-lab-transform.ts",
+    "packages/tool-engine/src/tools/compression-lab/compression-lab-transform.ts"
+  ],
+  [
+    "apps/web/src/app/tools/compression-lab/compression-lab.pipeline-step.ts",
+    "packages/tool-engine/src/tools/compression-lab/compression-lab.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/compression-lab/compression-lab-transform.spec.ts",
+    "packages/tool-engine/src/tools/compression-lab/compression-lab-transform.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/compression-lab/compression-lab.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/compression-lab/compression-lab.pipeline-step.spec.ts"
+  ]
+]

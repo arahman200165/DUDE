@@ -1,0 +1,54 @@
+<app-tool-shell>
+  <div class="flex h-full flex-col gap-3">
+    <div class="flex flex-col gap-1">
+      <span class="text-ui text-text-muted">Pattern</span>
+      <input
+        type="text"
+        class="w-full rounded-sm border border-border bg-panel px-2 py-1 font-mono text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
+        placeholder="e.g. apps/web/src/**/*.spec.ts"
+        [value]="pattern()"
+        (input)="onPatternChange($event)"
+      />
+    </div>
+
+    <div class="flex flex-wrap items-center gap-4 text-ui text-text-muted">
+      <label class="flex items-center gap-1.5">
+        <input type="checkbox" [checked]="dot()" (change)="toggleDot()" />
+        Match dotfiles
+      </label>
+      <label class="flex items-center gap-1.5">
+        <input type="checkbox" [checked]="nocase()" (change)="toggleNocase()" />
+        Case-insensitive
+      </label>
+      <label class="flex items-center gap-1.5">
+        <input type="checkbox" [checked]="treatBackslashAsSeparator()" (change)="toggleBackslash()" />
+        Treat backslash as separator
+      </label>
+    </div>
+
+    <div class="flex flex-col gap-1">
+      <span class="text-ui text-text-muted">Candidate paths (one per line)</span>
+      <textarea
+        rows="6"
+        class="w-full rounded-sm border border-border bg-panel px-2 py-1 font-mono text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
+        [value]="paths()"
+        (input)="onPathsChange($event)"
+      ></textarea>
+    </div>
+
+    @if (result(); as current) {
+      @if (current.ok) {
+        <div class="flex min-h-0 flex-1 flex-col gap-1">
+          <span class="text-ui text-text-muted">
+            {{ matchCount() }} of {{ current.results.length }} paths matched
+          </span>
+          <div class="min-h-32 flex-1 overflow-auto rounded-sm border border-border">
+            <app-data-table [columns]="['Path', 'Result'] | simpleColumns" [rows]="tableRows()" />
+          </div>
+        </div>
+      } @else {
+        <app-error-panel [message]="current.error" />
+      }
+    }
+  </div>
+</app-tool-shell>

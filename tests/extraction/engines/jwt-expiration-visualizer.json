@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/jwt-expiration-visualizer/jwt-expiration-visualizer-logic.ts",
+    "packages/tool-engine/src/tools/jwt-expiration-visualizer/jwt-expiration-visualizer-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/jwt-expiration-visualizer/jwt-expiration-visualizer.pipeline-step.ts",
+    "packages/tool-engine/src/tools/jwt-expiration-visualizer/jwt-expiration-visualizer.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/jwt-expiration-visualizer/jwt-expiration-visualizer-logic.spec.ts",
+    "packages/tool-engine/src/tools/jwt-expiration-visualizer/jwt-expiration-visualizer-logic.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/jwt-expiration-visualizer/jwt-expiration-visualizer.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/jwt-expiration-visualizer/jwt-expiration-visualizer.pipeline-step.spec.ts"
+  ]
+]

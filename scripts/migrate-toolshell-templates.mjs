@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
-const TOOLS_DIR = path.join(ROOT, 'src/app/tools');
+const TOOLS_DIR = path.join(ROOT, 'apps/web/src/app/tools');
 
 function findHtmlFiles(dir) {
   const results = [];

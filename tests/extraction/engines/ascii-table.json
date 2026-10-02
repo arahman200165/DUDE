@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/ascii-table/ascii-table-data.ts",
+    "packages/tool-engine/src/tools/ascii-table/ascii-table-data.ts"
+  ],
+  [
+    "apps/web/src/app/tools/ascii-table/ascii-table-search.ts",
+    "packages/tool-engine/src/tools/ascii-table/ascii-table-search.ts"
+  ],
+  [
+    "apps/web/src/app/tools/ascii-table/ascii-table.pipeline-step.ts",
+    "packages/tool-engine/src/tools/ascii-table/ascii-table.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/ascii-table/ascii-table-search.spec.ts",
+    "packages/tool-engine/src/tools/ascii-table/ascii-table-search.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/ascii-table/ascii-table.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/ascii-table/ascii-table.pipeline-step.spec.ts"
+  ]
+]

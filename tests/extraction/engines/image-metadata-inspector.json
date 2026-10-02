@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/image-metadata-inspector/image-metadata-inspector.pipeline-step.ts",
+    "packages/tool-engine/src/tools/image-metadata-inspector/image-metadata-inspector.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/image-metadata-inspector/png-header.ts",
+    "packages/tool-engine/src/tools/image-metadata-inspector/png-header.ts"
+  ],
+  [
+    "apps/web/src/app/tools/image-metadata-inspector/image-metadata-inspector-golden.spec.ts",
+    "packages/tool-engine/src/tools/image-metadata-inspector/image-metadata-inspector-golden.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/image-metadata-inspector/image-metadata-inspector.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/image-metadata-inspector/image-metadata-inspector.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/image-metadata-inspector/png-header.spec.ts",
+    "packages/tool-engine/src/tools/image-metadata-inspector/png-header.spec.ts"
+  ]
+]

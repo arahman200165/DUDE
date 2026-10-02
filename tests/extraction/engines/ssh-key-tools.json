@@ -1,0 +1,26 @@
+[
+  [
+    "apps/web/src/app/tools/ssh-key-tools/ssh-key-logic.ts",
+    "packages/tool-engine/src/tools/ssh-key-tools/ssh-key-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/ssh-key-tools/ssh-key-tools.pipeline-step.ts",
+    "packages/tool-engine/src/tools/ssh-key-tools/ssh-key-tools.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/ssh-key-tools/ssh-wire-format.ts",
+    "packages/tool-engine/src/tools/ssh-key-tools/ssh-wire-format.ts"
+  ],
+  [
+    "apps/web/src/app/tools/ssh-key-tools/ssh-key-logic.spec.ts",
+    "packages/tool-engine/src/tools/ssh-key-tools/ssh-key-logic.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/ssh-key-tools/ssh-key-tools.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/ssh-key-tools/ssh-key-tools.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/ssh-key-tools/ssh-wire-format.spec.ts",
+    "packages/tool-engine/src/tools/ssh-key-tools/ssh-wire-format.spec.ts"
+  ]
+]

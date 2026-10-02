@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/box-shadow-generator/box-shadow-generator.pipeline-step.ts",
+    "packages/tool-engine/src/tools/box-shadow-generator/box-shadow-generator.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/box-shadow-generator/box-shadow-logic.ts",
+    "packages/tool-engine/src/tools/box-shadow-generator/box-shadow-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/box-shadow-generator/box-shadow-generator.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/box-shadow-generator/box-shadow-generator.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/box-shadow-generator/box-shadow-logic.spec.ts",
+    "packages/tool-engine/src/tools/box-shadow-generator/box-shadow-logic.spec.ts"
+  ]
+]

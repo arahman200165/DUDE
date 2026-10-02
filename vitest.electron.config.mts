@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitest/config';
 
-// `electron/` is deliberately outside `tsconfig.app.json`/the main `ng test` Vitest project
-// (its own tsconfig, CommonJS + Node types — see electron/AGENTS.md), so this is a small,
+// `apps/desktop/` is deliberately outside `tsconfig.app.json`/the main `ng test` Vitest project
+// (its own tsconfig, CommonJS + Node types — see apps/desktop/AGENTS.md), so this is a small,
 // separate Vitest project rather than folding it into the app's test scope. Covers
 // DUDE_PRD.md §21 Phase 23 Item 9's Electron contextIsolation/preload-boundary regression check.
 //
@@ -9,7 +9,9 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['electron/**/*.spec.ts'],
+    include: ['apps/desktop/**/*.spec.ts'],
     globals: true,
+    setupFiles: ['tests/engine-host.setup.ts'],
+    maxWorkers: 4,
   },
 });

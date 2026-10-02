@@ -1,0 +1,14 @@
+[
+  [
+    "apps/web/src/app/tools/escape-unescape-toolkit/escape-unescape-toolkit.pipeline-step.ts",
+    "packages/tool-engine/src/tools/escape-unescape-toolkit/escape-unescape-toolkit.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/escape-unescape-toolkit/escape-unescape.ts",
+    "packages/tool-engine/src/tools/escape-unescape-toolkit/escape-unescape.ts"
+  ],
+  [
+    "apps/web/src/app/tools/escape-unescape-toolkit/escape-unescape-toolkit.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/escape-unescape-toolkit/escape-unescape-toolkit.pipeline-step.spec.ts"
+  ]
+]

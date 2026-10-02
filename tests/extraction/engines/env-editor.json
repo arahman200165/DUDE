@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/env-editor/env-editor.pipeline-step.ts",
+    "packages/tool-engine/src/tools/env-editor/env-editor.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/env-editor/env-format.ts",
+    "packages/tool-engine/src/tools/env-editor/env-format.ts"
+  ],
+  [
+    "apps/web/src/app/tools/env-editor/env-editor.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/env-editor/env-editor.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/env-editor/env-format.spec.ts",
+    "packages/tool-engine/src/tools/env-editor/env-format.spec.ts"
+  ]
+]

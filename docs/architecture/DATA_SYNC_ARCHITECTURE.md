@@ -2,6 +2,8 @@
 
 This specification separates canonical Hub state from local Device Stores, retained inputs and synchronization consent. Delivered local persistence remains supported; the distributed stores and protocol are planned.
 
+Workspace implementation and host ownership are documented in [Portable Core](PORTABLE_CORE.md#data-scope). Hub/mobile, sync and API-client reservations provide no new runtime capabilities.
+
 Read [the master PRD](../DUDE_PRD.md) first. Product direction and invariants live there; this document owns the detailed contracts in its domain.
 
 Related: [DUDE System Architecture](SYSTEM_ARCHITECTURE.md) · [DUDE Security Architecture](SECURITY_ARCHITECTURE.md) · [DUDE Product Specification](../product/PRODUCT_SPEC.md) · [Quality and Release Specification](../delivery/QUALITY_AND_RELEASE.md).

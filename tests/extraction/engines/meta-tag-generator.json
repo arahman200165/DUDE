@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/meta-tag-generator/meta-tag-generator.pipeline-step.ts",
+    "packages/tool-engine/src/tools/meta-tag-generator/meta-tag-generator.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/meta-tag-generator/meta-tag-logic.ts",
+    "packages/tool-engine/src/tools/meta-tag-generator/meta-tag-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/meta-tag-generator/meta-tag-generator.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/meta-tag-generator/meta-tag-generator.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/meta-tag-generator/meta-tag-logic.spec.ts",
+    "packages/tool-engine/src/tools/meta-tag-generator/meta-tag-logic.spec.ts"
+  ]
+]

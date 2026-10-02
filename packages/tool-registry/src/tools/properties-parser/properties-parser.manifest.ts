@@ -1,0 +1,18 @@
+import type { ToolMetadata } from "@dude/domain/shared/models/tool-metadata.model";
+export const manifest: ToolMetadata = {
+    id: 'properties-parser',
+    title: 'Properties File Parser',
+    description: 'Convert between Java-style .properties files and JSON, in either direction.',
+    category: 'data',
+    keywords: ['properties', 'java', 'parse', 'config', 'key value'],
+    route: '/tools/properties-parser',
+    status: 'verified',
+    verification: {
+        propertyTested: true,
+        summary: 'Round-trips nonempty flat JSON string maps through Java properties formatting with arbitrary string values.',
+    },
+    persistence: { input: 'session', preferences: 'local' },
+    fileInput: { key: 'input', extensions: ['.properties'] },
+    execution: { worker: 'optional' },
+    io: { accepts: ['text', 'json', 'file'], produces: ['json', 'text', 'file'] }
+};

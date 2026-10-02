@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/bearer-token-builder/bearer-token-builder-logic.ts",
+    "packages/tool-engine/src/tools/bearer-token-builder/bearer-token-builder-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/bearer-token-builder/bearer-token-builder.pipeline-step.ts",
+    "packages/tool-engine/src/tools/bearer-token-builder/bearer-token-builder.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/bearer-token-builder/bearer-token-builder-logic.spec.ts",
+    "packages/tool-engine/src/tools/bearer-token-builder/bearer-token-builder-logic.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/bearer-token-builder/bearer-token-builder.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/bearer-token-builder/bearer-token-builder.pipeline-step.spec.ts"
+  ]
+]

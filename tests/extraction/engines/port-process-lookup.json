@@ -1,0 +1,6 @@
+[
+  [
+    "apps/web/src/app/tools/port-process-lookup/port-process-lookup-logic.ts",
+    "packages/tool-engine/src/tools/port-process-lookup/port-process-lookup-logic.ts"
+  ]
+]

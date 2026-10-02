@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/css-grid-playground/css-grid-logic.ts",
+    "packages/tool-engine/src/tools/css-grid-playground/css-grid-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/css-grid-playground/css-grid-logic.spec.ts",
+    "packages/tool-engine/src/tools/css-grid-playground/css-grid-logic.spec.ts"
+  ]
+]

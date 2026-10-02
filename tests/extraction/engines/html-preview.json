@@ -1,0 +1,14 @@
+[
+  [
+    "apps/web/src/app/tools/html-preview/live-html-preview-doc.ts",
+    "packages/tool-engine/src/tools/html-preview/live-html-preview-doc.ts"
+  ],
+  [
+    "apps/web/src/app/tools/html-preview/html-preview.property.spec.ts",
+    "packages/tool-engine/src/tools/html-preview/html-preview.property.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/html-preview/live-html-preview-doc.spec.ts",
+    "packages/tool-engine/src/tools/html-preview/live-html-preview-doc.spec.ts"
+  ]
+]

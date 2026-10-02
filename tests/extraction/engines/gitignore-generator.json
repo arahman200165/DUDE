@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/gitignore-generator/gitignore-generator-logic.ts",
+    "packages/tool-engine/src/tools/gitignore-generator/gitignore-generator-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/gitignore-generator/gitignore-generator.pipeline-step.ts",
+    "packages/tool-engine/src/tools/gitignore-generator/gitignore-generator.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/gitignore-generator/gitignore-templates-data.ts",
+    "packages/tool-engine/src/tools/gitignore-generator/gitignore-templates-data.ts"
+  ],
+  [
+    "apps/web/src/app/tools/gitignore-generator/gitignore-generator-logic.spec.ts",
+    "packages/tool-engine/src/tools/gitignore-generator/gitignore-generator-logic.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/gitignore-generator/gitignore-generator.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/gitignore-generator/gitignore-generator.pipeline-step.spec.ts"
+  ]
+]

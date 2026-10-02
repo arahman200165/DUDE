@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/string-similarity-calculator/string-similarity.ts",
+    "packages/tool-engine/src/tools/string-similarity-calculator/string-similarity.ts"
+  ],
+  [
+    "apps/web/src/app/tools/string-similarity-calculator/string-similarity.spec.ts",
+    "packages/tool-engine/src/tools/string-similarity-calculator/string-similarity.spec.ts"
+  ]
+]

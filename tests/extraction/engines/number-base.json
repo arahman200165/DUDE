@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/number-base/number-base-convert.ts",
+    "packages/tool-engine/src/tools/number-base/number-base-convert.ts"
+  ],
+  [
+    "apps/web/src/app/tools/number-base/number-base-convert.spec.ts",
+    "packages/tool-engine/src/tools/number-base/number-base-convert.spec.ts"
+  ]
+]

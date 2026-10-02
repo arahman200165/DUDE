@@ -1,0 +1,26 @@
+[
+  [
+    "apps/web/src/app/tools/url-inspector/uri-component-visualizer.ts",
+    "packages/tool-engine/src/tools/url-inspector/uri-component-visualizer.ts"
+  ],
+  [
+    "apps/web/src/app/tools/url-inspector/url-inspector.pipeline-step.ts",
+    "packages/tool-engine/src/tools/url-inspector/url-inspector.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/url-inspector/url-parts.ts",
+    "packages/tool-engine/src/tools/url-inspector/url-parts.ts"
+  ],
+  [
+    "apps/web/src/app/tools/url-inspector/uri-component-visualizer.spec.ts",
+    "packages/tool-engine/src/tools/url-inspector/uri-component-visualizer.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/url-inspector/url-inspector.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/url-inspector/url-inspector.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/url-inspector/url-parts.spec.ts",
+    "packages/tool-engine/src/tools/url-inspector/url-parts.spec.ts"
+  ]
+]

@@ -25,6 +25,8 @@ Selected quality posture:
 
 Testing should protect the framework and critical paths, not chase a coverage number.
 
+Phase 31A keeps root commands as wrappers: `npm test` runs portable transform/contract tests and then Angular adapter tests; `npm run test:electron` covers main/preload trust boundaries. `npm run test:high-consequence` includes extracted engine tests and existing application confirmation tests. `check:portable`, `check:boundaries`, `check:hosts` and `check:inventory` verify independent package consumption, host separation, host declarations and source/scope inventories. `check:clean` builds a fresh installation twice and compares every production asset, normalizing only Angular's service-worker timestamp. Windows acceptance uses `check:desktop` after the Electron production build and native helper compilation; its isolated profile, stable fixture origin and picker fixtures do not change OS protocol or login settings. `audit:prod` audits production dependencies and fails on any high or critical advisory outside its documented accepted list; an accepted entry fails again once a fix is published.
+
 ### Required test targets
 
 #### Unit tests

@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/hmac-generator/hmac-generator-logic.ts",
+    "packages/tool-engine/src/tools/hmac-generator/hmac-generator-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/hmac-generator/hmac-generator-logic.spec.ts",
+    "packages/tool-engine/src/tools/hmac-generator/hmac-generator-logic.spec.ts"
+  ]
+]

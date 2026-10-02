@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/image-resizer/resize-dimensions.ts",
+    "packages/tool-engine/src/tools/image-resizer/resize-dimensions.ts"
+  ],
+  [
+    "apps/web/src/app/tools/image-resizer/resize-dimensions.spec.ts",
+    "packages/tool-engine/src/tools/image-resizer/resize-dimensions.spec.ts"
+  ]
+]

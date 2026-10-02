@@ -1,0 +1,6 @@
+[
+  [
+    "apps/web/src/app/tools/image-compressor/image-compressor-savings.ts",
+    "packages/tool-engine/src/tools/image-compressor/image-compressor-savings.ts"
+  ]
+]

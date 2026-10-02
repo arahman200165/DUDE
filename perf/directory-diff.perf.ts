@@ -1,6 +1,6 @@
 import budget from './perf-budget.json';
 import { buildBinary } from './perf-fixtures';
-import { diffDirectoryPayload, DirectoryDiffFileEntry } from '../src/app/tools/directory-diff/directory-tree-diff';
+import { diffDirectoryPayload, DirectoryDiffFileEntry } from "@dude/tool-engine/tools/directory-diff/directory-tree-diff";
 
 const FILE_COUNT_PER_SIDE = 2_000;
 const FILE_SIZE = 1_024;

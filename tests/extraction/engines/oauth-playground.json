@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/oauth-playground/oauth-playground-logic.ts",
+    "packages/tool-engine/src/tools/oauth-playground/oauth-playground-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/oauth-playground/oauth-playground.pipeline-step.ts",
+    "packages/tool-engine/src/tools/oauth-playground/oauth-playground.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/oauth-playground/oauth-playground-logic.spec.ts",
+    "packages/tool-engine/src/tools/oauth-playground/oauth-playground-logic.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/oauth-playground/oauth-playground.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/oauth-playground/oauth-playground.pipeline-step.spec.ts"
+  ]
+]

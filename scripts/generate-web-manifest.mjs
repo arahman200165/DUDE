@@ -1,4 +1,4 @@
-// Generates public/manifest.webmanifest (DUDE_PRD.md §21 Phase 26 Item 9) from tool manifests, so
+// Generates apps/web/public/manifest.webmanifest (DUDE_PRD.md §21 Phase 26 Item 9) from tool manifests, so
 // installed-PWA metadata can't drift from the registry:
 // - `shortcuts`: tools opting in with `pwaShortcut: { order }`, in ascending order.
 // - `file_handlers`: every extension a tool claims through `desktopOpen.extensions`, the same
@@ -15,10 +15,11 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readManifests } from './tool-manifests.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const TOOLS_DIR = path.join(ROOT, 'src/app/tools');
-const MANIFEST_PATH = path.join(ROOT, 'public/manifest.webmanifest');
+const TOOLS_DIR = path.join(ROOT, 'apps/web/src/app/tools');
+const MANIFEST_PATH = path.join(ROOT, 'apps/web/public/manifest.webmanifest');
 const MAX_SHORTCUTS = 10;
 
 function findManifests(dir) {
@@ -31,19 +32,10 @@ function findManifests(dir) {
 
 const field = (text, name) => text.match(new RegExp(`\\n  ${name}:\\s*'((?:[^'\\\\]|\\\\.)*)'`))?.[1]?.replace(/\\(.)/g, '$1');
 
-const tools = findManifests(TOOLS_DIR).map((file) => {
-  const text = readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
-  const open = text.match(/desktopOpen:\s*\{([^}]+)\}/s)?.[1];
-  return {
-    id: field(text, 'id'),
-    title: field(text, 'title'),
-    shortTitle: field(text, 'shortTitle'),
-    description: field(text, 'description'),
-    route: field(text, 'route'),
-    shortcutOrder: Number(text.match(/pwaShortcut:\s*\{\s*order:\s*(\d+)\s*\}/)?.[1] ?? NaN),
-    extensions: [...(open?.match(/extensions:\s*\[([^\]]*)\]/s)?.[1] ?? '').matchAll(/['"](\.[a-z0-9]+)['"]/g)].map((m) => m[1]),
-  };
-});
+const tools = readManifests().map(({metadata}) => ({
+  ...metadata, shortcutOrder: metadata.pwaShortcut?.order ?? NaN,
+  extensions: metadata.desktopOpen?.extensions ?? [],
+}));
 
 const shortcuts = tools
   .filter((tool) => Number.isFinite(tool.shortcutOrder))

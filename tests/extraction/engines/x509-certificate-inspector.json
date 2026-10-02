@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/x509-certificate-inspector/x509-certificate-inspector.pipeline-step.ts",
+    "packages/tool-engine/src/tools/x509-certificate-inspector/x509-certificate-inspector.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/x509-certificate-inspector/x509-logic.ts",
+    "packages/tool-engine/src/tools/x509-certificate-inspector/x509-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/x509-certificate-inspector/x509-certificate-inspector.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/x509-certificate-inspector/x509-certificate-inspector.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/x509-certificate-inspector/x509-logic.spec.ts",
+    "packages/tool-engine/src/tools/x509-certificate-inspector/x509-logic.spec.ts"
+  ]
+]

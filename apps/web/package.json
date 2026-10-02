@@ -1,0 +1,66 @@
+{
+  "name": "@dude/web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Angular browser application and shared desktop renderer",
+  "dependencies": {
+    "@angular/cdk": "^22.2.1",
+    "@angular/common": "^22.2.1",
+    "@angular/core": "^22.2.1",
+    "@angular/platform-browser": "^22.2.1",
+    "@angular/router": "^22.2.1",
+    "@angular/service-worker": "^22.2.1",
+    "@dude/contracts": "*",
+    "@dude/crypto": "*",
+    "@dude/domain": "*",
+    "@dude/shared-types": "*",
+    "@dude/tool-engine": "*",
+    "@dude/tool-registry": "*",
+    "@dude/validation": "*",
+    "@tiptap/core": "^3.31.3",
+    "@tiptap/starter-kit": "^3.31.3",
+    "@zxing/library": "^0.23.0",
+    "dompurify": "^3.4.16",
+    "echarts": "^6.1.0",
+    "ejs": "^6.0.1",
+    "exifr": "^7.1.3",
+    "fflate": "^0.8.3",
+    "gridstack": "14.0.0",
+    "isomorphic-git": "^1.42.2",
+    "jsbarcode": "^3.12.3",
+    "jsqr": "^1.4.0",
+    "papaparse": "^5.7.0",
+    "pyodide": "^314.0.7",
+    "qrcode": "^1.5.4",
+    "rxjs": "~7.8.0",
+    "sql.js": "^1.14.2",
+    "svgo": "^4.1.0",
+    "tiptap-markdown": "^0.9.0",
+    "xmllint-wasm": "^5.3.0",
+    "xxhash-wasm": "^1.1.0"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^10.6.0",
+    "@types/ejs": "^3.1.5",
+    "@types/jsbarcode": "^3.11.4",
+    "@types/papaparse": "^5.5.2",
+    "@types/qrcode": "^1.5.6",
+    "@types/sql.js": "^1.4.11",
+    "fake-indexeddb": "^6.2.5",
+    "fast-check": "^4.10.2",
+    "js-yaml": "^5.4.2",
+    "vitest": "^4.0.8"
+  },
+  "dude": {
+    "assetDependencies": [
+      "ejs",
+      "pyodide",
+      "sql.js",
+      "xmllint-wasm"
+    ]
+  },
+  "scripts": {
+    "build": "cd ../.. && npm run build",
+    "start": "cd ../.. && npm run start"
+  }
+}

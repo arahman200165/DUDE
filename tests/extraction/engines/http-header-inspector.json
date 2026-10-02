@@ -1,0 +1,34 @@
+[
+  [
+    "apps/web/src/app/tools/http-header-inspector/http-header-inspector.pipeline-step.ts",
+    "packages/tool-engine/src/tools/http-header-inspector/http-header-inspector.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/http-header-inspector/http-header-inspector.workspace-step.ts",
+    "packages/tool-engine/src/tools/http-header-inspector/http-header-inspector.workspace-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/http-header-inspector/http-headers-codec.ts",
+    "packages/tool-engine/src/tools/http-header-inspector/http-headers-codec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/http-header-inspector/well-known-headers.ts",
+    "packages/tool-engine/src/tools/http-header-inspector/well-known-headers.ts"
+  ],
+  [
+    "apps/web/src/app/tools/http-header-inspector/http-header-inspector.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/http-header-inspector/http-header-inspector.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/http-header-inspector/http-header-inspector.workspace-step.spec.ts",
+    "packages/tool-engine/src/tools/http-header-inspector/http-header-inspector.workspace-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/http-header-inspector/http-headers-codec.spec.ts",
+    "packages/tool-engine/src/tools/http-header-inspector/http-headers-codec.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/http-header-inspector/well-known-headers.spec.ts",
+    "packages/tool-engine/src/tools/http-header-inspector/well-known-headers.spec.ts"
+  ]
+]

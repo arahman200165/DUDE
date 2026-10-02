@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/oauth-scope-parser/oauth-scope-parser-logic.ts",
+    "packages/tool-engine/src/tools/oauth-scope-parser/oauth-scope-parser-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/oauth-scope-parser/oauth-scope-parser.pipeline-step.ts",
+    "packages/tool-engine/src/tools/oauth-scope-parser/oauth-scope-parser.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/oauth-scope-parser/oauth-scope-parser-logic.spec.ts",
+    "packages/tool-engine/src/tools/oauth-scope-parser/oauth-scope-parser-logic.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/oauth-scope-parser/oauth-scope-parser.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/oauth-scope-parser/oauth-scope-parser.pipeline-step.spec.ts"
+  ]
+]

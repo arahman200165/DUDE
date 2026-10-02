@@ -1,0 +1,6 @@
+[
+  [
+    "apps/web/src/app/tools/batch-operations/batch-operations-logic.ts",
+    "packages/tool-engine/src/tools/batch-operations/batch-operations-logic.ts"
+  ]
+]

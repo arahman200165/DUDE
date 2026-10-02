@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/unicode-code-point-converter/code-point-convert.ts",
+    "packages/tool-engine/src/tools/unicode-code-point-converter/code-point-convert.ts"
+  ],
+  [
+    "apps/web/src/app/tools/unicode-code-point-converter/unicode-code-point-converter.pipeline-step.ts",
+    "packages/tool-engine/src/tools/unicode-code-point-converter/unicode-code-point-converter.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/unicode-code-point-converter/code-point-convert.spec.ts",
+    "packages/tool-engine/src/tools/unicode-code-point-converter/code-point-convert.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/unicode-code-point-converter/unicode-code-point-converter.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/unicode-code-point-converter/unicode-code-point-converter.pipeline-step.spec.ts"
+  ]
+]

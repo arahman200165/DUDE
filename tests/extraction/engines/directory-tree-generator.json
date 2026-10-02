@@ -1,0 +1,6 @@
+[
+  [
+    "apps/web/src/app/tools/directory-tree-generator/tree-format.ts",
+    "packages/tool-engine/src/tools/directory-tree-generator/tree-format.ts"
+  ]
+]

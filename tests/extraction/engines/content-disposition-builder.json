@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/content-disposition-builder/content-disposition-builder.pipeline-step.ts",
+    "packages/tool-engine/src/tools/content-disposition-builder/content-disposition-builder.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/content-disposition-builder/content-disposition.ts",
+    "packages/tool-engine/src/tools/content-disposition-builder/content-disposition.ts"
+  ],
+  [
+    "apps/web/src/app/tools/content-disposition-builder/content-disposition-builder.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/content-disposition-builder/content-disposition-builder.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/content-disposition-builder/content-disposition.spec.ts",
+    "packages/tool-engine/src/tools/content-disposition-builder/content-disposition.spec.ts"
+  ]
+]

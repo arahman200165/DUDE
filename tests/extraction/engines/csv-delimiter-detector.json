@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/csv-delimiter-detector/csv-delimiter-detect-payload.ts",
+    "packages/tool-engine/src/tools/csv-delimiter-detector/csv-delimiter-detect-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-delimiter-detector/csv-delimiter-detect.ts",
+    "packages/tool-engine/src/tools/csv-delimiter-detector/csv-delimiter-detect.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-delimiter-detector/csv-delimiter-detector.pipeline-step.ts",
+    "packages/tool-engine/src/tools/csv-delimiter-detector/csv-delimiter-detector.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-delimiter-detector/csv-delimiter-detect.spec.ts",
+    "packages/tool-engine/src/tools/csv-delimiter-detector/csv-delimiter-detect.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-delimiter-detector/csv-delimiter-detector.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/csv-delimiter-detector/csv-delimiter-detector.pipeline-step.spec.ts"
+  ]
+]

@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/protobuf-decoder/protobuf-decode.ts",
+    "packages/tool-engine/src/tools/protobuf-decoder/protobuf-decode.ts"
+  ],
+  [
+    "apps/web/src/app/tools/protobuf-decoder/protobuf-decode.spec.ts",
+    "packages/tool-engine/src/tools/protobuf-decoder/protobuf-decode.spec.ts"
+  ]
+]

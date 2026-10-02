@@ -1,5 +1,5 @@
 // Generates SECURITY.md's High-Consequence Tool Matrix and capability-disclosure tables from
-// the distributed src/app/tools/**/<id>.manifest.ts files (DUDE_PRD.md §21 Phase 23 Items 7 & 13)
+// the distributed packages/tool-registry/src/tools/<id>/<id>.manifest.ts files (DUDE_PRD.md §21 Phase 23 Items 7 & 13)
 // — network capability, persistence policy, and consequence classification derived from
 // manifest metadata rather than hand-maintained prose that drifts from the real registry.
 //
@@ -16,10 +16,11 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readManifests } from './tool-manifests.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
-const TOOLS_DIR = path.join(ROOT, 'src/app/tools');
+const TOOLS_DIR = path.join(ROOT, 'packages/tool-registry/src/tools');
 const SECURITY_PATH = path.join(ROOT, 'SECURITY.md');
 const README_PATH = path.join(ROOT, 'README.md');
 const BASE_URL = 'https://arahman200165.github.io/DUDE';
@@ -38,7 +39,7 @@ const CONSEQUENCE_LABELS = {
   'system-config': 'System Configuration',
 };
 
-// Mirrors src/app/core/platform/capability-catalog.ts's labels (kept in sync by security-doc.spec.ts).
+// Mirrors packages/contracts/src/core/platform/capability-catalog.ts's labels (kept in sync by security-doc.spec.ts).
 const PLATFORM_CAPABILITY_LABELS = {
   'native-fs': 'Native filesystem access',
   'native-fs-write': 'Native filesystem write',
@@ -121,25 +122,14 @@ function extractNestedBoolean(text, group, field) {
   return match ? match[1] === 'true' : undefined;
 }
 
-const manifestPaths = findManifests(TOOLS_DIR);
-const tools = manifestPaths
-  .map((manifestPath) => {
-    const text = readFileSync(manifestPath, 'utf8').replace(/\r\n/g, '\n');
-    return {
-      id: extractField(text, 'id'),
-      title: extractField(text, 'title'),
-      route: extractField(text, 'route'),
-      status: extractField(text, 'status') ?? 'experimental',
-      verificationSummary: extractNestedField(text, 'verification', 'summary'),
-      consequenceClass: extractStringArray(text, 'consequenceClass'),
-      networkRequired: extractNestedBoolean(text, 'network', 'required') ?? false,
-      networkDetail: extractNestedField(text, 'network', 'detail'),
-      persistenceInput: extractNestedField(text, 'persistence', 'input'),
-      persistencePreferences: extractNestedField(text, 'persistence', 'preferences'),
-      desktopOpen: /desktopOpen:\s*\{/.test(text),
-      capabilities: extractCapabilities(text),
-    };
-  });
+const tools = readManifests().map(({metadata: m}) => ({
+  ...m, status: m.status ?? 'experimental', verificationSummary: m.verification?.summary,
+  consequenceClass: m.consequenceClass ?? [], networkRequired: m.network?.required ?? false,
+  networkDetail: m.network?.detail, persistenceInput: m.persistence.input,
+  persistencePreferences: m.persistence.preferences, desktopOpen: !!m.desktopOpen,
+  capabilities: { platform: (m.capabilities ?? []).filter(c => c.kind === 'platform'),
+    runtimes: (m.capabilities ?? []).filter(c => c.kind === 'runtime').map(c => c.runtime) },
+}));
 
 const link = (tool) => `[${tool.title}](${BASE_URL}${tool.route})`;
 
@@ -204,7 +194,7 @@ ${runtimeRows.join('\n')}`;
 
 const content = `# Security & Capability Disclosure
 
-Generated from \`src/app/tools/**/<id>.manifest.ts\` metadata by \`scripts/generate-security-doc.mjs\`
+Generated from \`packages/tool-registry/src/tools/<id>/<id>.manifest.ts\` metadata by \`scripts/generate-security-doc.mjs\`
 (DUDE_PRD.md §21 Phase 23 Items 7 & 13) — do not hand-edit the tables below; edit the source
 manifests and run \`npm run generate:registry\`.
 

@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/csv-stats/csv-stats-compute.ts",
+    "packages/tool-engine/src/tools/csv-stats/csv-stats-compute.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-stats/csv-stats-payload.ts",
+    "packages/tool-engine/src/tools/csv-stats/csv-stats-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-stats/csv-stats.pipeline-step.ts",
+    "packages/tool-engine/src/tools/csv-stats/csv-stats.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-stats/csv-stats-compute.spec.ts",
+    "packages/tool-engine/src/tools/csv-stats/csv-stats-compute.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-stats/csv-stats.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/csv-stats/csv-stats.pipeline-step.spec.ts"
+  ]
+]

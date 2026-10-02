@@ -35,16 +35,25 @@ jobs:
         run: npm ci
 
       - name: Audit production dependencies
-        run: npm audit --audit-level=high --omit=dev
+        run: npm run audit:prod
 
       - name: Verify generated registry/docs are up to date
         run: |
           npm run generate:registry
-          git diff --exit-code -- src/app/core/registry/tool-definitions.ts src/app/core/registry/panel-definitions.ts README.md SECURITY.md public/manifest.webmanifest || \
-            (echo '::error::tool-definitions.ts, README.md, SECURITY.md, or public/manifest.webmanifest is stale — a <id>.manifest.ts changed without regenerating (npm run generate:registry) and committing the result.' && exit 1)
+          git diff --exit-code -- apps/web/src/app/core/parity/testing/fixture-loaders.generated.ts packages/tool-registry/src/index.ts apps/web/src/app/core/registry/tool-loaders.generated.ts apps/web/src/app/core/pipeline/pipeline-workers.generated.ts packages/domain/src/core/appearance/appearance-axes.generated.ts docs/architecture/phase31a-extraction-inventory.json docs/architecture/data-scope-inventory.json apps/web/src/app/core/registry/tool-definitions.ts apps/web/src/app/core/registry/panel-definitions.ts README.md SECURITY.md apps/web/public/manifest.webmanifest || \
+            (echo '::error::tool-definitions.ts, README.md, SECURITY.md, or apps/web/public/manifest.webmanifest is stale — a <id>.manifest.ts changed without regenerating (npm run generate:registry) and committing the result.' && exit 1)
 
       - name: Lint (dependency/platform boundaries)
         run: npm run lint
+
+      - name: Independent portable-core consumption
+        run: npm run check:portable
+
+      - name: Verify extraction and scope inventories
+        run: npm run check:inventory
+
+      - name: Verify desktop and relay declarations
+        run: npm run check:hosts
 
       - name: Run tests
         run: npm test

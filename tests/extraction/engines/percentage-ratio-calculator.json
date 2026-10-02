@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/percentage-ratio-calculator/percentage-ratio.ts",
+    "packages/tool-engine/src/tools/percentage-ratio-calculator/percentage-ratio.ts"
+  ],
+  [
+    "apps/web/src/app/tools/percentage-ratio-calculator/percentage-ratio.spec.ts",
+    "packages/tool-engine/src/tools/percentage-ratio-calculator/percentage-ratio.spec.ts"
+  ]
+]

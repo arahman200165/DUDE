@@ -5,6 +5,8 @@
 **Baseline:** V1 and Phases 0–31 delivered; distributed Phases 31A–31J planned  
 **Next priority:** complete Phases 31A–31J strictly in order before beginning Phase 32
 
+Phase 31A (portable core and workspace extraction, Milestone 615) is complete; [acceptance evidence](delivery/PHASE31A_ACCEPTANCE.md) records the verified extraction and the dependency-audit resolution. Later distributed capabilities remain planned.
+
 [Repository](https://github.com/arahman200165/DUDE) · [Standalone web companion](https://arahman200165.github.io/DUDE/) · [Decision provenance](history/DECISION_LOG.md#reconciliation-decisions-and-requirement-traceability)
 
 This is the authoritative entry point for product direction and architectural invariants. Detailed behavior, technical contracts, acceptance gates and sequencing live in the supporting specifications. The supplied baseline's completion statements and measurements are retained as historical evidence, not a fresh implementation audit.

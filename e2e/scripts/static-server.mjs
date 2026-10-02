@@ -1,7 +1,7 @@
 // A minimal static file server that reproduces GitHub Pages' project-page
 // 404 behavior: any request that doesn't match a real file gets HTTP 404
 // with the body of DUDE/404.html. That's the exact contract the SPA
-// fallback script in public/404.html depends on to recover a deep tool URL.
+// fallback script in apps/web/public/404.html depends on to recover a deep tool URL.
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join, normalize } from 'node:path';

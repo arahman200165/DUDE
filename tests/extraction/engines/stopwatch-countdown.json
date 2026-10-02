@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/stopwatch-countdown/stopwatch-countdown-logic.ts",
+    "packages/tool-engine/src/tools/stopwatch-countdown/stopwatch-countdown-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/stopwatch-countdown/stopwatch-countdown-logic.spec.ts",
+    "packages/tool-engine/src/tools/stopwatch-countdown/stopwatch-countdown-logic.spec.ts"
+  ]
+]

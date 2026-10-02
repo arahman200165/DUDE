@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/regex-visualizer/regex-diagram.ts",
+    "packages/tool-engine/src/tools/regex-visualizer/regex-diagram.ts"
+  ],
+  [
+    "apps/web/src/app/tools/regex-visualizer/regex-visualizer.pipeline-step.ts",
+    "packages/tool-engine/src/tools/regex-visualizer/regex-visualizer.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/regex-visualizer/regex-diagram.spec.ts",
+    "packages/tool-engine/src/tools/regex-visualizer/regex-diagram.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/regex-visualizer/regex-visualizer.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/regex-visualizer/regex-visualizer.pipeline-step.spec.ts"
+  ]
+]

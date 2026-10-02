@@ -1,0 +1,14 @@
+[
+  [
+    "apps/web/src/app/tools/json-merge/json-merge-payload.ts",
+    "packages/tool-engine/src/tools/json-merge/json-merge-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/json-merge/json-merge-transform.ts",
+    "packages/tool-engine/src/tools/json-merge/json-merge-transform.ts"
+  ],
+  [
+    "apps/web/src/app/tools/json-merge/json-merge-transform.spec.ts",
+    "packages/tool-engine/src/tools/json-merge/json-merge-transform.spec.ts"
+  ]
+]

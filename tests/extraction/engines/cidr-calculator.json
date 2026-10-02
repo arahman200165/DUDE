@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/cidr-calculator/cidr-calculator-logic.ts",
+    "packages/tool-engine/src/tools/cidr-calculator/cidr-calculator-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/cidr-calculator/cidr-calculator.pipeline-step.ts",
+    "packages/tool-engine/src/tools/cidr-calculator/cidr-calculator.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/cidr-calculator/cidr-calculator-logic.spec.ts",
+    "packages/tool-engine/src/tools/cidr-calculator/cidr-calculator-logic.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/cidr-calculator/cidr-calculator.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/cidr-calculator/cidr-calculator.pipeline-step.spec.ts"
+  ]
+]

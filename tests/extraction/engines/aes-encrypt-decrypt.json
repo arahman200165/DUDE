@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/aes-encrypt-decrypt/aes-cipher.ts",
+    "packages/tool-engine/src/tools/aes-encrypt-decrypt/aes-cipher.ts"
+  ],
+  [
+    "apps/web/src/app/tools/aes-encrypt-decrypt/aes-cipher.spec.ts",
+    "packages/tool-engine/src/tools/aes-encrypt-decrypt/aes-cipher.spec.ts"
+  ]
+]

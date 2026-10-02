@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/soundex-metaphone/soundex-metaphone-generate.ts",
+    "packages/tool-engine/src/tools/soundex-metaphone/soundex-metaphone-generate.ts"
+  ],
+  [
+    "apps/web/src/app/tools/soundex-metaphone/soundex-metaphone.pipeline-step.ts",
+    "packages/tool-engine/src/tools/soundex-metaphone/soundex-metaphone.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/soundex-metaphone/soundex-metaphone-generate.spec.ts",
+    "packages/tool-engine/src/tools/soundex-metaphone/soundex-metaphone-generate.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/soundex-metaphone/soundex-metaphone.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/soundex-metaphone/soundex-metaphone.pipeline-step.spec.ts"
+  ]
+]

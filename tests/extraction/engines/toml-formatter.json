@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/toml-formatter/toml-format-payload.ts",
+    "packages/tool-engine/src/tools/toml-formatter/toml-format-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/toml-formatter/toml-format.ts",
+    "packages/tool-engine/src/tools/toml-formatter/toml-format.ts"
+  ],
+  [
+    "apps/web/src/app/tools/toml-formatter/toml-formatter.pipeline-step.ts",
+    "packages/tool-engine/src/tools/toml-formatter/toml-formatter.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/toml-formatter/toml-format.spec.ts",
+    "packages/tool-engine/src/tools/toml-formatter/toml-format.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/toml-formatter/toml-formatter.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/toml-formatter/toml-formatter.pipeline-step.spec.ts"
+  ]
+]

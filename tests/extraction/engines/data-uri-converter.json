@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/data-uri-converter/data-uri-codec.ts",
+    "packages/tool-engine/src/tools/data-uri-converter/data-uri-codec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/data-uri-converter/data-uri-converter.pipeline-step.ts",
+    "packages/tool-engine/src/tools/data-uri-converter/data-uri-converter.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/data-uri-converter/data-uri-codec.spec.ts",
+    "packages/tool-engine/src/tools/data-uri-converter/data-uri-codec.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/data-uri-converter/data-uri-converter.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/data-uri-converter/data-uri-converter.pipeline-step.spec.ts"
+  ]
+]

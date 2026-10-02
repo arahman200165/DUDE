@@ -1,0 +1,14 @@
+[
+  [
+    "apps/web/src/app/tools/json-patch-generate/json-patch-generate-payload.ts",
+    "packages/tool-engine/src/tools/json-patch-generate/json-patch-generate-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/json-patch-generate/json-patch-generate-transform.ts",
+    "packages/tool-engine/src/tools/json-patch-generate/json-patch-generate-transform.ts"
+  ],
+  [
+    "apps/web/src/app/tools/json-patch-generate/json-patch-generate-transform.spec.ts",
+    "packages/tool-engine/src/tools/json-patch-generate/json-patch-generate-transform.spec.ts"
+  ]
+]

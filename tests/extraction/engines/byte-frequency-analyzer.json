@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/byte-frequency-analyzer/byte-frequency-analyzer-logic.ts",
+    "packages/tool-engine/src/tools/byte-frequency-analyzer/byte-frequency-analyzer-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/byte-frequency-analyzer/byte-frequency-analyzer-worker-payload.ts",
+    "packages/tool-engine/src/tools/byte-frequency-analyzer/byte-frequency-analyzer-worker-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/byte-frequency-analyzer/byte-frequency-analyzer.pipeline-step.ts",
+    "packages/tool-engine/src/tools/byte-frequency-analyzer/byte-frequency-analyzer.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/byte-frequency-analyzer/byte-frequency-analyzer-logic.spec.ts",
+    "packages/tool-engine/src/tools/byte-frequency-analyzer/byte-frequency-analyzer-logic.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/byte-frequency-analyzer/byte-frequency-analyzer.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/byte-frequency-analyzer/byte-frequency-analyzer.pipeline-step.spec.ts"
+  ]
+]

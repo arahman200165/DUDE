@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/pkce-verifier/pkce-verifier-logic.ts",
+    "packages/tool-engine/src/tools/pkce-verifier/pkce-verifier-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/pkce-verifier/pkce-verifier-logic.spec.ts",
+    "packages/tool-engine/src/tools/pkce-verifier/pkce-verifier-logic.spec.ts"
+  ]
+]

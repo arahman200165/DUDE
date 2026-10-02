@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/jwt-signer/jwt-signer-logic.ts",
+    "packages/tool-engine/src/tools/jwt-signer/jwt-signer-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/jwt-signer/jwt-signer-logic.spec.ts",
+    "packages/tool-engine/src/tools/jwt-signer/jwt-signer-logic.spec.ts"
+  ]
+]

@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/yaml-path/yaml-path-eval.ts",
+    "packages/tool-engine/src/tools/yaml-path/yaml-path-eval.ts"
+  ],
+  [
+    "apps/web/src/app/tools/yaml-path/yaml-path-payload.ts",
+    "packages/tool-engine/src/tools/yaml-path/yaml-path-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/yaml-path/yaml-path.pipeline-step.ts",
+    "packages/tool-engine/src/tools/yaml-path/yaml-path.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/yaml-path/yaml-path-eval.spec.ts",
+    "packages/tool-engine/src/tools/yaml-path/yaml-path-eval.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/yaml-path/yaml-path.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/yaml-path/yaml-path.pipeline-step.spec.ts"
+  ]
+]

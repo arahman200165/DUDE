@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/semver-comparator/semver-comparator.pipeline-step.ts",
+    "packages/tool-engine/src/tools/semver-comparator/semver-comparator.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/semver-comparator/semver-compare.ts",
+    "packages/tool-engine/src/tools/semver-comparator/semver-compare.ts"
+  ],
+  [
+    "apps/web/src/app/tools/semver-comparator/semver-comparator.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/semver-comparator/semver-comparator.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/semver-comparator/semver-compare.spec.ts",
+    "packages/tool-engine/src/tools/semver-comparator/semver-compare.spec.ts"
+  ]
+]

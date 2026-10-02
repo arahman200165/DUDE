@@ -3,10 +3,11 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readManifests } from './tool-manifests.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const installerPath = path.join(root, 'build/installer.nsh');
-const toolsPath = path.join(root, 'src/app/tools');
+const toolsPath = path.join(root, 'apps/web/src/app/tools');
 const raw = readFileSync(installerPath, 'utf8');
 const eol = raw.includes('\r\n') ? '\r\n' : '\n';
 const active = new Set();
@@ -28,7 +29,11 @@ function collect(dir) {
     }
   }
 }
-collect(toolsPath);
+for (const {metadata} of readManifests()) for (const value of metadata.desktopOpen?.extensions ?? []) {
+  const extension = value.slice(1);
+  if (active.has(extension)) throw new Error('Duplicate desktopOpen extension: ' + value);
+  active.add(extension);
+}
 if (!active.size) throw new Error('No desktopOpen extensions found');
 
 // The first run reads the old for-each block. Later runs read the generated bit ledger.

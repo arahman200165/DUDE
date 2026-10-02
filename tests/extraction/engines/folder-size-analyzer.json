@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/folder-size-analyzer/folder-size-logic.ts",
+    "packages/tool-engine/src/tools/folder-size-analyzer/folder-size-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/folder-size-analyzer/folder-size-logic.spec.ts",
+    "packages/tool-engine/src/tools/folder-size-analyzer/folder-size-logic.spec.ts"
+  ]
+]

@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/file-lock-inspector/file-lock-inspector-logic.ts",
+    "packages/tool-engine/src/tools/file-lock-inspector/file-lock-inspector-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/file-lock-inspector/file-lock-inspector-logic.spec.ts",
+    "packages/tool-engine/src/tools/file-lock-inspector/file-lock-inspector-logic.spec.ts"
+  ]
+]

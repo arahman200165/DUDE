@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/ipv6-explorer/ipv6-explorer-logic.ts",
+    "packages/tool-engine/src/tools/ipv6-explorer/ipv6-explorer-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/ipv6-explorer/ipv6-explorer.pipeline-step.ts",
+    "packages/tool-engine/src/tools/ipv6-explorer/ipv6-explorer.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/ipv6-explorer/ipv6-explorer-logic.spec.ts",
+    "packages/tool-engine/src/tools/ipv6-explorer/ipv6-explorer-logic.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/ipv6-explorer/ipv6-explorer.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/ipv6-explorer/ipv6-explorer.pipeline-step.spec.ts"
+  ]
+]

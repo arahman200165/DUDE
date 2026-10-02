@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/numeric-representation-inspector/numeric-representation-inspector.pipeline-step.ts",
+    "packages/tool-engine/src/tools/numeric-representation-inspector/numeric-representation-inspector.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/numeric-representation-inspector/numeric-representation.ts",
+    "packages/tool-engine/src/tools/numeric-representation-inspector/numeric-representation.ts"
+  ],
+  [
+    "apps/web/src/app/tools/numeric-representation-inspector/numeric-representation-inspector.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/numeric-representation-inspector/numeric-representation-inspector.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/numeric-representation-inspector/numeric-representation.spec.ts",
+    "packages/tool-engine/src/tools/numeric-representation-inspector/numeric-representation.spec.ts"
+  ]
+]

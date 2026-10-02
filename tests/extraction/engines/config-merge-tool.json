@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/config-merge-tool/config-merge-tool-logic.ts",
+    "packages/tool-engine/src/tools/config-merge-tool/config-merge-tool-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/config-merge-tool/config-merge-tool-logic.spec.ts",
+    "packages/tool-engine/src/tools/config-merge-tool/config-merge-tool-logic.spec.ts"
+  ]
+]

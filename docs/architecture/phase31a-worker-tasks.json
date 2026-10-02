@@ -1,0 +1,12 @@
+[
+  {
+    "task": "hash/hash-compute.worker",
+    "file": "apps\\web\\src\\app\\tools\\hash\\hash.pipeline-step.ts",
+    "worker": "./hash-compute.worker"
+  },
+  {
+    "task": "json/json-format.worker",
+    "file": "apps\\web\\src\\app\\tools\\json\\json.pipeline-step.ts",
+    "worker": "./json-format.worker"
+  }
+]

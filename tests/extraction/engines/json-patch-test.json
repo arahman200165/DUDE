@@ -1,0 +1,14 @@
+[
+  [
+    "apps/web/src/app/tools/json-patch-test/json-patch-test-payload.ts",
+    "packages/tool-engine/src/tools/json-patch-test/json-patch-test-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/json-patch-test/json-patch-test-transform.ts",
+    "packages/tool-engine/src/tools/json-patch-test/json-patch-test-transform.ts"
+  ],
+  [
+    "apps/web/src/app/tools/json-patch-test/json-patch-test-transform.spec.ts",
+    "packages/tool-engine/src/tools/json-patch-test/json-patch-test-transform.spec.ts"
+  ]
+]

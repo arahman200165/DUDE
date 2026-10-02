@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/nanoid-generator/nanoid-generator.pipeline-step.ts",
+    "packages/tool-engine/src/tools/nanoid-generator/nanoid-generator.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/nanoid-generator/nanoid-logic.ts",
+    "packages/tool-engine/src/tools/nanoid-generator/nanoid-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/nanoid-generator/nanoid-generator.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/nanoid-generator/nanoid-generator.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/nanoid-generator/nanoid-logic.spec.ts",
+    "packages/tool-engine/src/tools/nanoid-generator/nanoid-logic.spec.ts"
+  ]
+]

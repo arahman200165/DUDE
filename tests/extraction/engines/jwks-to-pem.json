@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/jwks-to-pem/jwks-to-pem-logic.ts",
+    "packages/tool-engine/src/tools/jwks-to-pem/jwks-to-pem-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/jwks-to-pem/jwks-to-pem.pipeline-step.ts",
+    "packages/tool-engine/src/tools/jwks-to-pem/jwks-to-pem.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/jwks-to-pem/jwks-to-pem-logic.spec.ts",
+    "packages/tool-engine/src/tools/jwks-to-pem/jwks-to-pem-logic.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/jwks-to-pem/jwks-to-pem.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/jwks-to-pem/jwks-to-pem.pipeline-step.spec.ts"
+  ]
+]

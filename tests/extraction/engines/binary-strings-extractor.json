@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/binary-strings-extractor/binary-strings-extractor-logic.ts",
+    "packages/tool-engine/src/tools/binary-strings-extractor/binary-strings-extractor-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/binary-strings-extractor/binary-strings-extractor-worker-payload.ts",
+    "packages/tool-engine/src/tools/binary-strings-extractor/binary-strings-extractor-worker-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/binary-strings-extractor/binary-strings-extractor.pipeline-step.ts",
+    "packages/tool-engine/src/tools/binary-strings-extractor/binary-strings-extractor.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/binary-strings-extractor/binary-strings-extractor-logic.spec.ts",
+    "packages/tool-engine/src/tools/binary-strings-extractor/binary-strings-extractor-logic.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/binary-strings-extractor/binary-strings-extractor.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/binary-strings-extractor/binary-strings-extractor.pipeline-step.spec.ts"
+  ]
+]

@@ -2,7 +2,7 @@
 /**
  * Phase 30K theme contrast + palette check (supersedes check-semantic-palette.mjs).
  *
- * Reads src/styles/theme/theme-tokens.json and enumerates EVERY combination of
+ * Reads apps/web/src/styles/theme/theme-tokens.json and enumerates EVERY combination of
  * theme x contrast x catset x accent x semantic from `axes.*.values`. For each one it
  * resolves the base, accent, category and semantic tokens and enforces (hc = contrast "high"):
  *   1. text on bg / panel / panel-elevated             >= 4.5   (hc: >= 7)
@@ -216,7 +216,7 @@ function product(lists) {
 }
 
 function run() {
-  const tokens = JSON.parse(readFileSync(new URL('../src/styles/theme/theme-tokens.json', import.meta.url), 'utf8'));
+  const tokens = JSON.parse(readFileSync(new URL('../apps/web/src/styles/theme/theme-tokens.json', import.meta.url), 'utf8'));
   const v = (n) => tokens.axes[n].values;
   const combos = product([v('theme'), v('contrast'), v('catset'), v('accent'), v('semantic')]);
 

@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/avro-viewer/avro-decode.ts",
+    "packages/tool-engine/src/tools/avro-viewer/avro-decode.ts"
+  ],
+  [
+    "apps/web/src/app/tools/avro-viewer/avro-viewer.pipeline-step.ts",
+    "packages/tool-engine/src/tools/avro-viewer/avro-viewer.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/avro-viewer/avro-decode.spec.ts",
+    "packages/tool-engine/src/tools/avro-viewer/avro-decode.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/avro-viewer/avro-viewer.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/avro-viewer/avro-viewer.pipeline-step.spec.ts"
+  ]
+]

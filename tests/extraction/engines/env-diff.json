@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/env-diff/env-diff-logic.ts",
+    "packages/tool-engine/src/tools/env-diff/env-diff-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/env-diff/env-diff-logic.spec.ts",
+    "packages/tool-engine/src/tools/env-diff/env-diff-logic.spec.ts"
+  ]
+]

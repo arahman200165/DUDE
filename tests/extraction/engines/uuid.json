@@ -1,0 +1,26 @@
+[
+  [
+    "apps/web/src/app/tools/uuid/uuid-export.ts",
+    "packages/tool-engine/src/tools/uuid/uuid-export.ts"
+  ],
+  [
+    "apps/web/src/app/tools/uuid/uuid-tool.ts",
+    "packages/tool-engine/src/tools/uuid/uuid-tool.ts"
+  ],
+  [
+    "apps/web/src/app/tools/uuid/uuid.pipeline-step.ts",
+    "packages/tool-engine/src/tools/uuid/uuid.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/uuid/uuid-export.spec.ts",
+    "packages/tool-engine/src/tools/uuid/uuid-export.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/uuid/uuid-tool.spec.ts",
+    "packages/tool-engine/src/tools/uuid/uuid-tool.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/uuid/uuid.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/uuid/uuid.pipeline-step.spec.ts"
+  ]
+]

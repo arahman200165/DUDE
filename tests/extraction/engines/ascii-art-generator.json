@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/ascii-art-generator/ascii-art-fonts.ts",
+    "packages/tool-engine/src/tools/ascii-art-generator/ascii-art-fonts.ts"
+  ],
+  [
+    "apps/web/src/app/tools/ascii-art-generator/ascii-art-generator.pipeline-step.ts",
+    "packages/tool-engine/src/tools/ascii-art-generator/ascii-art-generator.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/ascii-art-generator/ascii-art-render.ts",
+    "packages/tool-engine/src/tools/ascii-art-generator/ascii-art-render.ts"
+  ],
+  [
+    "apps/web/src/app/tools/ascii-art-generator/ascii-art-generator.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/ascii-art-generator/ascii-art-generator.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/ascii-art-generator/ascii-art-render.spec.ts",
+    "packages/tool-engine/src/tools/ascii-art-generator/ascii-art-render.spec.ts"
+  ]
+]

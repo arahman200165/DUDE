@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/acl-inspector/acl-inspector-logic.ts",
+    "packages/tool-engine/src/tools/acl-inspector/acl-inspector-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/acl-inspector/acl-inspector-logic.spec.ts",
+    "packages/tool-engine/src/tools/acl-inspector/acl-inspector-logic.spec.ts"
+  ]
+]

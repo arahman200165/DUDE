@@ -1,0 +1,21 @@
+import type { ToolMetadata } from "@dude/domain/shared/models/tool-metadata.model";
+export const manifest: ToolMetadata = {
+    id: 'template-renderer',
+    title: 'Template Renderer',
+    shortTitle: 'Templates',
+    description: 'Render an EJS template against a JSON data context in a network-isolated sandbox, using the same execution engine as the JavaScript Playground.',
+    category: 'developer',
+    keywords: ['template', 'ejs', 'render', 'interpolation', 'sandbox'],
+    route: '/tools/template-renderer',
+    status: 'verified',
+    verification: {
+        propertyTested: true,
+        summary: 'Fuzz-tested arbitrary template/context handling and valid JSON context embedding.',
+    },
+    consequenceClass: ['code-execution'],
+    persistence: { input: 'session', preferences: 'local' },
+    execution: { worker: 'required' },
+    network: { required: false },
+    io: { accepts: ['text', 'json'], produces: ['text'] },
+    capabilities: [{ kind: 'runtime', runtime: 'ejs' }]
+};

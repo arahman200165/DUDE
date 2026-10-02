@@ -10,6 +10,7 @@ export default defineConfig({
     environment: 'node',
     include: ['perf/**/*.perf.ts'],
     globals: true,
+    setupFiles: ['tests/engine-host.setup.ts'],
     testTimeout: 20_000,
   },
 });

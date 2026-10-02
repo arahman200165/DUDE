@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/js-playground/js-playground-session.ts",
+    "packages/tool-engine/src/tools/js-playground/js-playground-session.ts"
+  ],
+  [
+    "apps/web/src/app/tools/js-playground/js-playground-session.spec.ts",
+    "packages/tool-engine/src/tools/js-playground/js-playground-session.spec.ts"
+  ]
+]

@@ -1,0 +1,14 @@
+[
+  [
+    "apps/web/src/app/tools/json-schema-validator/schema-validate-payload.ts",
+    "packages/tool-engine/src/tools/json-schema-validator/schema-validate-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/json-schema-validator/schema-validate.ts",
+    "packages/tool-engine/src/tools/json-schema-validator/schema-validate.ts"
+  ],
+  [
+    "apps/web/src/app/tools/json-schema-validator/schema-validate.spec.ts",
+    "packages/tool-engine/src/tools/json-schema-validator/schema-validate.spec.ts"
+  ]
+]

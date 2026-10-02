@@ -1,0 +1,26 @@
+[
+  [
+    "apps/web/src/app/tools/pem-der-inspector/asn1-to-tree-node.ts",
+    "packages/tool-engine/src/tools/pem-der-inspector/asn1-to-tree-node.ts"
+  ],
+  [
+    "apps/web/src/app/tools/pem-der-inspector/pem-der-inspector.pipeline-step.ts",
+    "packages/tool-engine/src/tools/pem-der-inspector/pem-der-inspector.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/pem-der-inspector/pem-der-logic.ts",
+    "packages/tool-engine/src/tools/pem-der-inspector/pem-der-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/pem-der-inspector/asn1-to-tree-node.spec.ts",
+    "packages/tool-engine/src/tools/pem-der-inspector/asn1-to-tree-node.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/pem-der-inspector/pem-der-inspector.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/pem-der-inspector/pem-der-inspector.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/pem-der-inspector/pem-der-logic.spec.ts",
+    "packages/tool-engine/src/tools/pem-der-inspector/pem-der-logic.spec.ts"
+  ]
+]

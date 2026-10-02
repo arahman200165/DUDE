@@ -1,0 +1,9 @@
+node_modules
+**/node_modules
+**/dist
+.git
+.angular
+tmp
+release
+test-results
+playwright-report

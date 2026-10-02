@@ -1,0 +1,11 @@
+[
+ ["apps/web/src/app/tools/sql-syntax-checker/sql-syntax-checker-logic.ts", "packages/tool-engine/src/tools/sql-syntax-checker/sql-syntax-checker-logic.ts"],
+ ["apps/web/src/app/tools/sql-syntax-checker/sql-syntax-checker-logic.spec.ts", "packages/tool-engine/src/tools/sql-syntax-checker/sql-syntax-checker-logic.spec.ts"],
+ ["apps/web/src/app/tools/sql-syntax-checker/sql-syntax-checker.pipeline-step.ts", "packages/tool-engine/src/tools/sql-syntax-checker/sql-syntax-checker.pipeline-step.ts"],
+ ["apps/web/src/app/tools/sql-syntax-checker/sql-syntax-checker.pipeline-step.spec.ts", "packages/tool-engine/src/tools/sql-syntax-checker/sql-syntax-checker.pipeline-step.spec.ts"],
+ ["apps/web/src/app/tools/yaml-anchors/yaml-anchors-transform.ts", "packages/tool-engine/src/tools/yaml-anchors/yaml-anchors-transform.ts"],
+ ["apps/web/src/app/tools/yaml-anchors/yaml-anchors-transform.spec.ts", "packages/tool-engine/src/tools/yaml-anchors/yaml-anchors-transform.spec.ts"],
+ ["apps/web/src/app/tools/yaml-anchors/yaml-anchors.property.spec.ts", "packages/tool-engine/src/tools/yaml-anchors/yaml-anchors.property.spec.ts"],
+ ["apps/web/src/app/tools/yaml-anchors/yaml-anchors.pipeline-step.ts", "packages/tool-engine/src/tools/yaml-anchors/yaml-anchors.pipeline-step.ts"],
+ ["apps/web/src/app/tools/yaml-anchors/yaml-anchors.pipeline-step.spec.ts", "packages/tool-engine/src/tools/yaml-anchors/yaml-anchors.pipeline-step.spec.ts"]
+]

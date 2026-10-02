@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/dpi-calculator/dpi-calculator-logic.ts",
+    "packages/tool-engine/src/tools/dpi-calculator/dpi-calculator-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/dpi-calculator/dpi-calculator-logic.spec.ts",
+    "packages/tool-engine/src/tools/dpi-calculator/dpi-calculator-logic.spec.ts"
+  ]
+]

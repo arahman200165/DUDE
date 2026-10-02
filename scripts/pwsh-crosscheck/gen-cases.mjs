@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { buildPowerShellScript } from '../../src/shared-logic/system/powershell-builder.ts';
+import { buildPowerShellScript } from "@dude/contracts/shared/system/powershell-builder";
 
 const dir = process.argv[2]; // scratch dir holding catalog.json (pwsh -File catalog.ps1 > catalog.json); cases.json/parsed.json are written there
 const catalog = JSON.parse(readFileSync(dir + '/catalog.json', 'utf8'));

@@ -1,50 +1,52 @@
 # Adding a Tool
 
-DUDE's framework goal ([Core Product Goal](docs/DUDE_PRD.md#core-product-goal)) is that a new simple tool with existing transformation logic can be added in **30 minutes or less**, without touching the application shell, navigation, command palette, search, routing, PWA, or persistence/worker infrastructure. This doc walks through exactly how, using the real `base64` tool (`src/app/tools/base64/`) as the worked example throughout.
+DUDE's framework goal ([Core Product Goal](docs/DUDE_PRD.md#core-product-goal)) is that a new simple tool with existing transformation logic can be added in **30 minutes or less**, without touching the application shell, navigation, command palette, search, routing, PWA, or persistence/worker infrastructure. This doc walks through exactly how, using the real `base64` tool (`apps/web/src/app/tools/base64/`) as the worked example throughout.
 
-If following these steps ever requires editing `ShellLayout`, `app.routes.ts`, or a shared service in `src/app/core/`, that's an architecture gap — file it, don't route around it.
+If following these steps ever requires editing `ShellLayout`, `app.routes.ts`, or a shared service in `apps/web/src/app/core/`, that's an architecture gap — file it, don't route around it.
 
-## 1. Create the tool folder
+## 1. Create the tool owners
 
-Create `src/app/tools/<id>/`. At minimum you need a standalone component (`<id>.ts` + `<id>.html`). If there's transform logic worth testing independently of Angular, split it into a pure, framework-free file plus its spec — mirror `base64-codec.ts` / `base64-codec.spec.ts`:
+Create the Angular component and template in `apps/web/src/app/tools/<id>/`. Put portable transforms and their tests/fixtures in `packages/tool-engine/src/tools/<id>/`, or an existing foundational package when appropriate. Keep DOM, Canvas, worker factories and privileged implementations in host adapters. Base64 uses `@dude/crypto/base64-codec`.
 
+```text
+packages/tool-registry/src/tools/<id>/<id>.manifest.ts — metadata only
+packages/tool-engine/src/tools/<id>/                  — engines, tests, fixtures
+apps/web/src/app/tools/<id>/<id>.ts                   — Angular component
+apps/web/src/app/tools/<id>/<id>.html
+apps/web/src/app/tools/<id>/<id>.bindings.ts           — lazy UI/settings loaders
+apps/web/src/app/tools/<id>/<id>.worker.ts             — optional browser adapter
 ```
-src/app/tools/base64/
-  base64.ts             — the Angular component
-  base64.html
-  base64.manifest.ts     — the tool's ToolDefinition (see step 2)
-  base64-codec.ts        — pure encodeBase64/decodeBase64 functions, no Angular imports
-  base64-codec.spec.ts   — plain Vitest describe/it, zero TestBed
-```
 
-Keeping the transform pure and framework-free (like `json-format.ts` or `text-diff.ts`) is also what lets the same function run on the main thread *and* inside a Worker unmodified — see step 5.
+## 2. Declare metadata and UI bindings
 
-## 2. Define metadata
-
-Create `src/app/tools/<id>/<id>.manifest.ts`, exporting a `manifest: ToolDefinition` (`src/app/shared/models/tool-definition.model.ts`) — this is the tool's **only** registration point ([Phase 22](docs/history/DELIVERY_HISTORY.md#phase-22) Item 1: distributed manifests, composed at build time, rather than one multi-thousand-line hand-edited array). `load`'s import path is relative to the manifest's own folder, i.e. just `./<id>`:
+Create exactly one metadata manifest, exporting `manifest: ToolMetadata` from `@dude/domain/shared/models/tool-metadata.model`. Preserve the closed category vocabulary and the tool's stable ID/route. Metadata contains no functions, application imports, engine imports or native implementation imports.
 
 ```ts
-import type { ToolDefinition } from '../../shared/models/tool-definition.model';
-
-export const manifest: ToolDefinition = {
-  id: 'base64',
-  title: 'Base64 Encoder / Decoder',
+import type { ToolMetadata } from '@dude/domain/shared/models/tool-metadata.model';
+export const manifest: ToolMetadata = {
+  id: 'base64', title: 'Base64 Encoder / Decoder',
   description: 'UTF-8-safe text-to-Base64 and Base64-to-text conversion.',
-  category: 'encoding',
-  keywords: ['base64', 'encode', 'decode', 'encoding', 'utf-8'],
-  route: '/tools/base64',
-  load: () => import('./base64').then((m) => m.Base64Tool),
-  status: 'stable',
+  category: 'encoding', keywords: ['base64', 'encode', 'decode'],
+  route: '/tools/base64', status: 'stable',
   persistence: { input: 'session', preferences: 'local' },
   io: { accepts: ['text'], produces: ['text'] },
 };
 ```
 
-- `category` must be one of the existing `ToolCategory` values (`tool-category.model.ts`) — `data`, `text`, `encoding`, `security`, `date-time`, `web`, `developer`, `documents`. Adding a new category is a bigger decision than adding a tool; don't do it casually.
-- `keywords` drives `ToolRegistryService.search` — used by both the deck's inline search and the command palette.
-- `load` is a dynamic `import()` returning the component class — this is what makes the route lazy (step 7 is then automatic).
-- `persistence` / `execution` / `network` / `io` here are declarative documentation of the choices you make in steps 4–7 — they aren't read at runtime by the shell (except `network.required`, which `ToolShell` now falls back to by default — see step 3), but keep them accurate for future maintainers.
-- Run `npm run generate:registry` (or just `npm test`/`ng serve`, both run it automatically via `pretest`/`prestart`) to fold your new manifest into `src/app/core/registry/tool-definitions.ts` — that file is generated by `scripts/generate-tool-registry.mjs` and should never be hand-edited.
+Beside the Angular component, export the lazy binding:
+
+```ts
+export const bindingId = 'base64';
+export const binding = {
+  load: () => import('./base64').then(m => m.Base64Tool),
+};
+```
+
+If metadata declares a settings section, supply `settingsLoad` in the binding. Keep all imports literal and lazy. Pipeline/workspace steps and optional host adapters are discovered by their existing filename conventions; no manual core/shell registration is needed.
+
+Run `npm run generate:registry` and `npm run build:packages`. Generation assembles portable metadata and Angular definitions, lazy engine maps, worker factories, documentation, security inventories, file associations and PWA shortcuts. Generated files must never be hand-edited. `npm start`, `npm test` and `npm run build` prepare registry/packages automatically; direct `ng` commands do not run npm hooks.
+
+Declare imports in the owning workspace's dependencies. Packages expose compiled ESM/declarations through package exports; applications must consume those exports. Run `test:packages`, `check:boundaries` and `check:portable` after changing package boundaries. See [portable core ownership](docs/architecture/PORTABLE_CORE.md).
 
 ### Status & confidence tiers
 
@@ -56,7 +58,7 @@ export const manifest: ToolDefinition = {
 
 ## 3. Create the component
 
-Wrap the tool's content in `<app-tool-shell>` (`src/app/shared/components/tool-shell/tool-shell.ts`):
+Wrap the tool's content in `<app-tool-shell>` (`apps/web/src/app/shared/components/tool-shell/tool-shell.ts`):
 
 ```html
 <app-tool-shell>
@@ -90,7 +92,7 @@ Import other shared primitives as needed: `ErrorPanel`, `BusyIndicator` (for wor
 
 ## 4. Choose a persistence policy
 
-For each piece of state, call `PersistenceService.signal(toolId, key, policy, initialValue)` (`src/app/core/persistence/persistence.service.ts`), where `policy` is `'none' | 'session' | 'local' | 'user-choice'`:
+For each piece of state, call `PersistenceService.signal(toolId, key, policy, initialValue)` (`apps/web/src/app/core/persistence/persistence.service.ts`), where `policy` is `'none' | 'session' | 'local' | 'user-choice'`:
 
 ```ts
 protected readonly mode = this.persistence.signal<Base64Mode>('base64', 'mode', 'local', 'encode');
@@ -104,7 +106,7 @@ Rule of thumb, drawn from the existing 9 tools:
 
 ## 5. Choose a worker policy
 
-If the transform can be slow on large input, keep it pure and framework-free (step 1) so it can run unmodified in a Worker. Create `<id>.worker.ts` mirroring one of the four existing glue files (e.g. `src/app/tools/json/json-format.worker.ts`):
+If the transform can be slow on large input, keep it pure and framework-free (step 1) so it can run unmodified in a Worker. Create `<id>.worker.ts` mirroring one of the four existing glue files (e.g. `apps/web/src/app/tools/json/json-format.worker.ts`):
 
 ```ts
 export function handleMessage({ data }: MessageEvent<WorkerRequestMessage<MyPayload>>): void {
@@ -123,9 +125,9 @@ addEventListener('message', handleMessage);
 
 In the component, decide when to dispatch to the worker:
 - **always** (`execution: { worker: 'required' }`) — hash, regex, and diff all do this.
-- **above a size threshold** (`execution: { worker: 'optional' }`) — json's approach, via a `WORKER_THRESHOLD` constant and a `computed()` that switches between a synchronous call and a worker dispatch (see `src/app/tools/json/json.ts`).
+- **above a size threshold** (`execution: { worker: 'optional' }`) — json's approach, via a `WORKER_THRESHOLD` constant and a `computed()` that switches between a synchronous call and a worker dispatch (see `apps/web/src/app/tools/json/json.ts`).
 
-Either way, call `WorkerClientService.run` (`src/app/core/workers/worker-client.service.ts`):
+Either way, call `WorkerClientService.run` (`apps/web/src/app/core/workers/worker-client.service.ts`):
 
 ```ts
 const job = this.workerClient.run<MyPayload, MyResult>(
@@ -140,11 +142,11 @@ and bind the returned `WorkerJob`'s `status()` / `progress()` / `result()` / `er
 
 If the tool genuinely needs network access, set `network: { required: true }` in the manifest — `ToolShell` picks this up automatically (step 3), no template binding needed unless the need is dynamic. Most tools set this to false/omit it. Per the PRD's scope gate ([Historical V1 Definition of Done](docs/history/DELIVERY_HISTORY.md#historical-v1-definition-of-done)), think hard before requiring network — there's no backend and no API-key infrastructure wired into most showcase tools.
 
-**Platform capabilities and runtimes.** If the tool injects a desktop-only service (`NativeFsService`, `FileWatchService`, `LlmProxyService`, `CollabService`, `SecureLocalService`) or loads a vendored runtime (`assets/vendor/pyodide`, `sql.js`, `xmllint-wasm`, `assets/vendor/ejs.min.js`), declare it in `capabilities` using the closed vocabulary in `src/app/shared/models/tool-capability.model.ts`. For example: `capabilities: [{ kind: 'platform', id: 'native-fs', web: 'fallback', note: 'reads a real folder on disk' }]` or `[{ kind: 'runtime', runtime: 'pyodide' }]`. Use `web: 'fallback'` when the tool still does its job in a browser, and `'unavailable'` when that one feature is absent there. `tool-conformance.spec.ts` fails in both directions: an undeclared import, or a declaration with no matching import. `npm run generate:registry` turns these declarations into the Web Capability Matrix in `SECURITY.md` and `README.md`.
+**Platform capabilities and runtimes.** If the tool injects a desktop-only service (`NativeFsService`, `FileWatchService`, `LlmProxyService`, `CollabService`, `SecureLocalService`) or loads a vendored runtime (`assets/vendor/pyodide`, `sql.js`, `xmllint-wasm`, `assets/vendor/ejs.min.js`), declare it in `capabilities` using the closed vocabulary in `apps/web/src/app/shared/models/tool-capability.model.ts`. For example: `capabilities: [{ kind: 'platform', id: 'native-fs', web: 'fallback', note: 'reads a real folder on disk' }]` or `[{ kind: 'runtime', runtime: 'pyodide' }]`. Use `web: 'fallback'` when the tool still does its job in a browser, and `'unavailable'` when that one feature is absent there. `tool-conformance.spec.ts` fails in both directions: an undeclared import, or a declaration with no matching import. `npm run generate:registry` turns these declarations into the Web Capability Matrix in `SECURITY.md` and `README.md`.
 
 A feature declared `web: 'unavailable'` must stay visible on the web rather than disappear. Next to the control you render only on desktop, add `<app-desktop-only-control capability="<id>" label="<control label>" />`. It renders a disabled, badged stand-in in the browser and nothing on desktop, and conformance checks that it's present.
 
-**PWA shortcut (rare).** `pwaShortcut: { order: N }` adds the tool to the installed web app's jump list, via the generated `public/manifest.webmanifest`. Browsers only show a handful, so the cap is 10. Only take a slot for a genuinely top-used tool.
+**PWA shortcut (rare).** `pwaShortcut: { order: N }` adds the tool to the installed web app's jump list, via the generated `apps/web/public/manifest.webmanifest`. Browsers only show a handful, so the cap is 10. Only take a slot for a genuinely top-used tool.
 
 ### Web/desktop parity fixtures
 
@@ -161,7 +163,7 @@ Prefer valid, deterministic vectors with an explicit expected output. If a step 
 
 ## 7. Declare I/O capabilities
 
-Set `io: { accepts: [...], produces: [...] }` in the `ToolDefinition` — the field is required (`io:`, not `io?:`) so the compiler rejects a tool that forgets it. Use the shared vocabulary in `src/app/shared/models/tool-io.model.ts` (`DudeDataType`: `text`, `json`, `bytes`, `file`, `table`, `url`, `http-response`). This is the "Universal Input/Output Contract" from [Phase 21](docs/history/DELIVERY_HISTORY.md#phase-21) — like `persistence`/`execution`/`network`, it's declarative documentation only (not read by the shell at runtime yet), but it's what a future pipeline/Smart-Paste feature would build on, so keep it honest: describe what the tool's UI/logic actually consumes and emits today, not aspirational future capability. `tool-count.spec.ts`'s "Universal I/O contract coverage" spec still guards against a technically-present-but-empty `accepts`/`produces` array, which the required-field type check alone doesn't catch.
+Set `io: { accepts: [...], produces: [...] }` in the `ToolDefinition` — the field is required (`io:`, not `io?:`) so the compiler rejects a tool that forgets it. Use the shared vocabulary in `packages/shared-types/src/shared/models/tool-io.model.ts` (`DudeDataType`: `text`, `json`, `bytes`, `file`, `table`, `url`, `http-response`). This is the "Universal Input/Output Contract" from [Phase 21](docs/history/DELIVERY_HISTORY.md#phase-21) — like `persistence`/`execution`/`network`, it's declarative documentation only (not read by the shell at runtime yet), but it's what a future pipeline/Smart-Paste feature would build on, so keep it honest: describe what the tool's UI/logic actually consumes and emits today, not aspirational future capability. `tool-count.spec.ts`'s "Universal I/O contract coverage" spec still guards against a technically-present-but-empty `accepts`/`produces` array, which the required-field type check alone doesn't catch.
 
 Milestone 282 audited all 277 existing entries and fixed the drift it found; apply these conventions rather than reinventing them per tool:
 
@@ -172,7 +174,7 @@ Milestone 282 audited all 277 existing entries and fixed the drift it found; app
 
 ## 8. Choose your workspace/history participation
 
-Optional — a tool with no `<id>.workspace-step.ts` file simply isn't eligible for live tab/panel mirroring ([Phase 21](docs/history/DELIVERY_HISTORY.md#phase-21) Item 4) or Local History (Item 5); that's a normal, common outcome, not an error (`core/workspace/workspace-coverage.spec.ts` tracks every tool's decision either way). If the tool has a real, restorable content field (not just a live-clock/interactive-only state, and not a File/Blob that never touches `PersistenceService`), add `src/app/tools/<id>/<id>.workspace-step.ts` exporting `workspaceStep: WorkspaceStep` (`src/app/shared/models/workspace-step.model.ts`):
+Optional — a tool with no `<id>.workspace-step.ts` file simply isn't eligible for live tab/panel mirroring ([Phase 21](docs/history/DELIVERY_HISTORY.md#phase-21) Item 4) or Local History (Item 5); that's a normal, common outcome, not an error (`core/workspace/workspace-coverage.spec.ts` tracks every tool's decision either way). If the tool has a real, restorable content field (not just a live-clock/interactive-only state, and not a File/Blob that never touches `PersistenceService`), add `apps/web/src/app/tools/<id>/<id>.workspace-step.ts` exporting `workspaceStep: WorkspaceStep` (`packages/contracts/src/shared/models/workspace-step.model.ts`):
 
 ```ts
 export const workspaceStep: WorkspaceStep = {
@@ -188,7 +190,7 @@ export const workspaceStep: WorkspaceStep = {
 };
 ```
 
-`readStorageValue`/`writeStorageValue` (`src/app/core/workspace/workspace-storage-bridge.ts`) read/write the *exact same* storage keys your step-4 `persistence.signal(...)` calls already use — never invent a new key or a different policy than what you chose in step 4. A `'none'`-policy field (nothing ever touches storage, e.g. `jwt`'s token) can't use the bridge at all; use the in-memory `offerWorkspaceState`/`consumeWorkspaceState` pair (`src/app/core/workspace/workspace-handoff.ts`) instead, and add one line to your own constructor consuming the hand-off — see `src/app/tools/jwt/jwt.ts` for the worked example. `historyEligible` defaults to excluded and must be a deliberate, explicit opt-in — see `core/history/AGENTS.md` for the exclusion categories (sensitive-by-design, pure reference/lookup, sandboxed execution needs source-only). Write a matching `<id>.workspace-step.spec.ts` mirroring `src/app/tools/base64/base64.workspace-step.spec.ts`.
+`readStorageValue`/`writeStorageValue` (`apps/web/src/app/core/workspace/workspace-storage-bridge.ts`) read/write the *exact same* storage keys your step-4 `persistence.signal(...)` calls already use — never invent a new key or a different policy than what you chose in step 4. A `'none'`-policy field (nothing ever touches storage, e.g. `jwt`'s token) can't use the bridge at all; use the in-memory `offerWorkspaceState`/`consumeWorkspaceState` pair (`packages/tool-engine/src/core/workspace/workspace-handoff.ts`) instead, and add one line to your own constructor consuming the hand-off — see `apps/web/src/app/tools/jwt/jwt.ts` for the worked example. `historyEligible` defaults to excluded and must be a deliberate, explicit opt-in — see `core/history/AGENTS.md` for the exclusion categories (sensitive-by-design, pure reference/lookup, sandboxed execution needs source-only). Write a matching `<id>.workspace-step.spec.ts` mirroring `apps/web/src/app/tools/base64/base64.workspace-step.spec.ts`.
 
 ### Optional: contribute a Settings panel
 
@@ -199,20 +201,21 @@ settingsSection: {
   title: 'Collaboration relay',
   keywords: ['relay', 'websocket'],
   desktopOnly: true, // web lists it with a Desktop badge and an explainer
-  load: () => import('./my-tool.settings').then((m) => m.MyToolSettings),
   workspaceOverridable: [{ key: 'relayUrl', label: 'Relay URL', type: 'url' }], // optional
 },
 ```
+
+Declare `settingsLoad: () => import('./my-tool.settings').then(m => m.MyToolSettings)` in the app binding, never in portable metadata.
 
 The panel component reads and writes the tool's own `local` `persistence.signal(...)` keys. For a key listed in `workspaceOverridable`, the tool reads it through `resolvePreference(toolId, key, globalSignal)` (`core/workspace/workspace-preference.ts`); the Workspace settings popover and templates/projects handle the rest generically. If you are moving a value out of another namespace, add `storageMigrations: [{ fromNamespace, fromKey, toKey }]` and it moves once at startup. `tools/markdown-workspace/` is the worked example.
 
 ## 9. Expose the lazy route/component
 
-Nothing to do beyond step 2. `buildToolRoutes()` (`src/app/core/registry/tool-routes.ts`) automatically turns every `TOOL_DEFINITIONS` entry into a lazy `loadComponent` route nested under the root `ShellLayout` (`src/app/core/routing/app.routes.ts`). No route file edits needed — this is the "shell generated from tool metadata" promise ([Registry responsibilities](docs/architecture/SYSTEM_ARCHITECTURE.md#registry-responsibilities)) actually working.
+Nothing to do beyond step 2. `buildToolRoutes()` (`apps/web/src/app/core/registry/tool-routes.ts`) automatically turns every `TOOL_DEFINITIONS` entry into a lazy `loadComponent` route nested under the root `ShellLayout` (`apps/web/src/app/core/routing/app.routes.ts`). No route file edits needed — this is the "shell generated from tool metadata" promise ([Registry responsibilities](docs/architecture/SYSTEM_ARCHITECTURE.md#registry-responsibilities)) actually working.
 
 ## 10. Add tests where appropriate
 
-A framework-free `.spec.ts` for the pure transform is the highest-value test (fast, no TestBed) — see `base64-codec.spec.ts`. Only add a component-level spec if there's real branching logic in the component itself (e.g. json's worker-threshold test, `src/app/tools/json/json.spec.ts`). Don't chase coverage for its own sake ([Testing Strategy](docs/delivery/QUALITY_AND_RELEASE.md#testing-strategy) — "ship first").
+A framework-free `.spec.ts` for the pure transform is the highest-value test (fast, no TestBed) — see `base64-codec.spec.ts`. Only add a component-level spec if there's real branching logic in the component itself (e.g. json's worker-threshold test, `apps/web/src/app/tools/json/json.spec.ts`). Don't chase coverage for its own sake ([Testing Strategy](docs/delivery/QUALITY_AND_RELEASE.md#testing-strategy) — "ship first").
 
 If the transform is round-trip-capable (an `encode`/`decode` or `parse`/`format` pair, or any `f`/`f⁻¹`), add one `fast-check` property case alongside the example-based tests ([Phase 23](docs/history/DELIVERY_HISTORY.md#phase-23) Item 4) — it catches the edge cases hand-picked examples miss:
 
@@ -247,7 +250,7 @@ it('never throws for arbitrary text input', () => {
 
 See `json-format.spec.ts`, `yaml-convert.spec.ts`, and `xml-format.spec.ts` for real examples.
 
-If the tool parses a complex real-world binary/structured format (PE, ELF, Mach-O, a certificate, a container format), don't rely solely on a hand-synthesized minimal fixture built byte-by-byte in the spec — also add a **golden corpus** fixture ([Phase 23](docs/history/DELIVERY_HISTORY.md#phase-23) Item 6): a real sample under `<id>/__fixtures__/`, read via `readFileSync(resolve(process.cwd(), 'src/app/tools/<id>/__fixtures__/<name>'))`, with expected field values taken from an independent reference tool/library — never derived by running DUDE's own parser and copying its output. `__fixtures__/` is never referenced by `angular.json`'s `assets` globs, so nothing there ships in the app bundle. Document the fixture's exact provenance (how it was produced) and the independent cross-check tool/command in a short `__fixtures__/README.md`. See `pe-header-viewer`, `elf-header-viewer`, and `macho-header-viewer` for real examples — all three fixtures are genuine binaries produced by `dotnet publish -r <rid>` (which fetches the real prebuilt apphost package for that platform, no cross-compiler needed) and cross-checked with `pefile`/`pyelftools`/`lief` respectively.
+If the tool parses a complex real-world binary/structured format (PE, ELF, Mach-O, a certificate, a container format), don't rely solely on a hand-synthesized minimal fixture built byte-by-byte in the spec — also add a **golden corpus** fixture ([Phase 23](docs/history/DELIVERY_HISTORY.md#phase-23) Item 6): a real sample under `<id>/__fixtures__/`, read via `readFileSync(resolve(process.cwd(), 'packages/tool-engine/src/tools/<id>/__fixtures__/<name>'))`, with expected field values taken from an independent reference tool/library — never derived by running DUDE's own parser and copying its output. `__fixtures__/` is never referenced by `angular.json`'s `assets` globs, so nothing there ships in the app bundle. Document the fixture's exact provenance (how it was produced) and the independent cross-check tool/command in a short `__fixtures__/README.md`. See `pe-header-viewer`, `elf-header-viewer`, and `macho-header-viewer` for real examples — all three fixtures are genuine binaries produced by `dotnet publish -r <rid>` (which fetches the real prebuilt apphost package for that platform, no cross-compiler needed) and cross-checked with `pefile`/`pyelftools`/`lief` respectively.
 
 ## 11. Verify search/sidebar/command palette discovery
 
@@ -263,9 +266,9 @@ After `ng build`, confirm the lazy chunk loads and the route resolves correctly 
 
 ## Adding a Home panel (not a tool)
 
-The Home/Browse Tools/Sidebar responsibility split, panel ownership rules, layout persistence and dashboard/chart conventions are documented in `src/app/shell/deck/AGENTS.md`; this section is the recipe.
+The Home/Browse Tools/Sidebar responsibility split, panel ownership rules, layout persistence and dashboard/chart conventions are documented in `apps/web/src/app/shell/deck/AGENTS.md`; this section is the recipe.
 
-Registering a tool never creates a Home panel — a panel is its own explicit declaration (DUDE_PRD.md Phase 30I). A feature that wants one (a tool's status card, Git status, running processes, certificate expiry, …) adds a colocated **`<kind-id>.panel-manifest.ts`** next to its component and touches nothing in `src/app/shell/`, `src/app/core/` or Settings:
+Registering a tool never creates a Home panel — a panel is its own explicit declaration (DUDE_PRD.md Phase 30I). A feature that wants one (a tool's status card, Git status, running processes, certificate expiry, …) adds a colocated **`<kind-id>.panel-manifest.ts`** next to its component and touches nothing in `apps/web/src/app/shell/`, `apps/web/src/app/core/` or Settings:
 
 ```ts
 import type { PanelDefinition } from '<rel>/shared/models/panel-definition.model';

@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/glob-tester/glob-match.ts",
+    "packages/tool-engine/src/tools/glob-tester/glob-match.ts"
+  ],
+  [
+    "apps/web/src/app/tools/glob-tester/glob-match.spec.ts",
+    "packages/tool-engine/src/tools/glob-tester/glob-match.spec.ts"
+  ]
+]

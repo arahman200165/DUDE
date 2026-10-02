@@ -1,6 +1,6 @@
 # Security & Capability Disclosure
 
-Generated from `src/app/tools/**/<id>.manifest.ts` metadata by `scripts/generate-security-doc.mjs`
+Generated from `packages/tool-registry/src/tools/<id>/<id>.manifest.ts` metadata by `scripts/generate-security-doc.mjs`
 (DUDE_PRD.md §21 Phase 23 Items 7 & 13) — do not hand-edit the tables below; edit the source
 manifests and run `npm run generate:registry`.
 
@@ -69,7 +69,7 @@ database-write) have no rows below until a tool claims them.
 | [Port → Process Lookup](https://arahman200165.github.io/DUDE/tools/port-process-lookup) | Process Management | experimental |
 | [Port Scanner](https://arahman200165.github.io/DUDE/tools/port-scanner) | Network Scanning | experimental |
 | [PowerShell Builder](https://arahman200165.github.io/DUDE/tools/powershell-builder) | Code Execution | experimental — Literal quoting is property-tested with fast-check and cross-checked against the PowerShell 7 parser (Parser::ParseInput) over thousands of generated commands. |
-| [Process Diagnostic Bundle](https://arahman200165.github.io/DUDE/tools/process-diagnostic-bundle) | Process Management | experimental — Collection, the streamed minidump and the ZIP were verified end to end against a real spawned process and the real helper. Save-grant, identity-mismatch, cancel and staging-cleanup behaviour is unit tested in electron/sys-bundle.spec.ts. |
+| [Process Diagnostic Bundle](https://arahman200165.github.io/DUDE/tools/process-diagnostic-bundle) | Process Management | experimental — Collection, the streamed minidump and the ZIP were verified end to end against a real spawned process and the real helper. Save-grant, identity-mismatch, cancel and staging-cleanup behaviour is unit tested in apps/desktop/sys-bundle.spec.ts. |
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Process Management | experimental |
 | [Python Playground](https://arahman200165.github.io/DUDE/tools/python-playground) | Code Execution | verified — Fuzz-tested the pure sandbox-event reducer for transcript and outcome shape. |
 | [Registry Editor](https://arahman200165.github.io/DUDE/tools/registry-editor) | Registry | experimental |

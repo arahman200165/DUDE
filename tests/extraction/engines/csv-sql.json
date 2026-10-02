@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/csv-sql/csv-sql-payload.ts",
+    "packages/tool-engine/src/tools/csv-sql/csv-sql-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-sql/csv-sql-transform.ts",
+    "packages/tool-engine/src/tools/csv-sql/csv-sql-transform.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-sql/csv-sql.pipeline-step.ts",
+    "packages/tool-engine/src/tools/csv-sql/csv-sql.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-sql/csv-sql-transform.spec.ts",
+    "packages/tool-engine/src/tools/csv-sql/csv-sql-transform.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-sql/csv-sql.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/csv-sql/csv-sql.pipeline-step.spec.ts"
+  ]
+]

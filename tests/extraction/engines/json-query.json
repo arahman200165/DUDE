@@ -1,0 +1,14 @@
+[
+  [
+    "apps/web/src/app/tools/json-query/json-query-eval.ts",
+    "packages/tool-engine/src/tools/json-query/json-query-eval.ts"
+  ],
+  [
+    "apps/web/src/app/tools/json-query/json-query-payload.ts",
+    "packages/tool-engine/src/tools/json-query/json-query-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/json-query/json-query-eval.spec.ts",
+    "packages/tool-engine/src/tools/json-query/json-query-eval.spec.ts"
+  ]
+]

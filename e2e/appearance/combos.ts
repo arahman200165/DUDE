@@ -1,7 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-/** Storage key the pre-paint script and AppearanceService read (see src/index.html). */
+/** Storage key the pre-paint script and AppearanceService read (see apps/web/src/index.html). */
 export const APPEARANCE_STORAGE_KEY = 'dude:v1:settings:appearance';
 
 interface AxisDef {
@@ -43,7 +43,7 @@ export const VIEWPORTS = [
 ];
 
 export function loadTokens(): ThemeTokens {
-  const file = path.resolve(__dirname, '../../src/styles/theme/theme-tokens.json');
+  const file = path.resolve(__dirname, '../../apps/web/src/styles/theme/theme-tokens.json');
   return JSON.parse(fs.readFileSync(file, 'utf8')) as ThemeTokens;
 }
 

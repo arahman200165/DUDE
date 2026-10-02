@@ -1,0 +1,14 @@
+[
+  [
+    "apps/web/src/app/tools/file-hash/file-hash-payload.ts",
+    "packages/tool-engine/src/tools/file-hash/file-hash-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/file-hash/file-hash.pipeline-step.ts",
+    "packages/tool-engine/src/tools/file-hash/file-hash.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/file-hash/file-hash.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/file-hash/file-hash.pipeline-step.spec.ts"
+  ]
+]

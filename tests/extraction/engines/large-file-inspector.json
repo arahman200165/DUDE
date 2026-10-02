@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/large-file-inspector/inspector-logic.ts",
+    "packages/tool-engine/src/tools/large-file-inspector/inspector-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/large-file-inspector/inspector-logic.spec.ts",
+    "packages/tool-engine/src/tools/large-file-inspector/inspector-logic.spec.ts"
+  ]
+]

@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/cors-header-builder/cors-header-builder.pipeline-step.ts",
+    "packages/tool-engine/src/tools/cors-header-builder/cors-header-builder.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/cors-header-builder/cors-headers.ts",
+    "packages/tool-engine/src/tools/cors-header-builder/cors-headers.ts"
+  ],
+  [
+    "apps/web/src/app/tools/cors-header-builder/cors-header-builder.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/cors-header-builder/cors-header-builder.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/cors-header-builder/cors-headers.spec.ts",
+    "packages/tool-engine/src/tools/cors-header-builder/cors-headers.spec.ts"
+  ]
+]

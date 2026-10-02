@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/core/home-layout/panel-validation.ts",
+    "packages/validation/src/core/home-layout/panel-validation.ts"
+  ],
+  [
+    "apps/web/src/app/core/pipeline/pipeline-validation.ts",
+    "packages/validation/src/core/pipeline/pipeline-validation.ts"
+  ]
+]

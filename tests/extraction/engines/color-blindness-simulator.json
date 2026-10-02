@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/color-blindness-simulator/color-blindness-simulator-logic.ts",
+    "packages/tool-engine/src/tools/color-blindness-simulator/color-blindness-simulator-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/color-blindness-simulator/color-blindness-simulator-logic.spec.ts",
+    "packages/tool-engine/src/tools/color-blindness-simulator/color-blindness-simulator-logic.spec.ts"
+  ]
+]

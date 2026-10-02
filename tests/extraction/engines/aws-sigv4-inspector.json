@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/aws-sigv4-inspector/aws-sigv4-inspector-logic.ts",
+    "packages/tool-engine/src/tools/aws-sigv4-inspector/aws-sigv4-inspector-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/aws-sigv4-inspector/aws-sigv4-inspector-logic.spec.ts",
+    "packages/tool-engine/src/tools/aws-sigv4-inspector/aws-sigv4-inspector-logic.spec.ts"
+  ]
+]

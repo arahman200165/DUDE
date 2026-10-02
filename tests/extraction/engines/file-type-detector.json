@@ -1,0 +1,14 @@
+[
+  [
+    "apps/web/src/app/tools/file-type-detector/file-type-detector-logic.ts",
+    "packages/tool-engine/src/tools/file-type-detector/file-type-detector-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/file-type-detector/file-type-detector.pipeline-step.ts",
+    "packages/tool-engine/src/tools/file-type-detector/file-type-detector.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/file-type-detector/file-type-detector.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/file-type-detector/file-type-detector.pipeline-step.spec.ts"
+  ]
+]

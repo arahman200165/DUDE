@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/cron/cron-parse.ts",
+    "packages/tool-engine/src/tools/cron/cron-parse.ts"
+  ],
+  [
+    "apps/web/src/app/tools/cron/cron.pipeline-step.ts",
+    "packages/tool-engine/src/tools/cron/cron.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/cron/cron-parse.spec.ts",
+    "packages/tool-engine/src/tools/cron/cron-parse.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/cron/cron.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/cron/cron.pipeline-step.spec.ts"
+  ]
+]

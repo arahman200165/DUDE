@@ -1,0 +1,30 @@
+[
+  [
+    "apps/web/src/app/tools/mime-types/mime-extension-overlay.ts",
+    "packages/tool-engine/src/tools/mime-types/mime-extension-overlay.ts"
+  ],
+  [
+    "apps/web/src/app/tools/mime-types/mime-search.ts",
+    "packages/tool-engine/src/tools/mime-types/mime-search.ts"
+  ],
+  [
+    "apps/web/src/app/tools/mime-types/mime-type-data.ts",
+    "packages/tool-engine/src/tools/mime-types/mime-type-data.ts"
+  ],
+  [
+    "apps/web/src/app/tools/mime-types/mime-types.pipeline-step.ts",
+    "packages/tool-engine/src/tools/mime-types/mime-types.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/mime-types/mime-search.spec.ts",
+    "packages/tool-engine/src/tools/mime-types/mime-search.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/mime-types/mime-type-data.spec.ts",
+    "packages/tool-engine/src/tools/mime-types/mime-type-data.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/mime-types/mime-types.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/mime-types/mime-types.pipeline-step.spec.ts"
+  ]
+]

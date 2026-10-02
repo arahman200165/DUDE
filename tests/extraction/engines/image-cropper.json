@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/image-cropper/crop-rect.ts",
+    "packages/tool-engine/src/tools/image-cropper/crop-rect.ts"
+  ],
+  [
+    "apps/web/src/app/tools/image-cropper/crop-rect.spec.ts",
+    "packages/tool-engine/src/tools/image-cropper/crop-rect.spec.ts"
+  ]
+]

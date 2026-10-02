@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/missing-env-var-detector/missing-env-var-detector-logic.ts",
+    "packages/tool-engine/src/tools/missing-env-var-detector/missing-env-var-detector-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/missing-env-var-detector/missing-env-var-detector-logic.spec.ts",
+    "packages/tool-engine/src/tools/missing-env-var-detector/missing-env-var-detector-logic.spec.ts"
+  ]
+]

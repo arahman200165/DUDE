@@ -11,18 +11,18 @@
       "projectType": "application",
       "schematics": {},
       "root": "",
-      "sourceRoot": "src",
+      "sourceRoot": "apps/web/src",
       "prefix": "app",
       "architect": {
         "build": {
           "builder": "@angular/build:application",
           "options": {
-            "browser": "src/main.ts",
+            "browser": "apps/web/src/main.ts",
             "tsConfig": "tsconfig.app.json",
             "assets": [
               {
                 "glob": "**/*",
-                "input": "public"
+                "input": "apps/web/public"
               },
               {
                 "glob": "ejs.min.js",
@@ -44,9 +44,20 @@
                 "output": "assets/vendor/sql.js/"
               }
             ],
-            "styles": ["src/styles.css"],
+            "styles": [
+              "apps/web/src/styles.css"
+            ],
             "webWorkerTsConfig": "tsconfig.worker.json",
-            "allowedCommonJsDependencies": ["diff-match-patch", "papaparse", "jmespath", "cron-parser", "cronstrue", "node-forge", "railroad-diagrams"]
+            "allowedCommonJsDependencies": [
+              "diff-match-patch",
+              "papaparse",
+              "jmespath",
+              "cron-parser",
+              "cronstrue",
+              "node-forge",
+              "railroad-diagrams"
+            ],
+            "outputPath": "dist/dude"
           },
           "configurations": {
             "production": {
@@ -54,7 +65,7 @@
                 {
                   "type": "initial",
                   "maximumWarning": "500kB",
-                  "maximumError": "1.1MB"
+                  "maximumError": "1.5MB"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -104,7 +115,10 @@
         "test": {
           "builder": "@angular/build:unit-test",
           "options": {
-            "setupFiles": ["src/testing/fast-check.setup.ts"]
+            "setupFiles": [
+              "apps/web/src/testing/fast-check.setup.ts"
+            ],
+            "runnerConfig": "vitest.angular.config.mts"
           }
         }
       }

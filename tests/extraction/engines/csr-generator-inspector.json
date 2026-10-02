@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/csr-generator-inspector/csr-generator-inspector.pipeline-step.ts",
+    "packages/tool-engine/src/tools/csr-generator-inspector/csr-generator-inspector.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csr-generator-inspector/csr-logic.ts",
+    "packages/tool-engine/src/tools/csr-generator-inspector/csr-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csr-generator-inspector/csr-generator-inspector.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/csr-generator-inspector/csr-generator-inspector.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csr-generator-inspector/csr-logic.spec.ts",
+    "packages/tool-engine/src/tools/csr-generator-inspector/csr-logic.spec.ts"
+  ]
+]

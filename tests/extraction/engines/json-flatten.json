@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/json-flatten/json-flatten-payload.ts",
+    "packages/tool-engine/src/tools/json-flatten/json-flatten-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/json-flatten/json-flatten-transform.ts",
+    "packages/tool-engine/src/tools/json-flatten/json-flatten-transform.ts"
+  ],
+  [
+    "apps/web/src/app/tools/json-flatten/json-flatten.pipeline-step.ts",
+    "packages/tool-engine/src/tools/json-flatten/json-flatten.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/json-flatten/json-flatten-transform.spec.ts",
+    "packages/tool-engine/src/tools/json-flatten/json-flatten-transform.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/json-flatten/json-flatten.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/json-flatten/json-flatten.pipeline-step.spec.ts"
+  ]
+]

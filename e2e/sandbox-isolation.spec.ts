@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 // Regression suite for the Phase 6 code-sandbox's two isolation guarantees (DUDE_PRD.md §21
-// Phase 23 Item 9) -- both are documented in src/app/shared/code-sandbox/AGENTS.md as caught
+// Phase 23 Item 9) -- both are documented in apps/web/src/app/shared/code-sandbox/AGENTS.md as caught
 // only by live browser testing, never unit tests, so this drives the real built app in a real
 // browser rather than asserting on generated HTML strings the way the existing unit specs do.
 

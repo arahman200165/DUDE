@@ -1,0 +1,18 @@
+[
+  [
+    "apps/web/src/app/tools/smart-quotes-normalizer/smart-quotes-normalize.ts",
+    "packages/tool-engine/src/tools/smart-quotes-normalizer/smart-quotes-normalize.ts"
+  ],
+  [
+    "apps/web/src/app/tools/smart-quotes-normalizer/smart-quotes-normalizer.pipeline-step.ts",
+    "packages/tool-engine/src/tools/smart-quotes-normalizer/smart-quotes-normalizer.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/smart-quotes-normalizer/smart-quotes-normalize.spec.ts",
+    "packages/tool-engine/src/tools/smart-quotes-normalizer/smart-quotes-normalize.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/smart-quotes-normalizer/smart-quotes-normalizer.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/smart-quotes-normalizer/smart-quotes-normalizer.pipeline-step.spec.ts"
+  ]
+]

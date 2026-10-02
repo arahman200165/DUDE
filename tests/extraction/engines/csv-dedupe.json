@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/csv-dedupe/csv-dedupe-payload.ts",
+    "packages/tool-engine/src/tools/csv-dedupe/csv-dedupe-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-dedupe/csv-dedupe-transform.ts",
+    "packages/tool-engine/src/tools/csv-dedupe/csv-dedupe-transform.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-dedupe/csv-dedupe.pipeline-step.ts",
+    "packages/tool-engine/src/tools/csv-dedupe/csv-dedupe.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-dedupe/csv-dedupe-transform.spec.ts",
+    "packages/tool-engine/src/tools/csv-dedupe/csv-dedupe-transform.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/csv-dedupe/csv-dedupe.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/csv-dedupe/csv-dedupe.pipeline-step.spec.ts"
+  ]
+]

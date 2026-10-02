@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/k8s-manifest-diff/k8s-manifest-diff-logic.ts",
+    "packages/tool-engine/src/tools/k8s-manifest-diff/k8s-manifest-diff-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/k8s-manifest-diff/k8s-manifest-diff-logic.spec.ts",
+    "packages/tool-engine/src/tools/k8s-manifest-diff/k8s-manifest-diff-logic.spec.ts"
+  ]
+]

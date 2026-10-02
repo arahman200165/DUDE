@@ -5,6 +5,6 @@
   "compilerOptions": {
     "types": []
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.spec.ts", "src/**/*.worker.ts"]
+  "include": ["apps/web/src/**/*.ts"],
+  "exclude": ["apps/web/src/**/*.spec.ts", "apps/web/src/**/*.worker.ts"]
 }

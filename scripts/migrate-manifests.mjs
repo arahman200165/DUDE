@@ -1,6 +1,6 @@
 // One-time codemod (Milestone 300): splits the monolithic TOOL_DEFINITIONS array in
-// src/app/core/registry/tool-definitions.ts into one colocated <id>.manifest.ts file per
-// tool folder under src/app/tools/. After running this and verifying with
+// apps/web/src/app/core/registry/tool-definitions.ts into one colocated <id>.manifest.ts file per
+// tool folder under apps/web/src/app/tools/. After running this and verifying with
 // generate-tool-registry.mjs, this script (and this comment) can be deleted — it is not
 // part of the ongoing "add a tool" workflow.
 //
@@ -13,8 +13,8 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
-const REGISTRY_FILE = path.join(ROOT, 'src/app/core/registry/tool-definitions.ts');
-const TOOLS_DIR = path.join(ROOT, 'src/app/tools');
+const REGISTRY_FILE = path.join(ROOT, 'apps/web/src/app/core/registry/tool-definitions.ts');
+const TOOLS_DIR = path.join(ROOT, 'apps/web/src/app/tools');
 
 const sourceText = readFileSync(REGISTRY_FILE, 'utf8');
 const sourceFile = ts.createSourceFile(REGISTRY_FILE, sourceText, ts.ScriptTarget.Latest, true);
@@ -86,4 +86,4 @@ for (const entry of entries) {
   migrated += 1;
 }
 
-console.log(`Wrote ${migrated} manifest files under src/app/tools/**/<id>.manifest.ts`);
+console.log(`Wrote ${migrated} manifest files under apps/web/src/app/tools/**/<id>.manifest.ts`);

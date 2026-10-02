@@ -3,11 +3,11 @@
 // PRD §18 is "ship first, protect the framework, not chase coverage"). It exists purely to
 // mechanically enforce boundaries that were previously convention/AGENTS.md-prose-only:
 //
-// - src/app/** (the Angular renderer) must never runtime-import electron/** — see
-//   electron/AGENTS.md: "the Angular renderer never imports from here."
-// - electron/** (the Electron main/preload processes) must never runtime-import src/app/** —
+// - apps/web/src/app/** (the Angular renderer) must never runtime-import apps/desktop/** — see
+//   apps/desktop/AGENTS.md: "the Angular renderer never imports from here."
+// - apps/desktop/** (the Electron main/preload processes) must never runtime-import apps/web/src/app/** —
 //   same file: "the two processes only ever talk over contextBridge/IPC."
-// - src/shared-logic/** must stay framework/DOM-free — see src/shared-logic/AGENTS.md: "No
+// - apps/web/src/shared-logic/** must stay framework/DOM-free — see apps/web/src/shared-logic/AGENTS.md: "No
 //   Angular imports... no DOM-only globals... only globals available in both a browser tab
 //   and Node."
 //
@@ -19,25 +19,25 @@ import tsParser from '@typescript-eslint/parser';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
 
 const NO_ELECTRON_IMPORT = {
-  group: ['**/electron/**', '**/electron'],
-  message: 'src/app/ must never runtime-import from electron/ (electron/AGENTS.md) — use a type-only import if you only need a type.',
+  group: ['**/apps/desktop/**', '**/apps/desktop', 'electron'],
+  message: 'apps/web/src/app/ must never runtime-import from apps/desktop/ (apps/desktop/AGENTS.md) — use a type-only import if you only need a type.',
   allowTypeImports: true,
 };
 
 const NO_APP_IMPORT = {
   group: ['**/src/app/**'],
-  message: 'electron/ must never runtime-import from src/app/ (electron/AGENTS.md) — the renderer and main process only talk over contextBridge/IPC. Use a type-only import if you only need a type.',
+  message: 'apps/desktop/ must never runtime-import from apps/web/src/app/ (apps/desktop/AGENTS.md) — the renderer and main process only talk over contextBridge/IPC. Use a type-only import if you only need a type.',
   allowTypeImports: true,
 };
 
 const NO_ANGULAR_IMPORT = {
   group: ['@angular/*', '@angular/**'],
-  message: 'src/shared-logic/ must stay framework-free (src/shared-logic/AGENTS.md) — no @angular/* imports.',
+  message: 'apps/web/src/shared-logic/ must stay framework-free (apps/web/src/shared-logic/AGENTS.md) — no @angular/* imports.',
 };
 
 export default [
   {
-    ignores: ['dist/**', 'dist-*/**', 'node_modules/**', '.angular/**', 'coverage/**'],
+    ignores: ['dist/**', '**/dist/**', 'dist-*/**', '**/node_modules/**', '.angular/**', 'coverage/**', 'tmp/**'],
   },
   {
     files: ['**/*.ts'],
@@ -48,27 +48,27 @@ export default [
     plugins: { '@typescript-eslint': tsPlugin },
   },
   {
-    files: ['src/app/**/*.ts'],
+    files: ['apps/web/src/app/**/*.ts'],
     rules: {
       '@typescript-eslint/no-restricted-imports': ['error', { patterns: [NO_ELECTRON_IMPORT] }],
     },
   },
   {
-    files: ['electron/**/*.ts'],
+    files: ['apps/desktop/**/*.ts'],
     rules: {
       '@typescript-eslint/no-restricted-imports': ['error', { patterns: [NO_APP_IMPORT] }],
     },
   },
   {
-    files: ['src/shared-logic/**/*.ts'],
+    files: ['apps/web/src/shared-logic/**/*.ts'],
     rules: {
       '@typescript-eslint/no-restricted-imports': ['error', { patterns: [NO_ANGULAR_IMPORT] }],
       'no-restricted-globals': [
         'error',
-        { name: 'window', message: 'src/shared-logic/ must stay DOM-free (src/shared-logic/AGENTS.md).' },
-        { name: 'document', message: 'src/shared-logic/ must stay DOM-free (src/shared-logic/AGENTS.md).' },
-        { name: 'localStorage', message: 'src/shared-logic/ must stay DOM-free (src/shared-logic/AGENTS.md).' },
-        { name: 'sessionStorage', message: 'src/shared-logic/ must stay DOM-free (src/shared-logic/AGENTS.md).' },
+        { name: 'window', message: 'apps/web/src/shared-logic/ must stay DOM-free (apps/web/src/shared-logic/AGENTS.md).' },
+        { name: 'document', message: 'apps/web/src/shared-logic/ must stay DOM-free (apps/web/src/shared-logic/AGENTS.md).' },
+        { name: 'localStorage', message: 'apps/web/src/shared-logic/ must stay DOM-free (apps/web/src/shared-logic/AGENTS.md).' },
+        { name: 'sessionStorage', message: 'apps/web/src/shared-logic/ must stay DOM-free (apps/web/src/shared-logic/AGENTS.md).' },
       ],
     },
   },

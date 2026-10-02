@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/error-code-reference/error-code-reference.pipeline-step.ts",
+    "packages/tool-engine/src/tools/error-code-reference/error-code-reference.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/error-code-reference/error-codes-data.ts",
+    "packages/tool-engine/src/tools/error-code-reference/error-codes-data.ts"
+  ],
+  [
+    "apps/web/src/app/tools/error-code-reference/error-codes-search.ts",
+    "packages/tool-engine/src/tools/error-code-reference/error-codes-search.ts"
+  ],
+  [
+    "apps/web/src/app/tools/error-code-reference/error-code-reference.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/error-code-reference/error-code-reference.pipeline-step.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/error-code-reference/error-codes-search.spec.ts",
+    "packages/tool-engine/src/tools/error-code-reference/error-codes-search.spec.ts"
+  ]
+]

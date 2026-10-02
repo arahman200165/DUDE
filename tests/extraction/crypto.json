@@ -1,0 +1,26 @@
+[
+  [
+    "apps/web/src/shared-logic/base64-codec.ts",
+    "packages/crypto/src/base64-codec.ts"
+  ],
+  [
+    "apps/web/src/shared-logic/crc.ts",
+    "packages/crypto/src/crc.ts"
+  ],
+  [
+    "apps/web/src/shared-logic/hash-compute.ts",
+    "packages/crypto/src/hash-compute.ts"
+  ],
+  [
+    "apps/web/src/app/tools/file-hash/file-hash.property.spec.ts",
+    "packages/crypto/src/file-hash.property.spec.ts"
+  ],
+  [
+    "apps/web/src/shared-logic/base64-codec.spec.ts",
+    "packages/crypto/src/base64-codec.spec.ts"
+  ],
+  [
+    "apps/web/src/shared-logic/hash-compute.spec.ts",
+    "packages/crypto/src/hash-compute.spec.ts"
+  ]
+]

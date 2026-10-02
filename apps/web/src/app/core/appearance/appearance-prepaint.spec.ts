@@ -1,0 +1,162 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { APP_SETTINGS_NAMESPACE, APPEARANCE_KEY } from "@dude/tool-engine/core/persistence/app-settings";
+import { buildStorageKey } from "@dude/tool-engine/core/persistence/persistence-keys";
+import { APPEARANCE_AXES } from "@dude/domain/core/appearance/appearance.model";
+
+const STORAGE_KEY = buildStorageKey(APP_SETTINGS_NAMESPACE, APPEARANCE_KEY);
+
+function prepaintSource(): string {
+  const html = readFileSync(resolve(process.cwd(), 'apps/web/src/index.html'), 'utf8');
+  const match = /<script id="dude-appearance-prepaint"[^>]*>([\s\S]*?)<\/script>/.exec(html);
+  if (!match) throw new Error('index.html has no #dude-appearance-prepaint script');
+  return match[1];
+}
+
+describe('index.html appearance pre-paint script', () => {
+  const root = document.documentElement;
+  const fontAttrs = ['data-ui-font', 'data-mono-font'];
+  const attrs = [...Object.values(APPEARANCE_AXES).map((axis) => axis.attr), ...fontAttrs];
+
+  function run(): void {
+    new Function(prepaintSource())();
+  }
+
+  function clear(): void {
+    localStorage.clear();
+    for (const attr of attrs) root.removeAttribute(attr);
+  }
+
+  beforeEach(clear);
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    clear();
+  });
+
+  it('applies valid stored prefs as data-* attributes', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ mode: 'dark', contrast: 'high', accent: 'violet', catset: 'soft', semantic: 'cb-safe', density: 'comfortable' }));
+    run();
+    expect(root.getAttribute('data-theme')).toBe('dark');
+    expect(root.getAttribute('data-contrast')).toBe('high');
+    expect(root.getAttribute('data-accent')).toBe('violet');
+    expect(root.getAttribute('data-catset')).toBe('soft');
+    expect(root.getAttribute('data-semantic')).toBe('cb-safe');
+    expect(root.getAttribute('data-density')).toBe('comfortable');
+  });
+
+  it('applies the density, UI size, data size and ligature attributes', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ density: 'ultra', uiSize: 'large', monoSize: 'small', ligatures: 'off' }));
+    run();
+    expect(root.getAttribute('data-density')).toBe('ultra');
+    expect(root.getAttribute('data-ui-size')).toBe('large');
+    expect(root.getAttribute('data-mono-size')).toBe('small');
+    expect(root.getAttribute('data-ligatures')).toBe('off');
+  });
+
+  it('applies curated font ids and skips custom font objects', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ uiFont: 'inter', monoFont: { custom: 'Iosevka' } }));
+    run();
+    expect(root.getAttribute('data-ui-font')).toBe('inter');
+    expect(root.hasAttribute('data-mono-font')).toBe(false);
+  });
+
+  it('does nothing when nothing is stored', () => {
+    expect(() => run()).not.toThrow();
+    for (const attr of attrs) expect(root.hasAttribute(attr)).toBe(false);
+  });
+
+  it('does not throw and sets nothing for malformed JSON or non-objects', () => {
+    for (const raw of ['{not json', '"dark"', '42', 'null']) {
+      localStorage.setItem(STORAGE_KEY, raw);
+      expect(() => run()).not.toThrow();
+      for (const attr of attrs) expect(root.hasAttribute(attr)).toBe(false);
+    }
+  });
+
+  it('does not throw when storage access throws', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new DOMException('denied', 'SecurityError');
+    });
+    expect(() => run()).not.toThrow();
+    vi.restoreAllMocks();
+  });
+
+  it('ignores hostile or non-string values', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ mode: 'x"]{}', accent: 'a'.repeat(33), density: 'UPPER', catset: 5, semantic: { a: 1 } }));
+    run();
+    for (const attr of attrs) expect(root.hasAttribute(attr)).toBe(false);
+  });
+
+  it('resolves mode "system" through matchMedia', () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('prefers-color-scheme: light') }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ mode: 'system' }));
+    run();
+    expect(root.getAttribute('data-theme')).toBe('light');
+  });
+
+  it('resolves contrast "system" through matchMedia', () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('prefers-contrast: more') }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ contrast: 'system' }));
+    run();
+    expect(root.getAttribute('data-contrast')).toBe('high');
+    expect(root.hasAttribute('data-theme')).toBe(false);
+  });
+
+  it('leaves the attribute unset for "system" when the media query does not match', () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: false }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ mode: 'system', contrast: 'system' }));
+    run();
+    expect(root.hasAttribute('data-theme')).toBe(false);
+    expect(root.hasAttribute('data-contrast')).toBe(false);
+  });
+
+  it('applies a stored motion preference', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ motion: 'reduce' }));
+    run();
+    expect(root.getAttribute('data-motion')).toBe('reduce');
+  });
+
+  it('motion defaults to system: nothing stored + OS reduce sets data-motion=reduce', () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('prefers-reduced-motion: reduce') }));
+    run();
+    expect(root.getAttribute('data-motion')).toBe('reduce');
+    for (const attr of attrs.filter((a) => a !== 'data-motion')) expect(root.hasAttribute(attr)).toBe(false);
+  });
+
+  it('motion: nothing stored + no OS reduce sets no attributes at all', () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: false }));
+    run();
+    for (const attr of attrs) expect(root.hasAttribute(attr)).toBe(false);
+  });
+
+  it('motion: malformed JSON + OS reduce still sets data-motion=reduce and nothing else', () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('prefers-reduced-motion: reduce') }));
+    localStorage.setItem(STORAGE_KEY, '{not json');
+    expect(() => run()).not.toThrow();
+    expect(root.getAttribute('data-motion')).toBe('reduce');
+    for (const attr of attrs.filter((a) => a !== 'data-motion')) expect(root.hasAttribute(attr)).toBe(false);
+  });
+
+  it('motion: an explicit allow wins over the OS setting', () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ motion: 'allow' }));
+    run();
+    expect(root.getAttribute('data-motion')).toBe('allow');
+  });
+
+  it('stays in sync with the model: same attribute list and storage key', () => {
+    const source = prepaintSource();
+    const scriptAttrs = [...source.matchAll(/'(data-[a-z-]+)'/g)].map((match) => match[1]);
+    expect(scriptAttrs).toEqual(attrs);
+    expect(/'(dude:v1:[^']+)'/.exec(source)?.[1]).toBe(STORAGE_KEY);
+  });
+
+  it('is placed in <head> before any stylesheet link', () => {
+    const html = readFileSync(resolve(process.cwd(), 'apps/web/src/index.html'), 'utf8');
+    const script = html.indexOf('id="dude-appearance-prepaint"');
+    const stylesheet = html.search(/<link[^>]+rel="stylesheet"/);
+    expect(script).toBeGreaterThan(-1);
+    if (stylesheet !== -1) expect(script).toBeLessThan(stylesheet);
+    expect(script).toBeLessThan(html.indexOf('</head>'));
+  });
+});

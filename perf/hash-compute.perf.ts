@@ -1,6 +1,6 @@
 import budget from './perf-budget.json';
 import { buildLargeText } from './perf-fixtures';
-import { computeHash, HASH_ALGORITHMS } from '../src/shared-logic/hash-compute';
+import { computeHash, HASH_ALGORITHMS } from "@dude/crypto/hash-compute";
 
 // Performance regression corpus (DUDE_PRD.md §21 Phase 23 Item 10) -- generous budgets (see
 // perf-budget.json), reported for visibility rather than gating the required CI deploy step

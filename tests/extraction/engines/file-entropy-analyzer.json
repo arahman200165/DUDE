@@ -1,0 +1,22 @@
+[
+  [
+    "apps/web/src/app/tools/file-entropy-analyzer/file-entropy-analyzer-logic.ts",
+    "packages/tool-engine/src/tools/file-entropy-analyzer/file-entropy-analyzer-logic.ts"
+  ],
+  [
+    "apps/web/src/app/tools/file-entropy-analyzer/file-entropy-analyzer-worker-payload.ts",
+    "packages/tool-engine/src/tools/file-entropy-analyzer/file-entropy-analyzer-worker-payload.ts"
+  ],
+  [
+    "apps/web/src/app/tools/file-entropy-analyzer/file-entropy-analyzer.pipeline-step.ts",
+    "packages/tool-engine/src/tools/file-entropy-analyzer/file-entropy-analyzer.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/file-entropy-analyzer/file-entropy-analyzer-logic.spec.ts",
+    "packages/tool-engine/src/tools/file-entropy-analyzer/file-entropy-analyzer-logic.spec.ts"
+  ],
+  [
+    "apps/web/src/app/tools/file-entropy-analyzer/file-entropy-analyzer.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/file-entropy-analyzer/file-entropy-analyzer.pipeline-step.spec.ts"
+  ]
+]
