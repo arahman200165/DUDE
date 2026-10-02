@@ -3,7 +3,7 @@ import { Router, provideRouter } from '@angular/router';
 import { routes } from '../core/routing/app.routes';
 import { searchCommands } from '../core/registry/command-search';
 import { NAVIGATION_COMMAND_SOURCE_PROVIDERS, NavigationCommandSource, SHELL_DESTINATIONS } from './navigation-command-source';
-import { CORE_SETTINGS_SECTIONS } from './settings/settings-sections';
+import { CORE_SETTINGS_SECTIONS, settingsSectionAvailability } from './settings/settings-sections';
 
 describe('NavigationCommandSource', () => {
   let source: NavigationCommandSource;
@@ -20,7 +20,8 @@ describe('NavigationCommandSource', () => {
   it('offers every shell destination, every core Settings section, and contributed sections', () => {
     const titles = source.commands().map((command) => command.title);
     expect(titles).toEqual(expect.arrayContaining(SHELL_DESTINATIONS.map((destination) => destination.title)));
-    expect(titles).toEqual(expect.arrayContaining(CORE_SETTINGS_SECTIONS.map((section) => `Settings: ${section.title}`)));
+    expect(titles).toEqual(expect.arrayContaining(CORE_SETTINGS_SECTIONS.filter((section) => settingsSectionAvailability(section.hosts, 'web-standalone') !== 'hidden').map((section) => `Settings: ${section.title}`)));
+    expect(titles).not.toContain('Settings: Devices');
     expect(titles).toContain('Settings: Markdown Workspace — Collaboration relay');
     expect(source.commands().every((command) => command.kind === 'navigation')).toBe(true);
   });

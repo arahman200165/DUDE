@@ -7,7 +7,8 @@ import { ActivatedRoute, Router, RouterLink, RouterLinkActive } from '@angular/r
 import { map } from 'rxjs';
 import { PlatformService } from '../../../core/platform/platform.service';
 import { ContributedSettingsSection, ToolRegistryService } from '../../../core/registry/tool-registry.service';
-import { CORE_SETTINGS_SECTIONS, CoreSettingsSection, DEFAULT_SETTINGS_SECTION_ID } from '../settings-sections';
+import { CORE_SETTINGS_SECTIONS, CoreSettingsSection, DEFAULT_SETTINGS_SECTION_ID, settingsSectionAvailability } from '../settings-sections';
+import type { HostKind } from '../../../core/platform/host-kind';
 
 interface NavItem {
   readonly key: string;
@@ -15,7 +16,7 @@ interface NavItem {
   readonly subtitle?: string;
   readonly link: string;
   readonly keywords: readonly string[];
-  readonly desktopOnly: boolean;
+  readonly hosts: readonly HostKind[] | undefined;
   readonly load: () => Promise<unknown>;
 }
 
@@ -24,7 +25,7 @@ const toCoreItem = (section: CoreSettingsSection): NavItem => ({
   title: section.title,
   link: `/settings/${section.id}`,
   keywords: section.keywords,
-  desktopOnly: section.desktopOnly,
+  hosts: section.hosts,
   load: section.load,
 });
 
@@ -34,7 +35,7 @@ const toToolItem = (section: ContributedSettingsSection): NavItem => ({
   subtitle: section.title,
   link: `/settings/tools/${section.toolId}`,
   keywords: [section.title, ...(section.keywords ?? [])],
-  desktopOnly: section.desktopOnly ?? false,
+  hosts: section.desktopOnly ? ['desktop'] : undefined,
   load: section.load,
 });
 
@@ -63,8 +64,9 @@ export class SettingsPage {
   protected readonly platform = inject(PlatformService);
 
   protected readonly filter = signal('');
-  protected readonly coreItems = CORE_SETTINGS_SECTIONS.map(toCoreItem);
-  protected readonly toolItems = this.registry.settingsSections().map(toToolItem);
+  private readonly availableHere = (item: NavItem): boolean => settingsSectionAvailability(item.hosts, this.platform.hostKind) !== 'hidden';
+  protected readonly coreItems = CORE_SETTINGS_SECTIONS.map(toCoreItem).filter(this.availableHere);
+  protected readonly toolItems = this.registry.settingsSections().map(toToolItem).filter(this.availableHere);
 
   protected readonly visibleCoreItems = computed(() => this.coreItems.filter((item) => matchesSettingsFilter(item, this.filter())));
   protected readonly visibleToolItems = computed(() => this.toolItems.filter((item) => matchesSettingsFilter(item, this.filter())));
@@ -77,7 +79,7 @@ export class SettingsPage {
   );
 
   protected readonly active = computed(() => [...this.coreItems, ...this.toolItems].find((item) => item.key === this.activeKey()));
-  protected readonly unavailableHere = computed(() => (this.active()?.desktopOnly ?? false) && !this.platform.isDesktop());
+  protected readonly unavailableHere = computed(() => this.isDimmed(this.active()));
   /** "Configure this in Desktop DUDE" from a desktop-only explainer (Phase 26 Item 8). Tool sections open Settings' root. */
   protected readonly desktopLink = computed<DudeDeepLink>(() => {
     const key = this.activeKey();
@@ -118,8 +120,8 @@ export class SettingsPage {
     });
   }
 
-  protected isDimmed(item: NavItem): boolean {
-    return item.desktopOnly && !this.platform.isDesktop();
+  protected isDimmed(item: NavItem | undefined): boolean {
+    return item !== undefined && settingsSectionAvailability(item.hosts, this.platform.hostKind) === 'desktop-only';
   }
 
   protected onFilterInput(event: Event): void {

@@ -2,7 +2,8 @@ import { Injectable, Provider, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { COMMAND_SOURCE, CommandSource, PaletteCommand } from '../shared/models/command-source.model';
 import { ToolRegistryService } from '../core/registry/tool-registry.service';
-import { CORE_SETTINGS_SECTIONS } from './settings/settings-sections';
+import { PlatformService } from '../core/platform/platform.service';
+import { CORE_SETTINGS_SECTIONS, settingsSectionAvailability } from './settings/settings-sections';
 
 interface Destination {
   readonly id: string;
@@ -35,6 +36,7 @@ export const SHELL_DESTINATIONS: readonly Destination[] = [
 export class NavigationCommandSource implements CommandSource {
   private readonly router = inject(Router);
   private readonly registry = inject(ToolRegistryService);
+  private readonly platform = inject(PlatformService);
 
   commands(): readonly PaletteCommand[] {
     const go = (url: string) => () => void this.router.navigateByUrl(url);
@@ -47,12 +49,13 @@ export class NavigationCommandSource implements CommandSource {
       execute: go(destination.url),
     }));
 
-    const coreSections: PaletteCommand[] = CORE_SETTINGS_SECTIONS.map((section) => ({
+    const host = this.platform.hostKind;
+    const coreSections: PaletteCommand[] = CORE_SETTINGS_SECTIONS.filter((section) => settingsSectionAvailability(section.hosts, host) !== 'hidden').map((section) => ({
       id: `navigation:settings:${section.id}`,
       kind: 'navigation',
       title: `Settings: ${section.title}`,
       keywords: section.keywords,
-      desktopOnly: section.desktopOnly,
+      desktopOnly: settingsSectionAvailability(section.hosts, host) === 'desktop-only',
       execute: go(`/settings/${section.id}`),
     }));
 

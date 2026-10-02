@@ -4,7 +4,8 @@ import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { PlatformService } from '../../../core/platform/platform.service';
 import { ToolRegistryService } from '../../../core/registry/tool-registry.service';
-import { CORE_SETTINGS_SECTIONS } from '../settings-sections';
+import type { HostKind } from '../../../core/platform/host-kind';
+import { CORE_SETTINGS_SECTIONS, settingsSectionAvailability } from '../settings-sections';
 import { SettingsUnsavedChanges, settingsUnsavedChangesGuard } from '../settings-unsaved-changes';
 import { SettingsPage, matchesSettingsFilter } from './settings-page';
 
@@ -13,9 +14,11 @@ class FakeSection {}
 
 describe('SettingsPage', () => {
   let desktop: boolean;
+  let host: HostKind;
 
   beforeEach(() => {
     desktop = false;
+    host = 'web-standalone';
     TestBed.configureTestingModule({
       providers: [
         provideRouter([
@@ -23,7 +26,7 @@ describe('SettingsPage', () => {
           { path: 'settings/:section', component: SettingsPage, canDeactivate: [settingsUnsavedChangesGuard] },
           { path: 'elsewhere', component: FakeSection },
         ]),
-        { provide: PlatformService, useValue: { isDesktop: () => desktop } },
+        { provide: PlatformService, useValue: { isDesktop: () => desktop, get hostKind() { return host; } } },
         {
           provide: ToolRegistryService,
           useValue: {
@@ -47,11 +50,26 @@ describe('SettingsPage', () => {
     const root = harness.routeNativeElement!;
 
     const items = navText(root);
-    expect(items.slice(0, CORE_SETTINGS_SECTIONS.length).map((text) => text.replace(/\s*Desktop$/, ''))).toEqual(CORE_SETTINGS_SECTIONS.map((s) => s.title));
+    const expected = CORE_SETTINGS_SECTIONS.filter((s) => settingsSectionAvailability(s.hosts, 'web-standalone') !== 'hidden').map((s) => s.title);
+    expect(items.slice(0, expected.length).map((text) => text.replace(/\s*Desktop$/, ''))).toEqual(expected);
+    expect(expected).not.toContain('Devices');
     expect(items.at(-1)).toContain('Fake Tool');
     expect(root.textContent).toContain('Tools');
     expect(items.find((text) => text.startsWith('AI / LLM Provider'))).toContain('Desktop');
     expect(items.find((text) => text.startsWith('General'))).not.toContain('Desktop');
+  });
+
+  it('lists the Hub administration sections on hub-web and on desktop, never on the standalone web build', async () => {
+    host = 'hub-web';
+    const harness = await RouterTestingHarness.create('/settings/general');
+    expect(navText(harness.routeNativeElement!).join('|')).toContain('Security & Sessions');
+    expect(navText(harness.routeNativeElement!).join('|')).toContain('Environment & Hub');
+
+    host = 'web-standalone';
+    expect(settingsSectionAvailability(CORE_SETTINGS_SECTIONS.find((s) => s.id === 'devices')!.hosts, host)).toBe('hidden');
+    expect(settingsSectionAvailability(CORE_SETTINGS_SECTIONS.find((s) => s.id === 'ai')!.hosts, host)).toBe('desktop-only');
+    expect(settingsSectionAvailability(CORE_SETTINGS_SECTIONS.find((s) => s.id === 'devices')!.hosts, 'desktop')).toBe('available');
+    expect(settingsSectionAvailability(undefined, host)).toBe('available');
   });
 
   it('renders an explainer instead of the controls for a desktop-only section on web', async () => {

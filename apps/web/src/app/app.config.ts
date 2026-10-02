@@ -3,6 +3,7 @@ import { provideRouter } from '@angular/router';
 import { routes } from './core/routing/app.routes';
 import { provideServiceWorker } from '@angular/service-worker';
 import { isElectronRuntime } from './core/platform/platform.service';
+import { BUILD_HOST } from './core/platform/host-flag';
 import { TOOL_COMMAND_SOURCE_PROVIDERS } from './core/registry/tool-command-source';
 import { WORKSPACE_COMMAND_SOURCE_PROVIDERS } from './core/workspace/workspace-command-source';
 import { PROJECT_COMMAND_SOURCE_PROVIDERS } from './core/project/project-command-source';
@@ -34,7 +35,8 @@ export const appConfig: ApplicationConfig = {
     ...DESKTOP_HANDOFF_COMMAND_SOURCE_PROVIDERS,
     provideRouter(routes),
     provideServiceWorker('ngsw-worker.js', {
-      enabled: !isDevMode() && !isElectronRuntime(),
+      // The Hub-served build ships no service worker (Hub web caching is its own milestone).
+      enabled: !isDevMode() && !isElectronRuntime() && BUILD_HOST === 'web',
       registrationStrategy: 'registerWhenStable:30000',
     }),
   ],

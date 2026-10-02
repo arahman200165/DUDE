@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { PlatformService, isElectronRuntime } from './platform.service';
 import { fakeElectronBridge } from './testing/fake-electron-bridge';
+import { resolveHostKind } from './host-kind';
+import { BUILD_HOST } from './host-flag';
 
 describe('isElectronRuntime', () => {
   const originalDude = window.dude;
@@ -54,5 +56,25 @@ describe('PlatformService', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({});
     expect(TestBed.inject(PlatformService).wasRestoredAfterCrash).toBe(false);
+  });
+
+  it('reports hostKind: desktop from the bridge, otherwise the build-time host flag', () => {
+    Object.defineProperty(window, 'dude', { value: fakeElectronBridge(), configurable: true });
+    TestBed.configureTestingModule({});
+    expect(TestBed.inject(PlatformService).hostKind).toBe('desktop');
+
+    Object.defineProperty(window, 'dude', { value: undefined, configurable: true });
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({});
+    expect(TestBed.inject(PlatformService).hostKind).toBe(BUILD_HOST === 'hub' ? 'hub-web' : 'web-standalone');
+  });
+});
+
+describe('resolveHostKind', () => {
+  it('resolves every combination', () => {
+    expect(resolveHostKind(true, 'web')).toBe('desktop');
+    expect(resolveHostKind(true, 'hub')).toBe('desktop');
+    expect(resolveHostKind(false, 'web')).toBe('web-standalone');
+    expect(resolveHostKind(false, 'hub')).toBe('hub-web');
   });
 });

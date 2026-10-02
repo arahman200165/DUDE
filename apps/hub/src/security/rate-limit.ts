@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { envelope } from '../server/errors.js';
+import { isApiPath } from './headers.js';
 
 declare module 'fastify' {
   interface FastifyContextConfig {
@@ -78,6 +79,8 @@ export function createRateLimiter(options: RateLimiterOptions = {}): RateLimiter
 /** Keyed by `socket.remoteAddress` (trustProxy is off). Idle keys are swept periodically. */
 export function registerRateLimit(app: FastifyInstance, limiter: RateLimiter, sweepIntervalMs = 60_000): void {
   app.addHook('onRequest', async (request, reply) => {
+    // The public web bundle is dozens of module requests per page load; only API calls consume tokens.
+    if (!isApiPath(request.url)) return;
     const wait = limiter.check(request.socket.remoteAddress ?? 'unknown', request.routeOptions.config?.authLimited === true);
     if (wait === 0) return;
     return reply

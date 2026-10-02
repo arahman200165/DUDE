@@ -1,4 +1,5 @@
 import type { PlatformBridge } from "@dude/contracts/shared/models/platform-bridge.model";
+import { fakeHub } from './fake-hub';
 import type { BackgroundAgentStatus, DeviceStoreDevice, KvMutation, StoreHealth } from "@dude/contracts";
 import type { HistoryRetention, NetworkRunRetention } from "@dude/persistence";
 import { InMemoryHistoryRepository, InMemoryNetworkRunRepository } from "@dude/persistence/testing";
@@ -16,6 +17,7 @@ export function fakeElectronBridge(overrides: Partial<PlatformBridge> = {}): Pla
     deepLink: { ready: () => {}, onItem: () => () => {} },
     external: { open: async () => ({ ok: true }) },
     store: fakeStore(),
+    hub: fakeHub(),
     device: fakeDevice(),
     menu: { ready: () => {}, onAction: () => () => {}, setToolMenuData: async () => ({ ok: true }) },
     quickLauncher: { ready: () => {}, onOpen: () => () => {}, onDismissed: () => () => {}, dismiss: async () => ({ ok: true }), promote: async () => ({ ok: true }), getHotkey: async () => null, setHotkey: async () => ({ ok: true }) },

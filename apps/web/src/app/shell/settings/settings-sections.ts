@@ -1,4 +1,5 @@
 import { Type } from '@angular/core';
+import type { HostKind } from '../../core/platform/host-kind';
 
 /**
  * One entry in the Settings sub-nav. Core sections are app-level and hand-listed here (Settings is a
@@ -10,60 +11,70 @@ export interface CoreSettingsSection {
   readonly id: string;
   readonly title: string;
   readonly keywords: readonly string[];
-  readonly desktopOnly: boolean;
+  /** Hosts the section applies to; absent means every host. */
+  readonly hosts?: readonly HostKind[];
   readonly load: () => Promise<Type<unknown>>;
 }
 
 export const DEFAULT_SETTINGS_SECTION_ID = 'general';
+
+/**
+ * `available`: the section works on this host. `desktop-only`: it is listed but dimmed, with an "open in
+ * Desktop" explainer (the long-standing treatment of native settings on the web build). `hidden`: it does not
+ * exist on this host at all (e.g. Hub administration on the Pages build).
+ */
+export type SettingsSectionAvailability = 'available' | 'desktop-only' | 'hidden';
+
+export function settingsSectionAvailability(hosts: readonly HostKind[] | undefined, host: HostKind): SettingsSectionAvailability {
+  if (hosts === undefined || hosts.includes(host)) return 'available';
+  return hosts.length === 1 && hosts[0] === 'desktop' ? 'desktop-only' : 'hidden';
+}
 
 export const CORE_SETTINGS_SECTIONS: readonly CoreSettingsSection[] = [
   {
     id: 'general',
     title: 'General',
     keywords: ['reopen tabs on restart', 'startup destination', 'setup wizard', 'onboarding', 'workspace', 'deck'],
-    desktopOnly: false,
     load: () => import('./sections/general-settings').then((m) => m.GeneralSettings),
   },
   {
     id: 'appearance',
     title: 'Appearance',
     keywords: ['appearance', 'theme', 'light mode', 'dark mode', 'system theme', 'color scheme', 'colors', 'density', 'compact', 'comfortable', 'font', 'font size', 'text size', 'monospace', 'ligatures', 'motion', 'reduced motion', 'animation', 'export theme', 'import theme', 'theme file'],
-    desktopOnly: false,
     load: () => import('./sections/appearance-settings').then((m) => m.AppearanceSettings),
   },
   {
     id: 'ai',
     title: 'AI / LLM Provider',
     keywords: ['llm', 'ai', 'openai', 'model', 'api key', 'base url', 'provider', 'secrets', 'regex'],
-    desktopOnly: true,
+    hosts: ['desktop'],
     load: () => import('./sections/ai-provider-settings').then((m) => m.AiProviderSettings),
   },
   {
     id: 'hotkeys',
     title: 'Hotkeys',
     keywords: ['hotkey', 'shortcut', 'global', 'clipboard quick-actions', 'smart paste', 'quick launcher', 'keyboard'],
-    desktopOnly: true,
+    hosts: ['desktop'],
     load: () => import('./sections/hotkeys-settings').then((m) => m.HotkeysSettings),
   },
   {
     id: 'window',
     title: 'Window & Updates',
     keywords: ['launch on login', 'tray', 'close to tray', 'minimized', 'window size', 'display', 'updates', 'notifications', 'collaborators'],
-    desktopOnly: true,
+    hosts: ['desktop'],
     load: () => import('./sections/window-updates-settings').then((m) => m.WindowUpdatesSettings),
   },
   {
     id: 'files',
     title: 'Files',
     keywords: ['file associations', 'default apps', 'open with', 'native recents', 'recent files', 'explorer'],
-    desktopOnly: true,
+    hosts: ['desktop'],
     load: () => import('./sections/files-settings').then((m) => m.FilesSettings),
   },
   {
     id: 'home-layout',
     title: 'Home layout',
     keywords: ['home', 'dashboard', 'panels', 'layout', 'arrange', 'customize', 'reorder', 'resize', 'hide', 'notes', 'links', 'shortcuts', 'reset to default'],
-    desktopOnly: false,
     load: () => import('./sections/home-layout-settings').then((m) => m.HomeLayoutSettings),
   },
   {
@@ -89,21 +100,39 @@ export const CORE_SETTINGS_SECTIONS: readonly CoreSettingsSection[] = [
       'open in desktop',
       'desktop dude installed',
     ],
-    desktopOnly: false,
     load: () => import('./sections/web-companion-settings').then((m) => m.WebCompanionSettings),
   },
   {
     id: 'device',
     title: 'This Device',
     keywords: ['device id', 'device name', 'installation id', 'environment id', 'enrollment', 'store', 'device store', 'outbox', 'recovery', 'quarantine', 'retry', 'reset', 'reset this device', 'clear data', 'schema version', 'backup'],
-    desktopOnly: false,
     load: () => import('./sections/this-device-settings').then((m) => m.ThisDeviceSettings),
   },
   {
     id: 'data',
     title: 'Data & Privacy',
     keywords: ['clear all local data', 'reset', 'privacy', 'storage', 'delete', 'danger', 'export', 'import', 'bundle', 'backup', 'restore'],
-    desktopOnly: false,
     load: () => import('./sections/data-privacy-settings').then((m) => m.DataPrivacySettings),
+  },
+  {
+    id: 'environment',
+    title: 'Environment & Hub',
+    keywords: ['environment', 'hub', 'enroll', 'pairing', 'pairing code', 'unenroll', 'lan', 'tls', 'certificate'],
+    hosts: ['desktop', 'hub-web'],
+    load: () => import('./sections/hub-placeholder-settings').then((m) => m.EnvironmentSettingsPlaceholder),
+  },
+  {
+    id: 'devices',
+    title: 'Devices',
+    keywords: ['devices', 'device', 'pairing', 'pairing code', 'revoke', 'rename', 'recovery trust', 'hub'],
+    hosts: ['desktop', 'hub-web'],
+    load: () => import('./sections/hub-placeholder-settings').then((m) => m.DevicesSettingsPlaceholder),
+  },
+  {
+    id: 'security',
+    title: 'Security & Sessions',
+    keywords: ['security', 'sessions', 'sign out', 'revoke sessions', 'audit', 'audit log', 'recovery codes', 'password', 'owner', 'hub'],
+    hosts: ['desktop', 'hub-web'],
+    load: () => import('./sections/hub-placeholder-settings').then((m) => m.SecuritySettingsPlaceholder),
   },
 ];

@@ -1,6 +1,8 @@
+import { createHash } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, sep } from 'node:path';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import { buildWebCsp } from '../security/headers.js';
 
 // Adapted from apps/desktop/app-protocol.ts (boundary rules forbid importing it).
 const CONTENT_TYPES: Readonly<Record<string, string>> = {
@@ -63,6 +65,47 @@ function plain(reply: FastifyReply, status: number, message: string): FastifyRep
     .send(message);
 }
 
+const INLINE_SCRIPT = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi;
+/** Inline event-handler attributes (`onload="..."`), double- or single-quoted, inside a tag. */
+const INLINE_HANDLER = /<[a-z][^>]*\son[a-z]+\s*=[^>]*>/gi;
+const HANDLER_ATTRIBUTE = /\son[a-z]+\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
+
+/** Browsers hash the text after HTML input preprocessing, which turns CRLF and lone CR into LF. */
+function sha256Token(text: string): string {
+  const normalized = text.replace(/\r\n?/g, '\n');
+  return `'sha256-${createHash('sha256').update(normalized, 'utf8').digest('base64')}'`;
+}
+
+function decodeAttribute(value: string): string {
+  return value.replace(/&(quot|#34|#39|apos|lt|gt|amp);/g, (_m, name: string) => {
+    switch (name) {
+      case 'quot': case '#34': return '"';
+      case '#39': case 'apos': return "'";
+      case 'lt': return '<';
+      case 'gt': return '>';
+      default: return '&';
+    }
+  });
+}
+
+/**
+ * Extra script-src tokens that let exactly the inline scripts (and, only if present, inline event-handler attributes)
+ * of one HTML document run without 'unsafe-inline'. Handler attributes need 'unsafe-hashes' plus the hash of the
+ * attribute value; the keyword is added only when the document actually has handlers.
+ */
+export function inlineScriptCspTokens(html: string): string[] {
+  const hashes = new Set<string>();
+  for (const match of html.matchAll(INLINE_SCRIPT)) {
+    const body = match[1] ?? '';
+    if (body.trim() !== '') hashes.add(sha256Token(body));
+  }
+  const handlers = new Set<string>();
+  for (const tag of html.matchAll(INLINE_HANDLER)) {
+    for (const attr of tag[0].matchAll(HANDLER_ATTRIBUTE)) handlers.add(sha256Token(decodeAttribute(attr[1] ?? attr[2] ?? '')));
+  }
+  return [...(handlers.size > 0 ? ["'unsafe-hashes'"] : []), ...hashes, ...handlers];
+}
+
 export interface StaticHandlerOptions {
   /** Absolute web root directory. */
   root: string;
@@ -71,6 +114,8 @@ export interface StaticHandlerOptions {
 /** Static + SPA handler for GET/HEAD requests outside `/api`. */
 export function createStaticHandler(options: StaticHandlerOptions): (request: FastifyRequest, reply: FastifyReply) => Promise<FastifyReply> {
   const root = normalize(options.root);
+  /** CSP per HTML file, valid for one mtime/size version of that file. */
+  const htmlCsp = new Map<string, { mtimeMs: number; size: number; csp: string }>();
 
   return async (request, reply) => {
     const requestPath = safeRequestPath(request.url);
@@ -87,6 +132,16 @@ export function createStaticHandler(options: StaticHandlerOptions): (request: Fa
       const info = await stat(file);
       if (info.isDirectory()) file = join(file, 'index.html');
       const body = await readFile(file);
+      if (extname(file) === '.html') {
+        // Re-stat the resolved file (a directory index differs from the first stat) and cache by mtime/size.
+        const fileInfo = file === resolved && !info.isDirectory() ? info : await stat(file);
+        let entry = htmlCsp.get(file);
+        if (entry?.mtimeMs !== fileInfo.mtimeMs || entry.size !== body.length) {
+          entry = { mtimeMs: fileInfo.mtimeMs, size: body.length, csp: buildWebCsp(inlineScriptCspTokens(body.toString('utf8'))) };
+          htmlCsp.set(file, entry);
+        }
+        void reply.header('Content-Security-Policy', entry.csp);
+      }
       const hashed = file !== indexFile && HASHED_NAME.test(file.slice(file.lastIndexOf(sep) + 1));
       return reply
         .code(200)

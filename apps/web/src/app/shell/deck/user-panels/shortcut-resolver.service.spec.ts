@@ -32,7 +32,7 @@ describe('ShortcutResolverService', () => {
         { provide: COMMAND_SOURCE, multi: true, useValue: { commands: () => commands } },
         { provide: Router, useValue: { navigateByUrl } },
         { provide: ToolLauncherService, useValue: { open } },
-        { provide: PlatformService, useValue: { isDesktop: () => desktop } },
+        { provide: PlatformService, useValue: { isDesktop: () => desktop, get hostKind() { return desktop ? 'desktop' : 'web-standalone'; } } },
       ],
     });
     resolver = TestBed.inject(ShortcutResolverService);

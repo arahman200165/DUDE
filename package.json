@@ -20,6 +20,8 @@
     "pretest": "npm run generate:registry && npm run build:packages",
     "test": "npm run test:packages && ng test",
     "prebuild": "npm run generate:registry && npm run build:packages",
+    "build:hub-web": "ng build --configuration production,hub",
+    "prebuild:hub-web": "npm run generate:registry && npm run build:packages",
     "test:e2e": "npm run build && playwright test --config=e2e/playwright.config.ts",
     "test:appearance": "npm run build && playwright test --config=e2e/appearance/playwright.appearance.config.ts",
     "test:electron": "vitest run --config vitest.electron.config.mts",

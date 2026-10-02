@@ -56,7 +56,7 @@ describe('ThisDeviceSettings', () => {
   it('is registered as a core section available on web', () => {
     const section = CORE_SETTINGS_SECTIONS.find((s) => s.id === 'device')!;
     expect(section.title).toBe('This Device');
-    expect(section.desktopOnly).toBe(false);
+    expect(section.hosts).toBeUndefined();
   });
 
   const ENROLLMENT = { environmentId: '0190ffff-bbbb-7ccc-8ddd-eeeeeeeeeeee', hubInstanceId: 'hub-1', hubUrl: 'https://hub.local:8443', enrolledAt: '2026-01-03T00:00:00.000Z' };

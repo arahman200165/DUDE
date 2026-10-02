@@ -1,7 +1,11 @@
+import { createHash } from 'node:crypto';
+import { utimesSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { makeWebRoot, request, startTestHub } from './test-helpers.js';
 import type { TestHub } from './test-helpers.js';
 import { safeRequestPath } from './static.js';
+import { HUB_API_CSP, HUB_WEB_CSP } from '../security/headers.js';
 
 const hubs: TestHub[] = [];
 afterAll(async () => { await Promise.all(hubs.map((h) => h.close())); });
@@ -55,5 +59,38 @@ describe('static hosting', () => {
     expect(safeRequestPath('/a/../b')).toBeNull();
     expect(safeRequestPath('/C:/Windows')).toBeNull();
     expect(safeRequestPath('/%E0%A4%A')).toBeNull();
+  });
+});
+
+describe('inline script CSP hashes', () => {
+  const sha = (text: string) => `'sha256-${createHash('sha256').update(text, 'utf8').digest('base64')}'`;
+  const scriptSrc = (csp: unknown) => /script-src ([^;]*)/.exec(String(csp))?.[1] ?? '';
+
+  it('hashes inline scripts and handlers for HTML only, and invalidates when the file changes', async () => {
+    const root = makeWebRoot();
+    const a = '\r\n  window.a = 1;\r\n';
+    const b = 'window.b = 2;';
+    const handler = "this.media='all'";
+    const indexPath = join(root, 'index.html');
+    writeFileSync(indexPath, `<!doctype html><script>${a}</script><script src="main-ABC12345.js"></script><script type="text/javascript">${b}</script><link rel="stylesheet" href="s.css" media="print" onload="this.media=&#39;all&#39;">`);
+    const hub = await startTestHub({ webRoot: root });
+    hubs.push(hub);
+    const get = (p: string) => request(hub.port, hub.tls.certPem, p);
+
+    const first = await get('/hub/setup');
+    expect(scriptSrc(first.headers['content-security-policy'])).toBe(
+      `'self' 'wasm-unsafe-eval' 'unsafe-hashes' ${sha(a.replace(/\r\n/g, '\n'))} ${sha(b)} ${sha(handler)}`,
+    );
+    expect(scriptSrc(first.headers['content-security-policy'])).not.toContain("'unsafe-inline'");
+    expect(scriptSrc((await get('/index.html')).headers['content-security-policy'])).toBe(scriptSrc(first.headers['content-security-policy']));
+
+    expect(scriptSrc((await get('/main-ABC12345.js')).headers['content-security-policy'])).toBe(scriptSrc(HUB_WEB_CSP));
+    expect(String((await get('/api/v1/missing')).headers['content-security-policy'])).toBe(HUB_API_CSP);
+
+    const c = 'window.c = 3;';
+    writeFileSync(indexPath, `<!doctype html><script>${c}</script>`);
+    utimesSync(indexPath, new Date(), new Date(Date.now() + 5000));
+    const second = await get('/hub/sign-in');
+    expect(scriptSrc(second.headers['content-security-policy'])).toBe(`'self' 'wasm-unsafe-eval' ${sha(c)}`);
   });
 });

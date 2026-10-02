@@ -4,6 +4,8 @@ import { ShellLayout } from '../../shell/layout/shell-layout';
 import { Deck } from '../../shell/deck/deck';
 import { buildToolRoutes, withLoadFallback } from '../registry/tool-routes';
 import { settingsUnsavedChangesGuard } from '../../shell/settings/settings-unsaved-changes';
+import { hubSessionGuard } from '../hub/hub-guards';
+import { hubRoutes } from './hub.routes';
 
 // The Pipelines, Smart Paste, Workspace, History, Quick Run, Projects, Settings, Browse Tools, and Insights
 // routes below are the deliberate exceptions to "never edit this file to wire up a feature"
@@ -16,6 +18,7 @@ export const routes: Routes = [
   {
     path: '',
     component: ShellLayout,
+    canActivate: [hubSessionGuard],
     children: [
       { path: '', component: Deck },
       // web+dude:// protocol handler target for the installed PWA (Phase 26 Item 9). Guard-only.
@@ -88,4 +91,5 @@ export const routes: Routes = [
       ...buildToolRoutes(),
     ],
   },
+  ...hubRoutes,
 ];

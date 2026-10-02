@@ -64,7 +64,7 @@ for(const {metadata:m,file} of metadata){
  if(m.execution?.worker)requirements.add(`browser worker ${m.execution.worker}`);
  tools.push({id:m.id,route:m.route,manifest:posix(path.relative(process.cwd(),file)),binding,engineModules,adapters,tests,runtimeRequirements:[...requirements].sort(),unsupportedHosts:['Mobile execution is not verified; host facilities must be supplied explicitly'],registration:engineModules.length?'portable engines plus application bindings':'shared engines or application capability adapter',mobileVerified:false});
 }
-const portableRemainders=[...classify().values()].filter(item=>!item.reasons.length&&!/[\\/]testing[\\/]|\.d\.ts$|tool-definition\.model\.ts$|markdown-body\.styles\.ts$/.test(item.file));
+const portableRemainders=[...classify().values()].filter(item=>!item.reasons.length&&!/[\\/]testing[\\/]|\.d\.ts$|tool-definition\.model\.ts$|markdown-body\.styles\.ts$|[\\/]core[\\/]hub[\\/]|[\\/]core[\\/]platform[\\/](host-flag(\.hub)?|host-kind)\.ts$/.test(item.file));
 if(portableRemainders.length)throw Error('Unresolved portable application modules: '+portableRemainders.map(item=>item.file).join(', '));
 modules.sort((a,b)=>a.source.localeCompare(b.source));
 const output=JSON.stringify({schemaVersion:2,baseline:'phase31a-registry-baseline.json',modules,embeddedComponentEngines:components.map(c=>({source:c.source,destination:c.destination,functions:c.functions.map(f=>f.name),methods:c.methods.map(f=>f.name),remainingAdapterCode:c.source})),tools},null,2)+'\n';

@@ -91,6 +91,21 @@
             "electron": {
               "baseHref": "/",
               "serviceWorker": false
+            },
+            "hub": {
+              "baseHref": "/",
+              "serviceWorker": false,
+              "outputPath": "dist/hub-web",
+              "fileReplacements": [
+                {
+                  "replace": "apps/web/src/app/core/platform/host-flag.ts",
+                  "with": "apps/web/src/app/core/platform/host-flag.hub.ts"
+                },
+                {
+                  "replace": "apps/web/src/app/core/hub/hub-client-loader.ts",
+                  "with": "apps/web/src/app/core/hub/hub-client-loader.hub.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"

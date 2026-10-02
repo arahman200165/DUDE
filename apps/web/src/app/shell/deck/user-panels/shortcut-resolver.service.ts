@@ -6,7 +6,7 @@ import { ToolLauncherService } from '../../../core/registry/tool-launcher.servic
 import { ToolRegistryService } from '../../../core/registry/tool-registry.service';
 import { COMMAND_SOURCE, PaletteCommand } from '../../../shared/models/command-source.model';
 import { SHELL_DESTINATIONS } from '../../navigation-command-source';
-import { CORE_SETTINGS_SECTIONS } from '../../settings/settings-sections';
+import { CORE_SETTINGS_SECTIONS, SettingsSectionAvailability, settingsSectionAvailability } from '../../settings/settings-sections';
 
 export interface ShortcutInfo {
   readonly title: string;
@@ -56,7 +56,8 @@ export class ShortcutResolverService {
       case 'settings': {
         const section = this.settingsSection(target.ref);
         if (!section) return this.missing('This settings section is no longer available.');
-        return section.desktopOnly && !this.platform.isDesktop() ? this.desktopOnly(section.title) : this.ok(section.title, 'Settings');
+        if (section.availability === 'hidden') return this.missing('This settings section is not available here.');
+        return section.availability === 'desktop-only' ? this.desktopOnly(section.title) : this.ok(section.title, 'Settings');
       }
       case 'command': {
         const command = this.commandIndex().get(target.ref);
@@ -123,7 +124,7 @@ export class ShortcutResolverService {
         return SHELL_DESTINATIONS.map((d) => ({ ref: d.id, title: d.title, description: 'App page' }));
       case 'settings':
         return [
-          ...CORE_SETTINGS_SECTIONS.filter((s) => !s.desktopOnly || this.platform.isDesktop()).map((s) => ({ ref: s.id, title: `Settings: ${s.title}`, description: 'Settings' })),
+          ...CORE_SETTINGS_SECTIONS.filter((s) => settingsSectionAvailability(s.hosts, this.platform.hostKind) === 'available').map((s) => ({ ref: s.id, title: `Settings: ${s.title}`, description: 'Settings' })),
           ...this.registry.settingsSections().map((s) => ({ ref: `tools/${s.toolId}`, title: `Settings: ${s.toolTitle}`, description: 'Tool settings' })),
         ];
       case 'command':
@@ -133,12 +134,12 @@ export class ShortcutResolverService {
     }
   }
 
-  private settingsSection(ref: string): { title: string; desktopOnly: boolean } | undefined {
+  private settingsSection(ref: string): { title: string; availability: SettingsSectionAvailability } | undefined {
     const core = CORE_SETTINGS_SECTIONS.find((s) => s.id === ref);
-    if (core) return core;
+    if (core) return { title: core.title, availability: settingsSectionAvailability(core.hosts, this.platform.hostKind) };
     if (!ref.startsWith('tools/')) return undefined;
     const tool = this.registry.settingsSections().find((s) => s.toolId === ref.slice('tools/'.length));
-    return tool && { title: tool.title, desktopOnly: tool.desktopOnly === true };
+    return tool && { title: tool.title, availability: tool.desktopOnly === true && !this.platform.isDesktop() ? 'desktop-only' : 'available' };
   }
 
   private ok(title: string, description: string): ShortcutInfo {

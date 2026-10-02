@@ -1,6 +1,8 @@
 import { inject as injectPlatformBridge } from '@angular/core';
 import { PLATFORM_BRIDGE, currentPlatformBridge } from './platform-bridge.adapter';
 import { Injectable, signal } from '@angular/core';
+import { BUILD_HOST } from './host-flag';
+import { HostKind, resolveHostKind } from './host-kind';
 
 /**
  * Detects the Electron desktop shell via the flag its preload script injects
@@ -24,6 +26,9 @@ export class PlatformService {
   private readonly isDesktopSignal = signal(this.platformBridgePort.get()?.platform.isDesktop === true);
 
   readonly isDesktop = this.isDesktopSignal.asReadonly();
+
+  /** Desktop is a runtime fact (the bridge); hub-web vs web-standalone is a build-time one (`host-flag.ts`). */
+  readonly hostKind: HostKind = resolveHostKind(this.isDesktopSignal(), BUILD_HOST);
 
   /**
    * A static, preload-computed flag (DUDE_PRD.md §21 Phase 25 Item 6) -- true only for the one
