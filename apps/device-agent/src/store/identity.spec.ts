@@ -5,7 +5,7 @@ import { cleanupTemp, commitContext, openOptions, openReady, tempDir } from '../
 import { commitEntity } from './entity-commit.js';
 import { openDeviceStore } from './open-store.js';
 import { renameDevice } from './identity.js';
-import { getMeta } from './sqlite.js';
+import { getMeta } from '@dude/sqlite-store';
 
 afterEach(cleanupTemp);
 

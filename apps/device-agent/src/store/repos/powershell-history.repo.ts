@@ -1,5 +1,5 @@
-import type { Db } from '../sqlite.js';
-import { transaction } from '../sqlite.js';
+import type { Db } from '@dude/sqlite-store';
+import { transaction } from '@dude/sqlite-store';
 import { MAX_POWERSHELL_HISTORY } from './retention.js';
 
 export interface PowerShellHistoryRecord { readonly id: string; readonly completedAt?: string; readonly startedAt?: string }

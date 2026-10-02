@@ -3,7 +3,7 @@
 // agent table. Anything left over keeps a regex heuristic but is a review flag that --check fails on
 // unless it is listed (with a justification) in REVIEWED_HEURISTICS.
 import ts from 'typescript';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { files } from './phase31a-inventory.mjs';
 const path = 'docs/architecture/data-scope-inventory.json';
 const norm = f => f.replaceAll('\\', '/');
@@ -110,7 +110,7 @@ function heuristic({ namespace, key, policy, file, receiver }) {
 const entries = [], reviewFlags = [];
 const storageMethods = new Set(['setItem', 'writeFile', 'writeFileSync', 'put', 'add', 'set', 'open', 'openDatabase']);
 const importedSettings = Object.fromEntries([...readFileSync('packages/tool-engine/src/core/persistence/app-settings.ts', 'utf8').matchAll(/export const (\w+) = '([^']+)'/g)].map(m => [m[1], m[2]]));
-const scanFiles = [...files('apps/web/src/app'), ...files('apps/desktop'), ...files('apps/device-agent')]
+const scanFiles = [...files('apps/web/src/app'), ...files('apps/desktop'), ...files('apps/device-agent'), ...(existsSync('apps/hub/src') ? files('apps/hub') : [])]
   .filter(f => f.endsWith('.ts') && !f.endsWith('.spec.ts') && !/[\\/](testing|node_modules|dist)[\\/]/.test(f) && !f.endsWith('.d.ts'));
 for (const file of scanFiles) {
   const source = norm(file), sf = parse(file);
@@ -176,11 +176,20 @@ const agentTables = {
   secret_refs: ['device', 'secret references (no values)'],
   secret_values: ['device', 'encrypted secret values; secret sensitivity, never exported'],
 };
-{
-  const f = 'apps/device-agent/src/store/migrations/0001-initial.ts', text = readFileSync(f, 'utf8');
-  for (const m of text.matchAll(/CREATE TABLE (\w+)/g)) {
-    const t = agentTables[m[1]]; if (!t) throw Error('Unclassified device-agent table ' + m[1]);
-    entries.push({ source: f, line: text.slice(0, m.index).split('\n').length, operation: `CREATE TABLE ${m[1]}`, namespace: null, key: m[1], storage: 'Device Store (node:sqlite)', storageLocation: `userData/device-store/dude-device.db table ${m[1]}`, retention: 'existing per-table policy', scope: t[0], sensitivity: m[1] === 'secret_values' ? 'secret' : t[0] === 'local-only' ? 'sensitive' : 'non-sensitive', note: t[1], classificationBasis: 'agent-table', syncConsent: 'not granted' });
+// Hub tables (apps/hub/src/db/migrations): none classified yet; an unknown table throws like device-agent.
+const hubTables = {};
+const migrationSources = [
+  { dir: 'apps/device-agent/src/store/migrations', tables: agentTables, label: 'device-agent', basis: 'agent-table', storage: 'Device Store (node:sqlite)', location: name => `userData/device-store/dude-device.db table ${name}` },
+  { dir: 'apps/hub/src/db/migrations', tables: hubTables, label: 'hub', basis: 'hub-table', storage: 'Hub database (node:sqlite)', location: name => `data/hub.db table ${name}` },
+];
+for (const src of migrationSources) {
+  if (!existsSync(src.dir)) continue;
+  for (const fileName of readdirSync(src.dir).filter(n => /^\d{4}-.*\.ts$/.test(n)).sort()) {
+    const f = src.dir + '/' + fileName, text = readFileSync(f, 'utf8');
+    for (const m of text.matchAll(/CREATE TABLE (\w+)/g)) {
+      const t = src.tables[m[1]]; if (!t) throw Error(`Unclassified ${src.label} table ${m[1]}`);
+      entries.push({ source: f, line: text.slice(0, m.index).split('\n').length, operation: `CREATE TABLE ${m[1]}`, namespace: null, key: m[1], storage: src.storage, storageLocation: src.location(m[1]), retention: 'existing per-table policy', scope: t[0], sensitivity: m[1] === 'secret_values' ? 'secret' : t[0] === 'local-only' ? 'sensitive' : 'non-sensitive', note: t[1], classificationBasis: src.basis, syncConsent: 'not granted' });
+    }
   }
 }
 entries.sort((a, b) => a.source.localeCompare(b.source) || a.operation.localeCompare(b.operation) || a.line - b.line);

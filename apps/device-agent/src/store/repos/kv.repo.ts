@@ -3,8 +3,8 @@ import type { KeyValueRepository, KvEntry, KvKey, KvWriteMeta } from '@dude/pers
 import type { KvMutation } from '@dude/contracts';
 import type { DataScope } from '@dude/domain';
 import type { PersistencePolicy } from '@dude/shared-types/shared/models/persistence-policy.model';
-import type { Db } from '../sqlite.js';
-import { transaction } from '../sqlite.js';
+import type { Db } from '@dude/sqlite-store';
+import { transaction } from '@dude/sqlite-store';
 import { recordOutboxOp } from '../entity-commit.js';
 import type { CommitContext } from '../entity-commit.js';
 import { OUTBOX_SCHEMA_VERSION } from '@dude/sync';

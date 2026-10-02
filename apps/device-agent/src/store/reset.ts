@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import { uuidv7 } from '@dude/persistence';
 import type { ResetKind } from '@dude/contracts';
-import type { Db } from './sqlite.js';
-import { getMeta, setMeta, transaction } from './sqlite.js';
+import type { Db } from '@dude/sqlite-store';
+import { getMeta, setMeta, transaction } from '@dude/sqlite-store';
 
 /** Tables wiped by both reset kinds. Identity (meta) and migrations are never touched here. */
 export const DATA_TABLES = [

@@ -1,7 +1,7 @@
 import { OUTBOX_MAX_ROWS } from '@dude/sync';
 import type { OutboxOp } from '@dude/sync';
 import type { OutboxSummary } from '@dude/persistence';
-import type { Db } from '../sqlite.js';
+import type { Db } from '@dude/sqlite-store';
 
 export interface OutboxRow {
   op_id: string; entity_type: string; entity_id: string; environment_id: string; device_id: string; op_kind: string;

@@ -1,7 +1,7 @@
 import { SECRET_PURPOSES, isSecretPurpose } from '@dude/persistence';
 import type { SecretPurpose } from '@dude/persistence';
-import type { Db } from '../sqlite.js';
-import { transaction } from '../sqlite.js';
+import type { Db } from '@dude/sqlite-store';
+import { transaction } from '@dude/sqlite-store';
 
 /** What the store exposes about a secret: never plaintext, never ciphertext. */
 export interface SecretStatusRow {

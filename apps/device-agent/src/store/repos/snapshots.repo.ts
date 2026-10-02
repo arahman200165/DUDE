@@ -1,4 +1,4 @@
-import type { Db } from '../sqlite.js';
+import type { Db } from '@dude/sqlite-store';
 
 export interface SnapshotHeaderRow { kind: string; id: string; createdAt: number; header: unknown }
 interface Raw { kind: string; id: string; created_at: number; header_json: string }

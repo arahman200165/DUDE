@@ -1,6 +1,6 @@
 import type { NetworkRunAddResult, NetworkRunRecord, NetworkRunRepository, NetworkRunRetention } from '@dude/persistence';
-import type { Db } from '../sqlite.js';
-import { transaction } from '../sqlite.js';
+import type { Db } from '@dude/sqlite-store';
+import { transaction } from '@dude/sqlite-store';
 import { DEFAULT_NETWORK_RUN_RETENTION } from './retention.js';
 
 interface Row { id: string; created_at: number; size_bytes: number; payload_json: string }

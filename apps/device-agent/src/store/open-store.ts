@@ -1,5 +1,4 @@
 import { mkdirSync, existsSync, renameSync } from 'node:fs';
-import { DatabaseSync } from 'node:sqlite';
 import { statSync } from 'node:fs';
 import path from 'node:path';
 import type { DeviceCapabilities, DeviceRecord } from '@dude/persistence';
@@ -7,11 +6,10 @@ import type { StoreHealth } from '@dude/contracts';
 import { OUTBOX_MAX_ROWS } from '@dude/sync';
 import { MIGRATIONS } from './migrations/index.js';
 import type { Migration } from './migrations/index.js';
-import { runMigrations } from './migration-runner.js';
+import { getMeta, openSqliteDatabase, quickCheck, runMigrations } from '@dude/sqlite-store';
+import type { Db } from '@dude/sqlite-store';
 import { ensureIdentity } from './identity.js';
 import type { AppInfo } from './identity.js';
-import type { Db } from './sqlite.js';
-import { getMeta } from './sqlite.js';
 import { outboxSummary } from './repos/outbox.repo.js';
 
 export const DB_FILE = 'dude-device.db';
@@ -43,14 +41,8 @@ export function openDeviceStore(options: OpenStoreOptions): OpenStoreResult {
   const file = path.join(options.dir, DB_FILE);
   let db: Db | undefined;
   try {
-    db = new DatabaseSync(file);
-    db.exec('PRAGMA journal_mode = WAL');
-    db.exec('PRAGMA synchronous = FULL');
-    db.exec('PRAGMA foreign_keys = ON');
-    db.exec('PRAGMA busy_timeout = 5000');
-    const check = db.prepare('PRAGMA quick_check').all() as Array<Record<string, unknown>>;
-    const ok = check.length === 1 && Object.values(check[0])[0] === 'ok';
-    if (!ok) {
+    db = openSqliteDatabase(file);
+    if (!quickCheck(db)) {
       db.close();
       return { status: 'corrupt', message: 'The device store failed its integrity check.', path: file };
     }

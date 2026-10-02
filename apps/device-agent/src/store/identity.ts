@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import { defaultDisplayName, uuidv7, validateDisplayName } from '@dude/persistence';
 import type { DeviceCapabilities, DevicePlatform, DeviceRecord } from '@dude/persistence';
-import type { Db } from './sqlite.js';
-import { getMeta, setMeta, transaction } from './sqlite.js';
+import type { Db } from '@dude/sqlite-store';
+import { getMeta, setMeta, transaction } from '@dude/sqlite-store';
 
 export interface AppInfo { appVersion: string; platform: DevicePlatform; os: string; arch: string }
 

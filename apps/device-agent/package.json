@@ -8,6 +8,7 @@
     "@dude/domain": "*",
     "@dude/persistence": "*",
     "@dude/shared-types": "*",
+    "@dude/sqlite-store": "*",
     "@dude/sync": "*"
   },
   "devDependencies": {

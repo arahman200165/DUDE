@@ -6,7 +6,7 @@ import { commitKvBatch } from './repos/kv.repo.js';
 import { setSecretCiphertext, secretStatus } from './repos/secrets.repo.js';
 import { setDoc } from './repos/device-docs.repo.js';
 import { appendJournal } from './repos/journal.repo.js';
-import { getMeta } from './sqlite.js';
+import { getMeta } from '@dude/sqlite-store';
 import { applyReset, previewReset } from './reset.js';
 
 afterEach(cleanupTemp);

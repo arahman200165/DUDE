@@ -1,4 +1,4 @@
-import type { Db } from '../sqlite.js';
+import type { Db } from '@dude/sqlite-store';
 
 export const DOC_NAME = /^[a-z0-9][a-z0-9.-]{0,63}$/;
 export const isDocName = (name: unknown): name is string => typeof name === 'string' && DOC_NAME.test(name);

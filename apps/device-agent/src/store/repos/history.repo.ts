@@ -1,6 +1,6 @@
 import type { HistoryAddResult, HistoryRecord, HistoryRepository, HistoryRetention } from '@dude/persistence';
-import type { Db } from '../sqlite.js';
-import { transaction } from '../sqlite.js';
+import type { Db } from '@dude/sqlite-store';
+import { transaction } from '@dude/sqlite-store';
 import { DEFAULT_HISTORY_RETENTION } from './retention.js';
 
 interface Row { id: string; tool_id: string; created_at: number; size_bytes: number; payload_json: string }

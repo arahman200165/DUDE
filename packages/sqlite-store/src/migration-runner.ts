@@ -2,8 +2,8 @@ import { mkdirSync, readdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import type { Db } from './sqlite.js';
 import { transaction } from './sqlite.js';
-import { checksumOf, latestVersion } from './migrations/index.js';
-import type { Migration } from './migrations/index.js';
+import { checksumOf, latestVersion } from './migrations.js';
+import type { Migration } from './migrations.js';
 
 export type MigrationResult =
   | { status: 'ready'; from: number; to: number; backupPath?: string }
@@ -16,9 +16,15 @@ export class MigrationChecksumError extends Error {
   }
 }
 
+/**
+ * The first migration must create `meta(key, value)` and
+ * `schema_migrations(version, name, checksum, applied_at)`; the runner records progress there.
+ */
 export interface MigrationOptions {
+  /** Directory for pre-upgrade VACUUM INTO backups; the caller chooses it (device store: `<dir>/backups`, Hub: `data/pre-migration`). */
   backupDir: string;
   now: () => Date;
+  /** Newest backups to retain (default 3). */
   keepBackups?: number;
 }
 

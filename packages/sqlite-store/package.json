@@ -1,0 +1,32 @@
+{
+  "name": "@dude/sqlite-store",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js",
+      "default": "./dist/*.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "watch": "tsc -p tsconfig.json --watch",
+    "test": "cd ../.. && npm run build:packages && vitest run --config vitest.packages.config.mts --passWithNoTests packages/sqlite-store"
+  },
+  "description": "Node-only node:sqlite plumbing (open/pragmas, transactions, checksummed migrations) shared by the device agent and the Hub",
+  "devDependencies": {
+    "vitest": "^4.0.8"
+  },
+  "dependencies": {}
+}

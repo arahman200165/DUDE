@@ -5,8 +5,8 @@ import type {
 import { isSecretPurpose, uuidv7 } from '@dude/persistence';
 import type { SecretPurpose } from '@dude/persistence';
 import type { DeviceStore } from '../store/open-store.js';
-import type { Db } from '../store/sqlite.js';
-import { getMeta, setMeta } from '../store/sqlite.js';
+import type { Db } from '@dude/sqlite-store';
+import { getMeta, setMeta } from '@dude/sqlite-store';
 import { readDeviceRecord, renameDevice } from '../store/identity.js';
 import { commitEntity, importMany, listRecords } from '../store/entity-commit.js';
 import type { CommitContext } from '../store/entity-commit.js';

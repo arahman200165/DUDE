@@ -1,5 +1,5 @@
-import type { Db } from '../sqlite.js';
-import { transaction } from '../sqlite.js';
+import type { Db } from '@dude/sqlite-store';
+import { transaction } from '@dude/sqlite-store';
 
 export type JournalEngineName = 'fs' | 'sys';
 /** The fields the store needs from an fs/sys journal entry; the rest is opaque JSON. */

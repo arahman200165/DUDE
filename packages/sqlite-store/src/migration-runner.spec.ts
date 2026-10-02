@@ -1,13 +1,25 @@
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import os from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { runMigrations, MigrationChecksumError } from './migration-runner.js';
-import { MIGRATIONS } from './migrations/index.js';
-import type { Migration } from './migrations/index.js';
-import { cleanupTemp, tempDir } from '../testing/test-utils.js';
+import type { Migration } from './migrations.js';
+import { checksumOf, latestVersion } from './migrations.js';
+import { openSqliteDatabase, quickCheck } from './open.js';
+import { allRows, getMeta, getRow, setMeta, transaction } from './sqlite.js';
 
-afterEach(cleanupTemp);
+const dirs: string[] = [];
+const tempDir = (): string => { const d = mkdtempSync(path.join(os.tmpdir(), 'dude-sqlite-store-')); dirs.push(d); return d; };
+afterEach(() => { for (const d of dirs.splice(0)) rmSync(d, { recursive: true, force: true }); });
+
+const MIGRATIONS: readonly Migration[] = [{
+  version: 1,
+  name: 'initial',
+  minReaderVersion: 1,
+  sql: `CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL) STRICT;
+CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, name TEXT NOT NULL, checksum TEXT NOT NULL, applied_at TEXT NOT NULL) STRICT;`,
+}];
 
 const v2Ok: Migration = { version: 2, name: 'add-x', minReaderVersion: 1, sql: 'CREATE TABLE x (a INTEGER) STRICT;' };
 const opts = (dir: string, i = 0) => ({ backupDir: path.join(dir, 'backups'), now: () => new Date(Date.UTC(2026, 0, 1, 0, 0, i)) });
@@ -76,5 +88,35 @@ describe('runMigrations', () => {
     expect(db.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get()).toEqual(before);
     expect(existsSync(path.join(dir, 'backups'))).toBe(false);
     db.close();
+  });
+});
+
+describe('sqlite helpers', () => {
+  it('openSqliteDatabase applies pragmas and quickCheck passes', () => {
+    const dir = tempDir();
+    const db = openSqliteDatabase(path.join(dir, 's.db'));
+    expect(getRow<{ journal_mode: string }>(db.prepare('PRAGMA journal_mode'))?.journal_mode).toBe('wal');
+    expect(getRow<{ foreign_keys: number }>(db.prepare('PRAGMA foreign_keys'))?.foreign_keys).toBe(1);
+    expect(getRow<{ timeout: number }>(db.prepare('PRAGMA busy_timeout'))?.timeout).toBe(5000);
+    expect(quickCheck(db)).toBe(true);
+    db.close();
+  });
+
+  it('transaction commits, rolls back on throw and nests inline', () => {
+    const dir = tempDir();
+    const db = openSqliteDatabase(path.join(dir, 's.db'));
+    runMigrations(db, MIGRATIONS, opts(dir));
+    transaction(db, () => { setMeta(db, 'a', '1'); transaction(db, () => setMeta(db, 'b', '2')); });
+    expect(getMeta(db, 'b')).toBe('2');
+    expect(() => transaction(db, () => { setMeta(db, 'c', '3'); throw new Error('boom'); })).toThrow('boom');
+    expect(getMeta(db, 'c')).toBeUndefined();
+    expect(allRows<{ key: string }>(db.prepare("SELECT key FROM meta WHERE key IN ('a','b') ORDER BY key")).map((r) => r.key)).toEqual(['a', 'b']);
+    db.close();
+  });
+
+  it('checksumOf is stable and latestVersion takes the maximum', () => {
+    expect(checksumOf(MIGRATIONS[0])).toBe(checksumOf({ ...MIGRATIONS[0] }));
+    expect(latestVersion([])).toBe(0);
+    expect(latestVersion([...MIGRATIONS, { version: 4, name: 'x', minReaderVersion: 1, sql: '' }])).toBe(4);
   });
 });
