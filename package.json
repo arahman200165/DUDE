@@ -70,6 +70,7 @@
     "check:portable": "node scripts/check-portable-consumption.mjs",
     "check:inventory": "node scripts/check-workspace-inventory.mjs --check && node scripts/data-scope-inventory.mjs --check",
     "check:clean": "node scripts/check-clean-workspace.mjs",
+    "precheck:hosts": "npm run build:packages",
     "check:hosts": "tsc -p apps/desktop/tsconfig.json && tsc -p apps/collab-relay/tsconfig.json && tsc -p apps/hub/tsconfig.json",
     "check:desktop": "node scripts/check-desktop-workspace.mjs",
     "check:generated": "node scripts/check-generator-freshness.mjs",
