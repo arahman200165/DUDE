@@ -1,6 +1,6 @@
 import { createServer } from 'node:net';
 import type { Server } from 'node:net';
-import { mkdtempSync, rmSync, statSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { AgentConnectError, connectAgentPipe } from './client.js';
@@ -16,6 +16,14 @@ function tempStore(): string {
   const dir = mkdtempSync(path.join(tmpdir(), 'dude-pipe-'));
   dirs.push(dir);
   return dir;
+}
+/** Listens on a fake agent endpoint. On Unix the socket file needs its directory to exist; Windows pipes need none. */
+function listenAt(server: Server, endpoint: string): Promise<void> {
+  if (process.platform !== 'win32') mkdirSync(path.dirname(endpoint), { recursive: true });
+  return new Promise<void>((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(endpoint, resolve);
+  });
 }
 afterEach(async () => {
   for (const close of closers.splice(0)) await close();
@@ -103,7 +111,7 @@ describe('agent pipe', () => {
         }
       });
     });
-    await new Promise<void>((resolve) => fake.listen(endpoint, resolve));
+    await listenAt(fake, endpoint);
     closers.push(() => new Promise<void>((resolve) => fake.close(() => resolve())));
     const attempt = connectAgentPipe({ storeDir: dir, config, endpoint });
     await expect(attempt).rejects.toMatchObject({ code: 'handshake-failed' });
@@ -153,7 +161,7 @@ describe('agent pipe', () => {
     const endpoint = agentEndpoint(path.join(silentDir, 'silent'));
     const held: Array<{ destroy(): void }> = [];
     const silent: Server = createServer((socket) => { held.push(socket); });
-    await new Promise<void>((resolve) => silent.listen(endpoint, resolve));
+    await listenAt(silent, endpoint);
     closers.push(() => new Promise<void>((resolve) => { silent.close(() => resolve()); held.forEach((s) => s.destroy()); }));
     await expect(connectAgentPipe({ storeDir: silentDir, config, endpoint, timeoutMs: 100 })).rejects.toMatchObject({ code: 'timeout' });
   });
