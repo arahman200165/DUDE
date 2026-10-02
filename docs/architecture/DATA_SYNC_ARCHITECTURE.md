@@ -1,8 +1,8 @@
 # Data, Persistence and Synchronization
 
-This specification separates canonical Hub state from local Device Stores, retained inputs and synchronization consent. Delivered local persistence remains supported; the distributed stores and protocol are planned.
+This specification separates canonical Hub state from local Device Stores, retained inputs and synchronization consent. Delivered local persistence remains supported; the canonical Hub skeleton and Hub enrollment are delivered (Phase 31C), while the synchronization protocol and the remaining distributed stores are planned.
 
-Workspace implementation and host ownership are documented in [Portable Core](PORTABLE_CORE.md#data-scope). Hub/mobile, sync and API-client reservations provide no new runtime capabilities.
+Workspace implementation and host ownership are documented in [Portable Core](PORTABLE_CORE.md#data-scope). The Hub service and Hub enrollment are delivered; the sync and mobile reservations provide no runtime capabilities.
 
 Read [the master PRD](../DUDE_PRD.md) first. Product direction and invariants live there; this document owns the detailed contracts in its domain.
 
@@ -294,6 +294,24 @@ Repository/data-access abstractions should allow the canonical storage implement
 
 PostgreSQL should be an implementation option, not a mandatory dependency for personal DUDE.
 
+### As built in Phase 31C (Hub)
+
+The Hub's canonical database is `data/dude.db`, opened by the Hub process alone through `@dude/sqlite-store` (`node:sqlite`, WAL, `synchronous=FULL`, `quick_check`, checksummed numbered migrations). Under the service it lives in `%ProgramData%\DUDE\Hub`; before a migration step on an existing database the Hub writes a `VACUUM INTO` copy to `data/pre-migration/` (the `backups/` directory is reserved for Phase 31G and unused). Opening a database whose `minReaderVersion` is newer than the running Hub is refused, so an older Hub cannot open a newer database. Two migrations exist (`0001-initial`, `0002-owner-reset`).
+
+| Table group | Tables | Holds |
+|---|---|---|
+| Plumbing | `meta`, `schema_migrations` | Hub instance ID, schema and reader version; applied steps with checksums |
+| Identity | `environment`, `owner`, `owner_credentials`, `recovery_codes`, `setup_state` | The Hub-minted environment, the single owner, the Argon2id credential, hashed single-use recovery codes, the one-time setup or owner-reset token (hashed) |
+| Sessions | `sessions` | Hashed cookie and device-bound bearer sessions with idle and absolute expiry |
+| Devices | `devices`, `device_keys`, `device_tokens`, `challenges`, `pairing_codes` | The registry (including the recovery-trust flag), Ed25519 public keys, hashed access tokens, single-use challenges and pairing codes |
+| TLS | `tls_pins`, `tls_pin_acks` | Active, next and retired certificate pins and per-device acknowledgements |
+| Hardening | `throttle`, `audit_events` | Persisted failure throttles; the append-only audit log (closed event list, credential-free details, retained 365 days or 100,000 events) |
+| Canonical skeleton | `records`, `change_feed`, `applied_ops` | Entity rows keyed by environment, type and ID with revision, tombstone and schema version; the global monotonic change feed; applied op IDs for duplicate suppression |
+
+`commitCanonical` writes the record, its change-feed entry and the applied op ID in one transaction under one global revision. A duplicate op ID returns the recorded revision without writing, and a rejected commit rolls back completely. Only the environment and workspace codecs are canonical entities. The skeleton is exercised by specs and a hard-kill WAL durability check, but **no public record endpoint, import, replay or cursor API exists**: nothing is written to it from a client in Phase 31C.
+
+**Environment identity.** The Hub mints `environmentId` and `hubInstanceId` at owner bootstrap ([PD-036](../history/DECISION_LOG.md#phase-31c-implementation-decisions)). A device keeps its standalone `meta.environment_id` and its local records unchanged when it enrolls, and stores the Hub's environment ID separately in its `hub_enrollment` row. Re-keying local records to the canonical environment belongs to the Phase 31D import, so a second device with its own standalone ID can enroll without a reconciliation problem.
+
 ## Device State Store
 
 Each installed desktop/laptop should have a local device state store.
@@ -324,7 +342,7 @@ Ephemeral tool content should not be persisted by default.
 
 ### As built in Phase 31B (desktop)
 
-The desktop Device State Store is the SQLite file `userData/device-store/dude-device.db`, opened through Node's built-in `node:sqlite` (`DatabaseSync`) in WAL mode with `synchronous=FULL` and foreign keys on. It is owned by a dedicated Electron utility process, the *state service* (`apps/device-agent`); Electron main is the only broker and the renderer never holds a handle or port to it. Beside the database are `backups/` (pre-upgrade `VACUUM INTO` copies, last three kept) and `quarantine/` (refused or corrupt stores). The state service is a different thing from the privileged Device Agent execution boundary described in the [system architecture](SYSTEM_ARCHITECTURE.md#device-state-store-service-vs-device-agent).
+The desktop Device State Store is the SQLite file `userData/device-store/dude-device.db`, opened through Node's built-in `node:sqlite` (`DatabaseSync`) in WAL mode with `synchronous=FULL` and foreign keys on. It is owned by the resident per-user Device Agent process (`apps/device-agent`; in 31B an Electron utility process, the *state service*, replaced in 31C); Electron main is the only broker and the renderer never holds a handle or channel to it. Beside the database are `backups/` (pre-upgrade `VACUUM INTO` copies, last three kept) and `quarantine/` (refused or corrupt stores). The Agent is a different thing from the privileged Device Agent execution boundary described in the [system architecture](SYSTEM_ARCHITECTURE.md#device-state-store-service-vs-device-agent).
 
 | Table | Holds |
 |---|---|
@@ -342,11 +360,17 @@ The desktop Device State Store is the SQLite file `userData/device-store/dude-de
 
 **Migrations.** A versioned runner applies numbered steps, each in its own transaction, idempotent and resumable, after a `VACUUM INTO` backup. Shipped steps are checksummed and never edited. A store whose `minReaderVersion` is newer than the running build is refused and quarantined rather than reinterpreted, and the app enters degraded mode.
 
-**Failure.** Main restarts a crashed state service with 0.5, 2 and 8 second backoff. More than three crashes in two minutes moves the app to a degraded in-memory mode with a persistent banner offering retry, open recovery folder and reset; JSON journal fallbacks are drained back into the store on the next healthy start.
+**Failure.** Main reconnects to (and, when none answers, respawns) the Device Agent with 0.5, 2 and 8 second backoff. More than three crashes in two minutes moves the app to a degraded in-memory mode with a persistent banner offering retry, open recovery folder and reset; JSON journal fallbacks are drained back into the store on the next healthy start.
 
 **Identity.** The device ID is a UUIDv7 stored with a salted hash of the Windows MachineGuid. If the hash no longer matches at startup the store was copied: a new device ID is minted, the old one is kept as `cloned_from`, unsent outbox ops are rewritten to the new device and secrets are marked as needing re-entry. A reset or reinstall produces a new device. The display name defaults to "Windows PC" and is never taken from the hostname.
 
 **Web.** The web build has no SQLite and no outbox. It keeps its browser storage adapters behind the same repository ports, plus a stable per-browser installation ID that Clear all data preserves.
+
+### As built in Phase 31C (Hub enrollment)
+
+Device-store migration 0002 adds the single-row `hub_enrollment` table (state `enrolled` or `revoked`, Hub instance and environment IDs, URL, protocol version, active and next SPKI pins with certificates, key ID and public key, the CurrentUser-DPAPI-wrapped Ed25519 private key, and enrollment, last-contact and revocation times). It is additive and keeps `minReaderVersion` at 1, so an older build opens the store and behaves as a standalone device. `EnrollmentState` is `standalone | enrolled | revoked` and `EnvironmentRecord.kind` gains `hub`. Clone detection and *Reset this device* clear the enrollment; *Clear data* keeps it; the renderer-facing `hub.enrollment` view carries no key material. Settings > This Device shows standalone, enrolled or revoked. Enrolling uploads only the pairing proof and device metadata (display name, platform, app version, capabilities, public key) after an explicit disclosure; no records are uploaded.
+
+**Still owed by Phase 31D** on top of the 31B list below: Hub record endpoints, re-keying local records to the Hub environment, first-connection preview and import, revision assignment, cursors, outbox replay, conflict handling and revoked-device sync semantics.
 
 ## Synchronization Protocol
 

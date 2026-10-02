@@ -1,8 +1,8 @@
 # DUDE System Architecture
 
-The desktop is the privileged local workbench; the planned Hub is authoritative for synchronized shared state. Delivered paths are described separately from the target package/service architecture. No new Hub framework, workspace manager or resident Agent process is treated as already selected.
+The desktop is the privileged local workbench; the Hub is authoritative for synchronized shared state. Delivered paths are described separately from the target package/service architecture. Phase 31C delivered the Hub service foundation and the resident Device Agent ([as built](#as-built-in-phase-31c)); synchronization, the shared-state Hub web and mobile are still planned.
 
-Workspace implementation and host ownership are documented in [Portable Core](PORTABLE_CORE.md). Hub/mobile, sync and API-client reservations provide no new runtime capabilities.
+Workspace implementation and host ownership are documented in [Portable Core](PORTABLE_CORE.md). The Hub service (`apps/hub`) and the Hub API client are delivered as of Phase 31C; the mobile and sync-replay reservations provide no runtime capabilities.
 
 Read [the master PRD](../DUDE_PRD.md) first. Product direction and invariants live there; this document owns the detailed contracts in its domain.
 
@@ -359,9 +359,10 @@ The implementation uses npm workspaces with the current Node/npm pins, one root 
 ```text
 apps/web/                Angular renderer, assets, UI bindings and browser adapters
 apps/desktop/            Electron composition and native adapters
-apps/device-agent/      Device State Store "state service" (utility process, node:sqlite); not the privileged Device Agent
+apps/device-agent/      Resident per-user Device Agent process (node:sqlite Device State Store, Hub client); never executes tools
 apps/collab-relay/       Existing standalone relay
-apps/hub/, apps/mobile/  Documented future placeholders
+apps/hub/                Self-hosted DUDE Hub service (Fastify, node:sqlite, Node SEA); delivered in 31C
+apps/mobile/             Documented future placeholder
 packages/shared-types/  Closed vocabularies
 packages/domain/        Workbench entities, metadata and scope
 packages/contracts/     Execution, worker and native/host ports
@@ -371,7 +372,9 @@ packages/tool-engine/   Transforms, composition, tests and fixtures
 packages/tool-registry/  Authoritative manifests and generated metadata
 packages/persistence/    Device/environment records, UUIDv7, scoped settings, entity codecs, repository ports and contract suites, secret references
 packages/sync/           Outbox op model and coalescing (replay/cursors/conflicts reserved for 31D)
-packages/api-client/     Empty buildable future reservation
+packages/api-client/     Portable typed Hub client over an injected transport port (31C)
+packages/sqlite-store/   Node-only node:sqlite plumbing shared by the Hub and the Device Agent (31C)
+packages/agent-pipe/     Node-only authenticated named-pipe protocol between the desktop and the Agent (31C)
 packages/collab-protocol/ Existing Node-only Yjs rooms (not portable core)
 infrastructure/          Documented deployment/database/networking/packaging reservations
 ```
@@ -490,7 +493,7 @@ The installed desktop application should evolve toward:
 | Preload / IPC Boundary | Validated capability access |
 | DUDE Device Agent | Filesystem, process/system, network, database, container, Git, SSH and local AI services |
 | Shared DUDE Core | Framework-neutral tool/domain logic |
-| Device SQLite Store | Local persistence and replicas (delivered in 31B as the state service below) |
+| Device SQLite Store | Local persistence and replicas (delivered in 31B and now owned by the resident Device Agent, see [As built in Phase 31C](#as-built-in-phase-31c)) |
 | Sync Client | Hub change exchange and offline replay |
 | Encrypted Credential Vault | Local secret references |
 | Native Windows Helpers | OS-specific capability implementations |
@@ -499,17 +502,17 @@ The installed desktop application should evolve toward:
 
 Two different things have been called an "agent"; this document keeps them apart.
 
-| | Device State Store *state service* (delivered, Phase 31B) | Device Agent / Device Runtime (planned boundary) |
+| | Resident Device Agent (delivered, Phases 31B-31C) | Privileged Device Runtime (planned boundary) |
 |---|---|---|
 | Purpose | Owns the local SQLite database | Privileged local execution: filesystem, process/system, network, database, container, Git, SSH and local AI services |
-| Process | Electron `utilityProcess` bundled from `apps/device-agent` | Not yet a separate process; today's native capabilities are Electron-main bridges and native helpers |
-| Privilege | Unprivileged: no tool execution, no shell, no network on a caller's behalf; typed RPC only | Privileged, with explicit validated, authorized operations |
-| Callers | Electron main only, over a private `MessagePort` (the renderer never holds a port) | Local application today; strongly authorized remote jobs only in a later phase |
-| Lifecycle | Supervised by main: backoff restart, degraded in-memory mode, coordinated quit | Decided for 31C (not yet implemented): see the note below |
+| Process | Separate per-user Node process from `apps/device-agent` (`dude-agent.exe` SEA; Electron-as-Node in development) that outlives the desktop window | Not yet a separate process; today's native capabilities are Electron-main bridges and native helpers |
+| Privilege | Per-user and unelevated: no tool execution, no shell; typed RPC only. It reaches the configured Hub (and only the Hub) over pinned TLS and holds the DPAPI-wrapped device key | Privileged, with explicit validated, authorized operations |
+| Callers | Electron main only, over an authenticated per-user named pipe (the renderer never holds a handle) | Local application today; strongly authorized remote jobs only in a later phase |
+| Lifecycle | Resident: started at sign-in and ensured by the desktop; main reconnects with backoff and shows a degraded banner when unreachable; quit detaches rather than stops | Not decided |
 
-**Decided for Phase 31C, implementation in progress.** [PD-026](../history/DECISION_LOG.md#phase-31c-implementation-decisions) supersedes the open lifecycle question: `apps/device-agent` becomes the resident per-user Device Agent (a per-user executable started at logon and ensured by the desktop, reached over an authenticated named pipe, holding the device key and, later, the Hub connection). This redefines the *state service* described in the table: it gains network access to the Hub only and holds keys, and it still never executes tools and grants no remote execution. The table above describes the delivered 31B state until that implementation lands.
+**Delivered in Phase 31C.** [PD-026](../history/DECISION_LOG.md#phase-31c-implementation-decisions) (as amended) replaced the Electron-forked `utilityProcess` and `MessagePort` supervision with the resident per-user Agent described in [As built in Phase 31C](#as-built-in-phase-31c). The Agent still never executes tools and grants no remote execution; the privileged Device Runtime column remains a planned boundary, and the Agent is not that boundary until it gains those capabilities.
 
-The directory name `apps/device-agent` is historical from planning; user-facing and architectural text calls the process the *state service*. Renaming the workspace is not required, and the privileged Device Agent will not reuse it implicitly.
+The directory name `apps/device-agent` is historical from planning. User-facing text calls the process the *background agent* (Settings > This Device); architecture text calls it the *Device Agent* or, where the distinction matters, distinguishes it from the planned privileged runtime.
 
 **Renderer origin.** The packaged renderer loads from the privileged custom scheme `dude-app://app/` served in-process by main, a fixed origin that keeps localStorage/IndexedDB across launches (the earlier loopback server's per-launch port did not). The web companion keeps its `https://` origin and `/DUDE/` base path. Both builds run the same Angular code; desktop reads a store snapshot before bootstrap, and the web build reads browser storage through the same repository ports.
 
@@ -517,7 +520,7 @@ The directory name `apps/device-agent` is historical from planning; user-facing 
 |---|---|
 | Renderer (`dude-app://app/`) | Angular UI, synchronous signals over an in-memory cache |
 | Electron main | Window, protocol handler, sender-checked IPC, store broker, secrets, LLM bridge, native bridges |
-| State service utility process | SQLite Device State Store |
+| Device Agent (separate per-user process, over the named pipe) | SQLite Device State Store, Hub enrollment and connection |
 | File-walk/fs utility process, native helpers | Existing streamed filesystem and Windows helpers |
 
 The renderer should remain sandboxed.
@@ -529,6 +532,37 @@ Native capabilities should remain behind:
 - allowlists;
 - confirmation boundaries;
 - least-privilege behavior.
+
+### As built in Phase 31C
+
+Phase 31C (Milestones 628-648) delivered a self-hosted Hub foundation and the resident Device Agent. Decisions are [PD-023 to PD-037](../history/DECISION_LOG.md#phase-31c-implementation-decisions); the amendments to PD-025 and PD-026 are recorded there. Synchronization, record endpoints, the shared-state Hub web, trusted certificates and Internet/public mode, and backup are not delivered (31D-31G).
+
+**Hub process.** `apps/hub` is plain TypeScript compiled by esbuild to a CJS bundle and packaged as a Node 24 single-executable application (`dude-hub.exe`, `postject`, unsigned) with a startup self-test of `node:sqlite`, Argon2id, Ed25519 and P-256. It runs as a Windows service (WinSW 2.12.0 under the virtual account `NT SERVICE\DudeHub`), a non-root Docker image, or a foreground `dude-hub run --data-dir <dir>`. Fastify serves HTTPS only (self-signed ECDSA P-256, loopback `127.0.0.1:47600` by default; `0.0.0.0` only in LAN or container mode) with REST under `/api/v1`, static hosting of the Hub web build with SPA fallback that never rewrites `/api/*`, and an authenticated WebSocket at `/api/v1/realtime`. Modules under `apps/hub/src/`:
+
+| Module | Responsibility |
+|---|---|
+| `server/` | Fastify app, routes (hello, bootstrap, auth, sessions, devices, device auth and recovery, TLS and audit), static hosting, error mapping |
+| `security/` | Headers and CSP, Host allowlist, Origin/Fetch-Metadata/CSRF by credential type, rate limits, persisted throttle, audit log, ConfirmationStore |
+| `auth/` | Owner password and recovery codes, setup token, cookie and bearer sessions, device-token resolution |
+| `devices/` | Pairing codes, Ed25519 keys, device tokens, the registry |
+| `realtime/`, `tls/` | WebSocket protocol and presence; certificate generation, SPKI pins and dual-pin rotation |
+| `db/` | Canonical SQLite open/migrations and the atomic commit repository |
+| `admin/` | Local admin named pipe or Unix socket so CLI commands never open `dude.db` while the service runs |
+| `service/`, `cli/` | Windows service wrapper, LAN toggle and firewall rule, doctor, purge; the hand-parsed `dude-hub` CLI |
+
+The Hub is the only writer of `data/dude.db`. Its data directory is `%ProgramData%\DUDE\Hub` (`service/`, `data/`, `storage/`, `backups/`, `config/`, with pre-migration copies in `data/pre-migration/`); `backups/` stays unused until Phase 31G.
+
+**Packaging and install.** `DUDE-Hub-Setup.exe` is its own elevated makensis installer with its own Apps & Features entry, installing to Program Files. The desktop installer embeds it behind an interactive, default-off page and never touches the Hub on update or uninstall. Hub updates are an explicit user action: the desktop's Update Hub elevates the bundled `DUDE-Hub-Setup.exe` in `/UPDATE` mode (stop, replace, start; data migrates when the service starts), offered only from a per-machine (Program Files) desktop install because a per-user install's resources are user-writable. See [Windows setup](../WINDOWS_SETUP.md#the-dude-hub-optional). Build scripts: `hub:compile`, `hub:sea`, `hub:stage`, `hub:installer`.
+
+**Resident Device Agent.** `apps/device-agent` is a separate per-user Node process (`dude-agent.exe` SEA; Electron-as-Node in development). The desktop reaches it over `@dude/agent-pipe`: a per-user named pipe (Unix socket on Linux CI) whose name is derived from a hash of the store directory (per-user by location), length-prefixed JSON with base64 bytes, and a server-first handshake in which the Agent proves knowledge of a per-profile key before the desktop sends anything. The Agent reads the machine fingerprint itself and reopens the store from its last desktop-supplied config, so it runs with no desktop. The desktop spawns it detached; a packaged build with the default "start at sign-in" only checkpoints and detaches on quit. The sign-in start is a per-user `ONLOGON` scheduled task, falling back to the `HKCU` Run key because standard users are denied that task. A version handshake restarts an Agent that differs from the desktop. Settings > This Device shows a Background agent row (state, start at sign-in, stop/start). Store quarantine moved into the Agent because Windows cannot rename files it holds open. It holds the Ed25519 device key wrapped with CurrentUser DPAPI through the `windows-sys` helper, enrolls from a `dude-pair` string, keeps an authenticated realtime connection with heartbeats and backoff, follows staged TLS pins, detects revocation, incompatibility and untrusted TLS, and holds the owner bearer session in memory only. AI secrets stay with Electron main `safeStorage`. The Agent never executes tools; PD-010 holds.
+
+**Desktop Hub bridge.** The renderer reaches `hub.*` Agent RPC only through sender-checked, strictly validated `dude:hub:*` IPC in Electron main (`window.dude.hub`), which scrubs credential-like fields from results and pushes status changes. Admin operations that need elevation (local Hub setup hand-off, Update Hub) use a UAC-elevated command with arguments passed through the environment, never the script text.
+
+**Hub web host mode.** `HostKind` is `desktop | web-standalone | hub-web`. `hub-web` is chosen at build time by the `production,hub` Angular configuration (`npm run build:hub-web`: base href `/`, no service worker, output `dist/hub-web`); the Pages and desktop bundles do not include the API client. Settings sections declare the hosts they support instead of a desktop-only flag; Environment & Hub, Devices and Security & Sessions are available on `desktop` and `hub-web`. The `HUB_ADMIN` port has desktop (IPC), hub-web (same-origin fetch with an in-memory CSRF token) and unavailable adapters. `/hub/setup`, `/hub/sign-in` and `/hub/recover` match only on `hub-web`, behind a session guard (shell exception #12). The Hub hashes the `index.html` inline scripts into `script-src`; it never allows `'unsafe-inline'` for scripts. Tools in the Hub web run locally in the browser as on the Pages companion.
+
+**Contract source.** Hub request/response schemas are TypeBox schemas under `@dude/contracts/hub` (a subpath, not re-exported from the package index). `@dude/api-client` is a portable typed client over an injected transport port that validates responses with the same schemas, and `apps/hub/src/server/api-client-parity.spec.ts` fails when a Hub route has no client method or vice versa. Protocol compatibility uses an integer `protocolVersion` and `minClientProtocol` negotiated in the REST and WebSocket hellos (PD-037).
+
+**Not yet.** No sync service, record endpoints, collaboration, backup, Hub-served shared state, trusted-CA or public exposure, and no remote execution.
 
 ### DUDE Core / Shared Logic Refactor
 
@@ -608,9 +642,9 @@ Future integrations
 
 ### Service and adapter boundaries
 
-Use a single maintainable Hub application with clear internal modules initially; the list of Hub services is a responsibility decomposition, not a requirement to deploy independent microservices. The Hub framework/runtime and packaging are decided for 31C, implementation in progress: Fastify with REST `/api/v1` ([PD-023](../history/DECISION_LOG.md#phase-31c-implementation-decisions)), a Node single-executable application with a Windows service, Docker and foreground modes ([PD-024](../history/DECISION_LOG.md#phase-31c-implementation-decisions)).
+Use a single maintainable Hub application with clear internal modules initially; the list of Hub services is a responsibility decomposition, not a requirement to deploy independent microservices. The Hub framework/runtime and packaging are delivered in 31C: Fastify with REST `/api/v1` ([PD-023](../history/DECISION_LOG.md#phase-31c-implementation-decisions)), a Node single-executable application with a Windows service, Docker and foreground modes ([PD-024](../history/DECISION_LOG.md#phase-31c-implementation-decisions)).
 
-Hub modules access canonical state through repository interfaces; clients never mount/open the Hub database. Device repositories manage local persistence; platform adapters own OS/browser/mobile-specific facilities. The local Device Agent starts as the formal boundary around existing Electron/native services; a separately resident Agent process is not automatically required merely because the Hub must be a background service. The Agent process/lifecycle model is decided for 31C, implementation in progress ([PD-026](../history/DECISION_LOG.md#phase-31c-implementation-decisions)): a resident per-user process, preserving local IPC validation and confirmation semantics.
+Hub modules access canonical state through repository interfaces; clients never mount/open the Hub database. Device repositories manage local persistence; platform adapters own OS/browser/mobile-specific facilities. The local Device Agent starts as the formal boundary around existing Electron/native services; a separately resident Agent process is not automatically required merely because the Hub must be a background service. The Agent process/lifecycle model is delivered in 31C ([PD-026](../history/DECISION_LOG.md#phase-31c-implementation-decisions)): a resident per-user process, preserving local IPC validation and confirmation semantics.
 
 Keep co-located Hub and Agent responsibilities distinct. A Hub service account must not inherit unrestricted native desktop control; local user-vault access, elevated actions and interactive confirmations belong to their explicit device/runtime boundaries. Future remote jobs require a separate reviewed protocol.
 

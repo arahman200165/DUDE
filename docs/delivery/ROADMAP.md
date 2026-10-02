@@ -31,7 +31,7 @@ Related: [DUDE — Product Requirements](../DUDE_PRD.md) · [Quality and Release
 | Horizon | Status |
 |---|---|
 | Phases 0–31 | Complete; Phase 31 closed at Milestone 614 |
-| Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A (Milestone 615) and 31B (Milestones 616–627) complete, 31C in progress (Milestones 628–649), 31D–31J planned |
+| Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A (Milestone 615) and 31B (Milestones 616–627) and 31C (Milestones 628–648) complete, 31D next, 31E–31J planned |
 | Phase 32 | Core expansion begins only after every phase from 31A through 31J is complete |
 | Phases 33–100 | Retained long-horizon scope, subject to dependencies and product boundaries |
 
@@ -133,11 +133,11 @@ Backup/transfer is deliberately moved ahead of mobile delivery, and security con
 
 <a id="phase-31c"></a>
 
-### Phase 31C — Self-Hosted Hub, Identity and Canonical Persistence (In Progress)
+### Phase 31C — Self-Hosted Hub, Identity and Canonical Persistence (Complete)
 
 **Depends on:** 31A–31B.
 
-**Implementation status:** in progress (Milestones 628–649); decisions [PD-023–PD-037](../history/DECISION_LOG.md#phase-31c-implementation-decisions). Milestone 628 records the decisions and reconciles the documents; the Hub, registration, replay and sync are not shipped until later milestones in this phase say so.
+**Implementation status:** complete (Milestones 628–648; decisions [PD-023–PD-037](../history/DECISION_LOG.md#phase-31c-implementation-decisions), implemented as recorded with amendments to PD-025 and PD-026). Milestones 629–646 deliver `@dude/sqlite-store`, the `apps/hub` Fastify service with pinned self-signed TLS, the canonical SQLite skeleton and atomic commit repository, the security baseline, audit and local admin channel, owner bootstrap, sessions and recovery, the Node SEA executable, Docker image and Windows service, the device registry with Ed25519 pairing, the authenticated realtime WebSocket with dual-pin TLS rotation, the resident Device Agent over `@dude/agent-pipe`, Hub enrollment in the Device Store, the Agent Hub client and desktop Hub bridge, the `hub-web` host kind with the Hub admin UI, the local Hub setup wizard, Update Hub, device-assisted owner recovery and the optional Hub installer component; Milestone 647 adds Hub end-to-end, CSP sweep and measurement gates (`npm run test:e2e:hub`, `npm run measure:hub`, CI job `hub-e2e`) and Milestone 648 closes the phase with documentation. See [acceptance evidence](PHASE31C_ACCEPTANCE.md), including the owed installed-build, elevated and manual passes. The Hub holds identity, devices, sessions and audit and a canonical skeleton only: no record endpoints, synchronization or replay exist (Phase 31D, next), the Hub web is an admin surface rather than the shared-state web (31E), trusted certificates and public exposure are 31E/31F and backup is 31G.
 
 - self-hosted Hub service (Fastify, per [PD-023](../history/DECISION_LOG.md#phase-31c-implementation-decisions));
 - canonical SQLite repository;
@@ -152,7 +152,7 @@ Backup/transfer is deliberately moved ahead of mobile delivery, and security con
 
 <a id="phase-31d"></a>
 
-### Phase 31D — Synchronization and Offline Reconciliation (Planned)
+### Phase 31D — Synchronization and Offline Reconciliation (Next)
 
 **Depends on:** 31B–31C.
 

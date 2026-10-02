@@ -7,7 +7,8 @@ Phase 31A introduced npm workspaces with one root lockfile, and Phase 31B filled
 | `apps/web` | Angular renderer, UI bindings, browser storage, DOM, Canvas, workers and sandbox/WASM adapters |
 | `apps/desktop` | Electron main/preload composition, native implementation and IPC trust boundaries; uses the web renderer |
 | `apps/collab-relay` | Existing standalone collaboration relay |
-| `apps/device-agent` | Desktop Device State Store "state service": an Electron utility process owning the `node:sqlite` database (not portable core, and not the privileged Device Agent execution boundary); imports no `electron` or `@angular/*`, and nothing in `apps/web` imports it |
+| `apps/hub` | Self-hosted DUDE Hub service (Fastify, `node:sqlite`, Node SEA); Node-only, never imports Electron, Angular or the desktop/agent workspaces, and nothing in `apps/web` imports it |
+| `apps/device-agent` | Resident per-user Device Agent: a Node process (SEA `dude-agent.exe`) owning the `node:sqlite` Device State Store, the Hub client and the DPAPI device key (not portable core, and not the privileged Device Agent execution boundary); imports no `electron` or `@angular/*`, and nothing in `apps/web` imports it |
 | `shared-types` | Foundational types and closed vocabularies |
 | `domain` | Workbench entities, tool metadata and data scope |
 | `contracts` | Execution and worker protocols, host ports and native request/result shapes |
@@ -17,10 +18,12 @@ Phase 31A introduced npm workspaces with one root lockfile, and Phase 31B filled
 | `tool-registry` | Authoritative per-tool manifests and generated metadata index |
 | `persistence` | Device/environment records, UUIDv7, setting definitions and scope rules, entity codec interface, repository ports, secret references, in-memory adapters and host-neutral contract suites (`@dude/persistence/testing`) |
 | `sync` | Outbox op model and per-entity coalescing; replay, cursors and conflicts reserved for 31D |
-| `api-client` | Empty buildable entry point reserving later authenticated API responsibilities |
+| `api-client` | Portable typed Hub client over an injected transport port; consumed by the Agent and the hub-web build, kept out of the Pages and desktop renderer bundles (a Hub parity spec checks it against the Hub's routes) |
+| `sqlite-store` | Node-only `node:sqlite` plumbing (open, WAL, checksummed migration runner, helpers) shared by the Hub and the Device Agent; excluded from the portable-core gate |
+| `agent-pipe` | Node-only authenticated named-pipe protocol between the desktop and the Device Agent; excluded from the portable-core gate |
 | `collab-protocol` | Existing Node-only Yjs room implementation; excluded from the portable-core gate |
 
-Hub, mobile and infrastructure directories are documented placeholders. They provide no Hub API, synchronization or mobile implementation. Device identity, the desktop SQLite store with its migration runner and the local outbox are delivered by Phase 31B in `persistence`, `sync` and `apps/device-agent`; registration with a Hub, replay and conflicts are not.
+Mobile and infrastructure directories are documented placeholders with no implementation. Device identity, the desktop SQLite store with its migration runner and the local outbox are delivered by Phase 31B in `persistence`, `sync` and `apps/device-agent`; Phase 31C adds `apps/hub`, Hub registration and the Hub client. Replay, cursors, conflicts and any synchronization are not delivered (31D).
 
 ## Package and host boundaries
 
@@ -47,6 +50,8 @@ Each tool has one metadata manifest in `packages/tool-registry/src/tools/<id>/`,
 Shared definitions do not implicitly contain payloads, credentials, absolute paths, history or journals. Mixed entities require field-level classification. The checked storage inventory classifies every storage site by scope without granting synchronization permission. Phase 31B closed the identity/versioning gaps: persisted entities have stable IDs, schema versions and codecs in `@dude/persistence`, tool keys resolve scope through the policy rule or a manifest `settingScopes` override, and the Device State Store records scope per write.
 
 ## Acceptance status
+
+Phase 31C is complete (Milestones 628–648): the Hub, its canonical skeleton, owner identity, device registry and resident Device Agent work without synchronization; see [Phase 31C acceptance evidence](../delivery/PHASE31C_ACCEPTANCE.md).
 
 Phase 31B is complete (Milestones 616–627): stable device IDs, scoped settings, repository adapters, secret references, recoverable migration and a durable local outbox work without a Hub; see [Phase 31B acceptance evidence](../delivery/PHASE31B_ACCEPTANCE.md), which also lists one owed installed-build manual pass.
 

@@ -27,6 +27,8 @@ Testing should protect the framework and critical paths, not chase a coverage nu
 
 Phase 31A keeps root commands as wrappers: `npm test` runs portable transform/contract tests and then Angular adapter tests; `npm run test:electron` covers main/preload trust boundaries. `npm run test:high-consequence` includes extracted engine tests and existing application confirmation tests. `check:portable`, `check:boundaries`, `check:hosts` and `check:inventory` verify independent package consumption, host separation, host declarations and source/scope inventories. `check:clean` builds a fresh installation twice and compares every production asset, normalizing only Angular's service-worker timestamp. Windows acceptance uses `check:desktop` after the Electron production build and native helper compilation; its isolated profile, stable fixture origin and picker fixtures do not change OS protocol or login settings. `audit:prod` audits production dependencies and fails on any high or critical advisory outside its documented accepted list; an accepted entry fails again once a fix is published.
 
+**Hub gates (Phase 31C).** `npm run test:hub` builds the Hub bundle and runs the Hub's specs (`vitest.hub.config.mts`), including the `@dude/api-client` parity spec and the confirmation-boundary specs for purge, devices and sessions. A real-process integration spec in `apps/device-agent` (run by `test:electron`) drives a built Hub through enrollment, pairing, revocation, TLS rotation and unenroll, and the Settings and Hub confirmation-boundary specs run in the Angular suite; `test:high-consequence` covers every boundary spec. `npm run check:hosts` also type-checks `apps/hub`. `npm run check:dockerfiles` fails when the Hub or relay Dockerfile does not copy every workspace manifest. The CI workflow `hub-service.yml` (`npm run check:hub-service`, windows-latest) stages the Hub and exercises service install, owner bootstrap, restart, an N-1 to N update, LAN toggling, uninstall and reinstall. The `docker-smoke` job in `deploy.yml` builds both images, bootstraps the container and verifies that its volume survives a restart. The `hub-e2e` job runs `npm run test:e2e:hub` (browser end-to-end against a real Hub with its web build, including the CSP sweep). `npm run measure:hub` records Hub startup, memory, database and bundle measurements; they inform budgets and are not hardware-independent guarantees. Results and any owed manual or elevated passes are in [Phase 31C acceptance](PHASE31C_ACCEPTANCE.md).
+
 ### Required test targets
 
 #### Unit tests
@@ -79,10 +81,10 @@ Phase 30K adopted one narrow slice of the second item: `npm run test:appearance`
 | Multi-device | At least two enrolled desktop clients converge through one Hub; one may be co-located with the Hub while retaining separate stores |
 | Offline/retry | Offline edits survive restart; replay is idempotent after dropped acknowledgments; out-of-order/stale updates cannot silently overwrite |
 | Conflicts/deletes | Concurrent pipeline edits, documented simple-setting policy, tombstones, old cursors, snapshot/rebase and no resurrection |
-| Identity | Owner bootstrap/recovery, session expiration, unauthorized device rejection, revocation, authentication without an external identity provider |
+| Identity | Owner bootstrap/recovery, session expiration, unauthorized device rejection, revocation, authentication without an external identity provider. Phase 31C evidence: [Phase 31C acceptance](PHASE31C_ACCEPTANCE.md) (owner and device paths; sync-time revoked-device behavior is 31D/31F) |
 | Web | Deep links/refresh, API-versus-SPA routing, standalone companion regression, private-cache isolation, CSRF/origin controls and authenticated WebSocket behavior |
 | Internet mode | TLS/readiness checks, rate limiting, brute-force protections, endpoint diagnostics and absence of publicly exposed Agent/native ports |
-| Lifecycle | Hub continues with Electron closed; install/start/stop/restart/update preserve canonical data; incompatible versions fail safely |
+| Lifecycle | Hub continues with Electron closed; install/start/stop/restart/update preserve canonical data; incompatible versions fail safely. Phase 31C evidence: [Phase 31C acceptance](PHASE31C_ACCEPTANCE.md) (`hub-service.yml`, `docker-smoke`, `hub-e2e`) |
 | Backup/transfer | Encrypted consistent backup, restore on a second machine, sole-authority enforcement, endpoint reconnection and stale-history handling |
 | Android | Installable APK and produced AAB; portable engine parity; registered-device sync; implemented offline/cache behavior; native permission denial and revocation paths |
 | Existing native safety | Filesystem/system mutation preview/confirm/replay tests remain intact; synced/imported definitions cannot execute implicitly |
@@ -145,7 +147,7 @@ Phase 8 Stage 8 already established:
 2. Electron main/preload compilation;
 3. `electron-builder` packaging;
 4. NSIS installer publication to GitHub Releases;
-5. MSIX/appx packaging for Microsoft Store submission once real Partner Center identity values replace placeholders;
+5. MSIX/appx packaging for Microsoft Store submission (the appx target was dropped in Phase 31C, [PD-025](../history/DECISION_LOG.md#phase-31c-implementation-decisions): MSIX virtualizes `AppData`, which would split the resident Agent's and the app's stores);
 6. patch-version/tag automation on pushes to `master`;
 7. a separate Windows release workflow with its own test gate;
 8. `electron-updater` for the NSIS path, with download in the background but install only after explicit “Restart & Install”; Store/App Installer infrastructure handles the MSIX path when used.
@@ -168,7 +170,7 @@ Every production desktop release must verify, at minimum:
 10. registered `dude://` deep-link routing works where configured;
 11. file-open/folder-open routing works where configured and does not execute imported code/HTML merely by opening it;
 12. local backend/proxy startup, loopback binding, and shutdown/restart behavior work for capabilities included in the release;
-13. update behavior matches the package type — NSIS uses the explicit Restart & Install flow, while MSIX/Store/App Installer follows its Windows-managed path;
+13. update behavior matches the package type: NSIS uses the explicit Restart & Install flow (a Store/MSIX path is not currently produced), and a desktop update never stops or removes the Hub;
 14. installer/update flows preserve the user's supported saved setup choices and do not introduce unexpected privileged/destructive actions;
 15. package-specific signing/identity requirements are validated when a signed or Microsoft Store build is being produced.
 
@@ -249,7 +251,7 @@ The user must be able to run DUDE after installation without the project's CI pr
 
 ### Packaging, updates and lifecycle acceptance
 
-Retain NSIS/GitHub Releases and MSIX packaging behavior from Phase 8; Microsoft Store submission remains dependent on real Partner Center identity/signing requirements rather than being implied by package generation. A desktop installer may add optional Hub installation without enrolling another machine into a new environment automatically.
+Retain NSIS/GitHub Releases packaging from Phase 8; the MSIX/appx target was dropped in Phase 31C. As built in 31C, the desktop NSIS installer embeds the separate, elevated `DUDE-Hub-Setup.exe` behind an interactive, default-off page that silent and update runs never trigger; the release workflow publishes the Hub installer and a combined `SHA256SUMS`. The Hub installer has its own Apps & Features entry, supports `/S` and an `/UPDATE` stop-replace-start mode, and its uninstaller reports the registered-device count and keeps `%ProgramData%\DUDE\Hub` unless a doubly confirmed purge is chosen. Update Hub in the desktop elevates the bundled installer in `/UPDATE` mode and is offered only from a per-machine install. Binaries are unsigned; see [Windows setup](../WINDOWS_SETUP.md). A desktop installer may add optional Hub installation without enrolling another machine into a new environment automatically.
 
 The Hub package must support install/configure/start/stop/restart/status/uninstall independently of the Electron window, defined service identity and least privilege, persistent data directories, and safe upgrade/migration/recovery. Client uninstall/update must not delete or stop a shared Hub implicitly. Removing canonical data requires a separate explicit destructive action and recovery guidance.
 

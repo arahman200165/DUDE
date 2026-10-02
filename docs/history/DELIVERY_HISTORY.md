@@ -47,6 +47,7 @@ Related: [DUDE — Product Requirements](../DUDE_PRD.md) · [DUDE Roadmap](../de
 - [Phase 30 — Workbench Shell, Tool Discovery, Local Insights & Appearance](#phase-30)
 - [Phase 31 — Windows & Process Tools](#phase-31)
 - [Phase 31B — Device Identity, Scoped State and Migration](#phase-31b)
+- [Phase 31C — Self-Hosted Hub, Identity and Canonical Persistence](#phase-31c)
 - [Historical V1 Definition of Done](#historical-v1-definition-of-done)
 
 ## Product-positioning Evolution Record
@@ -2770,7 +2771,7 @@ Phase 31B gave the desktop a durable, identified, scoped local store without a H
 
 ### Architecture and notes
 
-- The state service is an Electron utility process named in code `apps/device-agent`; it is not the privileged Device Agent execution boundary, and the docs call it the *state service* to keep the two apart.
+- (Replaced in Phase 31C by the resident Device Agent process.) The state service is an Electron utility process named in code `apps/device-agent`; it is not the privileged Device Agent execution boundary, and the docs call it the *state service* to keep the two apart.
 - Only an explicit list journals into the outbox: favorites, pipelines, user scripts, projects, workspace templates, appearance, reopen-on-restart, home layout (with notes) and usage/insights. Ops coalesce per entity and carry the status `unsent-standalone`.
 - Tool `local` preferences default to `environment` scope; session, user-choice and none inputs are `local-only`; manifest `settingScopes` override a key.
 - Usage/insights and the Home layout are `environment`-scoped (a deliberate rewrite of the earlier "usage stays local" statement); they become sync-eligible only after explicit consent in 31D.
@@ -2787,6 +2788,65 @@ Phase 31B gave the desktop a durable, identified, scoped local store without a H
 **Phase 31B is a local store, identity and scope foundation, not synchronization.** Explicitly out of scope and unbuilt: the Hub, device registration handshake, Hub revisions, outbox replay, conflicts and the first-sync enrollment preview (31C/31D); a mobile persistence adapter (31H); and recovery of renderer data written by earlier production launches at random-port origins.
 
 **Outcome (Milestones 616–627):** met, with one manual installed-build pass owed.
+
+<a id="phase-31c"></a>
+
+## Phase 31C — Self-Hosted Hub, Identity and Canonical Persistence
+
+**Status:** complete, Milestones 628–648 plus fix commits; automated acceptance and measurements are recorded in [Phase 31C acceptance evidence](../delivery/PHASE31C_ACCEPTANCE.md), which also lists the manual, installed-build and elevated checks still owed. Decisions are PD-023 to PD-037 in the [decision log](DECISION_LOG.md#phase-31c-implementation-decisions), with amendments to PD-025 and PD-026 recorded there.
+
+Phase 31C delivered a user-owned Hub that starts independently of Electron, owns a canonical SQLite database through its own process, has a single owner with bootstrap and three recovery paths, registers devices with Ed25519 keys, exposes an authenticated realtime foundation, serves an admin web, and a resident per-user Device Agent that holds the device key and Hub connection. The milestone numbers differ from the planned 628-649 map because the separate device-assisted-recovery milestone merged into the admin UI and wizard work, and the appx milestone disappeared when the target was dropped.
+
+| Milestone | Delivered |
+|---|---|
+| 628 | Decision records PD-023 to PD-037 and document reconciliation |
+| 629 | `@dude/sqlite-store`: `node:sqlite` open/WAL/`quick_check`, transaction and meta helpers and the checksummed migration runner extracted from the Device Agent |
+| 630 | `apps/hub` scaffold: data-directory layout and strict config, self-signed ECDSA P-256 identity with a small DER writer and SPKI pin, canonical migration 0001, Fastify HTTPS server with `/api/v1/hello`, traversal-guarded static hosting with SPA fallback, the `dude-hub` CLI, TypeBox contracts on `@dude/contracts/hub` and the transport-port `@dude/api-client` |
+| 631 | Canonical repository: `commitCanonical` writes record, change-feed entry and applied op ID atomically under a global revision with duplicate-op idempotency; WAL hard-kill durability check |
+| 632 | Security baseline: headers and CSP, Host allowlist, credential-typed Origin/Fetch-Metadata/CSRF, body limits, rate limits, persisted throttling, closed audit event list with 365-day/100,000-event retention, ConfirmationStore, local admin named pipe |
+| 633 | Owner bootstrap with a one-time setup token, Argon2id and ten recovery codes; `dude-hub setup-token` with an ACL'd hand-off to a user profile |
+| 634 | Cookie and device-bound bearer sessions, sign-in/out, session list/revoke, two-step revoke-all and recovery-code regeneration, password change, recovery-code recovery, elevated `dude-hub owner reset` (migration 0002) |
+| 635 | `dude-hub.exe` Node 24 SEA with a startup self-test, non-root Docker image with a pinned-cert healthcheck, `check:dockerfiles` and the CI `docker-smoke` job |
+| 636 | Device registry: 10-minute pairing codes, Ed25519 enrollment, 15-minute device tokens, owner list/rename/recovery-trust/revoke, device self-service and device-bound owner sessions |
+| 637 | Authenticated realtime WebSocket with presence and registry events; `dude-hub tls rotate`, `status` and `activate` with dual-pin acknowledgement and hot swap |
+| 638 | Device Agent as a separate process over `@dude/agent-pipe` (authenticated per-user named pipe); store quarantine moved into the Agent; appx target dropped |
+| 639 | Windows service (WinSW 2.12.0, `NT SERVICE\DudeHub`), LAN mode with a Private-profile firewall rule, `doctor`, `purge` under the Destructive-Action Contract, `hub:stage` and the `hub-service.yml` workflow |
+| 640 | Resident Agent lifecycle (outlives the window, per-user sign-in start, Settings background-agent row) and DPAPI-wrapped Ed25519 device keys through `windows-sys` |
+| 641 | `hub_enrollment` in the Device Store (migration 0002), widened enrollment state, clone-detection and reset handling |
+| 642 | Agent Hub client (pinned enrollment, challenge tokens, realtime, TLS pin following, revocation detection), sender-checked `dude:hub:*` desktop bridge and the `@dude/api-client` parity spec |
+| 643 | `hub-web` host kind and the `production,hub` build, host-listed Settings sections, `HUB_ADMIN` port, `/hub/*` pages (shell exception #12), CSP inline-script hashes |
+| 644 | Hub admin UI (Environment & Hub, Devices, Security & Sessions) and the device-assisted owner recovery backend with Windows Hello/CredUI gate |
+| 645 | Local Hub setup wizard (elevated token hand-off, recovery codes shown once, automatic self-enrollment), Update Hub and owner recovery UI |
+| 646 | Optional Hub component: `DUDE-Hub-Setup.exe`, default-off checkbox in the desktop installer, combined `SHA256SUMS`, installer registry fix |
+| 647 | Hub end-to-end, CSP sweep and measurements (`npm run test:e2e:hub`, `npm run measure:hub`, CI job `hub-e2e`) |
+| 648 | Phase close-out: documentation, decision amendments and acceptance evidence |
+
+Fix commits: the Windows MachineGuid registry path (a Phase 31B regression that had disabled clone detection), clear-all-data spec isolation under the full suite, the Dockerfiles for the new `@dude/agent-pipe` workspace, the Hub web admin adapter spec timeout under the full suite, and a collapsed backslash in a hub-bridge spec fixture.
+
+### Architecture and notes
+
+- The Hub is Fastify with TypeBox schemas, HTTPS only, packaged as a Node SEA and run as a Windows service, container or foreground process; the CLI talks to the running service over a local admin channel and never opens the database.
+- The Device Agent is a separate resident per-user process reached over an authenticated named pipe; it still never executes tools.
+- Credential types are explicit per route; a device credential alone never grants owner rights.
+- The canonical database is a skeleton: identity tables plus `records`, `change_feed` and `applied_ops` behind an atomic repository, with no public record endpoints.
+- A device keeps its standalone environment ID and local records on enrollment; re-keying belongs to Phase 31D.
+- The Hub web is the shared Angular app built with a `hub` configuration (no service worker) behind sign-in, with a small admin surface.
+
+### Deviations from the plan, as shipped
+
+- **Update Hub** elevates the bundled `DUDE-Hub-Setup.exe` in `/UPDATE` mode, not `resources\hub\dude-hub.exe`, and is offered only from a per-machine (Program Files) install because a per-user install's resources are user-writable (amends PD-025).
+- The resident Agent's **sign-in start** falls back to the `HKCU` Run key because standard users are denied `ONLOGON` scheduled tasks; the **pipe name** derives from a hash of the store directory (per-user by location), not the SID (amends PD-026).
+- The planned separate device-assisted recovery milestone merged into M644/M645, and the milestone numbers shifted accordingly.
+- The desktop installer used to delete all of `HKLM\Software\DUDE` on uninstall and update, which would have removed the Hub's registration on every desktop update; Milestone 646 fixed it.
+- Hub inline-script CSP uses hashes of the `index.html` inline scripts; `'unsafe-inline'` is not allowed.
+- The rate limiter counts only `/api` requests, and pairing and device-challenge throttles are per IP only so a failure flood cannot lock every device out.
+- WinSW 2.12.0 is sha256-pinned, but the pinned hash was recorded from the official release on first download (trust-on-first-download).
+
+### Scope ceiling
+
+**Phase 31C is a Hub, identity and device-registry foundation, not synchronization.** Explicitly out of scope and unbuilt: record endpoints, import, revisions seen by clients, outbox replay and conflicts (31D); the authenticated shared-state Hub web, Hub web caching, trusted certificates and private-access guidance (31E); Internet/public mode and its verification (31F); encrypted backup, restore and Hub transfer (31G); Android (31H-31I); collaboration persistence (31J); passkeys/TOTP and organizational identity (Phases 81/96); and remote execution (Phase 88).
+
+**Outcome (Milestones 628-648):** measured results and owed manual passes are recorded in [Phase 31C acceptance evidence](../delivery/PHASE31C_ACCEPTANCE.md).
 
 ## Historical V1 Definition of Done
 
