@@ -2,10 +2,10 @@
 
 **Project:** DUDE — Developer Utility Dashboard Engine  
 **Product:** local-first developer workbench evolving into a personally owned distributed developer environment  
-**Baseline:** V1 and Phases 0–31 delivered; distributed Phases 31A–31J planned  
-**Next priority:** complete Phases 31A–31J strictly in order before beginning Phase 32
+**Baseline:** V1 and Phases 0–31 delivered; distributed Phases 31A–31B delivered, 31C–31J planned  
+**Next priority:** complete Phases 31C–31J strictly in order before beginning Phase 32
 
-Phase 31A (portable core and workspace extraction, Milestone 615) is complete; [acceptance evidence](delivery/PHASE31A_ACCEPTANCE.md) records the verified extraction and the dependency-audit resolution. Later distributed capabilities remain planned.
+Phase 31A (portable core and workspace extraction, Milestone 615) and Phase 31B (device identity, scoped local state and recoverable migration, Milestones 616–627) are complete; [31A](delivery/PHASE31A_ACCEPTANCE.md) and [31B](delivery/PHASE31B_ACCEPTANCE.md) acceptance evidence record the verified results, and 31B lists one owed installed-build manual pass. The Hub, synchronization and later distributed capabilities remain planned.
 
 [Repository](https://github.com/arahman200165/DUDE) · [Standalone web companion](https://arahman200165.github.io/DUDE/) · [Decision provenance](history/DECISION_LOG.md#reconciliation-decisions-and-requirement-traceability)
 
@@ -44,7 +44,7 @@ The delivered Phase 31 product is currently:
 - installable as a PWA;
 - functional offline for local-only/shared-core tools after the required assets are available;
 - local-first by default;
-- capable of public APIs, user-supplied API keys, local AI proxies, and later explicit integrations without making remote infrastructure mandatory;
+- capable of public APIs, user-supplied API keys, a user-configured local/self-hosted LLM endpoint reached through a desktop IPC bridge, and later explicit integrations without making remote infrastructure mandatory;
 - resilient so a heavy tool cannot freeze the whole application;
 - bookmarkable through clean per-tool web URLs and, on desktop, addressable through `dude://` deep links (Phase 25);
 - optimized today for Windows desktop plus desktop Chromium for the web companion;
@@ -521,9 +521,9 @@ DEFERRED: mandatory externally hosted infrastructure
 
 ### Reading the Delivered Baseline and the Target
 
-**Delivered:** V1 and Phases 1–31, including Phase 31 Milestones 593–614. Completion statements, historical tests, tool counts, implementation paths and measured results are retained from the supplied baseline PRD; they are not a new repository verification.
+**Delivered:** V1 and Phases 1–31, including Phase 31 Milestones 593–614, plus distributed Phases 31A (Milestone 615) and 31B (Milestones 616–627). Completion statements, historical tests, tool counts, implementation paths and measured results are retained from the supplied baseline PRD; they are not a new repository verification.
 
-**Planned next:** a self-hosted distributed release, referred to here as **DUDE 2.0**, using Phases 31A–31I. “2.0” is a product-release scope label; implementation must deliberately align it with the existing automatic package/tag versioning before release. No Hub, synchronization engine, React Native app or new package layout is marked delivered by this reconciliation.
+**Planned next:** a self-hosted distributed release, referred to here as **DUDE 2.0**, using Phases 31A–31I. “2.0” is a product-release scope label; implementation must deliberately align it with the existing automatic package/tag versioning before release. The workspace/package layout (31A) and the local Device State Store, device identity and scoped settings (31B) are delivered; no Hub, synchronization engine or React Native app is.
 
 **Two meanings of web are made explicit:** **DUDE Web (Hub mode)** is the authenticated Angular application served by the user's Hub; **DUDE Web Companion (standalone mode)** is the existing GitHub Pages/PWA application with browser-local state and no required Hub or login. Both retain the same browser-safe engines. The standalone companion is not an externally hosted copy of the user's backend or canonical database.
 
@@ -531,7 +531,7 @@ DEFERRED: mandatory externally hosted infrastructure
 
 Phase 31 closed at Milestone 614. The delivered product includes the reusable tool framework, native desktop services, pipelines, Smart Paste, workspaces, projects, history, controlled appearance, networking, filesystem and Windows troubleshooting tools. [Delivery History](history/DELIVERY_HISTORY.md#delivered-baseline-through-phase-31) retains the complete baseline statement and per-phase implementation evidence.
 
-The Hub, synchronized Device Stores, distributed identity and Android release are planned. A Phase 31G desktop/Hub preview does not satisfy the Android-inclusive DUDE 2.0 gate. The detailed [release definition](delivery/QUALITY_AND_RELEASE.md#dude-20-distributed-release-definition-of-done--all-planned) governs completion.
+The local Device State Store, device identity and scoped settings shipped in Phase 31B, with no Hub or synchronization. The Hub, synchronized Device Stores, Hub-registered identity and Android release are planned. A Phase 31G desktop/Hub preview does not satisfy the Android-inclusive DUDE 2.0 gate. The detailed [release definition](delivery/QUALITY_AND_RELEASE.md#dude-20-distributed-release-definition-of-done--all-planned) governs completion.
 
 ## Immediate Delivery Sequence
 
@@ -540,7 +540,7 @@ The required sequence is **31A → 31B → 31C → 31D → 31E → 31F → 31G �
 | Phase | Next deliverable |
 |---|---|
 | 31A | Portable core, workspaces/packages, contracts and registry |
-| 31B | Device identity, scoped local state and recoverable migration |
+| 31B (complete) | Device identity, scoped local state and recoverable migration |
 | 31C | Self-hosted Hub, owner identity and canonical persistence |
 | 31D | Durable sync, offline replay and conflict handling |
 | 31E | Hub-served Angular web and private access |

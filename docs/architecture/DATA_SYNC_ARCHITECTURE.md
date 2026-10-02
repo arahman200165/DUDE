@@ -232,6 +232,16 @@ This scope model should also apply to:
 - plugin configuration;
 - capability grants.
 
+### As built in Phase 31B
+
+`@dude/persistence` implements the declaration model; nothing synchronizes yet.
+
+- **Core settings** are entries in `SETTING_DEFINITIONS` (key, namespace, scope, sensitivity, default, storage kind and whether the write journals). Current entries: appearance and reopen-on-restart (environment, journaled), the AI base URL and model (device, not journaled) and the AI API key (device, `secret` storage).
+- **Tool keys** are classified by a policy rule: a `local` policy is a *preference* and resolves to `environment` scope; `session`, `user-choice` and `none` are *inputs* and resolve to `local-only`; `secure-local` resolves to `device`. A tool manifest may override one key with `settingScopes: { <key>: { scope, sensitivity? } }`; the conformance suite rejects an override for a key the tool does not actually persist.
+- **The store records the resolved scope on every key/value write** (`kv.scope`), so a later phase can filter by scope without re-deriving it from code. Session-policy values stay in `sessionStorage` and never reach the store.
+- **Entity scopes:** favorites, pipelines, user scripts, projects, workspace templates, home layout (with notes), usage/insights, appearance and reopen-on-restart are `environment`; workspace tab layout and the scratchpad are `workspace`; native recents are `device`; history, network runs, mutation journals, snapshot headers and PowerShell history are `local-only` or `device` and are never journaled to the outbox.
+- A scope is a classification, not consent: the checked data-scope inventory (`npm run check:inventory`) fails on an unclassified storage site, and classifying a key `environment` does not make it sync-eligible.
+
 ## Canonical Hub Database
 
 PostgreSQL was considered for a cloud-oriented backend; it is not the initial personal-Hub dependency.
@@ -311,6 +321,32 @@ offline mutation outbox
 It may also contain local records for native features, provided sensitive information is handled appropriately.
 
 Ephemeral tool content should not be persisted by default.
+
+### As built in Phase 31B (desktop)
+
+The desktop Device State Store is the SQLite file `userData/device-store/dude-device.db`, opened through Node's built-in `node:sqlite` (`DatabaseSync`) in WAL mode with `synchronous=FULL` and foreign keys on. It is owned by a dedicated Electron utility process, the *state service* (`apps/device-agent`); Electron main is the only broker and the renderer never holds a handle or port to it. Beside the database are `backups/` (pre-upgrade `VACUUM INTO` copies, last three kept) and `quarantine/` (refused or corrupt stores). The state service is a different thing from the privileged Device Agent execution boundary described in the [system architecture](SYSTEM_ARCHITECTURE.md#device-state-store-service-vs-device-agent).
+
+| Table | Holds |
+|---|---|
+| `meta`, `schema_migrations` | Store ID, schema and minimum-reader version, device and environment IDs, display name, machine salt/hash, `cloned_from`, startup and clean-exit marks, import flags; applied migration steps with checksums |
+| `kv` | Per-tool and core key/value pairs with policy and resolved scope |
+| `records` | Entities with type, ID, environment, scope, schema version, local revision, a nullable Hub revision and the payload |
+| `outbox` | One coalesced op per entity (`UNIQUE (entity_type, entity_id)`), written in the same transaction as its record |
+| `history_entries`, `network_runs` | Local History and network runs, retention enforced inside each write transaction |
+| `mutation_journal`, `snapshot_headers`, `powershell_history`, `device_docs` | Filesystem/system mutation journals, snapshot metadata (bodies stay on disk), PowerShell history, and desktop documents such as preferences, window bounds and hotkeys |
+| `secret_refs`, `secret_values` | Secret references and their `safeStorage` ciphertext, deleted together |
+
+**Writes.** Entity mutations commit immediately and are awaited; key/value writes debounce for one second in the renderer and flush on window close and quit, except journaled settings, which commit at once. The store, not the renderer, decides whether a write journals: only the explicit list of favorites, pipelines, user scripts, projects, workspace templates, appearance, reopen-on-restart, home layout and usage/insights does. Each journaled change writes its record and one outbox op atomically; ops coalesce per entity (a later upsert replaces an unsent one, an unsent upsert followed by a delete leaves no op, a delete followed by an upsert becomes an upsert). The outbox is bounded (`OUTBOX_MAX_ROWS`) and surfaces backpressure instead of dropping edits. Ops carry the status `unsent-standalone`; nothing replays them before Phase 31D.
+
+**Reads.** `main.ts` awaits a boot snapshot of the store before bootstrapping Angular, and services keep synchronous signals over an in-memory cache.
+
+**Migrations.** A versioned runner applies numbered steps, each in its own transaction, idempotent and resumable, after a `VACUUM INTO` backup. Shipped steps are checksummed and never edited. A store whose `minReaderVersion` is newer than the running build is refused and quarantined rather than reinterpreted, and the app enters degraded mode.
+
+**Failure.** Main restarts a crashed state service with 0.5, 2 and 8 second backoff. More than three crashes in two minutes moves the app to a degraded in-memory mode with a persistent banner offering retry, open recovery folder and reset; JSON journal fallbacks are drained back into the store on the next healthy start.
+
+**Identity.** The device ID is a UUIDv7 stored with a salted hash of the Windows MachineGuid. If the hash no longer matches at startup the store was copied: a new device ID is minted, the old one is kept as `cloned_from`, unsent outbox ops are rewritten to the new device and secrets are marked as needing re-entry. A reset or reinstall produces a new device. The display name defaults to "Windows PC" and is never taken from the hostname.
+
+**Web.** The web build has no SQLite and no outbox. It keeps its browser storage adapters behind the same repository ports, plus a stable per-browser installation ID that Clear all data preserves.
 
 ## Synchronization Protocol
 
@@ -447,7 +483,7 @@ Every persistent entity needs a stable ID, schema version, declared scope and se
 
 Connection metadata may contain a selected shared host/port/database definition, but a machine-specific endpoint or socket stays device-scoped. Model a shared connection definition plus explicit device bindings/credential references; do not overwrite every machine's local configuration with one device's paths or secrets. Synced project references use logical identity and per-device path mapping. Unresolved local references produce a missing-binding state instead of an automatic file scan/upload.
 
-Existing local history, System Changes, filesystem mutation journals, crash recovery, usage/recents and private scratch data remain local by default. Favorites and selected workbench definitions may synchronize after environment enrollment/consent. Local analytics do not become Hub telemetry merely because synchronization exists.
+Existing local history, native recents, System Changes, filesystem mutation journals, crash recovery and private scratch data remain local by default and are never journaled. Favorites, selected workbench definitions, usage/insights aggregates (frequency and recency counters, not tool inputs or outputs) and the Home layout with its notes are `environment`-scoped and **may become sync-eligible only after explicit environment enrollment and consent** in Phase 31D; in Phase 31B they are classified and journaled into the local outbox but never transmitted. Local analytics do not become Hub telemetry merely because synchronization exists, and enrollment must let the user keep usage local.
 
 ## Sync Protocol Minimum Acceptance Contract
 
@@ -466,13 +502,23 @@ These requirements make the planning model implementable without committing to a
 
 ## Migration from the delivered local stores
 
-Migration is part of Phase 31B/31D, not a post-release cleanup. Inventory current local/session/browser persistence, OS-backed credentials, saved pipelines/workspaces/projects/history, user settings and native journals. Preserve the existing tool persistence rules and stable tool IDs.
+Migration is part of Phase 31B/31D, not a post-release cleanup. **Phase 31B migrated the delivered local stores into the Device State Store; Phase 31D still owns first-sync preview, import and merge.** Inventory current local/session/browser persistence, OS-backed credentials, saved pipelines/workspaces/projects/history, user settings and native journals. Preserve the existing tool persistence rules and stable tool IDs.
 
 Before changing durable formats, create a recoverable local snapshot and versioned migration marker. Migrate to the desktop Device State Store incrementally through repository adapters. Keep browser session/local storage adapters where appropriate; do not require Node SQLite in a browser. Android selects a compatible local persistence adapter in Phase 31H. OS secrets stay in their secure store with reference migration, never a plaintext bulk export.
 
 First connection to a Hub must preview which records/categories become shared, which stay local, potential ID/name collisions and conflict behavior. The Hub-hosting desktop uses the same enrollment path as other clients; it must not point its Device Store at the canonical database file. Joining an existing environment must not overwrite canonical state with an old local snapshot. Make import/merge/keep-local choices explicit.
 
 Migration must be resumable and idempotent, tested against representative Phase 31 data, and recoverable after interruption. Preserve an untouched recovery copy until verification/retention policy permits cleanup. A downgrade must either read a supported format or refuse safely with recovery instructions; it must never reinterpret a newer schema silently.
+
+### What Phase 31B did, and what remains
+
+Phase 31B delivered a **best-effort, one-shot local import** rather than a long-lived compatibility layer, because the product had no existing production users to protect (see PD-021 in the [decision log](../history/DECISION_LOG.md#phase-31b-implementation-decisions)).
+
+- On first launch of a store-enabled build, main validates the legacy `userData` JSON documents, mutation journals, snapshot headers and PowerShell history with each module's own parser, commits them in one transaction with an import flag, and then moves the files to `userData/legacy-import/<timestamp>/`. That folder is the untouched recovery copy; an interrupted import resumes. The legacy `secure-store.json` ciphertext is copied byte for byte into a secret reference.
+- The renderer imports the current origin's `dude:v1:*` localStorage keys and the History/network-run IndexedDB databases once, then deletes the old copies. Renderer data written by earlier production launches lived at random-port origins and is unrecoverable.
+- Store schema changes use the versioned migration runner described above. The legacy-compat code was deleted: manifest `storageMigrations`, `moveLocalValue`, every `migrateX` function, the legacy Home panel and the bundle's `homePanel`. Repository codecs validate rows for both hydration and bundle import.
+
+**Still owned by Phase 31D:** the first-connection preview of what becomes shared and what stays local, ID/name collision handling, import/merge/keep-local choices, Hub revision assignment, outbox replay and conflict handling. Phase 31B only records unsent ops; it never contacts a Hub.
 
 ## Backup consistency, restore and authority transfer
 

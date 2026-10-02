@@ -104,6 +104,8 @@ Rule of thumb, drawn from the existing 9 tools:
 - UI preferences (mode, indent, algorithm choice) → `'local'` (persists across sessions; base64's `mode`, json's `mode`/`indent`)
 - anything sensitive → `'none'` (jwt persists nothing at all — see `TOOL_DEFINITIONS`'s `jwt` entry)
 
+**Data scope.** Each persisted key also gets a data scope, derived with no extra work: a `'local'` preference is `environment` scope, while `'session'`, `'user-choice'` and `'none'` inputs are `local-only` (a scope classifies ownership; it never makes a value synchronize). If a preference is really machine-specific (a path, an executable, an endpoint) declare it in the manifest: `settingScopes: { terminalPath: { scope: 'device' } }`. The key must be one the tool actually persists, and `tool-conformance.spec.ts` checks it. Persisted keys are stable once shipped; there are no per-tool storage migrations (`storageMigrations` and `moveLocalValue` were removed), so keep stored shapes backward-compatible or validate on read. Secrets never go in `persistence.signal`: use `SecretsService` by purpose through a desktop-only capability.
+
 ## 5. Choose a worker policy
 
 If the transform can be slow on large input, keep it pure and framework-free (step 1) so it can run unmodified in a Worker. Create `<id>.worker.ts` mirroring one of the four existing glue files (e.g. `apps/web/src/app/tools/json/json-format.worker.ts`):

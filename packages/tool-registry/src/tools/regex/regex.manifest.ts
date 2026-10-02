@@ -23,7 +23,7 @@ export const manifest: ToolMetadata = {
     route: '/tools/regex',
     pwaShortcut: { order: 4 },
     capabilities: [
-        { kind: 'platform', id: 'llm-proxy', web: 'unavailable', note: 'AI-assisted explain/generate via a local LLM proxy, no cloud key required' },
+        { kind: 'platform', id: 'llm-proxy', web: 'unavailable', note: 'AI-assisted explain/generate via the desktop LLM bridge to your own endpoint, no cloud key required' },
     ],
     status: 'verified',
     verification: {

@@ -31,7 +31,7 @@ Related: [DUDE — Product Requirements](../DUDE_PRD.md) · [Quality and Release
 | Horizon | Status |
 |---|---|
 | Phases 0–31 | Complete; Phase 31 closed at Milestone 614 |
-| Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A complete (Milestone 615), 31B–31J planned |
+| Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A (Milestone 615) and 31B (Milestones 616–627) complete, 31C–31J planned |
 | Phase 32 | Core expansion begins only after every phase from 31A through 31J is complete |
 | Phases 33–100 | Retained long-horizon scope, subject to dependencies and product boundaries |
 
@@ -103,7 +103,7 @@ Backup/transfer is deliberately moved ahead of mobile delivery, and security con
 
 **Depends on:** Phase 31 complete.
 
-**Implementation status:** complete. Milestone 615 records the workspace/core extraction; the inherited dependency-audit blocker was then closed by upgrading Angular and DOMPurify and accepting one unpatched node-forge advisory under `npm run audit:prod`. See [acceptance evidence](PHASE31A_ACCEPTANCE.md). Phase 31B is next.
+**Implementation status:** complete. Milestone 615 records the workspace/core extraction; the inherited dependency-audit blocker was then closed by upgrading Angular and DOMPurify and accepting one unpatched node-forge advisory under `npm run audit:prod`. See [acceptance evidence](PHASE31A_ACCEPTANCE.md). Phase 31B followed it.
 
 - formalize monorepo/workspaces;
 - extract framework-neutral tool engines;
@@ -116,15 +116,17 @@ Backup/transfer is deliberately moved ahead of mobile delivery, and security con
 
 <a id="phase-31b"></a>
 
-### Phase 31B — Device Identity, Scoped State and Migration (Planned)
+### Phase 31B — Device Identity, Scoped State and Migration (Complete)
 
 **Depends on:** 31A.
 
-- device ID/registration model;
+**Implementation status:** complete. Milestones 616–626 and a gate-fix commit deliver the stable `dude-app://` renderer origin, LLM chat over IPC, `@dude/persistence`, the `apps/device-agent` SQLite Device State Store with its main-process broker, desktop state/journal and secret-reference migration, renderer hydration and scoped key/value persistence, entity repositories with a durable standalone outbox, history/network-run repositories and Settings › This Device with two-step resets; Milestone 627 closes the phase with inventory, documentation, decision records and evidence. See [acceptance evidence](PHASE31B_ACCEPTANCE.md), including the owed installed-build manual pass. No Hub, registration, replay or sync exists yet. Phase 31C is next.
+
+- device ID and registration *model* (the registration handshake itself is 31C);
 - local SQLite Device State Store;
 - repository abstractions;
 - settings scoping;
-- sync journal/outbox;
+- local sync journal/outbox (recorded, never replayed, in this phase);
 - secure credential storage.
 
 **Exit gate:** Stable device IDs, scoped settings, repository adapters, secure secret references, recoverable migration and durable local outbox work without a Hub.
@@ -485,7 +487,7 @@ The Local Secrets Vault must reuse the secure credential boundary rather than in
 
 ### Phase 36 — AI-Assisted Utilities
 
-Phase 8 Stage 4 already shipped the localhost-only, provider-agnostic LLM proxy plus AI regex generation/explanation. Phase 36 uses that established explicit AI path for interpretation/debugging tasks where an LLM materially reduces effort, without turning deterministic utilities into LLM wrappers.
+Phase 8 Stage 4 already shipped the provider-agnostic LLM bridge (a localhost-only proxy then, a sender-checked main-process IPC call since Phase 31B) plus AI regex generation/explanation. Phase 36 uses that established explicit AI path for interpretation/debugging tasks where an LLM materially reduces effort, without turning deterministic utilities into LLM wrappers.
 
 1. **Stack Trace Explainer**
 2. **SQL Explainer**
@@ -512,7 +514,7 @@ Phase 8 Stage 4 already shipped the localhost-only, provider-agnostic LLM proxy 
 
 #### Notes
 
-Desktop dependency here is about the currently shipped **local LLM proxy/credential boundary**, not about native sockets/filesystem/process access. Where a capability can later run through Phase 69's on-device model runtime, the same AI feature should be able to stay fully local.
+Desktop dependency here is about the currently shipped **local LLM chat bridge/credential boundary**, not about native sockets/filesystem/process access. Where a capability can later run through Phase 69's on-device model runtime, the same AI feature should be able to stay fully local.
 
 Non-AI deterministic/heuristic alternatives remain valuable and should coexist where they already exist: e.g. the heuristic Regex Generator in Phase 16, static Stack Trace Formatters in Phase 18, and the rule-based Cron parser.
 

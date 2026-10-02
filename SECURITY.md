@@ -130,7 +130,7 @@ Every other tool processes data entirely locally and makes no network request.
 ## Native/Desktop-Privileged Tools
 
 Tools that use a desktop-only native capability (Electron file/folder picker, native filesystem
-access, the local LLM proxy, the collaboration server, or OS-keychain-backed storage) beyond the
+access, the local LLM chat bridge, the collaboration server, or OS-keychain-backed storage) beyond the
 browser sandbox.
 
 | Tool | Native capability |
@@ -182,7 +182,7 @@ browser sandbox.
 | [Process Diagnostic Bundle](https://arahman200165.github.io/DUDE/tools/process-diagnostic-bundle) | Native Windows system access; Native filesystem access |
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system access; Native Windows system changes; Native filesystem access |
 | [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | Native network diagnostics |
-| [Regex Tester](https://arahman200165.github.io/DUDE/tools/regex) | Local LLM proxy |
+| [Regex Tester](https://arahman200165.github.io/DUDE/tools/regex) | Local LLM chat |
 | [Registry Editor](https://arahman200165.github.io/DUDE/tools/registry-editor) | Native Windows system access; Native Windows system changes |
 | [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Native network diagnostics |
 | [Certificate Revocation Inspector](https://arahman200165.github.io/DUDE/tools/revocation-inspector) | Native network diagnostics |
@@ -278,7 +278,7 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system access | Desktop-only feature | reads running processes and their details through the desktop system helper |
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system changes | Desktop-only feature | ends, restarts, suspends, reprioritises and dumps processes through the desktop system mutation engine |
 | [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
-| [Regex Tester](https://arahman200165.github.io/DUDE/tools/regex) | Local LLM proxy | Desktop-only feature | AI-assisted explain/generate via a local LLM proxy, no cloud key required |
+| [Regex Tester](https://arahman200165.github.io/DUDE/tools/regex) | Local LLM chat | Desktop-only feature | AI-assisted explain/generate via the desktop LLM bridge to your own endpoint, no cloud key required |
 | [Registry Editor](https://arahman200165.github.io/DUDE/tools/registry-editor) | Native Windows system access | Desktop-only feature | enumerates, searches and exports registry keys through the desktop system helper |
 | [Registry Editor](https://arahman200165.github.io/DUDE/tools/registry-editor) | Native Windows system changes | Desktop-only feature | creates keys and sets or deletes values through the desktop system mutation engine |
 | [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |

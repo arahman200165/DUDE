@@ -31,7 +31,7 @@ Every tool declares a persistence policy per piece of state (`ToolPersistencePol
 | `session` | `sessionStorage` | until the tab closes | raw pasted input for most tools |
 | `local` | `localStorage` | across sessions | UI preferences (mode, indent size, algorithm choice) |
 | `user-choice` | user picks per-session | depends on choice | tools where persistence itself is sensitive enough to ask about (e.g. Python Playground) |
-| `secure-local` | OS keychain via Electron `safeStorage` | across sessions, desktop-only | the LLM proxy API key set in Settings › AI / LLM Provider (`/settings`, a shell page — no longer a tool) — never written to `localStorage` even on desktop |
+| `secure-local` | OS keychain via Electron `safeStorage` | across sessions, desktop-only | the LLM chat API key set in Settings › AI / LLM Provider (`/settings`, a shell page — no longer a tool) — never written to `localStorage` even on desktop |
 
 Desktop network diagnostics keep results in memory for the session. A result is written to disk only when you click **Save to History**: saved runs go to IndexedDB (`dude:v1:network-history`), without request headers, request bodies, downloaded HTTP bodies, or `Authorization`/`Proxy-Authorization`/`Set-Cookie` response headers. They are capped at 100 runs, 30 days, and 50 MB, and deleted by the tool's Delete and Clear controls or by clearing all data. Restoring a saved run never reruns it.
 
@@ -50,8 +50,8 @@ All four are network-isolated by policy (`network: { required: false }` — see 
 
 The Windows desktop build ([Phase 8](history/DELIVERY_HISTORY.md#phase-8)) adds a bundled local backend on top of the same web app, with the following boundaries:
 
-- The renderer (the Angular app) runs with `contextIsolation: true`, `nodeIntegration: false`, and `sandbox: true` — no direct Node.js or filesystem access, no exceptions. Every native capability (file dialogs, OS-keychain secret storage, the local LLM proxy, the collab server) is exposed only through `preload.ts`'s `contextBridge.exposeInMainWorld(...)`, never by relaxing those three flags.
-- Every local backend process the desktop app starts — the static server serving the built app, the LLM proxy, the collab server — binds `127.0.0.1` (loopback) only, never an external network interface.
+- The renderer (the Angular app) runs with `contextIsolation: true`, `nodeIntegration: false`, and `sandbox: true` — no direct Node.js or filesystem access, no exceptions. Every native capability (file dialogs, OS-keychain secret storage, LLM chat, the collab server) is exposed only through `preload.ts`'s `contextBridge.exposeInMainWorld(...)`, never by relaxing those three flags.
+- The renderer is served in-process from the privileged `dude-app://app/` scheme, so the packaged app opens no listening socket to serve itself, and LLM chat is a sender-checked IPC call rather than a local HTTP proxy. Secrets are stored as `safeStorage` ciphertext in the desktop Device Store and no IPC channel ever returns a secret value to the renderer. Every local backend process the desktop app still starts — the collab server — binds as described next.
 - **The one deliberate exception:** the local collaboration server (Advanced Markdown Workspace's real-time editing, Phase 8 Stage 6) binds `0.0.0.0` so it's reachable over your LAN by design, and is gated by a random per-session code so joining requires knowing that code. A self-hosted BYO relay (Stage 7, `apps/collab-relay/`) extends this across networks, but is never a DUDE-operated service — you run your own instance and point your own desktop app at it.
 - The web app deployed to GitHub Pages has none of this backend — it remains the permanent, zero-install, fully browser-sandboxed entry point to DUDE.
 

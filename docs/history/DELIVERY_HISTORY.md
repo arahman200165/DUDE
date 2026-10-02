@@ -46,6 +46,7 @@ Related: [DUDE — Product Requirements](../DUDE_PRD.md) · [DUDE Roadmap](../de
 - [Phase 29 — Filesystem & Binary Forensics at Scale](#phase-29)
 - [Phase 30 — Workbench Shell, Tool Discovery, Local Insights & Appearance](#phase-30)
 - [Phase 31 — Windows & Process Tools](#phase-31)
+- [Phase 31B — Device Identity, Scoped State and Migration](#phase-31b)
 - [Historical V1 Definition of Done](#historical-v1-definition-of-done)
 
 ## Product-positioning Evolution Record
@@ -2742,6 +2743,50 @@ Static Windows error/HRESULT decoding is reference data and remains covered by t
 Every operation that changes system state — process termination/restart, PATH/environment edits, registry writes, service changes, scheduled-task and startup-entry changes, Windows feature changes, software uninstall, permission changes, or PowerShell execution — satisfies [Security Boundaries](../architecture/SECURITY_ARCHITECTURE.md#security-boundaries)'s security boundaries and the [Destructive-Action Contract](../architecture/SECURITY_ARCHITECTURE.md#destructive-action-contract) contract: explicit intent, clear target, a preview, and a confirmation proportional to risk.
 
 **Goal achieved:** DUDE is genuinely useful for routine Windows developer/system troubleshooting without becoming a general-purpose system-administration suite.
+
+<a id="phase-31b"></a>
+
+## Phase 31B — Device Identity, Scoped State and Migration
+
+**Status:** complete, Milestones 616–627 plus one gate-fix commit; automated acceptance recorded in [Phase 31B acceptance evidence](../delivery/PHASE31B_ACCEPTANCE.md), with one installed-build manual pass still owed.
+
+Phase 31B gave the desktop a durable, identified, scoped local store without a Hub: the exit gate was stable device IDs, scoped settings, repository adapters, secure secret references, recoverable migration and a durable local outbox. Hub registration, replay and sync are Phases 31C/31D.
+
+| Milestone | Delivered |
+|---|---|
+| 616 | `dude-app://app/` privileged scheme replaced the loopback static server. The old random port meant a new origin per launch, so production desktop renderer state was lost on every restart. A spike confirmed `ws://` (loopback and LAN), secure context, WebCrypto, storage and the sandbox CSP host-source all work from the new origin, so the collaboration transport was left unchanged and the planned pinned self-signed `wss://` fallback was not needed |
+| 617 | LLM chat moved to the sender-checked `dude:llm:chat` IPC call; the loopback HTTP LLM proxy was deleted |
+| 618 | `@dude/persistence` (UUIDv7, device/environment records, `SettingDefinition`s and the policy scope rule, repository ports, in-memory adapters with contract suites, `SecretRef`, entity codecs), `@dude/sync` outbox model and coalescing, device-store/agent-RPC/registration-stub contracts, `ToolMetadata.settingScopes` |
+| 619 | `apps/device-agent` state service: `node:sqlite` in WAL with `synchronous=FULL`, checksummed migration runner with `VACUUM INTO` backups and newer-schema refusal, UUIDv7 identity with MachineGuid-hash clone detection, atomic record-plus-coalesced-outbox commits, repositories, closed RPC, reset, and a hard-kill crash test |
+| 620 | Electron main broker: fork, private `MessagePort` to the child only, 0.5/2/8 s backoff and an unavailable state after more than three crashes in two minutes, sender-checked validated `dude:store:*`/`dude:device:*` handlers, quit coordinator (flush, clean-exit mark, checkpoint) and a store-based crash marker |
+| 621 | Desktop JSON state, mutation journals, snapshot headers and PowerShell history moved into the store with a JSON fallback and drain; one-shot legacy `userData` import into `legacy-import/<timestamp>/` |
+| 622 | Secret references with `safeStorage` ciphertext in the store, a purpose-allowlisted sender-checked secrets IPC with no `get`, AI base URL/model as a device document, `SecretsService`, and removal of the `settings` LLM pseudo-namespace |
+| 623 | Renderer boot snapshot before bootstrap, device key/value backend (1 s debounce, journaled settings immediate, flush handshake), scope recorded per write, one-shot renderer localStorage import, appearance prepaint mirror, `DeviceIdentityService` (web installation ID), health service and degraded banner, onboarding on `PersistenceService`, `settingScopes` conformance |
+| gate fix | `resolveKvScope` moved into `@dude/persistence`; `check:desktop` requires an Electron production build (`ng build --configuration production,electron`, base href `/`) |
+| 624 | `EntityCollection`s for favorites (one record per pin), pipelines, user scripts, projects and workspace templates with optimistic update and rollback; journaled documents for home layout and usage; journaled `setting` ops for appearance and reopen-on-restart; bundle import through codecs; removal of every `migrateX`, `storageMigrations`, `moveLocalValue`, the legacy Home panel and the bundle's `homePanel` |
+| 625 | History and network-run repositories (SQLite with retention in the write transaction on desktop, IndexedDB on web) and a one-shot IndexedDB import |
+| 626 | Settings › This Device, recovery actions, and two-step token-bound *Clear data* and *Reset this device* under the Destructive-Action Contract; Data & Privacy delegates to them; the high-consequence gate runs the new boundary specs |
+| 627 | Data-scope inventory classification, documentation, decision records PD-013 to PD-022 and acceptance evidence |
+
+### Architecture and notes
+
+- The state service is an Electron utility process named in code `apps/device-agent`; it is not the privileged Device Agent execution boundary, and the docs call it the *state service* to keep the two apart.
+- Only an explicit list journals into the outbox: favorites, pipelines, user scripts, projects, workspace templates, appearance, reopen-on-restart, home layout (with notes) and usage/insights. Ops coalesce per entity and carry the status `unsent-standalone`.
+- Tool `local` preferences default to `environment` scope; session, user-choice and none inputs are `local-only`; manifest `settingScopes` override a key.
+- Usage/insights and the Home layout are `environment`-scoped (a deliberate rewrite of the earlier "usage stays local" statement); they become sync-eligible only after explicit consent in 31D.
+- The device display name defaults to "Windows PC", never the hostname.
+
+### Deviations from the plan, as shipped
+
+- The M617 plan's pinned self-signed `wss://` collaboration fallback was **not built**: the spike showed `ws://` works from `dude-app://`.
+- The plan's M617 title bundled collaboration with LLM; only the LLM move shipped in that milestone.
+- A separate gate-fix commit was needed after M623 (portable `resolveKvScope`, desktop build precondition).
+
+### Scope ceiling
+
+**Phase 31B is a local store, identity and scope foundation, not synchronization.** Explicitly out of scope and unbuilt: the Hub, device registration handshake, Hub revisions, outbox replay, conflicts and the first-sync enrollment preview (31C/31D); a mobile persistence adapter (31H); and recovery of renderer data written by earlier production launches at random-port origins.
+
+**Outcome (Milestones 616–627):** met, with one manual installed-build pass owed.
 
 ## Historical V1 Definition of Done
 

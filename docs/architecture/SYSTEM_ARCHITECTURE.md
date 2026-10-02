@@ -334,7 +334,7 @@ User-supplied API keys are the default credential model for external services. D
 
 - No static private secrets in source control or compiled distributions.
 - No DUDE-operated cloud proxy is part of the current architecture/product direction.
-- A **local bundled proxy/backend** is allowed and already shipped where browser restrictions or credential isolation make it necessary (for example Phase 8 Stage 4's localhost-only LLM proxy).
+- A **local bundled proxy/backend** is allowed and already shipped where browser restrictions or credential isolation make it necessary (for example Phase 8 Stage 4's LLM proxy, which Phase 31B replaced with a sender-checked main-process IPC call).
 - User-owned/self-hosted relays, servers, and remote runners are allowed when the user explicitly configures them.
 - Network activity, persistence behavior, platform/native capabilities, and external-data boundaries must be represented in canonical tool/capability metadata and remain consumable by shell-level disclosure UI rather than being buried only inside individual tool implementations.
 
@@ -359,6 +359,7 @@ The implementation uses npm workspaces with the current Node/npm pins, one root 
 ```text
 apps/web/                Angular renderer, assets, UI bindings and browser adapters
 apps/desktop/            Electron composition and native adapters
+apps/device-agent/      Device State Store "state service" (utility process, node:sqlite); not the privileged Device Agent
 apps/collab-relay/       Existing standalone relay
 apps/hub/, apps/mobile/  Documented future placeholders
 packages/shared-types/  Closed vocabularies
@@ -368,7 +369,8 @@ packages/validation/    Portable validation
 packages/crypto/        Crypto and host installation
 packages/tool-engine/   Transforms, composition, tests and fixtures
 packages/tool-registry/  Authoritative manifests and generated metadata
-packages/sync/           Empty buildable future reservation
+packages/persistence/    Device/environment records, UUIDv7, scoped settings, entity codecs, repository ports and contract suites, secret references
+packages/sync/           Outbox op model and coalescing (replay/cursors/conflicts reserved for 31D)
 packages/api-client/     Empty buildable future reservation
 packages/collab-protocol/ Existing Node-only Yjs rooms (not portable core)
 infrastructure/          Documented deployment/database/networking/packaging reservations
@@ -488,10 +490,33 @@ The installed desktop application should evolve toward:
 | Preload / IPC Boundary | Validated capability access |
 | DUDE Device Agent | Filesystem, process/system, network, database, container, Git, SSH and local AI services |
 | Shared DUDE Core | Framework-neutral tool/domain logic |
-| Device SQLite Store | Local persistence and replicas |
+| Device SQLite Store | Local persistence and replicas (delivered in 31B as the state service below) |
 | Sync Client | Hub change exchange and offline replay |
 | Encrypted Credential Vault | Local secret references |
 | Native Windows Helpers | OS-specific capability implementations |
+
+#### Device State Store service vs Device Agent
+
+Two different things have been called an "agent"; this document keeps them apart.
+
+| | Device State Store *state service* (delivered, Phase 31B) | Device Agent / Device Runtime (planned boundary) |
+|---|---|---|
+| Purpose | Owns the local SQLite database | Privileged local execution: filesystem, process/system, network, database, container, Git, SSH and local AI services |
+| Process | Electron `utilityProcess` bundled from `apps/device-agent` | Not yet a separate process; today's native capabilities are Electron-main bridges and native helpers |
+| Privilege | Unprivileged: no tool execution, no shell, no network on a caller's behalf; typed RPC only | Privileged, with explicit validated, authorized operations |
+| Callers | Electron main only, over a private `MessagePort` (the renderer never holds a port) | Local application today; strongly authorized remote jobs only in a later phase |
+| Lifecycle | Supervised by main: backoff restart, degraded in-memory mode, coordinated quit | Open decision for 31C, with the Hub service wrapper |
+
+The directory name `apps/device-agent` is historical from planning; user-facing and architectural text calls the process the *state service*. Renaming the workspace is not required, and the privileged Device Agent will not reuse it implicitly.
+
+**Renderer origin.** The packaged renderer loads from the privileged custom scheme `dude-app://app/` served in-process by main, a fixed origin that keeps localStorage/IndexedDB across launches (the earlier loopback server's per-launch port did not). The web companion keeps its `https://` origin and `/DUDE/` base path. Both builds run the same Angular code; desktop reads a store snapshot before bootstrap, and the web build reads browser storage through the same repository ports.
+
+| Desktop runtime piece | Role |
+|---|---|
+| Renderer (`dude-app://app/`) | Angular UI, synchronous signals over an in-memory cache |
+| Electron main | Window, protocol handler, sender-checked IPC, store broker, secrets, LLM bridge, native bridges |
+| State service utility process | SQLite Device State Store |
+| File-walk/fs utility process, native helpers | Existing streamed filesystem and Windows helpers |
 
 The renderer should remain sandboxed.
 
@@ -684,6 +709,8 @@ Responsibilities:
 - serialize preferences;
 - clear tool state;
 - clear all local DUDE state with explicit scope; a local reset must not imply deleting canonical Hub state or all registered-device state.
+
+As built in Phase 31B, `PersistenceService` keeps its synchronous signals but resolves each key's data scope on write and, on desktop, persists through the device key/value backend into the Device State Store (web: browser storage). Entity collections (favorites, pipelines, user scripts, projects, workspace templates) are reached through an `ENTITY_STORE` repository abstraction with optimistic update and rollback. See [Data and synchronization](DATA_SYNC_ARCHITECTURE.md#device-state-store).
 
 ### Worker Service
 

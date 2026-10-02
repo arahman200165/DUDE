@@ -1,12 +1,13 @@
 # Portable core and workspace ownership
 
-Phase 31A implementation uses npm workspaces and one root lockfile. The root retains the Node/npm pins, desktop release version and developer commands. Packages are private internal APIs; publishing and old-source compatibility layers are absent.
+Phase 31A introduced npm workspaces with one root lockfile, and Phase 31B filled the persistence and outbox packages. The root retains the Node/npm pins, desktop release version and developer commands. Packages are private internal APIs; publishing and old-source compatibility layers are absent.
 
 | Workspace | Responsibility |
 |---|---|
 | `apps/web` | Angular renderer, UI bindings, browser storage, DOM, Canvas, workers and sandbox/WASM adapters |
 | `apps/desktop` | Electron main/preload composition, native implementation and IPC trust boundaries; uses the web renderer |
 | `apps/collab-relay` | Existing standalone collaboration relay |
+| `apps/device-agent` | Desktop Device State Store "state service": an Electron utility process owning the `node:sqlite` database (not portable core, and not the privileged Device Agent execution boundary); imports no `electron` or `@angular/*`, and nothing in `apps/web` imports it |
 | `shared-types` | Foundational types and closed vocabularies |
 | `domain` | Workbench entities, tool metadata and data scope |
 | `contracts` | Execution and worker protocols, host ports and native request/result shapes |
@@ -19,7 +20,7 @@ Phase 31A implementation uses npm workspaces and one root lockfile. The root ret
 | `api-client` | Empty buildable entry point reserving later authenticated API responsibilities |
 | `collab-protocol` | Existing Node-only Yjs room implementation; excluded from the portable-core gate |
 
-Hub, mobile and infrastructure directories are documented placeholders. They provide no device identity, Hub API, SQLite migration, synchronization or mobile implementation.
+Hub, mobile and infrastructure directories are documented placeholders. They provide no Hub API, synchronization or mobile implementation. Device identity, the desktop SQLite store with its migration runner and the local outbox are delivered by Phase 31B in `persistence`, `sync` and `apps/device-agent`; registration with a Hub, replay and conflicts are not.
 
 ## Package and host boundaries
 
@@ -43,8 +44,10 @@ Each tool has one metadata manifest in `packages/tool-registry/src/tools/<id>/`,
 
 `DataScope` is `environment | workspace | device | local-only`. Project membership belongs to workspace scope. Scope is independent of retention, sensitivity and synchronization consent; classification never grants permission to synchronize.
 
-Shared definitions do not implicitly contain payloads, credentials, absolute paths, history or journals. Mixed entities require field-level classification. The checked storage inventory records existing storage and proposed scope without migrating records. Identity/versioning gaps remain work for 31B.
+Shared definitions do not implicitly contain payloads, credentials, absolute paths, history or journals. Mixed entities require field-level classification. The checked storage inventory classifies every storage site by scope without granting synchronization permission. Phase 31B closed the identity/versioning gaps: persisted entities have stable IDs, schema versions and codecs in `@dude/persistence`, tool keys resolve scope through the policy rule or a manifest `settingScopes` override, and the Device State Store records scope per write.
 
 ## Acceptance status
+
+Phase 31B is complete (Milestones 616–627): stable device IDs, scoped settings, repository adapters, secret references, recoverable migration and a durable local outbox work without a Hub; see [Phase 31B acceptance evidence](../delivery/PHASE31B_ACCEPTANCE.md), which also lists one owed installed-build manual pass.
 
 Phase 31A is complete: the implementation is recorded as Milestone 615, and the inherited dependency-audit blocker was resolved afterwards (Angular and DOMPurify upgraded; one unpatched node-forge advisory accepted under `npm run audit:prod`). No release gate is disabled. See [Phase 31A acceptance evidence](../delivery/PHASE31A_ACCEPTANCE.md) for results and the dependency decisions. The roadmap remains authoritative for completion.

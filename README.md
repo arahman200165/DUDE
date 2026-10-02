@@ -47,8 +47,8 @@ Don't want to install anything? **[→ Open the zero-install web companion](http
 All 8 stages of the desktop-packaging phase are shipped:
 
 - **Native file access** — Directory Diff and Git Repo Browser use a native folder picker + live, re-scannable filesystem access instead of `<input webkitdirectory>`, via a sandboxed preload/IPC bridge.
-- **OS-level secret storage** — a `secure-local` persistence tier backed by Electron `safeStorage` (OS keychain).
-- **Local LLM proxy + AI regex features** — Regex Tester gains natural-language-to-regex generation and an AI-assisted explanation, backed by a localhost-only proxy to a user-configured OpenAI-compatible endpoint (base URL/model/key set in Settings › AI / LLM Provider); the existing rule-based explainer stays as the offline/web fallback.
+- **OS-level secret storage** — secrets are stored as references plus Electron `safeStorage` (OS keychain) ciphertext in the desktop Device Store; the renderer can only see whether a secret is set and a masked hint, never its value.
+- **Local LLM chat + AI regex features** — Regex Tester gains natural-language-to-regex generation and an AI-assisted explanation, backed by a sender-checked IPC call in the Electron main process to a user-configured OpenAI-compatible endpoint (base URL/model/key set in Settings › AI / LLM Provider; the key never leaves main); the existing rule-based explainer stays as the offline/web fallback.
 - **Desktop shell chrome** — a system tray (closing the window minimizes to it), launch-on-login, native notifications, and a global-hotkey clipboard quick-action registry (Base64 encode/decode, UUID generate, SHA-256 hash).
 - **Real-time collaboration** — Advanced Markdown Workspace can host or join a same-machine/LAN session (a local Yjs-based collab server, LAN-reachable by design with a required per-session code) or, via a self-hosted relay (`apps/collab-relay/`, ships with its own `Dockerfile` — DUDE itself never runs one for you), collaborate across networks.
 - **Auto-update + distribution** — every push to `master` automatically bumps the patch version, tags it, and cuts a new GitHub Release carrying an unsigned NSIS installer and an MSIX/appx package (`electron-builder.yml`); the running desktop app checks that release feed via `electron-updater`, uses your selected automatic-download, check-and-notify, or manual-check policy, and only installs it once you click "Restart & Install" — never silently. The MSIX currently ships with placeholder Microsoft Store package-identity values and isn't Store-submittable yet.
@@ -143,7 +143,7 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system access | Desktop-only feature | reads running processes and their details through the desktop system helper |
 | [Process Viewer](https://arahman200165.github.io/DUDE/tools/process-viewer) | Native Windows system changes | Desktop-only feature | ends, restarts, suspends, reprioritises and dumps processes through the desktop system mutation engine |
 | [Public IP Detector](https://arahman200165.github.io/DUDE/tools/public-ip) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
-| [Regex Tester](https://arahman200165.github.io/DUDE/tools/regex) | Local LLM proxy | Desktop-only feature | AI-assisted explain/generate via a local LLM proxy, no cloud key required |
+| [Regex Tester](https://arahman200165.github.io/DUDE/tools/regex) | Local LLM chat | Desktop-only feature | AI-assisted explain/generate via the desktop LLM bridge to your own endpoint, no cloud key required |
 | [Registry Editor](https://arahman200165.github.io/DUDE/tools/registry-editor) | Native Windows system access | Desktop-only feature | enumerates, searches and exports registry keys through the desktop system helper |
 | [Registry Editor](https://arahman200165.github.io/DUDE/tools/registry-editor) | Native Windows system changes | Desktop-only feature | creates keys and sets or deletes values through the desktop system mutation engine |
 | [Reverse DNS Lookup](https://arahman200165.github.io/DUDE/tools/reverse-dns) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
@@ -530,7 +530,8 @@ The shell is generated entirely from tool metadata — no file under `apps/web/s
 apps/web/src/app/
   core/
     registry/       metadata/UI composition, registry service, search, route generation
-    persistence/    per-tool session/local/none storage policy
+    persistence/    per-tool session/local/none storage policy, scope resolution, boot snapshot, device key/value backend and entity repositories (desktop: Device Store; web: browser storage)
+    device/         device identity, store health and reset services
     workers/        browser Worker adapter for portable execution contracts
     connectivity/   online/offline signal, update-available detection
     routing/        the one root route table (lazy-loads every tool)
@@ -545,7 +546,7 @@ apps/web/src/app/
 
 Key design choices:
 
-- **Per-tool persistence policy** (`none` / `session` / `local`) — sensitive tools like the JWT Debugger persist nothing by default; UI preferences like indent size persist locally.
+- **Per-tool persistence policy** (`none` / `session` / `local`) — sensitive tools like the JWT Debugger persist nothing by default; UI preferences like indent size persist locally. Every persisted key also has a data scope (`environment`, `workspace`, `device` or `local-only`) derived from its policy or a manifest `settingScopes` override; scope classifies ownership and never grants permission to synchronize.
 - **Shared worker layer** — heavy or unbounded work (hashing, regex, diffing, large JSON) can opt into a Web Worker without each tool reinventing message-passing, cancellation, or error handling.
 - **Failure isolation** — a worker crash or a tool bug stays inside that tool's route; the sidebar and navigation keep working.
 - **Lazy loading** — every tool is a separate `loadComponent` chunk, so visiting one tool never downloads another's code or libraries.
@@ -553,6 +554,8 @@ Key design choices:
 - **Workspace/History never outlive a tool's own persistence policy** — tab/panel layout is metadata-only (which tools, in what arrangement) and always persists; a tool's actual content only ever reappears (across a tab switch, a full relaunch, or a History restore) because that tool's own `PersistenceService.signal(...)` policy already allowed it, never because either feature promoted or copied it.
 
 See [`ADDING_A_TOOL.md`](ADDING_A_TOOL.md) for the full, step-by-step guide to adding a new tool, written against the real `base64` tool as a worked example.
+
+On desktop, durable state lives in the Device State Store: a `node:sqlite` database (`userData/device-store/dude-device.db`, WAL) owned by an Electron utility process, the *state service* in `apps/device-agent`, that only Electron main talks to over a private port. It holds the stable device identity (a UUIDv7, with clone detection), scoped settings, entity records with a durable local outbox (recorded for a later sync phase, never sent yet), Local History, network runs, mutation journals and secret references, with versioned migrations and pre-upgrade backups. The renderer reads a boot snapshot before Angular starts, loads from the fixed `dude-app://app/` origin, and shows store health and the two-step *Clear data* / *Reset this device* actions in Settings › This Device. The web companion has no store: it keeps browser storage behind the same repository ports plus a stable per-browser installation ID. The portable persistence and outbox model live in `packages/persistence` and `packages/sync`; see [Data, Persistence and Synchronization](docs/architecture/DATA_SYNC_ARCHITECTURE.md#device-state-store).
 
 The Phase 29 filesystem boundary lives under `apps/desktop/`: `fs-grants.ts` owns session and remembered picker grants; `fs-worker.ts` runs the streamed walker and heavy jobs in an Electron utility process; `fs-mutation.ts` validates previewed plans, applies operations and keeps journal/undo backups; `fs-watch-service.ts` owns opt-in background watches. The renderer reaches them only through the preload bridge and generic platform services. Pure filesystem filters live in `packages/tool-engine/src/shared/fs/` and filesystem contracts in `packages/contracts/src/fs/`; streaming hash logic lives in `packages/crypto/src/hash-compute.ts`. The renderer, main process and utility process use those shared rules.
 

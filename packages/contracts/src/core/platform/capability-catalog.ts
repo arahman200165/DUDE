@@ -34,8 +34,8 @@ export const PLATFORM_CAPABILITIES: Readonly<Record<PlatformCapabilityId, Platfo
     alsoVia: ['FolderWatchService'],
   },
   'llm-proxy': {
-    label: 'Local LLM proxy',
-    description: 'Talks to a user-configured local/self-hosted LLM endpoint through the desktop proxy.',
+    label: 'Local LLM chat',
+    description: 'Talks to a user-configured local/self-hosted LLM endpoint through a sender-checked desktop IPC call; the API key never leaves the main process.',
     service: 'LlmProxyService',
   },
   'collab-relay': {

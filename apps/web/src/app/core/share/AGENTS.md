@@ -13,4 +13,4 @@ Shareable Tool Routes (DUDE_PRD.md §21 Phase 26 Item 12). Tool-agnostic: a tool
 - **Embedding input is always its own explicit action**, with its warning visible (ToolShell's Share menu). The bare "Copy link" never carries data, and neither does the palette command.
 - **The receiver never auto-runs.** It only writes through the tool's own declared persistence policy. It flags the text as imported (`recordImportedFileFlags`), so code-running tools gate it exactly like an opened file. It shows a "Loaded from link" notice. No network call, no save beyond the tool's policy, no execution.
 - **Never a secret tier.** Shareable inputs are `session`/`user-choice` only (`ToolFileInput.policy`'s type), and `share-link.service.spec.ts` asserts it registry-wide.
-- Desktop links point at the public web companion (`WEB_COMPANION_BASE_URL`), never the desktop app's private loopback server.
+- Desktop links point at the public web companion (`WEB_COMPANION_BASE_URL`), never the desktop app's private `dude-app://` origin.

@@ -17,7 +17,7 @@ describe('DesktopOnlyControl', () => {
     expect(button.disabled).toBe(true);
     expect(button.textContent).toContain('AI Explain');
     expect(button.textContent).toContain('Desktop');
-    expect(button.title).toContain('Local LLM proxy');
+    expect(button.title).toContain('Local LLM chat');
   });
 
   it('renders nothing on desktop, where the real control lives', () => {

@@ -231,6 +231,8 @@ A local database, preferably SQLite, used for:
 
 It is not the canonical shared database.
 
+**Delivered in Phase 31B (desktop).** The store is SQLite (`node:sqlite`) owned by a dedicated Electron utility process, the *state service*; that process is deliberately not the privileged Device Agent above. The renderer reaches it only through Electron main. It holds the device identity, scoped key/value settings, entity records with a coalesced durable outbox (recorded and never replayed until 31D), Local History and network runs, desktop preferences, mutation journals, snapshot headers, PowerShell history and secret references. **Settings › This Device** shows the device ID, an editable display name (default "Windows PC", never the hostname), platform, environment ID, enrollment state, store size, schema/migration/backup status and outbox count, and offers recovery actions plus two separate two-step resets: *Clear data* keeps the identity and secrets, *Reset this device* mints a new identity and wipes secrets. The web build has a per-browser installation identity and the same repository ports over browser storage, with no outbox. See [Phase 31B acceptance](../delivery/PHASE31B_ACCEPTANCE.md).
+
 ### DUDE Web
 
 The Angular browser application served by the Hub.
@@ -492,7 +494,8 @@ The planning direction is sufficiently defined to begin 31A. The following imple
 |---|---|---|
 | npm versus pnpm workspace migration | 31A | Choose from existing repository constraints; preserve reproducible builds and lockfile discipline |
 | Package extraction order/runtime support | 31A | Representative complex/worker/native-adapter cases prove portability before broad migration |
-| Device Agent process/service lifecycle | 31B–31C | Distinct from Hub; preserve IPC, local vault access and interactive confirmations |
+| Device State Store process/service lifecycle | 31B (decided) | A utility-process state service supervised by Electron main with backoff, a degraded in-memory mode and a coordinated quit; distinct from Hub and from the privileged Device Agent. See PD-014 |
+| Device Agent (privileged execution) background/service lifecycle | 31C | Distinct from Hub and from the state service; preserve IPC, local vault access and interactive confirmations. Whether it outlives the interactive window is decided with the Hub service wrapper |
 | Hub framework/runtime and Windows service wrapper | 31C | Node/NestJS or equivalent; independently managed user-owned service |
 | Initial owner authentication/recovery mechanism | 31C | No external OAuth dependency; secure bootstrap and revocation |
 | Entity conflict policies and sync retention | 31D | Explicit loss semantics, idempotency, tombstones and stale-cursor recovery |

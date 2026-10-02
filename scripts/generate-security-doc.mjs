@@ -44,7 +44,7 @@ const PLATFORM_CAPABILITY_LABELS = {
   'native-fs': 'Native filesystem access',
   'native-fs-write': 'Native filesystem write',
   'file-watch': 'File watching',
-  'llm-proxy': 'Local LLM proxy',
+  'llm-proxy': 'Local LLM chat',
   'collab-relay': 'Collaboration relay',
   'secure-keychain': 'OS keychain storage',
   'native-network': 'Native network diagnostics',
@@ -228,7 +228,7 @@ ${networkRows.join('\n')}
 ## Native/Desktop-Privileged Tools
 
 Tools that use a desktop-only native capability (Electron file/folder picker, native filesystem
-access, the local LLM proxy, the collaboration server, or OS-keychain-backed storage) beyond the
+access, the local LLM chat bridge, the collaboration server, or OS-keychain-backed storage) beyond the
 browser sandbox.
 
 | Tool | Native capability |
