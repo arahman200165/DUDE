@@ -63,3 +63,6 @@ Thumbs.db
 
 # Hub dev data directory
 /.hub-dev/
+
+# Vendored third-party binaries fetched by scripts (WinSW), and Hub staging output
+/build/vendor/

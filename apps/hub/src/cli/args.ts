@@ -6,6 +6,10 @@ export type ParsedCommand =
   | { command: 'setup-token'; dataDir?: string; deliverTo?: string; nonce?: string }
   | { command: 'owner-reset'; dataDir?: string; confirm?: string }
   | { command: 'tls'; action: 'status' | 'rotate' | 'activate'; dataDir?: string; restage?: boolean; force?: boolean; confirm?: string }
+  | { command: 'service'; action: 'install' | 'uninstall' | 'start' | 'stop' | 'restart' | 'status' | 'update'; dataDir?: string; installDir?: string; port?: number; lan?: boolean; source?: string; keepData?: boolean }
+  | { command: 'network'; action: 'lan-on' | 'lan-off' | 'status'; dataDir?: string; installDir?: string }
+  | { command: 'doctor'; dataDir?: string; installDir?: string }
+  | { command: 'purge'; dataDir?: string; includeBackups?: boolean; confirm?: string; type?: string }
   | { command: 'version' }
   | { command: 'help' };
 
@@ -23,12 +27,41 @@ Usage:
   dude-hub tls status [--data-dir <dir>]
   dude-hub tls rotate [--restage] [--data-dir <dir>]
   dude-hub tls activate [--force] [--confirm <token>] [--data-dir <dir>]
+  dude-hub service install [--install-dir <dir>] [--data-dir <dir>] [--port <n>] [--lan]   (elevated, Windows)
+  dude-hub service uninstall [--keep-data] [--install-dir <dir>] [--data-dir <dir>]
+  dude-hub service start|stop|restart|status [--install-dir <dir>] [--data-dir <dir>]
+  dude-hub service update --source <staged dir> [--install-dir <dir>] [--data-dir <dir>]
+  dude-hub network lan on|off|status [--data-dir <dir>] [--install-dir <dir>]
+  dude-hub doctor [--data-dir <dir>] [--install-dir <dir>]
+  dude-hub purge --data-dir <dir> [--include-backups] [--confirm <token> --type "DELETE HUB DATA"]
   dude-hub version
   dude-hub help
 
 Flags override the saved configuration for this run only.
 The data directory may also be set with DUDE_HUB_DATA_DIR; the log level with DUDE_HUB_LOG_LEVEL.
 `;
+
+/** Parses `--flag value` / `--flag=value` pairs and bare boolean flags against an allow-list. */
+function parseFlags(flags: readonly string[], allowed: readonly string[], booleans: readonly string[]): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (let i = 0; i < flags.length; i++) {
+    const flag = flags[i]!;
+    const eq = flag.startsWith('--') ? flag.indexOf('=') : -1;
+    const name = eq >= 0 ? flag.slice(0, eq) : flag;
+    if (!allowed.includes(name)) throw new UsageError(`Unknown flag "${flag}". Run "dude-hub help".`);
+    if (booleans.includes(name)) {
+      if (eq >= 0) throw new UsageError(`Flag ${name} takes no value.`);
+      result[name] = 'true';
+      continue;
+    }
+    const next = eq >= 0 ? flag.slice(eq + 1) : flags[++i];
+    if (next === undefined || (eq < 0 && next.startsWith('--'))) throw new UsageError(`Flag ${name} needs a value.`);
+    result[name] = next;
+  }
+  return result;
+}
+
+const optional = (values: Record<string, string>, flag: string, key: string): Record<string, string> => (values[flag] !== undefined ? { [key]: values[flag] } : {});
 
 /** Hand-rolled argv parsing (no CLI library). `argv` excludes the node binary and script path. */
 export function parseArgs(argv: readonly string[]): ParsedCommand {
@@ -84,6 +117,51 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
       else result.confirm = next;
     }
     return result;
+  }
+  if (command === 'service') {
+    const actions = ['install', 'uninstall', 'start', 'stop', 'restart', 'status', 'update'] as const;
+    const action = actions.find((a) => a === rest[0]);
+    if (action === undefined) throw new UsageError('Usage: dude-hub service install|uninstall|start|stop|restart|status|update. Run "dude-hub help".');
+    const allowed: Record<string, string[]> = {
+      install: ['--install-dir', '--data-dir', '--port', '--lan'],
+      uninstall: ['--install-dir', '--data-dir', '--keep-data'],
+      update: ['--install-dir', '--data-dir', '--source'],
+    };
+    const values = parseFlags(rest.slice(1), allowed[action] ?? ['--install-dir', '--data-dir'], ['--lan', '--keep-data']);
+    const result: Extract<ParsedCommand, { command: 'service' }> = { command: 'service', action, ...optional(values, '--install-dir', 'installDir'), ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--source', 'source') };
+    if (values['--lan'] !== undefined) result.lan = true;
+    if (values['--keep-data'] !== undefined) result.keepData = true;
+    if (values['--port'] !== undefined) {
+      const port = Number(values['--port']);
+      if (!/^[0-9]+$/.test(values['--port']) || port < 1 || port > 65535) throw new UsageError('--port must be an integer from 1 to 65535.');
+      result.port = port;
+    }
+    return result;
+  }
+  if (command === 'network') {
+    const [group, mode, ...flags] = rest;
+    const dirs = (values: Record<string, string>) => ({ ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir') });
+    if (group === 'lan' && (mode === 'on' || mode === 'off' || mode === 'status')) {
+      return { command: 'network', action: mode === 'on' ? 'lan-on' : mode === 'off' ? 'lan-off' : 'status', ...dirs(parseFlags(flags, ['--install-dir', '--data-dir'], [])) };
+    }
+    if (group === 'status') {
+      return { command: 'network', action: 'status', ...dirs(parseFlags(mode === undefined ? [] : [mode, ...flags], ['--install-dir', '--data-dir'], [])) };
+    }
+    throw new UsageError('Usage: dude-hub network lan on|off|status [--data-dir <dir>].');
+  }
+  if (command === 'doctor') {
+    const values = parseFlags(rest, ['--install-dir', '--data-dir'], []);
+    return { command: 'doctor', ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir') };
+  }
+  if (command === 'purge') {
+    const values = parseFlags(rest, ['--data-dir', '--include-backups', '--confirm', '--type'], ['--include-backups']);
+    return {
+      command: 'purge',
+      ...optional(values, '--data-dir', 'dataDir'),
+      ...(values['--include-backups'] !== undefined ? { includeBackups: true } : {}),
+      ...optional(values, '--confirm', 'confirm'),
+      ...optional(values, '--type', 'type'),
+    };
   }
   if (command === 'setup-token') {
     const result: Extract<ParsedCommand, { command: 'setup-token' }> = { command: 'setup-token' };

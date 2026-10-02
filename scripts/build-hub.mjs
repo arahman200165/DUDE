@@ -4,9 +4,10 @@ import path from 'node:path';
 import { build } from 'esbuild';
 
 const root = path.resolve(import.meta.dirname, '..');
-const version = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8')).version;
+const packageVersion = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8')).version;
 
-export async function buildHub({ outfile = path.join(root, 'dist', 'hub', 'dude-hub.cjs') } = {}) {
+/** `DUDE_VERSION_OVERRIDE` bakes a different version into the bundle (used by the service check to build an older "N-1" Hub). */
+export async function buildHub({ outfile = path.join(root, 'dist', 'hub', 'dude-hub.cjs'), version = process.env['DUDE_VERSION_OVERRIDE'] || packageVersion } = {}) {
   await build({
     entryPoints: [path.join(root, 'apps/hub/src/main.ts')],
     bundle: true,
@@ -23,5 +24,5 @@ export async function buildHub({ outfile = path.join(root, 'dist', 'hub', 'dude-
 
 if (import.meta.filename === path.resolve(process.argv[1] ?? '')) {
   const outfile = await buildHub();
-  console.log(`Built ${path.relative(root, outfile)} (version ${version})`);
+  console.log(`Built ${path.relative(root, outfile)} (version ${process.env['DUDE_VERSION_OVERRIDE'] || packageVersion})`);
 }

@@ -13,13 +13,13 @@ import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFil
 import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..');
-const outDir = path.join(root, 'dist', 'hub');
-const bundle = path.join(outDir, 'dude-hub.cjs');
-const blob = path.join(outDir, 'sea-prep.blob');
-const configFile = path.join(outDir, 'sea-config.json');
+const defaultOutDir = path.join(root, 'dist', 'hub');
 const SENTINEL = 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2';
 
-export function buildHubSea() {
+export function buildHubSea({ outDir = defaultOutDir } = {}) {
+  const bundle = path.join(outDir, 'dude-hub.cjs');
+  const blob = path.join(outDir, 'sea-prep.blob');
+  const configFile = path.join(outDir, 'sea-config.json');
   if (!existsSync(bundle)) throw new Error(`Missing ${path.relative(root, bundle)}. Run "npm run hub:compile" first.`);
   const exe = path.join(outDir, process.platform === 'win32' ? 'dude-hub.exe' : 'dude-hub');
 

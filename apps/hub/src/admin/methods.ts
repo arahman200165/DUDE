@@ -11,6 +11,8 @@ import type { RevokedSession } from '../auth/sessions.js';
 import { audit } from '../security/audit.js';
 import { ConfirmationStore } from '../security/confirmation-store.js';
 import { RotationError } from '../tls/rotation.js';
+import { HUB_MIGRATIONS } from '../db/migrations/index.js';
+import { loadOrCreateHubConfig, writeHubConfig } from '../config/hub-config.js';
 import type { TlsRotation } from '../tls/rotation.js';
 
 export interface AdminMethodContext {
@@ -21,6 +23,8 @@ export interface AdminMethodContext {
   getPort: () => number;
   startedAt: number;
   configDir: string;
+  /** `config/hub.json`; enables `network.set`. */
+  configFile?: string;
   spkiSha256: string;
   now?: () => number;
   /** Staged confirmations for admin-channel actions (default: a private store). */
@@ -102,14 +106,44 @@ export function buildAdminMethods(context: AdminMethodContext): Record<string, A
       context.onSessionsRevoked?.(outcome.revoked);
       return { purpose: 'owner-reset', token: outcome.token, spkiSha256: context.spkiSha256, port: context.getPort(), hubInstanceId: context.hubInstanceId, revokedSessions: outcome.revoked.length };
     },
-    status: () => ({
-      hubVersion: context.hubVersion,
-      hubInstanceId: context.hubInstanceId,
-      bootstrapped: context.db.prepare('SELECT 1 AS x FROM owner LIMIT 1').get() !== undefined,
-      bind: context.bind,
-      port: context.getPort(),
-      pid: process.pid,
-      uptimeSeconds: Math.max(0, Math.floor((now() - context.startedAt) / 1000)),
-    }),
+    /** Persists the bind mode in the service-owned config (applies after the next start) and audits the change. */
+    'network.set': (params) => {
+      const bind = (params as { bind?: unknown } | null)?.bind;
+      if (bind !== 'lan' && bind !== 'loopback') throw new AdminError('bad-request', 'bind must be "lan" or "loopback".');
+      if (context.bind === 'container') throw new AdminError('unsupported', 'Container mode always binds all interfaces; the network mode cannot be changed.');
+      if (!context.configFile) throw new AdminError('unavailable', 'Network mode cannot be changed in this context.');
+      const config = loadOrCreateHubConfig(context.configFile);
+      const previous = config.bind;
+      if (previous !== bind) {
+        writeHubConfig(context.configFile, { ...config, bind });
+        audit(context.db, { event: 'network.mode-changed', outcome: 'success', actorKind: 'cli', detail: { from: previous, to: bind }, now: now() });
+      }
+      return { bind, previous, running: context.bind, port: context.getPort(), restartRequired: context.bind !== bind };
+    },
+    /** Redacted diagnostics for `status`, `doctor` and the service commands; never secrets. */
+    status: () => {
+      const applied = context.db.prepare('SELECT version, name, applied_at FROM schema_migrations ORDER BY version').all() as Array<{ version: number; name: string; applied_at: string }>;
+      const meta = (key: string): number => {
+        const row = context.db.prepare('SELECT value FROM meta WHERE key = ?').get(key) as { value: string } | undefined;
+        return row ? Number(row.value) || 0 : 0;
+      };
+      const appliedVersions = new Set(applied.map((m) => Number(m.version)));
+      return {
+        hubVersion: context.hubVersion,
+        hubInstanceId: context.hubInstanceId,
+        bootstrapped: context.db.prepare('SELECT 1 AS x FROM owner LIMIT 1').get() !== undefined,
+        bind: context.bind,
+        lanMode: context.bind === 'lan',
+        port: context.getPort(),
+        pid: process.pid,
+        uptimeSeconds: Math.max(0, Math.floor((now() - context.startedAt) / 1000)),
+        spkiSha256: context.spkiSha256,
+        deviceCount: scope().devices,
+        schemaVersion: meta('schema_version'),
+        minReaderVersion: meta('min_reader_version'),
+        migrations: applied.map((m) => ({ version: Number(m.version), name: m.name, appliedAt: m.applied_at })),
+        pendingMigrations: HUB_MIGRATIONS.filter((m) => !appliedVersions.has(m.version)).map((m) => m.version),
+      };
+    },
   };
 }

@@ -17,6 +17,11 @@ import { runOwnerReset } from './owner-reset.js';
 import { runSetupToken } from './setup-token.js';
 import { runTls } from './tls.js';
 import { createTlsRotation } from '../tls/rotation.js';
+import { runServiceInstall } from '../service/install.js';
+import { runServiceControl, runServiceStatus, runServiceUninstall, runServiceUpdate } from '../service/lifecycle.js';
+import { runNetwork } from '../service/network.js';
+import { runDoctor } from '../service/doctor.js';
+import { runPurge } from '../service/purge.js';
 import { HELP_TEXT, UsageError, parseArgs } from './args.js';
 
 export const EXIT_OK = 0;
@@ -72,6 +77,30 @@ export async function runCli(argv: readonly string[]): Promise<number> {
       ...(parsed.restage ? { restage: true } : {}),
       ...(parsed.force ? { force: true } : {}),
       ...(parsed.confirm !== undefined ? { confirm: parsed.confirm } : {}),
+    });
+  }
+  if (parsed.command === 'service') {
+    const base = { ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}) };
+    switch (parsed.action) {
+      case 'install': return runServiceInstall({ ...base, ...(parsed.port !== undefined ? { port: parsed.port } : {}), ...(parsed.lan ? { lan: true } : {}) });
+      case 'uninstall': return runServiceUninstall({ ...base, ...(parsed.keepData ? { keepData: true } : {}) });
+      case 'update': return runServiceUpdate({ ...base, ...(parsed.source !== undefined ? { source: parsed.source } : {}) });
+      case 'status': return runServiceStatus(base);
+      default: return runServiceControl(parsed.action, base);
+    }
+  }
+  if (parsed.command === 'network') {
+    return runNetwork({ action: parsed.action, ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}) });
+  }
+  if (parsed.command === 'doctor') {
+    return runDoctor({ hubVersion: hubVersion(), ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}) });
+  }
+  if (parsed.command === 'purge') {
+    return runPurge({
+      ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}),
+      ...(parsed.includeBackups ? { includeBackups: true } : {}),
+      ...(parsed.confirm !== undefined ? { confirm: parsed.confirm } : {}),
+      ...(parsed.type !== undefined ? { type: parsed.type } : {}),
     });
   }
   if (parsed.command === 'setup-token') {
@@ -130,7 +159,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
       dataDir: paths.root,
       hubInstanceId: hub.hubInstanceId,
       methods: buildAdminMethods({
-        db: hub.db, hubVersion: hubVersion(), hubInstanceId: hub.hubInstanceId, bind: config.bind, getPort: () => port, startedAt, configDir: paths.configDir, spkiSha256: tls.spkiSha256,
+        db: hub.db, hubVersion: hubVersion(), hubInstanceId: hub.hubInstanceId, bind: config.bind, getPort: () => port, startedAt, configDir: paths.configDir, configFile: paths.configFile, spkiSha256: tls.spkiSha256,
         tls: createTlsRotation({
           db: hub.db, tlsDir: paths.tlsDir, hubInstanceId: hub.hubInstanceId,
           applySecureContext: (context) => (server.server as unknown as TlsServer).setSecureContext(context),
