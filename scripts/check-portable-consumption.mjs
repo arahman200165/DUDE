@@ -10,6 +10,10 @@ const packageNames=['shared-types','domain','contracts','validation','crypto','t
 for(const name of packageNames){const destination=path.join(isolated,'packages',name);cpSync(path.join(repo,'packages',name),destination,{recursive:true,filter:f=>!/[\\/](dist|node_modules)([\\/]|$)/.test(f)});}
 cpSync(path.join(repo,'tsconfig.packages.json'),path.join(isolated,'tsconfig.packages.json'));
 writeFileSync(path.join(isolated,'package.json'),JSON.stringify({name:'dude-portable-consumption',private:true,type:'module',workspaces:['packages/*'],engines:root.engines,packageManager:root.packageManager,devDependencies:{typescript:JSON.parse(readFileSync(path.join(repo,'node_modules/typescript/package.json'),'utf8')).version}},null,2));
+// Pin the offline install to the root lockfile: without it npm re-resolves ranges from cached
+// metadata and can pick versions whose tarballs `npm ci` never cached. npm prunes the app/host
+// entries this smaller workspace set doesn't reach (the forbidden-host check below still applies).
+cpSync(path.join(repo,'package-lock.json'),path.join(isolated,'package-lock.json'));
 const npmCli=process.env.npm_execpath;if(!npmCli)throw Error('Run through npm run check:portable');
 function run(bin,args){const result=spawnSync(process.execPath,[bin,...args],{cwd:isolated,stdio:'inherit'});if(result.status!==0)throw Error(`Portable check failed (${result.status}) in ${isolated}`);}
 run(npmCli,['install','--offline','--ignore-scripts','--no-audit','--no-fund']);

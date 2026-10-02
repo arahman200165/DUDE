@@ -14,7 +14,7 @@ Results were captured locally on Windows with Node 24.21.0/npm 11.19.0. They wer
 
 | Check | Result |
 |---|---|
-| Portable package builds and independent installation | Nine packages build with Angular/Electron/apps/Node collaboration absent; consumer declarations compile and 1,234 compiled ESM modules import |
+| Portable package builds and independent installation | Nine packages build with Angular/Electron/apps/Node collaboration absent; consumer declarations compile and 1,234 compiled ESM modules import. The offline isolated install is pinned to the root lockfile, so it needs only the tarballs `npm ci` caches; it passes against a cache populated solely by a clean `npm ci`, and no app-only dependency is installed |
 | Package boundaries | Source, test ownership, declared dependencies, emitted imports and declaration exports pass |
 | Extraction/scope inventory and registry baseline | All resolved; all 333 IDs/routes/metadata match the immutable Phase 31 baseline |
 | Portable engine/contract suite | 663 files, 4,317 tests pass; existing vectors/property tests/fixtures move with engines |
