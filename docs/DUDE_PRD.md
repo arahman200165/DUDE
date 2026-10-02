@@ -2,10 +2,10 @@
 
 **Project:** DUDE — Developer Utility Dashboard Engine  
 **Product:** local-first developer workbench evolving into a personally owned distributed developer environment  
-**Baseline:** V1 and Phases 0–31 delivered; distributed Phases 31A–31B delivered, 31C–31J planned  
+**Baseline:** V1 and Phases 0–31 delivered; distributed Phases 31A–31B delivered, 31C in progress, 31D–31J planned  
 **Next priority:** complete Phases 31C–31J strictly in order before beginning Phase 32
 
-Phase 31A (portable core and workspace extraction, Milestone 615) and Phase 31B (device identity, scoped local state and recoverable migration, Milestones 616–627) are complete; [31A](delivery/PHASE31A_ACCEPTANCE.md) and [31B](delivery/PHASE31B_ACCEPTANCE.md) acceptance evidence record the verified results, and 31B lists one owed installed-build manual pass. The Hub, synchronization and later distributed capabilities remain planned.
+Phase 31A (portable core and workspace extraction, Milestone 615) and Phase 31B (device identity, scoped local state and recoverable migration, Milestones 616–627) are complete; [31A](delivery/PHASE31A_ACCEPTANCE.md) and [31B](delivery/PHASE31B_ACCEPTANCE.md) acceptance evidence record the verified results, and 31B lists one owed installed-build manual pass. Phase 31C (self-hosted Hub) is in progress with its decisions recorded in the [decision log](history/DECISION_LOG.md#phase-31c-implementation-decisions); synchronization and later distributed capabilities remain planned.
 
 [Repository](https://github.com/arahman200165/DUDE) · [Standalone web companion](https://arahman200165.github.io/DUDE/) · [Decision provenance](history/DECISION_LOG.md#reconciliation-decisions-and-requirement-traceability)
 

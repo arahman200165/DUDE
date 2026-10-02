@@ -505,7 +505,9 @@ Two different things have been called an "agent"; this document keeps them apart
 | Process | Electron `utilityProcess` bundled from `apps/device-agent` | Not yet a separate process; today's native capabilities are Electron-main bridges and native helpers |
 | Privilege | Unprivileged: no tool execution, no shell, no network on a caller's behalf; typed RPC only | Privileged, with explicit validated, authorized operations |
 | Callers | Electron main only, over a private `MessagePort` (the renderer never holds a port) | Local application today; strongly authorized remote jobs only in a later phase |
-| Lifecycle | Supervised by main: backoff restart, degraded in-memory mode, coordinated quit | Open decision for 31C, with the Hub service wrapper |
+| Lifecycle | Supervised by main: backoff restart, degraded in-memory mode, coordinated quit | Decided for 31C (not yet implemented): see the note below |
+
+**Decided for Phase 31C, implementation in progress.** [PD-026](../history/DECISION_LOG.md#phase-31c-implementation-decisions) supersedes the open lifecycle question: `apps/device-agent` becomes the resident per-user Device Agent (a per-user executable started at logon and ensured by the desktop, reached over an authenticated named pipe, holding the device key and, later, the Hub connection). This redefines the *state service* described in the table: it gains network access to the Hub only and holds keys, and it still never executes tools and grants no remote execution. The table above describes the delivered 31B state until that implementation lands.
 
 The directory name `apps/device-agent` is historical from planning; user-facing and architectural text calls the process the *state service*. Renaming the workspace is not required, and the privileged Device Agent will not reuse it implicitly.
 
@@ -606,9 +608,9 @@ Future integrations
 
 ### Service and adapter boundaries
 
-Use a single maintainable Hub application with clear internal modules initially; the list of Hub services is a responsibility decomposition, not a requirement to deploy independent microservices. Node/NestJS or an equivalent service is a planning candidate, not a proven codebase choice. Record the framework/runtime decision before implementing 31C.
+Use a single maintainable Hub application with clear internal modules initially; the list of Hub services is a responsibility decomposition, not a requirement to deploy independent microservices. The Hub framework/runtime and packaging are decided for 31C, implementation in progress: Fastify with REST `/api/v1` ([PD-023](../history/DECISION_LOG.md#phase-31c-implementation-decisions)), a Node single-executable application with a Windows service, Docker and foreground modes ([PD-024](../history/DECISION_LOG.md#phase-31c-implementation-decisions)).
 
-Hub modules access canonical state through repository interfaces; clients never mount/open the Hub database. Device repositories manage local persistence; platform adapters own OS/browser/mobile-specific facilities. The local Device Agent starts as the formal boundary around existing Electron/native services; a separately resident Agent process is not automatically required merely because the Hub must be a background service. Choose and document the Agent process/lifecycle model before packaging, preserving local IPC validation and confirmation semantics.
+Hub modules access canonical state through repository interfaces; clients never mount/open the Hub database. Device repositories manage local persistence; platform adapters own OS/browser/mobile-specific facilities. The local Device Agent starts as the formal boundary around existing Electron/native services; a separately resident Agent process is not automatically required merely because the Hub must be a background service. The Agent process/lifecycle model is decided for 31C, implementation in progress ([PD-026](../history/DECISION_LOG.md#phase-31c-implementation-decisions)): a resident per-user process, preserving local IPC validation and confirmation semantics.
 
 Keep co-located Hub and Agent responsibilities distinct. A Hub service account must not inherit unrestricted native desktop control; local user-vault access, elevated actions and interactive confirmations belong to their explicit device/runtime boundaries. Future remote jobs require a separate reviewed protocol.
 

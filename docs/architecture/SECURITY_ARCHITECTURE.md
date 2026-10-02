@@ -293,7 +293,7 @@ A compromised web session must not automatically imply arbitrary:
 
 ### Authentication, exposure and execution gates
 
-The first Hub implementation requires a self-contained owner bootstrap/authentication/recovery flow. Passkeys/WebAuthn, local credentials, recovery codes and optional external OAuth are candidate mechanisms; select and document the initial combination in 31C. Avoid unprotected public bootstrap, default reusable credentials and dependence on a third-party OAuth provider.
+The first Hub implementation requires a self-contained owner bootstrap/authentication/recovery flow. Passkeys/WebAuthn, local credentials, recovery codes and optional external OAuth are candidate mechanisms; the initial combination is decided for 31C, implementation in progress: an Argon2id password plus single-use recovery codes, a one-time setup-token bootstrap and no external OAuth ([PD-027](../history/DECISION_LOG.md#phase-31c-implementation-decisions), [PD-028](../history/DECISION_LOG.md#phase-31c-implementation-decisions), [PD-029](../history/DECISION_LOG.md#phase-31c-implementation-decisions)); passkeys/TOTP are deferred. The security baseline applies from the first endpoint ([PD-033](../history/DECISION_LOG.md#phase-31c-implementation-decisions)). Avoid unprotected public bootstrap, default reusable credentials and dependence on a third-party OAuth provider.
 
 Private exposure is the default, but a LAN or VPN is not a substitute for application authentication. Use secure session handling, origin validation, CSRF defenses where cookie authentication applies, session expiry, brute-force protection, rate limits, payload validation and audit from the first enabled endpoints; 31F verifies readiness rather than retrofits an unprotected Internet service.
 

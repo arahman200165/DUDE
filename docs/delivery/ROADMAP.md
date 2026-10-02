@@ -31,7 +31,7 @@ Related: [DUDE — Product Requirements](../DUDE_PRD.md) · [Quality and Release
 | Horizon | Status |
 |---|---|
 | Phases 0–31 | Complete; Phase 31 closed at Milestone 614 |
-| Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A (Milestone 615) and 31B (Milestones 616–627) complete, 31C–31J planned |
+| Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A (Milestone 615) and 31B (Milestones 616–627) complete, 31C in progress (Milestones 628–649), 31D–31J planned |
 | Phase 32 | Core expansion begins only after every phase from 31A through 31J is complete |
 | Phases 33–100 | Retained long-horizon scope, subject to dependencies and product boundaries |
 
@@ -133,11 +133,13 @@ Backup/transfer is deliberately moved ahead of mobile delivery, and security con
 
 <a id="phase-31c"></a>
 
-### Phase 31C — Self-Hosted Hub, Identity and Canonical Persistence (Planned)
+### Phase 31C — Self-Hosted Hub, Identity and Canonical Persistence (In Progress)
 
 **Depends on:** 31A–31B.
 
-- self-hosted Node/NestJS or equivalent Hub service;
+**Implementation status:** in progress (Milestones 628–649); decisions [PD-023–PD-037](../history/DECISION_LOG.md#phase-31c-implementation-decisions). Milestone 628 records the decisions and reconciles the documents; the Hub, registration, replay and sync are not shipped until later milestones in this phase say so.
+
+- self-hosted Hub service (Fastify, per [PD-023](../history/DECISION_LOG.md#phase-31c-implementation-decisions));
 - canonical SQLite repository;
 - migrations;
 - owner authentication;

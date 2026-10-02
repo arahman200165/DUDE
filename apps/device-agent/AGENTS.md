@@ -2,6 +2,8 @@
 
 The **Device State Store "state service"**: a utilityProcess (bundled by `npm run device-agent:compile` to `dist/electron/device-agent.js`) that owns the SQLite database `userData/device-store/dude-device.db` through `node:sqlite`. It is NOT the privileged "Device Agent" execution boundary named in SYSTEM/SECURITY_ARCHITECTURE; do not conflate them.
 
+PD-026 (Phase 31C) makes this process the resident per-user Device Agent; see the [decision log](../../docs/history/DECISION_LOG.md#phase-31c-implementation-decisions). The file layout and rules below describe the code until that lands (Milestones 639-640).
+
 - Only Electron main talks to it (private MessagePort, closed method table). The renderer never holds a port.
 - No `electron` or `@angular/*` imports, and nothing here is imported by `apps/web` (`npm run check:boundaries` enforces both). Allowed workspace deps: persistence, sync, contracts, domain, shared-types.
 - Schema changes happen only through new numbered migrations in `src/store/migrations/`. Never edit a shipped migration (checksums are verified); bump `minReaderVersion` only for changes older builds cannot read.
