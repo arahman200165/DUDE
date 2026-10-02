@@ -9,7 +9,9 @@ import { ensureTlsIdentity } from '../tls/index.js';
 import { AdminCallError, callAdmin } from '../admin/admin-client.js';
 import { startAdminEndpoint } from '../admin/admin-endpoint.js';
 import { buildAdminMethods } from '../admin/methods.js';
+import { ensureSetupToken } from '../auth/setup-token.js';
 import { audit } from '../security/audit.js';
+import { runSetupToken } from './setup-token.js';
 import { HELP_TEXT, UsageError, parseArgs } from './args.js';
 
 export const EXIT_OK = 0;
@@ -55,6 +57,13 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   }
 
   if (parsed.command === 'status') return runStatus(parsed.dataDir);
+  if (parsed.command === 'setup-token') {
+    return runSetupToken({
+      ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}),
+      ...(parsed.deliverTo !== undefined ? { deliverTo: parsed.deliverTo } : {}),
+      ...(parsed.nonce !== undefined ? { nonce: parsed.nonce } : {}),
+    });
+  }
 
   const root = resolveDataDir({ dataDir: parsed.dataDir });
   const paths = ensureLayout(root);
@@ -75,6 +84,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     return EXIT_DATABASE;
   }
   const hub = opened.hub;
+  ensureSetupToken(hub.db, paths.configDir, Date.now());
   const tls = ensureTlsIdentity(paths.tlsDir, { hubInstanceId: hub.hubInstanceId });
   const logStream = createLogStream(path.join(paths.logsDir, 'hub.log'), { stdout: true });
   const server: FastifyInstance = createHubServer({
@@ -102,7 +112,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     admin = await startAdminEndpoint({
       dataDir: paths.root,
       hubInstanceId: hub.hubInstanceId,
-      methods: buildAdminMethods({ db: hub.db, hubVersion: hubVersion(), hubInstanceId: hub.hubInstanceId, bind: config.bind, getPort: () => port, startedAt }),
+      methods: buildAdminMethods({ db: hub.db, hubVersion: hubVersion(), hubInstanceId: hub.hubInstanceId, bind: config.bind, getPort: () => port, startedAt, configDir: paths.configDir, spkiSha256: tls.spkiSha256 }),
     });
   } catch (error) {
     process.stderr.write(`The admin endpoint could not start: ${(error as Error).message}\n`);

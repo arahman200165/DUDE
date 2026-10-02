@@ -14,6 +14,7 @@ import { ensureTlsIdentity } from '../tls/index.js';
 import type { TlsIdentity } from '../tls/index.js';
 import type { RateLimiterOptions } from '../security/rate-limit.js';
 import type { CsrfVerifier } from '../security/request-guard.js';
+import type { PasswordParams } from '../auth/password.js';
 import { createHubServer } from './create-server.js';
 
 export interface TestHub {
@@ -45,6 +46,7 @@ export interface TestHubOptions {
   extraHosts?: readonly string[];
   rateLimit?: RateLimiterOptions;
   configure?: (app: FastifyInstance) => void;
+  passwordParams?: PasswordParams;
 }
 
 export async function startTestHub(config: Partial<HubConfig> = {}, extra: TestHubOptions = {}): Promise<TestHub> {

@@ -3,6 +3,7 @@ import type { HubBindMode } from '../config/hub-config.js';
 export type ParsedCommand =
   | { command: 'run'; dataDir?: string; port?: number; bind?: HubBindMode; webRoot?: string }
   | { command: 'status'; dataDir?: string }
+  | { command: 'setup-token'; dataDir?: string; deliverTo?: string; nonce?: string }
   | { command: 'version' }
   | { command: 'help' };
 
@@ -15,6 +16,7 @@ export const HELP_TEXT = `DUDE Hub
 Usage:
   dude-hub run [--data-dir <dir>] [--port <n>] [--bind loopback|lan|container] [--web-root <dir>]
   dude-hub status [--data-dir <dir>]
+  dude-hub setup-token [--data-dir <dir>] [--deliver-to <SID> --nonce <n>]
   dude-hub version
   dude-hub help
 
@@ -39,6 +41,22 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
       else throw new UsageError(`Unknown flag "${flag}". Run "dude-hub help".`);
     }
     return status;
+  }
+  if (command === 'setup-token') {
+    const result: Extract<ParsedCommand, { command: 'setup-token' }> = { command: 'setup-token' };
+    for (let i = 0; i < rest.length; i++) {
+      const flag = rest[i]!;
+      const eq = flag.startsWith('--') ? flag.indexOf('=') : -1;
+      const name = eq >= 0 ? flag.slice(0, eq) : flag;
+      const inline = eq >= 0 ? flag.slice(eq + 1) : undefined;
+      if (name !== '--data-dir' && name !== '--deliver-to' && name !== '--nonce') throw new UsageError(`Unknown flag "${flag}". Run "dude-hub help".`);
+      const next = inline ?? rest[++i];
+      if (next === undefined || (inline === undefined && next.startsWith('--'))) throw new UsageError(`Flag ${name} needs a value.`);
+      if (name === '--data-dir') result.dataDir = next;
+      else if (name === '--deliver-to') result.deliverTo = next;
+      else result.nonce = next;
+    }
+    return result;
   }
   if (command !== 'run') throw new UsageError(`Unknown command "${command}". Run "dude-hub help".`);
 

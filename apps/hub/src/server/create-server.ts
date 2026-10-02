@@ -5,6 +5,8 @@ import type { HubConfig } from '../config/hub-config.js';
 import type { HubPaths } from '../config/data-dir.js';
 import { envelope, hubErrorHandler } from './errors.js';
 import { registerHelloRoute } from './routes/hello.js';
+import { registerBootstrapRoute } from './routes/bootstrap.js';
+import type { PasswordParams } from '../auth/password.js';
 import { createStaticHandler } from './static.js';
 import { ensureActiveTlsPin } from './tls-pins.js';
 import type { HubLoggerOptions } from './logger.js';
@@ -34,6 +36,8 @@ export interface CreateHubServerOptions {
   hub: { db: Db; hubInstanceId: string };
   hubVersion: string;
   logger?: boolean | HubLoggerOptions;
+  /** Cheaper Argon2 settings for specs only. */
+  passwordParams?: PasswordParams;
 }
 
 export function createHubServer(options: CreateHubServerOptions): FastifyInstance {
@@ -69,6 +73,13 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
     hubInstanceId: options.hub.hubInstanceId,
     hubVersion: options.hubVersion,
     spkiSha256: options.tls.spkiSha256,
+  });
+
+  registerBootstrapRoute(app, {
+    db: options.hub.db,
+    configDir: options.paths.configDir,
+    now,
+    ...(options.passwordParams ? { passwordParams: options.passwordParams } : {}),
   });
 
   const serveStatic = createStaticHandler({ root: options.config.webRoot ?? options.paths.webRoot });
