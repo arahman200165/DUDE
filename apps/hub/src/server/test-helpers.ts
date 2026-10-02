@@ -12,6 +12,8 @@ import { openHubDb } from '../db/open-hub-db.js';
 import type { HubDb } from '../db/open-hub-db.js';
 import { ensureTlsIdentity } from '../tls/index.js';
 import type { TlsIdentity } from '../tls/index.js';
+import type { RateLimiterOptions } from '../security/rate-limit.js';
+import type { CsrfVerifier } from '../security/request-guard.js';
 import { createHubServer } from './create-server.js';
 
 export interface TestHub {
@@ -37,7 +39,15 @@ export function makeWebRoot(): string {
   return root;
 }
 
-export async function startTestHub(config: Partial<HubConfig> = {}): Promise<TestHub> {
+export interface TestHubOptions {
+  now?: () => number;
+  csrfVerifier?: CsrfVerifier;
+  extraHosts?: readonly string[];
+  rateLimit?: RateLimiterOptions;
+  configure?: (app: FastifyInstance) => void;
+}
+
+export async function startTestHub(config: Partial<HubConfig> = {}, extra: TestHubOptions = {}): Promise<TestHub> {
   const paths = ensureLayout(tempDir('hub-data-'));
   const opened = openHubDb({ dbFile: paths.dbFile, preMigrationDir: paths.preMigrationDir });
   if (opened.status !== 'ready') throw new Error('database not ready');
@@ -49,6 +59,7 @@ export async function startTestHub(config: Partial<HubConfig> = {}): Promise<Tes
     tls,
     hub: { db: hub.db, hubInstanceId: hub.hubInstanceId },
     hubVersion: 'test',
+    ...extra,
   });
   await app.listen({ port: 0, host: '127.0.0.1' });
   const port = (app.server.address() as AddressInfo).port;

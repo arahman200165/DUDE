@@ -38,7 +38,7 @@ describe('hub server', () => {
 
   it('answers unknown /api paths with a JSON envelope, never HTML', async () => {
     for (const method of ['GET', 'POST']) {
-      const res = await request(hub.port, hub.tls.certPem, `${HUB_API_PREFIX}/nope`, { method });
+      const res = await request(hub.port, hub.tls.certPem, `${HUB_API_PREFIX}/nope`, { method, headers: { origin: `https://127.0.0.1:${hub.port}` } });
       expect(res.status).toBe(404);
       expect(String(res.headers['content-type'])).toContain('application/json');
       const body: unknown = JSON.parse(res.body);
@@ -50,7 +50,7 @@ describe('hub server', () => {
   it('rejects bodies over 64 KiB with 413', async () => {
     const res = await request(hub.port, hub.tls.certPem, `${HUB_API_PREFIX}/nope`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', origin: `https://127.0.0.1:${hub.port}` },
       body: JSON.stringify({ filler: 'x'.repeat(70 * 1024) }),
     });
     expect(res.status).toBe(413);
@@ -60,7 +60,7 @@ describe('hub server', () => {
   it('maps malformed JSON to a 400 envelope without leaking detail', async () => {
     const res = await request(hub.port, hub.tls.certPem, `${HUB_API_PREFIX}/nope`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', origin: `https://127.0.0.1:${hub.port}` },
       body: '{not json',
     });
     expect(res.status).toBe(400);

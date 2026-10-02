@@ -2,6 +2,7 @@ import type { HubBindMode } from '../config/hub-config.js';
 
 export type ParsedCommand =
   | { command: 'run'; dataDir?: string; port?: number; bind?: HubBindMode; webRoot?: string }
+  | { command: 'status'; dataDir?: string }
   | { command: 'version' }
   | { command: 'help' };
 
@@ -13,6 +14,7 @@ export const HELP_TEXT = `DUDE Hub
 
 Usage:
   dude-hub run [--data-dir <dir>] [--port <n>] [--bind loopback|lan|container] [--web-root <dir>]
+  dude-hub status [--data-dir <dir>]
   dude-hub version
   dude-hub help
 
@@ -25,6 +27,19 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
   const [command, ...rest] = argv;
   if (command === undefined || command === 'help' || command === '--help' || command === '-h') return { command: 'help' };
   if (command === 'version' || command === '--version') return { command: 'version' };
+  if (command === 'status') {
+    const status: Extract<ParsedCommand, { command: 'status' }> = { command: 'status' };
+    for (let i = 0; i < rest.length; i++) {
+      const flag = rest[i]!;
+      if (flag === '--data-dir') {
+        const next = rest[++i];
+        if (next === undefined || next.startsWith('--')) throw new UsageError('Flag --data-dir needs a value.');
+        status.dataDir = next;
+      } else if (flag.startsWith('--data-dir=')) status.dataDir = flag.slice('--data-dir='.length);
+      else throw new UsageError(`Unknown flag "${flag}". Run "dude-hub help".`);
+    }
+    return status;
+  }
   if (command !== 'run') throw new UsageError(`Unknown command "${command}". Run "dude-hub help".`);
 
   const result: Extract<ParsedCommand, { command: 'run' }> = { command: 'run' };

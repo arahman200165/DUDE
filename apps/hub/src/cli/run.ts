@@ -6,6 +6,10 @@ import { openHubDb } from '../db/open-hub-db.js';
 import { createHubServer } from '../server/create-server.js';
 import { createLogStream, hubLoggerOptions } from '../server/logger.js';
 import { ensureTlsIdentity } from '../tls/index.js';
+import { AdminCallError, callAdmin } from '../admin/admin-client.js';
+import { startAdminEndpoint } from '../admin/admin-endpoint.js';
+import { buildAdminMethods } from '../admin/methods.js';
+import { audit } from '../security/audit.js';
 import { HELP_TEXT, UsageError, parseArgs } from './args.js';
 
 export const EXIT_OK = 0;
@@ -15,6 +19,18 @@ export const EXIT_DATABASE = 3;
 
 export function hubVersion(): string {
   return typeof __DUDE_VERSION__ === 'string' && __DUDE_VERSION__ ? __DUDE_VERSION__ : 'dev';
+}
+
+/** Asks the running service over the admin channel; never opens the database. Exit 2 when it is not running. */
+async function runStatus(dataDir: string | undefined): Promise<number> {
+  try {
+    const result = await callAdmin(resolveDataDir({ dataDir }), 'status', {}, 3000);
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    return EXIT_OK;
+  } catch (error) {
+    process.stderr.write(`${error instanceof AdminCallError || error instanceof Error ? error.message : 'status failed'}\n`);
+    return EXIT_USAGE;
+  }
 }
 
 /** Runs the CLI. Resolves with an exit code for one-shot commands; `run` resolves only after shutdown. */
@@ -37,6 +53,8 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     process.stdout.write(`${hubVersion()}\n`);
     return EXIT_OK;
   }
+
+  if (parsed.command === 'status') return runStatus(parsed.dataDir);
 
   const root = resolveDataDir({ dataDir: parsed.dataDir });
   const paths = ensureLayout(root);
@@ -78,6 +96,22 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   }
   const address = server.server.address();
   const port = typeof address === 'object' && address ? address.port : config.port;
+  const startedAt = Date.now();
+  let admin: Awaited<ReturnType<typeof startAdminEndpoint>>;
+  try {
+    admin = await startAdminEndpoint({
+      dataDir: paths.root,
+      hubInstanceId: hub.hubInstanceId,
+      methods: buildAdminMethods({ db: hub.db, hubVersion: hubVersion(), hubInstanceId: hub.hubInstanceId, bind: config.bind, getPort: () => port, startedAt }),
+    });
+  } catch (error) {
+    process.stderr.write(`The admin endpoint could not start: ${(error as Error).message}\n`);
+    await server.close();
+    hub.close();
+    logStream.close();
+    return EXIT_FAILURE;
+  }
+  audit(hub.db, { event: 'hub.started', outcome: 'success', actorKind: 'system', detail: { version: hubVersion(), port, bind: config.bind }, now: Date.now() });
   process.stdout.write(`${JSON.stringify({ event: 'listening', url: `https://127.0.0.1:${port}`, spkiSha256: tls.spkiSha256 })}\n`);
 
   return new Promise<number>((resolve) => {
@@ -87,6 +121,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
       stopping = true;
       void (async () => {
         let code = EXIT_OK;
+        try { await admin.close(); } catch { /* best effort */ }
         try { await server.close(); } catch { code = EXIT_FAILURE; }
         try { hub.db.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch { /* best effort */ }
         hub.close();
