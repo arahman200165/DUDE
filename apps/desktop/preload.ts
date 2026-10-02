@@ -43,6 +43,16 @@ const bridge: PlatformBridge = {
     importEntities: (commits) => ipcRenderer.invoke('dude:store:entity:importMany', commits),
     status: () => ipcRenderer.invoke('dude:store:status'),
     retry: () => ipcRenderer.invoke('dude:store:retry'),
+    reset: {
+      preview: (kind) => ipcRenderer.invoke('dude:store:reset:preview', kind),
+      apply: (request) => ipcRenderer.invoke('dude:store:reset:apply', request),
+    },
+    recovery: {
+      // No argument is forwarded: main alone chooses the folder.
+      openFolder: () => ipcRenderer.invoke('dude:store:recovery:openFolder'),
+      quarantinePreview: () => ipcRenderer.invoke('dude:store:recovery:quarantinePreview'),
+      quarantineApply: (token) => ipcRenderer.invoke('dude:store:recovery:quarantineApply', token),
+    },
     history: {
       add: (entry) => ipcRenderer.invoke('dude:store:history:add', entry),
       list: (query) => ipcRenderer.invoke('dude:store:history:list', query),

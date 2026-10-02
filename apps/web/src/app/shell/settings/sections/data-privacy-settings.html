@@ -75,20 +75,11 @@
   <div data-setting class="flex flex-col gap-2 rounded-sm border border-error/40 p-3">
     <h3 class="text-ui-sm font-semibold text-error">Danger zone</h3>
     <p class="text-ui text-text-muted">
-      Deletes every saved preference, workspace, pipeline, Home note, and History entry from this browser/app profile. This cannot be undone.
-      Secrets kept in the OS keychain (the AI provider key) are cleared separately under AI / LLM Provider.
+      Clearing saved data now lives under This Device, where it previews exactly what will be deleted and asks you to confirm.
+      Secrets kept in the OS keychain (the AI provider key) are removed only by "Reset this device" or under AI / LLM Provider.
     </p>
-    <div class="flex items-center gap-3">
-      <button
-        type="button"
-        class="w-fit rounded-sm border border-error/40 px-2 py-0.5 text-ui text-error hover:bg-error/10"
-        (click)="onClearAllLocalData()"
-      >
-        Clear all local data
-      </button>
-      @if (status() === 'cleared') {
-        <span class="text-ui text-success">Cleared.</span>
-      }
-    </div>
+    <a routerLink="/settings/device" class="w-fit rounded-sm border border-error/40 px-2 py-0.5 text-ui text-error hover:bg-error/10">
+      Clear data or reset this device…
+    </a>
   </div>
 </div>

@@ -1,4 +1,5 @@
 import { Component, signal } from '@angular/core';
+import { provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { PlatformService } from '../../../core/platform/platform.service';
 import { SecretsService } from '../../../core/persistence/secrets.service';
@@ -68,6 +69,7 @@ describe('Settings sections', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        provideRouter([]),
         { provide: PlatformService, useValue: { isDesktop: () => desktop } },
         { provide: SecretsService, useValue: secureLocal },
         { provide: AiProviderConfigService, useValue: aiConfig },
@@ -333,23 +335,14 @@ describe('Settings sections', () => {
   });
 
   describe('Data & Privacy', () => {
-    it('asks before clearing local data', async () => {
+    it('points to This Device instead of clearing data itself', () => {
       desktop = false;
-      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
       const fixture = TestBed.createComponent(DataPrivacySettings);
       fixture.detectChanges();
-      const button = buttonWithText(fixture.nativeElement, 'Clear all local data');
-
-      button.click();
-      await fixture.whenStable();
+      const link = fixture.nativeElement.querySelector('a[href="/settings/device"]') as HTMLAnchorElement;
+      expect(link).not.toBeNull();
+      expect(buttonWithText(fixture.nativeElement, 'Clear all local data')).toBeUndefined();
       expect(clearAll).not.toHaveBeenCalled();
-
-      confirmSpy.mockReturnValue(true);
-      button.click();
-      await fixture.whenStable();
-      fixture.detectChanges();
-      expect(clearAll).toHaveBeenCalledTimes(1);
-      expect(fixture.nativeElement.textContent).toContain('Cleared.');
     });
   });
 });

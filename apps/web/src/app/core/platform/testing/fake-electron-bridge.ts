@@ -208,6 +208,15 @@ export function fakeStore(): PlatformBridge['store'] {
     },
     status: async () => health,
     retry: async () => health,
+    reset: {
+      preview: async (kind) => ({ ok: true, kind, token: 'fake-token', counts: { kv: kv.size, records: records.size }, expiresAt: new Date(Date.now() + 60_000).toISOString(), keepsIdentity: kind === 'clear-data', wipesSecrets: kind === 'reset-device' }),
+      apply: async () => { kv.clear(); records.clear(); return { ok: true }; },
+    },
+    recovery: {
+      openFolder: async () => ({ ok: true }),
+      quarantinePreview: async () => ({ ok: false, error: 'not-needed' }),
+      quarantineApply: async () => ({ ok: false, error: 'invalid-token' }),
+    },
     history: fakeHistory(),
     network: fakeNetwork(),
     onFlushRequest: (callback) => { flushListeners.add(callback); return () => { flushListeners.delete(callback); }; },

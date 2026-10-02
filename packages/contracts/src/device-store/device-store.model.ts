@@ -69,3 +69,18 @@ export interface ResetPreview {
   keepsIdentity: boolean;
   wipesSecrets: boolean;
 }
+
+export type ResetApplyError = 'invalid-token' | 'expired' | 'stale-preview' | 'forbidden' | 'unavailable' | 'failed';
+export type ResetApplyResult = { readonly ok: true } | { readonly ok: false; readonly error: ResetApplyError };
+
+/** Step one of moving an unreadable store aside (recovery); nothing moves until `quarantineApply`. */
+export interface QuarantinePreview {
+  token: string;
+  /** What will move into the quarantine folder (names and sizes only). */
+  files: Array<{ name: string; sizeBytes: number }>;
+  /** ISO-8601. */
+  expiresAt: string;
+}
+
+export type QuarantinePreviewResult = ({ readonly ok: true } & QuarantinePreview) | { readonly ok: false; readonly error: ResetApplyError | 'not-needed' };
+export type ResetPreviewResult = ({ readonly ok: true } & ResetPreview) | { readonly ok: false; readonly error: ResetApplyError };

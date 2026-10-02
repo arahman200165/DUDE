@@ -46,6 +46,7 @@ import { getDeviceStoreHost, setDeviceStoreHost } from './device-store/store-cli
 import { startStoreMaintenance } from './device-store/store-maintenance';
 import { importLegacyUserData } from './device-store/legacy-import';
 import { registerDeviceStoreHandlers } from './device-store/store-bridge';
+import { defaultStoreResetDeps, registerStoreResetHandlers } from './device-store/store-reset';
 import { markPerf } from './perf-log';
 
 // Must run before app ready: the privileged scheme gives the renderer a stable secure origin.
@@ -122,6 +123,12 @@ async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
   registerDeepLinkHandlers(window);
   registerExternalLinkHandlers(window);
   registerDeviceStoreHandlers(window);
+  registerStoreResetHandlers(window, defaultStoreResetDeps(() => app.getPath('userData'), async () => {
+    await startDeviceStore();
+    const host = getDeviceStoreHost();
+    host?.onHealth((health) => { if (!window.isDestroyed() && !window.webContents.isDestroyed()) window.webContents.send('dude:store:health', health); });
+    return host;
+  }));
   registerLlmHandlers(window);
   registerAiProviderHandlers(window);
   registerSecretsHandlers(window);

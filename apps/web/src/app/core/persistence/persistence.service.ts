@@ -142,6 +142,17 @@ export class PersistenceService {
     }
   }
 
+  /** How many entries `clearAll()` would remove (the web installation record is excluded). */
+  countClearable(): number {
+    let count = 0;
+    for (const backend of [this.local, this.session]) {
+      for (const storedKey of backend.keys(NAMESPACE_PREFIX)) {
+        if (!storedKey.startsWith(`${NAMESPACE_PREFIX}:${DEVICE_NAMESPACE}:`)) count++;
+      }
+    }
+    return count;
+  }
+
   clearAll(): void {
     for (const backend of [this.local, this.session]) {
       for (const storedKey of backend.keys(NAMESPACE_PREFIX)) {

@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { ClearAllDataService } from '../../../core/workspace/clear-all-data';
+import { RouterLink } from '@angular/router';
 import { DudeBundleService } from '../../../core/backup/dude-bundle.service';
 import { ConflictMode, ImportPlan } from "@dude/domain/core/backup/dude-bundle.model";
 import { downloadFile } from '../../../shared/utils/download-file';
@@ -11,7 +11,7 @@ interface SaveFilePickerWindow {
 }
 
 /**
- * Settings › Data & Privacy. The one home of "Clear all local data", and of the export/import
+ * Settings › Data & Privacy. The home of the export/import
  * bundle (Phase 26 Item 14): a portable backup of projects, templates, pipelines, scripts, and tool
  * preferences, identical on web and desktop.
  *
@@ -20,24 +20,16 @@ interface SaveFilePickerWindow {
  */
 @Component({
   selector: 'app-data-privacy-settings',
+  imports: [RouterLink],
   templateUrl: './data-privacy-settings.html',
 })
 export class DataPrivacySettings {
-  private readonly clearAllData = inject(ClearAllDataService);
   private readonly bundles = inject(DudeBundleService);
-  protected readonly status = signal<'idle' | 'cleared'>('idle');
-
   protected readonly includeInputs = signal(false);
   protected readonly conflictMode = signal<ConflictMode>('skip');
   protected readonly importText = signal<string | null>(null);
   protected readonly importPlan = signal<ImportPlan | null>(null);
   protected readonly bundleMessage = signal<string | null>(null);
-
-  protected async onClearAllLocalData(): Promise<void> {
-    if (!confirm('Clear all saved DUDE data from this browser? This cannot be undone.')) return;
-    await this.clearAllData.clearAll();
-    this.status.set('cleared');
-  }
 
   protected async exportBundle(): Promise<void> {
     const bundle = this.bundles.build({ includeInputs: this.includeInputs() });

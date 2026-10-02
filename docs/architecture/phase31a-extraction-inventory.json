@@ -4897,6 +4897,7 @@
       "classification": "host-adapter",
       "hostDependencies": [
         "host import: @angular/core",
+        "host import: @angular/router",
         "host API: Blob",
         "host API: window",
         "host API: Event",

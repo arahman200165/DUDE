@@ -13,6 +13,7 @@ export interface DeviceIdentity {
   readonly environmentId: string;
   readonly displayName: string;
   readonly platform: string;
+  readonly appVersion?: string;
   readonly enrollmentState: string;
   readonly clonedFrom?: string;
 }
@@ -55,12 +56,19 @@ export class DeviceIdentityService {
     return { ok: true, displayName: checked.value };
   }
 
+  /** Web only: replaces the installation record with a freshly minted one (the web half of "Reset this device"). */
+  resetInstallation(): void {
+    if (this.bridge.get()) return;
+    const record = this.mintInstallation();
+    this.state.set({ deviceId: record.deviceId, environmentId: record.environmentId, displayName: record.displayName, platform: 'web', enrollmentState: 'standalone' });
+  }
+
   private initial(): DeviceIdentity | null {
     const device = this.snapshot.boot?.device;
     if (device) {
       return {
         deviceId: device.deviceId, environmentId: device.environmentId, displayName: device.displayName,
-        platform: device.platform, enrollmentState: device.enrollmentState, clonedFrom: device.clonedFrom,
+        platform: device.platform, appVersion: device.appVersion, enrollmentState: device.enrollmentState, clonedFrom: device.clonedFrom,
       };
     }
     if (this.bridge.get()) return null;

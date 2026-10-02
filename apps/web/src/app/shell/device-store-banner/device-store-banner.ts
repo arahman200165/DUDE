@@ -32,6 +32,6 @@ export class DeviceStoreBanner {
   }
 
   protected details(): void {
-    void this.router.navigateByUrl('/settings');
+    void this.router.navigateByUrl('/settings/device');
   }
 }

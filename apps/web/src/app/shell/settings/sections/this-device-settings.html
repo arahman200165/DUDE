@@ -1,0 +1,146 @@
+<div class="flex flex-col gap-4">
+  <p class="text-ui text-text-muted">
+    This device's identity and its local store. Nothing here is shared; there is no Hub. Opening this page never changes anything.
+  </p>
+
+  @if (identity(); as device) {
+    <div data-setting class="flex flex-col gap-2" data-testid="identity">
+      <h3 class="text-ui-sm font-semibold text-text">Identity</h3>
+      <dl class="grid grid-cols-[max-content_1fr] items-center gap-x-3 gap-y-1 text-ui">
+        <dt class="text-text-muted">Device ID</dt>
+        <dd class="flex items-center gap-2">
+          <code class="font-mono text-text" data-testid="device-id">{{ device.deviceId }}</code>
+          <app-copy-button [text]="device.deviceId" label="Copy" />
+        </dd>
+        <dt class="text-text-muted">Name</dt>
+        <dd class="flex flex-wrap items-center gap-2">
+          <input
+            type="text"
+            aria-label="Device name"
+            class="w-64 rounded-sm border border-border bg-panel px-2 py-0.5 text-text"
+            [value]="nameValue()"
+            [attr.aria-invalid]="nameError() ? 'true' : null"
+            (input)="onNameInput($event)"
+          />
+          <button
+            type="button"
+            class="rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10 disabled:opacity-50"
+            [disabled]="nameDraft() === null || nameError() !== null"
+            (click)="saveName()"
+          >Save name</button>
+          @if (nameSaved()) { <span class="text-success" role="status">Saved.</span> }
+          @if (nameError()) { <span class="text-error" role="alert" data-testid="name-error">{{ nameError() }}</span> }
+        </dd>
+        <dt class="text-text-muted">Platform</dt>
+        <dd class="text-text">{{ device.platform }}@if (device.appVersion) { · DUDE {{ device.appVersion }} }</dd>
+        <dt class="text-text-muted">Environment ID</dt>
+        <dd class="flex items-center gap-2">
+          <code class="font-mono text-text" data-testid="environment-id">{{ device.environmentId }}</code>
+          <app-copy-button [text]="device.environmentId" label="Copy" />
+        </dd>
+        <dt class="text-text-muted">Enrollment</dt>
+        <dd class="text-text" data-testid="enrollment">{{ device.enrollmentState === 'standalone' ? 'Standalone — no Hub' : device.enrollmentState }}</dd>
+        @if (device.clonedFrom) {
+          <dt class="text-text-muted">Cloned from</dt>
+          <dd><code class="font-mono text-text">{{ device.clonedFrom }}</code></dd>
+        }
+      </dl>
+    </div>
+  } @else {
+    <p class="text-ui text-warning" role="status" data-testid="no-identity">Device identity is unavailable because the device store is not running.</p>
+  }
+
+  @if (isDesktopStore) {
+    <div data-setting class="flex flex-col gap-2" data-testid="store">
+      <h3 class="text-ui-sm font-semibold text-text">Device store</h3>
+      <dl class="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 text-ui">
+        <dt class="text-text-muted">Status</dt>
+        <dd class="text-text" data-testid="store-status">{{ storeStatus() }}</dd>
+        @if (storeHealth(); as h) {
+          <dt class="text-text-muted">Schema version</dt>
+          <dd class="text-text">{{ h.schemaVersion }}</dd>
+          <dt class="text-text-muted">Size</dt>
+          <dd class="text-text">{{ sizeText() }}</dd>
+          <dt class="text-text-muted">Last backup</dt>
+          <dd class="text-text">{{ h.lastBackup ?? 'None yet' }}</dd>
+          <dt class="text-text-muted">Legacy import</dt>
+          <dd class="text-text">{{ h.legacyImport === 'none' ? 'Nothing to import' : h.legacyImport === 'done' ? 'Imported' : 'Partly imported' }}</dd>
+          @if (h.message) {
+            <dt class="text-text-muted">Note</dt>
+            <dd class="text-text">{{ h.message }}</dd>
+          }
+        }
+        <dt class="text-text-muted">Pending sync operations</dt>
+        <dd class="text-text" data-testid="outbox-count">{{ outbox()?.pending ?? 0 }}</dd>
+      </dl>
+      @if (outbox()?.backpressure) {
+        <p class="text-ui text-warning" role="status" data-testid="backpressure">
+          The outbox is full ({{ outbox()?.maxRows }} operations). New changes are still saved locally, but older pending operations need to sync or be cleared.
+        </p>
+      }
+
+      @if (canRetry() || canQuarantine() || !storeReady()) {
+        <div class="flex flex-col gap-2 rounded-sm border border-warning/40 p-3" data-testid="recovery">
+          <h4 class="text-ui font-semibold text-warning">Recovery</h4>
+          <div class="flex flex-wrap items-center gap-2">
+            @if (canRetry()) {
+              <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10 disabled:opacity-50" [disabled]="retrying()" (click)="retry()">Retry</button>
+            }
+            <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated" (click)="openFolder()">Open store folder</button>
+            @if (canQuarantine()) {
+              <button type="button" class="rounded-sm border border-error/40 px-2 py-0.5 text-ui text-error hover:bg-error/10 disabled:opacity-50" [disabled]="busy()" (click)="startQuarantine()">Quarantine &amp; reset…</button>
+            }
+          </div>
+          @if (quarantinePreview(); as q) {
+            <div class="flex flex-col gap-2 rounded-sm border border-error/40 p-3" role="alertdialog" aria-label="Confirm quarantine and reset" data-testid="quarantine-confirm">
+              <p class="text-ui text-text">These files move to a quarantine folder next to the store, and DUDE starts a fresh store. Nothing is deleted, but this device gets a new identity.</p>
+              <ul class="ml-4 list-disc text-ui text-text-muted">
+                @for (file of q.files; track file.name) { <li>{{ file.name }} ({{ file.sizeBytes }} bytes)</li> }
+              </ul>
+              <div class="flex gap-2">
+                <button type="button" class="rounded-sm border border-error px-2 py-0.5 text-ui text-error hover:bg-error/10" (click)="confirm()">Confirm quarantine</button>
+                <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated" (click)="cancel()">Cancel</button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <div data-setting class="flex flex-col gap-2 rounded-sm border border-error/40 p-3" data-testid="danger-zone">
+    <h3 class="text-ui-sm font-semibold text-error">Danger zone</h3>
+    <p class="text-ui text-text-muted">Both actions show exactly what will go first. Nothing changes until you confirm, and neither can be undone.</p>
+    <div class="flex flex-wrap items-center gap-2">
+      <button type="button" class="rounded-sm border border-error/40 px-2 py-0.5 text-ui text-error hover:bg-error/10 disabled:opacity-50" [disabled]="busy() || !storeReady()" (click)="startReset('clear-data')">Clear data…</button>
+      <button type="button" class="rounded-sm border border-error/40 px-2 py-0.5 text-ui text-error hover:bg-error/10 disabled:opacity-50" [disabled]="busy() || !storeReady()" (click)="startReset('reset-device')">Reset this device…</button>
+    </div>
+    <app-disclosure label="What is the difference?">
+      <p class="text-ui text-text-muted">
+        Clear data removes saved settings, workspaces, pipelines, History, network runs and journals, and keeps this device's identity@if (isDesktopStore) { and stored secrets }.
+        Reset this device does that too, then gives it a brand-new device ID and environment ID@if (isDesktopStore) { and removes stored secrets such as the AI provider key }.
+      </p>
+    </app-disclosure>
+
+    @if (resetPreview(); as p) {
+      <div class="flex flex-col gap-2 rounded-sm border border-error/40 p-3" role="alertdialog" [attr.aria-label]="'Confirm ' + kindLabel(p.kind)" data-testid="reset-confirm">
+        <p class="text-ui text-text">{{ kindLabel(p.kind) }} will permanently delete:</p>
+        <ul class="ml-4 list-disc text-ui text-text-muted">
+          @for (row of countRows(p.counts); track row.label) { <li>{{ row.count }} {{ row.label }}</li> } @empty { <li>nothing is stored right now</li> }
+        </ul>
+        <p class="text-ui text-text-muted">
+          @if (p.keepsIdentity) { This device keeps its ID and name. } @else { This device gets a new ID. }
+          @if (p.wipesSecrets) { Stored secrets are removed. }
+        </p>
+        <div class="flex gap-2">
+          <button type="button" class="rounded-sm border border-error px-2 py-0.5 text-ui text-error hover:bg-error/10" (click)="confirm()">Confirm {{ kindLabel(p.kind).toLowerCase() }}</button>
+          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated" (click)="cancel()">Cancel</button>
+        </div>
+      </div>
+    }
+  </div>
+
+  @if (message()) {
+    <p class="text-ui text-info" role="status" data-testid="message">{{ message() }}</p>
+  }
+</div>

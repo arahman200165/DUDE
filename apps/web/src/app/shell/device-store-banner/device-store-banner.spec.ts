@@ -40,6 +40,6 @@ describe('DeviceStoreBanner', () => {
     retryButton.click();
     expect(retry).toHaveBeenCalled();
     detailsButton.click();
-    expect(navigate).toHaveBeenCalledWith('/settings');
+    expect(navigate).toHaveBeenCalledWith('/settings/device');
   });
 });

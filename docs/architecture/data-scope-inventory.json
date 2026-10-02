@@ -320,7 +320,7 @@
     },
     {
       "source": "apps/web/src/app/core/device/device-identity.service.ts",
-      "line": 82,
+      "line": 90,
       "operation": "createWindowStorageBackend('local').set(INSTALLATION_STORAGE_KEY, JSON.stringify(record))",
       "namespace": null,
       "key": null,

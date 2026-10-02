@@ -9,7 +9,7 @@ import type { InstalledSoftware } from "../../system/software-types.js";
 import type { WindowsCapability, WindowsFeature } from "../../system/feature-types.js";
 import type { SysApplyResult, SysJournalEntry, SysMutationSettings, SysMutResult, SysPlanPreview, SysPlanRequest, SysSnapshot, SysSnapshotHeader, SysSnapshotKind } from "../../system/sys-mutation-types.js";
 import type { AgentHistoryRecord, AgentNetworkRun } from "../../device-store/agent-protocol.js";
-import type { DeviceStoreBoot, DeviceStoreDevice, EntityCommit, EntityCommitResult, KvMutation, StoreHealth } from "../../device-store/device-store.model.js";
+import type { DeviceStoreBoot, DeviceStoreDevice, EntityCommit, EntityCommitResult, KvMutation, QuarantinePreviewResult, ResetApplyResult, ResetKind, ResetPreviewResult, StoreHealth } from "../../device-store/device-store.model.js";
 import type { NetworkRequest, NetworkJobEvent, NetworkStartResult, NetworkPrepareResult, WatchEntry, WatchSettings, WatchState, WatchResult } from "../../core/platform/network-types.js";
 export interface NativeStat {
   readonly isFile: boolean;
@@ -78,6 +78,17 @@ export interface PlatformBridge {
     status(): Promise<StoreHealth>;
     /** Asks main to restart a stopped store service; resolves with the resulting health. */
     retry(): Promise<StoreHealth>;
+    /** Two-step reset (Destructive-Action Contract): `preview` changes nothing; `apply` needs its single-use token. */
+    readonly reset: {
+      preview(kind: ResetKind): Promise<ResetPreviewResult>;
+      apply(request: { readonly kind: ResetKind; readonly token: string }): Promise<ResetApplyResult>;
+    };
+    /** Recovery for an unusable store. Main picks every path; the renderer supplies none. */
+    readonly recovery: {
+      openFolder(): Promise<{ readonly ok: boolean }>;
+      quarantinePreview(): Promise<QuarantinePreviewResult>;
+      quarantineApply(token: string): Promise<ResetApplyResult>;
+    };
     /** Main asks the renderer to flush pending writes before quit; the returned promise settles the handshake. */
     onFlushRequest(callback: () => void | Promise<void>): () => void;
     onHealth(callback: (health: StoreHealth) => void): () => void;

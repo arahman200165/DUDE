@@ -93,6 +93,13 @@ export const CORE_SETTINGS_SECTIONS: readonly CoreSettingsSection[] = [
     load: () => import('./sections/web-companion-settings').then((m) => m.WebCompanionSettings),
   },
   {
+    id: 'device',
+    title: 'This Device',
+    keywords: ['device id', 'device name', 'installation id', 'environment id', 'enrollment', 'store', 'device store', 'outbox', 'recovery', 'quarantine', 'retry', 'reset', 'reset this device', 'clear data', 'schema version', 'backup'],
+    desktopOnly: false,
+    load: () => import('./sections/this-device-settings').then((m) => m.ThisDeviceSettings),
+  },
+  {
     id: 'data',
     title: 'Data & Privacy',
     keywords: ['clear all local data', 'reset', 'privacy', 'storage', 'delete', 'danger', 'export', 'import', 'bundle', 'backup', 'restore'],
