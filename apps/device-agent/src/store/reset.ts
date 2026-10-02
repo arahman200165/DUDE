@@ -11,6 +11,11 @@ export const DATA_TABLES = [
 ] as const;
 /** Additionally wiped by 'reset-device' (values go with their refs). */
 export const SECRET_TABLES = ['secret_refs', 'secret_values'] as const;
+/**
+ * Also wiped by 'reset-device' only: the Hub enrollment is identity, not user data, so 'clear-data' keeps it,
+ * but a reset gives the device a new ID and the old Hub registration (and its wrapped key) no longer applies.
+ */
+export const ENROLLMENT_TABLES = ['hub_enrollment'] as const;
 
 export interface ResetPreviewData {
   kind: ResetKind;
@@ -28,7 +33,7 @@ export interface ResetDeps {
 
 export type ResetApplyResult = { ok: true } | { ok: false; error: 'stale-preview' };
 
-const tablesFor = (kind: ResetKind): readonly string[] => (kind === 'reset-device' ? [...DATA_TABLES, ...SECRET_TABLES] : DATA_TABLES);
+const tablesFor = (kind: ResetKind): readonly string[] => (kind === 'reset-device' ? [...DATA_TABLES, ...SECRET_TABLES, ...ENROLLMENT_TABLES] : DATA_TABLES);
 
 function countRows(db: Db, kind: ResetKind): Record<string, number> {
   const counts: Record<string, number> = {};

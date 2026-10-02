@@ -16,6 +16,11 @@ export interface AgentSnapshotHeader { kind: string; id: string; createdAt: numb
 export interface AgentResetPreview {
   kind: ResetKind; counts: Record<string, number>; keepsIdentity: boolean; wipesSecrets: boolean; digest: string;
 }
+/** Hub enrollment as the renderer may see it: never any key material. */
+export interface AgentHubEnrollment {
+  state: 'enrolled' | 'revoked'; hubInstanceId: string; environmentId: string; hubUrl: string; protocolVersion: number;
+  spkiActive: string; spkiNext: string | null; enrolledAt: string; lastContactAt: string | null; revokedAt: string | null;
+}
 export interface LegacyImportResult { status: 'none' | 'done' | 'partial'; imported: Record<string, number>; warnings: string[] }
 
 /**
@@ -73,6 +78,8 @@ export interface AgentMethodMap {
   'reset.preview': { params: { kind: ResetKind }; result: AgentResetPreview };
   /** `digest` is the one from the preview; a mismatch fails with `stale-preview`. */
   'reset.apply': { params: { kind: ResetKind; digest: string }; result: { ok: true } | { ok: false; error: string } };
+  /** Public Hub enrollment, or null when standalone. Deliberately carries no key material. */
+  'hub.enrollment': { params: Record<string, never>; result: AgentHubEnrollment | null };
   /** Implemented by the legacy import (M621). */
   'legacy.import': { params: { legacyDir: string; sources: unknown }; result: LegacyImportResult };
   /**
@@ -114,7 +121,7 @@ export const AGENT_METHODS = [
   'powershell.add', 'powershell.list', 'powershell.clear',
   'docs.get', 'docs.set', 'docs.remove',
   'secrets.status', 'secrets.list', 'secrets.set', 'secrets.remove', 'secrets.getCiphertext',
-  'device.rename', 'reset.preview', 'reset.apply', 'legacy.import', 'store.cleanExit', 'store.checkpoint', 'store.shutdown', 'store.quarantine',
+  'device.rename', 'reset.preview', 'reset.apply', 'hub.enrollment', 'legacy.import', 'store.cleanExit', 'store.checkpoint', 'store.shutdown', 'store.quarantine',
 ] as const satisfies readonly AgentMethod[];
 
 // Compile-time exhaustiveness: fails if a method is added to the map but not to AGENT_METHODS.

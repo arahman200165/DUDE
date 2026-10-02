@@ -1,6 +1,6 @@
 <div class="flex flex-col gap-4">
   <p class="text-ui text-text-muted">
-    This device's identity and its local store. Nothing here is shared; there is no Hub. Opening this page never changes anything.
+    This device's identity and its local store. Nothing here is synced yet. Opening this page never changes anything.
   </p>
 
   @if (identity(); as device) {
@@ -39,7 +39,7 @@
           <app-copy-button [text]="device.environmentId" label="Copy" />
         </dd>
         <dt class="text-text-muted">Enrollment</dt>
-        <dd class="text-text" data-testid="enrollment">{{ device.enrollmentState === 'standalone' ? 'Standalone — no Hub' : device.enrollmentState }}</dd>
+        <dd class="text-text" data-testid="enrollment">{{ enrollmentText() }}</dd>
         @if (device.clonedFrom) {
           <dt class="text-text-muted">Cloned from</dt>
           <dd><code class="font-mono text-text">{{ device.clonedFrom }}</code></dd>

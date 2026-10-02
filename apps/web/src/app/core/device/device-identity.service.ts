@@ -15,6 +15,7 @@ export interface DeviceIdentity {
   readonly platform: string;
   readonly appVersion?: string;
   readonly enrollmentState: string;
+  readonly enrollment?: { readonly environmentId: string; readonly hubInstanceId: string; readonly hubUrl: string; readonly enrolledAt: string };
   readonly clonedFrom?: string;
 }
 
@@ -68,7 +69,7 @@ export class DeviceIdentityService {
     if (device) {
       return {
         deviceId: device.deviceId, environmentId: device.environmentId, displayName: device.displayName,
-        platform: device.platform, appVersion: device.appVersion, enrollmentState: device.enrollmentState, clonedFrom: device.clonedFrom,
+        platform: device.platform, appVersion: device.appVersion, enrollmentState: device.enrollmentState, enrollment: device.enrollment, clonedFrom: device.clonedFrom,
       };
     }
     if (this.bridge.get()) return null;

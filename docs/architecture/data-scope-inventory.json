@@ -12,7 +12,7 @@
   "classificationCounts": {
     "device-doc": 33,
     "regex-heuristic (review flag)": 49,
-    "agent-table": 13,
+    "agent-table": 14,
     "hub-table": 20,
     "setting-definition": 2,
     "policy-rule": 775,
@@ -181,7 +181,7 @@
     },
     {
       "source": "apps/web/src/app/core/device/device-identity.service.ts",
-      "line": 90,
+      "line": 91,
       "namespace": null,
       "key": null,
       "heuristicScope": "local-only",
@@ -1295,6 +1295,21 @@
       "syncConsent": "not granted"
     },
     {
+      "source": "apps/device-agent/src/store/migrations/0002-hub-enrollment.ts",
+      "line": 14,
+      "operation": "CREATE TABLE hub_enrollment",
+      "namespace": null,
+      "key": "hub_enrollment",
+      "storage": "Device Store (node:sqlite)",
+      "storageLocation": "userData/device-store/dude-device.db table hub_enrollment",
+      "retention": "existing per-table policy",
+      "scope": "device",
+      "sensitivity": "secret",
+      "note": "device-private Hub enrollment: pins, ids and the DPAPI-wrapped Ed25519 device key; secret sensitivity, never exported or synced, cleared on clone detection and Reset this device",
+      "classificationBasis": "agent-table",
+      "syncConsent": "not granted"
+    },
+    {
       "source": "apps/hub/src/db/migrations/0001-initial.ts",
       "line": 92,
       "operation": "CREATE TABLE applied_ops",
@@ -1680,7 +1695,7 @@
     },
     {
       "source": "apps/web/src/app/core/device/device-identity.service.ts",
-      "line": 90,
+      "line": 91,
       "operation": "createWindowStorageBackend('local').set(INSTALLATION_STORAGE_KEY, JSON.stringify(record))",
       "namespace": null,
       "key": null,

@@ -1,7 +1,16 @@
 export const DEVICE_RECORD_SCHEMA_VERSION = 1;
 
-/** 'standalone' only in 31B; 31C extends this union with enrollment states. */
-export type EnrollmentState = 'standalone';
+export type EnrollmentState = 'standalone' | 'enrolled' | 'revoked';
+export const ENROLLMENT_STATES: readonly EnrollmentState[] = ['standalone', 'enrolled', 'revoked'];
+
+/** Public enrollment details (never key material). Required exactly when the state is not 'standalone'. */
+export interface DeviceEnrollment {
+  environmentId: string;
+  hubInstanceId: string;
+  hubUrl: string;
+  /** ISO-8601. */
+  enrolledAt: string;
+}
 
 export type DevicePlatform = 'windows' | 'macos' | 'linux' | 'web' | 'android' | 'ios' | 'unknown';
 export const DEVICE_PLATFORMS: readonly DevicePlatform[] = ['windows', 'macos', 'linux', 'web', 'android', 'ios', 'unknown'];
@@ -20,6 +29,8 @@ export interface DeviceRecord {
   capabilities: DeviceCapabilities;
   hubEligible: boolean;
   enrollmentState: EnrollmentState;
+  /** Present iff `enrollmentState` is 'enrolled' or 'revoked'. */
+  enrollment?: DeviceEnrollment;
   /** Previous deviceId when this store was detected as a clone. */
   clonedFrom?: string;
   /** ISO-8601 timestamps. */
@@ -80,7 +91,20 @@ export function decodeDeviceRecord(raw: unknown): DeviceRecord | null {
     capabilities[k] = v;
   }
   if (typeof r['hubEligible'] !== 'boolean') return null;
-  if (r['enrollmentState'] !== 'standalone') return null;
+  const state = r['enrollmentState'];
+  if (!ENROLLMENT_STATES.includes(state as EnrollmentState)) return null;
+  let enrollment: DeviceEnrollment | undefined;
+  if (state === 'standalone') {
+    if (r['enrollment'] !== undefined) return null;
+  } else {
+    const e = r['enrollment'];
+    if (!isObject(e)) return null;
+    if (!isStr(e['environmentId']) || e['environmentId'].length === 0) return null;
+    if (!isStr(e['hubInstanceId']) || e['hubInstanceId'].length === 0) return null;
+    if (!isStr(e['hubUrl']) || e['hubUrl'].length === 0) return null;
+    if (!isIso(e['enrolledAt'])) return null;
+    enrollment = { environmentId: e['environmentId'], hubInstanceId: e['hubInstanceId'], hubUrl: e['hubUrl'], enrolledAt: e['enrolledAt'] };
+  }
   if (r['clonedFrom'] !== undefined && !isStr(r['clonedFrom'])) return null;
   if (!isIso(r['createdAt']) || !isIso(r['lastStartedAt'])) return null;
   const out: DeviceRecord = {
@@ -94,10 +118,11 @@ export function decodeDeviceRecord(raw: unknown): DeviceRecord | null {
     storeSchemaVersion: r['storeSchemaVersion'],
     capabilities,
     hubEligible: r['hubEligible'],
-    enrollmentState: 'standalone',
+    enrollmentState: state as EnrollmentState,
     createdAt: r['createdAt'],
     lastStartedAt: r['lastStartedAt'],
   };
+  if (enrollment) out.enrollment = enrollment;
   if (r['clonedFrom'] !== undefined) out.clonedFrom = r['clonedFrom'] as string;
   return out;
 }

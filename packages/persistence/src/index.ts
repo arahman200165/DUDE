@@ -2,7 +2,7 @@ export { uuidv7, isUuid, isUuidShaped } from './ids/uuidv7.js';
 export {
   DEVICE_RECORD_SCHEMA_VERSION, DEVICE_PLATFORMS, defaultDisplayName, validateDisplayName, decodeDeviceRecord,
 } from './device/device-record.model.js';
-export type { EnrollmentState, DevicePlatform, DeviceCapabilities, DeviceRecord, DisplayNameResult } from './device/device-record.model.js';
+export type { EnrollmentState, DeviceEnrollment, DevicePlatform, DeviceCapabilities, DeviceRecord, DisplayNameResult } from './device/device-record.model.js';
 export { decodeEnvironmentRecord } from './device/environment.model.js';
 export type { EnvironmentRecord } from './device/environment.model.js';
 export type { SettingStorage, SettingDefinition } from './settings/setting-definition.model.js';

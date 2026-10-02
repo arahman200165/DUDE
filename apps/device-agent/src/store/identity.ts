@@ -3,6 +3,7 @@ import { defaultDisplayName, uuidv7, validateDisplayName } from '@dude/persisten
 import type { DeviceCapabilities, DevicePlatform, DeviceRecord } from '@dude/persistence';
 import type { Db } from '@dude/sqlite-store';
 import { getMeta, setMeta, transaction } from '@dude/sqlite-store';
+import { clearEnrollment, getEnrollment } from './repos/hub-enrollment.repo.js';
 
 export interface AppInfo { appVersion: string; platform: DevicePlatform; os: string; arch: string }
 
@@ -46,6 +47,8 @@ export function ensureIdentity(db: Db, options: IdentityOptions): DeviceRecord {
           setMeta(db, 'machine_hash', hashMachine(salt, machineGuid));
           db.prepare("UPDATE outbox SET device_id = ? WHERE status = 'unsent-standalone'").run(fresh);
           db.exec('UPDATE secret_refs SET needs_reentry = 1');
+          // The DPAPI-wrapped device key belongs to the other machine/user; the clone must re-pair.
+          clearEnrollment(db);
         }
       } else if (machineGuid !== null && storedHash === undefined) {
         // A store first created without a MachineGuid adopts one without being treated as a clone.
@@ -67,6 +70,7 @@ export function ensureIdentity(db: Db, options: IdentityOptions): DeviceRecord {
 export function readDeviceRecord(db: Db, capabilities: DeviceCapabilities): DeviceRecord {
   const m = (key: string): string => getMeta(db, key) ?? '';
   const platform = (m('platform') || 'unknown') as DevicePlatform;
+  const enrollment = getEnrollment(db);
   const record: DeviceRecord = {
     schemaVersion: 1,
     deviceId: m('device_id'),
@@ -78,10 +82,13 @@ export function readDeviceRecord(db: Db, capabilities: DeviceCapabilities): Devi
     storeSchemaVersion: Number(m('schema_version')) || 0,
     capabilities,
     hubEligible: platform !== 'web',
-    enrollmentState: 'standalone',
+    enrollmentState: enrollment?.state ?? 'standalone',
     createdAt: m('created_at'),
     lastStartedAt: m('last_started_at'),
   };
+  if (enrollment) {
+    record.enrollment = { environmentId: enrollment.environmentId, hubInstanceId: enrollment.hubInstanceId, hubUrl: enrollment.hubUrl, enrolledAt: enrollment.enrolledAt };
+  }
   const cloned = getMeta(db, 'cloned_from');
   if (cloned !== undefined) record.clonedFrom = cloned;
   return record;

@@ -59,6 +59,17 @@ describe('ThisDeviceSettings', () => {
     expect(section.desktopOnly).toBe(false);
   });
 
+  const ENROLLMENT = { environmentId: '0190ffff-bbbb-7ccc-8ddd-eeeeeeeeeeee', hubInstanceId: 'hub-1', hubUrl: 'https://hub.local:8443', enrolledAt: '2026-01-03T00:00:00.000Z' };
+  it('describes an enrolled device in plain copy', () => {
+    const { el } = setup({ identity: { ...IDENTITY, enrollmentState: 'enrolled', enrollment: ENROLLMENT } as never });
+    expect(el.querySelector('[data-testid="enrollment"]')?.textContent).toBe('Enrolled in 0190ffff at https://hub.local:8443');
+  });
+
+  it('describes a revoked device in plain copy', () => {
+    const { el } = setup({ identity: { ...IDENTITY, enrollmentState: 'revoked', enrollment: ENROLLMENT } as never });
+    expect(el.querySelector('[data-testid="enrollment"]')?.textContent).toBe('Revoked by the Hub — re-pair to reconnect');
+  });
+
   it('renders identity, platform, environment and enrollment', () => {
     const { el } = setup();
     expect(el.querySelector('[data-testid="device-id"]')?.textContent).toBe(IDENTITY.deviceId);

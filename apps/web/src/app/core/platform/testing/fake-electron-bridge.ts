@@ -228,8 +228,17 @@ const fakeDeviceRecord: DeviceStoreDevice = {
   deviceId: 'fake-device', environmentId: 'fake-environment', displayName: 'Test device', platform: 'windows', appVersion: '0.0.0', enrollmentState: 'standalone',
 };
 
-export function fakeDevice(): PlatformBridge['device'] {
-  let record = fakeDeviceRecord;
+/** Fixture: this device enrolled in (or revoked by) a Hub. */
+export function fakeEnrolledDeviceRecord(state: 'enrolled' | 'revoked' = 'enrolled'): DeviceStoreDevice {
+  return {
+    ...fakeDeviceRecord,
+    enrollmentState: state,
+    enrollment: { environmentId: '0190ffff-bbbb-7ccc-8ddd-eeeeeeeeeeee', hubInstanceId: 'fake-hub', hubUrl: 'https://hub.local:8443', enrolledAt: '2026-01-03T00:00:00.000Z' },
+  };
+}
+
+export function fakeDevice(initial: Partial<DeviceStoreDevice> = {}): PlatformBridge['device'] {
+  let record: DeviceStoreDevice = { ...fakeDeviceRecord, ...initial };
   let agent: BackgroundAgentStatus = { running: true, stoppedByUser: false, autostart: 'disabled', mechanism: null };
   return {
     get: async () => record,

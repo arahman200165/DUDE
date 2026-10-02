@@ -62,20 +62,28 @@ describe('decoders', () => {
     storeSchemaVersion: 1, capabilities: { fs: true }, hubEligible: false, enrollmentState: 'standalone',
     createdAt: '2026-01-01T00:00:00.000Z', lastStartedAt: '2026-01-02T00:00:00.000Z',
   };
+  const ENROLLMENT = { environmentId: 'env-1', hubInstanceId: 'hub-1', hubUrl: 'https://hub.lan:8443', enrolledAt: '2026-01-03T00:00:00.000Z' };
+  it('accepts enrolled and revoked records only with enrollment details', () => {
+    for (const enrollmentState of ['enrolled', 'revoked'] as const) {
+      const rec = { ...device, enrollmentState, enrollment: ENROLLMENT };
+      expect(decodeDeviceRecord(rec)).toEqual(rec);
+    }
+  });
   it('round-trips a valid device record', () => {
     expect(decodeDeviceRecord(device)).toEqual(device);
     expect(decodeDeviceRecord({ ...device, clonedFrom: 'old' })?.clonedFrom).toBe('old');
   });
   it('rejects garbage device records', () => {
     for (const bad of [null, 1, 'x', [], {}, { ...device, schemaVersion: 2 }, { ...device, platform: 'plan9' }, { ...device, displayName: '' },
-      { ...device, capabilities: { a: 'yes' } }, { ...device, enrollmentState: 'enrolled' }, { ...device, createdAt: 'nope' }, { ...device, hubEligible: 1 }, { ...device, clonedFrom: 3 }]) {
+      { ...device, capabilities: { a: 'yes' } }, { ...device, enrollmentState: 'enrolled' }, { ...device, enrollmentState: 'revoked' }, { ...device, enrollmentState: 'bogus' }, { ...device, enrollment: ENROLLMENT }, { ...device, enrollmentState: 'enrolled', enrollment: { ...ENROLLMENT, hubUrl: '' } }, { ...device, enrollmentState: 'enrolled', enrollment: { ...ENROLLMENT, enrolledAt: 'x' } }, { ...device, createdAt: 'nope' }, { ...device, hubEligible: 1 }, { ...device, clonedFrom: 3 }]) {
       expect(decodeDeviceRecord(bad)).toBeNull();
     }
   });
   it('decodes environment records strictly', () => {
     const env = { environmentId: 'e', kind: 'standalone', createdAt: '2026-01-01T00:00:00.000Z' };
     expect(decodeEnvironmentRecord(env)).toEqual(env);
-    for (const bad of [null, {}, { ...env, kind: 'hub' }, { ...env, environmentId: '' }, { ...env, createdAt: 'x' }]) expect(decodeEnvironmentRecord(bad)).toBeNull();
+    expect(decodeEnvironmentRecord({ ...env, kind: 'hub' })?.kind).toBe('hub');
+    for (const bad of [null, {}, { ...env, kind: 'cloud' }, { ...env, environmentId: '' }, { ...env, createdAt: 'x' }]) expect(decodeEnvironmentRecord(bad)).toBeNull();
   });
 });
 

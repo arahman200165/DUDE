@@ -175,6 +175,7 @@ const agentTables = {
   device_docs: ['device', 'desktop documents (preferences, window bounds, hotkeys, etc.)'],
   secret_refs: ['device', 'secret references (no values)'],
   secret_values: ['device', 'encrypted secret values; secret sensitivity, never exported'],
+  hub_enrollment: ['device', 'device-private Hub enrollment: pins, ids and the DPAPI-wrapped Ed25519 device key; secret sensitivity, never exported or synced, cleared on clone detection and Reset this device'],
 };
 // Hub tables (apps/hub/src/db/migrations): none classified yet; an unknown table throws like device-agent.
 const hubTables = {
@@ -209,7 +210,7 @@ for (const src of migrationSources) {
     const f = src.dir + '/' + fileName, text = readFileSync(f, 'utf8');
     for (const m of text.matchAll(/CREATE TABLE (\w+)/g)) {
       const t = src.tables[m[1]]; if (!t) throw Error(`Unclassified ${src.label} table ${m[1]}`);
-      entries.push({ source: f, line: text.slice(0, m.index).split('\n').length, operation: `CREATE TABLE ${m[1]}`, namespace: null, key: m[1], storage: src.storage, storageLocation: src.location(m[1]), retention: 'existing per-table policy', scope: t[0], sensitivity: m[1] === 'secret_values' ? 'secret' : t[0] === 'local-only' ? 'sensitive' : 'non-sensitive', note: t[1], classificationBasis: src.basis, syncConsent: 'not granted' });
+      entries.push({ source: f, line: text.slice(0, m.index).split('\n').length, operation: `CREATE TABLE ${m[1]}`, namespace: null, key: m[1], storage: src.storage, storageLocation: src.location(m[1]), retention: 'existing per-table policy', scope: t[0], sensitivity: m[1] === 'secret_values' || m[1] === 'hub_enrollment' ? 'secret' : t[0] === 'local-only' ? 'sensitive' : 'non-sensitive', note: t[1], classificationBasis: src.basis, syncConsent: 'not granted' });
     }
   }
 }

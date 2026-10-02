@@ -19,6 +19,7 @@ import { addPowerShellHistory, clearPowerShellHistory, listPowerShellHistory } f
 import { getDoc, removeDoc, setDoc } from '../store/repos/device-docs.repo.js';
 import { getSecretCiphertext, listSecretStatus, removeSecret, secretStatus, setSecretCiphertext } from '../store/repos/secrets.repo.js';
 import type { SecretStatusRow } from '../store/repos/secrets.repo.js';
+import { publicEnrollment } from '../store/repos/hub-enrollment.repo.js';
 import { applyReset, previewReset } from '../store/reset.js';
 import { DEFAULT_HISTORY_RETENTION } from '../store/repos/retention.js';
 import { quarantineStore } from '../store/open-store.js';
@@ -120,6 +121,7 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
           platform: device.platform,
           appVersion: device.appVersion,
           enrollmentState: device.enrollmentState,
+          ...(device.enrollment === undefined ? {} : { enrollment: device.enrollment }),
           ...(device.clonedFrom === undefined ? {} : { clonedFrom: device.clonedFrom }),
         },
         kv: await repos().kv.snapshot(),
@@ -216,6 +218,7 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
       const result = applyReset(db(), p.kind, str(p.digest, 'digest'), { now: deps.now, randomBytes: deps.randomBytes });
       return result.ok ? result : { ok: false, error: result.error };
     },
+    'hub.enrollment': () => publicEnrollment(db()),
     // The legacy userData import is implemented in M621; until then nothing is imported.
     'legacy.import': () => ({ status: 'none', imported: {}, warnings: [] }),
     'store.cleanExit': (p) => {

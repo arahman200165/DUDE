@@ -15,7 +15,7 @@ const COUNT_LABEL: Record<string, string> = {
   kv: 'saved settings and tool state', records: 'saved items', outbox: 'pending sync operations', history_entries: 'History entries',
   network_runs: 'saved network runs', mutation_journal: 'change journal entries', snapshot_headers: 'snapshots',
   powershell_history: 'PowerShell history entries', device_docs: 'desktop preference documents', secret_refs: 'stored secrets',
-  secret_values: 'secret values',
+  secret_values: 'secret values', hub_enrollment: 'Hub enrollment',
 };
 
 const ERROR_TEXT: Record<ResetApplyError | 'not-needed', string> = {
@@ -50,6 +50,14 @@ export class ThisDeviceSettings {
   private readonly agent = inject(DeviceAgentService);
 
   protected readonly identity = this.identityService.identity;
+  protected readonly enrollmentText = computed(() => {
+    const device = this.identity();
+    if (device?.enrollmentState === 'revoked') return 'Revoked by the Hub \u2014 re-pair to reconnect';
+    if (device?.enrollmentState === 'enrolled' && device.enrollment) {
+      return `Enrolled in ${device.enrollment.environmentId.slice(0, 8)} at ${device.enrollment.hubUrl}`;
+    }
+    return 'Standalone \u2014 no Hub';
+  });
   protected readonly isDesktopStore = this.health.isDesktopStore;
   protected readonly storeStatus = this.health.status;
   protected readonly storeHealth = this.health.health;

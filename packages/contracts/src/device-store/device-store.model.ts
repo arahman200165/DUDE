@@ -11,6 +11,8 @@ export interface DeviceStoreDevice {
   platform: string;
   appVersion: string;
   enrollmentState: string;
+  /** Public enrollment details; present when `enrollmentState` is 'enrolled' or 'revoked'. */
+  enrollment?: { environmentId: string; hubInstanceId: string; hubUrl: string; enrolledAt: string };
   clonedFrom?: string;
 }
 
