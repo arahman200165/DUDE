@@ -235,6 +235,17 @@ browser sandbox.
 | --- | --- |
 ${nativeRows.join('\n')}
 
+## Network Listeners
+
+Processes that accept inbound connections:
+
+| Process | Binds | Notes |
+| --- | --- | --- |
+| Collaboration server (desktop, opt-in) | \`0.0.0.0\` | The LAN collaboration server is the deliberate exception to loopback-only binding in the desktop app. |
+| DUDE Hub service (self-hosted, separate install) | \`127.0.0.1:47600\` by default | HTTPS only, with a self-signed certificate that enrolled devices pin by SPKI hash. Binds \`0.0.0.0\` only when the owner enables LAN mode through the installer or an elevated CLI command, or in container mode, where it binds \`0.0.0.0\` inside the container and the host decides which ports are published. |
+
+DUDE does not operate a Hub; every Hub is run and owned by the user.
+
 ## Web Capability Matrix
 
 ${capabilityMatrix}

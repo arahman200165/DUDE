@@ -60,3 +60,6 @@ Thumbs.db
 /packages/*/dist/
 /apps/*/node_modules/
 /packages/*/node_modules/
+
+# Hub dev data directory
+/.hub-dev/

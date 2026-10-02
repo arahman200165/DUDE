@@ -177,10 +177,31 @@ const agentTables = {
   secret_values: ['device', 'encrypted secret values; secret sensitivity, never exported'],
 };
 // Hub tables (apps/hub/src/db/migrations): none classified yet; an unknown table throws like device-agent.
-const hubTables = {};
+const hubTables = {
+  meta: ['local-only', 'Hub-private instance bookkeeping (hub_instance_id, schema versions)'],
+  schema_migrations: ['local-only', 'migration bookkeeping'],
+  environment: ['environment', 'canonical environment identity minted by the Hub'],
+  owner: ['environment', 'canonical owner profile (identity, no credentials)'],
+  owner_credentials: ['local-only', 'Hub-private Argon2id password verifier; never leaves the Hub'],
+  recovery_codes: ['local-only', 'Hub-private recovery code hashes'],
+  sessions: ['local-only', 'Hub-private session hashes, IPs and user agents'],
+  devices: ['environment', 'canonical device registry'],
+  device_keys: ['environment', 'canonical device public keys (no private material)'],
+  device_tokens: ['local-only', 'Hub-private device token hashes'],
+  challenges: ['local-only', 'Hub-private short-lived challenge nonces'],
+  pairing_codes: ['local-only', 'Hub-private pairing code hashes'],
+  setup_state: ['local-only', 'Hub-private first-run setup token hash'],
+  throttle: ['local-only', 'Hub-private authentication throttling counters'],
+  audit_events: ['local-only', 'Hub-private audit trail; never carries credentials or payloads'],
+  tls_pins: ['local-only', 'Hub-private TLS certificate pin lifecycle'],
+  tls_pin_acks: ['local-only', 'Hub-private per-device TLS pin acknowledgements'],
+  records: ['environment', 'canonical synchronized records with revision and tombstone'],
+  change_feed: ['environment', 'canonical per-environment change feed'],
+  applied_ops: ['environment', 'canonical idempotency ledger for applied operations'],
+};
 const migrationSources = [
   { dir: 'apps/device-agent/src/store/migrations', tables: agentTables, label: 'device-agent', basis: 'agent-table', storage: 'Device Store (node:sqlite)', location: name => `userData/device-store/dude-device.db table ${name}` },
-  { dir: 'apps/hub/src/db/migrations', tables: hubTables, label: 'hub', basis: 'hub-table', storage: 'Hub database (node:sqlite)', location: name => `data/hub.db table ${name}` },
+  { dir: 'apps/hub/src/db/migrations', tables: hubTables, label: 'hub', basis: 'hub-table', storage: 'Hub database (node:sqlite)', location: name => `data/dude.db table ${name}` },
 ];
 for (const src of migrationSources) {
   if (!existsSync(src.dir)) continue;

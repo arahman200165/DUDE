@@ -40,7 +40,7 @@ export default [
     ignores: ['dist/**', '**/dist/**', 'dist-*/**', '**/node_modules/**', '.angular/**', 'coverage/**', 'tmp/**'],
   },
   {
-    files: ['**/*.ts'],
+    files: ['**/*.ts', '**/*.mts'],
     languageOptions: {
       parser: tsParser,
       parserOptions: { sourceType: 'module' },

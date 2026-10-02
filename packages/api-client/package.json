@@ -24,6 +24,11 @@
     "watch": "tsc -p tsconfig.json --watch",
     "test": "cd ../.. && npm run build:packages && vitest run --config vitest.packages.config.mts --passWithNoTests packages/api-client"
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "dependencies": {
+    "@dude/contracts": "*",
+    "typebox": "1.3.34"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.8"
+  }
 }

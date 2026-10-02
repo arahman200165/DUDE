@@ -5,17 +5,20 @@ import { files, source, imports, resolveImport, hostReasons } from './phase31a-i
 const failures=[];
 // Node-only packages: exempt from the portable (no Node built-ins / host globals) rules; never consumed by web or portable packages.
 const nodeOnly=new Set(['collab-protocol','sqlite-store']);
-for(const app of ['web','desktop','collab-relay','device-agent']){
+for(const app of ['web','desktop','collab-relay','device-agent','hub']){
  const manifest=JSON.parse(readFileSync(`apps/${app}/package.json`,'utf8'));
  const declared={...manifest.dependencies,...manifest.devDependencies};
  for(const file of files(`apps/${app}`).filter(f=>f.endsWith('.ts')&&!/[\\/](dist|node_modules)[\\/]/.test(f))){
   for(const imp of imports(source(file))){
    if(app==='web'&&(imp.text==='node:sqlite'||imp.text==='sqlite'))failures.push(`${file}: web must not import ${imp.text}`);
+   if(app==='hub'&&imp.text.startsWith('.')&&path.relative('apps/hub',path.resolve(path.dirname(file),imp.text)).startsWith('..'))failures.push(`${file}: hub must not import outside apps/hub (${imp.text})`);
    if(imp.text.startsWith('.')||imp.text.startsWith('node:'))continue;
    const name=imp.text.startsWith('@')?imp.text.split('/').slice(0,2).join('/'):imp.text.split('/')[0];
    if(name!==manifest.name&&!declared[name])failures.push(`${file}: undeclared application dependency ${name}`);
    if(app==='device-agent'&&(name==='electron'||name.startsWith('@angular/')))failures.push(`${file}: device-agent must not import ${imp.text}`);
    if(app==='device-agent'&&!['@dude/persistence','@dude/sync','@dude/contracts','@dude/domain','@dude/shared-types','@dude/sqlite-store','@dude/device-agent'].includes(name)&&name.startsWith('@dude/'))failures.push(`${file}: device-agent may only depend on persistence, sync, contracts, domain, shared-types, sqlite-store (${imp.text})`);
+   if(app==='hub'&&(name==='electron'||name.startsWith('@angular/')||['@dude/web','@dude/desktop','@dude/device-agent'].includes(name)))failures.push(`${file}: hub must not import ${imp.text}`);
+   if((app==='web'||app==='device-agent'||app==='desktop')&&name==='@dude/hub')failures.push(`${file}: ${app} must not import @dude/hub`);
    if(app==='web'&&imp.text.startsWith('@dude/sqlite-store'))failures.push(`${file}: web must not import ${imp.text}`);
    if(app==='web'&&(imp.text.startsWith('@dude/device-agent')))failures.push(`${file}: web must not import ${imp.text}`);
   }
@@ -32,6 +35,7 @@ for(const pkg of readdirSync('packages',{withFileTypes:true}).filter(entry=>entr
    if(!isTest&&!nodeOnly.has(pkg)&&(s.startsWith('node:')||['fs','path','os','stream','crypto','buffer','util','events','http','https','net','tls','worker_threads','child_process','module','zlib'].includes(s)))failures.push(`${file}: Node-only import ${s}`);
    if(s.startsWith('.')){const dep=resolveImport(path.resolve(file),s.replace(/\.js$/,'.ts'));if(dep&&dep.includes(path.sep+'apps'+path.sep))failures.push(`${file}: application import ${s}`);}
    else if(!s.startsWith('node:')){const name=s.startsWith('@')?s.split('/').slice(0,2).join('/'):s.split('/')[0];if(name!==manifest.name&&!declared[name])failures.push(`${file}: undeclared dependency ${name}`);}
+   if(s.startsWith('@dude/hub'))failures.push(`${file}: portable package imports @dude/hub`);
    if(pkg!=='sqlite-store'&&s.startsWith('@dude/sqlite-store'))failures.push(`${file}: portable package imports Node-only ${s}`);
    if(pkg==='tool-registry'&&/^@dude\/(tool-engine|collab-protocol|sqlite-store|web|desktop)/.test(s))failures.push(`${file}: registry imports implementation ${s}`);
   }
