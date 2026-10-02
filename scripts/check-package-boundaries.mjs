@@ -4,7 +4,7 @@ import ts from 'typescript';
 import { files, source, imports, resolveImport, hostReasons } from './phase31a-inventory.mjs';
 const failures=[];
 // Node-only packages: exempt from the portable (no Node built-ins / host globals) rules; never consumed by web or portable packages.
-const nodeOnly=new Set(['collab-protocol','sqlite-store']);
+const nodeOnly=new Set(['collab-protocol','sqlite-store','agent-pipe']);
 for(const app of ['web','desktop','collab-relay','device-agent','hub']){
  const manifest=JSON.parse(readFileSync(`apps/${app}/package.json`,'utf8'));
  const declared={...manifest.dependencies,...manifest.devDependencies};
@@ -16,10 +16,10 @@ for(const app of ['web','desktop','collab-relay','device-agent','hub']){
    const name=imp.text.startsWith('@')?imp.text.split('/').slice(0,2).join('/'):imp.text.split('/')[0];
    if(name!==manifest.name&&!declared[name])failures.push(`${file}: undeclared application dependency ${name}`);
    if(app==='device-agent'&&(name==='electron'||name.startsWith('@angular/')))failures.push(`${file}: device-agent must not import ${imp.text}`);
-   if(app==='device-agent'&&!['@dude/persistence','@dude/sync','@dude/contracts','@dude/domain','@dude/shared-types','@dude/sqlite-store','@dude/device-agent'].includes(name)&&name.startsWith('@dude/'))failures.push(`${file}: device-agent may only depend on persistence, sync, contracts, domain, shared-types, sqlite-store (${imp.text})`);
+   if(app==='device-agent'&&!['@dude/persistence','@dude/sync','@dude/contracts','@dude/domain','@dude/shared-types','@dude/sqlite-store','@dude/agent-pipe','@dude/device-agent'].includes(name)&&name.startsWith('@dude/'))failures.push(`${file}: device-agent may only depend on persistence, sync, contracts, domain, shared-types, sqlite-store, agent-pipe (${imp.text})`);
    if(app==='hub'&&(name==='electron'||name.startsWith('@angular/')||['@dude/web','@dude/desktop','@dude/device-agent'].includes(name)))failures.push(`${file}: hub must not import ${imp.text}`);
    if((app==='web'||app==='device-agent'||app==='desktop')&&name==='@dude/hub')failures.push(`${file}: ${app} must not import @dude/hub`);
-   if(app==='web'&&imp.text.startsWith('@dude/sqlite-store'))failures.push(`${file}: web must not import ${imp.text}`);
+   if(app==='web'&&(imp.text.startsWith('@dude/sqlite-store')||imp.text.startsWith('@dude/agent-pipe')))failures.push(`${file}: web must not import ${imp.text}`);
    if(app==='web'&&(imp.text.startsWith('@dude/device-agent')))failures.push(`${file}: web must not import ${imp.text}`);
   }
  }
@@ -37,7 +37,8 @@ for(const pkg of readdirSync('packages',{withFileTypes:true}).filter(entry=>entr
    else if(!s.startsWith('node:')){const name=s.startsWith('@')?s.split('/').slice(0,2).join('/'):s.split('/')[0];if(name!==manifest.name&&!declared[name])failures.push(`${file}: undeclared dependency ${name}`);}
    if(s.startsWith('@dude/hub'))failures.push(`${file}: portable package imports @dude/hub`);
    if(pkg!=='sqlite-store'&&s.startsWith('@dude/sqlite-store'))failures.push(`${file}: portable package imports Node-only ${s}`);
-   if(pkg==='tool-registry'&&/^@dude\/(tool-engine|collab-protocol|sqlite-store|web|desktop)/.test(s))failures.push(`${file}: registry imports implementation ${s}`);
+   if(pkg!=='agent-pipe'&&s.startsWith('@dude/agent-pipe'))failures.push(`${file}: portable package imports Node-only ${s}`);
+   if(pkg==='tool-registry'&&/^@dude\/(tool-engine|collab-protocol|sqlite-store|agent-pipe|web|desktop)/.test(s))failures.push(`${file}: registry imports implementation ${s}`);
   }
   if(!isTest&&!nodeOnly.has(pkg))for(const reason of hostReasons(sf))failures.push(`${file}: ${reason}`);
   if(!isTest&&!nodeOnly.has(pkg)){

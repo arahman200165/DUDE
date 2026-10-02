@@ -1,13 +1,16 @@
-import { app, MessageChannelMain, safeStorage, utilityProcess } from 'electron';
+import { app, safeStorage } from 'electron';
 import { join } from 'node:path';
 import type { AgentMethod, AgentMethodMap, AgentRequest, StoreHealth, StoreStatus } from '@dude/contracts';
 import type { DeviceCapabilities, DevicePlatform } from '@dude/persistence';
+import { createPipeTransport, resolveAgentLaunch } from './agent-transport';
+import type { AgentConnection, AgentTransport } from './agent-transport';
 
 /**
- * Main-process owner of the Device State Store utility process (Phase 31B, M620). It forks the
- * state service, hands the child one end of a private MessageChannel (the renderer never sees a
- * port), correlates requests by id, and applies a crash/backoff policy. Only the broker modules in
- * this folder talk to it.
+ * Main-process owner of the connection to the Device Agent (Phase 31B M620, rebuilt for 31C PD-026).
+ * The agent is a separate Node process serving a per-user named pipe; this host connects through an
+ * `AgentTransport` (spawning the agent when nothing listens), correlates requests by id and applies
+ * a crash/backoff policy where a disconnect is treated as the agent exiting. The renderer never sees
+ * the pipe. Only the broker modules in this folder talk to it.
  */
 
 export interface AppInfoConfig { appVersion: string; platform: DevicePlatform; os: string; arch: string }
@@ -24,24 +27,10 @@ export interface DeviceStoreHost {
   status(): StoreStatus;
   health(): StoreHealth | null;
   onHealth(listener: (health: StoreHealth) => void): () => void;
-  /** Manual retry: when unavailable, clears the crash history and restarts the child. Resolves once that attempt settles. */
+  /** Manual retry: when unavailable, clears the crash history and restarts the agent connection. Resolves once that attempt settles. */
   retry(): Promise<void>;
   shutdown(): Promise<void>;
 }
-
-export interface HostPort {
-  on(event: 'message', listener: (event: { data: unknown }) => void): void;
-  postMessage(message: unknown): void;
-  start(): void;
-  close(): void;
-}
-export interface HostChild {
-  postMessage(message: unknown, transfer?: unknown[]): void;
-  once(event: 'exit', listener: (code: number) => void): void;
-  kill(): boolean;
-}
-export type ForkFn = (path: string, args: string[], options: { serviceName: string; stdio: 'inherit' | 'pipe' }) => HostChild;
-export type ChannelFn = () => { port1: HostPort; port2: unknown };
 
 export interface StartOptions {
   userDataDir: string;
@@ -49,10 +38,8 @@ export interface StartOptions {
   capabilities: DeviceCapabilities;
   machineGuid?: string | null;
   /** Test seams. */
-  fork?: ForkFn;
-  createChannel?: ChannelFn;
+  transport?: AgentTransport;
   now?: () => number;
-  agentPath?: string;
 }
 
 export const READY_TIMEOUT_MS = 10_000;
@@ -71,9 +58,21 @@ interface Pending {
 }
 interface Queued extends Pending { request: { method: AgentMethod; params: unknown }; id: number }
 
-/** `device-agent.js` sits beside `main.js` in `dist/electron` in dev and inside the asar when packaged. */
-export function agentScriptPath(): string {
-  return join(__dirname, 'device-agent.js');
+/** The device-store directory (`<userData>/device-store`); it names the agent's pipe and holds its key. */
+export function deviceStoreDir(userDataDir: string): string {
+  return join(userDataDir, 'device-store');
+}
+
+function productionTransport(opts: StartOptions): AgentTransport {
+  const storeDir = deviceStoreDir(opts.userDataDir);
+  return createPipeTransport({
+    storeDir,
+    // Unpackaged, `app.getVersion()` is not the build's version (it can be Electron's), and the agent is the sibling bundle anyway.
+    appVersion: app.isPackaged ? opts.appInfo.appVersion : null,
+    readyTimeoutMs: READY_TIMEOUT_MS,
+    shutdownCapMs: SHUTDOWN_EXIT_CAP_MS,
+    launch: () => resolveAgentLaunch({ isPackaged: app.isPackaged, resourcesPath: process.resourcesPath, execPath: process.execPath, scriptDir: __dirname, platform: process.platform }, storeDir),
+  });
 }
 
 export function deviceCapabilities(): DeviceCapabilities {
@@ -98,8 +97,9 @@ class AgentHost implements DeviceStoreHost {
   private phase: Phase = 'starting';
   private reported: StoreStatus = 'degraded';
   private lastHealth: StoreHealth | null = null;
-  private child: HostChild | null = null;
-  private port: HostPort | null = null;
+  private conn: AgentConnection | null = null;
+  /** Bumped for every connect attempt and whenever one is abandoned, so a late result can be told apart. */
+  private attempt = 0;
   private nextId = 1;
   private readonly pending = new Map<number, Pending>();
   private queue: Queued[] = [];
@@ -108,24 +108,20 @@ class AgentHost implements DeviceStoreHost {
   private restartTimer: ReturnType<typeof setTimeout> | null = null;
   private readyTimer: ReturnType<typeof setTimeout> | null = null;
   private firstSettled: (() => void) | null = null;
-  private readonly fork: ForkFn;
-  private readonly createChannel: ChannelFn;
+  private readonly transport: AgentTransport;
   private readonly now: () => number;
-  private readonly agentPath: string;
   private exitWaiters: Array<() => void> = [];
 
   constructor(private readonly opts: StartOptions) {
-    this.fork = opts.fork ?? ((path, args, options) => utilityProcess.fork(path, args, options) as unknown as HostChild);
-    this.createChannel = opts.createChannel ?? (() => { const c = new MessageChannelMain(); return { port1: c.port1 as unknown as HostPort, port2: c.port2 }; });
+    this.transport = opts.transport ?? productionTransport(opts);
     this.now = opts.now ?? Date.now;
-    this.agentPath = opts.agentPath ?? agentScriptPath();
   }
 
   /** Resolves once the first spawn is ready or has failed; never rejects. */
   start(): Promise<void> {
     return new Promise<void>((resolve) => {
       this.firstSettled = resolve;
-      this.spawn();
+      this.launch();
     });
   }
 
@@ -135,28 +131,38 @@ class AgentHost implements DeviceStoreHost {
     settle?.();
   }
 
-  private spawn(): void {
+  private launch(): void {
     this.phase = this.crashes.length === 0 ? 'starting' : 'restarting';
-    let child: HostChild;
-    let channel: ReturnType<ChannelFn>;
+    const attempt = ++this.attempt;
+    let connecting: Promise<AgentConnection>;
     try {
-      child = this.fork(this.agentPath, [], { serviceName: 'DUDE Device Store', stdio: 'inherit' });
-      channel = this.createChannel();
+      connecting = this.transport.connect({
+        appInfo: this.opts.appInfo, capabilities: this.opts.capabilities, machineGuid: this.opts.machineGuid ?? null,
+      });
     } catch {
       this.registerCrash();
       return;
     }
-    this.child = child;
-    const port = channel.port1;
-    this.port = port;
-    port.on('message', (event) => { if (this.child === child) this.onMessage(event.data); });
-    port.start();
-    child.once('exit', () => this.onExit(child));
-    // The second port is transferred to the child only; the host keeps port1.
-    child.postMessage({
-      config: { dir: join(this.opts.userDataDir, 'device-store'), machineGuid: this.opts.machineGuid ?? null, appInfo: this.opts.appInfo, capabilities: this.opts.capabilities },
-    }, [channel.port2]);
-    this.readyTimer = setTimeout(() => { this.readyTimer = null; if (this.phase !== 'running') child.kill(); }, READY_TIMEOUT_MS);
+    // A connection that is not ready in time is abandoned (the transport's own timeouts normally fire first).
+    this.readyTimer = setTimeout(() => {
+      this.readyTimer = null;
+      if (this.phase === 'running' || this.attempt !== attempt) return;
+      this.attempt++;
+      this.registerCrash();
+    }, READY_TIMEOUT_MS);
+    connecting.then((conn) => {
+      if (this.attempt !== attempt || this.phase === 'stopped') { conn.close(); return; }
+      this.conn = conn;
+      conn.onMessage((message) => { if (this.conn === conn) this.onMessage(message); });
+      conn.onClose(() => this.onExit(conn));
+      // The agent's boot payload is the same `ready` event the utility process used to post.
+      this.onMessage(conn.boot);
+    }, () => {
+      if (this.attempt !== attempt) return;
+      this.attempt++;
+      if (this.readyTimer) { clearTimeout(this.readyTimer); this.readyTimer = null; }
+      this.registerCrash();
+    });
   }
 
   private onMessage(data: unknown): void {
@@ -190,11 +196,9 @@ class AgentHost implements DeviceStoreHost {
     }
   }
 
-  private onExit(child: HostChild): void {
-    if (this.child !== child) return;
-    this.child = null;
-    try { this.port?.close(); } catch { /* already closed */ }
-    this.port = null;
+  private onExit(conn: AgentConnection): void {
+    if (this.conn !== conn) return;
+    this.conn = null;
     if (this.readyTimer) { clearTimeout(this.readyTimer); this.readyTimer = null; }
     for (const [id, entry] of this.pending) {
       clearTimeout(entry.timer);
@@ -227,7 +231,7 @@ class AgentHost implements DeviceStoreHost {
     this.emit();
     this.settleFirst();
     const delay = RESTART_BACKOFF_MS[Math.min(this.crashes.length, RESTART_BACKOFF_MS.length) - 1];
-    this.restartTimer = setTimeout(() => { this.restartTimer = null; if (this.phase === 'restarting') this.spawn(); }, delay);
+    this.restartTimer = setTimeout(() => { this.restartTimer = null; if (this.phase === 'restarting') this.launch(); }, delay);
   }
 
   private emit(): void {
@@ -245,7 +249,7 @@ class AgentHost implements DeviceStoreHost {
 
   private send(id: number, method: AgentMethod, params: unknown): void {
     const request: AgentRequest = { id, method, params: params as never };
-    this.port?.postMessage(request);
+    this.conn?.post(request);
   }
 
   private flushQueue(): void {
@@ -303,18 +307,19 @@ class AgentHost implements DeviceStoreHost {
     this.emit();
     return new Promise<void>((resolve) => {
       this.firstSettled = resolve;
-      this.spawn();
+      this.launch();
     });
   }
 
   async shutdown(): Promise<void> {
     const wasRunning = this.phase === 'running';
-    const child = this.child;
+    const conn = this.conn;
+    this.attempt++;
     this.phase = 'stopped';
     if (this.restartTimer) { clearTimeout(this.restartTimer); this.restartTimer = null; }
     if (this.readyTimer) { clearTimeout(this.readyTimer); this.readyTimer = null; }
     this.rejectQueue('unavailable', 'The device store is shutting down.');
-    if (!child) return;
+    if (!conn) return;
     const exited = new Promise<void>((resolve) => { this.exitWaiters.push(resolve); });
     if (wasRunning) {
       await this.enqueue('store.shutdown', {}, SHUTDOWN_EXIT_CAP_MS, true).catch(() => undefined);
@@ -323,11 +328,11 @@ class AgentHost implements DeviceStoreHost {
     const capped = new Promise<void>((resolve) => { cap = setTimeout(resolve, SHUTDOWN_EXIT_CAP_MS); });
     await Promise.race([exited, capped]);
     clearTimeout(cap);
-    if (this.child === child) { try { child.kill(); } catch { /* already gone */ } }
+    if (this.conn === conn) { try { conn.close(); } catch { /* already gone */ } }
   }
 }
 
-/** Forks the state service and waits (bounded) for its first ready or failure; the host is returned either way. */
+/** Connects to (spawning if needed) the Device Agent and waits (bounded) for its first ready or failure; the host is returned either way. */
 export async function startDeviceAgent(opts: StartOptions): Promise<DeviceStoreHost> {
   const host = new AgentHost(opts);
   await host.start();

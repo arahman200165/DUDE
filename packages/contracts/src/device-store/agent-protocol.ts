@@ -80,7 +80,14 @@ export interface AgentMethodMap {
    * run unclean; `quit` marks it clean. `check` only reads.
    */
   'store.cleanExit': { params: { action: 'launch' | 'quit' | 'check' }; result: { previous: 'none' | 'clean' | 'unclean' } };
+  /** Checkpoints, closes the store and exits the agent process. */
   'store.shutdown': { params: Record<string, never>; result: { ok: true } };
+  /**
+   * Recovery for an unusable store (corrupt/incompatible): moves the database files to `quarantine/<ts>/` from inside the
+   * agent, which holds them open (Windows cannot rename open files), then the agent exits so main can start a fresh one.
+   * Refused with `forbidden` while the store is open.
+   */
+  'store.quarantine': { params: Record<string, never>; result: { ok: true; path: string } };
 }
 
 export type AgentMethod = keyof AgentMethodMap;
@@ -105,7 +112,7 @@ export const AGENT_METHODS = [
   'powershell.add', 'powershell.list', 'powershell.clear',
   'docs.get', 'docs.set', 'docs.remove',
   'secrets.status', 'secrets.list', 'secrets.set', 'secrets.remove', 'secrets.getCiphertext',
-  'device.rename', 'reset.preview', 'reset.apply', 'legacy.import', 'store.cleanExit', 'store.shutdown',
+  'device.rename', 'reset.preview', 'reset.apply', 'legacy.import', 'store.cleanExit', 'store.shutdown', 'store.quarantine',
 ] as const satisfies readonly AgentMethod[];
 
 // Compile-time exhaustiveness: fails if a method is added to the map but not to AGENT_METHODS.

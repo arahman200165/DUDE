@@ -4,6 +4,7 @@
   "private": true,
   "description": "Device State Store state service (utilityProcess owning the SQLite store)",
   "dependencies": {
+    "@dude/agent-pipe": "*",
     "@dude/contracts": "*",
     "@dude/domain": "*",
     "@dude/persistence": "*",

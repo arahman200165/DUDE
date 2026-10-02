@@ -1,4 +1,6 @@
 import { randomBytes } from 'node:crypto';
+import { existsSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { AGENT_METHODS } from '@dude/contracts';
 import type { AgentMethod, AgentMethodMap, AgentResponse } from '@dude/contracts';
@@ -154,5 +156,27 @@ describe('rpc server unavailable mode', () => {
     }
     expect(await server.handle({ id: 3, method: 'store.shutdown', params: {} })).toMatchObject({ ok: true });
     expect(server.closed).toBe(true);
+  });
+});
+
+describe('store.quarantine', () => {
+  it('moves the database files from inside the agent while the store is unavailable, then closes', async () => {
+    const dir = tempDir();
+    writeFileSync(join(dir, 'dude-device.db'), 'garbage');
+    writeFileSync(join(dir, 'dude-device.db-wal'), 'wal');
+    const server = createRpcServer(null, { ...deps, storeDir: dir, unavailable: { status: 'corrupt', message: 'bad' } });
+    const r = await server.handle({ id: 1, method: 'store.quarantine', params: {} });
+    expect(r).toMatchObject({ ok: true, result: { ok: true } });
+    const target = (r as { result: { path: string } }).result.path;
+    expect(existsSync(join(dir, 'dude-device.db'))).toBe(false);
+    expect(existsSync(join(target, 'dude-device.db'))).toBe(true);
+    expect(existsSync(join(target, 'dude-device.db-wal'))).toBe(true);
+    expect(server.closed).toBe(true);
+  });
+
+  it('is refused while the store is open', async () => {
+    const { call, server } = make();
+    expect(await call('store.quarantine')).toMatchObject({ ok: false, error: { code: 'forbidden' } });
+    expect(server.closed).toBe(false);
   });
 });

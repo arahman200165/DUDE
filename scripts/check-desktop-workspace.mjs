@@ -6,6 +6,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, exist
 import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 import assert from 'node:assert/strict';
+import { connectAgentPipe } from '@dude/agent-pipe';
 
 if(process.platform!=='win32')throw Error('Desktop workspace acceptance requires Windows.');
 const root=path.resolve(import.meta.dirname,'..');
@@ -51,6 +52,26 @@ async function expectIndent(page){
  assert.ok(leftovers.every(k=>k.includes(':settings:')||k.includes('__device__')||k.includes('appearance')),`unexpected localStorage keys: ${leftovers}`);
  await expect(page.getByText('Device Store unavailable')).toHaveCount(0);
 }
+const storeDir=path.join(profile,'device-store');
+const agentPid=path.join(storeDir,'agent.pid');
+// The desktop shuts its agent down on quit (this milestone). Make sure none outlives the run: ask it to shut down over
+// the pipe, then fall back to the pid it recorded.
+async function stopLeftoverAgent(){
+ try{
+  const client=await connectAgentPipe({storeDir,config:{appInfo:{},capabilities:{},machineGuid:null},timeoutMs:3000});
+  try{await client.call('store.shutdown',{},3000);}catch{}
+  client.close();
+ }catch{}
+ await new Promise(resolve=>setTimeout(resolve,300));
+ if(existsSync(agentPid)){
+  const pid=Number(readFileSync(agentPid,'utf8'));
+  if(pid>0)try{process.kill(pid);}catch{}
+ }
+}
+async function waitForAgentExit(){
+ for(let i=0;i<50&&existsSync(agentPid);i++)await new Promise(resolve=>setTimeout(resolve,100));
+ assert.equal(existsSync(agentPid),false,'the Device Agent exited with the desktop');
+}
 let active;
 try{
  active=await launch(['dude://open/tool/base64']);
@@ -95,6 +116,7 @@ try{
  await expectIndent(active.page);
  launches.push({kind:'warm',marks:active.marks.join('')});
  await active.app.close();active=null;
+ await waitForAgentExit();
  // Legacy userData import: the seeded JSON was moved to legacy-import/<ts>/ and its values are in the device store.
  const legacyRuns=readdirSync(path.join(profile,'legacy-import'));
  assert.ok(legacyRuns.length>0,'legacy-import/<timestamp> folder exists');
@@ -116,4 +138,7 @@ try{
  }finally{db.close();}
  writeFileSync(path.join(root,'tmp/phase31a-desktop-evidence.json'),JSON.stringify({profile,fixtureOrigin:'dude-app://app',checks:['production preload isolation','native helper read','mutation read-allowlist rejection','picker grant and walk','deep-link navigation','picker file handoff','command-line file handoff','stable-origin renderer reload and warm persistence','native preference persistence'],launches},null,2)+'\n');
  console.log('Cold/warm production desktop, preload, deep-link, file-open, native helper and isolated saved-state acceptance pass.');
-}finally{if(active)await active.app.close();}
+}finally{
+ if(active)await active.app.close().catch(()=>{});
+ await stopLeftoverAgent();
+}

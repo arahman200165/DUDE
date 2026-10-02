@@ -4,6 +4,7 @@
   "private": true,
   "description": "Electron desktop composition",
   "dependencies": {
+    "@dude/agent-pipe": "*",
     "@dude/collab-protocol": "*",
     "@dude/contracts": "*",
     "@dude/crypto": "*",

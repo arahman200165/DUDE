@@ -17,7 +17,7 @@ cpSync(path.join(repo,'package-lock.json'),path.join(isolated,'package-lock.json
 const npmCli=process.env.npm_execpath;if(!npmCli)throw Error('Run through npm run check:portable');
 function run(bin,args){const result=spawnSync(process.execPath,[bin,...args],{cwd:isolated,stdio:'inherit'});if(result.status!==0)throw Error(`Portable check failed (${result.status}) in ${isolated}`);}
 run(npmCli,['install','--offline','--ignore-scripts','--no-audit','--no-fund']);
-for(const forbidden of ['@angular','electron','@dude/web','@dude/desktop','@dude/collab-protocol','@dude/sqlite-store','@dude/device-agent','@dude/hub','node:sqlite'])if(existsSync(path.join(isolated,'node_modules',forbidden)))throw Error('Forbidden host installed: '+forbidden);
+for(const forbidden of ['@angular','electron','@dude/web','@dude/desktop','@dude/collab-protocol','@dude/sqlite-store','@dude/agent-pipe','@dude/device-agent','@dude/hub','node:sqlite'])if(existsSync(path.join(isolated,'node_modules',forbidden)))throw Error('Forbidden host installed: '+forbidden);
 const manifests=new Map(packageNames.map(name=>{const m=JSON.parse(readFileSync(path.join(isolated,'packages',name,'package.json'),'utf8'));return[m.name,{name,m}];}));
 const seen=new Set(),visiting=new Set();
 function build(id){if(seen.has(id))return;if(visiting.has(id))throw Error('Portable dependency cycle');visiting.add(id);const{name,m}=manifests.get(id);for(const dep of Object.keys(m.dependencies??{}))if(manifests.has(dep))build(dep);run(path.join(isolated,'node_modules/typescript/bin/tsc'),['-p',`packages/${name}/tsconfig.json`]);visiting.delete(id);seen.add(id);}

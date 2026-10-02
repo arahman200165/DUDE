@@ -21,6 +21,7 @@ import { getSecretCiphertext, listSecretStatus, removeSecret, secretStatus, setS
 import type { SecretStatusRow } from '../store/repos/secrets.repo.js';
 import { applyReset, previewReset } from '../store/reset.js';
 import { DEFAULT_HISTORY_RETENTION } from '../store/repos/retention.js';
+import { quarantineStore } from '../store/open-store.js';
 
 export interface RpcDeps {
   now: () => Date;
@@ -29,6 +30,8 @@ export interface RpcDeps {
   codecCtx?: Readonly<Record<string, unknown>>;
   /** Set when the store could not be opened: only `store.health` (and `store.shutdown`) are served. */
   unavailable?: { status: 'incompatible' | 'corrupt'; message: string };
+  /** The store directory; needed by `store.quarantine`, which only runs while the store is unavailable. */
+  storeDir?: string;
 }
 
 export interface RpcServer {
@@ -224,6 +227,8 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
       else if (p.action !== 'check') throw invalid('action must be launch, quit or check.');
       return { previous };
     },
+    // Reached only with an open store, which must never be quarantined (the unavailable path is in `handle`).
+    'store.quarantine': () => { throw new RpcError('forbidden', 'The device store is open and cannot be quarantined.'); },
     'store.shutdown': () => {
       if (store) {
         try { store.db.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch { /* best effort; close still runs */ }
@@ -250,6 +255,16 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
     if (store === null) {
       if (method === 'store.health') return { id, ok: true, result: storeHealthUnavailable(deps) };
       if (method === 'store.shutdown') { closed = true; return { id, ok: true, result: { ok: true } }; }
+      if (method === 'store.quarantine') {
+        if (!deps.storeDir) return fail(id, 'unavailable', 'The store directory is not known.');
+        try {
+          const target = quarantineStore(deps.storeDir, deps.now());
+          closed = true;
+          return { id, ok: true, result: { ok: true, path: target } };
+        } catch (error) {
+          return fail(id, 'internal', error instanceof Error ? error.message : 'Quarantine failed.');
+        }
+      }
       return fail(id, 'unavailable', 'The device store is not available.');
     }
 

@@ -1,8 +1,6 @@
 vi.mock('electron', () => ({
   app: { getVersion: () => '1.0.0' },
   safeStorage: { isEncryptionAvailable: () => true },
-  utilityProcess: { fork: vi.fn() },
-  MessageChannelMain: class {},
 }));
 
 import { startDeviceAgent, DeviceStoreError } from './agent-host';
@@ -14,24 +12,31 @@ const HEALTH = { status: 'ready', schemaVersion: 1, minReaderVersion: 1, sizeByt
 const APP_INFO = { appVersion: '1.0.0', platform: 'windows', os: '10', arch: 'x64' } as const;
 
 function begin(h: Harness): Promise<DeviceStoreHost> {
-  return startDeviceAgent({ userDataDir: 'C:\\ud', appInfo: APP_INFO, capabilities: { desktop: true }, machineGuid: 'g', fork: h.fork, createChannel: h.createChannel, agentPath: 'agent.js' });
+  return startDeviceAgent({ userDataDir: 'C:\\ud', appInfo: APP_INFO, capabilities: { desktop: true }, machineGuid: 'g', transport: h.transport });
 }
-const ready = (h: Harness, index = h.ports.length - 1): void => h.ports[index].port1.deliver({ type: 'ready', status: 'ready', health: HEALTH });
+/** The agent accepts the connection; the host sees it a tick later. */
+const ready = async (h: Harness, index = h.attempts.length - 1): Promise<void> => {
+  h.attempts[index].resolve({ type: 'ready', status: 'ready', health: HEALTH });
+  await vi.advanceTimersByTimeAsync(0);
+};
+
+/** A connect attempt that fails (nobody listening); the host sees it a tick later. */
+const fail = async (h: Harness, index: number): Promise<void> => {
+  h.attempts[index]?.reject(new Error('no-server'));
+  await vi.advanceTimersByTimeAsync(0);
+};
 
 describe('agent host', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
-  it('transfers port2 to the child only and keeps port1; init carries the store dir and config', async () => {
+  it('connects with the store config, becomes ready on the agent boot payload and exposes its health', async () => {
     const h = makeHarness();
     const starting = begin(h);
-    expect(h.children).toHaveLength(1);
-    const { message, transfer } = h.children[0].posted[0];
-    expect(transfer).toEqual([h.ports[0].port2]);
-    expect(transfer).not.toContain(h.ports[0].port1);
-    expect(message).toMatchObject({ config: { machineGuid: 'g', appInfo: APP_INFO, capabilities: { desktop: true } } });
-    expect((message as { config: { dir: string } }).config.dir).toMatch(/device-store$/);
-    ready(h);
+    expect(h.attempts).toHaveLength(1);
+    expect(h.attempts[0].config).toMatchObject({ machineGuid: 'g', appInfo: APP_INFO, capabilities: { desktop: true } });
+    expect(h.attempts[0].conn.sent).toHaveLength(0);
+    await ready(h);
     const host = await starting;
     expect(host.status()).toBe('ready');
     expect(host.health()).toEqual(HEALTH);
@@ -40,7 +45,7 @@ describe('agent host', () => {
   it('waits for the ready handshake and reports an incompatible store', async () => {
     const h = makeHarness();
     const starting = begin(h);
-    h.ports[0].port1.deliver({ type: 'ready', status: 'incompatible', message: 'newer store' });
+    h.attempts[0].resolve({ type: 'ready', status: 'incompatible', message: 'newer store' });
     const host = await starting;
     expect(host.status()).toBe('incompatible');
     expect(host.health()).toMatchObject({ status: 'incompatible', message: 'newer store' });
@@ -49,16 +54,16 @@ describe('agent host', () => {
   it('correlates responses by id, including out of order, and maps agent errors', async () => {
     const h = makeHarness();
     const starting = begin(h);
-    ready(h);
+    await ready(h);
     const host = await starting;
     const a = host.call('docs.get', { name: 'a' });
     const b = host.call('docs.get', { name: 'b' });
     const c = host.call('docs.get', { name: 'c' });
-    const sent = h.ports[0].port1.sent as Array<{ id: number; method: string; params: { name: string } }>;
+    const sent = h.attempts[0].conn.sent as Array<{ id: number; method: string; params: { name: string } }>;
     expect(sent.map((r) => r.params.name)).toEqual(['a', 'b', 'c']);
-    h.ports[0].port1.deliver({ id: sent[1].id, ok: true, result: 'B' });
-    h.ports[0].port1.deliver({ id: sent[0].id, ok: true, result: 'A' });
-    h.ports[0].port1.deliver({ id: sent[2].id, ok: false, error: { code: 'invalid-params', message: 'nope' } });
+    h.attempts[0].conn.deliver({ id: sent[1].id, ok: true, result: 'B' });
+    h.attempts[0].conn.deliver({ id: sent[0].id, ok: true, result: 'A' });
+    h.attempts[0].conn.deliver({ id: sent[2].id, ok: false, error: { code: 'invalid-params', message: 'nope' } });
     expect(await a).toBe('A');
     expect(await b).toBe('B');
     await expect(c).rejects.toMatchObject({ code: 'invalid-params', message: 'nope' });
@@ -67,7 +72,7 @@ describe('agent host', () => {
   it('times out a call that is never answered', async () => {
     const h = makeHarness();
     const starting = begin(h);
-    ready(h);
+    await ready(h);
     const host = await starting;
     const call = host.call('docs.get', { name: 'x' }, { timeoutMs: 250 });
     const assertion = expect(call).rejects.toMatchObject({ code: 'timeout' });
@@ -78,21 +83,21 @@ describe('agent host', () => {
   it('rejects in-flight calls when the child exits, then restarts after 500 ms', async () => {
     const h = makeHarness();
     const starting = begin(h);
-    ready(h);
+    await ready(h);
     const host = await starting;
     const healths: string[] = [];
     host.onHealth((x) => healths.push(x.status));
     const inFlight = host.call('docs.get', { name: 'x' });
     const assertion = expect(inFlight).rejects.toMatchObject({ code: 'agent-exited' });
-    h.children[0].exit(1);
+    h.attempts[0].conn.drop();
     await assertion;
     expect(host.status()).toBe('degraded');
     expect(healths).toEqual(['degraded']);
     await vi.advanceTimersByTimeAsync(499);
-    expect(h.children).toHaveLength(1);
+    expect(h.attempts).toHaveLength(1);
     await vi.advanceTimersByTimeAsync(1);
-    expect(h.children).toHaveLength(2);
-    ready(h);
+    expect(h.attempts).toHaveLength(2);
+    await ready(h);
     expect(host.status()).toBe('ready');
     expect(healths).toEqual(['degraded', 'ready']);
   });
@@ -100,29 +105,29 @@ describe('agent host', () => {
   it('backs off 500 ms, 2 s, 8 s and then goes unavailable after more than 3 crashes in 2 minutes', async () => {
     const h = makeHarness();
     const starting = begin(h);
-    ready(h);
+    await ready(h);
     const host = await starting;
     const healths: string[] = [];
     host.onHealth((x) => healths.push(x.status));
 
-    h.children[0].exit(1);
+    h.attempts[0].conn.drop();
     await vi.advanceTimersByTimeAsync(500);
-    expect(h.children).toHaveLength(2);
-    h.children[1].exit(1);
+    expect(h.attempts).toHaveLength(2);
+    await fail(h, 1);
     await vi.advanceTimersByTimeAsync(1999);
-    expect(h.children).toHaveLength(2);
+    expect(h.attempts).toHaveLength(2);
     await vi.advanceTimersByTimeAsync(1);
-    expect(h.children).toHaveLength(3);
-    h.children[2].exit(1);
+    expect(h.attempts).toHaveLength(3);
+    await fail(h, 2);
     await vi.advanceTimersByTimeAsync(7999);
-    expect(h.children).toHaveLength(3);
+    expect(h.attempts).toHaveLength(3);
     await vi.advanceTimersByTimeAsync(1);
-    expect(h.children).toHaveLength(4);
-    h.children[3].exit(1);
+    expect(h.attempts).toHaveLength(4);
+    await fail(h, 3);
     expect(host.status()).toBe('unavailable');
     expect(healths.at(-1)).toBe('unavailable');
     await vi.advanceTimersByTimeAsync(60_000);
-    expect(h.children).toHaveLength(4);
+    expect(h.attempts).toHaveLength(4);
 
     await expect(host.call('docs.get', { name: 'x' })).rejects.toMatchObject({ code: 'unavailable' });
   });
@@ -130,20 +135,20 @@ describe('agent host', () => {
   it('retry restarts an unavailable host and resets the crash counter', async () => {
     const h = makeHarness();
     const starting = begin(h);
-    ready(h);
+    await ready(h);
     const host = await starting;
-    h.children[0].exit(1);
+    h.attempts[0].conn.drop();
     await vi.advanceTimersByTimeAsync(500);
-    h.children[1].exit(1);
+    await fail(h, 1);
     await vi.advanceTimersByTimeAsync(2000);
-    h.children[2].exit(1);
+    await fail(h, 2);
     await vi.advanceTimersByTimeAsync(8000);
-    h.children[3].exit(1);
+    await fail(h, 3);
     expect(host.status()).toBe('unavailable');
 
     const retried = host.retry();
-    expect(h.children).toHaveLength(5);
-    ready(h);
+    expect(h.attempts).toHaveLength(5);
+    await ready(h);
     await retried;
     expect(host.status()).toBe('ready');
   });
@@ -151,73 +156,92 @@ describe('agent host', () => {
   it('queues calls made while restarting and flushes them once the new child is ready', async () => {
     const h = makeHarness();
     const starting = begin(h);
-    ready(h);
+    await ready(h);
     const host = await starting;
-    h.children[0].exit(1);
+    h.attempts[0].conn.drop();
     const queued = host.call('docs.get', { name: 'queued' });
-    expect(h.ports[0].port1.sent).toHaveLength(0);
+    expect(h.attempts[0].conn.sent).toHaveLength(0);
     await vi.advanceTimersByTimeAsync(500);
-    expect(h.ports[1].port1.sent).toHaveLength(0);
-    ready(h);
-    const [request] = h.ports[1].port1.sent as Array<{ id: number; method: string }>;
+    expect(h.attempts[1].conn.sent).toHaveLength(0);
+    await ready(h);
+    const [request] = h.attempts[1].conn.sent as Array<{ id: number; method: string }>;
     expect(request.method).toBe('docs.get');
-    h.ports[1].port1.deliver({ id: request.id, ok: true, result: 'v' });
+    h.attempts[1].conn.deliver({ id: request.id, ok: true, result: 'v' });
     expect(await queued).toBe('v');
   });
 
   it('rejects queued calls when the store becomes unavailable', async () => {
     const h = makeHarness();
     const starting = begin(h);
-    ready(h);
+    await ready(h);
     const host = await starting;
-    h.children[0].exit(1);
+    h.attempts[0].conn.drop();
     const queued = host.call('docs.get', { name: 'q' }, { timeoutMs: 600_000 });
     const assertion = expect(queued).rejects.toMatchObject({ code: 'unavailable' });
     for (let i = 1; i <= 3; i++) {
       await vi.advanceTimersByTimeAsync(10_000);
-      h.children[i].exit(1);
+      await fail(h, i);
     }
     await assertion;
   });
 
-  it('kills a child that never becomes ready and reports degraded without blocking forever', async () => {
+  it('abandons a connection that is not ready in time, reports degraded, and closes a late arrival', async () => {
     const h = makeHarness();
     const starting = begin(h);
     await vi.advanceTimersByTimeAsync(10_000);
     const host = await starting;
-    expect(h.children[0].killed).toBe(true);
     expect(host.status()).toBe('degraded');
+    h.attempts[0].resolve({ type: 'ready', status: 'ready', health: HEALTH });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(h.attempts[0].conn.closeCalls).toBe(1);
+    expect(host.status()).toBe('degraded');
+    await vi.advanceTimersByTimeAsync(500);
+    expect(h.attempts).toHaveLength(2);
   });
 
-  it('shuts down through store.shutdown and the child exit', async () => {
+  it('treats a failed connect like an exit: degraded, then a retry after the backoff', async () => {
     const h = makeHarness();
     const starting = begin(h);
-    ready(h);
+    await fail(h, 0);
+    const host = await starting;
+    expect(host.status()).toBe('degraded');
+    await vi.advanceTimersByTimeAsync(499);
+    expect(h.attempts).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(h.attempts).toHaveLength(2);
+    await ready(h);
+    expect(host.status()).toBe('ready');
+  });
+
+  it('shuts down through store.shutdown and the connection closing', async () => {
+    const h = makeHarness();
+    const starting = begin(h);
+    await ready(h);
     const host = await starting;
     const done = host.shutdown();
     await vi.advanceTimersByTimeAsync(0);
-    const [request] = h.ports[0].port1.sent as Array<{ id: number; method: string }>;
+    const [request] = h.attempts[0].conn.sent as Array<{ id: number; method: string }>;
     expect(request.method).toBe('store.shutdown');
-    h.ports[0].port1.deliver({ id: request.id, ok: true, result: { ok: true } });
+    h.attempts[0].conn.deliver({ id: request.id, ok: true, result: { ok: true } });
     await vi.advanceTimersByTimeAsync(0);
-    h.children[0].exit(0);
+    h.attempts[0].conn.drop();
     await done;
-    expect(h.children[0].killed).toBe(false);
+    expect(h.attempts[0].conn.closeCalls).toBe(0);
     expect(host.status()).toBe('unavailable');
-    expect(h.children).toHaveLength(1);
+    expect(h.attempts).toHaveLength(1);
     await expect(host.call('docs.get', { name: 'x' })).rejects.toBeInstanceOf(DeviceStoreError);
   });
 
-  it('kills the child if it does not exit within 3 s of shutdown', async () => {
+  it('closes the connection itself if the agent does not end it within 3 s of shutdown', async () => {
     const h = makeHarness();
     const starting = begin(h);
-    ready(h);
+    await ready(h);
     const host = await starting;
-    h.children[0].ignoreKill = true;
+    h.attempts[0].conn.ignoreClose = true;
     const done = host.shutdown();
     await vi.advanceTimersByTimeAsync(3000);
     await vi.advanceTimersByTimeAsync(3000);
     await done;
-    expect(h.children[0].killed).toBe(true);
+    expect(h.attempts[0].conn.closeCalls).toBe(1);
   });
 });

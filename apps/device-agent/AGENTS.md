@@ -1,11 +1,11 @@
 # AGENTS.md — apps/device-agent/
 
-The **Device State Store "state service"**: a utilityProcess (bundled by `npm run device-agent:compile` to `dist/electron/device-agent.js`) that owns the SQLite database `userData/device-store/dude-device.db` through `node:sqlite`. It is NOT the privileged "Device Agent" execution boundary named in SYSTEM/SECURITY_ARCHITECTURE; do not conflate them.
+The resident per-user **Device Agent** (PD-026): a separate Node process (`src/main.ts`, bundled by `node scripts/build-device-agent.mjs` / `npm run device-agent:compile` to `dist/electron/device-agent.js`, and built into the SEA `dist/agent/dude-agent.exe` by `scripts/build-sea.mjs`) that owns the SQLite database `userData/device-store/dude-device.db` through `node:sqlite` and serves the closed RPC table over a per-user named pipe (`@dude/agent-pipe`: length-prefixed JSON, bytes as base64, server-first HMAC handshake). Run it as `--store-dir <dir>` (required) or `--version`. It writes `agent.pid` and `agent-pipe.key` in the store directory.
 
-PD-026 (Phase 31C) makes this process the resident per-user Device Agent; see the [decision log](../../docs/history/DECISION_LOG.md#phase-31c-implementation-decisions). The file layout and rules below describe the code until that lands (Milestones 639-640).
-
-- Only Electron main talks to it (private MessagePort, closed method table). The renderer never holds a port.
-- No `electron` or `@angular/*` imports, and nothing here is imported by `apps/web` (`npm run check:boundaries` enforces both). Allowed workspace deps: persistence, sync, contracts, domain, shared-types.
+- `src/agent.ts` (`runAgent`) is the service: the store opens lazily from the first authenticated connection's config (machine guid, app info, capabilities come from the desktop) and is shared by every later connection; requests are answered in order per connection. `store.shutdown` checkpoints, closes and exits; `store.quarantine` (unavailable store only) moves the DB files aside from inside the agent because Windows cannot rename files the agent holds open.
+- In this milestone the desktop still spawns the agent and shuts it down on quit; the logon task and detach-on-quit land next (Milestone 640). The agent version is the build-time `__DUDE_VERSION__` (`dev` unbundled); the desktop restarts a packaged agent whose version differs.
+- Only Electron main talks to it (never the renderer). It is NOT the privileged "Device Agent" execution boundary of SYSTEM/SECURITY_ARCHITECTURE until it gains those capabilities; see the [decision log](../../docs/history/DECISION_LOG.md#phase-31c-implementation-decisions).
+- No `electron` or `@angular/*` imports, and nothing here is imported by `apps/web` (`npm run check:boundaries` enforces both). Allowed workspace deps: persistence, sync, contracts, domain, shared-types, sqlite-store, agent-pipe.
 - Schema changes happen only through new numbered migrations in `src/store/migrations/`. Never edit a shipped migration (checksums are verified); bump `minReaderVersion` only for changes older builds cannot read.
 - Every journaled entity change commits its row and its coalesced outbox op in one transaction (`src/store/entity-commit.ts`).
 - Specs run in `npm run test:electron`; `src/testing/crash-writer.ts` is bundled by the crash spec and hard-killed to prove durability.

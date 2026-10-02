@@ -34,10 +34,10 @@
     "preelectron:start": "npm run generate:registry && npm run build:packages && npm run electron:helper",
     "preelectron:package": "npm run generate:registry && npm run build:packages && npm run electron:helper",
     "electron:compile": "esbuild apps/desktop/main.ts apps/desktop/preload.ts apps/desktop/fs-worker.ts --bundle --platform=node --format=cjs --outdir=dist/electron --external:electron && npm run device-agent:compile",
-    "device-agent:compile": "esbuild apps/device-agent/src/main.ts --bundle --platform=node --format=cjs --outfile=dist/electron/device-agent.js",
+    "device-agent:compile": "node scripts/build-device-agent.mjs",
     "electron:start": "ng build --configuration production,electron && npm run electron:compile && electron dist/electron/main.js",
     "electron:dev": "concurrently -k -s first \"ng serve\" \"wait-on http://localhost:4200 && npm run electron:compile && cross-env DUDE_ELECTRON_DEV_SERVER_URL=http://localhost:4200 electron dist/electron/main.js\"",
-    "electron:package": "ng build --configuration production,electron && npm run electron:compile && electron-builder --config electron-builder.yml --win nsis appx",
+    "electron:package": "ng build --configuration production,electron && npm run electron:compile && npm run agent:sea && electron-builder --config electron-builder.yml --win nsis",
     "measure:desktop-startup": "ng build --configuration production,electron && npm run electron:compile && node scripts/measure-desktop-startup.mjs",
     "relay:compile": "esbuild apps/collab-relay/index.ts --bundle --platform=node --format=cjs --outdir=dist/relay",
     "hub:compile": "node scripts/build-hub.mjs",
@@ -66,7 +66,9 @@
     "check:desktop": "node scripts/check-desktop-workspace.mjs",
     "check:generated": "node scripts/check-generator-freshness.mjs",
     "audit:prod": "node scripts/check-production-audit.mjs",
-    "pretest:packages": "npm run build:packages"
+    "pretest:packages": "npm run build:packages",
+    "agent:sea": "node scripts/build-sea.mjs --bundle dist/electron/device-agent.js --out dist/agent --name dude-agent",
+    "preagent:sea": "npm run device-agent:compile"
   },
   "private": true,
   "packageManager": "npm@11.19.0",

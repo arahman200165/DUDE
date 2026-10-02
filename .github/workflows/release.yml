@@ -1,7 +1,7 @@
 name: Release
 
 # Phase 8 Stage 8 (Milestone 28): builds the Windows desktop installer
-# (NSIS + MSIX/appx) and publishes it to a GitHub Release matching the
+# (NSIS) and publishes it to a GitHub Release matching the
 # pushed tag. Separate from deploy.yml, which stays GitHub Pages-only.
 #
 # Two triggers, for two different tag sources:
@@ -85,8 +85,11 @@ jobs:
       - name: Production desktop acceptance in an isolated profile
         run: npm run check:desktop
 
-      - name: Package and publish (NSIS + MSIX)
-        run: npx electron-builder --config electron-builder.yml --win nsis appx --publish always
+      - name: Build the Device Agent executable
+        run: node scripts/build-sea.mjs --bundle dist/electron/device-agent.js --out dist/agent --name dude-agent
+
+      - name: Package and publish (NSIS)
+        run: npx electron-builder --config electron-builder.yml --win nsis --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -96,8 +99,6 @@ jobs:
           $source = (Get-FileHash build\network-icmp.exe).Hash
           $packaged = (Get-FileHash release\win-unpacked\resources\network-icmp.exe).Hash
           if ($source -ne $packaged) { throw 'NSIS source tree does not contain the network helper.' }
-          Add-Type -AssemblyName System.IO.Compression.FileSystem
-          $archive = [System.IO.Compression.ZipFile]::OpenRead((Get-ChildItem release -Filter 'DUDE-*.appx' | Select-Object -First 1).FullName)
-          try {
-            if (-not ($archive.Entries | Where-Object { $_.FullName -eq 'app/resources/network-icmp.exe' })) { throw 'MSIX is missing the network helper.' }
-          } finally { $archive.Dispose() }
+          $agent = (Get-FileHash dist\agent\dude-agent.exe).Hash
+          $packagedAgent = (Get-FileHash release\win-unpacked\resources\dude-agent.exe).Hash
+          if ($agent -ne $packagedAgent) { throw 'NSIS source tree does not contain the Device Agent.' }

@@ -2,13 +2,8 @@
 # Milestone 28). Invoked via `npm run electron:package` locally, and by
 # `.github/workflows/release.yml` on every `v*.*.*` tag push.
 #
-# IMPORTANT — the `appx` block below ships PLACEHOLDER Microsoft Store
-# package-identity values. The resulting .appx/.msix is real and installs
-# fine via sideloading (`Add-AppxPackage`, Developer Mode), but it is NOT
-# submittable to the Microsoft Store until `identityName`/`publisher`/
-# `publisherDisplayName` are replaced with values reserved through a real
-# Microsoft Partner Center account. Store submission itself stays a manual
-# process (Partner Center), never automated in CI — see DUDE_PRD.md §21.
+# The appx/MSIX target was dropped (PD-025): the Device Agent runs outside the desktop's
+# package identity, so the desktop ships as NSIS only.
 
 appId: io.github.arahman200165.dude
 productName: DUDE
@@ -31,13 +26,15 @@ extraResources:
     to: fs-attrs.exe
   - from: build/windows-sys.exe
     to: windows-sys.exe
+  # The resident per-user Device Agent (PD-026), built by `npm run agent:sea`.
+  - from: dist/agent/dude-agent.exe
+    to: dude-agent.exe
 
 icon: build/icon.ico
 
 win:
   target:
     - target: nsis
-    - target: appx
 
 nsis:
   # No code signing in scope for Phase 8 (see the "Explicitly deferred"
@@ -50,15 +47,6 @@ nsis:
   include: build/installer.nsh
   installerSidebar: build/installerSidebar.bmp
   artifactName: 'DUDE-Setup-${version}.${ext}'
-
-appx:
-  # --- PLACEHOLDER: replace before any real Store submission ---
-  identityName: '12345Placeholder.DUDE' # PLACEHOLDER — Partner Center-reserved package identity name
-  publisher: 'CN=00000000-0000-0000-0000-000000000000' # PLACEHOLDER — Partner Center-issued publisher ID
-  publisherDisplayName: 'DUDE (placeholder publisher — not yet Partner Center-verified)'
-  applicationId: DUDE
-  displayName: DUDE
-  artifactName: 'DUDE-${version}.${ext}'
 
 publish:
   - provider: github

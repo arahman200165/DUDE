@@ -11,6 +11,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { cleanupTemp, openReady, tempDir } from '../../device-agent/src/testing/test-utils';
 import { createRpcServer } from '../../device-agent/src/rpc/server';
+import { quarantineStore } from '../../device-agent/src/store/open-store';
 import type { DeviceStoreHost } from './agent-host';
 import { createInProcessClient } from './store-client';
 import { registerStoreResetHandlers, RESET_TOKEN_TTL_MS } from './store-reset';
@@ -147,11 +148,23 @@ describe('store reset confirmation boundary', () => {
   describe('quarantine and reset of an unusable store', () => {
     let dir: string;
     let restarted: number;
-    const unusable = (): DeviceStoreHost => ({ ...host, status: () => 'corrupt', shutdown: async () => undefined });
+    // An unusable store: the connected agent serves `store.quarantine` itself (see rpc/server.spec.ts); here it is emulated.
+    const quarantineCalls: string[] = [];
+    const unusable = (): DeviceStoreHost => ({
+      ...host,
+      status: () => 'corrupt',
+      shutdown: async () => undefined,
+      call: (async (method: string) => {
+        if (method !== 'store.quarantine') throw new Error(`unexpected ${method}`);
+        quarantineCalls.push(method);
+        return { ok: true, path: quarantineStore(dir, new Date('2026-01-02T03:04:05.678Z')) };
+      }) as DeviceStoreHost['call'],
+    });
     beforeEach(() => {
       dir = mkdtempSync(join(tmpdir(), 'dude-quarantine-'));
       writeFileSync(join(dir, 'dude-device.db'), 'garbage');
       restarted = 0;
+      quarantineCalls.length = 0;
       mock.handlers.clear();
       const broken = unusable();
       registerStoreResetHandlers(window, { host: () => broken, restartHost: async () => { restarted++; return broken; }, storeDir: () => dir, openPath, now: () => new Date('2026-01-02T03:04:05.678Z') });
@@ -168,6 +181,7 @@ describe('store reset confirmation boundary', () => {
       expect(await call('dude:store:recovery:quarantineApply', own, preview.token)).toEqual({ ok: true });
       expect(existsSync(join(dir, 'dude-device.db'))).toBe(false);
       expect(existsSync(join(dir, 'quarantine', '2026-01-02T03-04-05-678Z', 'dude-device.db'))).toBe(true);
+      expect(quarantineCalls).toEqual(['store.quarantine']);
       expect(restarted).toBe(1);
       expect(own.reloadCount).toBe(1);
       expect(await call('dude:store:recovery:quarantineApply', own, preview.token)).toMatchObject({ ok: false });

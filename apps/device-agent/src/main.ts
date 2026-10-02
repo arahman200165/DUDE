@@ -1,46 +1,29 @@
-import { randomBytes } from 'node:crypto';
-import type { DeviceCapabilities } from '@dude/persistence';
-import type { StoreHealth } from '@dude/contracts';
-import { openDeviceStore } from './store/open-store.js';
-import type { AppInfo } from './store/identity.js';
-import { createRpcServer } from './rpc/server.js';
-import type { RpcServer } from './rpc/server.js';
+import { runAgent } from './agent.js';
 
-/** First message from main: the config plus the private port every later request travels on. */
-interface AgentConfig {
-  dir: string;
-  machineGuid: string | null;
-  appInfo: AppInfo;
-  capabilities: DeviceCapabilities;
+/** Replaced at build time (`--define:__DUDE_VERSION__`); 'dev' when running unbundled. */
+declare const __DUDE_VERSION__: string | undefined;
+const AGENT_VERSION = typeof __DUDE_VERSION__ === 'string' ? __DUDE_VERSION__ : 'dev';
+
+function argValue(name: string): string | undefined {
+  const index = process.argv.indexOf(name);
+  return index >= 0 ? process.argv[index + 1] : undefined;
 }
 
-/** Posted on the port before any request is served. */
-export type AgentReadyEvent =
-  | { type: 'ready'; status: 'ready'; health: StoreHealth }
-  | { type: 'ready'; status: 'incompatible' | 'corrupt'; message: string };
-
-const parentPort = process.parentPort;
-
-parentPort?.once('message', (event) => {
-  const { config } = event.data as { config: AgentConfig };
-  const port = event.ports[0];
-  const now = (): Date => new Date();
-  const bytes = (n: number): Uint8Array => new Uint8Array(randomBytes(n));
-
-  let server: RpcServer;
-  const opened = openDeviceStore({ ...config, now, randomBytes: bytes });
-  if (opened.status === 'ready') {
-    server = createRpcServer(opened.store, { now, randomBytes: bytes });
-    port.postMessage({ type: 'ready', status: 'ready', health: opened.health } satisfies AgentReadyEvent);
-  } else {
-    server = createRpcServer(null, { now, randomBytes: bytes, unavailable: { status: opened.status, message: opened.message } });
-    port.postMessage({ type: 'ready', status: opened.status, message: opened.message } satisfies AgentReadyEvent);
+async function main(): Promise<void> {
+  if (process.argv.includes('--version')) {
+    process.stdout.write(`${AGENT_VERSION}\n`);
+    return;
   }
+  const storeDir = argValue('--store-dir');
+  if (!storeDir) {
+    process.stderr.write('dude-agent: --store-dir <dir> is required\n');
+    process.exit(2);
+  }
+  const agent = await runAgent({ storeDir, agentVersion: AGENT_VERSION, onExit: (code) => process.exit(code) });
+  // Another agent already serves this store directory; nothing to do.
+  if (agent.status === 'already-running') process.exit(0);
+}
 
-  port.on('message', async (message) => {
-    const response = await server.handle(message.data);
-    port.postMessage(response);
-    if (server.closed) setImmediate(() => process.exit(0));
-  });
-  port.start();
-});
+process.on('uncaughtException', (error) => { process.stderr.write(`dude-agent: fatal ${error.stack ?? error}\n`); process.exit(1); });
+process.on('unhandledRejection', (error) => { process.stderr.write(`dude-agent: fatal ${String(error)}\n`); process.exit(1); });
+void main();

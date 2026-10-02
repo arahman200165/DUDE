@@ -11,7 +11,7 @@ import { getDeviceStoreHost } from './store-client';
 /**
  * Settings > This Device reset and recovery, under the Destructive-Action Contract. Consequence
  * classes: `clear-data` and `reset-device` are `database-write` (irreversible: no undo), and
- * quarantine moves the store aside (`filesystem-write`, recoverable by hand from the quarantine folder).
+ * quarantine moves the store aside inside the Device Agent (`filesystem-write`, recoverable by hand from the quarantine folder).
  *
  * Preview never mutates. It returns a 60 s single-use token bound to the requesting window and to
  * the agent's digest of what the preview showed. Apply consumes the token (success or not) and the
@@ -49,7 +49,11 @@ async function listStoreFiles(dir: string): Promise<Array<{ name: string; sizeBy
   return files;
 }
 
-/** Moves the database and its WAL/SHM files to `<dir>/quarantine/<ts>/`; the same layout the agent uses. */
+/**
+ * Fallback only, for when no agent is connected: moves the database and its WAL/SHM files to
+ * `<dir>/quarantine/<ts>/`, the same layout the agent uses. While an agent is connected it holds the
+ * files open (Windows refuses to rename them), so the move runs inside the agent (`store.quarantine`).
+ */
 async function moveToQuarantine(dir: string, now: Date): Promise<string> {
   const target = join(dir, 'quarantine', now.toISOString().replace(/[:.]/g, '-'));
   await fs.mkdir(target, { recursive: true });
@@ -150,8 +154,14 @@ export function registerStoreResetHandlers(window: BrowserWindow, deps: StoreRes
     try {
       const dir = deps.storeDir();
       if (digestOf(await listStoreFiles(dir)) !== plan.digest) return { ok: false, error: 'stale-preview' };
-      if (host) await host.shutdown();
-      await moveToQuarantine(dir, deps.now());
+      if (host && (host.status() === 'corrupt' || host.status() === 'incompatible')) {
+        // The agent closes the database, moves the files and exits; main never renames files the agent holds open.
+        await host.call('store.quarantine', {});
+        await host.shutdown();
+      } else {
+        if (host) await host.shutdown();
+        await moveToQuarantine(dir, deps.now());
+      }
       await deps.restartHost();
     } catch {
       return { ok: false, error: 'failed' };
