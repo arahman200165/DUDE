@@ -46,6 +46,9 @@ function setup(responder: Responder) {
 const envelope = (code: string, message: string) => ({ error: { code, message } });
 
 describe('Hub web admin adapter', () => {
+  // Warm the dynamic import once: under the full suite the first cold load can exceed a test's 5 s budget.
+  beforeAll(async () => { await import('@dude/api-client'); }, 30_000);
+
   it('uses same-origin relative URLs with cookie credentials and reads status from hello', async () => {
     const { admin, calls } = setup(() => ({ status: 200, body: HELLO }));
     await expect(admin.status()).resolves.toMatchObject({ hubUrl: 'https://hub.local:47600', environmentId: 'env-1', reachable: true });
