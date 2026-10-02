@@ -13,7 +13,8 @@ describe('ClearAllDataService on the desktop device store', () => {
 
   it('clears history and network runs through the store and deletes leftover IndexedDB databases', async () => {
     const bridge = fakeElectronBridge();
-    (window as unknown as { dude: unknown }).dude = bridge;
+    // defineProperty, not assignment: other specs in the same worker leave `dude` configurable but not writable.
+    Object.defineProperty(window, 'dude', { value: bridge, configurable: true, writable: true });
     await bridge.store.history.add({ id: 'h', toolId: 't', createdAt: Date.now(), sizeBytes: 1, payload: {} });
     await bridge.store.network.add({ id: 'n', createdAt: Date.now(), sizeBytes: 1, payload: {} });
     for (const name of [HISTORY_DB_NAME, NETWORK_HISTORY_DB_NAME]) {
