@@ -104,8 +104,13 @@ describe('security baseline', () => {
     expect((await post({ origin, 'sec-fetch-site': 'same-origin' })).status).toBe(200);
   });
 
-  it('rejects a POST with no Origin and no credential', async () => {
-    expect((await post()).status).toBe(403);
+  it('lets a non-browser client (no Origin, no Sec-Fetch-*) POST without a credential, but not a browser-like one', async () => {
+    expect((await post()).status).toBe(200); // CLI / Desktop Agent
+    expect((await post({ 'sec-fetch-site': 'same-origin' })).status).toBe(403); // browser metadata without Origin
+    expect((await post({ 'sec-fetch-site': 'cross-site' })).status).toBe(403);
+    expect((await post({ 'sec-fetch-mode': 'cors' })).status).toBe(403);
+    expect((await post({ 'sec-fetch-dest': 'empty' })).status).toBe(403);
+    expect((await post({ origin: 'null' })).status).toBe(403); // an Origin, when present, must match
   });
 
   it('lets a bearer POST without Origin past the guard, but not a cross-site navigate/cors one', async () => {

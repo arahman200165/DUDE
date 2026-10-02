@@ -3,10 +3,16 @@ import type { FastifyInstance } from 'fastify';
 import type { RevokedSession } from './sessions.js';
 
 export interface SessionRevokedEvent extends RevokedSession {
-  reason: 'revoked' | 'revoke-all' | 'sign-out' | 'password-changed' | 'recovery' | 'owner-reset';
+  reason: 'revoked' | 'device-revoked' | 'device-unenrolled' | 'revoke-all' | 'sign-out' | 'password-changed' | 'recovery' | 'owner-reset';
 }
 
-export interface HubEventMap { 'session-revoked': [SessionRevokedEvent] }
+export interface HubEventMap {
+  'session-revoked': [SessionRevokedEvent];
+  /** The realtime milestone closes the sockets of this device. */
+  'device-revoked': [{ deviceId: string }];
+  'device-unenrolled': [{ deviceId: string }];
+  'device-registry-changed': [{ deviceId: string; change: 'enrolled' | 'renamed' | 'revoked' | 'unenrolled' | 'recovery-trust' | 'updated' }];
+}
 
 /** Internal in-process events (consumed by the realtime milestone). Never carries credentials. */
 export class HubEvents extends EventEmitter<HubEventMap> {}

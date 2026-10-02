@@ -54,7 +54,8 @@ export const ConfirmPreview = Type.Object({
   confirmToken: Type.String(),
   expiresAt: Type.String(),
   summary: Type.Object(
-    { action: Type.String(), affectedSessions: Type.Optional(Type.Integer({ minimum: 0 })), remainingRecoveryCodes: Type.Optional(Type.Integer({ minimum: 0 })) },
+    { action: Type.String(), affectedSessions: Type.Optional(Type.Integer({ minimum: 0 })), remainingRecoveryCodes: Type.Optional(Type.Integer({ minimum: 0 })),
+      deviceId: Type.Optional(Type.String()), displayName: Type.Optional(Type.String()), keys: Type.Optional(Type.Integer({ minimum: 0 })) },
     { additionalProperties: true },
   ),
 });

@@ -12,7 +12,7 @@ export const BEARER_ABSOLUTE_MS = 12 * HOUR_MS;
 export const SLIDE_MIN_INTERVAL_MS = 60_000;
 export const USER_AGENT_MAX = 256;
 
-/** Owner bearer sessions (the desktop Agent). Device tokens, next milestone, use `ddt_`. */
+/** Owner bearer sessions (the desktop Agent). Device tokens use `ddt_`. */
 export const OWNER_BEARER_PREFIX = 'dob_';
 
 export const SESSION_POLICY: Record<SessionKind, { idleMs: number; absoluteMs: number }> = {

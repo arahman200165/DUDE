@@ -31,11 +31,12 @@ describe('POST /bootstrap', () => {
   const good = (over: Record<string, unknown> = {}) => ({ setupToken: token, ownerDisplayName: 'Ada', environmentName: 'Home', password: PASSWORD, ...over });
   const hello = async () => JSON.parse((await request(hub.port, hub.tls.certPem, `${HUB_API_PREFIX}/hello`)).body) as HelloResponse;
 
-  it('requires an Origin header', async () => {
-    const res = await request(hub.port, hub.tls.certPem, `${HUB_API_PREFIX}/bootstrap`, {
-      method: 'POST', body: JSON.stringify(good()), headers: { 'content-type': 'application/json' },
-    });
-    expect(res.status).toBe(403);
+  it('rejects a cross-site Origin and browser metadata without an Origin', async () => {
+    const headers = { 'content-type': 'application/json' };
+    const send = (extra: Record<string, string>) =>
+      request(hub.port, hub.tls.certPem, `${HUB_API_PREFIX}/bootstrap`, { method: 'POST', body: JSON.stringify(good({ setupToken: 'x'.repeat(43) })), headers: { ...headers, ...extra } });
+    expect((await send({ origin: 'https://evil.example' })).status).toBe(403);
+    expect((await send({ 'sec-fetch-site': 'cross-site' })).status).toBe(403);
   });
 
   it('exposes the setup token through the admin method until bootstrap', async () => {

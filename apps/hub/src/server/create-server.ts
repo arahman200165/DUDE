@@ -8,6 +8,9 @@ import { registerHelloRoute } from './routes/hello.js';
 import { registerBootstrapRoute } from './routes/bootstrap.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerSessionRoutes } from './routes/sessions.js';
+import { registerDeviceRoutes } from './routes/devices.js';
+import { registerDeviceAuthRoutes } from './routes/device-auth.js';
+import { createRequireDevice } from '../auth/device-auth.js';
 import { HubEvents } from '../auth/hub-events.js';
 import { createRequireOwner } from '../auth/owner-auth.js';
 import { verifyCsrf } from '../auth/sessions.js';
@@ -102,6 +105,11 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   };
   registerAuthRoutes(app, authOptions);
   registerSessionRoutes(app, authOptions);
+  registerDeviceAuthRoutes(app, { db: options.hub.db, now, hubInstanceId: options.hub.hubInstanceId });
+  registerDeviceRoutes(app, {
+    db: options.hub.db, now, confirmations, requireOwner: authOptions.requireOwner, requireDevice: createRequireDevice({ db: options.hub.db, now }),
+    hostGuard, spkiSha256: options.tls.spkiSha256,
+  });
 
   const serveStatic = createStaticHandler({ root: options.config.webRoot ?? options.paths.webRoot });
   app.setNotFoundHandler(async (request, reply) => {

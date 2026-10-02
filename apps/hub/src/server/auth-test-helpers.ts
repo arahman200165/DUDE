@@ -44,8 +44,8 @@ export async function startAuthHub(): Promise<AuthHub> {
     const headers: Record<string, string> = { ...options.headers };
     if (options.body !== undefined) headers['content-type'] = 'application/json';
     if (!options.noOrigin && options.bearer === undefined) {
-      headers.origin = `https://localhost:${hub.port}`;
-      headers.host = `localhost:${hub.port}`;
+      headers.origin ??= `https://localhost:${hub.port}`;
+      headers.host ??= `localhost:${hub.port}`;
     }
     if (options.cookie !== undefined) headers.cookie = `__Host-dude_session=${options.cookie}`;
     if (options.csrf !== undefined) headers['x-dude-csrf'] = options.csrf;

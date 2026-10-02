@@ -43,6 +43,7 @@ export type CsrfVerifier = (sessionCookieValue: string, csrfHeader: string) => b
 export const rejectingCsrfVerifier: CsrfVerifier = () => false;
 
 export const CSRF_HEADER = 'x-dude-csrf';
+const BROWSER_FETCH_HEADERS = ['sec-fetch-site', 'sec-fetch-mode', 'sec-fetch-dest', 'sec-fetch-user'] as const;
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 export interface RequestGuardOptions {
@@ -94,6 +95,18 @@ async function evaluate(request: FastifyRequest, options: RequestGuardOptions, c
   // Browser-ish ('cookie' or 'none'): same-origin only.
   const host = header(request, 'host');
   const origin = header(request, 'origin');
+  if (credential.kind === 'none' && origin === undefined) {
+    // Credential-less POSTs (sign-in, device enrollment, challenge/token) also come from non-browser clients such as
+    // the Desktop Agent, which never sends Origin. A browser always sends Origin on a cross-origin POST and every
+    // modern one sends Fetch-Metadata (Sec-Fetch-*) on all requests, so "no Origin AND no Sec-Fetch-*" identifies a
+    // non-browser client and keeps CSRF protection: any browser-initiated request either carries a checked Origin or
+    // is refused here. Cookie-credential requests never take this path (they always need Origin plus the CSRF token).
+    // The Host allowlist (DNS rebinding) has already run in the onRequest host guard; it is re-checked for clarity.
+    if (BROWSER_FETCH_HEADERS.some((name) => header(request, name) !== undefined)) {
+      return { status: 403, code: 'forbidden', message: 'Cross-origin requests are not allowed.' };
+    }
+    return host !== undefined && options.hostGuard.isAllowed(host) ? null : { status: 403, code: 'forbidden', message: 'Cross-origin requests are not allowed.' };
+  }
   if (origin === undefined || host === undefined || !options.hostGuard.isAllowed(host) || origin.toLowerCase() !== `https://${host.toLowerCase()}`) {
     return { status: 403, code: 'forbidden', message: 'Cross-origin requests are not allowed.' };
   }

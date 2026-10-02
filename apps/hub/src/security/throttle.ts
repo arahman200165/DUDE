@@ -9,10 +9,17 @@ export const THROTTLE_MAX_DELAY_MS = 15 * 60_000;
 export const THROTTLE_KINDS = ['password', 'recovery-code', 'pairing', 'setup-token', 'device-challenge'] as const;
 export type ThrottleKind = (typeof THROTTLE_KINDS)[number];
 
-export interface ThrottleKeys { ip: string; global: string }
+export interface ThrottleKeys { ip: string; global: string | null }
+
+/**
+ * Kinds without a global key. Device challenges are Ed25519 signatures (not guessable) and every pairing code
+ * already dies after five wrong attempts, so a shared counter would only let a failure flood from anywhere lock
+ * every device out of token refresh or enrollment.
+ */
+const PER_IP_ONLY: ReadonlySet<ThrottleKind> = new Set(['device-challenge', 'pairing']);
 
 export const throttleKeys: Record<ThrottleKind, (ip: string) => ThrottleKeys> = Object.fromEntries(
-  THROTTLE_KINDS.map((kind) => [kind, (ip: string): ThrottleKeys => ({ ip: `${kind}:ip:${ip}`, global: `${kind}:global` })]),
+  THROTTLE_KINDS.map((kind) => [kind, (ip: string): ThrottleKeys => ({ ip: `${kind}:ip:${ip}`, global: PER_IP_ONLY.has(kind) ? null : `${kind}:global` })]),
 ) as Record<ThrottleKind, (ip: string) => ThrottleKeys>;
 
 export type ThrottleDecision = { allowed: true } | { allowed: false; retryAfterMs: number };
@@ -60,6 +67,7 @@ export function recordSuccess(db: Db, key: string): void {
 export function checkThrottleKeys(db: Db, keys: ThrottleKeys, now: number): ThrottleDecision {
   let wait = 0;
   for (const key of [keys.ip, keys.global]) {
+    if (key === null) continue;
     const decision = checkThrottle(db, key, now);
     if (!decision.allowed) wait = Math.max(wait, decision.retryAfterMs);
   }
@@ -68,7 +76,7 @@ export function checkThrottleKeys(db: Db, keys: ThrottleKeys, now: number): Thro
 
 export function recordFailureKeys(db: Db, keys: ThrottleKeys, now: number): void {
   recordFailure(db, keys.ip, now);
-  recordFailure(db, keys.global, now);
+  if (keys.global !== null) recordFailure(db, keys.global, now);
 }
 
 /** A success clears only the per-IP key; the global counter keeps its history. */

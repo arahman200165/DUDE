@@ -1,4 +1,8 @@
-/** Hub registration handshake shapes. Unused until Phase 31C; defined now so identity can be stable. */
+/**
+ * Early (31B) registration handshake shapes, kept for compatibility. The authoritative Hub wire contract is
+ * `EnrollRequest`/`EnrollResponse` in `../hub/devices.schema.ts` (closed capability array; the Ed25519 public key and
+ * a possession signature are mandatory there).
+ */
 export interface DeviceRegistrationRequest {
   deviceId: string;
   displayName: string;

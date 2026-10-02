@@ -116,7 +116,7 @@ describe('owner authentication routes', () => {
   });
 
   it('rejects unknown bearer prefixes and a dob_ token that is not a session', async () => {
-    expect((await h.call('GET', '/sessions', { bearer: 'ddt_abcdefghijklmnopqrstuvwxyz' })).status).toBe(401);
+    expect((await h.call('GET', '/sessions', { bearer: 'ddt_abcdefghijklmnopqrstuvwxyz' })).status).toBe(403);
     expect((await h.call('GET', '/sessions', { bearer: 'xyz' })).status).toBe(401);
     expect((await h.call('GET', '/sessions', { bearer: `dob_${'A'.repeat(43)}` })).status).toBe(401);
     const cookieSession = await h.signIn();

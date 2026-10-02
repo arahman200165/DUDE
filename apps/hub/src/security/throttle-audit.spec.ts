@@ -71,8 +71,15 @@ describe('throttle', () => {
     const { hub } = open();
     const keys = throttleKeys['password']('9.9.9.9');
     expect(keys).toEqual({ ip: 'password:ip:9.9.9.9', global: 'password:global' });
-    for (const kind of ['recovery-code', 'pairing', 'setup-token', 'device-challenge'] as const) {
+    for (const kind of ['recovery-code', 'setup-token'] as const) {
       expect(throttleKeys[kind]('1.1.1.1').global).toBe(`${kind}:global`);
+    }
+    // Per-IP only: a failure flood from one address must not lock every device out.
+    for (const kind of ['pairing', 'device-challenge'] as const) {
+      expect(throttleKeys[kind]('1.1.1.1').global).toBeNull();
+      const other = throttleKeys[kind]('2.2.2.2');
+      for (let i = 0; i < 8; i++) recordFailureKeys(hub.db, throttleKeys[kind]('1.1.1.1'), 1_000);
+      expect(checkThrottleKeys(hub.db, other, 1_000).allowed).toBe(true);
     }
     const now = 1_000_000;
     for (let i = 0; i < 6; i++) recordFailureKeys(hub.db, keys, now);
