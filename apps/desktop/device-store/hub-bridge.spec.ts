@@ -86,7 +86,7 @@ const SID = 'S-1-5-21-111-222-333-1001';
 const localDeps = (): Partial<LocalHubDeps> => ({
   platform: 'win32', env: { ProgramFiles: 'C:\\Program Files', ProgramData: 'C:\\ProgramData' }, isPackaged: () => true, resourcesPath: () => 'C:\\Program Files\\DUDE\\resources', appVersion: () => '0.2.0',
   exists: () => true, randomBytes: (n) => Buffer.alloc(n, 7), updateWaitMs: 0, sleep: async () => undefined,
-  exec: async (file) => (file === 'whoami' ? { stdout: `"PC\me","${SID}"
+  exec: async (file) => (file === 'whoami' ? { stdout: `"PC\\me","${SID}"
 `, code: 0 } : file === 'reg.exe' ? { stdout: '', code: 1 } : { stdout: '', code: 0 }),
 });
 
