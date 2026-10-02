@@ -32,7 +32,7 @@ describe('entity services on the desktop store', () => {
         return base.importEntities(list);
       },
     };
-    (window as unknown as { dude: unknown }).dude = fakeElectronBridge({ store });
+    Object.defineProperty(window, 'dude', { value: fakeElectronBridge({ store }), configurable: true, writable: true });
     installLocalBackend(createDegradedMemoryBackend());
     TestBed.configureTestingModule({
       providers: [provideBootSnapshot({ boot: { status: 'ready', kv: [], records: [] } as never })],

@@ -59,7 +59,9 @@ describe('selected network history', () => {
 describe('network history on the desktop device store', () => {
   it('saves scrubbed runs through the device repository and clears them', async () => {
     const bridge = fakeElectronBridge();
-    (window as unknown as { dude: unknown }).dude = bridge;
+    // Other specs leave `window.dude` defined read-only, so plain assignment fails depending on file order.
+    const originalDude = (window as unknown as { dude?: unknown }).dude;
+    Object.defineProperty(window, 'dude', { value: bridge, configurable: true, writable: true });
     try {
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({ providers: [provideBootSnapshot({ boot: await bridge.store.hydrate() })] });
@@ -72,7 +74,7 @@ describe('network history on the desktop device store', () => {
       await service.clear();
       expect(await bridge.store.network.list()).toHaveLength(0);
     } finally {
-      delete (window as unknown as { dude?: unknown }).dude;
+      Object.defineProperty(window, 'dude', { value: originalDude, configurable: true, writable: true });
     }
   });
 });

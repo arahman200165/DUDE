@@ -99,7 +99,7 @@ describe('HistoryService on the desktop device store', () => {
 
   it('records, restores a stored entry by id and clears through the device repository', async () => {
     const bridge = fakeElectronBridge();
-    (window as unknown as { dude: unknown }).dude = bridge;
+    Object.defineProperty(window, 'dude', { value: bridge, configurable: true, writable: true });
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({ providers: [provideBootSnapshot({ boot: await bridge.store.hydrate() })] });
     const service = TestBed.inject(HistoryService);
@@ -119,7 +119,7 @@ describe('HistoryService on the desktop device store', () => {
   it('reports an entry the store refuses as too large', async () => {
     const bridge = fakeElectronBridge();
     bridge.store.history.add = async () => ({ ok: false, error: 'too-large' });
-    (window as unknown as { dude: unknown }).dude = bridge;
+    Object.defineProperty(window, 'dude', { value: bridge, configurable: true, writable: true });
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({ providers: [provideBootSnapshot({ boot: await bridge.store.hydrate() })] });
     const service = TestBed.inject(HistoryService);

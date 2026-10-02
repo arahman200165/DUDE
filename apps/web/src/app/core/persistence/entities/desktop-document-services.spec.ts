@@ -46,7 +46,7 @@ describe('document entities on the desktop store', () => {
         return () => undefined;
       },
     };
-    (window as unknown as { dude: unknown }).dude = fakeElectronBridge({ store });
+    Object.defineProperty(window, 'dude', { value: fakeElectronBridge({ store }), configurable: true, writable: true });
     installLocalBackend(createDegradedMemoryBackend());
     TestBed.configureTestingModule({
       providers: [

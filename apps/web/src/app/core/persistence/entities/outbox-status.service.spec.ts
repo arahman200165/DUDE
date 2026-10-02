@@ -24,7 +24,7 @@ describe('OutboxStatusService', () => {
         return () => {};
       },
     };
-    (window as unknown as { dude: unknown }).dude = fakeElectronBridge({ store });
+    Object.defineProperty(window, 'dude', { value: fakeElectronBridge({ store }), configurable: true, writable: true });
     const service = TestBed.inject(OutboxStatusService);
     await service.refresh();
     expect(service.status()).toEqual({ pending: 2, maxRows: 10, backpressure: false });
