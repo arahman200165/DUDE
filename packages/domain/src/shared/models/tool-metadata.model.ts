@@ -1,6 +1,7 @@
 import { ToolCategory } from "@dude/shared-types/shared/models/tool-category.model";
 import { PersistencePolicy } from "@dude/shared-types/shared/models/persistence-policy.model";
 import { ToolIOCapabilities } from "@dude/shared-types/shared/models/tool-io.model";
+import { DataScope, DataSensitivity } from "../../data-scope.js";
 import { ToolCapability } from "@dude/shared-types/shared/models/tool-capability.model";
 
 export interface ToolPersistencePolicy {
@@ -106,6 +107,8 @@ export interface ToolStorageMigration {
 
 export interface ToolMetadata {
   readonly id: string;
+  /** Per-key override of the policy-based scope rule (key = persistence key within the tool's namespace). */
+  readonly settingScopes?: Readonly<Record<string, { scope: DataScope; sensitivity?: DataSensitivity }>>;
   readonly title: string;
   readonly shortTitle?: string;
   readonly description: string;

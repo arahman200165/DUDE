@@ -4,3 +4,12 @@ export type { WorkspaceStep, WorkspaceSnapshot } from "./shared/models/workspace
 export type { PlatformBridgePort } from "./platform-ports.js";
 export type { EngineHostPorts } from "./engine-host.js";
 export type { ReadableFilePort, ReadableFileListPort } from "./file-ports.js";
+export type {
+  StoreStatus, DeviceStoreDevice, DeviceStoreBoot, StoreHealth, KvMutation, EntityCommit, EntityCommitResult, ResetKind, ResetPreview,
+} from "./device-store/device-store.model.js";
+export type {
+  AgentMethodMap, AgentMethod, AgentRequest, AgentResponse, AgentHistoryRecord, AgentNetworkRun, JournalEngine,
+  AgentJournalEntry, AgentSecretPurpose, AgentSecretStatus, LegacyImportResult,
+} from "./device-store/agent-protocol.js";
+export { AGENT_METHODS, isAgentMethod } from "./device-store/agent-protocol.js";
+export type { DeviceRegistrationRequest, DeviceRegistrationResponse } from "./device/device-registration.model.js";

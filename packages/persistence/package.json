@@ -1,5 +1,5 @@
 {
-  "name": "@dude/sync",
+  "name": "@dude/persistence",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -13,6 +13,11 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js",
+      "default": "./dist/testing/index.js"
+    },
     "./*": {
       "types": "./dist/*.d.ts",
       "import": "./dist/*.js",
@@ -22,10 +27,14 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "watch": "tsc -p tsconfig.json --watch",
-    "test": "cd ../.. && npm run build:packages && vitest run --config vitest.packages.config.mts --passWithNoTests packages/sync"
+    "test": "cd ../.. && npm run build:packages && vitest run --config vitest.packages.config.mts --passWithNoTests packages/persistence"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@dude/domain": "*",
+    "@dude/shared-types": "*"
+  },
   "devDependencies": {
+    "fast-check": "^4.10.2",
     "vitest": "^4.0.8"
   }
 }

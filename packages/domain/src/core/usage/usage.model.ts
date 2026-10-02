@@ -89,7 +89,8 @@ function isRecord(value: unknown): value is Loose & Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function sanitizeBuckets(raw: unknown): readonly DailyUsageBucket[] {
+/** Per-bucket validation shared with the persistence codec. */
+export function sanitizeBuckets(raw: unknown): readonly DailyUsageBucket[] {
   if (!Array.isArray(raw)) return [];
   const byDate = new Map<string, DailyUsageBucket>();
   for (const item of raw) {

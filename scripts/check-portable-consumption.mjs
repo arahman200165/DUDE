@@ -1,4 +1,4 @@
-// Build and consume the nine portable workspaces in a separate installation with no apps/hosts.
+// Build and consume the ten portable workspaces in a separate installation with no apps/hosts.
 import {cpSync,mkdtempSync,readFileSync,writeFileSync,existsSync,readdirSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
@@ -6,7 +6,7 @@ import {spawnSync} from 'node:child_process';
 import {readManifests} from './tool-manifests.mjs';
 const repo=path.resolve(import.meta.dirname,'..'), isolated=mkdtempSync(path.join(tmpdir(),'dude31a-core-'));
 const root=JSON.parse(readFileSync(path.join(repo,'package.json'),'utf8'));
-const packageNames=['shared-types','domain','contracts','validation','crypto','tool-engine','tool-registry','sync','api-client'];
+const packageNames=['shared-types','domain','contracts','validation','crypto','tool-engine','tool-registry','sync','api-client','persistence'];
 for(const name of packageNames){const destination=path.join(isolated,'packages',name);cpSync(path.join(repo,'packages',name),destination,{recursive:true,filter:f=>!/[\\/](dist|node_modules)([\\/]|$)/.test(f)});}
 cpSync(path.join(repo,'tsconfig.packages.json'),path.join(isolated,'tsconfig.packages.json'));
 writeFileSync(path.join(isolated,'package.json'),JSON.stringify({name:'dude-portable-consumption',private:true,type:'module',workspaces:['packages/*'],engines:root.engines,packageManager:root.packageManager,devDependencies:{typescript:JSON.parse(readFileSync(path.join(repo,'node_modules/typescript/package.json'),'utf8')).version}},null,2));
@@ -17,7 +17,7 @@ cpSync(path.join(repo,'package-lock.json'),path.join(isolated,'package-lock.json
 const npmCli=process.env.npm_execpath;if(!npmCli)throw Error('Run through npm run check:portable');
 function run(bin,args){const result=spawnSync(process.execPath,[bin,...args],{cwd:isolated,stdio:'inherit'});if(result.status!==0)throw Error(`Portable check failed (${result.status}) in ${isolated}`);}
 run(npmCli,['install','--offline','--ignore-scripts','--no-audit','--no-fund']);
-for(const forbidden of ['@angular','electron','@dude/web','@dude/desktop','@dude/collab-protocol'])if(existsSync(path.join(isolated,'node_modules',forbidden)))throw Error('Forbidden host installed: '+forbidden);
+for(const forbidden of ['@angular','electron','@dude/web','@dude/desktop','@dude/collab-protocol','@dude/device-agent','node:sqlite'])if(existsSync(path.join(isolated,'node_modules',forbidden)))throw Error('Forbidden host installed: '+forbidden);
 const manifests=new Map(packageNames.map(name=>{const m=JSON.parse(readFileSync(path.join(isolated,'packages',name,'package.json'),'utf8'));return[m.name,{name,m}];}));
 const seen=new Set(),visiting=new Set();
 function build(id){if(seen.has(id))return;if(visiting.has(id))throw Error('Portable dependency cycle');visiting.add(id);const{name,m}=manifests.get(id);for(const dep of Object.keys(m.dependencies??{}))if(manifests.has(dep))build(dep);run(path.join(isolated,'node_modules/typescript/bin/tsc'),['-p',`packages/${name}/tsconfig.json`]);visiting.delete(id);seen.add(id);}
@@ -27,7 +27,10 @@ import { encodeBase64 } from '@dude/crypto';
 import { isDataScope, type DataScope } from '@dude/domain';
 import type { EngineHostPorts, PlatformBridgePort } from '@dude/contracts';
 import { pipelineStep } from '@dude/tool-engine/tools/base64/base64.pipeline-step';
-import '@dude/validation'; import '@dude/sync'; import '@dude/api-client';
+import '@dude/validation'; import '@dude/api-client';
+import { uuidv7, resolveToolKeyScope } from '@dude/persistence';
+import { coalesceOutbox } from '@dude/sync';
+if (typeof uuidv7 !== 'function' || typeof coalesceOutbox !== 'function' || resolveToolKeyScope('local') !== 'environment') throw Error('Persistence consumer mismatch');
 const scope: DataScope = 'workspace';
 const encoded = encodeBase64('DUDE');
 if (!isDataScope(scope) || !encoded.ok || encoded.value !== 'RFVERQ==' || TOOL_METADATA.length !== ${readManifests().length}) throw Error('Portable consumer mismatch');
