@@ -63,7 +63,7 @@
     "prehub:compile": "npm run build:packages",
     "prelint": "npm run build:packages",
     "pretest:high-consequence": "npm run generate:registry && npm run build:packages",
-    "pretest:electron": "npm run build:packages",
+    "pretest:electron": "npm run hub:compile",
     "pretest:hub": "npm run hub:compile",
     "pretest:perf": "npm run build:packages",
     "prewatch": "npm run generate:registry && npm run build:packages",

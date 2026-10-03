@@ -18,7 +18,8 @@ function harness(options: { failIcacls?: boolean } = {}) {
   const exec: ExecFn = async (file, args) => {
     calls.push({ file, args });
     if (file === 'reg.exe') {
-      return { stdout: `\r\n${args[1]}\r\n    ProfileImagePath    REG_EXPAND_SZ    %TESTROOT%\\Users\\ada\r\n\r\n` };
+      // The host separator (backslash on Windows) keeps the fake profile directory real when the suite runs on Linux CI.
+      return { stdout: `\r\n${args[1]}\r\n    ProfileImagePath    REG_EXPAND_SZ    %TESTROOT%${path.sep}Users${path.sep}ada\r\n\r\n` };
     }
     if (options.failIcacls) throw new Error('icacls failed');
     return { stdout: '' };
