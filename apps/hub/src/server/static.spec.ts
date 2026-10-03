@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { utimesSync, writeFileSync } from 'node:fs';
+import { mkdirSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { makeWebRoot, request, startTestHub } from './test-helpers.js';
@@ -65,6 +65,74 @@ describe('static hosting', () => {
     expect(safeRequestPath('/a/../b')).toBeNull();
     expect(safeRequestPath('/C:/Windows')).toBeNull();
     expect(safeRequestPath('/%E0%A4%A')).toBeNull();
+  });
+});
+
+describe('sandbox loader pages', () => {
+  const PAGES = ['code', 'python', 'html', 'plugin'] as const;
+
+  it('serves each loader page with its own CSP, no X-Frame-Options and frame-ancestors self, and only those', async () => {
+    const root = makeWebRoot();
+    mkdirSync(join(root, 'sandbox'));
+    for (const page of PAGES) writeFileSync(join(root, 'sandbox', `${page}.html`), '<!doctype html><script>window.x = 1;</script>');
+    writeFileSync(join(root, 'sandbox', 'other.html'), '<!doctype html><script>window.x = 1;</script>');
+    const hub = await startTestHub({ webRoot: root });
+    hubs.push(hub);
+    const get = (p: string, method = 'GET') => request(hub.port, hub.tls.certPem, p, { method });
+
+    for (const page of PAGES) {
+      for (const method of ['GET', 'HEAD']) {
+        const res = await get(`/sandbox/${page}.html`, method);
+        expect(res.status, page).toBe(200);
+        expect(res.headers['x-frame-options'], page).toBeUndefined();
+        expect(res.headers['cache-control'], page).toBe('no-cache');
+        expect(res.headers['x-content-type-options'], page).toBe('nosniff');
+        const csp = String(res.headers['content-security-policy']);
+        expect(csp, page).toContain("default-src 'none'");
+        expect(csp, page).toContain("frame-ancestors 'self'");
+        expect(csp, page).toContain("base-uri 'none'");
+        expect(csp, page).toContain("script-src 'unsafe-inline'");
+        expect(csp, page).not.toContain('sha256-');
+      }
+    }
+    const csp = async (page: string) => String((await get(`/sandbox/${page}.html`)).headers['content-security-policy']);
+    expect(await csp('code')).toContain("script-src 'unsafe-inline' 'unsafe-eval'; worker-src blob:");
+    expect(await csp('code')).toContain("connect-src 'none'");
+    const python = await csp('python');
+    expect(python).toContain("'wasm-unsafe-eval' 'self' https://127.0.0.1:");
+    expect(python).toContain("connect-src 'self' https://127.0.0.1:");
+    expect(await csp('html')).toContain('img-src data: blob: https:');
+    expect(await csp('html')).not.toContain('connect-src');
+    expect(await csp('plugin')).toContain("connect-src 'none'");
+
+    // Any other /sandbox/* path (and the app itself) keeps the normal app treatment.
+    for (const other of ['/sandbox/other.html', '/index.html']) {
+      const res = await get(other);
+      expect(res.status, other).toBe(200);
+      expect(res.headers['x-frame-options'], other).toBe('DENY');
+      expect(String(res.headers['content-security-policy']), other).toContain("frame-ancestors 'none'");
+    }
+    const missing = await get('/sandbox/nope.html');
+    expect(missing.status).toBe(404);
+    expect(missing.headers['x-frame-options']).toBe('DENY');
+  });
+
+  it('makes only the Pyodide vendor files readable cross-origin (the opaque sandbox fetches them)', async () => {
+    const root = makeWebRoot();
+    mkdirSync(join(root, 'assets', 'vendor', 'pyodide'), { recursive: true });
+    writeFileSync(join(root, 'assets', 'vendor', 'pyodide', 'pyodide.js'), 'export {};');
+    writeFileSync(join(root, 'assets', 'other.js'), 'export {};');
+    const hub = await startTestHub({ webRoot: root });
+    hubs.push(hub);
+    const vendor = await request(hub.port, hub.tls.certPem, '/assets/vendor/pyodide/pyodide.js');
+    expect(vendor.status).toBe(200);
+    expect(vendor.headers['access-control-allow-origin']).toBe('*');
+    expect(vendor.headers['cross-origin-resource-policy']).toBe('cross-origin');
+    const other = await request(hub.port, hub.tls.certPem, '/assets/other.js');
+    expect(other.headers['access-control-allow-origin']).toBeUndefined();
+    expect(other.headers['cross-origin-resource-policy']).toBe('same-origin');
+    const api = await request(hub.port, hub.tls.certPem, '/api/v1/hello');
+    expect(api.headers['access-control-allow-origin']).toBeUndefined();
   });
 });
 

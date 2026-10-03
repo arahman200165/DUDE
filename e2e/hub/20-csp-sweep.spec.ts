@@ -48,16 +48,11 @@ test('Hub pages: sign-in, security settings and home', async () => {
   await expectClean('/');
 });
 
-// FINDING (Phase 31C, M647): the sandbox tools render their runner into an `<iframe sandbox="allow-scripts" srcdoc>`.
-// A srcdoc document inherits the embedding page's CSP, and the Hub serves the app with `script-src 'self'
-// 'wasm-unsafe-eval'` plus only the hashes of index.html's own inline scripts, so the sandbox documents' inline
-// bootstrap scripts are blocked (`script-src-elem blocked=inline`). Fixing it needs 'unsafe-inline' (forbidden here)
-// or an architecture change: serve each sandbox document from a Hub route with its own CSP and load it via `src`.
-// `test.fail` keeps CI green and turns red the day the sandboxes start working, so this note gets removed.
-const SANDBOX_CSP_FINDING = 'Sandbox iframes (srcdoc) inherit the Hub CSP, which blocks their inline bootstrap script';
+// Phase 31E (PD-055): the sandbox tools load static `/sandbox/*.html` loader pages by `src`; the Hub serves each with
+// its own CSP (frame-ancestors 'self'), so their inline bootstraps run without loosening the app CSP. These tests
+// were expected failures in 31C (srcdoc frames inherited the app CSP).
 
 test('Python (Pyodide in a sandboxed iframe)', async () => {
-  test.fail(true, SANDBOX_CSP_FINDING);
   await diagnostics.clear();
   await page.goto('/tools/python-playground');
   await page.getByPlaceholder('Type Python here…').fill('print(6 * 7)');
@@ -67,7 +62,6 @@ test('Python (Pyodide in a sandboxed iframe)', async () => {
 });
 
 test('JavaScript Playground (sandboxed iframe + Worker)', async () => {
-  test.fail(true, SANDBOX_CSP_FINDING);
   await diagnostics.clear();
   await page.goto('/tools/js-playground');
   await page.getByPlaceholder('Type JavaScript here…').fill('console.log(6 * 7)');
@@ -77,7 +71,6 @@ test('JavaScript Playground (sandboxed iframe + Worker)', async () => {
 });
 
 test('HTML Preview (sandboxed iframe running the previewed page)', async () => {
-  test.fail(true, SANDBOX_CSP_FINDING);
   await diagnostics.clear();
   await page.goto('/tools/html-preview');
   await page.getByPlaceholder('Paste an HTML page here…').fill('<p id="x">before</p><script>document.getElementById("x").textContent="ran"</script>');

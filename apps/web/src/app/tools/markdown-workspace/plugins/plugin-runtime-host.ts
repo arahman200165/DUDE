@@ -1,35 +1,42 @@
 import { Component, ElementRef, OnDestroy, computed, inject, input, viewChild } from '@angular/core';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { SandboxChannel, sandboxLoaderUrl } from '../../../shared/code-sandbox/sandbox-loader';
 import { buildPluginSrcdoc } from "@dude/tool-engine/tools/markdown-workspace/plugins/plugin-sandbox-doc";
 import { PluginRuntimeClient } from "@dude/tool-engine/tools/markdown-workspace/plugins/plugin-runtime";
 import { MarkdownPluginManifest } from "@dude/tool-engine/tools/markdown-workspace/plugins/plugin-manifest.model";
 
 /**
  * Hosts exactly one plugin's sandboxed iframe. One iframe per loaded
- * plugin isolates plugins from each other too, at zero extra cost.
+ * plugin isolates plugins from each other too, at zero extra cost. The plugin document is handed to the static
+ * `sandbox/plugin.html` loader over `postMessage` (a `srcdoc` would inherit the Hub's page CSP); a changed plugin
+ * source recreates the iframe, as the old `[srcdoc]` binding re-navigated it.
  */
 @Component({
   selector: 'app-plugin-runtime-host',
-  template: `<iframe #frame [srcdoc]="srcdoc()" sandbox="allow-scripts" style="display: none" (load)="onLoad()"></iframe>`,
+  template: `
+    @for (source of [manifest().source]; track source) {
+      <iframe #frame [src]="src" sandbox="allow-scripts" style="display: none"></iframe>
+    }
+  `,
 })
 export class PluginRuntimeHost implements OnDestroy {
   private readonly sanitizer = inject(DomSanitizer);
   private readonly client = new PluginRuntimeClient();
   private readonly frameRef = viewChild<ElementRef<HTMLIFrameElement>>('frame');
-  private messageListener: ((event: MessageEvent) => void) | null = null;
-
   readonly manifest = input.required<MarkdownPluginManifest>();
 
-  protected readonly srcdoc = computed<SafeHtml>(() => this.sanitizer.bypassSecurityTrustHtml(buildPluginSrcdoc(this.manifest().source)));
+  protected readonly src: SafeResourceUrl = sandboxLoaderUrl(this.sanitizer, 'plugin');
 
-  protected onLoad(): void {
-    const frame = this.frameRef()?.nativeElement;
-    if (!frame || this.messageListener) return;
+  private readonly channel = computed(
+    () => new SandboxChannel(() => this.frameRef()?.nativeElement, () => buildPluginSrcdoc(this.manifest().source)),
+  );
+  private readonly messageListener = (event: MessageEvent): void => {
+    if (this.channel().handle(event)) return;
+    if (event.source !== this.frameRef()?.nativeElement.contentWindow) return;
+    this.client.handleMessage(event.data);
+  };
 
-    this.messageListener = (event: MessageEvent) => {
-      if (event.source !== frame.contentWindow) return;
-      this.client.handleMessage(event.data);
-    };
+  constructor() {
     window.addEventListener('message', this.messageListener);
   }
 
@@ -37,10 +44,10 @@ export class PluginRuntimeHost implements OnDestroy {
     const frame = this.frameRef()?.nativeElement;
     if (!frame?.contentWindow) throw new Error('Plugin frame is not ready.');
 
-    return this.client.send((request) => frame.contentWindow!.postMessage(request, '*'), inputText);
+    return this.client.send((request) => this.channel().send(request), inputText);
   }
 
   ngOnDestroy(): void {
-    if (this.messageListener) window.removeEventListener('message', this.messageListener);
+    window.removeEventListener('message', this.messageListener);
   }
 }

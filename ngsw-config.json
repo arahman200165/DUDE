@@ -34,6 +34,14 @@
       }
     },
     {
+      "name": "sandbox-pages",
+      "installMode": "lazy",
+      "updateMode": "lazy",
+      "resources": {
+        "files": ["/sandbox/*.html"]
+      }
+    },
+    {
       "name": "pyodide",
       "installMode": "lazy",
       "updateMode": "lazy",

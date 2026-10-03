@@ -1,5 +1,6 @@
 import { Component, ElementRef, OnDestroy, computed, inject, signal, viewChild } from '@angular/core';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { SandboxChannel, sandboxLoaderUrl } from '../../shared/code-sandbox/sandbox-loader';
 import { CodeSandboxClient } from "@dude/tool-engine/shared/code-sandbox/code-sandbox-client";
 import { SandboxEvent } from "@dude/contracts/sandbox/code-sandbox-protocol";
 import { buildPythonSandboxDoc } from "@dude/tool-engine/tools/python-playground/python-sandbox-doc";
@@ -29,7 +30,7 @@ import { buildPythonSandboxDoc } from "@dude/tool-engine/tools/python-playground
   // new page load looks like (and, empirically, is exactly as fast).
   template: `
     @for (gen of [generation()]; track gen) {
-      <iframe #frame [srcdoc]="srcdoc()" sandbox="allow-scripts" style="display: none"></iframe>
+      <iframe #frame [src]="src" sandbox="allow-scripts" style="display: none"></iframe>
     }
   `,
 })
@@ -43,17 +44,27 @@ export class PythonSandboxHost implements OnDestroy {
 
   protected readonly generation = signal(0);
 
-  protected readonly srcdoc = computed<SafeHtml>(() => {
-    const pyodideDirUrl = new URL('assets/vendor/pyodide/', document.baseURI).href;
-    // `location.origin` is the opaque string 'null' under the desktop's custom `dude-app://` scheme.
-    const doc = buildPythonSandboxDoc(pyodideDirUrl, `${window.location.protocol}//${window.location.host}`);
-    return this.sanitizer.bypassSecurityTrustHtml(doc);
+  /** The static `sandbox/python.html` loader (a `srcdoc` would inherit the Hub's page CSP); the document is posted to it. */
+  protected readonly src: SafeResourceUrl = sandboxLoaderUrl(this.sanitizer, 'python');
+
+  /** One channel per iframe generation: queues `run` messages until the loader has been handed its document. */
+  private readonly channel = computed(() => {
+    this.generation();
+    return new SandboxChannel(
+      () => this.frameRef()?.nativeElement,
+      () => {
+        const pyodideDirUrl = new URL('assets/vendor/pyodide/', document.baseURI).href;
+        // `location.origin` is the opaque string 'null' under the desktop's custom `dude-app://` scheme.
+        return buildPythonSandboxDoc(pyodideDirUrl, `${window.location.protocol}//${window.location.host}`);
+      },
+    );
   });
 
   constructor() {
     this.messageListener = (event: MessageEvent) => {
       const frame = this.frameRef()?.nativeElement;
       if (!frame || event.source !== frame.contentWindow) return;
+      if (this.channel().handle(event)) return;
       this.client.handleMessage(event.data);
     };
     window.addEventListener('message', this.messageListener);
@@ -64,7 +75,7 @@ export class PythonSandboxHost implements OnDestroy {
     if (!frame?.contentWindow) throw new Error('Sandbox frame is not ready.');
 
     const handle = this.client.run(
-      (request) => frame.contentWindow!.postMessage(request, '*'),
+      (request) => this.channel().send(request),
       code,
       timeoutMs,
       (event) => {

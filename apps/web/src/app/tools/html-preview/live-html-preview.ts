@@ -1,5 +1,6 @@
-import { Component, ElementRef, OnDestroy, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { Component, ElementRef, OnDestroy, computed, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { SandboxChannel, sandboxLoaderUrl } from '../../shared/code-sandbox/sandbox-loader';
 import { SandboxErrorEvent, SandboxLogEvent } from "@dude/contracts/sandbox/code-sandbox-protocol";
 import { buildBlankPreviewDoc, buildLiveHtmlPreviewDoc } from "@dude/tool-engine/tools/html-preview/live-html-preview-doc";
 
@@ -17,10 +18,19 @@ export type LivePreviewStatus = 'loading' | 'ready' | 'timeout';
  * it swaps in a blank document, which reliably discards a hung Document's
  * resources even though it cannot forcibly interrupt a synchronous script
  * already running inside it the way `Worker.terminate()` can.
+ *
+ * The document is not a `srcdoc` (that would inherit the Hub's page CSP and block its scripts): each render creates a
+ * fresh `<iframe>` on the static `sandbox/html.html` loader and posts the document to it (`sandbox-loader.ts`). The
+ * loader writes it synchronously, so a hung user script means the loader never reports `loaded`; that is what the
+ * timeout watches for.
  */
 @Component({
   selector: 'app-live-html-preview',
-  template: `<iframe #frame [srcdoc]="srcdoc()" sandbox="allow-scripts" class="dude-doc-frame h-full w-full border-0 bg-transparent" (load)="onLoad()"></iframe>`,
+  template: `
+    @for (key of [frameKey()]; track key) {
+      <iframe #frame [src]="src" sandbox="allow-scripts" class="dude-doc-frame h-full w-full border-0 bg-transparent"></iframe>
+    }
+  `,
 })
 export class LiveHtmlPreview implements OnDestroy {
   private readonly sanitizer = inject(DomSanitizer);
@@ -36,9 +46,18 @@ export class LiveHtmlPreview implements OnDestroy {
   private readonly statusSignal = signal<LivePreviewStatus>('loading');
   readonly status = this.statusSignal.asReadonly();
 
-  protected readonly srcdoc = computed<SafeHtml>(() => {
-    const html = this.statusSignal() === 'timeout' ? buildBlankPreviewDoc() : buildLiveHtmlPreviewDoc(this.source(), this.renderId());
-    return this.sanitizer.bypassSecurityTrustHtml(html);
+  protected readonly src: SafeResourceUrl = sandboxLoaderUrl(this.sanitizer, 'html');
+
+  /** A new iframe element per render (and for the blank document after a timeout) so a hung one is discarded outright. */
+  protected readonly frameKey = computed(() => `${this.renderId()}:${this.statusSignal() === 'timeout' ? 'blank' : 'live'}`);
+
+  private readonly channel = computed(() => {
+    this.frameKey();
+    return new SandboxChannel(
+      () => this.frameRef()?.nativeElement,
+      () => (this.statusSignal() === 'timeout' ? buildBlankPreviewDoc() : buildLiveHtmlPreviewDoc(this.source(), this.renderId())),
+      () => this.onLoaded(),
+    );
   });
 
   constructor() {
@@ -50,6 +69,7 @@ export class LiveHtmlPreview implements OnDestroy {
     this.messageListener = (event: MessageEvent) => {
       const frame = this.frameRef()?.nativeElement;
       if (!frame || event.source !== frame.contentWindow) return;
+      if (untracked(() => this.channel().handle(event))) return;
       const data = event.data as { requestId?: string } | undefined;
       if (!data || String(this.renderId()) !== data.requestId) return;
       this.event.emit(event.data as LivePreviewEvent);
@@ -73,7 +93,7 @@ export class LiveHtmlPreview implements OnDestroy {
     }, this.timeoutMs());
   }
 
-  protected onLoad(): void {
+  private onLoaded(): void {
     if (this.timeoutHandle) {
       clearTimeout(this.timeoutHandle);
       this.timeoutHandle = null;

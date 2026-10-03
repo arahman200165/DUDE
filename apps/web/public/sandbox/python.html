@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>DUDE sandbox loader</title>
+<!--
+  Static sandbox loader (identical in code.html, python.html, html.html and plugin.html; they are separate files only so
+  the Hub can serve each with its own page CSP header). A srcdoc iframe inherits the embedding page's CSP, which blocks
+  the inline bootstrap scripts of the sandboxed tools on the Hub; loading this page by `src` gives the frame its own CSP.
+  Protocol: post { type: 'dude-sandbox-ready' } to the parent, accept exactly ONE { type: 'dude-sandbox-load', html }
+  from the parent, replace this document with it, then post { type: 'dude-sandbox-loaded' }. Later loads are ignored.
+  The written document's own <meta> CSP keeps tightening this page's policy. Always embed with sandbox="allow-scripts".
+-->
+<script>
+(function () {
+  'use strict';
+  var done = false;
+  window.addEventListener('message', function (event) {
+    var data = event.data;
+    if (done || event.source !== window.parent || !data || data.type !== 'dude-sandbox-load' || typeof data.html !== 'string') return;
+    done = true;
+    document.open();
+    document.write(data.html);
+    document.close();
+    window.parent.postMessage({ type: 'dude-sandbox-loaded' }, '*');
+  });
+  window.parent.postMessage({ type: 'dude-sandbox-ready' }, '*');
+})();
+</script>
+</head>
+<body></body>
+</html>
