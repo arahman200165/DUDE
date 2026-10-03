@@ -39,6 +39,8 @@ export const AUDIT_EVENT_LABELS: Readonly<Record<string, string>> = {
   'tls.proxy-pin-activated': 'Proxy certificate pin activated',
   'tls.proxy-pin-removed': 'Proxy certificate pin removed',
   'network.mode-changed': 'Network mode changed',
+  'network.proxy-changed': 'Reverse proxy changed',
+  'network.exposure-mode-changed': 'Exposure mode changed',
   'throttle.locked': 'Sign-in locked after failures',
   'purge.previewed': 'Purge previewed',
   'purge.applied': 'Purge applied',

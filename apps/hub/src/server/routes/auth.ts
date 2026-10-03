@@ -39,7 +39,7 @@ export interface AuthRouteOptions {
 export const RECOVERY_CODES_ACTION = 'owner.recovery-codes';
 
 const sha256Hex = (value: string): string => createHash('sha256').update(value).digest('hex');
-const ipOf = (request: FastifyRequest): string => request.socket.remoteAddress ?? 'unknown';
+const ipOf = (request: FastifyRequest): string => request.ip || 'unknown';
 const userAgentOf = (request: FastifyRequest): string | undefined => {
   const value = request.headers['user-agent'];
   return typeof value === 'string' && value.length > 0 ? value.slice(0, 256) : undefined;

@@ -43,6 +43,10 @@ Run these from an elevated prompt (the Hub CLI is `"%ProgramFiles%\DUDE Hub\dude
 | --- | --- |
 | `dude-hub service status` / `restart` | Service state, reachability and the registered-device count; stop and start the service. |
 | `dude-hub network lan on` / `off` / `status` | Turn LAN mode (and its firewall rule) on or off. |
+| `dude-hub network status` | Show the bind, exposure mode, configured names, reverse-proxy summary (trusted count, public origin) and whether HSTS is sent. |
+| `dude-hub network proxy on --trusted <cidr>[,<cidr>...] --public-origin https://<name>[:<port>]` | Reverse-proxy mode: trust only those proxy addresses for `X-Forwarded-*`, serve the public origin, listen on loopback only, remove the LAN firewall rule and restart. |
+| `dude-hub network proxy off` / `status` | Leave reverse-proxy mode (the Hub keeps listening on loopback; run `network lan on` to re-expose it) or show the proxy settings. |
+| `dude-hub network mode private` / `public --i-understand-unreleased` | Set the exposure mode. Public is not released until Phase 31F: it needs the flag to be written, and the Hub still refuses to start in public mode unless `DUDE_HUB_UNRELEASED_PUBLIC=1` is set in its environment. |
 | `dude-hub tls ca init [--suffix <dns>]...` | Opt an existing Hub in to the built-in local CA (new Hubs use it by default): creates the CA and stages a CA-issued certificate with a new key; activate it with `dude-hub tls activate`. Elevated when the service is installed. |
 | `dude-hub tls ca status` | Show the root fingerprint and validity, its permitted name subtrees, whether the active certificate is CA-issued, and its expiry. |
 | `dude-hub tls ca export [--out <file.cer>]` | Write the public root as DER (default `dude-hub-root.cer`) and print the `certutil -user -addstore Root` command that trusts it for the current user. |
@@ -57,6 +61,27 @@ Run these from an elevated prompt (the Hub CLI is `"%ProgramFiles%\DUDE Hub\dude
 | `dude-hub doctor` | Diagnose the service, certificates, port and firewall rule. |
 | `dude-hub setup-token` | Print or deliver the one-time token for first-owner setup. |
 | `dude-hub owner reset` | Start a two-step owner reset (confirm with the printed token). |
+
+### Behind a reverse proxy
+
+A reverse proxy (Caddy, nginx, IIS ARR) can publish the Hub under a name and certificate you already manage. The Hub then trusts `X-Forwarded-For`, `-Host` and `-Proto` only from the proxy addresses you list (one hop), requires browser `Origin` headers to equal the public origin, hands the public origin out in pairing, and sends HSTS (the proxy terminates the browser's TLS). Direct connections to the Hub are accepted only for loopback host names.
+
+1. `dude-hub network proxy on --trusted 127.0.0.1 --public-origin https://hub.example.com` (elevated). The Hub restarts on loopback only and the public name joins the Host allowlist.
+2. Point the proxy at the Hub over HTTPS, verifying the Hub with its exported root (`dude-hub tls ca export`, then convert to PEM) rather than skipping verification. A minimal Caddyfile:
+
+   ```
+   hub.example.com {
+       reverse_proxy https://127.0.0.1:47600 {
+           transport http {
+               tls_trusted_ca_certs C:\ProgramData\DudeHub\dude-hub-root.pem
+           }
+       }
+   }
+   ```
+
+   Caddy sets `X-Forwarded-For`, `-Host` and `-Proto` itself and overwrites any client-supplied values. Do not use `tls_insecure_skip_verify`.
+3. Devices connect through the proxy, so they must pin the proxy's certificate: `dude-hub tls proxy-pin add <caddy-leaf.pem>`.
+4. Wait until enrolled devices acknowledge the staged pin (`dude-hub tls proxy-pin list`), then `dude-hub tls proxy-pin activate` (preview, then `--confirm <token>`).
 
 ### Updating the Hub
 

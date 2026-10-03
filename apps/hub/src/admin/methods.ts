@@ -14,7 +14,7 @@ import { RotationError } from '../tls/rotation.js';
 import { HUB_MIGRATIONS } from '../db/migrations/index.js';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { applyHubNameChange, loadOrCreateHubConfig, normalizeHubName, writeHubConfig } from '../config/hub-config.js';
+import { applyHubNameChange, applyProxyChange, exposureReadModel, loadOrCreateHubConfig, normalizeHubName, writeHubConfig } from '../config/hub-config.js';
 import { computeSubjectAltNames, missingSubjectAltNames } from '../tls/names.js';
 import type { TlsRotation } from '../tls/rotation.js';
 import { validateImport, ImportError } from '../tls/import.js';
@@ -41,6 +41,8 @@ export interface AdminMethodContext {
   tlsDir?: string;
   /** Called with the new operator names after `tls.names.set`, so the running Host guard picks them up without a restart. */
   onNamesChanged?: (names: readonly string[]) => void;
+  /** Whether the running Hub currently sends `Strict-Transport-Security` (for the `status` exposure read model). */
+  hsts?: () => boolean;
   now?: () => number;
   /** Staged confirmations for admin-channel actions (default: a private store). */
   confirmations?: ConfirmationStore;
@@ -247,6 +249,56 @@ export function buildAdminMethods(context: AdminMethodContext): Record<string, A
       }
       return { bind, previous, running: context.bind, port: context.getPort(), restartRequired: context.bind !== bind };
     },
+    /**
+     * Reverse-proxy mode (PD-058): `{ enabled: true, trusted: string[], publicOrigin }` validates and writes the proxy block (its host
+     * joins `exposure.names`) and forces a loopback bind (container mode keeps its bind); `{ enabled: false }` removes it. Applies
+     * after a restart. Audited with the trusted count and the public host only.
+     */
+    'network.proxy.set': (params) => {
+      const input = (params ?? {}) as { enabled?: unknown; trusted?: unknown; publicOrigin?: unknown };
+      if (typeof input.enabled !== 'boolean') throw new AdminError('bad-request', 'enabled must be true or false.');
+      if (!context.configFile) throw new AdminError('unavailable', 'The reverse proxy cannot be changed in this context.');
+      const config = loadOrCreateHubConfig(context.configFile);
+      const previous = config.exposure.proxy ?? null;
+      let next;
+      try {
+        if (input.enabled) {
+          if (!Array.isArray(input.trusted) || input.trusted.some((t) => typeof t !== 'string') || typeof input.publicOrigin !== 'string') {
+            throw new Error('trusted (an array of addresses or CIDRs) and publicOrigin are required.');
+          }
+          next = applyProxyChange(config, { trusted: input.trusted as string[], publicOrigin: input.publicOrigin });
+        } else {
+          next = applyProxyChange(config, null);
+        }
+      } catch (error) { throw new AdminError('bad-request', (error as Error).message); }
+      const proxy = next.exposure.proxy ?? null;
+      writeHubConfig(context.configFile, next);
+      audit(context.db, {
+        event: 'network.proxy-changed', outcome: 'success', actorKind: 'cli',
+        detail: { enabled: proxy !== null, trustedCount: proxy?.trusted.length ?? 0, publicHost: proxy ? new URL(proxy.publicOrigin).host : null, wasEnabled: previous !== null },
+        now: now(),
+      });
+      return { proxy: proxy ? { trustedCount: proxy.trusted.length, publicOrigin: proxy.publicOrigin } : null, bind: next.bind, previousBind: config.bind, running: context.bind, port: context.getPort(), restartRequired: true };
+    },
+    /**
+     * Exposure mode (PD-057). `public` is refused without the explicit `acknowledge` (the CLI's `--i-understand-unreleased`); even then
+     * `run` refuses to start in public mode unless the environment opts in, until Phase 31F releases it.
+     */
+    'network.mode.set': (params) => {
+      const input = (params ?? {}) as { mode?: unknown; acknowledge?: unknown };
+      if (input.mode !== 'private' && input.mode !== 'public') throw new AdminError('bad-request', 'mode must be "private" or "public".');
+      if (input.mode === 'public' && input.acknowledge !== true) {
+        throw new AdminError('refused', 'Public exposure is not released until Phase 31F. Re-run with --i-understand-unreleased to write it to the config anyway (the Hub still will not start in public mode without DUDE_HUB_UNRELEASED_PUBLIC=1).');
+      }
+      if (!context.configFile) throw new AdminError('unavailable', 'The exposure mode cannot be changed in this context.');
+      const config = loadOrCreateHubConfig(context.configFile);
+      const previous = config.exposure.mode;
+      if (previous !== input.mode) {
+        writeHubConfig(context.configFile, { ...config, exposure: { ...config.exposure, mode: input.mode } });
+        audit(context.db, { event: 'network.exposure-mode-changed', outcome: 'success', actorKind: 'cli', detail: { from: previous, to: input.mode }, now: now() });
+      }
+      return { mode: input.mode, previous, restartRequired: previous !== input.mode };
+    },
     /** Redacted diagnostics for `status`, `doctor` and the service commands; never secrets. */
     status: () => {
       const applied = context.db.prepare('SELECT version, name, applied_at FROM schema_migrations ORDER BY version').all() as Array<{ version: number; name: string; applied_at: string }>;
@@ -266,6 +318,11 @@ export function buildAdminMethods(context: AdminMethodContext): Record<string, A
         uptimeSeconds: Math.max(0, Math.floor((now() - context.startedAt) / 1000)),
         spkiSha256: context.spkiSha256,
         deviceCount: scope().devices,
+        exposure: exposureReadModel(
+          context.configFile ? loadOrCreateHubConfig(context.configFile) : { port: context.getPort(), bind: context.bind, exposure: { mode: 'private', names: [] } },
+          { bind: context.bind, port: context.getPort() },
+          context.hsts ? context.hsts() : null,
+        ),
         schemaVersion: meta('schema_version'),
         minReaderVersion: meta('min_reader_version'),
         migrations: applied.map((m) => ({ version: Number(m.version), name: m.name, appliedAt: m.applied_at })),

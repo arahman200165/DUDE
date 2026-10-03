@@ -20,7 +20,7 @@ export interface DeviceAuthRouteOptions {
   hubInstanceId: string;
 }
 
-const ipOf = (request: FastifyRequest): string => request.socket.remoteAddress ?? 'unknown';
+const ipOf = (request: FastifyRequest): string => request.ip || 'unknown';
 
 /**
  * Credential type: none (the credential is proof of key possession plus a pairing code or a fresh challenge). These are

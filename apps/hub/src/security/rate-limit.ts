@@ -1,6 +1,7 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { envelope } from '../server/errors.js';
 import { isApiPath } from './headers.js';
+import { classifyCredential } from './request-guard.js';
 
 declare module 'fastify' {
   interface FastifyContextConfig {
@@ -11,8 +12,14 @@ declare module 'fastify' {
 
 export interface BucketPolicy { perMinute: number; burst: number }
 
+/** Per principal (session or device) for authenticated routes, and per client address for credential-less requests. */
 export const GLOBAL_POLICY: BucketPolicy = { perMinute: 300, burst: 60 };
+/** Credential endpoints (sign-in, recovery, enrolment): per client address. */
 export const AUTH_POLICY: BucketPolicy = { perMinute: 20, burst: 10 };
+/** Per principal for web read routes (`GET /api/v1/web/*`, `GET /api/v1/sync/changes`). */
+export const READ_POLICY: BucketPolicy = { perMinute: 600, burst: 120 };
+/** Per client address for ALL API traffic: a generous flood guard that runs before any credential is checked. */
+export const FLOOD_POLICY: BucketPolicy = { perMinute: 1200, burst: 240 };
 
 interface Bucket { tokens: number; at: number }
 
@@ -44,53 +51,112 @@ class TokenBuckets {
 }
 
 export interface RateLimiter {
-  /** Seconds to wait, or 0 when the request may proceed. */
-  check(ip: string, authLimited: boolean): number;
+  /** Early, per client address. `anonymous` = the request presents no credential. Seconds to wait, or 0. */
+  checkAddress(ip: string, kind: { authLimited: boolean; anonymous: boolean }): number;
+  /** After authentication, per principal key (`owner:<session>` or `device:<id>`). Seconds to wait, or 0. */
+  checkPrincipal(key: string, read: boolean): number;
   sweep(): void;
   readonly size: number;
 }
 
 export interface RateLimiterOptions {
   now?: () => number;
+  /** Credential-less requests (per address) and authenticated requests (per principal). */
   global?: BucketPolicy;
   auth?: BucketPolicy;
+  read?: BucketPolicy;
+  flood?: BucketPolicy;
 }
 
 export function createRateLimiter(options: RateLimiterOptions = {}): RateLimiter {
   const now = options.now ?? Date.now;
-  const global = new TokenBuckets(options.global ?? GLOBAL_POLICY);
+  const flood = new TokenBuckets(options.flood ?? FLOOD_POLICY);
+  const anonymous = new TokenBuckets(options.global ?? GLOBAL_POLICY);
   const auth = new TokenBuckets(options.auth ?? AUTH_POLICY);
+  const principal = new TokenBuckets(options.global ?? GLOBAL_POLICY);
+  const read = new TokenBuckets(options.read ?? READ_POLICY);
   return {
-    check(ip, authLimited) {
+    checkAddress(ip, kind) {
       const t = now();
-      const wait = global.take(ip, t);
+      const wait = flood.take(ip, t);
       if (wait > 0) return wait;
-      return authLimited ? auth.take(ip, t) : 0;
+      if (!kind.anonymous && !kind.authLimited) return 0; // an authenticated request is metered per principal later
+      const global = anonymous.take(ip, t);
+      if (global > 0) return global;
+      return kind.authLimited ? auth.take(ip, t) : 0;
+    },
+    checkPrincipal(key, isRead) {
+      return (isRead ? read : principal).take(key, now());
     },
     sweep() {
       const t = now();
-      global.sweep(t);
-      auth.sweep(t);
+      for (const buckets of [flood, anonymous, auth, principal, read]) buckets.sweep(t);
     },
-    get size() { return global.size + auth.size; },
+    get size() { return flood.size + anonymous.size + auth.size + principal.size + read.size; },
   };
 }
 
-/** Keyed by `socket.remoteAddress` (trustProxy is off). Idle keys are swept periodically. */
+function tooMany(reply: FastifyReply, wait: number): FastifyReply {
+  return reply
+    .code(429)
+    .type('application/json')
+    .header('Retry-After', String(wait))
+    .header('Cache-Control', 'no-store')
+    .send(envelope('rate-limited', 'Too many requests. Try again later.'));
+}
+
+/**
+ * Per-address flood guard plus the credential-less/auth buckets. The address is `request.ip`: the socket peer, or, in
+ * reverse-proxy mode and only for a configured trusted proxy, the client address from `X-Forwarded-For`. Authenticated
+ * requests are metered per principal by `withPrincipalLimit` after auth. Idle keys are swept periodically.
+ */
 export function registerRateLimit(app: FastifyInstance, limiter: RateLimiter, sweepIntervalMs = 60_000): void {
   app.addHook('onRequest', async (request, reply) => {
     // The public web bundle is dozens of module requests per page load; only API calls consume tokens.
     if (!isApiPath(request.url)) return;
-    const wait = limiter.check(request.socket.remoteAddress ?? 'unknown', request.routeOptions.config?.authLimited === true);
+    const wait = limiter.checkAddress(request.ip || 'unknown', {
+      authLimited: request.routeOptions.config?.authLimited === true,
+      anonymous: classifyCredential(request).kind === 'none',
+    });
     if (wait === 0) return;
-    return reply
-      .code(429)
-      .type('application/json')
-      .header('Retry-After', String(wait))
-      .header('Cache-Control', 'no-store')
-      .send(envelope('rate-limited', 'Too many requests. Try again later.'));
+    return tooMany(reply, wait);
   });
   const timer = setInterval(() => limiter.sweep(), sweepIntervalMs);
   timer.unref();
   app.addHook('onClose', async () => { clearInterval(timer); });
+}
+
+declare module 'fastify' {
+  interface FastifyRequest {
+    /** Set by `withPrincipalLimit` once auth resolved the principal (`owner:<session hash>` or `device:<id>`). */
+    principalKey?: string;
+  }
+}
+
+const READ_PATHS = ['/api/v1/web/', '/api/v1/sync/changes'];
+
+/** GET routes under `/api/v1/web/` and `/api/v1/sync/changes` use the higher read policy. */
+export function isReadRoute(request: Pick<FastifyRequest, 'method' | 'url'>): boolean {
+  if (request.method !== 'GET') return false;
+  const pathname = request.url.split('?')[0] ?? '/';
+  return READ_PATHS.some((prefix) => (prefix.endsWith('/') ? pathname.startsWith(prefix) : pathname === prefix));
+}
+
+type Resolver = (request: FastifyRequest, reply: FastifyReply) => Promise<FastifyReply | undefined>;
+
+/**
+ * Wraps an auth preHandler (`requireOwner`, `requireDevice`): after it attaches the principal, the request is metered
+ * against that principal's bucket (once per request). A failed authentication is not metered here: the per-address flood
+ * guard already ran for it.
+ */
+export function withPrincipalLimit(limiter: RateLimiter, resolve: Resolver, keyOf: (request: FastifyRequest) => string | undefined): Resolver {
+  return async (request, reply) => {
+    const failed = await resolve(request, reply);
+    if (failed !== undefined) return failed;
+    const key = keyOf(request);
+    if (key === undefined || request.principalKey !== undefined) return undefined;
+    request.principalKey = key;
+    const wait = limiter.checkPrincipal(key, isReadRoute(request));
+    return wait > 0 ? tooMany(reply, wait) : undefined;
+  };
 }

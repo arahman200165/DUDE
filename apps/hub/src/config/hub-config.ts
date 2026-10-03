@@ -15,6 +15,15 @@ export interface HubExposureConfig {
   names: string[];
   /** Optional `https://name[:port]` origin used for pairing `hubUrl`; its host must be a configured or built-in name. */
   canonicalOrigin?: string;
+  /** Reverse-proxy mode (PD-058): only `trusted` peers may supply forwarded client address, host and protocol. */
+  proxy?: HubProxyConfig;
+}
+
+export interface HubProxyConfig {
+  /** 1 to 16 IP literals or CIDRs of the proxy hop(s) allowed to set `X-Forwarded-*` (one hop is trusted). */
+  trusted: string[];
+  /** `https://name[:port]`, the externally visible origin. Its host is one of `exposure.names`. */
+  publicOrigin: string;
 }
 
 export interface HubConfig {
@@ -28,7 +37,9 @@ export const MAX_EXPOSURE_NAMES = 32;
 const BIND_MODES: readonly HubBindMode[] = ['loopback', 'lan', 'container'];
 const EXPOSURE_MODES: readonly HubExposureMode[] = ['private', 'public'];
 const KNOWN_KEYS = new Set(['port', 'bind', 'webRoot', 'exposure']);
-const EXPOSURE_KEYS = new Set(['mode', 'names', 'canonicalOrigin']);
+const EXPOSURE_KEYS = new Set(['mode', 'names', 'canonicalOrigin', 'proxy']);
+const PROXY_KEYS = new Set(['trusted', 'publicOrigin']);
+export const MAX_TRUSTED_PROXIES = 16;
 const DNS_LABEL = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
 
 export interface HubName { host: string; port?: number }
@@ -79,17 +90,57 @@ export function defaultExposure(): HubExposureConfig {
   return { mode: 'private', names: [] };
 }
 
-function parseCanonicalOrigin(origin: string, names: readonly string[]): string {
+function parseOriginText(origin: string, key: string): string {
   let url: URL;
-  try { url = new URL(origin); } catch { throw new Error(`Hub config "exposure.canonicalOrigin" "${origin}" is not a valid URL.`); }
-  if (url.protocol !== 'https:') throw new Error('Hub config "exposure.canonicalOrigin" must be an https origin.');
+  try { url = new URL(origin); } catch { throw new Error(`Hub config "${key}" "${origin}" is not a valid URL.`); }
+  if (url.protocol !== 'https:') throw new Error(`Hub config "${key}" must be an https origin.`);
   if ((url.pathname !== '/' && url.pathname !== '') || url.search !== '' || url.hash !== '' || url.username !== '' || url.password !== '' || /^https:\/\/[^/?#]*\/?$/.test(origin) === false) {
-    throw new Error('Hub config "exposure.canonicalOrigin" must be https://name[:port] with no path, query or credentials.');
+    throw new Error(`Hub config "${key}" must be https://name[:port] with no path, query or credentials.`);
   }
+  return url.origin;
+}
+
+function parseCanonicalOrigin(origin: string, names: readonly string[]): string {
+  const normalized = parseOriginText(origin, 'exposure.canonicalOrigin');
+  const url = new URL(normalized);
   const host = url.hostname.replace(/^\[|\]$/g, '');
   const known = new Set([...names.map((n) => normalizeHubName(n).host), ...builtInHubHosts()]);
   if (!known.has(host)) throw new Error(`Hub config "exposure.canonicalOrigin" host "${host}" must be one of "exposure.names" or a built-in name.`);
   return url.origin;
+}
+
+/** Normalizes one trusted-proxy entry (IP literal or CIDR). The whole address space (prefix 0) is refused. */
+export function normalizeTrustedProxy(raw: string): string {
+  if (typeof raw !== 'string') throw new Error('A trusted proxy must be a string.');
+  const text = raw.trim().toLowerCase();
+  const slash = text.indexOf('/');
+  const address = slash < 0 ? text : text.slice(0, slash);
+  const family = isIPv4(address) ? 4 : isIPv6(address) ? 6 : 0;
+  if (family === 0) throw new Error(`Trusted proxy "${raw}" is not an IP address or CIDR.`);
+  if (slash < 0) return address;
+  const prefixText = text.slice(slash + 1);
+  const prefix = Number(prefixText);
+  const max = family === 4 ? 32 : 128;
+  if (!/^[0-9]{1,3}$/.test(prefixText) || prefix > max) throw new Error(`Trusted proxy "${raw}" has an invalid prefix length.`);
+  if (prefix === 0) throw new Error(`Trusted proxy "${raw}" would trust every address; use a specific proxy address or network.`);
+  return `${address}/${prefix}`;
+}
+
+function parseProxy(raw: unknown, names: readonly string[]): HubProxyConfig {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) throw new Error('Hub config "exposure.proxy" must be an object.');
+  const record = raw as Record<string, unknown>;
+  for (const key of Object.keys(record)) if (!PROXY_KEYS.has(key)) throw new Error(`Hub config "exposure.proxy" has an unknown key "${key}".`);
+  const trusted = record['trusted'];
+  if (!Array.isArray(trusted) || trusted.length < 1 || trusted.length > MAX_TRUSTED_PROXIES || trusted.some((t) => typeof t !== 'string')) {
+    throw new Error(`Hub config "exposure.proxy.trusted" must be an array of 1 to ${MAX_TRUSTED_PROXIES} IP addresses or CIDRs.`);
+  }
+  const normalized = [...new Set((trusted as string[]).map(normalizeTrustedProxy))];
+  const origin = record['publicOrigin'];
+  if (typeof origin !== 'string') throw new Error('Hub config "exposure.proxy.publicOrigin" must be a string.');
+  const publicOrigin = parseOriginText(origin, 'exposure.proxy.publicOrigin');
+  const host = new URL(publicOrigin).hostname.replace(/^\[|\]$/g, '');
+  if (!names.some((n) => normalizeHubName(n).host === host)) throw new Error(`Hub config "exposure.proxy.publicOrigin" host "${host}" must be one of "exposure.names".`);
+  return { trusted: normalized, publicOrigin };
 }
 
 function parseExposure(raw: unknown): HubExposureConfig {
@@ -118,12 +169,25 @@ function parseExposure(raw: unknown): HubExposureConfig {
     if (typeof origin !== 'string') throw new Error('Hub config "exposure.canonicalOrigin" must be a string.');
     exposure.canonicalOrigin = parseCanonicalOrigin(origin, exposure.names);
   }
+  if (record['proxy'] !== undefined) exposure.proxy = parseProxy(record['proxy'], exposure.names);
   return exposure;
 }
 
-/** A message when this config may not start (public exposure is reserved for Phase 31F), else null. */
-export function exposureRefusal(config: Pick<HubConfig, 'exposure'>): string | null {
-  return config.exposure.mode === 'public' ? 'Public exposure is not released until Phase 31F: set "exposure.mode" to "private" in hub.json.' : null;
+/** The environment variable that lets a Hub configured for public exposure start (unsupported until Phase 31F). */
+export const UNRELEASED_PUBLIC_ENV = 'DUDE_HUB_UNRELEASED_PUBLIC';
+
+/**
+ * A message when this config may not start, else null. Public exposure is not released until Phase 31F (PD-057): it is
+ * refused unless the environment variable `DUDE_HUB_UNRELEASED_PUBLIC=1` is set, so an installed service cannot come up
+ * public just because the config file says so.
+ */
+export function exposureRefusal(config: Pick<HubConfig, 'exposure'>, env: NodeJS.ProcessEnv = process.env): string | null {
+  if (config.exposure.mode !== 'public' || env[UNRELEASED_PUBLIC_ENV] === '1') return null;
+  return (
+    'Public exposure is not released until Phase 31F; the Hub will not start with "exposure.mode" set to "public". ' +
+    `Run "dude-hub network mode private" (or set "exposure.mode" to "private" in hub.json). ` +
+    `To start it anyway for testing, set ${UNRELEASED_PUBLIC_ENV}=1 in the Hub's environment; this is unsupported.`
+  );
 }
 
 export function defaultHubConfig(): HubConfig {
@@ -160,7 +224,7 @@ export function writeHubConfig(file: string, config: HubConfig): void {
   mkdirSync(path.dirname(file), { recursive: true });
   const tmp = `${file}.${randomBytes(4).toString('hex')}.tmp`;
   const { exposure, ...rest } = config;
-  const isDefault = exposure.mode === 'private' && exposure.names.length === 0 && exposure.canonicalOrigin === undefined;
+  const isDefault = exposure.mode === 'private' && exposure.names.length === 0 && exposure.canonicalOrigin === undefined && exposure.proxy === undefined;
   writeFileSync(tmp, JSON.stringify(isDefault ? rest : { ...rest, exposure }, null, 2) + '\n');
   renameSync(tmp, file);
 }
@@ -181,8 +245,49 @@ export function loadOrCreateHubConfig(file: string): HubConfig {
   return parseHubConfig(parsed);
 }
 
-export function bindAddress(config: Pick<HubConfig, 'bind'>): string {
+/**
+ * The listen address. Reverse-proxy mode forces loopback (the proxy runs on this machine); container mode keeps
+ * `0.0.0.0` because the proxy is outside the container (only the configured CIDRs are trusted either way).
+ */
+export function bindAddress(config: Pick<HubConfig, 'bind'> & { exposure?: Partial<HubExposureConfig> }): string {
+  if (config.bind === 'container') return '0.0.0.0';
+  if (config.exposure?.proxy !== undefined) return '127.0.0.1';
   return config.bind === 'loopback' ? '127.0.0.1' : '0.0.0.0';
+}
+
+/** Returns a validated copy of `config` with the reverse-proxy block set (its host joins `names`) or removed (`null`). */
+export function applyProxyChange(config: HubConfig, change: { trusted: readonly string[]; publicOrigin: string } | null): HubConfig {
+  const { proxy: _previous, ...exposure } = config.exposure;
+  if (change === null) return parseHubConfig({ ...config, exposure });
+  let host: string;
+  try { host = new URL(change.publicOrigin).hostname.replace(/^\[|\]$/g, ''); } catch { throw new Error(`"${change.publicOrigin}" is not a valid URL.`); }
+  const names = exposure.names.some((n) => normalizeHubName(n).host === host) ? exposure.names : [...exposure.names, host];
+  const bind = config.bind === 'container' ? 'container' : 'loopback';
+  return parseHubConfig({ ...config, bind, exposure: { ...exposure, names, proxy: { trusted: [...change.trusted], publicOrigin: change.publicOrigin } } });
+}
+
+/** The exposure read model reported by `status` and `network status` (and consumed by diagnostics). Never secrets. */
+export interface ExposureReadModel {
+  mode: HubExposureMode;
+  bind: HubBindMode;
+  port: number;
+  names: string[];
+  canonicalOrigin: string | null;
+  proxy: { trustedCount: number; publicOrigin: string } | null;
+  /** Whether `Strict-Transport-Security` is sent; null when it cannot be determined (no running Hub). */
+  hsts: boolean | null;
+}
+
+export function exposureReadModel(config: HubConfig, running: { bind?: HubBindMode; port: number }, hsts: boolean | null): ExposureReadModel {
+  return {
+    mode: config.exposure.mode,
+    bind: running.bind ?? config.bind,
+    port: running.port,
+    names: [...config.exposure.names],
+    canonicalOrigin: config.exposure.proxy?.publicOrigin ?? config.exposure.canonicalOrigin ?? null,
+    proxy: config.exposure.proxy ? { trustedCount: config.exposure.proxy.trusted.length, publicOrigin: config.exposure.proxy.publicOrigin } : null,
+    hsts,
+  };
 }
 
 export type HubNameChange = { add: string } | { remove: string };

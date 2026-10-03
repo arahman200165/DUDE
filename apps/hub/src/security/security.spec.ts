@@ -40,7 +40,8 @@ describe('security baseline', () => {
   it('sets the security headers and the API CSP on /api responses, with no CORS headers', async () => {
     const res = await request(hub.port, hub.tls.certPem, `${HUB_API_PREFIX}/hello`);
     expect(res.status).toBe(200);
-    expect(res.headers['strict-transport-security']).toBe('max-age=31536000');
+    // The test Hub serves a self-signed certificate, so HSTS is omitted (see proxy.spec.ts for the trusted-certificate cases).
+    expect(res.headers['strict-transport-security']).toBeUndefined();
     expect(res.headers['x-content-type-options']).toBe('nosniff');
     expect(res.headers['x-frame-options']).toBe('DENY');
     expect(res.headers['referrer-policy']).toBe('no-referrer');

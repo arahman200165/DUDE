@@ -90,7 +90,9 @@ describe('hub config', () => {
 
   it('refuses public exposure at start and formats host headers', () => {
     expect(exposureRefusal(parseHubConfig({}))).toBeNull();
-    expect(exposureRefusal(parseHubConfig({ exposure: { mode: 'public' } }))).toMatch(/Phase 31F/);
+    expect(exposureRefusal(parseHubConfig({ exposure: { mode: 'public' } }), {})).toMatch(/Phase 31F/);
+    expect(exposureRefusal(parseHubConfig({ exposure: { mode: 'public' } }), { DUDE_HUB_UNRELEASED_PUBLIC: '0' })).toMatch(/Phase 31F/);
+    expect(exposureRefusal(parseHubConfig({ exposure: { mode: 'public' } }), { DUDE_HUB_UNRELEASED_PUBLIC: '1' })).toBeNull();
     expect(formatHostHeader(normalizeHubName('2001:db8::1'), 8443)).toBe('[2001:db8::1]:8443');
     expect(formatHostHeader(normalizeHubName('Hub.Example:8443'))).toBe('hub.example:8443');
     expect(formatHostHeader(normalizeHubName('hub.example'))).toBe('hub.example');

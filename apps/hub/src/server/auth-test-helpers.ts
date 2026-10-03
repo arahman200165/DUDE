@@ -34,13 +34,13 @@ export interface Signed { cookie: string; csrf: string; body: any; setCookie: st
 
 export const cookieValueOf = (setCookie: string | undefined): string => /__Host-dude_session=([^;]*)/.exec(setCookie ?? '')?.[1] ?? '';
 
-export async function startAuthHub({ config, ...extra }: Pick<TestHubOptions, 'realtime' | 'sync'> & { config?: Partial<HubConfig> } = {}): Promise<AuthHub> {
+export async function startAuthHub({ config, rateLimit, ...extra }: Pick<TestHubOptions, 'realtime' | 'sync' | 'rateLimit'> & { config?: Partial<HubConfig> } = {}): Promise<AuthHub> {
   const clock = { t: START };
   const hub = await startTestHub(config ?? {}, {
     now: () => clock.t,
     passwordParams: CHEAP,
     ...extra,
-    rateLimit: { auth: { perMinute: 600_000, burst: 100_000 }, global: { perMinute: 600_000, burst: 100_000 } },
+    rateLimit: { auth: { perMinute: 600_000, burst: 100_000 }, global: { perMinute: 600_000, burst: 100_000 }, ...rateLimit },
   });
   const call = async (method: string, path: string, options: CallOptions = {}): Promise<ApiResult> => {
     const headers: Record<string, string> = { ...options.headers };

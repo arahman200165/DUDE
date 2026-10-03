@@ -22,7 +22,10 @@ export function canonicalSanName(name: string): string {
  * every non-internal interface (IPv4 and IPv6 except link-local fe80::/10).
  */
 export function computeSubjectAltNames(config: Pick<HubConfig, 'bind' | 'exposure'>, interfaces: NetworkInterfaces = os.networkInterfaces()): string[] {
-  const extra: string[] = config.exposure.names.map((name) => normalizeHubName(name).host);
+  // Behind a reverse proxy the public name is on the proxy's certificate, not the Hub's (the proxy connects to the Hub by
+  // loopback address), so it is not required of the Hub certificate and is never outside a name-constrained CA's subtrees.
+  const proxyHost = config.exposure.proxy ? new URL(config.exposure.proxy.publicOrigin).hostname.replace(/^\[|\]$/g, '') : undefined;
+  const extra: string[] = config.exposure.names.map((name) => normalizeHubName(name).host).filter((host) => host !== proxyHost);
   if (config.bind === 'lan' || config.bind === 'container') {
     for (const list of Object.values(interfaces)) {
       for (const info of list ?? []) {

@@ -29,7 +29,7 @@ export interface DeviceRecoveryRouteOptions {
 }
 
 const iso = (ms: number): string => new Date(ms).toISOString();
-const ipOf = (request: FastifyRequest): string => request.socket.remoteAddress ?? 'unknown';
+const ipOf = (request: FastifyRequest): string => request.ip || 'unknown';
 
 /** The device is active, a desktop platform and explicitly marked recovery-trusted by the owner. */
 export function isRecoveryEligible(db: Db, deviceId: string): boolean {

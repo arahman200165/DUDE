@@ -11,7 +11,7 @@ export type ParsedCommand =
   | { command: 'tls-proxy-pin'; action: 'add' | 'remove' | 'list' | 'activate'; value?: string; force?: boolean; confirm?: string; dataDir?: string; installDir?: string }
   | { command: 'tls-names'; action: 'list' | 'add' | 'remove'; name?: string; dataDir?: string; installDir?: string }
   | { command: 'service'; action: 'install' | 'uninstall' | 'start' | 'stop' | 'restart' | 'status' | 'update'; dataDir?: string; installDir?: string; port?: number; lan?: boolean; source?: string; keepData?: boolean }
-  | { command: 'network'; action: 'lan-on' | 'lan-off' | 'status'; dataDir?: string; installDir?: string }
+  | { command: 'network'; action: 'lan-on' | 'lan-off' | 'status' | 'proxy-on' | 'proxy-off' | 'proxy-status' | 'mode-private' | 'mode-public'; trusted?: string[]; publicOrigin?: string; acknowledgeUnreleased?: boolean; dataDir?: string; installDir?: string }
   | { command: 'doctor'; dataDir?: string; installDir?: string }
   | { command: 'purge'; dataDir?: string; includeBackups?: boolean; confirm?: string; type?: string }
   | { command: 'version' }
@@ -47,6 +47,10 @@ Usage:
   dude-hub service start|stop|restart|status [--install-dir <dir>] [--data-dir <dir>]
   dude-hub service update --source <staged dir> [--install-dir <dir>] [--data-dir <dir>]
   dude-hub network lan on|off|status [--data-dir <dir>] [--install-dir <dir>]
+  dude-hub network status [--data-dir <dir>] [--install-dir <dir>]   (bind, exposure mode, names, proxy, HSTS)
+  dude-hub network proxy on --trusted <cidr>[,<cidr>...] --public-origin https://<name>[:<port>] [--data-dir <dir>] [--install-dir <dir>]
+  dude-hub network proxy off|status [--data-dir <dir>] [--install-dir <dir>]
+  dude-hub network mode private|public [--i-understand-unreleased] [--data-dir <dir>] [--install-dir <dir>]   (public is not released until Phase 31F)
   dude-hub doctor [--data-dir <dir>] [--install-dir <dir>]
   dude-hub purge --data-dir <dir> [--include-backups] [--confirm <token> --type "DELETE HUB DATA"]
   dude-hub version
@@ -215,7 +219,21 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
     if (group === 'status') {
       return { command: 'network', action: 'status', ...dirs(parseFlags(mode === undefined ? [] : [mode, ...flags], ['--install-dir', '--data-dir'], [])) };
     }
-    throw new UsageError('Usage: dude-hub network lan on|off|status [--data-dir <dir>].');
+    if (group === 'proxy' && (mode === 'on' || mode === 'off' || mode === 'status')) {
+      if (mode !== 'on') return { command: 'network', action: mode === 'off' ? 'proxy-off' : 'proxy-status', ...dirs(parseFlags(flags, ['--install-dir', '--data-dir'], [])) };
+      const values = parseFlags(flags, ['--trusted', '--public-origin', '--install-dir', '--data-dir'], []);
+      if (values['--trusted'] === undefined || values['--public-origin'] === undefined) {
+        throw new UsageError('Usage: dude-hub network proxy on --trusted <cidr>[,<cidr>...] --public-origin https://<name>[:<port>].');
+      }
+      const trusted = values['--trusted'].split(',').map((entry) => entry.trim()).filter((entry) => entry.length > 0);
+      if (trusted.length === 0) throw new UsageError('--trusted needs at least one address or CIDR.');
+      return { command: 'network', action: 'proxy-on', trusted, publicOrigin: values['--public-origin'], ...dirs(values) };
+    }
+    if (group === 'mode' && (mode === 'private' || mode === 'public')) {
+      const values = parseFlags(flags, ['--i-understand-unreleased', '--install-dir', '--data-dir'], ['--i-understand-unreleased']);
+      return { command: 'network', action: mode === 'private' ? 'mode-private' : 'mode-public', ...(values['--i-understand-unreleased'] !== undefined ? { acknowledgeUnreleased: true } : {}), ...dirs(values) };
+    }
+    throw new UsageError('Usage: dude-hub network lan on|off|status | proxy on|off|status | mode private|public. Run "dude-hub help".');
   }
   if (command === 'doctor') {
     const values = parseFlags(rest, ['--install-dir', '--data-dir'], []);

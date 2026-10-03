@@ -30,7 +30,7 @@ export function registerBootstrapRoute(app: FastifyInstance, options: BootstrapR
     { config: { authLimited: true, credentialless: true }, schema: { body: BootstrapRequest, response: { 201: BootstrapResponse, 400: ErrorEnvelope, 401: ErrorEnvelope, 409: ErrorEnvelope } } },
     async (request, reply) => {
       void reply.header('Cache-Control', 'no-store');
-      const ip = request.socket.remoteAddress ?? 'unknown';
+      const ip = request.ip || 'unknown';
       const keys = throttleKeys['setup-token'](ip);
       const now = options.now();
 

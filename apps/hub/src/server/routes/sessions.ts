@@ -63,7 +63,7 @@ export function registerSessionRoutes(app: FastifyInstance, options: Pick<AuthRo
       if (result === 'digest-mismatch') return reply.code(409).send(envelope('conflict', 'The set of sessions changed since the preview.'));
       const revoked = revokeAllSessions(db, ctx.ownerId, ctx.sessionHash, now());
       audit(db, {
-        event: 'session.revoked-all', outcome: 'success', actorKind: 'owner', actorId: ctx.ownerId, ip: request.socket.remoteAddress ?? 'unknown',
+        event: 'session.revoked-all', outcome: 'success', actorKind: 'owner', actorId: ctx.ownerId, ip: request.ip || 'unknown',
         detail: { revokedSessions: revoked.length }, now: now(),
       });
       emitRevoked(app, revoked, 'revoke-all');
@@ -84,7 +84,7 @@ export function registerSessionRoutes(app: FastifyInstance, options: Pick<AuthRo
       const revoked = target ? revokeSession(db, target.sessionHash, now()) : null;
       if (!revoked) return reply.code(404).send(envelope('not-found', 'No such session.'));
       audit(db, {
-        event: 'session.revoked', outcome: 'success', actorKind: 'owner', actorId: ctx.ownerId, ip: request.socket.remoteAddress ?? 'unknown',
+        event: 'session.revoked', outcome: 'success', actorKind: 'owner', actorId: ctx.ownerId, ip: request.ip || 'unknown',
         detail: { sessionId: revoked.sessionId, kind: revoked.kind, current: revoked.sessionHash === ctx.sessionHash }, now: now(),
       });
       emitRevoked(app, [revoked], 'revoked');

@@ -40,7 +40,7 @@ export interface DeviceRouteOptions {
 export const REVOKE_DEVICE_ACTION = 'devices.revoke';
 
 const sha256Hex = (value: string): string => createHash('sha256').update(value).digest('hex');
-const ipOf = (request: FastifyRequest): string => request.socket.remoteAddress ?? 'unknown';
+const ipOf = (request: FastifyRequest): string => request.ip || 'unknown';
 
 /** Splits a Host header into its hostname (IPv6 stays bracketed) and port (443 when omitted). */
 export function splitHostHeader(hostHeader: string): { hostname: string; port: number } {

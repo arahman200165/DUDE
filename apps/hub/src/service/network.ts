@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { HUB_DEFAULT_PORT } from '@dude/contracts/hub';
 import { hubPaths } from '../config/data-dir.js';
-import { loadOrCreateHubConfig, writeHubConfig } from '../config/hub-config.js';
+import { applyProxyChange, exposureReadModel, loadOrCreateHubConfig, writeHubConfig } from '../config/hub-config.js';
 import {
   EXIT_FAILURE, EXIT_OK, EXIT_USAGE, addFirewallRule, defaultInstallDir, deleteFirewallRule, firewallRuleExists, json, requireElevated,
   resolveDeps, serviceDataDir, serviceState, tryAdminStatus,
@@ -10,7 +10,21 @@ import {
 import type { ServiceDeps } from './common.js';
 import { runServiceControl } from './lifecycle.js';
 
-export interface NetworkOptions { action: 'lan-on' | 'lan-off' | 'status'; dataDir?: string; installDir?: string }
+export interface NetworkOptions {
+  action: 'lan-on' | 'lan-off' | 'status' | 'proxy-on' | 'proxy-off' | 'proxy-status' | 'mode-private' | 'mode-public';
+  /** `proxy-on`: trusted proxy addresses or CIDRs. */
+  trusted?: string[];
+  /** `proxy-on`: the externally visible `https://name[:port]`. */
+  publicOrigin?: string;
+  /** `mode-public`: the operator passed `--i-understand-unreleased`. */
+  acknowledgeUnreleased?: boolean;
+  dataDir?: string;
+  installDir?: string;
+}
+
+const PUBLIC_REFUSAL =
+  'Public exposure is not released until Phase 31F. Re-run with --i-understand-unreleased to write it to the config anyway; ' +
+  'even then the Hub will not start in public mode unless DUDE_HUB_UNRELEASED_PUBLIC=1 is set in its environment.';
 
 /**
  * `dude-hub network lan on|off|status`.
@@ -37,10 +51,13 @@ export async function runNetwork(options: NetworkOptions, deps: ServiceDeps = {}
   const installDir = path.resolve(options.installDir ?? defaultInstallDir(d.env));
   const admin = await tryAdminStatus(d, dataRoot);
 
-  if (options.action === 'status') {
+  if (options.action === 'status' || options.action === 'proxy-status') {
     const configured = existsSync(paths.configFile) ? loadOrCreateHubConfig(paths.configFile) : null;
+    const reported = admin?.['exposure'];
+    const exposure = reported ?? (configured ? exposureReadModel(configured, { port: configured.port }, null) : null);
     d.out(json({
       running: admin !== null,
+      exposure,
       runningBind: admin?.['bind'] ?? null,
       configuredBind: configured?.bind ?? null,
       port: admin?.['port'] ?? configured?.port ?? null,
@@ -48,6 +65,10 @@ export async function runNetwork(options: NetworkOptions, deps: ServiceDeps = {}
       serviceState: state,
     }));
     return EXIT_OK;
+  }
+
+  if (options.action === 'proxy-on' || options.action === 'proxy-off' || options.action === 'mode-private' || options.action === 'mode-public') {
+    return runExposureChange(options, { d, deps, dataRoot, paths, installDir, admin, installed, state });
   }
 
   const bind = options.action === 'lan-on' ? 'lan' : 'loopback';
@@ -94,5 +115,87 @@ export async function runNetwork(options: NetworkOptions, deps: ServiceDeps = {}
     }
   }
   d.out(json({ bind, port, firewallRule: installed ? bind === 'lan' : null, restarted: installed && restartNeeded && state === 'running' }));
+  return EXIT_OK;
+}
+
+interface ExposureContext {
+  d: ReturnType<typeof resolveDeps>;
+  deps: ServiceDeps;
+  dataRoot: string;
+  paths: ReturnType<typeof hubPaths>;
+  installDir: string;
+  admin: Record<string, unknown> | null;
+  installed: boolean;
+  state: Awaited<ReturnType<typeof serviceState>>;
+}
+
+/**
+ * `network proxy on|off` and `network mode private|public`. With a running service the change goes through the admin channel
+ * (`network.proxy.set`, `network.mode.set`; audited). Turning the proxy on or off restarts the service so the bind applies, and
+ * turning it on removes the LAN firewall rule (the Hub then listens on loopback only). The exposure mode is only enforced at start.
+ */
+async function runExposureChange(options: NetworkOptions, context: ExposureContext): Promise<number> {
+  const { d, dataRoot, paths, installDir, admin, installed, state } = context;
+  const proxyAction = options.action === 'proxy-on' || options.action === 'proxy-off';
+  if (options.action === 'mode-public' && options.acknowledgeUnreleased !== true) {
+    d.err(`${PUBLIC_REFUSAL}\n`);
+    return EXIT_USAGE;
+  }
+  let result: Record<string, unknown>;
+  let restartNeeded = false;
+  if (admin !== null) {
+    if (!installed) {
+      d.err('A Hub is running in the foreground. Stop it and run this command again.\n');
+      return EXIT_FAILURE;
+    }
+    try {
+      result = (await d.call(
+        dataRoot,
+        proxyAction ? 'network.proxy.set' : 'network.mode.set',
+        proxyAction
+          ? { enabled: options.action === 'proxy-on', ...(options.action === 'proxy-on' ? { trusted: options.trusted ?? [], publicOrigin: options.publicOrigin ?? '' } : {}) }
+          : { mode: options.action === 'mode-public' ? 'public' : 'private', ...(options.acknowledgeUnreleased ? { acknowledge: true } : {}) },
+      )) as Record<string, unknown>;
+      restartNeeded = proxyAction;
+    } catch (error) {
+      d.err(`${(error as Error).message}\n`);
+      return EXIT_FAILURE;
+    }
+  } else {
+    try {
+      const config = loadOrCreateHubConfig(paths.configFile);
+      if (proxyAction) {
+        const next = applyProxyChange(config, options.action === 'proxy-on' ? { trusted: options.trusted ?? [], publicOrigin: options.publicOrigin ?? '' } : null);
+        writeHubConfig(paths.configFile, next);
+        result = { proxy: next.exposure.proxy ? { trustedCount: next.exposure.proxy.trusted.length, publicOrigin: next.exposure.proxy.publicOrigin } : null, bind: next.bind };
+      } else {
+        const mode = options.action === 'mode-public' ? 'public' : 'private';
+        writeHubConfig(paths.configFile, { ...config, exposure: { ...config.exposure, mode } });
+        result = { mode, previous: config.exposure.mode };
+      }
+    } catch (error) {
+      d.err(`${(error as Error).message}\n`);
+      return EXIT_FAILURE;
+    }
+    d.err(installed
+      ? 'The Hub is not running, so the change was written to its config directly and is not audited. It applies at the next start.\n'
+      : 'No Windows service is installed: the config was edited only. Start the Hub with "dude-hub run" to apply it.\n');
+  }
+
+  if (installed && options.action === 'proxy-on') {
+    const removed = await deleteFirewallRule(d.exec);
+    void removed; // an absent rule is fine; the Hub now listens on loopback only
+  }
+  if (installed && restartNeeded && state === 'running') {
+    const code = await runServiceControl('restart', { dataDir: dataRoot, installDir }, context.deps);
+    if (code !== EXIT_OK) return code;
+  }
+  if (options.action === 'proxy-on') {
+    d.err('Next: register the proxy certificate so enrolled devices can connect through it: "dude-hub tls proxy-pin add <proxy-leaf.pem>", then wait for devices to acknowledge and run "dude-hub tls proxy-pin activate".\n');
+  }
+  if (options.action === 'mode-public') {
+    d.err('Public exposure is not released until Phase 31F: the Hub will refuse to start in public mode unless DUDE_HUB_UNRELEASED_PUBLIC=1 is set in its environment.\n');
+  }
+  d.out(json({ ...result, restarted: installed && restartNeeded && state === 'running' }));
   return EXIT_OK;
 }

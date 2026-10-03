@@ -91,9 +91,8 @@ function authenticate(request: FastifyRequest, options: RealtimeOptions): Princi
   if (credential.conflict || credential.duplicateSession) return null;
   const { db, now } = options;
   if (credential.kind === 'cookie') {
-    const host = request.headers.host;
     const origin = request.headers.origin;
-    if (typeof host !== 'string' || typeof origin !== 'string' || !options.hostGuard.isAllowed(host) || origin.toLowerCase() !== `https://${host.toLowerCase()}`) return null;
+    if (typeof origin !== 'string' || !options.hostGuard.isRequestAllowed(request) || !options.hostGuard.originMatches(request, origin)) return null;
     const site = request.headers['sec-fetch-site'];
     if (site !== undefined && site !== 'same-origin') return null;
     const result = resolveOwner(request, { db, now, kinds: ['cookie'] });

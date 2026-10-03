@@ -82,17 +82,21 @@ export function isCrossOriginReadableAsset(url: string): boolean {
 }
 
 /** Sets the security headers on every response. CORS headers are set only on `isCrossOriginReadableAsset` files. */
-export function registerSecurityHeaders(app: FastifyInstance): void {
+export function registerSecurityHeaders(app: FastifyInstance, options: { hsts?: () => boolean } = {}): void {
+  const baseHeaders = (): Array<[string, string]> => {
+    const sendHsts = options.hsts?.() ?? true;
+    return Object.entries(HUB_BASE_HEADERS).filter(([name]) => sendHsts || name !== 'Strict-Transport-Security');
+  };
   app.addHook('onSend', async (request, reply, payload) => {
     const sandboxCsp = request.method === 'GET' || request.method === 'HEAD' ? sandboxPageCsp(request.url, request.headers.host) : null;
     if (sandboxCsp !== null && (reply.statusCode === 200 || reply.statusCode === 304)) {
       // Sandbox loader page: embeddable by this origin only, with its own CSP. Everything else stays as for the app.
-      for (const [name, value] of Object.entries(HUB_BASE_HEADERS)) if (name !== 'X-Frame-Options') void reply.header(name, value);
+      for (const [name, value] of baseHeaders()) if (name !== 'X-Frame-Options') void reply.header(name, value);
       void reply.header('Content-Security-Policy', sandboxCsp);
       void reply.header('Cache-Control', 'no-cache');
       return payload;
     }
-    for (const [name, value] of Object.entries(HUB_BASE_HEADERS)) void reply.header(name, value);
+    for (const [name, value] of baseHeaders()) void reply.header(name, value);
     if ((request.method === 'GET' || request.method === 'HEAD') && isCrossOriginReadableAsset(request.url)) {
       void reply.header('Access-Control-Allow-Origin', '*');
       void reply.header('Cross-Origin-Resource-Policy', 'cross-origin');

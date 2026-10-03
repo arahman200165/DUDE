@@ -30,6 +30,7 @@ import { createProxyPins } from '../tls/proxy-pins.js';
 import { runServiceInstall } from '../service/install.js';
 import { runServiceControl, runServiceStatus, runServiceUninstall, runServiceUpdate } from '../service/lifecycle.js';
 import { runNetwork } from '../service/network.js';
+import { createHstsPolicy } from '../security/hsts.js';
 import { runDoctor } from '../service/doctor.js';
 import { runPurge } from '../service/purge.js';
 import { HELP_TEXT, UsageError, parseArgs } from './args.js';
@@ -115,7 +116,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     }
   }
   if (parsed.command === 'network') {
-    return runNetwork({ action: parsed.action, ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}) });
+    return runNetwork({ action: parsed.action, ...(parsed.trusted !== undefined ? { trusted: parsed.trusted } : {}), ...(parsed.publicOrigin !== undefined ? { publicOrigin: parsed.publicOrigin } : {}), ...(parsed.acknowledgeUnreleased ? { acknowledgeUnreleased: true } : {}), ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}) });
   }
   if (parsed.command === 'doctor') {
     return runDoctor({ hubVersion: hubVersion(), ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}) });
@@ -206,6 +207,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
       methods: buildAdminMethods({
         db: hub.db, hubVersion: hubVersion(), hubInstanceId: hub.hubInstanceId, bind: config.bind, getPort: () => port, startedAt, configDir: paths.configDir, configFile: paths.configFile, tlsDir: paths.tlsDir, spkiSha256: tls.spkiSha256,
         onNamesChanged: (names) => server.hostGuard.setNames(names),
+        hsts: createHstsPolicy({ db: hub.db, tlsDir: paths.tlsDir, proxy: config.exposure.proxy !== undefined }),
         caProtector,
         tls: createTlsRotation({
           db: hub.db, tlsDir: paths.tlsDir, hubInstanceId: hub.hubInstanceId, caProtector,

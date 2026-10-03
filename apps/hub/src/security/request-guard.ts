@@ -3,6 +3,7 @@ import { HUB_API_PREFIX } from '@dude/contracts/hub';
 import type { HubErrorCode } from '@dude/contracts/hub';
 import { envelope } from '../server/errors.js';
 import { SESSION_COOKIE, parseCookies } from './cookies.js';
+import { effectiveHost } from './host-guard.js';
 import type { HostGuard } from './host-guard.js';
 
 export type CredentialKind = 'bearer' | 'cookie' | 'none';
@@ -93,7 +94,7 @@ async function evaluate(request: FastifyRequest, options: RequestGuardOptions, c
   }
 
   // Browser-ish ('cookie' or 'none'): same-origin only.
-  const host = header(request, 'host');
+  const host = effectiveHost(request);
   const origin = header(request, 'origin');
   if (credential.kind === 'none' && origin === undefined) {
     // Credential-less POSTs (sign-in, device enrollment, challenge/token) also come from non-browser clients such as
@@ -105,9 +106,9 @@ async function evaluate(request: FastifyRequest, options: RequestGuardOptions, c
     if (BROWSER_FETCH_HEADERS.some((name) => header(request, name) !== undefined)) {
       return { status: 403, code: 'forbidden', message: 'Cross-origin requests are not allowed.' };
     }
-    return host !== undefined && options.hostGuard.isAllowed(host) ? null : { status: 403, code: 'forbidden', message: 'Cross-origin requests are not allowed.' };
+    return host !== undefined && options.hostGuard.isRequestAllowed(request) ? null : { status: 403, code: 'forbidden', message: 'Cross-origin requests are not allowed.' };
   }
-  if (origin === undefined || host === undefined || !options.hostGuard.isAllowed(host) || origin.toLowerCase() !== `https://${host.toLowerCase()}`) {
+  if (origin === undefined || host === undefined || !options.hostGuard.isRequestAllowed(request) || !options.hostGuard.originMatches(request, origin)) {
     return { status: 403, code: 'forbidden', message: 'Cross-origin requests are not allowed.' };
   }
   if (site !== undefined && site !== 'same-origin') {

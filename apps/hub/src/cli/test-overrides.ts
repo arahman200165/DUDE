@@ -22,7 +22,7 @@ export function readHubTestOverrides(env: NodeJS.ProcessEnv = process.env): HubT
   const result: HubTestOverrides = {};
   if (env['DUDE_HUB_TEST_RELAX_RATE_LIMITS'] === '1') {
     const open = { perMinute: 6_000_000, burst: 1_000_000 };
-    result.rateLimit = { global: open, auth: open };
+    result.rateLimit = { global: open, auth: open, read: open, flood: open };
   }
   const retentionDays = positive(env['DUDE_HUB_TEST_SYNC_RETENTION_DAYS']);
   const compactionIntervalMs = positive(env['DUDE_HUB_TEST_SYNC_COMPACTION_MS']);

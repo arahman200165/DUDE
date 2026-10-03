@@ -1,5 +1,5 @@
 import Fastify from 'fastify';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Db } from '@dude/sqlite-store';
 import type { HubConfig } from '../config/hub-config.js';
 import type { HubPaths } from '../config/data-dir.js';
@@ -29,7 +29,9 @@ import type { HubLoggerOptions } from './logger.js';
 import { startAuditPruning } from '../security/audit.js';
 import { registerSecurityHeaders } from '../security/headers.js';
 import { createHostGuard, registerHostGuard } from '../security/host-guard.js';
-import { createRateLimiter, registerRateLimit } from '../security/rate-limit.js';
+import { createRateLimiter, registerRateLimit, withPrincipalLimit } from '../security/rate-limit.js';
+import { createHstsPolicy } from '../security/hsts.js';
+import { trustProxyFor } from '../security/trusted-proxy.js';
 import type { RateLimiterOptions } from '../security/rate-limit.js';
 import { registerRequestGuard } from '../security/request-guard.js';
 import type { CsrfVerifier } from '../security/request-guard.js';
@@ -67,7 +69,7 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
     https: { key: options.tls.keyPem, cert: options.tls.certPem, minVersion: 'TLSv1.2' },
     logger: options.logger ?? false,
     bodyLimit: HUB_BODY_LIMIT,
-    trustProxy: false,
+    trustProxy: trustProxyFor(options.config.exposure?.proxy?.trusted),
     ajv: { customOptions: { strict: true, removeAdditional: false, coerceTypes: false, allErrors: false } },
   });
 
@@ -80,9 +82,11 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
     const address = app.server.address();
     return typeof address === 'object' && address ? address.port : 0;
   };
-  registerSecurityHeaders(app);
-  registerRateLimit(app, createRateLimiter({ now, ...options.rateLimit }));
-  const hostGuard = createHostGuard({ bind: options.config.bind ?? 'loopback', names: options.config.exposure?.names ?? [], ...(options.extraHosts ? { extraHosts: options.extraHosts } : {}) }, getPort);
+  const proxy = options.config.exposure?.proxy;
+  registerSecurityHeaders(app, { hsts: createHstsPolicy({ db: options.hub.db, tlsDir: options.paths.tlsDir, proxy: proxy !== undefined }) });
+  const limiter = createRateLimiter({ now, ...options.rateLimit });
+  registerRateLimit(app, limiter);
+  const hostGuard = createHostGuard({ bind: options.config.bind ?? 'loopback', names: options.config.exposure?.names ?? [], ...(proxy ? { proxy } : {}), ...(options.extraHosts ? { extraHosts: options.extraHosts } : {}) }, getPort);
   app.decorate('hostGuard', hostGuard);
   registerHostGuard(app, hostGuard);
   const csrfVerifier: CsrfVerifier = options.csrfVerifier ?? ((cookie, header) => verifyCsrf(options.hub.db, cookie, header, now()));
@@ -114,13 +118,16 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   });
 
   const confirmations = new ConfirmationStore();
+  // Authenticated requests are metered per principal (session or device) once auth resolves it, not per address.
+  const ownerKey = (r: FastifyRequest): string | undefined => (r.owner ? `owner:${r.owner.sessionHash}` : undefined);
+  const requireDevice = withPrincipalLimit(limiter, createRequireDevice({ db: options.hub.db, now }), (r) => (r.device ? `device:${r.device.deviceId}` : undefined));
   const authOptions = {
     db: options.hub.db,
     configDir: options.paths.configDir,
     now,
     confirmations,
-    requireOwner: createRequireOwner({ db: options.hub.db, now }),
-    requireCookieOwner: createRequireOwner({ db: options.hub.db, now, kinds: ['cookie'] }),
+    requireOwner: withPrincipalLimit(limiter, createRequireOwner({ db: options.hub.db, now }), ownerKey),
+    requireCookieOwner: withPrincipalLimit(limiter, createRequireOwner({ db: options.hub.db, now, kinds: ['cookie'] }), ownerKey),
     ...(options.passwordParams ? { passwordParams: options.passwordParams } : {}),
   };
   registerAuthRoutes(app, authOptions);
@@ -128,17 +135,17 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   registerTlsAuditRoutes(app, { db: options.hub.db, tlsDir: options.paths.tlsDir, requireOwner: authOptions.requireOwner });
   registerDeviceAuthRoutes(app, { db: options.hub.db, now, hubInstanceId: options.hub.hubInstanceId });
   registerDeviceRecoveryRoutes(app, {
-    db: options.hub.db, now, hubInstanceId: options.hub.hubInstanceId, requireDevice: createRequireDevice({ db: options.hub.db, now }),
+    db: options.hub.db, now, hubInstanceId: options.hub.hubInstanceId, requireDevice,
     ...(options.passwordParams ? { passwordParams: options.passwordParams } : {}),
   });
   registerDeviceRoutes(app, {
-    db: options.hub.db, now, confirmations, requireOwner: authOptions.requireOwner, requireDevice: createRequireDevice({ db: options.hub.db, now }),
+    db: options.hub.db, now, confirmations, requireOwner: authOptions.requireOwner, requireDevice,
     hostGuard, spkiSha256: activeSpki, isDeviceOnline: realtime.isDeviceOnline,
-    ...(options.config.exposure?.canonicalOrigin ? { canonicalOrigin: options.config.exposure.canonicalOrigin } : {}),
+    ...(proxy ? { canonicalOrigin: proxy.publicOrigin } : options.config.exposure?.canonicalOrigin ? { canonicalOrigin: options.config.exposure.canonicalOrigin } : {}),
   });
 
   registerSyncRoutes(app, {
-    db: options.hub.db, now, confirmations, requireOwner: authOptions.requireOwner, requireDevice: createRequireDevice({ db: options.hub.db, now }),
+    db: options.hub.db, now, confirmations, requireOwner: authOptions.requireOwner, requireDevice,
   });
   registerSyncCompaction(app, options.hub.db, now, options.sync);
 

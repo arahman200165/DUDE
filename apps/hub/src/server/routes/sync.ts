@@ -44,7 +44,7 @@ const SnapshotQueryString = Type.Object({
 
 const MAX_PAGE = 1000;
 const sha256Hex = (value: string): string => createHash('sha256').update(value).digest('hex');
-const ipOf = (request: FastifyRequest): string => request.socket.remoteAddress ?? 'unknown';
+const ipOf = (request: FastifyRequest): string => request.ip || 'unknown';
 
 /**
  * Synchronization routes (Phase 31D). Credentials: device token for push/changes/snapshot/state (an owner credential
