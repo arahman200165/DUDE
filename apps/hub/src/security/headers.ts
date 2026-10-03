@@ -85,7 +85,7 @@ export function isCrossOriginReadableAsset(url: string): boolean {
 export function registerSecurityHeaders(app: FastifyInstance): void {
   app.addHook('onSend', async (request, reply, payload) => {
     const sandboxCsp = request.method === 'GET' || request.method === 'HEAD' ? sandboxPageCsp(request.url, request.headers.host) : null;
-    if (sandboxCsp !== null && reply.statusCode === 200) {
+    if (sandboxCsp !== null && (reply.statusCode === 200 || reply.statusCode === 304)) {
       // Sandbox loader page: embeddable by this origin only, with its own CSP. Everything else stays as for the app.
       for (const [name, value] of Object.entries(HUB_BASE_HEADERS)) if (name !== 'X-Frame-Options') void reply.header(name, value);
       void reply.header('Content-Security-Policy', sandboxCsp);

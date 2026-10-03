@@ -12,7 +12,7 @@ describe('TlsCertificatesResponse', () => {
   });
   it.each([
     ['missing source', { ...valid, source: undefined }],
-    ['unknown source', { ...valid, source: 'imported' }],
+    ['unknown source', { ...valid, source: 'acme' }],
     ['missing caCertPem', { ...valid, caCertPem: undefined }],
     ['non-string caCertPem', { ...valid, caCertPem: 5 }],
     ['missing leafNotAfter', { ...valid, leafNotAfter: undefined }],

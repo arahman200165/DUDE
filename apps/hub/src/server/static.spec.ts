@@ -120,6 +120,20 @@ describe('sandbox loader pages', () => {
     expect(missing.headers['x-frame-options']).toBe('DENY');
   });
 
+  it('keeps the loader page headers on a 304 revalidation (a 304 updates the cached headers)', async () => {
+    const root = makeWebRoot();
+    mkdirSync(join(root, 'sandbox'));
+    writeFileSync(join(root, 'sandbox', 'html.html'), '<!doctype html><script>window.x = 1;</script>');
+    const hub = await startTestHub({ webRoot: root });
+    hubs.push(hub);
+    const first = await request(hub.port, hub.tls.certPem, '/sandbox/html.html');
+    const etag = String(first.headers['etag']);
+    const revalidated = await request(hub.port, hub.tls.certPem, '/sandbox/html.html', { headers: { 'if-none-match': etag } });
+    expect(revalidated.status).toBe(304);
+    expect(revalidated.headers['x-frame-options']).toBeUndefined();
+    expect(String(revalidated.headers['content-security-policy'])).toContain("frame-ancestors 'self'");
+  });
+
   it('makes only the Pyodide vendor files readable cross-origin (the opaque sandbox fetches them)', async () => {
     const root = makeWebRoot();
     mkdirSync(join(root, 'assets', 'vendor', 'pyodide'), { recursive: true });

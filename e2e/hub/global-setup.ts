@@ -1,5 +1,5 @@
 import { type ChildProcess, spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
@@ -46,7 +46,6 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   });
 
   const port = new URL(listening.url).port;
-  const certFile = path.join(dataDir, 'config', 'tls', 'cert.pem');
   process.env['HUB_E2E_PORT'] = port;
   process.env['HUB_E2E_URL'] = `https://localhost:${port}`;
   process.env['HUB_E2E_DATA_DIR'] = dataDir;
@@ -54,6 +53,11 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   const rootFile = path.join(dataDir, 'config', 'tls', 'ca', 'ca-cert.pem');
   process.env['HUB_E2E_CERT'] = readFileSync(path.join(dataDir, 'config', 'tls', 'cert.pem'), 'utf8') + (existsSync(rootFile) ? readFileSync(rootFile, 'utf8') : '');
   process.env['HUB_E2E_SPKI'] = listening.spkiSha256;
+  // Playwright's Node-side request context (page.request) verifies TLS normally: worker processes start after this
+  // setup and read NODE_EXTRA_CA_CERTS, so they trust exactly this Hub's root (or self-signed leaf).
+  const caBundle = path.join(dataDir, 'e2e-ca.pem');
+  writeFileSync(caBundle, process.env['HUB_E2E_CERT']);
+  process.env['NODE_EXTRA_CA_CERTS'] = caBundle;
 
   return async () => {
     hub.removeAllListeners('exit');
