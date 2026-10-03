@@ -15,12 +15,13 @@ import { NativeMenuService } from '../../core/platform/native-menu.service';
 import { QuickLauncherService } from '../../core/platform/quick-launcher.service';
 import { AmbientPasteChip } from '../../shared/components/ambient-paste-chip/ambient-paste-chip';
 import { GlobalDropRouter } from '../../shared/components/global-drop-router/global-drop-router';
+import { SyncIndicator } from '../sync-indicator/sync-indicator';
 import { DeviceStoreBanner } from '../device-store-banner/device-store-banner';
 import { CrashRecoveryNotice } from '../../shared/components/crash-recovery-notice/crash-recovery-notice';
 
 @Component({
   selector: 'app-shell-layout',
-  imports: [RouterOutlet, Sidebar, OfflineBadge, UpdateBadge, Onboarding, AmbientPasteChip, GlobalDropRouter, CrashRecoveryNotice, DeviceStoreBanner],
+  imports: [RouterOutlet, Sidebar, OfflineBadge, UpdateBadge, Onboarding, AmbientPasteChip, GlobalDropRouter, CrashRecoveryNotice, DeviceStoreBanner, SyncIndicator],
   templateUrl: './shell-layout.html',
 })
 export class ShellLayout {

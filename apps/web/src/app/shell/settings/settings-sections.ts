@@ -129,6 +129,13 @@ export const CORE_SETTINGS_SECTIONS: readonly CoreSettingsSection[] = [
     load: () => import('./sections/devices-settings').then((m) => m.DevicesSettings),
   },
   {
+    id: 'sync',
+    title: 'Sync',
+    keywords: ['sync', 'synchronization', 'hub', 'first sync', 'conflicts', 'conflict inbox', 'keep hub', 'keep mine', 'quarantine', 'rejected changes', 'pause', 'sync now', 'categories', 'standalone', 'revoked', 'workspace layout', 'scratchpad', 'usage'],
+    hosts: ['desktop'],
+    load: () => import('./sections/sync-settings').then((m) => m.SyncSettings),
+  },
+  {
     id: 'security',
     title: 'Security & Sessions',
     keywords: ['security', 'sessions', 'sign out', 'revoke sessions', 'audit', 'audit log', 'recovery codes', 'password', 'owner', 'hub'],

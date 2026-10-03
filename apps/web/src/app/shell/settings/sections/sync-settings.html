@@ -1,0 +1,140 @@
+<div class="flex flex-col gap-4">
+  <p class="text-ui text-text-muted">
+    Keep this device in step with the others on your Hub. Changes are saved here first and sent when the Hub is reachable. Opening this page never changes anything.
+  </p>
+
+  @if (!sync.available) {
+    <p class="text-ui text-text-muted" data-testid="sync-unavailable">Sync needs the DUDE desktop app.</p>
+  } @else if (status(); as s) {
+    <div data-setting class="flex flex-col gap-2" data-testid="sync-status" role="status">
+      <h3 class="text-ui-sm font-semibold text-text">Status</h3>
+      @switch (s.phase) {
+        @case ('standalone') {
+          <p class="text-ui text-text" data-testid="phase-copy">
+            This device is not connected to a Hub, so nothing syncs.
+            <a class="text-accent underline" routerLink="/settings/environment">Connect it in Environment &amp; Hub.</a>
+          </p>
+        }
+        @case ('needs-first-sync') {
+          <p class="text-ui text-text" data-testid="phase-copy">
+            This device is connected to a Hub, but nothing syncs until you review what will be shared.
+          </p>
+          @if (!wizardOpen()) {
+            <div><button type="button" class="rounded-sm bg-accent px-3 py-0.5 text-ui text-on-accent" data-testid="start-first-sync" (click)="wizardOpen.set(true)">Start first sync</button></div>
+          }
+        }
+        @case ('idle') { <p class="text-ui text-text" data-testid="phase-copy">Up to date.</p> }
+        @case ('syncing') { <p class="text-ui text-text" data-testid="phase-copy">Syncing with the Hub...</p> }
+        @case ('offline') {
+          <p class="text-ui text-warning" data-testid="phase-copy">The Hub cannot be reached. Changes are saved on this device and will send when the connection returns.</p>
+        }
+        @case ('paused') { <p class="text-ui text-text" data-testid="phase-copy">Sync is paused. Changes are saved on this device and are held until you resume.</p> }
+        @case ('revoked') {
+          <div class="flex flex-col gap-2 rounded-sm border border-warning p-3" data-testid="phase-copy">
+            <p class="text-ui text-text">
+              The Hub revoked this device. Sync is stopped and nothing was deleted. Choose how to continue: work on this device alone, or pair it again.
+            </p>
+            @if (standalone(); as preview) {
+              <div class="flex flex-col gap-1.5" role="alertdialog" aria-labelledby="standalone-title" data-testid="standalone-confirm">
+                <h4 id="standalone-title" class="text-ui font-semibold text-warning">Continue as a standalone device?</h4>
+                <ul class="list-disc pl-4 text-ui text-text">
+                  <li>{{ preview.records }} saved item{{ preview.records === 1 ? '' : 's' }} stay on this device, moved to a new local environment.</li>
+                  <li>{{ preview.strandedOps }} change{{ preview.strandedOps === 1 ? '' : 's' }} that never reached the Hub will no longer be sent.</li>
+                </ul>
+                <p class="text-ui text-text-muted">A snapshot is taken first. You can pair with a Hub again later.</p>
+                <div class="flex gap-2">
+                  <button type="button" class="rounded-sm border border-error px-3 py-0.5 text-ui text-error disabled:opacity-50" data-testid="standalone-apply" [disabled]="standaloneBusy()" (click)="applyStandalone(preview)">Continue standalone</button>
+                  <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated" (click)="standalone.set(null)">Cancel</button>
+                </div>
+              </div>
+            } @else {
+              <div class="flex flex-wrap items-center gap-3">
+                <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10 disabled:opacity-50" data-testid="standalone-preview" [disabled]="standaloneBusy()" (click)="previewStandalone()">Continue standalone</button>
+                <a class="text-ui text-accent underline" routerLink="/settings/environment">Pair again in Environment &amp; Hub</a>
+              </div>
+            }
+            @if (standaloneError(); as message) { <p class="text-ui text-error" role="alert" data-testid="standalone-error">{{ message }}</p> }
+          </div>
+        }
+        @case ('hub-outdated') {
+          <p class="text-ui text-warning" data-testid="phase-copy">
+            The Hub is older than this version of DUDE and cannot sync yet. Update the Hub in
+            <a class="text-accent underline" routerLink="/settings/environment">Environment &amp; Hub</a>; sync resumes afterwards.
+          </p>
+        }
+        @case ('error') {
+          <p class="text-ui text-error" role="alert" data-testid="phase-copy">Sync hit an error: {{ s.lastError ?? 'unknown error' }}</p>
+        }
+      }
+
+      @if (s.phase !== 'standalone') {
+        <dl class="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 text-ui">
+          <dt class="text-text-muted">Last sync</dt>
+          <dd class="text-text" data-testid="last-sync">{{ lastSync() }}</dd>
+          <dt class="text-text-muted">Waiting to send</dt>
+          <dd class="text-text" data-testid="pending-count">{{ s.pending }}</dd>
+        </dl>
+      }
+      @if (syncingAllowed()) {
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10 disabled:opacity-50" data-testid="sync-now" [disabled]="sync.busy() || s.phase === 'syncing'" (click)="sync.syncNow()">Sync now</button>
+          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated disabled:opacity-50" data-testid="pause" [disabled]="sync.busy()" (click)="sync.setPaused(s.phase !== 'paused')">{{ s.phase === 'paused' ? 'Resume' : 'Pause' }}</button>
+        </div>
+      }
+      @if (sync.error(); as message) { <p class="text-ui text-error" role="alert" data-testid="sync-error">{{ message }}</p> }
+    </div>
+
+    @if (wizardOpen() && s.phase === 'needs-first-sync') {
+      <app-first-sync-wizard (finished)="onWizardFinished()" (cancelled)="wizardOpen.set(false)" />
+    }
+
+    @if (s.held > 0 || s.stranded > 0) {
+      <div data-setting class="flex flex-col gap-1" data-testid="held-stranded">
+        @if (s.held > 0) {
+          <p class="text-ui text-text" data-testid="held-note">
+            <span class="font-semibold">{{ s.held }}</span> change{{ s.held === 1 ? ' is' : 's are' }} held on this device because {{ s.held === 1 ? 'its' : 'their' }} category is off or first sync is not finished. Nothing is lost; turning the category on sends {{ s.held === 1 ? 'it' : 'them' }}.
+          </p>
+        }
+        @if (s.stranded > 0) {
+          <p class="text-ui text-warning" data-testid="stranded-note">
+            <span class="font-semibold">{{ s.stranded }}</span> change{{ s.stranded === 1 ? '' : 's' }} never reached the Hub before this device was disconnected. {{ s.stranded === 1 ? 'It stays' : 'They stay' }} on this device and {{ s.stranded === 1 ? 'is' : 'are' }} not dropped until you continue standalone or pair again.
+          </p>
+        }
+      </div>
+    }
+
+    @if (layoutAvailable()) {
+      <div data-setting class="flex flex-col gap-1 rounded-sm border border-border p-3" data-testid="synced-layout">
+        <p class="text-ui text-text">Another device saved a workspace layout. It is not applied while you work.</p>
+        <div class="flex gap-2">
+          <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10" data-testid="load-layout" (click)="loadSyncedLayout()">Load synced workspace layout</button>
+          <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated" (click)="dismissLayout()">Dismiss</button>
+        </div>
+        @if (layoutError(); as message) { <p class="text-ui text-error" role="alert">{{ message }}</p> }
+      </div>
+    }
+
+    @if (s.phase !== 'standalone' && s.phase !== 'needs-first-sync') {
+      <div data-setting class="flex flex-col gap-2" data-testid="categories">
+        <h3 class="text-ui-sm font-semibold text-text">What syncs</h3>
+        @for (c of categories; track c.id) {
+          <div class="flex flex-col gap-0.5">
+            <label class="flex items-center gap-2 text-ui text-text">
+              <input type="checkbox" class="accent-accent" [attr.data-testid]="'toggle-' + c.id" [checked]="enabled(c.id)" [disabled]="sync.busy() || s.phase === 'revoked'" (change)="onToggle(c.id, $event)" />
+              {{ c.label }}
+              @if (c.sensitivity === 'sensitive') { <span class="rounded-sm border border-warning px-1 text-ui-sm text-warning">Sensitive</span> }
+            </label>
+            <p class="pl-6 text-ui-sm text-text-muted">{{ c.description }}</p>
+            @if (rationale(c.id); as why) { <p class="pl-6 text-ui-sm text-text-muted" [attr.data-testid]="'why-' + c.id">{{ why }}</p> }
+          </div>
+        }
+        <p class="text-ui-sm text-text-muted">Turning a category off keeps its data here and holds its changes locally; nothing is deleted.</p>
+      </div>
+
+      <div data-setting><app-conflict-inbox /></div>
+      <div data-setting><app-quarantine-list /></div>
+    }
+  } @else {
+    <p class="text-ui text-text-muted" role="status">Checking sync...</p>
+  }
+</div>
