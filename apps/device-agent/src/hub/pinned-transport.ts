@@ -1,7 +1,9 @@
 import { createHash, X509Certificate } from 'node:crypto';
 import https from 'node:https';
 import { isIP } from 'node:net';
-import type { PeerCertificate } from 'node:tls';
+import { connect as tlsConnect } from 'node:tls';
+import type { Duplex } from 'node:stream';
+import type { TLSSocket } from 'node:tls';
 import type { HubRequest, HubResponse, HubTransport } from '@dude/api-client';
 
 export const HUB_REQUEST_TIMEOUT_MS = 15_000;
@@ -19,45 +21,15 @@ export function spkiSha256Of(cert: Uint8Array | string): string {
 export interface PinnedTarget {
   host: string;
   port: number;
-  /** Trust anchors: the active certificate and, during rotation, the next one. */
-  ca: readonly string[];
+  /** Unused for verification (the SPKI pin is the only identity check); callers may still pass it. */
+  ca?: readonly string[];
   /** Accepted SPKI pins (base64url SHA-256). */
   pins: readonly string[];
-  /** Called with the SPKI of every certificate that passed the pin check (before the request is sent). */
+  /** Called with the SPKI of every certificate that passed the pin check (before any byte is written). */
   onPeerSpki?: (spki: string) => void;
 }
 
 export const unbracketHost = (host: string): string => (host.startsWith('[') && host.endsWith(']') ? host.slice(1, -1) : host);
-
-/**
- * TLS options shared by the HTTPS transport and the WebSocket: the chain must verify against `ca` and the presented
- * leaf's SPKI must be pinned. Hostname matching is deliberately ignored (the pin is the identity), so a Hub reached by IP
- * or a LAN name works. `rejectUnauthorized` stays true.
- */
-export function pinnedTlsOptions(target: PinnedTarget): {
-  ca: string[]; servername: string; rejectUnauthorized: true; checkServerIdentity: (host: string, cert: PeerCertificate) => Error | undefined;
-} {
-  const host = unbracketHost(target.host);
-  return {
-    ca: [...target.ca],
-    // SNI must be a DNS name; never an IP literal.
-    servername: isIP(host) === 0 ? host : '',
-    rejectUnauthorized: true,
-    checkServerIdentity: (_host, cert) => {
-      let spki: string;
-      try {
-        spki = spkiSha256Of(cert.raw);
-      } catch {
-        return Object.assign(new Error('The Hub certificate could not be read.'), { code: PIN_MISMATCH_CODE });
-      }
-      if (!target.pins.includes(spki)) {
-        return Object.assign(new Error('The Hub certificate does not match the pinned key.'), { code: PIN_MISMATCH_CODE });
-      }
-      target.onPeerSpki?.(spki);
-      return undefined;
-    },
-  };
-}
 
 export class HubTransportError extends Error {
   constructor(readonly code: string, message: string) {
@@ -66,9 +38,73 @@ export class HubTransportError extends Error {
   }
 }
 
+/**
+ * Opens a TLS socket whose ONLY identity check is the SPKI pin. Chain and hostname verification are off (the Hub's
+ * certificate is self-signed and some TLS stacks, e.g. BoringSSL in Electron-as-Node, refuse it as a trust anchor); the
+ * leaf's SPKI is compared against `target.pins` on `secureConnect`, and the socket is only handed to the caller after
+ * that passes, so no application byte can reach an unverified peer.
+ */
+export function connectPinned(target: PinnedTarget, timeoutMs = HUB_REQUEST_TIMEOUT_MS): Promise<TLSSocket> {
+  return new Promise<TLSSocket>((resolve, reject) => {
+    const host = unbracketHost(target.host);
+    let settled = false;
+    const finish = (socket: TLSSocket | null, error?: Error): void => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (error) { socket?.destroy(); reject(error); } else if (socket) { socket.setTimeout(0); resolve(socket); }
+    };
+    const socket = tlsConnect({
+      host, port: target.port,
+      // SNI must be a DNS name; never an IP literal.
+      servername: isIP(host) === 0 ? host : '',
+      rejectUnauthorized: false,
+      ALPNProtocols: ['http/1.1'],
+    });
+    const timer = setTimeout(() => finish(socket, new HubTransportError('timeout', 'The Hub did not answer in time.')), timeoutMs);
+    socket.once('error', (error) => finish(socket, error));
+    socket.once('secureConnect', () => {
+      let spki: string;
+      try {
+        spki = spkiSha256Of(socket.getPeerCertificate().raw);
+      } catch {
+        finish(socket, Object.assign(new Error('The Hub certificate could not be read.'), { code: PIN_MISMATCH_CODE }));
+        return;
+      }
+      if (!target.pins.includes(spki)) {
+        finish(socket, Object.assign(new Error('The Hub certificate does not match the pinned key.'), { code: PIN_MISMATCH_CODE }));
+        return;
+      }
+      try {
+        target.onPeerSpki?.(spki);
+      } catch (error) {
+        finish(socket, error instanceof Error ? error : new Error(String(error)));
+        return;
+      }
+      finish(socket);
+    });
+  });
+}
+
+/**
+ * Connection options shared by the HTTPS transport and the WebSocket client (`ws` forwards them to `https.request`).
+ * `createConnection` hands the request an already pin-verified socket (async callback form). Do NOT combine with
+ * `agent: false`: Node then ignores `createConnection`.
+ */
+export function pinnedConnectOptions(target: PinnedTarget, timeoutMs = HUB_REQUEST_TIMEOUT_MS): {
+  createConnection: (options: unknown, cb: (error: Error | null, socket: Duplex) => void) => undefined;
+} {
+  return {
+    createConnection: (_options, cb) => {
+      connectPinned(target, timeoutMs).then((socket) => cb(null, socket), (error: Error) => cb(error, undefined as never));
+      return undefined;
+    },
+  };
+}
+
 /** A `HubTransport` over node:https with certificate pinning, a 15 s timeout, a 1 MiB cap and JSON-only bodies. */
 export function createPinnedTransport(target: PinnedTarget, timeoutMs = HUB_REQUEST_TIMEOUT_MS): HubTransport {
-  const tls = pinnedTlsOptions(target);
+  const conn = pinnedConnectOptions(target, timeoutMs);
   const host = unbracketHost(target.host);
   return {
     request: (req: HubRequest): Promise<HubResponse> =>
@@ -77,7 +113,7 @@ export function createPinnedTransport(target: PinnedTarget, timeoutMs = HUB_REQU
         const headers: Record<string, string> = { accept: 'application/json', ...req.headers };
         if (payload) { headers['content-type'] = 'application/json'; headers['content-length'] = String(payload.length); }
         const request = https.request(
-          { host, port: target.port, method: req.method, path: req.path, headers, agent: false, ...tls },
+          { host, port: target.port, method: req.method, path: req.path, headers, ...conn },
           (res) => {
             const chunks: Buffer[] = [];
             let size = 0;

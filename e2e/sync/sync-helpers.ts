@@ -69,8 +69,6 @@ export async function launchDesktop(name: string): Promise<Desktop> {
   );
   const env = { ...process.env } as Record<string, string>;
   delete env['ELECTRON_RUN_AS_NODE'];
-  // Electron's BoringSSL cannot verify the Hub's self-signed pinned certificate; run each Agent on real Node (test-only override).
-  env['DUDE_E2E_AGENT_NODE'] = process.execPath;
   const app = await _electron.launch({ executablePath: electron, args: [bootstrap], cwd: root, env, timeout: 60_000 });
   const page = await app.firstWindow();
   page.setDefaultTimeout(30_000);

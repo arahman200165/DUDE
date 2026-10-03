@@ -36,11 +36,40 @@ describe('pinned transport', () => {
     await expect(get(server.port, [active.certPem, next.certPem], [active.spki])).rejects.toMatchObject({ code: PIN_MISMATCH_CODE });
   });
 
-  it('refuses a certificate the trust anchors do not verify, regardless of the pin', async () => {
+  it('treats the pin as the only identity: a pinned certificate outside any trust chain is accepted', async () => {
+    const a = makeCert('a');
+    const other = makeCert('other');
+    const server = track(await startHttps(a));
+    await expect(get(server.port, [other.certPem], [a.spki])).resolves.toMatchObject({ status: 200 });
+    await expect(createPinnedTransport({ host: '127.0.0.1', port: server.port, pins: [a.spki] }, 5_000).request({ method: 'GET', path: '/x' })).resolves.toMatchObject({ status: 200 });
+  });
+
+  it('calls onPeerSpki once on success and never on a mismatch', async () => {
     const a = makeCert('a');
     const b = makeCert('b');
-    const server = track(await startHttps(b));
-    await expect(get(server.port, [a.certPem], [b.spki])).rejects.toBeDefined();
+    const server = track(await startHttps(a));
+    const seen: string[] = [];
+    await createPinnedTransport({ host: '127.0.0.1', port: server.port, pins: [a.spki], onPeerSpki: (s) => seen.push(s) }, 5_000).request({ method: 'GET', path: '/x' });
+    expect(seen).toEqual([a.spki]);
+    const bad: string[] = [];
+    await expect(createPinnedTransport({ host: '127.0.0.1', port: server.port, pins: [b.spki], onPeerSpki: (s) => bad.push(s) }, 5_000).request({ method: 'GET', path: '/x' })).rejects.toMatchObject({ code: PIN_MISMATCH_CODE });
+    expect(bad).toEqual([]);
+  });
+
+  it('writes zero application bytes to a peer whose pin does not match', async () => {
+    const a = makeCert('a');
+    const b = makeCert('b');
+    const received: number[] = [];
+    const server = tls.createServer({ key: b.keyPem, cert: b.certPem }, (socket) => {
+      socket.on('data', (chunk) => received.push(chunk.length));
+      socket.on('error', () => undefined);
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    track({ close: () => new Promise<void>((resolve) => server.close(() => resolve())) });
+    const port = (server.address() as AddressInfo).port;
+    await expect(createPinnedTransport({ host: '127.0.0.1', port, pins: [a.spki] }, 5_000).request({ method: 'POST', path: '/secret', headers: { authorization: 'Bearer secret' }, body: { x: 1 } })).rejects.toMatchObject({ code: PIN_MISMATCH_CODE });
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    expect(received).toEqual([]);
   });
 
   it('refuses non-JSON and oversized responses', async () => {

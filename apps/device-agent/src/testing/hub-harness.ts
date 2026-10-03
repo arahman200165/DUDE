@@ -11,7 +11,7 @@ import { HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION } from '@dude/contracts/h
 import { uuidv7 } from '@dude/persistence';
 import { createHubRuntime } from '../hub/index.js';
 import type { HubRuntime, HubRuntimeDeps } from '../hub/index.js';
-import { createPinnedTransport, pinnedTlsOptions, spkiSha256Of } from '../hub/pinned-transport.js';
+import { createPinnedTransport, pinnedConnectOptions, spkiSha256Of } from '../hub/pinned-transport.js';
 import type { DpapiPort } from '../native/windows-sys-client.js';
 import { createRpcServer } from '../rpc/server.js';
 import type { RpcServer } from '../rpc/server.js';
@@ -128,10 +128,10 @@ export async function startHub(options: StartHubOptions = {}): Promise<HubHandle
   const cert = (): string => readFileSync(path.join(dir, 'config', 'tls', 'cert.pem'), 'utf8');
   const request: HubHandle['request'] = (method, requestPath, body, headers = {}) => {
     const pem = cert();
-    const tls = pinnedTlsOptions({ host: '127.0.0.1', port, ca: [pem], pins: [spkiSha256Of(pem)] });
+    const tls = pinnedConnectOptions({ host: '127.0.0.1', port, ca: [pem], pins: [spkiSha256Of(pem)] });
     return new Promise((resolve, reject) => {
       const payload = body === undefined ? undefined : Buffer.from(JSON.stringify(body));
-      const req = https.request({ host: '127.0.0.1', port, method, path: requestPath, agent: false, headers: { ...(payload ? { 'content-type': 'application/json' } : {}), ...headers }, ...tls }, (res) => {
+      const req = https.request({ host: '127.0.0.1', port, method, path: requestPath, headers: { ...(payload ? { 'content-type': 'application/json' } : {}), ...headers }, ...tls }, (res) => {
         const chunks: Buffer[] = [];
         res.on('data', (c: Buffer) => chunks.push(c));
         res.on('end', () => {

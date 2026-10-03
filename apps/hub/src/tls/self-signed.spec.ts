@@ -20,6 +20,8 @@ describe('self-signed certificate', () => {
     for (const expected of ['DNS:localhost', `DNS:${os.hostname()}`, 'IP Address:127.0.0.1', 'IP Address:0:0:0:0:0:0:0:1', 'DNS:hub.example.test']) expect(san).toContain(expected);
     expect(x509.subject).toContain('CN=DUDE Hub 0192f3c4');
     expect(x509.ca).toBe(false);
+    expect(x509.keyUsage).toEqual(['1.3.6.1.5.5.7.3.1']); // Node's `keyUsage` is the EKU: serverAuth
+    expect(x509.raw.includes(Buffer.from([0x55, 0x1d, 0x0f]))).toBe(false); // no keyUsage ext: BoringSSL rejects a self-issued anchor lacking keyCertSign
     expect(x509.verify(x509.publicKey)).toBe(true);
     expect(x509.checkIP('127.0.0.1')).toBe('127.0.0.1');
     expect(x509.checkHost('localhost')).toBe('localhost');

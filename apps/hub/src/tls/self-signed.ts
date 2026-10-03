@@ -11,7 +11,6 @@ const OID = {
   ecdsaWithSha256: '1.2.840.10045.4.3.2',
   ecPublicKey: '1.2.840.10045.2.1',
   basicConstraints: '2.5.29.19',
-  keyUsage: '2.5.29.15',
   extKeyUsage: '2.5.29.37',
   serverAuth: '1.3.6.1.5.5.7.3.1',
   subjectAltName: '2.5.29.17',
@@ -87,7 +86,8 @@ export function generateSelfSigned(options: SelfSignedOptions): { keyPem: string
 
   const extensions = sequence(
     extension(OID.basicConstraints, true, sequence()),
-    extension(OID.keyUsage, true, bitString(Buffer.from([0x80]), 7)),
+    // No keyUsage: with keyUsage present BoringSSL (Electron-as-Node) requires keyCertSign for a self-issued trust anchor,
+    // and keyCertSign on a cA:false leaf is invalid. Absent keyUsage places no restriction; EKU serverAuth still scopes it.
     extension(OID.extKeyUsage, false, sequence(oid(OID.serverAuth))),
     extension(OID.subjectAltName, false, sanList),
     extension(OID.subjectKeyIdentifier, false, octetString(ski)),

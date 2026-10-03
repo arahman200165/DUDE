@@ -18,7 +18,7 @@ import type { DpapiPort } from '../native/windows-sys-client.js';
 import { HubManagerError } from './errors.js';
 import { createOwnerSession } from './owner-session.js';
 import type { OwnerSession } from './owner-session.js';
-import { PIN_MISMATCH_CODE, createPinnedTransport, pinnedTlsOptions, spkiSha256Of } from './pinned-transport.js';
+import { PIN_MISMATCH_CODE, createPinnedTransport, pinnedConnectOptions, spkiSha256Of } from './pinned-transport.js';
 import type { PinnedTarget } from './pinned-transport.js';
 
 export interface HubTimings {
@@ -360,7 +360,7 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
     const wsUrl = `wss://${target.url.host}${HUB_REALTIME_PATH}`;
     let ws: WebSocket;
     try {
-      ws = new WebSocket(wsUrl, { ...pinnedTlsOptions(target), headers: { authorization: `Bearer ${value}` }, handshakeTimeout: 15_000, perMessageDeflate: false, maxPayload: 64 * 1024 });
+      ws = new WebSocket(wsUrl, { ...pinnedConnectOptions(target), headers: { authorization: `Bearer ${value}` }, handshakeTimeout: 15_000, perMessageDeflate: false, maxPayload: 64 * 1024 });
     } catch (error) {
       void onFailure(error, gen);
       return;
