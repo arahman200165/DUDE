@@ -51,6 +51,7 @@ describe('comparePairwise invariants', () => {
         ({ gapAB, gapBA }) => gapAB === -gapBA,
       );
     },
-    20000,
+    // ~5 s alone; 24 s was measured in the full suite on the Windows release runner.
+    60000,
   );
 });
