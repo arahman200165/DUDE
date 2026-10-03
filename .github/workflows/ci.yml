@@ -196,7 +196,7 @@ jobs:
         run: node scripts/check-hub-service.mjs --require
 
   deploy:
-    needs: build
+    needs: [build, docker-smoke, hub-e2e, hub-service]
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
     concurrency:

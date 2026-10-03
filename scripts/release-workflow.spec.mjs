@@ -131,6 +131,8 @@ function execute(script, scenario, overrides = {}, missing) {
 
 test('releases only from master pushes, after every other CI job passes', () => {
   assert.deepEqual(new Set(job.needs), new Set(Object.keys(workflow.jobs).filter(name => !['release', 'deploy'].includes(name))));
+  // Nothing ships, web or desktop, unless every check passes.
+  assert.deepEqual(new Set(workflow.jobs.deploy.needs), new Set(job.needs));
   assert.equal(job.if, "github.ref == 'refs/heads/master' && github.event_name == 'push'");
   assert.equal(job.permissions.contents, 'write');
   assert.equal(steps[0].with?.['fetch-depth'], 0);
