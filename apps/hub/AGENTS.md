@@ -33,8 +33,8 @@ The self-hosted **DUDE Hub** (Phase 31C, complete): the user's own authoritative
 1. Add TypeBox schemas to `@dude/contracts/hub` and register the route with them; declare its credential type and audit event (the audit event list is closed; add to it deliberately).
 2. Add the matching method to `@dude/api-client`; `api-client-parity.spec.ts` must pass.
 3. Mutating routes get Origin/Fetch-Metadata/CSRF handling by credential type; destructive or authority-changing routes use the ConfirmationStore and need a confirmation-boundary spec registered in the high-consequence gate.
-4. Never add a public record endpoint, import path or sync route before Phase 31D.
+4. Sync routes (Phase 31D) live in `src/server/routes/sync.ts`. They use device credentials (the owner session only for `summary` and the environment clear), enforce `SYNC_POLICIES` and the setting-key scope check on every operation, and never put payloads in audit events. The environment clear uses the ConfirmationStore and needs a confirmation-boundary spec. Still no other public record endpoint or import path.
 
-## Scope ceilings (through 31C)
+## Scope ceilings (through 31D)
 
-No synchronization, public record endpoints or Yjs (31D/31J), no authenticated shared-state Hub web or Hub web caching (31E), no trusted-CA/reverse-proxy/public mode (31E/31F), no backup (31G).
+No Yjs or collaborative editing (31J), no public record endpoints beyond the 31D sync routes, no authenticated shared-state Hub web or Hub web caching (31E), no trusted-CA/reverse-proxy/public mode (31E/31F), no backup (31G).

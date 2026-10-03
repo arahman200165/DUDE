@@ -25,6 +25,7 @@ Related: [DUDE System Architecture](SYSTEM_ARCHITECTURE.md) · [DUDE Security Ar
 - [Standby Hub — Later](#standby-hub--later)
 - [Persistence policy, scope and consent are separate dimensions](#persistence-policy-scope-and-consent-are-separate-dimensions)
 - [Sync Protocol Minimum Acceptance Contract](#sync-protocol-minimum-acceptance-contract)
+- [Phase 31D synchronization design](#phase-31d-synchronization-design)
 - [Migration from the delivered local stores](#migration-from-the-delivered-local-stores)
 - [Backup consistency, restore and authority transfer](#backup-consistency-restore-and-authority-transfer)
 
@@ -523,6 +524,69 @@ These requirements make the planning model implementable without committing to a
 8. Use Yjs only for approved collaborative editing surfaces, not as the generic database replication protocol. Collaborative content persistence, permissions and retention require separate opt-in and lifecycle rules.
 9. Revocation stops subsequent Hub operations. Revoked or expired credentials must never be treated as permission to create a new authority or bypass authentication. Retained offline data remains subject to local access policy.
 10. Device sync never executes a pipeline, script, request, shell command or mutation as a side effect of applying a definition. Restoring a workspace restores data/UI intent, not a privileged action.
+
+## Phase 31D synchronization design
+
+**Planned design (being implemented in Milestones 649–662).** Rationale is recorded in [PD-038 to PD-049](../history/DECISION_LOG.md#phase-31d-implementation-decisions). Numeric limits are provisional until measured in Milestone 661.
+
+### Categories and consent
+
+Consent is per category and applies only to an enrolled environment. A disabled category's operations are held locally.
+
+| Category | Entity types | Default |
+|---|---|---|
+| settings | `setting` (per key, `environment`-scoped keys only) | on |
+| favorites | `favorite` | on |
+| pipelines | `pipeline`, `user-script` | on |
+| projects | `project` | on |
+| workspaces | `workspace-template` | on |
+| home | `home-layout` | on |
+| usage | `usage` | off |
+| workspace-layout | `workspace-layout` | off |
+| scratchpad | `scratchpad` | off |
+
+### Conflict policy by entity
+
+| Entity type | Policy | Apply mode | Conflict behavior |
+|---|---|---|---|
+| `setting` | `lww` | live | Hub order wins; no inbox |
+| `favorite` | `lww` | live | Hub order wins; no inbox |
+| `pipeline`, `user-script` | `merge3` | live | Field merge; otherwise inbox |
+| `project` | `merge3` (`lastActivatedAt` takes the later ISO time) | live | Field merge; otherwise inbox |
+| `workspace-template` | `merge3` | live | Field merge; otherwise inbox |
+| `home-layout` | `merge3` | live | Field merge; otherwise inbox (no Keep both) |
+| `usage` | `per-device` (entity id is the device id) | live | None; summed on read |
+| `workspace-layout` | `lww` | next launch | Hub order wins |
+| `scratchpad` | `merge3` | live | Field merge; otherwise inbox (no Keep both) |
+
+### Outbox status machine
+
+An operation is journaled atomically with its change and carries one stored status: `unsent-standalone` (not enrolled), `pending` (enrolled, awaiting push), `quarantined` (rejected by the Hub with a reason; user retries, discards or exports) or `stranded` (device revoked). Enrolling turns `unsent-standalone` into `pending`; revocation turns `pending` into `stranded`; Continue standalone returns `stranded` to `unsent-standalone`. **Held** is derived, not stored: a `pending` operation whose category is disabled or whose first sync has not completed. Applied and duplicate acknowledgements delete the operation only if it is unchanged since it was sent.
+
+### Wire endpoints
+
+All under `/api/v1`; device credential unless noted. Contract: `@dude/contracts/hub` `sync.schema.ts`.
+
+- `POST /sync/push`: `{ ops }` to per-operation `applied`, `duplicate`, `conflict` (with the current record) or `rejected` (with a reason).
+- `GET /sync/changes?after&limit`: records changed after a revision, one entry per entity at its latest revision, tombstones included; `410 cursor-expired` below the floor.
+- `GET /sync/snapshot?afterType&afterId&limit`: paged live records and `asOfRevision`.
+- `PUT /sync/state`: the device reports cursor, counts and category consent; returns floor, head revision and retention days.
+- `GET /sync/summary` (owner): counts per category and per-device lag and counts.
+- `POST /sync/environment/clear/preview` and `POST /sync/environment/clear` (owner): the two-step Hub delete.
+- Realtime `changes-available { revision }`, sent only to device sockets.
+
+### Retention and rebase algorithm
+
+1. The Hub keeps `retentionDays` (default 90) of history. Compaction deletes change-feed rows at or below a new **floor**, drops tombstones and applied operations at or below it, and raises the floor.
+2. A device calling `changes` with `after` below the floor receives `cursor-expired`.
+3. The device pulls a snapshot. The first page fixes `asOfRevision`; the device then pulls changes from that revision.
+4. A local record that has a Hub revision but is absent from the snapshot was deleted on the Hub and is removed locally. A pending edit to it becomes an edit-delete conflict in the inbox, so the delete is not resurrected and the edit is not lost.
+5. A local record that was never synced (a create with no Hub revision) is kept and pushed.
+6. Pending operations survive the rebase; records present in the snapshot follow the normal apply rules.
+
+### Revoked devices
+
+Revocation stops every Hub call. The device freezes: operations become `stranded`, local data is kept and no credential is refreshed. The user may **Continue standalone** (the Hub link is dropped and stranded operations become `unsent-standalone`) or **re-pair** with a new key and run the first-sync preview again. A revoked key is never reinstated and the Hub never remote-wipes the device.
 
 ## Migration from the delivered local stores
 
