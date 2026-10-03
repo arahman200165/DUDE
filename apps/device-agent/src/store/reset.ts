@@ -3,10 +3,11 @@ import { uuidv7 } from '@dude/persistence';
 import type { ResetKind } from '@dude/contracts';
 import type { Db } from '@dude/sqlite-store';
 import { getMeta, setMeta, transaction } from '@dude/sqlite-store';
+import { resetSyncState } from './repos/sync-state.repo.js';
 
 /** Tables wiped by both reset kinds. Identity (meta) and migrations are never touched here. */
 export const DATA_TABLES = [
-  'kv', 'records', 'outbox', 'history_entries', 'network_runs', 'mutation_journal',
+  'kv', 'kv_sync', 'records', 'outbox', 'sync_conflicts', 'history_entries', 'network_runs', 'mutation_journal',
   'snapshot_headers', 'powershell_history', 'device_docs',
 ] as const;
 /** Additionally wiped by 'reset-device' (values go with their refs). */
@@ -66,6 +67,8 @@ export function applyReset(db: Db, kind: ResetKind, expectedDigest: string, deps
     const current = digestOf(kind, countRows(db, kind), getMeta(db, 'device_id') ?? '');
     if (current !== expectedDigest) return { ok: false as const, error: 'stale-preview' as const };
     for (const table of tablesFor(kind)) db.exec(`DELETE FROM ${table}`);
+    // The cursor and first-sync progress describe data that is now gone.
+    resetSyncState(db);
     if (kind === 'reset-device') {
       const newId = (): string => uuidv7(deps.randomBytes, () => deps.now().getTime());
       setMeta(db, 'device_id', newId());

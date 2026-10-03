@@ -66,7 +66,7 @@ describe('journaled kv settings', () => {
     const store = openReady(tempDir());
     const ctx = commitContext(store);
     commitKvBatch(store.db, [{ namespace: '__workspace__', key: 'reopenOnRestart', value: true, policy: 'local' }], undefined, undefined, ctx);
-    expect(listOutbox(store.db, 10)).toMatchObject([{ entityType: 'setting', entityId: '__workspace__:reopenOnRestart', opKind: 'upsert', payload: true }]);
+    expect(listOutbox(store.db, 10)).toMatchObject([{ entityType: 'setting', entityId: '__workspace__:reopenOnRestart', opKind: 'upsert', payload: { namespace: '__workspace__', key: 'reopenOnRestart', value: true } }]);
   });
 
   it('a non-journaled kv write produces no op', () => {
@@ -83,7 +83,7 @@ describe('journaled kv settings', () => {
     write({ theme: 'light' });
     const ops = listOutbox(store.db, 10);
     expect(ops).toHaveLength(1);
-    expect(ops[0]).toMatchObject({ entityId: 'settings:appearance', payload: { theme: 'light' } });
+    expect(ops[0]).toMatchObject({ entityId: 'settings:appearance', payload: { namespace: 'settings', key: 'appearance', value: { theme: 'light' } } });
   });
 
   it('create then remove of a never-sent setting leaves no op', () => {

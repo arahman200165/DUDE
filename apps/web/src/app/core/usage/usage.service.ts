@@ -1,8 +1,9 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { usageCodec } from '@dude/persistence';
 import { ENTITY_STORE } from '../persistence/entities/entity-store';
+import { BOOT_SNAPSHOT } from '../persistence/device-store/boot-snapshot';
 import { currentPlatformBridge } from '../platform/platform-bridge.adapter';
-import { EMPTY_USAGE_STORE, UsageLogEntry, recordUsage } from "@dude/domain/core/usage/usage.model";
+import { EMPTY_USAGE_STORE, UsageLogEntry, recordUsage, sumUsageStores } from "@dude/domain/core/usage/usage.model";
 import type { UsageStore } from "@dude/domain/core/usage/usage.model";
 import { ActivityPeriod, lifetimeToolCounts, selectActivityPeriod } from "@dude/tool-engine/core/usage/activity-summary";
 
@@ -25,9 +26,20 @@ export class UsageService {
     toItems: (blob) => [blob],
     fromItems: (items) => items[0] ?? EMPTY_USAGE_STORE,
   });
+  /**
+   * Usage is per device (Phase 31D): this device writes only its own record, whose id is the device id on desktop and
+   * 'default' on the web (no device store). Reads aggregate every device's record.
+   */
+  private readonly ownId: string = inject(BOOT_SNAPSHOT).boot?.device?.deviceId ?? 'default';
   /** Opens recorded since the last commit (desktop debounce); reads see it at once. */
   private readonly pending = signal<UsageStore | null>(null);
-  private readonly store = computed<UsageStore>(() => this.pending() ?? this.collection.items()[0] ?? EMPTY_USAGE_STORE);
+  private readonly own = (): UsageStore =>
+    this.pending() ?? this.collection.get(this.ownId) ?? (this.ownId === 'default' ? EMPTY_USAGE_STORE : { ...EMPTY_USAGE_STORE, deviceId: this.ownId });
+  private readonly store = computed<UsageStore>(() => {
+    const pending = this.pending();
+    const stores = this.collection.items().filter((s) => (s.deviceId ?? 'default') !== this.ownId);
+    return sumUsageStores([...stores, pending ?? this.collection.items().find((s) => (s.deviceId ?? 'default') === this.ownId) ?? EMPTY_USAGE_STORE]);
+  });
   private readonly debounced = currentPlatformBridge()?.store !== undefined;
   private timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -47,7 +59,7 @@ export class UsageService {
 
   /** `now` is injectable so day-boundary behavior is testable without fake timers. */
   recordOpen(toolId: string, now: Date = new Date()): void {
-    const next = recordUsage(this.store(), toolId, now.toISOString());
+    const next = recordUsage(this.own(), toolId, now.toISOString());
     if (!this.debounced) {
       void this.collection.upsert(next);
       return;

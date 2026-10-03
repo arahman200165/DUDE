@@ -11,6 +11,8 @@ export { resolveToolKeyScope } from './settings/scope-rules.js';
 export { resolveKvScope, createManifestScopeLookup } from './settings/kv-scope.js';
 export type { ManifestScopeLookup } from './settings/kv-scope.js';
 export { isSyncableSettingKey } from './settings/syncable-key.js';
+export { KV_ENTITY_BINDINGS, findKvEntityBinding, findKvBindingForEntity } from './settings/kv-entity-bindings.js';
+export type { KvEntityBinding } from './settings/kv-entity-bindings.js';
 export type { SyncableToolInfo } from './settings/syncable-key.js';
 export type { ToolSettingScopeOverride } from './settings/scope-rules.js';
 export * from './codecs/index.js';

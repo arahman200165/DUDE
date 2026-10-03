@@ -6,7 +6,7 @@ import type { Db } from '@dude/sqlite-store';
 import { transaction } from '@dude/sqlite-store';
 import { rowToOp } from './repos/outbox.repo.js';
 import type { OutboxRow } from './repos/outbox.repo.js';
-import { outboxCount } from './repos/outbox.repo.js';
+import { opStatusAtWrite, outboxCount } from './repos/outbox.repo.js';
 
 export interface CommitContext {
   deviceId: string;
@@ -94,7 +94,11 @@ export interface OutboxOpDraft {
   payload: unknown;
 }
 
-/** Writes (or coalesces into) the single outbox op for an entity; call inside the transaction that changed its row. */
+/**
+ * Writes (or coalesces into) the single outbox op for an entity; call inside the transaction that changed its row.
+ * The op's status follows the enrollment (pending / stranded / unsent-standalone), so a new edit on top of a
+ * quarantined op resets it to pending.
+ */
 export function recordOutboxOp(db: Db, ctx: CommitContext, draft: OutboxOpDraft): { localRevision: number; outboxOpId?: string } {
   const stamp = ctx.now().toISOString();
   const prevRow = db.prepare('SELECT * FROM outbox WHERE entity_type = ? AND entity_id = ?').get(draft.entityType, draft.entityId) as unknown as OutboxRow | undefined;
@@ -103,7 +107,7 @@ export function recordOutboxOp(db: Db, ctx: CommitContext, draft: OutboxOpDraft)
     environmentId: ctx.environmentId,
     deviceId: ctx.deviceId,
     ...draft,
-    status: 'unsent-standalone',
+    status: opStatusAtWrite(db),
     createdAt: stamp,
     updatedAt: stamp,
   };
@@ -118,7 +122,8 @@ export function recordOutboxOp(db: Db, ctx: CommitContext, draft: OutboxOpDraft)
      ON CONFLICT(entity_type, entity_id) DO UPDATE SET
        op_id = excluded.op_id, environment_id = excluded.environment_id, device_id = excluded.device_id, op_kind = excluded.op_kind,
        schema_version = excluded.schema_version, based_on_revision = excluded.based_on_revision, local_revision = excluded.local_revision,
-       payload_json = excluded.payload_json, status = excluded.status, created_at = excluded.created_at, updated_at = excluded.updated_at`,
+       payload_json = excluded.payload_json, status = excluded.status, created_at = excluded.created_at, updated_at = excluded.updated_at,
+       reason = NULL, attempts = 0, last_attempt_at = NULL`,
   ).run(
     merged.opId, merged.entityType, merged.entityId, merged.environmentId, merged.deviceId, merged.opKind, merged.schemaVersion,
     merged.basedOnRevision, merged.localRevision, merged.payload === null ? null : JSON.stringify(merged.payload), merged.status, merged.createdAt, merged.updatedAt,

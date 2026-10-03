@@ -177,6 +177,9 @@ const agentTables = {
   secret_refs: ['device', 'secret references (no values)'],
   secret_values: ['device', 'encrypted secret values; secret sensitivity, never exported'],
   hub_enrollment: ['device', 'device-private Hub enrollment: pins, ids and the DPAPI-wrapped Ed25519 device key; secret sensitivity, never exported or synced, cleared on clone detection and Reset this device'],
+  kv_sync: ['device', 'per-key Hub revision and last Hub value (merge base) for synced kv keys; sync bookkeeping, never synced itself'],
+  sync_state: ['device', 'single-row sync cursor, floor, pause flag, per-category enablement and first-sync progress; never synced'],
+  sync_conflicts: ['device', 'unresolved merge conflicts holding local and remote versions of synced entities until the user resolves them; never synced'],
 };
 // Hub tables (apps/hub/src/db/migrations): none classified yet; an unknown table throws like device-agent.
 const hubTables = {
@@ -189,6 +192,7 @@ const hubTables = {
   sessions: ['local-only', 'Hub-private session hashes, IPs and user agents'],
   devices: ['environment', 'canonical device registry'],
   device_keys: ['environment', 'canonical device public keys (no private material)'],
+  device_sync_state: ['environment', 'per-device sync cursor and last self-reported queue counts (no content), used for lag and health display'],
   device_tokens: ['local-only', 'Hub-private device token hashes'],
   challenges: ['local-only', 'Hub-private short-lived challenge nonces'],
   pairing_codes: ['local-only', 'Hub-private pairing code hashes'],

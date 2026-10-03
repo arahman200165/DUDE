@@ -4,6 +4,7 @@ import type { DeviceCapabilities, DevicePlatform, DeviceRecord } from '@dude/per
 import type { Db } from '@dude/sqlite-store';
 import { getMeta, setMeta, transaction } from '@dude/sqlite-store';
 import { clearEnrollment, getEnrollment } from './repos/hub-enrollment.repo.js';
+import { resetSyncState } from './repos/sync-state.repo.js';
 
 export interface AppInfo { appVersion: string; platform: DevicePlatform; os: string; arch: string }
 
@@ -45,10 +46,14 @@ export function ensureIdentity(db: Db, options: IdentityOptions): DeviceRecord {
           setMeta(db, 'cloned_from', oldId);
           setMeta(db, 'device_id', fresh);
           setMeta(db, 'machine_hash', hashMachine(salt, machineGuid));
-          db.prepare("UPDATE outbox SET device_id = ? WHERE status = 'unsent-standalone'").run(fresh);
+          // Unsent ops (standalone or pending for the old enrollment) belong to the new device; with the enrollment cleared they are standalone again.
+          db.prepare("UPDATE outbox SET device_id = ?, status = 'unsent-standalone' WHERE status IN ('unsent-standalone', 'pending')").run(fresh);
           db.exec('UPDATE secret_refs SET needs_reentry = 1');
           // The DPAPI-wrapped device key belongs to the other machine/user; the clone must re-pair.
           clearEnrollment(db);
+          // Hub revisions and bases belong to the old registration; the clone starts a fresh first sync.
+          db.exec('UPDATE records SET hub_revision = NULL, hub_payload_json = NULL; DELETE FROM kv_sync; UPDATE outbox SET based_on_revision = NULL');
+          resetSyncState(db);
         }
       } else if (machineGuid !== null && storedHash === undefined) {
         // A store first created without a MachineGuid adopts one without being treated as a clone.

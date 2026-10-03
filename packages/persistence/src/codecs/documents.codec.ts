@@ -33,7 +33,8 @@ export const usageCodec: EntityCodec<UsageStore> = {
   scope: 'environment',
   sensitivity: 'non-sensitive',
   journaled: true,
-  idOf: () => DOCUMENT_ID,
+  /** Per-device (Phase 31D): the record id is its owning device's id; web standalone has none and keeps 'default'. */
+  idOf: (store) => store.deviceId ?? DOCUMENT_ID,
   /** v1 documents upgrade to v2; a newer schema keeps its v1 fields (best-effort). */
   decode(raw) {
     if (!isRecord(raw) || !isRecord(raw['counts']) || !Array.isArray(raw['recentLog'])) return null;
@@ -50,13 +51,14 @@ export const usageCodec: EntityCodec<UsageStore> = {
       .filter((e): e is Record<string, unknown> => isRecord(e) && typeof e['toolId'] === 'string' && typeof e['at'] === 'string')
       .map((e) => ({ toolId: e['toolId'] as string, at: e['at'] as string }));
 
+    const owner = isNonEmptyString(raw['deviceId']) ? { deviceId: raw['deviceId'] } : {};
     if (version !== USAGE_STORE_SCHEMA_VERSION) {
-      return { schemaVersion: 2, counts, recentLog, dailyBuckets: [], trackingStartedOn: null };
+      return { schemaVersion: 2, counts, recentLog, dailyBuckets: [], trackingStartedOn: null, ...owner };
     }
     const dailyBuckets = sanitizeBuckets(raw['dailyBuckets']);
     const start = raw['trackingStartedOn'];
     const trackingStartedOn = typeof start === 'string' && parseLocalDay(start) !== null ? start : (dailyBuckets[0]?.date ?? null);
-    return { schemaVersion: 2, counts, recentLog, dailyBuckets, trackingStartedOn };
+    return { schemaVersion: 2, counts, recentLog, dailyBuckets, trackingStartedOn, ...owner };
   },
   encode: (store) => ({ ...store }),
 };

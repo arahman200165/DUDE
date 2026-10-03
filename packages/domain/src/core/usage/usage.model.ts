@@ -41,6 +41,8 @@ export interface UsageStore {
    * until then. Never backfilled from `recentLog`, so pre-migration days stay "not tracked".
    */
   readonly trackingStartedOn: string | null;
+  /** Owning device for a per-device usage record (Phase 31D); absent on web standalone, where the record id is 'default'. */
+  readonly deviceId?: string;
 }
 
 export const EMPTY_USAGE_STORE: UsageStore = {
@@ -106,4 +108,41 @@ export function sanitizeBuckets(raw: unknown): readonly DailyUsageBucket[] {
   }
   const sorted = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
   return sorted.slice(-MAX_DAILY_BUCKETS);
+}
+
+/**
+ * Aggregate view over every device's usage record (Phase 31D): counts add, `lastUsedAt` is the latest, the recent log
+ * is merged oldest-first and capped, buckets add per day (capped to the rolling window) and tracking starts at the
+ * earliest start. Pure; the result carries no `deviceId`.
+ */
+export function sumUsageStores(stores: readonly UsageStore[]): UsageStore {
+  if (stores.length === 0) return EMPTY_USAGE_STORE;
+  if (stores.length === 1) {
+    const { deviceId: _ignored, ...only } = stores[0];
+    return only;
+  }
+  const counts: Record<string, UsageCount> = {};
+  const log: UsageLogEntry[] = [];
+  const byDate = new Map<string, { opens: number; perTool: Record<string, number> }>();
+  let trackingStartedOn: string | null = null;
+  for (const store of stores) {
+    for (const [toolId, c] of Object.entries(store.counts)) {
+      const prev = counts[toolId];
+      counts[toolId] = { count: (prev?.count ?? 0) + c.count, lastUsedAt: prev && prev.lastUsedAt > c.lastUsedAt ? prev.lastUsedAt : c.lastUsedAt };
+    }
+    log.push(...store.recentLog);
+    for (const b of store.dailyBuckets) {
+      const day = byDate.get(b.date) ?? { opens: 0, perTool: {} };
+      day.opens += b.opens;
+      for (const [id, n] of Object.entries(b.perTool)) day.perTool[id] = (day.perTool[id] ?? 0) + n;
+      byDate.set(b.date, day);
+    }
+    if (store.trackingStartedOn !== null && (trackingStartedOn === null || store.trackingStartedOn < trackingStartedOn)) trackingStartedOn = store.trackingStartedOn;
+  }
+  log.sort((a, b) => a.at.localeCompare(b.at));
+  const dailyBuckets = [...byDate.entries()]
+    .map(([date, v]): DailyUsageBucket => ({ date, opens: v.opens, perTool: v.perTool }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-MAX_DAILY_BUCKETS);
+  return { schemaVersion: 2, counts, recentLog: log.slice(-MAX_RECENT_LOG), dailyBuckets, trackingStartedOn };
 }

@@ -4,6 +4,7 @@ import {
   MAX_DAILY_BUCKETS,
   MAX_RECENT_LOG,
   recordUsage,
+  sumUsageStores,
   UsageStore,
 } from "./usage.model.js";
 
@@ -78,3 +79,27 @@ describe('recordUsage daily buckets', () => {
   });
 });
 
+
+describe('sumUsageStores', () => {
+  it('is empty for no stores and drops deviceId for one', () => {
+    expect(sumUsageStores([])).toEqual(EMPTY_USAGE_STORE);
+    const one = recordUsage({ ...EMPTY_USAGE_STORE, deviceId: 'd1' }, 'a', at(2026, 1, 1));
+    expect(sumUsageStores([one]).deviceId).toBeUndefined();
+    expect(sumUsageStores([one]).counts['a'].count).toBe(1);
+  });
+
+  it('adds counts and buckets, keeps the latest lastUsedAt and the earliest tracking start', () => {
+    const a = recordUsage(recordUsage({ ...EMPTY_USAGE_STORE, deviceId: 'd1' }, 'x', at(2026, 1, 1)), 'y', at(2026, 1, 3));
+    const b = recordUsage(recordUsage({ ...EMPTY_USAGE_STORE, deviceId: 'd2' }, 'x', at(2026, 1, 2)), 'x', at(2026, 1, 3));
+    const sum = sumUsageStores([a, b]);
+    expect(sum.counts['x'].count).toBe(3);
+    expect(sum.counts['x'].lastUsedAt).toBe(at(2026, 1, 3));
+    expect(sum.counts['y'].count).toBe(1);
+    expect(sum.recentLog.map((e) => e.at)).toEqual([...sum.recentLog.map((e) => e.at)].sort());
+    expect(sum.recentLog).toHaveLength(4);
+    const day3 = sum.dailyBuckets.find((d) => d.opens === 2);
+    expect(day3?.perTool).toEqual({ y: 1, x: 1 });
+    expect(sum.trackingStartedOn).toBe(a.trackingStartedOn);
+    expect(sum.deviceId).toBeUndefined();
+  });
+});
