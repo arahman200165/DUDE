@@ -7,9 +7,10 @@ import { ENTITY_STORE, type LegacyBlob } from '../persistence/entities/entity-st
 import { PersistenceService } from '../persistence/persistence.service';
 import { RemoteEntityRegistry } from '../persistence/entities/remote-entity-registry';
 import { createWindowStorageBackend } from '../persistence/window-storage-backend';
-import { ATTACHED_MARKER_KEY, describeBrowser, dropOriginLocalSharedKeys, readOrMintInstallationId } from './hub-web-boot';
+import { resetLocalBackend } from '../persistence/local-backend-registry';
+import { ATTACHED_MARKER_KEY, bootHubWeb, decideBootFailure, describeBrowser, dropOriginLocalSharedKeys, readOrMintInstallationId, type HubWebBootConnection } from './hub-web-boot';
 import { HUB_WEB_BOOT, type HubWebBoot } from './hub-web.types';
-import { ALL_ON, makeRig } from './testing/fake-hub';
+import { ALL_ON, FakeHub, apiError, makeRig } from './testing/fake-hub';
 
 const local = createWindowStorageBackend('local');
 const clearLocal = (): void => local.keys('dude:v1:').forEach((k) => local.remove(k));
@@ -105,5 +106,84 @@ describe('ENTITY_STORE per host', () => {
     TestBed.tick();
     // Browser storage is the only place it lives.
     expect(local.get('dude:v1:__pipelines__:saved')).not.toBeNull();
+  });
+});
+
+describe('Hub web boot decision', () => {
+  afterEach(() => {
+    resetLocalBackend();
+    clearLocal();
+  });
+
+  const liveConnection = (): { hub: FakeHub; connection: HubWebBootConnection } => {
+    const hub = new FakeHub();
+    hub.webAttach = (async () => ({ deviceId: 'browser-1', access: ALL_ON, retentionDays: 30 })) as never;
+    return { hub, connection: { client: hub, checkSession: async () => undefined } };
+  };
+
+  it('classifies the failure: only an unreachable Hub (network, 5xx) is offline', () => {
+    expect(decideBootFailure(apiError(401, 'unauthorized'))).toBe('signed-out');
+    expect(decideBootFailure(apiError(403, 'forbidden'))).toBe('signed-out');
+    expect(decideBootFailure(apiError(503))).toBe('offline');
+    expect(decideBootFailure(new TypeError('Failed to fetch'))).toBe('offline');
+  });
+
+  it('attaches and installs the Hub backend when the session is fine', async () => {
+    const { connection } = liveConnection();
+    const result = await bootHubWeb({ connect: async () => connection });
+    expect(result.mode).toBe('live');
+    expect(result.boot?.deviceId).toBe('browser-1');
+    expect(result.connection.state()).toBe('live');
+    expect(result.kv).not.toBeNull();
+  });
+
+  it('takes the signed-out path on 401 and leaves the plain backend alone', async () => {
+    const { hub } = liveConnection();
+    const result = await bootHubWeb({ connect: async () => ({ client: hub, checkSession: async () => { throw apiError(401, 'unauthorized'); } }) });
+    expect(result.mode).toBe('signed-out');
+    expect(result.boot).toBeNull();
+    expect(result.kv).toBeNull();
+    expect(result.connection.state()).toBe('live');
+  });
+
+  it('installs the read-only offline boot on a network error: writes are refused and reverted, the probe waits for the Hub', async () => {
+    const { hub } = liveConnection();
+    let down = true;
+    const connect = async (): Promise<HubWebBootConnection> => {
+      if (down) throw new TypeError('Failed to fetch');
+      return { client: hub, checkSession: async () => undefined };
+    };
+    const result = await bootHubWeb({ connect });
+    expect(result.mode).toBe('offline');
+    expect(result.connection.state()).toBe('unreachable');
+    expect(result.boot?.records).toEqual([]);
+    expect(result.boot?.cursor).toBe(0);
+
+    // A shared edit is refused with the usual toast and nothing is kept.
+    expect(result.kv?.set('dude:v1:base64:mode', '"url"', { policy: 'local', scope: 'environment' })).toBe(false);
+    expect(result.feedback.toasts()[0]?.text).toBe('Hub unreachable — change not saved');
+    expect(result.kv?.get('dude:v1:base64:mode')).toBeNull();
+
+    // Hub collections are empty and read-only: the engine refuses the write so the collection rolls back.
+    const outcome = await result.boot!.engine.commit({ entityType: 'pipeline', entityId: 'p', schemaVersion: 1, payload: { name: 'P' } });
+    expect(outcome).toEqual({ ok: false, error: 'Hub unreachable — change not saved' });
+
+    await expect(result.probe!()).rejects.toBeInstanceOf(TypeError);
+    down = false;
+    await expect(result.probe!()).resolves.toBeUndefined();
+  });
+
+  it('counts any answer as the Hub being back, a 401 included', async () => {
+    const result = await bootHubWeb({ connect: async () => { throw apiError(502); } });
+    expect(result.mode).toBe('offline');
+    const { hub } = liveConnection();
+    const answering = await bootHubWeb({ connect: async () => ({ client: hub, checkSession: async () => { throw apiError(401, 'unauthorized'); } }) });
+    expect(answering.mode).toBe('signed-out');
+  });
+
+  it('treats a 5xx from the session check as offline too', async () => {
+    const { hub } = liveConnection();
+    const result = await bootHubWeb({ connect: async () => ({ client: hub, checkSession: async () => { throw apiError(502); } }) });
+    expect(result.mode).toBe('offline');
   });
 });

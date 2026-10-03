@@ -26,3 +26,5 @@ export { SECRET_PURPOSES, isSecretPurpose, isSecretRef, maskSecretHint } from '.
 export type { SecretRef, SecretRefRecord, SecretPurpose, SecretStatus } from './secrets/secret-ref.model.js';
 export { kvSyncEntityOf, kvSyncEntityOfStored } from './web/kv-sync-entity.js';
 export type { KvSyncEntity } from './web/kv-sync-entity.js';
+export { wipeHubWebOrigin } from './web/origin-wipe.js';
+export type { WipeHubWebOriginDeps, WipeIdb, WipeResult, WipeStorage } from './web/origin-wipe.js';

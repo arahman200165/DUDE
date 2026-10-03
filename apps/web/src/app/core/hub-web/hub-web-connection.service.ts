@@ -18,11 +18,20 @@ export class HubWebConnectionService {
   private readonly current = signal<HubWebConnectionState>('live');
   readonly state = this.current.asReadonly();
   readonly live = computed(() => this.current() === 'live');
+  private readonly listeners = new Set<(state: HubWebConnectionState) => void>();
+
+  /** Plain-callback change feed for non-Angular code (the browser sync adapter). Returns the unsubscribe. */
+  subscribe(listener: (state: HubWebConnectionState) => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
 
   set(state: HubWebConnectionState): void {
     // A locked state is only left by a full page load (sign-in) or a reload.
     const now = this.current();
     if ((now === 'session-expired' || now === 'incompatible') && state !== now) return;
-    if (now !== state) this.current.set(state);
+    if (now === state) return;
+    this.current.set(state);
+    for (const listener of this.listeners) listener(state);
   }
 }

@@ -36,6 +36,8 @@ export interface HubWebEngineDeps {
   readonly newId: () => string;
   /** Re-attaches the browser row after a `not-attached` answer; resolves when done. */
   readonly reattach?: () => Promise<void>;
+  /** Called after the Hub accepted a push request (feeds the Sync status "last push"). */
+  readonly onPushed?: () => void;
 }
 
 const MAX_CONFLICT_ROUNDS = 3;
@@ -129,6 +131,7 @@ export class HubWebEngine {
     try {
       const response = await this.deps.client.webPush(ops);
       this.deps.connection.set('live');
+      this.deps.onPushed?.();
       return { ok: true, results: response.results };
     } catch (error) {
       const { kind, message } = classifyHubError(error);

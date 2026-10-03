@@ -16,7 +16,7 @@ const DOT: Record<SyncIndicatorKind, string> = {
 };
 
 /**
- * Compact desktop-only sync status, mounted once by `ShellLayout` (shell exception #13). Renders nothing on web and
+ * Compact sync status (desktop and Hub-served web), mounted once by `ShellLayout` (shell exception #13). Renders nothing on the Pages build and
  * on a standalone device; once enrolled it shows one prioritized state and links to Settings > Sync. The label is
  * always text (the dot is decoration), and the only motion is a pulse that reduced-motion users do not get.
  */
@@ -42,6 +42,6 @@ const DOT: Record<SyncIndicatorKind, string> = {
 export class SyncIndicator {
   private readonly sync = inject(SyncStatusService);
 
-  protected readonly display = computed(() => (this.sync.available ? describeSync(this.sync.status()) : null));
+  protected readonly display = computed(() => (this.sync.available ? describeSync(this.sync.status(), { host: this.sync.web ? 'web' : 'desktop' }) : null));
   protected readonly dot = computed(() => DOT[this.display()?.kind ?? 'synced']);
 }

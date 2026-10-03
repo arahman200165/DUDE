@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { HUB_ADMIN } from '../../../../core/hub/hub-admin.token';
 import type { HubOwnerStatus } from '../../../../core/hub/hub-admin.port';
+import { HubWebSignOut } from '../../../../core/hub-web/hub-web-sign-out.service';
 import { PlatformService } from '../../../../core/platform/platform.service';
 import { OWNER_EXPIRED_CODES, hubErrorText } from './hub-format';
 import { HubAdminError } from '../../../../core/hub/hub-admin.port';
@@ -16,6 +17,7 @@ export class HubOwnerSession {
   private readonly hub = inject(HUB_ADMIN);
   private readonly platform = inject(PlatformService);
   private readonly router = inject(Router);
+  private readonly webSignOut = inject(HubWebSignOut);
 
   readonly owner = signal<HubOwnerStatus | null>(null);
   readonly checked = signal(false);
@@ -53,16 +55,21 @@ export class HubOwnerSession {
 
   async signOut(): Promise<void> {
     this.busy.set(true);
+    let signedOut = false;
     try {
       if (this.platform.hostKind === 'hub-web') await this.hub.signOut();
       else await this.hub.ownerSignOut();
+      signedOut = true;
     } catch (error) {
       this.error.set(hubErrorText(error, 'Sign-out failed.'));
     } finally {
       this.owner.set({ signedIn: false, ownerDisplayName: null, expiresAt: null });
       this.busy.set(false);
     }
-    if (this.platform.hostKind === 'hub-web') await this.router.navigateByUrl('/hub/sign-in');
+    if (this.platform.hostKind !== 'hub-web') return;
+    // Only an accepted sign-out wipes this origin (PD-053); a failed one just returns to the sign-in page.
+    if (signedOut) await this.webSignOut.completeSignOut();
+    else await this.router.navigateByUrl('/hub/sign-in');
   }
 
   /** For code that signed the owner out itself (e.g. the Security section's "Sign out"): drop every gate back to the form. */

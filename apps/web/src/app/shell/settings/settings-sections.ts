@@ -139,7 +139,7 @@ export const CORE_SETTINGS_SECTIONS: readonly CoreSettingsSection[] = [
     id: 'sync',
     title: 'Sync',
     keywords: ['sync', 'synchronization', 'hub', 'first sync', 'conflicts', 'conflict inbox', 'keep hub', 'keep mine', 'quarantine', 'rejected changes', 'pause', 'sync now', 'categories', 'standalone', 'revoked', 'workspace layout', 'scratchpad', 'usage'],
-    hosts: ['desktop'],
+    hosts: ['desktop', 'hub-web'],
     load: () => import('./sections/sync-settings').then((m) => m.SyncSettings),
   },
   {

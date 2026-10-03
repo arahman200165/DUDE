@@ -17,7 +17,7 @@ export { stripNonSyncable } from './strip-non-syncable.js';
 export { diffJson, hasDifferences, stableJson } from './json-diff.js';
 export type { DiffKind, DiffRow } from './json-diff.js';
 export { describeSync } from './sync-display.js';
-export type { SyncDisplay, SyncIndicatorKind } from './sync-display.js';
+export type { DescribeSyncOptions, SyncDisplay, SyncIndicatorKind } from './sync-display.js';
 
 // Browser (Hub web) helpers: record book, op building, conflict resolution (Phase 31E).
 export { RecordBook, recordKey } from './web/records.js';

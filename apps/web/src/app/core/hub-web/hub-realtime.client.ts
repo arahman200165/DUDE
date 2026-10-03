@@ -31,6 +31,10 @@ export interface HubRealtimeDeps {
   readonly reload: () => void;
   readonly isVisible?: () => boolean;
   readonly now?: () => number;
+  /** A pull of the change feed started (true) or ended (false); feeds the Sync status "syncing" state. */
+  readonly onPulling?: (pulling: boolean) => void;
+  /** A pull completed: the browser's cursor and the Hub head it saw (feeds the Sync status). */
+  readonly onProgress?: (progress: { cursor: number; head: number | null }) => void;
 }
 
 export const BACKOFF_MIN_MS = 1000;
@@ -250,6 +254,7 @@ export class HubRealtimeClient {
       return;
     }
     this.pulling = true;
+    this.deps.onPulling?.(true);
     try {
       do {
         this.pullAgain = false;
@@ -257,6 +262,7 @@ export class HubRealtimeClient {
       } while (this.pullAgain && !this.stopped);
     } finally {
       this.pulling = false;
+      this.deps.onPulling?.(false);
     }
   }
 
@@ -280,6 +286,7 @@ export class HubRealtimeClient {
       }
       this.deliver(response.changes);
       this.cursor = Math.max(this.cursor, response.cursor);
+      this.deps.onProgress?.({ cursor: this.cursor, head: response.headRevision ?? null });
       if (!response.hasMore) break;
     }
     this.reportState();

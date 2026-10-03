@@ -1,8 +1,8 @@
 import { Component, DestroyRef, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
 import type { AuditListEvent, ConfirmPreview, SessionInfo } from '@dude/contracts/hub';
 import { HubAdminError } from '../../../core/hub/hub-admin.port';
 import { HUB_ADMIN } from '../../../core/hub/hub-admin.token';
+import { HubWebSignOut } from '../../../core/hub-web/hub-web-sign-out.service';
 import { PlatformService } from '../../../core/platform/platform.service';
 import { MIN_PASSWORD_LENGTH, RetryCountdown, describeHubError } from '../../hub/hub-utils';
 import { RecoveryCodesDisplay } from '../../hub/recovery-codes-display';
@@ -102,7 +102,7 @@ type CodesState =
 export class SecuritySettings {
   private readonly admin = inject(HUB_ADMIN);
   private readonly platform = inject(PlatformService);
-  private readonly router = inject(Router);
+  private readonly webSignOut = inject(HubWebSignOut);
   private readonly ownerSession = inject(HubOwnerSession);
 
   protected readonly sessions = signal<readonly SessionInfo[]>([]);
@@ -174,7 +174,7 @@ export class SecuritySettings {
       if (session.current) {
         await this.admin.ownerSignOut();
         if (this.platform.hostKind === 'hub-web') {
-          await this.router.navigateByUrl('/hub/sign-in');
+          await this.webSignOut.completeSignOut();
           return;
         }
         this.ownerSession.markSignedOut();

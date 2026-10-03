@@ -60,4 +60,33 @@ describe('SyncIndicator', () => {
     fixture.detectChanges();
     expect(link(el)?.getAttribute('data-state')).toBe('offline');
   });
+
+  describe('on Hub-served web', () => {
+    async function mountWeb(initial: AgentSyncStatus) {
+      const fake = createFakeSyncPort({ host: 'web' } as never, initial);
+      TestBed.configureTestingModule({ providers: [provideRouter([]), { provide: SYNC_PORT, useValue: fake.port }] });
+      const fixture = TestBed.createComponent(SyncIndicator);
+      fixture.detectChanges();
+      await tick();
+      fixture.detectChanges();
+      return { fixture, el: fixture.nativeElement as HTMLElement, fake };
+    }
+
+    it.each([
+      ['live', syncStatus(), 'Live', 'synced'],
+      ['Hub unreachable', syncStatus({ phase: 'offline' }), 'Hub unreachable', 'offline'],
+      ['session expired', syncStatus({ phase: 'revoked' }), 'Session expired', 'revoked'],
+      ['incompatible', syncStatus({ phase: 'hub-outdated' }), 'Reload needed', 'attention'],
+    ] as const)('shows %s', async (_name, status, label, state) => {
+      const { el } = await mountWeb(status);
+      const a = link(el);
+      expect(a?.textContent?.trim()).toBe(label);
+      expect(a?.getAttribute('data-state')).toBe(state);
+    });
+
+    it('explains that changes are paused while the Hub is unreachable', async () => {
+      const { el } = await mountWeb(syncStatus({ phase: 'offline' }));
+      expect(link(el)?.getAttribute('title')).toContain('changes paused');
+    });
+  });
 });

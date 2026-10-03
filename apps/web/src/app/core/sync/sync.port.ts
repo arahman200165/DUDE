@@ -6,6 +6,9 @@ import type {
 import type { ConfirmPreview } from '@dude/contracts/hub';
 import type { DesktopHubResult, DesktopSyncBridge } from '@dude/contracts/shared/models/platform-bridge.model';
 import type { SyncCategory } from '@dude/sync';
+import { createHubWebSyncAdapter } from '../hub-web/hub-web-sync.adapter';
+import { HubWebSyncInfo } from '../hub-web/hub-web-sync-info';
+import { HUB_WEB_BOOT } from '../hub-web/hub-web.types';
 import { PLATFORM_BRIDGE } from '../platform/platform-bridge.adapter';
 import { PlatformService } from '../platform/platform.service';
 
@@ -25,6 +28,8 @@ export type ConflictResolution = { readonly ok: true; readonly changes: readonly
 
 /** Sync as the Settings section and shell indicator see it. Methods reject with `SyncError`. */
 export interface SyncPort {
+  /** Which host's wording and controls apply; absent means desktop. The browser has no pause, inbox, quarantine or first sync. */
+  readonly host?: 'desktop' | 'web';
   status(): Promise<AgentSyncStatus>;
   setCategories(categories: SyncCategoryFlags): Promise<AgentSyncStatus>;
   setPaused(paused: boolean): Promise<AgentSyncStatus>;
@@ -82,12 +87,16 @@ export function createDesktopSyncAdapter(bridge: () => DesktopSyncBridge | undef
   };
 }
 
-/** Sync for the current host: the Device Agent through the desktop bridge, or null (web build, or a desktop without the sync bridge). */
+/** Sync for the current host: the Device Agent through the desktop bridge, the Hub-served browser's adapter, or null (Pages build, or a desktop without the sync bridge). */
 export const SYNC_PORT = new InjectionToken<SyncPort | null>('DUDE sync', {
   providedIn: 'root',
   factory: () => {
     const platform = inject(PlatformService);
     const bridge = inject(PLATFORM_BRIDGE);
+    const hub = inject(HUB_WEB_BOOT);
+    if (hub !== null && !platform.isDesktop()) {
+      return createHubWebSyncAdapter({ client: hub.engine.client, connection: hub.engine.connection, info: inject(HubWebSyncInfo), access: hub.access });
+    }
     if (!platform.isDesktop() || bridge.get()?.sync === undefined) return null;
     return createDesktopSyncAdapter(() => bridge.get()?.sync);
   },

@@ -158,6 +158,7 @@ describe('HubRealtimeClient', () => {
   });
 
   it('goes to sign-in without wiping when the session is revoked, recovered or answers 401', async () => {
+    localStorage.setItem('dude:v1:keep-me', '1');
     make();
     let socket = await connect();
     socket.event('session-revoked');
@@ -183,6 +184,26 @@ describe('HubRealtimeClient', () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(rig.connection.state()).toBe('session-expired');
     expect(signIn).toHaveBeenCalledTimes(1);
+    // Session expiry only navigates (PD-053): the origin's data stays for the next sign-in.
+    expect(localStorage.getItem('dude:v1:keep-me')).toBe('1');
+    localStorage.removeItem('dude:v1:keep-me');
+  });
+
+  it('reports pulls and progress for the Sync status', async () => {
+    const pulling: boolean[] = [];
+    const progress: { cursor: number; head: number | null }[] = [];
+    client = new HubRealtimeClient({
+      engine: rig.engine, access: ALL_ON, cursor: 0, apply: () => undefined,
+      snapshot: async () => ({ records: [], cursor: 0 }),
+      openSocket: () => { const s = new FakeSocket(); sockets.push(s); return s; },
+      socketUrl: () => 'wss://hub.test/api/v1/realtime',
+      goToSignIn: signIn, reload, isVisible: () => visible,
+      onPulling: (p) => pulling.push(p), onProgress: (p) => progress.push(p),
+    });
+    rig.hub.external('pipeline', 'p1', { name: 'P' });
+    await connect();
+    expect(pulling).toEqual([true, false]);
+    expect(progress.at(-1)).toEqual({ cursor: 1, head: 1 });
   });
 
   it('treats close codes 4001 and 4003 as an expired session and 4008 as incompatible', async () => {

@@ -5,10 +5,10 @@ import { RemoteChangesService } from './remote-changes.service';
 import { SYNC_PORT, SyncError, type ConflictResolution, type SyncPort } from './sync.port';
 
 /**
- * Renderer-side sync state (desktop only). Holds the Agent's latest `AgentSyncStatus`, the conflict inbox and the
+ * Renderer-side sync state (desktop, and the Hub-served browser through its own port). Holds the Agent's latest `AgentSyncStatus`, the conflict inbox and the
  * quarantine list. Constructing it (the app initializer does, at bootstrap) subscribes the bridge's `onApplied` to
- * `RemoteChangesService.apply`, so remote changes reach open signals even when Settings is never opened. On web the
- * port is null: every signal stays empty and nothing is subscribed.
+ * `RemoteChangesService.apply`, so remote changes reach open signals even when Settings is never opened. On the Pages
+ * build the port is null: every signal stays empty and nothing is subscribed.
  */
 @Injectable({ providedIn: 'root' })
 export class SyncStatusService {
@@ -22,6 +22,8 @@ export class SyncStatusService {
   private readonly errorState = signal<string | null>(null);
 
   readonly available = this.port !== null;
+  /** The Hub-served browser's sync: no pause, inbox, quarantine or first sync, and browser wording. */
+  readonly web = this.port?.host === 'web';
   readonly status = this.statusState.asReadonly();
   readonly conflicts = this.conflictsState.asReadonly();
   readonly quarantined = this.quarantinedState.asReadonly();

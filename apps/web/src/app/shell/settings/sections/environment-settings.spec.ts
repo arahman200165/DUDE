@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
+import { HubWebSignOut } from '../../../core/hub-web/hub-web-sign-out.service';
 import { HubAdminError } from '../../../core/hub/hub-admin.port';
 import { FAKE_HUB_DEVICE_ID, FAKE_HUB_PAIRING_STRING, FAKE_SYNC_SUMMARY } from '../../../core/platform/testing/fake-hub';
 import { EnvironmentSettings } from './environment-settings';
@@ -184,14 +185,29 @@ describe('EnvironmentSettings (Hub web)', () => {
     expect(text(el, 'hub-version')).toBe('1.4.0');
   });
 
-  it('signs out through the port and returns to the sign-in page', async () => {
+  it('signs out through the port, then wipes the origin and returns to the sign-in page', async () => {
     const { port } = hubWebPort();
+    const completeSignOut = vi.spyOn(HubWebSignOut.prototype, 'completeSignOut').mockResolvedValue();
     const { fixture, el } = await mount(port, 'hub-web');
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
     buttonWithText(el, 'Sign out').click();
     await settle(fixture);
     expect(port.signOut).toHaveBeenCalledOnce();
     expect(port.ownerSignOut).not.toHaveBeenCalled();
+    expect(completeSignOut).toHaveBeenCalledOnce();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('a failed sign-out only returns to sign-in and never wipes', async () => {
+    const { port } = hubWebPort();
+    port.signOut.mockRejectedValueOnce(new HubAdminError('network', 'down'));
+    const completeSignOut = vi.spyOn(HubWebSignOut.prototype, 'completeSignOut').mockResolvedValue();
+    completeSignOut.mockClear();
+    const { fixture, el } = await mount(port, 'hub-web');
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+    buttonWithText(el, 'Sign out').click();
+    await settle(fixture);
+    expect(completeSignOut).not.toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith('/hub/sign-in');
   });
 });

@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { HubAdminError } from '../../../core/hub/hub-admin.port';
 import { HUB_ADMIN } from '../../../core/hub/hub-admin.token';
+import { HubWebSignOut } from '../../../core/hub-web/hub-web-sign-out.service';
 import { PlatformService } from '../../../core/platform/platform.service';
 import { fakeHubAdmin, session, settle, typeInto } from '../../hub/fake-hub-admin.spec-helper';
 import { SecuritySettings, auditDetailText, auditEventLabel, shortUserAgent } from './security-settings';
@@ -9,14 +10,15 @@ import { SecuritySettings, auditDetailText, auditEventLabel, shortUserAgent } fr
 async function setup(hostKind: 'desktop' | 'hub-web' = 'hub-web', prepare?: (admin: ReturnType<typeof fakeHubAdmin>) => void) {
   const admin = fakeHubAdmin();
   prepare?.(admin);
+  const completeSignOut = vi.fn(async () => undefined);
   TestBed.configureTestingModule({
-    providers: [provideRouter([]), { provide: HUB_ADMIN, useValue: admin }, { provide: PlatformService, useValue: { hostKind } }],
+    providers: [provideRouter([]), { provide: HUB_ADMIN, useValue: admin }, { provide: PlatformService, useValue: { hostKind } }, { provide: HubWebSignOut, useValue: { completeSignOut } }],
   });
   const navigateByUrl = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
   const fixture = TestBed.createComponent(SecuritySettings);
   const el = fixture.nativeElement as HTMLElement;
   await settle(fixture);
-  return { fixture, el, admin, navigateByUrl };
+  return { fixture, el, admin, navigateByUrl, completeSignOut };
 }
 
 const byId = (el: HTMLElement, id: string): HTMLElement | null => el.querySelector(`[data-testid="${id}"]`);
@@ -52,13 +54,13 @@ describe('SecuritySettings', () => {
     expect(admin.revokeSession).toHaveBeenCalledWith('bbbbbbbbbbbbbbbb');
   });
 
-  it('signing out of the current session on the Hub web build goes to sign-in', async () => {
-    const { fixture, el, admin, navigateByUrl } = await setup();
+  it('signing out of the current session on the Hub web build wipes the origin and goes to sign-in', async () => {
+    const { fixture, el, admin, completeSignOut } = await setup();
     (el.querySelectorAll('[data-testid="session-row"]')[0].querySelector('button') as HTMLButtonElement).click();
     await settle(fixture);
     expect(admin.ownerSignOut).toHaveBeenCalled();
     expect(admin.revokeSession).not.toHaveBeenCalled();
-    expect(navigateByUrl).toHaveBeenCalledWith('/hub/sign-in');
+    expect(completeSignOut).toHaveBeenCalled();
   });
 
   it('shows remaining recovery codes from the owner session', async () => {

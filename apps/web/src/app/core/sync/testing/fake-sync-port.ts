@@ -73,6 +73,6 @@ export function createFakeSyncPort(overrides: Partial<SyncPort> = {}, initial: A
     onApplied: (cb) => { appliedListener = cb; return () => { appliedListener = undefined; }; },
   };
   const merged: Record<string, unknown> = { ...base, ...overrides };
-  const port = Object.fromEntries(Object.entries(merged).map(([k, fn]) => [k, vi.fn(fn as (...args: unknown[]) => unknown)])) as unknown as FakeSyncPort['port'];
+  const port = Object.fromEntries(Object.entries(merged).map(([k, fn]) => [k, typeof fn === 'function' ? vi.fn(fn as (...args: unknown[]) => unknown) : fn])) as unknown as FakeSyncPort['port'];
   return { port, emitStatus: (s) => statusListener?.(s), emitApplied: (c) => appliedListener?.(c) };
 }

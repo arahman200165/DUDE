@@ -9,6 +9,7 @@ import { SyncStatusService } from '../../../core/sync/sync-status.service';
 import { WorkspaceLayoutService } from '../../../core/workspace/workspace-layout.service';
 import { ConflictInbox } from './sync/conflict-inbox';
 import { FirstSyncWizard } from './sync/first-sync-wizard';
+import { HubWebSync } from './sync/hub-web-sync';
 import { QuarantineList } from './sync/quarantine-list';
 
 const DEFAULT_OFF_RATIONALE: Partial<Record<SyncCategory, string>> = {
@@ -18,12 +19,12 @@ const DEFAULT_OFF_RATIONALE: Partial<Record<SyncCategory, string>> = {
 };
 
 /**
- * Settings > Sync (desktop only). State and actions come from `SyncStatusService`/`SYNC_PORT`; every destructive step
+ * Settings > Sync. Desktop renders the full section; the Hub-served web renders `HubWebSync` (its own state, Web access, device table). State and actions come from `SyncStatusService`/`SYNC_PORT`; every destructive step
  * (Use Hub on first sync, Continue standalone, Discard) is a preview followed by an explicit confirmation.
  */
 @Component({
   selector: 'app-sync-settings',
-  imports: [RouterLink, FirstSyncWizard, ConflictInbox, QuarantineList],
+  imports: [RouterLink, FirstSyncWizard, ConflictInbox, QuarantineList, HubWebSync],
   templateUrl: './sync-settings.html',
 })
 export class SyncSettings {

@@ -1,3 +1,6 @@
+@if (sync.web) {
+  <app-hub-web-sync />
+} @else {
 <div class="flex flex-col gap-4">
   <p class="text-ui text-text-muted">
     Keep this device in step with the others on your Hub. Changes are saved here first and sent when the Hub is reachable. Opening this page never changes anything.
@@ -138,3 +141,4 @@
     <p class="text-ui text-text-muted" role="status">Checking sync...</p>
   }
 </div>
+}

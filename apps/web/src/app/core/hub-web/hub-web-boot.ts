@@ -9,6 +9,7 @@ import { createWindowStorageBackend } from '../persistence/window-storage-backen
 import { installLocalBackend } from '../persistence/local-backend-registry';
 import { createHubKvBackend, type HubKvBackend } from './hub-kv-backend';
 import { HubWebConnectionService } from './hub-web-connection.service';
+import { HubWebSyncInfo } from './hub-web-sync-info';
 import { HubWebEngine } from './hub-web-engine';
 import { HubWebFeedback } from './hub-web-feedback';
 import { classifyHubError, type HubWebAccess, type HubWebBoot, type HubWebClient } from './hub-web.types';
@@ -18,12 +19,63 @@ const NAMESPACE_PREFIX = 'dude:v1:';
 export const ATTACHED_MARKER_KEY = 'dude:v1:__device__:hub-web-attached';
 const SNAPSHOT_PAGE = 1000;
 
+/** `live`: attached to the Hub. `signed-out`: no owner session (the guard sends the visitor to sign-in). `offline`: the Hub could not be reached (read-only, retrying). */
+export type HubWebBootMode = 'live' | 'signed-out' | 'offline';
+
 export interface HubWebBootResult {
+  readonly mode: HubWebBootMode;
   readonly boot: HubWebBoot | null;
   readonly connection: HubWebConnectionService;
   readonly feedback: HubWebFeedback;
+  readonly sync: HubWebSyncInfo;
   readonly kv: HubKvBackend | null;
+  /** Offline mode only: resolves once the Hub answers at all (an answer of any kind, even 401), rejects while it cannot be reached. */
+  readonly probe?: () => Promise<void>;
 }
+
+/** What boot needs from the Hub client: the owner-session check (which also learns the CSRF token) and the browser routes. */
+export interface HubWebBootConnection {
+  readonly client: HubWebClient;
+  checkSession(): Promise<void>;
+}
+
+export interface HubWebBootDeps {
+  /** Loads the Hub client. Rejects when the client chunk cannot be fetched (treated like an unreachable Hub). */
+  readonly connect: () => Promise<HubWebBootConnection>;
+}
+
+async function connectToHub(): Promise<HubWebBootConnection> {
+  const module = await loadHubClient();
+  let csrf: string | undefined;
+  const transport = createFetchHubTransport({ csrfToken: () => csrf });
+  const client = module.createHubClient(transport, { clientProtocol: 1, minHubProtocol: 1 });
+  return {
+    client,
+    checkSession: async () => {
+      csrf = (await client.currentSession()).csrfToken;
+    },
+  };
+}
+
+export type HubBootDecision = 'signed-out' | 'offline';
+
+/**
+ * What a failed boot means. Only an unreachable Hub (network error, 5xx, a client chunk that would not load) installs the
+ * offline boot; a 401 (or anything the Hub answered) is the ordinary signed-out path that the session guard handles.
+ */
+export function decideBootFailure(error: unknown): HubBootDecision {
+  return classifyHubError(error).kind === 'unreachable' ? 'offline' : 'signed-out';
+}
+
+/** Every call fails like a down Hub; stands in for the client when its chunk could not be loaded. */
+function unreachableClient(): HubWebClient {
+  const fail = (): Promise<never> => Promise.reject(Object.assign(new Error('The Hub could not be reached.'), { name: 'HubApiError', status: 503, code: 'unreachable' }));
+  return new Proxy({}, { get: () => fail }) as HubWebClient;
+}
+
+const assumedAccess = (): HubWebAccess => ({
+  settings: true, favorites: true, pipelines: true, projects: true, workspaces: true, home: true, usage: true, 'workspace-layout': true, scratchpad: true,
+});
 
 /** "Browser · Chrome on Windows" from `navigator.userAgentData` or the user-agent string. */
 export function describeBrowser(nav: Pick<Navigator, 'userAgent'> & { userAgentData?: { brands?: { brand: string }[]; platform?: string } } = navigator): string {
@@ -92,21 +144,50 @@ export async function pageSnapshot(client: HubWebClient): Promise<{ records: Syn
 }
 
 /**
- * Hub-served web, before bootstrap: confirm the owner session, attach this browser, read the snapshot and install the
- * Hub kv backend as `local`. Any failure leaves the plain window backend in place (the session guard then sends the
- * visitor to sign-in or setup, and the sign-in page reloads the app so this runs again signed in).
+ * Hub unreachable at boot: shared state is read-only and empty, every shared write is refused with the same toast and
+ * revert as a Hub that drops while the page is open, and the page reloads itself once the Hub answers (the runtime runs
+ * the retry loop). Tools that are already loaded keep working. Access is assumed on for every category, so a shared
+ * edit is refused rather than quietly stored in this browser.
  */
-export async function bootHubWeb(): Promise<HubWebBootResult> {
+function offlineBoot(base: Pick<HubWebBootResult, 'connection' | 'feedback' | 'sync'>, client: HubWebClient | null, deps: HubWebBootDeps): HubWebBootResult {
+  const { connection, feedback, sync } = base;
+  connection.set('unreachable');
+  const effective = client ?? unreachableClient();
+  const book = new RecordBook();
+  const access = assumedAccess();
+  const engine = new HubWebEngine({ client: effective, book, connection, feedback, newId: () => uuidv7((n) => crypto.getRandomValues(new Uint8Array(n)), Date.now) });
+  const kv = createHubKvBackend({ engine, access, records: [], local: createWindowStorageBackend('local') });
+  installLocalBackend(kv);
+  sync.onStop(() => kv.dispose());
+  const probe = async (): Promise<void> => {
+    try {
+      await (await deps.connect()).checkSession();
+    } catch (error) {
+      if (decideBootFailure(error) === 'offline') throw error;
+    }
+  };
+  return {
+    mode: 'offline', connection, feedback, sync, kv, probe,
+    boot: { engine, deviceId: '', access, cursor: 0, floor: 0, retentionDays: 0, records: [], book },
+  };
+}
+
+/**
+ * Hub-served web, before bootstrap: confirm the owner session, attach this browser, read the snapshot and install the
+ * Hub kv backend as `local`. A 401 (or any other answer from the Hub) leaves the plain window backend in place (the session
+ * guard then sends the visitor to sign-in or setup, and the sign-in page reloads the app so this runs again signed in);
+ * an unreachable Hub installs the read-only offline boot instead (PD-053).
+ */
+export async function bootHubWeb(deps: HubWebBootDeps = { connect: connectToHub }): Promise<HubWebBootResult> {
   const connection = new HubWebConnectionService();
   const feedback = new HubWebFeedback();
-  const none: HubWebBootResult = { boot: null, connection, feedback, kv: null };
+  const sync = new HubWebSyncInfo();
+  const base = { connection, feedback, sync };
+  let client: HubWebClient | null = null;
   try {
-    const module = await loadHubClient();
-    let csrf: string | undefined;
-    const transport = createFetchHubTransport({ csrfToken: () => csrf });
-    const client = module.createHubClient(transport, { clientProtocol: 1, minHubProtocol: 1 });
-    const session = await client.currentSession();
-    csrf = session.csrfToken;
+    const connected = await deps.connect();
+    client = connected.client;
+    await connected.checkSession();
 
     const installationId = readOrMintInstallationId();
     const label = describeBrowser();
@@ -120,23 +201,29 @@ export async function bootHubWeb(): Promise<HubWebBootResult> {
     });
     for (const record of records) book.noteRecord(record);
 
+    const attached = client;
     const newId = (): string => uuidv7((n) => crypto.getRandomValues(new Uint8Array(n)), Date.now);
     const engine = new HubWebEngine({
-      client, book, connection, feedback, newId,
+      client: attached, book, connection, feedback, newId,
       reattach: async () => {
-        await client.webAttach({ installationId, label });
+        await attached.webAttach({ installationId, label });
       },
+      onPushed: () => sync.notePush(),
     });
     dropOriginLocalSharedKeys(attach.access);
     const kv = createHubKvBackend({ engine, access: attach.access, records, local: createWindowStorageBackend('local') });
     installLocalBackend(kv);
+    sync.onStop(() => kv.dispose());
+    sync.notePull(snapshot.cursor, snapshot.cursor);
     return {
+      mode: 'live',
       boot: { engine, deviceId: attach.deviceId, access: attach.access, cursor: snapshot.cursor, floor: snapshot.floor, retentionDays: attach.retentionDays, records, book },
-      connection, feedback, kv,
+      connection, feedback, sync, kv,
     };
   } catch (error) {
     const { kind, message } = classifyHubError(error);
     if (kind !== 'unauthorized') console.warn(`[DUDE] Hub web boot failed (${kind}): ${message}`);
-    return none;
+    if (decideBootFailure(error) === 'offline') return offlineBoot(base, client, deps);
+    return { mode: 'signed-out', boot: null, ...base, kv: null };
   }
 }

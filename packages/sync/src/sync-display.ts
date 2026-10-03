@@ -12,9 +12,36 @@ export interface SyncDisplay {
 
 const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`;
 
+export interface DescribeSyncOptions {
+  /** `web`: the Hub-served browser, whose phases mean live / Hub unreachable / session expired / out of date. */
+  readonly host?: 'desktop' | 'web';
+}
+
+/** Browser wording. The browser has no outbox, so its status only ever carries the connection (`offline`, `revoked` = session expired, `hub-outdated` = incompatible). */
+function describeWebSync(status: SyncStatus): SyncDisplay | null {
+  switch (status.phase) {
+    case 'revoked':
+      return { kind: 'revoked', label: 'Session expired', detail: 'Session expired — sign in again. Shared changes are not saved until you do.' };
+    case 'hub-outdated':
+      return { kind: 'attention', label: 'Reload needed', detail: 'This page and the Hub are out of date with each other. Reload to continue.' };
+    case 'offline':
+      return {
+        kind: 'offline', label: 'Hub unreachable',
+        detail: 'Hub unreachable — changes paused. Loaded tools keep working, but shared edits are not saved until the Hub answers again.',
+      };
+    case 'error':
+      return { kind: 'attention', label: 'Sync error', detail: status.lastError ?? 'Sync hit an error.' };
+    case 'syncing':
+      return { kind: 'syncing', label: 'Syncing', detail: 'Reading the latest changes from the Hub.' };
+    default:
+      return { kind: 'synced', label: 'Live', detail: 'Live — shared changes sync with your Hub as they happen.' };
+  }
+}
+
 /** Compact, prioritized summary of a sync status. Null when this device is standalone (nothing to show). */
-export function describeSync(status: SyncStatus | null): SyncDisplay | null {
+export function describeSync(status: SyncStatus | null, options: DescribeSyncOptions = {}): SyncDisplay | null {
   if (status === null || status.phase === 'standalone') return null;
+  if (options.host === 'web') return describeWebSync(status);
   switch (status.phase) {
     case 'revoked':
       return { kind: 'revoked', label: 'Revoked', detail: 'This device was revoked by the Hub. Sync is stopped and your data is kept.' };
