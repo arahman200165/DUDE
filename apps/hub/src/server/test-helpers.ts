@@ -17,6 +17,7 @@ import type { CsrfVerifier } from '../security/request-guard.js';
 import type { PasswordParams } from '../auth/password.js';
 import { createHubServer } from './create-server.js';
 import type { RealtimeTimings } from '../realtime/realtime.js';
+import type { SyncCompactionOptions } from './sync-compaction.js';
 
 export interface TestHub {
   app: FastifyInstance;
@@ -51,6 +52,7 @@ export interface TestHubOptions {
   configure?: (app: FastifyInstance) => void;
   passwordParams?: PasswordParams;
   realtime?: Partial<RealtimeTimings>;
+  sync?: SyncCompactionOptions;
 }
 
 export async function startTestHub(config: Partial<HubConfig> = {}, extra: TestHubOptions = {}): Promise<TestHub> {

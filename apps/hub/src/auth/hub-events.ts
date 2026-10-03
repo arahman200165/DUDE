@@ -16,6 +16,8 @@ export interface HubEventMap {
   'tls-next-pin': [{ spkiSha256: string }];
   /** Device-assisted owner recovery completed (PD-029); broadcast to the remaining owner/device connections. */
   'owner-recovered': [{ deviceId: string; at: string }];
+  /** Canonical records changed (sync push or environment clear); device sockets get `changes-available`. */
+  'records-changed': [{ environmentId: string; revision: number; originDeviceId: string | null }];
 }
 
 /** Internal in-process events (consumed by the realtime milestone). Never carries credentials. */

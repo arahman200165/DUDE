@@ -41,6 +41,13 @@ const ARGS: Record<string, readonly unknown[]> = {
   recoveryCodesPreview: ['t'],
   regenerateRecoveryCodes: ['t', 'c'],
   changePassword: ['t', 'a', 'b'],
+  syncPush: ['t', []],
+  syncChanges: ['t', 0, 10],
+  syncSnapshot: ['t', { afterType: 'a', afterId: 'b', limit: 1 }],
+  syncReportState: ['t', {}],
+  syncSummary: ['t'],
+  syncClearPreview: ['t'],
+  syncClear: ['t', 'c'],
 };
 const NOT_REQUESTS = new Set(['compatibility']);
 

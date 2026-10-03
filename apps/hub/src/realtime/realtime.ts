@@ -161,6 +161,14 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
   const onOwnerRecovered = (data: HubEventMap['owner-recovered'][0]): void => {
     for (const conn of where(() => true)) sendEvent(conn, 'owner-recovered', { deviceId: data.deviceId, at: data.at });
   };
+  const onRecordsChanged = (data: HubEventMap['records-changed'][0]): void => {
+    const envOf = (deviceId: string): string | undefined =>
+      (options.db.prepare('SELECT environment_id FROM devices WHERE device_id = ?').get(deviceId) as { environment_id: string } | undefined)?.environment_id;
+    for (const conn of where((c) => c.principal.kind === 'device' && c.principal.deviceId !== null && c.principal.deviceId !== data.originDeviceId)) {
+      if (envOf(conn.principal.deviceId as string) === data.environmentId) sendEvent(conn, 'changes-available', { revision: data.revision });
+    }
+  };
+  app.hubEvents.on('records-changed', onRecordsChanged);
   app.hubEvents.on('device-registry-changed', onRegistryChanged);
   app.hubEvents.on('owner-recovered', onOwnerRecovered);
   app.hubEvents.on('session-revoked', onSessionRevoked);
@@ -181,6 +189,7 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
     for (const conn of connections) { for (const t of conn.timers) clearInterval(t); if (conn.idle) clearTimeout(conn.idle); }
   });
   app.addHook('onClose', async () => {
+    app.hubEvents.off('records-changed', onRecordsChanged);
     app.hubEvents.off('device-registry-changed', onRegistryChanged);
     app.hubEvents.off('owner-recovered', onOwnerRecovered);
     app.hubEvents.off('session-revoked', onSessionRevoked);

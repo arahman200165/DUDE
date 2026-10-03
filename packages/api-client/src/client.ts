@@ -6,9 +6,10 @@ import {
   EnrollResponse, DeviceChallengeResponse, DeviceRecoveryChallengeResponse, DeviceTokenResponse, DeviceInfo, DeviceListResponse, OwnerBearerResponse, PairingCodeResponse,
   OkResponse, ConfirmPreview, SessionListResponse, RecoveryCodesResponse,
   SignInResponse, CurrentSessionResponse, OwnerResetResponse,
+  SyncPushResponse, SyncChangesResponse, SyncSnapshotResponse, SyncStateResponse, SyncSummary, SyncClearPreview, SyncClearResponse, SYNC_PATHS,
 } from '@dude/contracts/hub';
 import type {
-  ProtocolCompatibility, BootstrapRequest, EnrollRequest, DeviceSelfUpdate, PairingCodeRequest,
+  ProtocolCompatibility, BootstrapRequest, EnrollRequest, DeviceSelfUpdate, PairingCodeRequest, SyncOp, SyncStateReport,
 } from '@dude/contracts/hub';
 import type { HubRequest, HubTransport } from './transport.js';
 import { HubApiError, HubProtocolError } from './errors.js';
@@ -64,6 +65,16 @@ export interface HubClient {
   recoveryCodesPreview(auth: Bearer): Promise<ConfirmPreview>;
   regenerateRecoveryCodes(auth: Bearer, confirmToken: string): Promise<RecoveryCodesResponse>;
   changePassword(auth: Bearer, currentPassword: string, newPassword: string): Promise<OkResponse>;
+
+  // Synchronization (Phase 31D). Device token required, except summary and the environment clear (owner).
+  syncPush(auth: Bearer, ops: readonly SyncOp[]): Promise<SyncPushResponse>;
+  /** A cursor older than the Hub's retained history rejects with `HubApiError` status 410, code `cursor-expired`. */
+  syncChanges(auth: Bearer, after: number, limit?: number): Promise<SyncChangesResponse>;
+  syncSnapshot(auth: Bearer, page?: { afterType?: string; afterId?: string; limit?: number }): Promise<SyncSnapshotResponse>;
+  syncReportState(auth: Bearer, report: SyncStateReport): Promise<SyncStateResponse>;
+  syncSummary(auth: Bearer): Promise<SyncSummary>;
+  syncClearPreview(auth: Bearer): Promise<SyncClearPreview>;
+  syncClear(auth: Bearer, confirmationId: string): Promise<SyncClearResponse>;
 }
 
 const P = HUB_API_PREFIX;
@@ -124,5 +135,23 @@ export function createHubClient(transport: HubTransport, opts: HubClientOptions)
     recoveryCodesPreview: (auth) => call(ConfirmPreview, { method: 'POST', path: `${P}/owner/recovery-codes/preview` }, auth),
     regenerateRecoveryCodes: (auth, confirmToken) => call(RecoveryCodesResponse, { method: 'POST', path: `${P}/owner/recovery-codes`, body: { confirmToken } }, auth),
     changePassword: (auth, currentPassword, newPassword) => call(OkResponse, { method: 'POST', path: `${P}/owner/password`, body: { currentPassword, newPassword } }, auth),
+
+    syncPush: (auth, ops) => call(SyncPushResponse, { method: 'POST', path: `${P}${SYNC_PATHS.push}`, body: { ops } }, auth),
+    syncChanges: (auth, after, limit) => {
+      const qs = new URLSearchParams({ after: String(after), ...(limit !== undefined ? { limit: String(limit) } : {}) });
+      return call(SyncChangesResponse, { method: 'GET', path: `${P}${SYNC_PATHS.changes}?${qs.toString()}` }, auth);
+    },
+    syncSnapshot: (auth, page) => {
+      const qs = new URLSearchParams();
+      if (page?.afterType !== undefined) qs.set('afterType', page.afterType);
+      if (page?.afterId !== undefined) qs.set('afterId', page.afterId);
+      if (page?.limit !== undefined) qs.set('limit', String(page.limit));
+      const query = qs.toString();
+      return call(SyncSnapshotResponse, { method: 'GET', path: `${P}${SYNC_PATHS.snapshot}${query ? `?${query}` : ''}` }, auth);
+    },
+    syncReportState: (auth, report) => call(SyncStateResponse, { method: 'PUT', path: `${P}${SYNC_PATHS.state}`, body: report }, auth),
+    syncSummary: (auth) => call(SyncSummary, { method: 'GET', path: `${P}${SYNC_PATHS.summary}` }, auth),
+    syncClearPreview: (auth) => call(SyncClearPreview, { method: 'POST', path: `${P}${SYNC_PATHS.clearPreview}` }, auth),
+    syncClear: (auth, confirmationId) => call(SyncClearResponse, { method: 'POST', path: `${P}${SYNC_PATHS.clear}`, body: { confirmationId } }, auth),
   };
 }

@@ -33,7 +33,7 @@ export interface Signed { cookie: string; csrf: string; body: any; setCookie: st
 
 export const cookieValueOf = (setCookie: string | undefined): string => /__Host-dude_session=([^;]*)/.exec(setCookie ?? '')?.[1] ?? '';
 
-export async function startAuthHub(extra: Pick<TestHubOptions, 'realtime'> = {}): Promise<AuthHub> {
+export async function startAuthHub(extra: Pick<TestHubOptions, 'realtime' | 'sync'> = {}): Promise<AuthHub> {
   const clock = { t: START };
   const hub = await startTestHub({}, {
     now: () => clock.t,

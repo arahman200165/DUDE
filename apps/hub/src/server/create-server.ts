@@ -11,6 +11,9 @@ import { registerSessionRoutes } from './routes/sessions.js';
 import { registerDeviceRoutes } from './routes/devices.js';
 import { registerTlsAuditRoutes } from './routes/tls-audit.js';
 import { registerDeviceAuthRoutes } from './routes/device-auth.js';
+import { registerSyncRoutes } from './routes/sync.js';
+import { registerSyncCompaction } from './sync-compaction.js';
+import type { SyncCompactionOptions } from './sync-compaction.js';
 import { registerDeviceRecoveryRoutes } from './routes/device-recovery.js';
 import { createRequireDevice } from '../auth/device-auth.js';
 import { HubEvents } from '../auth/hub-events.js';
@@ -45,6 +48,8 @@ export interface CreateHubServerOptions {
   rateLimit?: RateLimiterOptions;
   /** Realtime timers and limits (tests inject short ones). */
   realtime?: Partial<RealtimeTimings>;
+  /** Sync compaction timer and retention (tests inject short ones). */
+  sync?: SyncCompactionOptions;
   /** Registers routes before the server is ready (the security hooks are already installed). */
   configure?: (app: FastifyInstance) => void;
   tls: { keyPem: string; certPem: string; spkiSha256: string };
@@ -129,6 +134,11 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
     db: options.hub.db, now, confirmations, requireOwner: authOptions.requireOwner, requireDevice: createRequireDevice({ db: options.hub.db, now }),
     hostGuard, spkiSha256: activeSpki, isDeviceOnline: realtime.isDeviceOnline,
   });
+
+  registerSyncRoutes(app, {
+    db: options.hub.db, now, confirmations, requireOwner: authOptions.requireOwner, requireDevice: createRequireDevice({ db: options.hub.db, now }),
+  });
+  registerSyncCompaction(app, options.hub.db, now, options.sync);
 
   const serveStatic = createStaticHandler({ root: options.config.webRoot ?? options.paths.webRoot });
   app.setNotFoundHandler(async (request, reply) => {
