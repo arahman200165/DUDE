@@ -14,3 +14,7 @@ export type { Merge3Result } from './merge3.js';
 export { SYNC_LIMITS } from './limits.js';
 export type { SyncPhase, SyncStatus } from './status.js';
 export { stripNonSyncable } from './strip-non-syncable.js';
+export { diffJson, hasDifferences, stableJson } from './json-diff.js';
+export type { DiffKind, DiffRow } from './json-diff.js';
+export { describeSync } from './sync-display.js';
+export type { SyncDisplay, SyncIndicatorKind } from './sync-display.js';

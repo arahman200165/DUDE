@@ -1,4 +1,5 @@
-import { diffJson, hasDifferences, stableJson } from './json-diff';
+import { describe, it, expect } from 'vitest';
+import { diffJson, hasDifferences, stableJson } from './json-diff.js';
 
 describe('json-diff', () => {
   it('prints equal values identically regardless of key order', () => {

@@ -1,4 +1,4 @@
-import type { AgentSyncStatus } from '@dude/contracts';
+import type { SyncStatus } from './status.js';
 
 export type SyncIndicatorKind = 'synced' | 'syncing' | 'pending' | 'offline' | 'paused' | 'conflicts' | 'needs-first-sync' | 'revoked' | 'attention';
 
@@ -13,7 +13,7 @@ export interface SyncDisplay {
 const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 /** Compact, prioritized summary of a sync status. Null when this device is standalone (nothing to show). */
-export function describeSync(status: AgentSyncStatus | null): SyncDisplay | null {
+export function describeSync(status: SyncStatus | null): SyncDisplay | null {
   if (status === null || status.phase === 'standalone') return null;
   switch (status.phase) {
     case 'revoked':

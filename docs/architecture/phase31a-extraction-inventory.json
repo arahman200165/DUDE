@@ -1930,6 +1930,7 @@
         "host API: window"
       ],
       "tests": [
+        "apps/web/src/app/core/usage/usage.service.remote.spec.ts",
         "apps/web/src/app/core/usage/usage.service.spec.ts"
       ],
       "remainingAdapterCode": "apps/web/src/app/core/usage/usage.service.ts"

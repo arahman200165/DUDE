@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import type { SyncConflictChoice, SyncConflictView } from '@dude/contracts';
-import { diffJson, hasDifferences } from '../../../../core/sync/json-diff';
+import { diffJson, hasDifferences } from '@dude/sync';
 import { SyncStatusService } from '../../../../core/sync/sync-status.service';
 
 const KIND_LABEL: Record<SyncConflictView['kind'], string> = {

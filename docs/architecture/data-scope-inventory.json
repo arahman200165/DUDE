@@ -261,14 +261,6 @@
     },
     {
       "source": "apps/web/src/app/core/persistence/persistence.service.ts",
-      "line": 88,
-      "namespace": null,
-      "key": null,
-      "heuristicScope": "local-only",
-      "reviewed": "Generic backend writes behind PersistenceService; scope resolved per key by resolveKvScope."
-    },
-    {
-      "source": "apps/web/src/app/core/persistence/persistence.service.ts",
       "line": 101,
       "namespace": null,
       "key": null,
@@ -277,7 +269,15 @@
     },
     {
       "source": "apps/web/src/app/core/persistence/persistence.service.ts",
-      "line": 127,
+      "line": 114,
+      "namespace": null,
+      "key": null,
+      "heuristicScope": "local-only",
+      "reviewed": "Generic backend writes behind PersistenceService; scope resolved per key by resolveKvScope."
+    },
+    {
+      "source": "apps/web/src/app/core/persistence/persistence.service.ts",
+      "line": 148,
       "namespace": null,
       "key": null,
       "heuristicScope": "local-only",
@@ -293,7 +293,7 @@
     },
     {
       "source": "apps/web/src/app/core/persistence/storage-backend.ts",
-      "line": 29,
+      "line": 35,
       "namespace": null,
       "key": null,
       "heuristicScope": "local-only",
@@ -1968,7 +1968,7 @@
     },
     {
       "source": "apps/web/src/app/core/persistence/persistence.service.ts",
-      "line": 101,
+      "line": 114,
       "operation": "backend.set(storageKey, json, meta)",
       "namespace": null,
       "key": null,
@@ -1982,7 +1982,7 @@
     },
     {
       "source": "apps/web/src/app/core/persistence/persistence.service.ts",
-      "line": 88,
+      "line": 101,
       "operation": "backend.set(storageKey, JSON.stringify(value()), meta)",
       "namespace": null,
       "key": null,
@@ -1996,7 +1996,7 @@
     },
     {
       "source": "apps/web/src/app/core/persistence/persistence.service.ts",
-      "line": 127,
+      "line": 148,
       "operation": "this.local.set(buildConsentKey(toolId, key), JSON.stringify(granted), { policy: 'local', scope: 'device' })",
       "namespace": null,
       "key": null,
@@ -2024,7 +2024,7 @@
     },
     {
       "source": "apps/web/src/app/core/persistence/storage-backend.ts",
-      "line": 29,
+      "line": 35,
       "operation": "activeLocalBackend().set(key, value, meta)",
       "namespace": null,
       "key": null,

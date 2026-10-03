@@ -1,6 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { describeSync, type SyncIndicatorKind } from '../../core/sync/sync-display';
+import { describeSync, type SyncIndicatorKind } from '@dude/sync';
 import { SyncStatusService } from '../../core/sync/sync-status.service';
 
 const DOT: Record<SyncIndicatorKind, string> = {
