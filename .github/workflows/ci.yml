@@ -1,10 +1,11 @@
 name: CI
 
-# One run per push: Linux gates, then (master pushes only) the GitHub Pages
-# deploy and the Windows desktop release, both gated on every check below.
+# One run per push: parallel Linux gates and, on master pushes, Windows packaging
+# alongside them. The GitHub Pages deploy and the draft release (`publish`) wait
+# for every gate below.
 #
 # The release version is never committed. package.json holds a <major>.<minor>.0
-# base and the release job sets the patch to the commit count of master
+# base and the package job sets the patch to the commit count of master
 # (`git rev-list --count HEAD`) inside the runner, so every build of a commit
 # gets the same, ever-increasing version and nothing pushes back to master.
 
@@ -20,7 +21,8 @@ permissions:
   id-token: write
 
 jobs:
-  build:
+  # The Linux gates run as parallel jobs; each repeats only the ~1 minute of setup.
+  checks:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -44,8 +46,7 @@ jobs:
       - name: Verify generated registry/docs are up to date
         run: |
           npm run generate:registry
-          git diff --exit-code -- apps/web/src/app/core/parity/testing/fixture-loaders.generated.ts packages/tool-registry/src/index.ts apps/web/src/app/core/registry/tool-loaders.generated.ts apps/web/src/app/core/pipeline/pipeline-workers.generated.ts packages/domain/src/core/appearance/appearance-axes.generated.ts docs/architecture/phase31a-extraction-inventory.json docs/architecture/data-scope-inventory.json apps/web/src/app/core/registry/tool-definitions.ts apps/web/src/app/core/registry/panel-definitions.ts README.md SECURITY.md apps/web/public/manifest.webmanifest || \
-            (echo '::error::tool-definitions.ts, README.md, SECURITY.md, or apps/web/public/manifest.webmanifest is stale — a <id>.manifest.ts changed without regenerating (npm run generate:registry) and committing the result.' && exit 1)
+          git diff --exit-code -- apps/web/src/app/core/parity/testing/fixture-loaders.generated.ts packages/tool-registry/src/index.ts apps/web/src/app/core/registry/tool-loaders.generated.ts apps/web/src/app/core/pipeline/pipeline-workers.generated.ts packages/domain/src/core/appearance/appearance-axes.generated.ts docs/architecture/phase31a-extraction-inventory.json docs/architecture/data-scope-inventory.json apps/web/src/app/core/registry/tool-definitions.ts apps/web/src/app/core/registry/panel-definitions.ts README.md SECURITY.md apps/web/public/manifest.webmanifest ||             (echo '::error::tool-definitions.ts, README.md, SECURITY.md, or apps/web/public/manifest.webmanifest is stale — a <id>.manifest.ts changed without regenerating (npm run generate:registry) and committing the result.' && exit 1)
 
       - name: Lint (dependency/platform boundaries)
         run: npm run lint
@@ -62,17 +63,70 @@ jobs:
       - name: Verify desktop and relay declarations
         run: npm run check:hosts
 
+  # `npm run test:high-consequence` is not repeated here: it re-runs test:packages and filtered subsets of
+  # ng test, test:electron and test:hub, all of which CI runs in full.
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Pin npm version
+        run: npm install -g npm@11.19.0
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Run tests
         run: npm test
 
-      - name: Capability-specific release gate (high-consequence tools)
-        run: npm run test:high-consequence
+  desktop-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Pin npm version
+        run: npm install -g npm@11.19.0
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Electron boundary tests
         run: npm run test:electron
 
       - name: Hub service tests (foreground Hub integration suite)
         run: npm run test:hub
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Pin npm version
+        run: npm install -g npm@11.19.0
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Build
         run: npm run build
@@ -196,7 +250,7 @@ jobs:
         run: node scripts/check-hub-service.mjs --require
 
   deploy:
-    needs: [build, docker-smoke, hub-e2e, hub-service]
+    needs: [checks, unit, desktop-tests, web, docker-smoke, hub-e2e, hub-service]
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
     concurrency:
@@ -213,18 +267,16 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5
 
-  # Windows desktop installer + Hub installer, uploaded to a draft GitHub Release.
-  # Platform-independent gates already ran in `build`; only Windows-specific ones repeat here.
-  release:
-    needs: [build, docker-smoke, hub-e2e, hub-service]
+  # Windows desktop installer + Hub installer, built alongside the gates and handed to `publish` as a
+  # workflow artifact. Platform-independent gates run in the Linux jobs; only Windows-specific ones repeat here.
+  package:
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: windows-latest
     permissions:
-      contents: write
-    # Reruns of one commit share a release writer; different commits release different versions.
-    concurrency:
-      group: release-${{ github.sha }}
-      cancel-in-progress: false
+      contents: read
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -320,6 +372,36 @@ jobs:
           $packagedHub = (Get-FileHash release\win-unpacked\resources\DUDE-Hub-Setup.exe).Hash
           if ($hubInstaller -ne $packagedHub) { throw 'NSIS source tree does not contain the Hub installer.' }
 
+      # The common root keeps the release\ and dist\hub-installer\ paths, so publish sees the same tree.
+      - name: Upload release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: |
+            release/DUDE-Setup-${{ steps.release.outputs.version }}.exe
+            release/DUDE-Setup-${{ steps.release.outputs.version }}.exe.blockmap
+            release/latest.yml
+            dist/hub-installer/DUDE-Hub-Setup.exe
+          if-no-files-found: error
+          retention-days: 7
+
+  # The only job that writes releases, so nothing is published unless every gate and the packaging passed.
+  publish:
+    needs: [checks, unit, desktop-tests, web, docker-smoke, hub-e2e, hub-service, package]
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    # Reruns of one commit share a release writer; different commits release different versions.
+    concurrency:
+      group: release-${{ github.sha }}
+      cancel-in-progress: false
+    steps:
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+
       # The draft targets this commit; GitHub creates the tag when the draft is published.
       - name: Upload all assets to one draft release
         shell: pwsh
@@ -368,5 +450,5 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-          RELEASE_VERSION: ${{ steps.release.outputs.version }}
-          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_VERSION: ${{ needs.package.outputs.version }}
+          RELEASE_TAG: ${{ needs.package.outputs.tag }}

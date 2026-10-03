@@ -12,9 +12,10 @@ import { CancellationToken } from 'builder-util-runtime';
 
 const root = path.resolve(import.meta.dirname, '..');
 const workflow = parse(readFileSync(path.join(root, '.github/workflows/ci.yml'), 'utf8'));
-const job = workflow.jobs.release;
-const steps = job.steps;
-const publish = steps.find(step => step.name === 'Upload all assets to one draft release');
+const packageJob = workflow.jobs.package;
+const publishJob = workflow.jobs.publish;
+const steps = packageJob.steps;
+const publish = publishJob.steps.find(step => step.name === 'Upload all assets to one draft release');
 const derive = steps.find(step => step.id === 'release');
 const version = '1.2.3';
 const sha = '0123456789abcdef0123456789abcdef01234567';
@@ -129,31 +130,52 @@ function execute(script, scenario, overrides = {}, missing) {
   }
 }
 
-test('releases only from master pushes, after every other CI job passes', () => {
-  assert.deepEqual(new Set(job.needs), new Set(Object.keys(workflow.jobs).filter(name => !['release', 'deploy'].includes(name))));
+const gates = Object.keys(workflow.jobs).filter(name => !['package', 'publish', 'deploy'].includes(name));
+const master = "github.ref == 'refs/heads/master' && github.event_name == 'push'";
+
+test('publishes only from master pushes, after every gate and the packaging pass', () => {
+  assert.deepEqual(new Set(publishJob.needs), new Set([...gates, 'package']));
   // Nothing ships, web or desktop, unless every check passes.
-  assert.deepEqual(new Set(workflow.jobs.deploy.needs), new Set(job.needs));
-  assert.equal(job.if, "github.ref == 'refs/heads/master' && github.event_name == 'push'");
-  assert.equal(job.permissions.contents, 'write');
+  assert.deepEqual(new Set(workflow.jobs.deploy.needs), new Set(gates));
+  // Packaging runs alongside the gates, so it must not be able to write releases.
+  assert.equal(packageJob.needs, undefined);
+  assert.equal(packageJob.permissions.contents, 'read');
+  assert.equal(publishJob.permissions.contents, 'write');
+  for (const job of [packageJob, publishJob]) assert.equal(job.if, master);
   assert.equal(steps[0].with?.['fetch-depth'], 0);
   // The version is set after install and before anything that bakes it in.
   const index = name => steps.findIndex(step => step.name === name);
   assert.ok(index('Install dependencies') < steps.indexOf(derive));
   assert.ok(steps.indexOf(derive) < index('Build (Angular, Electron configuration)'));
-  assert.equal(publish.env.RELEASE_VERSION, '${{ steps.release.outputs.version }}');
-  assert.equal(publish.env.RELEASE_TAG, '${{ steps.release.outputs.tag }}');
+  assert.equal(packageJob.outputs.version, '${{ steps.release.outputs.version }}');
+  assert.equal(packageJob.outputs.tag, '${{ steps.release.outputs.tag }}');
+  assert.equal(publish.env.RELEASE_VERSION, '${{ needs.package.outputs.version }}');
+  assert.equal(publish.env.RELEASE_TAG, '${{ needs.package.outputs.tag }}');
 });
 
-test('one writer per commit, packaging without uploads, verification before publication', () => {
-  assert.equal(job.concurrency.group, 'release-${{ github.sha }}');
-  assert.equal(job.concurrency['cancel-in-progress'], false);
+test('packaging hands publish every asset through one artifact, verified before upload', () => {
+  const upload = steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
+  const download = publishJob.steps.find(step => step.uses?.startsWith('actions/download-artifact@'));
+  assert.equal(upload.with['if-no-files-found'], 'error');
+  assert.equal(download.with.name, upload.with.name);
+  assert.ok(publishJob.steps.indexOf(download) < publishJob.steps.indexOf(publish));
+  // The artifact carries exactly what the publish script expects, at the same paths.
+  const files = upload.with.path.trim().split(/\r?\n/).map(line => line.trim().replaceAll('${{ steps.release.outputs.version }}', version));
+  assert.deepEqual(files, assets.slice(0, -1));
+  for (const name of ['Verify packaged network helper', 'Verify the desktop installer embeds the Hub installer']) {
+    assert.ok(steps.findIndex(step => step.name === name) < steps.indexOf(upload));
+  }
+});
+
+test('one writer per commit, packaging without uploads', () => {
+  assert.equal(publishJob.concurrency.group, 'release-${{ github.sha }}');
+  assert.equal(publishJob.concurrency['cancel-in-progress'], false);
   const packageStep = steps.find(step => step.name === 'Package (NSIS)');
   assert.match(packageStep.run, /--publish never$/);
   assert.equal(packageStep.env?.GH_TOKEN, undefined);
-  assert.equal(steps.filter(step => /gh release (create|upload)/.test(step.run ?? '')).length, 1);
-  for (const name of ['Verify packaged network helper', 'Verify the desktop installer embeds the Hub installer']) {
-    assert.ok(steps.findIndex(step => step.name === name) < steps.indexOf(publish));
-  }
+  const writers = Object.entries(workflow.jobs).flatMap(([name, job]) =>
+    job.steps.filter(step => /gh release (create|upload)/.test(step.run ?? '')).map(() => name));
+  assert.deepEqual(writers, ['publish']);
 });
 
 test('release version is the package major.minor with the commit count as patch', () => {
