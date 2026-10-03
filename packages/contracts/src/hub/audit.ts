@@ -9,6 +9,8 @@ export const HUB_AUDIT_EVENTS = [
   'auth.failure',
   'tls.rotation-staged', 'tls.rotation-activated',
   'network.mode-changed', 'throttle.locked', 'purge.previewed', 'purge.applied',
+  'sync.pushed', 'sync.snapshot', 'sync.state-reported', 'sync.compacted',
+  'sync.environment-clear-previewed', 'sync.environment-cleared',
 ] as const;
 export type HubAuditEvent = (typeof HUB_AUDIT_EVENTS)[number];
 

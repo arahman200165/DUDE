@@ -27,7 +27,7 @@ export const RealtimeClientMessage = Type.Union([
 export type RealtimeClientMessage = Static<typeof RealtimeClientMessage>;
 
 export const REALTIME_SESSION_KINDS = ['owner-cookie', 'owner-bearer', 'device'] as const;
-export const REALTIME_EVENTS = ['device-registry-changed', 'session-revoked', 'device-revoked', 'tls-next-pin', 'owner-recovered'] as const;
+export const REALTIME_EVENTS = ['device-registry-changed', 'session-revoked', 'device-revoked', 'tls-next-pin', 'owner-recovered', 'changes-available'] as const;
 
 export const RealtimeServerMessage = Type.Union([
   Type.Object({
@@ -40,9 +40,13 @@ export const RealtimeServerMessage = Type.Union([
   }),
   Type.Object({
     type: Type.Literal('event'),
-    event: Type.Union([Type.Literal('device-registry-changed'), Type.Literal('session-revoked'), Type.Literal('device-revoked'), Type.Literal('tls-next-pin'), Type.Literal('owner-recovered')]),
+    event: Type.Union([Type.Literal('device-registry-changed'), Type.Literal('session-revoked'), Type.Literal('device-revoked'), Type.Literal('tls-next-pin'), Type.Literal('owner-recovered'), Type.Literal('changes-available')]),
     data: Type.Record(Type.String(), Type.Unknown()),
   }),
   Type.Object({ type: Type.Literal('error'), code: Type.String() }),
 ]);
 export type RealtimeServerMessage = Static<typeof RealtimeServerMessage>;
+
+/** Payload of the changes-available event (device sockets only): the environment head revision. */
+export const ChangesAvailableData = Type.Object({ revision: Type.Integer({ minimum: 0 }) });
+export type ChangesAvailableData = Static<typeof ChangesAvailableData>;

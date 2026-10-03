@@ -5,7 +5,7 @@ import tls from 'node:tls';
 import type { Server as TlsServer } from 'node:tls';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
-import { HUB_REALTIME_PATH, REALTIME_CLOSE_CODES, REALTIME_MAX_MESSAGE_BYTES, ownerRecoveryMessage } from '@dude/contracts/hub';
+import { HUB_PROTOCOL_VERSION, HUB_REALTIME_PATH, REALTIME_CLOSE_CODES, REALTIME_MAX_MESSAGE_BYTES, ownerRecoveryMessage } from '@dude/contracts/hub';
 import { startAuthHub } from '../server/auth-test-helpers.js';
 import type { AuthHub, Signed } from '../server/auth-test-helpers.js';
 import { enrolled } from '../server/device-test-helpers.js';
@@ -118,7 +118,7 @@ describe('realtime socket', () => {
     const { client, welcome } = await welcomed(h, ownerHeaders(h, owner));
     track(client);
     expect(welcome).toMatchObject({
-      type: 'welcome', protocolVersion: 1, sessionKind: 'owner-cookie', deviceId: null, heartbeatIntervalMs: 25_000,
+      type: 'welcome', protocolVersion: HUB_PROTOCOL_VERSION, sessionKind: 'owner-cookie', deviceId: null, heartbeatIntervalMs: 25_000,
       tls: { spkiSha256: h.hub.tls.spkiSha256, nextSpkiSha256: null },
     });
     client.ws.close();
