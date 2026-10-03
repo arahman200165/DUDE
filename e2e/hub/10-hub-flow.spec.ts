@@ -34,6 +34,13 @@ async function readCodes(p: Page): Promise<string[]> {
  * Submits the current form and, when the Hub's credential-endpoint rate bucket answers 'Too many attempts' (the specs
  * issue a burst of sign-ins), waits out the page's own retry countdown and submits again.
  */
+/** Hub web sign-out wipes the origin and hard-navigates to the sign-in page (PD-053); wait for it to land. */
+async function signOut(p: Page): Promise<void> {
+  await p.getByRole('button', { name: 'Sign out' }).click();
+  await p.waitForURL(/\/hub\/sign-in/, { timeout: 15_000 });
+  await expect(p.getByRole('heading', { name: 'Sign in to this Hub' })).toBeVisible({ timeout: 15_000 });
+}
+
 async function submitWithRetry(p: Page, stillOn: RegExp, password?: string): Promise<void> {
   for (let attempt = 0; attempt < 4; attempt++) {
     // The sign-in page clears the password after any failed attempt, including a throttled one.
@@ -45,13 +52,19 @@ async function submitWithRetry(p: Page, stillOn: RegExp, password?: string): Pro
     await p.getByTestId('submit').click();
     // allInnerTexts() never waits for a match: the page can navigate away between the URL check and these reads, and a
     // waiting innerText() would then block on an element that is gone for good, outliving the poll's timeout.
+    // Hub web signs in with a full page load (PD-053 boot runs signed in), so a read can race the unload.
     const state = async (): Promise<string> => {
       if (!stillOn.test(p.url())) return 'done';
-      const [submit] = await p.getByTestId('submit').allInnerTexts();
-      if (submit === undefined || /…/.test(submit)) return 'waiting';
-      const [error = ''] = await p.getByTestId('error').allInnerTexts();
-      if (/Too many attempts/.test(error)) return 'throttled';
-      return error.trim() === '' ? 'waiting' : `failed: ${error}`;
+      try {
+        const [submit] = await p.getByTestId('submit').allInnerTexts();
+        if (submit === undefined || /…/.test(submit)) return 'waiting';
+        const [error = ''] = await p.getByTestId('error').allInnerTexts();
+        if (/Too many attempts/.test(error)) return 'throttled';
+        return error.trim() === '' ? 'waiting' : `failed: ${error}`;
+      } catch (error) {
+        if (/Execution context was destroyed|navigation/i.test(String(error))) return 'waiting';
+        throw error;
+      }
     };
     let outcome = 'waiting';
     await expect.poll(async () => (outcome = await state()), { message: `still waiting on ${p.url()}`, timeout: 45_000 }).not.toBe('waiting');
@@ -175,8 +188,7 @@ test.describe('e. sign-out, sign-in and recovery', () => {
     // The steps so far spent most of the credential-endpoint burst (10 requests, then 20 per minute); let it refill.
     await page.waitForTimeout(10_000);
     await page.goto('/settings/devices');
-    await page.getByRole('button', { name: 'Sign out' }).click();
-    await page.goto('/hub/sign-in');
+    await signOut(page);
     await expect(page.getByRole('heading', { name: 'Sign in to this Hub' })).toBeVisible();
 
     await page.getByLabel('Password').fill('definitely not the password');
@@ -189,7 +201,7 @@ test.describe('e. sign-out, sign-in and recovery', () => {
     await page.goto('/settings/devices');
     await expect(page.getByTestId('owner-signed-in')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Sign out' }).click();
+    await signOut(page);
     await page.goto('/hub/recover');
     // The regenerated codes replaced the ones shown at setup, which no longer work.
     await page.getByLabel('Recovery code').fill(setupCodes[0]!);
@@ -205,8 +217,7 @@ test.describe('e. sign-out, sign-in and recovery', () => {
     // The recovered session is signed in; the new password then works for a fresh sign-in.
     await page.goto('/settings/devices');
     await expect(page.getByTestId('owner-signed-in')).toBeVisible();
-    await page.getByRole('button', { name: 'Sign out' }).click();
-    await page.goto('/hub/sign-in');
+    await signOut(page);
     await page.getByLabel('Password').fill(NEW_PASSWORD);
     await submitWithRetry(page, /\/hub\/sign-in/, NEW_PASSWORD);
     expect(await hubClient().hello()).toMatchObject({ bootstrapped: true });
