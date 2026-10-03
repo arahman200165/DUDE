@@ -274,6 +274,7 @@ export function registerHubHandlers(
 
   // Status pushes: the agent reports every Hub connection change; the renderer gets the same shape `status()` returns.
   host()?.onEvent?.((frame) => {
+    if (frame.event !== 'hub.status') return;
     if (window.isDestroyed() || window.webContents.isDestroyed()) return;
     window.webContents.send('dude:hub:statusChanged', scrubCredentials(toDesktopStatus(frame.status)));
   });

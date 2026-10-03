@@ -16,6 +16,12 @@ export interface StorageBackend {
   set(key: string, value: string, meta?: StorageWriteMeta): boolean;
   remove(key: string): void;
   keys(prefix: string): string[];
+  /**
+   * Remote (other device) change already in the Device Store: updates the in-memory value WITHOUT scheduling a write.
+   * `null` removes the key. Returns false when the key has an unflushed local write (the agent re-emits after it
+   * commits) or when the backend has no remote source. Only the device kv backend implements it.
+   */
+  applyRemote?(namespace: string, key: string, value: unknown): boolean;
 }
 
 /**

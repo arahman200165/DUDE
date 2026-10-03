@@ -48,15 +48,19 @@ describe('agent host', () => {
     await ready(h);
     const host = await starting;
     const seen: unknown[] = [];
-    const off = host.onEvent!((event) => seen.push(event.status));
+    const off = host.onEvent!((event) => seen.push(event.event === 'sync.applied' ? event.changes : event.status));
     const conn = h.attempts[0].conn;
     conn.deliver({ type: 'event', event: 'hub.status', status: { state: 'online' } });
     conn.deliver({ type: 'event', event: 'other', status: {} });
     conn.deliver({ type: 'event', event: 'hub.status' });
-    expect(seen).toEqual([{ state: 'online' }]);
+    conn.deliver({ type: 'event', event: 'sync.status', status: { phase: 'idle' } });
+    conn.deliver({ type: 'event', event: 'sync.status' });
+    conn.deliver({ type: 'event', event: 'sync.applied', changes: [{ entityType: 'setting' }] });
+    conn.deliver({ type: 'event', event: 'sync.applied', changes: 'nope' });
+    expect(seen).toEqual([{ state: 'online' }, { phase: 'idle' }, [{ entityType: 'setting' }]]);
     off();
     conn.deliver({ type: 'event', event: 'hub.status', status: { state: 'offline' } });
-    expect(seen).toHaveLength(1);
+    expect(seen).toHaveLength(3);
   });
 
   it('waits for the ready handshake and reports an incompatible store', async () => {

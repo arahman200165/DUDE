@@ -173,6 +173,13 @@ export function createDeviceKvBackend(boot: Pick<DeviceStoreBoot, 'kv'>, bridge:
       mark(key);
     },
     keys: (prefix) => [...cache.keys()].filter((key) => key.startsWith(prefix)),
+    applyRemote(namespace, key, value) {
+      const fullKey = toStorageKey(namespace, key);
+      if (dirty.has(fullKey)) return false;
+      if (value === null || value === undefined) cache.delete(fullKey);
+      else cache.set(fullKey, toRaw(value));
+      return true;
+    },
     flush,
     pendingCount: () => dirty.size,
     dispose() {

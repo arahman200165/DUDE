@@ -25,6 +25,13 @@
       @for (snippet of scratchpad.snippets(); track snippet.id) {
         <div class="rounded-sm border border-border bg-panel-elevated p-2">
           @if (editingId() === snippet.id) {
+            @if (remoteConflict()) {
+              <div class="mb-1 flex flex-wrap items-center gap-2 rounded-sm border border-info/40 bg-info/10 px-1.5 py-0.5 text-ui-xs text-text" role="status">
+                <span class="flex-1">Changed on another device</span>
+                <button type="button" class="rounded-sm border border-info/40 px-1.5 py-0.5" (click)="reloadDraft()">Reload</button>
+                <button type="button" class="rounded-sm border border-info/40 px-1.5 py-0.5" (click)="keepEditing()">Keep editing</button>
+              </div>
+            }
             <input
               type="text"
               class="mb-1 w-full rounded-sm border border-border bg-panel px-1.5 py-0.5 text-ui-sm text-text focus:outline-none focus:ring-1 focus:ring-accent"

@@ -240,7 +240,7 @@ describe('hub bridge', () => {
 
 describe('preload hub surface', () => {
   const preload = readFileSync(resolve(__dirname, '..', 'preload.ts'), 'utf-8');
-  const block = preload.slice(preload.indexOf('  hub: {'), preload.indexOf('  appearance: {'));
+  const block = preload.slice(preload.indexOf('  hub: {'), preload.indexOf('  sync: {'));
 
   it('exposes exactly the DesktopHubBridge methods, each on its own channel, with no generic invoke', () => {
     const keys = [...block.matchAll(/^    (\w+): /gm)].map((m) => m[1]);

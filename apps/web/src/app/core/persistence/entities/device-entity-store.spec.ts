@@ -171,4 +171,33 @@ describe('device entity collection', () => {
       expect(backend.get(blobKey)).toBeNull();
     });
   });
+
+  describe('applyRemote', () => {
+    const make2 = (bridge: FakeBridge, records: ReturnType<typeof record>[] = []) =>
+      createDeviceEntityCollection({ codec: favoriteCodec, legacy, boot: { records }, bridge, persist: true, options: { compare: (a, b) => a.order - b.order } });
+
+    it('upserts and deletes without committing anything', () => {
+      const bridge = fakeBridge();
+      const col = make2(bridge, [record(item('a', 0)), record(item('b', 1))]);
+      col.applyRemote([{ entityId: 'tool:c', payload: item('c', 2) }, { entityId: 'tool:a', payload: item('a', 5) }], ['tool:b']);
+      expect(col.items().map((i) => `${i.targetId}:${i.order}`)).toEqual(['c:2', 'a:5']);
+      expect(bridge.commits).toEqual([]);
+    });
+
+    it('does not clobber a record with a local write in flight', async () => {
+      const bridge = fakeBridge();
+      let release: () => void = () => undefined;
+      const gate = new Promise<void>((resolve) => { release = resolve; });
+      bridge.commitEntity = async (): Promise<EntityCommitResult> => { await gate; return { ok: true, localRevision: 1, backpressure: false }; };
+      const col = make2(bridge, [record(item('a', 0))]);
+      const pending = col.upsert(item('a', 9));
+      col.applyRemote([{ entityId: 'tool:a', payload: item('a', 3) }], []);
+      col.applyRemote([], ['tool:a']);
+      expect(col.items().map((i) => i.order)).toEqual([9]);
+      release();
+      await pending;
+      col.applyRemote([{ entityId: 'tool:a', payload: item('a', 3) }], []);
+      expect(col.items().map((i) => i.order)).toEqual([3]);
+    });
+  });
 });

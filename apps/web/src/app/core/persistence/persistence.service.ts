@@ -1,4 +1,4 @@
-import { Injectable, Injector, Signal, WritableSignal, effect, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, Injector, Signal, WritableSignal, effect, inject, signal } from '@angular/core';
 import { PersistencePolicy } from "@dude/shared-types/shared/models/persistence-policy.model";
 import { StorageBackend, StorageWriteMeta, createStorageBackend } from './storage-backend';
 import { createManifestScopeLookup, resolveKvScope } from '@dude/persistence';
@@ -34,6 +34,8 @@ export class PersistenceService {
   private readonly consentSignals = new Map<string, WritableSignal<boolean>>();
   // Only root-level stores opt in, so holding their signals for the app's lifetime is intended.
   private readonly liveSignals = new Map<string, Set<(raw: unknown) => void>>();
+  // Every `local` signal adopts remote-device changes, whatever its cross-tab mode (a remote change is deliberate).
+  private readonly remoteAdopters = new Map<string, Set<(raw: unknown) => void>>();
   private readonly externalChangeCounters = new Map<string, WritableSignal<number>>();
 
   constructor() {
@@ -51,6 +53,17 @@ export class PersistenceService {
       }
       for (const adopt of live) adopt(parsed);
     });
+  }
+
+  /**
+   * A value another device wrote (the key already updated in the backend by the caller): hands it to every live
+   * `local` signal for the key. Never writes. A removed key (`null`) leaves open signals as they are, since resetting
+   * would make the signal's own effect write the default back and journal it as a local edit.
+   */
+  adoptRemote(namespace: string, key: string, value: unknown): void {
+    if (value === null || value === undefined) return;
+    const adopters = this.remoteAdopters.get(buildStorageKey(namespace, key));
+    if (adopters) for (const adopt of [...adopters]) adopt(value);
   }
 
   /** Increments whenever another tab writes this `local` key. Pair with `crossTab: 'notify'`. */
@@ -102,6 +115,14 @@ export class PersistenceService {
       },
       { injector: this.injector },
     );
+    if (policy === 'local') {
+      const decode = options?.decode;
+      const adopt = (raw: unknown): void => value.set(decode ? (decode(raw) ?? initialValue) : (raw as T));
+      let adopters = this.remoteAdopters.get(storageKey);
+      if (!adopters) this.remoteAdopters.set(storageKey, (adopters = new Set()));
+      adopters.add(adopt);
+      this.injector.get(DestroyRef, null)?.onDestroy(() => adopters.delete(adopt));
+    }
     if (policy === 'local' && options?.crossTab === 'live') {
       let set = this.liveSignals.get(storageKey);
       if (!set) this.liveSignals.set(storageKey, (set = new Set()));

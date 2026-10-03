@@ -94,6 +94,21 @@ export function createDeviceEntityCollection<T, C = void>(config: DeviceEntityCo
     return result;
   };
 
+  // Ids with a local write queued or running; a remote change for them must not clobber the optimistic value.
+  const inflight = new Map<string, number>();
+  const track = async <R>(ids: readonly string[], task: () => Promise<R>): Promise<R> => {
+    for (const id of ids) inflight.set(id, (inflight.get(id) ?? 0) + 1);
+    try {
+      return await task();
+    } finally {
+      for (const id of ids) {
+        const left = (inflight.get(id) ?? 1) - 1;
+        if (left <= 0) inflight.delete(id);
+        else inflight.set(id, left);
+      }
+    }
+  };
+
   const find = (id: string): T | undefined => items().find((value) => idOf(value) === id);
 
   if (persist && legacyItems.length > 0) {
@@ -118,7 +133,7 @@ export function createDeviceEntityCollection<T, C = void>(config: DeviceEntityCo
       const previous = find(id);
       items.update((current) => sorted([...current.filter((existing) => idOf(existing) !== id), value]));
       if (!persist) return { ok: true };
-      const result = await enqueue(() => commitOne(toCommit(value)));
+      const result = await track([id], () => enqueue(() => commitOne(toCommit(value))));
       if (!result.ok) restore(id, previous);
       return report(`upsert ${codec.entityType}`, result);
     },
@@ -127,7 +142,7 @@ export function createDeviceEntityCollection<T, C = void>(config: DeviceEntityCo
       if (previous === undefined) return { ok: true };
       items.update((current) => current.filter((existing) => idOf(existing) !== id));
       if (!persist) return { ok: true };
-      const result = await enqueue(() => commitOne({ entityType: codec.entityType, entityId: id, op: 'delete' }));
+      const result = await track([id], () => enqueue(() => commitOne({ entityType: codec.entityType, entityId: id, op: 'delete' })));
       if (!result.ok) restore(id, previous);
       return report(`remove ${codec.entityType}`, result);
     },
@@ -138,6 +153,7 @@ export function createDeviceEntityCollection<T, C = void>(config: DeviceEntityCo
       items.update((current) => sorted([...current.filter((existing) => !incoming.has(idOf(existing))), ...incoming.values()]));
       if (!persist) return { ok: true };
       const commits = [...incoming.values()].map(toCommit);
+      return track([...incoming.keys()], async () => {
       let backpressure: boolean | undefined;
       for (let i = 0; i < commits.length; i += IMPORT_CHUNK) {
         const result = await importChunk(commits.slice(i, i + IMPORT_CHUNK));
@@ -156,6 +172,21 @@ export function createDeviceEntityCollection<T, C = void>(config: DeviceEntityCo
       }
       outbox?.noteCommit(backpressure);
       return okResult(backpressure);
+      });
+    },
+    applyRemote(upserts, deletes) {
+      const decoded = new Map<string, T>();
+      for (const { entityId, payload } of upserts) {
+        if (inflight.has(entityId)) continue;
+        const value = codec.decode(payload, config.options?.context as C);
+        if (value !== null && value !== undefined) decoded.set(entityId, value);
+      }
+      const removed = new Set(deletes.filter((id) => !inflight.has(id)));
+      if (decoded.size === 0 && removed.size === 0) return;
+      items.update((current) => {
+        const kept = current.filter((existing) => !removed.has(idOf(existing)) && !decoded.has(idOf(existing)));
+        return sorted([...kept, ...decoded.values()]);
+      });
     },
   };
 }

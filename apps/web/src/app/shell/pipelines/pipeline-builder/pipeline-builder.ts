@@ -10,6 +10,7 @@ import { DudeDataType } from "@dude/shared-types/shared/models/tool-io.model";
 import { PipelineStep, PipelineValue } from "@dude/contracts/shared/models/pipeline-step.model";
 import { ToolRegistryService } from '../../../core/registry/tool-registry.service';
 import { searchTools } from "@dude/tool-engine/core/registry/tool-search";
+import { RemoteChangesService } from '../../../core/sync/remote-changes.service';
 import { PipelineStoreService } from '../../../core/pipeline/pipeline-store.service';
 import { PipelineStepRegistryService } from '../../../core/pipeline/pipeline-step-registry.service';
 import { UserScriptStoreService } from '../../../core/pipeline/user-script-store.service';
@@ -49,6 +50,8 @@ export class PipelineBuilder {
   private readonly runner = inject(PipelineRunnerService);
   private readonly stepGate = inject(PipelineStepGateService);
   private readonly confirmation = inject(PipelineConfirmationService);
+  private readonly remoteChanges = inject(RemoteChangesService);
+  private seenRemoteAt = 0;
   private deepLinkRunPrompted = false;
   private readonly suggestionHandoff = inject(PipelineSuggestionHandoffService);
   private readonly sandboxHost = viewChild.required(CodeSandboxHost);
@@ -131,6 +134,17 @@ export class PipelineBuilder {
   };
 
   constructor() {
+    // Every edit here persists at once, so there is never an unsaved local edit: a change made on another device
+    // reloads silently. It only replaces the definition; nothing runs.
+    this.seenRemoteAt = this.remoteChanges.changedAt('pipeline', this.pipeline().id);
+    effect(() => {
+      const at = this.remoteChanges.changedAt('pipeline', this.pipeline().id);
+      if (at <= this.seenRemoteAt) return;
+      this.seenRemoteAt = at;
+      const latest = untracked(() => this.store.getById(this.pipeline().id));
+      if (latest) untracked(() => this.pipeline.set(latest));
+    });
+
     effect(() => {
       const steps = this.pipeline().steps;
       const scriptsLoaded = this.scriptStore.scripts(); // read for reactivity: re-resolve when the script library changes

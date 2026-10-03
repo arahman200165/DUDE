@@ -136,3 +136,24 @@ describe('createDeviceKvBackend', () => {
     backend.dispose();
   });
 });
+
+describe('DeviceKvBackend.applyRemote', () => {
+  it('updates the cache without scheduling a write and skips keys with a local write pending', async () => {
+    const bridge = fakeBridge();
+    const backend = createDeviceKvBackend({ kv: [] }, bridge, { debounceMs: 10 });
+    expect(backend.applyRemote?.('json', 'indent', 4)).toBe(true);
+    expect(backend.get(toStorageKey('json', 'indent'))).toBe('4');
+    expect(backend.pendingCount()).toBe(0);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(bridge.commits).toEqual([]);
+
+    backend.set(toStorageKey('json', 'indent'), '8');
+    expect(backend.applyRemote?.('json', 'indent', 2)).toBe(false);
+    expect(backend.get(toStorageKey('json', 'indent'))).toBe('8');
+
+    await backend.flush();
+    expect(backend.applyRemote?.('json', 'indent', null)).toBe(true);
+    expect(backend.get(toStorageKey('json', 'indent'))).toBeNull();
+    backend.dispose();
+  });
+});

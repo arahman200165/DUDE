@@ -9,7 +9,8 @@ import type { StartupProgramsResult } from "../../system/startup-types.js";
 import type { InstalledSoftware } from "../../system/software-types.js";
 import type { WindowsCapability, WindowsFeature } from "../../system/feature-types.js";
 import type { SysApplyResult, SysJournalEntry, SysMutationSettings, SysMutResult, SysPlanPreview, SysPlanRequest, SysSnapshot, SysSnapshotHeader, SysSnapshotKind } from "../../system/sys-mutation-types.js";
-import type { AgentHistoryRecord, AgentNetworkRun } from "../../device-store/agent-protocol.js";
+import type { AgentAppliedChange, AgentHistoryRecord, AgentNetworkRun, AgentStandalonePreview, AgentSyncStatus, FirstSyncChoice, FirstSyncPreview, QuarantinedOpExport, QuarantinedOpView, SyncCategoryFlags, SyncConflictChoice, SyncConflictView } from "../../device-store/agent-protocol.js";
+import type { SyncCategory } from "../../hub/index.js";
 import type { DeviceStoreBoot, DeviceStoreDevice, EntityCommit, EntityCommitResult, KvMutation, QuarantinePreviewResult, ResetApplyResult, ResetKind, ResetPreviewOptions, ResetPreviewResult, StoreHealth } from "../../device-store/device-store.model.js";
 import type { NetworkRequest, NetworkJobEvent, NetworkStartResult, NetworkPrepareResult, WatchEntry, WatchSettings, WatchState, WatchResult } from "../../core/platform/network-types.js";
 export interface NativeStat {
@@ -159,9 +160,35 @@ export interface DesktopHubBridge {
   onStatusChanged(callback: (status: DesktopHubStatus) => void): () => void;
 }
 
+/** Sync state and actions served by the Device Agent (Phase 31D). Same `{ ok, result | error }` envelope as the Hub bridge; main validates every argument. */
+export interface DesktopSyncBridge {
+  status(): Promise<DesktopHubResult<AgentSyncStatus>>;
+  setCategories(categories: SyncCategoryFlags): Promise<DesktopHubResult<AgentSyncStatus>>;
+  setPaused(paused: boolean): Promise<DesktopHubResult<AgentSyncStatus>>;
+  syncNow(): Promise<DesktopHubResult<AgentSyncStatus>>;
+  listConflicts(): Promise<DesktopHubResult<readonly SyncConflictView[]>>;
+  resolveConflict(id: number, choice: SyncConflictChoice): Promise<DesktopHubResult<{ readonly ok: true; readonly changes: readonly AgentAppliedChange[] } | { readonly ok: false; readonly error: string }>>;
+  listQuarantined(): Promise<DesktopHubResult<readonly QuarantinedOpView[]>>;
+  /** Omit `opIds` to retry every quarantined op. */
+  retryQuarantined(opIds?: readonly string[]): Promise<DesktopHubResult<{ readonly retried: number }>>;
+  discardQuarantinedPreview(opId: string): Promise<DesktopHubResult<ConfirmPreview>>;
+  discardQuarantined(opId: string, confirmToken: string): Promise<DesktopHubResult<{ readonly ok: true }>>;
+  exportQuarantined(): Promise<DesktopHubResult<readonly QuarantinedOpExport[]>>;
+  firstSyncPreview(): Promise<DesktopHubResult<FirstSyncPreview>>;
+  firstSyncApply(choices: Partial<Record<SyncCategory, FirstSyncChoice>>, digest: string, confirmToken?: string): Promise<DesktopHubResult<AgentSyncStatus>>;
+  standalonePreview(): Promise<DesktopHubResult<AgentStandalonePreview>>;
+  standaloneApply(confirmToken: string, digest: string): Promise<DesktopHubResult<AgentSyncStatus>>;
+  /** Pushed by main whenever the sync status changes. Returns the unsubscribe function. */
+  onStatusChanged(callback: (status: AgentSyncStatus) => void): () => void;
+  /** Pushed after remote changes (or a conflict resolution) were written locally, so the renderer can refresh its copies. */
+  onApplied(callback: (changes: readonly AgentAppliedChange[]) => void): () => void;
+}
+
 export interface PlatformBridge {
   /** Absent until the Electron main/preload implementation of Hub administration ships. */
   readonly hub?: DesktopHubBridge;
+  /** Absent until the Electron main/preload implementation of sync ships. */
+  readonly sync?: DesktopSyncBridge;
   readonly preferences: {
     get(): Promise<DesktopPreferences>;
     set(patch: Partial<DesktopPreferences>): Promise<{ readonly ok: true; readonly value: DesktopPreferences } | { readonly ok: false; readonly error: string }>;

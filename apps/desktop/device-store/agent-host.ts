@@ -1,6 +1,7 @@
 import { app, safeStorage } from 'electron';
 import { join } from 'node:path';
-import type { AgentHubStatusEvent, AgentMethod, AgentMethodMap, AgentRequest, StoreHealth, StoreStatus } from '@dude/contracts';
+import { parseAgentEvent } from '@dude/contracts';
+import type { AgentEvent, AgentMethod, AgentMethodMap, AgentRequest, StoreHealth, StoreStatus } from '@dude/contracts';
 import type { DeviceCapabilities, DevicePlatform } from '@dude/persistence';
 import { createPipeTransport, resolveAgentLaunch } from './agent-transport';
 import type { AgentConnection, AgentTransport } from './agent-transport';
@@ -27,8 +28,8 @@ export interface DeviceStoreHost {
   status(): StoreStatus;
   health(): StoreHealth | null;
   onHealth(listener: (health: StoreHealth) => void): () => void;
-  /** Typed push frames from the agent (no request id), e.g. `hub.status`. Optional so minimal test hosts need not implement it. */
-  onEvent?(listener: (event: AgentHubStatusEvent) => void): () => void;
+  /** Typed push frames from the agent (no request id): `hub.status`, `sync.status`, `sync.applied`. Optional so minimal test hosts need not implement it. */
+  onEvent?(listener: (event: AgentEvent) => void): () => void;
   /** Manual retry: when unavailable, clears the crash history and restarts the agent connection. Resolves once that attempt settles. */
   retry(): Promise<void>;
   /** Stops the agent for good (checkpoint, close, exit) and waits for it; used on quit and by reset/quarantine. */
@@ -116,7 +117,7 @@ class AgentHost implements DeviceStoreHost {
   private queue: Queued[] = [];
   private crashes: number[] = [];
   private readonly listeners = new Set<(health: StoreHealth) => void>();
-  private readonly eventListeners = new Set<(event: AgentHubStatusEvent) => void>();
+  private readonly eventListeners = new Set<(event: AgentEvent) => void>();
   private restartTimer: ReturnType<typeof setTimeout> | null = null;
   private readyTimer: ReturnType<typeof setTimeout> | null = null;
   private firstSettled: (() => void) | null = null;
@@ -197,9 +198,10 @@ class AgentHost implements DeviceStoreHost {
       return;
     }
     if (message['type'] === 'event') {
-      if (message['event'] === 'hub.status' && typeof message['status'] === 'object' && message['status'] !== null) {
+      const event = parseAgentEvent(message);
+      if (event) {
         for (const listener of this.eventListeners) {
-          try { listener(message as unknown as AgentHubStatusEvent); } catch { /* a listener must not break the host */ }
+          try { listener(event); } catch { /* a listener must not break the host */ }
         }
       }
       return;
@@ -319,7 +321,7 @@ class AgentHost implements DeviceStoreHost {
     return () => { this.listeners.delete(listener); };
   }
 
-  onEvent(listener: (event: AgentHubStatusEvent) => void): () => void {
+  onEvent(listener: (event: AgentEvent) => void): () => void {
     this.eventListeners.add(listener);
     return () => { this.eventListeners.delete(listener); };
   }

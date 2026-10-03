@@ -121,6 +121,33 @@ const bridge: PlatformBridge = {
       return () => ipcRenderer.removeListener('dude:hub:statusChanged', listener);
     },
   },
+  sync: {
+    status: () => ipcRenderer.invoke('dude:sync:status'),
+    setCategories: (a) => ipcRenderer.invoke('dude:sync:setCategories', a),
+    setPaused: (a) => ipcRenderer.invoke('dude:sync:setPaused', a),
+    syncNow: () => ipcRenderer.invoke('dude:sync:now'),
+    listConflicts: () => ipcRenderer.invoke('dude:sync:conflicts:list'),
+    resolveConflict: (a, b) => ipcRenderer.invoke('dude:sync:conflicts:resolve', a, b),
+    listQuarantined: () => ipcRenderer.invoke('dude:sync:quarantine:list'),
+    retryQuarantined: (a) => ipcRenderer.invoke('dude:sync:quarantine:retry', a),
+    discardQuarantinedPreview: (a) => ipcRenderer.invoke('dude:sync:quarantine:discardPreview', a),
+    discardQuarantined: (a, b) => ipcRenderer.invoke('dude:sync:quarantine:discard', a, b),
+    exportQuarantined: () => ipcRenderer.invoke('dude:sync:quarantine:export'),
+    firstSyncPreview: () => ipcRenderer.invoke('dude:sync:firstSync:preview'),
+    firstSyncApply: (a, b, c) => ipcRenderer.invoke('dude:sync:firstSync:apply', a, b, c),
+    standalonePreview: () => ipcRenderer.invoke('dude:sync:standalone:preview'),
+    standaloneApply: (a, b) => ipcRenderer.invoke('dude:sync:standalone:apply', a, b),
+    onStatusChanged: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, status: Parameters<typeof callback>[0]) => callback(status);
+      ipcRenderer.on('dude:sync:statusChanged', listener);
+      return () => ipcRenderer.removeListener('dude:sync:statusChanged', listener);
+    },
+    onApplied: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, changes: Parameters<typeof callback>[0]) => callback(changes);
+      ipcRenderer.on('dude:sync:applied', listener);
+      return () => ipcRenderer.removeListener('dude:sync:applied', listener);
+    },
+  },
   appearance: {
     setNative: (mode, background) => ipcRenderer.invoke('dude:appearance:set', { mode, background }),
   },

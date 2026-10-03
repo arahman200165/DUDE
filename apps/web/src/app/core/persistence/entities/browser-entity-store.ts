@@ -56,5 +56,7 @@ export function createBrowserEntityCollection<T, C = void>(
       }
       return write(merged);
     },
+    // The web build has no sync agent: nothing arrives from another device.
+    applyRemote: () => undefined,
   };
 }

@@ -43,6 +43,7 @@ import { currentAppInfo, deviceCapabilities, startDeviceAgent } from './device-s
 import { getAgentBackground } from './device-store/agent-background';
 import { registerAgentHandlers } from './device-store/agent-bridge';
 import { registerHubHandlers } from './device-store/hub-bridge';
+import { registerSyncHandlers } from './device-store/sync-bridge';
 import { installQuitCoordinator } from './device-store/quit-coordinator';
 import { getDeviceStoreHost, setDeviceStoreHost } from './device-store/store-client';
 import { startStoreMaintenance } from './device-store/store-maintenance';
@@ -127,6 +128,7 @@ async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
   registerDeviceStoreHandlers(window);
   registerAgentHandlers(window);
   registerHubHandlers(window);
+  registerSyncHandlers(window);
   registerStoreResetHandlers(window, defaultStoreResetDeps(() => app.getPath('userData'), async () => {
     await startDeviceStore();
     const host = getDeviceStoreHost();
