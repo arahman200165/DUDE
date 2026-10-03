@@ -132,6 +132,21 @@ test('Blob object URLs (Image Compressor)', async () => {
   await expectClean('image-compressor');
 });
 
+test('JSON Schema Validator (eval-free interpreter, PD-056)', async () => {
+  await diagnostics.clear();
+  await page.goto('/tools/json-schema-validator');
+  await page.getByPlaceholder('Paste a JSON Schema…').fill(
+    JSON.stringify({ type: 'object', properties: { name: { type: 'string' } }, required: ['name'] }),
+  );
+  await page.getByPlaceholder('Paste the JSON instance to validate…').fill(JSON.stringify({ name: 42 }));
+  await expect(page.getByText('1 error')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText('/name', { exact: true })).toBeVisible();
+  await expect(page.getByText('type', { exact: true })).toBeVisible();
+  await page.getByPlaceholder('Paste the JSON instance to validate…').fill(JSON.stringify({ name: 'Ada' }));
+  await expect(page.getByText(/Valid — instance satisfies the schema/)).toBeVisible();
+  await expectClean('json-schema-validator');
+});
+
 test('Canvas charts (Insights)', async () => {
   await diagnostics.clear();
   await page.goto('/insights');

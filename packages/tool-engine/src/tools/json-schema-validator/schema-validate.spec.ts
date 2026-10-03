@@ -89,7 +89,7 @@ describe('validateJsonSchema', () => {
     }
   });
 
-  it('validates format keywords via ajv-formats', () => {
+  it('validates format keywords via the format keyword', () => {
     const schema = JSON.stringify({ type: 'string', format: 'email' });
     const result = validateJsonSchema(schema, JSON.stringify('not-an-email'), 'auto');
     expect(result.ok).toBe(false);

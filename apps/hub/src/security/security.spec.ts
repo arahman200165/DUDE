@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { HUB_API_PREFIX } from '@dude/contracts/hub';
 import { makeWebRoot, request, startTestHub } from '../server/test-helpers.js';
 import type { TestHub } from '../server/test-helpers.js';
-import { HUB_API_CSP, HUB_WEB_CSP } from './headers.js';
+import { HUB_API_CSP, HUB_WEB_CSP, buildWebCsp } from './headers.js';
 import { allowedHosts } from './host-guard.js';
 import { classifyCredential } from './request-guard.js';
 import { parseCookies } from './cookies.js';
@@ -46,7 +46,7 @@ describe('security baseline', () => {
     expect(res.headers['referrer-policy']).toBe('no-referrer');
     expect(res.headers['cross-origin-opener-policy']).toBe('same-origin');
     expect(res.headers['cross-origin-resource-policy']).toBe('same-origin');
-    expect(res.headers['permissions-policy']).toBe('camera=(), microphone=(), geolocation=(), payment=(), usb=()');
+    expect(res.headers['permissions-policy']).toBe('camera=(self), microphone=(), geolocation=(), payment=(), usb=()');
     expect(res.headers['content-security-policy']).toBe(HUB_API_CSP);
     expect(Object.keys(res.headers).filter((h) => h.startsWith('access-control-'))).toEqual([]);
   });
@@ -58,6 +58,11 @@ describe('security baseline', () => {
       expect(res.headers['x-frame-options']).toBe('DENY');
     }
     expect(HUB_WEB_CSP).toContain("frame-ancestors 'none'");
+    // PD-056: browser-side network and remote images are allowed; eval never is (script-src is 'self' + wasm only).
+    expect(HUB_WEB_CSP).toContain("connect-src 'self' blob: https: wss:");
+    expect(HUB_WEB_CSP).toContain("img-src 'self' data: blob: https:");
+    expect(HUB_WEB_CSP).not.toMatch(/(?<!wasm-)unsafe-eval/);
+    expect(buildWebCsp(["'unsafe-hashes'", "'sha256-x'"])).not.toMatch(/(?<!wasm-)unsafe-eval/);
     const notFound = await request(hub.port, hub.tls.certPem, `${HUB_API_PREFIX}/nope`);
     expect(notFound.headers['content-security-policy']).toBe(HUB_API_CSP);
   });

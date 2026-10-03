@@ -1,5 +1,5 @@
 import * as protobuf from 'protobufjs';
-import { decodeProtobufMessage, parseProtoSchema } from "./protobuf-decode.js";
+import { decodeByReflection, decodeProtobufMessage, parseProtoSchema } from "./protobuf-decode.js";
 
 const PERSON_SCHEMA = `
 syntax = "proto3";
@@ -80,5 +80,39 @@ describe('decodeProtobufMessage', () => {
     const result = decodeProtobufMessage(root, 'Person', new Uint8Array([255, 255, 255]));
 
     expect(result.ok).toBe(false);
+  });
+});
+
+describe('decodeByReflection (eval-free path used under a CSP without unsafe-eval)', () => {
+  const SCHEMA = `
+    syntax = "proto3";
+    enum Kind { NONE = 0; BIG = 1; }
+    message Inner { string city = 1; }
+    message Msg {
+      string name = 1; int32 age = 2; repeated string tags = 3; repeated int32 nums = 4;
+      int64 big = 5; Inner inner = 6; map<string, int32> counts = 7; Kind kind = 8; bytes raw = 9;
+      bool ok = 10; double ratio = 11; repeated Inner inners = 12; sint32 z = 13; fixed32 f = 14;
+    }`;
+
+  it('matches protobufjs decode + toObject on a message using every field shape', () => {
+    const { root } = protobuf.parse(SCHEMA);
+    const type = root.lookupType('Msg');
+    const bytes = type
+      .encode(
+        type.create({
+          name: 'Ada', age: 36, tags: ['a', 'b'], nums: [1, 2, 300], big: 9007199254740993n.toString(),
+          inner: { city: 'London' }, counts: { x: 1, y: 2 }, kind: 1, raw: new Uint8Array([1, 2]), ok: true,
+          ratio: 1.5, inners: [{ city: 'A' }, { city: 'B' }], z: -5, f: 7,
+        }),
+      )
+      .finish();
+    const expected = type.toObject(type.decode(bytes), { longs: String, defaults: false });
+
+    expect(JSON.parse(JSON.stringify(decodeByReflection(type, bytes)))).toEqual(JSON.parse(JSON.stringify(expected)));
+  });
+
+  it('skips unknown fields', () => {
+    const { root } = protobuf.parse('syntax = "proto3"; message A { int32 a = 1; }');
+    expect(decodeByReflection(root.lookupType('A'), new Uint8Array([0x08, 0x96, 0x01, 0x10, 0x05]))).toEqual({ a: 150 });
   });
 });

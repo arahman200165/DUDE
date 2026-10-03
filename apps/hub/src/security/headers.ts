@@ -2,9 +2,14 @@ import type { FastifyInstance } from 'fastify';
 
 // `connect-src blob:`: tools re-read their own object URLs with fetch() (Image Compressor's Download, others that save
 // a generated Blob); without it the fetch is blocked and the download silently never happens. Found by the Hub e2e CSP sweep.
+//
+// PD-056: `connect-src https: wss:` lets the network-declared tools (JWKS fetch, package metadata, LanguageTool, link
+// checker, collab relay) fetch from the browser as they do on Pages; their manifests already disclose network use.
+// `img-src https:` is for remote images in Markdown/HTML previews. The page CSP never gets 'unsafe-eval': code that
+// needs it runs an eval-free path or in the opaque-origin sandbox pages.
 const HUB_WEB_CSP_TAIL =
-  "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; " +
-  "font-src 'self' data:; connect-src 'self' blob:; worker-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; " +
+  "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; " +
+  "font-src 'self' data:; connect-src 'self' blob: https: wss:; worker-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; " +
   "base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
 
 /**
@@ -31,7 +36,7 @@ export const HUB_BASE_HEADERS: Readonly<Record<string, string>> = {
   'Referrer-Policy': 'no-referrer',
   'Cross-Origin-Opener-Policy': 'same-origin',
   'Cross-Origin-Resource-Policy': 'same-origin',
-  'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
+  'Permissions-Policy': 'camera=(self), microphone=(), geolocation=(), payment=(), usb=()',
 };
 
 const SANDBOX_CSP_TAIL = "frame-ancestors 'self'; base-uri 'none'; form-action 'none'";

@@ -1,13 +1,17 @@
 /**
  * Pure, framework-free JSON Schema validation used by the JSON Schema
  * Validator tool. Supports both Draft-07 and 2020-12, auto-detected from
- * the schema's `$schema` keyword (defaulting to Draft-07 when absent,
- * matching ajv's own core-class default dialect), with a manual override.
+ * the schema's `$schema` keyword (defaulting to Draft-07 when absent),
+ * with a manual override.
+ *
+ * Engine choice (PD-056): `@cfworker/json-schema`, an interpreter. The user supplies the schema at runtime, and
+ * ajv compiles every schema to JavaScript with `new Function`, which the Hub's page CSP (no `'unsafe-eval'`, ever)
+ * blocks. An interpreter needs no eval, keeps one code path on Pages, desktop and Hub, and runs in a Worker as
+ * before. Its raw output is nested (a parent error per failing `properties`/`items`/`$ref` plus the leaf errors),
+ * so `toLeafErrors` flattens it to the leaf-style list ajv produced.
  */
 
-import Ajv, { ErrorObject } from 'ajv';
-import Ajv2020 from 'ajv/dist/2020.js';
-import addFormats from 'ajv-formats';
+import { Validator, type OutputUnit, type Schema } from '@cfworker/json-schema';
 
 export type SchemaDraft = 'draft-07' | '2020-12';
 export type SchemaDraftMode = 'auto' | SchemaDraft;
@@ -46,27 +50,32 @@ function resolveDraft(schema: unknown, draftMode: SchemaDraftMode): SchemaDraft 
   return draftMode === 'auto' ? detectDraft(schema) : draftMode;
 }
 
-/**
- * Drops a schema's own `$schema` declaration when the user has explicitly
- * overridden the draft — otherwise ajv still tries to resolve the declared
- * meta-schema URI and throws "no schema with key or ref ..." for a dialect
- * the chosen Ajv instance doesn't register, defeating the override.
- */
-function withDraftOverride(schema: unknown, draftMode: SchemaDraftMode): unknown {
-  if (draftMode === 'auto' || !isRecord(schema)) return schema;
-  const { $schema: _dialect, ...rest } = schema;
-  return rest;
-}
+/** Structural parents whose message only says "a subschema failed"; the leaf errors beneath them carry the detail. */
+const WRAPPER_KEYWORDS: ReadonlySet<string> = new Set([
+  'properties',
+  'patternProperties',
+  'items',
+  'prefixItems',
+  'additionalItems',
+  '$ref',
+  '$recursiveRef',
+  '$dynamicRef',
+  'allOf',
+  'dependentSchemas',
+  'dependencies',
+]);
 
-function createValidatorInstance(draft: SchemaDraft): Ajv {
-  // `strict: false` is a deliberate leniency choice: real-world schemas
-  // often carry vendor/unknown keywords that ajv's strict mode would
-  // otherwise throw on — don't "fix" this to `true` without checking
-  // whether that breaks previously-tolerated schemas.
-  const AjvClass = draft === '2020-12' ? Ajv2020 : Ajv;
-  const ajv = new AjvClass({ allErrors: true, strict: false });
-  addFormats(ajv);
-  return ajv;
+function toLeafErrors(raw: readonly OutputUnit[]): readonly SchemaValidationError[] {
+  const hasAdditional = raw.some((unit) => unit.keyword === 'additionalProperties');
+  const kept = raw.filter(
+    (unit) => !WRAPPER_KEYWORDS.has(unit.keyword) && !(hasAdditional && unit.keyword === 'false'),
+  );
+  return (kept.length > 0 ? kept : raw).map((unit) => ({
+    // cfworker locations are `#` / `#/a/0`; the tool shows `/` / `/a/0`.
+    instancePath: unit.instanceLocation.replace(/^#/, '') === '' ? '/' : unit.instanceLocation.replace(/^#/, ''),
+    message: unit.error,
+    keyword: unit.keyword,
+  }));
 }
 
 function describeError(error: unknown): string {
@@ -93,23 +102,15 @@ export function validateJsonSchema(
   }
 
   const draft = resolveDraft(schema, draftMode);
-  const ajv = createValidatorInstance(draft);
 
-  let validate: ReturnType<Ajv['compile']>;
+  // `shortCircuit: false` reports every error, as ajv's `allErrors` did. Patterns and `$ref`s are resolved while
+  // validating, so a bad schema surfaces here and is reported as the compile stage.
   try {
-    validate = ajv.compile(withDraftOverride(schema, draftMode) as object);
+    const validator = new Validator(schema as Schema | boolean, draft === '2020-12' ? '2020-12' : '7', false);
+    const result = validator.validate(instance);
+    if (result.valid) return { ok: true, draft };
+    return { ok: false, stage: 'validation', draft, errors: toLeafErrors(result.errors) };
   } catch (error) {
     return { ok: false, stage: 'schema-compile', message: describeError(error) };
   }
-
-  if (validate(instance)) return { ok: true, draft };
-
-  const errors: readonly SchemaValidationError[] = (validate.errors ?? []).map((error: ErrorObject) => ({
-    instancePath: error.instancePath === '' ? '/' : error.instancePath,
-    message: error.message ?? 'is invalid',
-    keyword: error.keyword,
-    params: error.params,
-  }));
-
-  return { ok: false, stage: 'validation', draft, errors };
 }
