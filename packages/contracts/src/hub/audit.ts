@@ -7,7 +7,7 @@ export const HUB_AUDIT_EVENTS = [
   'pairing.created', 'device.enrolled', 'device.renamed', 'device.revoked', 'device.unenrolled',
   'device.recovery-trust-changed', 'device.token-issued',
   'auth.failure',
-  'tls.rotation-staged', 'tls.rotation-activated',
+  'tls.rotation-staged', 'tls.rotation-activated', 'tls.names-changed',
   'network.mode-changed', 'throttle.locked', 'purge.previewed', 'purge.applied',
   'sync.pushed', 'sync.snapshot', 'sync.state-reported', 'sync.compacted',
   'sync.environment-clear-previewed', 'sync.environment-cleared',

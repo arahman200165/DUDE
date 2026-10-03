@@ -33,6 +33,8 @@ export interface DeviceRouteOptions {
   /** The current serving pin (changes after a rotation). */
   spkiSha256: () => string;
   isDeviceOnline?: (deviceId: string) => boolean;
+  /** `exposure.canonicalOrigin`: the origin pairing hands out instead of the request Host. */
+  canonicalOrigin?: string;
 }
 
 export const REVOKE_DEVICE_ACTION = 'devices.revoke';
@@ -91,7 +93,10 @@ export function registerDeviceRoutes(app: FastifyInstance, options: DeviceRouteO
     async (request, reply) => {
       nostore(reply);
       const ctx = request.owner as OwnerContext;
-      const { hostname, port } = splitHostHeader(request.headers.host ?? '');
+      const requested = splitHostHeader(request.headers.host ?? '');
+      // An explicit body.host (owner choice, checked against the Host allowlist below) wins over the configured canonical origin.
+      const canonical = request.body.host === undefined && options.canonicalOrigin !== undefined ? splitHostHeader(new URL(options.canonicalOrigin).host) : undefined;
+      const { hostname, port } = canonical ?? requested;
       const host = request.body.host ?? hostname;
       if (request.body.host !== undefined && !options.hostGuard.isAllowed(`${host.toLowerCase()}:${port}`)) {
         return reply.code(400).send(envelope('bad-request', 'That host is not one of this Hub\'s allowed host names.'));

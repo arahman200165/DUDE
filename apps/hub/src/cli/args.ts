@@ -6,6 +6,7 @@ export type ParsedCommand =
   | { command: 'setup-token'; dataDir?: string; deliverTo?: string; nonce?: string }
   | { command: 'owner-reset'; dataDir?: string; confirm?: string }
   | { command: 'tls'; action: 'status' | 'rotate' | 'activate'; dataDir?: string; restage?: boolean; force?: boolean; confirm?: string }
+  | { command: 'tls-names'; action: 'list' | 'add' | 'remove'; name?: string; dataDir?: string; installDir?: string }
   | { command: 'service'; action: 'install' | 'uninstall' | 'start' | 'stop' | 'restart' | 'status' | 'update'; dataDir?: string; installDir?: string; port?: number; lan?: boolean; source?: string; keepData?: boolean }
   | { command: 'network'; action: 'lan-on' | 'lan-off' | 'status'; dataDir?: string; installDir?: string }
   | { command: 'doctor'; dataDir?: string; installDir?: string }
@@ -27,6 +28,9 @@ Usage:
   dude-hub tls status [--data-dir <dir>]
   dude-hub tls rotate [--restage] [--data-dir <dir>]
   dude-hub tls activate [--force] [--confirm <token>] [--data-dir <dir>]
+  dude-hub tls names list [--data-dir <dir>]
+  dude-hub tls names add <name> [--data-dir <dir>] [--install-dir <dir>]   (stages a re-issued certificate)
+  dude-hub tls names remove <name> [--data-dir <dir>] [--install-dir <dir>]
   dude-hub service install [--install-dir <dir>] [--data-dir <dir>] [--port <n>] [--lan]   (elevated, Windows)
   dude-hub service uninstall [--keep-data] [--install-dir <dir>] [--data-dir <dir>]
   dude-hub service start|stop|restart|status [--install-dir <dir>] [--data-dir <dir>]
@@ -97,6 +101,19 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
       else result.confirm = next;
     }
     return result;
+  }
+  if (command === 'tls' && rest[0] === 'names') {
+    const action = rest[1];
+    if (action !== 'list' && action !== 'add' && action !== 'remove') throw new UsageError('Usage: dude-hub tls names list|add <name>|remove <name>.');
+    let name: string | undefined;
+    let flags = rest.slice(2);
+    if (action !== 'list') {
+      name = flags[0];
+      if (name === undefined || name.startsWith('--')) throw new UsageError(`Usage: dude-hub tls names ${action} <name>.`);
+      flags = flags.slice(1);
+    }
+    const values = parseFlags(flags, ['--data-dir', '--install-dir'], []);
+    return { command: 'tls-names', action, ...(name !== undefined ? { name } : {}), ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir') };
   }
   if (command === 'tls') {
     const action = rest[0];

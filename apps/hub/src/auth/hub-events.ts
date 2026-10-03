@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events';
 import type { FastifyInstance } from 'fastify';
 import type { RevokedSession } from './sessions.js';
+import type { HostGuard } from '../security/host-guard.js';
 
 export interface SessionRevokedEvent extends RevokedSession {
   reason: 'revoked' | 'device-revoked' | 'device-unenrolled' | 'revoke-all' | 'sign-out' | 'password-changed' | 'recovery' | 'owner-reset' | 'device-recovery';
@@ -24,7 +25,7 @@ export interface HubEventMap {
 export class HubEvents extends EventEmitter<HubEventMap> {}
 
 declare module 'fastify' {
-  interface FastifyInstance { hubEvents: HubEvents }
+  interface FastifyInstance { hubEvents: HubEvents; hostGuard: HostGuard }
 }
 
 export function emitRevoked(app: Pick<FastifyInstance, 'hubEvents'>, sessions: readonly RevokedSession[], reason: SessionRevokedEvent['reason']): void {

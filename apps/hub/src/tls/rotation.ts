@@ -79,10 +79,11 @@ export function createTlsRotation(options: TlsRotationOptions) {
     };
   }
 
-  function stage(input: { restage?: boolean } = {}): { spkiSha256: string; restaged: boolean } {
+  /** `extraNames` are added to the certificate SAN list (on top of the built-ins), e.g. configured operator names. */
+  function stage(input: { restage?: boolean; extraNames?: readonly string[] } = {}): { spkiSha256: string; restaged: boolean } {
     const existing = pin('next');
     if (existing && input.restage !== true) throw new RotationError('conflict', 'A next certificate is already staged. Use --restage to replace it.');
-    const { keyPem, certPem } = generateSelfSigned({ hubInstanceId: options.hubInstanceId });
+    const { keyPem, certPem } = generateSelfSigned({ hubInstanceId: options.hubInstanceId, ...(input.extraNames ? { extraNames: input.extraNames } : {}) });
     const spki = spkiSha256(certPem);
     writeFileSync(path.join(tlsDir, NEXT_KEY_FILE), keyPem, { mode: 0o600 });
     writeFileSync(path.join(tlsDir, NEXT_CERT_FILE), certPem, { mode: 0o600 });

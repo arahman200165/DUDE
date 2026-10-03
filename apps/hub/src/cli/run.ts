@@ -2,12 +2,15 @@ import path from 'node:path';
 import type { Server as TlsServer } from 'node:tls';
 import type { FastifyInstance } from 'fastify';
 import { ensureLayout, resolveDataDir } from '../config/data-dir.js';
-import { bindAddress, loadOrCreateHubConfig } from '../config/hub-config.js';
+import { bindAddress, exposureRefusal, loadOrCreateHubConfig } from '../config/hub-config.js';
 import { openHubDb } from '../db/open-hub-db.js';
 import { readHubTestOverrides } from './test-overrides.js';
 import { createHubServer } from '../server/create-server.js';
 import { createLogStream, hubLoggerOptions } from '../server/logger.js';
+import { existsSync } from 'node:fs';
 import { ensureTlsIdentity } from '../tls/index.js';
+import { computeSubjectAltNames, missingSubjectAltNames } from '../tls/names.js';
+import { runTlsNames } from '../service/tls-names.js';
 import { AdminCallError, callAdmin } from '../admin/admin-client.js';
 import { startAdminEndpoint } from '../admin/admin-endpoint.js';
 import { buildAdminMethods } from '../admin/methods.js';
@@ -71,6 +74,9 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   if (parsed.command === 'owner-reset') {
     return runOwnerReset({ ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.confirm !== undefined ? { confirm: parsed.confirm } : {}) });
   }
+  if (parsed.command === 'tls-names') {
+    return runTlsNames({ action: parsed.action, ...(parsed.name !== undefined ? { name: parsed.name } : {}), ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}) });
+  }
   if (parsed.command === 'tls') {
     return runTls({
       action: parsed.action,
@@ -119,6 +125,12 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   if (parsed.bind !== undefined) config.bind = parsed.bind;
   if (parsed.webRoot !== undefined) config.webRoot = path.resolve(parsed.webRoot);
 
+  const refusal = exposureRefusal(config);
+  if (refusal !== null) {
+    process.stderr.write(`${refusal}\n`);
+    return EXIT_USAGE;
+  }
+
   const opened = openHubDb({ dbFile: paths.dbFile, preMigrationDir: paths.preMigrationDir });
   if (opened.status !== 'ready') {
     process.stderr.write(
@@ -132,7 +144,14 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   }
   const hub = opened.hub;
   ensureSetupToken(hub.db, paths.configDir, Date.now());
-  const tls = ensureTlsIdentity(paths.tlsDir, { hubInstanceId: hub.hubInstanceId });
+  const wantedNames = computeSubjectAltNames(config);
+  const hadIdentity = existsSync(path.join(paths.tlsDir, 'cert.pem')) && existsSync(path.join(paths.tlsDir, 'key.pem'));
+  // A NEW identity carries every configured name; an existing one is never replaced silently (devices pin it).
+  const tls = ensureTlsIdentity(paths.tlsDir, { hubInstanceId: hub.hubInstanceId, extraNames: wantedNames });
+  const staleNames = hadIdentity ? missingSubjectAltNames(tls.certPem, wantedNames) : [];
+  if (staleNames.length > 0) {
+    process.stdout.write(`${JSON.stringify({ event: 'tls-names-stale', missing: staleNames, hint: 'Run "dude-hub tls rotate" to stage a certificate that covers them, then "dude-hub tls activate".' })}\n`);
+  }
   const logStream = createLogStream(path.join(paths.logsDir, 'hub.log'), { stdout: true });
   const server: FastifyInstance = createHubServer({
     paths,
@@ -161,7 +180,8 @@ export async function runCli(argv: readonly string[]): Promise<number> {
       dataDir: paths.root,
       hubInstanceId: hub.hubInstanceId,
       methods: buildAdminMethods({
-        db: hub.db, hubVersion: hubVersion(), hubInstanceId: hub.hubInstanceId, bind: config.bind, getPort: () => port, startedAt, configDir: paths.configDir, configFile: paths.configFile, spkiSha256: tls.spkiSha256,
+        db: hub.db, hubVersion: hubVersion(), hubInstanceId: hub.hubInstanceId, bind: config.bind, getPort: () => port, startedAt, configDir: paths.configDir, configFile: paths.configFile, tlsDir: paths.tlsDir, spkiSha256: tls.spkiSha256,
+        onNamesChanged: (names) => server.hostGuard.setNames(names),
         tls: createTlsRotation({
           db: hub.db, tlsDir: paths.tlsDir, hubInstanceId: hub.hubInstanceId,
           applySecureContext: (context) => (server.server as unknown as TlsServer).setSecureContext(context),

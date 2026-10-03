@@ -12,7 +12,10 @@ import { audit } from '../security/audit.js';
 import { ConfirmationStore } from '../security/confirmation-store.js';
 import { RotationError } from '../tls/rotation.js';
 import { HUB_MIGRATIONS } from '../db/migrations/index.js';
-import { loadOrCreateHubConfig, writeHubConfig } from '../config/hub-config.js';
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import { applyHubNameChange, loadOrCreateHubConfig, writeHubConfig } from '../config/hub-config.js';
+import { computeSubjectAltNames, missingSubjectAltNames } from '../tls/names.js';
 import type { TlsRotation } from '../tls/rotation.js';
 
 export interface AdminMethodContext {
@@ -26,6 +29,10 @@ export interface AdminMethodContext {
   /** `config/hub.json`; enables `network.set`. */
   configFile?: string;
   spkiSha256: string;
+  /** The TLS directory; lets `tls.names.set` compare the active certificate with the wanted names. */
+  tlsDir?: string;
+  /** Called with the new operator names after `tls.names.set`, so the running Host guard picks them up without a restart. */
+  onNamesChanged?: (names: readonly string[]) => void;
   now?: () => number;
   /** Staged confirmations for admin-channel actions (default: a private store). */
   confirmations?: ConfirmationStore;
@@ -61,10 +68,48 @@ export function buildAdminMethods(context: AdminMethodContext): Record<string, A
       throw error;
     }
   };
+  /** The SAN set the on-disk config calls for (names plus bind mode; the config may be ahead of the running bind). */
+  const desiredSans = (): string[] | undefined => (context.configFile ? computeSubjectAltNames(loadOrCreateHubConfig(context.configFile)) : undefined);
+  const activeCertMissing = (wanted: readonly string[]): string[] => {
+    const certFile = context.tlsDir ? path.join(context.tlsDir, 'cert.pem') : null;
+    return certFile !== null && existsSync(certFile) ? missingSubjectAltNames(readFileSync(certFile, 'utf8'), wanted) : [];
+  };
   const flag = (params: unknown, name: string): boolean => (params as Record<string, unknown> | null)?.[name] === true;
   return {
     'tls.status': () => rotation().status(),
-    'tls.stage': (params) => rotate(() => rotation().stage({ restage: flag(params, 'restage') })),
+    'tls.stage': (params) => rotate(() => rotation().stage({ restage: flag(params, 'restage'), ...(desiredSans() ? { extraNames: desiredSans() as string[] } : {}) })),
+    /**
+     * Adds or removes one operator name in `hub.json` and stages a re-issued certificate carrying the new SAN set through
+     * the dual-pin rotation (devices pin the certificate, so it is never replaced silently). The Host guard is updated in memory.
+     */
+    'tls.names.set': (params) => {
+      const input = (params ?? {}) as { add?: unknown; remove?: unknown };
+      if ((typeof input.add === 'string') === (typeof input.remove === 'string')) throw new AdminError('bad-request', 'Provide exactly one of add or remove.');
+      if (!context.configFile) throw new AdminError('unavailable', 'Names cannot be changed in this context.');
+      const config = loadOrCreateHubConfig(context.configFile);
+      const previous = config.exposure.names;
+      let names: string[];
+      try { names = applyHubNameChange(config.exposure, typeof input.add === 'string' ? { add: input.add } : { remove: input.remove as string }); } catch (error) { throw new AdminError('bad-request', (error as Error).message); }
+      const changed = names !== previous;
+      const next = { ...config, exposure: { ...config.exposure, names } };
+      const sans = computeSubjectAltNames(next);
+      // Re-staging when nothing changed lets `add` of an already-configured name fix a stale certificate.
+      const mustStage = changed || activeCertMissing(sans).length > 0;
+      if (mustStage && rotation().status().next) throw new AdminError('conflict', 'A next certificate is already staged. Run "dude-hub tls activate" before changing names.');
+      if (changed) writeHubConfig(context.configFile, next);
+      let staged: { spkiSha256: string; restaged: boolean } | null = null;
+      try {
+        if (mustStage) staged = rotate(() => rotation().stage({ extraNames: sans }));
+      } catch (error) {
+        if (changed) writeHubConfig(context.configFile, config);
+        throw error;
+      }
+      if (changed) {
+        audit(context.db, { event: 'tls.names-changed', outcome: 'success', actorKind: 'cli', detail: { names }, now: now() });
+        context.onNamesChanged?.(names);
+      }
+      return { names, subjectAltNames: sans, staged, changed };
+    },
     'tls.activate.preview': (params) => rotate(() => rotation().previewActivate({ force: flag(params, 'force') })),
     'tls.activate.apply': (params) => {
       const confirmToken = (params as { confirmToken?: unknown } | null)?.confirmToken;

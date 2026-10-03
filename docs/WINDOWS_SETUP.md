@@ -43,6 +43,9 @@ Run these from an elevated prompt (the Hub CLI is `"%ProgramFiles%\DUDE Hub\dude
 | --- | --- |
 | `dude-hub service status` / `restart` | Service state, reachability and the registered-device count; stop and start the service. |
 | `dude-hub network lan on` / `off` / `status` | Turn LAN mode (and its firewall rule) on or off. |
+| `dude-hub tls names list` | Show the configured Hub names, the active certificate's names and any names it is missing. |
+| `dude-hub tls names add <name>` | Add a DNS name or IP (optionally `name:port`) to the Host allowlist and stage a re-issued certificate; activate it with `dude-hub tls activate` once devices acknowledge. |
+| `dude-hub tls names remove <name>` | Remove a configured name and stage a certificate without it. |
 | `dude-hub doctor` | Diagnose the service, certificates, port and firewall rule. |
 | `dude-hub setup-token` | Print or deliver the one-time token for first-owner setup. |
 | `dude-hub owner reset` | Start a two-step owner reset (confirm with the printed token). |

@@ -38,12 +38,12 @@ export const HUB_BODY_LIMIT = 64 * 1024;
 
 export interface CreateHubServerOptions {
   paths: HubPaths;
-  config: Pick<HubConfig, 'webRoot'> & Partial<Pick<HubConfig, 'bind'>>;
+  config: Pick<HubConfig, 'webRoot'> & Partial<Pick<HubConfig, 'bind' | 'exposure'>>;
   /** Injected clock for rate limiting and audit pruning (tests). */
   now?: () => number;
   /** Overrides how the CSRF header is verified against the session cookie (default: the session store). */
   csrfVerifier?: CsrfVerifier;
-  /** Additional accepted Host names (without port). */
+  /** Additional accepted Host names (tests); operators configure `exposure.names`. */
   extraHosts?: readonly string[];
   rateLimit?: RateLimiterOptions;
   /** Realtime timers and limits (tests inject short ones). */
@@ -82,7 +82,8 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   };
   registerSecurityHeaders(app);
   registerRateLimit(app, createRateLimiter({ now, ...options.rateLimit }));
-  const hostGuard = createHostGuard({ bind: options.config.bind ?? 'loopback', ...(options.extraHosts ? { extraHosts: options.extraHosts } : {}) }, getPort);
+  const hostGuard = createHostGuard({ bind: options.config.bind ?? 'loopback', names: options.config.exposure?.names ?? [], ...(options.extraHosts ? { extraHosts: options.extraHosts } : {}) }, getPort);
+  app.decorate('hostGuard', hostGuard);
   registerHostGuard(app, hostGuard);
   const csrfVerifier: CsrfVerifier = options.csrfVerifier ?? ((cookie, header) => verifyCsrf(options.hub.db, cookie, header, now()));
   registerRequestGuard(app, { hostGuard, csrfVerifier });
@@ -133,6 +134,7 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   registerDeviceRoutes(app, {
     db: options.hub.db, now, confirmations, requireOwner: authOptions.requireOwner, requireDevice: createRequireDevice({ db: options.hub.db, now }),
     hostGuard, spkiSha256: activeSpki, isDeviceOnline: realtime.isDeviceOnline,
+    ...(options.config.exposure?.canonicalOrigin ? { canonicalOrigin: options.config.exposure.canonicalOrigin } : {}),
   });
 
   registerSyncRoutes(app, {

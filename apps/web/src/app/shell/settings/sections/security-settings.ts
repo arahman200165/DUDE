@@ -31,6 +31,7 @@ export const AUDIT_EVENT_LABELS: Readonly<Record<string, string>> = {
   'auth.failure': 'Authentication failed',
   'tls.rotation-staged': 'Certificate rotation staged',
   'tls.rotation-activated': 'Certificate rotation activated',
+  'tls.names-changed': 'Certificate names changed',
   'network.mode-changed': 'Network mode changed',
   'throttle.locked': 'Sign-in locked after failures',
   'purge.previewed': 'Purge previewed',
