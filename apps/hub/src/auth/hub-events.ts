@@ -19,6 +19,8 @@ export interface HubEventMap {
   'owner-recovered': [{ deviceId: string; at: string }];
   /** Canonical records changed (sync push or environment clear); device sockets get `changes-available`. */
   'records-changed': [{ environmentId: string; revision: number; originDeviceId: string | null }];
+  /** A web access toggle changed (PD-051); owner cookie sockets get `web-access-changed` so open browsers re-fetch. */
+  'web-access-changed': [{ environmentId: string }];
 }
 
 /** Internal in-process events (consumed by the realtime milestone). Never carries credentials. */

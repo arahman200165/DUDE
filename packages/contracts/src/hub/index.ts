@@ -9,3 +9,5 @@ export * from './devices.schema.js';
 export * from './realtime.schema.js';
 export * from './tls-audit.schema.js';
 export * from './sync.schema.js';
+export * from './diagnostics.schema.js';
+export * from './web.schema.js';

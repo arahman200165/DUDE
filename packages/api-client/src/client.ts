@@ -2,14 +2,15 @@ import { Value } from 'typebox/value';
 import type { TSchema, Static } from 'typebox';
 import {
   HUB_API_PREFIX, HelloResponse, ErrorEnvelope, checkProtocolCompatibility,
-  BootstrapResponse, TlsCertificatesResponse, AuditListResponse,
+  BootstrapResponse, TlsCertificatesResponse, AuditListResponse, HubDiagnosticsReport,
   EnrollResponse, DeviceChallengeResponse, DeviceRecoveryChallengeResponse, DeviceTokenResponse, DeviceInfo, DeviceListResponse, OwnerBearerResponse, PairingCodeResponse,
   OkResponse, ConfirmPreview, SessionListResponse, RecoveryCodesResponse,
   SignInResponse, CurrentSessionResponse, OwnerResetResponse,
   SyncPushResponse, SyncChangesResponse, SyncSnapshotResponse, SyncStateResponse, SyncSummary, SyncClearPreview, SyncClearResponse, SYNC_PATHS,
+  WEB_PATHS, WebAttachResponse, WebAccessResponse,
 } from '@dude/contracts/hub';
 import type {
-  ProtocolCompatibility, BootstrapRequest, EnrollRequest, DeviceSelfUpdate, PairingCodeRequest, SyncOp, SyncStateReport,
+  ProtocolCompatibility, BootstrapRequest, EnrollRequest, DeviceSelfUpdate, PairingCodeRequest, SyncOp, SyncStateReport, SyncCategory, WebAttachRequest,
 } from '@dude/contracts/hub';
 import type { HubRequest, HubTransport } from './transport.js';
 import { HubApiError, HubProtocolError } from './errors.js';
@@ -62,6 +63,7 @@ export interface HubClient {
   revokeAllPreview(auth: Bearer): Promise<ConfirmPreview>;
   revokeAll(auth: Bearer, confirmToken: string): Promise<OkResponse>;
   listAudit(auth: Bearer, query?: { beforeSeq?: number; limit?: number }): Promise<AuditListResponse>;
+  diagnostics(auth: Bearer): Promise<HubDiagnosticsReport>;
   recoveryCodesPreview(auth: Bearer): Promise<ConfirmPreview>;
   regenerateRecoveryCodes(auth: Bearer, confirmToken: string): Promise<RecoveryCodesResponse>;
   changePassword(auth: Bearer, currentPassword: string, newPassword: string): Promise<OkResponse>;
@@ -75,6 +77,16 @@ export interface HubClient {
   syncSummary(auth: Bearer): Promise<SyncSummary>;
   syncClearPreview(auth: Bearer): Promise<SyncClearPreview>;
   syncClear(auth: Bearer, confirmationId: string): Promise<SyncClearResponse>;
+
+  // Hub web records (Phase 31E). Owner cookie session plus CSRF only (no `auth`): the browser stores the cookie and the transport adds the token.
+  webAttach(body: WebAttachRequest): Promise<WebAttachResponse>;
+  webSnapshot(page?: { afterType?: string; afterId?: string; limit?: number }): Promise<SyncSnapshotResponse>;
+  /** A cursor older than the retained history rejects with `HubApiError` status 410, code `cursor-expired`; no attached browser rejects 409 `not-attached`. */
+  webChanges(after: number, limit?: number): Promise<SyncChangesResponse>;
+  webPush(ops: readonly SyncOp[]): Promise<SyncPushResponse>;
+  webState(report: SyncStateReport): Promise<SyncStateResponse>;
+  webAccessGet(): Promise<WebAccessResponse>;
+  webAccessSet(category: SyncCategory, enabled: boolean): Promise<WebAccessResponse>;
 }
 
 const P = HUB_API_PREFIX;
@@ -126,6 +138,7 @@ export function createHubClient(transport: HubTransport, opts: HubClientOptions)
     revokeSession: (auth, id) => call(OkResponse, { method: 'DELETE', path: `${P}/sessions/${seg(id)}` }, auth),
     revokeAllPreview: (auth) => call(ConfirmPreview, { method: 'POST', path: `${P}/sessions/revoke-all/preview` }, auth),
     revokeAll: (auth, confirmToken) => call(OkResponse, { method: 'POST', path: `${P}/sessions/revoke-all`, body: { confirmToken } }, auth),
+    diagnostics: (auth) => call(HubDiagnosticsReport, { method: 'GET', path: `${P}/diagnostics` }, auth),
     listAudit: (auth, query) => {
       const qs: string[] = [];
       if (query?.beforeSeq !== undefined) qs.push(`beforeSeq=${query.beforeSeq}`);
@@ -153,5 +166,23 @@ export function createHubClient(transport: HubTransport, opts: HubClientOptions)
     syncSummary: (auth) => call(SyncSummary, { method: 'GET', path: `${P}${SYNC_PATHS.summary}` }, auth),
     syncClearPreview: (auth) => call(SyncClearPreview, { method: 'POST', path: `${P}${SYNC_PATHS.clearPreview}` }, auth),
     syncClear: (auth, confirmationId) => call(SyncClearResponse, { method: 'POST', path: `${P}${SYNC_PATHS.clear}`, body: { confirmationId } }, auth),
+
+    webAttach: (body) => call(WebAttachResponse, { method: 'POST', path: `${P}${WEB_PATHS.attach}`, body }),
+    webSnapshot: (page) => {
+      const qs = new URLSearchParams();
+      if (page?.afterType !== undefined) qs.set('afterType', page.afterType);
+      if (page?.afterId !== undefined) qs.set('afterId', page.afterId);
+      if (page?.limit !== undefined) qs.set('limit', String(page.limit));
+      const query = qs.toString();
+      return call(SyncSnapshotResponse, { method: 'GET', path: `${P}${WEB_PATHS.snapshot}${query ? `?${query}` : ''}` });
+    },
+    webChanges: (after, limit) => {
+      const qs = new URLSearchParams({ after: String(after), ...(limit !== undefined ? { limit: String(limit) } : {}) });
+      return call(SyncChangesResponse, { method: 'GET', path: `${P}${WEB_PATHS.changes}?${qs.toString()}` });
+    },
+    webPush: (ops) => call(SyncPushResponse, { method: 'POST', path: `${P}${WEB_PATHS.push}`, body: { ops } }),
+    webState: (report) => call(SyncStateResponse, { method: 'PUT', path: `${P}${WEB_PATHS.state}`, body: report }),
+    webAccessGet: () => call(WebAccessResponse, { method: 'GET', path: `${P}${WEB_PATHS.access}` }),
+    webAccessSet: (category, enabled) => call(WebAccessResponse, { method: 'PUT', path: `${P}${WEB_PATHS.access}`, body: { category, enabled } }),
   };
 }

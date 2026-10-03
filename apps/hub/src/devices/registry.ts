@@ -12,16 +12,16 @@ export const LAST_SEEN_MIN_INTERVAL_MS = 60_000;
 interface DeviceRow {
   device_id: string; environment_id: string; display_name: string; platform: string; app_version: string; capabilities_json: string;
   protocol_version: number; registered_at: string; last_seen_at: string | null; revoked_at: string | null; unenrolled_at: string | null;
-  recovery_trusted: number;
+  recovery_trusted: number; kind: 'desktop' | 'browser';
 }
 
-const COLUMNS = 'device_id, environment_id, display_name, platform, app_version, capabilities_json, protocol_version, registered_at, last_seen_at, revoked_at, unenrolled_at, recovery_trusted';
+const COLUMNS = 'device_id, environment_id, display_name, platform, app_version, capabilities_json, protocol_version, registered_at, last_seen_at, revoked_at, unenrolled_at, recovery_trusted, kind';
 const iso = (ms: number): string => new Date(ms).toISOString();
 
 function toInfo(row: DeviceRow, currentDeviceId: string | null): DeviceInfo {
   const stored = JSON.parse(row.capabilities_json) as string[];
   return {
-    deviceId: row.device_id, displayName: row.display_name, platform: row.platform as DeviceRegistryPlatform, appVersion: row.app_version,
+    deviceId: row.device_id, kind: row.kind, displayName: row.display_name, platform: row.platform as DeviceRegistryPlatform, appVersion: row.app_version,
     protocolVersion: row.protocol_version, capabilities: stored.filter((c): c is DeviceCapability => (DEVICE_CAPABILITIES as readonly string[]).includes(c)),
     registeredAt: row.registered_at, lastSeenAt: row.last_seen_at, revokedAt: row.revoked_at, unenrolledAt: row.unenrolled_at,
     recoveryTrusted: row.recovery_trusted === 1, online: false, current: row.device_id === currentDeviceId,
@@ -45,7 +45,8 @@ export function listDevices(db: Db, currentDeviceId: string | null): DeviceInfo[
 
 export function isDeviceActive(db: Db, deviceId: string): boolean {
   const row = rowOf(db, deviceId);
-  return row !== undefined && isActiveRow(row);
+  // A browser row has no key and is never a device credential (PD-050): every device-credential path goes through here.
+  return row !== undefined && row.kind === 'desktop' && isActiveRow(row);
 }
 
 /** Key ids of the device that are not revoked, sorted (for the revoke confirmation digest). */
@@ -73,7 +74,8 @@ export function enrollDevice(db: Db, input: EnrollInput, consumeCode: () => bool
     const environment = db.prepare('SELECT environment_id FROM environment LIMIT 1').get() as { environment_id: string } | undefined;
     if (!environment) return { status: 'no-environment' };
     const existing = rowOf(db, input.device.deviceId);
-    if (existing && isActiveRow(existing)) return { status: 'active-conflict' };
+    // A browser row can never be enrolled over (or re-enrolled as) a device.
+    if (existing && (existing.kind === 'browser' || isActiveRow(existing))) return { status: 'active-conflict' };
     if (existing) {
       const reused = db.prepare('SELECT 1 AS x FROM device_keys WHERE device_id = ? AND public_key = ?').get(input.device.deviceId, input.publicKey);
       if (reused !== undefined) return { status: 'key-reused' };
@@ -105,7 +107,7 @@ export function renameDevice(db: Db, deviceId: string, displayName: string): boo
 }
 
 export function setRecoveryTrust(db: Db, deviceId: string, trusted: boolean): boolean {
-  return Number(db.prepare('UPDATE devices SET recovery_trusted = ? WHERE device_id = ? AND revoked_at IS NULL AND unenrolled_at IS NULL').run(trusted ? 1 : 0, deviceId).changes) === 1;
+  return Number(db.prepare("UPDATE devices SET recovery_trusted = ? WHERE device_id = ? AND kind = 'desktop' AND revoked_at IS NULL AND unenrolled_at IS NULL").run(trusted ? 1 : 0, deviceId).changes) === 1;
 }
 
 /** Applies the provided fields only. */
@@ -145,8 +147,8 @@ export function deactivateDevice(db: Db, deviceId: string, how: 'revoked' | 'une
     db.prepare('UPDATE device_keys SET revoked_at = ? WHERE device_id = ? AND revoked_at IS NULL').run(at, deviceId);
     const tokens = db.prepare('UPDATE device_tokens SET revoked_at = ? WHERE device_id = ? AND revoked_at IS NULL').run(at, deviceId);
     const sessions = db
-      .prepare('SELECT session_hash, owner_id, kind, device_id FROM sessions WHERE device_id = ? AND revoked_at IS NULL')
-      .all(deviceId) as unknown as Array<{ session_hash: string; owner_id: string; kind: 'cookie' | 'bearer'; device_id: string | null }>;
+      .prepare('SELECT session_hash, owner_id, kind, device_id FROM sessions WHERE (device_id = ? OR browser_device_id = ?) AND revoked_at IS NULL')
+      .all(deviceId, deviceId) as unknown as Array<{ session_hash: string; owner_id: string; kind: 'cookie' | 'bearer'; device_id: string | null }>;
     const revoke = db.prepare('UPDATE sessions SET revoked_at = ? WHERE session_hash = ?');
     for (const s of sessions) revoke.run(at, s.session_hash);
     const result: Deactivation = {
@@ -154,5 +156,27 @@ export function deactivateDevice(db: Db, deviceId: string, how: 'revoked' | 'une
       revokedSessions: sessions.map((s) => ({ sessionHash: s.session_hash, sessionId: publicSessionId(s.session_hash), ownerId: s.owner_id, kind: s.kind, deviceId: s.device_id })),
     };
     return result;
+  });
+}
+
+/** Browser rows are removed after 90 days without a session (PD-050). */
+export const BROWSER_ROW_RETENTION_MS = 90 * 24 * 3600_000;
+
+/** Removes browser rows with no session for 90 days and no live session. Returns the number removed. */
+export function pruneBrowserDevices(db: Db, now: number): number {
+  const cutoff = iso(now - BROWSER_ROW_RETENTION_MS);
+  const at = iso(now);
+  return transaction(db, () => {
+    const stale = db.prepare(
+      `SELECT device_id FROM devices WHERE kind = 'browser' AND COALESCE(last_session_at, registered_at) < ?
+         AND NOT EXISTS (SELECT 1 FROM sessions s WHERE s.browser_device_id = devices.device_id AND s.revoked_at IS NULL
+                           AND s.idle_expires_at > ? AND s.absolute_expires_at > ?)`,
+    ).all(cutoff, at, at) as unknown as Array<{ device_id: string }>;
+    for (const { device_id: id } of stale) {
+      db.prepare('UPDATE sessions SET browser_device_id = NULL WHERE browser_device_id = ?').run(id);
+      db.prepare('DELETE FROM device_sync_state WHERE device_id = ?').run(id);
+      db.prepare("DELETE FROM devices WHERE device_id = ? AND kind = 'browser'").run(id);
+    }
+    return stale.length;
   });
 }

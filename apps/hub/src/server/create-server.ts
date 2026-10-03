@@ -10,8 +10,16 @@ import { registerAuthRoutes } from './routes/auth.js';
 import { registerSessionRoutes } from './routes/sessions.js';
 import { registerDeviceRoutes } from './routes/devices.js';
 import { registerTlsAuditRoutes } from './routes/tls-audit.js';
+import { registerDiagnosticsRoute } from './routes/diagnostics.js';
+import { createHostFacts, gatherRunningHubDeps } from '../diagnostics/gather.js';
+import { collectDiagnostics } from '../diagnostics/engine.js';
+import type { HubDiagnosticsReport } from '@dude/contracts/hub';
+import type { DiagnosticsHostFacts } from '../diagnostics/engine.js';
+import { defaultExec } from '../service/common.js';
+import type { ExecFn } from '../service/common.js';
 import { registerDeviceAuthRoutes } from './routes/device-auth.js';
 import { registerSyncRoutes } from './routes/sync.js';
+import { registerWebRecordRoutes } from './routes/web-records.js';
 import { registerSyncCompaction } from './sync-compaction.js';
 import type { SyncCompactionOptions } from './sync-compaction.js';
 import { registerDeviceRecoveryRoutes } from './routes/device-recovery.js';
@@ -38,6 +46,10 @@ import type { CsrfVerifier } from '../security/request-guard.js';
 
 export const HUB_BODY_LIMIT = 64 * 1024;
 
+declare module 'fastify' {
+  interface FastifyInstance { hubDiagnostics: () => Promise<HubDiagnosticsReport> }
+}
+
 export interface CreateHubServerOptions {
   paths: HubPaths;
   config: Pick<HubConfig, 'webRoot'> & Partial<Pick<HubConfig, 'bind' | 'exposure'>>;
@@ -57,6 +69,8 @@ export interface CreateHubServerOptions {
   tls: { keyPem: string; certPem: string; spkiSha256: string };
   hub: { db: Db; hubInstanceId: string };
   hubVersion: string;
+  /** Endpoint diagnostics: injectable host facts (service state, firewall rule; cached 60 s) so tests never touch Windows. */
+  diagnostics?: { exec?: ExecFn; platform?: NodeJS.Platform; host?: () => Promise<DiagnosticsHostFacts> };
   logger?: boolean | HubLoggerOptions;
   /** Cheaper Argon2 settings for specs only. */
   passwordParams?: PasswordParams;
@@ -83,7 +97,8 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
     return typeof address === 'object' && address ? address.port : 0;
   };
   const proxy = options.config.exposure?.proxy;
-  registerSecurityHeaders(app, { hsts: createHstsPolicy({ db: options.hub.db, tlsDir: options.paths.tlsDir, proxy: proxy !== undefined }) });
+  const hstsPolicy = createHstsPolicy({ db: options.hub.db, tlsDir: options.paths.tlsDir, proxy: proxy !== undefined });
+  registerSecurityHeaders(app, { hsts: hstsPolicy });
   const limiter = createRateLimiter({ now, ...options.rateLimit });
   registerRateLimit(app, limiter);
   const hostGuard = createHostGuard({ bind: options.config.bind ?? 'loopback', names: options.config.exposure?.names ?? [], ...(proxy ? { proxy } : {}), ...(options.extraHosts ? { extraHosts: options.extraHosts } : {}) }, getPort);
@@ -133,6 +148,14 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   registerAuthRoutes(app, authOptions);
   registerSessionRoutes(app, authOptions);
   registerTlsAuditRoutes(app, { db: options.hub.db, tlsDir: options.paths.tlsDir, requireOwner: authOptions.requireOwner });
+  const startedAt = now();
+  const hostFacts = options.diagnostics?.host ?? createHostFacts({ exec: options.diagnostics?.exec ?? defaultExec, ...(options.diagnostics?.platform ? { platform: options.diagnostics.platform } : {}), now });
+  const collectHubDiagnostics = async (): Promise<HubDiagnosticsReport> => collectDiagnostics(await gatherRunningHubDeps({
+    db: options.hub.db, tlsDir: options.paths.tlsDir, configFile: options.paths.configFile, config: { port: 0, ...(options.config.bind ? { bind: options.config.bind } : {}), ...(options.config.exposure ? { exposure: options.config.exposure } : {}) },
+    hubVersion: options.hubVersion, startedAt, now, getPort, hsts: hstsPolicy, realtime, host: hostFacts, ...(options.diagnostics?.platform ? { platform: options.diagnostics.platform } : {}),
+  }));
+  app.decorate('hubDiagnostics', collectHubDiagnostics);
+  registerDiagnosticsRoute(app, { db: options.hub.db, now, requireOwner: authOptions.requireOwner, collect: collectHubDiagnostics });
   registerDeviceAuthRoutes(app, { db: options.hub.db, now, hubInstanceId: options.hub.hubInstanceId });
   registerDeviceRecoveryRoutes(app, {
     db: options.hub.db, now, hubInstanceId: options.hub.hubInstanceId, requireDevice,
@@ -147,6 +170,7 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   registerSyncRoutes(app, {
     db: options.hub.db, now, confirmations, requireOwner: authOptions.requireOwner, requireDevice,
   });
+  registerWebRecordRoutes(app, { db: options.hub.db, now, requireCookieOwner: authOptions.requireCookieOwner });
   registerSyncCompaction(app, options.hub.db, now, options.sync);
 
   const serveStatic = createStaticHandler({ root: options.config.webRoot ?? options.paths.webRoot });

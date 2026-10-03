@@ -38,6 +38,7 @@ const ARGS: Record<string, readonly unknown[]> = {
   revokeAllPreview: ['t'],
   revokeAll: ['t', 'c'],
   listAudit: ['t', { beforeSeq: 1, limit: 2 }],
+  diagnostics: ['t'],
   recoveryCodesPreview: ['t'],
   regenerateRecoveryCodes: ['t', 'c'],
   changePassword: ['t', 'a', 'b'],
@@ -48,6 +49,13 @@ const ARGS: Record<string, readonly unknown[]> = {
   syncSummary: ['t'],
   syncClearPreview: ['t'],
   syncClear: ['t', 'c'],
+  webAttach: [{ installationId: 'abcdefgh', label: 'x' }],
+  webSnapshot: [{ afterType: 'a', afterId: 'b', limit: 1 }],
+  webChanges: [0, 10],
+  webPush: [[]],
+  webState: [{}],
+  webAccessGet: [],
+  webAccessSet: ['usage', true],
 };
 const NOT_REQUESTS = new Set(['compatibility']);
 

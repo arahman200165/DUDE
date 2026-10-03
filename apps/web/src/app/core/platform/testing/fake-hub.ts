@@ -8,7 +8,7 @@ export const FAKE_HUB_PAIRING_STRING = 'dude-pair:v1:hub.local:47600:ABCD2345:AA
 export const FAKE_SYNC_SUMMARY = (deviceId: string): SyncSummary => ({
   floor: 2, headRevision: 42, retentionDays: 90,
   counts: { settings: 3, favorites: 1, pipelines: 0, projects: 2, workspaces: 0, home: 1, usage: 0, 'workspace-layout': 0, scratchpad: 0 },
-  devices: [{ deviceId, cursor: 42, lag: 0, lastPushAt: '2026-01-01T00:00:00.000Z', lastPullAt: '2026-01-01T00:05:00.000Z', quarantined: 0, conflicts: 0, pending: 0 }],
+  devices: [{ deviceId, kind: 'desktop' as const, paused: false, cursor: 42, lag: 0, lastPushAt: '2026-01-01T00:00:00.000Z', lastPullAt: '2026-01-01T00:05:00.000Z', quarantined: 0, conflicts: 0, pending: 0 }],
 });
 
 /** Where the local Hub starts: nothing installed, installed but not set up, set up, or set up with a newer Hub bundled in the app. */
@@ -44,7 +44,7 @@ export function fakeHub(options: { password?: string; localHub?: FakeLocalHubSce
   };
   const consume = (token: string): boolean => tokens.delete(token);
   const device = (id: string, displayName: string, extra: Partial<DeviceInfo> = {}): DeviceInfo => ({
-    deviceId: id, displayName, platform: 'windows', appVersion: '0.0.0', protocolVersion: 1, capabilities: [], registeredAt: '2026-01-01T00:00:00.000Z',
+    deviceId: id, kind: 'desktop', displayName, platform: 'windows', appVersion: '0.0.0', protocolVersion: 1, capabilities: [], registeredAt: '2026-01-01T00:00:00.000Z',
     lastSeenAt: null, revokedAt: null, unenrolledAt: null, recoveryTrusted: false, online: false, current: false, ...extra,
   });
   const devices = new Map<string, DeviceInfo>([[FAKE_HUB_DEVICE_ID, device(FAKE_HUB_DEVICE_ID, 'This PC', { current: true })]]);

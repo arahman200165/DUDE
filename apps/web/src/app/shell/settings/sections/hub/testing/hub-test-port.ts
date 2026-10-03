@@ -19,7 +19,7 @@ export const STANDALONE_STATUS: DesktopHubStatus = { enrollmentState: 'standalon
 
 export function device(id: string, displayName: string, extra: Partial<DeviceInfo> = {}): DeviceInfo {
   return {
-    deviceId: id, displayName, platform: 'windows', appVersion: '1.2.3', protocolVersion: 1, capabilities: [], registeredAt: '2026-01-01T00:00:00.000Z',
+    deviceId: id, kind: 'desktop', displayName, platform: 'windows', appVersion: '1.2.3', protocolVersion: 1, capabilities: [], registeredAt: '2026-01-01T00:00:00.000Z',
     lastSeenAt: null, revokedAt: null, unenrolledAt: null, recoveryTrusted: false, online: false, current: false, ...extra,
   };
 }

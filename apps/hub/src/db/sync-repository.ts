@@ -89,6 +89,8 @@ export interface DeviceSyncReport {
   stranded: number;
   categories: Record<string, boolean>;
   lastSyncAt: string | null;
+  /** The Agent's sync pause flag; absent from older Agents and browsers. */
+  paused?: boolean;
 }
 
 export interface DeviceSyncStateRow {

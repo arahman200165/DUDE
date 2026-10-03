@@ -13,7 +13,7 @@
     "device-doc": 33,
     "regex-heuristic (review flag)": 49,
     "agent-table": 17,
-    "hub-table": 23,
+    "hub-table": 24,
     "setting-definition": 2,
     "policy-rule": 775,
     "entity-codec": 10
@@ -1696,6 +1696,21 @@
       "scope": "local-only",
       "sensitivity": "sensitive",
       "note": "Hub-private reverse-proxy leaf pin set (active and next)",
+      "classificationBasis": "hub-table",
+      "syncConsent": "not granted"
+    },
+    {
+      "source": "apps/hub/src/db/migrations/0005-web-browsers.ts",
+      "line": 21,
+      "operation": "CREATE TABLE web_access",
+      "namespace": null,
+      "key": "web_access",
+      "storage": "Hub database (node:sqlite)",
+      "storageLocation": "data/dude.db table web_access",
+      "retention": "existing per-table policy",
+      "scope": "environment",
+      "sensitivity": "non-sensitive",
+      "note": "per-category Hub web access toggles (no content)",
       "classificationBasis": "hub-table",
       "syncConsent": "not granted"
     },

@@ -129,7 +129,7 @@ describe('DevicesSettings', () => {
   });
 
   describe('sync stats', () => {
-    const stat = (deviceId: string, extra: Record<string, unknown> = {}) => ({ deviceId, cursor: 5, lag: 0, lastPushAt: null, lastPullAt: null, quarantined: 0, conflicts: 0, pending: 0, ...extra });
+    const stat = (deviceId: string, extra: Record<string, unknown> = {}) => ({ deviceId, kind: 'desktop' as const, paused: false, cursor: 5, lag: 0, lastPushAt: null, lastPullAt: null, quarantined: 0, conflicts: 0, pending: 0, ...extra });
     const summary = (devices: ReturnType<typeof stat>[]) => ({
       floor: 0, headRevision: 5, retentionDays: 90, devices,
       counts: { settings: 0, favorites: 0, pipelines: 0, projects: 0, workspaces: 0, home: 0, usage: 0, 'workspace-layout': 0, scratchpad: 0 },

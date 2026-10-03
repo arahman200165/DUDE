@@ -10,7 +10,7 @@ import { HUB_MIGRATIONS } from './migrations/index.js';
 const EXPECTED_TABLES = [
   'meta', 'schema_migrations', 'environment', 'owner', 'owner_credentials', 'recovery_codes', 'sessions', 'devices', 'device_keys',
   'device_tokens', 'challenges', 'pairing_codes', 'setup_state', 'throttle', 'audit_events', 'tls_pins', 'tls_pin_acks', 'records',
-  'change_feed', 'applied_ops', 'device_sync_state', 'tls_proxy_pins', 'tls_proxy_pin_acks',
+  'change_feed', 'applied_ops', 'device_sync_state', 'tls_proxy_pins', 'tls_proxy_pin_acks', 'web_access',
 ];
 
 function dirs() {
@@ -32,7 +32,7 @@ describe('openHubDb', () => {
     expect(Object.values(db.prepare('PRAGMA foreign_keys').get() as object)[0]).toBe(1);
     expect(hubInstanceId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-/);
     expect(getMeta(db, 'created_at')).toBeTruthy();
-    expect(getMeta(db, 'schema_version')).toBe('4');
+    expect(getMeta(db, 'schema_version')).toBe('5');
     first.hub.close();
     expect(readdirSync(options.preMigrationDir.replace(/pre-migration$/, '')).includes('pre-migration')).toBe(false);
 
@@ -42,7 +42,7 @@ describe('openHubDb', () => {
     second.hub.close();
   });
 
-  it('applies migrations 0003 and 0004 onto an existing version-2 database', () => {
+  it('applies migrations 0003 to 0005 onto an existing version-2 database', () => {
     const options = dirs();
     const v2 = openHubDb({ ...options, migrations: HUB_MIGRATIONS.slice(0, 2) });
     if (v2.status !== 'ready') throw new Error('expected ready');
@@ -51,12 +51,47 @@ describe('openHubDb', () => {
     const upgraded = openHubDb(options);
     if (upgraded.status !== 'ready') throw new Error('expected ready');
     const { db } = upgraded.hub;
-    expect(getMeta(db, 'schema_version')).toBe('4');
+    expect(getMeta(db, 'schema_version')).toBe('5');
     expect(getMeta(db, 'min_reader_version')).toBe('1');
     expect(getMeta(db, 'sync_floor')).toBe('0');
     expect(getMeta(db, 'sync_retention_days')).toBe('90');
     expect(db.prepare("SELECT 1 AS x FROM sqlite_master WHERE name = 'records_environment_revision'").get()).toBeTruthy();
     expect(db.prepare('SELECT COUNT(*) AS n FROM device_sync_state').get()).toEqual({ n: 0 });
+    upgraded.hub.close();
+  });
+
+  it('migration 0005 keeps populated devices and sessions and adds the browser columns', () => {
+    const options = dirs();
+    const v4 = openHubDb({ ...options, migrations: HUB_MIGRATIONS.slice(0, 4) });
+    if (v4.status !== 'ready') throw new Error('expected ready');
+    const old = v4.hub.db;
+    old.prepare("INSERT INTO environment(environment_id, display_name, created_at) VALUES('env', 'E', 't')").run();
+    old.prepare("INSERT INTO owner(owner_id, environment_id, display_name, created_at) VALUES('o', 'env', 'O', 't')").run();
+    old.prepare(
+      `INSERT INTO devices(device_id, environment_id, display_name, platform, app_version, capabilities_json, hub_eligible, protocol_version, registered_at)
+       VALUES('d1', 'env', 'PC', 'windows', '1', '[]', 0, 1, 't')`,
+    ).run();
+    old.prepare("INSERT INTO device_keys(key_id, device_id, algorithm, public_key, created_at) VALUES('k1', 'd1', 'ed25519', x'00', 't')").run();
+    old.prepare(
+      `INSERT INTO sessions(session_hash, owner_id, kind, created_at, last_active_at, idle_expires_at, absolute_expires_at) VALUES('s1', 'o', 'cookie', 't', 't', 't', 't')`,
+    ).run();
+    v4.hub.close();
+    const upgraded = openHubDb(options);
+    if (upgraded.status !== 'ready') throw new Error('expected ready');
+    const { db } = upgraded.hub;
+    expect(db.prepare('SELECT device_id, kind, installation_id, last_session_at FROM devices').all()).toEqual([
+      { device_id: 'd1', kind: 'desktop', installation_id: null, last_session_at: null },
+    ]);
+    expect(db.prepare('SELECT COUNT(*) AS n FROM device_keys').get()).toEqual({ n: 1 });
+    expect(db.prepare('SELECT session_hash, browser_device_id FROM sessions').all()).toEqual([{ session_hash: 's1', browser_device_id: null }]);
+    expect(db.prepare('SELECT COUNT(*) AS n FROM web_access').get()).toEqual({ n: 0 });
+    const insertBrowser = (id: string, installation: string): unknown => db.prepare(
+      `INSERT INTO devices(device_id, environment_id, display_name, platform, app_version, capabilities_json, hub_eligible, protocol_version, registered_at, kind, installation_id)
+       VALUES(?, 'env', 'B', 'web', '0', '[]', 0, 1, 't', 'browser', ?)`,
+    ).run(id, installation);
+    insertBrowser('b1', 'install-1');
+    expect(() => insertBrowser('b2', 'install-1')).toThrow();
+    expect(() => db.prepare("UPDATE devices SET kind = 'robot' WHERE device_id = 'd1'").run()).toThrow();
     upgraded.hub.close();
   });
 
@@ -86,10 +121,10 @@ describe('openHubDb', () => {
     first.hub.close();
     expect(() => readdirSync(options.preMigrationDir)).toThrow();
 
-    const v2: Migration = { version: 5, name: 'extra', minReaderVersion: 1, sql: 'CREATE TABLE extra (id TEXT PRIMARY KEY) STRICT;' };
+    const v2: Migration = { version: 6, name: 'extra', minReaderVersion: 1, sql: 'CREATE TABLE extra (id TEXT PRIMARY KEY) STRICT;' };
     const upgraded = openHubDb({ ...options, migrations: [...HUB_MIGRATIONS, v2] });
     if (upgraded.status !== 'ready') throw new Error('expected ready');
-    expect(readdirSync(options.preMigrationDir).filter((f) => /^pre-v4-.*\.db$/.test(f))).toHaveLength(1);
+    expect(readdirSync(options.preMigrationDir).filter((f) => /^pre-v5-.*\.db$/.test(f))).toHaveLength(1);
     upgraded.hub.close();
   });
 });

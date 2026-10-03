@@ -33,7 +33,7 @@ const DeviceId = Type.String({ minLength: 1, maxLength: 64 });
 const NullablePayload = Type.Union([Type.Unknown(), Type.Null()]);
 
 export const SyncCategorySchema = Type.Unsafe<SyncCategory>({ type: 'string', enum: [...SYNC_WIRE_CATEGORY_IDS] });
-const CategoryFlags = Type.Object(
+export const SyncCategoryFlags = Type.Object(
   Object.fromEntries(SYNC_WIRE_CATEGORY_IDS.map((id) => [id, Type.Boolean()])) as Record<SyncCategory, ReturnType<typeof Type.Boolean>>,
   { additionalProperties: false },
 );
@@ -67,6 +67,8 @@ export type SyncOp = Static<typeof SyncOp>;
 
 export const SYNC_REJECT_REASONS = [
   'unknown-entity', 'non-syncable-scope', 'invalid-payload', 'too-large', 'unknown-setting', 'not-owner-device', 'schema-too-new',
+  /** Web pushes only: the environment's web access for the record's category is off. */
+  'category-disabled',
 ] as const;
 export type SyncRejectReason = (typeof SYNC_REJECT_REASONS)[number];
 export const SyncRejectReasonSchema = Type.Unsafe<SyncRejectReason>({ type: 'string', enum: [...SYNC_REJECT_REASONS] });
@@ -114,8 +116,10 @@ export const SyncStateReport = Type.Object({
   quarantined: Count,
   conflicts: Count,
   stranded: Count,
-  categories: CategoryFlags,
+  categories: SyncCategoryFlags,
   lastSyncAt: NullableIso,
+  /** The Agent's sync pause flag (PD-054); absent from older Agents and from browsers. */
+  paused: Type.Optional(Type.Boolean()),
 });
 export type SyncStateReport = Static<typeof SyncStateReport>;
 export const SyncStateResponse = Type.Object({ floor: Revision, headRevision: Revision, retentionDays: Type.Integer({ minimum: 1 }) });
@@ -123,6 +127,8 @@ export type SyncStateResponse = Static<typeof SyncStateResponse>;
 
 export const SyncDeviceSummary = Type.Object({
   deviceId: DeviceId,
+  kind: Type.Union([Type.Literal('desktop'), Type.Literal('browser')]),
+  paused: Type.Boolean(),
   cursor: Revision,
   lag: Count,
   lastPushAt: NullableIso,

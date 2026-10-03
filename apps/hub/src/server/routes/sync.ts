@@ -175,10 +175,11 @@ export function registerSyncRoutes(app: FastifyInstance, options: SyncRouteOptio
       nostore(reply);
       const environmentId = ownerEnvironment();
       const headRevision = currentRevision(db);
-      const active = new Set(allRows<{ device_id: string }>(
-        db.prepare('SELECT device_id FROM devices WHERE revoked_at IS NULL AND unenrolled_at IS NULL')).map((r) => r.device_id));
+      const active = new Map(allRows<{ device_id: string; kind: 'desktop' | 'browser' }>(
+        db.prepare('SELECT device_id, kind FROM devices WHERE revoked_at IS NULL AND unenrolled_at IS NULL')).map((r) => [r.device_id, r.kind] as const));
       const devices = listDeviceSyncState(db).filter((d) => active.has(d.deviceId)).map((d) => ({
-        deviceId: d.deviceId, cursor: d.cursor, lag: Math.max(0, headRevision - d.cursor), lastPushAt: d.lastPushAt, lastPullAt: d.lastPullAt,
+        deviceId: d.deviceId, kind: active.get(d.deviceId) ?? 'desktop', paused: d.reported?.paused ?? false,
+        cursor: d.cursor, lag: Math.max(0, headRevision - d.cursor), lastPushAt: d.lastPushAt, lastPullAt: d.lastPullAt,
         quarantined: d.reported?.quarantined ?? 0, conflicts: d.reported?.conflicts ?? 0, pending: d.reported?.pending ?? 0,
       }));
       return reply.code(200).send({

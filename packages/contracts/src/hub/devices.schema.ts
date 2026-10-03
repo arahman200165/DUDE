@@ -186,8 +186,13 @@ export function ownerRecoveryMessage(input: { hubInstanceId: string; nonce: stri
 
 // --- Registry views ----------------------------------------------------------------------------------------------
 
+export const DEVICE_KINDS = ['desktop', 'browser'] as const;
+export type DeviceKind = (typeof DEVICE_KINDS)[number];
+
 export const DeviceInfo = Type.Object({
   deviceId: Uuid,
+  /** `browser` rows are key-less attribution for a Hub web browser (PD-050), never a credential. */
+  kind: Type.Unsafe<DeviceKind>({ type: 'string', enum: [...DEVICE_KINDS] }),
   displayName: Type.String(),
   platform: Platform,
   appVersion: Type.String(),

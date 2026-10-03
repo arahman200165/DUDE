@@ -72,7 +72,7 @@ export function resolveDeviceToken(db: Db, raw: string, now: number): DeviceCont
       `SELECT t.device_id AS device_id, t.key_id AS key_id FROM device_tokens t
        JOIN devices d ON d.device_id = t.device_id JOIN device_keys k ON k.key_id = t.key_id
        WHERE t.token_hash = ? AND t.revoked_at IS NULL AND t.expires_at > ?
-         AND d.revoked_at IS NULL AND d.unenrolled_at IS NULL AND k.revoked_at IS NULL`,
+         AND d.kind = 'desktop' AND d.revoked_at IS NULL AND d.unenrolled_at IS NULL AND k.revoked_at IS NULL`,
     )
     .get(hashDeviceToken(raw), iso(now)) as { device_id: string; key_id: string } | undefined;
   return row ? { deviceId: row.device_id, keyId: row.key_id } : null;

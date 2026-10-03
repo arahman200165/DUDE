@@ -137,6 +137,15 @@ describe('gating', () => {
     t.runtime.setPaused(false);
     await waitFor('push after resume', () => t.api.syncPush.mock.calls.length > 0);
   });
+
+  it('reports the paused flag in the state report, immediately on pause and again when it changes', async () => {
+    const t = setup();
+    t.runtime.setPaused(true);
+    await waitFor('paused report', () => t.api.syncReportState.mock.calls.length === 1);
+    expect(t.api.syncReportState.mock.calls[0]![1]).toMatchObject({ paused: true });
+    t.runtime.setPaused(false);
+    await waitFor('resumed report', () => t.api.syncReportState.mock.calls.some((c) => (c[1] as { paused: boolean }).paused === false));
+  });
 });
 
 describe('cycle', () => {

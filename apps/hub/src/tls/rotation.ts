@@ -75,7 +75,7 @@ export function createTlsRotation(options: TlsRotationOptions) {
       acked = (db.prepare('SELECT device_id FROM tls_pin_acks WHERE spki_sha256 = ? ORDER BY device_id').all(next.spki_sha256) as unknown as Array<{ device_id: string }>).map((r) => r.device_id);
       pending = (db
         .prepare(
-          `SELECT device_id, display_name FROM devices WHERE revoked_at IS NULL AND unenrolled_at IS NULL
+          `SELECT device_id, display_name FROM devices WHERE kind = 'desktop' AND revoked_at IS NULL AND unenrolled_at IS NULL
            AND device_id NOT IN (SELECT device_id FROM tls_pin_acks WHERE spki_sha256 = ?) ORDER BY registered_at, device_id`,
         )
         .all(next.spki_sha256) as unknown as Array<{ device_id: string; display_name: string }>).map((r) => ({ deviceId: r.device_id, displayName: r.display_name }));

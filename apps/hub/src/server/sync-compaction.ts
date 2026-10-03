@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { Db } from '@dude/sqlite-store';
 import { getRow } from '@dude/sqlite-store';
 import { audit } from '../security/audit.js';
+import { pruneBrowserDevices } from '../devices/registry.js';
 import { compactBefore, getRetentionDays, getSyncFloor } from '../db/sync-repository.js';
 
 export const SYNC_COMPACTION_INTERVAL_MS = 6 * 3600_000;
@@ -45,7 +46,7 @@ export function runSyncCompaction(db: Db, now: () => number, options: SyncCompac
 export function registerSyncCompaction(app: FastifyInstance, db: Db, now: () => number, options: SyncCompactionOptions = {}): void {
   const run = (): SyncCompactionResult | null => runSyncCompaction(db, now, options);
   app.decorate('syncCompaction', { run });
-  const safe = (): void => { try { run(); } catch (error) { app.log.error({ errCode: (error as { code?: string }).code }, 'sync compaction failed'); } };
+  const safe = (): void => { try { run(); pruneBrowserDevices(db, now()); } catch (error) { app.log.error({ errCode: (error as { code?: string }).code }, 'sync compaction failed'); } };
   const interval = options.compactionIntervalMs ?? SYNC_COMPACTION_INTERVAL_MS;
   let timer: NodeJS.Timeout | undefined;
   app.addHook('onReady', async () => {

@@ -322,13 +322,14 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
 
   async function reportState(): Promise<void> {
     const current = computeSyncStatus(db, { phase: 'idle', lastError: null, headRevision });
-    const key = JSON.stringify([current.cursor, current.pending, current.quarantined, current.conflicts, current.stranded, current.categories]);
+    const paused = getSyncState(db).paused;
+    const key = JSON.stringify([current.cursor, current.pending, current.quarantined, current.conflicts, current.stranded, current.categories, paused]);
     const nowMs = Date.now();
     if (lastReport && lastReport.key === key && nowMs - lastReport.at < intervals.reportMinIntervalMs) return;
     try {
       const response = await call<{ headRevision: number }>((api, token) => api.syncReportState(token, {
         cursor: current.cursor, pending: current.pending, quarantined: current.quarantined, conflicts: current.conflicts, stranded: current.stranded,
-        categories: current.categories, lastSyncAt: current.lastSyncAt,
+        categories: current.categories, lastSyncAt: current.lastSyncAt, paused,
       }));
       headRevision = response.headRevision;
       lastReport = { key, at: nowMs };
@@ -499,6 +500,8 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
     setPaused(paused) {
       updateSyncState(db, { paused });
       emitStatus();
+      // No cycle runs while paused, so tell the Hub about the flag now (best effort; the Hub shows it per device).
+      if (getSyncState(db).firstSyncState === 'done') void reportState();
       if (!paused) trigger(0, true);
       return status();
     },

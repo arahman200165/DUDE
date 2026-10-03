@@ -50,6 +50,8 @@ export interface RealtimeHub {
   isDeviceOnline(deviceId: string): boolean;
   /** Open sockets (all kinds). */
   connectionCount(): number;
+  /** Open sockets by principal: owner (cookie or bearer) and device. */
+  connectionCounts(): { owner: number; device: number };
 }
 
 declare module 'fastify' {
@@ -126,6 +128,11 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
   const hub: RealtimeHub = {
     isDeviceOnline: (deviceId) => (presence.get(deviceId) ?? 0) > 0,
     connectionCount: () => connections.size,
+    connectionCounts: () => {
+      let device = 0;
+      for (const c of connections) if (c.principal.kind === 'device') device += 1;
+      return { owner: connections.size - device, device };
+    },
   };
   app.decorate('realtime', hub);
 
@@ -167,8 +174,21 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
     for (const conn of where((c) => c.principal.kind === 'device' && c.principal.deviceId !== null && c.principal.deviceId !== data.originDeviceId)) {
       if (envOf(conn.principal.deviceId as string) === data.environmentId) sendEvent(conn, 'changes-available', { revision: data.revision });
     }
+    // Owner cookie sockets (Hub web, PD-054), except the browser whose row originated the change. The Hub has one environment.
+    for (const conn of where((c) => c.principal.kind === 'owner-cookie')) {
+      const bound = browserOfSession(conn.principal.sessionHash);
+      if (bound !== null && bound === data.originDeviceId) continue;
+      sendEvent(conn, 'changes-available', { revision: data.revision });
+    }
+  };
+  const browserOfSession = (sessionHash: string | null): string | null =>
+    sessionHash === null ? null
+      : (options.db.prepare('SELECT browser_device_id FROM sessions WHERE session_hash = ?').get(sessionHash) as { browser_device_id: string | null } | undefined)?.browser_device_id ?? null;
+  const onWebAccessChanged = (): void => {
+    for (const conn of where((c) => c.principal.kind === 'owner-cookie')) sendEvent(conn, 'web-access-changed', {});
   };
   app.hubEvents.on('records-changed', onRecordsChanged);
+  app.hubEvents.on('web-access-changed', onWebAccessChanged);
   app.hubEvents.on('device-registry-changed', onRegistryChanged);
   app.hubEvents.on('owner-recovered', onOwnerRecovered);
   app.hubEvents.on('session-revoked', onSessionRevoked);
@@ -190,6 +210,7 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
   });
   app.addHook('onClose', async () => {
     app.hubEvents.off('records-changed', onRecordsChanged);
+    app.hubEvents.off('web-access-changed', onWebAccessChanged);
     app.hubEvents.off('device-registry-changed', onRegistryChanged);
     app.hubEvents.off('owner-recovered', onOwnerRecovered);
     app.hubEvents.off('session-revoked', onSessionRevoked);

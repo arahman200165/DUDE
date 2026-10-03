@@ -44,6 +44,9 @@ export const AUDIT_EVENT_LABELS: Readonly<Record<string, string>> = {
   'throttle.locked': 'Sign-in locked after failures',
   'purge.previewed': 'Purge previewed',
   'purge.applied': 'Purge applied',
+  'web.attached': 'Browser attached',
+  'web.access-changed': 'Web access changed',
+  'hub.diagnostics-viewed': 'Endpoint diagnostics viewed',
 };
 
 export function auditEventLabel(event: string): string {
