@@ -31,6 +31,8 @@ export function createDesktopHubAdmin(bridge: () => DesktopHubBridge | undefined
     ownerSignOut: () => run((h) => h.ownerSignOut()),
     listDevices: () => run((h) => h.listDevices()),
     syncSummary: () => run((h) => h.syncSummary()),
+    diagnostics: () => run((h) => h.diagnostics()),
+    agentDiagnostics: () => run((h) => h.agentDiagnostics()),
     createPairingCode: (host) => run((h) => h.createPairingCode(host)),
     renameDevice: (id, name) => run((h) => h.renameDevice(id, name)),
     revokeDevicePreview: (id) => run((h) => h.revokeDevicePreview(id)),

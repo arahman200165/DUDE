@@ -1,4 +1,4 @@
-import type { AgentHubBootstrapResult, AgentHubProbe, AgentHubStatus } from '@dude/contracts';
+import type { AgentDiagnostics, AgentSyncStatus, AgentHubBootstrapResult, AgentHubProbe, AgentHubStatus } from '@dude/contracts';
 import type { Db } from '@dude/sqlite-store';
 import type { DpapiPort } from '../native/windows-sys-client.js';
 import { bootstrapLocalHub } from './bootstrap-local.js';
@@ -7,6 +7,8 @@ import { enrollDevice } from './enroll.js';
 import { createHubConnectionManager } from './hub-client.js';
 import type { HubConnectionManager, HubManagerDeps } from './hub-client.js';
 import { probeLocalHub } from './probe.js';
+import { buildAgentDiagnostics } from './agent-diagnostics.js';
+import { getEnrollment } from '../store/repos/hub-enrollment.repo.js';
 
 export interface HubRuntimeDeps extends Pick<HubManagerDeps, 'now' | 'device' | 'timings' | 'random' | 'createTransport'> {
   db: Db;
@@ -21,6 +23,8 @@ export interface HubRuntime {
   enroll(pairingString: string): Promise<AgentHubStatus>;
   probeLocal(port?: number): Promise<AgentHubProbe>;
   bootstrapLocal(params: BootstrapLocalParams): Promise<AgentHubBootstrapResult>;
+  /** Device-side report: one pinned public hello plus tracked enrollment and sync state. */
+  diagnostics(sync: AgentSyncStatus | null): Promise<AgentDiagnostics>;
 }
 
 export function createHubRuntime(deps: HubRuntimeDeps): HubRuntime {
@@ -35,5 +39,6 @@ export function createHubRuntime(deps: HubRuntimeDeps): HubRuntime {
       ownerSignIn: (password) => manager.owner.signIn(password), status: () => manager.status(),
     }),
     probeLocal: (port) => probeLocalHub(port),
+    diagnostics: (sync) => buildAgentDiagnostics({ enrollment: getEnrollment(deps.db), status: manager.status(), sync, now: deps.now, createTransport: deps.createTransport }),
   };
 }

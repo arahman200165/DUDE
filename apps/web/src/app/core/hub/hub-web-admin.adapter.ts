@@ -1,5 +1,5 @@
 import type {
-  AuditListResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary,
+  AuditListResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary, HubDiagnosticsReport, TlsCertificatesResponse,
   OwnerResetResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SignInResponse,
 } from '@dude/contracts/hub';
 import type { HubClient } from '@dude/api-client';
@@ -91,6 +91,15 @@ export function createHubWebAdmin(options: HubWebAdminOptions): HubAdminPort {
     ownerSignOut: signOut,
     listDevices: (): Promise<DeviceListResponse> => viaClient((c) => c.listDevices(undefined)),
     syncSummary: (): Promise<SyncSummary> => viaClient((c) => c.syncSummary(undefined)),
+    diagnostics: (): Promise<HubDiagnosticsReport> => viaClient((c) => c.diagnostics(undefined)),
+    tlsCertificates: (): Promise<TlsCertificatesResponse> => viaClient((c) => c.tlsCertificates()),
+    serverDate: async (): Promise<string | null> => {
+      try {
+        return (await transport.request({ method: 'GET', path: '/api/v1/hello' })).headers['date'] ?? null;
+      } catch (error) {
+        throw await normalize(error);
+      }
+    },
     createPairingCode: (host): Promise<PairingCodeResponse> => viaClient((c) => c.createPairingCode(undefined, host === undefined ? undefined : { host })),
     renameDevice: (id, name): Promise<DeviceInfo> => viaClient((c) => c.renameDevice(undefined, id, name)),
     revokeDevicePreview: (id): Promise<ConfirmPreview> => viaClient((c) => c.revokeDevicePreview(undefined, id)),

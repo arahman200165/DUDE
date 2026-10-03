@@ -122,6 +122,13 @@ export const CORE_SETTINGS_SECTIONS: readonly CoreSettingsSection[] = [
     load: () => import('./sections/environment-settings').then((m) => m.EnvironmentSettings),
   },
   {
+    id: 'endpoint',
+    title: 'Endpoint & Exposure',
+    keywords: ['endpoint', 'exposure', 'public', 'private', 'lan', 'bind', 'port', 'names', 'san', 'certificate', 'tls', 'pin', 'ca', 'root', 'proxy', 'hsts', 'firewall', 'readiness', 'checklist', 'doctor', 'diagnostics', 'clock skew', 'realtime', 'websocket', 'service worker', 'elevated', 'dude-hub', 'hub'],
+    hosts: ['desktop', 'hub-web'],
+    load: () => import('./sections/endpoint/endpoint-settings').then((m) => m.EndpointSettings),
+  },
+  {
     id: 'devices',
     title: 'Devices',
     keywords: ['devices', 'device', 'pairing', 'pairing code', 'revoke', 'rename', 'recovery trust', 'hub'],

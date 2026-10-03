@@ -86,7 +86,7 @@ export interface HubConnectionManager {
 type ConfirmResult = 'revoked' | 'active' | 'unknown';
 
 const TLS_ERROR_CODES = /^(ERR_TLS_|ERR_SSL_|CERT_|DEPTH_ZERO|SELF_SIGNED|UNABLE_TO_|HOSTNAME_MISMATCH|ERR_OSSL|EPROTO)/;
-const isTlsError = (error: unknown): boolean => {
+export const isTlsError = (error: unknown): boolean => {
   const code = (error as { code?: unknown } | null)?.code;
   return code === PIN_MISMATCH_CODE || (typeof code === 'string' && TLS_ERROR_CODES.test(code));
 };

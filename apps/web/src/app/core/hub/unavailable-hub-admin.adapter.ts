@@ -5,7 +5,7 @@ export function createUnavailableHubAdmin(reason = 'Hub administration is not av
   const reject = (): Promise<never> => Promise.reject(new HubAdminError(HUB_ADMIN_UNAVAILABLE, reason));
   return {
     status: reject, probeLocal: reject, enroll: reject, unenroll: reject, ownerStatus: reject, ownerSignIn: reject, ownerSignOut: reject,
-    listDevices: reject, syncSummary: reject, createPairingCode: reject, renameDevice: reject, revokeDevicePreview: reject, revokeDevice: reject, setRecoveryTrust: reject,
+    listDevices: reject, syncSummary: reject, diagnostics: reject, createPairingCode: reject, renameDevice: reject, revokeDevicePreview: reject, revokeDevice: reject, setRecoveryTrust: reject,
     listSessions: reject, revokeSession: reject, revokeAllPreview: reject, revokeAll: reject, listAudit: reject, recoveryCodesPreview: reject,
     regenerateRecoveryCodes: reject, changePassword: reject, bootstrap: reject, signIn: reject, currentSession: reject, signOut: reject,
     recover: reject, ownerReset: reject,

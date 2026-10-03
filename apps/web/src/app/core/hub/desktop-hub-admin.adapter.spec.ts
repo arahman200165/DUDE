@@ -23,6 +23,15 @@ describe('desktop Hub admin adapter', () => {
     expect(await admin.status()).toMatchObject({ enrollmentState: 'enrolled', hubUrl: 'https://hub.local:47600' });
   });
 
+  it('passes the Hub and device diagnostics through; the Hub report needs the owner', async () => {
+    const hub = fakeHub();
+    const admin = createDesktopHubAdmin(() => hub);
+    await expect(admin.diagnostics()).rejects.toMatchObject({ code: 'unauthorized' });
+    await expect(admin.agentDiagnostics?.()).resolves.toMatchObject({ state: 'enrolled' });
+    await admin.ownerSignIn('correct horse battery');
+    await expect(admin.diagnostics()).resolves.toMatchObject({ exposure: { mode: 'private' } });
+  });
+
   it('carries retryAfterMs from a locked result', async () => {
     const hub = { ...fakeHub(), ownerSignIn: async () => ({ ok: false as const, error: { code: 'locked', message: 'Too many attempts.', retryAfterMs: 30_000 } }) };
     const admin = createDesktopHubAdmin(() => hub);

@@ -1,4 +1,4 @@
-import type { TlsCertificatesResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, PairingCodeResponse, SessionListResponse, AuditListResponse, RecoveryCodesResponse, SyncCategory, SyncSummary } from '../hub/index.js';
+import type { TlsCertificatesResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, PairingCodeResponse, SessionListResponse, AuditListResponse, RecoveryCodesResponse, SyncCategory, SyncSummary, HubDiagnosticsReport } from '../hub/index.js';
 import type { EntityCommit, EntityCommitResult, KvMutation, ResetKind, StoreHealth, DeviceStoreBoot } from './device-store.model.js';
 
 /** Row shapes exchanged with the state service; payloads are opaque JSON. */
@@ -56,6 +56,24 @@ export interface AgentHubProbe {
   found: boolean; bootstrapped: boolean | null; hubInstanceId: string | null; spkiSha256: string | null;
   compatibility: 'compatible' | 'client-too-old' | 'hub-too-old' | null;
   hubVersion: string | null;
+}
+/** Device-side view of the Hub connection for the Endpoint & Exposure section (no credential; pins are public keys). */
+export type AgentDiagnosticsState = 'standalone' | 'enrolled' | 'unreachable' | 'untrusted-certificate' | 'incompatible' | 'revoked';
+export interface AgentDiagnostics {
+  state: AgentDiagnosticsState;
+  /** The enrolled Hub URL without query or fragment; null when standalone. */
+  hubUrl: string | null;
+  pins: { active: string | null; next: string | null; proxy: string[] };
+  lastContactAt: string | null;
+  /** Round trip of a public hello through the pinned transport; null when it did not complete. */
+  latencyMs: number | null;
+  protocol: { clientProtocol: number; hubProtocol: number | null; compatibility: 'compatible' | 'client-too-old' | 'hub-too-old' | null; hubVersion: string | null };
+  /** Hub clock minus this device's clock, from the response `Date` header, rounded to seconds; null when unknown. */
+  clockSkewSeconds: number | null;
+  sync: { cursor: number; pending: number; conflicts: number; quarantined: number; paused: boolean } | null;
+  /** Message of the failed probe, if any. */
+  probeError: string | null;
+  checkedAt: string;
 }
 export interface AgentHubOwnerStatus { signedIn: boolean; displayName: string | null; expiresAt: string | null }
 /** Pushed to connected desktops (no `id`) whenever the Hub connection state changes. */
@@ -182,6 +200,8 @@ export interface AgentMethodMap {
   /** Public Hub enrollment, or null when standalone. Deliberately carries no key material. */
   'hub.enrollment': { params: Record<string, never>; result: AgentHubEnrollment | null };
   'hub.status': { params: Record<string, never>; result: AgentHubStatus };
+  /** Device-side connectivity report: one public hello over the pinned transport plus the tracked enrollment and sync state. Never throws for network failures (they map to `state`). */
+  'hub.diagnostics': { params: Record<string, never>; result: AgentDiagnostics };
   'hub.probeLocal': { params: { port?: number }; result: AgentHubProbe };
   /** Public, credential-free Hub TLS info (pinned channel): the active pin, source and the public local-CA root. Errors: `not-enrolled`, `hub-*`. */
   'hub.tlsCertificates': { params: Record<string, never>; result: TlsCertificatesResponse };
@@ -200,6 +220,7 @@ export interface AgentMethodMap {
   'hub.owner.status': { params: Record<string, never>; result: AgentHubOwnerStatus };
   'hub.owner.listDevices': { params: Record<string, never>; result: DeviceListResponse };
   'hub.owner.syncSummary': { params: Record<string, never>; result: SyncSummary };
+  'hub.owner.diagnostics': { params: Record<string, never>; result: HubDiagnosticsReport };
   'hub.owner.createPairingCode': { params: { host?: string }; result: PairingCodeResponse };
   'hub.owner.renameDevice': { params: { deviceId: string; displayName: string }; result: DeviceInfo };
   'hub.owner.revokeDevicePreview': { params: { deviceId: string }; result: ConfirmPreview };
@@ -287,8 +308,8 @@ export const AGENT_METHODS = [
   'docs.get', 'docs.set', 'docs.remove',
   'secrets.status', 'secrets.list', 'secrets.set', 'secrets.remove', 'secrets.getCiphertext',
   'device.rename', 'reset.preview', 'reset.apply', 'hub.enrollment',
-  'hub.status', 'hub.probeLocal', 'hub.tlsCertificates', 'hub.enroll', 'hub.bootstrapLocal', 'hub.unenroll', 'hub.owner.signIn', 'hub.owner.signOut', 'hub.owner.status',
-  'hub.owner.listDevices', 'hub.owner.syncSummary', 'hub.owner.createPairingCode', 'hub.owner.renameDevice', 'hub.owner.revokeDevicePreview', 'hub.owner.revokeDevice',
+  'hub.status', 'hub.diagnostics', 'hub.probeLocal', 'hub.tlsCertificates', 'hub.enroll', 'hub.bootstrapLocal', 'hub.unenroll', 'hub.owner.signIn', 'hub.owner.signOut', 'hub.owner.status',
+  'hub.owner.listDevices', 'hub.owner.syncSummary', 'hub.owner.diagnostics', 'hub.owner.createPairingCode', 'hub.owner.renameDevice', 'hub.owner.revokeDevicePreview', 'hub.owner.revokeDevice',
   'hub.owner.setRecoveryTrust', 'hub.owner.listSessions', 'hub.owner.revokeSession', 'hub.owner.revokeAllPreview', 'hub.owner.revokeAll',
   'hub.owner.listAudit', 'hub.owner.recoveryCodesPreview', 'hub.owner.regenerateRecoveryCodes', 'hub.owner.changePassword', 'hub.recoverOwner',
   'sync.status', 'sync.setCategories', 'sync.setPaused', 'sync.now', 'sync.conflicts.list', 'sync.conflicts.resolve',

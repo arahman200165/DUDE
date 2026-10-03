@@ -149,9 +149,9 @@ describe('EnvironmentSettings (Hub web)', () => {
     expect(text(el, 'hub-version')).toBe('1.4.0');
     expect(text(el, 'hub-instance')).toBe('11111111');
     expect(text(el, 'spki')).toBe('ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD EFG');
-    expect(text(el, 'network-exposure')).toContain('dude-hub network lan on');
-    expect(text(el, 'network-exposure')).toContain('dude-hub network lan off');
-    expect(text(el, 'network-exposure')).toContain('administrator');
+    expect(text(el, 'network-exposure')).toContain('Endpoint & Exposure');
+    expect(text(el, 'network-exposure')).not.toContain('cannot be read');
+    expect((el.querySelector('[data-testid="endpoint-link"]') as HTMLAnchorElement).getAttribute('href')).toBe('/settings/endpoint');
     expect(el.querySelector('[data-testid="connect"]')).toBeNull();
     expect(el.querySelector('[data-testid="disconnect"]')).toBeNull();
     expect(text(el, 'owner-name')).toBe('Alex');

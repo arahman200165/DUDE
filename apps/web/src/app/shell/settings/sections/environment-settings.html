@@ -82,24 +82,9 @@
       </div>
     }
 
-    <div data-setting class="flex flex-col gap-2" data-testid="network-exposure">
-      <h3 class="text-ui-sm font-semibold text-text">Network exposure</h3>
-      <p class="text-ui text-text-muted">
-        Whether this Hub listens on the loopback only or on your local network cannot be read from this page yet. Changing it needs an administrator on the Hub machine, so run one of these in an elevated terminal there:
-      </p>
-      <ul class="flex flex-col gap-1">
-        <li class="flex flex-wrap items-center gap-2">
-          <code class="font-mono text-ui text-text">dude-hub network lan on</code>
-          <app-copy-button text="dude-hub network lan on" label="Copy" />
-          <span class="text-ui text-text-muted">Let devices on your LAN connect.</span>
-        </li>
-        <li class="flex flex-wrap items-center gap-2">
-          <code class="font-mono text-ui text-text">dude-hub network lan off</code>
-          <app-copy-button text="dude-hub network lan off" label="Copy" />
-          <span class="text-ui text-text-muted">Back to loopback only.</span>
-        </li>
-      </ul>
-    </div>
+    <p data-setting class="text-ui text-text-muted" data-testid="network-exposure">
+      Network exposure, the certificate and readiness checks are on the <a class="text-accent underline" routerLink="/settings/endpoint" data-testid="endpoint-link">Endpoint &amp; Exposure</a> page. Changing them needs elevated <code class="font-mono text-text">dude-hub</code> commands on the Hub machine.
+    </p>
   } @else {
     <app-local-hub-panel [standalone]="status()?.enrollmentState === 'standalone'" (changed)="refresh()" />
 
@@ -117,6 +102,9 @@
         <app-owner-recovery-panel (changed)="refresh()" />
       }
       <app-hub-web-actions-panel />
+      <p data-setting class="text-ui text-text-muted" data-testid="network-exposure">
+        Network exposure, the certificate and readiness checks are on the <a class="text-accent underline" routerLink="/settings/endpoint" data-testid="endpoint-link">Endpoint &amp; Exposure</a> page. Changing them needs elevated <code class="font-mono text-text">dude-hub</code> commands on the Hub machine.
+      </p>
     }
 
     @if (canConnect()) {

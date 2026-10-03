@@ -1,4 +1,4 @@
-import type { AuditListResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, OkResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SyncSummary } from "../../hub/index.js";
+import type { AuditListResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, OkResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SyncSummary, HubDiagnosticsReport } from "../../hub/index.js";
 import type { LlmChatRequest, LlmChatResult } from "./llm-chat.model.js";
 import type { SnapshotDiff, SnapshotHeader } from "../../fs/snapshot-diff.js";
 import type { ChangeEvent, FolderWatchSettings, FolderWatchState, TimelineQuery, WatchedFolder } from "../../fs/watch-types.js";
@@ -9,7 +9,7 @@ import type { StartupProgramsResult } from "../../system/startup-types.js";
 import type { InstalledSoftware } from "../../system/software-types.js";
 import type { WindowsCapability, WindowsFeature } from "../../system/feature-types.js";
 import type { SysApplyResult, SysJournalEntry, SysMutationSettings, SysMutResult, SysPlanPreview, SysPlanRequest, SysSnapshot, SysSnapshotHeader, SysSnapshotKind } from "../../system/sys-mutation-types.js";
-import type { AgentAppliedChange, AgentHistoryRecord, AgentNetworkRun, AgentStandalonePreview, AgentSyncStatus, FirstSyncChoice, FirstSyncPreview, QuarantinedOpExport, QuarantinedOpView, SyncCategoryFlags, SyncConflictChoice, SyncConflictView } from "../../device-store/agent-protocol.js";
+import type { AgentAppliedChange, AgentDiagnostics, AgentHistoryRecord, AgentNetworkRun, AgentStandalonePreview, AgentSyncStatus, FirstSyncChoice, FirstSyncPreview, QuarantinedOpExport, QuarantinedOpView, SyncCategoryFlags, SyncConflictChoice, SyncConflictView } from "../../device-store/agent-protocol.js";
 import type { SyncCategory } from "../../hub/index.js";
 import type { DeviceStoreBoot, DeviceStoreDevice, EntityCommit, EntityCommitResult, KvMutation, QuarantinePreviewResult, ResetApplyResult, ResetKind, ResetPreviewOptions, ResetPreviewResult, StoreHealth } from "../../device-store/device-store.model.js";
 import type { NetworkRequest, NetworkJobEvent, NetworkStartResult, NetworkPrepareResult, WatchEntry, WatchSettings, WatchState, WatchResult } from "../../core/platform/network-types.js";
@@ -131,6 +131,10 @@ export interface DesktopHubBridge {
   ownerSignOut(): Promise<DesktopHubResult<OkResponse>>;
   listDevices(): Promise<DesktopHubResult<DeviceListResponse>>;
   syncSummary(): Promise<DesktopHubResult<SyncSummary>>;
+  /** Owner session required (`owner-session-required`): the Hub's endpoint diagnostics report. View-only. */
+  diagnostics(): Promise<DesktopHubResult<HubDiagnosticsReport>>;
+  /** This device's own connection report (no owner session needed): state, pins, latency, clock skew, sync counts. */
+  agentDiagnostics(): Promise<DesktopHubResult<AgentDiagnostics>>;
   createPairingCode(host?: string): Promise<DesktopHubResult<PairingCodeResponse>>;
   renameDevice(deviceId: string, displayName: string): Promise<DesktopHubResult<DeviceInfo>>;
   revokeDevicePreview(deviceId: string): Promise<DesktopHubResult<ConfirmPreview>>;

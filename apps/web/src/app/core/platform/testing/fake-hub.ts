@@ -1,5 +1,6 @@
 import type { DesktopHubBridge, DesktopHubOwnerStatus, DesktopLocalHubInfo } from '@dude/contracts/shared/models/platform-bridge.model';
-import type { DeviceInfo, SessionInfo, SyncSummary } from '@dude/contracts/hub';
+import type { DeviceInfo, HubDiagnosticsReport, SessionInfo, SyncSummary } from '@dude/contracts/hub';
+import type { AgentDiagnostics } from '@dude/contracts';
 
 export const FAKE_HUB_DEVICE_ID = '0190aaaa-0000-7000-8000-000000000001';
 export const FAKE_HUB_PAIRING_STRING = 'dude-pair:v1:hub.local:47600:ABCD2345:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
@@ -10,6 +11,33 @@ export const FAKE_SYNC_SUMMARY = (deviceId: string): SyncSummary => ({
   counts: { settings: 3, favorites: 1, pipelines: 0, projects: 2, workspaces: 0, home: 1, usage: 0, 'workspace-layout': 0, scratchpad: 0 },
   devices: [{ deviceId, kind: 'desktop' as const, paused: false, cursor: 42, lag: 0, lastPushAt: '2026-01-01T00:00:00.000Z', lastPullAt: '2026-01-01T00:05:00.000Z', quarantined: 0, conflicts: 0, pending: 0 }],
 });
+
+/** A private-mode Hub report with a local-CA certificate, one passing and one failing check, for specs. */
+export const FAKE_HUB_DIAGNOSTICS: HubDiagnosticsReport = {
+  generatedAt: '2026-10-01T10:00:00.000Z', hubVersion: '0.0.44', protocolVersion: 2, schemaVersion: 7,
+  service: { mode: 'service', uptimeSeconds: 3600 },
+  exposure: { mode: 'private', publicReleased: false, bind: 'lan', bindAddress: '0.0.0.0', port: 47600, names: ['hub.local', '192.168.1.20'], canonicalOrigin: 'https://hub.local:47600', proxy: null },
+  certificate: {
+    source: 'local-ca', subject: 'CN=hub.local', sans: ['hub.local'], missingNames: ['192.168.1.20'], notBefore: '2026-09-01T00:00:00.000Z', notAfter: '2026-12-01T00:00:00.000Z', daysLeft: 59,
+    spkiSha256: 'A'.repeat(43), nextSpkiSha256: 'B'.repeat(43), pendingAcks: 1, chainLength: 2,
+    ca: { fingerprintSha256: 'C'.repeat(43), notAfter: '2036-09-01T00:00:00.000Z', permitted: { dns: ['hub.local'], ip: ['192.168.1.0/24'] } },
+    renewal: { automatic: true, nextCheckAt: null }, hsts: false,
+  },
+  proxyPins: { active: null, next: null },
+  firewall: { applicable: true, ruleName: 'DUDE Hub', present: true, profile: 'private' },
+  realtime: { available: true, connections: { owner: 1, device: 2 } },
+  checks: [
+    { id: 'tls-names', label: 'Certificate covers every name', status: 'fail', basis: 'verified', detail: '192.168.1.20 is not in the certificate.', fix: 'dude-hub tls reissue --name 192.168.1.20' },
+    { id: 'firewall', label: 'Firewall rule present', status: 'pass', basis: 'verified', detail: 'Rule "DUDE Hub" is enabled.' },
+    { id: 'external', label: 'Reachable from outside', status: 'info', basis: 'not-checked', detail: 'External reachability is checked in Phase 31F.' },
+  ],
+};
+
+export const FAKE_AGENT_DIAGNOSTICS: AgentDiagnostics = {
+  state: 'enrolled', hubUrl: 'https://hub.local:47600', pins: { active: 'A'.repeat(43), next: null, proxy: [] }, lastContactAt: '2026-10-01T10:00:00.000Z', latencyMs: 12,
+  protocol: { clientProtocol: 2, hubProtocol: 2, compatibility: 'compatible', hubVersion: '0.0.44' }, clockSkewSeconds: 1,
+  sync: { cursor: 42, pending: 0, conflicts: 0, quarantined: 0, paused: false }, probeError: null, checkedAt: '2026-10-01T10:00:01.000Z',
+};
 
 /** Where the local Hub starts: nothing installed, installed but not set up, set up, or set up with a newer Hub bundled in the app. */
 export type FakeLocalHubScenario = 'not-installed' | 'installed-unbootstrapped' | 'bootstrapped' | 'update-available';
@@ -104,6 +132,8 @@ export function fakeHub(options: { password?: string; localHub?: FakeLocalHubSce
     listDevices: track('listDevices', async () => needOwner() ?? ok([...devices.values()])),
     syncSummary: track('syncSummary', async () =>
       needOwner() ?? ok(FAKE_SYNC_SUMMARY(FAKE_HUB_DEVICE_ID))),
+    diagnostics: track('diagnostics', async () => needOwner() ?? ok(FAKE_HUB_DIAGNOSTICS)),
+    agentDiagnostics: track('agentDiagnostics', async () => ok(FAKE_AGENT_DIAGNOSTICS)),
     createPairingCode: track('createPairingCode', async () =>
       needOwner() ?? ok({ pairingCode: 'ABCD-2345', pairingString: FAKE_HUB_PAIRING_STRING, expiresAt: '2099-01-01T00:00:00.000Z', hubUrl: 'https://hub.local:47600', spkiSha256: 'A'.repeat(43) })),
     renameDevice: track('renameDevice', async (id: string, name: string) => {

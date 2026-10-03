@@ -1,0 +1,168 @@
+<div class="flex flex-col gap-4">
+  <div class="flex flex-wrap items-center gap-3">
+    <p class="min-w-0 flex-1 text-ui text-text-muted" data-testid="view-only-note">
+      This page only reports. Exposure, names and certificates change through elevated <code class="font-mono text-text">dude-hub</code> commands on the Hub machine, never from this window, so a stolen session cannot widen what the Hub exposes.
+    </p>
+    <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text hover:bg-panel-elevated disabled:opacity-50" data-testid="refresh" [disabled]="loading()" (click)="refresh()">Refresh</button>
+    @if (report() || agent()) {
+      <app-copy-button [text]="copyText()" label="Copy redacted report" />
+    }
+  </div>
+
+  @if (isDesktop) {
+    <div data-setting class="flex flex-col gap-2" data-testid="this-device">
+      <h3 class="text-ui-sm font-semibold text-text">This device</h3>
+      @if (agentError(); as message) {
+        <p class="text-ui text-error" role="alert" data-testid="agent-error">{{ message }}</p>
+      } @else if (agent(); as a) {
+        @if (agentCopy(); as copy) {
+          <p class="flex flex-wrap items-center gap-2 text-ui">
+            <span class="inline-flex items-center gap-1 font-semibold" [class]="copy.tone" data-testid="agent-state"><app-status-glyph [kind]="copy.glyph" />{{ copy.label }}</span>
+            <span class="text-text-muted">{{ copy.detail }}</span>
+          </p>
+        }
+        @if (a.state !== 'standalone') {
+          <dl class="grid grid-cols-[max-content_1fr] items-baseline gap-x-3 gap-y-1 text-ui">
+            @if (a.hubUrl) { <dt class="text-text-muted">Hub</dt><dd><code class="font-mono text-text" data-testid="agent-url">{{ a.hubUrl }}</code></dd> }
+            <dt class="text-text-muted">Active pin</dt>
+            <dd class="flex flex-wrap items-center gap-2"><code class="break-all font-mono text-text" data-testid="agent-pin">{{ a.pins.active ? group(a.pins.active) : 'None' }}</code>@if (a.pins.active) { <app-copy-button [text]="a.pins.active" label="Copy" /> }</dd>
+            @if (a.pins.next) { <dt class="text-text-muted">Next pin</dt><dd><code class="break-all font-mono text-text" data-testid="agent-pin-next">{{ group(a.pins.next) }}</code></dd> }
+            @if (a.pins.proxy.length > 0) { <dt class="text-text-muted">Proxy pins</dt><dd class="text-text" data-testid="agent-pin-proxy">{{ a.pins.proxy.length }}</dd> }
+            <dt class="text-text-muted">Last contact</dt><dd class="text-text">{{ when(a.lastContactAt) }}</dd>
+            <dt class="text-text-muted">Latency</dt><dd class="text-text" data-testid="agent-latency">{{ a.latencyMs === null ? 'Not measured' : a.latencyMs + ' ms' }}</dd>
+            <dt class="text-text-muted">Protocol</dt>
+            <dd class="text-text" data-testid="agent-protocol">
+              {{ a.protocol.hubProtocol === null ? 'Unknown' : 'Hub ' + a.protocol.hubProtocol + ', this app ' + a.protocol.clientProtocol }}
+              @if (a.protocol.compatibility && a.protocol.compatibility !== 'compatible') { <span class="text-warning"> ({{ a.protocol.compatibility === 'client-too-old' ? 'this app is too old' : 'the Hub is too old' }})</span> }
+            </dd>
+            <dt class="text-text-muted">Clock skew</dt>
+            <dd data-testid="agent-skew" [class]="skewed(a.clockSkewSeconds) ? 'text-warning' : 'text-text'">{{ a.clockSkewSeconds === null ? 'Unknown' : a.clockSkewSeconds + ' s' }}@if (skewed(a.clockSkewSeconds)) { (more than a minute: certificates can look expired) }</dd>
+            @if (a.sync; as s) {
+              <dt class="text-text-muted">Sync</dt>
+              <dd class="text-text" data-testid="agent-sync">cursor {{ s.cursor }}, {{ s.pending }} pending, {{ s.conflicts }} conflicts, {{ s.quarantined }} quarantined{{ s.paused ? ', paused' : '' }}</dd>
+            }
+          </dl>
+          @if (a.probeError) { <p class="text-ui text-text-muted" data-testid="agent-probe-error">Last probe: {{ a.probeError }}</p> }
+        }
+      } @else {
+        <p class="text-ui text-text-muted" role="status">Checking this device…</p>
+      }
+    </div>
+  }
+
+  <div data-setting class="flex flex-col gap-2" data-testid="owner-session">
+    <h3 class="text-ui-sm font-semibold text-text">Hub report</h3>
+    <app-owner-gate />
+  </div>
+
+  @if (session.signedIn()) {
+    @if (reportError(); as message) {
+      <p class="text-ui text-error" role="alert" data-testid="report-error">{{ message }}</p>
+    }
+    @if (report(); as r) {
+      <div data-setting class="flex flex-col gap-2" data-testid="exposure">
+        <h3 class="text-ui-sm font-semibold text-text">Exposure</h3>
+        <dl class="grid grid-cols-[max-content_1fr] items-baseline gap-x-3 gap-y-1 text-ui">
+          <dt class="text-text-muted">Mode</dt>
+          <dd data-testid="exposure-mode">
+            @if (r.exposure.mode === 'private') {
+              <span class="text-text">Private</span>
+            } @else {
+              <span class="inline-flex items-center gap-1 font-semibold text-warning"><app-status-glyph kind="warning" />Public — not released until Phase 31F</span>
+            }
+          </dd>
+          <dt class="text-text-muted">Listening on</dt>
+          <dd class="text-text" data-testid="exposure-bind"><code class="font-mono">{{ r.exposure.bindAddress }}:{{ r.exposure.port }}</code> ({{ bind[r.exposure.bind] }})</dd>
+          <dt class="text-text-muted">Names</dt>
+          <dd class="text-text" data-testid="exposure-names">{{ r.exposure.names.length === 0 ? 'None configured' : r.exposure.names.join(', ') }}</dd>
+          <dt class="text-text-muted">Canonical origin</dt>
+          <dd class="text-text" data-testid="exposure-origin">{{ r.exposure.canonicalOrigin ?? 'Not set' }}</dd>
+          <dt class="text-text-muted">Reverse proxy</dt>
+          <dd class="text-text" data-testid="exposure-proxy">
+            @if (r.exposure.proxy; as p) { {{ p.trusted.length }} trusted {{ p.trusted.length === 1 ? 'peer' : 'peers' }}, public origin {{ p.publicOrigin }} } @else { None }
+          </dd>
+          <dt class="text-text-muted">Hub</dt>
+          <dd class="text-text">{{ r.hubVersion }} (protocol {{ r.protocolVersion }}, schema {{ r.schemaVersion }}), {{ r.service.mode }}, up {{ r.service.uptimeSeconds }} s</dd>
+          <dt class="text-text-muted">Realtime</dt>
+          <dd class="text-text">{{ r.realtime.available ? 'Available' : 'Unavailable' }}, {{ r.realtime.connections.owner }} owner and {{ r.realtime.connections.device }} device connections</dd>
+        </dl>
+      </div>
+
+      <div data-setting class="flex flex-col gap-2" data-testid="certificate">
+        <h3 class="text-ui-sm font-semibold text-text">Certificate</h3>
+        @if (r.certificate; as c) {
+          <dl class="grid grid-cols-[max-content_1fr] items-baseline gap-x-3 gap-y-1 text-ui">
+            <dt class="text-text-muted">Source</dt><dd class="text-text" data-testid="cert-source">{{ source[c.source] }}</dd>
+            <dt class="text-text-muted">Subject</dt><dd class="text-text"><code class="font-mono" data-testid="cert-subject">{{ c.subject }}</code></dd>
+            <dt class="text-text-muted">Names (SANs)</dt>
+            <dd class="flex flex-wrap items-center gap-1" data-testid="cert-sans">
+              @for (name of c.sans; track name) { <code class="rounded-sm border border-border px-1 font-mono text-text">{{ name }}</code> }
+              @for (name of c.missingNames; track name) {
+                <code class="inline-flex items-center gap-1 rounded-sm border border-error px-1 font-mono text-error" data-testid="cert-missing"><app-status-glyph kind="error" />{{ name }} (missing)</code>
+              }
+            </dd>
+            <dt class="text-text-muted">Valid</dt>
+            <dd class="text-text" data-testid="cert-validity">{{ c.notBefore.slice(0, 10) }} to {{ c.notAfter.slice(0, 10) }}, <span [class]="daysTone(c.daysLeft)" data-testid="cert-days">{{ c.daysLeft }} days left</span></dd>
+            <dt class="text-text-muted">Pin (SPKI)</dt>
+            <dd class="flex flex-wrap items-center gap-2"><code class="break-all font-mono text-text" data-testid="cert-spki">{{ group(c.spkiSha256) }}</code><app-copy-button [text]="c.spkiSha256" label="Copy" /></dd>
+            @if (c.nextSpkiSha256) {
+              <dt class="text-text-muted">Next pin</dt>
+              <dd class="text-text"><code class="break-all font-mono" data-testid="cert-next">{{ group(c.nextSpkiSha256) }}</code> <span class="text-text-muted">({{ c.pendingAcks }} {{ c.pendingAcks === 1 ? 'device' : 'devices' }} yet to acknowledge)</span></dd>
+            }
+            <dt class="text-text-muted">Chain</dt><dd class="text-text">{{ c.chainLength }} {{ c.chainLength === 1 ? 'certificate' : 'certificates' }}</dd>
+            @if (c.ca; as ca) {
+              <dt class="text-text-muted">CA fingerprint</dt>
+              <dd class="flex flex-wrap items-center gap-2"><code class="break-all font-mono text-text" data-testid="ca-fingerprint">{{ group(ca.fingerprintSha256) }}</code><app-copy-button [text]="ca.fingerprintSha256" label="Copy" /></dd>
+              <dt class="text-text-muted">CA expires</dt><dd class="text-text" data-testid="ca-expiry">{{ ca.notAfter.slice(0, 10) }}</dd>
+              <dt class="text-text-muted">CA permitted</dt>
+              <dd class="text-text" data-testid="ca-permitted">{{ ca.permitted.dns.concat(ca.permitted.ip).join(', ') || 'No name constraints' }}</dd>
+            }
+            <dt class="text-text-muted">Renewal</dt>
+            <dd class="text-text" data-testid="cert-renewal">{{ c.renewal.automatic ? 'Automatic' : 'Manual' }}@if (c.renewal.nextCheckAt) { , next check {{ when(c.renewal.nextCheckAt) }} }</dd>
+            <dt class="text-text-muted">HSTS</dt><dd class="text-text" data-testid="cert-hsts">{{ c.hsts ? 'On' : 'Off' }}</dd>
+          </dl>
+        } @else {
+          <p class="text-ui text-text-muted">The Hub has no certificate yet.</p>
+        }
+      </div>
+
+      <div data-setting class="flex flex-col gap-2" data-testid="readiness">
+        <h3 class="text-ui-sm font-semibold text-text">Readiness checklist @if (failing() > 0) { <span class="text-error">({{ failing() }} failing)</span> }</h3>
+        <ul class="flex flex-col gap-2">
+          @for (check of r.checks; track check.id) {
+            <li class="flex flex-col gap-1 rounded-sm border border-border p-2" [attr.data-testid]="'check-' + check.id">
+              <div class="flex flex-wrap items-center gap-2 text-ui">
+                <span class="inline-flex items-center gap-1 font-semibold" [class]="tone[check.status].tone" data-testid="check-status"><app-status-glyph [kind]="tone[check.status].glyph" />{{ tone[check.status].label }}</span>
+                <span class="font-semibold text-text">{{ check.label }}</span>
+                <span class="rounded-sm border border-border px-1 text-ui-sm text-text-muted" data-testid="check-basis">{{ basis[check.basis] }}</span>
+              </div>
+              <p class="text-ui text-text-muted" data-testid="check-detail">{{ check.detail }}</p>
+              @if (fix(check.fix); as command) {
+                <div class="flex flex-col gap-1" data-testid="check-fix">
+                  <span class="text-ui-sm text-text-muted">Run elevated:</span>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <code class="break-all rounded-sm border border-border bg-panel px-2 py-0.5 font-mono text-ui text-text">{{ command }}</code>
+                    <app-copy-button [text]="command" label="Copy" />
+                  </div>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      </div>
+    } @else if (loading()) {
+      <p class="text-ui text-text-muted" role="status">Loading the Hub report…</p>
+    }
+  }
+
+  @if (isHubWeb) {
+    <app-endpoint-browser-panel [report]="report()" [refreshToken]="refreshToken()" />
+  }
+
+  <app-disclosure label="About the checklist" summary="Verified, operator-claimed, not checked">
+    <p class="text-ui text-text-muted">
+      <strong class="text-text">Verified</strong> means the Hub observed it itself. <strong class="text-text">Operator-claimed</strong> is configuration the Hub cannot confirm, such as a public name or a router rule.
+      <strong class="text-text">Not checked</strong> needs a view from outside your network, which arrives in Phase 31F. See <a class="text-accent underline" routerLink="/settings/environment">Environment &amp; Hub</a> for connection and pairing.
+    </p>
+  </app-disclosure>
+</div>

@@ -1,7 +1,8 @@
 import type {
-  AuditListResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary,
+  AuditListResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary, HubDiagnosticsReport, TlsCertificatesResponse,
   OwnerResetResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SignInResponse,
 } from '@dude/contracts/hub';
+import type { AgentDiagnostics } from '@dude/contracts';
 import type {
   DesktopHubEnrollment, DesktopHubOwnerStatus, DesktopHubProbe, DesktopHubStatus, DesktopLocalHubInfo, DesktopRootCertificatePreview, DesktopLocalHubSetupRequest, DesktopLocalHubSetupResult,
   DesktopLocalHubUpdateResult,
@@ -39,6 +40,8 @@ export interface HubAdminPort {
   ownerSignOut(): Promise<OkResponse>;
   listDevices(): Promise<DeviceListResponse>;
   syncSummary(): Promise<SyncSummary>;
+  /** Owner only: the Hub's endpoint diagnostics report (exposure, certificate, readiness checks). View-only. */
+  diagnostics(): Promise<HubDiagnosticsReport>;
   createPairingCode(host?: string): Promise<PairingCodeResponse>;
   renameDevice(deviceId: string, displayName: string): Promise<DeviceInfo>;
   revokeDevicePreview(deviceId: string): Promise<ConfirmPreview>;
@@ -69,6 +72,12 @@ export interface HubAdminPort {
   rootCertificatePreview?(): Promise<DesktopRootCertificatePreview>;
   /** Desktop only, step 2: adds the previewed root to the CURRENT USER's Trusted Root store. */
   installRootCertificate?(confirmToken: string): Promise<{ readonly installed: true }>;
+  /** Desktop only: this device's own connection report (state, pins, latency, clock skew, sync counts). No owner session needed. */
+  agentDiagnostics?(): Promise<AgentDiagnostics>;
+  /** Hub-served web build only: the Hub's public TLS certificates route (active pin, source, public local-CA root). */
+  tlsCertificates?(): Promise<TlsCertificatesResponse>;
+  /** Hub-served web build only: the `Date` header of a public Hub response, for the browser's clock-skew check; null when absent. */
+  serverDate?(): Promise<string | null>;
   /** Hub-served web build only: the Hub's TLS public-key pin (and the pending next pin during rotation). */
   tlsFingerprint?(): Promise<{ readonly spkiSha256: string; readonly nextSpkiSha256: string | null }>;
 

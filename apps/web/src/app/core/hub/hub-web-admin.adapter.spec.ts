@@ -84,6 +84,18 @@ describe('Hub web admin adapter', () => {
     expect(calls[0]).toMatchObject({ url: '/api/v1/sync/summary', method: 'GET', credentials: 'same-origin' });
   });
 
+  it('reads the endpoint diagnostics through the owner route', async () => {
+    const { admin, calls } = setup(() => ({ status: 401, body: { error: { code: 'unauthorized', message: 'no' } } }));
+    await expect(admin.diagnostics()).rejects.toMatchObject({ code: 'unauthorized' });
+    expect(calls[0]).toMatchObject({ url: '/api/v1/diagnostics', method: 'GET', credentials: 'same-origin' });
+  });
+
+  it('exposes the Date header of a public Hub response for the clock-skew check', async () => {
+    const { admin, calls } = setup(() => ({ status: 200, body: HELLO, headers: { date: 'Thu, 01 Oct 2026 10:00:00 GMT' } }));
+    await expect(admin.serverDate?.()).resolves.toBe('Thu, 01 Oct 2026 10:00:00 GMT');
+    expect(calls[0]).toMatchObject({ url: '/api/v1/hello', method: 'GET' });
+  });
+
   it('never persists the CSRF token', async () => {
     const setItem = vi.spyOn(Storage.prototype, 'setItem');
     const { admin } = setup(() => ({ status: 200, body: SESSION }));
@@ -118,7 +130,7 @@ describe('Hub web admin adapter', () => {
 
   it('puts recovery trust and posts recover/reset bodies as the Hub expects', async () => {
     const codes = Array.from({ length: 10 }, (_, i) => `ABCDE-FGHJ${i}`);
-    const DEVICE = { deviceId: '0190aaaa-0000-7000-8000-000000000001', displayName: 'd', platform: 'windows', appVersion: '1', protocolVersion: 1, capabilities: [], registeredAt: '2026-01-01T00:00:00.000Z', lastSeenAt: null, revokedAt: null, unenrolledAt: null, recoveryTrusted: true, online: false, current: false };
+    const DEVICE = { deviceId: '0190aaaa-0000-7000-8000-000000000001', displayName: 'd', platform: 'windows', appVersion: '1', protocolVersion: 1, capabilities: [], registeredAt: '2026-01-01T00:00:00.000Z', lastSeenAt: null, revokedAt: null, unenrolledAt: null, recoveryTrusted: true, online: false, current: false, kind: 'desktop' };
     const { admin, calls } = setup((c) => ({ status: 200, body: c.url.endsWith('/recovery-trust') ? DEVICE : c.url.endsWith('/owner/reset') ? { recoveryCodes: codes } : SESSION }));
     await admin.setRecoveryTrust('0190aaaa-0000-7000-8000-000000000001', 'pw', true);
     expect(calls[0]).toMatchObject({ method: 'PUT', url: '/api/v1/devices/0190aaaa-0000-7000-8000-000000000001/recovery-trust', body: { password: 'pw', trusted: true } });

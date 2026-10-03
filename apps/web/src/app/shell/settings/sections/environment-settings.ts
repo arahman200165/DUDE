@@ -1,4 +1,5 @@
 import { Component, DestroyRef, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { PAIRING_STRING_PREFIX, parsePairingString } from '@dude/contracts/hub';
 import { HUB_ADMIN } from '../../../core/hub/hub-admin.token';
 import { HubAdminError, type HubStatus } from '../../../core/hub/hub-admin.port';
@@ -23,7 +24,7 @@ type DisconnectStep = 'idle' | 'confirm' | 'unreachable' | 'force-confirm';
  */
 @Component({
   selector: 'app-environment-settings',
-  imports: [CopyButton, HubStatusBadge, HubWebActionsPanel, LocalHubPanel, OwnerGate, OwnerRecoveryPanel, SyncSummaryPanel],
+  imports: [CopyButton, HubStatusBadge, HubWebActionsPanel, LocalHubPanel, OwnerGate, OwnerRecoveryPanel, RouterLink, SyncSummaryPanel],
   templateUrl: './environment-settings.html',
 })
 export class EnvironmentSettings {

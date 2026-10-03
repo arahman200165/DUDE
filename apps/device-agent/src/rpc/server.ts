@@ -356,6 +356,8 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
     'sync.standalone.apply': (p) => syncGuard(() => syncRuntime().standaloneApply({ confirmToken: str(p.confirmToken, 'confirmToken'), digest: str(p.digest, 'digest') })),
     'hub.enrollment': () => publicEnrollment(db()),
     'hub.status': () => hubRuntime().manager.status(),
+    'hub.diagnostics': () => hubRuntime().diagnostics(deps.sync ? deps.sync.status() : null),
+    'hub.owner.diagnostics': () => owner((api, t) => api.diagnostics(t)),
     'hub.probeLocal': (p) => {
       if (p.port !== undefined && (!Number.isInteger(p.port) || p.port < 1 || p.port > 65535)) throw invalid('port must be a TCP port.');
       return hubRuntime().probeLocal(p.port);
