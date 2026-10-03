@@ -10,6 +10,8 @@ export { SETTING_DEFINITIONS, findSettingDefinition } from './settings/core-sett
 export { resolveToolKeyScope } from './settings/scope-rules.js';
 export { resolveKvScope, createManifestScopeLookup } from './settings/kv-scope.js';
 export type { ManifestScopeLookup } from './settings/kv-scope.js';
+export { isSyncableSettingKey } from './settings/syncable-key.js';
+export type { SyncableToolInfo } from './settings/syncable-key.js';
 export type { ToolSettingScopeOverride } from './settings/scope-rules.js';
 export * from './codecs/index.js';
 export type {

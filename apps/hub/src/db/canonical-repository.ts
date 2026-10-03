@@ -1,9 +1,24 @@
-import { ENTITY_CODECS } from '@dude/persistence';
-import type { CommitResult, EntityCodec, EntityCollectionRepository } from '@dude/persistence';
+import type { SyncRecord, SyncRejectReason } from '@dude/contracts/hub';
+import { ENTITY_CODECS, isSyncableSettingKey, settingCodec } from '@dude/persistence';
+import type { CommitResult, EntityCodec, EntityCollectionRepository, SyncableToolInfo } from '@dude/persistence';
 import { allRows, getRow, transaction } from '@dude/sqlite-store';
 import type { Db } from '@dude/sqlite-store';
+import { syncPolicyFor, SYNC_LIMITS } from '@dude/sync';
+import { TOOL_METADATA } from '@dude/tool-registry';
+import { toSyncRecord } from './sync-repository.js';
+import type { RecordRow } from './sync-repository.js';
 
-export type CanonicalRejectionCode = 'unknown-entity' | 'non-canonical-scope' | 'invalid-payload' | 'unknown-environment';
+export type CanonicalRejectionCode =
+  | 'unknown-entity' | 'non-canonical-scope' | 'invalid-payload' | 'unknown-environment'
+  | 'too-large' | 'unknown-setting' | 'not-owner-device' | 'schema-too-new';
+
+const REJECT_REASONS: Partial<Record<CanonicalRejectionCode, SyncRejectReason>> = {
+  'unknown-entity': 'unknown-entity', 'non-canonical-scope': 'non-syncable-scope', 'invalid-payload': 'invalid-payload',
+  'too-large': 'too-large', 'unknown-setting': 'unknown-setting', 'not-owner-device': 'not-owner-device', 'schema-too-new': 'schema-too-new',
+};
+
+/** Codecs the Hub validates against: the shared registry plus the synced kv `setting` entity. */
+const HUB_CODECS: Readonly<Record<string, EntityCodec<any, any>>> = { ...ENTITY_CODECS, [settingCodec.entityType]: settingCodec };
 
 /** A commit refused before anything was written. SQL failures are not wrapped; they propagate after rollback. */
 export class CanonicalRejection extends Error {
@@ -27,9 +42,20 @@ export interface CanonicalCommit {
   codecCtx?: unknown;
   /** Test seam: codec lookup (defaults to ENTITY_CODECS). */
   codecs?: Readonly<Record<string, EntityCodec<any, any>>>;
+  /** Sync routes only: enforce SYNC_POLICIES (conflict policy, ownership, size, schema version, setting keys). */
+  enforcePolicy?: boolean;
+  /** Revision the producing device last saw for this entity (merge3 conflict detection). */
+  basedOnRevision?: number | null;
+  /** The authenticated device; per-device entities must be owned by it. */
+  actingDeviceId?: string;
+  /** Schema version the producing device wrote the payload with (enforcePolicy only). */
+  schemaVersion?: number;
+  /** Test seam: tool manifests for the setting-key check (defaults to the generated registry). */
+  tools?: readonly SyncableToolInfo[];
 }
 
 export type CanonicalCommitResult = { status: 'applied'; revision: number } | { status: 'duplicate'; revision: number };
+export type SyncCommitResult = CanonicalCommitResult | { status: 'conflict'; current: SyncRecord } | { status: 'rejected'; reason: SyncRejectReason };
 
 export interface CanonicalRecord {
   environmentId: string;
@@ -60,11 +86,6 @@ const CANONICAL_SCOPES = new Set(['environment', 'workspace']);
 const CTX_REQUIRED = new Set(['home-layout']);
 const isPlainObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
-interface RecordRow {
-  environment_id: string; entity_type: string; entity_id: string; scope: string; schema_version: number; revision: number;
-  payload_json: string | null; deleted: number; updated_at: string; updated_by_device_id: string | null;
-}
-
 function toRecord(row: RecordRow): CanonicalRecord {
   return {
     environmentId: row.environment_id,
@@ -88,14 +109,27 @@ export function currentRevision(db: Db): number {
  * Commit one canonical mutation, its change-feed entry and its applied-op marker atomically.
  * The Hub is the only caller; revisions are global and monotonic.
  */
-export function commitCanonical(db: Db, input: CanonicalCommit): CanonicalCommitResult {
-  return transaction(db, (): CanonicalCommitResult => {
+export function commitCanonical(db: Db, input: CanonicalCommit & { enforcePolicy: true }): SyncCommitResult;
+export function commitCanonical(db: Db, input: CanonicalCommit): CanonicalCommitResult;
+export function commitCanonical(db: Db, input: CanonicalCommit): SyncCommitResult {
+  if (!input.enforcePolicy) return commitInTransaction(db, input);
+  try {
+    return commitInTransaction(db, input);
+  } catch (error) {
+    const reason = error instanceof CanonicalRejection ? REJECT_REASONS[error.code] : undefined;
+    if (reason) return { status: 'rejected', reason };
+    throw error;
+  }
+}
+
+function commitInTransaction(db: Db, input: CanonicalCommit): SyncCommitResult {
+  return transaction(db, (): SyncCommitResult => {
     if (input.opId !== undefined) {
       const seen = getRow<{ revision: number }>(db.prepare('SELECT revision FROM applied_ops WHERE op_id = ?'), input.opId);
       if (seen) return { status: 'duplicate', revision: seen.revision };
     }
 
-    const codecs = input.codecs ?? ENTITY_CODECS;
+    const codecs = input.codecs ?? HUB_CODECS;
     const codec = Object.hasOwn(codecs, input.entityType) ? codecs[input.entityType] : undefined;
     if (!codec) throw new CanonicalRejection('unknown-entity', `Unknown entity type "${input.entityType}".`);
     if (!CANONICAL_SCOPES.has(codec.scope)) {
@@ -103,6 +137,20 @@ export function commitCanonical(db: Db, input: CanonicalCommit): CanonicalCommit
     }
     if (!getRow(db.prepare('SELECT 1 AS x FROM environment WHERE environment_id = ?'), input.environmentId)) {
       throw new CanonicalRejection('unknown-environment', `Unknown environment "${input.environmentId}".`);
+    }
+
+    const policy = input.enforcePolicy ? syncPolicyFor(input.entityType) : undefined;
+    if (input.enforcePolicy) {
+      if (!policy) throw new CanonicalRejection('unknown-entity', `Entity type "${input.entityType}" does not sync.`);
+      if (policy.conflict === 'per-device' && input.entityId !== input.actingDeviceId) {
+        throw new CanonicalRejection('not-owner-device', 'A device may only write its own per-device record.');
+      }
+      if (input.op === 'upsert' && Buffer.byteLength(JSON.stringify(input.payload ?? null), 'utf8') > SYNC_LIMITS.maxRecordBytes) {
+        throw new CanonicalRejection('too-large', 'Record exceeds the size limit.');
+      }
+      if (input.schemaVersion !== undefined && input.schemaVersion > codec.schemaVersion) {
+        throw new CanonicalRejection('schema-too-new', 'The device wrote a newer schema than this Hub understands.');
+      }
     }
 
     let payloadJson: string | null = null;
@@ -115,10 +163,27 @@ export function commitCanonical(db: Db, input: CanonicalCommit): CanonicalCommit
       } else {
         const decoded: unknown = codec.decode(input.payload, input.codecCtx);
         if (decoded === null || decoded === undefined) throw new CanonicalRejection('invalid-payload', `Invalid ${input.entityType} payload.`);
-        if (codec.idOf(decoded) !== input.entityId) throw new CanonicalRejection('invalid-payload', `Payload id does not match entity id "${input.entityId}".`);
+        if (policy?.conflict !== 'per-device' && codec.idOf(decoded) !== input.entityId) throw new CanonicalRejection('invalid-payload', `Payload id does not match entity id "${input.entityId}".`);
         encoded = codec.encode(decoded);
       }
       payloadJson = JSON.stringify(encoded);
+    }
+
+    if (input.enforcePolicy && input.entityType === settingCodec.entityType) {
+      const payload = input.op === 'upsert' ? (JSON.parse(payloadJson as string) as { namespace: string; key: string }) : undefined;
+      const sep = input.entityId.indexOf(':');
+      const namespace = payload?.namespace ?? input.entityId.slice(0, Math.max(sep, 0));
+      const key = payload?.key ?? input.entityId.slice(sep + 1);
+      if (sep < 0 || !isSyncableSettingKey(namespace, key, input.tools ?? TOOL_METADATA)) {
+        throw new CanonicalRejection('unknown-setting', 'This setting does not sync.');
+      }
+    }
+
+    if (policy?.conflict === 'merge3') {
+      const existing = getRow<RecordRow>(
+        db.prepare('SELECT * FROM records WHERE environment_id = ? AND entity_type = ? AND entity_id = ?'),
+        input.environmentId, input.entityType, input.entityId);
+      if (existing && (input.basedOnRevision ?? null) !== existing.revision) return { status: 'conflict', current: toSyncRecord(existing) };
     }
 
     const revision = currentRevision(db) + 1;

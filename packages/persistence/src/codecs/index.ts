@@ -17,6 +17,8 @@ export {
 } from './documents.codec.js';
 export { homeLayoutCodec, isNewerHomeLayoutDocument, decodeHomeLayoutReadOnly } from './home-layout.codec.js';
 export type { HomeLayoutCodecContext } from './home-layout.codec.js';
+export { settingCodec, settingEntityId, SETTING_ENTITY_TYPE } from './setting.codec.js';
+export type { SettingEntity } from './setting.codec.js';
 export { sanitizePanelTree } from './codec-helpers.js';
 
 export const ENTITY_CODECS: Readonly<Record<string, EntityCodec<any, any>>> = {

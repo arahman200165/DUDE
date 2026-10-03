@@ -8,6 +8,8 @@
     "@dude/contracts": "*",
     "@dude/persistence": "*",
     "@dude/sqlite-store": "*",
+    "@dude/sync": "*",
+    "@dude/tool-registry": "*",
     "@fastify/type-provider-typebox": "6.1.0",
     "@fastify/websocket": "11.3.1",
     "fastify": "5.12.5",
