@@ -5,6 +5,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import https from 'node:https';
 import os from 'node:os';
 import path from 'node:path';
+import type { TLSSocket } from 'node:tls';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createHubClient } from '@dude/api-client';
 import type { AgentMethod, AgentMethodMap } from '@dude/contracts';
@@ -149,6 +150,32 @@ function hubCli(...args: string[]): string {
   return execFileSync(process.execPath, [BUNDLE, ...args, '--data-dir', hubDir], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 20_000 });
 }
 
+/**
+ * The agent reports every TLS failure as "does not match the pinned key", so on a failure after rotation this reports what
+ * the Hub actually presents, what the agent pins, the error a pinned request gets and the Hub's own output.
+ */
+async function tlsDiagnosis(agent: Agent): Promise<string> {
+  const enrollment = getEnrollment(agent.store.db);
+  const probe = (options: https.RequestOptions): Promise<string> => new Promise((resolve) => {
+    const req = https.request({ host: '127.0.0.1', port, path: '/', agent: false, ...options }, (res) => {
+      const presented = (res.socket as TLSSocket).getPeerCertificate().raw;
+      res.resume();
+      resolve(`ok, presented ${presented ? spkiSha256Of(presented) : 'nothing'}`);
+    });
+    req.on('error', (error: NodeJS.ErrnoException) => resolve(`${error.code ?? 'no code'}: ${error.message}`));
+    req.end();
+  });
+  const unpinned = await probe({ rejectUnauthorized: false });
+  const pinned = enrollment
+    ? await probe(pinnedTlsOptions({
+      host: '127.0.0.1', port,
+      ca: enrollment.certNextPem ? [enrollment.certActivePem, enrollment.certNextPem] : [enrollment.certActivePem],
+      pins: enrollment.spkiNext ? [enrollment.spkiActive, enrollment.spkiNext] : [enrollment.spkiActive],
+    }))
+    : 'no enrollment';
+  return `pins active=${enrollment?.spkiActive} next=${enrollment?.spkiNext} state=${enrollment?.state}; unpinned probe: ${unpinned}; pinned probe: ${pinned}; Hub output tail: ${hubOutput.slice(-1500)}`;
+}
+
 describe('device agent against a real Hub', () => {
   it('enrolls, runs owner operations, revokes, rotates the certificate pin and unenrolls', async () => {
     const dpapi = fakeDpapi();
@@ -209,7 +236,9 @@ describe('device agent against a real Hub', () => {
     expect(spkiSha256Of(cert())).toBe(staged);
 
     // The next owner call crosses the new certificate: the staged pin is promoted.
-    await a.rpc('hub.owner.listSessions', {});
+    await a.rpc('hub.owner.listSessions', {}).catch(async (error: Error) => {
+      throw new Error(`${error.message} [${await tlsDiagnosis(a)}]`);
+    });
     expect(getEnrollment(a.store.db)).toMatchObject({ spkiActive: staged, spkiNext: null });
     // And a fresh realtime connection works with the promoted pin.
     a.hub.manager.stop();
