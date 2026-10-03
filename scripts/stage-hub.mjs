@@ -1,9 +1,10 @@
-// Assembles dist/hub-stage/ from the built SEA, WinSW and (when present) the Hub web build:
+// Assembles dist/hub-stage/ from the built SEA, WinSW and the Hub web build (built on demand; DUDE_SKIP_HUB_WEB=1 makes a missing build fail):
 //   dude-hub.exe, DudeHub.exe (WinSW renamed), service/web/ and SHA256SUMS.
 // Run through `npm run hub:stage`, which builds the SEA and fetches WinSW first.
 import { createHash } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { installHubWeb } from './hub-web.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 export const STAGE_DIR = path.join(root, 'dist', 'hub-stage');
@@ -28,9 +29,7 @@ export function stageHub({ outDir = STAGE_DIR, seaDir = path.join(root, 'dist', 
   mkdirSync(outDir, { recursive: true });
   cpSync(exe, path.join(outDir, exeName));
   cpSync(winsw, path.join(outDir, 'DudeHub.exe'));
-  const web = path.join(root, 'dist', 'hub-web', 'browser');
-  if (existsSync(web)) cpSync(web, path.join(outDir, 'service', 'web'), { recursive: true });
-  else console.log('Note: dist/hub-web/browser not found; the stage has no service/web (the Hub web build ships later).');
+  installHubWeb(path.join(outDir, 'service', 'web'));
 
   const sums = listFiles(outDir)
     .filter((f) => f !== 'SHA256SUMS')

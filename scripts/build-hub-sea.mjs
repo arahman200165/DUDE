@@ -11,6 +11,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { installHubWeb } from './hub-web.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const defaultOutDir = path.join(root, 'dist', 'hub');
@@ -37,17 +38,8 @@ export function buildHubSea({ outDir = defaultOutDir } = {}) {
   if (process.platform === 'darwin') args.push('--macho-segment-name', 'NODE_SEA');
   execFileSync(process.execPath, args, { stdio: 'inherit' });
 
-  // The hub web build arrives later; copy it when present.
-  const webSource = path.join(root, 'dist', 'hub-web', 'browser');
-  const webTarget = path.join(outDir, 'service', 'web');
-  if (existsSync(webSource)) {
-    rmSync(webTarget, { recursive: true, force: true });
-    mkdirSync(path.dirname(webTarget), { recursive: true });
-    cpSync(webSource, webTarget, { recursive: true });
-    console.log(`Copied web assets to ${path.relative(root, webTarget)}`);
-  } else {
-    console.log('Note: dist/hub-web/browser not found; skipping web assets (the Hub web build ships later).');
-  }
+  // The Hub web build is built on demand and precompressed; a missing build fails unless it was built already.
+  installHubWeb(path.join(outDir, 'service', 'web'));
 
   const hash = createHash('sha256').update(readFileSync(exe)).digest('hex');
   writeFileSync(path.join(outDir, 'SHA256SUMS'), `${hash}  ${path.basename(exe)}\n`);

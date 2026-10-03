@@ -5,6 +5,9 @@
 # The Hub serves HTTPS with a self-signed certificate it creates under /data/config/tls;
 # only publish the port beyond loopback deliberately (container bind mode listens on all interfaces).
 #
+# Multi-stage: the build stage compiles the Hub and the Angular hub web build; the runtime stage carries only
+# dude-hub.cjs and service/web (the Hub's default web root, /opt/dude-hub/service/web).
+#
 # Every workspace package.json must be copied before `npm ci` or the lockfile
 # no longer matches; `npm run check:dockerfiles` enforces this.
 
@@ -31,13 +34,14 @@ COPY packages/tool-engine/package.json ./packages/tool-engine/package.json
 COPY packages/tool-registry/package.json ./packages/tool-registry/package.json
 COPY packages/validation/package.json ./packages/validation/package.json
 RUN npm ci --ignore-scripts
-COPY tsconfig.json tsconfig.packages.json ./
-COPY scripts ./scripts
-COPY packages ./packages
-COPY apps/hub ./apps/hub
-RUN npm run build:packages
+# The Angular Hub configuration needs the whole source tree: generate:registry reads README.md, SECURITY.md,
+# docs/, tests/ and build/ inputs besides apps/web and packages. .dockerignore keeps node_modules, dist and .git out.
+COPY . .
+RUN npm run build:hub-web
 RUN node scripts/build-hub.mjs
-RUN mkdir -p /out/service && cp dist/hub/dude-hub.cjs /out/  && if [ -d dist/hub-web/browser ]; then cp -r dist/hub-web/browser /out/service/web; fi
+# Precompress the web build (.br/.gz siblings) for the Hub's static handler; the runtime image has no web UI without it.
+RUN node scripts/compress-static.mjs dist/hub-web/browser
+RUN test -f dist/hub-web/browser/index.html  && mkdir -p /out/service  && cp dist/hub/dude-hub.cjs /out/  && cp -r dist/hub-web/browser /out/service/web
 
 FROM node:24-alpine
 RUN addgroup -g 10001 dude && adduser -D -u 10001 -G dude dude  && mkdir -p /data /opt/dude-hub && chown dude:dude /data

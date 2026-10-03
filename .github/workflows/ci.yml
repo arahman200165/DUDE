@@ -169,6 +169,20 @@ jobs:
           docker logs hub
           exit 1
 
+      - name: Verify the Hub serves its web UI and API
+        run: |
+          set -euo pipefail
+          URL=https://localhost:47600
+          CURL="curl -sS -k --resolve localhost:47600:127.0.0.1"
+          headers=$($CURL -D - -o /dev/null -H 'Accept-Encoding: br' $URL/)
+          echo "$headers"
+          echo "$headers" | head -1 | grep -q ' 200'
+          echo "$headers" | grep -i '^content-type:' | grep -qi 'text/html'
+          echo "$headers" | grep -i '^content-encoding: br' > /dev/null
+          $CURL $URL/ | grep -q '<app-root'
+          $CURL -H 'Accept: application/json' $URL/api/v1/hello | jq -e 'type == "object"'
+          $CURL -D - -o /dev/null $URL/api/v1/hello | grep -i '^content-type:' | grep -qi 'application/json'
+
       - name: Bootstrap the owner and verify it survives a restart
         run: |
           set -euo pipefail
