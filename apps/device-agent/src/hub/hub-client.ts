@@ -62,6 +62,10 @@ export interface HubConnectionManager {
   /** Stops the loop and drops every in-memory credential. The enrollment row is untouched. */
   stop(): void;
   onChange(listener: (status: AgentHubStatus) => void): () => void;
+  /** Hub protocol version from the last realtime welcome (the enrollment's when no connection was made since start); null when unknown. */
+  hubProtocol(): number | null;
+  /** The Hub announced new canonical changes (`changes-available`, device sockets only). */
+  onChangesAvailable(listener: (revision: number) => void): () => void;
   /** Pinned, credential-free call (hello, tls). */
   call<T>(fn: (api: HubClient) => Promise<T>): Promise<T>;
   /** Call with a valid device token; refreshes once on 401/403 and handles revocation. */
@@ -95,6 +99,8 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
   const random = deps.random ?? Math.random;
   const makeTransport = deps.createTransport ?? ((target: PinnedTarget): HubTransport => createPinnedTransport(target));
   const listeners = new Set<(status: AgentHubStatus) => void>();
+  const changeListeners = new Set<(revision: number) => void>();
+  let welcomeProtocol: number | null = null;
 
   let state: AgentHubState = 'standalone';
   let lastError: string | null = null;
@@ -286,6 +292,7 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
   function stopLoop(): void {
     running = false;
     recoveryTrusted = null;
+    welcomeProtocol = null;
     generation++;
     if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
     clearSocket();
@@ -372,6 +379,7 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
       if (!Value.Check(RealtimeServerMessage, parsed)) return;
       if (parsed.type === 'welcome') {
         welcomed = true;
+        welcomeProtocol = parsed.protocolVersion;
         attempt = 0;
         maybePromote(peer);
         maybePromote(parsed.tls.spkiSha256);
@@ -393,6 +401,11 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
         // Every owner session was revoked by the Hub (device-assisted recovery): the held bearer is dead.
         owner.clear();
         emit();
+        return;
+      }
+      if (parsed.type === 'event' && parsed.event === 'changes-available') {
+        const revision = parsed.data['revision'];
+        for (const listener of [...changeListeners]) { try { listener(typeof revision === 'number' ? revision : 0); } catch { /* a listener must not break the connection */ } }
         return;
       }
       if (parsed.type === 'event' && parsed.event === 'device-registry-changed') { refreshMeta(); return; }
@@ -466,6 +479,8 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
     owner,
     status,
     onChange: (listener) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
+    hubProtocol: () => welcomeProtocol ?? getEnrollment(deps.db)?.protocolVersion ?? null,
+    onChangesAvailable: (listener) => { changeListeners.add(listener); return () => { changeListeners.delete(listener); }; },
     call,
     deviceCall,
     start() {

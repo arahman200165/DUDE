@@ -1,4 +1,4 @@
-import type { ConfirmPreview, DeviceInfo, DeviceListResponse, PairingCodeResponse, SessionListResponse, AuditListResponse, RecoveryCodesResponse } from '../hub/index.js';
+import type { ConfirmPreview, DeviceInfo, DeviceListResponse, PairingCodeResponse, SessionListResponse, AuditListResponse, RecoveryCodesResponse, SyncCategory } from '../hub/index.js';
 import type { EntityCommit, EntityCommitResult, KvMutation, ResetKind, StoreHealth, DeviceStoreBoot } from './device-store.model.js';
 
 /** Row shapes exchanged with the state service; payloads are opaque JSON. */
@@ -49,6 +49,47 @@ export interface AgentHubProbe {
 export interface AgentHubOwnerStatus { signedIn: boolean; displayName: string | null; expiresAt: string | null }
 /** Pushed to connected desktops (no `id`) whenever the Hub connection state changes. */
 export interface AgentHubStatusEvent { type: 'event'; event: 'hub.status'; status: AgentHubStatus }
+
+/** Device-facing sync phase (mirrors `SyncPhase` in `@dude/sync`; contracts cannot depend on it). */
+export type AgentSyncPhase = 'standalone' | 'needs-first-sync' | 'idle' | 'syncing' | 'offline' | 'paused' | 'revoked' | 'hub-outdated' | 'error';
+export interface AgentSyncStatus {
+  phase: AgentSyncPhase; lastSyncAt: string | null; cursor: number; headRevision: number | null;
+  pending: number; held: number; quarantined: number; stranded: number; conflicts: number;
+  categories: Record<SyncCategory, boolean>; lastError: string | null;
+}
+/** A local change the renderer must learn about; for `setting` entities `namespace`/`key`/`value` are also set. */
+export interface AgentAppliedChange {
+  entityType: string; entityId: string; deleted: boolean; payload: unknown | null; namespace?: string; key?: string; value?: unknown;
+}
+export type SyncConflictKind = 'edit-edit' | 'edit-delete' | 'delete-edit' | 'first-sync';
+/** One unresolved sync conflict with both versions (payloads are the entities' JSON). */
+export interface SyncConflictView {
+  id: number; entityType: string; entityId: string; kind: SyncConflictKind; category: SyncCategory | null; name: string | null;
+  localPayload: unknown | null; localDeleted: boolean; basePayload: unknown | null; remotePayload: unknown | null; remoteDeleted: boolean;
+  remoteRevision: number | null; fields: string[]; detectedAt: string; canKeepBoth: boolean;
+}
+export type SyncConflictChoice = 'hub' | 'mine' | 'both';
+/** An outbox op the Hub rejected (or that was too large); it never sends again until retried. */
+export interface QuarantinedOpView {
+  opId: string; entityType: string; entityId: string; category: SyncCategory | null; opKind: 'upsert' | 'delete'; reason: string | null;
+  attempts: number; lastAttemptAt: string | null; createdAt: string; updatedAt: string;
+}
+export interface QuarantinedOpExport extends QuarantinedOpView { schemaVersion: number; basedOnRevision: number | null; payload: unknown | null }
+export type SyncCategoryFlags = Partial<Record<SyncCategory, boolean>>;
+/** Pushed to connected desktops (no `id`) whenever the sync status changes. */
+export interface AgentSyncStatusEvent { type: 'event'; event: 'sync.status'; status: AgentSyncStatus }
+/** Pushed after remote changes (or a conflict resolution) were written locally. */
+export interface AgentSyncAppliedEvent { type: 'event'; event: 'sync.applied'; changes: AgentAppliedChange[] }
+export type AgentEvent = AgentHubStatusEvent | AgentSyncStatusEvent | AgentSyncAppliedEvent;
+export type AgentEventName = AgentEvent['event'];
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+/** Shape check for a push frame; unknown events return null so clients ignore frames they do not know. */
+export function parseAgentEvent(frame: unknown): AgentEvent | null {
+  if (!isRecord(frame) || frame['type'] !== 'event') return null;
+  if ((frame['event'] === 'hub.status' || frame['event'] === 'sync.status') && isRecord(frame['status'])) return frame as unknown as AgentEvent;
+  if (frame['event'] === 'sync.applied' && Array.isArray(frame['changes'])) return frame as unknown as AgentEvent;
+  return null;
+}
 export interface LegacyImportResult { status: 'none' | 'done' | 'partial'; imported: Record<string, number>; warnings: string[] }
 
 /**
@@ -142,6 +183,22 @@ export interface AgentMethodMap {
    * the new password is a parameter only. Errors: `not-trusted`, `owner-recovery-failed`, `hub-*`.
    */
   'hub.recoverOwner': { params: { newPassword: string }; result: { ok: true } };
+  'sync.status': { params: Record<string, never>; result: AgentSyncStatus };
+  /** Enabling a category re-fetches it from the Hub (a snapshot rebase). */
+  'sync.setCategories': { params: { categories: SyncCategoryFlags }; result: AgentSyncStatus };
+  'sync.setPaused': { params: { paused: boolean }; result: AgentSyncStatus };
+  /** Runs a sync cycle now and resolves with the status once it ended. */
+  'sync.now': { params: Record<string, never>; result: AgentSyncStatus };
+  'sync.conflicts.list': { params: Record<string, never>; result: SyncConflictView[] };
+  'sync.conflicts.resolve': { params: { id: number; choice: SyncConflictChoice }; result: { ok: true; changes: AgentAppliedChange[] } | { ok: false; error: string } };
+  'sync.quarantine.list': { params: Record<string, never>; result: QuarantinedOpView[] };
+  /** Returns the ops (all, or the given ids) to pending; resolves with how many moved. */
+  'sync.quarantine.retry': { params: { opIds?: string[] }; result: { retried: number } };
+  /** Step one of discarding a quarantined op (the local record stays); the token is single use and expires. */
+  'sync.quarantine.discardPreview': { params: { opId: string }; result: ConfirmPreview };
+  'sync.quarantine.discard': { params: { opId: string; confirmToken: string }; result: { ok: true } };
+  /** JSON-safe copy of every quarantined op, to save before discarding. */
+  'sync.quarantine.export': { params: Record<string, never>; result: QuarantinedOpExport[] };
   /** Implemented by the legacy import (M621). */
   'legacy.import': { params: { legacyDir: string; sources: unknown }; result: LegacyImportResult };
   /**
@@ -188,6 +245,8 @@ export const AGENT_METHODS = [
   'hub.owner.listDevices', 'hub.owner.createPairingCode', 'hub.owner.renameDevice', 'hub.owner.revokeDevicePreview', 'hub.owner.revokeDevice',
   'hub.owner.setRecoveryTrust', 'hub.owner.listSessions', 'hub.owner.revokeSession', 'hub.owner.revokeAllPreview', 'hub.owner.revokeAll',
   'hub.owner.listAudit', 'hub.owner.recoveryCodesPreview', 'hub.owner.regenerateRecoveryCodes', 'hub.owner.changePassword', 'hub.recoverOwner',
+  'sync.status', 'sync.setCategories', 'sync.setPaused', 'sync.now', 'sync.conflicts.list', 'sync.conflicts.resolve',
+  'sync.quarantine.list', 'sync.quarantine.retry', 'sync.quarantine.discardPreview', 'sync.quarantine.discard', 'sync.quarantine.export',
   'legacy.import', 'store.cleanExit', 'store.checkpoint', 'store.shutdown', 'store.quarantine',
 ] as const satisfies readonly AgentMethod[];
 

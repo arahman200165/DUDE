@@ -1,4 +1,6 @@
 import { isAgentMethod } from '@dude/contracts';
+import { SYNC_WIRE_CATEGORY_IDS } from '@dude/contracts/hub';
+import type { SyncCategory } from '@dude/contracts/hub';
 import type {
   AgentJournalEntry, AgentMethod, AgentMethodMap, AgentResponse, AgentSecretStatus, DeviceStoreBoot, StoreHealth,
 } from '@dude/contracts';
@@ -27,6 +29,8 @@ import { HubApiError, HubProtocolError } from '@dude/api-client';
 import type { HubClient } from '@dude/api-client';
 import { HubManagerError } from '../hub/errors.js';
 import type { HubRuntime } from '../hub/index.js';
+import { SyncRuntimeError } from '../sync/sync-runtime.js';
+import type { SyncRuntime } from '../sync/sync-runtime.js';
 
 export interface RpcDeps {
   now: () => Date;
@@ -39,6 +43,8 @@ export interface RpcDeps {
   storeDir?: string;
   /** Hub connection runtime; absent in tests that do not exercise the Hub. */
   hub?: HubRuntime;
+  /** Sync runtime; absent in tests that do not exercise sync. */
+  sync?: SyncRuntime;
 }
 
 export interface RpcServer {
@@ -90,6 +96,15 @@ async function hubGuard<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
+function syncGuard<T>(fn: () => T): T {
+  try {
+    return fn();
+  } catch (error) {
+    if (error instanceof SyncRuntimeError) throw new RpcError(error.code, error.message);
+    throw error;
+  }
+}
+
 const statusOf = (row: SecretStatusRow): AgentSecretStatus => ({ ...row });
 
 function storeHealthUnavailable(deps: RpcDeps): StoreHealth {
@@ -129,6 +144,10 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
     if (!deps.hub) throw new RpcError('unavailable', 'Hub support is not available.');
     return deps.hub;
   };
+  const syncRuntime = (): SyncRuntime => {
+    if (!deps.sync) throw new RpcError('unavailable', 'Sync support is not available.');
+    return deps.sync;
+  };
   const owner = <T>(fn: (api: HubClient, ownerToken: string) => Promise<T>): Promise<T> => hubGuard(() => hubRuntime().manager.owner.withOwner(fn));
 
   const handlers: Handlers = {
@@ -156,13 +175,20 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
     'kv.commit': (p) => {
       if (!Array.isArray(p.mutations)) throw invalid('mutations must be an array.');
       commitKvBatch(db(), p.mutations, undefined, deps.now, commitCtx());
+      deps.sync?.notifyLocalCommit();
       return { count: p.mutations.length };
     },
-    'entity.commit': (p) => commitEntity(db(), commitCtx(), p),
+    'entity.commit': (p) => {
+      const result = commitEntity(db(), commitCtx(), p);
+      if (result.ok) deps.sync?.notifyLocalCommit();
+      return result;
+    },
     'entity.importMany': (p) => {
       if (!Array.isArray(p.items)) throw invalid('items must be an array.');
       const commits = p.items.map((item) => ({ entityType: p.entityType, entityId: item.entityId, op: 'upsert' as const, payload: item.payload }));
-      return importMany(db(), commitCtx(), commits);
+      const result = importMany(db(), commitCtx(), commits);
+      if (result.ok) deps.sync?.notifyLocalCommit();
+      return result;
     },
     'history.add': async (p) => {
       const result = await repos().history.add(p.entry);
@@ -241,8 +267,38 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
     'reset.preview': (p) => previewReset(db(), p.kind),
     'reset.apply': (p) => {
       const result = applyReset(db(), p.kind, str(p.digest, 'digest'), { now: deps.now, randomBytes: deps.randomBytes });
+      if (result.ok) deps.sync?.afterReset();
       return result.ok ? result : { ok: false, error: result.error };
     },
+    'sync.status': () => syncRuntime().status(),
+    'sync.setCategories': (p) => {
+      if (!isObject(p.categories)) throw invalid('categories must be an object.');
+      const flags: Partial<Record<SyncCategory, boolean>> = {};
+      for (const [id, value] of Object.entries(p.categories)) {
+        if (!(SYNC_WIRE_CATEGORY_IDS as readonly string[]).includes(id) || typeof value !== 'boolean') throw invalid('categories must map known category ids to booleans.');
+        flags[id as SyncCategory] = value;
+      }
+      return syncRuntime().setCategories(flags);
+    },
+    'sync.setPaused': (p) => {
+      if (typeof p.paused !== 'boolean') throw invalid('paused must be a boolean.');
+      return syncRuntime().setPaused(p.paused);
+    },
+    'sync.now': () => syncRuntime().syncNow(),
+    'sync.conflicts.list': () => syncRuntime().listConflicts(),
+    'sync.conflicts.resolve': (p) => {
+      if (typeof p.id !== 'number' || !Number.isInteger(p.id)) throw invalid('id must be an integer.');
+      if (p.choice !== 'hub' && p.choice !== 'mine' && p.choice !== 'both') throw invalid('choice must be hub, mine or both.');
+      return syncGuard(() => syncRuntime().resolveConflict(p.id, p.choice));
+    },
+    'sync.quarantine.list': () => syncRuntime().listQuarantined(),
+    'sync.quarantine.retry': (p) => {
+      if (p.opIds !== undefined && (!Array.isArray(p.opIds) || p.opIds.some((id) => typeof id !== 'string'))) throw invalid('opIds must be an array of strings.');
+      return { retried: syncRuntime().retryQuarantined(p.opIds) };
+    },
+    'sync.quarantine.discardPreview': (p) => syncGuard(() => syncRuntime().discardPreview(str(p.opId, 'opId'))),
+    'sync.quarantine.discard': (p) => syncGuard(() => { syncRuntime().discard(str(p.opId, 'opId'), str(p.confirmToken, 'confirmToken')); return { ok: true as const }; }),
+    'sync.quarantine.export': () => syncRuntime().exportQuarantined(),
     'hub.enrollment': () => publicEnrollment(db()),
     'hub.status': () => hubRuntime().manager.status(),
     'hub.probeLocal': (p) => {
@@ -298,6 +354,7 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
       return { ok: true };
     },
     'store.shutdown': () => {
+      deps.sync?.stop();
       deps.hub?.manager.stop();
       if (store) {
         try { store.db.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch { /* best effort; close still runs */ }

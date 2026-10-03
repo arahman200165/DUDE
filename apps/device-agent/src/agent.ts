@@ -14,7 +14,10 @@ import { readMachineGuid } from './machine-fingerprint.js';
 import { windowsDpapi } from './native/windows-sys-client.js';
 import type { DpapiPort } from './native/windows-sys-client.js';
 import { readDeviceRecord } from './store/identity.js';
+import { uuidv7 } from '@dude/persistence';
 import { createHubRuntime } from './hub/index.js';
+import { createSyncRuntime } from './sync/sync-runtime.js';
+import type { SyncIntervals, SyncRuntime } from './sync/sync-runtime.js';
 import type { HubRuntime, HubRuntimeDeps } from './hub/index.js';
 
 /** Sent as `ready.boot` on every authenticated connection before any request is served. */
@@ -37,6 +40,7 @@ export interface RunAgentOptions {
   dpapi?: DpapiPort;
   hubTimings?: HubRuntimeDeps['timings'];
   hubCreateTransport?: HubRuntimeDeps['createTransport'];
+  syncIntervals?: Partial<SyncIntervals>;
 }
 
 export type RunningAgent =
@@ -49,7 +53,7 @@ export type RunningAgent =
   }
   | { status: 'already-running' };
 
-interface Opened { server: RpcServer; store: DeviceStore | null; event: AgentReadyEvent; hub?: HubRuntime }
+interface Opened { server: RpcServer; store: DeviceStore | null; event: AgentReadyEvent; hub?: HubRuntime; sync?: SyncRuntime }
 
 const NO_CONFIG_MESSAGE = 'The agent has not received its configuration from the desktop yet.';
 
@@ -89,13 +93,25 @@ export async function runAgent(options: RunAgentOptions): Promise<RunningAgent> 
       hub.manager.onChange((status) => {
         for (const connection of [...connections]) void connection.send({ type: 'event', event: 'hub.status', status }).catch(() => undefined);
       });
-      // The Hub connection lives as long as the store is open, with or without a desktop attached.
+      const sync = createSyncRuntime({
+        db: store.db, manager: hub.manager, now, intervals: options.syncIntervals,
+        newOpId: () => uuidv7(bytes, () => now().getTime()),
+      });
+      sync.onStatus((status) => {
+        for (const connection of [...connections]) void connection.send({ type: 'event', event: 'sync.status', status }).catch(() => undefined);
+      });
+      sync.onApplied((changes) => {
+        for (const connection of [...connections]) void connection.send({ type: 'event', event: 'sync.applied', changes }).catch(() => undefined);
+      });
+      // The Hub connection lives as long as the store is open, with or without a desktop attached; sync rides on it.
       try { hub.manager.start(); } catch { /* the store stays usable; the connection reports its own state */ }
+      try { sync.start(); } catch { /* the store stays usable; sync reports its own state */ }
       return {
-        server: createRpcServer(store, { now, randomBytes: bytes, storeDir: options.storeDir, hub }),
+        server: createRpcServer(store, { now, randomBytes: bytes, storeDir: options.storeDir, hub, sync }),
         store,
         event: { type: 'ready', status: 'ready', health: result.health },
         hub,
+        sync,
       };
     }
     return {
@@ -154,6 +170,7 @@ export async function runAgent(options: RunAgentOptions): Promise<RunningAgent> 
   const close = async (): Promise<void> => {
     // Close the store cleanly (checkpoint) unless a shutdown request already did.
     const current = await openPromise?.catch(() => null);
+    current?.sync?.stop();
     current?.hub?.manager.stop();
     if (current && !current.server.closed) await current.server.handle({ id: 0, method: 'store.shutdown', params: {} }).catch(() => undefined);
     try { rmSync(path.join(options.storeDir, PID_FILE), { force: true }); } catch { /* ignore */ }

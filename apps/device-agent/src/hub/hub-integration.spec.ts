@@ -10,6 +10,7 @@ import { createHubClient } from '@dude/api-client';
 import type { AgentMethod, AgentMethodMap } from '@dude/contracts';
 import { HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION } from '@dude/contracts/hub';
 import type { DeviceListResponse } from '@dude/contracts/hub';
+import { uuidv7 } from '@dude/persistence';
 import { createRpcServer } from '../rpc/server.js';
 import type { RpcServer } from '../rpc/server.js';
 import { readDeviceRecord } from '../store/identity.js';
@@ -17,6 +18,9 @@ import { getEnrollment } from '../store/repos/hub-enrollment.repo.js';
 import type { DeviceStore } from '../store/open-store.js';
 import type { DpapiPort } from '../native/windows-sys-client.js';
 import { cleanupTemp, openReady, tempDir } from '../testing/test-utils.js';
+import { listRecords } from '../store/repos/records.repo.js';
+import { createSyncRuntime } from '../sync/sync-runtime.js';
+import type { SyncRuntime } from '../sync/sync-runtime.js';
 import { createHubRuntime } from './index.js';
 import type { HubRuntime } from './index.js';
 import { createPinnedTransport, pinnedTlsOptions, spkiSha256Of } from './pinned-transport.js';
@@ -24,6 +28,7 @@ import { createPinnedTransport, pinnedTlsOptions, spkiSha256Of } from './pinned-
 const ROOT = path.resolve(import.meta.dirname, '../../../..');
 const BUNDLE = path.join(ROOT, 'dist', 'hub', 'dude-hub.cjs');
 const PASSWORD = 'correct horse battery staple';
+const NEW_PASSWORD = 'a recovered long password';
 const CAPABILITIES = { desktop: true, filesystem: true, secureStorage: true };
 
 /** TEST-ONLY DPAPI stand-in: AES-GCM under a per-process random key, bound to the entropy like the real port. */
@@ -47,7 +52,7 @@ function fakeDpapi(): DpapiPort {
   };
 }
 
-interface Agent { store: DeviceStore; hub: HubRuntime; rpc: <M extends AgentMethod>(method: M, params: AgentMethodMap[M]['params']) => Promise<AgentMethodMap[M]['result']> }
+interface Agent { store: DeviceStore; hub: HubRuntime; sync: SyncRuntime; rpc: <M extends AgentMethod>(method: M, params: AgentMethodMap[M]['params']) => Promise<AgentMethodMap[M]['result']> }
 
 let hubDir: string;
 let child: ChildProcess;
@@ -65,9 +70,14 @@ function startAgent(dpapi: DpapiPort): Agent {
     db: store.db, dpapi, now, timings: { backoffMinMs: 200, backoffMaxMs: 1_000, rateLimitBackoffMs: 7_000 },
     device: () => readDeviceRecord(store.db, CAPABILITIES),
   });
-  const server: RpcServer = createRpcServer(store, { now, randomBytes: (n) => new Uint8Array(randomBytes(n)), hub });
+  const sync = createSyncRuntime({
+    db: store.db, manager: hub.manager, now, newOpId: () => uuidv7((n) => new Uint8Array(randomBytes(n)), () => Date.now()),
+    intervals: { debounceMs: 50, pollMs: 3_000, backoffMinMs: 200, backoffMaxMs: 1_000, reportMinIntervalMs: 1_000 },
+  });
+  sync.start();
+  const server: RpcServer = createRpcServer(store, { now, randomBytes: (n) => new Uint8Array(randomBytes(n)), hub, sync });
   const agent: Agent = {
-    store, hub,
+    store, hub, sync,
     async rpc(method, params) {
       const response = await server.handle({ id: nextId++, method, params });
       if (!response.ok) throw Object.assign(new Error(response.error.message), { code: response.error.code });
@@ -135,7 +145,7 @@ beforeAll(async () => {
 }, 60_000);
 
 afterAll(async () => {
-  for (const agent of agents) agent.hub.manager.stop();
+  for (const agent of agents) { agent.sync.stop(); agent.hub.manager.stop(); }
   if (child && child.exitCode === null) {
     const exited = new Promise<void>((resolve) => child.once('exit', () => resolve()));
     child.kill();
@@ -227,7 +237,6 @@ describe('device agent against a real Hub', () => {
     // The Hub's per-IP credential-endpoint bucket (burst 10, 20 a minute) was drained by the previous case; let it refill.
     await new Promise((resolve) => setTimeout(resolve, 30_000));
     const dpapi = fakeDpapi();
-    const NEW_PASSWORD = 'a recovered long password';
     const signIn = await rawRequest('POST', '/api/v1/auth/sign-in', { password: PASSWORD });
     expect(signIn.status).toBe(200);
     const headers = { cookie: String((signIn.headers['set-cookie'] as string[])[0]).split(';')[0]!, origin: `https://127.0.0.1:${port}`, 'x-dude-csrf': String(signIn.body['csrfToken']) };
@@ -249,4 +258,38 @@ describe('device agent against a real Hub', () => {
     expect((await rawRequest('POST', '/api/v1/auth/sign-in', { password: NEW_PASSWORD })).status).toBe(200);
     await agent.rpc('hub.unenroll', { force: true });
   }, 90_000);
+  it('syncs a favorite between two enrolled devices in both directions, including deletes', async () => {
+    // The previous case drained and then changed the credential state: wait for the bucket and sign in with the new password.
+    await new Promise((resolve) => setTimeout(resolve, 30_000));
+    const dpapi = fakeDpapi();
+    const signIn = await rawRequest('POST', '/api/v1/auth/sign-in', { password: NEW_PASSWORD });
+    expect(signIn.status).toBe(200);
+    const headers = { cookie: String((signIn.headers['set-cookie'] as string[])[0]).split(';')[0]!, origin: `https://127.0.0.1:${port}`, 'x-dude-csrf': String(signIn.body['csrfToken']) };
+    const pairings = await Promise.all([1, 2].map(async () => String((await rawRequest('POST', '/api/v1/pairing-codes', { host: '127.0.0.1' }, headers)).body['pairingString'])));
+
+    const a = startAgent(dpapi);
+    const b = startAgent(dpapi);
+    await a.rpc('hub.enroll', { pairingString: pairings[0]! });
+    await b.rpc('hub.enroll', { pairingString: pairings[1]! });
+    await waitFor('A and B online', () => a.hub.manager.status().state === 'online' && b.hub.manager.status().state === 'online');
+    // Before the first sync is done (M656) nothing moves.
+    expect((await a.rpc('sync.status', {})).phase).toBe('needs-first-sync');
+    a.sync.markFirstSyncDone();
+    b.sync.markFirstSyncDone();
+
+    const favorite = { id: 'tool:base64', kind: 'tool', targetId: 'base64', order: 0 };
+    const has = (agent: Agent): boolean => listRecords(agent.store.db, 'favorite').some((r) => r.entityId === 'tool:base64');
+    await a.rpc('entity.commit', { entityType: 'favorite', entityId: 'tool:base64', op: 'upsert', payload: favorite });
+    await waitFor('B receives the favorite', () => has(b));
+    expect(await a.rpc('sync.now', {})).toMatchObject({ pending: 0, conflicts: 0 });
+    expect(listRecords(b.store.db, 'favorite').find((r) => r.entityId === 'tool:base64')?.payload).toEqual(favorite);
+
+    await b.rpc('entity.commit', { entityType: 'favorite', entityId: 'tool:base64', op: 'delete' });
+    await waitFor('A converges on the delete', () => !has(a));
+    const status = await b.rpc('sync.now', {});
+    expect(status).toMatchObject({ phase: 'idle', pending: 0, quarantined: 0, conflicts: 0 });
+    expect(status.cursor).toBeGreaterThan(0);
+    await a.rpc('hub.unenroll', { force: true });
+    await b.rpc('hub.unenroll', { force: true });
+  }, 120_000);
 });
