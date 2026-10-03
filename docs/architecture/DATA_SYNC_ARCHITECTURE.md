@@ -25,7 +25,7 @@ Related: [DUDE System Architecture](SYSTEM_ARCHITECTURE.md) · [DUDE Security Ar
 - [Standby Hub — Later](#standby-hub--later)
 - [Persistence policy, scope and consent are separate dimensions](#persistence-policy-scope-and-consent-are-separate-dimensions)
 - [Sync Protocol Minimum Acceptance Contract](#sync-protocol-minimum-acceptance-contract)
-- [Phase 31D synchronization design](#phase-31d-synchronization-design)
+- [As built in Phase 31D (synchronization)](#as-built-in-phase-31d-synchronization)
 - [Migration from the delivered local stores](#migration-from-the-delivered-local-stores)
 - [Backup consistency, restore and authority transfer](#backup-consistency-restore-and-authority-transfer)
 
@@ -297,7 +297,7 @@ PostgreSQL should be an implementation option, not a mandatory dependency for pe
 
 ### As built in Phase 31C (Hub)
 
-The Hub's canonical database is `data/dude.db`, opened by the Hub process alone through `@dude/sqlite-store` (`node:sqlite`, WAL, `synchronous=FULL`, `quick_check`, checksummed numbered migrations). Under the service it lives in `%ProgramData%\DUDE\Hub`; before a migration step on an existing database the Hub writes a `VACUUM INTO` copy to `data/pre-migration/` (the `backups/` directory is reserved for Phase 31G and unused). Opening a database whose `minReaderVersion` is newer than the running Hub is refused, so an older Hub cannot open a newer database. Two migrations exist (`0001-initial`, `0002-owner-reset`).
+The Hub's canonical database is `data/dude.db`, opened by the Hub process alone through `@dude/sqlite-store` (`node:sqlite`, WAL, `synchronous=FULL`, `quick_check`, checksummed numbered migrations). Under the service it lives in `%ProgramData%\DUDE\Hub`; before a migration step on an existing database the Hub writes a `VACUUM INTO` copy to `data/pre-migration/` (the `backups/` directory is reserved for Phase 31G and unused). Opening a database whose `minReaderVersion` is newer than the running Hub is refused, so an older Hub cannot open a newer database. Three migrations exist (`0001-initial`, `0002-owner-reset`, `0003-sync`).
 
 | Table group | Tables | Holds |
 |---|---|---|
@@ -307,11 +307,12 @@ The Hub's canonical database is `data/dude.db`, opened by the Hub process alone 
 | Devices | `devices`, `device_keys`, `device_tokens`, `challenges`, `pairing_codes` | The registry (including the recovery-trust flag), Ed25519 public keys, hashed access tokens, single-use challenges and pairing codes |
 | TLS | `tls_pins`, `tls_pin_acks` | Active, next and retired certificate pins and per-device acknowledgements |
 | Hardening | `throttle`, `audit_events` | Persisted failure throttles; the append-only audit log (closed event list, credential-free details, retained 365 days or 100,000 events) |
-| Canonical skeleton | `records`, `change_feed`, `applied_ops` | Entity rows keyed by environment, type and ID with revision, tombstone and schema version; the global monotonic change feed; applied op IDs for duplicate suppression |
+| Canonical records | `records`, `change_feed`, `applied_ops` | Entity rows keyed by environment, type and ID with revision, tombstone and schema version; the global monotonic change feed; applied op IDs for duplicate suppression |
+| Sync (0003) | `device_sync_state`; `meta` keys `sync_floor` and `sync_retention_days`; a `records(environment_id, revision)` index | Per-device reported cursor, counts, consent and last push/pull times; the compaction floor and retention |
 
-`commitCanonical` writes the record, its change-feed entry and the applied op ID in one transaction under one global revision. A duplicate op ID returns the recorded revision without writing, and a rejected commit rolls back completely. Only the environment and workspace codecs are canonical entities. The skeleton is exercised by specs and a hard-kill WAL durability check, but **no public record endpoint, import, replay or cursor API exists**: nothing is written to it from a client in Phase 31C.
+`commitCanonical` writes the record, its change-feed entry and the applied op ID in one transaction under one global revision. A duplicate op ID returns the recorded revision without writing, and a rejected commit rolls back completely. `commitCanonical` now enforces the per-entity [sync policy](#conflict-policy-by-entity) (revision checks, owner-device usage records, size and payload validation) and is reached only through the device-authenticated `/api/v1/sync` routes ([As built in Phase 31D](#as-built-in-phase-31d-synchronization)); the Hub is still the only writer and CLI commands never touch the file.
 
-**Environment identity.** The Hub mints `environmentId` and `hubInstanceId` at owner bootstrap ([PD-036](../history/DECISION_LOG.md#phase-31c-implementation-decisions)). A device keeps its standalone `meta.environment_id` and its local records unchanged when it enrolls, and stores the Hub's environment ID separately in its `hub_enrollment` row. Re-keying local records to the canonical environment belongs to the Phase 31D import, so a second device with its own standalone ID can enroll without a reconciliation problem.
+**Environment identity.** The Hub mints `environmentId` and `hubInstanceId` at owner bootstrap ([PD-036](../history/DECISION_LOG.md#phase-31c-implementation-decisions)). A device keeps its standalone `meta.environment_id` and its local records unchanged when it enrolls, and stores the Hub's environment ID separately in its `hub_enrollment` row. The first-sync flow of Phase 31D re-keys local records to the canonical environment after the user decides (the old ID is kept as `standalone_environment_id`), so a second device with its own standalone ID can enroll without a reconciliation problem.
 
 ## Device State Store
 
@@ -355,7 +356,7 @@ The desktop Device State Store is the SQLite file `userData/device-store/dude-de
 | `mutation_journal`, `snapshot_headers`, `powershell_history`, `device_docs` | Filesystem/system mutation journals, snapshot metadata (bodies stay on disk), PowerShell history, and desktop documents such as preferences, window bounds and hotkeys |
 | `secret_refs`, `secret_values` | Secret references and their `safeStorage` ciphertext, deleted together |
 
-**Writes.** Entity mutations commit immediately and are awaited; key/value writes debounce for one second in the renderer and flush on window close and quit, except journaled settings, which commit at once. The store, not the renderer, decides whether a write journals: only the explicit list of favorites, pipelines, user scripts, projects, workspace templates, appearance, reopen-on-restart, home layout and usage/insights does. Each journaled change writes its record and one outbox op atomically; ops coalesce per entity (a later upsert replaces an unsent one, an unsent upsert followed by a delete leaves no op, a delete followed by an upsert becomes an upsert). The outbox is bounded (`OUTBOX_MAX_ROWS`) and surfaces backpressure instead of dropping edits. Ops carry the status `unsent-standalone`; nothing replays them before Phase 31D.
+**Writes.** Entity mutations commit immediately and are awaited; key/value writes debounce for one second in the renderer and flush on window close and quit, except journaled settings, which commit at once. The store, not the renderer, decides whether a write journals: only the explicit list of favorites, pipelines, user scripts, projects, workspace templates, appearance, reopen-on-restart, home layout and usage/insights does. Each journaled change writes its record and one outbox op atomically; ops coalesce per entity (a later upsert replaces an unsent one, an unsent upsert followed by a delete leaves no op, a delete followed by an upsert becomes an upsert). The outbox is bounded (`OUTBOX_MAX_ROWS`) and surfaces backpressure instead of dropping edits. Ops carry the status `unsent-standalone` while the device is standalone; Phase 31D replays them once the device is enrolled.
 
 **Reads.** `main.ts` awaits a boot snapshot of the store before bootstrapping Angular, and services keep synchronous signals over an in-memory cache.
 
@@ -371,7 +372,9 @@ The desktop Device State Store is the SQLite file `userData/device-store/dude-de
 
 Device-store migration 0002 adds the single-row `hub_enrollment` table (state `enrolled` or `revoked`, Hub instance and environment IDs, URL, protocol version, active and next SPKI pins with certificates, key ID and public key, the CurrentUser-DPAPI-wrapped Ed25519 private key, and enrollment, last-contact and revocation times). It is additive and keeps `minReaderVersion` at 1, so an older build opens the store and behaves as a standalone device. `EnrollmentState` is `standalone | enrolled | revoked` and `EnvironmentRecord.kind` gains `hub`. Clone detection and *Reset this device* clear the enrollment; *Clear data* keeps it; the renderer-facing `hub.enrollment` view carries no key material. Settings > This Device shows standalone, enrolled or revoked. Enrolling uploads only the pairing proof and device metadata (display name, platform, app version, capabilities, public key) after an explicit disclosure; no records are uploaded.
 
-**Still owed by Phase 31D** on top of the 31B list below: Hub record endpoints, re-keying local records to the Hub environment, first-connection preview and import, revision assignment, cursors, outbox replay, conflict handling and revoked-device sync semantics.
+### As built in Phase 31D (device store sync)
+
+Device-store migration 0003 adds `outbox.reason`, `outbox.attempts` and `outbox.last_attempt_at`; `records.hub_payload_json` (the last Hub version seen, the merge base); `kv_sync` (Hub revision and base per synchronized key); the single-row `sync_state`; and `sync_conflicts` (the permanent inbox). It is additive and keeps `minReaderVersion` at 1. Usage records are re-keyed per device (entity id equals the device id) and summed on read. Syncable `local` settings (tool-id-shaped namespace, stored scope `environment`, or a `SETTING_DEFINITIONS` entry marked `journal`) journal as per-key `setting` operations; `KV_ENTITY_BINDINGS` maps `__workspace__:layout` and `__workspace__:scratchpad` to the `workspace-layout` and `scratchpad` entities. Operation status is derived from enrollment: `pending`, `stranded` or `unsent-standalone`. Re-editing coalesces outbox rows. The sync engine lives in `apps/device-agent/src/sync` (apply-remote, push-results, rebase, conflicts, quarantine, status, runtime) and exposes `sync.*` RPCs plus `sync.status` and `sync.applied` frames that the desktop relays to the renderer.
 
 ## Synchronization Protocol
 
@@ -508,7 +511,7 @@ Every persistent entity needs a stable ID, schema version, declared scope and se
 
 Connection metadata may contain a selected shared host/port/database definition, but a machine-specific endpoint or socket stays device-scoped. Model a shared connection definition plus explicit device bindings/credential references; do not overwrite every machine's local configuration with one device's paths or secrets. Synced project references use logical identity and per-device path mapping. Unresolved local references produce a missing-binding state instead of an automatic file scan/upload.
 
-Existing local history, native recents, System Changes, filesystem mutation journals, crash recovery and private scratch data remain local by default and are never journaled. Favorites, selected workbench definitions, usage/insights aggregates (frequency and recency counters, not tool inputs or outputs) and the Home layout with its notes are `environment`-scoped and **may become sync-eligible only after explicit environment enrollment and consent** in Phase 31D; in Phase 31B they are classified and journaled into the local outbox but never transmitted. Local analytics do not become Hub telemetry merely because synchronization exists, and enrollment must let the user keep usage local.
+Existing local history, native recents, System Changes, filesystem mutation journals, crash recovery and private scratch data remain local by default and are never journaled. Favorites, selected workbench definitions, usage/insights aggregates (frequency and recency counters, not tool inputs or outputs) and the Home layout with its notes are `environment`-scoped and are sync-eligible **only after explicit environment enrollment and per-category consent** (usage defaults off); Phase 31D transmits them after the first-sync confirmation. Local analytics do not become Hub telemetry merely because synchronization exists, and enrollment must let the user keep usage local.
 
 ## Sync Protocol Minimum Acceptance Contract
 
@@ -525,13 +528,13 @@ These requirements make the planning model implementable without committing to a
 9. Revocation stops subsequent Hub operations. Revoked or expired credentials must never be treated as permission to create a new authority or bypass authentication. Retained offline data remains subject to local access policy.
 10. Device sync never executes a pipeline, script, request, shell command or mutation as a side effect of applying a definition. Restoring a workspace restores data/UI intent, not a privileged action.
 
-## Phase 31D synchronization design
+## As built in Phase 31D (synchronization)
 
-**Planned design (being implemented in Milestones 649–662).** Rationale is recorded in [PD-038 to PD-049](../history/DECISION_LOG.md#phase-31d-implementation-decisions). Numeric limits are provisional until measured in Milestone 661.
+**Delivered in Milestones 649-661, documented here as the contract.** Rationale and amendments are in [PD-038 to PD-049](../history/DECISION_LOG.md#phase-31d-implementation-decisions); evidence is in [Phase 31D acceptance](../delivery/PHASE31D_ACCEPTANCE.md). Limits live in `SYNC_LIMITS` (`@dude/sync`): 128 KiB per record, 100 operations and 512 KiB per push, pages of 500, 90 days default retention. Measured behavior is in the acceptance document.
 
 ### Categories and consent
 
-Consent is per category and applies only to an enrolled environment. A disabled category's operations are held locally.
+Consent is per category and applies only to an enrolled environment, after the first sync is confirmed. A disabled category's operations are held locally, and re-enabling a category forces a full snapshot rebase. A setting key syncs only if the Hub's `isSyncableSettingKey` (tool manifests and `SETTING_DEFINITIONS`) accepts it; the device quarantines the rest, and non-tool app namespaces do not sync.
 
 | Category | Entity types | Default |
 |---|---|---|
@@ -561,7 +564,7 @@ Consent is per category and applies only to an enrolled environment. A disabled 
 
 ### Outbox status machine
 
-An operation is journaled atomically with its change and carries one stored status: `unsent-standalone` (not enrolled), `pending` (enrolled, awaiting push), `quarantined` (rejected by the Hub with a reason; user retries, discards or exports) or `stranded` (device revoked). Enrolling turns `unsent-standalone` into `pending`; revocation turns `pending` into `stranded`; Continue standalone returns `stranded` to `unsent-standalone`. **Held** is derived, not stored: a `pending` operation whose category is disabled or whose first sync has not completed. Applied and duplicate acknowledgements delete the operation only if it is unchanged since it was sent.
+An operation is journaled atomically with its change and carries one stored status: `unsent-standalone` (not enrolled), `pending` (enrolled, awaiting push), `quarantined` (rejected by the Hub with a reason; user retries, discards or exports) or `stranded` (device revoked). Enrolling turns `unsent-standalone` into `pending`; revocation turns `pending` into `stranded`; Continue standalone returns `stranded` to `unsent-standalone`. **Held** is derived, not stored: a `pending` operation whose category is disabled or whose first sync has not completed. Applied and duplicate acknowledgements delete the operation only if it is unchanged since it was sent; an automatic merge assigns the operation a new id so an in-flight push of the older payload cannot clear it. A schema-newer remote record is deferred (cursor advances, `lastError` `needs-update`) and returns on a later rebase.
 
 ### Wire endpoints
 
@@ -571,13 +574,14 @@ All under `/api/v1`; device credential unless noted. Contract: `@dude/contracts/
 - `GET /sync/changes?after&limit`: records changed after a revision, one entry per entity at its latest revision, tombstones included; `410 cursor-expired` below the floor.
 - `GET /sync/snapshot?afterType&afterId&limit`: paged live records and `asOfRevision`.
 - `PUT /sync/state`: the device reports cursor, counts and category consent; returns floor, head revision and retention days.
-- `GET /sync/summary` (owner): counts per category and per-device lag and counts.
+- `GET /sync/summary` (owner): counts per category, head revision, floor, retention, and lag and counts for active devices.
 - `POST /sync/environment/clear/preview` and `POST /sync/environment/clear` (owner): the two-step Hub delete.
-- Realtime `changes-available { revision }`, sent only to device sockets.
+- Realtime `changes-available { revision }`, sent only to device sockets; a poll backs it up. `HUB_PROTOCOL_VERSION` is 2 (minimum client 1) and a device reports `hub-outdated` against an older Hub.
+- Audit: a push is audited with counts only, a snapshot on its first page, owner summary and environment clear preview/apply by event; `changes` and `state` are not audited. Payloads are never audited.
 
 ### Retention and rebase algorithm
 
-1. The Hub keeps `retentionDays` (default 90) of history. Compaction deletes change-feed rows at or below a new **floor**, drops tombstones and applied operations at or below it, and raises the floor.
+1. The Hub keeps `retentionDays` (default 90) of history. Compaction (at startup and every six hours) deletes change-feed rows at or below a new **floor**, drops tombstones and applied operations at or below it, and raises the floor. The head revision reported is `max(feed, floor)`, and an upsert based on a compacted tombstone conflicts instead of resurrecting the record.
 2. A device calling `changes` with `after` below the floor receives `cursor-expired`.
 3. The device pulls a snapshot. The first page fixes `asOfRevision`; the device then pulls changes from that revision.
 4. A local record that has a Hub revision but is absent from the snapshot was deleted on the Hub and is removed locally. A pending edit to it becomes an edit-delete conflict in the inbox, so the delete is not resurrected and the edit is not lost.
@@ -586,11 +590,17 @@ All under `/api/v1`; device credential unless noted. Contract: `@dude/contracts/
 
 ### Revoked devices
 
-Revocation stops every Hub call. The device freezes: operations become `stranded`, local data is kept and no credential is refreshed. The user may **Continue standalone** (the Hub link is dropped and stranded operations become `unsent-standalone`) or **re-pair** with a new key and run the first-sync preview again. A revoked key is never reinstated and the Hub never remote-wipes the device.
+Revocation stops every Hub call. The device freezes: operations become `stranded`, local data is kept and no credential is refreshed. The user may **Continue standalone** (the Hub link is dropped and stranded operations become `unsent-standalone`) or **re-pair** with a new key and run the first-sync preview again. A revoked key is never reinstated and the Hub never remote-wipes the device. Standalone conversion (also on unenroll) drops all outbox rows; the data stays in `records` and a later enrollment's first sync re-journals local-only data.
+
+### First sync, lifecycle and live apply
+
+Before anything is sent, a device with local records shows a preview and the user picks **Merge** (recommended for the default-on categories), **Use Hub** or **Keep local** (recommended for usage, workspace layout and scratchpad) per category. **Use Hub** runs behind a `VACUUM INTO` recovery snapshot and a single-use token and is resumable per category; the device re-keys to the Hub environment and every enrollment restarts the first sync. **Clear data** on an enrolled device keeps the enrollment and a rebase re-pulls; an optional **Also delete from Hub** is an owner-session, digest-bound two-step where a Hub failure wipes nothing. **Reset this device** unenrolls best-effort. Previews disclose unsent operations, and the high-consequence gate holds their confirmation-boundary specs.
+
+Remote changes apply live through `applyRemote` on the entity collections and the key/value backend; workspace layout is held for the next launch, the pipeline builder reloads silently, and a changed scratchpad shows a notice. Remote key/value deletes remove the cache entry but do not reset open signals until reload. The renderer surfaces state in Settings › Sync and the shell sync indicator ([UX](../product/UX_SPEC.md#environment-device-and-synchronization-navigation)).
 
 ## Migration from the delivered local stores
 
-Migration is part of Phase 31B/31D, not a post-release cleanup. **Phase 31B migrated the delivered local stores into the Device State Store; Phase 31D still owns first-sync preview, import and merge.** Inventory current local/session/browser persistence, OS-backed credentials, saved pipelines/workspaces/projects/history, user settings and native journals. Preserve the existing tool persistence rules and stable tool IDs.
+Migration is part of Phase 31B/31D, not a post-release cleanup. **Phase 31B migrated the delivered local stores into the Device State Store; Phase 31D delivered first-sync preview, import and merge.** Inventory current local/session/browser persistence, OS-backed credentials, saved pipelines/workspaces/projects/history, user settings and native journals. Preserve the existing tool persistence rules and stable tool IDs.
 
 Before changing durable formats, create a recoverable local snapshot and versioned migration marker. Migrate to the desktop Device State Store incrementally through repository adapters. Keep browser session/local storage adapters where appropriate; do not require Node SQLite in a browser. Android selects a compatible local persistence adapter in Phase 31H. OS secrets stay in their secure store with reference migration, never a plaintext bulk export.
 
@@ -606,7 +616,7 @@ Phase 31B delivered a **best-effort, one-shot local import** rather than a long-
 - The renderer imports the current origin's `dude:v1:*` localStorage keys and the History/network-run IndexedDB databases once, then deletes the old copies. Renderer data written by earlier production launches lived at random-port origins and is unrecoverable.
 - Store schema changes use the versioned migration runner described above. The legacy-compat code was deleted: manifest `storageMigrations`, `moveLocalValue`, every `migrateX` function, the legacy Home panel and the bundle's `homePanel`. Repository codecs validate rows for both hydration and bundle import.
 
-**Still owned by Phase 31D:** the first-connection preview of what becomes shared and what stays local, ID/name collision handling, import/merge/keep-local choices, Hub revision assignment, outbox replay and conflict handling. Phase 31B only records unsent ops; it never contacts a Hub.
+**Delivered by Phase 31D:** the first-connection preview of what becomes shared and what stays local, import/merge/keep-local choices, Hub revision assignment, outbox replay and conflict handling (see [As built in Phase 31D](#as-built-in-phase-31d-synchronization)). Phase 31B itself only recorded unsent ops and never contacted a Hub.
 
 ## Backup consistency, restore and authority transfer
 

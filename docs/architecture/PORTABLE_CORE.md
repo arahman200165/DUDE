@@ -17,13 +17,13 @@ Phase 31A introduced npm workspaces with one root lockfile, and Phase 31B filled
 | `tool-engine` | Tool transforms, composition, deterministic fixtures and pure tests |
 | `tool-registry` | Authoritative per-tool manifests and generated metadata index |
 | `persistence` | Device/environment records, UUIDv7, setting definitions and scope rules, entity codec interface, repository ports, secret references, in-memory adapters and host-neutral contract suites (`@dude/persistence/testing`) |
-| `sync` | Outbox op model and per-entity coalescing; replay, cursors and conflicts reserved for 31D |
+| `sync` | Outbox op model and coalescing; sync categories, `SYNC_POLICIES`, three-way merge, `SYNC_LIMITS`, `SyncStatus`, JSON diff and display helpers (Phase 31D); transport lives in `@dude/api-client` and the engine in `apps/device-agent` |
 | `api-client` | Portable typed Hub client over an injected transport port; consumed by the Agent and the hub-web build, kept out of the Pages and desktop renderer bundles (a Hub parity spec checks it against the Hub's routes) |
 | `sqlite-store` | Node-only `node:sqlite` plumbing (open, WAL, checksummed migration runner, helpers) shared by the Hub and the Device Agent; excluded from the portable-core gate |
 | `agent-pipe` | Node-only authenticated named-pipe protocol between the desktop and the Device Agent; excluded from the portable-core gate |
 | `collab-protocol` | Existing Node-only Yjs room implementation; excluded from the portable-core gate |
 
-Mobile and infrastructure directories are documented placeholders with no implementation. Device identity, the desktop SQLite store with its migration runner and the local outbox are delivered by Phase 31B in `persistence`, `sync` and `apps/device-agent`; Phase 31C adds `apps/hub`, Hub registration and the Hub client. Replay, cursors, conflicts and any synchronization are not delivered (31D).
+Mobile and infrastructure directories are documented placeholders with no implementation. Device identity, the desktop SQLite store with its migration runner and the local outbox are delivered by Phase 31B in `persistence`, `sync` and `apps/device-agent`; Phase 31C adds `apps/hub`, Hub registration and the Hub client. Phase 31D adds synchronization: the categories, policies, merge and limits live in `sync`, the typed transport in `api-client` and the replay, cursor and conflict engine in `apps/device-agent`; Android sync is not delivered (31H).
 
 ## Package and host boundaries
 

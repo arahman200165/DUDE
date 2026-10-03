@@ -119,7 +119,8 @@ for (const file of scanFiles) {
   (function c(n) { if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.initializer && str(n.initializer) !== undefined) constants.set(n.name.text, str(n.initializer)); ts.forEachChild(n, c); })(sf);
   const resolve = a => a && (str(a) ?? (ts.isIdentifier(a) ? constants.get(a.text) ?? importedSettings[a.text] : undefined));
   const base = n => ({ source, line: sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1, operation: n.getText(sf) });
-  const push = (n, e) => entries.push({ ...base(n), ...e, syncConsent: 'not granted' });
+  const entryConsent = scope => scope === 'environment' || scope === 'workspace' ? 'per category after enrollment and first-sync confirmation (see entity inventory)' : 'not granted';
+  const push = (n, e) => entries.push({ ...base(n), ...e, syncConsent: entryConsent(e.scope) });
   const flag = (n, { namespace, key, policy, receiver, common }) => {
     const h = heuristic({ namespace, key, policy, file, receiver });
     push(n, { ...common, scope: h.scope, sensitivity: h.secret ? 'secret' : h.safePreference || h.favorites ? 'non-sensitive' : 'sensitive', classificationBasis: 'regex-heuristic (review flag)' });
@@ -167,7 +168,7 @@ const agentTables = {
   schema_migrations: ['device', 'migration bookkeeping'],
   kv: ['per-row', 'per-tool key/value; scope per row via resolveKvScope (setting definition, manifest override, policy rule)'],
   records: ['per-row', 'entities; scope per row from the entity codec'],
-  outbox: ['device', 'durable local outbox of pending operations; never sent without 31D consent'],
+  outbox: ['device', 'durable local outbox of pending operations; sent only for sync categories with per-category consent after enrollment (Phase 31D); nothing while standalone'],
   history_entries: ['local-only', 'Local History payloads'],
   network_runs: ['local-only', 'network run results and targets'],
   mutation_journal: ['local-only', 'filesystem and system mutation journals'],
@@ -232,14 +233,14 @@ const basisCounts = {};
 for (const e of entries) basisCounts[e.classificationBasis] = (basisCounts[e.classificationBasis] ?? 0) + 1;
 const output = JSON.stringify({
   schemaVersion: 3,
-  purpose: 'Checked Phase 31B declarations; classification follows setting definitions, manifest overrides, entity codecs, the policy rule, device docs and agent tables. Regex heuristics are review flags only and must be listed in REVIEWED_HEURISTICS. Scope grants no synchronization consent.',
+  purpose: 'Checked Phase 31B declarations; classification follows setting definitions, manifest overrides, entity codecs, the policy rule, device docs and agent tables. Regex heuristics are review flags only and must be listed in REVIEWED_HEURISTICS. Scope alone grants no synchronization consent: consent is per category after enrollment and first-sync confirmation.',
   entityInventory: entityFile,
   identityAndSchemaGaps: [
     'Stable entity ids, device id, environment id and schema versions now exist on Device Store records and outbox operations (31B)',
-    'Hub revisions, replay and conflict semantics are absent until 31D',
-    'The enrollment preview (what would leave the device) is absent until 31D',
+    'Hub revisions, replay and conflict semantics exist for enrolled desktops since Phase 31D (per-entity policies in SYNC_POLICIES)',
+    'The first-sync preview (what would leave the device) exists since Phase 31D; consent is per category',
     'Mixed records need field-level redaction before any future sync opt-in',
-    'Retention consent is independent of future synchronization consent; no synchronization consent is implied',
+    'Retention consent is independent of synchronization consent; sync consent is per category and only environment or workspace scoped data can be consented (Phase 31D)',
   ],
   classificationCounts: basisCounts,
   reviewFlags,
@@ -250,4 +251,4 @@ if (process.argv.includes('--check')) {
   if (unreviewed.length) throw Error('Undeclared storage sites need a declaration or a REVIEWED_HEURISTICS entry:\n' + unreviewed.map(f => `  ${f.source}:${f.line} ${f.namespace ?? ''}:${f.key ?? ''}`).join('\n'));
   if (readFileSync(path, 'utf8') !== output) throw Error('Data scope inventory is stale: run node scripts/data-scope-inventory.mjs');
 } else writeFileSync(path, output);
-console.log(`${entries.length} storage declarations/sites classified (${JSON.stringify(basisCounts)}); ${reviewFlags.length} review flags, ${unreviewed.length} unreviewed; no synchronization consent is implied.`);
+console.log(`${entries.length} storage declarations/sites classified (${JSON.stringify(basisCounts)}); ${reviewFlags.length} review flags, ${unreviewed.length} unreviewed; consent is per sync category (Phase 31D); device and local-only data are never sent.`);

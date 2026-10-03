@@ -2848,6 +2848,56 @@ Fix commits: the Windows MachineGuid registry path (a Phase 31B regression that 
 
 **Outcome (Milestones 628-648):** measured results and owed manual passes are recorded in [Phase 31C acceptance evidence](../delivery/PHASE31C_ACCEPTANCE.md).
 
+<a id="phase-31d"></a>
+
+## Phase 31D — Synchronization and Offline Reconciliation
+
+**Status:** complete, Milestones 649–662 plus fix commits; automated acceptance and measurements are recorded in [Phase 31D acceptance evidence](../delivery/PHASE31D_ACCEPTANCE.md), which also lists the manual two-machine pass still owed. Decisions are PD-038 to PD-049 in the [decision log](DECISION_LOG.md#phase-31d-implementation-decisions), implemented with the amendments recorded there.
+
+Phase 31D made two enrolled desktops converge through the Hub: nine consent-gated categories, revision-checked push, pull and snapshot routes, a durable offline outbox that replays after a restart, three-way field merge with a permanent conflict inbox, a first-sync preview with a recovery snapshot, retention with snapshot rebase that does not resurrect deletes, revoked-device freezing, live apply into the running renderer, Settings › Sync and a shell sync indicator, and per-device sync statistics for the Hub owner.
+
+### Milestone map
+
+| Milestone | Delivered |
+|---|---|
+| 649 | Decision records PD-038 to PD-049 and the planned design section |
+| 650 | `@dude/sync` core: categories, `SYNC_POLICIES`, three-way merge, `SYNC_LIMITS`, `SyncStatus`, `stripNonSyncable` |
+| 651 | `sync.schema` contracts, `changes-available` realtime event, sync audit events, `HUB_PROTOCOL_VERSION` 2 (minimum client 1) and `hubSupportsSync` |
+| 652 | Hub migration 0003 (`records(environment_id, revision)` index, `device_sync_state`, `sync_floor`, `sync_retention_days`), policy enforcement in `commitCanonical`, the sync repository and the setting-key codec check |
+| 653 | `/api/v1/sync` push, changes, snapshot, state, summary and the two-step environment clear; device-only `changes-available`; compaction timer; `@dude/api-client` methods |
+| 654 | Device-store migration 0003, outbox status by enrollment, kv journaling of syncable settings with `KV_ENTITY_BINDINGS`, per-device usage |
+| 655 | Agent sync engine (apply-remote, push results, rebase, conflicts, quarantine, status) with `sync.*` RPCs and frames |
+| 656 | First-sync preview and apply (Merge, Use Hub, Keep local) with a recovery snapshot, single-use token and re-keying |
+| 657 | Lifecycle: revoked → Continue standalone, unenroll, Clear data on an enrolled device with optional delete from Hub, Reset; confirmation-boundary specs |
+| 658 | Desktop sync bridge (`dude:sync:*`, sender-checked) and renderer live apply |
+| 659 | Hub admin sync statistics (`hub.owner.syncSummary`, Devices and Environment & Hub panels) |
+| 660 | Settings › Sync section and the shell sync indicator (shell exception #13) |
+| 661 | Exit-gate suites and measurements (`npm run test:sync`, `npm run test:e2e:sync`, `npm run measure:sync`) |
+| 662 | Phase close-out: documentation, decision amendments and acceptance evidence |
+
+Fix commits: a data-scope inventory refresh after the store migration and the move of the pure JSON diff and sync display helpers into `@dude/sync` (the inventory rule that portable logic lives in packages).
+
+### Architecture and notes
+
+- The Hub is a revision arbiter: `SYNC_POLICIES` assigns `lww`, `per-device` or `merge3` per entity type and the Hub rejects stale `merge3` bases; devices do the merging against the last Hub version they saw.
+- REST carries all synchronization and the WebSocket only nudges, so a lost nudge costs latency, never data.
+- Tool-preference sync is authorized twice: the device journals tool-id-shaped `environment` keys, and the Hub's manifest-derived `isSyncableSettingKey` is the authority (the Agent may not depend on `@dude/tool-registry`).
+- "Held" is derived, not stored; re-enabling a category forces a snapshot rebase; schema-newer remote records are deferred rather than dropped.
+- Standalone conversion drops the outbox; data stays in `records` and a later first sync re-journals it.
+
+### Gotchas found
+
+- After compaction the Hub head revision must be `max(feed, floor)`, and an upsert based on a compacted tombstone must conflict rather than resurrect the record (found by the retention scenario, fixed in M661).
+- Electron-as-Node (BoringSSL) rejects the Hub's self-signed certificate as a trust anchor, so unpackaged desktops cannot enroll; the packaged SEA Agent is unaffected and the e2e uses `DUDE_E2E_AGENT_NODE`. The fix belongs to the 31E/31F TLS work.
+- An automatic merge must assign a new op id, otherwise an in-flight push of the older payload clears it.
+- The process-viewer confirmation-boundary spec timed out once under full `npm test` load and passes in `test:high-consequence`.
+
+### Scope ceiling
+
+**Phase 31D synchronizes desktops only.** Unbuilt: the shared-state Hub web (31E), sync-time revoked-device verification for Internet exposure (31F), encrypted backup and transfer (31G), Android sync (31H–31I), collaboration persistence (31J), end-to-end encrypted or extended categories (Phase 82), secret synchronization and non-tool app-namespace settings.
+
+**Outcome (Milestones 649–662):** met, with the two-machine manual pass owed; see [Phase 31D acceptance evidence](../delivery/PHASE31D_ACCEPTANCE.md).
+
 ## Historical V1 Definition of Done
 
 DUDE V1 was declared done once all required items below were verified true, on 2026-09-19.

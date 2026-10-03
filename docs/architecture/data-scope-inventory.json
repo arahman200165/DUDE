@@ -1,13 +1,13 @@
 {
   "schemaVersion": 3,
-  "purpose": "Checked Phase 31B declarations; classification follows setting definitions, manifest overrides, entity codecs, the policy rule, device docs and agent tables. Regex heuristics are review flags only and must be listed in REVIEWED_HEURISTICS. Scope grants no synchronization consent.",
+  "purpose": "Checked Phase 31B declarations; classification follows setting definitions, manifest overrides, entity codecs, the policy rule, device docs and agent tables. Regex heuristics are review flags only and must be listed in REVIEWED_HEURISTICS. Scope alone grants no synchronization consent: consent is per category after enrollment and first-sync confirmation.",
   "entityInventory": "docs/architecture/data-scope-entities.json",
   "identityAndSchemaGaps": [
     "Stable entity ids, device id, environment id and schema versions now exist on Device Store records and outbox operations (31B)",
-    "Hub revisions, replay and conflict semantics are absent until 31D",
-    "The enrollment preview (what would leave the device) is absent until 31D",
+    "Hub revisions, replay and conflict semantics exist for enrolled desktops since Phase 31D (per-entity policies in SYNC_POLICIES)",
+    "The first-sync preview (what would leave the device) exists since Phase 31D; consent is per category",
     "Mixed records need field-level redaction before any future sync opt-in",
-    "Retention consent is independent of future synchronization consent; no synchronization consent is implied"
+    "Retention consent is independent of synchronization consent; sync consent is per category and only environment or workspace scoped data can be consented (Phase 31D)"
   ],
   "classificationCounts": {
     "device-doc": 33,
@@ -1200,7 +1200,7 @@
       "retention": "existing per-table policy",
       "scope": "device",
       "sensitivity": "non-sensitive",
-      "note": "durable local outbox of pending operations; never sent without 31D consent",
+      "note": "durable local outbox of pending operations; sent only for sync categories with per-category consent after enrollment (Phase 31D); nothing while standalone",
       "classificationBasis": "agent-table",
       "syncConsent": "not granted"
     },
@@ -1695,7 +1695,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "setting-definition",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/core/appearance/appearance.service.ts",
@@ -1751,7 +1751,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/core/device/device-identity.service.ts",
@@ -1780,7 +1780,7 @@
       "sensitivity": "non-sensitive",
       "entityType": "favorite",
       "classificationBasis": "entity-codec",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/core/history/history-db.ts",
@@ -1823,7 +1823,7 @@
       "sensitivity": "non-sensitive",
       "entityType": "home-layout",
       "classificationBasis": "entity-codec",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/core/native-recents/native-recents.service.ts",
@@ -1837,7 +1837,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/core/native-recents/native-recents.service.ts",
@@ -1950,7 +1950,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/core/persistence/entities/entity-legacy-import.ts",
@@ -2063,7 +2063,7 @@
       "sensitivity": "non-sensitive",
       "entityType": "pipeline",
       "classificationBasis": "entity-codec",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/core/pipeline/user-script-store.service.ts",
@@ -2078,7 +2078,7 @@
       "sensitivity": "non-sensitive",
       "entityType": "user-script",
       "classificationBasis": "entity-codec",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/core/platform/network-run-repository.ts",
@@ -2120,7 +2120,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/core/platform/onboarding.service.ts",
@@ -2134,7 +2134,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/core/platform/onboarding.service.ts",
@@ -2148,7 +2148,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/core/project/project.service.ts",
@@ -2163,7 +2163,7 @@
       "sensitivity": "non-sensitive",
       "entityType": "project",
       "classificationBasis": "entity-codec",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/core/pwa/pwa-install.service.ts",
@@ -2177,7 +2177,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/core/storage/indexed-db.ts",
@@ -2219,7 +2219,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/core/text-file-input/imported-file-flags.ts",
@@ -2262,7 +2262,7 @@
       "sensitivity": "non-sensitive",
       "entityType": "usage",
       "classificationBasis": "entity-codec",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/core/workspace/scratchpad.service.ts",
@@ -2277,7 +2277,7 @@
       "sensitivity": "non-sensitive",
       "entityType": "scratchpad",
       "classificationBasis": "entity-codec",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/core/workspace/scratchpad.service.ts",
@@ -2347,7 +2347,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "setting-definition",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/core/workspace/workspace-layout.service.ts",
@@ -2362,7 +2362,7 @@
       "sensitivity": "non-sensitive",
       "entityType": "workspace-layout",
       "classificationBasis": "entity-codec",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/core/workspace/workspace-storage-bridge.ts",
@@ -2391,7 +2391,7 @@
       "sensitivity": "non-sensitive",
       "entityType": "workspace-template",
       "classificationBasis": "entity-codec",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/core/workspace/workspace-template.service.ts",
@@ -2405,7 +2405,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/shell/browse-tools/browse-tools.ts",
@@ -2419,7 +2419,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/shell/browse-tools/browse-tools.ts",
@@ -2433,7 +2433,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/shell/onboarding/onboarding.ts",
@@ -2475,7 +2475,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/accept-header-builder/accept-header-builder.ts",
@@ -2517,7 +2517,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/advanced-diff/advanced-diff.ts",
@@ -2531,7 +2531,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/advanced-diff/advanced-diff.ts",
@@ -2559,7 +2559,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/advanced-diff/advanced-diff.ts",
@@ -2587,7 +2587,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/advanced-diff/advanced-diff.ts",
@@ -2601,7 +2601,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/advanced-diff/advanced-diff.ts",
@@ -2615,7 +2615,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/advanced-diff/advanced-diff.ts",
@@ -2629,7 +2629,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/advanced-diff/advanced-diff.ts",
@@ -2643,7 +2643,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/advanced-diff/advanced-diff.ts",
@@ -2657,7 +2657,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/aes-encrypt-decrypt/aes-encrypt-decrypt.ts",
@@ -2671,7 +2671,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/aes-encrypt-decrypt/aes-encrypt-decrypt.ts",
@@ -2685,7 +2685,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/aes-encrypt-decrypt/aes-encrypt-decrypt.ts",
@@ -2699,7 +2699,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/archive-tool/archive-tool.ts",
@@ -2713,7 +2713,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/archive-tool/archive-tool.ts",
@@ -2727,7 +2727,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/ascii-art-generator/ascii-art-generator.ts",
@@ -2741,7 +2741,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/ascii-art-generator/ascii-art-generator.ts",
@@ -2769,7 +2769,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/aspect-ratio-calculator/aspect-ratio-calculator.ts",
@@ -2839,7 +2839,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/aspect-ratio-calculator/aspect-ratio-calculator.ts",
@@ -2853,7 +2853,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/asymmetric-key-generator/asymmetric-key-generator.ts",
@@ -2867,7 +2867,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/asymmetric-key-generator/asymmetric-key-generator.ts",
@@ -2881,7 +2881,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/asymmetric-key-generator/asymmetric-key-generator.ts",
@@ -2895,7 +2895,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/asymmetric-key-generator/asymmetric-key-generator.ts",
@@ -2909,7 +2909,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/aws-sigv4-inspector/aws-sigv4-inspector.ts",
@@ -2923,7 +2923,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/aws-sigv4-inspector/aws-sigv4-inspector.ts",
@@ -2937,7 +2937,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/aws-sigv4-inspector/aws-sigv4-inspector.ts",
@@ -2951,7 +2951,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/barcode-generator/barcode-generator.ts",
@@ -2979,7 +2979,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/base-n-encoder/base-n-encoder.ts",
@@ -3007,7 +3007,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/base-n-encoder/base-n-encoder.ts",
@@ -3021,7 +3021,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/base64-image-viewer/base64-image-viewer.ts",
@@ -3035,7 +3035,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/base64-image-viewer/base64-image-viewer.ts",
@@ -3049,7 +3049,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/base64/base64.ts",
@@ -3077,7 +3077,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/basic-auth-generator/basic-auth-generator.ts",
@@ -3091,7 +3091,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/batch-rename/batch-rename.ts",
@@ -3105,7 +3105,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/batch-rename/batch-rename.ts",
@@ -3119,7 +3119,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/batch-rename/batch-rename.ts",
@@ -3133,7 +3133,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/batch-text-converter/batch-text-converter.ts",
@@ -3147,7 +3147,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/batch-text-converter/batch-text-converter.ts",
@@ -3161,7 +3161,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/batch-text-converter/batch-text-converter.ts",
@@ -3175,7 +3175,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/bearer-token-builder/bearer-token-builder.ts",
@@ -3231,7 +3231,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/binary-strings-extractor/binary-strings-extractor.ts",
@@ -3245,7 +3245,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/binary-strings-extractor/binary-strings-extractor.ts",
@@ -3259,7 +3259,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/binary-strings-extractor/binary-strings-extractor.ts",
@@ -3273,7 +3273,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/binary-structure-inspector/binary-structure-inspector.ts",
@@ -3287,7 +3287,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/border-radius-generator/border-radius-generator.ts",
@@ -3301,7 +3301,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/border-radius-generator/border-radius-generator.ts",
@@ -3329,7 +3329,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/box-shadow-generator/box-shadow-generator.ts",
@@ -3371,7 +3371,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/branch-name-generator/branch-name-generator.ts",
@@ -3399,7 +3399,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/cache-control-builder/cache-control-builder.ts",
@@ -3427,7 +3427,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/case-converter/case-converter.ts",
@@ -3455,7 +3455,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/certificate-chain-tools/certificate-chain-tools.ts",
@@ -3483,7 +3483,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/chacha20-poly1305/chacha20-poly1305.ts",
@@ -3497,7 +3497,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/chacha20-poly1305/chacha20-poly1305.ts",
@@ -3511,7 +3511,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/chmod-converter/chmod-converter.ts",
@@ -3553,7 +3553,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/color-converter/color-converter.ts",
@@ -3609,7 +3609,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/compression-lab/compression-lab.ts",
@@ -3623,7 +3623,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/compression-lab/compression-lab.ts",
@@ -3637,7 +3637,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/config-file-comparator/config-file-comparator.ts",
@@ -3679,7 +3679,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/config-merge-tool/config-merge-tool.ts",
@@ -3833,7 +3833,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/cookie-tools/cookie-tools.ts",
@@ -3847,7 +3847,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/cors-header-builder/cors-header-builder.ts",
@@ -3875,7 +3875,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/create-table-generator/create-table-generator.ts",
@@ -3889,7 +3889,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/create-table-generator/create-table-generator.ts",
@@ -3903,7 +3903,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/cron/cron.ts",
@@ -3931,7 +3931,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/cron/cron.ts",
@@ -3945,7 +3945,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/cron/cron.ts",
@@ -3959,7 +3959,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/csp-builder/csp-builder.ts",
@@ -3987,7 +3987,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/csr-generator-inspector/csr-generator-inspector.ts",
@@ -4057,7 +4057,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/css-grid-playground/css-grid-playground.ts",
@@ -4155,7 +4155,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/csv-cleaner/csv-cleaner.ts",
@@ -4183,7 +4183,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/csv-cleaner/csv-cleaner.ts",
@@ -4197,7 +4197,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/csv-dedupe/csv-dedupe.ts",
@@ -4239,7 +4239,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/csv-delimiter-detector/csv-delimiter-detector.ts",
@@ -4267,7 +4267,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/csv-filter-sort/csv-filter-sort.ts",
@@ -4337,7 +4337,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/csv-filter-sort/csv-filter-sort.ts",
@@ -4351,7 +4351,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/csv-join/csv-join.ts",
@@ -4421,7 +4421,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/csv-pivot/csv-pivot.ts",
@@ -4491,7 +4491,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/csv-sql/csv-sql.ts",
@@ -4519,7 +4519,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/csv-sql/csv-sql.ts",
@@ -4533,7 +4533,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/csv-sql/csv-sql.ts",
@@ -4547,7 +4547,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/csv-stats/csv-stats.ts",
@@ -4575,7 +4575,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/csv-viewer/csv-viewer.ts",
@@ -4589,7 +4589,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/csv-viewer/csv-viewer.ts",
@@ -4617,7 +4617,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/csv-viewer/csv-viewer.ts",
@@ -4631,7 +4631,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/csv-viewer/csv-viewer.ts",
@@ -4645,7 +4645,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/csv-viewer/csv-viewer.ts",
@@ -4659,7 +4659,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/cubic-bezier-editor/cubic-bezier-editor.ts",
@@ -4687,7 +4687,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/cuid-generator/cuid-generator.ts",
@@ -4701,7 +4701,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/cuid-generator/cuid-generator.ts",
@@ -4729,7 +4729,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/data-uri-converter/data-uri-converter.ts",
@@ -4743,7 +4743,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/data-uri-converter/data-uri-converter.ts",
@@ -4771,7 +4771,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/data-uri-converter/data-uri-converter.ts",
@@ -4799,7 +4799,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/date-calculator/date-calculator.ts",
@@ -4883,7 +4883,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/dependency-version-comparator/dependency-version-comparator.ts",
@@ -4925,7 +4925,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/diff/diff.ts",
@@ -4953,7 +4953,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/diff/diff.ts",
@@ -4981,7 +4981,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/directory-tree-generator/directory-tree-generator.ts",
@@ -4995,7 +4995,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/directory-tree-generator/directory-tree-generator.ts",
@@ -5009,7 +5009,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/docker-compose-validator/docker-compose-validator.ts",
@@ -5051,7 +5051,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/docker-run-compose-converter/docker-run-compose-converter.ts",
@@ -5065,7 +5065,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/dockerfile-linter/dockerfile-linter.ts",
@@ -5177,7 +5177,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/dpi-calculator/dpi-calculator.ts",
@@ -5191,7 +5191,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/dst-transition-explorer/dst-transition-explorer.ts",
@@ -5219,7 +5219,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/duplicate-files/duplicate-files.ts",
@@ -5233,7 +5233,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/duplicate-files/duplicate-files.ts",
@@ -5247,7 +5247,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/duplicate-files/duplicate-files.ts",
@@ -5261,7 +5261,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/duplicate-files/duplicate-files.ts",
@@ -5275,7 +5275,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/duplicate-files/duplicate-files.ts",
@@ -5289,7 +5289,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/duplicate-files/duplicate-files.ts",
@@ -5303,7 +5303,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/duplicate-finder/duplicate-finder.ts",
@@ -5317,7 +5317,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/duplicate-finder/duplicate-finder.ts",
@@ -5345,7 +5345,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/duration-formatter/duration-formatter.ts",
@@ -5429,7 +5429,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/env-validator/env-validator.ts",
@@ -5457,7 +5457,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/environment-variables/environment-variables.ts",
@@ -5471,7 +5471,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/epoch-timeline-visualizer/epoch-timeline-visualizer.ts",
@@ -5513,7 +5513,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/epoch-timeline-visualizer/epoch-timeline-visualizer.ts",
@@ -5541,7 +5541,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/error-code-reference/error-code-reference.ts",
@@ -5555,7 +5555,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/error-code-reference/error-code-reference.ts",
@@ -5569,7 +5569,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/escape-unescape-toolkit/escape-unescape-toolkit.ts",
@@ -5597,7 +5597,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/escape-unescape-toolkit/escape-unescape-toolkit.ts",
@@ -5611,7 +5611,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/event-log-viewer/event-log-viewer.ts",
@@ -5625,7 +5625,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/event-log-viewer/event-log-viewer.ts",
@@ -5639,7 +5639,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/event-log-viewer/event-log-viewer.ts",
@@ -5653,7 +5653,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/exif-viewer/exif-viewer.ts",
@@ -5667,7 +5667,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/expression-evaluator/expression-evaluator.ts",
@@ -5709,7 +5709,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/extract-columns/extract-columns.ts",
@@ -5723,7 +5723,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/extract-columns/extract-columns.ts",
@@ -5751,7 +5751,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/file-base64/file-base64.ts",
@@ -5765,7 +5765,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/file-base64/file-base64.ts",
@@ -5807,7 +5807,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/file-hash/file-hash.ts",
@@ -5821,7 +5821,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/file-split-join/file-split-join.ts",
@@ -5835,7 +5835,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/file-split-join/file-split-join.ts",
@@ -5849,7 +5849,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/file-split-join/file-split-join.ts",
@@ -5863,7 +5863,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/file-split-join/file-split-join.ts",
@@ -5877,7 +5877,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/file-split-join/file-split-join.ts",
@@ -5891,7 +5891,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/file-split-join/file-split-join.ts",
@@ -5905,7 +5905,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/file-split-join/file-split-join.ts",
@@ -5919,7 +5919,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/file-split-join/file-split-join.ts",
@@ -5933,7 +5933,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/file-split-join/file-split-join.ts",
@@ -5947,7 +5947,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/find-replace-text/find-replace-text.ts",
@@ -5961,7 +5961,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/find-replace-text/find-replace-text.ts",
@@ -6017,7 +6017,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/flexbox-playground/flexbox-playground.ts",
@@ -6059,7 +6059,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/folder-size-analyzer/folder-size-analyzer.ts",
@@ -6073,7 +6073,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/folder-size-analyzer/folder-size-analyzer.ts",
@@ -6087,7 +6087,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/git-command-builder/git-command-builder.ts",
@@ -6115,7 +6115,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/git-command-explainer/git-command-explainer.ts",
@@ -6143,7 +6143,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/git-remote-inspector/git-remote-inspector.ts",
@@ -6185,7 +6185,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/gitignore-tester/gitignore-tester.ts",
@@ -6241,7 +6241,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/glob-tester/glob-tester.ts",
@@ -6255,7 +6255,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/glob-tester/glob-tester.ts",
@@ -6269,7 +6269,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/glob-tester/glob-tester.ts",
@@ -6297,7 +6297,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/gradient-generator/gradient-generator.ts",
@@ -6311,7 +6311,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/gradient-generator/gradient-generator.ts",
@@ -6325,7 +6325,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/gradient-generator/gradient-generator.ts",
@@ -6353,7 +6353,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/hash-manifest/hash-manifest.ts",
@@ -6367,7 +6367,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/hash-manifest/hash-manifest.ts",
@@ -6381,7 +6381,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/hash-manifest/hash-manifest.ts",
@@ -6395,7 +6395,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/hash-manifest/hash-manifest.ts",
@@ -6409,7 +6409,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/hash-manifest/hash-manifest.ts",
@@ -6423,7 +6423,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/hash/hash.ts",
@@ -6451,7 +6451,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/hex-dump/hex-dump.ts",
@@ -6493,7 +6493,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/hex-dump/hex-dump.ts",
@@ -6507,7 +6507,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/hex-editor/hex-editor.ts",
@@ -6521,7 +6521,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/hex-text-converter/hex-text-converter.ts",
@@ -6549,7 +6549,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/hex-text-converter/hex-text-converter.ts",
@@ -6563,7 +6563,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/hmac-generator/hmac-generator.ts",
@@ -6577,7 +6577,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/hmac-generator/hmac-generator.ts",
@@ -6591,7 +6591,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/html-entities/html-entities.ts",
@@ -6605,7 +6605,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/html-entities/html-entities.ts",
@@ -6633,7 +6633,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/html-entity-explorer/html-entity-explorer.ts",
@@ -6647,7 +6647,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/html-formatter/html-formatter.ts",
@@ -6675,7 +6675,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/html-jsx-converter/html-jsx-converter.ts",
@@ -6703,7 +6703,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/html-preview/html-preview.ts",
@@ -6731,7 +6731,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/http-digest-auth-helper/http-digest-auth-helper.ts",
@@ -6745,7 +6745,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/http-digest-auth-helper/http-digest-auth-helper.ts",
@@ -6759,7 +6759,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/http-digest-auth-helper/http-digest-auth-helper.ts",
@@ -6773,7 +6773,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/http-digest-auth-helper/http-digest-auth-helper.ts",
@@ -6787,7 +6787,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/http-request-builder/http-request-builder.ts",
@@ -6801,7 +6801,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/http-request-builder/http-request-builder.ts",
@@ -6815,7 +6815,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/http-request-builder/http-request-builder.ts",
@@ -6829,7 +6829,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/http-status/http-status.ts",
@@ -6843,7 +6843,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/image-compressor/image-compressor.ts",
@@ -6857,7 +6857,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/image-compressor/image-compressor.ts",
@@ -6871,7 +6871,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/image-compressor/image-compressor.ts",
@@ -6885,7 +6885,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/image-cropper/image-cropper.ts",
@@ -6899,7 +6899,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/image-format-converter/image-format-converter.ts",
@@ -6913,7 +6913,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/image-format-converter/image-format-converter.ts",
@@ -6927,7 +6927,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/image-format-converter/image-format-converter.ts",
@@ -6941,7 +6941,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/image-resizer/image-resizer.ts",
@@ -6955,7 +6955,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/image-resizer/image-resizer.ts",
@@ -6969,7 +6969,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/image-resizer/image-resizer.ts",
@@ -6983,7 +6983,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/image-resizer/image-resizer.ts",
@@ -6997,7 +6997,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/image-resizer/image-resizer.ts",
@@ -7011,7 +7011,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/ini-formatter/ini-formatter.ts",
@@ -7039,7 +7039,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/ini-formatter/ini-formatter.ts",
@@ -7053,7 +7053,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/invisible-char-scanner/invisible-char-scanner.ts",
@@ -7081,7 +7081,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/ip-address-inspector/ip-address-inspector.ts",
@@ -7123,7 +7123,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/ipv6-explorer/ipv6-explorer.ts",
@@ -7165,7 +7165,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/json-flatten/json-flatten.ts",
@@ -7193,7 +7193,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/json-flatten/json-flatten.ts",
@@ -7207,7 +7207,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/json-ld-tester/json-ld-tester.ts",
@@ -7263,7 +7263,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/json-patch-generate/json-patch-generate.ts",
@@ -7347,7 +7347,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/json-pointer/json-pointer.ts",
@@ -7361,7 +7361,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/json-query/json-query.ts",
@@ -7389,7 +7389,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/json-query/json-query.ts",
@@ -7403,7 +7403,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/json-query/json-query.ts",
@@ -7417,7 +7417,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/json-schema-validator/json-schema-validator.ts",
@@ -7445,7 +7445,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/json-schema-validator/json-schema-validator.ts",
@@ -7473,7 +7473,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/json-sort-keys/json-sort-keys.ts",
@@ -7501,7 +7501,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/json-sort-keys/json-sort-keys.ts",
@@ -7515,7 +7515,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/json-sort-keys/json-sort-keys.ts",
@@ -7529,7 +7529,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/json/json.ts",
@@ -7571,7 +7571,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/json/json.ts",
@@ -7585,7 +7585,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/json/json.ts",
@@ -7599,7 +7599,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/jsonl-viewer/jsonl-viewer.ts",
@@ -7627,7 +7627,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/jsonl-viewer/jsonl-viewer.ts",
@@ -7641,7 +7641,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/jwks-to-pem/jwks-to-pem.ts",
@@ -7711,7 +7711,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/jwt-signer/jwt-signer.ts",
@@ -7725,7 +7725,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/jwt-verify/jwt-verify.ts",
@@ -7739,7 +7739,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/jwt-verify/jwt-verify.ts",
@@ -7753,7 +7753,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/jwt-verify/jwt-verify.ts",
@@ -7767,7 +7767,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/jwt-verify/jwt-verify.ts",
@@ -7781,7 +7781,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/k8s-cronjob-tester/k8s-cronjob-tester.ts",
@@ -7795,7 +7795,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/k8s-cronjob-tester/k8s-cronjob-tester.ts",
@@ -7893,7 +7893,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/k8s-secret-base64/k8s-secret-base64.ts",
@@ -7935,7 +7935,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/ksuid-tools/ksuid-tools.ts",
@@ -7991,7 +7991,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/line-order-tools/line-order-tools.ts",
@@ -8019,7 +8019,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/line-order-tools/line-order-tools.ts",
@@ -8033,7 +8033,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/line-prefix-numbering/line-prefix-numbering.ts",
@@ -8103,7 +8103,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/line-prefix-numbering/line-prefix-numbering.ts",
@@ -8117,7 +8117,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/line-prefix-numbering/line-prefix-numbering.ts",
@@ -8131,7 +8131,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/lockfile-inspector/lockfile-inspector.ts",
@@ -8145,7 +8145,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/lockfile-inspector/lockfile-inspector.ts",
@@ -8159,7 +8159,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/lockfile-inspector/lockfile-inspector.ts",
@@ -8173,7 +8173,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/lorem-ipsum-generator/lorem-ipsum-generator.ts",
@@ -8187,7 +8187,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/mac-address-inspector/mac-address-inspector.ts",
@@ -8215,7 +8215,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/markdown-workspace/markdown-workspace.ts",
@@ -8229,7 +8229,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/markdown-workspace/markdown-workspace.ts",
@@ -8243,7 +8243,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/markdown-workspace/markdown-workspace.ts",
@@ -8257,7 +8257,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/markdown-workspace/markdown-workspace.ts",
@@ -8271,7 +8271,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/markdown-workspace/markdown-workspace.ts",
@@ -8299,7 +8299,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/markdown-workspace/markdown-workspace.ts",
@@ -8313,7 +8313,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/markdown-workspace/markdown-workspace.ts",
@@ -8327,7 +8327,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/markdown-workspace/markdown-workspace.ts",
@@ -8341,7 +8341,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/markdown/markdown.ts",
@@ -8355,7 +8355,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/markdown/markdown.ts",
@@ -8369,7 +8369,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/markdown/markdown.ts",
@@ -8397,7 +8397,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/matrix-calculator/matrix-calculator.ts",
@@ -8453,7 +8453,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/meta-tag-generator/meta-tag-generator.ts",
@@ -8481,7 +8481,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/mime-types/mime-types.ts",
@@ -8495,7 +8495,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/missing-env-var-detector/missing-env-var-detector.ts",
@@ -8551,7 +8551,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/mock-data-studio/mock-data-studio.ts",
@@ -8565,7 +8565,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/mock-data-studio/mock-data-studio.ts",
@@ -8579,7 +8579,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/mock-data-studio/mock-data-studio.ts",
@@ -8593,7 +8593,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/mock-data-studio/mock-data-studio.ts",
@@ -8607,7 +8607,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/mock-data-studio/mock-data-studio.ts",
@@ -8649,7 +8649,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/model-generator/model-generator.ts",
@@ -8663,7 +8663,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/nanoid-generator/nanoid-generator.ts",
@@ -8677,7 +8677,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/nanoid-generator/nanoid-generator.ts",
@@ -8691,7 +8691,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/nanoid-generator/nanoid-generator.ts",
@@ -8705,7 +8705,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/nanoid-generator/nanoid-generator.ts",
@@ -8733,7 +8733,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/number-theory-toolkit/number-theory-toolkit.ts",
@@ -8817,7 +8817,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/number-theory-toolkit/number-theory-toolkit.ts",
@@ -8831,7 +8831,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/numeric-representation-inspector/numeric-representation-inspector.ts",
@@ -8887,7 +8887,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/numeric-representation-inspector/numeric-representation-inspector.ts",
@@ -8901,7 +8901,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/numeric-representation-inspector/numeric-representation-inspector.ts",
@@ -8915,7 +8915,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/oauth-playground/oauth-playground.ts",
@@ -8929,7 +8929,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/oauth-playground/oauth-playground.ts",
@@ -8943,7 +8943,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/oauth-scope-parser/oauth-scope-parser.ts",
@@ -9041,7 +9041,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/palette-generator/palette-generator.ts",
@@ -9069,7 +9069,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/password-generator/password-generator.ts",
@@ -9083,7 +9083,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/password-generator/password-generator.ts",
@@ -9097,7 +9097,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/password-generator/password-generator.ts",
@@ -9111,7 +9111,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/password-generator/password-generator.ts",
@@ -9125,7 +9125,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/password-generator/password-generator.ts",
@@ -9139,7 +9139,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/password-generator/password-generator.ts",
@@ -9153,7 +9153,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/password-generator/password-generator.ts",
@@ -9167,7 +9167,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/password-generator/password-generator.ts",
@@ -9181,7 +9181,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/password-generator/password-generator.ts",
@@ -9195,7 +9195,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/password-generator/password-generator.ts",
@@ -9209,7 +9209,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/password-generator/password-generator.ts",
@@ -9223,7 +9223,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/password-strength-analyzer/password-strength-analyzer.ts",
@@ -9237,7 +9237,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/path-editor/path-editor.ts",
@@ -9251,7 +9251,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/pem-der-inspector/pem-der-inspector.ts",
@@ -9279,7 +9279,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/pem-der-inspector/pem-der-inspector.ts",
@@ -9293,7 +9293,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/percentage-ratio-calculator/percentage-ratio-calculator.ts",
@@ -9405,7 +9405,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/percentage-ratio-calculator/percentage-ratio-calculator.ts",
@@ -9419,7 +9419,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/pkce-generator/pkce-generator.ts",
@@ -9433,7 +9433,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/pkce-generator/pkce-generator.ts",
@@ -9447,7 +9447,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/pkce-verifier/pkce-verifier.ts",
@@ -9461,7 +9461,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/port-process-lookup/port-process-lookup.ts",
@@ -9475,7 +9475,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/port-process-lookup/port-process-lookup.ts",
@@ -9489,7 +9489,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/port-process-lookup/port-process-lookup.ts",
@@ -9503,7 +9503,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/powershell-builder/powershell-builder.ts",
@@ -9517,7 +9517,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/process-diagnostic-bundle/process-diagnostic-bundle.ts",
@@ -9531,7 +9531,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/process-diagnostic-bundle/process-diagnostic-bundle.ts",
@@ -9545,7 +9545,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/process-diagnostic-bundle/process-diagnostic-bundle.ts",
@@ -9559,7 +9559,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/process-viewer/process-viewer.ts",
@@ -9573,7 +9573,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/process-viewer/process-viewer.ts",
@@ -9587,7 +9587,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/process-viewer/process-viewer.ts",
@@ -9601,7 +9601,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/process-viewer/process-viewer.ts",
@@ -9615,7 +9615,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/programmer-calculator/programmer-calculator-tool.ts",
@@ -9657,7 +9657,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/programmer-calculator/programmer-calculator-tool.ts",
@@ -9671,7 +9671,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/properties-parser/properties-parser.ts",
@@ -9699,7 +9699,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/properties-parser/properties-parser.ts",
@@ -9713,7 +9713,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/protobuf-decoder/protobuf-decoder.ts",
@@ -9755,7 +9755,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/punycode-converter/punycode-converter.ts",
@@ -9769,7 +9769,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/python-playground/python-playground.ts",
@@ -9909,7 +9909,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/qr-code-generator/qr-code-generator.ts",
@@ -9951,7 +9951,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/qr-code-generator/qr-code-generator.ts",
@@ -9965,7 +9965,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/qr-code-generator/qr-code-generator.ts",
@@ -9979,7 +9979,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/query-string/query-string.ts",
@@ -10007,7 +10007,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/random-data-generator/random-data-generator.ts",
@@ -10021,7 +10021,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/random-data-generator/random-data-generator.ts",
@@ -10035,7 +10035,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/random-data-generator/random-data-generator.ts",
@@ -10049,7 +10049,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/range-generator/range-generator.ts",
@@ -10077,7 +10077,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/range-generator/range-generator.ts",
@@ -10119,7 +10119,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/range-header-builder/range-header-builder.ts",
@@ -10175,7 +10175,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/recurrence-rule/recurrence-rule.ts",
@@ -10217,7 +10217,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/regex-benchmark/regex-benchmark.ts",
@@ -10273,7 +10273,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/regex-flavor-converter/regex-flavor-converter.ts",
@@ -10315,7 +10315,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/regex-flavor-converter/regex-flavor-converter.ts",
@@ -10329,7 +10329,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/regex-generator/regex-generator.ts",
@@ -10399,7 +10399,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/regex/regex.ts",
@@ -10469,7 +10469,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/regex/regex.ts",
@@ -10483,7 +10483,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/registry-editor/registry-editor.ts",
@@ -10497,7 +10497,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/registry-editor/registry-editor.ts",
@@ -10511,7 +10511,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/relative-time-parser/relative-time-parser.ts",
@@ -10623,7 +10623,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/rich-text-editor/rich-text-editor.ts",
@@ -10665,7 +10665,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/scheduled-tasks/scheduled-tasks.ts",
@@ -10679,7 +10679,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/schema-diff/schema-diff.ts",
@@ -10721,7 +10721,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/scientific-notation-converter/scientific-notation-converter.ts",
@@ -10749,7 +10749,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/secret-detector/secret-detector.ts",
@@ -10861,7 +10861,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/semver-comparator/semver-comparator.ts",
@@ -10875,7 +10875,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/services-viewer/services-viewer.ts",
@@ -10889,7 +10889,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/services-viewer/services-viewer.ts",
@@ -10903,7 +10903,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/services-viewer/services-viewer.ts",
@@ -10917,7 +10917,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/services-viewer/services-viewer.ts",
@@ -10931,7 +10931,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/slug-generator/slug-generator.ts",
@@ -10959,7 +10959,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/smart-quotes-normalizer/smart-quotes-normalizer.ts",
@@ -10987,7 +10987,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/snowflake-id-tools/snowflake-id-tools.ts",
@@ -11001,7 +11001,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/snowflake-id-tools/snowflake-id-tools.ts",
@@ -11015,7 +11015,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/snowflake-id-tools/snowflake-id-tools.ts",
@@ -11029,7 +11029,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/snowflake-id-tools/snowflake-id-tools.ts",
@@ -11071,7 +11071,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/snowflake-id-tools/snowflake-id-tools.ts",
@@ -11099,7 +11099,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/soundex-metaphone/soundex-metaphone.ts",
@@ -11141,7 +11141,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/sql-dialect-converter/sql-dialect-converter.ts",
@@ -11155,7 +11155,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/sql-formatter-tool/sql-formatter-tool.ts",
@@ -11183,7 +11183,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/sql-formatter-tool/sql-formatter-tool.ts",
@@ -11197,7 +11197,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/sql-parameterizer/sql-parameterizer.ts",
@@ -11225,7 +11225,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/sql-parameterizer/sql-parameterizer.ts",
@@ -11239,7 +11239,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/sql-query-explainer/sql-query-explainer.ts",
@@ -11267,7 +11267,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/sql-syntax-checker/sql-syntax-checker.ts",
@@ -11295,7 +11295,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/ssh-key-tools/ssh-key-tools.ts",
@@ -11323,7 +11323,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/ssh-key-tools/ssh-key-tools.ts",
@@ -11337,7 +11337,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/ssh-key-tools/ssh-key-tools.ts",
@@ -11351,7 +11351,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/ssh-key-tools/ssh-key-tools.ts",
@@ -11365,7 +11365,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/stack-trace-formatter/stack-trace-formatter.ts",
@@ -11379,7 +11379,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/stack-trace-formatter/stack-trace-formatter.ts",
@@ -11407,7 +11407,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/statistics-calculator/statistics-calculator.ts",
@@ -11491,7 +11491,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/stopwatch-countdown/stopwatch-countdown.ts",
@@ -11561,7 +11561,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/structured-data-converter/structured-data-converter.ts",
@@ -11575,7 +11575,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/structured-data-converter/structured-data-converter.ts",
@@ -11589,7 +11589,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/subnet-calculator/subnet-calculator.ts",
@@ -11617,7 +11617,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/subnet-calculator/subnet-calculator.ts",
@@ -11631,7 +11631,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/svg-data-uri/svg-data-uri.ts",
@@ -11673,7 +11673,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/svg-viewer/svg-viewer.ts",
@@ -11701,7 +11701,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/svg-viewer/svg-viewer.ts",
@@ -11715,7 +11715,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/tailwind-color-matcher/tailwind-color-matcher.ts",
@@ -11799,7 +11799,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/text-tokenizer-ngram/text-tokenizer-ngram.ts",
@@ -11813,7 +11813,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/text-tokenizer-ngram/text-tokenizer-ngram.ts",
@@ -11827,7 +11827,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/text-tokenizer-ngram/text-tokenizer-ngram.ts",
@@ -11841,7 +11841,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/timezone-converter/timezone-converter.ts",
@@ -11869,7 +11869,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/timezone-converter/timezone-converter.ts",
@@ -11897,7 +11897,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/timezone-offset-comparator/timezone-offset-comparator.ts",
@@ -11953,7 +11953,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/timezone-offset-comparator/timezone-offset-comparator.ts",
@@ -11967,7 +11967,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/timezone-offset-comparator/timezone-offset-comparator.ts",
@@ -11981,7 +11981,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/toml-formatter/toml-formatter.ts",
@@ -12009,7 +12009,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/tree-search/tree-search.ts",
@@ -12023,7 +12023,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/tree-search/tree-search.ts",
@@ -12037,7 +12037,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/tree-search/tree-search.ts",
@@ -12051,7 +12051,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/tree-search/tree-search.ts",
@@ -12065,7 +12065,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/tree-search/tree-search.ts",
@@ -12079,7 +12079,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/tree-search/tree-search.ts",
@@ -12093,7 +12093,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/tree-search/tree-search.ts",
@@ -12107,7 +12107,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/tree-search/tree-search.ts",
@@ -12121,7 +12121,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/ulid-tools/ulid-tools.ts",
@@ -12149,7 +12149,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/ulid-tools/ulid-tools.ts",
@@ -12219,7 +12219,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/unicode-normalization/unicode-normalization.ts",
@@ -12247,7 +12247,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/unicode-table/unicode-table.ts",
@@ -12261,7 +12261,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/unicode-table/unicode-table.ts",
@@ -12289,7 +12289,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/unicode-table/unicode-table.ts",
@@ -12303,7 +12303,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/unix-timestamp/unix-timestamp.ts",
@@ -12345,7 +12345,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/unix-timestamp/unix-timestamp.ts",
@@ -12359,7 +12359,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/url-encode/url-encode.ts",
@@ -12387,7 +12387,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/url-encode/url-encode.ts",
@@ -12401,7 +12401,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/url-inspector/url-inspector.ts",
@@ -12499,7 +12499,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/url-normalizer/url-normalizer.ts",
@@ -12513,7 +12513,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/url-normalizer/url-normalizer.ts",
@@ -12527,7 +12527,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/url-normalizer/url-normalizer.ts",
@@ -12541,7 +12541,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/url-percent-inspector/url-percent-inspector.ts",
@@ -12681,7 +12681,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/uuid/uuid.ts",
@@ -12695,7 +12695,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/week-number-calculator/week-number-calculator.ts",
@@ -12779,7 +12779,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/x509-certificate-inspector/x509-certificate-inspector.ts",
@@ -12807,7 +12807,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/xml-csv/xml-csv.ts",
@@ -12835,7 +12835,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/xml-csv/xml-csv.ts",
@@ -12849,7 +12849,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/xml-csv/xml-csv.ts",
@@ -12863,7 +12863,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/xml-formatter/xml-formatter.ts",
@@ -12891,7 +12891,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/xml-formatter/xml-formatter.ts",
@@ -12905,7 +12905,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/xml-xpath/xml-xpath.ts",
@@ -12919,7 +12919,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/xml-xpath/xml-xpath.ts",
@@ -12933,7 +12933,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/xml-xpath/xml-xpath.ts",
@@ -13003,7 +13003,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/yaml-json/yaml-json.ts",
@@ -13031,7 +13031,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/yaml-json/yaml-json.ts",
@@ -13045,7 +13045,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/yaml-json/yaml-json.ts",
@@ -13059,7 +13059,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/yaml-linter/yaml-linter.ts",
@@ -13115,7 +13115,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/yaml-path/yaml-path.ts",
@@ -13129,7 +13129,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
       "source": "apps/web/src/app/tools/yaml-path/yaml-path.ts",
@@ -13157,7 +13157,7 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
-      "syncConsent": "not granted"
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     }
   ]
 }

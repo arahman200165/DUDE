@@ -371,7 +371,7 @@ packages/crypto/        Crypto and host installation
 packages/tool-engine/   Transforms, composition, tests and fixtures
 packages/tool-registry/  Authoritative manifests and generated metadata
 packages/persistence/    Device/environment records, UUIDv7, scoped settings, entity codecs, repository ports and contract suites, secret references
-packages/sync/           Outbox op model and coalescing (replay/cursors/conflicts reserved for 31D)
+packages/sync/           Outbox op model, sync categories/policies, merge, limits (31D)
 packages/api-client/     Portable typed Hub client over an injected transport port (31C)
 packages/sqlite-store/   Node-only node:sqlite plumbing shared by the Hub and the Device Agent (31C)
 packages/agent-pipe/     Node-only authenticated named-pipe protocol between the desktop and the Agent (31C)
@@ -535,7 +535,7 @@ Native capabilities should remain behind:
 
 ### As built in Phase 31C
 
-Phase 31C (Milestones 628-648) delivered a self-hosted Hub foundation and the resident Device Agent. Decisions are [PD-023 to PD-037](../history/DECISION_LOG.md#phase-31c-implementation-decisions); the amendments to PD-025 and PD-026 are recorded there. Synchronization, record endpoints, the shared-state Hub web, trusted certificates and Internet/public mode, and backup are not delivered (31D-31G).
+Phase 31C (Milestones 628-648) delivered a self-hosted Hub foundation and the resident Device Agent. Decisions are [PD-023 to PD-037](../history/DECISION_LOG.md#phase-31c-implementation-decisions); the amendments to PD-025 and PD-026 are recorded there. Phase 31D (Milestones 649-662) added synchronization: `@dude/sync` holds the categories, policies, merge and limits; the Hub exposes revision-checked `/api/v1/sync` routes and a compaction timer over migration 0003; the Device Agent runs the sync engine (outbox replay, cursors, conflict inbox, quarantine, first-sync preview) and relays `sync.status` and `sync.applied` frames to the desktop's sender-checked `dude:sync:*` bridge, which feeds live apply and the shell sync indicator in the renderer. Decisions are [PD-038 to PD-049](../history/DECISION_LOG.md#phase-31d-implementation-decisions) and the contract is [As built in Phase 31D](DATA_SYNC_ARCHITECTURE.md#as-built-in-phase-31d-synchronization). The shared-state Hub web, trusted certificates and Internet/public mode, and backup are not delivered (31E-31G).
 
 **Hub process.** `apps/hub` is plain TypeScript compiled by esbuild to a CJS bundle and packaged as a Node 24 single-executable application (`dude-hub.exe`, `postject`, unsigned) with a startup self-test of `node:sqlite`, Argon2id, Ed25519 and P-256. It runs as a Windows service (WinSW 2.12.0 under the virtual account `NT SERVICE\DudeHub`), a non-root Docker image, or a foreground `dude-hub run --data-dir <dir>`. Fastify serves HTTPS only (self-signed ECDSA P-256, loopback `127.0.0.1:47600` by default; `0.0.0.0` only in LAN or container mode) with REST under `/api/v1`, static hosting of the Hub web build with SPA fallback that never rewrites `/api/*`, and an authenticated WebSocket at `/api/v1/realtime`. Modules under `apps/hub/src/`:
 

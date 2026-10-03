@@ -29,6 +29,8 @@ Phase 31A keeps root commands as wrappers: `npm test` runs portable transform/co
 
 **Hub gates (Phase 31C).** `npm run test:hub` builds the Hub bundle and runs the Hub's specs (`vitest.hub.config.mts`), including the `@dude/api-client` parity spec and the confirmation-boundary specs for purge, devices and sessions. A real-process integration spec in `apps/device-agent` (run by `test:electron`) drives a built Hub through enrollment, pairing, revocation, TLS rotation and unenroll, and the Settings and Hub confirmation-boundary specs run in the Angular suite; `test:high-consequence` covers every boundary spec. `npm run check:hosts` also type-checks `apps/hub`. `npm run check:dockerfiles` fails when the Hub or relay Dockerfile does not copy every workspace manifest. The `hub-service` job in `ci.yml` (`npm run check:hub-service`, windows-latest, pushes only) stages the Hub and exercises service install, owner bootstrap, restart, an N-1 to N update, LAN toggling, uninstall and reinstall. The `docker-smoke` job in `ci.yml` builds both images, bootstraps the container and verifies that its volume survives a restart. The `hub-e2e` job runs `npm run test:e2e:hub` (browser end-to-end against a real Hub with its web build, including the CSP sweep). `npm run measure:hub` records Hub startup, memory, database and bundle measurements; they inform budgets and are not hardware-independent guarantees. Results and any owed manual or elevated passes are in [Phase 31C acceptance](PHASE31C_ACCEPTANCE.md).
 
+**Sync gates (Phase 31D).** `npm run test:sync` builds the Hub bundle and runs the eleven exit-gate scenarios (two real Device Agent stores against one real Hub, about 20 seconds); it is part of `test:electron`, and the Hub's sync route and environment-clear confirmation-boundary specs run in `test:hub`. `npm run test:e2e:sync` builds the production Electron renderer and drives two real Electron desktops against a real Hub (five tests, about 60 seconds); it is a local Windows gate and not in CI. `npm run measure:sync` records push throughput, catch-up, conflict handling, record-size boundary and Hub and outbox growth. `test:high-consequence` includes the sync confirmation-boundary specs. Results and the owed two-machine pass are in [Phase 31D acceptance](PHASE31D_ACCEPTANCE.md).
+
 ### Required test targets
 
 #### Unit tests
@@ -77,11 +79,11 @@ Phase 30K adopted one narrow slice of the second item: `npm run test:appearance`
 |---|---|
 | Shared core | Existing golden fixtures and consequence-specific tests remain green; extracted representative engines produce equivalent results across supported runtimes |
 | Migration | Representative delivered-state upgrade, interrupted migration, restart, duplicate migration, collision handling, recovery and secret-reference preservation |
-| Scope/privacy | Environment/workspace/device/private classification; no ephemeral inputs, tokens, secrets, local journals or unrelated history in sync traffic |
-| Multi-device | At least two enrolled desktop clients converge through one Hub; one may be co-located with the Hub while retaining separate stores |
-| Offline/retry | Offline edits survive restart; replay is idempotent after dropped acknowledgments; out-of-order/stale updates cannot silently overwrite |
-| Conflicts/deletes | Concurrent pipeline edits, documented simple-setting policy, tombstones, old cursors, snapshot/rebase and no resurrection |
-| Identity | Owner bootstrap/recovery, session expiration, unauthorized device rejection, revocation, authentication without an external identity provider. Phase 31C evidence: [Phase 31C acceptance](PHASE31C_ACCEPTANCE.md) (owner and device paths; sync-time revoked-device behavior is 31D/31F) |
+| Scope/privacy | Environment/workspace/device/private classification; no ephemeral inputs, tokens, secrets, local journals or unrelated history in sync traffic. Phase 31D evidence: [Phase 31D acceptance](PHASE31D_ACCEPTANCE.md) (Hub free of device-only data, secrets and payload text; setting-key and ownership rejections; inventory) |
+| Multi-device | At least two enrolled desktop clients converge through one Hub; one may be co-located with the Hub while retaining separate stores. Phase 31D evidence: [Phase 31D acceptance](PHASE31D_ACCEPTANCE.md) (`test:sync`, `test:e2e:sync`; two-machine LAN pass owed) |
+| Offline/retry | Offline edits survive restart; replay is idempotent after dropped acknowledgments; out-of-order/stale updates cannot silently overwrite. Phase 31D evidence: [Phase 31D acceptance](PHASE31D_ACCEPTANCE.md) (Agent kill and Hub downtime, dropped acknowledgement, duplicate `opId`) |
+| Conflicts/deletes | Concurrent pipeline edits, documented simple-setting policy, tombstones, old cursors, snapshot/rebase and no resurrection. Phase 31D evidence: [Phase 31D acceptance](PHASE31D_ACCEPTANCE.md) (conflict inbox, auto-merge, edit-delete, compaction rebase, 410 `cursor-expired`) |
+| Identity | Owner bootstrap/recovery, session expiration, unauthorized device rejection, revocation, authentication without an external identity provider. Phase 31C evidence: [Phase 31C acceptance](PHASE31C_ACCEPTANCE.md) (owner and device paths). Phase 31D adds revoked-device sync behavior ([Phase 31D acceptance](PHASE31D_ACCEPTANCE.md): stranded operations, Continue standalone, 401 on Hub calls); sync-time verification for Internet exposure is 31F |
 | Web | Deep links/refresh, API-versus-SPA routing, standalone companion regression, private-cache isolation, CSRF/origin controls and authenticated WebSocket behavior |
 | Internet mode | TLS/readiness checks, rate limiting, brute-force protections, endpoint diagnostics and absence of publicly exposed Agent/native ports |
 | Lifecycle | Hub continues with Electron closed; install/start/stop/restart/update preserve canonical data; incompatible versions fail safely. Phase 31C evidence: [Phase 31C acceptance](PHASE31C_ACCEPTANCE.md) (`hub-service`, `docker-smoke`, `hub-e2e`) |
@@ -317,7 +319,7 @@ Update tool-author guidance for framework-neutral engines, portable metadata, se
 
 ## DUDE 2.0 Distributed Release Definition of Done — All Planned
 
-The historical V1 checklist above remains a delivered record. The following checklist is separate and initially unchecked; reconciliation alone completes none of it.
+The historical V1 checklist above remains a delivered record. The following checklist is separate and started unchecked; reconciliation alone completes none of it, and an item is checked only when its evidence is recorded in a phase acceptance document.
 
 - [ ] Delivered Windows tools, routes, projects/workspaces/pipelines, history, appearance, setup and native safety retain their existing behavior.
 - [ ] Standalone Windows and GitHub Pages/PWA usage require neither Hub nor account.
@@ -325,9 +327,9 @@ The historical V1 checklist above remains a delivered record. The following chec
 - [ ] Existing desktop state migrates safely into scoped repositories/Device Store with interruption recovery and secure credential references.
 - [ ] A distributed environment has exactly one user-owned authoritative Hub, separate canonical SQLite WAL persistence and independent background-service lifecycle.
 - [ ] Owner authentication, recovery, device registration and revocation work without mandatory external identity/application/database services.
-- [ ] At least two enrolled desktop installations synchronize environment preferences, favorites, selected projects/workspaces and pipeline definitions with explicit consent and scope.
-- [ ] Offline changes survive restart, replay idempotently and expose revision conflicts, rejected operations and deletes safely.
-- [ ] Device/private settings, native paths/endpoints, secrets, ephemeral inputs and local journals/history do not leak into ordinary synchronization.
+- [x] At least two enrolled desktop installations synchronize environment preferences, favorites, selected projects/workspaces and pipeline definitions with explicit consent and scope. (Phase 31D; the two-physical-machine pass is owed.)
+- [x] Offline changes survive restart, replay idempotently and expose revision conflicts, rejected operations and deletes safely. (Phase 31D, desktops.)
+- [x] Device/private settings, native paths/endpoints, secrets, ephemeral inputs and local journals/history do not leak into ordinary synchronization. (Phase 31D, desktops.)
 - [ ] Hub-hosted Angular supports authenticated environment access, browser-local safe tools, direct routes and realtime foundation.
 - [ ] Private mode is default; deliberate Internet mode passes security/readiness gates without exposing raw native services.
 - [ ] Hub downtime leaves installed local tools/cached state useful and accurately disables unavailable synchronization/collaboration.

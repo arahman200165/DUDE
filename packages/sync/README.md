@@ -7,4 +7,4 @@ Portable sync core, dependency-free and storage-agnostic:
 - `merge3` (top-level three-way merge with `max-iso` field rules) and `deepEqual`.
 - `SYNC_LIMITS`, the `SyncPhase`/`SyncStatus` state model and `stripNonSyncable`.
 
-Replay, cursors and conflict handling are being built in Phase 31D on top of these; transport lives in `@dude/api-client`.
+Phase 31D adds the synchronization core on top of these: the nine categories and their consent defaults, `SYNC_POLICIES`, the three-way field merge, `SYNC_LIMITS`, `SyncStatus`, `stripNonSyncable` and the pure JSON diff and display helpers. Transport lives in `@dude/api-client`; the replay, cursor and conflict engine lives in `apps/device-agent`.
