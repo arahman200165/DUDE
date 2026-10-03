@@ -2,8 +2,11 @@ export const OUTBOX_SCHEMA_VERSION = 1;
 
 export type OutboxOpKind = 'upsert' | 'delete';
 
-/** 'unsent-standalone' only in 31B; 31D adds 'pending' | 'sent' | 'quarantined'. */
-export type OutboxStatus = 'unsent-standalone';
+/**
+ * 'unsent-standalone': journaled while not enrolled. 'pending': enrolled, awaiting push. 'quarantined': rejected by
+ * the Hub. 'stranded': the device was revoked. "Held" (category disabled / first sync pending) is derived, not stored.
+ */
+export type OutboxStatus = 'unsent-standalone' | 'pending' | 'quarantined' | 'stranded';
 
 /** One coalesced local change to a journaled entity, written in the same transaction as its row. */
 export interface OutboxOp {
