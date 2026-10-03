@@ -27,6 +27,7 @@
       }
 
       @if (loadError(); as text) { <p class="text-ui text-error" role="alert" data-testid="load-error">{{ text }}</p> }
+      @if (syncError(); as text) { <p class="text-ui text-warning" role="status" data-testid="sync-error">{{ text }}</p> }
       @if (loading() && devices().length === 0) { <p class="text-ui text-text-muted" role="status">Loading devices…</p> }
 
       @if (devices().length > 0) {
@@ -40,6 +41,7 @@
                 <th scope="col" class="py-1 pr-3 font-normal">Version</th>
                 <th scope="col" class="py-1 pr-3 font-normal">Status</th>
                 <th scope="col" class="py-1 pr-3 font-normal">Last seen</th>
+                <th scope="col" class="py-1 pr-3 font-normal">Sync</th>
                 <th scope="col" class="py-1 pr-3 font-normal">Tags</th>
                 <th scope="col" class="py-1 font-normal"><span class="sr-only">Actions</span></th>
               </tr>
@@ -79,6 +81,9 @@
                     }
                   </td>
                   <td class="py-1 pr-3 text-text-muted">{{ seen(device) }}</td>
+                  <td class="py-1 pr-3" [attr.data-testid]="'device-sync-' + device.deviceId">
+                    <app-device-sync-stats [stat]="syncStats()?.get(device.deviceId)" [loaded]="syncStats() !== null" [now]="now()" />
+                  </td>
                   <td class="py-1 pr-3">
                     <span class="flex flex-wrap gap-1">
                       @if (device.revokedAt) { <span class="rounded-sm border border-error px-1 text-ui-sm text-error">Revoked</span> }

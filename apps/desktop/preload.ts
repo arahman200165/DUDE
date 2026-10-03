@@ -98,6 +98,7 @@ const bridge: PlatformBridge = {
     ownerSignIn: (a) => ipcRenderer.invoke('dude:hub:owner:signIn', a),
     ownerSignOut: () => ipcRenderer.invoke('dude:hub:owner:signOut'),
     listDevices: () => ipcRenderer.invoke('dude:hub:owner:listDevices'),
+    syncSummary: () => ipcRenderer.invoke('dude:hub:owner:syncSummary'),
     createPairingCode: (a) => ipcRenderer.invoke('dude:hub:owner:createPairingCode', a),
     renameDevice: (a, b) => ipcRenderer.invoke('dude:hub:owner:renameDevice', a, b),
     revokeDevicePreview: (a) => ipcRenderer.invoke('dude:hub:owner:revokeDevicePreview', a),

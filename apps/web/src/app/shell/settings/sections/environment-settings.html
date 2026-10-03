@@ -76,6 +76,11 @@
       <h3 class="text-ui-sm font-semibold text-text">Owner session</h3>
       <app-owner-gate />
     </div>
+    @if (session.signedIn()) {
+      <div data-setting class="flex flex-col gap-2" data-testid="sync-summary-block">
+        <app-sync-summary-panel />
+      </div>
+    }
 
     <div data-setting class="flex flex-col gap-2" data-testid="network-exposure">
       <h3 class="text-ui-sm font-semibold text-text">Network exposure</h3>
@@ -103,6 +108,11 @@
         <h3 class="text-ui-sm font-semibold text-text">Owner session</h3>
         <app-owner-gate />
       </div>
+      @if (session.signedIn()) {
+        <div data-setting class="flex flex-col gap-2" data-testid="sync-summary-block">
+          <app-sync-summary-panel />
+        </div>
+      }
       @if (status()?.recoveryTrusted === true) {
         <app-owner-recovery-panel (changed)="refresh()" />
       }

@@ -1,5 +1,5 @@
 import type {
-  AuditListResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse,
+  AuditListResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary,
   OwnerResetResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SignInResponse,
 } from '@dude/contracts/hub';
 import type { HubClient } from '@dude/api-client';
@@ -90,6 +90,7 @@ export function createHubWebAdmin(options: HubWebAdminOptions): HubAdminPort {
     ownerSignIn: async (password) => toOwner(await signIn(password)),
     ownerSignOut: signOut,
     listDevices: (): Promise<DeviceListResponse> => viaClient((c) => c.listDevices(undefined)),
+    syncSummary: (): Promise<SyncSummary> => viaClient((c) => c.syncSummary(undefined)),
     createPairingCode: (host): Promise<PairingCodeResponse> => viaClient((c) => c.createPairingCode(undefined, host === undefined ? undefined : { host })),
     renameDevice: (id, name): Promise<DeviceInfo> => viaClient((c) => c.renameDevice(undefined, id, name)),
     revokeDevicePreview: (id): Promise<ConfirmPreview> => viaClient((c) => c.revokeDevicePreview(undefined, id)),

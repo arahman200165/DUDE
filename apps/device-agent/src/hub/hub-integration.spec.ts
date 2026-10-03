@@ -189,6 +189,9 @@ describe('device agent against a real Hub', () => {
     const idA = a.store.device.deviceId;
     const listed: DeviceListResponse = await a.rpc('hub.owner.listDevices', {});
     expect(listed.find((d) => d.deviceId === idA)).toMatchObject({ online: true, current: true });
+    const summary = await a.rpc('hub.owner.syncSummary', {});
+    expect(summary).toMatchObject({ headRevision: expect.any(Number), devices: expect.any(Array) });
+    expect(Object.keys(summary.counts)).toContain('settings');
 
     // Device B is paired through A's owner session.
     const code = await a.rpc('hub.owner.createPairingCode', { host: '127.0.0.1' });

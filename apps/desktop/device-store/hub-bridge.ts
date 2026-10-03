@@ -164,6 +164,7 @@ export function registerHubHandlers(
 
   define({ channel: 'dude:hub:owner:signOut', method: 'hub.owner.signOut', parse: none });
   define({ channel: 'dude:hub:owner:listDevices', method: 'hub.owner.listDevices', parse: none });
+  define({ channel: 'dude:hub:owner:syncSummary', method: 'hub.owner.syncSummary', parse: none });
 
   define({
     channel: 'dude:hub:owner:createPairingCode', method: 'hub.owner.createPairingCode',

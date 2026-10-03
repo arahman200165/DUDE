@@ -1,4 +1,4 @@
-import type { AuditListResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, OkResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse } from "../../hub/index.js";
+import type { AuditListResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, OkResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SyncSummary } from "../../hub/index.js";
 import type { LlmChatRequest, LlmChatResult } from "./llm-chat.model.js";
 import type { SnapshotDiff, SnapshotHeader } from "../../fs/snapshot-diff.js";
 import type { ChangeEvent, FolderWatchSettings, FolderWatchState, TimelineQuery, WatchedFolder } from "../../fs/watch-types.js";
@@ -126,6 +126,7 @@ export interface DesktopHubBridge {
   ownerSignIn(password: string): Promise<DesktopHubResult<DesktopHubOwnerStatus>>;
   ownerSignOut(): Promise<DesktopHubResult<OkResponse>>;
   listDevices(): Promise<DesktopHubResult<DeviceListResponse>>;
+  syncSummary(): Promise<DesktopHubResult<SyncSummary>>;
   createPairingCode(host?: string): Promise<DesktopHubResult<PairingCodeResponse>>;
   renameDevice(deviceId: string, displayName: string): Promise<DesktopHubResult<DeviceInfo>>;
   revokeDevicePreview(deviceId: string): Promise<DesktopHubResult<ConfirmPreview>>;

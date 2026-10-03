@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { HubAdminError } from '../../../core/hub/hub-admin.port';
-import { FAKE_HUB_PAIRING_STRING } from '../../../core/platform/testing/fake-hub';
+import { FAKE_HUB_DEVICE_ID, FAKE_HUB_PAIRING_STRING, FAKE_SYNC_SUMMARY } from '../../../core/platform/testing/fake-hub';
 import { EnvironmentSettings } from './environment-settings';
 import { ENROLLED_STATUS, STANDALONE_STATUS, buttonWithText, configureHubTest, createTestPort, settle, typeInto } from './hub/testing/hub-test-port';
 
@@ -155,6 +155,33 @@ describe('EnvironmentSettings (Hub web)', () => {
     expect(el.querySelector('[data-testid="connect"]')).toBeNull();
     expect(el.querySelector('[data-testid="disconnect"]')).toBeNull();
     expect(text(el, 'owner-name')).toBe('Alex');
+  });
+
+  it('shows the synchronized-record counts, head, retention and floor to a signed-in owner', async () => {
+    const { port } = hubWebPort();
+    port.syncSummary.mockResolvedValue(FAKE_SYNC_SUMMARY(FAKE_HUB_DEVICE_ID));
+    const { el } = await mount(port, 'hub-web');
+    expect(port.syncSummary).toHaveBeenCalled();
+    expect(text(el, 'sync-count-settings')).toBe('3');
+    expect(text(el, 'sync-count-projects')).toBe('2');
+    expect(text(el, 'sync-head')).toBe('42');
+    expect(text(el, 'sync-retention')).toBe('90 days');
+    expect(text(el, 'sync-floor')).toBe('2');
+    expect(el.querySelector('[data-testid="sync-summary"]')?.textContent).toContain('Home layout');
+  });
+
+  it('shows a summary failure inline without hiding the Hub details', async () => {
+    const { port } = createTestPort({
+      status: async () => ({ ...ENROLLED_STATUS, hubVersion: '1.4.0', connection: undefined }),
+      tlsFingerprint: async () => ({ spkiSha256: 'ABCD'.repeat(10) + 'EFG', nextSpkiSha256: null }),
+      ownerStatus: async () => ({ signedIn: true, ownerDisplayName: 'Alex', expiresAt: null }),
+      syncSummary: async () => {
+        throw new HubAdminError('not-found', 'No such route.');
+      },
+    });
+    const { el } = await mount(port, 'hub-web');
+    expect(text(el, 'sync-summary-error')).toContain('No such route');
+    expect(text(el, 'hub-version')).toBe('1.4.0');
   });
 
   it('signs out through the port and returns to the sign-in page', async () => {

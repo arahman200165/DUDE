@@ -1,4 +1,4 @@
-import type { ConfirmPreview, DeviceInfo, DeviceListResponse, PairingCodeResponse, SessionListResponse, AuditListResponse, RecoveryCodesResponse, SyncCategory } from '../hub/index.js';
+import type { ConfirmPreview, DeviceInfo, DeviceListResponse, PairingCodeResponse, SessionListResponse, AuditListResponse, RecoveryCodesResponse, SyncCategory, SyncSummary } from '../hub/index.js';
 import type { EntityCommit, EntityCommitResult, KvMutation, ResetKind, StoreHealth, DeviceStoreBoot } from './device-store.model.js';
 
 /** Row shapes exchanged with the state service; payloads are opaque JSON. */
@@ -197,6 +197,7 @@ export interface AgentMethodMap {
   'hub.owner.signOut': { params: Record<string, never>; result: { ok: true } };
   'hub.owner.status': { params: Record<string, never>; result: AgentHubOwnerStatus };
   'hub.owner.listDevices': { params: Record<string, never>; result: DeviceListResponse };
+  'hub.owner.syncSummary': { params: Record<string, never>; result: SyncSummary };
   'hub.owner.createPairingCode': { params: { host?: string }; result: PairingCodeResponse };
   'hub.owner.renameDevice': { params: { deviceId: string; displayName: string }; result: DeviceInfo };
   'hub.owner.revokeDevicePreview': { params: { deviceId: string }; result: ConfirmPreview };
@@ -285,7 +286,7 @@ export const AGENT_METHODS = [
   'secrets.status', 'secrets.list', 'secrets.set', 'secrets.remove', 'secrets.getCiphertext',
   'device.rename', 'reset.preview', 'reset.apply', 'hub.enrollment',
   'hub.status', 'hub.probeLocal', 'hub.enroll', 'hub.bootstrapLocal', 'hub.unenroll', 'hub.owner.signIn', 'hub.owner.signOut', 'hub.owner.status',
-  'hub.owner.listDevices', 'hub.owner.createPairingCode', 'hub.owner.renameDevice', 'hub.owner.revokeDevicePreview', 'hub.owner.revokeDevice',
+  'hub.owner.listDevices', 'hub.owner.syncSummary', 'hub.owner.createPairingCode', 'hub.owner.renameDevice', 'hub.owner.revokeDevicePreview', 'hub.owner.revokeDevice',
   'hub.owner.setRecoveryTrust', 'hub.owner.listSessions', 'hub.owner.revokeSession', 'hub.owner.revokeAllPreview', 'hub.owner.revokeAll',
   'hub.owner.listAudit', 'hub.owner.recoveryCodesPreview', 'hub.owner.regenerateRecoveryCodes', 'hub.owner.changePassword', 'hub.recoverOwner',
   'sync.status', 'sync.setCategories', 'sync.setPaused', 'sync.now', 'sync.conflicts.list', 'sync.conflicts.resolve',

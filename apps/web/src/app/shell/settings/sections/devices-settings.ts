@@ -1,9 +1,10 @@
 import { Component, DestroyRef, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import type { ConfirmPreview, DeviceInfo, PairingCodeResponse } from '@dude/contracts/hub';
+import type { ConfirmPreview, DeviceInfo, PairingCodeResponse, SyncDeviceSummary } from '@dude/contracts/hub';
 import { validateDisplayName } from '@dude/persistence';
 import { HUB_ADMIN } from '../../../core/hub/hub-admin.token';
 import { StatusGlyph } from '../../../shared/components/status-glyph/status-glyph';
+import { DeviceSyncStats } from './hub/device-sync-stats';
 import { hubErrorText, relativeTime } from './hub/hub-format';
 import { HubOwnerSession } from './hub/hub-owner-session.service';
 import { OwnerGate } from './hub/owner-gate';
@@ -25,7 +26,7 @@ interface TrustFlow {
  */
 @Component({
   selector: 'app-devices-settings',
-  imports: [OwnerGate, PairingCodePanel, StatusGlyph],
+  imports: [DeviceSyncStats, OwnerGate, PairingCodePanel, StatusGlyph],
   templateUrl: './devices-settings.html',
 })
 export class DevicesSettings {
@@ -35,6 +36,8 @@ export class DevicesSettings {
   protected readonly pairDesktopHint = inject(ActivatedRoute).snapshot.queryParamMap.get('hint') === 'pair-desktop';
 
   protected readonly devices = signal<readonly DeviceInfo[]>([]);
+  protected readonly syncStats = signal<ReadonlyMap<string, SyncDeviceSummary> | null>(null);
+  protected readonly syncError = signal<string | null>(null);
   protected readonly loading = signal(false);
   protected readonly loadError = signal<string | null>(null);
   protected readonly message = signal<string | null>(null);
@@ -85,6 +88,18 @@ export class DevicesSettings {
       if (!this.session.noteError(error, { unauthorizedMeansExpired: true })) this.loadError.set(hubErrorText(error, 'The device list could not be loaded.'));
     } finally {
       this.loading.set(false);
+    }
+    await this.loadSyncStats();
+  }
+
+  /** Sync stats are best effort: a Hub that predates sync, or a failed call, never hides the device list. */
+  private async loadSyncStats(): Promise<void> {
+    try {
+      const summary = await this.hub.syncSummary();
+      this.syncStats.set(new Map(summary.devices.map((d) => [d.deviceId, d])));
+      this.syncError.set(null);
+    } catch (error) {
+      this.syncError.set(hubErrorText(error, 'Sync stats could not be loaded.'));
     }
   }
 

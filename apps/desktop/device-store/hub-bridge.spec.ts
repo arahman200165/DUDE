@@ -44,6 +44,7 @@ const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged'>, { channe
   ownerSignIn: { channel: 'dude:hub:owner:signIn', args: ['pw'], invalid: [[], [''], ['a'.repeat(1025)], [1], ['a', 'b']] },
   ownerSignOut: { channel: 'dude:hub:owner:signOut', args: [], invalid: [[1]] },
   listDevices: { channel: 'dude:hub:owner:listDevices', args: [], invalid: [[1]] },
+  syncSummary: { channel: 'dude:hub:owner:syncSummary', args: [], invalid: [[1]] },
   createPairingCode: { channel: 'dude:hub:owner:createPairingCode', args: ['hub.local'], invalid: [[1], ['bad host'], ['a'.repeat(256)]] },
   renameDevice: { channel: 'dude:hub:owner:renameDevice', args: [UUID, 'Desk'], invalid: [[], ['nope', 'Desk'], [UUID, ''], [UUID, 5], [UUID, 'Desk', 'x']] },
   revokeDevicePreview: { channel: 'dude:hub:owner:revokeDevicePreview', args: [UUID], invalid: [[], ['../x'], [1]] },

@@ -128,6 +128,49 @@ describe('DevicesSettings', () => {
     expect(hint?.textContent).toContain('paste the pairing string');
   });
 
+  describe('sync stats', () => {
+    const stat = (deviceId: string, extra: Record<string, unknown> = {}) => ({ deviceId, cursor: 5, lag: 0, lastPushAt: null, lastPullAt: null, quarantined: 0, conflicts: 0, pending: 0, ...extra });
+    const summary = (devices: ReturnType<typeof stat>[]) => ({
+      floor: 0, headRevision: 5, retentionDays: 90, devices,
+      counts: { settings: 0, favorites: 0, pipelines: 0, projects: 0, workspaces: 0, home: 0, usage: 0, 'workspace-layout': 0, scratchpad: 0 },
+    });
+
+    it('shows last sync, lag and attention badges, and never synced for devices without state', async () => {
+      const recent = new Date(Date.now() - 10 * 60_000).toISOString();
+      const older = new Date(Date.now() - 3 * 3_600_000).toISOString();
+      const { el } = await mount({
+        syncSummary: async () => summary([
+          stat(LIST[0].deviceId, { lastPushAt: older, lastPullAt: recent, lag: 4, quarantined: 2, conflicts: 1, pending: 3 }),
+          stat(LIST[4].deviceId),
+        ]),
+      });
+      const mine = el.querySelector(`[data-testid="device-sync-${LIST[0].deviceId}"]`) as HTMLElement;
+      expect(mine.querySelector('[data-testid="sync-last"]')?.textContent).toContain('10 min ago');
+      expect(mine.querySelector('[data-testid="sync-lag"]')?.textContent).toContain('4 behind');
+      expect(mine.querySelector('[data-testid="sync-quarantined"]')?.textContent).toContain('2 quarantined');
+      expect(mine.querySelector('[data-testid="sync-conflicts"]')?.textContent).toContain('1 conflicts');
+      expect(mine.querySelector('[data-testid="sync-pending"]')?.textContent).toContain('3 pending');
+      const never = (id: string) => el.querySelector(`[data-testid="device-sync-${id}"] [data-testid="sync-never"]`);
+      expect(never(LIST[1].deviceId)?.textContent).toContain('Never synced');
+      expect(never(LIST[4].deviceId)).not.toBeNull();
+    });
+
+    it('shows up to date with no badges when the device is caught up', async () => {
+      const { el } = await mount({ syncSummary: async () => summary([stat(LIST[0].deviceId, { lastPullAt: new Date().toISOString() })]) });
+      const cell = el.querySelector(`[data-testid="device-sync-${LIST[0].deviceId}"]`) as HTMLElement;
+      expect(cell.querySelector('[data-testid="sync-lag"]')?.textContent).toContain('up to date');
+      expect(cell.querySelector('[data-testid="sync-quarantined"]')).toBeNull();
+      expect(cell.querySelector('[data-testid="sync-pending"]')).toBeNull();
+    });
+
+    it('reports a summary failure inline and keeps the device list', async () => {
+      const { el } = await mount({ syncSummary: async () => { throw new HubAdminError('not-found', 'No such route.'); } });
+      expect(text(el, 'sync-error')).toContain('No such route');
+      expect(el.querySelectorAll('[data-testid="device-table"] tbody tr')).toHaveLength(LIST.length);
+      expect(el.querySelector(`[data-testid="device-sync-${LIST[0].deviceId}"] [data-testid="sync-unknown"]`)).not.toBeNull();
+    });
+  });
+
   describe('pairing', () => {
     it('shows the string, the separate code, the countdown and a QR frame', async () => {
       const { fixture, el, port } = await mount();

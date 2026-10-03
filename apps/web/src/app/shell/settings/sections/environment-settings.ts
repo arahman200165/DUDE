@@ -9,6 +9,7 @@ import { HubOwnerSession } from './hub/hub-owner-session.service';
 import { HubStatusBadge } from './hub/hub-status-badge';
 import { LocalHubPanel } from './hub/local-hub-panel';
 import { OwnerGate } from './hub/owner-gate';
+import { SyncSummaryPanel } from './hub/sync-summary-panel';
 import { OwnerRecoveryPanel } from './hub/owner-recovery-panel';
 
 type DisconnectStep = 'idle' | 'confirm' | 'unreachable' | 'force-confirm';
@@ -21,7 +22,7 @@ type DisconnectStep = 'idle' | 'confirm' | 'unreachable' | 'force-confirm';
  */
 @Component({
   selector: 'app-environment-settings',
-  imports: [CopyButton, HubStatusBadge, LocalHubPanel, OwnerGate, OwnerRecoveryPanel],
+  imports: [CopyButton, HubStatusBadge, LocalHubPanel, OwnerGate, OwnerRecoveryPanel, SyncSummaryPanel],
   templateUrl: './environment-settings.html',
 })
 export class EnvironmentSettings {

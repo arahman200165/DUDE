@@ -377,6 +377,7 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
     'hub.owner.status': () => hubRuntime().manager.owner.status(),
     'hub.recoverOwner': (p) => hubGuard(async () => { await hubRuntime().manager.recoverOwner(str(p.newPassword, 'newPassword')); return { ok: true as const }; }),
     'hub.owner.listDevices': () => owner((api, t) => api.listDevices(t)),
+    'hub.owner.syncSummary': () => owner((api, t) => api.syncSummary(t)),
     'hub.owner.createPairingCode': (p) => owner((api, t) => api.createPairingCode(t, p.host === undefined ? {} : { host: str(p.host, 'host') })),
     'hub.owner.renameDevice': (p) => owner((api, t) => api.renameDevice(t, str(p.deviceId, 'deviceId'), str(p.displayName, 'displayName'))),
     'hub.owner.revokeDevicePreview': (p) => owner((api, t) => api.revokeDevicePreview(t, str(p.deviceId, 'deviceId'))),

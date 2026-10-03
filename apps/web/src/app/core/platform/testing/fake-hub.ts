@@ -1,8 +1,15 @@
 import type { DesktopHubBridge, DesktopHubOwnerStatus, DesktopLocalHubInfo } from '@dude/contracts/shared/models/platform-bridge.model';
-import type { DeviceInfo, SessionInfo } from '@dude/contracts/hub';
+import type { DeviceInfo, SessionInfo, SyncSummary } from '@dude/contracts/hub';
 
 export const FAKE_HUB_DEVICE_ID = '0190aaaa-0000-7000-8000-000000000001';
 export const FAKE_HUB_PAIRING_STRING = 'dude-pair:v1:hub.local:47600:ABCD2345:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+
+/** A synced Hub with one caught-up device, for specs. */
+export const FAKE_SYNC_SUMMARY = (deviceId: string): SyncSummary => ({
+  floor: 2, headRevision: 42, retentionDays: 90,
+  counts: { settings: 3, favorites: 1, pipelines: 0, projects: 2, workspaces: 0, home: 1, usage: 0, 'workspace-layout': 0, scratchpad: 0 },
+  devices: [{ deviceId, cursor: 42, lag: 0, lastPushAt: '2026-01-01T00:00:00.000Z', lastPullAt: '2026-01-01T00:05:00.000Z', quarantined: 0, conflicts: 0, pending: 0 }],
+});
 
 /** Where the local Hub starts: nothing installed, installed but not set up, set up, or set up with a newer Hub bundled in the app. */
 export type FakeLocalHubScenario = 'not-installed' | 'installed-unbootstrapped' | 'bootstrapped' | 'update-available';
@@ -95,6 +102,8 @@ export function fakeHub(options: { password?: string; localHub?: FakeLocalHubSce
       return ok({ ok: true as const });
     }),
     listDevices: track('listDevices', async () => needOwner() ?? ok([...devices.values()])),
+    syncSummary: track('syncSummary', async () =>
+      needOwner() ?? ok(FAKE_SYNC_SUMMARY(FAKE_HUB_DEVICE_ID))),
     createPairingCode: track('createPairingCode', async () =>
       needOwner() ?? ok({ pairingCode: 'ABCD-2345', pairingString: FAKE_HUB_PAIRING_STRING, expiresAt: '2099-01-01T00:00:00.000Z', hubUrl: 'https://hub.local:47600', spkiSha256: 'A'.repeat(43) })),
     renameDevice: track('renameDevice', async (id: string, name: string) => {

@@ -77,6 +77,13 @@ describe('Hub web admin adapter', () => {
     expect(calls[4].headers['X-DUDE-CSRF']).toBeUndefined();
   });
 
+  it('reads the sync summary through the owner route with the cookie session', async () => {
+    const summary = { floor: 0, headRevision: 3, retentionDays: 90, counts: { settings: 1, favorites: 0, pipelines: 0, projects: 0, workspaces: 0, home: 0, usage: 0, 'workspace-layout': 0, scratchpad: 0 }, devices: [] };
+    const { admin, calls } = setup(() => ({ status: 200, body: summary }));
+    await expect(admin.syncSummary()).resolves.toEqual(summary);
+    expect(calls[0]).toMatchObject({ url: '/api/v1/sync/summary', method: 'GET', credentials: 'same-origin' });
+  });
+
   it('never persists the CSRF token', async () => {
     const setItem = vi.spyOn(Storage.prototype, 'setItem');
     const { admin } = setup(() => ({ status: 200, body: SESSION }));

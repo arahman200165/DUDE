@@ -1,5 +1,5 @@
 import type {
-  AuditListResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse,
+  AuditListResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary,
   OwnerResetResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SignInResponse,
 } from '@dude/contracts/hub';
 import type {
@@ -37,6 +37,7 @@ export interface HubAdminPort {
   ownerSignIn(password: string): Promise<DesktopHubOwnerStatus>;
   ownerSignOut(): Promise<OkResponse>;
   listDevices(): Promise<DeviceListResponse>;
+  syncSummary(): Promise<SyncSummary>;
   createPairingCode(host?: string): Promise<PairingCodeResponse>;
   renameDevice(deviceId: string, displayName: string): Promise<DeviceInfo>;
   revokeDevicePreview(deviceId: string): Promise<ConfirmPreview>;
