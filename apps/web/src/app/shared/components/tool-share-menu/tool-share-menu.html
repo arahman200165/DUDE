@@ -12,8 +12,20 @@
   @if (open()) {
     <div role="menu" class="absolute right-0 top-full z-20 mt-1 flex w-72 flex-col gap-1 rounded-sm border border-border bg-panel-elevated p-2 shadow-lg">
       <button type="button" role="menuitem" class="rounded-sm px-2 py-1 text-left text-ui text-text hover:bg-panel" (click)="copyLink()">
-        Copy link
+        @if (isHubWeb()) {
+          Private link — opens on your Hub (sign-in required)
+        } @else {
+          Copy link
+        }
       </button>
+      @if (isHubWeb()) {
+        <button type="button" role="menuitem" class="rounded-sm px-2 py-1 text-left text-ui text-text hover:bg-panel" (click)="copyPublicLink()">
+          Public companion link
+        </button>
+        <p class="px-2 text-ui-xs text-text-muted">
+          The public link opens the GitHub Pages companion and works for anyone. It does not reach your Hub or its data.
+        </p>
+      }
       @if (canShareInput()) {
         <button type="button" role="menuitem" class="rounded-sm px-2 py-1 text-left text-ui text-text hover:bg-panel" (click)="copyLinkWithInput()">
           Copy link with input

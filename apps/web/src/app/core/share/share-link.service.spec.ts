@@ -11,8 +11,8 @@ describe('ShareLinkService', () => {
   const input = textFileInputOf(shareable)!;
   const htmlPreview = TOOL_DEFINITIONS.find((tool) => tool.id === 'html-preview')!;
 
-  function create(desktop = false) {
-    TestBed.configureTestingModule({ providers: [{ provide: PlatformService, useValue: { isDesktop: () => desktop } }] });
+  function create(desktop = false, hostKind: 'desktop' | 'web-standalone' | 'hub-web' = desktop ? 'desktop' : 'web-standalone') {
+    TestBed.configureTestingModule({ providers: [{ provide: PlatformService, useValue: { isDesktop: () => desktop, hostKind } }] });
     return TestBed.inject(ShareLinkService);
   }
 
@@ -29,6 +29,20 @@ describe('ShareLinkService', () => {
 
   it('points desktop links at the public web companion, never the private loopback server', () => {
     expect(create(true).linkFor('json')).toBe(`${WEB_COMPANION_BASE_URL}tools/json`);
+  });
+
+  it('on Hub web keeps the Hub-origin link as primary and adds a public companion link with the same path', () => {
+    const service = create(false, 'hub-web');
+    expect(service.isHubWeb()).toBe(true);
+    expect(service.linkFor('json')).toBe(new URL('tools/json', document.baseURI).href);
+    expect(service.publicCompanionLinkFor('json')).toBe(`${WEB_COMPANION_BASE_URL}tools/json`);
+    expect(service.publicCompanionLinkFor('no-such-tool')).toBeNull();
+  });
+
+  it('offers no separate public link on standalone web or desktop', () => {
+    expect(create().publicCompanionLinkFor('json')).toBeNull();
+    TestBed.resetTestingModule();
+    expect(create(true).publicCompanionLinkFor('json')).toBeNull();
   });
 
   it('round-trips the tool input through a link: sender reads its storage, receiver writes it back', async () => {

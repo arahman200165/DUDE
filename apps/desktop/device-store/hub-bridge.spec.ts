@@ -65,6 +65,9 @@ const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged'>, { channe
       [{ environmentName: 'Home', ownerDisplayName: 'Me', password: 'a long password!', token: 'x' }], [{ environmentName: 'Home', ownerDisplayName: 'Me', password: 'a long password!' }, 1]],
   },
   updateLocalHub: { channel: 'dude:hub:updateLocalHub', args: [], invalid: [[1]] },
+  openWeb: { channel: 'dude:hub:openWeb', args: [], invalid: [['https://evil.example/'], [1]] },
+  rootCertificatePreview: { channel: 'dude:hub:rootCertificate:preview', args: [], invalid: [[1]] },
+  installRootCertificate: { channel: 'dude:hub:rootCertificate:install', args: ['abcdefghijklmnop'], invalid: [[], [''], ['short'], ['a b c d e f g h i j k l'], [1], ['abcdefghijklmnop', 'x']] },
   changePassword: { channel: 'dude:hub:owner:changePassword', args: ['old', 'new'], invalid: [['old'], ['', 'new'], ['old', ''], [1, 2]] },
 };
 
@@ -105,7 +108,7 @@ describe('hub bridge', () => {
       consentCalls.push({ hwnd, message });
       if (consentOutcome instanceof Error) throw consentOutcome;
       return consentOutcome;
-    }, localDeps());
+    }, localDeps(), { platform: 'win32', openExternal: async () => undefined });
   };
   beforeEach(() => setup());
 
@@ -127,7 +130,8 @@ describe('hub bridge', () => {
     expect(ctx.calls).toEqual([]);
   });
 
-  it.each(Object.entries(VALID))('%s forwards valid payloads from this window', async (_name, v) => {
+  // The install step needs a token from a preview; its boundary is covered in hub-web-bridge.confirmation-boundary.spec.ts.
+  it.each(Object.entries(VALID).filter(([name]) => name !== 'installRootCertificate'))('%s forwards valid payloads from this window', async (_name, v) => {
     setup((method) => (method === 'hub.status' || method === 'hub.enroll' ? ENROLLED : method === 'hub.probeLocal' ? { found: true, bootstrapped: true, hubInstanceId: 'h', spkiSha256: 's', compatibility: 'compatible', hubVersion: '0.1.0' }
       : method === 'hub.bootstrapLocal' ? { recoveryCodes: ['A'], status: ENROLLED }
       : method === 'hub.unenroll' ? { ok: true, hubStillListsDevice: false } : method === 'hub.owner.status' || method === 'hub.owner.signIn' ? { signedIn: true, displayName: 'O', expiresAt: null }

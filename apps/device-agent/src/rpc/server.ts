@@ -360,6 +360,7 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
       if (p.port !== undefined && (!Number.isInteger(p.port) || p.port < 1 || p.port > 65535)) throw invalid('port must be a TCP port.');
       return hubRuntime().probeLocal(p.port);
     },
+    'hub.tlsCertificates': () => hubGuard(() => hubRuntime().manager.call((api) => api.tlsCertificates())),
     'hub.bootstrapLocal': (p) => hubGuard(() => hubRuntime().bootstrapLocal({
       nonce: str(p.nonce, 'nonce'), environmentName: str(p.environmentName, 'environmentName'),
       ownerDisplayName: str(p.ownerDisplayName, 'ownerDisplayName'), password: str(p.password, 'password'),

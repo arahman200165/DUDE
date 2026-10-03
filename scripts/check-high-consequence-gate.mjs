@@ -16,9 +16,10 @@ const coreBoundarySpecs=[
   'apps/web/src/app/shell/settings/sections/security-settings.confirmation-boundary.spec.ts',
   'apps/web/src/app/shell/settings/sections/environment-local-hub.confirmation-boundary.spec.ts',
   'apps/web/src/app/shell/settings/sections/environment-settings.confirmation-boundary.spec.ts',
+  'apps/web/src/app/shell/settings/sections/environment-hub-web.confirmation-boundary.spec.ts',
   'apps/web/src/app/shell/settings/sections/devices-settings.confirmation-boundary.spec.ts',
 ];
 run('node_modules/@angular/cli/bin/ng.js',['test',...coreBoundarySpecs.map(spec=>`--include=${spec}`),'--watch=false']);
-run('node_modules/vitest/vitest.mjs',['run','--config','vitest.electron.config.mts','apps/desktop/device-store/store-reset.confirmation-boundary.spec.ts','apps/device-agent/src/sync/standalone.confirmation-boundary.spec.ts','apps/device-agent/src/rpc/lifecycle.spec.ts']);
+run('node_modules/vitest/vitest.mjs',['run','--config','vitest.electron.config.mts','apps/desktop/device-store/store-reset.confirmation-boundary.spec.ts','apps/desktop/device-store/hub-web-bridge.confirmation-boundary.spec.ts','apps/device-agent/src/sync/standalone.confirmation-boundary.spec.ts','apps/device-agent/src/rpc/lifecycle.spec.ts']);
 // The Hub's own destructive actions (revoke-all sessions, recovery-code regeneration, device revoke, purge).
 run('node_modules/vitest/vitest.mjs',['run','--config','vitest.hub.config.mts','confirmation-boundary']);

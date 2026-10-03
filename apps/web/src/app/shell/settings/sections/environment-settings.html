@@ -116,6 +116,7 @@
       @if (status()?.recoveryTrusted === true) {
         <app-owner-recovery-panel (changed)="refresh()" />
       }
+      <app-hub-web-actions-panel />
     }
 
     @if (canConnect()) {

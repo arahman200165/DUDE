@@ -116,6 +116,9 @@ const bridge: PlatformBridge = {
     localHubInfo: () => ipcRenderer.invoke('dude:hub:localHubInfo'),
     setupLocalHub: (a) => ipcRenderer.invoke('dude:hub:setupLocalHub', a),
     updateLocalHub: () => ipcRenderer.invoke('dude:hub:updateLocalHub'),
+    openWeb: () => ipcRenderer.invoke('dude:hub:openWeb'),
+    rootCertificatePreview: () => ipcRenderer.invoke('dude:hub:rootCertificate:preview'),
+    installRootCertificate: (a) => ipcRenderer.invoke('dude:hub:rootCertificate:install', a),
     onStatusChanged: (callback) => {
       const listener = (_event: Electron.IpcRendererEvent, status: Parameters<typeof callback>[0]) => callback(status);
       ipcRenderer.on('dude:hub:statusChanged', listener);

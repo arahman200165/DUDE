@@ -3,7 +3,7 @@ import type {
   OwnerResetResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SignInResponse,
 } from '@dude/contracts/hub';
 import type {
-  DesktopHubEnrollment, DesktopHubOwnerStatus, DesktopHubProbe, DesktopHubStatus, DesktopLocalHubInfo, DesktopLocalHubSetupRequest, DesktopLocalHubSetupResult,
+  DesktopHubEnrollment, DesktopHubOwnerStatus, DesktopHubProbe, DesktopHubStatus, DesktopLocalHubInfo, DesktopRootCertificatePreview, DesktopLocalHubSetupRequest, DesktopLocalHubSetupResult,
   DesktopLocalHubUpdateResult,
 } from '@dude/contracts/shared/models/platform-bridge.model';
 
@@ -11,6 +11,7 @@ export type {
   DesktopLocalHubInfo as LocalHubInfo, DesktopLocalHubSetupRequest as LocalHubSetupRequest, DesktopLocalHubSetupResult as LocalHubSetupResult,
   DesktopLocalHubUpdateResult as LocalHubUpdateResult,
 };
+export type { DesktopRootCertificatePreview as RootCertificatePreview };
 export type { DesktopHubEnrollment as HubEnrollment, DesktopHubOwnerStatus as HubOwnerStatus, DesktopHubProbe as HubProbe, DesktopHubStatus as HubStatus };
 
 /** Every Hub administration failure, whichever host produced it. `unavailable` means this host cannot administer a Hub at all. */
@@ -62,6 +63,12 @@ export interface HubAdminPort {
   setupLocalHub?(request: DesktopLocalHubSetupRequest): Promise<DesktopLocalHubSetupResult>;
   /** Desktop only: updates the installed Hub from the Hub bundled with the app (UAC prompt; the Hub is briefly down). */
   updateLocalHub?(): Promise<DesktopLocalHubUpdateResult>;
+  /** Desktop only: opens the enrolled Hub's web page in the default browser. No URL is passed; main resolves it and only opens `https:`. */
+  openWeb?(): Promise<{ readonly ok: true }>;
+  /** Desktop only, step 1: the Hub's local-CA root fingerprint and a single-use token. `available: false` when the Hub has no local CA or this is not Windows. Changes nothing. */
+  rootCertificatePreview?(): Promise<DesktopRootCertificatePreview>;
+  /** Desktop only, step 2: adds the previewed root to the CURRENT USER's Trusted Root store. */
+  installRootCertificate?(confirmToken: string): Promise<{ readonly installed: true }>;
   /** Hub-served web build only: the Hub's TLS public-key pin (and the pending next pin during rotation). */
   tlsFingerprint?(): Promise<{ readonly spkiSha256: string; readonly nextSpkiSha256: string | null }>;
 

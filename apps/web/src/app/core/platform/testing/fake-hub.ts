@@ -166,6 +166,9 @@ export function fakeHub(options: { password?: string; localHub?: FakeLocalHubSce
       local.hubVersion = local.bundled!;
       return ok({ fromVersion, toVersion: local.hubVersion });
     }),
+    openWeb: track('openWeb', async () => ok({ ok: true as const })),
+    rootCertificatePreview: track('rootCertificatePreview', async () => ok({ available: false as const, reason: 'not-local-ca' as const })),
+    installRootCertificate: track('installRootCertificate', async () => ok({ installed: true as const })),
     recoverOwner: track('recoverOwner', async (next: string) => {
       if (next.length < 12) return fail('bad-request', 'The new password is too short.');
       return ok({ ok: true as const });

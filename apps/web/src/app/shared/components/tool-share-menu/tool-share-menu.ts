@@ -46,6 +46,14 @@ export class ToolShareMenu {
     if (url) await this.copy(url, 'Link copied.');
   }
 
+  protected readonly isHubWeb = computed(() => this.share.isHubWeb());
+
+  protected async copyPublicLink(): Promise<void> {
+    const definition = this.definition();
+    const url = definition && this.share.publicCompanionLinkFor(definition.id);
+    if (url) await this.copy(url, 'Public companion link copied.');
+  }
+
   protected async copyLinkWithInput(): Promise<void> {
     const definition = this.definition();
     if (!definition) return;

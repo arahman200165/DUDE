@@ -94,6 +94,7 @@
             },
             "hub": {
               "baseHref": "/",
+              "index": { "input": "apps/web/src/index.hub.html", "output": "index.html" },
               "serviceWorker": "ngsw-config.hub.json",
               "outputPath": "dist/hub-web",
               "fileReplacements": [

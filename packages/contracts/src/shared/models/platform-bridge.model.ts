@@ -61,6 +61,10 @@ export interface DesktopHubStatus {
   /** Whether the Hub trusts this device for owner recovery; null/absent until known. */
   readonly recoveryTrusted?: boolean | null;
 }
+/** Preview of installing the Hub's local-CA root into the current user's Trusted Root store (Windows only). Nothing changes until `installRootCertificate(confirmToken)`. */
+export type DesktopRootCertificatePreview =
+  | { readonly available: false; readonly reason: 'not-local-ca' | 'unsupported-platform' }
+  | { readonly available: true; readonly fingerprint: string; readonly subject: string; readonly notAfter: string; readonly confirmToken: string };
 export interface DesktopHubProbe {
   readonly found: boolean;
   readonly port: number | null;
@@ -157,6 +161,12 @@ export interface DesktopHubBridge {
   setupLocalHub(request: DesktopLocalHubSetupRequest): Promise<DesktopHubResult<DesktopLocalHubSetupResult>>;
   /** Updates the installed Hub from the Hub bundled in this build (UAC-elevated). Codes also include `unsupported-in-dev`, `no-update`, `update-failed`. */
   updateLocalHub(): Promise<DesktopHubResult<DesktopLocalHubUpdateResult>>;
+  /** Opens the enrolled Hub's own web page in the default browser. Takes no URL: main resolves it and only opens `https:`. Codes: `not-enrolled`, `invalid-url`. */
+  openWeb(): Promise<DesktopHubResult<{ readonly ok: true }>>;
+  /** Step 1: fetches the Hub's public root over the pinned channel and returns its SHA-256 fingerprint plus a 60-second single-use token. Changes nothing. */
+  rootCertificatePreview(): Promise<DesktopHubResult<DesktopRootCertificatePreview>>;
+  /** Step 2: adds the previewed root to the CURRENT USER's Trusted Root store (`certutil -user`; Windows shows its own prompt). Codes: `stale-preview`, `expired`, `install-failed`, `unsupported-platform`. */
+  installRootCertificate(confirmToken: string): Promise<DesktopHubResult<{ readonly installed: true }>>;
   /** Pushed by main whenever the Device Agent's Hub connection state changes. Returns the unsubscribe function. */
   onStatusChanged(callback: (status: DesktopHubStatus) => void): () => void;
 }

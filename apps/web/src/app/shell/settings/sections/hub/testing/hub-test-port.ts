@@ -30,19 +30,19 @@ export function device(id: string, displayName: string, extra: Partial<DeviceInf
  */
 export function createTestPort(overrides: Partial<HubAdminPort> = {}, options: { localHub?: FakeLocalHubScenario } = {}): { readonly port: Spied; emit(status: DesktopHubStatus): void; readonly bridge: ReturnType<typeof fakeHub> } {
   const bridge = fakeHub(options.localHub ? { localHub: options.localHub } : {});
-  let listener: ((status: DesktopHubStatus) => void) | undefined;
+  const listeners = new Set<(status: DesktopHubStatus) => void>();
   const base = createDesktopHubAdmin(() => ({
     ...bridge,
     onStatusChanged: (cb: (status: DesktopHubStatus) => void) => {
-      listener = cb;
+      listeners.add(cb);
       return () => {
-        listener = undefined;
+        listeners.delete(cb);
       };
     },
   }));
   const merged: Record<string, unknown> = { ...base, ...overrides };
   const port = Object.fromEntries(Object.entries(merged).map(([key, fn]) => [key, vi.fn(fn as (...args: unknown[]) => unknown)])) as unknown as Spied;
-  return { port, emit: (status) => listener?.(status), bridge };
+  return { port, emit: (status) => listeners.forEach((listener) => listener(status)), bridge };
 }
 
 export function configureHubTest(port: HubAdminPort, hostKind: 'desktop' | 'hub-web' = 'desktop'): void {

@@ -13,6 +13,7 @@ import { RECENTS_COMMAND_SOURCE_PROVIDERS } from './core/recents/recents-command
 import { PREFERENCES_COMMAND_SOURCE_PROVIDERS } from './core/platform/preferences-command-source';
 import { SHARE_COMMAND_SOURCE_PROVIDERS } from './core/share/share-command-source';
 import { DESKTOP_HANDOFF_COMMAND_SOURCE_PROVIDERS } from './core/deep-link/desktop-handoff-command-source';
+import { HUB_WEB_COMMAND_SOURCE_PROVIDERS } from './core/hub/hub-web-command-source';
 import { AppearanceService } from './core/appearance/appearance.service';
 import { SyncStatusService } from './core/sync/sync-status.service';
 import { NAVIGATION_COMMAND_SOURCE_PROVIDERS } from './shell/navigation-command-source';
@@ -39,6 +40,7 @@ export const appConfig: ApplicationConfig = {
     ...PREFERENCES_COMMAND_SOURCE_PROVIDERS,
     ...SHARE_COMMAND_SOURCE_PROVIDERS,
     ...DESKTOP_HANDOFF_COMMAND_SOURCE_PROVIDERS,
+    ...HUB_WEB_COMMAND_SOURCE_PROVIDERS,
     provideRouter(routes),
     provideServiceWorker('ngsw-worker.js', {
       // Pages and Hub web both register it; the hub config (ngsw-config.hub.json) caches public static files only, never /api or /sandbox (PD-053).

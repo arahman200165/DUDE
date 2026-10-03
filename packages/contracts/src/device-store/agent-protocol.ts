@@ -1,4 +1,4 @@
-import type { ConfirmPreview, DeviceInfo, DeviceListResponse, PairingCodeResponse, SessionListResponse, AuditListResponse, RecoveryCodesResponse, SyncCategory, SyncSummary } from '../hub/index.js';
+import type { TlsCertificatesResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, PairingCodeResponse, SessionListResponse, AuditListResponse, RecoveryCodesResponse, SyncCategory, SyncSummary } from '../hub/index.js';
 import type { EntityCommit, EntityCommitResult, KvMutation, ResetKind, StoreHealth, DeviceStoreBoot } from './device-store.model.js';
 
 /** Row shapes exchanged with the state service; payloads are opaque JSON. */
@@ -183,6 +183,8 @@ export interface AgentMethodMap {
   'hub.enrollment': { params: Record<string, never>; result: AgentHubEnrollment | null };
   'hub.status': { params: Record<string, never>; result: AgentHubStatus };
   'hub.probeLocal': { params: { port?: number }; result: AgentHubProbe };
+  /** Public, credential-free Hub TLS info (pinned channel): the active pin, source and the public local-CA root. Errors: `not-enrolled`, `hub-*`. */
+  'hub.tlsCertificates': { params: Record<string, never>; result: TlsCertificatesResponse };
   'hub.enroll': { params: { pairingString: string }; result: AgentHubStatus };
   /**
    * First-run local Hub setup: reads and deletes `%LOCALAPPDATA%\DUDE\hub-handoff-<nonce>.json` (written by the elevated
@@ -285,7 +287,7 @@ export const AGENT_METHODS = [
   'docs.get', 'docs.set', 'docs.remove',
   'secrets.status', 'secrets.list', 'secrets.set', 'secrets.remove', 'secrets.getCiphertext',
   'device.rename', 'reset.preview', 'reset.apply', 'hub.enrollment',
-  'hub.status', 'hub.probeLocal', 'hub.enroll', 'hub.bootstrapLocal', 'hub.unenroll', 'hub.owner.signIn', 'hub.owner.signOut', 'hub.owner.status',
+  'hub.status', 'hub.probeLocal', 'hub.tlsCertificates', 'hub.enroll', 'hub.bootstrapLocal', 'hub.unenroll', 'hub.owner.signIn', 'hub.owner.signOut', 'hub.owner.status',
   'hub.owner.listDevices', 'hub.owner.syncSummary', 'hub.owner.createPairingCode', 'hub.owner.renameDevice', 'hub.owner.revokeDevicePreview', 'hub.owner.revokeDevice',
   'hub.owner.setRecoveryTrust', 'hub.owner.listSessions', 'hub.owner.revokeSession', 'hub.owner.revokeAllPreview', 'hub.owner.revokeAll',
   'hub.owner.listAudit', 'hub.owner.recoveryCodesPreview', 'hub.owner.regenerateRecoveryCodes', 'hub.owner.changePassword', 'hub.recoverOwner',

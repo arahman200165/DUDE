@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>DUDE — Developer Utility Dashboard Engine</title>
+    <script id="dude-appearance-prepaint" type="text/javascript">
+      // Phase 30K: apply the saved appearance to <html> before the first paint (no flash of the
+      // default theme). Mirrors sanitize/resolveEffective in core/appearance/appearance.model.ts;
+      // appearance-prepaint.spec.ts keeps the key and attribute list in sync. Unknown values are
+      // harmless: the generated CSS falls back to the default block. Curated fonts are applied via data-ui-font / data-mono-font (generated CSS rules); custom font names are applied by the service.
+      // A missing/malformed store is treated as {}: every axis then does nothing (absent = default)
+      // except motion, whose default pref is "system" and so still follows prefers-reduced-motion.
+      (function () {
+        try {
+          var raw = localStorage.getItem('dude:v1:settings:appearance');
+          var prefs = null;
+          try {
+            prefs = raw && JSON.parse(raw);
+          } catch (e) {
+            /* malformed: treated as {} */
+          }
+          if (!prefs || typeof prefs !== 'object') prefs = {};
+          var media = function (query) {
+            return !!(window.matchMedia && window.matchMedia(query).matches);
+          };
+          var axes = [
+            ['mode', 'data-theme'],
+            ['contrast', 'data-contrast'],
+            ['accent', 'data-accent'],
+            ['catset', 'data-catset'],
+            ['semantic', 'data-semantic'],
+            ['density', 'data-density'],
+            ['uiSize', 'data-ui-size'],
+            ['monoSize', 'data-mono-size'],
+            ['ligatures', 'data-ligatures'],
+            ['motion', 'data-motion'],
+            ['uiFont', 'data-ui-font'],
+            ['monoFont', 'data-mono-font'],
+          ];
+          for (var i = 0; i < axes.length; i++) {
+            var value = prefs[axes[i][0]];
+            if (axes[i][0] === 'motion' && value === undefined) value = 'system';
+            if (typeof value !== 'string' || !/^[a-z0-9-]{1,32}$/.test(value)) continue;
+            if (value === 'system') {
+              // Absent attribute = default, so only the non-default outcome needs setting.
+              if (axes[i][0] === 'mode' && media('(prefers-color-scheme: light)')) value = 'light';
+              else if (axes[i][0] === 'contrast' && media('(prefers-contrast: more)')) value = 'high';
+              else if (axes[i][0] === 'motion' && media('(prefers-reduced-motion: reduce)')) value = 'reduce';
+              else continue;
+            }
+            document.documentElement.setAttribute(axes[i][1], value);
+          }
+        } catch (e) {
+          /* storage unavailable or malformed: the defaults apply */
+        }
+      })();
+    </script>
+    <script type="text/javascript">
+      // Phase 26 Item 9: Chromium can fire beforeinstallprompt before Angular boots. Keep it for
+      // PwaInstallService so DUDE's own "Install app" button still works.
+      window.addEventListener('beforeinstallprompt', function (event) {
+        event.preventDefault();
+        window.__dudeInstallPrompt = event;
+      });
+    </script>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0e14" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#eef1f5" />
+
+    <meta name="description" content="DUDE — an offline-capable deck of local developer utilities." />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="DUDE — Developer Utility Dashboard Engine" />
+    <meta property="og:description" content="An offline-capable deck of local developer utilities — JSON formatting, regex testing, JWT decoding, hashing, diffing, and more." />
+    <meta property="og:image" content="https://arahman200165.github.io/DUDE/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="DUDE — Developer Utility Dashboard Engine" />
+    <meta name="twitter:description" content="An offline-capable deck of local developer utilities — JSON formatting, regex testing, JWT decoding, hashing, diffing, and more." />
+    <meta name="twitter:image" content="https://arahman200165.github.io/DUDE/og-image.png" />
+  </head>
+  <body>
+    <app-root></app-root>
+    <noscript>Please enable JavaScript to continue using this application.</noscript>
+  </body>
+</html>

@@ -45,6 +45,21 @@ export class ShareLinkService {
     return new URL(definition.route.replace(/^\//, ''), base).href;
   }
 
+  /** True on the Hub-served web build, where `linkFor` is a private link to the Hub's own origin. */
+  isHubWeb(): boolean {
+    return this.platform.hostKind === 'hub-web';
+  }
+
+  /**
+   * Hub-served web only: the same tool route on the public GitHub Pages companion, which opens for anyone (no Hub
+   * sign-in, no Hub data). `null` on every other host, where `linkFor` is already the right link.
+   */
+  publicCompanionLinkFor(toolId: string): string | null {
+    const definition = this.registry.getById(toolId);
+    if (!definition || !this.isHubWeb()) return null;
+    return new URL(definition.route.replace(/^\//, ''), WEB_COMPANION_BASE_URL).href;
+  }
+
   canShareInput(toolId: string): boolean {
     const definition = this.registry.getById(toolId);
     return !!definition && textFileInputOf(definition) !== undefined;
