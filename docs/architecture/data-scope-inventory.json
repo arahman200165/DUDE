@@ -2251,7 +2251,7 @@
     },
     {
       "source": "apps/web/src/app/core/usage/usage.service.ts",
-      "line": 22,
+      "line": 23,
       "operation": "inject(ENTITY_STORE).collection(usageCodec, {\n    namespace: '__usage__',\n    key: 'activity',\n    toItems: (blob) => [blob],\n    fromItems: (items) => items[0] ?? EMPTY_USAGE_STORE,\n  })",
       "namespace": "__usage__",
       "key": "activity",
