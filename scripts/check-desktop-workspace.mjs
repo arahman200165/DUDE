@@ -12,6 +12,7 @@ if(process.platform!=='win32')throw Error('Desktop workspace acceptance requires
 const root=path.resolve(import.meta.dirname,'..');
 const indexHtml=readFileSync(path.join(root,'dist/dude/browser/index.html'),'utf8');
 if(!indexHtml.includes('<base href="/">'))throw Error('dist/dude/browser was not built for desktop; run: ng build --configuration production,electron (the plain production build uses the /DUDE/ Pages base href).');
+mkdirSync(path.join(root,'tmp'),{recursive:true}); // gitignored, so absent on a clean checkout
 const profile=mkdtempSync(path.join(root,'tmp/desktop-workspace-'));
 const fixture=path.join(profile,'fixtures');mkdirSync(fixture);
 const input=path.join(fixture,'acceptance.json');writeFileSync(input,'{"phase":31,"portable":true}');

@@ -33,5 +33,6 @@ run(npmCli,['run','build']);
 const second=hashes(path.join(isolated,'dist/dude/browser'));
 const changed=[...new Set([...Object.keys(first),...Object.keys(second)])].filter(name=>first[name]!==second[name]);
 if(changed.length)throw Error(`Clean installation builds differ: ${changed.join(', ')}`);
+mkdirSync(path.join(root,'tmp'),{recursive:true});
 writeFileSync(path.join(root,'tmp/phase31a-clean-evidence.json'),JSON.stringify({workspace:isolated,files:Object.keys(first).length,repeatable:true,normalizedFields:['ngsw.json:timestamp'],hashes:first},null,2)+'\n');
 console.log(`Clean installation and two identical production builds pass (${Object.keys(first).length} files).`);
