@@ -3,6 +3,7 @@ import { findSettingDefinition } from '@dude/persistence';
 import './app/core/platform/engine-host.adapter';
 import { appConfig } from './app/app.config';
 import { App } from './app/app';
+import { BUILD_HOST } from './app/core/platform/host-flag';
 import { currentPlatformBridge } from './app/core/platform/platform-bridge.adapter';
 import { installLocalBackend } from './app/core/persistence/local-backend-registry';
 import { createDegradedMemoryBackend, createDeviceKvBackend } from './app/core/persistence/device-store/device-kv-backend';
@@ -43,9 +44,22 @@ async function prepareLocalStorage(): Promise<BootSnapshot> {
   return { boot: snapshot.boot, degradedReason: snapshot.degradedReason ?? 'unavailable' };
 }
 
+/**
+ * Hub-served web only (`hub` build, no desktop bridge): attach to the Hub and install the Hub-backed `local` backend before
+ * bootstrap. A dynamic import, so the Pages and desktop bundles never load any of it (nor the Hub client).
+ */
+async function prepareHubWeb() {
+  if (BUILD_HOST !== 'hub' || currentPlatformBridge()) return null;
+  const [{ bootHubWeb }, runtime] = await Promise.all([import('./app/core/hub-web/hub-web-boot'), import('./app/core/hub-web/hub-web-runtime')]);
+  return { result: await bootHubWeb(), runtime };
+}
+
 async function start(): Promise<void> {
+  const hub = await prepareHubWeb();
   const snapshot = await prepareLocalStorage();
-  await bootstrapApplication(App, { ...appConfig, providers: [...appConfig.providers, provideBootSnapshot(snapshot)] });
+  const providers = [...appConfig.providers, provideBootSnapshot(snapshot), ...(hub ? hub.runtime.hubWebProviders(hub.result) : [])];
+  const appRef = await bootstrapApplication(App, { ...appConfig, providers });
+  if (hub) hub.runtime.startHubWebRuntime(appRef, hub.result);
 }
 
 start().catch((err) => console.error(err));

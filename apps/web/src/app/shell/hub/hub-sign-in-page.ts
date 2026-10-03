@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HUB_ADMIN } from '../../core/hub/hub-admin.token';
+import { HUB_APP_ENTRY } from '../../core/hub/hub-app-entry';
 import { HubCard } from './hub-card';
 import { RetryCountdown, describeHubError, safeReturnUrl } from './hub-utils';
 
@@ -30,6 +31,7 @@ import { RetryCountdown, describeHubError, safeReturnUrl } from './hub-utils';
 export class HubSignInPage {
   private readonly admin = inject(HUB_ADMIN);
   private readonly router = inject(Router);
+  private readonly enterApp = inject(HUB_APP_ENTRY);
   private readonly route = inject(ActivatedRoute);
 
   protected readonly countdown = new RetryCountdown();
@@ -57,7 +59,7 @@ export class HubSignInPage {
     try {
       await this.admin.signIn(this.password());
       this.password.set('');
-      await this.router.navigateByUrl(safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl')));
+      await this.enterApp(safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl')));
     } catch (e) {
       const d = describeHubError(e, { unauthorized: 'That password is not correct.' });
       this.error.set(d.message);

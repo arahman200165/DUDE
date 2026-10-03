@@ -1,6 +1,7 @@
 import { Component, DestroyRef, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { HUB_ADMIN } from '../../core/hub/hub-admin.token';
+import { HUB_APP_ENTRY } from '../../core/hub/hub-app-entry';
 import { HubCard } from './hub-card';
 import { MIN_PASSWORD_LENGTH, PASSWORD_HINT, RetryCountdown, describeHubError } from './hub-utils';
 import { RecoveryCodesDisplay } from './recovery-codes-display';
@@ -63,7 +64,7 @@ type Mode = 'code' | 'reset';
 })
 export class HubRecoverPage {
   private readonly admin = inject(HUB_ADMIN);
-  private readonly router = inject(Router);
+  private readonly enterApp = inject(HUB_APP_ENTRY);
 
   protected readonly passwordHint = PASSWORD_HINT;
   protected readonly countdown = new RetryCountdown();
@@ -113,7 +114,7 @@ export class HubRecoverPage {
             ? 'You are signed in, but you have no recovery codes left. Generate new ones in Settings > Security & Sessions.'
             : `You are signed in. Only ${left} recovery ${left === 1 ? 'code is' : 'codes are'} left; generate new ones in Settings > Security & Sessions.`);
         } else {
-          await this.router.navigateByUrl('/');
+          await this.enterApp('/');
         }
       } else {
         const result = await this.admin.ownerReset(this.secret().trim(), this.password());
@@ -138,7 +139,7 @@ export class HubRecoverPage {
       await this.admin.signIn(this.password());
       this.newCodes.set([]);
       this.password.set('');
-      await this.router.navigateByUrl('/');
+      await this.enterApp('/');
     } catch (e) {
       this.error.set(describeHubError(e).message);
     } finally {
@@ -147,6 +148,6 @@ export class HubRecoverPage {
   }
 
   protected goHome(): void {
-    void this.router.navigateByUrl('/');
+    void this.enterApp('/');
   }
 }

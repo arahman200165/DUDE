@@ -24,3 +24,5 @@ export type {
 } from './repositories/ports.js';
 export { SECRET_PURPOSES, isSecretPurpose, isSecretRef, maskSecretHint } from './secrets/secret-ref.model.js';
 export type { SecretRef, SecretRefRecord, SecretPurpose, SecretStatus } from './secrets/secret-ref.model.js';
+export { kvSyncEntityOf, kvSyncEntityOfStored } from './web/kv-sync-entity.js';
+export type { KvSyncEntity } from './web/kv-sync-entity.js';

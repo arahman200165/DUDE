@@ -2,6 +2,7 @@ import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core'
 import { usageCodec } from '@dude/persistence';
 import { ENTITY_STORE } from '../persistence/entities/entity-store';
 import { BOOT_SNAPSHOT } from '../persistence/device-store/boot-snapshot';
+import { HUB_WEB_BOOT } from '../hub-web/hub-web.types';
 import { currentPlatformBridge } from '../platform/platform-bridge.adapter';
 import { EMPTY_USAGE_STORE, UsageLogEntry, recordUsage, sumUsageStores } from "@dude/domain/core/usage/usage.model";
 import type { UsageStore } from "@dude/domain/core/usage/usage.model";
@@ -30,7 +31,7 @@ export class UsageService {
    * Usage is per device (Phase 31D): this device writes only its own record, whose id is the device id on desktop and
    * 'default' on the web (no device store). Reads aggregate every device's record.
    */
-  private readonly ownId: string = inject(BOOT_SNAPSHOT).boot?.device?.deviceId ?? 'default';
+  private readonly ownId: string = this.resolveOwnId();
   /** Opens recorded since the last commit (desktop debounce); reads see it at once. */
   private readonly pending = signal<UsageStore | null>(null);
   private readonly own = (): UsageStore =>
@@ -42,6 +43,12 @@ export class UsageService {
   });
   private readonly debounced = currentPlatformBridge()?.store !== undefined;
   private timer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Desktop: the device id. Hub web with usage shared: this browser's Hub device row (the only usage the Hub accepts from it). */
+  private resolveOwnId(): string {
+    const hub = inject(HUB_WEB_BOOT);
+    return inject(BOOT_SNAPSHOT).boot?.device?.deviceId ?? (hub?.access.usage ? hub.deviceId : 'default');
+  }
 
   constructor() {
     const bridge = currentPlatformBridge()?.store;

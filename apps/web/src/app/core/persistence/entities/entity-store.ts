@@ -1,5 +1,10 @@
 import { InjectionToken, Signal, inject } from '@angular/core';
 import type { EntityCodec } from '@dude/persistence';
+import { categoryOf } from '@dude/sync';
+import { HUB_WEB_BOOT } from '../../hub-web/hub-web.types';
+import { createHubEntityCollection } from '../../hub-web/hub-entity-store';
+import { createWindowStorageBackend } from '../window-storage-backend';
+import { buildStorageKey } from '@dude/tool-engine/core/persistence/persistence-keys';
 import { currentPlatformBridge } from '../../platform/platform-bridge.adapter';
 import { BOOT_SNAPSHOT } from '../device-store/boot-snapshot';
 import { PersistenceService } from '../persistence.service';
@@ -63,6 +68,21 @@ export const ENTITY_STORE = new InjectionToken<EntityStore>('DUDE entity store',
     const persistence = inject(PersistenceService);
     const outbox = inject(OutboxStatusService);
     const registry = inject(RemoteEntityRegistry);
+    const hub = inject(HUB_WEB_BOOT);
+    if (hub) {
+      // Hub-served web: shared categories live on the Hub; a category the owner left web access off for stays origin-local.
+      return {
+        collection: (codec, legacy, options) => {
+          const category = categoryOf(codec.entityType);
+          if (!category || !hub.access[category]) return createBrowserEntityCollection(persistence, codec, legacy, options?.context);
+          // The Hub wins (PD-053): an origin-local copy of the same collection is dropped, never merged.
+          createWindowStorageBackend('local').remove(buildStorageKey(legacy.namespace, legacy.key));
+          const collection = createHubEntityCollection({ codec, options, engine: hub.engine, records: hub.records });
+          registry.register(codec.entityType, collection);
+          return collection;
+        },
+      };
+    }
     const bridge = currentPlatformBridge();
     const store = bridge?.store;
     if (store && (snapshot.boot || snapshot.degradedReason)) {

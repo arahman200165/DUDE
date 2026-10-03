@@ -18,3 +18,11 @@ export { diffJson, hasDifferences, stableJson } from './json-diff.js';
 export type { DiffKind, DiffRow } from './json-diff.js';
 export { describeSync } from './sync-display.js';
 export type { SyncDisplay, SyncIndicatorKind } from './sync-display.js';
+
+// Browser (Hub web) helpers: record book, op building, conflict resolution (Phase 31E).
+export { RecordBook, recordKey } from './web/records.js';
+export type { WireRecord, WireOp, KnownRecord } from './web/records.js';
+export { SETTING_ENTITY, settingEntityKey, splitSettingId, settingPayload, settingValueOf, buildOp, toAppliedChange } from './web/ops.js';
+export type { OpInput, AppliedChangeShape } from './web/ops.js';
+export { resolveBrowserConflict, canKeepBoth, forkPayload, KEEP_BOTH_SUFFIX } from './web/conflict.js';
+export type { BrowserConflictInput, BrowserConflictResolution } from './web/conflict.js';

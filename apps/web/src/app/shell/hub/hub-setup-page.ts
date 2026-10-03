@@ -1,8 +1,9 @@
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { fromEvent } from 'rxjs';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { HUB_ADMIN } from '../../core/hub/hub-admin.token';
+import { HUB_APP_ENTRY } from '../../core/hub/hub-app-entry';
 import { HubCard } from './hub-card';
 import { MIN_PASSWORD_LENGTH, PASSWORD_HINT, RetryCountdown, describeHubError } from './hub-utils';
 import { RecoveryCodesDisplay } from './recovery-codes-display';
@@ -77,7 +78,7 @@ function takeFragmentToken(): string {
 })
 export class HubSetupPage {
   private readonly admin = inject(HUB_ADMIN);
-  private readonly router = inject(Router);
+  private readonly enterApp = inject(HUB_APP_ENTRY);
 
   protected readonly passwordHint = PASSWORD_HINT;
   protected readonly countdown = new RetryCountdown();
@@ -157,7 +158,7 @@ export class HubSetupPage {
       this.codes.set([]);
       this.password.set('');
       this.confirm.set('');
-      await this.router.navigate(['/settings/devices'], { queryParams: { hint: 'pair-desktop' } });
+      await this.enterApp(['/settings/devices'], { queryParams: { hint: 'pair-desktop' } });
     } catch (e) {
       this.error.set(`${describeHubError(e).message} Your owner account exists; sign in to continue.`);
       this.alreadySetUp.set(true);
