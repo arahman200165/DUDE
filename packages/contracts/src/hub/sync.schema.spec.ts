@@ -53,7 +53,7 @@ describe('sync wire schemas', () => {
     expect(Value.Check(SyncStateReport, report)).toBe(true);
     expect(Value.Check(SyncStateReport, { ...report, categories: { settings: true } })).toBe(false);
     expect(Value.Check(SyncStateResponse, { floor: 0, headRevision: 3, retentionDays: 90 })).toBe(true);
-    expect(Value.Check(SyncSummary, { floor: 0, headRevision: 3, retentionDays: 90, counts, devices: [{ deviceId: 'd', cursor: 1, lag: 2, lastPushAt: null, lastPullAt: null, quarantined: 0, conflicts: 0, pending: 0 }] })).toBe(true);
+    expect(Value.Check(SyncSummary, { floor: 0, headRevision: 3, retentionDays: 90, counts, devices: [{ deviceId: 'd', cursor: 1, lag: 2, lastPushAt: null, lastPullAt: null, quarantined: 0, conflicts: 0, pending: 0, kind: 'desktop', paused: false }] })).toBe(true);
   });
 
   it('validates the clear two-step', () => {
