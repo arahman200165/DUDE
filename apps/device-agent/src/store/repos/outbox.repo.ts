@@ -118,3 +118,19 @@ export function listQuarantined(db: Db): QuarantinedOp[] {
   const rows = db.prepare("SELECT * FROM outbox WHERE status = 'quarantined' ORDER BY created_at, op_id").all() as unknown as Array<OutboxRow & { reason: string | null; attempts: number; last_attempt_at: string | null }>;
   return rows.map((r) => ({ op: rowToOp(r), reason: r.reason, attempts: Number(r.attempts), lastAttemptAt: r.last_attempt_at }));
 }
+
+export interface UnsentOpCounts { pending: number; quarantined: number; stranded: number; total: number }
+
+/** Ops that never reached a Hub: pending (held ones included), quarantined and stranded. Standalone-journaled ops are not "unsent" to anything. */
+export function unsentOpCounts(db: Db): UnsentOpCounts {
+  const rows = db.prepare("SELECT status, COUNT(*) AS n FROM outbox WHERE status IN ('pending', 'quarantined', 'stranded') GROUP BY status").all() as unknown as Array<{ status: string; n: number }>;
+  const counts: UnsentOpCounts = { pending: 0, quarantined: 0, stranded: 0, total: 0 };
+  for (const r of rows) {
+    const n = Number(r.n);
+    if (r.status === 'pending') counts.pending = n;
+    else if (r.status === 'quarantined') counts.quarantined = n;
+    else counts.stranded = n;
+    counts.total += n;
+  }
+  return counts;
+}

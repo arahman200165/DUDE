@@ -10,7 +10,7 @@ import type { InstalledSoftware } from "../../system/software-types.js";
 import type { WindowsCapability, WindowsFeature } from "../../system/feature-types.js";
 import type { SysApplyResult, SysJournalEntry, SysMutationSettings, SysMutResult, SysPlanPreview, SysPlanRequest, SysSnapshot, SysSnapshotHeader, SysSnapshotKind } from "../../system/sys-mutation-types.js";
 import type { AgentHistoryRecord, AgentNetworkRun } from "../../device-store/agent-protocol.js";
-import type { DeviceStoreBoot, DeviceStoreDevice, EntityCommit, EntityCommitResult, KvMutation, QuarantinePreviewResult, ResetApplyResult, ResetKind, ResetPreviewResult, StoreHealth } from "../../device-store/device-store.model.js";
+import type { DeviceStoreBoot, DeviceStoreDevice, EntityCommit, EntityCommitResult, KvMutation, QuarantinePreviewResult, ResetApplyResult, ResetKind, ResetPreviewOptions, ResetPreviewResult, StoreHealth } from "../../device-store/device-store.model.js";
 import type { NetworkRequest, NetworkJobEvent, NetworkStartResult, NetworkPrepareResult, WatchEntry, WatchSettings, WatchState, WatchResult } from "../../core/platform/network-types.js";
 export interface NativeStat {
   readonly isFile: boolean;
@@ -201,8 +201,8 @@ export interface PlatformBridge {
     retry(): Promise<StoreHealth>;
     /** Two-step reset (Destructive-Action Contract): `preview` changes nothing; `apply` needs its single-use token. */
     readonly reset: {
-      preview(kind: ResetKind): Promise<ResetPreviewResult>;
-      apply(request: { readonly kind: ResetKind; readonly token: string }): Promise<ResetApplyResult>;
+      preview(kind: ResetKind, options?: ResetPreviewOptions): Promise<ResetPreviewResult>;
+      apply(request: { readonly kind: ResetKind; readonly token: string; readonly deleteFromHub?: boolean }): Promise<ResetApplyResult>;
     };
     /** Recovery for an unusable store. Main picks every path; the renderer supplies none. */
     readonly recovery: {

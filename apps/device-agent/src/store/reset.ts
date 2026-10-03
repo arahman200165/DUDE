@@ -3,7 +3,9 @@ import { uuidv7 } from '@dude/persistence';
 import type { ResetKind } from '@dude/contracts';
 import type { Db } from '@dude/sqlite-store';
 import { getMeta, setMeta, transaction } from '@dude/sqlite-store';
-import { resetSyncState } from './repos/sync-state.repo.js';
+import { getEnrollment } from './repos/hub-enrollment.repo.js';
+import { unsentOpCounts } from './repos/outbox.repo.js';
+import { getSyncState, resetHubBookkeeping, updateSyncState } from './repos/sync-state.repo.js';
 
 /** Tables wiped by both reset kinds. Identity (meta) and migrations are never touched here. */
 export const DATA_TABLES = [
@@ -23,6 +25,11 @@ export interface ResetPreviewData {
   counts: Record<string, number>;
   keepsIdentity: boolean;
   wipesSecrets: boolean;
+  /** A Hub enrollment exists: clear-data keeps it (and re-pulls from the Hub); reset-device unenrolls. */
+  enrolled: boolean;
+  /** Ops that were never delivered; the UI offers "Sync first" when `pendingOps > 0`. Pending includes held ops. */
+  unsent: { pending: number; quarantined: number; stranded: number };
+  pendingOps: number;
   /** Binds a confirmation to exactly what the preview showed; main wraps it in an expiring token. */
   digest: string;
 }
@@ -30,6 +37,13 @@ export interface ResetPreviewData {
 export interface ResetDeps {
   now: () => Date;
   randomBytes: (n: number) => Uint8Array;
+}
+
+export interface ResetOptions {
+  /** clear-data only: the caller also clears the Hub's records first. Part of the digest, so a preview without it cannot apply with it. */
+  deleteFromHub?: boolean;
+  /** apply only: the caller already checked the digest (reset-device unenrolls before the wipe, which changes the counts). */
+  verified?: boolean;
 }
 
 export type ResetApplyResult = { ok: true } | { ok: false; error: 'stale-preview' };
@@ -44,32 +58,54 @@ function countRows(db: Db, kind: ResetKind): Record<string, number> {
   return counts;
 }
 
-function digestOf(kind: ResetKind, counts: Record<string, number>, deviceId: string): string {
-  return createHash('sha256').update(JSON.stringify([kind, counts, deviceId])).digest('hex');
+function digestOf(kind: ResetKind, counts: Record<string, number>, deviceId: string, deleteFromHub: boolean): string {
+  return createHash('sha256').update(JSON.stringify(deleteFromHub ? [kind, counts, deviceId, 'delete-from-hub'] : [kind, counts, deviceId])).digest('hex');
 }
 
-export function previewReset(db: Db, kind: ResetKind): ResetPreviewData {
+function checkKind(kind: ResetKind, options: ResetOptions): void {
   if (kind !== 'clear-data' && kind !== 'reset-device') throw new Error('Unknown reset kind.');
+  if (options.deleteFromHub === true && kind !== 'clear-data') throw new Error('Only clear-data can also delete from the Hub.');
+}
+
+export function previewReset(db: Db, kind: ResetKind, options: ResetOptions = {}): ResetPreviewData {
+  checkKind(kind, options);
   const counts = countRows(db, kind);
+  const unsent = unsentOpCounts(db);
   return {
     kind,
     counts,
     keepsIdentity: kind === 'clear-data',
     wipesSecrets: kind === 'reset-device',
-    digest: digestOf(kind, counts, getMeta(db, 'device_id') ?? ''),
+    enrolled: getEnrollment(db) !== null,
+    unsent: { pending: unsent.pending, quarantined: unsent.quarantined, stranded: unsent.stranded },
+    pendingOps: unsent.total,
+    digest: digestOf(kind, counts, getMeta(db, 'device_id') ?? '', options.deleteFromHub === true),
   };
 }
 
+/** True while the data still matches what `previewReset` showed (used before any Hub call that cannot be undone). */
+export function resetDigestMatches(db: Db, kind: ResetKind, expectedDigest: string, options: ResetOptions = {}): boolean {
+  checkKind(kind, options);
+  return digestOf(kind, countRows(db, kind), getMeta(db, 'device_id') ?? '', options.deleteFromHub === true) === expectedDigest;
+}
+
 /** Recomputes the digest inside the transaction; a mismatch means the data changed since the preview. */
-export function applyReset(db: Db, kind: ResetKind, expectedDigest: string, deps: ResetDeps): ResetApplyResult {
-  if (kind !== 'clear-data' && kind !== 'reset-device') throw new Error('Unknown reset kind.');
+export function applyReset(db: Db, kind: ResetKind, expectedDigest: string, deps: ResetDeps, options: ResetOptions = {}): ResetApplyResult {
+  checkKind(kind, options);
   return transaction(db, () => {
-    const current = digestOf(kind, countRows(db, kind), getMeta(db, 'device_id') ?? '');
-    if (current !== expectedDigest) return { ok: false as const, error: 'stale-preview' as const };
+    if (options.verified !== true && !resetDigestMatches(db, kind, expectedDigest, options)) return { ok: false as const, error: 'stale-preview' as const };
+    // Clear-data on an enrolled device keeps the enrollment, so it must re-pull what the Hub holds (and keep the sync choices).
+    const keepSync = kind === 'clear-data' && getEnrollment(db) !== null ? getSyncState(db) : null;
+    // Deliberately no journaling: the wipe is local, deleting on the Hub is the separate, owner-confirmed `deleteFromHub`.
     for (const table of tablesFor(kind)) db.exec(`DELETE FROM ${table}`);
-    // The cursor and first-sync progress describe data that is now gone.
-    resetSyncState(db);
+    // Revisions, the cursor and first-sync progress describe data that is now gone.
+    resetHubBookkeeping(db);
+    if (keepSync) {
+      updateSyncState(db, { categories: keepSync.categories, firstSyncState: keepSync.firstSyncState, firstSyncAt: keepSync.firstSyncAt, paused: keepSync.paused });
+      if (keepSync.firstSyncState === 'done') setMeta(db, 'sync_rebase_pending', '1');
+    }
     if (kind === 'reset-device') {
+      db.prepare("DELETE FROM meta WHERE key = 'standalone_environment_id'").run();
       const newId = (): string => uuidv7(deps.randomBytes, () => deps.now().getTime());
       setMeta(db, 'device_id', newId());
       setMeta(db, 'environment_id', newId());

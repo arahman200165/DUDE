@@ -16,6 +16,15 @@ export interface AgentSnapshotHeader { kind: string; id: string; createdAt: numb
 /** Reset step one as the agent reports it; main wraps `digest` into an expiring token before the renderer sees it. */
 export interface AgentResetPreview {
   kind: ResetKind; counts: Record<string, number>; keepsIdentity: boolean; wipesSecrets: boolean; digest: string;
+  enrolled: boolean; unsent: { pending: number; quarantined: number; stranded: number }; pendingOps: number;
+  /** Only with `deleteFromHub`: what the Hub would clear plus its confirmation (kept by the agent; apply needs no id). */
+  hub?: { recordCount: number; deviceCount: number; confirmationId: string; expiresAt: string };
+}
+/** Step one of "Continue standalone" after a revocation; nothing changes until `sync.standalone.apply`. */
+export interface AgentStandalonePreview {
+  /** Ops that were never delivered (pending, quarantined, stranded) and are dropped; the data itself stays. */
+  strandedOps: number; records: number; /** The fresh environment id the records move to. */ environmentId: string;
+  confirmToken: string; digest: string; /** ISO-8601. */ expiresAt: string;
 }
 /** Hub enrollment as the renderer may see it: never any key material. */
 export interface AgentHubEnrollment {
@@ -30,6 +39,8 @@ export interface AgentHubStatus {
   hubVersion: string | null;
   /** Whether the Hub trusts this device for owner recovery (GET /devices/self); null until known or when not connected. */
   recoveryTrusted: boolean | null;
+  /** Undelivered ops (pending, quarantined, stranded): disclosed before unenrolling or continuing standalone. */
+  pendingOps: number;
 }
 /** Typed enrollment failures (the RPC error `code`). */
 export type AgentHubEnrollError =
@@ -164,9 +175,10 @@ export interface AgentMethodMap {
   /** Main-only: returns stored ciphertext for decryption in main; never exposed to the renderer. */
   'secrets.getCiphertext': { params: { purpose: AgentSecretPurpose }; result: { ciphertext: Uint8Array | null } };
   'device.rename': { params: { displayName: string }; result: { ok: true; displayName: string } | { ok: false; error: string } };
-  'reset.preview': { params: { kind: ResetKind }; result: AgentResetPreview };
+  /** `deleteFromHub` (clear-data, enrolled, owner session signed in on the agent) adds the Hub clear preview. Errors: `not-enrolled`, `owner-session-required`, `hub-*`. */
+  'reset.preview': { params: { kind: ResetKind; deleteFromHub?: boolean }; result: AgentResetPreview };
   /** `digest` is the one from the preview; a mismatch fails with `stale-preview`. */
-  'reset.apply': { params: { kind: ResetKind; digest: string }; result: { ok: true } | { ok: false; error: string } };
+  'reset.apply': { params: { kind: ResetKind; digest: string; deleteFromHub?: boolean }; result: { ok: true; hubStillListsDevice?: boolean; hubDeleted?: number } | { ok: false; error: string } };
   /** Public Hub enrollment, or null when standalone. Deliberately carries no key material. */
   'hub.enrollment': { params: Record<string, never>; result: AgentHubEnrollment | null };
   'hub.status': { params: Record<string, never>; result: AgentHubStatus };
@@ -179,7 +191,7 @@ export interface AgentMethodMap {
    */
   'hub.bootstrapLocal': { params: { nonce: string; environmentName: string; ownerDisplayName: string; password: string }; result: AgentHubBootstrapResult };
   /** Online: tells the Hub then clears. Offline: `hub-unreachable` unless `force`, which clears locally only. */
-  'hub.unenroll': { params: { force?: boolean }; result: { ok: true; hubStillListsDevice: boolean } };
+  'hub.unenroll': { params: { force?: boolean }; result: { ok: true; hubStillListsDevice: boolean; /** Undelivered ops dropped by the conversion to standalone (the data stays). */ droppedOps: number } };
   /** The password is only a parameter; the owner bearer lives in agent memory and is never returned. */
   'hub.owner.signIn': { params: { password: string }; result: AgentHubOwnerStatus };
   'hub.owner.signOut': { params: Record<string, never>; result: { ok: true } };
@@ -226,6 +238,10 @@ export interface AgentMethodMap {
    * `confirmToken`. Errors: `first-sync-stale` (re-preview), `invalid-token`, `confirmation-required`.
    */
   'sync.firstSync.apply': { params: { choices: Partial<Record<SyncCategory, FirstSyncChoice>>; digest: string; confirmToken?: string }; result: AgentSyncStatus };
+  /** Revoked devices only (`not-revoked` otherwise): what "Continue standalone" would do. Writes nothing. */
+  'sync.standalone.preview': { params: Record<string, never>; result: AgentStandalonePreview };
+  /** Recovery snapshot, fresh environment id, stranded ops dropped, enrollment cleared. Errors: `invalid-token`, `stale-preview`, `not-revoked`. */
+  'sync.standalone.apply': { params: { confirmToken: string; digest: string }; result: AgentSyncStatus };
   /** Implemented by the legacy import (M621). */
   'legacy.import': { params: { legacyDir: string; sources: unknown }; result: LegacyImportResult };
   /**
@@ -274,7 +290,7 @@ export const AGENT_METHODS = [
   'hub.owner.listAudit', 'hub.owner.recoveryCodesPreview', 'hub.owner.regenerateRecoveryCodes', 'hub.owner.changePassword', 'hub.recoverOwner',
   'sync.status', 'sync.setCategories', 'sync.setPaused', 'sync.now', 'sync.conflicts.list', 'sync.conflicts.resolve',
   'sync.quarantine.list', 'sync.quarantine.retry', 'sync.quarantine.discardPreview', 'sync.quarantine.discard', 'sync.quarantine.export',
-  'sync.firstSync.preview', 'sync.firstSync.apply',
+  'sync.firstSync.preview', 'sync.firstSync.apply', 'sync.standalone.preview', 'sync.standalone.apply',
   'legacy.import', 'store.cleanExit', 'store.checkpoint', 'store.shutdown', 'store.quarantine',
 ] as const satisfies readonly AgentMethod[];
 

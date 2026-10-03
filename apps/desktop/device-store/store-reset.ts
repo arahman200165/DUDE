@@ -25,7 +25,7 @@ const DB_FILE = 'dude-device.db';
 const STORE_FILES = [DB_FILE, `${DB_FILE}-wal`, `${DB_FILE}-shm`] as const;
 const FORBIDDEN: ResetApplyError = 'forbidden';
 
-interface ResetPlan extends StoredPlanBase { readonly kind: ResetKind | 'quarantine' }
+interface ResetPlan extends StoredPlanBase { readonly kind: ResetKind | 'quarantine'; readonly deleteFromHub?: boolean }
 
 export interface StoreResetDeps {
   host: () => DeviceStoreHost | null;
@@ -80,41 +80,55 @@ export function registerStoreResetHandlers(window: BrowserWindow, deps: StoreRes
 
   const reload = (): void => { if (!window.isDestroyed() && !window.webContents.isDestroyed()) window.webContents.reload(); };
 
-  ipcMain.handle('dude:store:reset:preview', async (event, kind: unknown): Promise<ResetPreviewResult> => {
+  ipcMain.handle('dude:store:reset:preview', async (event, kind: unknown, options?: unknown): Promise<ResetPreviewResult> => {
     if (!own(event.sender)) return { ok: false, error: FORBIDDEN };
     if (!isKind(kind)) return { ok: false, error: 'failed' };
+    const deleteFromHub = (options as { deleteFromHub?: unknown } | null | undefined)?.deleteFromHub === true;
+    if (deleteFromHub && kind !== 'clear-data') return { ok: false, error: 'failed' };
     const host = deps.host();
     if (!host || host.status() !== 'ready') return { ok: false, error: 'unavailable' };
     try {
-      const preview = await host.call('reset.preview', { kind });
+      const preview = await host.call('reset.preview', deleteFromHub ? { kind, deleteFromHub } : { kind });
       const id = planId(kind, ownerOf());
-      store.addPlan({ id, ownerId: ownerOf(), digest: preview.digest, expires: Date.now() + RESET_TOKEN_TTL_MS, kind });
+      store.addPlan({ id, ownerId: ownerOf(), digest: preview.digest, expires: Date.now() + RESET_TOKEN_TTL_MS, kind, deleteFromHub });
       const issued = store.issueToken(ownerOf(), id);
       if (!issued.ok) return { ok: false, error: 'failed' };
-      return { ok: true, kind, token: issued.token, counts: preview.counts, expiresAt: issued.expiresAt, keepsIdentity: preview.keepsIdentity, wipesSecrets: preview.wipesSecrets };
-    } catch {
-      return { ok: false, error: 'failed' };
+      return {
+        ok: true, kind, token: issued.token, counts: preview.counts, expiresAt: issued.expiresAt, keepsIdentity: preview.keepsIdentity, wipesSecrets: preview.wipesSecrets,
+        enrolled: preview.enrolled, unsent: preview.unsent, pendingOps: preview.pendingOps,
+        // The Hub's confirmation id stays with the agent: apply needs only this window's token.
+        ...(preview.hub ? { hub: { recordCount: preview.hub.recordCount, deviceCount: preview.hub.deviceCount, expiresAt: preview.hub.expiresAt } } : {}),
+      };
+    } catch (error) {
+      const code = (error as { code?: unknown } | null)?.code;
+      return code === 'owner-session-required' || code === 'not-enrolled' ? { ok: false, error: 'failed', hubError: code } : { ok: false, error: 'failed' };
     }
   });
 
   ipcMain.handle('dude:store:reset:apply', async (event, request: unknown): Promise<ResetApplyResult> => {
     if (!own(event.sender)) return { ok: false, error: FORBIDDEN };
-    const { kind, token } = (request && typeof request === 'object' ? request : {}) as { kind?: unknown; token?: unknown };
+    const { kind, token, deleteFromHub } = (request && typeof request === 'object' ? request : {}) as { kind?: unknown; token?: unknown; deleteFromHub?: unknown };
     if (!isKind(kind)) return { ok: false, error: 'invalid-token' };
     const plan = consume(kind, token);
     if (typeof plan === 'string') return { ok: false, error: plan };
     store.deletePlan(plan.id);
+    // What the preview showed decides; an apply that asks for more than was previewed is refused (the token is spent).
+    if (deleteFromHub === true && plan.deleteFromHub !== true) return { ok: false, error: 'invalid-token' };
     const host = deps.host();
     if (!host || host.status() !== 'ready') return { ok: false, error: 'unavailable' };
     try {
-      const result = await host.call('reset.apply', { kind, digest: plan.digest });
+      const result = await host.call('reset.apply', plan.deleteFromHub === true ? { kind, digest: plan.digest, deleteFromHub: true } : { kind, digest: plan.digest });
       if (!result.ok) return { ok: false, error: result.error === 'stale-preview' ? 'stale-preview' : 'failed' };
-    } catch {
+      // Secrets are read from the store on demand (secrets-bridge keeps no cache), so a reload is all main needs to do.
+      reload();
+      return { ok: true, ...(result.hubStillListsDevice === undefined ? {} : { hubStillListsDevice: result.hubStillListsDevice }), ...(result.hubDeleted === undefined ? {} : { hubDeleted: result.hubDeleted }) };
+    } catch (error) {
+      const code = (error as { code?: unknown } | null)?.code;
+      // Nothing local is wiped when the Hub step fails.
+      if (typeof code === 'string' && code.startsWith('hub-')) return { ok: false, error: 'failed', hubError: 'hub-failed' };
+      if (code === 'owner-session-required' || code === 'owner-not-signed-in' || code === 'owner-session-expired') return { ok: false, error: 'failed', hubError: 'owner-session-required' };
       return { ok: false, error: 'failed' };
     }
-    // Secrets are read from the store on demand (secrets-bridge keeps no cache), so a reload is all main needs to do.
-    reload();
-    return { ok: true };
   });
 
   // The folder is always the device-store directory; any argument the renderer passes is ignored.

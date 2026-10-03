@@ -24,7 +24,7 @@ const TOKEN = 'abcDEF_-123';
 const PAIRING = 'dude-pair:v1:hub.local:47600:ABCD2345:AAAA';
 
 const ENROLLED: AgentHubStatus = {
-  state: 'online', lastError: null, lastContactAt: null, ownerSignedIn: false, hubVersion: '0.1.0', recoveryTrusted: true,
+  state: 'online', lastError: null, lastContactAt: null, ownerSignedIn: false, hubVersion: '0.1.0', recoveryTrusted: true, pendingOps: 0,
   enrollment: {
     state: 'enrolled', hubInstanceId: 'hub-1', environmentId: 'env-1', hubUrl: 'https://hub.local:47600', protocolVersion: 1,
     spkiActive: 'x', spkiNext: null, enrolledAt: '2026-01-01T00:00:00.000Z', lastContactAt: null, revokedAt: null,

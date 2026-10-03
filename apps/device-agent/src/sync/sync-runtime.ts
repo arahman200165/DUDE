@@ -1,11 +1,12 @@
 import { randomBytes } from 'node:crypto';
 import { HubApiError, HubProtocolError } from '@dude/api-client';
-import type { AgentHubStatus, AgentSyncStatus, FirstSyncChoice, FirstSyncPreview, QuarantinedOpExport, QuarantinedOpView, SyncConflictView } from '@dude/contracts';
+import type { AgentHubStatus, AgentStandalonePreview, AgentSyncStatus, FirstSyncChoice, FirstSyncPreview, QuarantinedOpExport, QuarantinedOpView, SyncConflictView } from '@dude/contracts';
 import { SYNC_CURSOR_EXPIRED, hubSupportsSync } from '@dude/contracts/hub';
 import type { ConfirmPreview, SyncChangesResponse, SyncPushResponse, SyncRecord, SyncSnapshotResponse } from '@dude/contracts/hub';
 import { SYNC_LIMITS, categoryOf } from '@dude/sync';
 import type { SyncCategory, SyncPhase } from '@dude/sync';
 import type { Db } from '@dude/sqlite-store';
+import { uuidv7 } from '@dude/persistence';
 import { getMeta, setMeta, transaction } from '@dude/sqlite-store';
 import type { CommitContext } from '../store/entity-commit.js';
 import { workingEnvironmentId } from '../store/environment.js';
@@ -23,9 +24,11 @@ import { applySnapshotPage, beginSnapshot, finishSnapshot } from './rebase.js';
 import { computeSyncStatus } from './status.js';
 import { FirstSyncError, firstSyncApply, firstSyncPreview } from './first-sync.js';
 import type { HubSnapshot } from './first-sync.js';
+import { StandaloneError, convertToStandalone, standaloneApply, standalonePreview } from './standalone.js';
+import type { StandaloneResult } from './standalone.js';
 
 /** The slice of the Hub connection manager the runtime needs (a fake in unit tests). */
-export type SyncManagerPort = Pick<HubConnectionManager, 'status' | 'onChange' | 'deviceCall' | 'hubProtocol' | 'onChangesAvailable'>;
+export type SyncManagerPort = Pick<HubConnectionManager, 'status' | 'onChange' | 'deviceCall' | 'hubProtocol' | 'onChangesAvailable'> & Partial<Pick<HubConnectionManager, 'resetToStandalone'>>;
 
 export interface SyncIntervals {
   /** Wait after a local commit before pushing, so a burst of edits is one push. */
@@ -80,6 +83,12 @@ export interface SyncRuntime {
   firstSyncPreview(): Promise<FirstSyncPreview>;
   /** Step two: runs the first sync (resumably) and lets normal sync take over. `use-hub` needs the preview's token. */
   firstSyncApply(params: { choices: Partial<Record<SyncCategory, FirstSyncChoice>>; digest: string; confirmToken?: string }): Promise<AgentSyncStatus>;
+  /** Revoked devices only: what "Continue standalone" would do, with a single-use token. Writes nothing. */
+  standalonePreview(): AgentStandalonePreview;
+  /** Recovery snapshot, fresh environment id, undelivered ops dropped, enrollment cleared; sync stops (phase `standalone`). */
+  standaloneApply(params: { confirmToken: string; digest: string }): AgentSyncStatus;
+  /** Converts to standalone without a token: unenrolling (already confirmed by the user) uses this after the Hub was told. */
+  convertToStandalone(): StandaloneResult;
   /** The first sync completed. Pushing and pulling start from here. */
   markFirstSyncDone(): void;
   /** The store was wiped (reset): drop in-memory bookkeeping and re-publish the status. */
@@ -100,6 +109,7 @@ const REBASE_META = 'sync_rebase_pending';
 const MAX_PUSH_BATCHES_PER_CYCLE = 50;
 const DISCARD_TOKEN_TTL_MS = 5 * 60_000;
 const FIRST_SYNC_TTL_MS = 10 * 60_000;
+const STANDALONE_TTL_MS = 2 * 60_000;
 
 function classify(error: unknown): Failure {
   if (error instanceof HubManagerError) {
@@ -149,6 +159,7 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
   let lastReport: { key: string; at: number } | null = null;
   const tokens = new Map<string, { opId: string; expiresAt: number }>();
   const firstSyncTokens = new Map<string, { digest: string; expiresAt: number }>();
+  const standaloneTokens = new Map<string, { digest: string; environmentId: string; expiresAt: number }>();
   let firstSyncCache: { digest: string; snapshot: HubSnapshot; expiresAt: number } | null = null;
 
   // --- State ------------------------------------------------------------------------------------------------------------
@@ -307,7 +318,7 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
     return { asOfRevision: asOf ?? 0, floor, records };
   }
 
-  const asRuntimeError = (error: unknown): unknown => (error instanceof FirstSyncError ? new SyncRuntimeError(error.code, error.message) : error);
+  const asRuntimeError = (error: unknown): unknown => (error instanceof FirstSyncError || error instanceof StandaloneError ? new SyncRuntimeError(error.code, error.message) : error);
 
   async function reportState(): Promise<void> {
     const current = computeSyncStatus(db, { phase: 'idle', lastError: null, headRevision });
@@ -395,6 +406,28 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
     else if (retryIn !== null) schedule(retryIn);
   }
 
+  const newEnvironmentId = (): string => uuidv7((n) => new Uint8Array(randomBytes(n)), () => deps.now().getTime());
+
+  /** Drops every in-memory trace of the previous Hub state (after a reset or a conversion to standalone). */
+  function forgetHubState(): void {
+    failure = null;
+    failures = 0;
+    backoffUntil = 0;
+    headRevision = null;
+    deferredSeen = 0;
+    lastReport = null;
+    tokens.clear();
+    firstSyncTokens.clear();
+    standaloneTokens.clear();
+    firstSyncCache = null;
+  }
+
+  function afterStandalone(): void {
+    forgetHubState();
+    manager.resetToStandalone?.();
+    emitStatus();
+  }
+
   // --- Reactions --------------------------------------------------------------------------------------------------------
 
   function onHubChange(hub: AgentHubStatus): void {
@@ -434,6 +467,7 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
       for (const done of pending) done();
       tokens.clear();
       firstSyncTokens.clear();
+      standaloneTokens.clear();
       firstSyncCache = null;
     },
     status,
@@ -512,16 +546,36 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
       trigger(0, true);
     },
     afterReset() {
-      failure = null;
-      failures = 0;
-      backoffUntil = 0;
-      headRevision = null;
-      deferredSeen = 0;
-      lastReport = null;
-      tokens.clear();
-      firstSyncTokens.clear();
-      firstSyncCache = null;
+      forgetHubState();
       emitStatus();
+      trigger(0, true);
+    },
+    standalonePreview() {
+      try {
+        const environmentId = newEnvironmentId();
+        const data = standalonePreview(db, environmentId);
+        const expiresAt = deps.now().getTime() + STANDALONE_TTL_MS;
+        const confirmToken = (deps.newToken ?? ((): string => randomBytes(24).toString('base64url')))();
+        standaloneTokens.clear();
+        standaloneTokens.set(confirmToken, { digest: data.digest, environmentId, expiresAt });
+        return { ...data, confirmToken, expiresAt: new Date(expiresAt).toISOString() };
+      } catch (error) { throw asRuntimeError(error); }
+    },
+    standaloneApply(params) {
+      try {
+        const held = standaloneTokens.get(params.confirmToken);
+        standaloneTokens.delete(params.confirmToken);
+        if (!held || held.digest !== params.digest || held.expiresAt < deps.now().getTime()) throw new SyncRuntimeError('invalid-token', 'The confirmation expired. Preview again.');
+        const result = standaloneApply(db, { digest: params.digest, environmentId: held.environmentId }, { now: deps.now, backupDir: deps.backupDir });
+        afterStandalone();
+        log('sync: continued standalone', { droppedOps: result.droppedOps, recoverySnapshot: result.recoverySnapshot });
+        return status();
+      } catch (error) { throw asRuntimeError(error); }
+    },
+    convertToStandalone() {
+      const result = convertToStandalone(db, newEnvironmentId(), { now: deps.now, backupDir: deps.backupDir });
+      afterStandalone();
+      return result;
     },
     listConflicts() {
       return listConflictViews(db).map((c) => ({

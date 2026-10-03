@@ -169,9 +169,9 @@ function resolveChoices(given: Partial<Record<SyncCategory, FirstSyncChoice>>): 
 }
 
 /** A full copy of the store, taken before anything local is replaced. */
-export function takeRecoverySnapshot(db: Db, dir: string, now: Date): string {
+export function takeRecoverySnapshot(db: Db, dir: string, now: Date, prefix = 'first-sync'): string {
   mkdirSync(dir, { recursive: true });
-  const file = path.join(dir, `first-sync-${now.toISOString().replace(/[:.]/g, '-')}.db`);
+  const file = path.join(dir, `${prefix}-${now.toISOString().replace(/[:.]/g, '-')}.db`);
   db.exec(`VACUUM INTO '${file.replace(/'/g, "''")}'`);
   return file;
 }

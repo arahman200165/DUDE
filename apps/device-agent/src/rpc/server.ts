@@ -21,9 +21,9 @@ import { addPowerShellHistory, clearPowerShellHistory, listPowerShellHistory } f
 import { getDoc, removeDoc, setDoc } from '../store/repos/device-docs.repo.js';
 import { getSecretCiphertext, listSecretStatus, removeSecret, secretStatus, setSecretCiphertext } from '../store/repos/secrets.repo.js';
 import type { SecretStatusRow } from '../store/repos/secrets.repo.js';
-import { publicEnrollment } from '../store/repos/hub-enrollment.repo.js';
+import { getEnrollment, publicEnrollment } from '../store/repos/hub-enrollment.repo.js';
 import { workingEnvironmentId } from '../store/environment.js';
-import { applyReset, previewReset } from '../store/reset.js';
+import { applyReset, previewReset, resetDigestMatches } from '../store/reset.js';
 import { DEFAULT_HISTORY_RETENTION } from '../store/repos/retention.js';
 import { quarantineStore } from '../store/open-store.js';
 import { HubApiError, HubProtocolError } from '@dude/api-client';
@@ -31,6 +31,7 @@ import type { HubClient } from '@dude/api-client';
 import { HubManagerError } from '../hub/errors.js';
 import type { HubRuntime } from '../hub/index.js';
 import { SyncRuntimeError } from '../sync/sync-runtime.js';
+import { convertToStandalone } from '../sync/standalone.js';
 import type { SyncRuntime } from '../sync/sync-runtime.js';
 
 export interface RpcDeps {
@@ -151,6 +152,9 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
   };
   const owner = <T>(fn: (api: HubClient, ownerToken: string) => Promise<T>): Promise<T> => hubGuard(() => hubRuntime().manager.owner.withOwner(fn));
 
+  /** The Hub clear a `deleteFromHub` preview prepared; kept here (not by the caller) so apply needs no confirmation id and cannot swap it. */
+  let pendingHubClear: { digest: string; confirmationId: string } | null = null;
+
   const handlers: Handlers = {
     'store.open': () => (store as DeviceStore).health(),
     'store.health': () => (store as DeviceStore).health(),
@@ -265,12 +269,49 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
       const result = renameDevice(db(), p.displayName);
       return result.ok ? { ok: true, displayName: result.value } : { ok: false, error: result.error };
     },
-    'reset.preview': (p) => previewReset(db(), p.kind),
-    'reset.apply': (p) => {
-      const result = applyReset(db(), p.kind, str(p.digest, 'digest'), { now: deps.now, randomBytes: deps.randomBytes });
-      if (result.ok) deps.sync?.afterReset();
-      return result.ok ? result : { ok: false, error: result.error };
-    },
+    'reset.preview': (p) => hubGuard(async () => {
+      const deleteFromHub = p.deleteFromHub === true;
+      if (deleteFromHub && p.kind !== 'clear-data') throw invalid('Only clear-data can also delete from the Hub.');
+      pendingHubClear = null;
+      if (deleteFromHub) {
+        if (!getEnrollment(db())) throw new RpcError('not-enrolled', 'This device is not enrolled with a Hub.');
+        if (!hubRuntime().manager.owner.status().signedIn) throw new RpcError('owner-session-required', 'Sign in as the Hub owner to also delete from the Hub.');
+      }
+      const preview = previewReset(db(), p.kind, { deleteFromHub });
+      if (!deleteFromHub) return preview;
+      const hub = await owner((api, t) => api.syncClearPreview(t));
+      pendingHubClear = { digest: preview.digest, confirmationId: hub.confirmationId };
+      return { ...preview, hub: { recordCount: hub.recordCount, deviceCount: hub.deviceCount, confirmationId: hub.confirmationId, expiresAt: hub.expiresAt } };
+    }),
+    'reset.apply': (p) => hubGuard(async () => {
+      const deleteFromHub = p.deleteFromHub === true;
+      if (deleteFromHub && p.kind !== 'clear-data') throw invalid('Only clear-data can also delete from the Hub.');
+      const digest = str(p.digest, 'digest');
+      const database = db();
+      const options = { deleteFromHub };
+      // Everything that cannot be undone on the Hub waits for the local digest to still match.
+      if (!resetDigestMatches(database, p.kind, digest, options)) return { ok: false as const, error: 'stale-preview' };
+      let hubDeleted: number | undefined;
+      if (deleteFromHub) {
+        const plan = pendingHubClear;
+        pendingHubClear = null;
+        if (!plan || plan.digest !== digest) return { ok: false as const, error: 'stale-preview' };
+        // A failure here aborts the whole reset: nothing local has been wiped yet.
+        hubDeleted = (await owner((api, t) => api.syncClear(t, plan.confirmationId))).deleted;
+      }
+      let hubStillListsDevice: boolean | undefined;
+      if (p.kind === 'reset-device' && deps.hub) {
+        if (getEnrollment(database)?.state === 'enrolled') {
+          // Best effort: an unreachable Hub must not block resetting this device.
+          try { hubStillListsDevice = (await deps.hub.manager.unenroll({ force: true })).hubStillListsDevice; } catch { hubStillListsDevice = true; }
+        }
+      }
+      const result = applyReset(database, p.kind, digest, { now: deps.now, randomBytes: deps.randomBytes }, { ...options, verified: true });
+      if (!result.ok) return { ok: false as const, error: result.error };
+      if (p.kind === 'reset-device') deps.hub?.manager.resetToStandalone();
+      deps.sync?.afterReset();
+      return { ok: true as const, ...(hubStillListsDevice === undefined ? {} : { hubStillListsDevice }), ...(hubDeleted === undefined ? {} : { hubDeleted }) };
+    }),
     'sync.status': () => syncRuntime().status(),
     'sync.setCategories': (p) => {
       if (!isObject(p.categories)) throw invalid('categories must be an object.');
@@ -311,6 +352,8 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
       if (p.confirmToken !== undefined && typeof p.confirmToken !== 'string') throw invalid('confirmToken must be a string.');
       return hubGuard(() => syncRuntime().firstSyncApply({ choices, digest: str(p.digest, 'digest'), confirmToken: p.confirmToken }));
     },
+    'sync.standalone.preview': () => syncGuard(() => syncRuntime().standalonePreview()),
+    'sync.standalone.apply': (p) => syncGuard(() => syncRuntime().standaloneApply({ confirmToken: str(p.confirmToken, 'confirmToken'), digest: str(p.digest, 'digest') })),
     'hub.enrollment': () => publicEnrollment(db()),
     'hub.status': () => hubRuntime().manager.status(),
     'hub.probeLocal': (p) => {
@@ -324,7 +367,10 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
     'hub.enroll': (p) => hubGuard(() => hubRuntime().enroll(str(p.pairingString, 'pairingString'))),
     'hub.unenroll': (p) => hubGuard(async () => {
       const { hubStillListsDevice } = await hubRuntime().manager.unenroll({ force: p.force === true });
-      return { ok: true as const, hubStillListsDevice };
+      // Unenrolling is itself the confirmation: the records stay, as a standalone environment of their own.
+      const converted = deps.sync ? deps.sync.convertToStandalone()
+        : convertToStandalone(db(), uuidv7(deps.randomBytes, nowMs), { now: deps.now });
+      return { ok: true as const, hubStillListsDevice, droppedOps: converted.droppedOps };
     }),
     'hub.owner.signIn': (p) => hubGuard(() => hubRuntime().manager.owner.signIn(str(p.password, 'password'))),
     'hub.owner.signOut': async () => { await hubRuntime().manager.owner.signOut(); return { ok: true }; },

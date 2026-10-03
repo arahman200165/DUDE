@@ -44,7 +44,7 @@ const bridge: PlatformBridge = {
     status: () => ipcRenderer.invoke('dude:store:status'),
     retry: () => ipcRenderer.invoke('dude:store:retry'),
     reset: {
-      preview: (kind) => ipcRenderer.invoke('dude:store:reset:preview', kind),
+      preview: (kind, options) => ipcRenderer.invoke('dude:store:reset:preview', kind, options),
       apply: (request) => ipcRenderer.invoke('dude:store:reset:apply', request),
     },
     recovery: {

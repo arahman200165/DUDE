@@ -12,6 +12,7 @@ import {
 import type { Db } from '@dude/sqlite-store';
 import { clearEnrollment, getEnrollment, markRevoked, promoteNextPin, publicEnrollment, setNextPin, touchContact } from '../store/repos/hub-enrollment.repo.js';
 import type { HubEnrollmentRow } from '../store/repos/hub-enrollment.repo.js';
+import { unsentOpCounts } from '../store/repos/outbox.repo.js';
 import { loadDeviceKey } from '../native/device-key.js';
 import type { DpapiPort } from '../native/windows-sys-client.js';
 import { HubManagerError } from './errors.js';
@@ -76,6 +77,8 @@ export interface HubConnectionManager {
    * responsible for the user-presence gate; the password is never stored or logged.
    */
   recoverOwner(newPassword: string): Promise<void>;
+  /** Drops the connection loop and in-memory credentials and reports `standalone`; the caller already removed the enrollment row. */
+  resetToStandalone(): void;
   /** Tells the Hub (online) then clears the local enrollment. */
   unenroll(options?: { force?: boolean }): Promise<{ hubStillListsDevice: boolean }>;
 }
@@ -121,7 +124,7 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
 
   const status = (): AgentHubStatus => {
     const enrollment = publicEnrollment(deps.db);
-    return { state, lastError, lastContactAt: enrollment?.lastContactAt ?? null, ownerSignedIn: owner.status().signedIn, enrollment, hubVersion, recoveryTrusted };
+    return { state, lastError, lastContactAt: enrollment?.lastContactAt ?? null, ownerSignedIn: owner.status().signedIn, enrollment, hubVersion, recoveryTrusted, pendingOps: unsentOpCounts(deps.db).total };
   };
   const emit = (): void => {
     const snapshot = status();
@@ -287,6 +290,12 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
       } catch { /* informational; the next connect or registry change retries */ }
       if (changed) emit();
     })().finally(() => { metaFlight = null; });
+  }
+
+  function resetToStandalone(): void {
+    stopLoop();
+    owner.clear();
+    setState('standalone', null);
   }
 
   function stopLoop(): void {
@@ -497,6 +506,7 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
     stop() {
       stopLoop();
     },
+    resetToStandalone,
     async recoverOwner(newPassword) {
       const key = await loadKey();
       const enrollment = requireEnrollment();
@@ -531,9 +541,8 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
           }
         }
       }
-      stopLoop();
       clearEnrollment(deps.db);
-      setState('standalone', null);
+      resetToStandalone();
       return { hubStillListsDevice };
     },
   };

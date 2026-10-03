@@ -70,10 +70,26 @@ export interface ResetPreview {
   expiresAt: string;
   keepsIdentity: boolean;
   wipesSecrets: boolean;
+  /** True when a Hub enrollment exists on this device (clear-data keeps it; reset-device unenrolls). */
+  enrolled?: boolean;
+  /** Ops not yet on the Hub (held and quarantined included); the UI offers "Sync first" when `pendingOps > 0`. */
+  unsent?: ResetUnsentOps;
+  pendingOps?: number;
+  /** Present only when the preview was requested with `deleteFromHub`; the Hub's confirmation stays inside the agent. */
+  hub?: ResetHubClearPreview;
 }
 
+export interface ResetUnsentOps { pending: number; quarantined: number; stranded: number }
+export interface ResetHubClearPreview { recordCount: number; deviceCount: number; /** ISO-8601. */ expiresAt: string }
+/** `deleteFromHub` (clear-data on an enrolled device only) also clears this environment's synced records on the Hub; it needs an owner session. */
+export interface ResetPreviewOptions { readonly deleteFromHub?: boolean }
+
 export type ResetApplyError = 'invalid-token' | 'expired' | 'stale-preview' | 'forbidden' | 'unavailable' | 'failed';
-export type ResetApplyResult = { readonly ok: true } | { readonly ok: false; readonly error: ResetApplyError };
+/** Extra failures of a clear-data that also deletes from the Hub; nothing local was wiped. */
+export type ResetHubError = 'owner-session-required' | 'not-enrolled' | 'hub-failed';
+export type ResetApplyResult =
+  | { readonly ok: true; readonly hubStillListsDevice?: boolean; readonly hubDeleted?: number }
+  | { readonly ok: false; readonly error: ResetApplyError; /** Why a Hub step failed (the error is then `failed`). */ readonly hubError?: ResetHubError };
 
 /** Step one of moving an unreadable store aside (recovery); nothing moves until `quarantineApply`. */
 export interface QuarantinePreview {
@@ -85,4 +101,4 @@ export interface QuarantinePreview {
 }
 
 export type QuarantinePreviewResult = ({ readonly ok: true } & QuarantinePreview) | { readonly ok: false; readonly error: ResetApplyError | 'not-needed' };
-export type ResetPreviewResult = ({ readonly ok: true } & ResetPreview) | { readonly ok: false; readonly error: ResetApplyError };
+export type ResetPreviewResult = ({ readonly ok: true } & ResetPreview) | { readonly ok: false; readonly error: ResetApplyError; /** Why a Hub step failed (the error is then `failed`). */ readonly hubError?: ResetHubError };

@@ -44,7 +44,7 @@ function setup(options: { protocol?: number; hubState?: AgentHubStatus['state'];
   saveEnrollment(store.db, ENROLL, T0);
   const commit = commitContext(store);
   let hub: AgentHubStatus = {
-    state: options.hubState ?? 'online', lastError: null, lastContactAt: null, ownerSignedIn: false, hubVersion: '1', recoveryTrusted: null,
+    state: options.hubState ?? 'online', lastError: null, lastContactAt: null, ownerSignedIn: false, hubVersion: '1', recoveryTrusted: null,  pendingOps: 0,
     enrollment: {
       state: 'enrolled', hubInstanceId: 'hub-1', environmentId: 'env-hub', hubUrl: 'https://hub.lan:8443', protocolVersion: 2, spkiActive: 'spki-a',
       spkiNext: null, enrolledAt: T0.toISOString(), lastContactAt: null, revokedAt: null,
