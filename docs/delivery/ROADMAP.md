@@ -176,6 +176,8 @@ Backup/transfer is deliberately moved ahead of mobile delivery, and security con
 
 **Depends on:** 31C–31D.
 
+**Implementation status:** in progress (Milestones 663–688; decisions [PD-050–PD-062](../history/DECISION_LOG.md#phase-31e-implementation-decisions) recorded before implementation).
+
 - authenticated Angular application served by Hub;
 - browser-safe local execution;
 - public/private Hub modes;

@@ -521,9 +521,9 @@ DEFERRED: mandatory externally hosted infrastructure
 
 ### Reading the Delivered Baseline and the Target
 
-**Delivered:** V1 and Phases 1–31, including Phase 31 Milestones 593–614, plus distributed Phases 31A (Milestone 615), 31B (Milestones 616–627) and 31C (Milestones 628–648). Completion statements, historical tests, tool counts, implementation paths and measured results are retained from the supplied baseline PRD; they are not a new repository verification.
+**Delivered:** V1 and Phases 1–31, including Phase 31 Milestones 593–614, plus distributed Phases 31A (Milestone 615), 31B (Milestones 616–627), 31C (Milestones 628–648) and 31D (Milestones 649–662). Completion statements, historical tests, tool counts, implementation paths and measured results are retained from the supplied baseline PRD; they are not a new repository verification.
 
-**Planned next:** a self-hosted distributed release, referred to here as **DUDE 2.0**, using Phases 31A–31I. “2.0” is a product-release scope label; implementation must deliberately align it with the existing automatic package/tag versioning before release. The workspace/package layout (31A) and the local Device State Store, device identity and scoped settings (31B) and the self-hosted Hub foundation (31C) are delivered; no synchronization engine or React Native app is.
+**Planned next:** a self-hosted distributed release, referred to here as **DUDE 2.0**, using Phases 31A–31I. “2.0” is a product-release scope label; implementation must deliberately align it with the existing automatic package/tag versioning before release. The workspace/package layout (31A) and the local Device State Store, device identity and scoped settings (31B) the self-hosted Hub foundation (31C) and desktop synchronization (31D) are delivered; the shared-state Hub web (31E) and the React Native app are not.
 
 **Two meanings of web are made explicit:** **DUDE Web (Hub mode)** is the authenticated Angular application served by the user's Hub; **DUDE Web Companion (standalone mode)** is the existing GitHub Pages/PWA application with browser-local state and no required Hub or login. Both retain the same browser-safe engines. The standalone companion is not an externally hosted copy of the user's backend or canonical database.
 

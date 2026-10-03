@@ -1,6 +1,6 @@
 # DUDE System Architecture
 
-The desktop is the privileged local workbench; the Hub is authoritative for synchronized shared state. Delivered paths are described separately from the target package/service architecture. Phase 31C delivered the Hub service foundation and the resident Device Agent ([as built](#as-built-in-phase-31c)); synchronization, the shared-state Hub web and mobile are still planned.
+The desktop is the privileged local workbench; the Hub is authoritative for synchronized shared state. Delivered paths are described separately from the target package/service architecture. Phase 31C delivered the Hub service foundation and the resident Device Agent ([as built](#as-built-in-phase-31c)) and Phase 31D delivered desktop synchronization ([as built](DATA_SYNC_ARCHITECTURE.md#as-built-in-phase-31d-synchronization)); the shared-state Hub web (31E, decisions [PD-050–PD-062](../history/DECISION_LOG.md#phase-31e-implementation-decisions)) and mobile are still planned.
 
 Workspace implementation and host ownership are documented in [Portable Core](PORTABLE_CORE.md). The Hub service (`apps/hub`) and the Hub API client are delivered as of Phase 31C; the mobile and sync-replay reservations provide no runtime capabilities.
 
@@ -562,7 +562,7 @@ The Hub is the only writer of `data/dude.db`. Its data directory is `%ProgramDat
 
 **Contract source.** Hub request/response schemas are TypeBox schemas under `@dude/contracts/hub` (a subpath, not re-exported from the package index). `@dude/api-client` is a portable typed client over an injected transport port that validates responses with the same schemas, and `apps/hub/src/server/api-client-parity.spec.ts` fails when a Hub route has no client method or vice versa. Protocol compatibility uses an integer `protocolVersion` and `minClientProtocol` negotiated in the REST and WebSocket hellos (PD-037).
 
-**Not yet.** No sync service, record endpoints, collaboration, backup, Hub-served shared state, trusted-CA or public exposure, and no remote execution.
+**Not yet at 31C close.** No sync service, record endpoints, collaboration, backup, Hub-served shared state, trusted-CA or public exposure, and no remote execution. Phase 31D since added synchronization and record endpoints for desktops; Phase 31E plans the shared-state Hub web, trusted certificates and the exposure model.
 
 ### DUDE Core / Shared Logic Refactor
 
