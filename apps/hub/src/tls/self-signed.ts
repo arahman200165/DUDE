@@ -77,10 +77,12 @@ export function generateSelfSigned(options: SelfSignedOptions): { keyPem: string
   serial[0] &= 0x7f; // keep it positive
   if (serial[0] === 0) serial[0] = 1;
 
-  const name = sequence(set(sequence(oid(OID.commonName), utf8String(`DUDE Hub ${options.hubInstanceId.slice(0, 8)}`))));
-  const sigAlg = sequence(oid(OID.ecdsaWithSha256));
   // SubjectKeyIdentifier: SHA-1 of the subjectPublicKey (the uncompressed EC point, last 65 bytes of the SPKI).
   const ski = createHash('sha1').update(spki.subarray(spki.length - 65)).digest();
+  // The subject is unique per key: during a rotation clients trust the active and the next certificate at once, and
+  // OpenSSL (on Linux) fails a self-signed leaf with DEPTH_ZERO_SELF_SIGNED_CERT when two trust anchors share its name.
+  const name = sequence(set(sequence(oid(OID.commonName), utf8String(`DUDE Hub ${options.hubInstanceId.slice(0, 8)} ${ski.subarray(0, 4).toString('hex')}`))));
+  const sigAlg = sequence(oid(OID.ecdsaWithSha256));
   const sanList = sequence(...subjectAltNames(options.extraNames).map(generalName));
 
   const extensions = sequence(
