@@ -202,6 +202,8 @@ const hubTables = {
   audit_events: ['local-only', 'Hub-private audit trail; never carries credentials or payloads'],
   tls_pins: ['local-only', 'Hub-private TLS certificate pin lifecycle'],
   tls_pin_acks: ['local-only', 'Hub-private per-device TLS pin acknowledgements'],
+  tls_proxy_pins: ['local-only', 'Hub-private reverse-proxy leaf pin set (active and next)'],
+  tls_proxy_pin_acks: ['local-only', 'Hub-private per-device reverse-proxy pin acknowledgements'],
   records: ['environment', 'canonical synchronized records with revision and tombstone'],
   change_feed: ['environment', 'canonical per-environment change feed'],
   applied_ops: ['environment', 'canonical idempotency ledger for applied operations'],

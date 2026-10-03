@@ -49,6 +49,11 @@ Run these from an elevated prompt (the Hub CLI is `"%ProgramFiles%\DUDE Hub\dude
 | `dude-hub tls names list` | Show the configured Hub names, the active certificate's names and any names it is missing. |
 | `dude-hub tls names add <name>` | Add a DNS name or IP (optionally `name:port`) to the Host allowlist and stage a re-issued certificate; activate it with `dude-hub tls activate` once devices acknowledge. |
 | `dude-hub tls names remove <name>` | Remove a configured name and stage a certificate without it. |
+| `dude-hub tls import --cert <pem> --key <pem> [--chain <pem>]` | Validate an operator certificate (key match, 7+ days left, leaf, serverAuth, covers every configured name and the canonical origin, chain links) and stage it as the next certificate; activate it with `dude-hub tls activate`. Never auto-renewed. Elevated when the service is installed. |
+| `dude-hub tls proxy-pin add <pem-or-spki>` | Reverse-proxy deployments: stage the proxy's leaf SPKI as a proxy pin and announce it to devices. |
+| `dude-hub tls proxy-pin activate [--force] [--confirm <token>]` | Two-step: preview (lists devices that have not acknowledged), then `--confirm` promotes the staged proxy pin. |
+| `dude-hub tls proxy-pin remove <spki> [--confirm <token>]` | Two-step removal; removing the active proxy pin means devices can no longer connect through the proxy. |
+| `dude-hub tls proxy-pin list` | Show the active and staged proxy pins and pending acknowledgements. |
 | `dude-hub doctor` | Diagnose the service, certificates, port and firewall rule. |
 | `dude-hub setup-token` | Print or deliver the one-time token for first-owner setup. |
 | `dude-hub owner reset` | Start a two-step owner reset (confirm with the printed token). |

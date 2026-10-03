@@ -321,7 +321,7 @@ describe('realtime socket', () => {
 
       // hello reflects the next pin; connected devices are told
       const hello = (await request(h.hub.port, h.hub.tls.certPem, '/api/v1/hello')).body;
-      expect(JSON.parse(hello).tls).toEqual({ spkiSha256: h.hub.tls.spkiSha256, nextSpkiSha256: staged.spkiSha256 });
+      expect(JSON.parse(hello).tls).toMatchObject({ spkiSha256: h.hub.tls.spkiSha256, nextSpkiSha256: staged.spkiSha256 });
       await connectedA.next((m) => m.event === 'tls-next-pin' && m.data.spkiSha256 === staged.spkiSha256);
       await connectedB.next((m) => m.event === 'tls-next-pin');
       const late = track((await welcomed(h, { authorization: `Bearer ${a.token}` })).client);
@@ -387,7 +387,7 @@ describe('realtime socket', () => {
       expect(await trusting(readFileSync(path.join(tlsDir, 'cert.pem'), 'utf8'))).toBeNull();
       const newCert = readFileSync(path.join(tlsDir, 'cert.pem'), 'utf8');
       const ok = await request(h.hub.port, newCert, '/api/v1/hello');
-      expect(JSON.parse(ok.body).tls).toEqual({ spkiSha256: staged.spkiSha256, nextSpkiSha256: null });
+      expect(JSON.parse(ok.body).tls).toMatchObject({ spkiSha256: staged.spkiSha256, nextSpkiSha256: null });
       await expect(connect(h, ownerHeaders(h, owner), oldCert)).rejects.toThrow();
       track(await connect(h, ownerHeaders(h, owner), newCert)).ws.close();
 

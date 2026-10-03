@@ -7,6 +7,8 @@ export type ParsedCommand =
   | { command: 'owner-reset'; dataDir?: string; confirm?: string }
   | { command: 'tls'; action: 'status' | 'rotate' | 'activate'; dataDir?: string; restage?: boolean; force?: boolean; confirm?: string }
   | { command: 'tls-ca'; action: 'init' | 'status' | 'export'; suffixes?: string[]; out?: string; dataDir?: string; installDir?: string }
+  | { command: 'tls-import'; cert: string; key: string; chain?: string; dataDir?: string; installDir?: string }
+  | { command: 'tls-proxy-pin'; action: 'add' | 'remove' | 'list' | 'activate'; value?: string; force?: boolean; confirm?: string; dataDir?: string; installDir?: string }
   | { command: 'tls-names'; action: 'list' | 'add' | 'remove'; name?: string; dataDir?: string; installDir?: string }
   | { command: 'service'; action: 'install' | 'uninstall' | 'start' | 'stop' | 'restart' | 'status' | 'update'; dataDir?: string; installDir?: string; port?: number; lan?: boolean; source?: string; keepData?: boolean }
   | { command: 'network'; action: 'lan-on' | 'lan-off' | 'status'; dataDir?: string; installDir?: string }
@@ -32,6 +34,11 @@ Usage:
   dude-hub tls ca init [--suffix <dns>]... [--data-dir <dir>] [--install-dir <dir>]   (built-in local CA; stages a CA-issued certificate)
   dude-hub tls ca status [--data-dir <dir>]
   dude-hub tls ca export [--out <file.cer>] [--data-dir <dir>]
+  dude-hub tls import --cert <pem> --key <pem> [--chain <pem>] [--data-dir <dir>] [--install-dir <dir>]   (validates and stages an operator certificate)
+  dude-hub tls proxy-pin add <pem-or-spki> [--data-dir <dir>] [--install-dir <dir>]   (reverse proxy: stages the proxy's leaf pin)
+  dude-hub tls proxy-pin activate [--force] [--confirm <token>] [--data-dir <dir>]
+  dude-hub tls proxy-pin remove <spki> [--confirm <token>] [--data-dir <dir>]
+  dude-hub tls proxy-pin list [--data-dir <dir>]
   dude-hub tls names list [--data-dir <dir>]
   dude-hub tls names add <name> [--data-dir <dir>] [--install-dir <dir>]   (stages a re-issued certificate)
   dude-hub tls names remove <name> [--data-dir <dir>] [--install-dir <dir>]
@@ -123,6 +130,28 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
     const allowed = action === 'export' ? ['--data-dir', '--out'] : action === 'init' ? ['--data-dir', '--install-dir'] : ['--data-dir'];
     const values = parseFlags(flags, allowed, []);
     return { command: 'tls-ca', action, ...(suffixes.length > 0 ? { suffixes } : {}), ...optional(values, '--out', 'out'), ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir') };
+  }
+  if (command === 'tls' && rest[0] === 'import') {
+    const values = parseFlags(rest.slice(1), ['--cert', '--key', '--chain', '--data-dir', '--install-dir'], []);
+    if (values['--cert'] === undefined || values['--key'] === undefined) throw new UsageError('Usage: dude-hub tls import --cert <pem> --key <pem> [--chain <pem>].');
+    return { command: 'tls-import', cert: values['--cert'], key: values['--key'], ...optional(values, '--chain', 'chain'), ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir') };
+  }
+  if (command === 'tls' && rest[0] === 'proxy-pin') {
+    const action = rest[1];
+    if (action !== 'add' && action !== 'remove' && action !== 'list' && action !== 'activate') throw new UsageError('Usage: dude-hub tls proxy-pin add <pem-or-spki>|activate|remove <spki>|list.');
+    let value: string | undefined;
+    let flags = rest.slice(2);
+    if (action === 'add' || action === 'remove') {
+      value = flags[0];
+      if (value === undefined || value.startsWith('--')) throw new UsageError(`Usage: dude-hub tls proxy-pin ${action} <${action === 'add' ? 'pem-or-spki' : 'spki'}>.`);
+      flags = flags.slice(1);
+    }
+    const allowed = action === 'list' ? ['--data-dir'] : action === 'add' ? ['--data-dir', '--install-dir'] : action === 'activate' ? ['--data-dir', '--install-dir', '--confirm', '--force'] : ['--data-dir', '--install-dir', '--confirm'];
+    const values = parseFlags(flags, allowed, action === 'activate' ? ['--force'] : []);
+    return {
+      command: 'tls-proxy-pin', action, ...(value !== undefined ? { value } : {}), ...(values['--force'] !== undefined ? { force: true } : {}),
+      ...optional(values, '--confirm', 'confirm'), ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir'),
+    };
   }
   if (command === 'tls' && rest[0] === 'names') {
     const action = rest[1];

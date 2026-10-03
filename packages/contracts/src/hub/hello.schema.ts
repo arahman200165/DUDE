@@ -14,6 +14,8 @@ export const HelloResponse = Type.Object({
   tls: Type.Object({
     spkiSha256: SpkiSha256,
     nextSpkiSha256: Type.Union([SpkiSha256, Type.Null()]),
+    /** Reverse-proxy leaf pins (active plus staged next) registered with `dude-hub tls proxy-pin`. Absent on Hubs that predate proxy pins. */
+    proxySpkiSha256: Type.Optional(Type.Array(SpkiSha256)),
   }),
 });
 export type HelloResponse = Static<typeof HelloResponse>;

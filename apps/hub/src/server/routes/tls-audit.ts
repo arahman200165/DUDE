@@ -7,6 +7,7 @@ import type { createRequireOwner } from '../../auth/owner-auth.js';
 import { envelope } from '../errors.js';
 import { listAudit } from '../../security/audit.js';
 import { describeCertificateSource } from '../../tls/ca-public.js';
+import { proxyPinSpkis } from '../../tls/proxy-pins.js';
 
 export interface TlsAuditRouteOptions { db: Db; tlsDir: string; requireOwner: ReturnType<typeof createRequireOwner> }
 
@@ -20,7 +21,7 @@ export function registerTlsAuditRoutes(app: FastifyInstance, options: TlsAuditRo
     { config: { authLimited: true, credentialless: true }, schema: { response: { 200: TlsCertificatesResponse, 404: ErrorEnvelope } } },
     async (_request, reply) => {
       void reply.header('Cache-Control', 'no-store');
-      const rows = db.prepare("SELECT spki_sha256, cert_pem, state FROM tls_pins WHERE state IN ('active', 'next')").all() as unknown as Array<{ spki_sha256: string; cert_pem: string; state: string }>;
+      const rows = db.prepare("SELECT spki_sha256, cert_pem, state, source FROM tls_pins WHERE state IN ('active', 'next')").all() as unknown as Array<{ spki_sha256: string; cert_pem: string; state: string; source: string }>;
       const pick = (state: string) => {
         const row = rows.find((r) => r.state === state);
         return row ? { spkiSha256: row.spki_sha256, certPem: row.cert_pem } : null;
@@ -28,8 +29,13 @@ export function registerTlsAuditRoutes(app: FastifyInstance, options: TlsAuditRo
       const active = pick('active');
       if (!active) return reply.code(404).send(envelope('not-found', 'No active certificate.'));
       // Public data only: the root certificate, never a key (this module must not import the CA key protector).
-      const { source, caCertPem } = describeCertificateSource(options.tlsDir, active.certPem);
-      return reply.code(200).send({ active, next: pick('next'), source, caCertPem, leafNotAfter: new Date(new X509Certificate(active.certPem).validTo).toISOString() });
+      const derived = describeCertificateSource(options.tlsDir, active.certPem);
+      // `imported` cannot be derived from the files: it is recorded on the pin when the operator stages the import.
+      const source = rows.find((r) => r.state === 'active')?.source === 'imported' ? 'imported' : derived.source;
+      return reply.code(200).send({
+        active, next: pick('next'), source, caCertPem: derived.caCertPem, leafNotAfter: new Date(new X509Certificate(active.certPem).validTo).toISOString(),
+        proxySpkiSha256: proxyPinSpkis(db),
+      });
     },
   );
 

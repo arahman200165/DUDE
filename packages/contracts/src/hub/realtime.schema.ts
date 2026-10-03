@@ -36,7 +36,7 @@ export const RealtimeServerMessage = Type.Union([
     sessionKind: Type.Union([Type.Literal('owner-cookie'), Type.Literal('owner-bearer'), Type.Literal('device')]),
     deviceId: Type.Union([Type.String(), Type.Null()]),
     heartbeatIntervalMs: Type.Integer({ minimum: 1 }),
-    tls: Type.Object({ spkiSha256: SpkiSha256, nextSpkiSha256: Type.Union([SpkiSha256, Type.Null()]) }),
+    tls: Type.Object({ spkiSha256: SpkiSha256, nextSpkiSha256: Type.Union([SpkiSha256, Type.Null()]), proxySpkiSha256: Type.Optional(Type.Array(SpkiSha256)) }),
   }),
   Type.Object({
     type: Type.Literal('event'),

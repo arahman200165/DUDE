@@ -11,6 +11,8 @@ export interface HubEnrollmentRow {
   certActivePem: string;
   spkiNext: string | null;
   certNextPem: string | null;
+  /** Reverse-proxy leaf pins the Hub advertised (active plus next); accepted besides `spkiActive`/`spkiNext`. */
+  proxySpkis: string[];
   keyId: string;
   publicKey: Uint8Array;
   wrappedPrivateKey: Uint8Array;
@@ -34,14 +36,22 @@ export interface PublicHubEnrollment {
   revokedAt: string | null;
 }
 
-export type NewHubEnrollment = Omit<HubEnrollmentRow, 'state' | 'spkiNext' | 'certNextPem' | 'lastContactAt' | 'revokedAt' | 'updatedAt'>;
+export type NewHubEnrollment = Omit<HubEnrollmentRow, 'state' | 'spkiNext' | 'certNextPem' | 'proxySpkis' | 'lastContactAt' | 'revokedAt' | 'updatedAt'>;
 
 interface RawRow {
   state: 'enrolled' | 'revoked'; hub_instance_id: string; environment_id: string; hub_url: string; protocol_version: number;
   spki_active: string; cert_active_pem: string; spki_next: string | null; cert_next_pem: string | null; key_id: string;
   public_key: Uint8Array; wrapped_private_key: Uint8Array; enrolled_at: string; last_contact_at: string | null;
-  revoked_at: string | null; updated_at: string;
+  revoked_at: string | null; updated_at: string; proxy_spkis: string;
 }
+
+const SPKI_PIN = /^[A-Za-z0-9_-]{43}$/;
+const parsePins = (json: string | null | undefined): string[] => {
+  try {
+    const value: unknown = JSON.parse(json ?? '[]');
+    return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string' && SPKI_PIN.test(v)) : [];
+  } catch { return []; }
+};
 
 /** Internal read, includes the wrapped key. */
 export function getEnrollment(db: Db): HubEnrollmentRow | null {
@@ -51,7 +61,7 @@ export function getEnrollment(db: Db): HubEnrollmentRow | null {
     state: r.state, hubInstanceId: r.hub_instance_id, environmentId: r.environment_id, hubUrl: r.hub_url, protocolVersion: Number(r.protocol_version),
     spkiActive: r.spki_active, certActivePem: r.cert_active_pem, spkiNext: r.spki_next, certNextPem: r.cert_next_pem, keyId: r.key_id,
     publicKey: r.public_key, wrappedPrivateKey: r.wrapped_private_key, enrolledAt: r.enrolled_at, lastContactAt: r.last_contact_at,
-    revokedAt: r.revoked_at, updatedAt: r.updated_at,
+    revokedAt: r.revoked_at, updatedAt: r.updated_at, proxySpkis: parsePins(r.proxy_spkis),
   };
 }
 
@@ -100,4 +110,18 @@ export function promoteNextPin(db: Db, now: Date): boolean {
 export function touchContact(db: Db, now: Date): boolean {
   const iso = now.toISOString();
   return Number(db.prepare('UPDATE hub_enrollment SET last_contact_at = ?, updated_at = ? WHERE id = 1').run(iso, iso).changes) > 0;
+}
+
+/** Replaces the accepted reverse-proxy pin set (what the Hub advertises now). True when it changed. */
+export function setProxyPins(db: Db, spkis: readonly string[], now: Date): boolean {
+  const next = [...new Set(spkis.filter((s) => SPKI_PIN.test(s)))].sort();
+  const current = getEnrollment(db);
+  if (!current || JSON.stringify([...current.proxySpkis].sort()) === JSON.stringify(next)) return false;
+  return Number(db.prepare('UPDATE hub_enrollment SET proxy_spkis = ?, updated_at = ? WHERE id = 1').run(JSON.stringify(next), now.toISOString()).changes) > 0;
+}
+
+/** Adds one announced proxy pin to the accepted set. */
+export function addProxyPin(db: Db, spki: string, now: Date): boolean {
+  const current = getEnrollment(db);
+  return current !== null && !current.proxySpkis.includes(spki) && setProxyPins(db, [...current.proxySpkis, spki], now);
 }

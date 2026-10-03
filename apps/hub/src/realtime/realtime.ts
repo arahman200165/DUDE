@@ -17,6 +17,7 @@ import { classifyCredential } from '../security/request-guard.js';
 import type { HostGuard } from '../security/host-guard.js';
 import { envelope } from '../server/errors.js';
 import { acknowledgeTlsPin } from '../tls/rotation.js';
+import { proxyPinSpkis } from '../tls/proxy-pins.js';
 
 export interface RealtimeTimings {
   helloTimeoutMs: number;
@@ -156,7 +157,7 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
     }
   };
   const onNextPin = (data: HubEventMap['tls-next-pin'][0]): void => {
-    for (const conn of where(() => true)) sendEvent(conn, 'tls-next-pin', { spkiSha256: data.spkiSha256 });
+    for (const conn of where(() => true)) sendEvent(conn, 'tls-next-pin', { spkiSha256: data.spkiSha256, ...(data.kind ? { kind: data.kind } : {}) });
   };
   const onOwnerRecovered = (data: HubEventMap['owner-recovered'][0]): void => {
     for (const conn of where(() => true)) sendEvent(conn, 'owner-recovered', { deviceId: data.deviceId, at: data.at });
@@ -265,7 +266,7 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
         const next = options.db.prepare("SELECT spki_sha256 FROM tls_pins WHERE state = 'next' LIMIT 1").get() as { spki_sha256: string } | undefined;
         send(conn, {
           type: 'welcome', protocolVersion: HUB_PROTOCOL_VERSION, sessionKind: principal.kind, deviceId: principal.deviceId,
-          heartbeatIntervalMs: timings.heartbeatIntervalMs, tls: { spkiSha256: options.activeSpki(), nextSpkiSha256: next?.spki_sha256 ?? null },
+          heartbeatIntervalMs: timings.heartbeatIntervalMs, tls: { spkiSha256: options.activeSpki(), nextSpkiSha256: next?.spki_sha256 ?? null, proxySpkiSha256: proxyPinSpkis(options.db) },
         });
         return;
       }

@@ -10,7 +10,7 @@ import {
   RealtimeServerMessage, deviceAuthMessage, ownerRecoveryMessage,
 } from '@dude/contracts/hub';
 import type { Db } from '@dude/sqlite-store';
-import { clearEnrollment, getEnrollment, markRevoked, promoteNextPin, publicEnrollment, setNextPin, touchContact } from '../store/repos/hub-enrollment.repo.js';
+import { addProxyPin, clearEnrollment, getEnrollment, markRevoked, promoteNextPin, publicEnrollment, setNextPin, setProxyPins, touchContact } from '../store/repos/hub-enrollment.repo.js';
 import type { HubEnrollmentRow } from '../store/repos/hub-enrollment.repo.js';
 import { unsentOpCounts } from '../store/repos/outbox.repo.js';
 import { loadDeviceKey } from '../native/device-key.js';
@@ -142,7 +142,7 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
     return {
       url, host: url.hostname, port: Number(url.port || 443),
       ca: enrollment.certNextPem ? [enrollment.certActivePem, enrollment.certNextPem] : [enrollment.certActivePem],
-      pins: enrollment.spkiNext ? [enrollment.spkiActive, enrollment.spkiNext] : [enrollment.spkiActive],
+      pins: [enrollment.spkiActive, ...(enrollment.spkiNext ? [enrollment.spkiNext] : []), ...enrollment.proxySpkis],
       ...(onPeerSpki ? { onPeerSpki } : {}),
     };
   };
@@ -403,6 +403,12 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
         }, interval);
         heartbeatTimer.unref();
         if (parsed.tls.nextSpkiSha256 !== null) queueNextPin(parsed.tls.nextSpkiSha256, send);
+        // Reverse-proxy leaf pins the Hub advertises (active plus staged next): accepted for later connections, and acknowledged
+        // so the operator can activate a staged one (the Hub ignores acks for pins that are not staged).
+        if (parsed.tls.proxySpkiSha256 !== undefined) {
+          setProxyPins(deps.db, parsed.tls.proxySpkiSha256, deps.now());
+          for (const spki of parsed.tls.proxySpkiSha256) send({ type: 'tls-pin-ack', spkiSha256: spki });
+        }
         refreshMeta();
         return;
       }
@@ -420,7 +426,13 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
       if (parsed.type === 'event' && parsed.event === 'device-registry-changed') { refreshMeta(); return; }
       if (parsed.type === 'event' && parsed.event === 'tls-next-pin') {
         const announced = parsed.data['spkiSha256'];
-        if (typeof announced === 'string') queueNextPin(announced, send);
+        if (typeof announced === 'string' && parsed.data['kind'] === 'proxy') {
+          // A staged reverse-proxy leaf pin: no certificate to fetch (the proxy's certificate is not the Hub's); record and ack.
+          if (/^[A-Za-z0-9_-]{43}$/.test(announced) && getEnrollment(deps.db)?.state === 'enrolled') {
+            addProxyPin(deps.db, announced, deps.now());
+            send({ type: 'tls-pin-ack', spkiSha256: announced });
+          }
+        } else if (typeof announced === 'string') queueNextPin(announced, send);
       }
     });
     ws.on('close', (code) => {

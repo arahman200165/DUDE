@@ -97,6 +97,15 @@ describe('device agent against a real Hub', () => {
     a.hub.manager.start();
     await waitFor('A online on the new certificate', () => a.hub.manager.status().state === 'online');
 
+    // Reverse-proxy pin: staged, announced as a proxy pin, recorded in the accepted set and acknowledged; then activated.
+    const proxyPin = Buffer.alloc(32, 7).toString('base64url');
+    hubCli('tls', 'proxy-pin', 'add', proxyPin);
+    await waitFor('A records the proxy pin', () => (getEnrollment(a.store.db)?.proxySpkis.includes(proxyPin) ? true : undefined));
+    await waitFor('Hub sees the proxy ack', () => !JSON.parse(hubCli('tls', 'proxy-pin', 'list')).pending?.length, 10_000);
+    const proxyPreview = JSON.parse(hubCli('tls', 'proxy-pin', 'activate')) as { confirmToken: string };
+    hubCli('tls', 'proxy-pin', 'activate', '--confirm', proxyPreview.confirmToken);
+    expect(JSON.parse(hubCli('tls', 'proxy-pin', 'list')).active.spkiSha256).toBe(proxyPin);
+
     // Sign out drops the bearer; unenroll tells the Hub and returns the device to standalone.
     await a.rpc('hub.owner.signOut', {});
     await expect(a.rpc('hub.owner.listDevices', {})).rejects.toMatchObject({ code: 'owner-not-signed-in' });

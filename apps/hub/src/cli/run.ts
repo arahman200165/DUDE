@@ -15,6 +15,7 @@ import { createLeafRenewal } from '../tls/renewal.js';
 import { runTlsCa } from '../service/tls-ca.js';
 import { computeSubjectAltNames, configuredDnsNames, missingSubjectAltNames } from '../tls/names.js';
 import { runTlsNames } from '../service/tls-names.js';
+import { runTlsImport, runTlsProxyPin } from '../service/tls-external.js';
 import { AdminCallError, callAdmin } from '../admin/admin-client.js';
 import { startAdminEndpoint } from '../admin/admin-endpoint.js';
 import { buildAdminMethods } from '../admin/methods.js';
@@ -25,6 +26,7 @@ import { runOwnerReset } from './owner-reset.js';
 import { runSetupToken } from './setup-token.js';
 import { runTls } from './tls.js';
 import { createTlsRotation } from '../tls/rotation.js';
+import { createProxyPins } from '../tls/proxy-pins.js';
 import { runServiceInstall } from '../service/install.js';
 import { runServiceControl, runServiceStatus, runServiceUninstall, runServiceUpdate } from '../service/lifecycle.js';
 import { runNetwork } from '../service/network.js';
@@ -80,6 +82,15 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   }
   if (parsed.command === 'tls-ca') {
     return runTlsCa({ action: parsed.action, ...(parsed.suffixes ? { suffixes: parsed.suffixes } : {}), ...(parsed.out !== undefined ? { out: parsed.out } : {}), ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}) });
+  }
+  if (parsed.command === 'tls-import') {
+    return runTlsImport({ cert: parsed.cert, key: parsed.key, ...(parsed.chain !== undefined ? { chain: parsed.chain } : {}), ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}) });
+  }
+  if (parsed.command === 'tls-proxy-pin') {
+    return runTlsProxyPin({
+      action: parsed.action, ...(parsed.value !== undefined ? { value: parsed.value } : {}), ...(parsed.force ? { force: true } : {}), ...(parsed.confirm !== undefined ? { confirm: parsed.confirm } : {}),
+      ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}),
+    });
   }
   if (parsed.command === 'tls-names') {
     return runTlsNames({ action: parsed.action, ...(parsed.name !== undefined ? { name: parsed.name } : {}), ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}) });
@@ -201,6 +212,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
           applySecureContext: (context) => (server.server as unknown as TlsServer).setSecureContext(context),
           announceNext: (spkiSha256) => server.hubEvents.emit('tls-next-pin', { spkiSha256 }),
         }),
+        proxyPins: createProxyPins({ db: hub.db, announceNext: (spkiSha256) => server.hubEvents.emit('tls-next-pin', { spkiSha256, kind: 'proxy' }) }),
         onSessionsRevoked: (sessions) => emitRevoked(server, sessions, 'owner-reset'),
       }),
     });

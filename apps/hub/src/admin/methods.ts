@@ -14,9 +14,12 @@ import { RotationError } from '../tls/rotation.js';
 import { HUB_MIGRATIONS } from '../db/migrations/index.js';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { applyHubNameChange, loadOrCreateHubConfig, writeHubConfig } from '../config/hub-config.js';
+import { applyHubNameChange, loadOrCreateHubConfig, normalizeHubName, writeHubConfig } from '../config/hub-config.js';
 import { computeSubjectAltNames, missingSubjectAltNames } from '../tls/names.js';
 import type { TlsRotation } from '../tls/rotation.js';
+import { validateImport, ImportError } from '../tls/import.js';
+import type { ProxyPins } from '../tls/proxy-pins.js';
+import { builtInHubHosts } from '../config/hub-config.js';
 import type { CaKeyProtector } from '../tls/ca-key-protector.js';
 import { isIssuedByCa, readCaCertPem } from '../tls/ca-public.js';
 import { createLeafIssuer } from '../tls/leaf-issuer.js';
@@ -46,6 +49,8 @@ export interface AdminMethodContext {
   caProtector?: CaKeyProtector;
   /** Certificate rotation (dual pin). Absent in contexts that cannot swap the listener. */
   tls?: TlsRotation;
+  /** Reverse-proxy leaf pins (separate pin set). */
+  proxyPins?: ProxyPins;
   onSessionsRevoked?: (sessions: readonly RevokedSession[]) => void;
 }
 
@@ -68,6 +73,24 @@ export function buildAdminMethods(context: AdminMethodContext): Record<string, A
   const rotation = (): TlsRotation => {
     if (!context.tls) throw new AdminError('unavailable', 'Certificate rotation is not available.');
     return context.tls;
+  };
+  const proxy = (): ProxyPins => {
+    if (!context.proxyPins) throw new AdminError('unavailable', 'Proxy pins are not available.');
+    return context.proxyPins;
+  };
+  const text = (params: unknown, name: string): string => {
+    const value = (params as Record<string, unknown> | null)?.[name];
+    if (typeof value !== 'string' || value.length === 0) throw new AdminError('bad-request', `${name} is required.`);
+    return value;
+  };
+  /** Names an imported certificate must cover: configured names and the canonical origin host (built-ins are not required). */
+  const importRequiredNames = (): string[] => {
+    if (!context.configFile) return [];
+    const config = loadOrCreateHubConfig(context.configFile);
+    const builtIns = new Set(builtInHubHosts());
+    const names = config.exposure.names.map((name) => normalizeHubName(name).host);
+    if (config.exposure.canonicalOrigin !== undefined) names.push(new URL(config.exposure.canonicalOrigin).hostname.replace(/^\[|\]$/g, ''));
+    return [...new Set(names)].filter((name) => !builtIns.has(name));
   };
   const rotate = <T>(run: () => T): T => {
     try { return run(); } catch (error) {
@@ -145,6 +168,30 @@ export function buildAdminMethods(context: AdminMethodContext): Record<string, A
       const staged = rotate(() => rotation().stage({ extraNames: computeSubjectAltNames(config), issuer: createLeafIssuer(tlsDir, context.caProtector) }));
       return { created: created !== null, suffixesIgnored: created === null && suffixes.length > 0, staged };
     },
+    /**
+     * Validates an operator-supplied certificate, key and optional chain (PEM text read by the CLI) and STAGES it as the next
+     * identity through the dual-pin rotation. Imported certificates are never renewed by the Hub.
+     */
+    'tls.import.stage': (params) => {
+      const input = params as { cert?: unknown; key?: unknown; chain?: unknown } | null;
+      if (typeof input?.cert !== 'string' || typeof input.key !== 'string' || (input.chain !== undefined && typeof input.chain !== 'string')) throw new AdminError('bad-request', 'cert and key (PEM text) are required.');
+      if (rotation().status().next) throw new AdminError('conflict', 'A next certificate is already staged. Run "dude-hub tls activate" first.');
+      let valid;
+      try {
+        valid = validateImport({ certPem: input.cert, keyPem: input.key, ...(input.chain !== undefined ? { chainPem: input.chain } : {}), requiredNames: importRequiredNames(), now: now() });
+      } catch (error) {
+        if (error instanceof ImportError) throw new AdminError('bad-request', error.message);
+        throw error;
+      }
+      const staged = rotate(() => rotation().stageExternal({ keyPem: valid.keyPem, certChainPem: valid.certChainPem, source: 'imported' }));
+      return { ...staged, notAfter: valid.notAfter, subject: valid.subjectCn, warnings: valid.warnings };
+    },
+    'tls.proxy.list': () => ({ ...proxy().status() }),
+    'tls.proxy.add': (params) => rotate(() => proxy().add(text(params, 'pin'))),
+    'tls.proxy.activate.preview': (params) => rotate(() => proxy().previewActivate({ force: flag(params, 'force') })),
+    'tls.proxy.activate.apply': (params) => rotate(() => proxy().applyActivate({ confirmToken: text(params, 'confirmToken'), force: flag(params, 'force') })),
+    'tls.proxy.remove.preview': (params) => rotate(() => proxy().previewRemove(text(params, 'spkiSha256'))),
+    'tls.proxy.remove.apply': (params) => rotate(() => proxy().applyRemove({ spkiSha256: text(params, 'spkiSha256'), confirmToken: text(params, 'confirmToken') })),
     'tls.activate.preview': (params) => rotate(() => rotation().previewActivate({ force: flag(params, 'force') })),
     'tls.activate.apply': (params) => {
       const confirmToken = (params as { confirmToken?: unknown } | null)?.confirmToken;

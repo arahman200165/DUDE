@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { X509Certificate, createHash } from 'node:crypto';
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { transaction } from '@dude/sqlite-store';
@@ -45,10 +45,15 @@ export interface TlsRotationOptions {
 
 /** Records a device acknowledgement; ignored unless `spki` is the current next pin. Returns whether a new ack was stored. */
 export function acknowledgeTlsPin(db: Db, deviceId: string, spki: string, nowMs: number): boolean {
-  const next = db.prepare("SELECT 1 AS x FROM tls_pins WHERE state = 'next' AND spki_sha256 = ?").get(spki);
-  if (next === undefined) return false;
-  const result = db.prepare('INSERT OR IGNORE INTO tls_pin_acks(spki_sha256, device_id, acked_at) VALUES(?, ?, ?)').run(spki, deviceId, new Date(nowMs).toISOString());
-  return Number(result.changes) === 1;
+  const at = new Date(nowMs).toISOString();
+  if (db.prepare("SELECT 1 AS x FROM tls_pins WHERE state = 'next' AND spki_sha256 = ?").get(spki) !== undefined) {
+    return Number(db.prepare('INSERT OR IGNORE INTO tls_pin_acks(spki_sha256, device_id, acked_at) VALUES(?, ?, ?)').run(spki, deviceId, at).changes) === 1;
+  }
+  // A staged reverse-proxy pin is acknowledged the same way (its own table).
+  if (db.prepare("SELECT 1 AS x FROM tls_proxy_pins WHERE state = 'next' AND spki_sha256 = ?").get(spki) !== undefined) {
+    return Number(db.prepare('INSERT OR IGNORE INTO tls_proxy_pin_acks(spki_sha256, device_id, acked_at) VALUES(?, ?, ?)').run(spki, deviceId, at).changes) === 1;
+  }
+  return false;
 }
 
 interface PinRow { spki_sha256: string; created_at: string; activated_at: string | null }
@@ -95,11 +100,38 @@ export function createTlsRotation(options: TlsRotationOptions) {
     const at = new Date(now()).toISOString();
     transaction(db, () => {
       if (existing) db.prepare("DELETE FROM tls_pins WHERE state = 'next'").run();
-      db.prepare("INSERT INTO tls_pins(spki_sha256, cert_pem, key_ref, state, created_at, activated_at) VALUES(?, ?, ?, 'next', ?, NULL)").run(spki, certPem, NEXT_KEY_FILE, at);
+      db.prepare("INSERT INTO tls_pins(spki_sha256, cert_pem, key_ref, state, created_at, activated_at, source) VALUES(?, ?, ?, 'next', ?, NULL, ?)").run(spki, certPem, NEXT_KEY_FILE, at, issuer.source);
       audit(db, { event: 'tls.rotation-staged', outcome: 'success', actorKind: 'cli', detail: { spkiSha256: spki, restaged: existing !== undefined }, now: now() });
     });
     options.announceNext?.(spki);
     return { spkiSha256: spki, restaged: existing !== undefined, source: issuer.source };
+  }
+
+  /**
+   * Stages an operator-supplied (already validated) key and certificate chain as the `next` identity. Refuses while a next pin exists.
+   * The source is recorded on the pin row so the active identity keeps reporting `imported` after activation.
+   */
+  function stageExternal(input: { keyPem: string; certChainPem: string; source: 'imported' }): { spkiSha256: string; source: 'imported' } {
+    if (pin('next')) throw new RotationError('conflict', 'A next certificate is already staged. Run "dude-hub tls activate" first.');
+    const spki = spkiSha256(input.certChainPem);
+    if (spkiSha256(input.keyPem) !== spki) throw new RotationError('bad-request', 'The private key does not match the certificate.');
+    const leafPem = /-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/.exec(input.certChainPem)![0];
+    const leaf = new X509Certificate(leafPem);
+    const existing = db.prepare('SELECT state FROM tls_pins WHERE spki_sha256 = ?').get(spki) as { state: string } | undefined;
+    if (existing?.state === 'active') throw new RotationError('conflict', 'The certificate uses the key that is already pinned and active; a pin identifies the key, so nothing needs staging.');
+    writeFileSync(path.join(tlsDir, NEXT_KEY_FILE), input.keyPem, { mode: 0o600 });
+    writeFileSync(path.join(tlsDir, NEXT_CERT_FILE), input.certChainPem, { mode: 0o600 });
+    const at = new Date(now()).toISOString();
+    transaction(db, () => {
+      if (existing) db.prepare('DELETE FROM tls_pins WHERE spki_sha256 = ?').run(spki);
+      db.prepare("INSERT INTO tls_pins(spki_sha256, cert_pem, key_ref, state, created_at, activated_at, source) VALUES(?, ?, ?, 'next', ?, NULL, ?)").run(spki, leafPem, NEXT_KEY_FILE, at, input.source);
+      audit(db, {
+        event: 'tls.import-staged', outcome: 'success', actorKind: 'cli',
+        detail: { spki, notAfter: new Date(leaf.validTo).toISOString(), subject: /CN=([^\n,]*)/.exec(leaf.subject)?.[1]?.trim() ?? '' }, now: now(),
+      });
+    });
+    options.announceNext?.(spki);
+    return { spkiSha256: spki, source: input.source };
   }
 
   const acknowledge = (deviceId: string, spki: string): boolean => acknowledgeTlsPin(db, deviceId, spki, now());
@@ -170,7 +202,7 @@ export function createTlsRotation(options: TlsRotationOptions) {
     return { activated: true, spkiSha256: next.spkiSha256, previousSpkiSha256: state.active?.spkiSha256 ?? null, requirePairing: force ? state.pending : [] };
   }
 
-  return { status, stage, acknowledge, previewActivate, applyActivate };
+  return { status, stage, stageExternal, acknowledge, previewActivate, applyActivate };
 }
 
 export type TlsRotation = ReturnType<typeof createTlsRotation>;

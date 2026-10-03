@@ -5,7 +5,7 @@ import { cleanupTemp, openReady, tempDir } from '../testing/test-utils.js';
 import { readDeviceRecord } from './identity.js';
 import { applyReset, previewReset } from './reset.js';
 import {
-  clearEnrollment, getEnrollment, markRevoked, promoteNextPin, publicEnrollment, saveEnrollment, setNextPin, touchContact,
+  addProxyPin, clearEnrollment, getEnrollment, setProxyPins, markRevoked, promoteNextPin, publicEnrollment, saveEnrollment, setNextPin, touchContact,
 } from './repos/hub-enrollment.repo.js';
 import { createRpcServer } from '../rpc/server.js';
 
@@ -62,6 +62,23 @@ describe('hub enrollment', () => {
     expect(publicEnrollment(store.db)?.lastContactAt).toBe('2026-02-03T00:00:00.000Z');
     expect(clearEnrollment(store.db)).toBe(true);
     expect(touchContact(store.db, T0)).toBe(false);
+  });
+
+  it('accepts, replaces and de-duplicates reverse-proxy pins (valid pins only)', () => {
+    const store = openReady(tempDir());
+    saveEnrollment(store.db, NEW, T0);
+    const a = 'A'.repeat(43);
+    const b = 'B'.repeat(43);
+    expect(getEnrollment(store.db)?.proxySpkis).toEqual([]);
+    expect(addProxyPin(store.db, a, T0)).toBe(true);
+    expect(addProxyPin(store.db, a, T0)).toBe(false);
+    expect(addProxyPin(store.db, 'not-a-pin', T0)).toBe(false);
+    expect(setProxyPins(store.db, [a, b, 'bad'], T0)).toBe(true);
+    expect(getEnrollment(store.db)?.proxySpkis).toEqual([a, b]);
+    expect(setProxyPins(store.db, [b], T0)).toBe(true);
+    expect(getEnrollment(store.db)?.proxySpkis).toEqual([b]);
+    expect(setProxyPins(store.db, [b], T0)).toBe(false);
+    expect(publicEnrollment(store.db)).not.toHaveProperty('proxySpkis');
   });
 
   it('survives a reopen', () => {

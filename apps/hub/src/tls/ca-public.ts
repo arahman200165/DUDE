@@ -10,7 +10,7 @@ import type { ParsedNameConstraints } from './x509.js';
 export const CA_DIR = 'ca';
 export const CA_CERT_FILE = 'ca-cert.pem';
 
-export type TlsCertificateSource = 'self-signed' | 'local-ca';
+export type TlsCertificateSource = 'self-signed' | 'local-ca' | 'imported';
 
 export const caDir = (tlsDir: string): string => path.join(tlsDir, CA_DIR);
 export const caCertFile = (tlsDir: string): string => path.join(caDir(tlsDir), CA_CERT_FILE);

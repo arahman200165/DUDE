@@ -14,7 +14,7 @@ export interface HubEventMap {
   'device-unenrolled': [{ deviceId: string }];
   'device-registry-changed': [{ deviceId: string; change: 'enrolled' | 'renamed' | 'revoked' | 'unenrolled' | 'recovery-trust' | 'updated' | 'presence' }];
   /** A next TLS pin was staged. */
-  'tls-next-pin': [{ spkiSha256: string }];
+  'tls-next-pin': [{ spkiSha256: string; /** `proxy` for a staged reverse-proxy leaf pin (acknowledged without a certificate fetch). */ kind?: 'proxy' }];
   /** Device-assisted owner recovery completed (PD-029); broadcast to the remaining owner/device connections. */
   'owner-recovered': [{ deviceId: string; at: string }];
   /** Canonical records changed (sync push or environment clear); device sockets get `changes-available`. */
