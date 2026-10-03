@@ -1,6 +1,6 @@
 # electron-builder config for DUDE's desktop build (Phase 8 Stage 8,
 # Milestone 28). Invoked via `npm run electron:package` locally, and by
-# `.github/workflows/release.yml` on every `v*.*.*` tag push.
+# the `release` job in `.github/workflows/ci.yml` on every push to master.
 #
 # The appx/MSIX target was dropped (PD-025): the Device Agent runs outside the desktop's
 # package identity, so the desktop ships as NSIS only.

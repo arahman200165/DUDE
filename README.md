@@ -4,7 +4,7 @@
 
 # DUDE — Developer Utility Dashboard Engine
 
-[![Deploy](https://github.com/arahman200165/DUDE/actions/workflows/deploy.yml/badge.svg)](https://github.com/arahman200165/DUDE/actions/workflows/deploy.yml)
+[![CI](https://github.com/arahman200165/DUDE/actions/workflows/ci.yml/badge.svg)](https://github.com/arahman200165/DUDE/actions/workflows/ci.yml)
 [![Live Demo](https://img.shields.io/badge/demo-live-22c55e)](https://arahman200165.github.io/DUDE/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-3b82f6.svg)](LICENSE)
 [![Security Policy](https://img.shields.io/badge/security-policy-informational)](docs/SECURITY.md)
@@ -40,7 +40,7 @@ The tools are the proof, not the point: DUDE is a **local-first, extensible deve
 
 Per [Desktop is canonical; web preserves zero-install reach](docs/DUDE_PRD.md#desktop-is-canonical-web-preserves-zero-install-reach), the Windows desktop app ([Phase 8](docs/history/DELIVERY_HISTORY.md#phase-8)) is the canonical DUDE workbench — the same Angular codebase, packaged as a standalone Electron app with native capabilities a browser sandbox can't offer.
 
-Download the latest installer from the repo's [GitHub Releases](https://github.com/arahman200165/DUDE/releases) page. The NSIS `.exe` requests administrator permission at launch, then offers Express presets (Minimal, Standard, Fully Integrated) or a Custom wizard for install scope/path, shortcuts, Explorer actions, and individual file-type registration. A resumable first-launch wizard covers desktop, update, notification, hotkey, AI, and tool-contributed settings (such as the collaboration relay); Settings › General can reopen it later. Windows requires default file apps to be confirmed in Default Apps settings after registration. Manual `.exe` reinstalls repeat both wizards with saved values, while silent auto-updates preserve choices. The MSIX uses its platform-managed setup. See [Windows setup and onboarding](docs/WINDOWS_SETUP.md) for the full preset matrix, file associations, and verification checklist. `.github/workflows/version-bump.yml` and `.github/workflows/release.yml` (separate from the GitHub Pages `deploy.yml`) automate the whole cut-a-release pipeline, running on a `windows-latest` CI runner.
+Download the latest installer from the repo's [GitHub Releases](https://github.com/arahman200165/DUDE/releases) page. The NSIS `.exe` requests administrator permission at launch, then offers Express presets (Minimal, Standard, Fully Integrated) or a Custom wizard for install scope/path, shortcuts, Explorer actions, and individual file-type registration. A resumable first-launch wizard covers desktop, update, notification, hotkey, AI, and tool-contributed settings (such as the collaboration relay); Settings › General can reopen it later. Windows requires default file apps to be confirmed in Default Apps settings after registration. Manual `.exe` reinstalls repeat both wizards with saved values, while silent auto-updates preserve choices. The MSIX uses its platform-managed setup. See [Windows setup and onboarding](docs/WINDOWS_SETUP.md) for the full preset matrix, file associations, and verification checklist. The `release` job in `.github/workflows/ci.yml` cuts a draft release on a `windows-latest` runner after every other CI job passes on a push to `master`. The version is never committed: `package.json` holds a `<major>.<minor>.0` base and the job sets the patch to the commit count of `master`.
 
 Don't want to install anything? **[→ Open the zero-install web companion](https://arahman200165.github.io/DUDE/)** — it runs the same tools directly in your browser, no download required, covering every capability that's safe to run in a browser sandbox (see [PWA & Offline](#pwa--offline) below for what works without a network connection).
 
@@ -607,7 +607,7 @@ Hub and agent scripts: `npm run hub:compile` (esbuild bundle), `hub:sea` (single
 
 ## Deployment
 
-Every push to `master` runs [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml): install, test, build, then publish `dist/dude/browser` to GitHub Pages via `actions/deploy-pages`.
+Every push to `master` runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml): install, test, build, then publish `dist/dude/browser` to GitHub Pages via `actions/deploy-pages` and cut the Windows draft release.
 
 Two details make clean, bookmarkable routes work correctly on GitHub Pages' static hosting:
 

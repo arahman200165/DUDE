@@ -11,11 +11,13 @@ import { Arch } from 'builder-util';
 import { CancellationToken } from 'builder-util-runtime';
 
 const root = path.resolve(import.meta.dirname, '..');
-const workflow = parse(readFileSync(path.join(root, '.github/workflows/release.yml'), 'utf8'));
-const steps = workflow.jobs.build.steps;
+const workflow = parse(readFileSync(path.join(root, '.github/workflows/ci.yml'), 'utf8'));
+const job = workflow.jobs.release;
+const steps = job.steps;
 const publish = steps.find(step => step.name === 'Upload all assets to one draft release');
-const validate = steps.find(step => step.id === 'release');
+const derive = steps.find(step => step.id === 'release');
 const version = '1.2.3';
+const sha = '0123456789abcdef0123456789abcdef01234567';
 const assets = [
   `release/DUDE-Setup-${version}.exe`,
   `release/DUDE-Setup-${version}.exe.blockmap`,
@@ -24,9 +26,24 @@ const assets = [
   'release/SHA256SUMS.txt',
 ];
 
-// Execute the real workflow PowerShell with only GitHub replaced. Tests cannot
+// Execute the real workflow PowerShell with only gh, git and npm replaced. Tests cannot
 // contact GitHub or alter releases, and cover both first runs and retry failures.
 const mockGh = String.raw`
+function git {
+  $global:LASTEXITCODE = 0
+  switch ($args[0]) {
+    'rev-parse' { if ($env:TEST_SCENARIO -eq 'shallow') { 'true' } else { 'false' } }
+    'rev-list' {
+      if ($env:TEST_SCENARIO -eq 'count-failure') { $global:LASTEXITCODE = 128; return }
+      $env:TEST_COMMIT_COUNT
+    }
+    default { throw "Unexpected git invocation: $args" }
+  }
+}
+function npm {
+  Add-Content -LiteralPath $env:TEST_CALLS -Value (ConvertTo-Json -InputObject (@('npm') + $args) -Compress)
+  $global:LASTEXITCODE = 0
+}
 function gh {
   Add-Content -LiteralPath $env:TEST_CALLS -Value (ConvertTo-Json -InputObject @($args) -Compress)
   $global:LASTEXITCODE = 0
@@ -68,7 +85,7 @@ function execute(script, scenario, overrides = {}, missing) {
   mkdirSync(tmpRoot, { recursive: true });
   const dir = mkdtempSync(path.join(tmpRoot, 'release-workflow-'));
   try {
-    writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ version }));
+    writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ version: overrides.TEST_PACKAGE_VERSION ?? version }));
     for (const file of assets.slice(0, -1)) {
       if (file === missing) continue;
       mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
@@ -86,9 +103,8 @@ function execute(script, scenario, overrides = {}, missing) {
         GH_REPO: 'fixture/repository',
         RELEASE_VERSION: version,
         RELEASE_TAG: `v${version}`,
-        GITHUB_REF_TYPE: 'tag',
-        GITHUB_REF_NAME: `v${version}`,
-        GITHUB_REF: `refs/tags/v${version}`,
+        GITHUB_SHA: sha,
+        TEST_COMMIT_COUNT: '856',
         GITHUB_OUTPUT: output,
         TEST_SCENARIO: scenario,
         TEST_CALLS: calls,
@@ -113,9 +129,22 @@ function execute(script, scenario, overrides = {}, missing) {
   }
 }
 
-test('one writer per tag, packaging without uploads, verification before publication', () => {
-  assert.equal(workflow.concurrency.group, 'release-${{ github.ref }}');
-  assert.equal(workflow.concurrency['cancel-in-progress'], false);
+test('releases only from master pushes, after every other CI job passes', () => {
+  assert.deepEqual(new Set(job.needs), new Set(Object.keys(workflow.jobs).filter(name => !['release', 'deploy'].includes(name))));
+  assert.equal(job.if, "github.ref == 'refs/heads/master' && github.event_name == 'push'");
+  assert.equal(job.permissions.contents, 'write');
+  assert.equal(steps[0].with?.['fetch-depth'], 0);
+  // The version is set after install and before anything that bakes it in.
+  const index = name => steps.findIndex(step => step.name === name);
+  assert.ok(index('Install dependencies') < steps.indexOf(derive));
+  assert.ok(steps.indexOf(derive) < index('Build (Angular, Electron configuration)'));
+  assert.equal(publish.env.RELEASE_VERSION, '${{ steps.release.outputs.version }}');
+  assert.equal(publish.env.RELEASE_TAG, '${{ steps.release.outputs.tag }}');
+});
+
+test('one writer per commit, packaging without uploads, verification before publication', () => {
+  assert.equal(job.concurrency.group, 'release-${{ github.sha }}');
+  assert.equal(job.concurrency['cancel-in-progress'], false);
   const packageStep = steps.find(step => step.name === 'Package (NSIS)');
   assert.match(packageStep.run, /--publish never$/);
   assert.equal(packageStep.env?.GH_TOKEN, undefined);
@@ -125,15 +154,22 @@ test('one writer per tag, packaging without uploads, verification before publica
   }
 });
 
-test('tag validation accepts the package tag and refuses branches or version mismatch', () => {
-  const valid = execute(validate.run, 'new');
+test('release version is the package major.minor with the commit count as patch', () => {
+  const valid = execute(derive.run, 'new', { TEST_PACKAGE_VERSION: '1.2.0' });
   assert.equal(valid.status, 0, valid.stderr);
-  assert.match(valid.output, /version=1\.2\.3/);
-  assert.match(valid.output, /tag=v1\.2\.3/);
-  for (const overrides of [{ GITHUB_REF_TYPE: 'branch' }, { GITHUB_REF_NAME: 'v1.2.4' }]) {
-    const invalid = execute(validate.run, 'new', overrides);
+  assert.match(valid.output, /^version=1\.2\.856$/m);
+  assert.match(valid.output, /^tag=v1\.2\.856$/m);
+  assert.deepEqual(valid.calls, [['npm', 'version', '1.2.856', '--no-git-tag-version', '--allow-same-version']]);
+  for (const [scenario, overrides, message] of [
+    ['new', { TEST_PACKAGE_VERSION: '1.2.3' }, 'must be a <major>.<minor>.0 base'],
+    ['shallow', { TEST_PACKAGE_VERSION: '1.2.0' }, 'needs full history'],
+    ['count-failure', { TEST_PACKAGE_VERSION: '1.2.0' }, 'Could not count commits'],
+  ]) {
+    const invalid = execute(derive.run, scenario, overrides);
     assert.notEqual(invalid.status, 0);
-    assert.match(invalid.stderr, /Release must run on the package version tag/);
+    assert.ok(invalid.stderr.includes(message), invalid.stderr);
+    assert.equal(invalid.output, '');
+    assert.deepEqual(invalid.calls, []);
   }
 });
 
@@ -146,7 +182,7 @@ for (const scenario of ['new', 'reuse']) {
       ? ['api --paginate', 'release create', 'release upload', 'release view']
       : ['api --paginate', 'release upload', 'release view']);
     const create = result.calls.find(call => call[1] === 'create');
-    if (create) assert.deepEqual(create.slice(2), ['v1.2.3', '--draft', '--verify-tag', '--title', 'v1.2.3']);
+    if (create) assert.deepEqual(create.slice(2), ['v1.2.3', '--draft', '--target', sha, '--title', 'v1.2.3']);
     const upload = result.calls.find(call => call[1] === 'upload');
     assert.deepEqual(upload.slice(3, -1).map(file => file.replaceAll('\\', '/')), assets);
     assert.equal(upload.at(-1), '--clobber');

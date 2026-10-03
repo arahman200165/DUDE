@@ -5,7 +5,7 @@ import { TOOL_DEFINITIONS } from './tool-definitions';
 describe('README tool count', () => {
   const readmePath = resolve(process.cwd(), 'README.md');
   // Normalize CRLF -> LF: git checks this file out with CRLF line endings on Windows runners
-  // (e.g. release.yml's windows-latest), which would otherwise break the bare `\n` splits below.
+  // (e.g. ci.yml's windows-latest release job), which would otherwise break the bare `\n` splits below.
   const readme = readFileSync(readmePath, 'utf-8').replace(/\r\n/g, '\n');
 
   const showcaseToolCount = TOOL_DEFINITIONS.length;
