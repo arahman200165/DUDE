@@ -22,12 +22,28 @@ on:
 permissions:
   contents: write
 
+# Tag pushes, manual dispatches and reruns must share one release writer.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: windows-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Validate release tag
+        id: release
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if ($env:GITHUB_REF_TYPE -ne 'tag' -or $env:GITHUB_REF_NAME -cne "v$version") {
+            throw "Release must run on the package version tag v$version; received $env:GITHUB_REF."
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=$env:GITHUB_REF_NAME" >> $env:GITHUB_OUTPUT
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -40,6 +56,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Verify release workflow
+        run: node --test scripts/release-workflow.spec.mjs
 
       - name: Verify generated registry/docs are up to date
         shell: bash
@@ -97,10 +116,11 @@ jobs:
       - name: Stage the Hub and build DUDE-Hub-Setup.exe
         run: npm run hub:stage && npm run hub:installer
 
-      - name: Package and publish (NSIS)
-        run: npx electron-builder --config electron-builder.yml --win nsis --publish always
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Keep publish configuration for app-update.yml/latest.yml generation, but
+      # let this workflow own release creation. Parallel electron-builder uploads
+      # can race to create multiple draft releases for the same tag.
+      - name: Package (NSIS)
+        run: npx electron-builder --config electron-builder.yml --win nsis --publish never
 
       - name: Verify packaged network helper
         shell: pwsh
@@ -112,24 +132,59 @@ jobs:
           $packagedAgent = (Get-FileHash release\win-unpacked\resources\dude-agent.exe).Hash
           if ($agent -ne $packagedAgent) { throw 'NSIS source tree does not contain the Device Agent.' }
 
-      - name: Publish DUDE-Hub-Setup.exe and checksums
-        shell: pwsh
-        run: |
-          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          $tag = "v$version"
-          if ($env:GITHUB_REF_TYPE -eq 'tag') { $tag = $env:GITHUB_REF_NAME }
-          $hub = 'dist\hub-installer\DUDE-Hub-Setup.exe'
-          $desktop = "release\DUDE-Setup-$version.exe"
-          $lines = foreach ($f in @($desktop, $hub)) { "{0}  {1}" -f (Get-FileHash $f -Algorithm SHA256).Hash.ToLower(), (Split-Path $f -Leaf) }
-          Set-Content -Path release\SHA256SUMS.txt -Value $lines -Encoding ascii
-          Get-Content release\SHA256SUMS.txt
-          gh release upload $tag $hub release\SHA256SUMS.txt --clobber
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Verify the desktop installer embeds the Hub installer
         shell: pwsh
         run: |
           $hubInstaller = (Get-FileHash dist\hub-installer\DUDE-Hub-Setup.exe).Hash
           $packagedHub = (Get-FileHash release\win-unpacked\resources\DUDE-Hub-Setup.exe).Hash
           if ($hubInstaller -ne $packagedHub) { throw 'NSIS source tree does not contain the Hub installer.' }
+
+      - name: Upload all assets to one draft release
+        shell: pwsh
+        run: |
+          $version = $env:RELEASE_VERSION
+          $tag = $env:RELEASE_TAG
+          $hub = 'dist\hub-installer\DUDE-Hub-Setup.exe'
+          $desktop = "release\DUDE-Setup-$version.exe"
+          $assets = @($desktop, "$desktop.blockmap", 'release\latest.yml', $hub)
+          foreach ($file in $assets) {
+            if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Missing release asset: $file" }
+          }
+          $lines = foreach ($f in @($desktop, $hub)) { "{0}  {1}" -f (Get-FileHash $f -Algorithm SHA256).Hash.ToLower(), (Split-Path $f -Leaf) }
+          Set-Content -Path release\SHA256SUMS.txt -Value $lines -Encoding ascii
+          $assets += 'release\SHA256SUMS.txt'
+
+          # List drafts as well as published releases, including older pages.
+          # Do not treat an API/authentication failure as a missing release.
+          $releaseJson = gh api --paginate "repos/$env:GH_REPO/releases?per_page=100" --jq '.[] | {id, tag_name, draft}'
+          if ($LASTEXITCODE -ne 0) { throw 'Could not list GitHub releases.' }
+          $releases = @($releaseJson | ForEach-Object { $_ | ConvertFrom-Json } | Where-Object { $_.tag_name -ceq $tag })
+          if ($releases.Count -gt 1) {
+            throw "Multiple releases already exist for $tag (IDs: $($releases.id -join ', ')). Consolidate the drafts before rerunning."
+          }
+          if ($releases.Count -eq 1 -and -not $releases[0].draft) {
+            throw "Release $tag is already published; refusing to replace its assets."
+          }
+          if ($releases.Count -eq 0) {
+            gh release create $tag --draft --verify-tag --title $tag
+            if ($LASTEXITCODE -ne 0) { throw "Could not create draft release $tag." }
+          }
+          gh release upload $tag @assets --clobber
+          if ($LASTEXITCODE -ne 0) { throw "Could not upload all assets to $tag." }
+
+          $uploadedJson = gh release view $tag --json isDraft,assets
+          if ($LASTEXITCODE -ne 0) { throw "Could not verify release $tag." }
+          $uploaded = $uploadedJson | ConvertFrom-Json
+          if (-not $uploaded.isDraft) { throw "Release $tag must remain a draft for review." }
+          foreach ($file in $assets) {
+            $local = Get-Item -LiteralPath $file
+            $remote = @($uploaded.assets | Where-Object { $_.name -ceq $local.Name })
+            if ($remote.Count -ne 1 -or $remote[0].size -ne $local.Length) {
+              throw "Release $tag is missing or has an incomplete asset: $($local.Name)"
+            }
+          }
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
