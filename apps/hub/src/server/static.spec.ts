@@ -1,10 +1,13 @@
-import { createHash } from 'node:crypto';
-import { mkdirSync, utimesSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { createHash, randomBytes } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs';
+import https from 'node:https';
 import { join } from 'node:path';
+import { brotliCompressSync, brotliDecompressSync, gunzipSync, gzipSync } from 'node:zlib';
 import { afterAll, describe, expect, it } from 'vitest';
 import { makeWebRoot, request, startTestHub } from './test-helpers.js';
 import type { TestHub } from './test-helpers.js';
-import { safeRequestPath } from './static.js';
+import { acceptedEncodings, safeRequestPath } from './static.js';
 import { HUB_API_CSP, HUB_WEB_CSP } from '../security/headers.js';
 
 const hubs: TestHub[] = [];
@@ -166,5 +169,195 @@ describe('inline script CSP hashes', () => {
     utimesSync(indexPath, new Date(), new Date(Date.now() + 5000));
     const second = await get('/hub/sign-in');
     expect(scriptSrc(second.headers['content-security-policy'])).toBe(`'self' 'wasm-unsafe-eval' ${sha(c)}`);
+  });
+});
+
+interface BufResponse { status: number; headers: Record<string, string | string[] | undefined>; body: Buffer }
+
+/** Like `request` but keeps the body as bytes (compressed variants are not text). */
+function rawRequest(hub: TestHub, requestPath: string, headers: Record<string, string> = {}, method = 'GET'): Promise<BufResponse> {
+  return new Promise((resolve, reject) => {
+    const req = https.request(
+      { host: '127.0.0.1', port: hub.port, path: requestPath, method, ca: hub.tls.certPem, headers, servername: 'localhost' },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (c: Buffer) => chunks.push(c));
+        res.on('end', () => resolve({ status: res.statusCode ?? 0, headers: res.headers, body: Buffer.concat(chunks) }));
+      },
+    );
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+describe('precompressed variants, ETag and streaming', () => {
+  const JS = 'console.log("hello hub");\n'.repeat(200);
+  const makeRoot = () => {
+    const root = makeWebRoot();
+    writeFileSync(join(root, 'app.js'), JS);
+    writeFileSync(join(root, 'app.js.br'), brotliCompressSync(JS));
+    writeFileSync(join(root, 'app.js.gz'), gzipSync(JS));
+    return root;
+  };
+  const etagOf = (text: string) => `"${createHash('sha256').update(text).digest('base64url').slice(0, 27)}"`;
+
+  it('negotiates br, then gzip, then raw, honouring q-values', async () => {
+    const hub = await startTestHub({ webRoot: makeRoot() });
+    hubs.push(hub);
+
+    const br = await rawRequest(hub, '/app.js', { 'accept-encoding': 'gzip, deflate, br' });
+    expect(br.status).toBe(200);
+    expect(br.headers['content-encoding']).toBe('br');
+    expect(br.headers['vary']).toBe('Accept-Encoding');
+    expect(String(br.headers['content-type'])).toContain('text/javascript');
+    expect(br.headers['content-length']).toBe(String(br.body.length));
+    expect(brotliDecompressSync(br.body).toString()).toBe(JS);
+
+    const gz = await rawRequest(hub, '/app.js', { 'accept-encoding': 'gzip;q=0.8, br;q=0' });
+    expect(gz.headers['content-encoding']).toBe('gzip');
+    expect(gunzipSync(gz.body).toString()).toBe(JS);
+
+    for (const header of ['identity', 'br;q=0, gzip;q=0', '*;q=0', undefined]) {
+      const raw = await rawRequest(hub, '/app.js', header === undefined ? {} : { 'accept-encoding': header });
+      expect(raw.headers['content-encoding'], String(header)).toBeUndefined();
+      expect(raw.headers['vary'], String(header)).toBe('Accept-Encoding');
+      expect(raw.body.toString(), String(header)).toBe(JS);
+    }
+    expect((await rawRequest(hub, '/app.js', { 'accept-encoding': '*' })).headers['content-encoding']).toBe('br');
+
+    expect(acceptedEncodings('gzip;q=0.5, br;q=0.001')).toEqual(['br', 'gzip']);
+    expect(acceptedEncodings('br;q=0, *')).toEqual(['gzip']);
+    expect(acceptedEncodings(undefined)).toEqual([]);
+  });
+
+  it('ignores a .br next to a type that is not compressible', async () => {
+    const root = makeRoot();
+    writeFileSync(join(root, 'pic.png'), 'png-bytes');
+    writeFileSync(join(root, 'pic.png.br'), 'not-really');
+    const hub = await startTestHub({ webRoot: root });
+    hubs.push(hub);
+    const res = await rawRequest(hub, '/pic.png', { 'accept-encoding': 'br' });
+    expect(res.headers['content-encoding']).toBeUndefined();
+    expect(res.headers['vary']).toBeUndefined();
+    expect(res.body.toString()).toBe('png-bytes');
+  });
+
+  it('emits strong ETags per variant and answers If-None-Match with 304', async () => {
+    const hub = await startTestHub({ webRoot: makeRoot() });
+    hubs.push(hub);
+    const raw = await rawRequest(hub, '/app.js');
+    expect(raw.headers['etag']).toBe(etagOf(JS));
+    const br = await rawRequest(hub, '/app.js', { 'accept-encoding': 'br' });
+    expect(br.headers['etag']).toBe(etagOf(JS).replace(/"$/, '-br"'));
+    const gz = await rawRequest(hub, '/app.js', { 'accept-encoding': 'gzip' });
+    expect(gz.headers['etag']).toBe(etagOf(JS).replace(/"$/, '-gz"'));
+
+    const hit = await rawRequest(hub, '/app.js', { 'if-none-match': String(raw.headers['etag']) });
+    expect(hit.status).toBe(304);
+    expect(hit.body.length).toBe(0);
+    expect(hit.headers['etag']).toBe(raw.headers['etag']);
+    expect(hit.headers['cache-control']).toBe('no-cache');
+    expect(hit.headers['x-content-type-options']).toBe('nosniff');
+
+    const variantHit = await rawRequest(hub, '/app.js', { 'accept-encoding': 'br', 'if-none-match': `"other", ${String(br.headers['etag'])}` });
+    expect(variantHit.status).toBe(304);
+    expect(variantHit.headers['content-encoding']).toBe('br');
+    // The raw ETag does not validate the br representation.
+    expect((await rawRequest(hub, '/app.js', { 'accept-encoding': 'br', 'if-none-match': String(raw.headers['etag']) })).status).toBe(200);
+
+    const html = await rawRequest(hub, '/index.html');
+    const htmlHit = await rawRequest(hub, '/index.html', { 'if-none-match': String(html.headers['etag']) });
+    expect(htmlHit.status).toBe(304);
+    expect(String(htmlHit.headers['content-security-policy'])).toContain('default-src');
+  });
+
+  it('answers HEAD with headers and no body', async () => {
+    const hub = await startTestHub({ webRoot: makeRoot() });
+    hubs.push(hub);
+    const head = await rawRequest(hub, '/app.js', { 'accept-encoding': 'br' }, 'HEAD');
+    expect(head.status).toBe(200);
+    expect(head.body.length).toBe(0);
+    expect(head.headers['content-encoding']).toBe('br');
+    expect(head.headers['content-length']).toBe(String(brotliCompressSync(JS).length));
+    expect(head.headers['etag']).toBeDefined();
+  });
+
+  it('streams a file larger than 1 MiB with the exact Content-Length', async () => {
+    const root = makeRoot();
+    const big = Buffer.alloc(1_500_000, 'x');
+    writeFileSync(join(root, 'big.data'), big);
+    const hub = await startTestHub({ webRoot: root });
+    hubs.push(hub);
+    const res = await rawRequest(hub, '/big.data');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-length']).toBe('1500000');
+    expect(res.body.length).toBe(1_500_000);
+    expect(res.body.equals(big)).toBe(true);
+  });
+
+  it('serves the new MIME types', async () => {
+    const root = makeRoot();
+    const expected: Record<string, string> = {
+      'a.webp': 'image/webp', 'a.avif': 'image/avif', 'a.gif': 'image/gif', 'a.js.map': 'application/json',
+      'a.wasm': 'application/wasm', 'a.webmanifest': 'application/manifest+json', 'a.ico': 'image/x-icon',
+      'a.txt': 'text/plain', 'a.xml': 'application/xml', 'a.zip': 'application/zip', 'a.data': 'application/octet-stream',
+      'a.mjs': 'text/javascript', 'a.woff': 'font/woff', 'a.woff2': 'font/woff2',
+    };
+    for (const name of Object.keys(expected)) writeFileSync(join(root, name), 'x');
+    const hub = await startTestHub({ webRoot: root });
+    hubs.push(hub);
+    for (const [name, type] of Object.entries(expected)) {
+      const res = await rawRequest(hub, `/${name}`);
+      expect(res.status, name).toBe(200);
+      expect(String(res.headers['content-type']), name).toContain(type);
+    }
+  });
+
+  it('keeps service worker files on no-cache even when the name looks hashed', async () => {
+    const root = makeRoot();
+    for (const name of ['ngsw-worker.js', 'ngsw.json', 'safety-worker.js', 'worker-basic.min.js', 'ngsw-ABCD1234.js']) writeFileSync(join(root, name), '{}');
+    const hub = await startTestHub({ webRoot: root });
+    hubs.push(hub);
+    for (const name of ['ngsw-worker.js', 'ngsw.json', 'safety-worker.js', 'worker-basic.min.js']) {
+      expect((await rawRequest(hub, `/${name}`)).headers['cache-control'], name).toBe('no-cache');
+    }
+    expect((await rawRequest(hub, '/ngsw-ABCD1234.js')).headers['cache-control']).toBe('public, max-age=31536000, immutable');
+  });
+
+  it('computes CSP hashes from the raw html when a .br variant exists, and serves the variant', async () => {
+    const root = makeRoot();
+    const html = '<!doctype html><script>window.z = 9;</script>';
+    writeFileSync(join(root, 'index.html'), html);
+    writeFileSync(join(root, 'index.html.br'), brotliCompressSync(html));
+    const hub = await startTestHub({ webRoot: root });
+    hubs.push(hub);
+    const res = await rawRequest(hub, '/settings', { 'accept-encoding': 'br' });
+    expect(res.headers['content-encoding']).toBe('br');
+    expect(brotliDecompressSync(res.body).toString()).toBe(html);
+    const hash = `'sha256-${createHash('sha256').update('window.z = 9;').digest('base64')}'`;
+    expect(String(res.headers['content-security-policy'])).toContain(hash);
+    expect(res.headers['etag']).toBe(etagOf(html).replace(/"$/, '-br"'));
+  });
+
+  it('scripts/compress-static.mjs writes variants only when worthwhile and is idempotent', () => {
+    const root = makeRoot();
+    rmSync(join(root, 'app.js.br'));
+    rmSync(join(root, 'app.js.gz'));
+    writeFileSync(join(root, 'tiny.js'), 'a'.repeat(100));
+    writeFileSync(join(root, 'noise.js'), randomBytes(4096));
+    writeFileSync(join(root, 'pic.png'), Buffer.alloc(8192));
+    const script = join(__dirname, '..', '..', '..', '..', 'scripts', 'compress-static.mjs');
+    const out = execFileSync(process.execPath, [script, root], { encoding: 'utf8' });
+    expect(out).toContain('compress-static');
+    expect(existsSync(join(root, 'app.js.br'))).toBe(true);
+    expect(existsSync(join(root, 'app.js.gz'))).toBe(true);
+    expect(brotliDecompressSync(readFileSync(join(root, 'app.js.br'))).toString()).toBe(JS);
+    expect(existsSync(join(root, 'tiny.js.br'))).toBe(false);
+    expect(existsSync(join(root, 'noise.js.br'))).toBe(false);
+    expect(existsSync(join(root, 'pic.png.br'))).toBe(false);
+    const before = statSync(join(root, 'app.js.br')).mtimeMs;
+    execFileSync(process.execPath, [script, root]);
+    expect(statSync(join(root, 'app.js.br')).mtimeMs).toBe(before);
+    expect(existsSync(join(root, 'app.js.br.gz'))).toBe(false);
   });
 });
