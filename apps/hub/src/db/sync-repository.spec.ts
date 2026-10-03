@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { SYNC_LIMITS } from '@dude/sync';
 import type { Db } from '@dude/sqlite-store';
 import { openHubDb } from './open-hub-db.js';
-import { commitCanonical, getCanonicalRecord } from './canonical-repository.js';
+import { commitCanonical, currentRevision, getCanonicalRecord } from './canonical-repository.js';
 import type { CanonicalCommit, SyncCommitResult } from './canonical-repository.js';
 import {
   changesAfter, compactBefore, countLiveRecordsByCategory, countLiveRecordsByType, getSyncFloor, listDeviceSyncState, recordDeviceSyncState,
@@ -160,6 +160,25 @@ describe('changesAfter / snapshotPage / compaction', () => {
     expect((db.prepare('SELECT COUNT(*) AS n FROM change_feed').get() as { n: number }).n).toBe(1);
     expect(compactBefore(db, 2, NOW).floor).toBe(4);
     expect(getSyncFloor(db)).toBe(4);
+  });
+
+  it('answers a stale edit of a compacted tombstone with a deletion conflict instead of resurrecting it', () => {
+    const db = freshDb();
+    seed(db);
+    compactBefore(db, 5, NOW);
+    const result = push(db, { entityType: 'pipeline', entityId: 'p2', op: 'upsert', basedOnRevision: 2, payload: { schemaVersion: 1, id: 'p2', name: 'stale', steps: [], createdAt: NOW, updatedAt: NOW } });
+    expect(result).toMatchObject({ status: 'conflict', current: { deleted: true, payload: null, revision: 5 } });
+    expect(getCanonicalRecord(db, ENV, 'pipeline', 'p2')).toBeUndefined();
+  });
+
+  it('never restarts revisions after compaction empties the change feed', () => {
+    const db = freshDb();
+    seed(db);
+    compactBefore(db, 5, NOW);
+    expect((db.prepare('SELECT COUNT(*) AS n FROM change_feed').get() as { n: number }).n).toBe(0);
+    expect(currentRevision(db)).toBe(5);
+    expect(upPipe(db, 'p4', null)).toBeDefined();
+    expect(currentRevision(db)).toBe(6);
   });
 });
 

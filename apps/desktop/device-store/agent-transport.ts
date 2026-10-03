@@ -50,6 +50,11 @@ export function resolveAgentLaunch(opts: { isPackaged: boolean; resourcesPath: s
   if (opts.isPackaged) {
     return { command: join(opts.resourcesPath, opts.platform === 'win32' ? 'dude-agent.exe' : 'dude-agent'), args: ['--store-dir', storeDir] };
   }
+  // Test-only override (unpackaged builds only): run the agent on a real Node instead of Electron's. Electron's BoringSSL
+  // cannot verify the Hub's self-signed certificate as a trust anchor, which the packaged SEA agent (OpenSSL) can. The
+  // two-desktop sync e2e (`e2e/sync`) sets it; nothing else does.
+  const e2eNode = process.env['DUDE_E2E_AGENT_NODE'];
+  if (e2eNode) return { command: e2eNode, args: [join(opts.scriptDir, 'device-agent.js'), '--store-dir', storeDir] };
   return {
     command: opts.execPath,
     args: [join(opts.scriptDir, 'device-agent.js'), '--store-dir', storeDir],

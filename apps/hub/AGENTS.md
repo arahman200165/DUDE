@@ -6,6 +6,7 @@ The self-hosted **DUDE Hub** (Phase 31C, complete): the user's own authoritative
 
 - Plain TypeScript with its own `tsconfig.json`, compiled by `esbuild` to a CJS bundle and packaged as a Node 24 single-executable application. Never pulled into `tsconfig.app.json`.
 - Never import `electron`, `@angular/*`, `apps/web`, `@dude/device-agent` or `@dude/desktop`. Shared code comes only from portable packages, plus the Node-only `@dude/sqlite-store`.
+- `src/cli/test-overrides.ts` reads TEST-ONLY env knobs in `run` (`DUDE_HUB_TEST_RELAX_RATE_LIMITS=1`, `DUDE_HUB_TEST_SYNC_RETENTION_DAYS`, `DUDE_HUB_TEST_SYNC_COMPACTION_MS`) for the two-Agent sync suite; unset in production, never a CLI flag or config field.
 - The Hub process is the only writer of `data/dude.db`. CLI commands that need state go through the local admin named pipe while the service runs; they never open the database.
 - Every route has a TypeBox schema (request and response), declares its credential type (none, setup token, owner cookie session, owner bearer session, device token), and writes an audit event. A device credential alone never grants owner rights.
 - HTTPS only. No listener on a non-loopback address unless LAN mode is on (installer checkbox or elevated `dude-hub network lan on|off`) or container mode is set.

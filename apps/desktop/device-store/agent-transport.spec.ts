@@ -113,6 +113,17 @@ describe('resolveAgentLaunch', () => {
     expect(launch.args.slice(1)).toEqual(['--store-dir', 'S']);
     expect(launch.env?.ELECTRON_RUN_AS_NODE).toBe('1');
   });
+  it('honors the test-only DUDE_E2E_AGENT_NODE override when unpackaged, never when packaged', () => {
+    process.env['DUDE_E2E_AGENT_NODE'] = 'C:\node\node.exe';
+    try {
+      const launch = resolveAgentLaunch({ ...base, isPackaged: false }, 'S');
+      expect(launch.command).toBe('C:\node\node.exe');
+      expect(launch.env).toBeUndefined();
+      expect(resolveAgentLaunch({ ...base, isPackaged: true }, 'S').command).toMatch(/dude-agent\.exe$/);
+    } finally {
+      delete process.env['DUDE_E2E_AGENT_NODE'];
+    }
+  });
 });
 
 describe('agent spawn options', () => {

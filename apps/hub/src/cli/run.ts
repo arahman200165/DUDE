@@ -4,6 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import { ensureLayout, resolveDataDir } from '../config/data-dir.js';
 import { bindAddress, loadOrCreateHubConfig } from '../config/hub-config.js';
 import { openHubDb } from '../db/open-hub-db.js';
+import { readHubTestOverrides } from './test-overrides.js';
 import { createHubServer } from '../server/create-server.js';
 import { createLogStream, hubLoggerOptions } from '../server/logger.js';
 import { ensureTlsIdentity } from '../tls/index.js';
@@ -140,6 +141,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     hub: { db: hub.db, hubInstanceId: hub.hubInstanceId },
     hubVersion: hubVersion(),
     logger: hubLoggerOptions(logStream),
+    ...readHubTestOverrides(),
   });
 
   try {

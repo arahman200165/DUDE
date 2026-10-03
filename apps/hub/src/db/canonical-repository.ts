@@ -102,7 +102,10 @@ function toRecord(row: RecordRow): CanonicalRecord {
 }
 
 export function currentRevision(db: Db): number {
-  return getRow<{ r: number }>(db.prepare('SELECT COALESCE(MAX(revision), 0) AS r FROM change_feed'))?.r ?? 0;
+  // Compaction can delete every change-feed row, so the compaction floor is a lower bound: revisions never restart.
+  const feed = getRow<{ r: number }>(db.prepare('SELECT COALESCE(MAX(revision), 0) AS r FROM change_feed'))?.r ?? 0;
+  const floor = Number(getRow<{ value: string }>(db.prepare("SELECT value FROM meta WHERE key = 'sync_floor'"))?.value ?? 0);
+  return Math.max(feed, Number.isFinite(floor) ? floor : 0);
 }
 
 /**
@@ -184,6 +187,18 @@ function commitInTransaction(db: Db, input: CanonicalCommit): SyncCommitResult {
         db.prepare('SELECT * FROM records WHERE environment_id = ? AND entity_type = ? AND entity_id = ?'),
         input.environmentId, input.entityType, input.entityId);
       if (existing && (input.basedOnRevision ?? null) !== existing.revision) return { status: 'conflict', current: toSyncRecord(existing) };
+      if (!existing && input.op === 'upsert' && input.basedOnRevision !== null && input.basedOnRevision !== undefined) {
+        // The device knew a revision of a record that no longer exists: its tombstone was compacted. Report it as the deletion it
+        // was, so a stale edit never resurrects a deleted record.
+        const floor = Number(getRow<{ value: string }>(db.prepare("SELECT value FROM meta WHERE key = 'sync_floor'"))?.value ?? 0);
+        return {
+          status: 'conflict',
+          current: {
+            entityType: input.entityType, entityId: input.entityId, revision: Math.max(floor, input.basedOnRevision), deleted: true, payload: null,
+            schemaVersion: codec.schemaVersion, updatedAt: input.now, updatedByDeviceId: null,
+          },
+        };
+      }
     }
 
     const revision = currentRevision(db) + 1;

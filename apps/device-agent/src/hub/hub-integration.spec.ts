@@ -1,163 +1,31 @@
-import { execFileSync, execSync, spawn } from 'node:child_process';
-import type { ChildProcess } from 'node:child_process';
-import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import https from 'node:https';
-import os from 'node:os';
-import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createHubClient } from '@dude/api-client';
-import type { AgentMethod, AgentMethodMap } from '@dude/contracts';
-import { HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION } from '@dude/contracts/hub';
 import type { DeviceListResponse } from '@dude/contracts/hub';
-import { uuidv7 } from '@dude/persistence';
-import { createRpcServer } from '../rpc/server.js';
-import type { RpcServer } from '../rpc/server.js';
 import { readDeviceRecord } from '../store/identity.js';
 import { getEnrollment } from '../store/repos/hub-enrollment.repo.js';
-import type { DeviceStore } from '../store/open-store.js';
-import type { DpapiPort } from '../native/windows-sys-client.js';
-import { cleanupTemp, openReady, tempDir } from '../testing/test-utils.js';
+import { CAPABILITIES, fakeDpapi, startAgent, startHub, stopAgents, waitFor } from '../testing/hub-harness.js';
+import type { Agent, HubHandle } from '../testing/hub-harness.js';
+import { cleanupTemp } from '../testing/test-utils.js';
 import { listRecords } from '../store/repos/records.repo.js';
-import { createSyncRuntime } from '../sync/sync-runtime.js';
-import type { SyncRuntime } from '../sync/sync-runtime.js';
-import { createHubRuntime } from './index.js';
-import type { HubRuntime } from './index.js';
-import { createPinnedTransport, pinnedTlsOptions, spkiSha256Of } from './pinned-transport.js';
+import { spkiSha256Of } from './pinned-transport.js';
 
-const ROOT = path.resolve(import.meta.dirname, '../../../..');
-const BUNDLE = path.join(ROOT, 'dist', 'hub', 'dude-hub.cjs');
 const PASSWORD = 'correct horse battery staple';
 const NEW_PASSWORD = 'a recovered long password';
-const CAPABILITIES = { desktop: true, filesystem: true, secureStorage: true };
 
-/** TEST-ONLY DPAPI stand-in: AES-GCM under a per-process random key, bound to the entropy like the real port. */
-function fakeDpapi(): DpapiPort {
-  const key = randomBytes(32);
-  return {
-    async protect(data, entropy) {
-      const iv = randomBytes(12);
-      const cipher = createCipheriv('aes-256-gcm', key, iv);
-      cipher.setAAD(Buffer.from(entropy ?? []));
-      const body = Buffer.concat([cipher.update(data), cipher.final()]);
-      return new Uint8Array(Buffer.concat([iv, cipher.getAuthTag(), body]));
-    },
-    async unprotect(blob, entropy) {
-      const buf = Buffer.from(blob);
-      const decipher = createDecipheriv('aes-256-gcm', key, buf.subarray(0, 12));
-      decipher.setAuthTag(buf.subarray(12, 28));
-      decipher.setAAD(Buffer.from(entropy ?? []));
-      return new Uint8Array(Buffer.concat([decipher.update(buf.subarray(28)), decipher.final()]));
-    },
-  };
-}
-
-interface Agent { store: DeviceStore; hub: HubRuntime; sync: SyncRuntime; rpc: <M extends AgentMethod>(method: M, params: AgentMethodMap[M]['params']) => Promise<AgentMethodMap[M]['result']> }
-
-let hubDir: string;
-let child: ChildProcess;
-let hubOutput = '';
-let port = 0;
-const agents: Agent[] = [];
-let nextId = 1;
-
-const cert = (): string => readFileSync(path.join(hubDir, 'config', 'tls', 'cert.pem'), 'utf8');
-
-function startAgent(dpapi: DpapiPort): Agent {
-  const store = openReady(tempDir(), { capabilities: CAPABILITIES });
-  const now = (): Date => new Date();
-  const hub = createHubRuntime({
-    db: store.db, dpapi, now, timings: { backoffMinMs: 200, backoffMaxMs: 1_000, rateLimitBackoffMs: 7_000 },
-    device: () => readDeviceRecord(store.db, CAPABILITIES),
-  });
-  const sync = createSyncRuntime({
-    db: store.db, manager: hub.manager, now, newOpId: () => uuidv7((n) => new Uint8Array(randomBytes(n)), () => Date.now()),
-    intervals: { debounceMs: 50, pollMs: 3_000, backoffMinMs: 200, backoffMaxMs: 1_000, reportMinIntervalMs: 1_000 },
-  });
-  sync.start();
-  const server: RpcServer = createRpcServer(store, { now, randomBytes: (n) => new Uint8Array(randomBytes(n)), hub, sync });
-  const agent: Agent = {
-    store, hub, sync,
-    async rpc(method, params) {
-      const response = await server.handle({ id: nextId++, method, params });
-      if (!response.ok) throw Object.assign(new Error(response.error.message), { code: response.error.code });
-      return response.result as never;
-    },
-  };
-  agents.push(agent);
-  return agent;
-}
-
-async function waitFor<T>(what: string, fn: () => T | undefined | false | Promise<T | undefined | false>, timeoutMs = 15_000): Promise<T> {
-  const deadline = Date.now() + timeoutMs;
-  for (;;) {
-    const value = await fn();
-    if (value) return value;
-    if (Date.now() > deadline) throw new Error(`Timed out waiting for ${what}`);
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
-}
-
-/** A pinned raw request with owner-cookie credentials (cookie sign-in is browser-only, so the first pairing code needs it). */
-function rawRequest(method: string, requestPath: string, body: unknown, headers: Record<string, string> = {}): Promise<{ status: number; headers: Record<string, string | string[] | undefined>; body: Record<string, unknown> }> {
-  const pem = cert();
-  const pin = spkiSha256Of(pem);
-  const tls = pinnedTlsOptions({ host: '127.0.0.1', port, ca: [pem], pins: [pin] });
-  return new Promise((resolve, reject) => {
-    const payload = body === undefined ? undefined : Buffer.from(JSON.stringify(body));
-    const req = https.request({ host: '127.0.0.1', port, method, path: requestPath, agent: false, headers: { ...(payload ? { 'content-type': 'application/json' } : {}), ...headers }, ...tls }, (res) => {
-      const chunks: Buffer[] = [];
-      res.on('data', (c: Buffer) => chunks.push(c));
-      res.on('end', () => {
-        const text = Buffer.concat(chunks).toString('utf8');
-        resolve({ status: res.statusCode ?? 0, headers: res.headers, body: text ? (JSON.parse(text) as Record<string, unknown>) : {} });
-      });
-    });
-    req.on('error', reject);
-    req.end(payload);
-  });
-}
+let hubHandle: HubHandle;
+const rawRequest = (method: string, requestPath: string, body: unknown, headers: Record<string, string> = {}): ReturnType<HubHandle['request']> => hubHandle.request(method, requestPath, body, headers);
+const hubCli = (...args: string[]): string => hubHandle.cli(...args);
+const cert = (): string => hubHandle.cert();
 
 beforeAll(async () => {
-  if (!existsSync(BUNDLE)) execSync('npm run hub:compile', { cwd: ROOT, stdio: 'ignore' });
-  hubDir = mkdtempSync(path.join(os.tmpdir(), 'dude-hub-int-'));
-  child = spawn(process.execPath, [BUNDLE, 'run', '--data-dir', hubDir, '--port', '0'], { stdio: ['ignore', 'pipe', 'pipe'] });
-  child.stderr?.on('data', (c: Buffer) => { hubOutput += c.toString('utf8'); });
-  port = await new Promise<number>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`Hub did not start. Output: ${hubOutput}`)), 30_000);
-    child.on('exit', (code) => { clearTimeout(timer); reject(new Error(`Hub exited early (${code}). Output: ${hubOutput}`)); });
-    child.stdout?.on('data', (chunk: Buffer) => {
-      hubOutput += chunk.toString('utf8');
-      for (const line of hubOutput.split('\n')) {
-        try {
-          const parsed = JSON.parse(line) as { event?: string; url?: string };
-          if (parsed.event === 'listening' && parsed.url) { clearTimeout(timer); resolve(Number(new URL(parsed.url).port)); }
-        } catch { /* not the listening line */ }
-      }
-    });
-  });
-
-  // Bootstrap through the api-client over a pinned transport.
-  const pem = cert();
-  const api = createHubClient(createPinnedTransport({ host: '127.0.0.1', port, ca: [pem], pins: [spkiSha256Of(pem)] }), { clientProtocol: HUB_PROTOCOL_VERSION, minHubProtocol: HUB_MIN_CLIENT_PROTOCOL });
-  const setupToken = readFileSync(path.join(hubDir, 'config', 'setup-token'), 'utf8').trim();
-  await api.bootstrap({ setupToken, ownerDisplayName: 'Owner', environmentName: 'Test environment', password: PASSWORD });
+  // Relaxed (test-only) rate limits: the credential bucket no longer needs 30 s refills between cases.
+  hubHandle = await startHub({ bootstrap: { password: PASSWORD } });
 }, 60_000);
 
 afterAll(async () => {
-  for (const agent of agents) { agent.sync.stop(); agent.hub.manager.stop(); }
-  if (child && child.exitCode === null) {
-    const exited = new Promise<void>((resolve) => child.once('exit', () => resolve()));
-    child.kill();
-    await Promise.race([exited, new Promise((resolve) => setTimeout(resolve, 5_000))]);
-  }
+  stopAgents();
+  await hubHandle?.dispose();
   cleanupTemp();
-  if (hubDir) rmSync(hubDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
 });
-
-function hubCli(...args: string[]): string {
-  return execFileSync(process.execPath, [BUNDLE, ...args, '--data-dir', hubDir], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 20_000 });
-}
 
 describe('device agent against a real Hub', () => {
   it('enrolls, runs owner operations, revokes, rotates the certificate pin and unenrolls', async () => {
@@ -168,7 +36,7 @@ describe('device agent against a real Hub', () => {
     expect(signIn.status).toBe(200);
     const cookie = String((signIn.headers['set-cookie'] as string[])[0]).split(';')[0]!;
     const csrf = String(signIn.body['csrfToken']);
-    const browserHeaders = { cookie, origin: `https://127.0.0.1:${port}`, 'x-dude-csrf': csrf };
+    const browserHeaders = { cookie, origin: `https://127.0.0.1:${hubHandle.port}`, 'x-dude-csrf': csrf };
     const firstCode = await rawRequest('POST', '/api/v1/pairing-codes', { host: '127.0.0.1' }, browserHeaders);
     expect(firstCode.status).toBe(200);
 
@@ -237,12 +105,10 @@ describe('device agent against a real Hub', () => {
     expect(getEnrollment(a.store.db)).toBeNull();
   }, 60_000);
   it('recovers the owner password from a recovery-trusted device only', async () => {
-    // The Hub's per-IP credential-endpoint bucket (burst 10, 20 a minute) was drained by the previous case; let it refill.
-    await new Promise((resolve) => setTimeout(resolve, 30_000));
     const dpapi = fakeDpapi();
     const signIn = await rawRequest('POST', '/api/v1/auth/sign-in', { password: PASSWORD });
     expect(signIn.status).toBe(200);
-    const headers = { cookie: String((signIn.headers['set-cookie'] as string[])[0]).split(';')[0]!, origin: `https://127.0.0.1:${port}`, 'x-dude-csrf': String(signIn.body['csrfToken']) };
+    const headers = { cookie: String((signIn.headers['set-cookie'] as string[])[0]).split(';')[0]!, origin: `https://127.0.0.1:${hubHandle.port}`, 'x-dude-csrf': String(signIn.body['csrfToken']) };
     const pairing = String((await rawRequest('POST', '/api/v1/pairing-codes', { host: '127.0.0.1' }, headers)).body['pairingString']);
 
     const agent = startAgent(dpapi);
@@ -262,12 +128,10 @@ describe('device agent against a real Hub', () => {
     await agent.rpc('hub.unenroll', { force: true });
   }, 90_000);
   it('syncs a favorite between two enrolled devices in both directions, including deletes', async () => {
-    // The previous case drained and then changed the credential state: wait for the bucket and sign in with the new password.
-    await new Promise((resolve) => setTimeout(resolve, 30_000));
     const dpapi = fakeDpapi();
     const signIn = await rawRequest('POST', '/api/v1/auth/sign-in', { password: NEW_PASSWORD });
     expect(signIn.status).toBe(200);
-    const headers = { cookie: String((signIn.headers['set-cookie'] as string[])[0]).split(';')[0]!, origin: `https://127.0.0.1:${port}`, 'x-dude-csrf': String(signIn.body['csrfToken']) };
+    const headers = { cookie: String((signIn.headers['set-cookie'] as string[])[0]).split(';')[0]!, origin: `https://127.0.0.1:${hubHandle.port}`, 'x-dude-csrf': String(signIn.body['csrfToken']) };
     const pairings = await Promise.all([1, 2].map(async () => String((await rawRequest('POST', '/api/v1/pairing-codes', { host: '127.0.0.1' }, headers)).body['pairingString'])));
 
     const a = startAgent(dpapi);
