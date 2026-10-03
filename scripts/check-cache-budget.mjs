@@ -9,7 +9,7 @@
 // visibility, not capped, since large-but-lazy WASM runtimes are a deliberate, already-lazy
 // design choice (ngsw-config.json), not something that should fail a build.
 //
-// Usage: node scripts/check-cache-budget.mjs (run as a postbuild step)
+// Usage: node scripts/check-cache-budget.mjs [distDir] (run as a postbuild step)
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
-const BROWSER_DIR = path.join(ROOT, 'dist/dude/browser');
+const BROWSER_DIR = path.resolve(ROOT, process.argv[2] ?? 'dist/dude/browser');
 const NGSW_PATH = path.join(BROWSER_DIR, 'ngsw.json');
 
 // The one group this fails the build over: everything downloaded unconditionally before the

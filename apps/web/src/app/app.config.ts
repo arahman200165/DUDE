@@ -41,8 +41,8 @@ export const appConfig: ApplicationConfig = {
     ...DESKTOP_HANDOFF_COMMAND_SOURCE_PROVIDERS,
     provideRouter(routes),
     provideServiceWorker('ngsw-worker.js', {
-      // The Hub-served build ships no service worker (Hub web caching is its own milestone).
-      enabled: !isDevMode() && !isElectronRuntime() && BUILD_HOST === 'web',
+      // Pages and Hub web both register it; the hub config (ngsw-config.hub.json) caches public static files only, never /api or /sandbox (PD-053).
+      enabled: !isDevMode() && !isElectronRuntime() && (BUILD_HOST === 'web' || BUILD_HOST === 'hub'),
       registrationStrategy: 'registerWhenStable:30000',
     }),
   ],

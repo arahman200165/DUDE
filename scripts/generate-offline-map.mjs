@@ -17,7 +17,7 @@
 // `ngsw-config` CLI. That regenerates ngsw.json with offline-map.json in the prefetched `app`
 // group and a correct hash in hashTable.
 //
-// Usage: node scripts/generate-offline-map.mjs  (postbuild, before check-cache-budget.mjs)
+// Usage: node scripts/generate-offline-map.mjs [distDir] [ngswConfig]  (postbuild, before check-cache-budget.mjs)
 
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
@@ -26,8 +26,10 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
-const BROWSER_DIR = path.join(ROOT, 'dist/dude/browser');
-const STATS_PATH = path.join(ROOT, 'dist/dude/browser-stats.json');
+// Optional args: <browser dist dir> <ngsw config>. Defaults are the GitHub Pages build.
+const BROWSER_DIR = path.resolve(ROOT, process.argv[2] ?? 'dist/dude/browser');
+const NGSW_CONFIG = process.argv[3] ?? 'ngsw-config.json';
+const STATS_PATH = path.join(path.dirname(BROWSER_DIR), 'browser-stats.json');
 const NGSW_PATH = path.join(BROWSER_DIR, 'ngsw.json');
 const MAP_NAME = 'offline-map.json';
 const TOOL_ENTRY = /^(?:apps\/web\/src\/app|packages\/tool-engine\/dist)\/tools\/([^/]+)\//;
@@ -142,13 +144,13 @@ writeFileSync(path.join(BROWSER_DIR, MAP_NAME), JSON.stringify(map), 'utf8');
 // lists `/offline-map.json` there). Base href comes from the ngsw.json the build just produced.
 const cli = path.join(ROOT, 'node_modules/@angular/service-worker/ngsw-config.js');
 // The CLI joins both paths onto process.cwd(), so they must be relative to ROOT.
-execFileSync(process.execPath, [cli, path.relative(ROOT, BROWSER_DIR), 'ngsw-config.json', basePrefix], {
+execFileSync(process.execPath, [cli, path.relative(ROOT, BROWSER_DIR), NGSW_CONFIG, basePrefix], {
   cwd: ROOT,
   stdio: 'inherit',
 });
 const regenerated = JSON.parse(readFileSync(NGSW_PATH, 'utf8'));
 if (!regenerated.assetGroups.some((group) => group.urls.includes(`${basePrefix}${MAP_NAME}`))) {
-  console.error(`ERROR: ${MAP_NAME} isn't in any ngsw asset group after regeneration. Check ngsw-config.json's "app" group.`);
+  console.error(`ERROR: ${MAP_NAME} isn't in any ngsw asset group after regeneration. Check ${NGSW_CONFIG}'s "app" group.`);
   process.exit(1);
 }
 
