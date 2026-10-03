@@ -21,7 +21,10 @@ export class CommandPaletteService {
     });
 
     overlayRef.backdropClick().subscribe(() => this.close());
-    overlayRef.attach(new ComponentPortal(CommandPalette));
+    const palette = overlayRef.attach(new ComponentPortal(CommandPalette));
+    // Render now so the search input takes focus inside the opening keystroke; waiting for the
+    // scheduled render drops whatever is typed or pressed (Escape) in the meantime.
+    palette.changeDetectorRef.detectChanges();
 
     this.overlayRef = overlayRef;
   }

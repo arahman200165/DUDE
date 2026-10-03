@@ -39,6 +39,12 @@ describe('CommandPalette', () => {
     expect(document.activeElement).toBe(input);
   });
 
+  it('focuses the search input synchronously, so keys typed right after opening are not lost', () => {
+    service.open();
+
+    expect(document.activeElement).toBe(document.querySelector<HTMLInputElement>('input'));
+  });
+
   it('filters results as the query changes', async () => {
     service.open();
     await stable();
