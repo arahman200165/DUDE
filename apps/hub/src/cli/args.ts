@@ -6,6 +6,7 @@ export type ParsedCommand =
   | { command: 'setup-token'; dataDir?: string; deliverTo?: string; nonce?: string }
   | { command: 'owner-reset'; dataDir?: string; confirm?: string }
   | { command: 'tls'; action: 'status' | 'rotate' | 'activate'; dataDir?: string; restage?: boolean; force?: boolean; confirm?: string }
+  | { command: 'tls-ca'; action: 'init' | 'status' | 'export'; suffixes?: string[]; out?: string; dataDir?: string; installDir?: string }
   | { command: 'tls-names'; action: 'list' | 'add' | 'remove'; name?: string; dataDir?: string; installDir?: string }
   | { command: 'service'; action: 'install' | 'uninstall' | 'start' | 'stop' | 'restart' | 'status' | 'update'; dataDir?: string; installDir?: string; port?: number; lan?: boolean; source?: string; keepData?: boolean }
   | { command: 'network'; action: 'lan-on' | 'lan-off' | 'status'; dataDir?: string; installDir?: string }
@@ -28,6 +29,9 @@ Usage:
   dude-hub tls status [--data-dir <dir>]
   dude-hub tls rotate [--restage] [--data-dir <dir>]
   dude-hub tls activate [--force] [--confirm <token>] [--data-dir <dir>]
+  dude-hub tls ca init [--suffix <dns>]... [--data-dir <dir>] [--install-dir <dir>]   (built-in local CA; stages a CA-issued certificate)
+  dude-hub tls ca status [--data-dir <dir>]
+  dude-hub tls ca export [--out <file.cer>] [--data-dir <dir>]
   dude-hub tls names list [--data-dir <dir>]
   dude-hub tls names add <name> [--data-dir <dir>] [--install-dir <dir>]   (stages a re-issued certificate)
   dude-hub tls names remove <name> [--data-dir <dir>] [--install-dir <dir>]
@@ -101,6 +105,24 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
       else result.confirm = next;
     }
     return result;
+  }
+  if (command === 'tls' && rest[0] === 'ca') {
+    const action = rest[1];
+    if (action !== 'init' && action !== 'status' && action !== 'export') throw new UsageError('Usage: dude-hub tls ca init|status|export. Run "dude-hub help".');
+    const suffixes: string[] = [];
+    const flags: string[] = [];
+    const tail = rest.slice(2);
+    for (let i = 0; i < tail.length; i++) {
+      const flag = tail[i]!;
+      if (action === 'init' && (flag === '--suffix' || flag.startsWith('--suffix='))) {
+        const value = flag === '--suffix' ? tail[++i] : flag.slice('--suffix='.length);
+        if (value === undefined || value === '' || value.startsWith('--')) throw new UsageError('Flag --suffix needs a value.');
+        suffixes.push(value);
+      } else flags.push(flag);
+    }
+    const allowed = action === 'export' ? ['--data-dir', '--out'] : action === 'init' ? ['--data-dir', '--install-dir'] : ['--data-dir'];
+    const values = parseFlags(flags, allowed, []);
+    return { command: 'tls-ca', action, ...(suffixes.length > 0 ? { suffixes } : {}), ...optional(values, '--out', 'out'), ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir') };
   }
   if (command === 'tls' && rest[0] === 'names') {
     const action = rest[1];

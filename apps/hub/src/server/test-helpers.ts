@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import https from 'node:https';
 import type { AddressInfo } from 'node:net';
 import os from 'node:os';
@@ -91,6 +91,12 @@ export interface RawResponse {
 }
 
 /** HTTPS request that sends `requestPath` verbatim (no URL normalization) and trusts only `ca`. */
+/** Trust anchors for a spawned Hub: its leaf plus the local-CA root when the Hub created one (PD-058). */
+export function trustedPem(tlsDir: string): string {
+  const root = path.join(tlsDir, 'ca', 'ca-cert.pem');
+  return `${readFileSync(path.join(tlsDir, 'cert.pem'), 'utf8')}${existsSync(root) ? readFileSync(root, 'utf8') : ''}`;
+}
+
 export function request(
   port: number,
   ca: string,

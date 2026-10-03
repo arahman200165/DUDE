@@ -7,7 +7,7 @@ import { HUB_API_PREFIX, HelloResponse } from '@dude/contracts/hub';
 import { parseArgs } from '../cli/args.js';
 import { hubPaths } from '../config/data-dir.js';
 import { openHubDb } from '../db/open-hub-db.js';
-import { request, tempDir } from './test-helpers.js';
+import { request, tempDir, trustedPem } from './test-helpers.js';
 
 const BUNDLE = path.resolve(import.meta.dirname, '../../../../dist/hub/dude-hub.cjs');
 
@@ -46,7 +46,7 @@ describe('dude-hub bundle', () => {
     });
     try {
       const info = await listening;
-      const certPem = readFileSync(path.join(hubPaths(dataDir).tlsDir, 'cert.pem'), 'utf8');
+      const certPem = trustedPem(hubPaths(dataDir).tlsDir);
       const port = Number(new URL(info.url).port);
       const res = await request(port, certPem, `${HUB_API_PREFIX}/hello`);
       expect(res.status).toBe(200);

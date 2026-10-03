@@ -1,4 +1,6 @@
+import { X509Certificate } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createLocalCa } from '../tls/local-ca.js';
 import { createTlsRotation } from '../tls/rotation.js';
 import { spkiSha256 } from '../tls/self-signed.js';
 import { startAuthHub } from './auth-test-helpers.js';
@@ -19,6 +21,9 @@ describe('GET /tls/certificates and GET /audit', () => {
     expect(before.status).toBe(200);
     expect(before.raw.headers['cache-control']).toBe('no-store');
     expect(before.json.next).toBeNull();
+    expect(before.json.source).toBe('self-signed');
+    expect(before.json.caCertPem).toBeNull();
+    expect(before.json.leafNotAfter).toBe(new Date(new X509Certificate(before.json.active.certPem).validTo).toISOString());
     expect(before.json.active.spkiSha256).toBe(h.hub.tls.spkiSha256);
     expect(spkiSha256(before.json.active.certPem)).toBe(before.json.active.spkiSha256);
 
@@ -33,6 +38,15 @@ describe('GET /tls/certificates and GET /audit', () => {
     const retired = await h.call('GET', '/tls/certificates', { noOrigin: true });
     expect(retired.json.next).toBeNull();
     expect(retired.raw.body).not.toContain(staged.spkiSha256);
+  });
+
+  it('serves the PUBLIC local-CA root (and nothing secret) once a CA exists', async () => {
+    const protector = { kind: 'file' as const, keyFile: 'ca-key.pem', protect: (b: Buffer) => b, unprotect: (b: Buffer) => b };
+    const ca = createLocalCa({ tlsDir: h.hub.paths.tlsDir, hubInstanceId: h.hub.hub.hubInstanceId, protector });
+    const res = await h.call('GET', '/tls/certificates', { noOrigin: true });
+    expect(res.json.source).toBe('self-signed'); // the ACTIVE leaf is still the self-signed one
+    expect(res.json.caCertPem).toBe(ca.caCertPem);
+    expect(res.raw.body).not.toContain('PRIVATE KEY');
   });
 
   it('lists audit events newest first with pagination, for the owner only', async () => {

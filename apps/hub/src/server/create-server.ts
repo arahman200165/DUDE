@@ -125,7 +125,7 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   };
   registerAuthRoutes(app, authOptions);
   registerSessionRoutes(app, authOptions);
-  registerTlsAuditRoutes(app, { db: options.hub.db, requireOwner: authOptions.requireOwner });
+  registerTlsAuditRoutes(app, { db: options.hub.db, tlsDir: options.paths.tlsDir, requireOwner: authOptions.requireOwner });
   registerDeviceAuthRoutes(app, { db: options.hub.db, now, hubInstanceId: options.hub.hubInstanceId });
   registerDeviceRecoveryRoutes(app, {
     db: options.hub.db, now, hubInstanceId: options.hub.hubInstanceId, requireDevice: createRequireDevice({ db: options.hub.db, now }),

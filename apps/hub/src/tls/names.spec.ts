@@ -13,7 +13,8 @@ import { runTlsNames } from '../service/tls-names.js';
 import { certificateSubjectAltNames, computeSubjectAltNames, missingSubjectAltNames } from './names.js';
 import type { NetworkInterfaces } from './names.js';
 import { createTlsRotation } from './rotation.js';
-import { ensureTlsIdentity, generateSelfSigned } from './self-signed.js';
+import { ensureTlsIdentity } from './identity.js';
+import { generateSelfSigned } from './self-signed.js';
 
 const iface = (address: string, family: 'IPv4' | 'IPv6', internal = false) => ({ address, family, internal, netmask: '', mac: '', cidr: null });
 const interfaces = {

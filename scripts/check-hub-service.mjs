@@ -57,9 +57,11 @@ const spki = (certificate) => createHash('sha256').update(new X509Certificate(ce
 function pinnedRequest(dataDir, port, method, requestPath, body) {
   const pem = readFileSync(path.join(dataDir, 'config', 'tls', 'cert.pem'), 'utf8');
   const pin = spki(pem);
+  const rootFile = path.join(dataDir, 'config', 'tls', 'ca', 'ca-cert.pem'); // new Hubs issue their leaf from a local CA
+  const trust = existsSync(rootFile) ? [pem, readFileSync(rootFile, 'utf8')] : pem;
   return new Promise((resolve, reject) => {
     const req = https.request({
-      host: '127.0.0.1', port, path: requestPath, method, ca: pem, servername: 'localhost',
+      host: '127.0.0.1', port, path: requestPath, method, ca: trust, servername: 'localhost',
       headers: body ? { 'content-type': 'application/json', origin: `https://localhost:${port}`, host: `localhost:${port}` } : {},
       checkServerIdentity: (_host, cert) => (spki(cert.raw) === pin ? undefined : new Error('pin mismatch')),
     }, (res) => {

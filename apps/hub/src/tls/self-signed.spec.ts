@@ -7,7 +7,8 @@ import os from 'node:os';
 import path from 'node:path';
 import tls from 'node:tls';
 import { describe, expect, it } from 'vitest';
-import { ensureTlsIdentity, generateSelfSigned, spkiSha256 } from './self-signed.js';
+import { ensureTlsIdentity } from './identity.js';
+import { generateSelfSigned, spkiSha256 } from './self-signed.js';
 
 const ID = '0192f3c4-aaaa-7bbb-8ccc-1234567890ab';
 

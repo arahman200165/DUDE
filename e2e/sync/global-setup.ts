@@ -54,7 +54,9 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   process.env['HUB_E2E_PORT'] = port;
   process.env['HUB_E2E_URL'] = `https://localhost:${port}`;
   process.env['HUB_E2E_DATA_DIR'] = dataDir;
-  process.env['HUB_E2E_CERT'] = readFileSync(path.join(dataDir, 'config', 'tls', 'cert.pem'), 'utf8');
+  // A new Hub issues its leaf from a local CA (PD-058): trust the leaf and, when present, the root.
+  const rootFile = path.join(dataDir, 'config', 'tls', 'ca', 'ca-cert.pem');
+  process.env['HUB_E2E_CERT'] = readFileSync(path.join(dataDir, 'config', 'tls', 'cert.pem'), 'utf8') + (existsSync(rootFile) ? readFileSync(rootFile, 'utf8') : '');
   process.env['HUB_E2E_SPKI'] = listening.spkiSha256;
   await bootstrapOwner();
 

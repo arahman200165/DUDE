@@ -7,6 +7,7 @@ import { HUB_API_PREFIX } from '@dude/contracts/hub';
 import type { HelloResponse } from '@dude/contracts/hub';
 import { callAdmin } from '../admin/admin-client.js';
 import { hubPaths, resolveDataDir } from '../config/data-dir.js';
+import { readCaCertPem } from '../tls/ca-public.js';
 import { spkiSha256 } from '../tls/self-signed.js';
 
 export const SERVICE_NAME = 'DudeHub';
@@ -177,7 +178,7 @@ export function fetchHello(dataDir: string, port: number): Promise<HelloResponse
   return new Promise((resolve) => {
     const req = https.request(
       {
-        host: '127.0.0.1', port, path: `${HUB_API_PREFIX}/hello`, method: 'GET', ca: pem, servername: 'localhost', timeout: 4000,
+        host: '127.0.0.1', port, path: `${HUB_API_PREFIX}/hello`, method: 'GET', ca: [pem, ...(readCaCertPem(hubPaths(dataDir).tlsDir) ?? [])], servername: 'localhost', timeout: 4000,
         checkServerIdentity: (_host, cert) => (spkiSha256(new X509Certificate(cert.raw)) === pin ? undefined : new Error('Pinned certificate mismatch.')),
       },
       (res) => {

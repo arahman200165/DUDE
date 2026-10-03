@@ -17,6 +17,11 @@ import path from 'node:path';
 import { applyHubNameChange, loadOrCreateHubConfig, writeHubConfig } from '../config/hub-config.js';
 import { computeSubjectAltNames, missingSubjectAltNames } from '../tls/names.js';
 import type { TlsRotation } from '../tls/rotation.js';
+import type { CaKeyProtector } from '../tls/ca-key-protector.js';
+import { isIssuedByCa, readCaCertPem } from '../tls/ca-public.js';
+import { createLeafIssuer } from '../tls/leaf-issuer.js';
+import { createLocalCa, validateCaSuffixes } from '../tls/local-ca.js';
+import { configuredDnsNames } from '../tls/names.js';
 
 export interface AdminMethodContext {
   db: Db;
@@ -37,6 +42,8 @@ export interface AdminMethodContext {
   /** Staged confirmations for admin-channel actions (default: a private store). */
   confirmations?: ConfirmationStore;
   /** Called with sessions revoked by an admin action, so the server can emit realtime events. */
+  /** Protects the local CA key; enables `tls.ca.init`. Key use is limited to admin-pipe CA commands and the renewal job. */
+  caProtector?: CaKeyProtector;
   /** Certificate rotation (dual pin). Absent in contexts that cannot swap the listener. */
   tls?: TlsRotation;
   onSessionsRevoked?: (sessions: readonly RevokedSession[]) => void;
@@ -109,6 +116,34 @@ export function buildAdminMethods(context: AdminMethodContext): Record<string, A
         context.onNamesChanged?.(names);
       }
       return { names, subjectAltNames: sans, staged, changed };
+    },
+    /**
+     * Opt-in to the built-in local CA for an existing Hub: creates the CA if absent and STAGES a CA-issued leaf with a
+     * new key through the dual-pin rotation. The operator activates it with `tls activate`. Refused while a next pin is staged.
+     */
+    'tls.ca.init': (params) => {
+      const raw = (params as { suffixes?: unknown } | null)?.suffixes ?? [];
+      if (!Array.isArray(raw) || raw.some((s) => typeof s !== 'string')) throw new AdminError('bad-request', 'suffixes must be an array of DNS suffixes.');
+      let suffixes: string[];
+      try { suffixes = validateCaSuffixes(raw as string[]); } catch (error) { throw new AdminError('bad-request', (error as Error).message); }
+      if (!context.tlsDir || !context.configFile || !context.caProtector) throw new AdminError('unavailable', 'The local CA is not available in this context.');
+      const tlsDir = context.tlsDir;
+      if (rotation().status().next) throw new AdminError('conflict', 'A next certificate is already staged. Run "dude-hub tls activate" first.');
+      const activeFile = path.join(tlsDir, 'cert.pem');
+      const existingCa = readCaCertPem(tlsDir);
+      if (existingCa !== null && existsSync(activeFile) && isIssuedByCa(readFileSync(activeFile, 'utf8'), existingCa)) {
+        throw new AdminError('conflict', 'The active certificate is already issued by the local CA.');
+      }
+      const config = loadOrCreateHubConfig(context.configFile);
+      let created: string | null = null;
+      if (existingCa === null) {
+        try {
+          created = createLocalCa({ tlsDir, hubInstanceId: context.hubInstanceId, protector: context.caProtector, suffixes, configuredNames: configuredDnsNames(config) }).rootSha256;
+        } catch (error) { throw new AdminError('internal', `The local CA could not be created: ${(error as Error).message}`); }
+        audit(context.db, { event: 'tls.ca-created', outcome: 'success', actorKind: 'cli', detail: { rootSha256: created }, now: now() });
+      }
+      const staged = rotate(() => rotation().stage({ extraNames: computeSubjectAltNames(config), issuer: createLeafIssuer(tlsDir, context.caProtector) }));
+      return { created: created !== null, suffixesIgnored: created === null && suffixes.length > 0, staged };
     },
     'tls.activate.preview': (params) => rotate(() => rotation().previewActivate({ force: flag(params, 'force') })),
     'tls.activate.apply': (params) => {

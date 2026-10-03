@@ -59,3 +59,8 @@ export function missingSubjectAltNames(certPem: string, wanted: readonly string[
   const have = new Set(certificateSubjectAltNames(certPem));
   return wanted.filter((name) => !have.has(canonicalSanName(name)));
 }
+
+/** Configured exposure names that are DNS names (host part; IP literals are not CA name constraints). */
+export function configuredDnsNames(config: Pick<HubConfig, 'exposure'>): string[] {
+  return config.exposure.names.map((name) => normalizeHubName(name).host).filter((host) => !isIPv4(host) && !isIPv6(host));
+}

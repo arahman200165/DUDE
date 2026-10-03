@@ -43,6 +43,9 @@ Run these from an elevated prompt (the Hub CLI is `"%ProgramFiles%\DUDE Hub\dude
 | --- | --- |
 | `dude-hub service status` / `restart` | Service state, reachability and the registered-device count; stop and start the service. |
 | `dude-hub network lan on` / `off` / `status` | Turn LAN mode (and its firewall rule) on or off. |
+| `dude-hub tls ca init [--suffix <dns>]...` | Opt an existing Hub in to the built-in local CA (new Hubs use it by default): creates the CA and stages a CA-issued certificate with a new key; activate it with `dude-hub tls activate`. Elevated when the service is installed. |
+| `dude-hub tls ca status` | Show the root fingerprint and validity, its permitted name subtrees, whether the active certificate is CA-issued, and its expiry. |
+| `dude-hub tls ca export [--out <file.cer>]` | Write the public root as DER (default `dude-hub-root.cer`) and print the `certutil -user -addstore Root` command that trusts it for the current user. |
 | `dude-hub tls names list` | Show the configured Hub names, the active certificate's names and any names it is missing. |
 | `dude-hub tls names add <name>` | Add a DNS name or IP (optionally `name:port`) to the Host allowlist and stage a re-issued certificate; activate it with `dude-hub tls activate` once devices acknowledge. |
 | `dude-hub tls names remove <name>` | Remove a configured name and stage a certificate without it. |

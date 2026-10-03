@@ -5,7 +5,10 @@ import { transaction } from '@dude/sqlite-store';
 import type { Db } from '@dude/sqlite-store';
 import { audit } from '../security/audit.js';
 import { ConfirmationStore } from '../security/confirmation-store.js';
-import { generateSelfSigned, spkiSha256 } from './self-signed.js';
+import { createLeafIssuer } from './leaf-issuer.js';
+import type { CaKeyProtector } from './ca-key-protector.js';
+import type { LeafIssuer } from './leaf-issuer.js';
+import { spkiSha256 } from './self-signed.js';
 
 export const TLS_ACTIVATE_ACTION = 'tls.activate';
 const BINDING = 'cli';
@@ -35,6 +38,7 @@ export interface TlsRotationOptions {
   confirmations?: ConfirmationStore;
   /** Hot-swaps the serving certificate (`server.setSecureContext`). */
   applySecureContext?: (context: { key: string; cert: string; minVersion: 'TLSv1.2' }) => void;
+  caProtector?: CaKeyProtector;
   /** Tells connected clients about a newly staged pin. */
   announceNext?: (spkiSha256: string) => void;
 }
@@ -80,10 +84,11 @@ export function createTlsRotation(options: TlsRotationOptions) {
   }
 
   /** `extraNames` are added to the certificate SAN list (on top of the built-ins), e.g. configured operator names. */
-  function stage(input: { restage?: boolean; extraNames?: readonly string[] } = {}): { spkiSha256: string; restaged: boolean } {
+  function stage(input: { restage?: boolean; extraNames?: readonly string[]; issuer?: LeafIssuer } = {}): { spkiSha256: string; restaged: boolean; source: LeafIssuer['source'] } {
     const existing = pin('next');
     if (existing && input.restage !== true) throw new RotationError('conflict', 'A next certificate is already staged. Use --restage to replace it.');
-    const { keyPem, certPem } = generateSelfSigned({ hubInstanceId: options.hubInstanceId, ...(input.extraNames ? { extraNames: input.extraNames } : {}) });
+    const issuer = input.issuer ?? createLeafIssuer(tlsDir, options.caProtector);
+    const { keyPem, certPem } = issuer.issue({ hubInstanceId: options.hubInstanceId, ...(input.extraNames ? { extraNames: input.extraNames } : {}) });
     const spki = spkiSha256(certPem);
     writeFileSync(path.join(tlsDir, NEXT_KEY_FILE), keyPem, { mode: 0o600 });
     writeFileSync(path.join(tlsDir, NEXT_CERT_FILE), certPem, { mode: 0o600 });
@@ -94,7 +99,7 @@ export function createTlsRotation(options: TlsRotationOptions) {
       audit(db, { event: 'tls.rotation-staged', outcome: 'success', actorKind: 'cli', detail: { spkiSha256: spki, restaged: existing !== undefined }, now: now() });
     });
     options.announceNext?.(spki);
-    return { spkiSha256: spki, restaged: existing !== undefined };
+    return { spkiSha256: spki, restaged: existing !== undefined, source: issuer.source };
   }
 
   const acknowledge = (deviceId: string, spki: string): boolean => acknowledgeTlsPin(db, deviceId, spki, now());

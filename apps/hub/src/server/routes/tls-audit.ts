@@ -1,3 +1,4 @@
+import { X509Certificate } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import type { Db } from '@dude/sqlite-store';
@@ -5,8 +6,9 @@ import { AUDIT_LIST_DEFAULT_LIMIT, AUDIT_LIST_MAX_LIMIT, AuditListQuery, AuditLi
 import type { createRequireOwner } from '../../auth/owner-auth.js';
 import { envelope } from '../errors.js';
 import { listAudit } from '../../security/audit.js';
+import { describeCertificateSource } from '../../tls/ca-public.js';
 
-export interface TlsAuditRouteOptions { db: Db; requireOwner: ReturnType<typeof createRequireOwner> }
+export interface TlsAuditRouteOptions { db: Db; tlsDir: string; requireOwner: ReturnType<typeof createRequireOwner> }
 
 /** `GET /tls/certificates`: no credential (public pins). `GET /audit`: owner only. */
 export function registerTlsAuditRoutes(app: FastifyInstance, options: TlsAuditRouteOptions): void {
@@ -25,7 +27,9 @@ export function registerTlsAuditRoutes(app: FastifyInstance, options: TlsAuditRo
       };
       const active = pick('active');
       if (!active) return reply.code(404).send(envelope('not-found', 'No active certificate.'));
-      return reply.code(200).send({ active, next: pick('next') });
+      // Public data only: the root certificate, never a key (this module must not import the CA key protector).
+      const { source, caCertPem } = describeCertificateSource(options.tlsDir, active.certPem);
+      return reply.code(200).send({ active, next: pick('next'), source, caCertPem, leafNotAfter: new Date(new X509Certificate(active.certPem).validTo).toISOString() });
     },
   );
 

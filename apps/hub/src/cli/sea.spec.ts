@@ -4,6 +4,7 @@ import https from 'node:https';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { trustedPem } from '../server/test-helpers.js';
 
 // Opt-in: builds/uses the real single-executable application. Run with DUDE_TEST_SEA=1.
 const root = path.resolve(import.meta.dirname, '..', '..', '..', '..');
@@ -52,7 +53,7 @@ describe.skipIf(process.env.DUDE_TEST_SEA !== '1')('Hub single-executable applic
           }
         });
       });
-      const cert = readFileSync(path.join(dataDir, 'config', 'tls', 'cert.pem'), 'utf8');
+      const cert = trustedPem(path.join(dataDir, 'config', 'tls'));
       const hello = await get(`${url}/api/v1/hello`, cert);
       expect(hello.status).toBe(200);
       expect(JSON.parse(hello.body)).toMatchObject({ bootstrapped: false });

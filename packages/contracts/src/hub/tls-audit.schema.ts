@@ -3,10 +3,21 @@ import Type, { type Static } from 'typebox';
 const SpkiSha256 = Type.String({ pattern: '^[A-Za-z0-9_-]{43}$' });
 const PinnedCertificate = Type.Object({ spkiSha256: SpkiSha256, certPem: Type.String() });
 
-/** Public data: the pinned certificates. A client verifies a fetched `next` certificate against the announced pin. */
+/** Where the active leaf comes from. 31E grows this with `imported` and `proxy`. */
+export const TlsCertificateSource = Type.Union([Type.Literal('self-signed'), Type.Literal('local-ca')]);
+export type TlsCertificateSource = Static<typeof TlsCertificateSource>;
+
+/**
+ * Public data: the pinned certificates. A client verifies a fetched `next` certificate against the announced pin.
+ * `caCertPem` is the PUBLIC local-CA root (never a key), or null when the Hub has no local CA.
+ */
 export const TlsCertificatesResponse = Type.Object({
   active: PinnedCertificate,
   next: Type.Union([PinnedCertificate, Type.Null()]),
+  source: TlsCertificateSource,
+  caCertPem: Type.Union([Type.String(), Type.Null()]),
+  /** ISO-8601 expiry of the active leaf. */
+  leafNotAfter: Type.String(),
 });
 export type TlsCertificatesResponse = Static<typeof TlsCertificatesResponse>;
 
