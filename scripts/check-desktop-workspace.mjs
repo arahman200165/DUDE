@@ -29,6 +29,7 @@ writeFileSync(bootstrap,`
  require(${JSON.stringify(path.join(root,'dist/electron/main.js'))});
 `);
 const launches=[];
+const SHELL_READY_MS=60000;
 async function launch(args){
  const env={...process.env,DUDE_PERF_LOG:'1'};delete env.ELECTRON_RUN_AS_NODE;
  const app=await _electron.launch({executablePath:electron,args:[bootstrap,...args],cwd:root,env,timeout:60000});
@@ -36,7 +37,10 @@ async function launch(args){
  const page=await app.firstWindow();page.setDefaultTimeout(30000);
  page.on('pageerror',error=>console.error('Renderer error:',error));
  page.on('console',message=>{if(message.type()==='error')console.error('Renderer console:',message.text());});
- await expect(page.locator('app-sidebar')).toBeVisible();
+ // A cold start may wait out the Device Agent's ready window (READY_TIMEOUT_MS, 10 s) before the shell renders, and a
+ // fresh CI runner is slower still, so the 5 s expect default is too tight. Print the startup marks if it never renders.
+ try{await expect(page.locator('app-sidebar')).toBeVisible({timeout:SHELL_READY_MS});}
+ catch(error){console.error(`Startup marks:\n${marks.join('')||'(none)'}\nRenderer URL: ${page.url()}`);await app.close().catch(()=>{});throw error;}
  return {app,page,marks};
 }
 const kvValue=(page,namespace,key)=>page.evaluate(async([n,k])=>{
@@ -107,7 +111,7 @@ try{
  });
  assert.equal(seeded.ok,true);
  await page.reload();
- await expect(page.locator('app-sidebar')).toBeVisible();
+ await expect(page.locator('app-sidebar')).toBeVisible({timeout:SHELL_READY_MS});
  await expect(page.getByRole('button',{name:'Skip for now',exact:true})).toHaveCount(0);
  await expectIndent(page);
  launches.push({kind:'cold',marks:marks.join('')});

@@ -43,11 +43,13 @@ async function submitWithRetry(p: Page, stillOn: RegExp, password?: string): Pro
     if (!stillOn.test(p.url())) return;
     if (!enabled) throw new Error('The submit button never became enabled');
     await p.getByTestId('submit').click();
+    // allInnerTexts() never waits for a match: the page can navigate away between the URL check and these reads, and a
+    // waiting innerText() would then block on an element that is gone for good, outliving the poll's timeout.
     const state = async (): Promise<string> => {
       if (!stillOn.test(p.url())) return 'done';
-      const submit = p.getByTestId('submit');
-      if ((await submit.count()) === 0 || /…/.test(await submit.innerText())) return 'waiting';
-      const error = await p.getByTestId('error').innerText();
+      const [submit] = await p.getByTestId('submit').allInnerTexts();
+      if (submit === undefined || /…/.test(submit)) return 'waiting';
+      const [error = ''] = await p.getByTestId('error').allInnerTexts();
       if (/Too many attempts/.test(error)) return 'throttled';
       return error.trim() === '' ? 'waiting' : `failed: ${error}`;
     };
