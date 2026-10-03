@@ -119,7 +119,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     return runNetwork({ action: parsed.action, ...(parsed.trusted !== undefined ? { trusted: parsed.trusted } : {}), ...(parsed.publicOrigin !== undefined ? { publicOrigin: parsed.publicOrigin } : {}), ...(parsed.acknowledgeUnreleased ? { acknowledgeUnreleased: true } : {}), ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}) });
   }
   if (parsed.command === 'doctor') {
-    return runDoctor({ hubVersion: hubVersion(), ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}) });
+    return runDoctor({ hubVersion: hubVersion(), ...(parsed.json ? { json: true } : {}), ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}) });
   }
   if (parsed.command === 'purge') {
     return runPurge({
@@ -214,6 +214,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
           applySecureContext: (context) => (server.server as unknown as TlsServer).setSecureContext(context),
           announceNext: (spkiSha256) => server.hubEvents.emit('tls-next-pin', { spkiSha256 }),
         }),
+        diagnostics: () => server.hubDiagnostics(),
         proxyPins: createProxyPins({ db: hub.db, announceNext: (spkiSha256) => server.hubEvents.emit('tls-next-pin', { spkiSha256, kind: 'proxy' }) }),
         onSessionsRevoked: (sessions) => emitRevoked(server, sessions, 'owner-reset'),
       }),

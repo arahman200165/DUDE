@@ -53,6 +53,8 @@ export interface AdminMethodContext {
   tls?: TlsRotation;
   /** Reverse-proxy leaf pins (separate pin set). */
   proxyPins?: ProxyPins;
+  /** The endpoint diagnostics collector (PD-060); enables the `diagnostics` method. */
+  diagnostics?: () => Promise<unknown>;
   onSessionsRevoked?: (sessions: readonly RevokedSession[]) => void;
 }
 
@@ -298,6 +300,11 @@ export function buildAdminMethods(context: AdminMethodContext): Record<string, A
         audit(context.db, { event: 'network.exposure-mode-changed', outcome: 'success', actorKind: 'cli', detail: { from: previous, to: input.mode }, now: now() });
       }
       return { mode: input.mode, previous, restartRequired: previous !== input.mode };
+    },
+    /** The full endpoint diagnostics report (PD-060) for `dude-hub doctor`; redacted by construction. */
+    diagnostics: async () => {
+      if (!context.diagnostics) throw new AdminError('unavailable', 'Diagnostics are not available in this context.');
+      return context.diagnostics();
     },
     /** Redacted diagnostics for `status`, `doctor` and the service commands; never secrets. */
     status: () => {

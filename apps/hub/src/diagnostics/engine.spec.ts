@@ -1,0 +1,179 @@
+import { describe, expect, it } from 'vitest';
+import { Value } from 'typebox/value';
+import { HubDiagnosticsReport } from '@dude/contracts/hub';
+import type { DiagnosticCheck } from '@dude/contracts/hub';
+import { generateSelfSigned } from '../tls/self-signed.js';
+import { collectDiagnostics, formatChecks } from './engine.js';
+import type { DiagnosticsDeps } from './engine.js';
+import { createHostFacts } from './gather.js';
+import type { ExecResult } from '../service/common.js';
+
+const NOW = Date.parse('2026-10-03T00:00:00.000Z');
+const cert = generateSelfSigned({ hubInstanceId: 'h', now: new Date(NOW - 86_400_000), validityYears: 1 });
+
+function deps(over: Partial<DiagnosticsDeps> = {}, certOver: Partial<NonNullable<DiagnosticsDeps['certificate']>> = {}): DiagnosticsDeps {
+  return {
+    now: NOW, hubVersion: '1.0.0', running: true, serviceMode: 'foreground', uptimeSeconds: 42, schemaVersion: 5, platform: 'win32',
+    config: { port: 47821, bind: 'loopback', bindAddress: '127.0.0.1', exposure: { mode: 'private', names: [] } },
+    wantedNames: ['localhost', '127.0.0.1'],
+    certificate: { pem: cert.certPem, source: 'self-signed', nextSpkiSha256: null, pendingAcks: 0, chainLength: 1, ca: null, hsts: false, ...certOver },
+    proxyPins: { active: null, next: null }, ownerExists: true,
+    realtime: { available: true, owner: 1, device: 2 },
+    host: () => Promise.resolve({ serviceState: 'running', firewallPresent: false }),
+    ...over,
+  };
+}
+
+const byId = async (d: DiagnosticsDeps): Promise<Record<string, DiagnosticCheck>> =>
+  Object.fromEntries((await collectDiagnostics(d)).checks.map((c) => [c.id, c]));
+
+describe('collectDiagnostics', () => {
+  it('builds a schema-valid report with every check once, redaction-safe', async () => {
+    const report = await collectDiagnostics(deps());
+    expect(Value.Check(HubDiagnosticsReport, report)).toBe(true);
+    expect(report.checks.map((c) => c.id)).toEqual([
+      'service-running', 'https-configured', 'certificate-valid', 'certificate-covers-names', 'certificate-trustable', 'next-pin-pending',
+      'authentication-active', 'realtime-available', 'firewall-rule', 'exposure-mode', 'proxy-trust', 'container-host-allowlist', 'external-reachability',
+    ]);
+    expect(report.exposure.publicReleased).toBe(false);
+    expect(report.realtime.connections).toEqual({ owner: 1, device: 2 });
+    expect(report.certificate?.spkiSha256).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(JSON.stringify(report)).not.toContain('PRIVATE KEY');
+    expect(JSON.stringify(report)).not.toContain('BEGIN CERTIFICATE');
+    expect(formatChecks(report)).toContain('[PASS] Hub is running (verified)');
+  });
+
+  it('service and https: verified when running; fail/warn/not-checked when no Hub answers', async () => {
+    const up = await byId(deps());
+    expect(up['service-running']).toMatchObject({ status: 'pass', basis: 'verified' });
+    expect(up['https-configured']).toMatchObject({ status: 'pass', basis: 'verified' });
+    const down = await byId(deps({ running: false, host: () => Promise.resolve({ serviceState: 'stopped', firewallPresent: null }) }));
+    expect(down['service-running']).toMatchObject({ status: 'fail', fix: 'dude-hub service start' });
+    expect(down['https-configured']).toMatchObject({ status: 'info', basis: 'not-checked' });
+    const noAdmin = await byId(deps({ running: false, host: () => Promise.resolve({ serviceState: 'running', firewallPresent: null }) }));
+    expect(noAdmin['service-running']?.status).toBe('warn');
+  });
+
+  it('certificate-valid: pass, warn under 30 days unless automatically renewed, fail when expired', async () => {
+    expect((await byId(deps()))['certificate-valid']).toMatchObject({ status: 'pass', basis: 'verified' });
+    const soon = NOW + 340 * 86_400_000;
+    const warn = (await byId(deps({ now: soon })))['certificate-valid'];
+    expect(warn).toMatchObject({ status: 'warn', fix: 'dude-hub tls rotate' });
+    const auto = (await byId(deps({ now: soon }, { source: 'local-ca' })))['certificate-valid'];
+    expect(auto?.status).toBe('pass');
+    expect(auto?.detail).toMatch(/renewed automatically/);
+    const imported = (await byId(deps({ now: soon }, { source: 'imported' })))['certificate-valid'];
+    expect(imported?.fix).toMatch(/tls import/);
+    const expired = (await byId(deps({ now: NOW + 800 * 86_400_000 })))['certificate-valid'];
+    expect(expired).toMatchObject({ status: 'fail' });
+    expect((await byId(deps({ certificate: null })))['certificate-valid']?.status).toBe('fail');
+  });
+
+  it('certificate-covers-names lists missing names and points at tls names add, or at activate when a pin is staged', async () => {
+    const missing = (await byId(deps({ wantedNames: ['localhost', 'hub.lan'] })))['certificate-covers-names'];
+    expect(missing).toMatchObject({ status: 'warn', basis: 'verified', fix: 'dude-hub tls names add hub.lan' });
+    expect(missing?.detail).toContain('hub.lan');
+    const staged = (await byId(deps({ wantedNames: ['hub.lan'] }, { nextSpkiSha256: 'n'.repeat(43) })))['certificate-covers-names'];
+    expect(staged?.fix).toBe('dude-hub tls activate');
+    expect((await byId(deps()))['certificate-covers-names']?.status).toBe('pass');
+  });
+
+  it('certificate-trustable by source (claimed: browser trust is the client\'s)', async () => {
+    expect((await byId(deps()))['certificate-trustable']).toMatchObject({ status: 'info', basis: 'claimed' });
+    const lan = await byId(deps({ config: { port: 1, bind: 'lan', bindAddress: '0.0.0.0', exposure: { mode: 'private', names: [] } } }));
+    expect(lan['certificate-trustable']).toMatchObject({ status: 'warn', fix: 'dude-hub tls ca init' });
+    expect((await byId(deps({}, { source: 'local-ca' })))['certificate-trustable']).toMatchObject({ status: 'info', fix: 'dude-hub tls ca export' });
+    expect((await byId(deps({}, { source: 'imported' })))['certificate-trustable']).toMatchObject({ status: 'pass', basis: 'claimed' });
+  });
+
+  it('next-pin-pending: info with the pending count while a pin awaits acknowledgements', async () => {
+    const check = (await byId(deps({}, { nextSpkiSha256: 'n'.repeat(43), pendingAcks: 3 })))['next-pin-pending'];
+    expect(check).toMatchObject({ status: 'info', basis: 'verified', fix: 'dude-hub tls activate' });
+    expect(check?.detail).toContain('3 device');
+    expect((await byId(deps()))['next-pin-pending']?.status).toBe('pass');
+  });
+
+  it('authentication-active: verified owner, warn without an owner, not-checked offline', async () => {
+    expect((await byId(deps()))['authentication-active']).toMatchObject({ status: 'pass', basis: 'verified' });
+    expect((await byId(deps({ ownerExists: false })))['authentication-active']).toMatchObject({ status: 'warn', fix: 'dude-hub setup-token' });
+    expect((await byId(deps({ ownerExists: null })))['authentication-active']).toMatchObject({ status: 'info', basis: 'not-checked' });
+  });
+
+  it('realtime-available: pass, fail when missing, not-checked offline', async () => {
+    expect((await byId(deps()))['realtime-available']).toMatchObject({ status: 'pass', basis: 'verified' });
+    expect((await byId(deps({ realtime: { available: false, owner: 0, device: 0 } })))['realtime-available']?.status).toBe('fail');
+    expect((await byId(deps({ running: false })))['realtime-available']?.basis).toBe('not-checked');
+  });
+
+  it('firewall-rule: verified on Windows LAN, claimed elsewhere, n/a on loopback', async () => {
+    const lan = { port: 47821, bind: 'lan' as const, bindAddress: '0.0.0.0', exposure: { mode: 'private' as const, names: [] } };
+    const missing = await collectDiagnostics(deps({ config: lan }));
+    expect(missing.checks.find((c) => c.id === 'firewall-rule')).toMatchObject({ status: 'warn', basis: 'verified', fix: 'dude-hub network lan on' });
+    expect(missing.firewall).toEqual({ applicable: true, ruleName: 'DUDE Hub (LAN)', present: false, profile: null });
+    const present = await collectDiagnostics(deps({ config: lan, host: () => Promise.resolve({ firewallPresent: true }) }));
+    expect(present.checks.find((c) => c.id === 'firewall-rule')).toMatchObject({ status: 'pass', basis: 'verified' });
+    expect(present.firewall).toMatchObject({ present: true, profile: 'private' });
+    const unknown = await collectDiagnostics(deps({ config: lan, host: () => Promise.resolve({ firewallPresent: null }) }));
+    expect(unknown.checks.find((c) => c.id === 'firewall-rule')).toMatchObject({ status: 'warn', basis: 'claimed' });
+    const linux = await collectDiagnostics(deps({ config: lan, platform: 'linux' }));
+    expect(linux.checks.find((c) => c.id === 'firewall-rule')).toMatchObject({ status: 'info', basis: 'claimed' });
+    expect(linux.firewall).toMatchObject({ applicable: false, present: null });
+    const loop = await collectDiagnostics(deps());
+    expect(loop.checks.find((c) => c.id === 'firewall-rule')).toMatchObject({ status: 'info', basis: 'verified' });
+  });
+
+  it('exposure-mode: info for private, fail for public (not released)', async () => {
+    expect((await byId(deps()))['exposure-mode']?.status).toBe('info');
+    const pub = (await byId(deps({ config: { port: 1, bind: 'loopback', bindAddress: '127.0.0.1', exposure: { mode: 'public', names: [] } } })))['exposure-mode'];
+    expect(pub).toMatchObject({ status: 'fail' });
+    expect(pub?.detail).toContain('Phase 31F');
+  });
+
+  it('proxy-trust: claimed; warns without an active proxy pin', async () => {
+    const proxyConfig = { port: 1, bind: 'loopback' as const, bindAddress: '127.0.0.1', exposure: { mode: 'private' as const, names: ['hub.example.com'], proxy: { trusted: ['10.0.0.1'], publicOrigin: 'https://hub.example.com' } } };
+    const warn = await collectDiagnostics(deps({ config: proxyConfig }));
+    expect(warn.checks.find((c) => c.id === 'proxy-trust')).toMatchObject({ status: 'warn', basis: 'claimed' });
+    expect(warn.exposure).toMatchObject({ canonicalOrigin: 'https://hub.example.com', proxy: { trusted: ['10.0.0.1'] } });
+    const ok = await collectDiagnostics(deps({ config: proxyConfig, proxyPins: { active: 'a'.repeat(43), next: null } }));
+    expect(ok.checks.find((c) => c.id === 'proxy-trust')).toMatchObject({ status: 'pass', basis: 'claimed' });
+    expect((await byId(deps()))['proxy-trust']?.detail).toMatch(/No reverse proxy/);
+  });
+
+  it('container-host-allowlist: warns when container mode has no names', async () => {
+    const container = { port: 1, bind: 'container' as const, bindAddress: '0.0.0.0', exposure: { mode: 'private' as const, names: [] as string[] } };
+    expect((await byId(deps({ config: container, platform: 'linux' })))['container-host-allowlist']).toMatchObject({ status: 'warn', fix: 'dude-hub tls names add <name>' });
+    expect((await byId(deps({ config: { ...container, exposure: { mode: 'private', names: ['hub.lan'] } }, platform: 'linux' })))['container-host-allowlist']?.status).toBe('info');
+  });
+
+  it('external-reachability is never checked before Phase 31F', async () => {
+    expect((await byId(deps()))['external-reachability']).toMatchObject({ status: 'info', basis: 'not-checked', detail: 'Verified in Phase 31F.' });
+  });
+
+  it('a host-facts failure never fails the report', async () => {
+    const report = await collectDiagnostics(deps({ host: () => Promise.reject(new Error('netsh missing')) }));
+    expect(report.firewall.present).toBeNull();
+  });
+});
+
+describe('createHostFacts cache', () => {
+  it('shells out once per 60 s and survives failures', async () => {
+    let t = 0;
+    const calls: string[] = [];
+    const exec = (file: string, args: readonly string[]): Promise<ExecResult> => {
+      calls.push(`${file} ${args[0]}`);
+      return Promise.resolve({ stdout: file === 'sc.exe' ? 'STATE : 4  RUNNING' : '', stderr: '', code: 0 });
+    };
+    const host = createHostFacts({ exec, platform: 'win32', now: () => t });
+    expect(await host()).toEqual({ serviceState: 'running', firewallPresent: true });
+    const first = calls.length;
+    t = 59_000;
+    await Promise.all([host(), host()]);
+    expect(calls.length).toBe(first);
+    t = 61_000;
+    await host();
+    expect(calls.length).toBe(first * 2);
+    const broken = createHostFacts({ exec: () => Promise.reject(new Error('x')), platform: 'win32' });
+    expect(await broken()).toMatchObject({ firewallPresent: false });
+    expect(await createHostFacts({ exec, platform: 'linux' })()).toEqual({ firewallPresent: null });
+  });
+});

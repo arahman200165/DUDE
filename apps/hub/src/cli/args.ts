@@ -12,7 +12,7 @@ export type ParsedCommand =
   | { command: 'tls-names'; action: 'list' | 'add' | 'remove'; name?: string; dataDir?: string; installDir?: string }
   | { command: 'service'; action: 'install' | 'uninstall' | 'start' | 'stop' | 'restart' | 'status' | 'update'; dataDir?: string; installDir?: string; port?: number; lan?: boolean; source?: string; keepData?: boolean }
   | { command: 'network'; action: 'lan-on' | 'lan-off' | 'status' | 'proxy-on' | 'proxy-off' | 'proxy-status' | 'mode-private' | 'mode-public'; trusted?: string[]; publicOrigin?: string; acknowledgeUnreleased?: boolean; dataDir?: string; installDir?: string }
-  | { command: 'doctor'; dataDir?: string; installDir?: string }
+  | { command: 'doctor'; json?: boolean; dataDir?: string; installDir?: string }
   | { command: 'purge'; dataDir?: string; includeBackups?: boolean; confirm?: string; type?: string }
   | { command: 'version' }
   | { command: 'help' };
@@ -51,7 +51,7 @@ Usage:
   dude-hub network proxy on --trusted <cidr>[,<cidr>...] --public-origin https://<name>[:<port>] [--data-dir <dir>] [--install-dir <dir>]
   dude-hub network proxy off|status [--data-dir <dir>] [--install-dir <dir>]
   dude-hub network mode private|public [--i-understand-unreleased] [--data-dir <dir>] [--install-dir <dir>]   (public is not released until Phase 31F)
-  dude-hub doctor [--data-dir <dir>] [--install-dir <dir>]
+  dude-hub doctor [--json] [--data-dir <dir>] [--install-dir <dir>]   (readiness checklist; --json prints the endpoint diagnostics report)
   dude-hub purge --data-dir <dir> [--include-backups] [--confirm <token> --type "DELETE HUB DATA"]
   dude-hub version
   dude-hub help
@@ -236,8 +236,8 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
     throw new UsageError('Usage: dude-hub network lan on|off|status | proxy on|off|status | mode private|public. Run "dude-hub help".');
   }
   if (command === 'doctor') {
-    const values = parseFlags(rest, ['--install-dir', '--data-dir'], []);
-    return { command: 'doctor', ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir') };
+    const values = parseFlags(rest, ['--install-dir', '--data-dir', '--json'], ['--json']);
+    return { command: 'doctor', ...(values['--json'] !== undefined ? { json: true } : {}), ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir') };
   }
   if (command === 'purge') {
     const values = parseFlags(rest, ['--data-dir', '--include-backups', '--confirm', '--type'], ['--include-backups']);

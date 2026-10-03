@@ -2,6 +2,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { HUB_DEFAULT_PORT } from '@dude/contracts/hub';
+import { HubDiagnosticsReport } from '@dude/contracts/hub';
+import { Value } from 'typebox/value';
 import { buildAdminMethods } from '../admin/methods.js';
 import { parseArgs } from '../cli/args.js';
 import { hubPaths } from '../config/data-dir.js';
@@ -53,6 +55,7 @@ describe('argument parsing', () => {
     expect(parseArgs(['network', 'lan', 'off'])).toEqual({ command: 'network', action: 'lan-off' });
     expect(parseArgs(['network', 'status'])).toEqual({ command: 'network', action: 'status' });
     expect(parseArgs(['doctor', '--data-dir', 'x'])).toEqual({ command: 'doctor', dataDir: 'x' });
+    expect(parseArgs(['doctor', '--json'])).toEqual({ command: 'doctor', json: true });
     expect(parseArgs(['purge', '--data-dir', 'x', '--include-backups', '--confirm', 't', '--type', 'DELETE HUB DATA'])).toEqual({
       command: 'purge', dataDir: 'x', includeBackups: true, confirm: 't', type: 'DELETE HUB DATA',
     });
@@ -363,6 +366,8 @@ describe('admin status and network.set', () => {
   });
 });
 
+const DETAILS = '--- details ---\n';
+
 describe('doctor', () => {
   it('masks secrets in log lines', () => {
     expect(redactLine('{"level":30,"msg":"ok","statusCode":200,"token":"abc123","setupCode":"XYZ","password":"hunter2"}')).toBe(
@@ -387,7 +392,10 @@ describe('doctor', () => {
     writeFileSync(path.join(paths.logsDir, 'hub.log'), `${lines.join('\n')}\n`);
     expect(await runDoctor({ hubVersion: '1.2.3', dataDir: f.dataDir, installDir: f.installDir }, f.deps)).toBe(0);
     const text = f.out.join('');
-    const report = JSON.parse(text) as Record<string, any>;
+    expect(text).toMatch(/^\[(PASS|WARN|FAIL|INFO)\] Hub is running/);
+    expect(text).toContain('[FAIL] Hub is running (verified): The Hub is not running (service stopped).');
+    const report = JSON.parse(text.slice(text.indexOf(DETAILS) + DETAILS.length)) as Record<string, any>;
+    expect(report['diagnostics'].service.mode).toBe('foreground');
     expect(report).toMatchObject({ hubVersion: '1.2.3', admin: null, service: { state: 'stopped' }, lanFirewallRule: false });
     expect(report['adminNote']).toMatch(/not reachable/);
     expect(report['database']).toEqual({ dbBytes: 14, walBytes: 5 });
@@ -402,6 +410,31 @@ describe('doctor', () => {
     const f = fixture({ state: 'running' });
     const call = async (): Promise<unknown> => ({ schemaVersion: 2, migrations: [], pendingMigrations: [] });
     await runDoctor({ hubVersion: '1', dataDir: f.dataDir }, { ...f.deps, call });
-    expect(JSON.parse(f.out.join(''))).toMatchObject({ admin: { schemaVersion: 2 } });
+    const text = f.out.join('');
+    expect(JSON.parse(text.slice(text.indexOf(DETAILS) + DETAILS.length))).toMatchObject({ admin: { schemaVersion: 2 } });
+  });
+
+  it('--json prints the endpoint diagnostics report: offline from files, or from the running Hub over the admin channel', async () => {
+    const offline = fixture({ state: 'stopped' });
+    const paths = hubPaths(offline.dataDir);
+    mkdirSync(paths.tlsDir, { recursive: true });
+    writeFileSync(path.join(paths.tlsDir, 'cert.pem'), generateSelfSigned({ hubInstanceId: 'h' }).certPem);
+    expect(await runDoctor({ hubVersion: '1.2.3', dataDir: offline.dataDir, json: true }, offline.deps)).toBe(0);
+    const report = JSON.parse(offline.out.join('')) as HubDiagnosticsReport;
+    expect(Value.Check(HubDiagnosticsReport, report)).toBe(true);
+    expect(report.hubVersion).toBe('1.2.3');
+    const byId = Object.fromEntries(report.checks.map((c) => [c.id, c]));
+    expect(byId['service-running']).toMatchObject({ status: 'fail', fix: 'dude-hub service start' });
+    expect(byId['realtime-available']).toMatchObject({ status: 'info', basis: 'not-checked' });
+    expect(byId['authentication-active']?.basis).toBe('not-checked');
+    expect(byId['external-reachability']).toMatchObject({ basis: 'not-checked', detail: 'Verified in Phase 31F.' });
+    expect(report.certificate?.source).toBe('self-signed');
+    expect(offline.out.join('')).not.toContain('PRIVATE KEY');
+
+    const running = fixture({ state: 'running' });
+    const served = { ...report, service: { mode: 'service', uptimeSeconds: 9 }, checks: [{ id: 'x', label: 'From the Hub', status: 'pass', basis: 'verified', detail: 'ok' }] };
+    const call = async (_dir: string, method: string): Promise<unknown> => (method === 'diagnostics' ? served : { schemaVersion: 2 });
+    await runDoctor({ hubVersion: '1', dataDir: running.dataDir, json: true }, { ...running.deps, call });
+    expect(JSON.parse(running.out.join(''))).toMatchObject({ service: { mode: 'service', uptimeSeconds: 9 }, checks: [{ id: 'x' }] });
   });
 });

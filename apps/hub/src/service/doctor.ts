@@ -4,10 +4,14 @@ import { statfs } from 'node:fs/promises';
 import path from 'node:path';
 import { hubPaths } from '../config/data-dir.js';
 import { spkiSha256 } from '../tls/self-signed.js';
+import { Value } from 'typebox/value';
+import { HubDiagnosticsReport } from '@dude/contracts/hub';
+import { collectDiagnostics, formatChecks } from '../diagnostics/index.js';
+import { gatherOfflineDeps } from '../diagnostics/gather.js';
 import { EXIT_OK, EXIT_USAGE, defaultInstallDir, firewallRuleExists, json, resolveDeps, serviceDataDir, serviceState, tryAdminStatus } from './common.js';
 import type { ServiceDeps } from './common.js';
 
-export interface DoctorOptions { dataDir?: string; installDir?: string; hubVersion: string }
+export interface DoctorOptions { dataDir?: string; installDir?: string; hubVersion: string; /** Print only the endpoint diagnostics report as JSON. */ json?: boolean }
 
 export const LOG_LINES = 50;
 const REDACTED = '[redacted]';
@@ -70,6 +74,24 @@ export async function runDoctor(options: DoctorOptions, deps: ServiceDeps = {}):
   const installDir = path.resolve(options.installDir ?? defaultInstallDir(d.env));
   const state = await serviceState(d);
   const status = await tryAdminStatus(d, dataRoot);
+  const lanFirewallRule = d.platform === 'win32' ? await firewallRuleExists(d.exec) : null;
+
+  // One engine (PD-060): the running Hub reports over the admin channel; otherwise it is built from config and public certificate files.
+  let diagnostics: HubDiagnosticsReport | null = null;
+  if (status !== null) {
+    try {
+      const reported = await d.call(dataRoot, 'diagnostics', {});
+      if (Value.Check(HubDiagnosticsReport, reported)) diagnostics = reported;
+    } catch { /* an older Hub without the method: fall back to the offline view */ }
+  }
+  diagnostics ??= await collectDiagnostics(gatherOfflineDeps({
+    tlsDir: paths.tlsDir, configFile: paths.configFile, hubVersion: options.hubVersion, now: d.now(), platform: d.platform,
+    host: () => Promise.resolve({ serviceState: state, firewallPresent: lanFirewallRule }),
+  }));
+  if (options.json) {
+    d.out(json(diagnostics));
+    return EXIT_OK;
+  }
 
   let freeBytes: number | null = null;
   try {
@@ -90,9 +112,12 @@ export async function runDoctor(options: DoctorOptions, deps: ServiceDeps = {}):
     admin: status,
     ...(status === null ? { adminNote: 'The Hub is not reachable over the admin channel (stopped, or this terminal is not elevated); schema and runtime fields are omitted.' } : {}),
     tls: tlsInfo(paths.tlsDir),
-    lanFirewallRule: d.platform === 'win32' ? await firewallRuleExists(d.exec) : null,
+    lanFirewallRule,
     logTail: tailLines(path.join(paths.logsDir, 'hub.log'), LOG_LINES),
   };
-  d.out(json(report));
+  d.out(`${formatChecks(diagnostics)}
+
+--- details ---
+${json({ ...report, diagnostics })}`);
   return EXIT_OK;
 }
