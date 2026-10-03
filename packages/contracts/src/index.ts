@@ -11,7 +11,7 @@ export type {
 export type {
   AgentMethodMap, AgentMethod, AgentRequest, AgentResponse, AgentHistoryRecord, AgentNetworkRun, JournalEngine,
   AgentJournalEntry, AgentSecretPurpose, AgentSecretStatus, AgentSnapshotHeader, AgentResetPreview, LegacyImportResult, AgentHubEnrollment, AgentHubState, AgentHubStatus, AgentHubEnrollError, AgentHubProbe, AgentHubBootstrapError, AgentHubBootstrapResult, AgentHubOwnerStatus, AgentHubStatusEvent,
-  AgentSyncPhase, AgentSyncStatus, AgentAppliedChange, SyncConflictKind, SyncConflictView, SyncConflictChoice, QuarantinedOpView, QuarantinedOpExport, SyncCategoryFlags, AgentSyncStatusEvent, AgentSyncAppliedEvent, AgentEvent, AgentEventName,
+  AgentSyncPhase, AgentSyncStatus, AgentAppliedChange, SyncConflictKind, SyncConflictView, SyncConflictChoice, QuarantinedOpView, QuarantinedOpExport, SyncCategoryFlags, FirstSyncChoice, FirstSyncEntityRef, FirstSyncNameCollision, FirstSyncCategoryPreview, FirstSyncPreview, AgentSyncStatusEvent, AgentSyncAppliedEvent, AgentEvent, AgentEventName,
 } from "./device-store/agent-protocol.js";
 export { AGENT_METHODS, isAgentMethod, parseAgentEvent } from "./device-store/agent-protocol.js";
 export type { DeviceRegistrationRequest, DeviceRegistrationResponse } from "./device/device-registration.model.js";

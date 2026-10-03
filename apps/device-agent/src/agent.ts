@@ -94,7 +94,7 @@ export async function runAgent(options: RunAgentOptions): Promise<RunningAgent> 
         for (const connection of [...connections]) void connection.send({ type: 'event', event: 'hub.status', status }).catch(() => undefined);
       });
       const sync = createSyncRuntime({
-        db: store.db, manager: hub.manager, now, intervals: options.syncIntervals,
+        db: store.db, manager: hub.manager, now, intervals: options.syncIntervals, backupDir: path.join(options.storeDir, 'backups'),
         newOpId: () => uuidv7(bytes, () => now().getTime()),
       });
       sync.onStatus((status) => {

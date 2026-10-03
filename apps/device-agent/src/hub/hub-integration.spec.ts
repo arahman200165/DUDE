@@ -269,13 +269,25 @@ describe('device agent against a real Hub', () => {
 
     const a = startAgent(dpapi);
     const b = startAgent(dpapi);
+    // B used DUDE standalone first: this favorite must merge up on its first sync.
+    const preexisting = { id: 'tool:preexisting', kind: 'tool', targetId: 'preexisting', order: 3 };
+    await b.rpc('entity.commit', { entityType: 'favorite', entityId: 'tool:preexisting', op: 'upsert', payload: preexisting });
     await a.rpc('hub.enroll', { pairingString: pairings[0]! });
     await b.rpc('hub.enroll', { pairingString: pairings[1]! });
     await waitFor('A and B online', () => a.hub.manager.status().state === 'online' && b.hub.manager.status().state === 'online');
     // Before the first sync is done (M656) nothing moves.
     expect((await a.rpc('sync.status', {})).phase).toBe('needs-first-sync');
-    a.sync.markFirstSyncDone();
-    b.sync.markFirstSyncDone();
+    const previewA = await a.rpc('sync.firstSync.preview', {});
+    expect(previewA.categories.find((c) => c.category === 'favorites')).toMatchObject({ localCount: 0, hubCount: 0 });
+    expect(await a.rpc('sync.firstSync.apply', { choices: {}, digest: previewA.digest, ...(previewA.confirmToken ? { confirmToken: previewA.confirmToken } : {}) })).toMatchObject({ cursor: 0 });
+    const previewB = await b.rpc('sync.firstSync.preview', {});
+    expect(previewB.categories.find((c) => c.category === 'favorites')).toMatchObject({ localCount: 1, localOnly: 1, recommended: 'merge' });
+    const afterB = await b.rpc('sync.firstSync.apply', { choices: { favorites: 'merge' }, digest: previewB.digest });
+    expect(afterB.phase).not.toBe('needs-first-sync');
+    expect(getEnrollment(b.store.db)?.environmentId).toBeTruthy();
+    expect(listRecords(b.store.db, 'favorite').length).toBe(1);
+    await waitFor('A receives the merged-up favorite', () => listRecords(a.store.db, 'favorite').some((r) => r.entityId === 'tool:preexisting'));
+    expect(listRecords(a.store.db, 'favorite').find((r) => r.entityId === 'tool:preexisting')?.payload).toEqual(preexisting);
 
     const favorite = { id: 'tool:base64', kind: 'tool', targetId: 'base64', order: 0 };
     const has = (agent: Agent): boolean => listRecords(agent.store.db, 'favorite').some((r) => r.entityId === 'tool:base64');

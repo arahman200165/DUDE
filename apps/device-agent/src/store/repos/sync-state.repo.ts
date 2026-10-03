@@ -70,3 +70,13 @@ export function resetSyncState(db: Db): void {
     "UPDATE sync_state SET cursor = 0, floor = 0, paused = 0, categories_json = ?, first_sync_state = 'pending', first_sync_at = NULL, last_sync_at = NULL, last_error = NULL WHERE id = 1",
   ).run(JSON.stringify(defaultCategoryMap()));
 }
+
+/**
+ * Hub revisions, merge bases, the pull cursor and first-sync progress describe ONE registration. A clone or a (re-)enrollment
+ * drops them so the next first sync starts clean; local data and unsent ops are kept (their `based_on_revision` is cleared).
+ */
+export function resetHubBookkeeping(db: Db): void {
+  db.exec('UPDATE records SET hub_revision = NULL, hub_payload_json = NULL; DELETE FROM kv_sync; UPDATE outbox SET based_on_revision = NULL');
+  db.exec("DELETE FROM meta WHERE key IN ('first_sync_progress', 'sync_rebase_pending')");
+  resetSyncState(db);
+}

@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { HubApiError, HubProtocolError } from '@dude/api-client';
-import type { AgentHubStatus, AgentSyncStatus, QuarantinedOpExport, QuarantinedOpView, SyncConflictView } from '@dude/contracts';
+import type { AgentHubStatus, AgentSyncStatus, FirstSyncChoice, FirstSyncPreview, QuarantinedOpExport, QuarantinedOpView, SyncConflictView } from '@dude/contracts';
 import { SYNC_CURSOR_EXPIRED, hubSupportsSync } from '@dude/contracts/hub';
 import type { ConfirmPreview, SyncChangesResponse, SyncPushResponse, SyncRecord, SyncSnapshotResponse } from '@dude/contracts/hub';
 import { SYNC_LIMITS, categoryOf } from '@dude/sync';
@@ -8,6 +8,7 @@ import type { SyncCategory, SyncPhase } from '@dude/sync';
 import type { Db } from '@dude/sqlite-store';
 import { getMeta, setMeta, transaction } from '@dude/sqlite-store';
 import type { CommitContext } from '../store/entity-commit.js';
+import { workingEnvironmentId } from '../store/environment.js';
 import { setStatusAll } from '../store/repos/outbox.repo.js';
 import { getSyncState, updateSyncState } from '../store/repos/sync-state.repo.js';
 import { HubManagerError } from '../hub/errors.js';
@@ -20,6 +21,8 @@ import { applyPushResults, buildPushBatch } from './push-results.js';
 import { discardQuarantined, exportQuarantined, retryQuarantined } from './quarantine.js';
 import { applySnapshotPage, beginSnapshot, finishSnapshot } from './rebase.js';
 import { computeSyncStatus } from './status.js';
+import { FirstSyncError, firstSyncApply, firstSyncPreview } from './first-sync.js';
+import type { HubSnapshot } from './first-sync.js';
 
 /** The slice of the Hub connection manager the runtime needs (a fake in unit tests). */
 export type SyncManagerPort = Pick<HubConnectionManager, 'status' | 'onChange' | 'deviceCall' | 'hubProtocol' | 'onChangesAvailable'>;
@@ -51,6 +54,10 @@ export interface SyncRuntimeDeps {
   codecCtx?: Readonly<Record<string, unknown>>;
   /** Test seam for discard confirmation tokens. */
   newToken?: () => string;
+  /** Where the first sync keeps its recovery snapshot (`<store dir>/backups`); `use-hub` is refused without it. */
+  backupDir?: string;
+  /** Test seam: runs after each first-sync category committed (throw to simulate a crash). */
+  afterFirstSyncCategory?: (category: SyncCategory) => void;
 }
 
 export class SyncRuntimeError extends Error {
@@ -69,7 +76,11 @@ export interface SyncRuntime {
   notifyLocalCommit(): void;
   setCategories(categories: Partial<Record<SyncCategory, boolean>>): AgentSyncStatus;
   setPaused(paused: boolean): AgentSyncStatus;
-  /** M656 hook: the first sync completed. Pushing and pulling start from here. */
+  /** Step one of the first sync: reads the whole Hub snapshot and compares it with this device. Writes nothing. */
+  firstSyncPreview(): Promise<FirstSyncPreview>;
+  /** Step two: runs the first sync (resumably) and lets normal sync take over. `use-hub` needs the preview's token. */
+  firstSyncApply(params: { choices: Partial<Record<SyncCategory, FirstSyncChoice>>; digest: string; confirmToken?: string }): Promise<AgentSyncStatus>;
+  /** The first sync completed. Pushing and pulling start from here. */
   markFirstSyncDone(): void;
   /** The store was wiped (reset): drop in-memory bookkeeping and re-publish the status. */
   afterReset(): void;
@@ -88,6 +99,7 @@ interface Failure { kind: FailureKind; message: string }
 const REBASE_META = 'sync_rebase_pending';
 const MAX_PUSH_BATCHES_PER_CYCLE = 50;
 const DISCARD_TOKEN_TTL_MS = 5 * 60_000;
+const FIRST_SYNC_TTL_MS = 10 * 60_000;
 
 function classify(error: unknown): Failure {
   if (error instanceof HubManagerError) {
@@ -136,10 +148,12 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
   let lastEmitted = '';
   let lastReport: { key: string; at: number } | null = null;
   const tokens = new Map<string, { opId: string; expiresAt: number }>();
+  const firstSyncTokens = new Map<string, { digest: string; expiresAt: number }>();
+  let firstSyncCache: { digest: string; snapshot: HubSnapshot; expiresAt: number } | null = null;
 
   // --- State ------------------------------------------------------------------------------------------------------------
 
-  const environmentId = (): string => getMeta(db, 'environment_id') ?? '';
+  const environmentId = (): string => workingEnvironmentId(db);
   const applyCtx = (): SyncApplyContext => ({ environmentId: environmentId(), now: deps.now, newOpId: deps.newOpId });
   const commitCtx = (): CommitContext => ({
     deviceId: getMeta(db, 'device_id') ?? '', environmentId: environmentId(), now: deps.now, newOpId: deps.newOpId, codecCtx: deps.codecCtx,
@@ -278,6 +292,23 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
     }
   }
 
+  async function fetchHubSnapshot(): Promise<HubSnapshot> {
+    const records: SyncRecord[] = [];
+    let asOf: number | null = null;
+    let floor = 0;
+    let after: { afterType: string; afterId: string } | undefined;
+    do {
+      const page = await call<SyncSnapshotResponse>((api, token) => api.syncSnapshot(token, { ...after, limit: SYNC_LIMITS.snapshotPage }));
+      asOf ??= page.asOfRevision;
+      floor = page.floor;
+      records.push(...page.records);
+      after = page.next ?? undefined;
+    } while (after);
+    return { asOfRevision: asOf ?? 0, floor, records };
+  }
+
+  const asRuntimeError = (error: unknown): unknown => (error instanceof FirstSyncError ? new SyncRuntimeError(error.code, error.message) : error);
+
   async function reportState(): Promise<void> {
     const current = computeSyncStatus(db, { phase: 'idle', lastError: null, headRevision });
     const key = JSON.stringify([current.cursor, current.pending, current.quarantined, current.conflicts, current.stranded, current.categories]);
@@ -402,6 +433,8 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
       waiters = [];
       for (const done of pending) done();
       tokens.clear();
+      firstSyncTokens.clear();
+      firstSyncCache = null;
     },
     status,
     onStatus(listener) { statusListeners.add(listener); return () => { statusListeners.delete(listener); }; },
@@ -435,6 +468,43 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
       if (!paused) trigger(0, true);
       return status();
     },
+    async firstSyncPreview() {
+      try {
+        const snapshot = await fetchHubSnapshot();
+        const { preview, needsConfirmation } = firstSyncPreview(db, snapshot);
+        const expiresAt = deps.now().getTime() + FIRST_SYNC_TTL_MS;
+        firstSyncCache = { digest: preview.digest, snapshot, expiresAt };
+        firstSyncTokens.clear();
+        if (!needsConfirmation) return preview;
+        const confirmToken = (deps.newToken ?? ((): string => randomBytes(24).toString('base64url')))();
+        firstSyncTokens.set(confirmToken, { digest: preview.digest, expiresAt });
+        return { ...preview, confirmToken, expiresAt: new Date(expiresAt).toISOString() };
+      } catch (error) { throw asRuntimeError(error); }
+    },
+    async firstSyncApply(params) {
+      try {
+        const now = deps.now().getTime();
+        let confirmed = false;
+        if (params.confirmToken !== undefined) {
+          const held = firstSyncTokens.get(params.confirmToken);
+          firstSyncTokens.delete(params.confirmToken);
+          if (!held || held.digest !== params.digest || held.expiresAt < now) throw new SyncRuntimeError('invalid-token', 'The confirmation expired. Preview the first sync again.');
+          confirmed = true;
+        }
+        const cached = firstSyncCache !== null && firstSyncCache.digest === params.digest && firstSyncCache.expiresAt >= now ? firstSyncCache : null;
+        const snapshot = cached?.snapshot ?? await fetchHubSnapshot();
+        const result = firstSyncApply(db, { choices: params.choices, digest: params.digest }, snapshot, {
+          now: deps.now, newOpId: deps.newOpId, deviceId: getMeta(db, 'device_id') ?? '', backupDir: deps.backupDir, confirmed, afterCategory: deps.afterFirstSyncCategory,
+        });
+        firstSyncCache = null;
+        firstSyncTokens.clear();
+        headRevision = Math.max(headRevision ?? 0, snapshot.asOfRevision);
+        emitApplied(result.applied);
+        log('sync: first sync applied', { applied: result.applied.length, conflicts: result.conflicts, recoverySnapshot: result.recoverySnapshot });
+        this.markFirstSyncDone();
+        return status();
+      } catch (error) { throw asRuntimeError(error); }
+    },
     markFirstSyncDone() {
       updateSyncState(db, { firstSyncState: 'done', firstSyncAt: deps.now().toISOString() });
       db.prepare('DELETE FROM meta WHERE key = ?').run(REBASE_META);
@@ -449,6 +519,8 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
       deferredSeen = 0;
       lastReport = null;
       tokens.clear();
+      firstSyncTokens.clear();
+      firstSyncCache = null;
       emitStatus();
     },
     listConflicts() {

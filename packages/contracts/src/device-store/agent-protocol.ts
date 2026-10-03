@@ -76,6 +76,26 @@ export interface QuarantinedOpView {
 }
 export interface QuarantinedOpExport extends QuarantinedOpView { schemaVersion: number; basedOnRevision: number | null; payload: unknown | null }
 export type SyncCategoryFlags = Partial<Record<SyncCategory, boolean>>;
+/** What to do with one category on the first sync: combine both sides, take the Hub's copy, or leave the category off. */
+export type FirstSyncChoice = 'merge' | 'use-hub' | 'keep-local';
+export interface FirstSyncEntityRef { entityType: string; entityId: string; name: string | null }
+/** Same-type items with the same name but different ids on this device and on the Hub. */
+export interface FirstSyncNameCollision { entityType: string; name: string; localId: string; hubId: string }
+export interface FirstSyncCategoryPreview {
+  category: SyncCategory; label: string; sensitivity: 'non-sensitive' | 'sensitive'; defaultEnabled: boolean;
+  localCount: number; hubCount: number; sameIdIdentical: number; sameIdDifferent: FirstSyncEntityRef[];
+  sameNameDifferentId: FirstSyncNameCollision[];
+  /** Items that exist only on this device (merge uploads them). */
+  localOnly: number; hubOnly: number;
+  /** What leaves this device if the category is synced. */
+  disclosure: string;
+  recommended: FirstSyncChoice;
+}
+/** Step one of the first sync. `confirmToken` is set when a choice could replace local data; it is single use and expires. */
+export interface FirstSyncPreview {
+  asOfRevision: number; digest: string; categories: FirstSyncCategoryPreview[];
+  confirmToken: string | null; expiresAt: string | null;
+}
 /** Pushed to connected desktops (no `id`) whenever the sync status changes. */
 export interface AgentSyncStatusEvent { type: 'event'; event: 'sync.status'; status: AgentSyncStatus }
 /** Pushed after remote changes (or a conflict resolution) were written locally. */
@@ -199,6 +219,13 @@ export interface AgentMethodMap {
   'sync.quarantine.discard': { params: { opId: string; confirmToken: string }; result: { ok: true } };
   /** JSON-safe copy of every quarantined op, to save before discarding. */
   'sync.quarantine.export': { params: Record<string, never>; result: QuarantinedOpExport[] };
+  /** Fetches the Hub snapshot and compares it with this device (nothing is written). Errors: `not-enrolled`, `first-sync-done`, `hub-*`. */
+  'sync.firstSync.preview': { params: Record<string, never>; result: FirstSyncPreview };
+  /**
+   * Runs the first sync once, resumably. `use-hub` for any category takes a recovery snapshot first and requires the preview's
+   * `confirmToken`. Errors: `first-sync-stale` (re-preview), `invalid-token`, `confirmation-required`.
+   */
+  'sync.firstSync.apply': { params: { choices: Partial<Record<SyncCategory, FirstSyncChoice>>; digest: string; confirmToken?: string }; result: AgentSyncStatus };
   /** Implemented by the legacy import (M621). */
   'legacy.import': { params: { legacyDir: string; sources: unknown }; result: LegacyImportResult };
   /**
@@ -247,6 +274,7 @@ export const AGENT_METHODS = [
   'hub.owner.listAudit', 'hub.owner.recoveryCodesPreview', 'hub.owner.regenerateRecoveryCodes', 'hub.owner.changePassword', 'hub.recoverOwner',
   'sync.status', 'sync.setCategories', 'sync.setPaused', 'sync.now', 'sync.conflicts.list', 'sync.conflicts.resolve',
   'sync.quarantine.list', 'sync.quarantine.retry', 'sync.quarantine.discardPreview', 'sync.quarantine.discard', 'sync.quarantine.export',
+  'sync.firstSync.preview', 'sync.firstSync.apply',
   'legacy.import', 'store.cleanExit', 'store.checkpoint', 'store.shutdown', 'store.quarantine',
 ] as const satisfies readonly AgentMethod[];
 

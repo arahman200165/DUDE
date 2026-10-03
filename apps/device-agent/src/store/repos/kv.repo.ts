@@ -34,9 +34,19 @@ interface KvJournal { entityType: string; entityId: string; payload: (value: unk
  * registry, so it feeds that resolved scope to the shared predicate as a one-tool manifest; the Hub re-validates with the
  * real manifests and quarantines anything it rejects.
  */
-function isSyncableToolPref(m: KvMutation, scope: string): boolean {
+function isSyncableToolPref(m: Pick<KvMutation, 'namespace' | 'key' | 'policy'>, scope: string): boolean {
   if (m.policy !== 'local' || scope !== 'environment' || !TOOL_ID.test(m.namespace)) return false;
   return isSyncableSettingKey(m.namespace, m.key, [{ id: m.namespace, persistence: { preferences: 'local' }, settingScopes: { [m.key]: { scope: 'environment' } } }]);
+}
+
+/** The sync entity a stored kv row journals as (same rule as `journalFor`), or undefined when it is device-local. */
+export function kvSyncEntity(namespace: string, key: string, policy: string, scope: string): { entityType: string; entityId: string } | undefined {
+  const binding = findKvEntityBinding(namespace, key);
+  if (binding) return { entityType: binding.entityType, entityId: binding.entityId };
+  if (findSettingDefinition(namespace, key)?.journal === true || isSyncableToolPref({ namespace, key, policy: policy as KvMutation['policy'] }, scope)) {
+    return { entityType: SETTING_ENTITY_TYPE, entityId: `${namespace}:${key}` };
+  }
+  return undefined;
 }
 
 /**

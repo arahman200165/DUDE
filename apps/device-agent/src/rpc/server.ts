@@ -2,7 +2,7 @@ import { isAgentMethod } from '@dude/contracts';
 import { SYNC_WIRE_CATEGORY_IDS } from '@dude/contracts/hub';
 import type { SyncCategory } from '@dude/contracts/hub';
 import type {
-  AgentJournalEntry, AgentMethod, AgentMethodMap, AgentResponse, AgentSecretStatus, DeviceStoreBoot, StoreHealth,
+  AgentJournalEntry, AgentMethod, FirstSyncChoice, AgentMethodMap, AgentResponse, AgentSecretStatus, DeviceStoreBoot, StoreHealth,
 } from '@dude/contracts';
 import { isSecretPurpose, uuidv7 } from '@dude/persistence';
 import type { SecretPurpose } from '@dude/persistence';
@@ -22,6 +22,7 @@ import { getDoc, removeDoc, setDoc } from '../store/repos/device-docs.repo.js';
 import { getSecretCiphertext, listSecretStatus, removeSecret, secretStatus, setSecretCiphertext } from '../store/repos/secrets.repo.js';
 import type { SecretStatusRow } from '../store/repos/secrets.repo.js';
 import { publicEnrollment } from '../store/repos/hub-enrollment.repo.js';
+import { workingEnvironmentId } from '../store/environment.js';
 import { applyReset, previewReset } from '../store/reset.js';
 import { DEFAULT_HISTORY_RETENTION } from '../store/repos/retention.js';
 import { quarantineStore } from '../store/open-store.js';
@@ -89,7 +90,7 @@ async function hubGuard<T>(fn: () => Promise<T>): Promise<T> {
     return await fn();
   } catch (error) {
     if (error instanceof RpcError) throw error;
-    if (error instanceof HubManagerError) throw new RpcError(error.code, error.message);
+    if (error instanceof HubManagerError || error instanceof SyncRuntimeError) throw new RpcError(error.code, error.message);
     if (error instanceof HubApiError) throw new RpcError(`hub-${error.code}`, error.message);
     if (error instanceof HubProtocolError) throw new RpcError('hub-protocol', 'The Hub answered with an unexpected response.');
     throw error;
@@ -123,7 +124,7 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
     const database = db();
     return {
       deviceId: getMeta(database, 'device_id') ?? '',
-      environmentId: getMeta(database, 'environment_id') ?? '',
+      environmentId: workingEnvironmentId(database),
       now: deps.now,
       newOpId: () => uuidv7(deps.randomBytes, () => deps.now().getTime()),
       codecCtx: deps.codecCtx,
@@ -160,7 +161,7 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
         status: 'ready',
         device: {
           deviceId: device.deviceId,
-          environmentId: getMeta(s.db, 'environment_id') ?? '',
+          environmentId: workingEnvironmentId(s.db),
           displayName: device.displayName,
           platform: device.platform,
           appVersion: device.appVersion,
@@ -299,6 +300,17 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
     'sync.quarantine.discardPreview': (p) => syncGuard(() => syncRuntime().discardPreview(str(p.opId, 'opId'))),
     'sync.quarantine.discard': (p) => syncGuard(() => { syncRuntime().discard(str(p.opId, 'opId'), str(p.confirmToken, 'confirmToken')); return { ok: true as const }; }),
     'sync.quarantine.export': () => syncRuntime().exportQuarantined(),
+    'sync.firstSync.preview': () => hubGuard(() => syncRuntime().firstSyncPreview()),
+    'sync.firstSync.apply': (p) => {
+      if (!isObject(p.choices)) throw invalid('choices must be an object.');
+      const choices: Partial<Record<SyncCategory, FirstSyncChoice>> = {};
+      for (const [id, value] of Object.entries(p.choices)) {
+        if (!(SYNC_WIRE_CATEGORY_IDS as readonly string[]).includes(id) || (value !== 'merge' && value !== 'use-hub' && value !== 'keep-local')) throw invalid('choices must map known category ids to merge, use-hub or keep-local.');
+        choices[id as SyncCategory] = value;
+      }
+      if (p.confirmToken !== undefined && typeof p.confirmToken !== 'string') throw invalid('confirmToken must be a string.');
+      return hubGuard(() => syncRuntime().firstSyncApply({ choices, digest: str(p.digest, 'digest'), confirmToken: p.confirmToken }));
+    },
     'hub.enrollment': () => publicEnrollment(db()),
     'hub.status': () => hubRuntime().manager.status(),
     'hub.probeLocal': (p) => {

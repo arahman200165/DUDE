@@ -5,6 +5,7 @@ import type { AgentHubEnrollError, AgentHubStatus } from '@dude/contracts';
 import { DEVICE_CAPABILITIES, HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION, enrollMessage, parsePairingString } from '@dude/contracts/hub';
 import type { DeviceCapability, DeviceRegistryPlatform } from '@dude/contracts/hub';
 import type { Db } from '@dude/sqlite-store';
+import { transaction } from '@dude/sqlite-store';
 import { getEnrollment, saveEnrollment } from '../store/repos/hub-enrollment.repo.js';
 import { createDeviceKey, loadDeviceKey } from '../native/device-key.js';
 import type { DpapiPort } from '../native/windows-sys-client.js';
@@ -14,6 +15,7 @@ import { PIN_MISMATCH_CODE, createPinnedTransport } from './pinned-transport.js'
 import type { PinnedTarget } from './pinned-transport.js';
 import { probePin } from './probe.js';
 import type { PinProbe } from './probe.js';
+import { resetHubBookkeeping } from '../store/repos/sync-state.repo.js';
 
 /** Store `DeviceCapabilities` booleans to the Hub vocabulary (documented in the contracts): `secureStorage` -> 'secure-storage'. */
 const CAPABILITY_MAP: Readonly<Record<string, DeviceCapability>> = {
@@ -97,18 +99,22 @@ export async function enrollDevice(pairingString: string, deps: EnrollDeps): Pro
     signature,
   }), true);
 
-  saveEnrollment(deps.db, {
-    hubInstanceId: response.hubInstanceId,
-    environmentId: response.environmentId,
-    hubUrl: `https://${parsed.host}:${parsed.port}`,
-    protocolVersion: HUB_PROTOCOL_VERSION,
-    spkiActive: parsed.spkiSha256,
-    certActivePem: probe.certPem,
-    keyId: response.keyId,
-    publicKey: key.publicKeyRaw,
-    wrappedPrivateKey: key.wrappedPrivateKey,
-    enrolledAt: response.registeredAt,
-  }, deps.now());
+  transaction(deps.db, () => {
+    saveEnrollment(deps.db, {
+      hubInstanceId: response.hubInstanceId,
+      environmentId: response.environmentId,
+      hubUrl: `https://${parsed.host}:${parsed.port}`,
+      protocolVersion: HUB_PROTOCOL_VERSION,
+      spkiActive: parsed.spkiSha256,
+      certActivePem: probe.certPem,
+      keyId: response.keyId,
+      publicKey: key.publicKeyRaw,
+      wrappedPrivateKey: key.wrappedPrivateKey,
+      enrolledAt: response.registeredAt,
+    }, deps.now());
+    // Revisions, bases and the cursor belonged to any previous enrollment; the first sync preview runs again for this one.
+    resetHubBookkeeping(deps.db);
+  });
   deps.manager.start();
   return deps.manager.status();
 }
