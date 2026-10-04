@@ -87,6 +87,19 @@
     </p>
   } @else {
     @if (needsReconnect()) {
+      <ng-container [ngTemplateOutlet]="reconnectPanel" />
+    } @else if (offerMovedHubReconnect()) {
+      <div data-setting class="flex flex-col gap-2" data-testid="reconnect-moved">
+        <app-disclosure label="The Hub moved to a new address?">
+          <div class="flex flex-col gap-2">
+            <p class="text-ui text-text-muted" data-testid="reconnect-moved-hint">If your Hub was moved or restored on another machine and the old one is gone, enter a pairing string from the new Hub. Your local data and pending changes are kept.</p>
+            <ng-container [ngTemplateOutlet]="reconnectPanel" />
+          </div>
+        </app-disclosure>
+      </div>
+    }
+
+    <ng-template #reconnectPanel>
       <div data-setting class="flex flex-col gap-2 rounded-sm border border-warning/40 p-3" data-testid="reconnect">
         <h3 class="text-ui-sm font-semibold text-warning">Reconnect to the Hub</h3>
         <p class="text-ui text-text" data-testid="reconnect-reason">{{ reconnectReason() }}</p>
@@ -127,7 +140,7 @@
           @if (reconnectDone(); as message) { <p class="text-ui text-success" data-testid="reconnect-done">{{ message }}</p> }
         </div>
       </div>
-    }
+    </ng-template>
 
     <app-local-hub-panel [standalone]="status()?.enrollmentState === 'standalone'" (changed)="refresh()" />
 

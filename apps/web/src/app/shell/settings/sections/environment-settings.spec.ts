@@ -159,14 +159,69 @@ describe('EnvironmentSettings reconnect panel (PD-073)', () => {
 
   it.each([
     ['online', ENROLLED_STATUS],
-    ['offline', { ...ENROLLED_STATUS, connection: 'offline' as const, reachable: false }],
     ['connecting', { ...ENROLLED_STATUS, connection: 'connecting' as const, reachable: null }],
     ['incompatible', { ...ENROLLED_STATUS, connection: 'incompatible' as const, reachable: null }],
     ['standalone', STANDALONE_STATUS],
-  ])('does not show the panel when %s', async (_name, status) => {
+  ])('does not show the panel or the moved-Hub disclosure when %s', async (_name, status) => {
     const { port } = createTestPort({ status: async () => status });
     const { el } = await mount(port);
     expect(el.querySelector('[data-testid="reconnect"]')).toBeNull();
+    expect(el.querySelector('[data-testid="reconnect-moved"]')).toBeNull();
+  });
+
+  describe('when the Hub is offline (it may have moved to a new address)', () => {
+    const OFFLINE = { ...ENROLLED_STATUS, connection: 'offline' as const, reachable: false };
+    const toggle = (el: HTMLElement): HTMLButtonElement => el.querySelector('[data-testid="reconnect-moved"] button') as HTMLButtonElement;
+
+    it('offers the panel inside a disclosure that starts collapsed, with the explanation', async () => {
+      const { port } = createTestPort({ status: async () => OFFLINE });
+      const { el } = await mount(port);
+      expect(el.querySelector('[data-testid="reconnect-moved"]')).not.toBeNull();
+      expect(toggle(el).textContent).toContain('The Hub moved to a new address?');
+      expect(toggle(el).getAttribute('aria-expanded')).toBe('false');
+      expect(el.querySelector('[data-testid="reconnect"]')).toBeNull();
+      expect(el.querySelector('[data-testid="reconnect-moved-hint"]')).toBeNull();
+      expect(el.querySelector('[data-testid="connect"]')).toBeNull();
+    });
+
+    it('renders the one panel when opened, and still needs the pairing string and the acknowledgement', async () => {
+      const { port } = createTestPort({ status: async () => OFFLINE });
+      const { fixture, el } = await mount(port);
+      toggle(el).click();
+      await settle(fixture);
+      expect(toggle(el).getAttribute('aria-expanded')).toBe('true');
+      expect(el.querySelectorAll('[data-testid="reconnect"]')).toHaveLength(1);
+      expect(el.querySelectorAll('#reconnect-pairing-string')).toHaveLength(1);
+      expect(text(el, 'reconnect-moved-hint')).toBe('If your Hub was moved or restored on another machine and the old one is gone, enter a pairing string from the new Hub. Your local data and pending changes are kept.');
+      expect(text(el, 'reconnect-reason')).toBe('This device cannot reach the Hub it was paired with.');
+      expect(button(el).disabled).toBe(true);
+      typeInto(input(el), FAKE_HUB_PAIRING_STRING);
+      await settle(fixture);
+      expect(button(el).disabled).toBe(true);
+      button(el).click();
+      await settle(fixture);
+      expect(port.reconnect).not.toHaveBeenCalled();
+
+      ack(el).click();
+      await settle(fixture);
+      expect(button(el).disabled).toBe(false);
+      button(el).click();
+      await settle(fixture);
+      expect(port.reconnect).toHaveBeenCalledExactlyOnceWith({ pairingString: FAKE_HUB_PAIRING_STRING, acknowledged: true });
+    });
+
+    it('is not offered on the Hub-served web build', async () => {
+      const { port } = createTestPort({ status: async () => OFFLINE });
+      const { el } = await mount(port, 'hub-web');
+      expect(el.querySelector('[data-testid="reconnect-moved"]')).toBeNull();
+    });
+
+    it('leaves the panel visible, not collapsed, for the blocked states', async () => {
+      const { port } = createTestPort({ status: async () => CHANGED('transferred') });
+      const { el } = await mount(port);
+      expect(el.querySelector('[data-testid="reconnect"]')).not.toBeNull();
+      expect(el.querySelector('[data-testid="reconnect-moved"]')).toBeNull();
+    });
   });
 
   it('is not offered on the Hub-served web build', async () => {

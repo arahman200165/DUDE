@@ -222,7 +222,8 @@ export interface AgentMethodMap {
   'hub.enroll': { params: { pairingString: string }; result: AgentHubStatus };
   /**
    * Reconnects an ENROLLED device whose Hub changed (authority-changed), whose certificate no longer matches, whose enrollment was
-   * revoked, or that is blocked by the reconcile flag (PD-073): same device id, new key, local data and outbox untouched, bookkeeping
+   * revoked, that cannot reach its Hub (offline or still connecting: the Hub may have moved to a new address while the old one is
+   * gone), or that is blocked by the reconcile flag (PD-073); never one that is online: same device id, new key, local data and outbox untouched, bookkeeping
    * reset so the first-sync preview runs again. `acknowledged` must be exactly `true` (no incidental triggering); a recovery
    * snapshot is taken first. Errors: enrollment codes plus `not-enrolled`, `not-reconnectable`, `snapshot-failed`, `invalid-params`.
    */

@@ -162,10 +162,23 @@ describe('reconnectDevice', () => {
     expect(snapshots(ctx.backupDir)).toHaveLength(1);
   });
 
-  it.each(['authority-changed', 'untrusted-tls', 'revoked', 'incompatible'] as const)('is allowed while the connection is %s', async (state) => {
+  it.each(['authority-changed', 'untrusted-tls', 'revoked', 'incompatible', 'offline', 'connecting'] as const)('is allowed while the connection is %s', async (state) => {
     const ctx = setup({ state });
     await expect(reconnectDevice(PAIRING, ctx.deps)).resolves.toBeDefined();
     expect(getEnrollment(ctx.db)?.hubInstanceId).toBe(NEW_INSTANCE);
+  });
+
+  it('reconnects from offline with local records and pending ops identical (an old Hub that is gone for good)', async () => {
+    const ctx = setup({ state: 'offline' });
+    await seedLocalWork(ctx);
+    const recordsStable = dump(ctx.db, 'records', ['hub_revision', 'hub_payload_json']);
+    const outboxStable = dump(ctx.db, 'outbox', ['based_on_revision']);
+    await reconnectDevice(PAIRING, ctx.deps);
+    expect(dump(ctx.db, 'records', ['hub_revision', 'hub_payload_json'])).toBe(recordsStable);
+    expect(dump(ctx.db, 'outbox', ['based_on_revision'])).toBe(outboxStable);
+    expect(JSON.parse(dump(ctx.db, 'outbox'))).toHaveLength(2);
+    expect(getEnrollment(ctx.db)).toMatchObject({ hubInstanceId: NEW_INSTANCE, hubUrl: 'https://hub.local:47600' });
+    expect(snapshots(ctx.backupDir)).toHaveLength(1);
   });
 
   it('is allowed for a revoked enrollment row and when only the reconcile flag is set', async () => {
@@ -180,7 +193,7 @@ describe('reconnectDevice', () => {
     expect(getReconcileRequired(flagged.db)).toBeNull();
   });
 
-  it.each(['online', 'offline', 'connecting', 'standalone'] as const)('refuses a healthy-and-consistent connection (%s) and changes nothing', async (state) => {
+  it.each(['online', 'standalone'] as const)('refuses a healthy-and-consistent connection (%s) and changes nothing', async (state) => {
     const ctx = setup({ state });
     await commit(ctx.store, 'a', 0);
     const before = { enrollment: enrollmentDump(ctx.db), records: dump(ctx.db, 'records'), outbox: dump(ctx.db, 'outbox'), sync: JSON.stringify(getSyncState(ctx.db)) };

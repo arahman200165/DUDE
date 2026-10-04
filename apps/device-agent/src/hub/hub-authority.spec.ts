@@ -262,3 +262,48 @@ describe('device agent reconnecting to a restored Hub', { timeout: 120_000 }, ()
     expect(devices.find((d) => d.deviceId === deviceId)).toMatchObject({ online: true, current: true, revokedAt: null, unenrolledAt: null });
   });
 });
+
+/**
+ * The old Hub is gone for good and a different Hub lives at a new address: the device can never reach anything it could learn
+ * `transferred` from, so it sits offline. Reconnecting must work from there (and keep its data), while `online` stays refused.
+ */
+describe('device agent whose Hub moved to a new address', { timeout: 120_000 }, () => {
+  let newHub: HubHandle | null = null;
+  afterAll(async () => { await newHub?.dispose(); }, 30_000);
+  const rows = (table: string, omit: readonly string[] = []): string =>
+    JSON.stringify((agent.store.db.prepare(`SELECT * FROM ${table} ORDER BY 1, 2`).all() as Array<Record<string, unknown>>).map((row) => Object.fromEntries(Object.entries(row).filter(([k]) => !omit.includes(k)))));
+
+  it('reconnects from offline to a Hub at a new address, keeping the device id, data and pending edits', async () => {
+    await waitFor('online before the Hub disappears', () => state() === 'online', 30_000);
+    const deviceId = agent.store.device.deviceId;
+    const oldEnrollment = getEnrollment(agent.store.db)!;
+
+    await hub.stop();
+    await waitFor('offline once the old Hub is gone', () => state() === 'offline', 30_000);
+    await agent.rpc('entity.commit', { entityType: 'favorite', entityId: 'tool:moved', op: 'upsert', payload: { id: 'tool:moved', kind: 'tool', targetId: 'moved', order: 3 } });
+    const recordsStable = rows('records', ['hub_revision', 'hub_payload_json']);
+    const outboxStable = rows('outbox', ['based_on_revision']);
+    expect((JSON.parse(outboxStable) as unknown[]).length).toBeGreaterThanOrEqual(1);
+
+    newHub = await startHub({ bootstrap: { password: PASSWORD } });
+    const pairingString = await newHub.pairingString(PASSWORD);
+    expect(parsePairingString(pairingString)!.port).not.toBe(Number(new URL(oldEnrollment.hubUrl).port));
+    // Still down, never reached anything: the explicit acknowledgement stays required.
+    await expect(agent.rpc('hub.reconnect', { pairingString, acknowledged: false as never })).rejects.toMatchObject({ code: 'invalid-params' });
+
+    const status = await agent.rpc('hub.reconnect', { pairingString, acknowledged: true });
+    expect(status.enrollment).toMatchObject({ state: 'enrolled' });
+    await waitFor('online on the Hub at the new address', () => state() === 'online', 30_000);
+
+    const enrollment = getEnrollment(agent.store.db)!;
+    expect(enrollment.hubInstanceId).not.toBe(oldEnrollment.hubInstanceId);
+    expect(enrollment.hubUrl).not.toBe(oldEnrollment.hubUrl);
+    expect(agent.store.device.deviceId).toBe(deviceId);
+    expect(rows('records', ['hub_revision', 'hub_payload_json'])).toBe(recordsStable);
+    expect(rows('outbox', ['based_on_revision'])).toBe(outboxStable);
+    expect(getSyncState(agent.store.db)).toMatchObject({ firstSyncState: 'pending', cursor: 0 });
+
+    // Healthy again: a further reconnect is refused.
+    await expect(agent.rpc('hub.reconnect', { pairingString: await newHub.pairingString(PASSWORD), acknowledged: true })).rejects.toMatchObject({ code: 'not-reconnectable' });
+  });
+});

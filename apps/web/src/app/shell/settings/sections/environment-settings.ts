@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, DestroyRef, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { PAIRING_STRING_PREFIX, parsePairingString } from '@dude/contracts/hub';
@@ -5,6 +6,7 @@ import { HUB_ADMIN } from '../../../core/hub/hub-admin.token';
 import { HubAdminError, type HubStatus } from '../../../core/hub/hub-admin.port';
 import { PlatformService } from '../../../core/platform/platform.service';
 import { CopyButton } from '../../../shared/components/copy-button/copy-button';
+import { Disclosure } from '../../../shared/components/disclosure/disclosure';
 import { connectionKind, groupFingerprint, hubErrorText, relativeTime, shortId, HUB_CONNECTION_COPY } from './hub/hub-format';
 import { HubOwnerSession } from './hub/hub-owner-session.service';
 import { HubStatusBadge } from './hub/hub-status-badge';
@@ -39,7 +41,7 @@ function pairingProblemOf(raw: string): string | null {
  */
 @Component({
   selector: 'app-environment-settings',
-  imports: [CopyButton, HubStatusBadge, HubWebActionsPanel, LocalHubPanel, OwnerGate, OwnerRecoveryPanel, RouterLink, SyncSummaryPanel],
+  imports: [CopyButton, Disclosure, HubStatusBadge, HubWebActionsPanel, LocalHubPanel, NgTemplateOutlet, OwnerGate, OwnerRecoveryPanel, RouterLink, SyncSummaryPanel],
   templateUrl: './environment-settings.html',
 })
 export class EnvironmentSettings {
@@ -75,9 +77,18 @@ export class EnvironmentSettings {
     return status !== null && !this.isHubWeb
       && (status.connection === 'authority-changed' || status.connection === 'untrusted-tls' || status.enrollmentState === 'revoked');
   });
+  /**
+   * An enrolled device that cannot reach its Hub at all. If the Hub was moved or restored elsewhere and the old one is gone, this
+   * device never learns `transferred`, so the same reconnect panel is offered, collapsed (the Hub is usually just down for a while).
+   */
+  protected readonly offerMovedHubReconnect = computed(() => {
+    const status = this.status();
+    return status !== null && !this.isHubWeb && status.enrollmentState === 'enrolled' && !this.needsReconnect() && this.kind() === 'offline';
+  });
   protected readonly reconnectReason = computed(() => {
     const status = this.status();
     if (status === null) return '';
+    if (status.enrollmentState !== 'revoked' && this.kind() === 'offline') return 'This device cannot reach the Hub it was paired with.';
     if (status.connection === 'authority-changed') return RECONNECT_AUTHORITY_COPY[status.authority?.reason ?? 'unknown'];
     if (status.connection === 'untrusted-tls') return "This Hub's certificate no longer matches the one this device pinned.";
     return 'This device was revoked from the Hub.';

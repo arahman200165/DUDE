@@ -159,13 +159,17 @@ export async function enrollDevice(pairingString: string, deps: EnrollDeps): Pro
   return deps.manager.status();
 }
 
-/** Connection states in which the device cannot talk to its Hub as enrolled: reconnecting is the way out (never re-key a healthy enrollment). */
-const RECONNECTABLE_STATES: ReadonlySet<AgentHubStatus['state']> = new Set(['authority-changed', 'untrusted-tls', 'revoked', 'incompatible']);
+/**
+ * Connection states in which the device cannot talk to its Hub as enrolled: reconnecting is the way out (never re-key a healthy
+ * enrollment). `offline` and `connecting` are included because a device whose Hub moved to a new address while the old one is
+ * gone can never learn `transferred`: it only ever sees an unreachable Hub. `online` is not (no incidental re-keying).
+ */
+const RECONNECTABLE_STATES: ReadonlySet<AgentHubStatus['state']> = new Set(['authority-changed', 'untrusted-tls', 'revoked', 'incompatible', 'offline', 'connecting']);
 
 /**
  * Reconnects an ENROLLED device to a changed Hub (PD-073) with a new pairing code, keeping its device id, data and outbox.
- * Allowed only while the connection is blocked (authority changed, certificate untrusted, revoked, incompatible, or the
- * persisted reconcile flag is set). Order: everything that can fail without side effects first (pin probe, compatibility, key,
+ * Allowed only while the connection is blocked or down (authority changed, certificate untrusted, revoked, incompatible,
+ * offline or still connecting, or the persisted reconcile flag is set); never while online. Order: everything that can fail without side effects first (pin probe, compatibility, key,
  * signature); then stop the connection loop, take a recovery snapshot, present the proof, and replace the enrollment and
  * reset the Hub bookkeeping in one transaction. A failure after the loop stopped restarts it so the device returns to its
  * previous (blocked) state, with nothing local changed.
