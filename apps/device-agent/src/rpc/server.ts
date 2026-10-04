@@ -26,7 +26,7 @@ import { workingEnvironmentId } from '../store/environment.js';
 import { applyReset, previewReset, resetDigestMatches } from '../store/reset.js';
 import { DEFAULT_HISTORY_RETENTION } from '../store/repos/retention.js';
 import { quarantineStore } from '../store/open-store.js';
-import { HubApiError, HubProtocolError } from '@dude/api-client';
+import { HUB_TRANSFERRED_CODE, HubApiError, HubProtocolError, isHubTransferredError } from '@dude/api-client';
 import type { HubClient } from '@dude/api-client';
 import { HubManagerError } from '../hub/errors.js';
 import type { HubRuntime } from '../hub/index.js';
@@ -92,6 +92,8 @@ async function hubGuard<T>(fn: () => Promise<T>): Promise<T> {
   } catch (error) {
     if (error instanceof RpcError) throw error;
     if (error instanceof HubManagerError || error instanceof SyncRuntimeError) throw new RpcError(error.code, error.message);
+    // A transferred Hub (PD-071) keeps its own distinct code rather than the `hub-` prefix, so it reads as itself, not `hub-hub-transferred`.
+    if (isHubTransferredError(error)) throw new RpcError(HUB_TRANSFERRED_CODE, error.message);
     if (error instanceof HubApiError) throw new RpcError(`hub-${error.code}`, error.message);
     if (error instanceof HubProtocolError) throw new RpcError('hub-protocol', 'The Hub answered with an unexpected response.');
     throw error;
@@ -393,7 +395,11 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
     'hub.recoverOwner': (p) => hubGuard(async () => { await hubRuntime().manager.recoverOwner(str(p.newPassword, 'newPassword')); return { ok: true as const }; }),
     'hub.owner.listDevices': () => owner((api, t) => api.listDevices(t)),
     'hub.owner.syncSummary': () => owner((api, t) => api.syncSummary(t)),
-    'hub.owner.createPairingCode': (p) => owner((api, t) => api.createPairingCode(t, p.host === undefined ? {} : { host: str(p.host, 'host') })),
+    'hub.owner.createPairingCode': (p) => owner((api, t) => api.createPairingCode(t, {
+      ...(p.host === undefined ? {} : { host: str(p.host, 'host') }),
+      ...(p.reattachDeviceId === undefined ? {} : { reattachDeviceId: str(p.reattachDeviceId, 'reattachDeviceId') }),
+    })),
+    'hub.owner.backupStatus': () => owner((api, t) => api.backupStatus(t)),
     'hub.owner.renameDevice': (p) => owner((api, t) => api.renameDevice(t, str(p.deviceId, 'deviceId'), str(p.displayName, 'displayName'))),
     'hub.owner.revokeDevicePreview': (p) => owner((api, t) => api.revokeDevicePreview(t, str(p.deviceId, 'deviceId'))),
     'hub.owner.revokeDevice': (p) => owner((api, t) => api.revokeDevice(t, str(p.deviceId, 'deviceId'), str(p.confirmToken, 'confirmToken'))),

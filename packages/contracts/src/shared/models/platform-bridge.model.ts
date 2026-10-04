@@ -1,4 +1,4 @@
-import type { AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, OkResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SyncSummary, HubDiagnosticsReport } from "../../hub/index.js";
+import type { AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, OkResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SyncSummary, HubDiagnosticsReport, BackupStatusResponse } from "../../hub/index.js";
 import type { LlmChatRequest, LlmChatResult } from "./llm-chat.model.js";
 import type { SnapshotDiff, SnapshotHeader } from "../../fs/snapshot-diff.js";
 import type { ChangeEvent, FolderWatchSettings, FolderWatchState, TimelineQuery, WatchedFolder } from "../../fs/watch-types.js";
@@ -149,7 +149,13 @@ export interface DesktopHubBridge {
    * authenticated with its device token. Error codes: `bad-request` (malformed address), `not-enrolled`, `untrusted-tls`, `hub-unreachable`, `hub-*`.
    */
   reachabilityEcho(publicUrl: string): Promise<DesktopHubResult<ReachabilityEchoResponse & { readonly rttMs: number }>>;
-  createPairingCode(host?: string): Promise<DesktopHubResult<PairingCodeResponse>>;
+  /**
+   * Creates a one-time pairing code. `options.reattachDeviceId` (a device id) binds it to a device row a Hub restore marked `needsRePair` (PD-072);
+   * the code then only re-pairs that device (see `reconnect`). A Hub failure comes back as `hub-<code>` (an unknown id or a row not awaiting re-pair included).
+   */
+  createPairingCode(host?: string, options?: { readonly reattachDeviceId?: string }): Promise<DesktopHubResult<PairingCodeResponse>>;
+  /** Owner session required: the Hub's backup state (view-only). A transferred Hub answers the distinct error code `hub-transferred`. */
+  backupStatus(): Promise<DesktopHubResult<BackupStatusResponse>>;
   renameDevice(deviceId: string, displayName: string): Promise<DesktopHubResult<DeviceInfo>>;
   revokeDevicePreview(deviceId: string): Promise<DesktopHubResult<ConfirmPreview>>;
   revokeDevice(deviceId: string, confirmToken: string): Promise<DesktopHubResult<OkResponse>>;

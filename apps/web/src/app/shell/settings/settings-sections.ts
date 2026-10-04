@@ -149,4 +149,11 @@ export const CORE_SETTINGS_SECTIONS: readonly CoreSettingsSection[] = [
     hosts: ['desktop', 'hub-web'],
     load: () => import('./sections/hub/owner-gated-security').then((m) => m.OwnerGatedSecuritySettings),
   },
+  {
+    id: 'backup',
+    title: 'Backup & Transfer',
+    keywords: ['backup', 'restore', 'transfer', 'move hub', 'migrate', 'schedule', 'retention', 'passphrase', 'authority', 'epoch', 'transferred', 'retired', 'reactivate', 're-pair', 'repair', 'recovery', 'elevated', 'dude-hub', 'hub'],
+    hosts: ['desktop', 'hub-web'],
+    load: () => import('./sections/backup/backup-settings').then((m) => m.BackupSettings),
+  },
 ];

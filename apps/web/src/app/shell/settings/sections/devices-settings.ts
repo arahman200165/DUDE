@@ -46,6 +46,8 @@ export class DevicesSettings {
   protected readonly now = signal(Date.now());
 
   protected readonly pairing = signal<PairingCodeResponse | null>(null);
+  /** The restored device a showing re-attach code is for; null for an ordinary pairing code. */
+  protected readonly rePairTarget = signal<DeviceInfo | null>(null);
 
   protected readonly renaming = signal<string | null>(null);
   protected readonly nameDraft = signal('');
@@ -131,7 +133,31 @@ export class DevicesSettings {
   // Pairing
   protected async pair(): Promise<void> {
     const code = await this.act(() => this.hub.createPairingCode(), 'A pairing code could not be created.');
-    if (code) this.pairing.set(code);
+    if (code) {
+      this.pairing.set(code);
+      this.rePairTarget.set(null);
+    }
+  }
+
+  /** A restored Hub marked this device: its key was revoked and it needs a one-time code bound to its own row (step-up applies as for any code). */
+  protected needsRePair(device: DeviceInfo): boolean {
+    return device.needsRePair === true && device.revokedAt === null && device.unenrolledAt === null;
+  }
+  protected async rePair(device: DeviceInfo): Promise<void> {
+    const code = await this.act(() => this.hub.createPairingCode(undefined, { reattachDeviceId: device.deviceId }), 'A re-pair code could not be created.');
+    if (code) {
+      this.pairing.set(code);
+      this.rePairTarget.set(device);
+    }
+  }
+  /** "Create a new code" in the panel repeats whichever kind of code is showing. */
+  protected renewPairing(): Promise<void> {
+    const target = this.rePairTarget();
+    return target === null ? this.pair() : this.rePair(target);
+  }
+  protected closePairing(): void {
+    this.pairing.set(null);
+    this.rePairTarget.set(null);
   }
 
   // Rename

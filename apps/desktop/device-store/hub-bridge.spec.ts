@@ -54,7 +54,11 @@ const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged'>, { channe
   syncSummary: { channel: 'dude:hub:owner:syncSummary', args: [], invalid: [[1]] },
   diagnostics: { channel: 'dude:hub:owner:diagnostics', args: [], invalid: [[1]] },
   agentDiagnostics: { channel: 'dude:hub:agentDiagnostics', args: [], invalid: [[1]] },
-  createPairingCode: { channel: 'dude:hub:owner:createPairingCode', args: ['hub.local'], invalid: [[1], ['bad host'], ['a'.repeat(256)]] },
+  createPairingCode: {
+    channel: 'dude:hub:owner:createPairingCode', args: ['hub.local'],
+    invalid: [[1], ['bad host'], ['a'.repeat(256)], [undefined, {}], [undefined, { reattachDeviceId: 'x' }], [undefined, { reattachDeviceId: UUID, extra: 1 }], [undefined, { other: UUID }], [undefined, [UUID]], [undefined, UUID], [undefined, null], ['hub.local', { reattachDeviceId: 5 }], ['hub.local', { reattachDeviceId: UUID }, 1]],
+  },
+  backupStatus: { channel: 'dude:hub:owner:backupStatus', args: [], invalid: [[1]] },
   renameDevice: { channel: 'dude:hub:owner:renameDevice', args: [UUID, 'Desk'], invalid: [[], ['nope', 'Desk'], [UUID, ''], [UUID, 5], [UUID, 'Desk', 'x']] },
   revokeDevicePreview: { channel: 'dude:hub:owner:revokeDevicePreview', args: [UUID], invalid: [[], ['../x'], [1]] },
   revokeDevice: { channel: 'dude:hub:owner:revokeDevice', args: [UUID, TOKEN], invalid: [[UUID], [UUID, 'a b'], [UUID, 'a'.repeat(129)], ['x', TOKEN]] },
@@ -214,6 +218,29 @@ describe('hub bridge', () => {
   it('reconnect passes the agent error code through', async () => {
     setup(() => new DeviceStoreError('not-reconnectable', 'This device is connected to its Hub as expected.'));
     expect(await call('dude:hub:reconnect', own, { pairingString: PAIRING, acknowledged: true })).toEqual({ ok: false, error: { code: 'not-reconnectable', message: 'This device is connected to its Hub as expected.' } });
+  });
+
+  it('createPairingCode forwards the host and the re-attach device id, and nothing is sent without them', async () => {
+    setup(() => ({ pairingCode: 'ABCD-EFGH' }));
+    await call('dude:hub:owner:createPairingCode', own);
+    await call('dude:hub:owner:createPairingCode', own, 'hub.local');
+    await call('dude:hub:owner:createPairingCode', own, undefined, { reattachDeviceId: UUID });
+    await call('dude:hub:owner:createPairingCode', own, 'hub.local', { reattachDeviceId: UUID });
+    expect(ctx.calls).toEqual([
+      { method: 'hub.owner.createPairingCode', params: {} },
+      { method: 'hub.owner.createPairingCode', params: { host: 'hub.local' } },
+      { method: 'hub.owner.createPairingCode', params: { reattachDeviceId: UUID } },
+      { method: 'hub.owner.createPairingCode', params: { host: 'hub.local', reattachDeviceId: UUID } },
+    ]);
+  });
+
+  it('backupStatus returns the Hub state and passes the transferred error code through', async () => {
+    const status = { authority: { epoch: 2, state: 'active' }, lastBackup: null, schedule: { configured: false }, defaultFolder: 'C:\ProgramData\DUDE\backups', devicesNeedingRePair: 0 };
+    setup(() => status);
+    expect(await call('dude:hub:owner:backupStatus', own)).toEqual({ ok: true, result: status });
+    expect(ctx.calls).toEqual([{ method: 'hub.owner.backupStatus', params: {} }]);
+    setup(() => new DeviceStoreError('hub-transferred', 'This Hub was transferred.'));
+    expect(await call('dude:hub:owner:backupStatus', own)).toEqual({ ok: false, error: { code: 'hub-transferred', message: 'This Hub was transferred.' } });
   });
 
   it('forwards the normalized public origin to the agent and rejects bad addresses with a clear message', async () => {

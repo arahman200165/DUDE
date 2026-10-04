@@ -60,6 +60,9 @@ describe('device agent against a real Hub', () => {
     const summary = await a.rpc('hub.owner.syncSummary', {});
     expect(summary).toMatchObject({ headRevision: expect.any(Number), devices: expect.any(Array) });
     expect(Object.keys(summary.counts)).toContain('settings');
+    // The backup state (view-only) and a re-attach code refused for a device that is not awaiting re-pair travel the same owner path.
+    expect(await a.rpc('hub.owner.backupStatus', {})).toMatchObject({ authority: { state: 'active' }, lastBackup: null, schedule: { configured: false }, devicesNeedingRePair: 0 });
+    await expect(a.rpc('hub.owner.createPairingCode', { host: '127.0.0.1', reattachDeviceId: idA })).rejects.toMatchObject({ code: 'hub-conflict' });
 
     // Device B is paired through A's owner session.
     const code = await a.rpc('hub.owner.createPairingCode', { host: '127.0.0.1' });

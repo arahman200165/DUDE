@@ -5,7 +5,7 @@
     <div data-setting class="flex flex-col gap-1 rounded-sm border border-accent p-3" role="note" data-testid="pair-desktop-hint">
       <h3 class="text-ui-sm font-semibold text-text">Pair this desktop</h3>
       <p class="text-ui text-text-muted">
-        Create a pairing string below with Pair a device. Then open DUDE on your desktop, go to Settings › Environment &amp; Hub › Connect to a Hub, and paste the pairing string there.
+        Create a pairing string below with Pair a device. Then open DUDE on your desktop, go to Settings ï¿½ Environment &amp; Hub ï¿½ Connect to a Hub, and paste the pairing string there.
       </p>
     </div>
   }
@@ -23,7 +23,7 @@
       </div>
 
       @if (pairing(); as code) {
-        <app-pairing-code-panel [code]="code" (renew)="pair()" (dismiss)="pairing.set(null)" />
+        <app-pairing-code-panel [code]="code" [reattachName]="rePairTarget()?.displayName ?? null" (renew)="renewPairing()" (dismiss)="closePairing()" />
       }
 
       @if (loadError(); as text) { <p class="text-ui text-error" role="alert" data-testid="load-error">{{ text }}</p> }
@@ -69,6 +69,9 @@
                     } @else {
                       <span class="text-text" data-testid="device-name">{{ device.displayName }}</span>
                       @if (device.current) { <span class="ml-1 rounded-sm border border-border px-1 text-ui-sm text-text-muted">This device</span> }
+                      @if (needsRePair(device)) {
+                        <p class="mt-1 max-w-sm text-ui-sm text-text-muted" [attr.data-testid]="'repair-note-' + device.deviceId">This device was paired before the Hub was restored. Create a one-time code, then enter it in that device's Settings &gt; Environment &amp; Hub &gt; Reconnect. Its local data and pending changes are kept.</p>
+                      }
                     }
                   </td>
                   <td class="py-1 pr-3 text-text">{{ device.platform }}</td>
@@ -86,6 +89,7 @@
                   </td>
                   <td class="py-1 pr-3">
                     <span class="flex flex-wrap gap-1">
+                      @if (needsRePair(device)) { <span class="inline-flex items-center gap-1 rounded-sm border border-warning px-1 text-ui-sm text-warning" data-testid="needs-re-pair"><app-status-glyph kind="warning" />Needs re-pair</span> }
                       @if (device.revokedAt) { <span class="rounded-sm border border-error px-1 text-ui-sm text-error">Revoked</span> }
                       @if (device.unenrolledAt) { <span class="rounded-sm border border-border px-1 text-ui-sm text-text-muted">Unenrolled</span> }
                       @if (device.recoveryTrusted) { <span class="rounded-sm border border-border px-1 text-ui-sm text-text">Recovery-trusted</span> }
@@ -93,6 +97,9 @@
                   </td>
                   <td class="py-1">
                     <span class="flex flex-wrap gap-1">
+                      @if (needsRePair(device)) {
+                        <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10 disabled:opacity-50" [attr.aria-label]="'Create re-pair code for ' + device.displayName" [disabled]="busy()" (click)="rePair(device)">Create re-pair code</button>
+                      }
                       <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated disabled:opacity-50" [attr.aria-label]="'Rename ' + device.displayName" [disabled]="busy()" (click)="startRename(device)">Rename</button>
                       @if (canTrust(device)) {
                         <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text-muted hover:bg-panel-elevated disabled:opacity-50" [attr.aria-label]="(device.recoveryTrusted ? 'Remove recovery trust from ' : 'Trust for recovery: ') + device.displayName" [disabled]="busy()" (click)="startTrust(device)">{{ device.recoveryTrusted ? 'Remove recovery trust' : 'Trust for recovery' }}</button>

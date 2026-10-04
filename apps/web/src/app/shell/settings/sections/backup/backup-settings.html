@@ -1,0 +1,123 @@
+<div class="flex flex-col gap-4">
+  <div class="flex flex-wrap items-center gap-3">
+    <p class="min-w-0 flex-1 text-ui text-text-muted" data-testid="view-only-note">
+      This page only reports. Backing up, restoring and transferring the Hub are done with elevated <code class="font-mono text-text">dude-hub</code> commands on the Hub machine, never from this window, so a stolen session cannot export or replace the Hub's data.
+    </p>
+    <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text hover:bg-panel-elevated disabled:opacity-50" data-testid="refresh" [disabled]="loading() || !session.signedIn()" (click)="refresh()">Refresh</button>
+  </div>
+
+  <div data-setting class="flex flex-col gap-2" data-testid="owner-session">
+    <h3 class="text-ui-sm font-semibold text-text">Hub status</h3>
+    <app-owner-gate />
+  </div>
+
+  @if (session.signedIn()) {
+    @if (transferred()) {
+      <div class="flex flex-col gap-1 rounded-sm border border-warning p-3" role="alert" data-testid="transferred-notice">
+        <p class="inline-flex items-center gap-2 text-ui font-semibold text-warning"><app-status-glyph kind="warning" />{{ transferredNotice }}</p>
+        <p class="text-ui text-text">Its role moved to another Hub, so it accepts no changes. Use the Hub on the new machine. To bring this one back into service instead, run <code class="font-mono">dude-hub backup reactivate</code> (elevated) here.</p>
+      </div>
+    } @else if (error(); as message) {
+      <p class="text-ui text-error" role="alert" data-testid="status-error">{{ message }}</p>
+    }
+
+    @if (status(); as s) {
+      <div data-setting class="flex flex-col gap-2" data-testid="authority">
+        <h3 class="text-ui-sm font-semibold text-text">Authority</h3>
+        <dl class="grid grid-cols-[max-content_1fr] items-baseline gap-x-3 gap-y-1 text-ui">
+          <dt class="text-text-muted">State</dt>
+          <dd data-testid="authority-state">
+            @if (s.authority.state === 'active') {
+              <span class="inline-flex items-center gap-1 font-semibold text-success"><app-status-glyph kind="success" />Active</span>
+            } @else {
+              <span class="inline-flex items-center gap-1 font-semibold text-warning"><app-status-glyph kind="warning" />Transferred (read-only)</span>
+            }
+          </dd>
+          <dt class="text-text-muted">Epoch</dt>
+          <dd class="text-text" data-testid="authority-epoch">{{ s.authority.epoch }}</dd>
+        </dl>
+      </div>
+
+      <div data-setting class="flex flex-col gap-2" data-testid="last-backup">
+        <h3 class="text-ui-sm font-semibold text-text">Last backup</h3>
+        @if (s.lastBackup; as b) {
+          <dl class="grid grid-cols-[max-content_1fr] items-baseline gap-x-3 gap-y-1 text-ui">
+            <dt class="text-text-muted">When</dt>
+            <dd class="text-text" data-testid="last-backup-when">{{ when(b.at) }}</dd>
+            <dt class="text-text-muted">Result</dt>
+            <dd data-testid="last-backup-result">
+              @if (b.ok) {
+                <span class="inline-flex items-center gap-1 font-semibold text-success"><app-status-glyph kind="success" />Succeeded</span>
+              } @else {
+                <span class="inline-flex items-center gap-1 font-semibold text-error"><app-status-glyph kind="error" />Failed@if (b.error) { <span class="font-normal">(<code class="font-mono" data-testid="last-backup-error">{{ b.error }}</code>)</span> }</span>
+              }
+            </dd>
+            @if (b.file) { <dt class="text-text-muted">File</dt><dd><code class="break-all font-mono text-text" data-testid="last-backup-file">{{ b.file }}</code></dd> }
+            @if (b.size !== undefined) { <dt class="text-text-muted">Size</dt><dd class="text-text" data-testid="last-backup-size">{{ bytes(b.size) }}</dd> }
+          </dl>
+        } @else {
+          <p class="text-ui text-text-muted" data-testid="no-backup">No backup yet. Run <code class="font-mono text-text">dude-hub backup create</code> on the Hub machine.</p>
+        }
+      </div>
+
+      <div data-setting class="flex flex-col gap-2" data-testid="schedule">
+        <h3 class="text-ui-sm font-semibold text-text">Schedule</h3>
+        @if (s.schedule.configured) {
+          <dl class="grid grid-cols-[max-content_1fr] items-baseline gap-x-3 gap-y-1 text-ui">
+            @if (s.schedule.folder) { <dt class="text-text-muted">Folder</dt><dd><code class="break-all font-mono text-text" data-testid="schedule-folder">{{ s.schedule.folder }}</code></dd> }
+            @if (s.schedule.intervalHours !== undefined) { <dt class="text-text-muted">Every</dt><dd class="text-text" data-testid="schedule-interval">{{ s.schedule.intervalHours }} {{ s.schedule.intervalHours === 1 ? 'hour' : 'hours' }}</dd> }
+            @if (s.schedule.retention !== undefined) { <dt class="text-text-muted">Keep</dt><dd class="text-text" data-testid="schedule-retention">{{ s.schedule.retention }} {{ s.schedule.retention === 1 ? 'backup' : 'backups' }}</dd> }
+          </dl>
+          @if (s.schedule.keyPresent === true) {
+            <p class="text-ui text-text-muted" data-testid="schedule-key-note">{{ scheduleKeyNote }}</p>
+          } @else if (s.schedule.keyPresent === false) {
+            <p class="inline-flex items-center gap-2 text-ui text-warning" role="status" data-testid="schedule-key-missing"><app-status-glyph kind="warning" />{{ scheduleNoKeyNote }}</p>
+          }
+        } @else {
+          <p class="text-ui text-text-muted" data-testid="no-schedule">No schedule. Backups only run when you start one.</p>
+        }
+      </div>
+
+      <div data-setting class="flex flex-col gap-2" data-testid="default-folder-block">
+        <h3 class="text-ui-sm font-semibold text-text">Default backup folder</h3>
+        <div class="flex flex-wrap items-center gap-2">
+          <code class="break-all rounded-sm border border-border bg-panel px-2 py-0.5 font-mono text-ui text-text" data-testid="default-folder">{{ s.defaultFolder }}</code>
+          <app-copy-button [text]="s.defaultFolder" label="Copy" />
+        </div>
+        <p class="flex items-start gap-2 text-ui text-text" data-testid="same-machine-warning"><app-status-glyph class="mt-1 text-warning" kind="warning" /><span>{{ sameMachineWarning }}</span></p>
+      </div>
+
+      <div data-setting class="flex flex-col gap-2" data-testid="re-pair">
+        <h3 class="text-ui-sm font-semibold text-text">Devices needing re-pair</h3>
+        @if (s.devicesNeedingRePair > 0) {
+          <p class="text-ui text-text" data-testid="re-pair-count">
+            <span class="font-semibold text-warning">{{ s.devicesNeedingRePair }}</span> {{ s.devicesNeedingRePair === 1 ? 'device needs' : 'devices need' }} to be paired again after a restore.
+            <a class="text-accent underline" routerLink="/settings/devices" data-testid="re-pair-link">Open Devices</a> to create a re-pair code for each.
+          </p>
+        } @else {
+          <p class="text-ui text-text-muted" data-testid="re-pair-none">None. Every device is paired with this Hub.</p>
+        }
+      </div>
+    } @else if (loading()) {
+      <p class="text-ui text-text-muted" role="status" data-testid="status-loading">Loading the backup status…</p>
+    }
+  }
+
+  <div data-setting class="flex flex-col gap-2" data-testid="commands">
+    <h3 class="text-ui-sm font-semibold text-text">Commands</h3>
+    <p class="rounded-sm border border-warning p-2 text-ui font-semibold text-text" data-testid="passphrase-warning">{{ passphraseWarning }}</p>
+    <p class="text-ui text-text-muted">Run these elevated on the Hub machine.</p>
+    <ul class="flex flex-col gap-2">
+      @for (item of commands; track item.id) {
+        <li class="flex flex-col gap-1 rounded-sm border border-border p-2" [attr.data-testid]="'command-' + item.id">
+          <span class="text-ui font-semibold text-text">{{ item.label }}</span>
+          <div class="flex flex-wrap items-center gap-2">
+            <code class="break-all rounded-sm border border-border bg-panel px-2 py-0.5 font-mono text-ui text-text" data-testid="command-text">{{ item.command }}</code>
+            <app-copy-button [text]="item.command" label="Copy" />
+          </div>
+          @if (item.note) { <p class="text-ui-sm text-text-muted" data-testid="command-note">{{ item.note }}</p> }
+        </li>
+      }
+    </ul>
+  </div>
+</div>

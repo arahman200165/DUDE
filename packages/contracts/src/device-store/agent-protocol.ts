@@ -1,4 +1,4 @@
-import type { TlsCertificatesResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, PairingCodeResponse, SessionListResponse, AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, RecoveryCodesResponse, SyncCategory, SyncSummary, HubDiagnosticsReport } from '../hub/index.js';
+import type { TlsCertificatesResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, PairingCodeResponse, SessionListResponse, AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, RecoveryCodesResponse, SyncCategory, SyncSummary, HubDiagnosticsReport, BackupStatusResponse } from '../hub/index.js';
 import type { EntityCommit, EntityCommitResult, KvMutation, ResetKind, StoreHealth, DeviceStoreBoot } from './device-store.model.js';
 
 /** Row shapes exchanged with the state service; payloads are opaque JSON. */
@@ -242,7 +242,10 @@ export interface AgentMethodMap {
   'hub.owner.listDevices': { params: Record<string, never>; result: DeviceListResponse };
   'hub.owner.syncSummary': { params: Record<string, never>; result: SyncSummary };
   'hub.owner.diagnostics': { params: Record<string, never>; result: HubDiagnosticsReport };
-  'hub.owner.createPairingCode': { params: { host?: string }; result: PairingCodeResponse };
+  /** `reattachDeviceId` binds the code to a restored device row that needs re-pairing (PD-072); step-up and error mapping are the route's. */
+  'hub.owner.createPairingCode': { params: { host?: string; reattachDeviceId?: string }; result: PairingCodeResponse };
+  /** Owner read of the Hub's backup state; a transferred Hub answers the distinct `hub-transferred` error. */
+  'hub.owner.backupStatus': { params: Record<string, never>; result: BackupStatusResponse };
   'hub.owner.renameDevice': { params: { deviceId: string; displayName: string }; result: DeviceInfo };
   'hub.owner.revokeDevicePreview': { params: { deviceId: string }; result: ConfirmPreview };
   'hub.owner.revokeDevice': { params: { deviceId: string; confirmToken: string }; result: { ok: true } };
@@ -332,7 +335,7 @@ export const AGENT_METHODS = [
   'secrets.status', 'secrets.list', 'secrets.set', 'secrets.remove', 'secrets.getCiphertext',
   'device.rename', 'reset.preview', 'reset.apply', 'hub.enrollment',
   'hub.status', 'hub.diagnostics', 'hub.probeLocal', 'hub.tlsCertificates', 'hub.reachabilityEcho', 'hub.enroll', 'hub.reconnect', 'hub.bootstrapLocal', 'hub.unenroll', 'hub.owner.signIn', 'hub.owner.signOut', 'hub.owner.status',
-  'hub.owner.listDevices', 'hub.owner.syncSummary', 'hub.owner.diagnostics', 'hub.owner.createPairingCode', 'hub.owner.renameDevice', 'hub.owner.revokeDevicePreview', 'hub.owner.revokeDevice',
+  'hub.owner.listDevices', 'hub.owner.syncSummary', 'hub.owner.diagnostics', 'hub.owner.createPairingCode', 'hub.owner.backupStatus', 'hub.owner.renameDevice', 'hub.owner.revokeDevicePreview', 'hub.owner.revokeDevice',
   'hub.owner.setRecoveryTrust', 'hub.owner.listSessions', 'hub.owner.revokeSession', 'hub.owner.revokeAllPreview', 'hub.owner.revokeAll',
   'hub.owner.listAudit', 'hub.owner.listSecurityAlerts', 'hub.owner.markSecurityAlertsSeen', 'hub.owner.recoveryCodesPreview', 'hub.owner.regenerateRecoveryCodes', 'hub.owner.changePassword', 'hub.recoverOwner',
   'sync.status', 'sync.setCategories', 'sync.setPaused', 'sync.now', 'sync.conflicts.list', 'sync.conflicts.resolve',

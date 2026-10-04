@@ -1,5 +1,5 @@
 import type {
-  AuditListResponse, SecurityAlertsResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary, HubDiagnosticsReport, ReachabilityEchoResponse, TlsCertificatesResponse,
+  AuditListResponse, BackupStatusResponse, SecurityAlertsResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary, HubDiagnosticsReport, ReachabilityEchoResponse, TlsCertificatesResponse,
   OwnerResetResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SignInResponse,
 } from '@dude/contracts/hub';
 import type { AgentDiagnostics } from '@dude/contracts';
@@ -48,7 +48,16 @@ export interface HubAdminPort {
   syncSummary(): Promise<SyncSummary>;
   /** Owner only: the Hub's endpoint diagnostics report (exposure, certificate, readiness checks). View-only. */
   diagnostics(): Promise<HubDiagnosticsReport>;
-  createPairingCode(host?: string): Promise<PairingCodeResponse>;
+  /**
+   * Creates a one-time pairing code (step-up applies as before). `options.reattachDeviceId` binds it to a device a Hub restore marked
+   * `needsRePair`: only that device can use it (Settings > Environment & Hub > Reconnect) and its local data is kept. Without options: unchanged.
+   */
+  createPairingCode(host?: string, options?: { readonly reattachDeviceId?: string }): Promise<PairingCodeResponse>;
+  /**
+   * Owner only: the Hub's backup state (authority, last backup, schedule, default folder, devices needing re-pair). View-only.
+   * A transferred Hub rejects with the distinct code `hub-transferred`.
+   */
+  backupStatus(): Promise<BackupStatusResponse>;
   renameDevice(deviceId: string, displayName: string): Promise<DeviceInfo>;
   revokeDevicePreview(deviceId: string): Promise<ConfirmPreview>;
   revokeDevice(deviceId: string, confirmToken: string): Promise<OkResponse>;

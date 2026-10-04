@@ -13,7 +13,13 @@ import { PreviewBackgroundTarget } from '../../../../shared/components/preview-b
   imports: [CopyButton, PreviewBackgroundTarget],
   template: `
     <section class="flex flex-col gap-2 rounded-sm border border-border p-3" aria-label="Pairing code" data-testid="pairing-panel">
-      <p class="text-ui text-text">Paste this into DUDE on the new device: Settings › Environment &amp; Hub › Connect to a Hub.</p>
+      @if (code().reattachDeviceId) {
+        <p class="text-ui text-text" data-testid="pairing-reattach">
+          Paste this into DUDE on {{ reattachName() ?? 'that device' }}: Settings › Environment &amp; Hub › Reconnect. Only that device can use this code. Its local data and pending changes are kept.
+        </p>
+      } @else {
+        <p class="text-ui text-text">Paste this into DUDE on the new device: Settings › Environment &amp; Hub › Connect to a Hub.</p>
+      }
       @if (expired()) {
         <p class="text-ui text-warning" role="status" data-testid="pairing-expired">This code has expired.</p>
         <div class="flex gap-2">
@@ -51,6 +57,8 @@ import { PreviewBackgroundTarget } from '../../../../shared/components/preview-b
 })
 export class PairingCodePanel {
   readonly code = input.required<PairingCodeResponse>();
+  /** Display name of the device a re-attach code is bound to (only shown when the code is one). */
+  readonly reattachName = input<string | null>(null);
   readonly renew = output<void>();
   readonly dismiss = output<void>();
 

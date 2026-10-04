@@ -1,5 +1,5 @@
 import type { DesktopHubBridge, DesktopHubOwnerStatus, DesktopLocalHubInfo } from '@dude/contracts/shared/models/platform-bridge.model';
-import type { DeviceInfo, HubDiagnosticsReport, ReachabilityEchoResponse, SessionInfo, SyncSummary } from '@dude/contracts/hub';
+import type { BackupStatusResponse, DeviceInfo, HubDiagnosticsReport, ReachabilityEchoResponse, SessionInfo, SyncSummary } from '@dude/contracts/hub';
 import type { AgentDiagnostics } from '@dude/contracts';
 
 export const FAKE_HUB_DEVICE_ID = '0190aaaa-0000-7000-8000-000000000001';
@@ -23,6 +23,11 @@ export const FAKE_REACHABILITY_VERIFIED: ReachabilityEchoResponse = {
 };
 
 /** A private-mode Hub report with a local-CA certificate, one passing and one failing check, for specs. */
+/** A Hub with no backup taken yet and nothing scheduled. */
+export const FAKE_BACKUP_STATUS: BackupStatusResponse = {
+  authority: { epoch: 1, state: 'active' }, lastBackup: null, schedule: { configured: false }, defaultFolder: 'C:\\ProgramData\\DUDE\\Hub\\backups', devicesNeedingRePair: 0,
+};
+
 export const FAKE_HUB_DIAGNOSTICS: HubDiagnosticsReport = {
   generatedAt: '2026-10-01T10:00:00.000Z', hubVersion: '0.0.44', protocolVersion: 2, schemaVersion: 7,
   service: { mode: 'service', uptimeSeconds: 3600 },
@@ -151,8 +156,12 @@ export function fakeHub(options: { password?: string; localHub?: FakeLocalHubSce
     diagnostics: track('diagnostics', async () => needOwner() ?? ok(FAKE_HUB_DIAGNOSTICS)),
     reachabilityEcho: track('reachabilityEcho', async (_publicUrl: string) => ok({ ...FAKE_REACHABILITY_VERIFIED, rttMs: 42 })),
     agentDiagnostics: track('agentDiagnostics', async () => ok(FAKE_AGENT_DIAGNOSTICS)),
-    createPairingCode: track('createPairingCode', async () =>
-      needOwner() ?? ok({ pairingCode: 'ABCD-2345', pairingString: FAKE_HUB_PAIRING_STRING, expiresAt: '2099-01-01T00:00:00.000Z', hubUrl: 'https://hub.local:47600', spkiSha256: 'A'.repeat(43) })),
+    createPairingCode: track('createPairingCode', async (_host?: string, options?: { reattachDeviceId?: string }) =>
+      needOwner() ?? ok({
+        pairingCode: 'ABCD-2345', pairingString: FAKE_HUB_PAIRING_STRING, expiresAt: '2099-01-01T00:00:00.000Z', hubUrl: 'https://hub.local:47600', spkiSha256: 'A'.repeat(43),
+        reattachDeviceId: options?.reattachDeviceId ?? null,
+      })),
+    backupStatus: track('backupStatus', async () => needOwner() ?? ok(FAKE_BACKUP_STATUS)),
     renameDevice: track('renameDevice', async (id: string, name: string) => {
       const denied = needOwner();
       if (denied) return denied;

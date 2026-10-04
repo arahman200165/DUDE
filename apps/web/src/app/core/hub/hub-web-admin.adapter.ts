@@ -1,5 +1,5 @@
 import type {
-  AuditListResponse, SecurityAlertsResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary, HubDiagnosticsReport, ReachabilityEchoResponse, TlsCertificatesResponse,
+  AuditListResponse, BackupStatusResponse, SecurityAlertsResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary, HubDiagnosticsReport, ReachabilityEchoResponse, TlsCertificatesResponse,
   OwnerResetResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SignInResponse,
 } from '@dude/contracts/hub';
 import type { HubClient } from '@dude/api-client';
@@ -133,7 +133,12 @@ export function createHubWebAdmin(options: HubWebAdminOptions): HubAdminPort {
         throw await normalize(error);
       }
     },
-    createPairingCode: (host): Promise<PairingCodeResponse> => viaClient((c) => c.createPairingCode(undefined, host === undefined ? undefined : { host })),
+    createPairingCode: (host, options): Promise<PairingCodeResponse> =>
+      viaClient((c) => c.createPairingCode(undefined, host === undefined && options?.reattachDeviceId === undefined ? undefined : {
+        ...(host === undefined ? {} : { host }),
+        ...(options?.reattachDeviceId === undefined ? {} : { reattachDeviceId: options.reattachDeviceId }),
+      })),
+    backupStatus: (): Promise<BackupStatusResponse> => viaClient((c) => c.backupStatus(undefined)),
     renameDevice: (id, name): Promise<DeviceInfo> => viaClient((c) => c.renameDevice(undefined, id, name)),
     revokeDevicePreview: (id): Promise<ConfirmPreview> => viaClient((c) => c.revokeDevicePreview(undefined, id)),
     revokeDevice: (id, token): Promise<OkResponse> => viaClient((c) => c.revokeDevice(undefined, id, token)),

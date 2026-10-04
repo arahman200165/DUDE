@@ -33,6 +33,26 @@ describe('desktop Hub admin adapter', () => {
     expect(seen).toEqual([{ pairingString: FAKE_HUB_PAIRING_STRING, acknowledged: true }, { pairingString: FAKE_HUB_PAIRING_STRING, acknowledged: true }]);
   });
 
+  it('passes the backup status through the owner bridge and normalizes a transferred Hub to its distinct code', async () => {
+    const hub = fakeHub();
+    const admin = createDesktopHubAdmin(() => hub);
+    await expect(admin.backupStatus()).rejects.toMatchObject({ code: 'unauthorized' });
+    await admin.ownerSignIn('correct horse battery');
+    await expect(admin.backupStatus()).resolves.toMatchObject({ authority: { state: 'active' }, lastBackup: null, schedule: { configured: false }, devicesNeedingRePair: 0 });
+    const transferred = createDesktopHubAdmin(() => ({ ...hub, backupStatus: async () => ({ ok: false as const, error: { code: 'hub-transferred', message: 'This Hub was transferred.' } }) }));
+    await expect(transferred.backupStatus()).rejects.toMatchObject({ code: 'hub-transferred', message: 'This Hub was transferred.' });
+  });
+
+  it('passes the re-attach device id to the pairing code only when given', async () => {
+    const hub = fakeHub();
+    const seen: unknown[][] = [];
+    const admin = createDesktopHubAdmin(() => ({ ...hub, createPairingCode: (...args: unknown[]) => { seen.push(args); return (hub.createPairingCode as (...a: unknown[]) => ReturnType<typeof hub.createPairingCode>)(...args); } }));
+    await admin.ownerSignIn('correct horse battery');
+    await expect(admin.createPairingCode()).resolves.toMatchObject({ reattachDeviceId: null });
+    await expect(admin.createPairingCode(undefined, { reattachDeviceId: 'dev-1' })).resolves.toMatchObject({ reattachDeviceId: 'dev-1' });
+    expect(seen).toEqual([[undefined], [undefined, { reattachDeviceId: 'dev-1' }]]);
+  });
+
   it('passes the Hub and device diagnostics through; the Hub report needs the owner', async () => {
     const hub = fakeHub();
     const admin = createDesktopHubAdmin(() => hub);

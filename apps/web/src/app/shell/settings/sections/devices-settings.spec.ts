@@ -124,7 +124,7 @@ describe('DevicesSettings', () => {
     fixture.detectChanges();
     await settle(fixture);
     const hint = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="pair-desktop-hint"]');
-    expect(hint?.textContent).toContain('Settings › Environment & Hub › Connect to a Hub');
+    expect(hint?.textContent).toContain('Settings ï¿½ Environment & Hub ï¿½ Connect to a Hub');
     expect(hint?.textContent).toContain('paste the pairing string');
   });
 
@@ -194,6 +194,66 @@ describe('DevicesSettings', () => {
       buttonWithText(el, 'Create a new code').click();
       await settle(fixture);
       expect(port.createPairingCode).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('re-pair after a Hub restore', () => {
+    const RESTORED = '0190aaaa-0000-7000-8000-000000000006';
+    const WITH_RESTORED = [
+      ...LIST,
+      device(RESTORED, 'Restored PC', { needsRePair: true }),
+      device('0190aaaa-0000-7000-8000-000000000007', 'Restored and revoked', { needsRePair: true, revokedAt: '2026-02-01T00:00:00.000Z' }),
+      device('0190aaaa-0000-7000-8000-000000000008', 'Fine PC', { needsRePair: false }),
+    ];
+    const restoredRow = (el: HTMLElement): HTMLElement => el.querySelector(`[data-testid="device-row-${RESTORED}"]`) as HTMLElement;
+
+    it('badges only a device that needs re-pair and offers the code action only there', async () => {
+      const { el } = await mount({ listDevices: async () => WITH_RESTORED });
+      expect(el.querySelectorAll('[data-testid="needs-re-pair"]')).toHaveLength(1);
+      expect(restoredRow(el).textContent).toContain('Needs re-pair');
+      expect(restoredRow(el).textContent).toContain('This device was paired before the Hub was restored. Create a one-time code, then enter it in that device\'s Settings > Environment & Hub > Reconnect. Its local data and pending changes are kept.');
+      expect(Array.from(el.querySelectorAll('button')).filter((b) => b.textContent?.trim() === 'Create re-pair code')).toHaveLength(1);
+      expect(restoredRow(el).querySelector('button[aria-label="Create re-pair code for Restored PC"]')).not.toBeNull();
+      expect(restoredRow(el).textContent).toContain('Rename');
+      expect(restoredRow(el).textContent).toContain('Revokeâ€¦');
+      expect(row(el, 0).textContent).not.toContain('Needs re-pair');
+    });
+
+    it('creates a code bound to that device, shows the reconnect instructions and repeats it on renew', async () => {
+      const { fixture, el, port } = await mount({ listDevices: async () => WITH_RESTORED });
+      buttonWithText(el, 'Create re-pair code').click();
+      await settle(fixture);
+      expect(port.createPairingCode).toHaveBeenCalledExactlyOnceWith(undefined, { reattachDeviceId: RESTORED });
+      expect(text(el, 'pairing-string')).toContain('dude-pair:v1:');
+      expect(text(el, 'pairing-reattach')).toContain('Restored PC');
+      expect(text(el, 'pairing-reattach')).toContain('Settings â€º Environment & Hub â€º Reconnect');
+      expect(el.textContent).not.toContain('Connect to a Hub');
+      buttonWithText(el, 'Create a new code').click();
+      await settle(fixture);
+      expect(port.createPairingCode).toHaveBeenCalledTimes(2);
+      expect(port.createPairingCode).toHaveBeenLastCalledWith(undefined, { reattachDeviceId: RESTORED });
+    });
+
+    it('leaves an ordinary pairing code unchanged and drops the re-pair target', async () => {
+      const { fixture, el, port } = await mount({ listDevices: async () => WITH_RESTORED });
+      buttonWithText(el, 'Create re-pair code').click();
+      await settle(fixture);
+      buttonWithText(el, 'Pair a device').click();
+      await settle(fixture);
+      expect(port.createPairingCode).toHaveBeenLastCalledWith();
+      expect(el.querySelector('[data-testid="pairing-reattach"]')).toBeNull();
+      expect(text(el, 'pairing-panel')).toContain('Connect to a Hub');
+    });
+
+    it('shows nothing when the step-up prompt is cancelled or the Hub refuses', async () => {
+      const { fixture, el } = await mount({
+        listDevices: async () => WITH_RESTORED,
+        createPairingCode: async () => { throw new HubAdminError('step-up-required', 'Password confirmation was cancelled.'); },
+      });
+      buttonWithText(el, 'Create re-pair code').click();
+      await settle(fixture);
+      expect(text(el, 'action-error')).toContain('Password confirmation was cancelled.');
+      expect(el.querySelector('[data-testid="pairing-panel"]')).toBeNull();
     });
   });
 

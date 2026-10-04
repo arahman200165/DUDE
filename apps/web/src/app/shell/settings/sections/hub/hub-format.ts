@@ -42,6 +42,7 @@ const ERROR_COPY: Readonly<Record<string, string>> = {
   'not-enrolled': 'This device is not connected to a Hub, so there is nothing to reconnect. Connect it instead.',
   'not-reconnectable': 'This device is connected to its Hub as expected, so there is nothing to reconnect.',
   'snapshot-failed': 'A recovery snapshot could not be taken, so nothing was changed. Free some disk space and try again.',
+  'hub-transferred': 'This Hub was transferred to another machine and is now read-only. Use the Hub on the new machine.',
   'owner-session-expired': 'Your owner session expired. Sign in again.',
   'owner-not-signed-in': 'Sign in as the environment owner first.',
   'tls-untrusted': "The Hub's certificate no longer matches. Pair again with a fresh pairing string.",

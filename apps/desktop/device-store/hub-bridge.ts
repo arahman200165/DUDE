@@ -205,12 +205,23 @@ export function registerHubHandlers(
   define({
     channel: 'dude:hub:owner:createPairingCode', method: 'hub.owner.createPairingCode',
     parse: (args) => {
-      if (args.length > 1) return bad();
-      const [hostName] = args;
-      if (hostName === undefined) return { ok: true, params: {} };
-      return typeof hostName === 'string' && HOST.test(hostName) ? { ok: true, params: { host: hostName } } : bad('Invalid host.');
+      if (args.length > 2) return bad();
+      const [hostName, options] = args;
+      if (hostName !== undefined && !(typeof hostName === 'string' && HOST.test(hostName))) return bad('Invalid host.');
+      const params: { host?: string; reattachDeviceId?: string } = hostName === undefined ? {} : { host: hostName };
+      if (options !== undefined) {
+        // Exactly `{ reattachDeviceId: <uuid> }` (PD-072): a re-attach code is bound to one restored device row.
+        if (typeof options !== 'object' || options === null || Array.isArray(options)) return bad();
+        const keys = Object.keys(options);
+        const { reattachDeviceId } = options as { reattachDeviceId?: unknown };
+        if (keys.length !== 1 || keys[0] !== 'reattachDeviceId' || !uuidArg(reattachDeviceId)) return bad('Invalid device.');
+        params.reattachDeviceId = reattachDeviceId;
+      }
+      return { ok: true, params };
     },
   });
+
+  define({ channel: 'dude:hub:owner:backupStatus', method: 'hub.owner.backupStatus', parse: none });
 
   define({
     channel: 'dude:hub:owner:renameDevice', method: 'hub.owner.renameDevice',

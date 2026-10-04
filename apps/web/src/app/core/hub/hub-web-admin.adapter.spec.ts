@@ -165,6 +165,43 @@ describe('Hub web admin adapter', () => {
     await expect(admin.unenroll()).rejects.toMatchObject({ code: 'unavailable' });
   });
 
+  describe('backup status and re-attach pairing codes', () => {
+    const DEVICE = '0190aaaa-0000-7000-8000-000000000001';
+    const CODE = { pairingCode: 'ABCD-EFGH', pairingString: 'dude-pair:v1:x', expiresAt: '2099-01-01T00:00:00.000Z', hubUrl: 'https://hub.local:47600', spkiSha256: 'A'.repeat(43), reattachDeviceId: null };
+    const STATUS = { authority: { epoch: 2, state: 'active' }, lastBackup: null, schedule: { configured: false }, defaultFolder: 'C:\\ProgramData\\DUDE\\Hub\\backups', devicesNeedingRePair: 1 };
+
+    it('reads the backup status over the cookie session with GET', async () => {
+      const { admin, calls } = setup(() => ({ status: 200, body: STATUS }));
+      await expect(admin.backupStatus()).resolves.toMatchObject({ authority: { epoch: 2, state: 'active' }, devicesNeedingRePair: 1 });
+      expect(calls[0]).toMatchObject({ url: '/api/v1/backup/status', method: 'GET', credentials: 'same-origin' });
+    });
+
+    it('surfaces a transferred Hub as the distinct hub-transferred code', async () => {
+      const { admin } = setup(() => ({ status: 503, body: envelope('hub-transferred', 'This Hub was transferred to another machine.') }));
+      await expect(admin.backupStatus()).rejects.toMatchObject({ name: 'HubAdminError', code: 'hub-transferred' });
+    });
+
+    it('sends an empty body without options and the re-attach device id with them', async () => {
+      const { admin, calls } = setup((c) => ({ status: 200, body: { ...CODE, reattachDeviceId: (c.body as { reattachDeviceId?: string }).reattachDeviceId ?? null } }));
+      await expect(admin.createPairingCode()).resolves.toMatchObject({ reattachDeviceId: null });
+      await expect(admin.createPairingCode(undefined, { reattachDeviceId: DEVICE })).resolves.toMatchObject({ reattachDeviceId: DEVICE });
+      await admin.createPairingCode('hub.local', { reattachDeviceId: DEVICE });
+      expect(calls.map((c) => c.body)).toEqual([{}, { reattachDeviceId: DEVICE }, { host: 'hub.local', reattachDeviceId: DEVICE }]);
+    });
+
+    it('still asks for the step-up password before a re-attach code is created', async () => {
+      let stepped = false;
+      const ask = vi.fn(async (_message?: string) => 'pw' as string | null);
+      const { admin, calls } = setup((c) => {
+        if (c.url.endsWith('/auth/step-up')) { stepped = true; return { status: 200, body: { ok: true, csrfToken: 'csrf-2', steppedUpUntil: '2099-01-01T00:00:00.000Z' } }; }
+        return stepped ? { status: 200, body: { ...CODE, reattachDeviceId: DEVICE } } : { status: 403, body: envelope('step-up-required', 'Confirm your password.') };
+      }, { requestStepUp: ask });
+      await expect(admin.createPairingCode(undefined, { reattachDeviceId: DEVICE })).resolves.toMatchObject({ reattachDeviceId: DEVICE });
+      expect(ask).toHaveBeenCalledTimes(1);
+      expect(calls.map((c) => c.body)).toEqual([{ reattachDeviceId: DEVICE }, { password: 'pw' }, { reattachDeviceId: DEVICE }]);
+    });
+  });
+
   describe('owner step-up', () => {
     const PREVIEW = { confirmToken: 't', expiresAt: 'x', summary: { action: 'a' } };
     const stepUpResponder = (accept: (pw: string) => boolean) => {

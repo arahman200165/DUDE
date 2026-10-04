@@ -15,6 +15,7 @@ import { NativeRecentsService } from '../../../core/native-recents/native-recent
 import { NativeRecentEntry } from "@dude/domain/core/native-recents/native-recent.model";
 import { ErrorPanel } from '../../../shared/components/error-panel/error-panel';
 import { SettingsUnsavedChanges } from '../settings-unsaved-changes';
+import { CORE_SETTINGS_SECTIONS, settingsSectionAvailability } from '../settings-sections';
 import { AiProviderSettings } from './ai-provider-settings';
 import { HotkeysSettings, QUICK_LAUNCHER_HOTKEY_ID, SMART_PASTE_HOTKEY_ID } from './hotkeys-settings';
 import { FilesSettings } from './files-settings';
@@ -331,6 +332,20 @@ describe('Settings sections', () => {
       const patch = desktopPrefsSet.mock.calls[0][0];
       expect(patch).not.toHaveProperty('startupDestination');
       expect(patch).toMatchObject({ closeToTray: true, launchMinimized: false, updateMode: 'auto-download' });
+    });
+  });
+
+  describe('Core section registry (Hub administration)', () => {
+    it('lists Backup & Transfer once, after Security & Sessions, for desktop and Hub web only', () => {
+      const ids = CORE_SETTINGS_SECTIONS.map((section) => section.id);
+      expect(ids.filter((id) => id === 'backup')).toHaveLength(1);
+      expect(ids.indexOf('backup')).toBe(ids.indexOf('security') + 1);
+      const hosts = ['desktop', 'hub-web', 'web-standalone'] as const;
+      expect(hosts.map((host) => settingsSectionAvailability(CORE_SETTINGS_SECTIONS.find((section) => section.id === 'backup')?.hosts, host))).toEqual(['available', 'available', 'hidden']);
+      // Every Hub administration section shares the same host filter, so none can appear where the others do not.
+      for (const id of ['environment', 'endpoint', 'devices', 'sync', 'security', 'backup']) {
+        expect(CORE_SETTINGS_SECTIONS.find((section) => section.id === id)?.hosts, id).toEqual(['desktop', 'hub-web']);
+      }
     });
   });
 
