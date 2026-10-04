@@ -37,10 +37,10 @@ const NO_ANGULAR_IMPORT = {
 
 export default [
   {
-    ignores: ['dist/**', '**/dist/**', 'dist-*/**', '**/node_modules/**', '.angular/**', 'coverage/**', 'tmp/**'],
+    ignores: ['dist/**', '**/dist/**', 'dist-*/**', '**/node_modules/**', '.angular/**', 'coverage/**', 'tmp/**', 'apps/mobile/android/**', 'apps/mobile/.expo/**'],
   },
   {
-    files: ['**/*.ts', '**/*.mts'],
+    files: ['**/*.ts', '**/*.tsx', '**/*.mts'],
     languageOptions: {
       parser: tsParser,
       parserOptions: { sourceType: 'module' },

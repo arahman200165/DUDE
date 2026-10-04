@@ -63,7 +63,7 @@
     "build:packages": "node scripts/build-packages.mjs",
     "watch:packages": "node scripts/build-packages.mjs --watch",
     "test:packages": "vitest run --config vitest.packages.config.mts",
-    "check:boundaries": "node scripts/check-package-boundaries.mjs",
+    "check:boundaries": "node scripts/check-package-boundaries.mjs && node scripts/check-mobile-boundaries.mjs",
     "preelectron:compile": "npm run generate:registry && npm run build:packages",
     "prerelay:compile": "npm run build:packages",
     "prehub:sea": "npm run hub:compile",
@@ -86,7 +86,17 @@
     "audit:prod": "node scripts/check-production-audit.mjs",
     "pretest:packages": "npm run build:packages",
     "agent:sea": "node scripts/build-sea.mjs --bundle dist/electron/device-agent.js --out dist/agent --name dude-agent",
-    "preagent:sea": "npm run device-agent:compile"
+    "preagent:sea": "npm run device-agent:compile",
+    "precheck:mobile": "npm run build:packages",
+    "check:mobile": "npm run check --workspace=@dude/mobile && node scripts/check-mobile-boundaries.mjs",
+    "test:mobile": "node --test tests/mobile-boundaries.test.mjs",
+    "premobile:start": "npm run build:packages",
+    "mobile:start": "npm run start --workspace=@dude/mobile",
+    "mobile:prebuild": "npm run prebuild --workspace=@dude/mobile",
+    "premobile:android": "npm run build:packages",
+    "mobile:android": "npm run android --workspace=@dude/mobile",
+    "premobile:bundle": "npm run build:packages",
+    "mobile:bundle": "npm run bundle --workspace=@dude/mobile"
   },
   "private": true,
   "packageManager": "npm@11.19.0",
@@ -193,6 +203,7 @@
     "@angular/build": "^22.2.1",
     "@angular/cli": "^22.2.1",
     "@angular/compiler-cli": "^22.2.1",
+    "@babel/generator": "7.29.7",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/diff-match-patch": "^1.0.36",
@@ -243,5 +254,9 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "overrides": {
+    "react-native-reanimated": "4.5.1",
+    "react-native-worklets": "0.10.1"
+  }
 }

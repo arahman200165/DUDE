@@ -67,3 +67,9 @@ Thumbs.db
 
 # Vendored third-party binaries fetched by scripts (WinSW), and Hub staging output
 /build/vendor/
+
+# Expo Continuous Native Generation and local development data
+/apps/mobile/android/
+/apps/mobile/ios/
+/apps/mobile/.expo/
+/apps/mobile/dist/

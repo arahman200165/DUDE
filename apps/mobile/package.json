@@ -1,0 +1,35 @@
+{
+  "name": "@dude/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start --dev-client",
+    "preandroid": "node ../../scripts/check-mobile-toolchain.mjs",
+    "android": "expo run:android",
+    "prebuild": "expo prebuild --platform android --no-install",
+    "bundle": "expo export --platform android --output-dir ../../dist/mobile",
+    "check": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "expo": "57.0.26",
+    "expo-build-properties": "~57.0.22",
+    "expo-constants": "~57.0.20",
+    "expo-dev-client": "~57.0.19",
+    "expo-linking": "~57.0.11",
+    "expo-router": "~57.0.24",
+    "expo-status-bar": "~57.0.1",
+    "expo-system-ui": "57.0.4",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-gesture-handler": "2.32.0",
+    "react-native-reanimated": "4.5.1",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
+    "react-native-worklets": "0.10.1"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.0",
+    "typescript": "~6.0.2"
+  }
+}

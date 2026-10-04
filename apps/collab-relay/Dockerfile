@@ -16,6 +16,7 @@ COPY apps/collab-relay/package.json ./apps/collab-relay/package.json
 COPY apps/desktop/package.json ./apps/desktop/package.json
 COPY apps/device-agent/package.json ./apps/device-agent/package.json
 COPY apps/hub/package.json ./apps/hub/package.json
+COPY apps/mobile/package.json ./apps/mobile/package.json
 COPY apps/web/package.json ./apps/web/package.json
 COPY packages/agent-pipe/package.json ./packages/agent-pipe/package.json
 COPY packages/api-client/package.json ./packages/api-client/package.json
