@@ -256,7 +256,9 @@ Phase 31E (Milestones 663-682) delivered private-mode access, trusted-certificat
 
 **Diagnostics.** One engine reports exposure, the certificate (source, SANs against configured names, validity, pending pin acknowledgements, CA and renewal, HSTS), proxy pins, the Windows firewall rule and realtime health, plus 17 readiness checks (including the doctor-only public-firewall and native-ports checks) marked verified, claimed or not-checked, each with the exact elevated fix command. It reads public certificate fields only. External reachability is not checked (31F).
 
-**Still not delivered.** Public (Internet) mode release, sync-time revoked-device verification for Internet exposure and the review of the `DUDE_HUB_TEST_*` knobs are 31F; encrypted backup is 31G; passkeys/TOTP and external OAuth remain unscheduled.
+**Revocation at sync time (31F).** Every device-authenticated request re-resolves its `ddt_` token against the database (token, device not revoked or unenrolled, key not revoked), so a revocation is effective on the very next request even though tokens live 15 minutes; open realtime sockets close with 4003. Pushes also re-verify the acting device (or, for the browser, its live session and browser row) inside the commit transaction, so no write by a revoked actor can land even when revocation commits between authentication and commit; the response is the same 401 as for any bad credential. A revoked device that keeps trying (token, challenge, token redemption or realtime upgrade) is audited as `device.revoked-attempt` (denied, device id, address, route kind only, at most once per hour per device and kind) and listed in the security alerts, while every response stays identical to the unknown-credential case so the endpoint does not reveal which ids exist. Revocation still cannot erase data already cached on an offline lost device.
+
+**Still not delivered.** Public (Internet) mode release and the review of the `DUDE_HUB_TEST_*` knobs are 31F; encrypted backup is 31G; passkeys/TOTP and external OAuth remain unscheduled.
 
 ### Public mode firewall (PD-068)
 

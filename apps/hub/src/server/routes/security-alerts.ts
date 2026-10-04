@@ -17,7 +17,7 @@ const SEEN_KEY = 'alerts_seen_seq';
 export const SECURITY_ALERT_EVENTS = [
   'owner.sign-in', 'throttle.locked', 'security.ip-blocked', 'owner.password-changed', 'owner.recovery-code-used',
   'owner.recovery-codes-regenerated', 'owner.reset-local', 'owner.recovery-device', 'session.revoked-all', 'device.revoked',
-  'device.enrolled', 'network.mode-changed', 'network.exposure-mode-changed', 'network.address-changed', 'tls.rotation-activated',
+  'device.revoked-attempt', 'device.enrolled', 'network.mode-changed', 'network.exposure-mode-changed', 'network.address-changed', 'tls.rotation-activated',
 ] as const;
 
 const SUMMARIES: Record<string, string> = {
@@ -30,6 +30,7 @@ const SUMMARIES: Record<string, string> = {
   'owner.recovery-device': 'The owner password was recovered with an enrolled device.',
   'session.revoked-all': 'All other sessions were signed out.',
   'device.revoked': 'A device was revoked.',
+  'device.revoked-attempt': 'A revoked device tried to connect.',
   'device.enrolled': 'A device was enrolled.',
   'network.mode-changed': 'The network mode was changed.',
   'network.exposure-mode-changed': 'The exposure mode was changed.',
@@ -37,7 +38,8 @@ const SUMMARIES: Record<string, string> = {
   'network.address-changed': "This Hub's network addresses changed.",
 };
 
-function summarize(event: string, detail: unknown): string {
+function summarize(event: string, detail: unknown, deviceName: string | null = null): string {
+  if (event === 'device.revoked-attempt') return deviceName === null ? SUMMARIES[event]! : `${SUMMARIES[event]} (${deviceName})`;
   if (event === 'throttle.locked') {
     const d = (detail ?? {}) as { kind?: unknown; scope?: unknown };
     const kind = typeof d.kind === 'string' ? d.kind.replace('-', ' ') : 'credential';
@@ -51,24 +53,31 @@ function summarize(event: string, detail: unknown): string {
   return SUMMARIES[event] ?? event;
 }
 
+/** Display name only (never a credential); null once the device is gone from the registry. */
+function deviceName(db: Db, deviceId: string | null): string | null {
+  if (deviceId === null) return null;
+  const row = db.prepare('SELECT display_name FROM devices WHERE device_id = ?').get(deviceId) as { display_name: string } | undefined;
+  return row?.display_name ?? null;
+}
+
 export function getSeenSeq(db: Db): number {
   const n = Number(getMeta(db, SEEN_KEY) ?? 0);
   return Number.isSafeInteger(n) && n >= 0 ? n : 0;
 }
 
-interface Row { seq: number; at: string; event: string; outcome: string; ip: string | null; detail_json: string | null }
+interface Row { seq: number; at: string; event: string; outcome: string; ip: string | null; detail_json: string | null; actor_id: string | null }
 
 export function readSecurityAlerts(db: Db, now: number): { alerts: SecurityAlert[]; unseen: number; seenSeq: number } {
   const seenSeq = getSeenSeq(db);
   const marks = SECURITY_ALERT_EVENTS.map(() => '?').join(', ');
   const rows = db.prepare(
-    `SELECT seq, at, event, outcome, ip, detail_json FROM audit_events
+    `SELECT seq, at, event, outcome, ip, detail_json, actor_id FROM audit_events
      WHERE at >= ? AND event IN (${marks}) AND (event != 'owner.sign-in' OR json_extract(detail_json, '$.newAddress') = 1)
      ORDER BY seq DESC LIMIT ?`,
   ).all(new Date(now - ALERT_WINDOW_MS).toISOString(), ...SECURITY_ALERT_EVENTS, ALERT_LIMIT) as unknown as Row[];
   const alerts = rows.map((r): SecurityAlert => ({
     seq: r.seq, at: r.at, event: r.event, outcome: r.outcome, ip: r.ip,
-    summary: summarize(r.event, r.detail_json === null ? null : (JSON.parse(r.detail_json) as unknown)),
+    summary: summarize(r.event, r.detail_json === null ? null : (JSON.parse(r.detail_json) as unknown), r.event === 'device.revoked-attempt' ? deviceName(db, r.actor_id) : null),
   }));
   return { alerts, unseen: alerts.filter((a) => a.seq > seenSeq).length, seenSeq };
 }

@@ -11,7 +11,8 @@ import {
 import type { SyncOpResult } from '@dude/contracts/hub';
 import { SYNC_LIMITS } from '@dude/sync';
 import type { OwnerContext } from '../../auth/owner-auth.js';
-import { commitCanonical, currentRevision } from '../../db/canonical-repository.js';
+import { DeviceInactiveError, commitCanonical, currentRevision } from '../../db/canonical-repository.js';
+import type { SyncCommitResult } from '../../db/canonical-repository.js';
 import {
   changesAfter, countLiveRecordsByCategory, getRetentionDays, getSyncFloor, listDeviceSyncState, recordDeviceSyncState, snapshotPage,
 } from '../../db/sync-repository.js';
@@ -86,10 +87,18 @@ export function registerSyncRoutes(app: FastifyInstance, options: SyncRouteOptio
       let lastRevision = 0;
       // Each op commits in its own transaction: a rejected or conflicting op never rolls back the others.
       for (const op of request.body.ops) {
-        const r = commitCanonical(db, {
-          environmentId, entityType: op.entityType, entityId: op.entityId, op: op.opKind, payload: op.payload, opId: op.opId, deviceId,
-          now: at, enforcePolicy: true, basedOnRevision: op.basedOnRevision, actingDeviceId: deviceId, schemaVersion: op.schemaVersion,
-        });
+        let r: SyncCommitResult;
+        try {
+          r = commitCanonical(db, {
+            environmentId, entityType: op.entityType, entityId: op.entityId, op: op.opKind, payload: op.payload, opId: op.opId, deviceId,
+            now: at, enforcePolicy: true, basedOnRevision: op.basedOnRevision, actingDeviceId: deviceId, schemaVersion: op.schemaVersion,
+            actor: { kind: 'device', deviceId, keyId: request.device!.keyId },
+          });
+        } catch (error) {
+          // Revoked between authentication and this commit: nothing of this op was written; the response matches any revoked credential.
+          if (error instanceof DeviceInactiveError) return unauthorized(reply);
+          throw error;
+        }
         counts[r.status] += 1;
         if (r.status === 'applied') lastRevision = r.revision;
         results.push(r.status === 'conflict' ? { opId: op.opId, status: 'conflict', current: r.current }

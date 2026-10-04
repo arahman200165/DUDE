@@ -10,6 +10,7 @@ import { createChallenge, redeemChallenge } from '../../devices/device-tokens.js
 import { ED25519_PUBLIC_KEY_BYTES, ED25519_SIGNATURE_BYTES, decodeBase64url, publicKeyFromRaw, verifyEd25519 } from '../../devices/keys.js';
 import { consumePairingCode, normalizeSubmittedCode, pairingCodeIsLive, recordWrongPairingAttempt } from '../../devices/pairing.js';
 import { enrollDevice } from '../../devices/registry.js';
+import { isRevokedDevice, noteRevokedAttempt } from '../../devices/revoked-attempts.js';
 import { audit } from '../../security/audit.js';
 import { checkThrottleKeys, lockedReply, recordFailureKeys, recordSuccessKeys, throttleKeys } from '../../security/throttle.js';
 import { envelope } from '../errors.js';
@@ -94,6 +95,8 @@ export function registerDeviceAuthRoutes(app: FastifyInstance, options: DeviceAu
     },
     async (request, reply) => {
       nostore(reply);
+      // A revoked or unenrolled id gets the same well-formed (never stored) nonce as an unknown id; it is only audited.
+      if (isRevokedDevice(db, request.body.deviceId)) noteRevokedAttempt(db, { deviceId: request.body.deviceId, via: 'challenge', ip: ipOf(request), now: now() });
       return reply.code(200).send(createChallenge(db, request.body.deviceId, now()));
     },
   );
@@ -115,6 +118,7 @@ export function registerDeviceAuthRoutes(app: FastifyInstance, options: DeviceAu
       });
       if (issued === null) {
         recordFailureKeys(db, keys, now());
+        if (isRevokedDevice(db, request.body.deviceId)) noteRevokedAttempt(db, { deviceId: request.body.deviceId, via: 'redeem', ip, now: now() });
         audit(db, { event: 'auth.failure', outcome: 'failure', actorKind: 'anonymous', ip, detail: { kind: 'device-signature', deviceId: request.body.deviceId }, now: now() });
         return reply.code(401).send(envelope('unauthorized', 'The device could not be authenticated.'));
       }

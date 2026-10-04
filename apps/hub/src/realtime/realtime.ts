@@ -11,6 +11,7 @@ import type { RealtimeServerMessage } from '@dude/contracts/hub';
 import type { HubEventMap } from '../auth/hub-events.js';
 import { resolveOwner } from '../auth/owner-auth.js';
 import { DEVICE_TOKEN_PREFIX, resolveDeviceToken } from '../devices/device-tokens.js';
+import { noteRevokedToken } from '../devices/revoked-attempts.js';
 import { touchLastSeen } from '../devices/registry.js';
 import { OWNER_BEARER_PREFIX } from '../auth/sessions.js';
 import { classifyCredential } from '../security/request-guard.js';
@@ -118,7 +119,10 @@ function authenticate(request: FastifyRequest, options: RealtimeOptions): Princi
   if (credential.kind !== 'bearer' || token === undefined) return null;
   if (token.startsWith(DEVICE_TOKEN_PREFIX)) {
     const device = resolveDeviceToken(db, token, now());
-    if (!device) return null;
+    if (!device) {
+      noteRevokedToken(db, token, 'realtime', request.ip || undefined, now());
+      return null;
+    }
     return { kind: 'device', deviceId: device.deviceId, boundDeviceId: null, sessionHash: null, stillValid: (at) => resolveDeviceToken(db, token, at) !== null };
   }
   if (token.startsWith(OWNER_BEARER_PREFIX)) {

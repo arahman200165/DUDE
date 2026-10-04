@@ -28,6 +28,34 @@ export class CanonicalRejection extends Error {
   }
 }
 
+/**
+ * The authenticated actor of a device or browser push re-verified INSIDE the commit transaction (defense in depth: a
+ * revocation that committed between authentication and this write must still win). Maps to HTTP 401 at the route.
+ */
+export type CommitActor =
+  | { kind: 'device'; deviceId: string; keyId: string }
+  | { kind: 'browser'; deviceId: string; sessionHash: string };
+
+/** The acting device or session ended before the write could land; nothing was written. */
+export class DeviceInactiveError extends Error {
+  constructor() {
+    super('The acting device or session is no longer active.');
+    this.name = 'DeviceInactiveError';
+  }
+}
+
+/** One indexed lookup per commit: device active (not revoked/unenrolled), key not revoked; or session live and browser row active. */
+function assertActorActive(db: Db, actor: CommitActor): void {
+  const row = actor.kind === 'device'
+    ? getRow(db.prepare(
+      `SELECT 1 AS x FROM device_keys k JOIN devices d ON d.device_id = k.device_id
+       WHERE k.key_id = ? AND k.device_id = ? AND k.revoked_at IS NULL AND d.kind = 'desktop' AND d.revoked_at IS NULL AND d.unenrolled_at IS NULL`), actor.keyId, actor.deviceId)
+    : getRow(db.prepare(
+      `SELECT 1 AS x FROM sessions s JOIN devices d ON d.device_id = s.browser_device_id
+       WHERE s.session_hash = ? AND s.browser_device_id = ? AND s.revoked_at IS NULL AND d.kind = 'browser' AND d.revoked_at IS NULL AND d.unenrolled_at IS NULL`), actor.sessionHash, actor.deviceId);
+  if (!row) throw new DeviceInactiveError();
+}
+
 export interface CanonicalCommit {
   environmentId: string;
   entityType: string;
@@ -46,6 +74,8 @@ export interface CanonicalCommit {
   enforcePolicy?: boolean;
   /** Revision the producing device last saw for this entity (merge3 conflict detection). */
   basedOnRevision?: number | null;
+  /** Sync and web pushes: re-verified inside the commit transaction before anything else. */
+  actor?: CommitActor;
   /** The authenticated device; per-device entities must be owned by it. */
   actingDeviceId?: string;
   /** Schema version the producing device wrote the payload with (enforcePolicy only). */
@@ -127,6 +157,7 @@ export function commitCanonical(db: Db, input: CanonicalCommit): SyncCommitResul
 
 function commitInTransaction(db: Db, input: CanonicalCommit): SyncCommitResult {
   return transaction(db, (): SyncCommitResult => {
+    if (input.actor) assertActorActive(db, input.actor);
     if (input.opId !== undefined) {
       const seen = getRow<{ revision: number }>(db.prepare('SELECT revision FROM applied_ops WHERE op_id = ?'), input.opId);
       if (seen) return { status: 'duplicate', revision: seen.revision };

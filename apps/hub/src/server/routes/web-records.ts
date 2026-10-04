@@ -9,7 +9,8 @@ import {
 import type { SyncOpResult } from '@dude/contracts/hub';
 import { SYNC_LIMITS } from '@dude/sync';
 import type { OwnerContext } from '../../auth/owner-auth.js';
-import { commitCanonical, currentRevision } from '../../db/canonical-repository.js';
+import { DeviceInactiveError, commitCanonical, currentRevision } from '../../db/canonical-repository.js';
+import type { SyncCommitResult } from '../../db/canonical-repository.js';
 import { changesAfter, getRetentionDays, getSyncFloor, recordDeviceSyncState, snapshotPage } from '../../db/sync-repository.js';
 import { categoryDisabled, entityVisible, getWebAccess, setWebAccess } from '../../db/web-access.js';
 import { attachBrowser, boundBrowser } from '../../devices/browsers.js';
@@ -156,10 +157,17 @@ export function registerWebRecordRoutes(app: FastifyInstance, options: WebRecord
           results.push({ opId: op.opId, status: 'rejected', reason: 'category-disabled' });
           continue;
         }
-        const r = commitCanonical(db, {
-          environmentId: browser.environmentId, entityType: op.entityType, entityId: op.entityId, op: op.opKind, payload: op.payload, opId: op.opId,
-          deviceId: browser.deviceId, now: at, enforcePolicy: true, basedOnRevision: op.basedOnRevision, actingDeviceId: browser.deviceId, schemaVersion: op.schemaVersion,
-        });
+        let r: SyncCommitResult;
+        try {
+          r = commitCanonical(db, {
+            environmentId: browser.environmentId, entityType: op.entityType, entityId: op.entityId, op: op.opKind, payload: op.payload, opId: op.opId,
+            deviceId: browser.deviceId, now: at, enforcePolicy: true, basedOnRevision: op.basedOnRevision, actingDeviceId: browser.deviceId, schemaVersion: op.schemaVersion,
+            actor: { kind: 'browser', deviceId: browser.deviceId, sessionHash: ctx.sessionHash },
+          });
+        } catch (error) {
+          if (error instanceof DeviceInactiveError) return reply.code(401).send(envelope('unauthorized', 'Authentication is required.'));
+          throw error;
+        }
         counts[r.status] += 1;
         if (r.status === 'applied') lastRevision = r.revision;
         results.push(r.status === 'conflict' ? { opId: op.opId, status: 'conflict', current: r.current }

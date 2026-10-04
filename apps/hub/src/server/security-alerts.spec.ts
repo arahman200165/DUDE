@@ -52,14 +52,15 @@ describe('security alerts', () => {
 
   it('includes only the fixed event set, newest first, within the window', async () => {
     const now = h.clock.t;
-    for (const event of ['throttle.locked', 'security.ip-blocked', 'owner.password-changed', 'device.revoked', 'tls.rotation-activated', 'network.address-changed', 'hub.started', 'device.renamed', 'owner.sign-out'] as const) {
+    for (const event of ['throttle.locked', 'security.ip-blocked', 'owner.password-changed', 'device.revoked', 'device.revoked-attempt', 'tls.rotation-activated', 'network.address-changed', 'hub.started', 'device.renamed', 'owner.sign-out'] as const) {
       audit(db(), { event, outcome: 'success', actorKind: 'system', ip: '198.51.100.4', detail: event === 'throttle.locked' ? { kind: 'password', scope: 'address' } : event === 'network.address-changed' ? { added: ['203.0.113.9'], removed: [] } : {}, now });
     }
     audit(db(), { event: 'device.enrolled', outcome: 'success', actorKind: 'system', now: now - ALERT_WINDOW_MS - 1000 }); // too old
     const s = await signInFrom('203.0.113.50');
     const { alerts } = (await list(s)).json as { alerts: { seq: number; event: string; summary: string; ip: string | null }[] };
     const events = alerts.map((a) => a.event);
-    expect(events).toEqual(expect.arrayContaining(['throttle.locked', 'security.ip-blocked', 'owner.password-changed', 'device.revoked', 'tls.rotation-activated']));
+    expect(events).toEqual(expect.arrayContaining(['throttle.locked', 'security.ip-blocked', 'owner.password-changed', 'device.revoked', 'device.revoked-attempt', 'tls.rotation-activated']));
+    expect(alerts.find((a) => a.event === 'device.revoked-attempt')?.summary).toBe('A revoked device tried to connect.');
     for (const excluded of ['hub.started', 'device.renamed', 'owner.sign-out', 'device.enrolled']) expect(events).not.toContain(excluded);
     expect(alerts.map((a) => a.seq)).toEqual([...alerts.map((a) => a.seq)].sort((a, b) => b - a));
     expect(alerts.find((a) => a.event === 'throttle.locked')?.summary).toMatch(/password/);

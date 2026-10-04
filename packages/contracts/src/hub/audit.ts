@@ -10,7 +10,7 @@ export const HUB_AUDIT_EVENTS = [
   'owner.recovery-codes-regenerated', 'owner.reset-local', 'owner.recovery-device',
   'owner.step-up', 'session.revoked', 'session.revoked-all', 'session.rotated',
   'pairing.created', 'device.enrolled', 'device.renamed', 'device.revoked', 'device.unenrolled',
-  'device.recovery-trust-changed', 'device.token-issued',
+  'device.recovery-trust-changed', 'device.token-issued', 'device.revoked-attempt',
   'auth.failure',
   'tls.rotation-staged', 'tls.rotation-activated', 'tls.names-changed', 'tls.ca-created', 'tls.renewed',
   'tls.import-staged', 'tls.acme-issued', 'tls.acme-failed', 'tls.proxy-pin-staged', 'tls.proxy-pin-activated', 'tls.proxy-pin-removed',
