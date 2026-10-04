@@ -231,7 +231,7 @@ export async function runFirewall(options: FirewallOptions, deps: ServiceDeps = 
     }
     if (options.target === 'public' && config.exposure.mode !== 'public' && options.force !== true) {
       d.err(`The "${PUBLIC_RULE_NAME}" rule opens the Hub port to every network and is meant for public mode only; this Hub's exposure mode is "${config.exposure.mode}". ` +
-        'Switch the mode first, or pass --force to add it anyway. LAN mode uses "dude-hub network lan on" (Private profile only).\n');
+        'Public mode needs this rule before the readiness gate will pass, so add it with --force, then run "dude-hub network mode public". LAN mode uses "dude-hub network lan on" (Private profile only).\n');
       return EXIT_USAGE;
     }
     const added = await (options.target === 'public' ? addPublicRule(d.exec, port, installDir) : addAcmeRule(d.exec, port, installDir));

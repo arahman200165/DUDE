@@ -168,12 +168,12 @@ describe('EndpointSettings (desktop)', () => {
     expect(writeText).toHaveBeenCalledWith('dude-hub tls reissue --name 192.168.1.20');
   });
 
-  it('flags a public mode report as not released', async () => {
+  it('flags a public mode report as exposed to the Internet', async () => {
     const report = { ...FAKE_HUB_DIAGNOSTICS, exposure: { ...FAKE_HUB_DIAGNOSTICS.exposure, mode: 'public' as const } };
     const { port } = createTestPort({ agentDiagnostics: async () => FAKE_AGENT_DIAGNOSTICS, diagnostics: async () => report });
     const { fixture, el } = await mount(port);
     await signIn(fixture, el);
-    expect(text(el, 'exposure-mode')).toContain('Public — not released until Phase 31F');
+    expect(text(el, 'exposure-mode')).toContain('Public — exposed to the Internet');
   });
 
   it('shows a load error and refreshes both reports', async () => {

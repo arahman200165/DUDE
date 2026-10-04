@@ -9,6 +9,10 @@ import {
 } from './common.js';
 import type { ServiceDeps } from './common.js';
 import { runServiceControl } from './lifecycle.js';
+import { formatReadiness, PUBLIC_EXPOSURE_PHRASE } from '../diagnostics/readiness.js';
+import type { Blocker } from '../diagnostics/readiness.js';
+import { gatherPublicFirewallFact } from './firewall.js';
+import { auditNativeListeners } from './listeners.js';
 
 export interface NetworkOptions {
   action: 'lan-on' | 'lan-off' | 'status' | 'proxy-on' | 'proxy-off' | 'proxy-status' | 'mode-private' | 'mode-public';
@@ -16,15 +20,13 @@ export interface NetworkOptions {
   trusted?: string[];
   /** `proxy-on`: the externally visible `https://name[:port]`. */
   publicOrigin?: string;
-  /** `mode-public`: the operator passed `--i-understand-unreleased`. */
-  acknowledgeUnreleased?: boolean;
+  /** `mode-public`: `--accept-unverified-reachability` (a missing or stale external-reachability record becomes a warning; audited). */
+  acceptUnverifiedReachability?: boolean;
+  /** `mode-public`: the `--type` confirmation phrase. Without it only the readiness report is printed. */
+  type?: string;
   dataDir?: string;
   installDir?: string;
 }
-
-const PUBLIC_REFUSAL =
-  'Public exposure is not released until Phase 31F. Re-run with --i-understand-unreleased to write it to the config anyway; ' +
-  'even then the Hub will not start in public mode unless DUDE_HUB_UNRELEASED_PUBLIC=1 is set in its environment.';
 
 /**
  * `dude-hub network lan on|off|status`.
@@ -137,10 +139,7 @@ interface ExposureContext {
 async function runExposureChange(options: NetworkOptions, context: ExposureContext): Promise<number> {
   const { d, dataRoot, paths, installDir, admin, installed, state } = context;
   const proxyAction = options.action === 'proxy-on' || options.action === 'proxy-off';
-  if (options.action === 'mode-public' && options.acknowledgeUnreleased !== true) {
-    d.err(`${PUBLIC_REFUSAL}\n`);
-    return EXIT_USAGE;
-  }
+  if (options.action === 'mode-public') return runPublicMode(options, context);
   let result: Record<string, unknown>;
   let restartNeeded = false;
   if (admin !== null) {
@@ -154,7 +153,7 @@ async function runExposureChange(options: NetworkOptions, context: ExposureConte
         proxyAction ? 'network.proxy.set' : 'network.mode.set',
         proxyAction
           ? { enabled: options.action === 'proxy-on', ...(options.action === 'proxy-on' ? { trusted: options.trusted ?? [], publicOrigin: options.publicOrigin ?? '' } : {}) }
-          : { mode: options.action === 'mode-public' ? 'public' : 'private', ...(options.acknowledgeUnreleased ? { acknowledge: true } : {}) },
+          : { mode: 'private' },
       )) as Record<string, unknown>;
       restartNeeded = proxyAction;
     } catch (error) {
@@ -169,9 +168,8 @@ async function runExposureChange(options: NetworkOptions, context: ExposureConte
         writeHubConfig(paths.configFile, next);
         result = { proxy: next.exposure.proxy ? { trustedCount: next.exposure.proxy.trusted.length, publicOrigin: next.exposure.proxy.publicOrigin } : null, bind: next.bind };
       } else {
-        const mode = options.action === 'mode-public' ? 'public' : 'private';
-        writeHubConfig(paths.configFile, { ...config, exposure: { ...config.exposure, mode } });
-        result = { mode, previous: config.exposure.mode };
+        writeHubConfig(paths.configFile, { ...config, exposure: { ...config.exposure, mode: 'private' } });
+        result = { mode: 'private', previous: config.exposure.mode };
       }
     } catch (error) {
       d.err(`${(error as Error).message}\n`);
@@ -193,9 +191,60 @@ async function runExposureChange(options: NetworkOptions, context: ExposureConte
   if (options.action === 'proxy-on') {
     d.err('Next: register the proxy certificate so enrolled devices can connect through it: "dude-hub tls proxy-pin add <proxy-leaf.pem>", then wait for devices to acknowledge and run "dude-hub tls proxy-pin activate".\n');
   }
-  if (options.action === 'mode-public') {
-    d.err('Public exposure is not released until Phase 31F: the Hub will refuse to start in public mode unless DUDE_HUB_UNRELEASED_PUBLIC=1 is set in its environment.\n');
-  }
   d.out(json({ ...result, restarted: installed && restartNeeded && state === 'running' }));
   return EXIT_OK;
+}
+
+/**
+ * `network mode public` (PD-066). The gate lives in the running Hub (`network.mode.set` over the elevated admin channel), because it
+ * needs the live diagnostics report. The CLI adds what only an elevated Windows terminal can see (the Public firewall rule and the
+ * native-listener audit), prints the blockers and warnings with their fixes, and sends the typed phrase. Without `--type` nothing is
+ * written: it prints the readiness report and exits non-zero.
+ */
+async function runPublicMode(options: NetworkOptions, context: ExposureContext): Promise<number> {
+  const { d, dataRoot, installDir, admin, installed } = context;
+  if (admin === null) {
+    d.err('The Hub is not running. Start the Hub so readiness can be verified ("dude-hub service start", or "dude-hub run"), then run this command again.\n');
+    return EXIT_FAILURE;
+  }
+  if (!installed) {
+    d.err('A Hub is running in the foreground. Stop it, install and start the service, and run this command again.\n');
+    return EXIT_FAILURE;
+  }
+  const hostFacts: Record<string, unknown> = {};
+  if (d.platform === 'win32') {
+    const port = typeof admin['port'] === 'number' ? admin['port'] : HUB_DEFAULT_PORT;
+    hostFacts['publicFirewall'] = await gatherPublicFirewallFact(d.exec, port, installDir);
+    const audit = await auditNativeListeners(d.exec, d.platform);
+    hostFacts['nativeListeners'] = { exposed: audit.exposed, desktopLan: audit.desktopLan, partial: audit.partial };
+  }
+  try {
+    const result = (await d.call(dataRoot, 'network.mode.set', {
+      mode: 'public',
+      ...(options.type !== undefined ? { acknowledgement: options.type } : {}),
+      ...(options.acceptUnverifiedReachability ? { acceptUnverifiedReachability: true } : {}),
+      hostFacts,
+    })) as Record<string, unknown>;
+    const warnings = Array.isArray(result['warnings']) ? (result['warnings'] as string[]) : [];
+    if (warnings.length > 0) d.err(`Exposed with warnings: ${warnings.join(', ')}. Run "dude-hub doctor" for details.\n`);
+    d.err('The Hub is now configured for Internet exposure. Restart it to apply: "dude-hub service restart". Return to private any time with "dude-hub network mode private".\n');
+    d.out(json({ ...result, restarted: false }));
+    return EXIT_OK;
+  } catch (error) {
+    const detail = (error as { detail?: { ready?: boolean; blockers?: Blocker[]; warnings?: Blocker[] } }).detail;
+    if (detail && Array.isArray(detail.blockers) && Array.isArray(detail.warnings)) {
+      const ready = detail.blockers.length === 0;
+      d.err(`${formatReadiness({ ready, blockers: detail.blockers, warnings: detail.warnings })}\n`);
+      if (ready) {
+        d.err(options.type === undefined
+          ? `Nothing was changed. To expose the Hub to the Internet, re-run with: --type "${PUBLIC_EXPOSURE_PHRASE}"\n`
+          : `${(error as Error).message}\n`);
+        return EXIT_USAGE;
+      }
+      d.err(`${(error as Error).message} Nothing was changed.\n`);
+      return EXIT_FAILURE;
+    }
+    d.err(`${(error as Error).message}\n`);
+    return EXIT_FAILURE;
+  }
 }

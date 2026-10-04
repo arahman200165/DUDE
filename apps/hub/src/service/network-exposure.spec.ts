@@ -1,13 +1,16 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { buildAdminMethods } from '../admin/methods.js';
-import { parseArgs } from '../cli/args.js';
+import { HELP_TEXT, parseArgs } from '../cli/args.js';
 import { runCli } from '../cli/run.js';
 import { hubPaths } from '../config/data-dir.js';
 import { openHubDb } from '../db/open-hub-db.js';
 import { tempDir } from '../server/test-helpers.js';
 import { runServiceInstall } from './install.js';
 import { runNetwork } from './network.js';
+import { collectDiagnostics } from '../diagnostics/engine.js';
+import type { DiagnosticsDeps, DiagnosticsOverride } from '../diagnostics/engine.js';
+import { generateSelfSigned } from '../tls/self-signed.js';
 import { fixture } from './test-helpers.js';
 
 describe('network proxy and mode: parsing', () => {
@@ -19,13 +22,21 @@ describe('network proxy and mode: parsing', () => {
     expect(parseArgs(['network', 'proxy', 'status', '--install-dir', 'i'])).toEqual({ command: 'network', action: 'proxy-status', installDir: 'i' });
     expect(parseArgs(['network', 'mode', 'private'])).toEqual({ command: 'network', action: 'mode-private' });
     expect(parseArgs(['network', 'mode', 'public'])).toEqual({ command: 'network', action: 'mode-public' });
-    expect(parseArgs(['network', 'mode', 'public', '--i-understand-unreleased'])).toEqual({ command: 'network', action: 'mode-public', acknowledgeUnreleased: true });
+    expect(parseArgs(['network', 'mode', 'public', '--accept-unverified-reachability', '--type', 'EXPOSE HUB TO THE INTERNET', '--data-dir', 'x'])).toEqual({
+      command: 'network', action: 'mode-public', acceptUnverifiedReachability: true, type: 'EXPOSE HUB TO THE INTERNET', dataDir: 'x',
+    });
     expect(() => parseArgs(['network', 'proxy', 'on'])).toThrow(/Usage/);
     expect(() => parseArgs(['network', 'proxy', 'on', '--trusted', '10.0.0.1'])).toThrow(/Usage/);
     expect(() => parseArgs(['network', 'proxy', 'on', '--trusted', ',', '--public-origin', 'https://h.example'])).toThrow(/at least one/);
     expect(() => parseArgs(['network', 'proxy', 'maybe'])).toThrow(/Usage/);
     expect(() => parseArgs(['network', 'mode', 'open'])).toThrow(/Usage/);
-    expect(() => parseArgs(['network', 'mode', 'private', '--i-understand-unreleased=1'])).toThrow();
+    expect(() => parseArgs(['network', 'mode', 'public', '--i-understand-unreleased'])).toThrow(/Unknown flag/);
+    expect(() => parseArgs(['network', 'mode', 'private', '--type', 'x'])).toThrow(/Unknown flag/);
+    expect(() => parseArgs(['network', 'mode', 'public', '--type'])).toThrow(/needs a value/);
+    expect(() => parseArgs(['network', 'mode', 'public', '--accept-unverified-reachability=1'])).toThrow(/takes no value/);
+    expect(HELP_TEXT).toContain('--accept-unverified-reachability');
+    expect(HELP_TEXT).not.toContain('i-understand-unreleased');
+    expect(HELP_TEXT).not.toMatch(/not released/);
   });
 });
 
@@ -68,20 +79,64 @@ describe('network proxy and mode: admin routing', () => {
     expect(f.system.calls.some((c) => c.endsWith('DudeHub.exe start'))).toBe(true);
   });
 
-  it('mode public is refused locally without the flag; with it the flag reaches the admin method and no restart happens', async () => {
+  const blockedDetail = {
+    ready: false, warnings: [{ id: 'hsts', reason: 'HSTS is off.', fix: 'Use an ACME certificate.' }],
+    blockers: [{ id: 'certificate-trusted', reason: 'The active certificate is self-signed.', fix: 'dude-hub tls acme issue --name <name>' }],
+  };
+  const adminError = (code: string, message: string, detail?: unknown) => Object.assign(new Error(message), { code, detail });
+
+  it('mode public needs a running Hub: with none it refuses and writes nothing', async () => {
+    const f = fixture({ state: 'running' });
+    const paths = hubPaths(f.dataDir);
+    mkdirSync(paths.configDir, { recursive: true });
+    writeFileSync(paths.configFile, JSON.stringify({ port: 48300, bind: 'lan' }));
+    const call = async (): Promise<unknown> => { throw Object.assign(new Error('not running'), { code: 'hub-not-running' }); };
+    expect(await runNetwork({ action: 'mode-public', type: 'EXPOSE HUB TO THE INTERNET', dataDir: f.dataDir }, { ...f.deps, call })).toBe(1);
+    expect(f.err.join('')).toMatch(/Start the Hub so readiness can be verified/);
+    expect(JSON.parse(readFileSync(paths.configFile, 'utf8')).exposure).toBeUndefined();
+  });
+
+  it('mode public prints each blocker with its fix and exits 1 when the Hub refuses', async () => {
     const f = await installedFixture();
-    const methods: string[] = [];
+    const call = async (_d: string, method: string): Promise<unknown> => {
+      if (method === 'status') return { bind: 'lan', port: 48200 };
+      throw adminError('refused', 'The Hub is not ready for Internet exposure: 1 blocker.', blockedDetail);
+    };
+    expect(await runNetwork({ action: 'mode-public', type: 'EXPOSE HUB TO THE INTERNET', installDir: f.installDir, dataDir: f.dataDir }, { ...f.deps, call })).toBe(1);
+    const err = f.err.join('');
+    expect(err).toContain('[BLOCKER] certificate-trusted: The active certificate is self-signed.');
+    expect(err).toContain('fix: dude-hub tls acme issue --name <name>');
+    expect(err).toContain('[WARN] hsts');
+    expect(f.system.calls.some((c) => c.endsWith('DudeHub.exe start'))).toBe(false);
+  });
+
+  it('mode public without --type prints the readiness report and exits non-zero (dry run)', async () => {
+    const f = await installedFixture();
+    const sent: unknown[] = [];
     const call = async (_d: string, method: string, params: unknown): Promise<unknown> => {
-      methods.push(`${method} ${JSON.stringify(params)}`);
-      return method === 'status' ? { bind: 'loopback' } : { mode: 'public', previous: 'private' };
+      if (method === 'status') return { bind: 'lan', port: 48200 };
+      sent.push(params);
+      throw adminError('refused', 'The Hub is ready for Internet exposure. To expose it, type the exact phrase "EXPOSE HUB TO THE INTERNET".', { ready: true, blockers: [], warnings: [blockedDetail.warnings[0]] });
     };
     expect(await runNetwork({ action: 'mode-public', installDir: f.installDir, dataDir: f.dataDir }, { ...f.deps, call })).toBe(2);
-    expect(f.err.join('')).toMatch(/not released until Phase 31F/);
-    expect(methods).toEqual(['status {}']);
-    f.err.length = 0;
-    expect(await runNetwork({ action: 'mode-public', acknowledgeUnreleased: true, installDir: f.installDir, dataDir: f.dataDir }, { ...f.deps, call })).toBe(0);
-    expect(methods).toContain('network.mode.set {"mode":"public","acknowledge":true}');
-    expect(f.err.join('')).toMatch(/DUDE_HUB_UNRELEASED_PUBLIC=1/);
+    expect(f.err.join('')).toContain('Ready: no readiness blockers.');
+    expect(f.err.join('')).toContain('--type "EXPOSE HUB TO THE INTERNET"');
+    expect(sent[0]).not.toHaveProperty('acknowledgement');
+  });
+
+  it('mode public sends the phrase, the acceptance and the Windows host facts; success asks for a restart and does not restart', async () => {
+    const f = await installedFixture();
+    const sent: Array<Record<string, unknown>> = [];
+    const call = async (_d: string, method: string, params: unknown): Promise<unknown> => {
+      if (method === 'status') return { bind: 'lan', port: 48200 };
+      sent.push(params as Record<string, unknown>);
+      return { mode: 'public', previous: 'private', restartRequired: true, warnings: ['external-reachability'] };
+    };
+    expect(await runNetwork({ action: 'mode-public', type: 'EXPOSE HUB TO THE INTERNET', acceptUnverifiedReachability: true, installDir: f.installDir, dataDir: f.dataDir }, { ...f.deps, call })).toBe(0);
+    expect(sent[0]).toMatchObject({ mode: 'public', acknowledgement: 'EXPOSE HUB TO THE INTERNET', acceptUnverifiedReachability: true });
+    expect(sent[0]).toHaveProperty('hostFacts');
+    expect(f.err.join('')).toMatch(/service restart/);
+    expect(f.err.join('')).toContain('external-reachability');
     expect(f.system.calls.some((c) => c.endsWith('DudeHub.exe start'))).toBe(false);
   });
 
@@ -116,8 +171,8 @@ describe('network proxy and mode: admin routing', () => {
     expect(f.err.join('')).toMatch(/not an IP address/);
     expect(await runNetwork({ action: 'proxy-off', dataDir: f.dataDir }, f.deps)).toBe(0);
     expect(JSON.parse(readFileSync(paths.configFile, 'utf8')).exposure.proxy).toBeUndefined();
-    expect(await runNetwork({ action: 'mode-public', acknowledgeUnreleased: true, dataDir: f.dataDir }, f.deps)).toBe(0);
-    expect(JSON.parse(readFileSync(paths.configFile, 'utf8')).exposure.mode).toBe('public');
+    expect(await runNetwork({ action: 'mode-public', type: 'EXPOSE HUB TO THE INTERNET', dataDir: f.dataDir }, f.deps)).toBe(1);
+    expect(JSON.parse(readFileSync(paths.configFile, 'utf8')).exposure?.mode ?? 'private').toBe('private');
   });
 
   it('network status prints the exposure read model (from the Hub, else from the config)', async () => {
@@ -138,7 +193,25 @@ describe('network proxy and mode: admin routing', () => {
 });
 
 describe('admin network.proxy.set, network.mode.set and the status exposure model', () => {
-  function methodsFor(config: Record<string, unknown> = { port: 4711, bind: 'lan' }, hsts?: () => boolean) {
+  const NOW = Date.parse('2026-10-03T00:00:00.000Z');
+  const cert = generateSelfSigned({ hubInstanceId: 'h', now: new Date(NOW - 86_400_000), validityYears: 1 });
+  /** A diagnostics collector like the Hub's: honours the gate's override (public mode, host facts) and builds a real report. */
+  const diagnosticsFor = (over: Partial<DiagnosticsDeps> = {}, source: 'acme' | 'self-signed' = 'acme') => async (override?: DiagnosticsOverride) => {
+    const report = await collectDiagnostics({
+      now: NOW, hubVersion: '1.0.0', running: true, serviceMode: 'foreground', uptimeSeconds: 1, schemaVersion: 5, platform: 'linux',
+      config: { port: 4711, bind: 'lan', bindAddress: '0.0.0.0', exposure: { mode: override?.mode ?? 'private', names: ['hub.example.com'] } },
+      wantedNames: ['hub.example.com'],
+      certificate: { pem: cert.certPem, source, nextSpkiSha256: null, pendingAcks: 0, chainLength: 1, ca: null, hsts: true },
+      proxyPins: { active: null, next: null }, ownerExists: true, realtime: { available: true, owner: 0, device: 0 },
+      host: () => Promise.resolve({ firewallPresent: null, ...override?.host }),
+      interfaces: () => ({ eth0: [{ address: '203.0.113.7', family: 'IPv4', internal: false, netmask: '', mac: '', cidr: null }] }),
+      resolveDns: () => Promise.resolve([{ name: 'hub.example.com', addresses: ['203.0.113.7'] }]),
+      reachability: { at: new Date(NOW).toISOString(), host: 'hub.example.com', ageMs: 1000 },
+      ...over,
+    });
+    return { ...report, certificate: report.certificate ? { ...report.certificate, missingNames: [] } : null };
+  };
+  function methodsFor(config: Record<string, unknown> = { port: 4711, bind: 'lan' }, hsts?: () => boolean, diagnostics: ReturnType<typeof diagnosticsFor> = diagnosticsFor()) {
     const root = tempDir('hub-exposure-');
     const paths = hubPaths(root);
     const opened = openHubDb({ dbFile: paths.dbFile, preMigrationDir: paths.preMigrationDir });
@@ -147,7 +220,7 @@ describe('admin network.proxy.set, network.mode.set and the status exposure mode
     writeFileSync(paths.configFile, JSON.stringify(config));
     const methods = buildAdminMethods({
       db: opened.hub.db, hubVersion: '9.9.9', hubInstanceId: opened.hub.hubInstanceId, bind: 'lan', getPort: () => 4711, startedAt: 1000,
-      configDir: paths.configDir, configFile: paths.configFile, spkiSha256: 'B'.repeat(43), now: () => 6000, ...(hsts ? { hsts } : {}),
+      configDir: paths.configDir, configFile: paths.configFile, spkiSha256: 'B'.repeat(43), now: () => 6000, diagnostics, ...(hsts ? { hsts } : {}),
     });
     return { methods, paths, hub: opened.hub };
   }
@@ -175,16 +248,68 @@ describe('admin network.proxy.set, network.mode.set and the status exposure mode
     hub.close();
   });
 
-  it('network.mode.set refuses public without the acknowledgement, audits real changes only', async () => {
-    const { methods, paths, hub } = methodsFor();
-    await expect(Promise.resolve().then(() => methods['network.mode.set']!({ mode: 'public' }))).rejects.toMatchObject({ code: 'refused', message: expect.stringMatching(/Phase 31F/) });
-    await expect(Promise.resolve().then(() => methods['network.mode.set']!({ mode: 'open' }))).rejects.toMatchObject({ code: 'bad-request' });
+  const PHRASE = 'EXPOSE HUB TO THE INTERNET';
+  type Refusal = Error & { code: string; detail: { ready: boolean; blockers: Array<{ id: string; fix: string }>; warnings: Array<{ id: string }> } };
+  const refusal = async (promise: Promise<unknown> | unknown): Promise<Refusal> => {
+    try { await promise; } catch (error) { return error as Refusal; }
+    throw new Error('expected a refusal');
+  };
+
+  it('network.mode.set public: blockers are refused with the list in the error detail and nothing is written', async () => {
+    const { methods, paths, hub } = methodsFor(undefined, undefined, diagnosticsFor({}, 'self-signed'));
+    const error = await refusal(methods['network.mode.set']!({ mode: 'public', acknowledgement: PHRASE }));
+    expect(error).toMatchObject({ code: 'refused', detail: { ready: false } });
+    expect(error.detail.blockers.map((b) => b.id)).toEqual(['certificate-trusted']);
+    expect(error.detail.blockers[0]?.fix).toMatch(/tls acme issue/);
     expect(JSON.parse(readFileSync(paths.configFile, 'utf8')).exposure).toBeUndefined();
-    expect(await methods['network.mode.set']!({ mode: 'public', acknowledge: true })).toMatchObject({ mode: 'public', previous: 'private', restartRequired: true });
+    expect(audits(hub, 'network.exposure-mode-changed')).toHaveLength(0);
+    hub.close();
+  });
+
+  it('network.mode.set public: with no blockers the exact phrase is required', async () => {
+    const { methods, paths, hub } = methodsFor();
+    for (const acknowledgement of [undefined, 'expose hub to the internet', 'yes']) {
+      const error = await refusal(methods['network.mode.set']!({ mode: 'public', ...(acknowledgement !== undefined ? { acknowledgement } : {}) }));
+      expect(error).toMatchObject({ code: 'refused', message: expect.stringContaining(PHRASE), detail: { ready: true, blockers: [] } });
+    }
+    expect(JSON.parse(readFileSync(paths.configFile, 'utf8')).exposure).toBeUndefined();
+    hub.close();
+  });
+
+  it('network.mode.set public: success writes the config and audits the mode, the acceptance and the warning ids', async () => {
+    const { methods, paths, hub } = methodsFor(undefined, undefined, diagnosticsFor({ reachability: null }));
+    expect(await refusal(methods['network.mode.set']!({ mode: 'public', acknowledgement: PHRASE }))).toMatchObject({ detail: { blockers: [expect.objectContaining({ id: 'external-reachability' })] } });
+    expect(await methods['network.mode.set']!({ mode: 'public', acknowledgement: PHRASE, acceptUnverifiedReachability: true })).toMatchObject({ mode: 'public', previous: 'private', restartRequired: true, warnings: ['external-reachability'] });
     expect(JSON.parse(readFileSync(paths.configFile, 'utf8')).exposure.mode).toBe('public');
-    expect(await methods['network.mode.set']!({ mode: 'public', acknowledge: true })).toMatchObject({ restartRequired: false });
-    expect(await methods['network.mode.set']!({ mode: 'private' })).toMatchObject({ mode: 'private', previous: 'public' });
-    expect(audits(hub, 'network.exposure-mode-changed')).toHaveLength(2);
+    const rows = audits(hub, 'network.exposure-mode-changed');
+    expect(rows).toHaveLength(1);
+    expect(JSON.parse(rows[0]!.detail)).toMatchObject({ mode: 'public', acceptedUnverifiedReachability: true, warnings: ['external-reachability'] });
+    hub.close();
+  });
+
+  it('network.mode.set public: the host facts sent by the CLI are evaluated (a missing firewall rule blocks) and malformed ones are ignored', async () => {
+    const seen: Array<DiagnosticsOverride | undefined> = [];
+    const diagnostics = async (override?: DiagnosticsOverride) => { seen.push(override); return diagnosticsFor({ platform: 'win32', serviceMode: 'service' })(override); };
+    const { methods, hub } = methodsFor(undefined, undefined, diagnostics);
+    const hostFacts = { publicFirewall: { present: false, problems: [] }, nativeListeners: { exposed: [], desktopLan: [], partial: false } };
+    const error = await refusal(methods['network.mode.set']!({ mode: 'public', acknowledgement: PHRASE, hostFacts }));
+    expect(error.detail.blockers.map((b) => b.id)).toEqual(['public-firewall-rule']);
+    expect(seen[0]).toMatchObject({ mode: 'public', host: { publicFirewall: { present: false } } });
+    expect(seen[0]?.host?.nativeListeners).toEqual({ exposed: [], desktopLan: [], partial: false });
+    seen.length = 0;
+    await refusal(methods['network.mode.set']!({ mode: 'public', acknowledgement: PHRASE, hostFacts: { publicFirewall: 'yes' } }));
+    expect(seen[0]?.host?.publicFirewall).toBeUndefined();
+    hub.close();
+  });
+
+  it('network.mode.set private is unrestricted; unknown modes are rejected; the legacy acknowledge no longer works', async () => {
+    const { methods, paths, hub } = methodsFor({ port: 4711, bind: 'lan', exposure: { mode: 'public' } });
+    await expect(Promise.resolve().then(() => methods['network.mode.set']!({ mode: 'open' }))).rejects.toMatchObject({ code: 'bad-request' });
+    expect(await methods['network.mode.set']!({ mode: 'private' })).toMatchObject({ mode: 'private', previous: 'public', restartRequired: true });
+    expect(JSON.parse(readFileSync(paths.configFile, 'utf8')).exposure?.mode ?? 'private').toBe('private');
+    expect(await methods['network.mode.set']!({ mode: 'private' })).toMatchObject({ restartRequired: false });
+    expect(audits(hub, 'network.exposure-mode-changed')).toHaveLength(1);
+    expect(await refusal(methods['network.mode.set']!({ mode: 'public', acknowledge: true }))).toMatchObject({ code: 'refused' });
     hub.close();
   });
 
@@ -203,14 +328,12 @@ describe('admin network.proxy.set, network.mode.set and the status exposure mode
   });
 });
 
-describe('run refuses public exposure at start', () => {
-  it('exits with a usage error and the Phase 31F reason unless DUDE_HUB_UNRELEASED_PUBLIC=1', async () => {
+describe('run and public exposure at start', () => {
+  it('refuses a public config on a loopback bind without proxy mode, pointing at network lan on / network proxy on', async () => {
     const dir = tempDir('hub-public-');
     const paths = hubPaths(dir);
     mkdirSync(paths.configDir, { recursive: true });
     writeFileSync(paths.configFile, JSON.stringify({ exposure: { mode: 'public' } }));
-    const previous = process.env['DUDE_HUB_UNRELEASED_PUBLIC'];
-    delete process.env['DUDE_HUB_UNRELEASED_PUBLIC'];
     const writes: string[] = [];
     const err = process.stderr.write.bind(process.stderr);
     process.stderr.write = ((s: string) => { writes.push(String(s)); return true; }) as typeof process.stderr.write;
@@ -218,9 +341,10 @@ describe('run refuses public exposure at start', () => {
       expect(await runCli(['run', '--data-dir', dir])).toBe(2);
     } finally {
       process.stderr.write = err;
-      if (previous !== undefined) process.env['DUDE_HUB_UNRELEASED_PUBLIC'] = previous;
     }
-    expect(writes.join('')).toMatch(/not released until Phase 31F/);
-    expect(writes.join('')).toMatch(/DUDE_HUB_UNRELEASED_PUBLIC=1/);
+    const text = writes.join('');
+    expect(text).toMatch(/network lan on/);
+    expect(text).toMatch(/network proxy on/);
+    expect(text).not.toMatch(/31F|UNRELEASED/);
   });
 });

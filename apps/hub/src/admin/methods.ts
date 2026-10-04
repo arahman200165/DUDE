@@ -33,6 +33,10 @@ import type { AcmeClientOptions } from '../tls/acme/acme-client.js';
 import { ACME_LAST_ATTEMPT_META, ACME_RENEWAL_WINDOW_DAYS } from '../tls/acme/acme-renewal.js';
 import { DEFAULT_ACME_HTTP_PORT, normalizeAcmeDirectoryUrl } from '../config/hub-config.js';
 import { getMeta } from '@dude/sqlite-store';
+import { Value } from 'typebox/value';
+import { HubDiagnosticsReport } from '@dude/contracts/hub';
+import type { DiagnosticsHostFacts, DiagnosticsOverride } from '../diagnostics/engine.js';
+import { PUBLIC_EXPOSURE_PHRASE, evaluatePublicReadiness } from '../diagnostics/readiness.js';
 import { getAuditIpMode, isAuditIpMode, setAuditIpMode } from '../security/address-privacy.js';
 
 export interface AdminMethodContext {
@@ -67,8 +71,30 @@ export interface AdminMethodContext {
   /** Reverse-proxy leaf pins (separate pin set). */
   proxyPins?: ProxyPins;
   /** The endpoint diagnostics collector (PD-060); enables the `diagnostics` method. */
-  diagnostics?: () => Promise<unknown>;
+  diagnostics?: (override?: DiagnosticsOverride) => Promise<unknown>;
+  /** The platform the Hub runs on (default `process.platform`); used by the public-readiness gate. */
+  platform?: NodeJS.Platform;
   onSessionsRevoked?: (sessions: readonly RevokedSession[]) => void;
+}
+
+/** Validates the Windows host facts the elevated CLI sends with `network.mode.set`; anything malformed is ignored (treated as not inspected). */
+function parseReadinessHostFacts(raw: unknown): Pick<DiagnosticsHostFacts, 'publicFirewall' | 'nativeListeners'> | null {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return null;
+  const input = raw as { publicFirewall?: unknown; nativeListeners?: unknown };
+  const facts: Pick<DiagnosticsHostFacts, 'publicFirewall' | 'nativeListeners'> = {};
+  const fw = input.publicFirewall as { present?: unknown; problems?: unknown } | null | undefined;
+  if (fw && typeof fw === 'object' && typeof fw.present === 'boolean' && Array.isArray(fw.problems) && fw.problems.every((p) => typeof p === 'string')) {
+    facts.publicFirewall = { present: fw.present, problems: fw.problems as string[] };
+  }
+  const nl = input.nativeListeners as { exposed?: unknown; desktopLan?: unknown; partial?: unknown } | null | undefined;
+  const listener = (l: unknown): boolean => typeof l === 'object' && l !== null
+    && typeof (l as { pid?: unknown }).pid === 'number' && typeof (l as { address?: unknown }).address === 'string' && typeof (l as { port?: unknown }).port === 'number'
+    && ['loopback', 'any', 'specific'].includes((l as { scope?: string }).scope ?? '');
+  if (nl && typeof nl === 'object' && Array.isArray(nl.exposed) && nl.exposed.every(listener) && typeof nl.partial === 'boolean'
+    && (nl.desktopLan === undefined || (Array.isArray(nl.desktopLan) && nl.desktopLan.every(listener)))) {
+    facts.nativeListeners = { exposed: nl.exposed as never, ...(nl.desktopLan !== undefined ? { desktopLan: nl.desktopLan as never } : {}), partial: nl.partial };
+  }
+  return facts;
 }
 
 export const OWNER_RESET_ACTION = 'owner.reset';
@@ -380,23 +406,44 @@ export function buildAdminMethods(context: AdminMethodContext): Record<string, A
       return { proxy: proxy ? { trustedCount: proxy.trusted.length, publicOrigin: proxy.publicOrigin } : null, bind: next.bind, previousBind: config.bind, running: context.bind, port: context.getPort(), restartRequired: true };
     },
     /**
-     * Exposure mode (PD-057). `public` is refused without the explicit `acknowledge` (the CLI's `--i-understand-unreleased`); even then
-     * `run` refuses to start in public mode unless the environment opts in, until Phase 31F releases it.
+     * Exposure mode (PD-057, PD-066). `private` is unrestricted. `public` is gated: the Hub builds its own diagnostics report as if
+     * public (with the Windows host facts the elevated CLI gathered), runs the readiness evaluation, refuses with the blocker list
+     * (error detail) when anything blocks, and otherwise requires the exact phrase before writing the config. Admin pipe only.
      */
-    'network.mode.set': (params) => {
-      const input = (params ?? {}) as { mode?: unknown; acknowledge?: unknown };
+    'network.mode.set': async (params) => {
+      const input = (params ?? {}) as { mode?: unknown; acknowledgement?: unknown; acceptUnverifiedReachability?: unknown; hostFacts?: unknown };
       if (input.mode !== 'private' && input.mode !== 'public') throw new AdminError('bad-request', 'mode must be "private" or "public".');
-      if (input.mode === 'public' && input.acknowledge !== true) {
-        throw new AdminError('refused', 'Public exposure is not released until Phase 31F. Re-run with --i-understand-unreleased to write it to the config anyway (the Hub still will not start in public mode without DUDE_HUB_UNRELEASED_PUBLIC=1).');
-      }
       if (!context.configFile) throw new AdminError('unavailable', 'The exposure mode cannot be changed in this context.');
+      let warningIds: string[] = [];
+      const accepted = input.acceptUnverifiedReachability === true;
+      if (input.mode === 'public') {
+        if (!context.diagnostics) throw new AdminError('unavailable', 'Diagnostics are not available in this context, so readiness cannot be verified.');
+        const host = parseReadinessHostFacts(input.hostFacts);
+        const reported = await context.diagnostics({ mode: 'public', ...(host ? { host } : {}) });
+        if (!Value.Check(HubDiagnosticsReport, reported)) throw new AdminError('unavailable', 'The diagnostics report was not valid, so readiness cannot be verified.');
+        const platform = context.platform ?? process.platform;
+        const readiness = evaluatePublicReadiness(reported, { acceptUnverifiedReachability: accepted, hostFactsRequired: platform === 'win32' && reported.service.mode === 'service' });
+        if (!readiness.ready) {
+          throw new AdminError('refused', `The Hub is not ready for Internet exposure: ${readiness.blockers.length} blocker${readiness.blockers.length === 1 ? '' : 's'}.`, { ready: false, blockers: readiness.blockers, warnings: readiness.warnings, requiredPhrase: PUBLIC_EXPOSURE_PHRASE });
+        }
+        if (input.acknowledgement !== PUBLIC_EXPOSURE_PHRASE) {
+          throw new AdminError('refused', `The Hub is ready for Internet exposure. To expose it, type the exact phrase "${PUBLIC_EXPOSURE_PHRASE}".`, { ready: true, blockers: [], warnings: readiness.warnings, requiredPhrase: PUBLIC_EXPOSURE_PHRASE });
+        }
+        warningIds = readiness.warnings.map((w) => w.id);
+      }
       const config = loadOrCreateHubConfig(context.configFile);
       const previous = config.exposure.mode;
-      if (previous !== input.mode) {
-        writeHubConfig(context.configFile, { ...config, exposure: { ...config.exposure, mode: input.mode } });
-        audit(context.db, { event: 'network.exposure-mode-changed', outcome: 'success', actorKind: 'cli', detail: { from: previous, to: input.mode }, now: now() });
+      if (previous !== input.mode) writeHubConfig(context.configFile, { ...config, exposure: { ...config.exposure, mode: input.mode } });
+      if (previous !== input.mode || input.mode === 'public') {
+        audit(context.db, {
+          event: 'network.exposure-mode-changed', outcome: 'success', actorKind: 'cli',
+          detail: input.mode === 'public'
+            ? { from: previous, to: 'public', mode: 'public', acceptedUnverifiedReachability: accepted, warnings: warningIds }
+            : { from: previous, to: input.mode },
+          now: now(),
+        });
       }
-      return { mode: input.mode, previous, restartRequired: previous !== input.mode };
+      return { mode: input.mode, previous, restartRequired: previous !== input.mode, ...(input.mode === 'public' ? { warnings: warningIds } : {}) };
     },
     /** The full endpoint diagnostics report (PD-060) for `dude-hub doctor`; redacted by construction. */
     diagnostics: async () => {

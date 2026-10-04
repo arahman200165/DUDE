@@ -6,7 +6,8 @@ import path from 'node:path';
 export const ADMIN_MAX_LINE_BYTES = 64 * 1024;
 
 export class AdminError extends Error {
-  constructor(readonly code: string, message: string) {
+  /** `detail` is structured, non-secret data for the CLI (for example the readiness blocker list). */
+  constructor(readonly code: string, message: string, readonly detail?: unknown) {
     super(message);
   }
 }
@@ -141,7 +142,7 @@ async function handleLine(line: string, methods: Record<string, AdminMethod>): P
     const result = await methods[method]!(params);
     return { id: responseId, ok: true, result: result ?? null };
   } catch (error) {
-    if (error instanceof AdminError) return { id: responseId, ok: false, error: { code: error.code, message: error.message } };
+    if (error instanceof AdminError) return { id: responseId, ok: false, error: { code: error.code, message: error.message, ...(error.detail !== undefined ? { detail: error.detail } : {}) } };
     return { id: responseId, ok: false, error: { code: 'internal', message: 'The admin method failed.' } };
   }
 }

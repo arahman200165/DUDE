@@ -37,7 +37,7 @@ describe('collectDiagnostics', () => {
       'service-running', 'https-configured', 'certificate-valid', 'certificate-covers-names', 'certificate-trustable', 'next-pin-pending',
       'authentication-active', 'realtime-available', 'firewall-rule', 'public-firewall-rule', 'native-ports-exposed', 'exposure-mode', 'proxy-trust', 'container-host-allowlist', 'address-stability', 'dns-resolution', 'external-reachability',
     ]);
-    expect(report.exposure.publicReleased).toBe(false);
+    expect(report.exposure).not.toHaveProperty('publicReleased');
     expect(report.realtime.connections).toEqual({ owner: 1, device: 2 });
     expect(report.certificate?.spkiSha256).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(JSON.stringify(report)).not.toContain('PRIVATE KEY');
@@ -125,11 +125,12 @@ describe('collectDiagnostics', () => {
     expect(loop.checks.find((c) => c.id === 'firewall-rule')).toMatchObject({ status: 'info', basis: 'verified' });
   });
 
-  it('exposure-mode: info for private, fail for public (not released)', async () => {
+  it('exposure-mode: info for private, warn for public (readiness is enforced when the mode is set)', async () => {
     expect((await byId(deps()))['exposure-mode']?.status).toBe('info');
     const pub = (await byId(deps({ config: { port: 1, bind: 'loopback', bindAddress: '127.0.0.1', exposure: { mode: 'public', names: [] } } })))['exposure-mode'];
-    expect(pub).toMatchObject({ status: 'fail' });
-    expect(pub?.detail).toContain('Phase 31F');
+    expect(pub).toMatchObject({ status: 'warn', basis: 'verified' });
+    expect(pub?.detail).toContain('The Hub is configured for Internet exposure.');
+    expect(pub?.detail).toContain('enforced when the mode is set');
   });
 
   it('proxy-trust: claimed; warns without an active proxy pin', async () => {

@@ -4,7 +4,7 @@ import { ADMIN_MAX_LINE_BYTES, adminEndpointFile } from './admin-endpoint.js';
 import type { AdminEndpointFile } from './admin-endpoint.js';
 
 export class AdminCallError extends Error {
-  constructor(readonly code: string, message: string) {
+  constructor(readonly code: string, message: string, readonly detail?: unknown) {
     super(message);
   }
 }
@@ -54,9 +54,9 @@ export async function callAdmin(dataDir: string, method: string, params: unknown
       const newline = buffer.indexOf('\n');
       if (newline < 0) return;
       try {
-        const response = JSON.parse(buffer.slice(0, newline)) as { ok?: boolean; result?: unknown; error?: { code?: string; message?: string } };
+        const response = JSON.parse(buffer.slice(0, newline)) as { ok?: boolean; result?: unknown; error?: { code?: string; message?: string; detail?: unknown } };
         if (response.ok === true) return finish(null, response.result);
-        finish(new AdminCallError(response.error?.code ?? 'internal', response.error?.message ?? 'The admin method failed.'));
+        finish(new AdminCallError(response.error?.code ?? 'internal', response.error?.message ?? 'The admin method failed.', response.error?.detail));
       } catch {
         finish(new AdminCallError('bad-response', 'The Hub sent an invalid response.'));
       }

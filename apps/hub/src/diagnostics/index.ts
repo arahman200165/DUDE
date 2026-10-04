@@ -4,4 +4,6 @@ export { createAddressWatch, readAddressRecord, ADDRESS_META_KEY } from './addre
 export { listHubAddresses, resolveNames, createCachedNameResolver, classifyAddress } from './addresses.js';
 export { createHostFacts, gatherRunningHubDeps, gatherOfflineDeps, HOST_FACTS_TTL_MS } from './gather.js';
 export type { RunningHubSource, OfflineSource } from './gather.js';
+export { evaluatePublicReadiness, formatReadiness, isPublicDnsName, PUBLIC_EXPOSURE_PHRASE, READINESS_MIN_DAYS_LEFT } from './readiness.js';
+export type { Blocker, ReadinessOptions, ReadinessResult } from './readiness.js';
 export { evaluateEcho, readReachability, reachabilityVerified, REACHABILITY_FRESH_MS } from './reachability.js';

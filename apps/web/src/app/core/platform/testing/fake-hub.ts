@@ -26,7 +26,7 @@ export const FAKE_REACHABILITY_VERIFIED: ReachabilityEchoResponse = {
 export const FAKE_HUB_DIAGNOSTICS: HubDiagnosticsReport = {
   generatedAt: '2026-10-01T10:00:00.000Z', hubVersion: '0.0.44', protocolVersion: 2, schemaVersion: 7,
   service: { mode: 'service', uptimeSeconds: 3600 },
-  exposure: { mode: 'private', publicReleased: false, bind: 'lan', bindAddress: '0.0.0.0', port: 47600, names: ['hub.local', '192.168.1.20'], canonicalOrigin: 'https://hub.local:47600', proxy: null },
+  exposure: { mode: 'private', bind: 'lan', bindAddress: '0.0.0.0', port: 47600, names: ['hub.local', '192.168.1.20'], canonicalOrigin: 'https://hub.local:47600', proxy: null },
   certificate: {
     source: 'local-ca', subject: 'CN=hub.local', sans: ['hub.local'], missingNames: ['192.168.1.20'], notBefore: '2026-09-01T00:00:00.000Z', notAfter: '2026-12-01T00:00:00.000Z', daysLeft: 59,
     spkiSha256: 'A'.repeat(43), nextSpkiSha256: 'B'.repeat(43), pendingAcks: 1, chainLength: 2,
@@ -39,7 +39,7 @@ export const FAKE_HUB_DIAGNOSTICS: HubDiagnosticsReport = {
   checks: [
     { id: 'tls-names', label: 'Certificate covers every name', status: 'fail', basis: 'verified', detail: '192.168.1.20 is not in the certificate.', fix: 'dude-hub tls reissue --name 192.168.1.20' },
     { id: 'firewall', label: 'Firewall rule present', status: 'pass', basis: 'verified', detail: 'Rule "DUDE Hub" is enabled.' },
-    { id: 'external', label: 'Reachable from outside', status: 'info', basis: 'not-checked', detail: 'External reachability is checked in Phase 31F.' },
+    { id: 'external', label: 'Reachable from outside', status: 'info', basis: 'not-checked', detail: 'Not verified yet. Open the Hub from a device outside your network.' },
   ],
 };
 

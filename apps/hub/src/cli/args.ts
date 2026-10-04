@@ -14,7 +14,7 @@ export type ParsedCommand =
   | { command: 'security-audit-ips'; mode?: 'full' | 'truncated'; dataDir?: string; installDir?: string }
   | { command: 'tls-names'; action: 'list' | 'add' | 'remove'; name?: string; dataDir?: string; installDir?: string }
   | { command: 'service'; action: 'install' | 'uninstall' | 'start' | 'stop' | 'restart' | 'status' | 'update'; dataDir?: string; installDir?: string; port?: number; lan?: boolean; source?: string; keepData?: boolean }
-  | { command: 'network'; action: 'lan-on' | 'lan-off' | 'status' | 'proxy-on' | 'proxy-off' | 'proxy-status' | 'mode-private' | 'mode-public'; trusted?: string[]; publicOrigin?: string; acknowledgeUnreleased?: boolean; dataDir?: string; installDir?: string }
+  | { command: 'network'; action: 'lan-on' | 'lan-off' | 'status' | 'proxy-on' | 'proxy-off' | 'proxy-status' | 'mode-private' | 'mode-public'; trusted?: string[]; publicOrigin?: string; acceptUnverifiedReachability?: boolean; type?: string; dataDir?: string; installDir?: string }
   | { command: 'network-firewall'; target: 'public' | 'acme'; action: 'on' | 'off' | 'status'; force?: boolean; dataDir?: string; installDir?: string }
   | { command: 'doctor'; json?: boolean; dataDir?: string; installDir?: string }
   | { command: 'purge'; dataDir?: string; includeBackups?: boolean; confirm?: string; type?: string }
@@ -61,7 +61,8 @@ Usage:
   dude-hub network firewall acme on|off|status [--data-dir <dir>] [--install-dir <dir>]   (the temporary "DUDE Hub (ACME http-01)" rule; normally managed by tls acme issue --open-firewall)
   dude-hub network proxy on --trusted <cidr>[,<cidr>...] --public-origin https://<name>[:<port>] [--data-dir <dir>] [--install-dir <dir>]
   dude-hub network proxy off|status [--data-dir <dir>] [--install-dir <dir>]
-  dude-hub network mode private|public [--i-understand-unreleased] [--data-dir <dir>] [--install-dir <dir>]   (public is not released until Phase 31F)
+  dude-hub network mode private [--data-dir <dir>] [--install-dir <dir>]
+  dude-hub network mode public [--accept-unverified-reachability] [--type "EXPOSE HUB TO THE INTERNET"] [--data-dir <dir>] [--install-dir <dir>]   (elevated; the running Hub must pass the readiness gate; without --type only the readiness report is printed)
   dude-hub doctor [--json] [--data-dir <dir>] [--install-dir <dir>]   (readiness checklist; --json prints the endpoint diagnostics report)
   dude-hub purge --data-dir <dir> [--include-backups] [--confirm <token> --type "DELETE HUB DATA"]
   dude-hub version
@@ -306,8 +307,14 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
       return { command: 'network', action: 'proxy-on', trusted, publicOrigin: values['--public-origin'], ...dirs(values) };
     }
     if (group === 'mode' && (mode === 'private' || mode === 'public')) {
-      const values = parseFlags(flags, ['--i-understand-unreleased', '--install-dir', '--data-dir'], ['--i-understand-unreleased']);
-      return { command: 'network', action: mode === 'private' ? 'mode-private' : 'mode-public', ...(values['--i-understand-unreleased'] !== undefined ? { acknowledgeUnreleased: true } : {}), ...dirs(values) };
+      if (mode === 'private') return { command: 'network', action: 'mode-private', ...dirs(parseFlags(flags, ['--install-dir', '--data-dir'], [])) };
+      const values = parseFlags(flags, ['--accept-unverified-reachability', '--type', '--install-dir', '--data-dir'], ['--accept-unverified-reachability']);
+      return {
+        command: 'network', action: 'mode-public',
+        ...(values['--accept-unverified-reachability'] !== undefined ? { acceptUnverifiedReachability: true } : {}),
+        ...(values['--type'] !== undefined ? { type: values['--type'] } : {}),
+        ...dirs(values),
+      };
     }
     throw new UsageError('Usage: dude-hub network lan on|off|status | firewall public|acme on|off|status | proxy on|off|status | mode private|public. Run "dude-hub help".');
   }

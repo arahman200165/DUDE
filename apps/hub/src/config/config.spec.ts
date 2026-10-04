@@ -88,11 +88,12 @@ describe('hub config', () => {
     expect(loadOrCreateHubConfig(paths.configFile)).toEqual(configured);
   });
 
-  it('refuses public exposure at start and formats host headers', () => {
+  it('refuses public exposure at start only when the bind cannot accept inbound traffic, and formats host headers', () => {
     expect(exposureRefusal(parseHubConfig({}))).toBeNull();
-    expect(exposureRefusal(parseHubConfig({ exposure: { mode: 'public' } }), {})).toMatch(/Phase 31F/);
-    expect(exposureRefusal(parseHubConfig({ exposure: { mode: 'public' } }), { DUDE_HUB_UNRELEASED_PUBLIC: '0' })).toMatch(/Phase 31F/);
-    expect(exposureRefusal(parseHubConfig({ exposure: { mode: 'public' } }), { DUDE_HUB_UNRELEASED_PUBLIC: '1' })).toBeNull();
+    expect(exposureRefusal(parseHubConfig({ exposure: { mode: 'public' } }))).toMatch(/network lan on.*network proxy on/);
+    expect(exposureRefusal(parseHubConfig({ bind: 'lan', exposure: { mode: 'public' } }))).toBeNull();
+    expect(exposureRefusal(parseHubConfig({ bind: 'container', exposure: { mode: 'public' } }))).toBeNull();
+    expect(exposureRefusal(parseHubConfig({ exposure: { mode: 'public', names: ['hub.example.com'], proxy: { trusted: ['10.0.0.1'], publicOrigin: 'https://hub.example.com' } } }))).toBeNull();
     expect(formatHostHeader(normalizeHubName('2001:db8::1'), 8443)).toBe('[2001:db8::1]:8443');
     expect(formatHostHeader(normalizeHubName('Hub.Example:8443'))).toBe('hub.example:8443');
     expect(formatHostHeader(normalizeHubName('hub.example'))).toBe('hub.example');

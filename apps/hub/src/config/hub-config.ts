@@ -226,20 +226,19 @@ function parseExposure(raw: unknown): HubExposureConfig {
   return exposure;
 }
 
-/** The environment variable that lets a Hub configured for public exposure start (unsupported until Phase 31F). */
-export const UNRELEASED_PUBLIC_ENV = 'DUDE_HUB_UNRELEASED_PUBLIC';
-
 /**
- * A message when this config may not start, else null. Public exposure is not released until Phase 31F (PD-057): it is
- * refused unless the environment variable `DUDE_HUB_UNRELEASED_PUBLIC=1` is set, so an installed service cannot come up
- * public just because the config file says so.
+ * A message when this config may not start, else null. Public exposure (PD-066) is released behind an elevated readiness gate at
+ * the moment the mode is set, so a configured `public` mode starts. The one start-time refusal is a bind that cannot accept
+ * inbound traffic: loopback without reverse-proxy mode. Certificate state never blocks start (an expired certificate must not turn
+ * a renewal problem into an outage); diagnostics and alerts surface it.
  */
-export function exposureRefusal(config: Pick<HubConfig, 'exposure'>, env: NodeJS.ProcessEnv = process.env): string | null {
-  if (config.exposure.mode !== 'public' || env[UNRELEASED_PUBLIC_ENV] === '1') return null;
+export function exposureRefusal(config: Pick<HubConfig, 'exposure' | 'bind'>): string | null {
+  if (config.exposure.mode !== 'public') return null;
+  if (config.bind !== 'loopback' || config.exposure.proxy !== undefined) return null;
   return (
-    'Public exposure is not released until Phase 31F; the Hub will not start with "exposure.mode" set to "public". ' +
-    `Run "dude-hub network mode private" (or set "exposure.mode" to "private" in hub.json). ` +
-    `To start it anyway for testing, set ${UNRELEASED_PUBLIC_ENV}=1 in the Hub's environment; this is unsupported.`
+    'The Hub is configured for public exposure but is bound to loopback without reverse-proxy mode, so it cannot accept Internet traffic. ' +
+    'Run "dude-hub network lan on" to listen on the network, or "dude-hub network proxy on --trusted <cidr> --public-origin https://<name>" to sit behind a reverse proxy; ' +
+    'or return to "dude-hub network mode private".'
   );
 }
 

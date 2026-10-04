@@ -41,6 +41,12 @@ export interface DiagnosticsHostFacts {
   nativeListeners?: { exposed: readonly NativeListener[]; desktopLan?: readonly NativeListener[]; partial: boolean } | null;
 }
 
+/** Evaluate the report as if the Hub were already in public mode with the configured bind (the readiness gate, PD-066). */
+export interface DiagnosticsOverride {
+  mode: 'public';
+  host?: Pick<DiagnosticsHostFacts, 'publicFirewall' | 'nativeListeners'>;
+}
+
 export interface DiagnosticsDeps {
   now: number;
   hubVersion: string;
@@ -235,7 +241,7 @@ export async function collectDiagnostics(deps: DiagnosticsDeps): Promise<HubDiag
   checks.push(nativePortsCheck({ platform: deps.platform, fact: host.nativeListeners }));
 
   // exposure-mode
-  if (config.exposure.mode === 'public') checks.push(check('exposure-mode', 'Exposure mode', 'fail', 'verified', 'Public exposure is not released until Phase 31F.', 'dude-hub network mode private'));
+  if (config.exposure.mode === 'public') checks.push(check('exposure-mode', 'Exposure mode', 'warn', 'verified', 'The Hub is configured for Internet exposure. Readiness (trusted certificate, public DNS name, firewall, owner, reachability) is enforced when the mode is set; this check does not re-run it.', 'dude-hub network mode private'));
   else checks.push(check('exposure-mode', 'Exposure mode', 'info', 'verified', 'Private: the Hub is for you and your devices.'));
 
   // proxy-trust
@@ -286,7 +292,6 @@ export async function collectDiagnostics(deps: DiagnosticsDeps): Promise<HubDiag
     service: { mode: deps.serviceMode, uptimeSeconds: deps.uptimeSeconds, ...(host.serviceState !== undefined ? { state: host.serviceState } : {}) },
     exposure: {
       mode: config.exposure.mode,
-      publicReleased: false,
       bind: config.bind,
       bindAddress: config.bindAddress,
       port: config.port,

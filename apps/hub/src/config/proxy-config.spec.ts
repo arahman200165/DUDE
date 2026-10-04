@@ -62,11 +62,11 @@ describe('exposure.proxy validation', () => {
 });
 
 describe('exposure mode and the read model', () => {
-  it('refuses public unless the unreleased env var is set', () => {
-    const publicConfig = parseHubConfig({ exposure: { mode: 'public' } });
-    expect(exposureRefusal(publicConfig, {})).toMatch(/not released until Phase 31F/);
-    expect(exposureRefusal(publicConfig, { DUDE_HUB_UNRELEASED_PUBLIC: '1' })).toBeNull();
-    expect(exposureRefusal(parseHubConfig({}), {})).toBeNull();
+  it('refuses public only for a loopback bind without proxy mode; never for certificate state', () => {
+    expect(exposureRefusal(parseHubConfig({ exposure: { mode: 'public' } }))).toMatch(/cannot accept Internet traffic/);
+    expect(exposureRefusal(parseHubConfig({ bind: 'lan', exposure: { mode: 'public' } }))).toBeNull();
+    expect(exposureRefusal(parseHubConfig({ exposure: { mode: 'public', names: ['hub.example.com'], proxy: { trusted: ['10.0.0.1'], publicOrigin: 'https://hub.example.com' } } }))).toBeNull();
+    expect(exposureRefusal(parseHubConfig({}))).toBeNull();
   });
 
   it('builds the exposure read model without secrets', () => {

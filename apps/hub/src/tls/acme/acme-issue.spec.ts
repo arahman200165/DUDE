@@ -419,7 +419,8 @@ describe('ACME key-use import boundary', () => {
       return found.sort();
     };
     expect(importers(/account-key\.js'/)).toEqual(['tls/acme/acme-issue.ts', 'admin/methods.ts'].sort());
-    expect(importers(/acme-issue\.js'/)).toEqual(['admin/methods.ts', 'tls/acme/acme-renewal.ts'].sort());
+    // diagnostics/readiness.ts imports only the pure name validator (validateAcmeNames); it never touches the account key.
+    expect(importers(/acme-issue\.js'/)).toEqual(['admin/methods.ts', 'diagnostics/readiness.ts', 'tls/acme/acme-renewal.ts'].sort());
     expect(importers(/acme-renewal\.js'/)).toEqual(['admin/methods.ts', 'cli/run.ts']);
   });
 });

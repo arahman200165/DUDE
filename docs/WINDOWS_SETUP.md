@@ -46,7 +46,8 @@ Run these from an elevated prompt (the Hub CLI is `"%ProgramFiles%\DUDE Hub\dude
 | `dude-hub network status` | Show the bind, exposure mode, configured names, reverse-proxy summary (trusted count, public origin) and whether HSTS is sent. |
 | `dude-hub network proxy on --trusted <cidr>[,<cidr>...] --public-origin https://<name>[:<port>]` | Reverse-proxy mode: trust only those proxy addresses for `X-Forwarded-*`, serve the public origin, listen on loopback only, remove the LAN firewall rule and restart. |
 | `dude-hub network proxy off` / `status` | Leave reverse-proxy mode (the Hub keeps listening on loopback; run `network lan on` to re-expose it) or show the proxy settings. |
-| `dude-hub network mode private` / `public --i-understand-unreleased` | Set the exposure mode. Public is not released until Phase 31F: it needs the flag to be written, and the Hub still refuses to start in public mode unless `DUDE_HUB_UNRELEASED_PUBLIC=1` is set in its environment. |
+| `dude-hub network mode private` | Return to private mode (unrestricted). |
+| `dude-hub network mode public [--accept-unverified-reachability] --type "EXPOSE HUB TO THE INTERNET"` | Expose the Hub to the Internet. The running Hub checks readiness (see "Exposing the Hub to the Internet"); without `--type` it prints the readiness report and changes nothing. Needs an elevated prompt and a running Hub. |
 | `dude-hub tls ca init [--suffix <dns>]...` | Opt an existing Hub in to the built-in local CA (new Hubs use it by default): creates the CA and stages a CA-issued certificate with a new key; activate it with `dude-hub tls activate`. Elevated when the service is installed. |
 | `dude-hub tls ca status` | Show the root fingerprint and validity, its permitted name subtrees, whether the active certificate is CA-issued, and its expiry. |
 | `dude-hub tls ca export [--out <file.cer>]` | Write the public root as DER (default `dude-hub-root.cer`) and print the `certutil -user -addstore Root` command that trusts it for the current user. |
@@ -71,7 +72,19 @@ New Hubs issue their certificate from a built-in local certificate authority (th
 3. **Firefox** has its own store: import the `.cer` under Settings › Privacy & Security › Certificates › View Certificates › Authorities, or set `security.enterprise_roots.enabled` in `about:config` to trust the Windows store.
 4. Existing Hubs keep their self-signed certificate until you run `dude-hub tls ca init` (elevated, with the service running) and activate the staged certificate; a Hub with configured names (`dude-hub tls names add`) re-issues the certificate for them. `dude-hub doctor` reports missing names.
 
-Public (Internet) exposure is not released until Phase 31F; `dude-hub network mode public` is refused unless you pass `--i-understand-unreleased`, and the Hub still will not start in public mode.
+### Exposing the Hub to the Internet
+
+Public mode is released behind an elevated readiness gate (Phase 31F, Milestones 683–697). `dude-hub network mode public` refuses until the Hub proves it is ready, and lists every blocker with the command that fixes it. Do these in order from an elevated prompt on the Hub computer:
+
+1. **Pick public DNS names** you control (not an IP address and not `.local`/`.lan`/`.internal`) and point them at your router's public address: `dude-hub tls names add hub.example.com`.
+2. **Get a browser-trusted certificate.** Either issue one: `dude-hub tls acme issue --name hub.example.com --agree-tos --open-firewall` (needs port 80 reachable for a moment), or import one with `dude-hub tls import --cert <file> --key <file>`, or put the Hub behind a reverse proxy that already has one (`dude-hub network proxy on ...`; see "Behind a reverse proxy"). A self-signed or local-CA certificate is a blocker: phones and browsers outside your network cannot trust a private CA.
+3. **Activate the certificate:** `dude-hub tls activate`.
+4. **Listen on the network:** `dude-hub network lan on` (not needed behind a reverse proxy).
+5. **Open the public firewall rule:** `dude-hub network firewall public on --force` (the rule must exist before the mode is switched; `--force` is needed only because the Hub is still private), and forward the port on your router.
+6. **Verify reachability from outside** (next section), from a phone on cellular data. The record must be no older than 7 days. If you cannot test, `--accept-unverified-reachability` turns this one blocker into an audited warning.
+7. **Switch the mode** with the phrase: `dude-hub network mode public --type "EXPOSE HUB TO THE INTERNET"`. Run it without `--type` first to see the readiness report. Then `dude-hub service restart` applies it.
+
+Blockers: certificate not browser-trusted, no public DNS name, certificate not covering the names or expiring within 7 days, no owner set up (`dude-hub setup-token`), the Public firewall rule missing or invalid, an Agent TCP listener, a loopback-only bind without a proxy, and reachability not verified. Warnings (shown, not blocking): address stability (private or CGNAT addresses), DNS resolution and HSTS. The Hub starts in public mode whatever its certificate state (an expiring certificate never causes an outage; `doctor` and the alerts report it), but refuses to start when it is bound to loopback without a proxy. `dude-hub network mode private` undoes it at any time.
 
 ### Verifying the Hub is reachable from the Internet
 

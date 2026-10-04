@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Db } from '@dude/sqlite-store';
+import { bindAddress } from '../config/hub-config.js';
 import type { HubConfig } from '../config/hub-config.js';
 import type { HubPaths } from '../config/data-dir.js';
 import { envelope, hubErrorHandler } from './errors.js';
@@ -18,7 +19,7 @@ import { collectDiagnostics } from '../diagnostics/engine.js';
 import { createCachedNameResolver } from '../diagnostics/addresses.js';
 import type { InterfaceMap, NameResolution } from '../diagnostics/addresses.js';
 import type { HubDiagnosticsReport } from '@dude/contracts/hub';
-import type { DiagnosticsHostFacts } from '../diagnostics/engine.js';
+import type { DiagnosticsHostFacts, DiagnosticsOverride } from '../diagnostics/engine.js';
 import { defaultExec } from '../service/common.js';
 import type { ExecFn } from '../service/common.js';
 import { registerDeviceAuthRoutes } from './routes/device-auth.js';
@@ -52,7 +53,7 @@ import type { CsrfVerifier } from '../security/request-guard.js';
 export const HUB_BODY_LIMIT = 64 * 1024;
 
 declare module 'fastify' {
-  interface FastifyInstance { hubDiagnostics: () => Promise<HubDiagnosticsReport> }
+  interface FastifyInstance { hubDiagnostics: (override?: DiagnosticsOverride) => Promise<HubDiagnosticsReport> }
 }
 
 export interface CreateHubServerOptions {
@@ -158,10 +159,20 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   const startedAt = now();
   const hostFacts = options.diagnostics?.host ?? createHostFacts({ exec: options.diagnostics?.exec ?? defaultExec, ...(options.diagnostics?.platform ? { platform: options.diagnostics.platform } : {}), now });
   const resolveDns = options.diagnostics?.resolveDns ?? createCachedNameResolver({ now });
-  const collectHubDiagnostics = async (): Promise<HubDiagnosticsReport> => collectDiagnostics(await gatherRunningHubDeps({
-    db: options.hub.db, tlsDir: options.paths.tlsDir, configFile: options.paths.configFile, config: { port: 0, ...(options.config.bind ? { bind: options.config.bind } : {}), ...(options.config.exposure ? { exposure: options.config.exposure } : {}) },
-    hubVersion: options.hubVersion, startedAt, now, getPort, hsts: hstsPolicy, realtime, host: hostFacts, resolveDns, ...(options.diagnostics?.interfaces ? { interfaces: options.diagnostics.interfaces } : {}), ...(options.diagnostics?.platform ? { platform: options.diagnostics.platform } : {}),
-  }));
+  const collectHubDiagnostics = async (override?: DiagnosticsOverride): Promise<HubDiagnosticsReport> => {
+    const deps = await gatherRunningHubDeps({
+      db: options.hub.db, tlsDir: options.paths.tlsDir, configFile: options.paths.configFile, config: { port: 0, ...(options.config.bind ? { bind: options.config.bind } : {}), ...(options.config.exposure ? { exposure: options.config.exposure } : {}) },
+      hubVersion: options.hubVersion, startedAt, now, getPort, hsts: hstsPolicy, realtime, host: hostFacts, resolveDns, ...(options.diagnostics?.interfaces ? { interfaces: options.diagnostics.interfaces } : {}), ...(options.diagnostics?.platform ? { platform: options.diagnostics.platform } : {}),
+    });
+    if (override !== undefined) {
+      // The readiness gate: the configured (not yet running) bind and the supplied host facts, evaluated as public mode.
+      const wanted = currentConfig(options.paths.configFile, { port: 0, ...(options.config.bind ? { bind: options.config.bind } : {}), ...(options.config.exposure ? { exposure: options.config.exposure } : {}) });
+      const baseHost = deps.host;
+      deps.config = { ...deps.config, bind: wanted.bind, bindAddress: bindAddress({ bind: wanted.bind, exposure: wanted.exposure }), exposure: { ...deps.config.exposure, mode: override.mode } };
+      deps.host = async () => ({ ...(await baseHost()), ...override.host });
+    }
+    return collectDiagnostics(deps);
+  };
   app.decorate('hubDiagnostics', collectHubDiagnostics);
   registerDiagnosticsRoute(app, { db: options.hub.db, now, requireOwner: authOptions.requireOwner, collect: collectHubDiagnostics });
   registerReachabilityRoute(app, {

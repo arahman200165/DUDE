@@ -58,7 +58,6 @@ export const HubDiagnosticsReport = Type.Object({
   }),
   exposure: Type.Object({
     mode: Type.Union([Type.Literal('private'), Type.Literal('public')]),
-    publicReleased: Type.Literal(false),
     bind: Type.Union([Type.Literal('loopback'), Type.Literal('lan'), Type.Literal('container')]),
     bindAddress: Type.String(),
     port: Type.Number(),
