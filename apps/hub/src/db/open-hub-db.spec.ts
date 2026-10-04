@@ -32,7 +32,7 @@ describe('openHubDb', () => {
     expect(Object.values(db.prepare('PRAGMA foreign_keys').get() as object)[0]).toBe(1);
     expect(hubInstanceId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-/);
     expect(getMeta(db, 'created_at')).toBeTruthy();
-    expect(getMeta(db, 'schema_version')).toBe('7');
+    expect(getMeta(db, 'schema_version')).toBe('8');
     first.hub.close();
     expect(readdirSync(options.preMigrationDir.replace(/pre-migration$/, '')).includes('pre-migration')).toBe(false);
 
@@ -42,7 +42,7 @@ describe('openHubDb', () => {
     second.hub.close();
   });
 
-  it('applies migrations 0003 to 0007 onto an existing version-2 database', () => {
+  it('applies migrations 0003 to 0008 onto an existing version-2 database', () => {
     const options = dirs();
     const v2 = openHubDb({ ...options, migrations: HUB_MIGRATIONS.slice(0, 2) });
     if (v2.status !== 'ready') throw new Error('expected ready');
@@ -51,7 +51,7 @@ describe('openHubDb', () => {
     const upgraded = openHubDb(options);
     if (upgraded.status !== 'ready') throw new Error('expected ready');
     const { db } = upgraded.hub;
-    expect(getMeta(db, 'schema_version')).toBe('7');
+    expect(getMeta(db, 'schema_version')).toBe('8');
     expect(getMeta(db, 'min_reader_version')).toBe('1');
     expect(getMeta(db, 'sync_floor')).toBe('0');
     expect(getMeta(db, 'sync_retention_days')).toBe('90');
@@ -121,10 +121,10 @@ describe('openHubDb', () => {
     first.hub.close();
     expect(() => readdirSync(options.preMigrationDir)).toThrow();
 
-    const v2: Migration = { version: 8, name: 'extra', minReaderVersion: 1, sql: 'CREATE TABLE extra (id TEXT PRIMARY KEY) STRICT;' };
+    const v2: Migration = { version: 9, name: 'extra', minReaderVersion: 1, sql: 'CREATE TABLE extra (id TEXT PRIMARY KEY) STRICT;' };
     const upgraded = openHubDb({ ...options, migrations: [...HUB_MIGRATIONS, v2] });
     if (upgraded.status !== 'ready') throw new Error('expected ready');
-    expect(readdirSync(options.preMigrationDir).filter((f) => /^pre-v7-.*\.db$/.test(f))).toHaveLength(1);
+    expect(readdirSync(options.preMigrationDir).filter((f) => /^pre-v8-.*\.db$/.test(f))).toHaveLength(1);
     upgraded.hub.close();
   });
 });

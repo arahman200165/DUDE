@@ -208,6 +208,8 @@ export const DeviceInfo = Type.Object({
   revokedAt: NullableIso,
   unenrolledAt: NullableIso,
   recoveryTrusted: Type.Boolean(),
+  /** True after a Hub restore revoked this device's key (PD-072): it must be re-paired. Absent (false) on older Hubs. */
+  needsRePair: Type.Optional(Type.Boolean()),
   /** Always false until the realtime channel lands. */
   online: Type.Boolean(),
   /** True for the device bound to the caller's bearer session (or the calling device itself). */

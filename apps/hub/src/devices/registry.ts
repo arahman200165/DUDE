@@ -12,10 +12,10 @@ export const LAST_SEEN_MIN_INTERVAL_MS = 60_000;
 interface DeviceRow {
   device_id: string; environment_id: string; display_name: string; platform: string; app_version: string; capabilities_json: string;
   protocol_version: number; registered_at: string; last_seen_at: string | null; revoked_at: string | null; unenrolled_at: string | null;
-  recovery_trusted: number; kind: 'desktop' | 'browser';
+  recovery_trusted: number; kind: 'desktop' | 'browser'; needs_re_pair: number;
 }
 
-const COLUMNS = 'device_id, environment_id, display_name, platform, app_version, capabilities_json, protocol_version, registered_at, last_seen_at, revoked_at, unenrolled_at, recovery_trusted, kind';
+const COLUMNS = 'device_id, environment_id, display_name, platform, app_version, capabilities_json, protocol_version, registered_at, last_seen_at, revoked_at, unenrolled_at, recovery_trusted, kind, needs_re_pair';
 const iso = (ms: number): string => new Date(ms).toISOString();
 
 function toInfo(row: DeviceRow, currentDeviceId: string | null): DeviceInfo {
@@ -24,7 +24,7 @@ function toInfo(row: DeviceRow, currentDeviceId: string | null): DeviceInfo {
     deviceId: row.device_id, kind: row.kind, displayName: row.display_name, platform: row.platform as DeviceRegistryPlatform, appVersion: row.app_version,
     protocolVersion: row.protocol_version, capabilities: stored.filter((c): c is DeviceCapability => (DEVICE_CAPABILITIES as readonly string[]).includes(c)),
     registeredAt: row.registered_at, lastSeenAt: row.last_seen_at, revokedAt: row.revoked_at, unenrolledAt: row.unenrolled_at,
-    recoveryTrusted: row.recovery_trusted === 1, online: false, current: row.device_id === currentDeviceId,
+    recoveryTrusted: row.recovery_trusted === 1, needsRePair: row.needs_re_pair === 1, online: false, current: row.device_id === currentDeviceId,
   };
 }
 
