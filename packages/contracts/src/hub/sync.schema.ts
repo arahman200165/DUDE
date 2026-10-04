@@ -33,6 +33,30 @@ const DeviceId = Type.String({ minLength: 1, maxLength: 64 });
 const NullablePayload = Type.Union([Type.Unknown(), Type.Null()]);
 
 export const SyncCategorySchema = Type.Unsafe<SyncCategory>({ type: 'string', enum: [...SYNC_WIRE_CATEGORY_IDS] });
+/** An explicit filter cannot be empty: callers with no enabled categories must issue no read. */
+export const SyncCategories = Type.Unsafe<readonly SyncCategory[]>({
+  type: 'array', items: SyncCategorySchema, minItems: 1, maxItems: SYNC_WIRE_CATEGORY_IDS.length, uniqueItems: true,
+});
+
+/** Validate runtime callers as well as typed callers before building a query or reading storage. */
+export function assertSyncCategories(categories: unknown): asserts categories is readonly SyncCategory[] {
+  if (!Array.isArray(categories) || categories.length === 0 || new Set(categories).size !== categories.length
+    || Array.from(categories).some(category => !(SYNC_WIRE_CATEGORY_IDS as readonly unknown[]).includes(category))) {
+    throw new TypeError('Sync categories must be a nonempty, unique list of known categories.');
+  }
+}
+
+/** Wire query categories are one comma-separated string. The negative lookahead refuses any repeated member. */
+export const SyncCategoriesQueryString = Type.String({
+  maxLength: SYNC_WIRE_CATEGORY_IDS.join(',').length,
+  pattern: `^(?!(?:[^,]+,)*([^,]+),(?:[^,]+,)*\\1(?:,|$))(?:${SYNC_WIRE_CATEGORY_IDS.join('|')})(?:,(?:${SYNC_WIRE_CATEGORY_IDS.join('|')}))*$`,
+});
+export function parseSyncCategoriesQuery(categories: string | undefined): readonly SyncCategory[] | undefined {
+  if (categories === undefined) return undefined;
+  const parsed = categories.split(',');
+  assertSyncCategories(parsed);
+  return parsed;
+}
 export const SyncCategoryFlags = Type.Object(
   Object.fromEntries(SYNC_WIRE_CATEGORY_IDS.map((id) => [id, Type.Boolean()])) as Record<SyncCategory, ReturnType<typeof Type.Boolean>>,
   { additionalProperties: false },
@@ -89,8 +113,15 @@ export type SyncPushResponse = Static<typeof SyncPushResponse>;
 export const SyncChangesQuery = Type.Object({
   after: Type.Integer({ minimum: 0 }),
   limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 1000 })),
+  categories: Type.Optional(SyncCategories),
 });
 export type SyncChangesQuery = Static<typeof SyncChangesQuery>;
+/** The Hub does not coerce query types: numbers arrive as decimal strings. Repeated keys arrive as arrays and fail validation. */
+export const SyncChangesQueryString = Type.Object({
+  after: Type.String({ pattern: '^(0|[1-9][0-9]{0,15})$' }),
+  limit: Type.Optional(Type.String({ pattern: '^[1-9][0-9]{0,3}$' })),
+  categories: Type.Optional(SyncCategoriesQueryString),
+});
 export const SyncChangesResponse = Type.Object({
   changes: Type.Array(SyncRecord), cursor: Revision, hasMore: Type.Boolean(), floor: Revision, headRevision: Revision,
   /** Authority epoch of the Hub. Absent on Hubs that predate authority epochs. */
@@ -102,8 +133,15 @@ export const SyncSnapshotQuery = Type.Object({
   afterType: Type.Optional(EntityType),
   afterId: Type.Optional(EntityId),
   limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 1000 })),
+  categories: Type.Optional(SyncCategories),
 });
 export type SyncSnapshotQuery = Static<typeof SyncSnapshotQuery>;
+export const SyncSnapshotQueryString = Type.Object({
+  afterType: Type.Optional(EntityType),
+  afterId: Type.Optional(EntityId),
+  limit: Type.Optional(Type.String({ pattern: '^[1-9][0-9]{0,3}$' })),
+  categories: Type.Optional(SyncCategoriesQueryString),
+});
 export const SyncSnapshotResponse = Type.Object({
   records: Type.Array(SyncRecord),
   asOfRevision: Revision,

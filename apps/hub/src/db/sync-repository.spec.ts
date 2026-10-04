@@ -114,6 +114,26 @@ describe('sync policy enforcement', () => {
 });
 
 describe('changesAfter / snapshotPage / compaction', () => {
+  it('filters before JSON parsing, includes matching tombstones and maps every entity in a category', () => {
+    const db = freshDb();
+    const write = (type: string, id: string, payload: unknown) => commitCanonical(db, { environmentId: ENV, entityType: type, entityId: id, op: 'upsert', payload, now: NOW });
+    write('setting', 'settings:disabled', setting('settings', 'disabled'));
+    write('pipeline', 'p1', pipe('p1'));
+    write('favorite', 'tool:a', { id: 'tool:a', kind: 'tool', targetId: 'a', order: 0 });
+    write('user-script', 's1', { id: 's1', name: 'Script', body: 'return input', createdAt: NOW, updatedAt: NOW });
+    commitCanonical(db, { environmentId: ENV, entityType: 'pipeline', entityId: 'p1', op: 'delete', now: NOW });
+    // Corrupt an excluded record to prove no excluded JSON is decoded, even for snapshots.
+    db.prepare("UPDATE records SET payload_json = 'invalid JSON' WHERE entity_type = 'setting'").run();
+    expect(changesAfter(db, ENV, 0, 10, ['pipelines']).changes.map(r => [r.entityType, r.deleted])).toEqual([
+      ['user-script', false], ['pipeline', true],
+    ]);
+    expect(snapshotPage(db, ENV, undefined, undefined, 10, ['pipelines']).records.map(r => r.entityType)).toEqual(['user-script']);
+    expect(changesAfter(db, ENV, 0, 10, ['favorites', 'pipelines']).changes.map(r => r.revision)).toEqual([3, 4, 5]);
+    expect(changesAfter(db, ENV, 0, 10, ['projects'])).toEqual({ changes: [], hasMore: false });
+    expect(() => changesAfter(db, ENV, 0, 10, [])).toThrow(TypeError);
+    expect(() => snapshotPage(db, ENV, undefined, undefined, 10, ['unknown'] as never)).toThrow(TypeError);
+  });
+
   function seed(db: Db): void {
     upPipe(db, 'p1', null); // 1
     upPipe(db, 'p2', null); // 2

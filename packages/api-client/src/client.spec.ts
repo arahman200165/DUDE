@@ -15,6 +15,25 @@ function fake(res: Partial<HubResponse>): HubTransport & { seen: HubRequest[] } 
 const opts = { clientProtocol: 1, minHubProtocol: 1 };
 
 describe('createHubClient', () => {
+  it('encodes device category filters once and preserves snapshot keyset values', async () => {
+    const changes = fake({ body: { changes: [], cursor: 9, headRevision: 9, hasMore: false, floor: 0 } });
+    await createHubClient(changes, opts).syncChanges('ddt_x', 3, 2, ['settings', 'favorites']);
+    expect(changes.seen[0]).toMatchObject({ path: '/api/v1/sync/changes?after=3&limit=2&categories=settings%2Cfavorites', headers: { authorization: 'Bearer ddt_x' } });
+    const snapshot = fake({ body: { records: [], asOfRevision: 9, next: null, floor: 0 } });
+    await createHubClient(snapshot, opts).syncSnapshot('ddt_x', { afterType: 'setting', afterId: 'settings:a b&c', limit: 1, categories: ['favorites', 'settings'] });
+    expect(snapshot.seen[0]!.path).toBe('/api/v1/sync/snapshot?afterType=setting&afterId=settings%3Aa+b%26c&limit=1&categories=favorites%2Csettings');
+  });
+
+  it('rejects invalid runtime filters before transport for both reads', async () => {
+    const t = fake({});
+    const c = createHubClient(t, opts);
+    for (const categories of [[], ['unknown'], ['favorites', 'favorites'], ['favorites', null], 'favorites', new Array(1), null]) {
+      await expect(c.syncChanges('t', 0, undefined, categories as never)).rejects.toBeInstanceOf(TypeError);
+      await expect(c.syncSnapshot('t', { categories: categories as never })).rejects.toBeInstanceOf(TypeError);
+    }
+    expect(t.seen).toEqual([]);
+  });
+
   it('GETs hello and returns the validated body', async () => {
     const t = fake({ body: hello });
     await expect(createHubClient(t, opts).hello()).resolves.toEqual(hello);

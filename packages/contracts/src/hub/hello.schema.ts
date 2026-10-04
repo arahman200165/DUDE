@@ -11,6 +11,8 @@ export const HelloResponse = Type.Object({
   hubInstanceId: Type.String({ pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' }),
   environmentId: Type.Union([Type.String(), Type.Null()]),
   bootstrapped: Type.Boolean(),
+  /** Device sync reads accept category filters. Absent on older Hubs. */
+  syncCategoryFiltering: Type.Optional(Type.Literal(true)),
   tls: Type.Object({
     spkiSha256: SpkiSha256,
     nextSpkiSha256: Type.Union([SpkiSha256, Type.Null()]),

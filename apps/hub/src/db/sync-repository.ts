@@ -1,7 +1,7 @@
-import type { SyncRecord } from '@dude/contracts/hub';
+import { assertSyncCategories, type SyncRecord } from '@dude/contracts/hub';
 import { allRows, getMeta, getRow, setMeta, transaction } from '@dude/sqlite-store';
 import type { Db } from '@dude/sqlite-store';
-import { categoryOf, SYNC_CATEGORY_IDS } from '@dude/sync';
+import { categoryOf, SYNC_CATEGORY_IDS, SYNC_POLICIES } from '@dude/sync';
 import type { SyncCategory } from '@dude/sync';
 
 /** Raw `records` row. */
@@ -31,27 +31,39 @@ export function getSyncRecord(db: Db, environmentId: string, entityType: string,
 }
 
 /** Records (live and tombstones) whose current revision is > `after`, ordered by revision. An entity appears once. */
-export function changesAfter(db: Db, environmentId: string, after: number, limit: number): { changes: SyncRecord[]; hasMore: boolean } {
+export function changesAfter(db: Db, environmentId: string, after: number, limit: number, categories?: readonly SyncCategory[]): { changes: SyncRecord[]; hasMore: boolean } {
   const size = Math.max(0, Math.floor(limit));
+  const filter = categoryFilter(categories);
   const rows = allRows<RecordRow>(
-    db.prepare('SELECT * FROM records WHERE environment_id = ? AND revision > ? ORDER BY revision LIMIT ?'), environmentId, after, size + 1);
+    db.prepare(`SELECT * FROM records WHERE environment_id = ? AND revision > ?${filter.sql} ORDER BY revision LIMIT ?`),
+    environmentId, after, ...filter.types, size + 1);
   return { changes: rows.slice(0, size).map(toSyncRecord), hasMore: rows.length > size };
 }
 
 /** Live records ordered by (entity_type, entity_id), strictly after the (afterType, afterId) key when given. */
 export function snapshotPage(
-  db: Db, environmentId: string, afterType: string | undefined, afterId: string | undefined, limit: number,
+  db: Db, environmentId: string, afterType: string | undefined, afterId: string | undefined, limit: number, categories?: readonly SyncCategory[],
 ): { records: SyncRecord[]; next: { afterType: string; afterId: string } | null } {
   const size = Math.max(0, Math.floor(limit));
+  const filter = categoryFilter(categories);
   const rows = afterType === undefined
     ? allRows<RecordRow>(
-      db.prepare('SELECT * FROM records WHERE environment_id = ? AND deleted = 0 ORDER BY entity_type, entity_id LIMIT ?'), environmentId, size + 1)
+      db.prepare(`SELECT * FROM records WHERE environment_id = ? AND deleted = 0${filter.sql} ORDER BY entity_type, entity_id LIMIT ?`),
+      environmentId, ...filter.types, size + 1)
     : allRows<RecordRow>(
-      db.prepare(`SELECT * FROM records WHERE environment_id = ? AND deleted = 0 AND (entity_type > ? OR (entity_type = ? AND entity_id > ?))
-        ORDER BY entity_type, entity_id LIMIT ?`), environmentId, afterType, afterType, afterId ?? '', size + 1);
+      db.prepare(`SELECT * FROM records WHERE environment_id = ? AND deleted = 0${filter.sql} AND (entity_type > ? OR (entity_type = ? AND entity_id > ?))
+        ORDER BY entity_type, entity_id LIMIT ?`), environmentId, ...filter.types, afterType, afterType, afterId ?? '', size + 1);
   const page = rows.slice(0, size);
   const last = page[page.length - 1];
   return { records: page.map(toSyncRecord), next: rows.length > size && last ? { afterType: last.entity_type, afterId: last.entity_id } : null };
+}
+
+/** Filter before pagination and JSON decoding; entity types come only from the shared policy inventory. */
+function categoryFilter(categories: readonly SyncCategory[] | undefined): { sql: string; types: string[] } {
+  if (categories === undefined) return { sql: '', types: [] };
+  assertSyncCategories(categories);
+  const types = Object.keys(SYNC_POLICIES).filter(type => categories.includes(categoryOf(type)!));
+  return { sql: ` AND entity_type IN (${types.map(() => '?').join(', ')})`, types };
 }
 
 export function getSyncFloor(db: Db): number {

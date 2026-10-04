@@ -23,6 +23,13 @@ const state = { floor: 0, headRevision: 3, retentionDays: 90 };
 const BAD_EPOCHS = [0, -1, 1.5, 'x', '1', null];
 
 describe('authority epoch fields', () => {
+  it('advertises category filtering as an optional true literal for legacy compatibility', () => {
+    expect(Value.Check(HelloResponse, hello)).toBe(true);
+    expect(Value.Check(HelloResponse, { ...hello, syncCategoryFiltering: true })).toBe(true);
+    for (const syncCategoryFiltering of [false, 'true', 1, null]) {
+      expect(Value.Check(HelloResponse, { ...hello, syncCategoryFiltering })).toBe(false);
+    }
+  });
   it('are optional on every response that carries them', () => {
     expect(Value.Check(HelloResponse, hello)).toBe(true);
     expect(Value.Check(DeviceTokenResponse, token)).toBe(true);

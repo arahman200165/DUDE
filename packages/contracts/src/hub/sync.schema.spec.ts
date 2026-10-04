@@ -3,6 +3,7 @@ import { Value } from 'typebox/value';
 import {
   SYNC_CURSOR_EXPIRED, SYNC_WIRE_CATEGORY_IDS, SyncChangesResponse, SyncClearPreview, SyncClearRequest, SyncClearResponse, SyncOp, SyncOpResult,
   SyncPushRequest, SyncPushResponse, SyncRecord, SyncSnapshotResponse, SyncStateReport, SyncStateResponse, SyncSummary,
+  SyncChangesQuery, SyncSnapshotQuery, SyncChangesQueryString, SyncSnapshotQueryString, parseSyncCategoriesQuery,
 } from './sync.schema.js';
 import { RealtimeServerMessage } from './realtime.schema.js';
 import { HUB_PROTOCOL_VERSION, hubSupportsSync } from './protocol.js';
@@ -14,6 +15,32 @@ const flags = Object.fromEntries(SYNC_WIRE_CATEGORY_IDS.map((id) => [id, true]))
 const counts = Object.fromEntries(SYNC_WIRE_CATEGORY_IDS.map((id) => [id, 2]));
 
 describe('sync wire schemas', () => {
+  it('accepts omitted filters and nonempty unique typed and comma-separated wire filters', () => {
+    for (const categories of [undefined, ['favorites'], [...SYNC_WIRE_CATEGORY_IDS]]) {
+      expect(Value.Check(SyncChangesQuery, { after: 0, ...(categories ? { categories } : {}) })).toBe(true);
+      expect(Value.Check(SyncSnapshotQuery, categories ? { categories } : {})).toBe(true);
+      const wire = categories?.join(',');
+      expect(Value.Check(SyncChangesQueryString, { after: '0', ...(wire ? { categories: wire } : {}) })).toBe(true);
+      expect(Value.Check(SyncSnapshotQueryString, wire ? { categories: wire } : {})).toBe(true);
+      expect(parseSyncCategoriesQuery(wire)).toEqual(categories);
+    }
+  });
+
+  it('rejects empty, repeated, unknown and malformed category filters', () => {
+    for (const categories of [[], ['favorites', 'favorites'], ['unknown'], ['favorites', null]]) {
+      expect(Value.Check(SyncChangesQuery, { after: 0, categories })).toBe(false);
+      expect(Value.Check(SyncSnapshotQuery, { categories })).toBe(false);
+    }
+    for (const categories of ['', ',', 'favorites,', ',settings', 'favorites,,settings', 'favorites,favorites',
+      'settings,favorites,settings', 'favorites,settings,favorites,usage', 'unknown', 'favorites,unknown', ' favorites']) {
+      expect(Value.Check(SyncChangesQueryString, { after: '0', categories })).toBe(false);
+      expect(Value.Check(SyncSnapshotQueryString, { categories })).toBe(false);
+      expect(() => parseSyncCategoriesQuery(categories)).toThrow(TypeError);
+    }
+    expect(Value.Check(SyncSnapshotQueryString, { categories: ['favorites', 'settings'] })).toBe(false);
+    expect(Value.Check(SyncChangesQueryString, { after: ['0', '1'] })).toBe(false);
+  });
+
   it('accepts valid records and ops, rejects bad ones', () => {
     expect(Value.Check(SyncRecord, record)).toBe(true);
     expect(Value.Check(SyncRecord, { ...record, payload: null, deleted: true })).toBe(true);

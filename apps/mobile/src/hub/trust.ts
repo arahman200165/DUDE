@@ -4,7 +4,7 @@ import { MobileHubError, type MobileHubEnrollment, type MobileHubPorts } from '.
 
 /** Every credential-bearing refresh checks the pinned public hello first. */
 export function checkHello(hello: HelloResponse, expected?: Pick<MobileHubEnrollment, 'hubInstanceId' | 'environmentId' | 'authorityEpoch'>): number {
-  if (hello.protocolVersion < HUB_SYNC_MIN_PROTOCOL || hello.minClientProtocol > HUB_PROTOCOL_VERSION || (hello as HelloResponse & { syncCategoryFiltering?: boolean }).syncCategoryFiltering !== true) {
+  if (hello.protocolVersion < HUB_SYNC_MIN_PROTOCOL || hello.minClientProtocol > HUB_PROTOCOL_VERSION || hello.syncCategoryFiltering !== true) {
     throw new MobileHubError('incompatible', 'This Hub needs Android category-filtered synchronization support. Update the Hub before pairing.');
   }
   if (!hello.bootstrapped || !hello.environmentId || hello.authorityState === 'transferred' || (expected && (hello.hubInstanceId !== expected.hubInstanceId || hello.environmentId !== expected.environmentId || (hello.authorityEpoch ?? 1) !== expected.authorityEpoch))) {

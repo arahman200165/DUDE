@@ -1,12 +1,12 @@
 import { createHash } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import Type from 'typebox';
 import type { Db } from '@dude/sqlite-store';
 import { allRows, getRow, transaction } from '@dude/sqlite-store';
 import {
   ErrorEnvelope, HUB_API_PREFIX, SYNC_CURSOR_EXPIRED, SYNC_PATHS, SyncChangesResponse, SyncClearPreview, SyncClearRequest, SyncClearResponse,
   SyncPushRequest, SyncPushResponse, SyncSnapshotResponse, SyncStateReport, SyncStateResponse, SyncSummary,
+  SyncChangesQueryString, SyncSnapshotQueryString, parseSyncCategoriesQuery,
 } from '@dude/contracts/hub';
 import type { SyncOpResult } from '@dude/contracts/hub';
 import { SYNC_LIMITS } from '@dude/sync';
@@ -32,17 +32,6 @@ export interface SyncRouteOptions {
 }
 
 export const CLEAR_ENVIRONMENT_ACTION = 'sync.environment-clear';
-
-/** The Hub does not coerce query types, so numbers arrive as decimal strings (same convention as the audit list). */
-const ChangesQueryString = Type.Object({
-  after: Type.String({ pattern: '^(0|[1-9][0-9]{0,15})$' }),
-  limit: Type.Optional(Type.String({ pattern: '^[1-9][0-9]{0,3}$' })),
-});
-const SnapshotQueryString = Type.Object({
-  afterType: Type.Optional(Type.String({ minLength: 1, maxLength: 64 })),
-  afterId: Type.Optional(Type.String({ minLength: 1, maxLength: 200 })),
-  limit: Type.Optional(Type.String({ pattern: '^[1-9][0-9]{0,3}$' })),
-});
 
 const MAX_PAGE = 1000;
 const sha256Hex = (value: string): string => createHash('sha256').update(value).digest('hex');
@@ -118,7 +107,7 @@ export function registerSyncRoutes(app: FastifyInstance, options: SyncRouteOptio
     `${P}${SYNC_PATHS.changes}`,
     {
       preHandler: options.requireDevice,
-      schema: { querystring: ChangesQueryString, response: { 200: SyncChangesResponse, 400: ErrorEnvelope, 401: ErrorEnvelope, 403: ErrorEnvelope, 410: ErrorEnvelope } },
+      schema: { querystring: SyncChangesQueryString, response: { 200: SyncChangesResponse, 400: ErrorEnvelope, 401: ErrorEnvelope, 403: ErrorEnvelope, 410: ErrorEnvelope } },
     },
     async (request, reply) => {
       nostore(reply);
@@ -131,7 +120,7 @@ export function registerSyncRoutes(app: FastifyInstance, options: SyncRouteOptio
         return reply.code(410).send({ error: { code: SYNC_CURSOR_EXPIRED, message: 'The cursor is older than the retained history; take a snapshot.' } });
       }
       const limit = Math.min(MAX_PAGE, request.query.limit !== undefined ? Number(request.query.limit) : SYNC_LIMITS.changesPage);
-      const { changes, hasMore } = changesAfter(db, environmentId, after, limit);
+      const { changes, hasMore } = changesAfter(db, environmentId, after, limit, parseSyncCategoriesQuery(request.query.categories));
       const headRevision = currentRevision(db);
       const last = changes[changes.length - 1];
       const cursor = hasMore && last ? last.revision : headRevision;
@@ -144,7 +133,7 @@ export function registerSyncRoutes(app: FastifyInstance, options: SyncRouteOptio
     `${P}${SYNC_PATHS.snapshot}`,
     {
       preHandler: options.requireDevice,
-      schema: { querystring: SnapshotQueryString, response: { 200: SyncSnapshotResponse, 400: ErrorEnvelope, 401: ErrorEnvelope, 403: ErrorEnvelope } },
+      schema: { querystring: SyncSnapshotQueryString, response: { 200: SyncSnapshotResponse, 400: ErrorEnvelope, 401: ErrorEnvelope, 403: ErrorEnvelope } },
     },
     async (request, reply) => {
       nostore(reply);
@@ -154,7 +143,7 @@ export function registerSyncRoutes(app: FastifyInstance, options: SyncRouteOptio
       const { afterType, afterId } = request.query;
       const limit = Math.min(MAX_PAGE, request.query.limit !== undefined ? Number(request.query.limit) : SYNC_LIMITS.snapshotPage);
       const asOfRevision = currentRevision(db);
-      const { records, next } = snapshotPage(db, environmentId, afterType, afterId, limit);
+      const { records, next } = snapshotPage(db, environmentId, afterType, afterId, limit, parseSyncCategoriesQuery(request.query.categories));
       if (afterType === undefined) {
         audit(db, { event: 'sync.snapshot', outcome: 'success', actorKind: 'device', actorId: deviceId, ip: ipOf(request), detail: { records: records.length }, now: now() });
       }

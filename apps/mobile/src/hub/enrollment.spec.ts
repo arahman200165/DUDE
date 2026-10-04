@@ -69,7 +69,9 @@ describe('native mobile enrollment receipts', () => {
     expect(f.getEnrollment()?.keyRef).toBe('opaque-1');
   });
   it.each(['syncCategoryFiltering', 'authorityState'])('refuses an older or transferred Hub before key generation or code consumption (%s)', async field => {
-    const f = fixture(); f.hello[field] = field === 'syncCategoryFiltering' ? false : 'transferred';
+    const f = fixture();
+    if (field === 'syncCategoryFiltering') delete f.hello[field];
+    else f.hello[field] = 'transferred';
     await expect(new MobileEnrollmentService(f.deps).connect(input)).rejects.toBeInstanceOf(MobileHubError);
     expect(f.keyCount()).toBe(0);
     expect(f.requests.some(req => req.path.endsWith('/devices/enroll'))).toBe(false);

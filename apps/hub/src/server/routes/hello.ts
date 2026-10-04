@@ -31,6 +31,7 @@ export function registerHelloRoute(app: FastifyInstance, options: HelloRouteOpti
         hubInstanceId: options.hubInstanceId,
         environmentId: environment?.environment_id ?? null,
         bootstrapped: owner !== undefined,
+        syncCategoryFiltering: true,
         tls: { spkiSha256: active?.spki_sha256 ?? options.spkiSha256, nextSpkiSha256: next?.spki_sha256 ?? null, proxySpkiSha256: proxyPinSpkis(options.db) },
         authorityEpoch: getAuthorityEpoch(options.db),
         authorityState: getAuthorityState(options.db),

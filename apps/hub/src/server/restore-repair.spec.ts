@@ -19,16 +19,17 @@ const PASSPHRASE = 'restore repair scenario passphrase';
  * The whole 31G re-pair journey on real Hubs: a source Hub with an enrolled desktop device, an encrypted backup, an offline restore
  * into a fresh data root, the restored Hub served by the real server, and the owner re-attaching the SAME device id with a NEW key.
  */
-describe('restore then re-pair a desktop device', () => {
+describe.each(['windows', 'android'])('restore then re-pair a %s key-bearing device', (platform) => {
   let source: AuthHub;
   let restored: AuthHub;
   let device: SimDevice;
   let root: string;
+  const meta = platform === 'android' ? { platform, displayName: 'Android phone', capabilities: ['secure-storage'], protocolVersion: 2 } : undefined;
 
   beforeAll(async () => {
     source = await startAuthHub();
     const owner = await source.signIn();
-    device = (await enrolled(source, owner)).device;
+    device = (await enrolled(source, owner, newDevice(), meta)).device;
 
     // hub.json is part of every backup; the restore keeps only port and names from it.
     writeFileSync(source.hub.paths.configFile, `${JSON.stringify(defaultHubConfig())}\n`);
@@ -64,7 +65,8 @@ describe('restore then re-pair a desktop device', () => {
     const ownerAuth = { cookie: owner.cookie, csrf: owner.csrf };
     const listed = async () => (await restored.call('GET', '/devices', { cookie: owner.cookie })).json.find((d: { deviceId: string }) => d.deviceId === device.deviceId);
 
-    expect(await listed()).toMatchObject({ deviceId: device.deviceId, needsRePair: true, revokedAt: null, unenrolledAt: null });
+    expect(await listed()).toMatchObject({ deviceId: device.deviceId, platform, kind: 'desktop', recoveryTrusted: false, needsRePair: true, revokedAt: null, unenrolledAt: null });
+    if (platform === 'android') expect((await listed()).capabilities).toEqual(['secure-storage']);
     expect((await restored.call('GET', '/backup/status', { cookie: owner.cookie })).json).toMatchObject({ devicesNeedingRePair: 1, authority: { state: 'active' } });
     // Restore revoked the old key: the device cannot authenticate yet.
     expect((await deviceToken(restored, device)).token).toBe('');
@@ -72,12 +74,12 @@ describe('restore then re-pair a desktop device', () => {
     // An ordinary code cannot be used to take over the row.
     const ordinary = await createPairingCode(restored, owner);
     const fresh = newDevice(device.deviceId);
-    expect((await enroll(restored, fresh, { code: ordinary.json.pairingCode })).status).toBe(409);
+    expect((await enroll(restored, fresh, { code: ordinary.json.pairingCode, meta })).status).toBe(409);
 
     const created = await restored.call('POST', '/pairing-codes', { ...ownerAuth, body: { reattachDeviceId: device.deviceId } });
     expect(created.status).toBe(200);
     expect(created.json.reattachDeviceId).toBe(device.deviceId);
-    const res = await enroll(restored, fresh, { code: created.json.pairingCode });
+    const res = await enroll(restored, fresh, { code: created.json.pairingCode, meta });
     expect(res.status).toBe(200);
     expect(res.json).toMatchObject({ deviceId: device.deviceId, hubInstanceId: restored.hub.hub.hubInstanceId });
 
@@ -89,7 +91,7 @@ describe('restore then re-pair a desktop device', () => {
     // The old key stays dead.
     expect((await deviceToken(restored, device)).token).toBe('');
 
-    expect(await listed()).toMatchObject({ deviceId: device.deviceId, needsRePair: false, revokedAt: null, unenrolledAt: null, registeredAt: expect.any(String) });
+    expect(await listed()).toMatchObject({ deviceId: device.deviceId, platform, kind: 'desktop', recoveryTrusted: false, needsRePair: false, revokedAt: null, unenrolledAt: null, registeredAt: expect.any(String) });
     expect((await restored.call('GET', '/backup/status', { cookie: owner.cookie })).json.devicesNeedingRePair).toBe(0);
     const enrolledAudit = listAudit(restored.hub.hub.db, { limit: 50 }).find((r) => r.event === 'device.enrolled');
     expect((enrolledAudit?.detail as Record<string, unknown>).reattach).toBe(true);

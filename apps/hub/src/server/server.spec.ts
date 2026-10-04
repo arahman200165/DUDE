@@ -18,6 +18,7 @@ describe('hub server', () => {
     expect(Value.Check(HelloResponse, body)).toBe(true);
     const hello = body as HelloResponse;
     expect(hello.bootstrapped).toBe(false);
+    expect(hello.syncCategoryFiltering).toBe(true);
     expect(hello.environmentId).toBeNull();
     expect(hello.tls.spkiSha256).toBe(hub.tls.spkiSha256);
     expect(hello.tls.nextSpkiSha256).toBeNull();

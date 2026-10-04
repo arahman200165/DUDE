@@ -9,6 +9,7 @@ import {
   SignInResponse, CurrentSessionResponse, OwnerResetResponse,
   SyncPushResponse, SyncChangesResponse, SyncSnapshotResponse, SyncStateResponse, SyncSummary, SyncClearPreview, SyncClearResponse, SYNC_PATHS,
   WEB_PATHS, WebAttachResponse, WebAccessResponse,
+  assertSyncCategories,
 } from '@dude/contracts/hub';
 import type {
   ProtocolCompatibility, BootstrapRequest, EnrollRequest, DeviceSelfUpdate, PairingCodeRequest, SyncOp, SyncStateReport, SyncCategory, WebAttachRequest,
@@ -80,8 +81,9 @@ export interface HubClient {
   // Synchronization (Phase 31D). Device token required, except summary and the environment clear (owner).
   syncPush(auth: Bearer, ops: readonly SyncOp[]): Promise<SyncPushResponse>;
   /** A cursor older than the Hub's retained history rejects with `HubApiError` status 410, code `cursor-expired`. */
-  syncChanges(auth: Bearer, after: number, limit?: number): Promise<SyncChangesResponse>;
-  syncSnapshot(auth: Bearer, page?: { afterType?: string; afterId?: string; limit?: number }): Promise<SyncSnapshotResponse>;
+  syncChanges(auth: Bearer, after: number, limit?: number, categories?: readonly SyncCategory[]): Promise<SyncChangesResponse>;
+  /** Omit categories for legacy unfiltered reads; an explicit filter must be unique and nonempty. Re-enabled categories need a fresh snapshot. */
+  syncSnapshot(auth: Bearer, page?: { afterType?: string; afterId?: string; limit?: number; categories?: readonly SyncCategory[] }): Promise<SyncSnapshotResponse>;
   syncReportState(auth: Bearer, report: SyncStateReport): Promise<SyncStateResponse>;
   syncSummary(auth: Bearer): Promise<SyncSummary>;
   syncClearPreview(auth: Bearer): Promise<SyncClearPreview>;
@@ -164,15 +166,17 @@ export function createHubClient(transport: HubTransport, opts: HubClientOptions)
     stepUp: (auth, password) => call(StepUpResponse, { method: 'POST', path: `${P}/auth/step-up`, body: { password } }, auth),
 
     syncPush: (auth, ops) => call(SyncPushResponse, { method: 'POST', path: `${P}${SYNC_PATHS.push}`, body: { ops } }, auth),
-    syncChanges: (auth, after, limit) => {
+    syncChanges: async (auth, after, limit, categories) => {
       const qs = new URLSearchParams({ after: String(after), ...(limit !== undefined ? { limit: String(limit) } : {}) });
+      if (categories !== undefined) { assertSyncCategories(categories); qs.set('categories', categories.join(',')); }
       return call(SyncChangesResponse, { method: 'GET', path: `${P}${SYNC_PATHS.changes}?${qs.toString()}` }, auth);
     },
-    syncSnapshot: (auth, page) => {
+    syncSnapshot: async (auth, page) => {
       const qs = new URLSearchParams();
       if (page?.afterType !== undefined) qs.set('afterType', page.afterType);
       if (page?.afterId !== undefined) qs.set('afterId', page.afterId);
       if (page?.limit !== undefined) qs.set('limit', String(page.limit));
+      if (page?.categories !== undefined) { assertSyncCategories(page.categories); qs.set('categories', page.categories.join(',')); }
       const query = qs.toString();
       return call(SyncSnapshotResponse, { method: 'GET', path: `${P}${SYNC_PATHS.snapshot}${query ? `?${query}` : ''}` }, auth);
     },
