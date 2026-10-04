@@ -2,9 +2,10 @@ import { generateKeyPairSync, randomUUID, sign, type KeyObject } from 'node:cryp
 import { readFileSync } from 'node:fs';
 import https from 'node:https';
 import path from 'node:path';
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { createHubClient, type HubClient, type HubRequest, type HubResponse, type HubTransport } from '@dude/api-client';
 import { deviceAuthMessage, enrollMessage, parsePairingString } from '@dude/contracts/hub';
+import type { SyncOp, SyncOpResult, SyncRecord } from '@dude/contracts/hub';
 
 export const hubUrl = (): string => process.env['HUB_E2E_URL']!;
 export const hubDataDir = (): string => process.env['HUB_E2E_DATA_DIR']!;
@@ -93,6 +94,51 @@ export class SimulatedDevice {
     });
   }
 
+  private cached: { token: string; at: number } | null = null;
+
+  /** A device token, reused for a few minutes (each exchange spends a challenge). */
+  async bearer(): Promise<string> {
+    if (this.cached && Date.now() - this.cached.at < 5 * 60_000) return this.cached.token;
+    const token = await this.token();
+    this.cached = { token, at: Date.now() };
+    return token;
+  }
+
+  /** Pushes ops as this device. */
+  async push(ops: readonly SyncOp[]): Promise<readonly SyncOpResult[]> {
+    return (await this.client.syncPush(await this.bearer(), ops)).results;
+  }
+
+  /** Reads the change feed after `after` (every page). */
+  async changes(after = 0): Promise<SyncRecord[]> {
+    const out: SyncRecord[] = [];
+    let cursor = after;
+    for (;;) {
+      const page = await this.client.syncChanges(await this.bearer(), cursor, 1000);
+      out.push(...page.changes);
+      cursor = page.cursor;
+      if (!page.hasMore) return out;
+    }
+  }
+
+  /** The newest record of an entity in the feed, or undefined. */
+  async latest(entityType: string, entityId: string): Promise<SyncRecord | undefined> {
+    return (await this.changes(0)).filter((r) => r.entityType === entityType && r.entityId === entityId).sort((a, b) => a.revision - b.revision).at(-1);
+  }
+
+  /** Reports this device's sync state, as the Agent does after a pull (what the Sync device table is built from). */
+  async reportState(cursor: number): Promise<void> {
+    const categories = Object.fromEntries(['settings', 'favorites', 'pipelines', 'projects', 'workspaces', 'home', 'usage', 'workspace-layout', 'scratchpad'].map((id) => [id, true]));
+    await this.client.syncReportState(await this.bearer(), {
+      cursor, pending: 0, quarantined: 0, conflicts: 0, stranded: 0, categories, lastSyncAt: new Date().toISOString(),
+    } as Parameters<HubClient['syncReportState']>[1]);
+  }
+
+  /** Exchanges the owner password for an owner bearer (what a desktop does for owner-gated actions). */
+  async ownerBearer(password: string): Promise<string> {
+    return (await this.client.ownerBearer(await this.bearer(), password)).accessToken;
+  }
+
   /** Challenge, sign, and exchange for a device token. */
   async token(): Promise<string> {
     const hello = await this.client.hello();
@@ -145,3 +191,68 @@ export async function trackDiagnostics(page: Page): Promise<PageDiagnostics> {
 export const PASSWORD = 'correct horse battery staple 42';
 /** The owner password after the recovery step of the flow spec; later specs sign in with it. */
 export const NEW_PASSWORD = 'a different horse battery staple 77';
+
+let opCounter = 0;
+/** An upsert op in the wire shape the Agent journals. */
+export function upsertOp(entityType: string, entityId: string, payload: unknown, basedOnRevision: number | null, schemaVersion = 1): SyncOp {
+  return { opId: `e2e-${Date.now().toString(36)}-${opCounter++}-${randomUUID().slice(0, 8)}`, entityType, entityId, opKind: 'upsert', schemaVersion, basedOnRevision, payload } as SyncOp;
+}
+
+/** A `favorite` record payload for a tool. */
+export const favoritePayload = (toolId: string, order: number): Record<string, unknown> => ({
+  id: `tool:${toolId}`, kind: 'tool', targetId: toolId, order, pinnedAt: new Date().toISOString(),
+});
+
+/**
+ * Submits the current form and, when the Hub's credential-endpoint rate bucket answers 'Too many attempts' (the specs
+ * issue a burst of sign-ins), waits out the page's own retry countdown and submits again.
+ */
+export async function submitWithRetry(p: Page, stillOn: RegExp, password?: string): Promise<void> {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    // The sign-in page clears the password after any failed attempt, including a throttled one.
+    if (password !== undefined) await p.getByLabel('Password', { exact: true }).fill(password);
+    // A request that was already in flight may complete (and navigate away) while this waits.
+    const enabled = await expect(p.getByTestId('submit')).toBeEnabled({ timeout: 30_000 }).then(() => true, () => false);
+    if (!stillOn.test(p.url())) return;
+    if (!enabled) throw new Error('The submit button never became enabled');
+    await p.getByTestId('submit').click();
+    // allInnerTexts() never waits for a match: the page can navigate away between the URL check and these reads, and a
+    // waiting innerText() would then block on an element that is gone for good, outliving the poll's timeout.
+    // Hub web signs in with a full page load (PD-053 boot runs signed in), so a read can race the unload.
+    const state = async (): Promise<string> => {
+      if (!stillOn.test(p.url())) return 'done';
+      try {
+        const [submit] = await p.getByTestId('submit').allInnerTexts();
+        if (submit === undefined || /…/.test(submit)) return 'waiting';
+        const [error = ''] = await p.getByTestId('error').allInnerTexts();
+        if (/Too many attempts/.test(error)) return 'throttled';
+        return error.trim() === '' ? 'waiting' : `failed: ${error}`;
+      } catch (error) {
+        if (/Execution context was destroyed|navigation/i.test(String(error))) return 'waiting';
+        throw error;
+      }
+    };
+    let outcome = 'waiting';
+    await expect.poll(async () => (outcome = await state()), { message: `still waiting on ${p.url()}`, timeout: 45_000 }).not.toBe('waiting');
+    if (outcome === 'done') return;
+    if (outcome !== 'throttled') throw new Error(outcome);
+  }
+  throw new Error('Still rate limited after several attempts');
+}
+
+/** Signs in as the owner with `password` (after the flow spec: NEW_PASSWORD) and waits to leave the sign-in page. */
+export async function signInAsOwner(p: Page, password = NEW_PASSWORD, returnTo = '/'): Promise<void> {
+  await p.goto(`/hub/sign-in?returnUrl=${encodeURIComponent(returnTo)}`);
+  await submitWithRetry(p, /\/hub\/sign-in/, password);
+  await expect(p).not.toHaveURL(/\/hub\/sign-in/);
+}
+
+/** Opens Settings > Devices, mints a pairing string through the UI and enrolls a new simulated device with it. */
+export async function pairSimulatedDevice(p: Page, name: string): Promise<SimulatedDevice> {
+  await p.goto('/settings/devices');
+  await p.getByRole('button', { name: 'Pair a device' }).click();
+  const pairingString = (await p.getByTestId('pairing-string').innerText()).trim();
+  const device = new SimulatedDevice();
+  await device.enroll(pairingString, name);
+  return device;
+}

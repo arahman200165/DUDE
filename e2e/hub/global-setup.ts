@@ -25,6 +25,10 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   const hub: ChildProcess = spawn(process.execPath, [HUB_BUNDLE, 'run', '--data-dir', dataDir, '--port', '0', '--web-root', WEB_ROOT], {
     cwd: root,
     stdio: ['ignore', 'pipe', 'pipe'],
+    // The routes sweep (40) loads every tool route twice, thousands of authenticated requests from one browser in a few
+    // minutes, which the per-session buckets rightly throttle (429). The limiter's own behavior is covered by its unit and
+    // server specs; this test-only knob (see apps/hub/src/cli/test-overrides.ts) keeps loopback test traffic unmetered.
+    env: { ...process.env, DUDE_HUB_TEST_RELAX_RATE_LIMITS: '1' },
   });
   let stderr = '';
   hub.stderr?.on('data', (chunk: Buffer) => (stderr += chunk.toString()));

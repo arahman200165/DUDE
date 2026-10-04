@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { NEW_PASSWORD, PASSWORD, SimulatedDevice, hubClient, hubUrl, pinnedTransport, readSetupToken, trackDiagnostics } from './hub-helpers';
+import { NEW_PASSWORD, PASSWORD, SimulatedDevice, hubClient, hubUrl, pinnedTransport, readSetupToken, submitWithRetry, trackDiagnostics } from './hub-helpers';
 
 // One Hub, one browser context, strictly serial: each step builds on the Hub state left by the previous one.
 test.describe.configure({ mode: 'serial' });
@@ -39,39 +39,6 @@ async function signOut(p: Page): Promise<void> {
   await p.getByRole('button', { name: 'Sign out' }).click();
   await p.waitForURL(/\/hub\/sign-in/, { timeout: 15_000 });
   await expect(p.getByRole('heading', { name: 'Sign in to this Hub' })).toBeVisible({ timeout: 15_000 });
-}
-
-async function submitWithRetry(p: Page, stillOn: RegExp, password?: string): Promise<void> {
-  for (let attempt = 0; attempt < 4; attempt++) {
-    // The sign-in page clears the password after any failed attempt, including a throttled one.
-    if (password !== undefined) await p.getByLabel('Password', { exact: true }).fill(password);
-    // A request that was already in flight may complete (and navigate away) while this waits.
-    const enabled = await expect(p.getByTestId('submit')).toBeEnabled({ timeout: 30_000 }).then(() => true, () => false);
-    if (!stillOn.test(p.url())) return;
-    if (!enabled) throw new Error('The submit button never became enabled');
-    await p.getByTestId('submit').click();
-    // allInnerTexts() never waits for a match: the page can navigate away between the URL check and these reads, and a
-    // waiting innerText() would then block on an element that is gone for good, outliving the poll's timeout.
-    // Hub web signs in with a full page load (PD-053 boot runs signed in), so a read can race the unload.
-    const state = async (): Promise<string> => {
-      if (!stillOn.test(p.url())) return 'done';
-      try {
-        const [submit] = await p.getByTestId('submit').allInnerTexts();
-        if (submit === undefined || /…/.test(submit)) return 'waiting';
-        const [error = ''] = await p.getByTestId('error').allInnerTexts();
-        if (/Too many attempts/.test(error)) return 'throttled';
-        return error.trim() === '' ? 'waiting' : `failed: ${error}`;
-      } catch (error) {
-        if (/Execution context was destroyed|navigation/i.test(String(error))) return 'waiting';
-        throw error;
-      }
-    };
-    let outcome = 'waiting';
-    await expect.poll(async () => (outcome = await state()), { message: `still waiting on ${p.url()}`, timeout: 45_000 }).not.toBe('waiting');
-    if (outcome === 'done') return;
-    if (outcome !== 'throttled') throw new Error(outcome);
-  }
-  throw new Error('Still rate limited after several attempts');
 }
 
 test.describe('a. unbootstrapped Hub', () => {
