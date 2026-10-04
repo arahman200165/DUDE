@@ -8,7 +8,7 @@
     "preandroid": "node ../../scripts/check-mobile-toolchain.mjs",
     "android": "expo run:android",
     "prebuild": "expo prebuild --platform android --no-install",
-    "bundle": "expo export --platform android --output-dir ../../dist/mobile",
+    "bundle": "expo export --platform android --source-maps --output-dir ../../dist/mobile",
     "check": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
@@ -17,6 +17,7 @@
     "@dude/domain": "*",
     "@dude/persistence": "*",
     "@dude/shared-types": "*",
+    "@dude/sync": "*",
     "@dude/tool-engine": "*",
     "@dude/tool-registry": "*",
     "expo": "57.0.26",
@@ -27,6 +28,7 @@
     "expo-linking": "~57.0.11",
     "expo-modules-core": "~57.0.20",
     "expo-router": "~57.0.24",
+    "expo-sqlite": "~57.0.3",
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "57.0.4",
     "react": "19.2.3",
