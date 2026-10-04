@@ -55,6 +55,7 @@
     "hub:winsw": "node scripts/fetch-winsw.mjs",
     "hub:stage": "npm run hub:sea && npm run hub:winsw && node scripts/stage-hub.mjs",
     "hub:installer": "node scripts/build-hub-installer.mjs",
+    "check:caddy-proxy": "node scripts/check-caddy-proxy.mjs",
     "check:hub-service": "node scripts/check-hub-service.mjs",
     "hub:dev": "npm run hub:compile && node dist/hub/dude-hub.cjs run --data-dir .hub-dev",
     "relay:dev": "npm run relay:compile && node dist/relay/index.js",

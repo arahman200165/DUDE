@@ -143,6 +143,7 @@ async function handleLine(line: string, methods: Record<string, AdminMethod>): P
     return { id: responseId, ok: true, result: result ?? null };
   } catch (error) {
     if (error instanceof AdminError) return { id: responseId, ok: false, error: { code: error.code, message: error.message, ...(error.detail !== undefined ? { detail: error.detail } : {}) } };
+    if (error instanceof Error && (error as { adminSafe?: unknown }).adminSafe === true) return { id: responseId, ok: false, error: { code: 'bad-request', message: error.message } };
     return { id: responseId, ok: false, error: { code: 'internal', message: 'The admin method failed.' } };
   }
 }

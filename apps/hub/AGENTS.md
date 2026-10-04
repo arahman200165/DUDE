@@ -39,6 +39,7 @@ The self-hosted **DUDE Hub** (Phases 31C-31E, complete; 31D added synchronizatio
 - `src/admin/` the local admin named pipe or Unix socket and its client, so CLI commands never open `dude.db` while the service runs.
 - `src/service/` WinSW wrapper XML, install/lifecycle, LAN mode and firewall rule, `doctor` and `purge`.
 - `src/config/`, `src/util/`, `src/testing/` data-directory layout and strict config, ids, the crash-writer fixture.
+- `npm run check:caddy-proxy` (`scripts/check-caddy-proxy.mjs`) is a local-only gate (not in CI): a foreground Hub in reverse-proxy mode behind a real Caddy (`caddy` on PATH; skips when absent) covering Host/Origin/CSRF with the public origin, diagnostics, the realtime upgrade, the reachability echo and a forged `X-Forwarded-For`.
 - Build and packaging scripts are in the repository root `scripts/` (`build-hub.mjs`, `build-hub-sea.mjs`, `stage-hub.mjs`, `build-hub-installer.mjs`, `check-hub-service.mjs`). Specs run with `npm run test:hub`.
 
 ## Adding or changing a route

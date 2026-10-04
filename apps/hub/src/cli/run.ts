@@ -13,7 +13,7 @@ import { defaultAcmeKeyProtector, defaultCaKeyProtector } from '../tls/ca-key-pr
 import { localCaExists, rootSha256, readCaCertPem } from '../tls/ca-public.js';
 import { createLeafRenewal } from '../tls/renewal.js';
 import { runTlsCa } from '../service/tls-ca.js';
-import { computeSubjectAltNames, configuredDnsNames, missingSubjectAltNames } from '../tls/names.js';
+import { canonicalSanName, computeSubjectAltNames, configuredDnsNames, missingSubjectAltNames, operatorCertificateNames } from '../tls/names.js';
 import { runSecurityBlocks } from '../service/security-blocks.js';
 import { runSecurityAuditIps } from '../service/security-audit-ips.js';
 import { runTlsNames } from '../service/tls-names.js';
@@ -203,7 +203,11 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   if (!hadCa && localCaExists(paths.tlsDir)) {
     audit(hub.db, { event: 'tls.ca-created', outcome: 'success', actorKind: 'system', detail: { rootSha256: rootSha256(readCaCertPem(paths.tlsDir)!) }, now: Date.now() });
   }
-  const staleNames = hadIdentity ? missingSubjectAltNames(tls.certPem, wantedNames) : [];
+  // An imported or ACME certificate only has to cover the operator's names (loopback and host-name built-ins are not required of it).
+  const activeSource = (hub.db.prepare("SELECT source FROM tls_pins WHERE state = 'active' LIMIT 1").get() as { source: string } | undefined)?.source;
+  const operatorNames = operatorCertificateNames(config.exposure);
+  const requiredNames = activeSource === 'imported' || activeSource === 'acme' ? wantedNames.filter((name) => operatorNames.includes(canonicalSanName(name))) : wantedNames;
+  const staleNames = hadIdentity ? missingSubjectAltNames(tls.certPem, requiredNames) : [];
   if (staleNames.length > 0) {
     process.stdout.write(`${JSON.stringify({ event: 'tls-names-stale', missing: staleNames, hint: 'Run "dude-hub tls rotate" to stage a certificate that covers them, then "dude-hub tls activate".' })}\n`);
   }

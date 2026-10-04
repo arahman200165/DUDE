@@ -71,6 +71,21 @@ describe('collectDiagnostics', () => {
     expect((await byId(deps({ certificate: null })))['certificate-valid']?.status).toBe('fail');
   });
 
+  it('certificate-covers-names only requires the operator names of an imported or ACME certificate, not the built-ins', async () => {
+    const operator = generateSelfSigned({ hubInstanceId: 'h2', now: new Date(NOW - 86_400_000), validityYears: 1, extraNames: ['hub.example.com'] });
+    const config = { port: 47821, bind: 'loopback' as const, bindAddress: '127.0.0.1', exposure: { mode: 'private' as const, names: ['hub.example.com'] } };
+    for (const source of ['acme', 'imported'] as const) {
+      const ok = (await byId(deps({ config, wantedNames: ['hub.example.com', 'builtin.invalid'] }, { pem: operator.certPem, source })))['certificate-covers-names'];
+      expect(ok?.status).toBe('pass');
+    }
+    // A local-CA certificate still has to carry the built-ins; an operator name missing from an ACME certificate still warns.
+    const local = (await byId(deps({ config, wantedNames: ['hub.example.com', 'builtin.invalid'] }, { pem: operator.certPem, source: 'local-ca' })))['certificate-covers-names'];
+    expect(local).toMatchObject({ status: 'warn' });
+    const missing = (await byId(deps({ config: { ...config, exposure: { ...config.exposure, names: ['hub.example.com', 'www.example.com'] } }, wantedNames: ['hub.example.com', 'www.example.com'] }, { pem: operator.certPem, source: 'acme' })))['certificate-covers-names'];
+    expect(missing).toMatchObject({ status: 'warn' });
+    expect(missing?.detail).toContain('www.example.com');
+  });
+
   it('certificate-covers-names lists missing names and points at tls names add, or at activate when a pin is staged', async () => {
     const missing = (await byId(deps({ wantedNames: ['localhost', 'hub.lan'] })))['certificate-covers-names'];
     expect(missing).toMatchObject({ status: 'warn', basis: 'verified', fix: 'dude-hub tls names add hub.lan' });

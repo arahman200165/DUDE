@@ -67,3 +67,17 @@ export function missingSubjectAltNames(certPem: string, wanted: readonly string[
 export function configuredDnsNames(config: Pick<HubConfig, 'exposure'>): string[] {
   return config.exposure.names.map((name) => normalizeHubName(name).host).filter((host) => !isIPv4(host) && !isIPv6(host));
 }
+
+/**
+ * The names an operator-supplied (imported or ACME) certificate must cover: the configured operator names (host part) and the
+ * canonical origin host. The built-ins (localhost, host name, loopback, interface addresses) are NOT required of such a
+ * certificate: a public CA can never certify them, and the Agent and CLI pin the key rather than check names.
+ */
+export function operatorCertificateNames(exposure: { names: readonly string[]; canonicalOrigin?: string | undefined; proxy?: { publicOrigin: string } | undefined }): string[] {
+  const proxyHost = exposure.proxy ? new URL(exposure.proxy.publicOrigin).hostname.replace(/^\[|\]$/g, '') : undefined;
+  const hosts = exposure.names.map((name) => normalizeHubName(name).host);
+  if (exposure.canonicalOrigin) {
+    try { hosts.push(new URL(exposure.canonicalOrigin).hostname.replace(/^\[|\]$/g, '')); } catch { /* validated at config load */ }
+  }
+  return [...new Set(hosts.filter((host) => host !== proxyHost).map((host) => canonicalSanName(host)))];
+}

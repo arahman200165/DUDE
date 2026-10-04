@@ -1,7 +1,7 @@
 import { X509Certificate } from 'node:crypto';
 import { HUB_PROTOCOL_VERSION } from '@dude/contracts/hub';
 import type { DiagnosticCheck, HubDiagnosticsCertificate, HubDiagnosticsReport } from '@dude/contracts/hub';
-import { missingSubjectAltNames, certificateSubjectAltNames } from '../tls/names.js';
+import { canonicalSanName, certificateSubjectAltNames, missingSubjectAltNames, operatorCertificateNames } from '../tls/names.js';
 import { spkiSha256 } from '../tls/self-signed.js';
 import type { TlsCertificateSource } from '../tls/ca-public.js';
 import { dnsNamesToResolve, listHubAddresses, resolveNames, stableAddresses } from './addresses.js';
@@ -173,7 +173,10 @@ export function nativePortsCheck(input: { platform: NodeJS.Platform; fact: Diagn
 export async function collectDiagnostics(deps: DiagnosticsDeps): Promise<HubDiagnosticsReport> {
   const host = await deps.host().catch((): DiagnosticsHostFacts => ({ firewallPresent: null }));
   const { config, running } = deps;
-  const certificate = deps.certificate ? certificateSection(deps.certificate, deps.wantedNames, deps.now) : null;
+  // An imported or ACME certificate only has to cover the operator's names, not the built-ins a local CA adds (loopback, host name, interface addresses).
+  const operatorOnly = deps.certificate !== undefined && deps.certificate !== null && (deps.certificate.source === 'imported' || deps.certificate.source === 'acme');
+  const wantedForCertificate = operatorOnly ? deps.wantedNames.filter((name) => operatorCertificateNames(deps.config.exposure).includes(canonicalSanName(name))) : deps.wantedNames;
+  const certificate = deps.certificate ? certificateSection(deps.certificate, wantedForCertificate, deps.now) : null;
   const win = deps.platform === 'win32';
   const firewallApplicable = win && config.bind === 'lan';
   const proxy = config.exposure.proxy ?? null;

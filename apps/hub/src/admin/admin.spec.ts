@@ -7,6 +7,7 @@ import { callAdmin, AdminCallError } from './admin-client.js';
 import { AdminError, adminEndpointFile, adminEndpointPath, startAdminEndpoint } from './admin-endpoint.js';
 import type { AdminEndpoint } from './admin-endpoint.js';
 import { parseArgs } from '../cli/args.js';
+import { CaNameConstraintError } from '../tls/local-ca.js';
 import { runCli } from '../cli/run.js';
 
 const endpoints: AdminEndpoint[] = [];
@@ -20,6 +21,7 @@ async function start(dataDir: string, methods = {}): Promise<AdminEndpoint> {
       status: () => ({ hubVersion: 't', pid: process.pid }),
       boom: () => { throw new AdminError('custom', 'Custom failure.'); },
       crash: () => { throw new Error('secret internals'); },
+      outside: () => { throw new CaNameConstraintError('"x.example" is outside the name constraints of the local CA.'); },
       ...methods,
     },
   });
@@ -74,6 +76,7 @@ describe('admin endpoint', () => {
     const err = await callAdmin(dir, 'crash', {}, 3000).catch((e: unknown) => e as AdminCallError);
     expect(err).toMatchObject({ code: 'internal' });
     expect((err as Error).message).not.toContain('secret');
+    await expect(callAdmin(dir, 'outside', {}, 3000)).rejects.toMatchObject({ code: 'bad-request', message: expect.stringContaining('name constraints') });
     await expect(callAdmin(dir, 'constructor', {}, 3000)).rejects.toMatchObject({ code: 'unknown-method' });
   });
 

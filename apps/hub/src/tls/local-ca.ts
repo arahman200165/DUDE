@@ -126,6 +126,11 @@ export interface IssuedLeaf { keyPem: string; certPem: string; skippedNames: str
  * Issues a CA-signed server leaf. DNS names outside the CA name constraints are a hard error (the operator asked for
  * them); IP addresses outside them (e.g. a global IPv6 interface address) are left out and reported in `skippedNames`.
  */
+/** A configured name the local CA may not certify; safe to show the operator verbatim (the admin channel maps it to a bad-request). */
+export class CaNameConstraintError extends Error {
+  readonly adminSafe = true;
+}
+
 export function issueLeafFromCa(input: IssueLeafInput): IssuedLeaf {
   const ca = new X509Certificate(input.caCertPem);
   const constraints = caNameConstraints(input.caCertPem);
@@ -134,7 +139,7 @@ export function issueLeafFromCa(input: IssueLeafInput): IssuedLeaf {
   for (const name of input.names) {
     if (isNamePermitted(constraints, name)) names.push(name);
     else if (isIpLiteral(name)) skippedNames.push(name);
-    else throw new Error(`"${name}" is outside the local CA's name constraints (${constraints.permittedDns.join(', ')}). Create the Hub CA with a matching --suffix, or use an imported certificate.`);
+    else throw new CaNameConstraintError(`"${name}" is outside the local CA's name constraints (${constraints.permittedDns.join(', ')}). Create the Hub CA with a matching --suffix, or use an imported certificate.`);
   }
   const privateKey = input.leafKeyPem !== undefined ? createPrivateKey(input.leafKeyPem) : generateKeyPairSync('ec', { namedCurve: 'prime256v1' }).privateKey;
   const spki = createPublicKey(privateKey).export({ type: 'spki', format: 'der' });
