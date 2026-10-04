@@ -1,0 +1,53 @@
+# Phase 31F implementation and acceptance evidence
+
+Phase 31F (Milestones 683–699) delivers Internet readiness and security hardening for the self-hosted Hub: a persisted flood guard with automatic IP blocks, owner step-up re-authentication with cookie session rotation, owner security alerts and audit completeness, a built-in ACME client, dynamic-address detection, validated public firewall rules with a native-listener audit, Hub-observed external reachability, sync-time revoked-device verification, test knobs that release builds ignore, and public mode released behind an elevated readiness gate. Decisions are PD-063 to PD-068 in the [decision log](../history/DECISION_LOG.md#phase-31f-implementation-decisions), with amendments recorded under PD-063, PD-065 and PD-066; the milestone map and gotchas are in [Delivery History](../history/DELIVERY_HISTORY.md#phase-31f). The contracts are the "As built in Phase 31F" sections of [System](../architecture/SYSTEM_ARCHITECTURE.md#as-built-in-phase-31f-internet-readiness) and [Security](../architecture/SECURITY_ARCHITECTURE.md#as-built-in-phase-31f-internet-readiness).
+
+## Implemented scope
+
+- **Hardening (684–689)**: the `DUDE_HUB_TEST_*` knobs are read only by the test bundle (`npm run hub:compile:test` -> `dist/hub-test`), and the release, SEA, service and Docker builds ignore them; the flood guard and an automatic temporary address block persist across restarts (migration 0006 `ip_blocks`; the elevated `dude-hub security blocks list|clear`); a cookie session is password-confirmed for 5 minutes (`POST /auth/step-up`) and pairing codes, recovery-code regeneration and revoke-all return 403 `step-up-required` otherwise, while step-up and password change rotate the session (migration 0007; the Hub web prompts and adopts the returned CSRF token); `throttle.locked` is audited once per lockout, stored client addresses can be truncated (`security audit-ips truncated`) and the owner sees new-address sign-ins, lockouts, revocations and revoked attempts as alerts in Settings › Security on web and desktop.
+- **Certificates and addresses (690–693)**: a built-in ACME (RFC 8555) client with an http-01 listener that binds only for the duration of an order, an account key protected like the CA key, issuance staged through the dual-pin rotation (source `acme`, `tls acme issue|status`) and a 12-hour renewal job that reuses the leaf key; interface and DNS-name inventory with an address watcher (`network.address-changed`) and a DNS resolution diagnostic; the `DUDE Hub (Public)` and `DUDE Hub (ACME http-01)` firewall rules managed only by the elevated CLI and a `netstat`/`tasklist` native-listener audit (any `dude-agent.exe` TCP listener is a violation).
+- **Reachability and revocation (694–696)**: `GET /api/v1/reachability/echo` records a verification only when the Hub itself observes a public source address arriving through a configured name (valid for 7 days; no client-reported result, no third-party probe), a "Test from this device" button in the Hub web and in the desktop Settings (through the Agent, `hub.reachabilityEcho`), per-request token re-resolution, an in-transaction actor re-check in `commitCanonical`, and `device.revoked-attempt` audit with identical responses to an unknown credential.
+- **Public mode (697–698)**: `network mode public` runs the Hub's own diagnostics report as if public through the pure `evaluatePublicReadiness` and refuses with a blocker list (each with its fix) unless there is none, then requires `EXPOSE HUB TO THE INTERNET`; `--accept-unverified-reachability` downgrades only the reachability blocker and is audited; the `--i-understand-unreleased` flag and `DUDE_HUB_UNRELEASED_PUBLIC` variable are gone. Imported and ACME certificates only have to cover the operator's names, a name outside the local CA's constraints reports a readable admin error and `npm run check:caddy-proxy` runs the Hub behind a real Caddy.
+
+## Verification results
+
+Gates were run as batches during implementation (after Milestones 688, 692, 696 and 698) and are re-run at close-out: `npm run lint` (eslint, package boundaries, design tokens and the WCAG contrast matrix, workspace and data-scope inventories) green; `npm run test:packages` 4,513 passed (682 files); `ng test` 8,263 passed (770 of 772 files in the full run, the other two, `smart-file-drop-zone` and `home-paste-drop-hero`, hit the known `EnvironmentTeardownError` under load and passed alone: 9 tests); `npm run test:hub` 632 passed (2 skipped); `npm run test:sync` 11; `npm run test:e2e:hub` 368 (4.1 minutes); the Pages `npm run test:e2e` 137; `npm run test:high-consequence` green (5 Hub boundary specs, 27 tests); `npm run check:caddy-proxy` passed against a real Caddy. The close-out run started from a clean tree (a stale subagent had re-applied Milestone 686's edits as duplicate declarations in `auth.schema.ts` and `client.ts`; both were restored from HEAD, the contracts rebuilt and the Hub suite re-run).
+
+Known flakes that pass alone: `EnvironmentTeardownError` in web specs (file-base64, file-drop, home-paste-drop-hero), `ENOBUFS`/`ERR_NO_BUFFER_SPACE` after heavy runs and a rare `10-hub-flow` sign-in timeout. `npm test` stops at the package stage when that stage fails, so a green run must be checked for `ng test` having actually run. `npm run check:caddy-proxy` is a local gate (it needs `caddy` on `PATH`, skips without it, and is not in CI).
+
+## Exit-gate evidence
+
+| Exit-gate clause | Evidence |
+|---|---|
+| TLS | `apps/hub/src/tls/acme/*.spec.ts` (JWS, CSR, http-01 listener, client and issuance against a fake ACME server, renewal), `apps/hub/src/tls/local-ca.spec.ts` (name-constraint admin error), `apps/hub/src/service/network-exposure.spec.ts`; real Caddy through `npm run check:caddy-proxy` |
+| Session, origin and CSRF controls | `apps/hub/src/server/step-up.spec.ts` (step-up window, rotation, 403 `step-up-required`, successor grace period), `apps/web/src/app/core/hub/hub-step-up.service.spec.ts` and `hub-step-up-dialog.spec.ts`, `apps/hub/src/security/security.spec.ts` |
+| Authenticated WebSockets | `apps/hub/src/server/revocation-internet.spec.ts` (realtime upgrade refused for a revoked device, sockets closed 4003), the realtime specs from 31C–31E |
+| Audit | `apps/hub/src/security/throttle-locked.spec.ts`, `address-privacy.spec.ts`, `apps/hub/src/server/security-alerts.spec.ts` (closed audit list, alert read model, seen watermark) |
+| Rate limits and brute force | `apps/hub/src/security/ip-block.spec.ts` (thresholds, escalation, persistence across restart, loopback exempt), `apps/hub/src/admin/security-blocks.spec.ts` (elevated list and clear) |
+| Revocation | `apps/hub/src/server/revocation-internet.spec.ts` (token, challenge, redemption and realtime paths, a revocation racing a push writes nothing, responses identical to an unknown credential, hourly throttling of the attempt audit) |
+| Reachable-endpoint diagnostics | `apps/hub/src/diagnostics/reachability.spec.ts` and `apps/hub/src/server/reachability.spec.ts` (public source on a configured name is verified, private or unknown Host is not, 7-day freshness), `addresses.spec.ts` and `address-watch.spec.ts`, `apps/device-agent/src/hub/public-echo.spec.ts` |
+| Public mode is deliberate and no Agent port is exposed | `apps/hub/src/diagnostics/readiness.spec.ts` (every blocker and warning), `apps/hub/src/service/firewall.spec.ts` and `listeners.spec.ts` (an Agent TCP listener is a violation), `network-exposure.spec.ts` (exact phrase, dry run, refusal with no running Hub, acceptance audited) |
+| Test knobs cannot reach production | `apps/hub/src/cli/test-overrides.spec.ts` (the release build ignores every knob; `presentTestKnobs` reports the ones set). The refusal to start in public mode with a knob set lives in `apps/hub/src/cli/run.ts` and has no spec of its own (only the knob detection is unit-tested) |
+| Destructive actions | `npm run test:high-consequence` (the elevated IP unblock, public-mode change and firewall-rule boundaries) |
+
+## Distributed release verification matrix
+
+| Row | Evidence |
+|---|---|
+| Identity | revoked-device sync verification above; step-up for owner sensitive actions; password plus recovery codes remains the only owner factor (TOTP and passkeys are Phase 81) |
+| Internet mode (TLS and readiness checks, rate limiting, diagnostics) | the exit-gate rows above; the 31E multi-device and web rows are unchanged |
+| Web: CSRF and origin controls | the step-up routes carry CSRF and Origin checks and the web client adopts the rotated token |
+
+## Known limitations and owed manual passes
+
+- **Real Let's Encrypt issuance** owed: ACME is verified against a fake ACME server only, with no public name, no port 80 and no real CA in this environment. Chain verification of an ACME certificate against public roots is not implemented.
+- **Real Internet reachability** owed: the echo and the public-mode gate are verified with a synthetic public source; a phone on cellular reaching a port-forwarded Hub through a real DNS name has not been run.
+- **Installed-service and elevated runs** owed: `tls ca init|import`, `network proxy|mode|firewall` and `tls acme issue --open-firewall` against a real Windows service with the NSIS installer (the specs use the admin pipe and a foreground Hub, and the firewall and listener inspections run through injectable command runners).
+- **Windows firewall rules** were validated against stubbed `netsh` output, not a real elevated session.
+- **First CI runs** owed for the new Hub suites (ACME, step-up, revoked-device scenarios), the multi-stage `docker-smoke` image from 31E and the new e2e coverage. `npm run check:caddy-proxy` stays a local gate.
+- The remaining owed [31B](PHASE31B_ACCEPTANCE.md), [31C](PHASE31C_ACCEPTANCE.md), [31D](PHASE31D_ACCEPTANCE.md) and [31E](PHASE31E_ACCEPTANCE.md) passes (LAN browser pass, a second PC and Firefox root install, `certutil`, two-machine sync) remain owed.
+- Known limitations: only http-01 is implemented (no TLS-ALPN-01 or DNS-01); the Hub never updates DNS and never asks a router for a port mapping; IP-block thresholds (25 failures, 10 flood rejections in 15 minutes) are conservative defaults without a field measurement; stored client addresses are masked only for new events when truncation is on; a refused or failed ACME renewal is retried every 6 hours and does not stop the Hub.
+
+## Reproduction
+
+`npm ci`, then `npm test`, `npm run lint`, `npm run test:hub`, `npm run test:sync`, `npm run test:e2e:hub` (local; builds the test bundle), `npm run test:e2e` (Pages), `npm run test:high-consequence` and `npm run check:caddy-proxy` (local, needs `caddy`).

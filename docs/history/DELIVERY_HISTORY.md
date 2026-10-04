@@ -2958,6 +2958,56 @@ Fix commits: `3a92fc2c` (sync summary schema spec for device kind and paused), `
 
 **Outcome (Milestones 663–682):** met, with the manual passes listed in the acceptance evidence owed; see [Phase 31E acceptance evidence](../delivery/PHASE31E_ACCEPTANCE.md).
 
+<a id="phase-31f"></a>
+
+## Phase 31F — Internet Readiness and Security Hardening
+
+**Status:** complete, Milestones 683–699; automated acceptance is recorded in [Phase 31F acceptance evidence](../delivery/PHASE31F_ACCEPTANCE.md), which also lists the manual and real-network passes still owed. Decisions are PD-063 to PD-068 in the [decision log](DECISION_LOG.md#phase-31f-implementation-decisions), implemented with the amendments recorded there.
+
+Phase 31F released Internet (public) mode behind an elevated readiness gate and hardened the Hub for exposure: persisted flood state with automatic IP blocks, owner step-up re-authentication with session rotation, owner security alerts, a built-in ACME client, dynamic-address detection, validated public firewall rules and a native-listener audit, Hub-observed external reachability, sync-time revoked-device verification and test knobs that release builds ignore.
+
+### Milestone map
+
+| Milestone | Delivered |
+|---|---|
+| 683 | Decisions PD-063 to PD-068 |
+| 684 | `DUDE_HUB_TEST_*` knobs compiled out of release builds (`npm run hub:compile:test` -> `dist/hub-test`; harnesses and e2e use the test bundle; public mode refuses to start if one is set) |
+| 685 | Persisted flood guard and automatic IP block (Hub migration 0006 `ip_blocks`; `dude-hub security blocks list\|clear`) |
+| 686 | Owner step-up re-authentication and cookie session rotation (migration 0007; `POST /auth/step-up`; `step-up-required` on pairing codes, recovery regeneration and revoke-all) |
+| 687 | Hub web step-up dialog and a shared CSRF token holder |
+| 688 | `throttle.locked` audit, `audit-ips truncated` option and the owner security alerts API (`/api/v1/security/alerts`) |
+| 689 | Security alerts in Settings › Security on web and desktop |
+| 690 | ACME (RFC 8555) client library: JWS, CSR, http-01 listener and a fake ACME server |
+| 691 | ACME issuance, renewal and `tls acme` CLI wired into the dual-pin rotation (source `acme`, no migration) |
+| 692 | Dynamic-address detection, address watcher (`network.address-changed`) and DNS resolution diagnostics |
+| 693 | Public and ACME http-01 firewall rules and the native-listener audit (`public-firewall-rule`, `native-ports-exposed` in `doctor`) |
+| 694 | Hub-observed external reachability echo, diagnostics check and the Hub web verify button |
+| 695 | Desktop "Test from this device" probe through the Agent (`hub.reachabilityEcho`) |
+| 696 | Sync-time revoked-device verification, `device.revoked-attempt` audit and the Internet scenario suite |
+| 697 | Public mode released behind the elevated readiness gate (`evaluatePublicReadiness`; the unreleased flag and variable removed) |
+| 698 | Operator-certificate name coverage, readable local-CA name-constraint admin error and the real Caddy check (`npm run check:caddy-proxy`) |
+| 699 | Phase close-out: documentation, acceptance evidence |
+
+### Architecture and notes
+
+- The gate is advisory about nothing it cannot see: the readiness report is built by the running Hub and the elevated CLI adds the Windows-only firewall and listener inspections. Exposure changes remain elevated admin-pipe actions and every UI is view-only.
+- External reachability is the Hub's own observation of a request source arriving through a configured name from a public address. No client reports a result and no third-party service is used.
+- ACME certificates enter the same dual-pin stage/acknowledge/activate rotation as every other certificate, and renewal reuses the leaf key so the device pin is stable.
+- Revocation is effective on the next request: tokens are re-resolved on every call and a push re-verifies its actor inside the commit transaction.
+
+### Gotchas found
+
+- Imported and ACME certificates only have to cover the operator's configured names, not every Hub name; requiring full coverage made the public gate unreachable (fixed in 698).
+- A name outside the local CA's name constraints surfaced as an opaque 500 until the admin method mapped it to a bad request.
+- A stale subagent re-applied already-committed Milestone 686 edits after finishing, leaving duplicate declarations in `auth.schema.ts` and `client.ts`; they were restored from HEAD at the start of close-out.
+- Registering `ip_blocks` in the data-scope inventory is required, or `lint` and `npm test` fail.
+
+### Scope ceiling
+
+**Phase 31F delivers Internet readiness, not Internet verification in the field.** A real Let's Encrypt issuance, reachability from a phone on cellular, installed-service and elevated runs and the first CI runs of the new suites are owed. Chain verification of an ACME certificate against public roots, TLS-ALPN-01 and DNS-01, DDNS updating, UPnP and any second factor are not implemented. Encrypted backup and transfer are 31G, Android sync is 31H–31I and collaboration persistence is 31J.
+
+**Outcome (Milestones 683–699):** met, with the manual and real-network passes listed in the acceptance evidence owed; see [Phase 31F acceptance evidence](../delivery/PHASE31F_ACCEPTANCE.md).
+
 ## Historical V1 Definition of Done
 
 DUDE V1 was declared done once all required items below were verified true, on 2026-09-19.

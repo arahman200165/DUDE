@@ -74,7 +74,7 @@ New Hubs issue their certificate from a built-in local certificate authority (th
 
 ### Exposing the Hub to the Internet
 
-Public mode is released behind an elevated readiness gate (Phase 31F, Milestones 683–697). `dude-hub network mode public` refuses until the Hub proves it is ready, and lists every blocker with the command that fixes it. Do these in order from an elevated prompt on the Hub computer:
+Public mode is released behind an elevated readiness gate (Phase 31F, Milestones 683–699). `dude-hub network mode public` refuses until the Hub proves it is ready, and lists every blocker with the command that fixes it. Do these in order from an elevated prompt on the Hub computer:
 
 1. **Pick public DNS names** you control (not an IP address and not `.local`/`.lan`/`.internal`) and point them at your router's public address: `dude-hub tls names add hub.example.com`.
 2. **Get a browser-trusted certificate.** Either issue one: `dude-hub tls acme issue --name hub.example.com --agree-tos --open-firewall` (needs port 80 reachable for a moment), or import one with `dude-hub tls import --cert <file> --key <file>`, or put the Hub behind a reverse proxy that already has one (`dude-hub network proxy on ...`; see "Behind a reverse proxy"). A self-signed or local-CA certificate is a blocker: phones and browsers outside your network cannot trust a private CA.

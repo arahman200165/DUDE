@@ -31,7 +31,7 @@ Related: [DUDE — Product Requirements](../DUDE_PRD.md) · [Quality and Release
 | Horizon | Status |
 |---|---|
 | Phases 0–31 | Complete; Phase 31 closed at Milestone 614 |
-| Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A (Milestone 615) and 31B (Milestones 616–627) and 31C (Milestones 628–648) and 31D (Milestones 649–662) and 31E (Milestones 663–682) complete, 31F next, 31G–31J planned |
+| Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A (Milestone 615) and 31B (Milestones 616–627) and 31C (Milestones 628–648) and 31D (Milestones 649–662) and 31E (Milestones 663–682) and 31F (Milestones 683–699) complete, 31G next, 31H–31J planned |
 | Phase 32 | Core expansion begins only after every phase from 31A through 31J is complete |
 | Phases 33–100 | Retained long-horizon scope, subject to dependencies and product boundaries |
 
@@ -184,13 +184,15 @@ Backup/transfer is deliberately moved ahead of mobile delivery, and security con
 - HTTPS configuration;
 - endpoint diagnostics.
 
-**Exit gate:** Authenticated Hub web serves shared state, runs browser-safe tools locally, recovers direct routes, and preserves standalone Pages/PWA behavior. Internet mode is not released until 31F passes.
+**Exit gate:** Authenticated Hub web serves shared state, runs browser-safe tools locally, recovers direct routes, and preserves standalone Pages/PWA behavior. Internet mode was not released until 31F passed; 31F released it behind an elevated readiness gate.
 
 <a id="phase-31f"></a>
 
-### Phase 31F — Internet Readiness and Security Hardening (Next)
+### Phase 31F — Internet Readiness and Security Hardening (Complete)
 
 **Depends on:** 31C–31E; security design begins in 31C.
+
+**Implementation status:** complete (Milestones 683–699; decisions [PD-063–PD-068](../history/DECISION_LOG.md#phase-31f-implementation-decisions), with the amendments recorded there). Milestone 684 compiles the `DUDE_HUB_TEST_*` knobs out of release builds; 685 persists the flood guard with an automatic IP block and `dude-hub security blocks list|clear` (Hub migration 0006); 686–687 add owner step-up re-authentication and cookie session rotation (migration 0007) with the Hub web prompt; 688–689 add the throttle lockout audit, optional client-address truncation and owner security alerts on web and desktop; 690–691 add the built-in ACME client (http-01, source `acme`, renewal through the dual-pin rotation); 692 detects dynamic addresses and resolves configured names; 693 adds the Public and ACME firewall rules and the native-listener audit; 694–695 add the Hub-observed external reachability echo and the desktop "Test from this device" probe; 696 verifies revoked devices at sync time with an Internet scenario suite; 697 releases public mode behind the elevated readiness gate (the `--i-understand-unreleased` flag and `DUDE_HUB_UNRELEASED_PUBLIC` variable are removed); 698 fixes operator-certificate name coverage and adds the real Caddy proxy check (`npm run check:caddy-proxy`, a local gate); Milestone 699 closes the phase with documentation. See [acceptance evidence](PHASE31F_ACCEPTANCE.md), including the owed installed-service and elevated runs, a real Let's Encrypt issuance, a real off-LAN reachability pass from a phone on cellular, and the first CI runs of the new suites.
 
 - TLS;
 - firewall guidance;
@@ -206,7 +208,7 @@ Backup/transfer is deliberately moved ahead of mobile delivery, and security con
 
 <a id="phase-31g"></a>
 
-### Phase 31G — Encrypted Backup, Restore and Hub Transfer (Planned)
+### Phase 31G — Encrypted Backup, Restore and Hub Transfer (Next)
 
 **Depends on:** 31C–31F; backup design begins with canonical persistence.
 

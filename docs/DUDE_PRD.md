@@ -2,8 +2,8 @@
 
 **Project:** DUDE — Developer Utility Dashboard Engine  
 **Product:** local-first developer workbench evolving into a personally owned distributed developer environment  
-**Baseline:** V1 and Phases 0–31 delivered; distributed Phases 31A–31E delivered, 31F–31J planned  
-**Next priority:** complete Phases 31F–31J strictly in order before beginning Phase 32
+**Baseline:** V1 and Phases 0–31 delivered; distributed Phases 31A–31F delivered, 31G–31J planned  
+**Next priority:** complete Phases 31G–31J strictly in order before beginning Phase 32
 
 Phase 31A (portable core and workspace extraction, Milestone 615) and Phase 31B (device identity, scoped local state and recoverable migration, Milestones 616–627) are complete; [31A](delivery/PHASE31A_ACCEPTANCE.md) and [31B](delivery/PHASE31B_ACCEPTANCE.md) acceptance evidence record the verified results, and 31B lists one owed installed-build manual pass. Phase 31C (self-hosted Hub, owner identity, device registry and resident Device Agent, Milestones 628–648) is complete with its decisions recorded in the [decision log](history/DECISION_LOG.md#phase-31c-implementation-decisions); [31C acceptance evidence](delivery/PHASE31C_ACCEPTANCE.md) records the verified results and the owed manual passes. Phase 31D (scoped synchronization, offline replay, conflict handling and the first-sync preview between desktops through the Hub, Milestones 649–662) is complete with its decisions in the [decision log](history/DECISION_LOG.md#phase-31d-implementation-decisions); [31D acceptance evidence](delivery/PHASE31D_ACCEPTANCE.md) records the verified results and the owed two-machine manual pass. Phase 31E (the Hub-served authenticated Angular web with shared state, private-mode access with a built-in local CA, trusted-certificate sources, reverse-proxy mode, endpoint diagnostics and the gated public mode, Milestones 663–682) is complete with its decisions in the [decision log](history/DECISION_LOG.md#phase-31e-implementation-decisions); [31E acceptance evidence](delivery/PHASE31E_ACCEPTANCE.md) records the verified results and the owed manual passes. Later distributed capabilities remain planned.
 
@@ -483,7 +483,7 @@ Hub
 [x] authentication (single owner)
 [x] device registration
 [x] synchronization service (desktop devices; Android is 31H)
-[x] Angular web hosting (authenticated shared-state web, private mode; Internet mode is 31F)
+[x] Angular web hosting (authenticated shared-state web, private mode and the gated Internet mode)
 [x] realtime/WebSocket foundation (presence, registry and sync nudges to devices and Hub web browsers)
 [ ] backup/export support
 
@@ -500,7 +500,7 @@ Web
 [x] Angular web client served by Hub
 [x] authenticated remote access (private mode)
 [x] browser-safe local tool execution
-[~] Internet mode and private mode (private delivered; Internet mode is released behind an elevated readiness gate (Phase 31F, Milestones 683–697); the rest of 31F is hardening and verification)
+[x] Internet mode and private mode (private delivered in 31E; Internet mode released behind an elevated readiness gate in Phase 31F, Milestones 683–699; a real Let's Encrypt issuance and a real off-LAN reachability pass remain owed manual verification)
 
 Mobile
 [ ] React Native Android application
@@ -521,9 +521,9 @@ DEFERRED: mandatory externally hosted infrastructure
 
 ### Reading the Delivered Baseline and the Target
 
-**Delivered:** V1 and Phases 1–31, including Phase 31 Milestones 593–614, plus distributed Phases 31A (Milestone 615), 31B (Milestones 616–627), 31C (Milestones 628–648), 31D (Milestones 649–662) and 31E (Milestones 663–682). Completion statements, historical tests, tool counts, implementation paths and measured results are retained from the supplied baseline PRD; they are not a new repository verification.
+**Delivered:** V1 and Phases 1–31, including Phase 31 Milestones 593–614, plus distributed Phases 31A (Milestone 615), 31B (Milestones 616–627), 31C (Milestones 628–648), 31D (Milestones 649–662), 31E (Milestones 663–682) and 31F (Milestones 683–699). Completion statements, historical tests, tool counts, implementation paths and measured results are retained from the supplied baseline PRD; they are not a new repository verification.
 
-**Planned next:** a self-hosted distributed release, referred to here as **DUDE 2.0**, using Phases 31A–31I. “2.0” is a product-release scope label; implementation must deliberately align it with the existing automatic package/tag versioning before release. The workspace/package layout (31A) and the local Device State Store, device identity and scoped settings (31B) the self-hosted Hub foundation (31C) desktop synchronization (31D) and the Hub-served shared-state web with private access (31E) are delivered; Internet mode (31F), backup (31G) and the React Native app are not.
+**Planned next:** a self-hosted distributed release, referred to here as **DUDE 2.0**, using Phases 31A–31I. “2.0” is a product-release scope label; implementation must deliberately align it with the existing automatic package/tag versioning before release. The workspace/package layout (31A) and the local Device State Store, device identity and scoped settings (31B) the self-hosted Hub foundation (31C) desktop synchronization (31D) the Hub-served shared-state web with private access (31E) and Internet readiness (31F) are delivered; backup (31G) and the React Native app are not.
 
 **Two meanings of web are made explicit:** **DUDE Web (Hub mode)** is the authenticated Angular application served by the user's Hub; **DUDE Web Companion (standalone mode)** is the existing GitHub Pages/PWA application with browser-local state and no required Hub or login. Both retain the same browser-safe engines. The standalone companion is not an externally hosted copy of the user's backend or canonical database.
 
@@ -531,7 +531,7 @@ DEFERRED: mandatory externally hosted infrastructure
 
 Phase 31 closed at Milestone 614. The delivered product includes the reusable tool framework, native desktop services, pipelines, Smart Paste, workspaces, projects, history, controlled appearance, networking, filesystem and Windows troubleshooting tools. [Delivery History](history/DELIVERY_HISTORY.md#delivered-baseline-through-phase-31) retains the complete baseline statement and per-phase implementation evidence.
 
-The local Device State Store, device identity and scoped settings shipped in Phase 31B. Phase 31C added a self-hosted Hub service (pinned self-signed HTTPS on loopback by default, optional LAN mode) with a single owner identity, a device registry with pairing and Ed25519 device credentials, an authenticated realtime WebSocket foundation, a canonical SQLite database (identity tables plus an atomic record/change-feed commit repository), a Hub-served admin web (setup, sign-in, recovery, Environment & Hub, Devices, Security & Sessions), a resident per-user Device Agent that holds the device key and Hub connection, and an optional Hub installer component. Phase 31D then synchronized settings, favorites, pipelines, projects, workspace templates, Home, usage, workspace layout and scratchpad (the last three off by default) between enrolled desktops through revision-checked Hub routes, with a first-sync preview, a durable offline outbox, three-way merge, a permanent conflict inbox, retention with snapshot rebase and Settings › Sync. Phase 31E then made the Hub web the full authenticated shared-state Angular app (a browser device row, in-browser three-way merge with an inline conflict dialog, online-only shared writes, a public-asset-only service worker, a sign-out wipe, Sync and Endpoint & Exposure settings), added a built-in local CA (default for new Hubs), configured names, certificate import and reverse-proxy mode with proxy pins, pin-only device TLS verification, per-principal rate limits and an endpoint diagnostics engine. Public (Internet) mode is released behind an elevated readiness gate (Phase 31F, Milestones 683–697), which also owns external reachability verification and sync-time revoked-device verification; encrypted backup is Phase 31G. The Android release remains planned. A Phase 31G desktop/Hub preview does not satisfy the Android-inclusive DUDE 2.0 gate. The detailed [release definition](delivery/QUALITY_AND_RELEASE.md#dude-20-distributed-release-definition-of-done--all-planned) governs completion.
+The local Device State Store, device identity and scoped settings shipped in Phase 31B. Phase 31C added a self-hosted Hub service (pinned self-signed HTTPS on loopback by default, optional LAN mode) with a single owner identity, a device registry with pairing and Ed25519 device credentials, an authenticated realtime WebSocket foundation, a canonical SQLite database (identity tables plus an atomic record/change-feed commit repository), a Hub-served admin web (setup, sign-in, recovery, Environment & Hub, Devices, Security & Sessions), a resident per-user Device Agent that holds the device key and Hub connection, and an optional Hub installer component. Phase 31D then synchronized settings, favorites, pipelines, projects, workspace templates, Home, usage, workspace layout and scratchpad (the last three off by default) between enrolled desktops through revision-checked Hub routes, with a first-sync preview, a durable offline outbox, three-way merge, a permanent conflict inbox, retention with snapshot rebase and Settings › Sync. Phase 31E then made the Hub web the full authenticated shared-state Angular app (a browser device row, in-browser three-way merge with an inline conflict dialog, online-only shared writes, a public-asset-only service worker, a sign-out wipe, Sync and Endpoint & Exposure settings), added a built-in local CA (default for new Hubs), configured names, certificate import and reverse-proxy mode with proxy pins, pin-only device TLS verification, per-principal rate limits and an endpoint diagnostics engine. Phase 31F (Milestones 683–699) then released Public (Internet) mode behind an elevated readiness gate and added built-in ACME, dynamic-address detection, public firewall rules and a native-listener audit, Hub-observed external reachability verification, sync-time revoked-device verification, owner step-up re-authentication with session rotation, a persisted flood guard with automatic IP blocks, owner security alerts and release builds that ignore the test knobs ([acceptance](delivery/PHASE31F_ACCEPTANCE.md)); encrypted backup is Phase 31G. The Android release remains planned. A Phase 31G desktop/Hub preview does not satisfy the Android-inclusive DUDE 2.0 gate. The detailed [release definition](delivery/QUALITY_AND_RELEASE.md#dude-20-distributed-release-definition-of-done--all-planned) governs completion.
 
 ## Immediate Delivery Sequence
 
@@ -544,8 +544,8 @@ The required sequence is **31A → 31B → 31C → 31D → 31E → 31F → 31G �
 | 31C (complete) | Self-hosted Hub, owner identity and canonical persistence |
 | 31D (complete) | Durable sync, offline replay and conflict handling |
 | 31E (complete) | Hub-served Angular web and private access |
-| 31F (next) | Internet readiness and security verification |
-| 31G | Encrypted backup, restore and sole-authority Hub transfer |
+| 31F (complete) | Internet readiness and security verification |
+| 31G (next) | Encrypted backup, restore and sole-authority Hub transfer |
 | 31H | React Native Android shell and sync |
 | 31I | Initial compatible mobile tools and complete DUDE 2.0 gate |
 | 31J | Deeper authorized Hub collaboration and realtime behavior |
