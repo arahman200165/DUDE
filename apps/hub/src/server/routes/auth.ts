@@ -19,6 +19,7 @@ import { STEP_UP_WINDOW_MS, SESSION_POLICY, createSession, deriveCsrfToken, revo
 import type { CreatedSession } from '../../auth/sessions.js';
 import { consumeSetupToken, deleteSetupTokenFile, resetPending, verifySetupToken } from '../../auth/setup-token.js';
 import { audit } from '../../security/audit.js';
+import { isNewSignInAddress } from './security-alerts.js';
 import { ConfirmationStore } from '../../security/confirmation-store.js';
 import { clearedSessionCookie, sessionCookie } from '../../security/cookies.js';
 import { checkThrottleKeys, lockedReply, recordFailureKeys, recordSuccessKeys, throttleKeys } from '../../security/throttle.js';
@@ -90,8 +91,9 @@ export function registerAuthRoutes(app: FastifyInstance, options: AuthRouteOptio
         return reply.code(401).send(envelope('unauthorized', 'The password is not correct.'));
       }
       recordSuccessKeys(db, keys);
+      const newAddress = isNewSignInAddress(db, ip, now());
       const created = createSession(db, { ownerId: owner.ownerId, kind: 'cookie', userAgent: userAgentOf(request), ip, now: now() });
-      audit(db, { event: 'owner.sign-in', outcome: 'success', actorKind: 'owner', actorId: owner.ownerId, ip, detail: { sessionId: toSessionInfo(created.record, undefined).sessionId }, now: now() });
+      audit(db, { event: 'owner.sign-in', outcome: 'success', actorKind: 'owner', actorId: owner.ownerId, ip, detail: { sessionId: toSessionInfo(created.record, undefined).sessionId, newAddress }, now: now() });
       setSessionCookie(reply, created);
       return reply.code(200).send(signInBody(db, created, owner));
     },

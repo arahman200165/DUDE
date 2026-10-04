@@ -10,6 +10,7 @@ export type ParsedCommand =
   | { command: 'tls-import'; cert: string; key: string; chain?: string; dataDir?: string; installDir?: string }
   | { command: 'tls-proxy-pin'; action: 'add' | 'remove' | 'list' | 'activate'; value?: string; force?: boolean; confirm?: string; dataDir?: string; installDir?: string }
   | { command: 'security-blocks'; action: 'list' | 'clear'; ip?: string; dataDir?: string; installDir?: string }
+  | { command: 'security-audit-ips'; mode?: 'full' | 'truncated'; dataDir?: string; installDir?: string }
   | { command: 'tls-names'; action: 'list' | 'add' | 'remove'; name?: string; dataDir?: string; installDir?: string }
   | { command: 'service'; action: 'install' | 'uninstall' | 'start' | 'stop' | 'restart' | 'status' | 'update'; dataDir?: string; installDir?: string; port?: number; lan?: boolean; source?: string; keepData?: boolean }
   | { command: 'network'; action: 'lan-on' | 'lan-off' | 'status' | 'proxy-on' | 'proxy-off' | 'proxy-status' | 'mode-private' | 'mode-public'; trusted?: string[]; publicOrigin?: string; acknowledgeUnreleased?: boolean; dataDir?: string; installDir?: string }
@@ -45,6 +46,7 @@ Usage:
   dude-hub tls names remove <name> [--data-dir <dir>] [--install-dir <dir>]
   dude-hub security blocks list [--data-dir <dir>] [--install-dir <dir>]   (addresses blocked after repeated failures; elevated, Hub running)
   dude-hub security blocks clear <address> [--data-dir <dir>] [--install-dir <dir>]
+  dude-hub security audit-ips [full|truncated] [--data-dir <dir>] [--install-dir <dir>]   (show or set address privacy for NEW audit rows and sessions; existing rows are not rewritten; elevated, Hub running)
   dude-hub service install [--install-dir <dir>] [--data-dir <dir>] [--port <n>] [--lan]   (elevated, Windows)
   dude-hub service uninstall [--keep-data] [--install-dir <dir>] [--data-dir <dir>]
   dude-hub service start|stop|restart|status [--install-dir <dir>] [--data-dir <dir>]
@@ -161,7 +163,18 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
     };
   }
   if (command === 'security') {
-    if (rest[0] !== 'blocks') throw new UsageError('Usage: dude-hub security blocks list|clear <address>.');
+    if (rest[0] === 'audit-ips') {
+      let mode: 'full' | 'truncated' | undefined;
+      let flags = rest.slice(1);
+      if (flags[0] !== undefined && !flags[0].startsWith('--')) {
+        if (flags[0] !== 'full' && flags[0] !== 'truncated') throw new UsageError('Usage: dude-hub security audit-ips [full|truncated].');
+        mode = flags[0];
+        flags = flags.slice(1);
+      }
+      const values = parseFlags(flags, ['--data-dir', '--install-dir'], []);
+      return { command: 'security-audit-ips', ...(mode !== undefined ? { mode } : {}), ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir') };
+    }
+    if (rest[0] !== 'blocks') throw new UsageError('Usage: dude-hub security blocks list|clear <address> | audit-ips [full|truncated].');
     const action = rest[1];
     if (action !== 'list' && action !== 'clear') throw new UsageError('Usage: dude-hub security blocks list|clear <address>.');
     let ip: string | undefined;

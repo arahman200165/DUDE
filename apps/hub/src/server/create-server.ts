@@ -10,6 +10,7 @@ import { registerAuthRoutes } from './routes/auth.js';
 import { registerSessionRoutes } from './routes/sessions.js';
 import { registerDeviceRoutes } from './routes/devices.js';
 import { registerTlsAuditRoutes } from './routes/tls-audit.js';
+import { registerSecurityAlertRoutes } from './routes/security-alerts.js';
 import { registerDiagnosticsRoute } from './routes/diagnostics.js';
 import { createHostFacts, gatherRunningHubDeps } from '../diagnostics/gather.js';
 import { collectDiagnostics } from '../diagnostics/engine.js';
@@ -150,6 +151,7 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   registerAuthRoutes(app, authOptions);
   registerSessionRoutes(app, authOptions);
   registerTlsAuditRoutes(app, { db: options.hub.db, tlsDir: options.paths.tlsDir, requireOwner: authOptions.requireOwner });
+  registerSecurityAlertRoutes(app, { db: options.hub.db, now, requireOwner: authOptions.requireOwner });
   const startedAt = now();
   const hostFacts = options.diagnostics?.host ?? createHostFacts({ exec: options.diagnostics?.exec ?? defaultExec, ...(options.diagnostics?.platform ? { platform: options.diagnostics.platform } : {}), now });
   const collectHubDiagnostics = async (): Promise<HubDiagnosticsReport> => collectDiagnostics(await gatherRunningHubDeps({

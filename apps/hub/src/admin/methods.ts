@@ -26,6 +26,7 @@ import { createLeafIssuer } from '../tls/leaf-issuer.js';
 import { createLocalCa, validateCaSuffixes } from '../tls/local-ca.js';
 import { configuredDnsNames } from '../tls/names.js';
 import { clearBlock, listBlocks } from '../security/ip-block.js';
+import { getAuditIpMode, isAuditIpMode, setAuditIpMode } from '../security/address-privacy.js';
 
 export interface AdminMethodContext {
   db: Db;
@@ -117,6 +118,15 @@ export function buildAdminMethods(context: AdminMethodContext): Record<string, A
       const ip = (params as { ip?: unknown } | null)?.ip;
       if (typeof ip !== 'string' || ip.length === 0 || ip.length > 64) throw new AdminError('bad-request', 'Provide the blocked address as ip.');
       return { cleared: clearBlock(context.db, ip, now()) };
+    },
+    /** Address privacy for new audit rows and session records (31F). Existing rows are not rewritten. */
+    'security.audit-ips.get': () => ({ mode: getAuditIpMode(context.db) }),
+    'security.audit-ips.set': (params) => {
+      const mode = (params as { mode?: unknown } | null)?.mode;
+      if (!isAuditIpMode(mode)) throw new AdminError('bad-request', 'Provide mode as full or truncated.');
+      setAuditIpMode(context.db, mode);
+      audit(context.db, { event: 'security.audit-ips-changed', outcome: 'success', actorKind: 'cli', detail: { mode }, now: now() });
+      return { mode };
     },
     'tls.status': () => rotation().status(),
     'tls.stage': (params) => rotate(() => rotation().stage({ restage: flag(params, 'restage'), ...(desiredSans() ? { extraNames: desiredSans() as string[] } : {}) })),

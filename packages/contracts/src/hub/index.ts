@@ -11,3 +11,4 @@ export * from './tls-audit.schema.js';
 export * from './sync.schema.js';
 export * from './diagnostics.schema.js';
 export * from './web.schema.js';
+export * from './security-alerts.schema.js';

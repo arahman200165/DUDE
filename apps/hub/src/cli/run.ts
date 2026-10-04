@@ -15,6 +15,7 @@ import { createLeafRenewal } from '../tls/renewal.js';
 import { runTlsCa } from '../service/tls-ca.js';
 import { computeSubjectAltNames, configuredDnsNames, missingSubjectAltNames } from '../tls/names.js';
 import { runSecurityBlocks } from '../service/security-blocks.js';
+import { runSecurityAuditIps } from '../service/security-audit-ips.js';
 import { runTlsNames } from '../service/tls-names.js';
 import { runTlsImport, runTlsProxyPin } from '../service/tls-external.js';
 import { AdminCallError, callAdmin } from '../admin/admin-client.js';
@@ -93,6 +94,9 @@ export async function runCli(argv: readonly string[]): Promise<number> {
       action: parsed.action, ...(parsed.value !== undefined ? { value: parsed.value } : {}), ...(parsed.force ? { force: true } : {}), ...(parsed.confirm !== undefined ? { confirm: parsed.confirm } : {}),
       ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}),
     });
+  }
+  if (parsed.command === 'security-audit-ips') {
+    return runSecurityAuditIps({ ...(parsed.mode !== undefined ? { mode: parsed.mode } : {}), ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}) });
   }
   if (parsed.command === 'security-blocks') {
     return runSecurityBlocks({ action: parsed.action, ...(parsed.ip !== undefined ? { ip: parsed.ip } : {}), ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}) });

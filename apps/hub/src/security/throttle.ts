@@ -1,6 +1,7 @@
 import type { FastifyReply } from 'fastify';
 import type { Db } from '@dude/sqlite-store';
 import { envelope } from '../server/errors.js';
+import { audit } from './audit.js';
 import { noteCredentialFailure } from './ip-block.js';
 
 export const THROTTLE_FREE_FAILURES = 5;
@@ -63,6 +64,20 @@ export function recordFailure(db: Db, key: string, now: number): void {
     `INSERT INTO throttle(throttle_key, failures, window_started_at, next_allowed_at) VALUES(?, ?, ?, ?)
      ON CONFLICT(throttle_key) DO UPDATE SET failures = excluded.failures, window_started_at = excluded.window_started_at, next_allowed_at = excluded.next_allowed_at`,
   ).run(key, failures, new Date(now).toISOString(), delay > 0 ? new Date(now + delay).toISOString() : null);
+  if (delay > 0 && nextAllowed <= now) auditLockout(db, key, now);
+}
+
+/** One `throttle.locked` event when a key newly enters a lockout; the key names the kind and scope, never a credential. */
+function auditLockout(db: Db, key: string, now: number): void {
+  const kind = THROTTLE_KINDS.find((k) => key.startsWith(`${k}:`));
+  if (kind === undefined) return;
+  const rest = key.slice(kind.length + 1);
+  const address = rest.startsWith('ip:') ? rest.slice(3) : undefined;
+  if (address === undefined && rest !== 'global') return;
+  audit(db, {
+    event: 'throttle.locked', outcome: 'denied', actorKind: address === undefined ? 'system' : 'anonymous',
+    ...(address !== undefined ? { ip: address } : {}), detail: { kind, scope: address === undefined ? 'global' : 'address' }, now,
+  });
 }
 
 export function recordSuccess(db: Db, key: string): void {

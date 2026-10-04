@@ -1,6 +1,7 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { getMeta, setMeta, transaction } from '@dude/sqlite-store';
 import type { Db } from '@dude/sqlite-store';
+import { maskAddress } from '../security/address-privacy.js';
 import type { SessionInfo, SessionKind } from '@dude/contracts/hub';
 
 export const HOUR_MS = 3600_000;
@@ -130,7 +131,7 @@ export function createSession(db: Db, input: CreateSessionInput): CreatedSession
   const record: SessionRecord = {
     sessionHash, ownerId: input.ownerId, kind: input.kind, deviceId: input.kind === 'bearer' ? input.deviceId ?? null : null, createdAt: at,
     lastActiveAt: at, idleExpiresAt: iso(input.now + policy.idleMs), absoluteExpiresAt: iso(input.now + policy.absoluteMs),
-    userAgent: input.userAgent ? input.userAgent.slice(0, USER_AGENT_MAX) : null, ip: input.ip ?? null,
+    userAgent: input.userAgent ? input.userAgent.slice(0, USER_AGENT_MAX) : null, ip: maskAddress(db, input.ip) ?? null,
     steppedUpAt: input.kind === 'cookie' ? at : null,
   };
   db.prepare(`INSERT INTO sessions(${COLUMNS}) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)`).run(

@@ -1,5 +1,6 @@
 import type { Db } from '@dude/sqlite-store';
 import { HUB_AUDIT_ACTOR_KINDS, isHubAuditEvent } from '@dude/contracts/hub';
+import { maskAddress } from './address-privacy.js';
 import type { HubAuditActorKind, HubAuditEvent, HubAuditOutcome } from '@dude/contracts/hub';
 
 export const AUDIT_DETAIL_MAX_BYTES = 2048;
@@ -56,7 +57,7 @@ export function audit(db: Db, input: AuditInput): void {
   if (!(HUB_AUDIT_ACTOR_KINDS as readonly string[]).includes(input.actorKind)) throw new Error('Unknown audit actor kind.');
   const detail = input.detail === undefined ? null : sanitizeDetail(input.detail);
   db.prepare('INSERT INTO audit_events(at, actor_kind, actor_id, event, outcome, ip, detail_json) VALUES(?, ?, ?, ?, ?, ?, ?)').run(
-    new Date(input.now).toISOString(), input.actorKind, input.actorId ?? null, input.event, input.outcome, input.ip ?? null, detail,
+    new Date(input.now).toISOString(), input.actorKind, input.actorId ?? null, input.event, input.outcome, maskAddress(db, input.ip) ?? null, detail,
   );
 }
 
