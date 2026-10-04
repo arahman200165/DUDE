@@ -18,10 +18,11 @@ export interface StateInput {
   probe: ProbeOutcome | null;
 }
 
-/** The six device-facing states. Revocation (known locally) wins over any probe result; a probe pin mismatch is `untrusted-certificate`. */
+/** The device-facing states. Revocation and a changed Hub authority (both known locally) win over any probe result; a probe pin mismatch is `untrusted-certificate`. */
 export function mapAgentState(input: StateInput): AgentDiagnosticsState {
   if (input.enrollment === null) return 'standalone';
   if (input.enrollment.state === 'revoked' || input.hubState === 'revoked') return 'revoked';
+  if (input.hubState === 'authority-changed') return 'authority-changed';
   const probe = input.probe;
   if (probe === null) {
     if (input.hubState === 'untrusted-tls') return 'untrusted-certificate';

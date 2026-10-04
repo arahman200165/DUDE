@@ -13,6 +13,8 @@ export interface HubEnrollmentRow {
   certNextPem: string | null;
   /** Reverse-proxy leaf pins the Hub advertised (active plus next); accepted besides `spkiActive`/`spkiNext`. */
   proxySpkis: string[];
+  /** Highest Hub authority epoch seen (PD-071); only ever raised. */
+  authorityEpoch: number;
   keyId: string;
   publicKey: Uint8Array;
   wrappedPrivateKey: Uint8Array;
@@ -34,15 +36,16 @@ export interface PublicHubEnrollment {
   enrolledAt: string;
   lastContactAt: string | null;
   revokedAt: string | null;
+  authorityEpoch: number;
 }
 
-export type NewHubEnrollment = Omit<HubEnrollmentRow, 'state' | 'spkiNext' | 'certNextPem' | 'proxySpkis' | 'lastContactAt' | 'revokedAt' | 'updatedAt'>;
+export type NewHubEnrollment = Omit<HubEnrollmentRow, 'state' | 'spkiNext' | 'certNextPem' | 'proxySpkis' | 'lastContactAt' | 'revokedAt' | 'updatedAt' | 'authorityEpoch'> & { authorityEpoch?: number };
 
 interface RawRow {
   state: 'enrolled' | 'revoked'; hub_instance_id: string; environment_id: string; hub_url: string; protocol_version: number;
   spki_active: string; cert_active_pem: string; spki_next: string | null; cert_next_pem: string | null; key_id: string;
   public_key: Uint8Array; wrapped_private_key: Uint8Array; enrolled_at: string; last_contact_at: string | null;
-  revoked_at: string | null; updated_at: string; proxy_spkis: string;
+  revoked_at: string | null; updated_at: string; proxy_spkis: string; authority_epoch: number;
 }
 
 const SPKI_PIN = /^[A-Za-z0-9_-]{43}$/;
@@ -62,6 +65,7 @@ export function getEnrollment(db: Db): HubEnrollmentRow | null {
     spkiActive: r.spki_active, certActivePem: r.cert_active_pem, spkiNext: r.spki_next, certNextPem: r.cert_next_pem, keyId: r.key_id,
     publicKey: r.public_key, wrappedPrivateKey: r.wrapped_private_key, enrolledAt: r.enrolled_at, lastContactAt: r.last_contact_at,
     revokedAt: r.revoked_at, updatedAt: r.updated_at, proxySpkis: parsePins(r.proxy_spkis),
+    authorityEpoch: Number(r.authority_epoch) >= 1 ? Number(r.authority_epoch) : 1,
   };
 }
 
@@ -71,6 +75,7 @@ export function publicEnrollment(db: Db): PublicHubEnrollment | null {
   return {
     state: e.state, hubInstanceId: e.hubInstanceId, environmentId: e.environmentId, hubUrl: e.hubUrl, protocolVersion: e.protocolVersion,
     spkiActive: e.spkiActive, spkiNext: e.spkiNext, enrolledAt: e.enrolledAt, lastContactAt: e.lastContactAt, revokedAt: e.revokedAt,
+    authorityEpoch: e.authorityEpoch,
   };
 }
 
@@ -79,9 +84,9 @@ export function saveEnrollment(db: Db, e: NewHubEnrollment, now: Date): void {
   const iso = now.toISOString();
   db.prepare(
     `INSERT OR REPLACE INTO hub_enrollment (id, state, hub_instance_id, environment_id, hub_url, protocol_version, spki_active, cert_active_pem,
-       spki_next, cert_next_pem, key_id, public_key, wrapped_private_key, enrolled_at, last_contact_at, revoked_at, updated_at)
-     VALUES (1, 'enrolled', ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?, NULL, NULL, ?)`,
-  ).run(e.hubInstanceId, e.environmentId, e.hubUrl, e.protocolVersion, e.spkiActive, e.certActivePem, e.keyId, e.publicKey, e.wrappedPrivateKey, e.enrolledAt, iso);
+       spki_next, cert_next_pem, key_id, public_key, wrapped_private_key, enrolled_at, last_contact_at, revoked_at, updated_at, authority_epoch)
+     VALUES (1, 'enrolled', ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?, NULL, NULL, ?, ?)`,
+  ).run(e.hubInstanceId, e.environmentId, e.hubUrl, e.protocolVersion, e.spkiActive, e.certActivePem, e.keyId, e.publicKey, e.wrappedPrivateKey, e.enrolledAt, iso, Math.max(1, Math.trunc(e.authorityEpoch ?? 1)));
 }
 
 /** Keeps the row (so the UI can say "revoked, re-pair") but marks it unusable. */
@@ -118,6 +123,12 @@ export function setProxyPins(db: Db, spkis: readonly string[], now: Date): boole
   const current = getEnrollment(db);
   if (!current || JSON.stringify([...current.proxySpkis].sort()) === JSON.stringify(next)) return false;
   return Number(db.prepare('UPDATE hub_enrollment SET proxy_spkis = ?, updated_at = ? WHERE id = 1').run(JSON.stringify(next), now.toISOString()).changes) > 0;
+}
+
+/** Raises the stored Hub authority epoch (never lowers it). True when it changed. */
+export function raiseAuthorityEpoch(db: Db, epoch: number, now: Date): boolean {
+  if (!Number.isInteger(epoch) || epoch < 1) return false;
+  return Number(db.prepare('UPDATE hub_enrollment SET authority_epoch = ?, updated_at = ? WHERE id = 1 AND authority_epoch < ?').run(epoch, now.toISOString(), epoch).changes) > 0;
 }
 
 /** Adds one announced proxy pin to the accepted set. */

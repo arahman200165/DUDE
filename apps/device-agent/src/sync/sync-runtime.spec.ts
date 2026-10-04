@@ -1,3 +1,5 @@
+import { existsSync, readdirSync } from 'node:fs';
+import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HubApiError } from '@dude/api-client';
 import type { AgentHubStatus } from '@dude/contracts';
@@ -39,15 +41,15 @@ async function waitFor<T>(what: string, fn: () => T | undefined | false, timeout
   }
 }
 
-function setup(options: { protocol?: number; hubState?: AgentHubStatus['state']; firstSync?: boolean } = {}) {
+function setup(options: { protocol?: number; hubState?: AgentHubStatus['state']; firstSync?: boolean; backupDir?: string } = {}) {
   const store = openReady(tempDir());
   saveEnrollment(store.db, ENROLL, T0);
   const commit = commitContext(store);
   let hub: AgentHubStatus = {
-    state: options.hubState ?? 'online', lastError: null, lastContactAt: null, ownerSignedIn: false, hubVersion: '1', recoveryTrusted: null,  pendingOps: 0,
+    state: options.hubState ?? 'online', lastError: null, lastContactAt: null, ownerSignedIn: false, hubVersion: '1', recoveryTrusted: null,  pendingOps: 0, authority: null,
     enrollment: {
       state: 'enrolled', hubInstanceId: 'hub-1', environmentId: 'env-hub', hubUrl: 'https://hub.lan:8443', protocolVersion: 2, spkiActive: 'spki-a',
-      spkiNext: null, enrolledAt: T0.toISOString(), lastContactAt: null, revokedAt: null,
+      spkiNext: null, enrolledAt: T0.toISOString(), lastContactAt: null, revokedAt: null, authorityEpoch: 1,
     },
   };
   let protocol = options.protocol ?? 2;
@@ -71,6 +73,7 @@ function setup(options: { protocol?: number; hubState?: AgentHubStatus['state'];
     db: store.db, manager, now: () => new Date('2026-03-01T00:00:00.000Z'), newOpId: () => `rt-op-${(seq += 1)}`,
     intervals: { debounceMs: 5, pollMs: 60_000, backoffMinMs: 20, backoffMaxMs: 80, reportMinIntervalMs: 60_000 },
     newToken: () => 'token-1',
+    ...(options.backupDir ? { backupDir: options.backupDir } : {}),
   });
   runtimes.push(runtime);
   const applied: unknown[] = [];
@@ -81,6 +84,10 @@ function setup(options: { protocol?: number; hubState?: AgentHubStatus['state'];
     store, runtime, api, applied, commit,
     setHub(state: AgentHubStatus['state']) {
       hub = { ...hub, state, ...(state === 'revoked' ? { enrollment: { ...hub.enrollment!, state: 'revoked' as const } } : {}) };
+      for (const l of [...hubListeners]) l(hub);
+    },
+    setAuthorityChanged(reason: 'transferred' | 'instance-changed' | 'epoch-lower' = 'instance-changed', hubInstanceId: string | null = 'hub-2', epoch: number | null = 2) {
+      hub = { ...hub, state: 'authority-changed', authority: { reason, hubInstanceId, epoch }, lastError: 'The Hub changed.' };
       for (const l of [...hubListeners]) l(hub);
     },
     setProtocol(p: number) { protocol = p; },
@@ -100,6 +107,51 @@ describe('gating', () => {
     expect(t.api.syncChanges).not.toHaveBeenCalled();
     t.runtime.markFirstSyncDone();
     await waitFor('push after first sync', () => t.api.syncPush.mock.calls.length > 0);
+  });
+
+  it('needs-reconcile blocks every cycle, keeps all data and takes one recovery snapshot per changed authority', async () => {
+    const backupDir = path.join(tempDir(), 'backups');
+    const t = setup({ backupDir });
+    t.commitFavorite('a');
+    const snapshots = (): string[] => (existsSync(backupDir) ? readdirSync(backupDir).filter((f) => f.startsWith('authority-changed-')) : []);
+    await waitFor('first push', () => t.api.syncPush.mock.calls.length > 0);
+    t.api.syncPush.mockClear();
+    t.api.syncChanges.mockClear();
+    t.setAuthorityChanged();
+    t.commitFavorite('b');
+    const status = await t.runtime.syncNow();
+    expect(status).toMatchObject({ phase: 'needs-reconcile', lastError: 'The Hub changed.' });
+    expect(t.api.syncPush).not.toHaveBeenCalled();
+    expect(t.api.syncChanges).not.toHaveBeenCalled();
+    expect(snapshots()).toHaveLength(1);
+    expect(listRecords(t.store.db, 'favorite')).toHaveLength(2);
+    expect(listOutbox(t.store.db, 10).filter((o) => o.status === 'pending')).toHaveLength(1);
+
+    // The same changed authority again (more notices, a re-run) does not repeat the snapshot.
+    t.setAuthorityChanged();
+    await t.runtime.syncNow();
+    expect(snapshots()).toHaveLength(1);
+    expect(t.api.syncPush).not.toHaveBeenCalled();
+  });
+
+  it('does not repeat the recovery snapshot after a restart of the runtime', async () => {
+    const backupDir = path.join(tempDir(), 'backups');
+    const t = setup({ backupDir });
+    t.setAuthorityChanged();
+    await t.runtime.syncNow();
+    expect(readdirSync(backupDir)).toHaveLength(1);
+    t.runtime.stop();
+    t.runtime.start();
+    await t.runtime.syncNow();
+    expect(readdirSync(backupDir)).toHaveLength(1);
+  });
+
+  it('needs-reconcile comes after revoked and before offline', async () => {
+    const t = setup();
+    t.setAuthorityChanged();
+    expect((await t.runtime.syncNow()).phase).toBe('needs-reconcile');
+    t.setHub('revoked');
+    expect((await t.runtime.syncNow()).phase).toBe('revoked');
   });
 
   it('reports hub-outdated for a Hub that does not speak sync', async () => {

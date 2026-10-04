@@ -59,6 +59,12 @@
             @if (standaloneError(); as message) { <p class="text-ui text-error" role="alert" data-testid="standalone-error">{{ message }}</p> }
           </div>
         }
+        @case ('needs-reconcile') {
+          <p class="text-ui text-warning" role="alert" data-testid="phase-copy">
+            Hub changed: reconnect to continue. {{ s.lastError ?? 'This is not the Hub this device was paired with.' }} Sync is stopped; your data and unsent changes are kept
+            and a recovery snapshot was taken. Reconnecting is done in <a class="text-accent underline" routerLink="/settings/environment">Environment &amp; Hub</a>.
+          </p>
+        }
         @case ('hub-outdated') {
           <p class="text-ui text-warning" data-testid="phase-copy">
             The Hub is older than this version of DUDE and cannot sync yet. Update the Hub in

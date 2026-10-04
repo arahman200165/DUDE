@@ -38,10 +38,10 @@ function setup(options: { revoked?: boolean } = {}) {
   const hub = (): AgentHubStatus => {
     const enrollment = getEnrollment(store.db);
     return {
-      state: hubState, lastError: null, lastContactAt: null, ownerSignedIn: false, hubVersion: '1', recoveryTrusted: null, pendingOps: 0,
+      state: hubState, lastError: null, lastContactAt: null, ownerSignedIn: false, hubVersion: '1', recoveryTrusted: null, pendingOps: 0, authority: null,
       enrollment: enrollment && {
         state: enrollment.state, hubInstanceId: 'hub-1', environmentId: 'env-hub', hubUrl: enrollment.hubUrl, protocolVersion: 2, spkiActive: 'spki-a',
-        spkiNext: null, enrolledAt: T0.toISOString(), lastContactAt: null, revokedAt: null,
+        spkiNext: null, enrolledAt: T0.toISOString(), lastContactAt: null, revokedAt: null, authorityEpoch: 1,
       },
     };
   };

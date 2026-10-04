@@ -54,7 +54,9 @@ export interface DesktopHubStatus {
   /** Whether the Hub answered its last reachability check; null when never checked or not enrolled. */
   readonly reachable: boolean | null;
   /** The agent's connection state when enrolled (richer than `reachable`); absent from older hosts and Hub-served builds. */
-  readonly connection?: 'connecting' | 'online' | 'offline' | 'incompatible' | 'untrusted-tls';
+  readonly connection?: 'connecting' | 'online' | 'offline' | 'incompatible' | 'untrusted-tls' | 'authority-changed';
+  /** Set with `connection: 'authority-changed'`: why this device stopped trusting the Hub it answered (PD-073). */
+  readonly authority?: { readonly reason: 'transferred' | 'instance-changed' | 'epoch-lower'; readonly hubInstanceId: string | null; readonly epoch: number | null } | null;
   /** The last connection error text, when there is one. */
   readonly lastError?: string | null;
   readonly lastContactAt?: string | null;

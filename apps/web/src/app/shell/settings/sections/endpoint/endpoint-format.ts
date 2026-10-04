@@ -53,6 +53,7 @@ export const AGENT_STATE_COPY: Readonly<Record<AgentDiagnosticsState, { readonly
   'untrusted-certificate': { label: 'Untrusted certificate', glyph: 'error', tone: 'text-error', detail: "The Hub's certificate does not match this device's pins. Pair again with a fresh pairing string." },
   incompatible: { label: 'Incompatible version', glyph: 'warning', tone: 'text-warning', detail: 'This DUDE and the Hub cannot talk to each other. Update whichever is older.' },
   revoked: { label: 'Revoked', glyph: 'error', tone: 'text-error', detail: 'The Hub revoked this device. Pair it again to reconnect.' },
+  'authority-changed': { label: 'Hub changed', glyph: 'warning', tone: 'text-warning', detail: 'This is not the Hub this device was paired with, or it was retired. Sync is stopped and nothing on this device was changed.' },
 };
 
 export const SKEW_WARN_SECONDS = 60;

@@ -9,6 +9,7 @@ export type HubManagerErrorCode =
   | 'owner-session-expired'
   | 'tls-untrusted'
   | 'untrusted-tls'
+  | 'authority-changed'
   | 'invalid-url'
   | 'hub-unreachable'
   | 'not-trusted'

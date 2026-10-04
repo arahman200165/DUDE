@@ -1,7 +1,7 @@
 import type { SyncCategory } from './categories.js';
 
 export type SyncPhase =
-  | 'standalone' | 'needs-first-sync' | 'idle' | 'syncing' | 'offline' | 'paused' | 'revoked' | 'hub-outdated' | 'error';
+  | 'standalone' | 'needs-first-sync' | 'idle' | 'syncing' | 'offline' | 'paused' | 'revoked' | 'hub-outdated' | 'needs-reconcile' | 'error';
 
 /** Device-facing sync state (also carried over IPC). `held` is derived, never stored. */
 export interface SyncStatus {

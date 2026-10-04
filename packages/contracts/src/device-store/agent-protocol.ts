@@ -30,9 +30,13 @@ export interface AgentStandalonePreview {
 export interface AgentHubEnrollment {
   state: 'enrolled' | 'revoked'; hubInstanceId: string; environmentId: string; hubUrl: string; protocolVersion: number;
   spkiActive: string; spkiNext: string | null; enrolledAt: string; lastContactAt: string | null; revokedAt: string | null;
+  /** The highest Hub authority epoch this device has seen (PD-071); 1 for an enrollment that never reported one. */
+  authorityEpoch: number;
 }
-/** Hub connection state machine (PD-034). `standalone` means no enrollment. */
-export type AgentHubState = 'standalone' | 'connecting' | 'online' | 'offline' | 'revoked' | 'incompatible' | 'untrusted-tls';
+/** Hub connection state machine (PD-034). `standalone` means no enrollment. `authority-changed`: the Hub is no longer the one this device enrolled with (PD-073). */
+export type AgentHubState = 'standalone' | 'connecting' | 'online' | 'offline' | 'revoked' | 'incompatible' | 'untrusted-tls' | 'authority-changed';
+/** Why the device stopped trusting the Hub it answered: it was retired, it is another instance, or its epoch is older than one already seen. */
+export type AgentHubAuthorityReason = 'transferred' | 'instance-changed' | 'epoch-lower';
 export interface AgentHubStatus {
   state: AgentHubState; lastError: string | null; lastContactAt: string | null; ownerSignedIn: boolean; enrollment: AgentHubEnrollment | null;
   /** From the last public hello; null until one succeeded. */
@@ -41,6 +45,8 @@ export interface AgentHubStatus {
   recoveryTrusted: boolean | null;
   /** Undelivered ops (pending, quarantined, stranded): disclosed before unenrolling or continuing standalone. */
   pendingOps: number;
+  /** Set only in the `authority-changed` state: what the Hub reported (null fields when it did not say). */
+  authority: { reason: AgentHubAuthorityReason; hubInstanceId: string | null; epoch: number | null } | null;
 }
 /** Typed enrollment failures (the RPC error `code`). */
 export type AgentHubEnrollError =
@@ -58,7 +64,7 @@ export interface AgentHubProbe {
   hubVersion: string | null;
 }
 /** Device-side view of the Hub connection for the Endpoint & Exposure section (no credential; pins are public keys). */
-export type AgentDiagnosticsState = 'standalone' | 'enrolled' | 'unreachable' | 'untrusted-certificate' | 'incompatible' | 'revoked';
+export type AgentDiagnosticsState = 'standalone' | 'enrolled' | 'unreachable' | 'untrusted-certificate' | 'incompatible' | 'revoked' | 'authority-changed';
 export interface AgentDiagnostics {
   state: AgentDiagnosticsState;
   /** The enrolled Hub URL without query or fragment; null when standalone. */
@@ -80,7 +86,7 @@ export interface AgentHubOwnerStatus { signedIn: boolean; displayName: string | 
 export interface AgentHubStatusEvent { type: 'event'; event: 'hub.status'; status: AgentHubStatus }
 
 /** Device-facing sync phase (mirrors `SyncPhase` in `@dude/sync`; contracts cannot depend on it). */
-export type AgentSyncPhase = 'standalone' | 'needs-first-sync' | 'idle' | 'syncing' | 'offline' | 'paused' | 'revoked' | 'hub-outdated' | 'error';
+export type AgentSyncPhase = 'standalone' | 'needs-first-sync' | 'idle' | 'syncing' | 'offline' | 'paused' | 'revoked' | 'hub-outdated' | 'needs-reconcile' | 'error';
 export interface AgentSyncStatus {
   phase: AgentSyncPhase; lastSyncAt: string | null; cursor: number; headRevision: number | null;
   pending: number; held: number; quarantined: number; stranded: number; conflicts: number;

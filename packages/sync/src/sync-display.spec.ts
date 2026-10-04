@@ -18,6 +18,10 @@ describe('describeSync web variant', () => {
     expect(describeSync(status({ phase: 'syncing' }), web)?.kind).toBe('syncing');
   });
 
+  it('says the Hub changed when the device must reconcile', () => {
+    expect(describeSync(status({ phase: 'needs-reconcile' }))).toMatchObject({ kind: 'attention', label: 'Hub changed' });
+  });
+
   it('keeps the desktop wording by default', () => {
     expect(describeSync(status({}))?.label).toBe('Synced');
     expect(describeSync(status({ phase: 'offline' }))?.label).toBe('Offline');

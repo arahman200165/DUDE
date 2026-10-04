@@ -111,6 +111,7 @@ export async function enrollDevice(pairingString: string, deps: EnrollDeps): Pro
       publicKey: key.publicKeyRaw,
       wrappedPrivateKey: key.wrappedPrivateKey,
       enrolledAt: response.registeredAt,
+      authorityEpoch: hello.authorityEpoch ?? 1,
     }, deps.now());
     // Revisions, bases and the cursor belonged to any previous enrollment; the first sync preview runs again for this one.
     resetHubBookkeeping(deps.db);

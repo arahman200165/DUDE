@@ -18,7 +18,7 @@ describe('device identity', () => {
     const first = a.device;
     expect(first.displayName).toBe('Windows PC');
     expect(first.hubEligible).toBe(true);
-    expect(first.storeSchemaVersion).toBe(4);
+    expect(first.storeSchemaVersion).toBe(5);
     a.close();
     const b = openReady(dir);
     expect(b.device.deviceId).toBe(first.deviceId);

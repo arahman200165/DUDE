@@ -1,7 +1,7 @@
 import { HubAdminError, type HubStatus } from '../../../../core/hub/hub-admin.port';
 import type { StatusGlyphKind } from '../../../../shared/components/status-glyph/status-glyph';
 
-export type HubConnectionKind = 'standalone' | 'connecting' | 'online' | 'offline' | 'revoked' | 'incompatible' | 'untrusted-tls';
+export type HubConnectionKind = 'standalone' | 'connecting' | 'online' | 'offline' | 'revoked' | 'incompatible' | 'untrusted-tls' | 'authority-changed';
 
 export interface HubConnectionCopy {
   readonly label: string;
@@ -20,6 +20,7 @@ export const HUB_CONNECTION_COPY: Readonly<Record<HubConnectionKind, HubConnecti
   revoked: { label: 'Revoked by the Hub', glyph: 'error', tone: 'text-error', detail: 'This device was revoked. Pair it again to reconnect.' },
   incompatible: { label: 'Incompatible version', glyph: 'warning', tone: 'text-warning', detail: 'This DUDE and the Hub cannot talk to each other. Update whichever one is older, then this reconnects by itself.' },
   'untrusted-tls': { label: 'Untrusted Hub certificate', glyph: 'error', tone: 'text-error', detail: "The Hub's certificate no longer matches. Pair again with a fresh pairing string." },
+  'authority-changed': { label: 'Hub changed', glyph: 'warning', tone: 'text-warning', detail: 'This is not the Hub this device was paired with, or it was retired. Sync is stopped and nothing on this device was changed. Reconnect this device to continue.' },
 };
 
 export function connectionKind(status: HubStatus): HubConnectionKind {

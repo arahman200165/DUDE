@@ -70,7 +70,7 @@ describe('probeHello', () => {
 });
 
 describe('buildAgentDiagnostics', () => {
-  const status = (state: AgentHubStatus['state']): AgentHubStatus => ({ state, lastError: null, lastContactAt: null, ownerSignedIn: false, enrollment: null, hubVersion: '0.9.0', recoveryTrusted: null, pendingOps: 0 });
+  const status = (state: AgentHubStatus['state']): AgentHubStatus => ({ state, lastError: null, lastContactAt: null, ownerSignedIn: false, enrollment: null, hubVersion: '0.9.0', recoveryTrusted: null, pendingOps: 0, authority: null });
   const row = { state: 'enrolled', hubUrl: 'https://hub.local:47600/?x=1', spkiActive: SPKI, spkiNext: NEXT, proxySpkis: ['C'.repeat(43)], lastContactAt: '2026-01-01T00:00:00.000Z' } as unknown as HubEnrollmentRow;
   const sync = { phase: 'paused', cursor: 7, pending: 2, conflicts: 1, quarantined: 3 } as unknown as AgentSyncStatus;
   const now = () => new Date('2026-01-01T00:00:10.000Z');

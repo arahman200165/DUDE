@@ -22,7 +22,7 @@ import { applyPushResults, buildPushBatch } from './push-results.js';
 import { discardQuarantined, exportQuarantined, retryQuarantined } from './quarantine.js';
 import { applySnapshotPage, beginSnapshot, finishSnapshot } from './rebase.js';
 import { computeSyncStatus } from './status.js';
-import { FirstSyncError, firstSyncApply, firstSyncPreview } from './first-sync.js';
+import { FirstSyncError, firstSyncApply, firstSyncPreview, takeRecoverySnapshot } from './first-sync.js';
 import type { HubSnapshot } from './first-sync.js';
 import { StandaloneError, convertToStandalone, standaloneApply, standalonePreview } from './standalone.js';
 import type { StandaloneResult } from './standalone.js';
@@ -106,6 +106,8 @@ type FailureKind = 'network' | 'error' | 'fatal';
 interface Failure { kind: FailureKind; message: string }
 
 const REBASE_META = 'sync_rebase_pending';
+/** `reason:hubInstanceId:epoch` of the last changed authority a recovery snapshot was taken for (PD-073). */
+const AUTHORITY_SNAPSHOT_META = 'authority_snapshot_taken';
 const MAX_PUSH_BATCHES_PER_CYCLE = 50;
 const DISCARD_TOKEN_TTL_MS = 5 * 60_000;
 const FIRST_SYNC_TTL_MS = 10 * 60_000;
@@ -114,7 +116,7 @@ const STANDALONE_TTL_MS = 2 * 60_000;
 function classify(error: unknown): Failure {
   if (error instanceof HubManagerError) {
     if (error.code === 'hub-unreachable') return { kind: 'network', message: error.message };
-    if (error.code === 'enrollment-revoked' || error.code === 'not-enrolled' || error.code === 'tls-untrusted') return { kind: 'fatal', message: error.message };
+    if (error.code === 'enrollment-revoked' || error.code === 'not-enrolled' || error.code === 'tls-untrusted' || error.code === 'authority-changed') return { kind: 'fatal', message: error.message };
     return { kind: 'error', message: error.message };
   }
   if (error instanceof HubApiError) return { kind: 'error', message: `The Hub answered ${error.status} (${error.code}).` };
@@ -175,6 +177,7 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
     const hub = manager.status();
     if (!hub.enrollment || hub.state === 'standalone') return 'standalone';
     if (hub.state === 'revoked' || hub.enrollment.state === 'revoked') return 'revoked';
+    if (hub.state === 'authority-changed') return 'needs-reconcile';
     if (hub.state === 'incompatible' || hub.state === 'untrusted-tls') return 'error';
     const protocol = manager.hubProtocol();
     if (protocol !== null && !hubSupportsSync(protocol)) return 'hub-outdated';
@@ -194,10 +197,11 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
   }
 
   function liveError(phase: SyncPhase): string | null {
-    if (failure !== null && phase !== 'standalone') return failure.message;
+    if (failure !== null && phase !== 'standalone' && phase !== 'needs-reconcile') return failure.message;
     const hub = manager.status();
     if ((phase === 'error' || phase === 'offline' || phase === 'revoked') && hub.lastError) return hub.lastError;
     if (phase === 'hub-outdated') return 'The Hub is too old to sync. Update the Hub.';
+    if (phase === 'needs-reconcile') return hub.lastError ?? 'The Hub changed. Reconnect this device to continue.';
     if (deferredSeen > 0) return 'needs-update';
     return null;
   }
@@ -431,7 +435,22 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
 
   // --- Reactions --------------------------------------------------------------------------------------------------------
 
+  /** Once per changed authority (and across restarts): a full copy of the store before anything can be reconciled. */
+  function snapshotForAuthority(hub: AgentHubStatus): void {
+    if (hub.state !== 'authority-changed' || !deps.backupDir) return;
+    const key = `${hub.authority?.reason ?? 'unknown'}:${hub.authority?.hubInstanceId ?? ''}:${hub.authority?.epoch ?? ''}`;
+    if (getMeta(db, AUTHORITY_SNAPSHOT_META) === key) return;
+    try {
+      const file = takeRecoverySnapshot(db, deps.backupDir, deps.now(), 'authority-changed');
+      setMeta(db, AUTHORITY_SNAPSHOT_META, key);
+      log('sync: Hub authority changed, recovery snapshot taken', { reason: hub.authority?.reason, file });
+    } catch (error) {
+      log('sync: recovery snapshot for a changed Hub failed', error instanceof Error ? error.message : 'unknown');
+    }
+  }
+
   function onHubChange(hub: AgentHubStatus): void {
+    snapshotForAuthority(hub);
     if (hub.state === 'revoked') {
       // Nothing more can be sent from this enrollment: pending work is stranded until the device is paired again.
       if (setStatusAll(db, ['pending'], 'stranded') > 0) log('sync: pending ops stranded by revocation');
@@ -454,6 +473,7 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
       pollTimer = setInterval(() => trigger(0), intervals.pollMs);
       pollTimer.unref();
       if (lastHubState === 'revoked') setStatusAll(db, ['pending'], 'stranded');
+      snapshotForAuthority(manager.status());
       if (lastHubState === 'online') trigger(0, true);
       emitStatus();
     },

@@ -47,6 +47,8 @@ export function describeSync(status: SyncStatus | null, options: DescribeSyncOpt
       return { kind: 'revoked', label: 'Revoked', detail: 'This device was revoked by the Hub. Sync is stopped and your data is kept.' };
     case 'needs-first-sync':
       return { kind: 'needs-first-sync', label: 'Set up sync', detail: 'Review what will sync before this device starts syncing.' };
+    case 'needs-reconcile':
+      return { kind: 'attention', label: 'Hub changed', detail: 'Hub changed: reconnect to continue. Sync is stopped and nothing on this device was changed.' };
     case 'hub-outdated':
       return { kind: 'attention', label: 'Hub update needed', detail: 'The Hub is too old to sync with this version of DUDE.' };
     case 'error':

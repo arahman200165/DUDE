@@ -4,17 +4,19 @@ import { WebSocket } from 'ws';
 import { Value } from 'typebox/value';
 import { HubApiError, HubProtocolError, createHubClient } from '@dude/api-client';
 import type { HubClient, HubTransport } from '@dude/api-client';
-import type { AgentHubState, AgentHubStatus } from '@dude/contracts';
+import type { AgentHubAuthorityReason, AgentHubState, AgentHubStatus } from '@dude/contracts';
 import {
   DEVICE_TOKEN_TTL_MS, HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION, HUB_REALTIME_PATH, REALTIME_CLOSE_CODES, REALTIME_HEARTBEAT_INTERVAL_MS,
   RealtimeServerMessage, deviceAuthMessage, ownerRecoveryMessage,
 } from '@dude/contracts/hub';
 import type { Db } from '@dude/sqlite-store';
-import { addProxyPin, clearEnrollment, getEnrollment, markRevoked, promoteNextPin, publicEnrollment, setNextPin, setProxyPins, touchContact } from '../store/repos/hub-enrollment.repo.js';
+import { addProxyPin, clearEnrollment, getEnrollment, markRevoked, promoteNextPin, publicEnrollment, raiseAuthorityEpoch, setNextPin, setProxyPins, touchContact } from '../store/repos/hub-enrollment.repo.js';
 import type { HubEnrollmentRow } from '../store/repos/hub-enrollment.repo.js';
 import { unsentOpCounts } from '../store/repos/outbox.repo.js';
 import { loadDeviceKey } from '../native/device-key.js';
 import type { DpapiPort } from '../native/windows-sys-client.js';
+import { evaluateAuthority } from './authority-check.js';
+import type { SeenAuthority } from './authority-check.js';
 import { HubManagerError } from './errors.js';
 import { createOwnerSession } from './owner-session.js';
 import type { OwnerSession } from './owner-session.js';
@@ -98,6 +100,11 @@ export const isTlsError = (error: unknown): boolean => {
   return code === PIN_MISMATCH_CODE || (typeof code === 'string' && TLS_ERROR_CODES.test(code));
 };
 const throttled = (error: unknown): boolean => error instanceof HubApiError && (error.status === 429 || error.status === 423);
+const AUTHORITY_MESSAGES: Readonly<Record<AgentHubAuthorityReason, string>> = {
+  transferred: 'This Hub was retired and its role moved to another Hub. Reconnect this device to continue; nothing on this device was changed.',
+  'instance-changed': 'This is a different Hub than the one this device was paired with (it may have been restored). Reconnect this device to continue; nothing on this device was changed.',
+  'epoch-lower': 'This Hub reports an older state than one this device has already seen. Reconnect this device to continue; nothing on this device was changed.',
+};
 const isAuthRejected = (error: unknown): boolean => error instanceof HubApiError && (error.status === 401 || error.status === 403);
 
 /**
@@ -128,19 +135,23 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
   let hubVersion: string | null = null;
   let recoveryTrusted: boolean | null = null;
   let metaFlight: Promise<void> | null = null;
+  let authority: AgentHubStatus['authority'] = null;
 
   const status = (): AgentHubStatus => {
     const enrollment = publicEnrollment(deps.db);
-    return { state, lastError, lastContactAt: enrollment?.lastContactAt ?? null, ownerSignedIn: owner.status().signedIn, enrollment, hubVersion, recoveryTrusted, pendingOps: unsentOpCounts(deps.db).total };
+    return { state, lastError, lastContactAt: enrollment?.lastContactAt ?? null, ownerSignedIn: owner.status().signedIn, enrollment, hubVersion, recoveryTrusted, pendingOps: unsentOpCounts(deps.db).total, authority };
   };
   const emit = (): void => {
     const snapshot = status();
     for (const listener of [...listeners]) { try { listener(snapshot); } catch { /* a listener must not break the connection */ } }
   };
   const setState = (next: AgentHubState, error: string | null = null): void => {
+    // A changed Hub stays reported until `start()` re-checks it: late connecting/online/offline updates must not hide it.
+    if (state === 'authority-changed' && !running && (next === 'connecting' || next === 'online' || next === 'offline')) return;
     if (state === next && lastError === error) return;
     state = next;
     lastError = error;
+    if (next !== 'authority-changed') authority = null;
     emit();
   };
 
@@ -171,6 +182,8 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
   };
 
   async function call<T>(fn: (api: HubClient) => Promise<T>): Promise<T> {
+    // No Hub traffic while the Hub is not the one this device enrolled with; `start()` re-checks it.
+    if (state === 'authority-changed' && !running) throw new HubManagerError('authority-changed', lastError ?? AUTHORITY_MESSAGES['instance-changed']);
     const enrollment = requireEnrollment();
     let peer: string | null = null;
     const api = createHubClient(makeTransport(targetOf(enrollment, (spki) => { peer = spki; })), { clientProtocol: HUB_PROTOCOL_VERSION, minHubProtocol: HUB_MIN_CLIENT_PROTOCOL });
@@ -216,6 +229,7 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
         const message = deviceAuthMessage({ hubInstanceId: enrollment.hubInstanceId, nonce: challenge.nonce, deviceId });
         const signature = sign(null, Buffer.from(message, 'utf8'), key).toString('base64url');
         const issued = await call((api) => api.deviceToken({ deviceId, nonce: challenge.nonce, signature }));
+        if (!authorityHolds({ authorityEpoch: issued.authorityEpoch })) throw new HubManagerError('authority-changed', AUTHORITY_MESSAGES[authority?.reason ?? 'epoch-lower']);
         token = { value: issued.accessToken, refreshAtMs: deps.now().getTime() + timings.tokenRefreshFraction * DEVICE_TOKEN_TTL_MS };
         return issued.accessToken;
       } catch (error) {
@@ -234,6 +248,8 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
   }
 
   async function confirmRevoked(): Promise<ConfirmResult> {
+    // A restored or replaced Hub rejects the signed token request like a revoked device would: rule that out first.
+    if (!await helloHolds()) return 'unknown';
     let fresh: string;
     try { fresh = await getToken(true); } catch (error) { return isAuthRejected(error) ? 'revoked' : 'unknown'; }
     try {
@@ -242,6 +258,32 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
     } catch (error) {
       return isAuthRejected(error) ? 'revoked' : 'unknown';
     }
+  }
+
+  /** Stops every Hub call and the reconnect loop; local data, the outbox and the enrollment are left exactly as they are (PD-073). */
+  function authorityChanged(reason: AgentHubAuthorityReason, hubInstanceId: string | null, epoch: number | null): void {
+    stopLoop();
+    authority = { reason, hubInstanceId, epoch };
+    state = 'authority-changed';
+    lastError = AUTHORITY_MESSAGES[reason];
+    emit();
+  }
+
+  /** Compares what the Hub reported with the enrollment: true when it is still the same authority (a higher epoch is recorded). */
+  function authorityHolds(seen: SeenAuthority): boolean {
+    const enrollment = getEnrollment(deps.db);
+    if (!enrollment || enrollment.state !== 'enrolled') return true;
+    const verdict = evaluateAuthority({ hubInstanceId: enrollment.hubInstanceId, authorityEpoch: enrollment.authorityEpoch }, seen);
+    if (verdict.kind === 'changed') { authorityChanged(verdict.reason, verdict.hubInstanceId, verdict.epoch); return false; }
+    if (verdict.epoch > enrollment.authorityEpoch) raiseAuthorityEpoch(deps.db, verdict.epoch, deps.now());
+    return true;
+  }
+
+  /** A credential-free hello compared with the enrollment, before anything that carries a credential. A failed hello does not decide. */
+  async function helloHolds(): Promise<boolean> {
+    let hello: Awaited<ReturnType<HubClient['hello']>>;
+    try { hello = await call((api) => api.hello()); } catch { return state !== 'authority-changed'; }
+    return authorityHolds({ hubInstanceId: hello.hubInstanceId, authorityEpoch: hello.authorityEpoch, authorityState: hello.authorityState });
   }
 
   function revokedNow(): void {
@@ -291,6 +333,7 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
       let changed = false;
       try {
         const hello = await call((api) => api.hello());
+        if (gen !== generation || !authorityHolds({ hubInstanceId: hello.hubInstanceId, authorityEpoch: hello.authorityEpoch, authorityState: hello.authorityState })) return;
         if (hello.hubVersion !== hubVersion) { hubVersion = hello.hubVersion; changed = true; }
         const info = await deviceCall((api, value) => api.deviceSelf(value));
         if (gen === generation && info.recoveryTrusted !== recoveryTrusted) { recoveryTrusted = info.recoveryTrusted; changed = true; }
@@ -350,6 +393,7 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
     const enrollment = getEnrollment(deps.db);
     if (!enrollment || enrollment.state !== 'enrolled') { stopLoop(); setState(enrollment ? 'revoked' : 'standalone'); return; }
     if (state !== 'offline') setState('connecting', null);
+    if (!await helloHolds() || gen !== generation || !running) return;
     let value: string;
     try {
       value = await getToken();
@@ -394,6 +438,7 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
       try { parsed = JSON.parse(data.toString('utf8')); } catch { return; }
       if (!Value.Check(RealtimeServerMessage, parsed)) return;
       if (parsed.type === 'welcome') {
+        if (!authorityHolds({ authorityEpoch: parsed.authorityEpoch })) return;
         welcomed = true;
         welcomeProtocol = parsed.protocolVersion;
         attempt = 0;

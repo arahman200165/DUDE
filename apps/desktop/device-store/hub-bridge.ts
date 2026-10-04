@@ -63,6 +63,7 @@ export function toDesktopStatus(status: AgentHubStatus): DesktopHubStatus {
     recoveryTrusted: enrollment ? status.recoveryTrusted : null,
     reachable: enrollment ? (status.state === 'online' ? true : status.state === 'offline' ? false : null) : null,
     ...(enrollment && status.state !== 'standalone' && status.state !== 'revoked' ? { connection: status.state } : {}),
+    ...(status.authority ? { authority: status.authority } : {}),
     lastError: status.lastError,
     lastContactAt: status.lastContactAt,
   };

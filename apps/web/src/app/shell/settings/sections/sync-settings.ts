@@ -46,7 +46,7 @@ export class SyncSettings {
   protected readonly phase = computed(() => this.status()?.phase ?? null);
   protected readonly syncingAllowed = computed(() => {
     const phase = this.phase();
-    return phase !== null && phase !== 'standalone' && phase !== 'needs-first-sync' && phase !== 'revoked' && phase !== 'hub-outdated';
+    return phase !== null && phase !== 'standalone' && phase !== 'needs-first-sync' && phase !== 'revoked' && phase !== 'hub-outdated' && phase !== 'needs-reconcile';
   });
   protected readonly lastSync = computed(() => {
     const at = this.status()?.lastSyncAt;
