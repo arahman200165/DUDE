@@ -45,6 +45,7 @@ import { createHostGuard, registerHostGuard } from '../security/host-guard.js';
 import { createRateLimiter, registerRateLimit, withPrincipalLimit } from '../security/rate-limit.js';
 import { noteFloodHit, registerIpBlock } from '../security/ip-block.js';
 import { createHstsPolicy } from '../security/hsts.js';
+import { registerTransferFence } from '../security/transfer-fence.js';
 import { trustProxyFor } from '../security/trusted-proxy.js';
 import type { RateLimiterOptions } from '../security/rate-limit.js';
 import { registerRequestGuard } from '../security/request-guard.js';
@@ -106,6 +107,8 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   const hstsPolicy = createHstsPolicy({ db: options.hub.db, tlsDir: options.paths.tlsDir, proxy: proxy !== undefined });
   registerSecurityHeaders(app, { hsts: hstsPolicy });
   const limiter = createRateLimiter({ now, ...options.rateLimit });
+  // A transferred Hub refuses every API request but `hello` before any other hook sees it (PD-071): no flood strike, no audit, no auth.
+  registerTransferFence(app, options.hub.db);
   registerIpBlock(app, options.hub.db, now);
   registerRateLimit(app, limiter, undefined, { onFlood: (ip) => noteFloodHit(options.hub.db, ip, now()) });
   const hostGuard = createHostGuard({ bind: options.config.bind ?? 'loopback', names: options.config.exposure?.names ?? [], ...(proxy ? { proxy } : {}), ...(options.extraHosts ? { extraHosts: options.extraHosts } : {}) }, getPort);

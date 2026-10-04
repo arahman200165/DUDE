@@ -9,6 +9,10 @@ import { createScrubbedDbSnapshot } from './snapshot.js';
 
 /** Consequence classes of creating a backup (PD-074): it writes a file and handles a secret (the passphrase and the data). */
 export const BACKUP_CONSEQUENCE_CLASS = ['filesystem-write', 'secret-management'] as const;
+/** `backup create --for-transfer` also retires the Hub (it stops serving), which is a system-configuration change. */
+export const BACKUP_TRANSFER_CONSEQUENCE_CLASS = [...BACKUP_CONSEQUENCE_CLASS, 'system-config'] as const;
+/** `backup reactivate` is tagged like a transfer (PD-074: "transfer and reactivate add system-config"), which over-classifies rather than under-classifies. */
+export const BACKUP_REACTIVATE_CONSEQUENCE_CLASS = BACKUP_TRANSFER_CONSEQUENCE_CLASS;
 
 export const BACKUP_DB_FILE = 'dude.db';
 export const BACKUP_CONFIG_FILE = 'hub.json';

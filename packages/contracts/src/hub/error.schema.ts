@@ -3,6 +3,8 @@ import Type, { type Static } from 'typebox';
 export const HUB_ERROR_CODES = [
   'bad-request', 'unauthorized', 'forbidden', 'not-found', 'conflict',
   'rate-limited', 'locked', 'step-up-required', 'unsupported-protocol', 'payload-too-large', 'internal',
+  /** HTTP 503: the Hub was transferred to another machine and is read-only (PD-071). */
+  'hub-transferred',
 ] as const;
 export type HubErrorCode = (typeof HUB_ERROR_CODES)[number];
 

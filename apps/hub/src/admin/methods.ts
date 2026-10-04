@@ -84,6 +84,8 @@ export interface AdminMethodContext {
   backupDeps?: BackupDeps;
   /** Protects the derived key behind scheduled backups (default: DPAPI on Windows, a 0600 file elsewhere). Key use: the schedule commands and the scheduler only. */
   scheduleKeyProtector?: CaKeyProtector;
+  /** Called once after `backup create --for-transfer` retired the Hub (31G): the server closes every realtime socket with code 4004. */
+  onTransferred?: () => void;
 }
 
 /** Validates the Windows host facts the elevated CLI sends with `network.mode.set`; anything malformed is ignored (treated as not inspected). */

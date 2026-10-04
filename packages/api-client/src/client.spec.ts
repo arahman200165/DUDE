@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createHubClient } from './client.js';
-import { HubApiError, HubProtocolError } from './errors.js';
+import { HubApiError, HubProtocolError, isHubTransferredError } from './errors.js';
 import type { HubRequest, HubResponse, HubTransport } from './transport.js';
 
 const hello = {
@@ -24,6 +24,13 @@ describe('createHubClient', () => {
     const t = fake({ status: 423, body: { error: { code: 'locked', message: 'busy' } } });
     await expect(createHubClient(t, opts).hello()).rejects.toMatchObject({ name: 'HubApiError', status: 423, code: 'locked', message: 'busy' });
     await expect(createHubClient(t, opts).hello()).rejects.toBeInstanceOf(HubApiError);
+  });
+  it('surfaces a transferred Hub as a distinct error', async () => {
+    const t = fake({ status: 503, body: { error: { code: 'hub-transferred', message: 'This Hub was transferred to another machine and is read-only.' } } });
+    const error = await createHubClient(t, opts).hello().catch((e: unknown) => e);
+    expect(isHubTransferredError(error)).toBe(true);
+    expect(isHubTransferredError(new HubApiError(503, 'internal', 'x'))).toBe(false);
+    expect(isHubTransferredError(new Error('x'))).toBe(false);
   });
   it('throws HubProtocolError for invalid success bodies and malformed errors', async () => {
     await expect(createHubClient(fake({ body: { ...hello, service: 'x' } }), opts).hello()).rejects.toBeInstanceOf(HubProtocolError);

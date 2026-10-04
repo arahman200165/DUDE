@@ -4,22 +4,27 @@ import path from 'node:path';
 import { BackupError, MAX_BACKUP_PLAINTEXT_BYTES, backupFileName, deriveBackupKey, openBackup } from '@dude/hub-backup';
 import type { BackupManifest } from '@dude/hub-backup';
 import { BACKUP_LAST_META, backupFailureCode, readBackupLast, writeBackupLast } from '../backup/backup-state.js';
-import { BACKUP_CONSEQUENCE_CLASS, createBackupFile } from '../backup/create-backup.js';
+import { BACKUP_CONSEQUENCE_CLASS, BACKUP_REACTIVATE_CONSEQUENCE_CLASS, BACKUP_TRANSFER_CONSEQUENCE_CLASS, createBackupFile } from '../backup/create-backup.js';
 import { nodeBackupDeps, validateBackupPassphrase } from '../backup/kdf.js';
 import { listBackups } from '../backup/retention.js';
 import { clearScheduleKey, defaultScheduleKeyProtector, saveScheduleKey, scheduleKeyExists } from '../backup/schedule-key.js';
 import { COUNTED_TABLES } from '../backup/snapshot.js';
 import { applyBackupScheduleChange, loadOrCreateHubConfig, writeHubConfig, BACKUP_INTERVAL_HOURS_MAX, BACKUP_RETENTION_MAX } from '../config/hub-config.js';
-import { getAuthorityEpoch } from '../hub/authority.js';
+import { transaction } from '@dude/sqlite-store';
+import { getAuthorityEpoch, getAuthorityState, setAuthority } from '../hub/authority.js';
 import { audit } from '../security/audit.js';
 import { ConfirmationStore } from '../security/confirmation-store.js';
 import { AdminError } from './admin-endpoint.js';
 import type { AdminMethod } from './admin-endpoint.js';
 import type { AdminMethodContext } from './methods.js';
 
-/** The ConfirmationStore action of `backup create` (also `--for-transfer`, later). Only the admin pipe can issue or consume it. */
+/** The ConfirmationStore action of `backup create` (also `--for-transfer`). Only the admin pipe can issue or consume it. */
 export const BACKUP_CREATE_ACTION = 'backup.create';
+/** The ConfirmationStore action of `backup reactivate`. Only the admin pipe can issue or consume it. */
+export const BACKUP_REACTIVATE_ACTION = 'backup.reactivate';
 const ADMIN_BINDING = 'cli';
+const RETIRE_WARNING = 'After the backup is written and verified, this Hub will refuse sign-in, sync, pairing and web access until it is reactivated.';
+const REACTIVATE_WARNING = 'If the backup was already restored elsewhere, there will be two Hubs. Devices follow the higher epoch.';
 const PASSPHRASE_WARNING = 'Losing the passphrase makes the backup unrecoverable.';
 const SAME_MACHINE_WARNING = 'A backup stored on the Hub\'s own machine does not protect against losing that machine. Keep a copy elsewhere.';
 const MAX_BACKUP_FILE_BYTES = MAX_BACKUP_PLAINTEXT_BYTES + 4 * 1024 * 1024;
@@ -82,8 +87,29 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
     if (problem !== null) throw new AdminError('bad-request', problem);
     return passphrase;
   };
-  const digestOf = (folder: string): string =>
-    createHash('sha256').update(JSON.stringify({ folder: comparable(folder, platform), hubInstanceId: context.hubInstanceId, epoch: getAuthorityEpoch(context.db) })).digest('hex');
+  const digestOf = (folder: string, forTransfer: boolean): string =>
+    createHash('sha256').update(JSON.stringify({ folder: comparable(folder, platform), hubInstanceId: context.hubInstanceId, epoch: getAuthorityEpoch(context.db), forTransfer })).digest('hex');
+  const reactivateDigest = (): string =>
+    createHash('sha256').update(JSON.stringify({ epoch: getAuthorityEpoch(context.db), hubInstanceId: context.hubInstanceId })).digest('hex');
+  /** `forTransfer` is absent (false) or a boolean; a Hub that already was transferred cannot start another transfer. */
+  const forTransferOf = (params: Record<string, unknown>): boolean => {
+    const value = params['forTransfer'];
+    if (value === undefined) return false;
+    if (typeof value !== 'boolean') throw new AdminError('bad-request', 'forTransfer must be true or false.');
+    if (value && getAuthorityState(context.db) === 'transferred') throw new AdminError('conflict', 'This Hub was already transferred. Reactivate it first.');
+    return value;
+  };
+  /**
+   * Retires the Hub after its transfer backup was written and verified: the state flips, the audit event is written in the
+   * same transaction (both or neither). Never throws a credential; the epoch is unchanged (reactivation is what bumps it).
+   */
+  const retire = (name: string): void => {
+    const epoch = getAuthorityEpoch(context.db);
+    transaction(context.db, () => {
+      setAuthority(context.db, { epoch, state: 'transferred' });
+      auditCli('backup.transferred', 'success', { epoch, name });
+    });
+  };
   const counts = (): Record<string, number> => {
     const out: Record<string, number> = {};
     for (const table of COUNTED_TABLES) {
@@ -100,17 +126,21 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
   return {
     /** Step one of `backup create`: validates the folder and reports what would be written. Writes nothing. */
     'backup.create.preview': (params) => {
-      const folder = resolveTargetFolder(record(params)['folder']);
+      const input = record(params);
+      const folder = resolveTargetFolder(input['folder']);
+      const forTransfer = forTransferOf(input);
       const at = now();
       const file = backupFileName(new Date(at));
       const onHubVolume = sameVolume(folder);
-      const confirmToken = confirmations.issue({ action: BACKUP_CREATE_ACTION, digest: digestOf(folder), bindingId: ADMIN_BINDING, now: at });
-      auditCli('backup.create-previewed', 'success', { file, onHubVolume });
+      const confirmToken = confirmations.issue({ action: BACKUP_CREATE_ACTION, digest: digestOf(folder, forTransfer), bindingId: ADMIN_BINDING, now: at });
+      auditCli('backup.create-previewed', 'success', { file, onHubVolume, ...(forTransfer ? { forTransfer } : {}) });
       return {
         confirmToken,
         expiresAt: ConfirmationStore.expiresAt(at),
-        consequenceClass: [...BACKUP_CONSEQUENCE_CLASS],
+        consequenceClass: [...(forTransfer ? BACKUP_TRANSFER_CONSEQUENCE_CLASS : BACKUP_CONSEQUENCE_CLASS)],
         summary: {
+          forTransfer,
+          ...(forTransfer ? { retiresThisHub: true, retireWarning: RETIRE_WARNING } : {}),
           folder,
           file,
           onHubVolume,
@@ -128,26 +158,69 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
       const confirmToken = input['confirmToken'];
       if (typeof confirmToken !== 'string' || confirmToken.length === 0) throw new AdminError('bad-request', 'confirmToken is required.');
       const folder = resolveTargetFolder(input['folder']);
+      const forTransfer = forTransferOf(input);
       const passphrase = passphraseOf(input);
-      const result = confirmations.consumeDetailed({ token: confirmToken, action: BACKUP_CREATE_ACTION, digest: digestOf(folder), bindingId: ADMIN_BINDING, now: now() });
+      const result = confirmations.consumeDetailed({ token: confirmToken, action: BACKUP_CREATE_ACTION, digest: digestOf(folder, forTransfer), bindingId: ADMIN_BINDING, now: now() });
       if (result === 'invalid') throw new AdminError('confirmation-required', 'The confirmation is missing, expired or already used.');
       if (result === 'digest-mismatch') throw new AdminError('conflict', 'The target folder or the Hub changed since the preview. Run the preview again.');
       const p = paths();
       try {
         const created = await createBackupFile({
           db: context.db, paths: p, hubVersion: context.hubVersion, hubInstanceId: context.hubInstanceId, authorityEpoch: getAuthorityEpoch(context.db),
-          forTransfer: false, targetDir: folder, credential: { passphrase }, deps: backupDeps(), workDir: path.join(p.backupsDir, '.tmp'),
+          forTransfer, targetDir: folder, credential: { passphrase }, deps: backupDeps(), workDir: path.join(p.backupsDir, '.tmp'),
         });
         const name = path.basename(created.file);
         writeBackupLast(context.db, { at: new Date(now()).toISOString(), ok: true, file: name, size: created.size });
-        auditCli('backup.created', 'success', { file: name, size: created.size, trigger: 'manual' });
-        return { file: created.file, name, size: created.size, sha256: created.sha256, manifest: summarizeManifest(created.manifest) };
+        auditCli('backup.created', 'success', { file: name, size: created.size, trigger: 'manual', ...(forTransfer ? { forTransfer } : {}) });
+        const summary = { file: created.file, name, size: created.size, sha256: created.sha256, manifest: summarizeManifest(created.manifest) };
+        if (!forTransfer) return { ...summary, retired: false };
+        // ONLY now, with the file written and hash-verified, may the Hub retire itself.
+        try {
+          retire(name);
+        } catch {
+          try { auditCli('backup.failed', 'failure', { reason: 'retire-failed', trigger: 'manual' }); } catch { /* best effort */ }
+          // The verified backup is KEPT and this Hub stays active: the operator can retry, or use the file as an ordinary backup.
+          throw new AdminError('backup-failed', 'The backup was written and verified, but the Hub could not be retired. The Hub is still active; the backup file was kept.', { reason: 'retire-failed', file: created.file });
+        }
+        // Sockets close after the state flipped; a failure here cannot undo the retirement (the fence and the socket handlers re-check the state).
+        try { context.onTransferred?.(); } catch { /* best effort */ }
+        return { ...summary, retired: true };
       } catch (error) {
+        if (error instanceof AdminError) throw error;
         const reason = backupFailureCode(error);
         try { writeBackupLast(context.db, { at: new Date(now()).toISOString(), ok: false, error: reason }); } catch { /* best effort */ }
         try { auditCli('backup.failed', 'failure', { reason, trigger: 'manual' }); } catch { /* best effort */ }
         throw new AdminError('backup-failed', `The backup could not be created (${reason}). Nothing was kept.`, { reason });
       }
+    },
+    /** Step one of `backup reactivate`: a transferred Hub only. Changes nothing. */
+    'backup.reactivate.preview': () => {
+      if (getAuthorityState(context.db) !== 'transferred') throw new AdminError('conflict', 'This Hub is not transferred.');
+      const at = now();
+      const authorityEpoch = getAuthorityEpoch(context.db);
+      const confirmToken = confirmations.issue({ action: BACKUP_REACTIVATE_ACTION, digest: reactivateDigest(), bindingId: ADMIN_BINDING, now: at });
+      return {
+        confirmToken,
+        expiresAt: ConfirmationStore.expiresAt(at),
+        consequenceClass: [...BACKUP_REACTIVATE_CONSEQUENCE_CLASS],
+        summary: { authorityEpoch, newEpoch: authorityEpoch + 1, warning: REACTIVATE_WARNING },
+      };
+    },
+    /** Step two: returns the Hub to service under the next epoch, so a device that followed the transfer keeps following the higher epoch. */
+    'backup.reactivate.apply': (params) => {
+      const confirmToken = record(params)['confirmToken'];
+      if (typeof confirmToken !== 'string' || confirmToken.length === 0) throw new AdminError('bad-request', 'confirmToken is required.');
+      const result = confirmations.consumeDetailed({ token: confirmToken, action: BACKUP_REACTIVATE_ACTION, digest: reactivateDigest(), bindingId: ADMIN_BINDING, now: now() });
+      if (result === 'invalid') throw new AdminError('confirmation-required', 'The confirmation is missing, expired or already used.');
+      if (result === 'digest-mismatch') throw new AdminError('conflict', 'The Hub changed since the preview. Run the preview again.');
+      if (getAuthorityState(context.db) !== 'transferred') throw new AdminError('conflict', 'This Hub is not transferred.');
+      const previousEpoch = getAuthorityEpoch(context.db);
+      const epoch = previousEpoch + 1;
+      transaction(context.db, () => {
+        setAuthority(context.db, { epoch, state: 'active' });
+        auditCli('backup.reactivated', 'success', { previousEpoch, epoch });
+      });
+      return { authorityEpoch: epoch, authorityState: 'active' };
     },
     /** Backups this Hub could have written in a folder (default: the scheduled folder, else `<root>/backups`). */
     'backup.list': (params) => {

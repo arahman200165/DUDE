@@ -10,6 +10,8 @@ export const REALTIME_MAX_MESSAGE_BYTES = 16 * 1024;
 export const REALTIME_CLOSE_CODES = {
   unauthorized: 4001,
   revoked: 4003,
+  /** The Hub was retired by `backup create --for-transfer` (PD-071); every socket is closed with this code. */
+  transferred: 4004,
   unsupportedProtocol: 4008,
   heartbeatTimeout: 4009,
   protocolError: 4010,

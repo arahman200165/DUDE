@@ -12,7 +12,7 @@ import type { HubEventMap } from '../auth/hub-events.js';
 import { resolveOwner } from '../auth/owner-auth.js';
 import { DEVICE_TOKEN_PREFIX, resolveDeviceToken } from '../devices/device-tokens.js';
 import { noteRevokedToken } from '../devices/revoked-attempts.js';
-import { getAuthorityEpoch } from '../hub/authority.js';
+import { getAuthorityEpoch, getAuthorityState } from '../hub/authority.js';
 import { touchLastSeen } from '../devices/registry.js';
 import { OWNER_BEARER_PREFIX } from '../auth/sessions.js';
 import { classifyCredential } from '../security/request-guard.js';
@@ -54,6 +54,8 @@ export interface RealtimeHub {
   connectionCount(): number;
   /** Open sockets by principal: owner (cookie or bearer) and device. */
   connectionCounts(): { owner: number; device: number };
+  /** Closes every open socket with `code` (a transferred Hub closes all of them with 4004, PD-071). Invalidates nothing else. */
+  closeAll(code: number, reason?: string): void;
 }
 
 declare module 'fastify' {
@@ -149,6 +151,9 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
       let device = 0;
       for (const c of connections) if (c.principal.kind === 'device') device += 1;
       return { owner: connections.size - device, device };
+    },
+    closeAll: (code, reason = '') => {
+      for (const conn of [...connections]) close(conn, code, reason);
     },
   };
   app.decorate('realtime', hub);
@@ -256,7 +261,8 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
     armIdle(timings.helloTimeoutMs, REALTIME_CLOSE_CODES.protocolError);
 
     const revalidate = setInterval(() => {
-      if (!principal.stillValid(options.now())) close(conn, REALTIME_CLOSE_CODES.unauthorized, 'credential no longer valid');
+      if (getAuthorityState(options.db) === 'transferred') close(conn, REALTIME_CLOSE_CODES.transferred, 'hub transferred');
+      else if (!principal.stillValid(options.now())) close(conn, REALTIME_CLOSE_CODES.unauthorized, 'credential no longer valid');
     }, timings.revalidateIntervalMs);
     revalidate.unref();
     conn.timers.push(revalidate);
@@ -270,6 +276,8 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
     socket.on('error', () => { /* the close handler cleans up */ });
 
     socket.on('message', (data: Buffer, isBinary: boolean) => {
+      // A socket that survived the transfer (or opened in the instant before it) answers nothing, not even a welcome (PD-071).
+      if (getAuthorityState(options.db) === 'transferred') { close(conn, REALTIME_CLOSE_CODES.transferred, 'hub transferred'); return; }
       const at = options.now();
       const cutoff = at - timings.rateLimit.windowMs;
       conn.recent = conn.recent.filter((t) => t > cutoff);

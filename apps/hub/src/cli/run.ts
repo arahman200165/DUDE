@@ -27,6 +27,7 @@ import { addressChangeNotice, createAddressWatch } from '../diagnostics/address-
 import { AdminCallError, callAdmin } from '../admin/admin-client.js';
 import { startAdminEndpoint } from '../admin/admin-endpoint.js';
 import { buildAdminMethods } from '../admin/methods.js';
+import { REALTIME_CLOSE_CODES } from '@dude/contracts/hub';
 import { ensureSetupToken } from '../auth/setup-token.js';
 import { audit } from '../security/audit.js';
 import { emitRevoked } from '../auth/hub-events.js';
@@ -273,6 +274,8 @@ export async function runCli(argv: readonly string[]): Promise<number> {
         diagnostics: (override) => server.hubDiagnostics(override),
         proxyPins: createProxyPins({ db: hub.db, announceNext: (spkiSha256) => server.hubEvents.emit('tls-next-pin', { spkiSha256, kind: 'proxy' }) }),
         onSessionsRevoked: (sessions) => emitRevoked(server, sessions, 'owner-reset'),
+        // 31G transfer: after the Hub retired itself, every realtime socket closes with 4004 (the HTTP fence already refuses new work).
+        onTransferred: () => server.realtime.closeAll(REALTIME_CLOSE_CODES.transferred, 'hub transferred'),
       }),
     });
   } catch (error) {

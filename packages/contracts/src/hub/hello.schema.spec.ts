@@ -34,7 +34,8 @@ describe('ErrorEnvelope', () => {
     expect(Value.Check(ErrorEnvelope, { code: 'x' })).toBe(false);
   });
   it('has a closed code list', () => {
-    expect(HUB_ERROR_CODES).toHaveLength(11);
+    expect(HUB_ERROR_CODES).toHaveLength(12);
+    expect(isHubErrorCode('hub-transferred')).toBe(true);
     expect(isHubErrorCode('locked')).toBe(true);
     expect(isHubErrorCode('weird')).toBe(false);
   });
