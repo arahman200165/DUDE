@@ -23,6 +23,7 @@ COPY packages/collab-protocol/package.json ./packages/collab-protocol/package.js
 COPY packages/contracts/package.json ./packages/contracts/package.json
 COPY packages/crypto/package.json ./packages/crypto/package.json
 COPY packages/domain/package.json ./packages/domain/package.json
+COPY packages/hub-backup/package.json ./packages/hub-backup/package.json
 COPY packages/persistence/package.json ./packages/persistence/package.json
 COPY packages/shared-types/package.json ./packages/shared-types/package.json
 COPY packages/sqlite-store/package.json ./packages/sqlite-store/package.json

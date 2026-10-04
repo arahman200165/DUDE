@@ -6,6 +6,7 @@
   "type": "module",
   "dependencies": {
     "@dude/contracts": "*",
+    "@dude/hub-backup": "*",
     "@dude/persistence": "*",
     "@dude/sqlite-store": "*",
     "@dude/sync": "*",
