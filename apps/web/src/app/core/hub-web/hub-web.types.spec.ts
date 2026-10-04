@@ -24,6 +24,8 @@ describe('classifyHubError', () => {
     expect(classifyHubError(apiError(409, 'not-attached')).kind).toBe('not-attached');
     expect(classifyHubError(apiError(426)).kind).toBe('incompatible');
     expect(classifyHubError(apiError(503)).kind).toBe('unreachable');
+    // A transferred Hub is retired, not down: never retried as an outage (PD-071).
+    expect(classifyHubError(apiError(503, 'hub-transferred')).kind).toBe('transferred');
     expect(classifyHubError(apiError(400)).kind).toBe('rejected');
   });
 });

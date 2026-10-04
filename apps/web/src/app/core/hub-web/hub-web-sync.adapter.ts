@@ -23,6 +23,8 @@ export function phaseOf(state: HubWebConnectionState, pulling: boolean): AgentSy
     case 'unreachable': return 'offline';
     case 'session-expired': return 'revoked';
     case 'incompatible': return 'hub-outdated';
+    // A transferred Hub is retired: the same blocked phase a desktop reaches when its Hub's authority moved (PD-073).
+    case 'transferred': return 'needs-reconcile';
   }
 }
 

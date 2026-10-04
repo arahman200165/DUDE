@@ -29,13 +29,15 @@ export interface HubWebBoot {
 
 export const HUB_WEB_BOOT = new InjectionToken<HubWebBoot | null>('DUDE Hub web boot', { providedIn: 'root', factory: () => null });
 
-export type HubWebErrorKind = 'unauthorized' | 'cursor-expired' | 'not-attached' | 'incompatible' | 'unreachable' | 'rejected';
+export type HubWebErrorKind = 'unauthorized' | 'cursor-expired' | 'not-attached' | 'incompatible' | 'unreachable' | 'rejected' | 'transferred';
 
 /** Classifies an api-client failure by shape, so this file needs no runtime import of the client. */
 export function classifyHubError(error: unknown): { kind: HubWebErrorKind; message: string } {
   const e = error as { name?: unknown; status?: unknown; code?: unknown; message?: unknown } | null;
   const message = typeof e?.message === 'string' ? e.message : 'The Hub could not be reached.';
   if (e?.name === 'HubApiError' && typeof e.status === 'number') {
+    // A transferred Hub is retired for good (PD-071): a 503 that must never be mistaken for an outage and retried forever.
+    if (e.status === 503 && e.code === 'hub-transferred') return { kind: 'transferred', message };
     if (e.status === 401) return { kind: 'unauthorized', message };
     if (e.status === 410 || e.code === 'cursor-expired') return { kind: 'cursor-expired', message };
     if (e.status === 409 && e.code === 'not-attached') return { kind: 'not-attached', message };

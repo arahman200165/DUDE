@@ -198,6 +198,10 @@ export class HubRealtimeClient {
       this.expire();
       return;
     }
+    if (code === REALTIME_CLOSE_CODES.transferred) {
+      this.lockTransferred();
+      return;
+    }
     if (code === REALTIME_CLOSE_CODES.unsupportedProtocol) {
       this.deps.engine.connection.set('incompatible');
       return;
@@ -247,6 +251,16 @@ export class HubRealtimeClient {
     this.deps.goToSignIn();
   }
 
+  /**
+   * The Hub was retired by an authority transfer (PD-071): stop for good, with no reconnect and no polling. The connection
+   * state is what locks the page (the runtime listens to it and shows the "This Hub was moved" notice).
+   */
+  private lockTransferred(): void {
+    if (this.stopped) return;
+    this.deps.engine.connection.set('transferred');
+    this.stop();
+  }
+
   // --- pulling --------------------------------------------------------------------------------------------------
 
   /** Pulls the change feed from the cursor to the head. Calls while a pull runs are folded into one follow-up pull. */
@@ -279,6 +293,7 @@ export class HubRealtimeClient {
         if (kind === 'unauthorized') this.expire();
         else if (kind === 'cursor-expired') await this.resnapshot();
         else if (kind === 'incompatible') this.deps.engine.connection.set('incompatible');
+        else if (kind === 'transferred') this.lockTransferred();
         else if (!this.welcomed) this.deps.engine.connection.set(this.failures >= FAILURES_BEFORE_UNREACHABLE ? 'unreachable' : 'reconnecting');
         return;
       }
@@ -335,7 +350,9 @@ export class HubRealtimeClient {
       this.cursor = cursor;
       if (changes.length > 0) this.deps.apply(changes);
     } catch (error) {
-      if (classifyHubError(error).kind === 'unauthorized') this.expire();
+      const { kind } = classifyHubError(error);
+      if (kind === 'unauthorized') this.expire();
+      else if (kind === 'transferred') this.lockTransferred();
     }
   }
 
@@ -350,7 +367,9 @@ export class HubRealtimeClient {
       const changed = (Object.keys(access) as (keyof HubWebAccess)[]).some((id) => access[id] !== this.deps.access[id]);
       if (changed) this.deps.reload();
     } catch (error) {
-      if (classifyHubError(error).kind === 'unauthorized') this.expire();
+      const { kind } = classifyHubError(error);
+      if (kind === 'unauthorized') this.expire();
+      else if (kind === 'transferred') this.lockTransferred();
     }
   }
 

@@ -1,4 +1,5 @@
 import type { HubRequest, HubResponse, HubTransport } from '@dude/api-client';
+import { isTransferredResponse, noteHubTransferred } from './hub-transferred-signal';
 
 export const HUB_CSRF_HEADER = 'X-DUDE-CSRF';
 
@@ -45,6 +46,8 @@ export function createFetchHubTransport(options: FetchHubTransportOptions): Fetc
           body = undefined;
         }
       }
+      // A transferred Hub answers 503 `hub-transferred` to everything but `hello`; tell the page once, wherever it was seen.
+      if (isTransferredResponse(res.status, body)) noteHubTransferred();
       return { status: res.status, headers: responseHeaders, body };
     },
   };

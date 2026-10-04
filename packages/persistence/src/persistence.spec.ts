@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   uuidv7, isUuid, defaultDisplayName, validateDisplayName, decodeDeviceRecord, decodeEnvironmentRecord,
-  resolveToolKeyScope, maskSecretHint, isSecretPurpose, SECRET_PURPOSES, SETTING_DEFINITIONS, findSettingDefinition,
+  resolveToolKeyScope, maskSecretHint, isSecretPurpose, SECRET_PURPOSES, SETTING_DEFINITIONS, findSettingDefinition, resolveKvScope,
   type DeviceRecord, type DevicePlatform,
 } from './index.js';
 import {
@@ -104,6 +104,8 @@ describe('settings definitions and secrets', () => {
     for (const d of SETTING_DEFINITIONS) expect(d.key).toBe(`${d.namespace}:${d.name}`);
     expect(findSettingDefinition('settings.ai', 'apiKey')).toMatchObject({ storage: 'secret', sensitivity: 'secret', scope: 'device', journal: false });
     expect(findSettingDefinition('settings', 'appearance')?.journal).toBe(true);
+    expect(findSettingDefinition('__device__', 'hubAuthority')).toMatchObject({ scope: 'local-only', journal: false, storage: 'kv' });
+    expect(resolveKvScope('__device__', 'hubAuthority', 'local')).toBe('local-only');
     expect(findSettingDefinition('nope', 'x')).toBeUndefined();
   });
   it('masks hints', () => {

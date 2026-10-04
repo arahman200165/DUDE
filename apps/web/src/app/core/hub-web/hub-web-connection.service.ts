@@ -1,12 +1,13 @@
 import { Injectable, computed, signal } from '@angular/core';
 
-export type HubWebConnectionState = 'live' | 'reconnecting' | 'unreachable' | 'session-expired' | 'incompatible';
+export type HubWebConnectionState = 'live' | 'reconnecting' | 'unreachable' | 'session-expired' | 'incompatible' | 'transferred';
 
 export const HUB_WRITE_REFUSED: Readonly<Record<Exclude<HubWebConnectionState, 'live'>, string>> = {
   reconnecting: 'Hub unreachable — change not saved',
   unreachable: 'Hub unreachable — change not saved',
   'session-expired': 'Your Hub session expired — sign in again. Change not saved',
   incompatible: 'This page and the Hub are out of date with each other — reload. Change not saved',
+  transferred: 'This Hub was transferred to another machine and is read-only — change not saved',
 };
 
 /**
@@ -27,9 +28,9 @@ export class HubWebConnectionService {
   }
 
   set(state: HubWebConnectionState): void {
-    // A locked state is only left by a full page load (sign-in) or a reload.
+    // A locked state is only left by a full page load (sign-in) or a reload. A transferred Hub never comes back (PD-071).
     const now = this.current();
-    if ((now === 'session-expired' || now === 'incompatible') && state !== now) return;
+    if ((now === 'session-expired' || now === 'incompatible' || now === 'transferred') && state !== now) return;
     if (now === state) return;
     this.current.set(state);
     for (const listener of this.listeners) listener(state);

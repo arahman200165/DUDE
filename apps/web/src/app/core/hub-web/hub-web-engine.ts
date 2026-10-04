@@ -153,6 +153,10 @@ export class HubWebEngine {
       this.deps.connection.set('session-expired');
       return { ok: false, error: HUB_WRITE_REFUSED['session-expired'] };
     }
+    if (kind === 'transferred') {
+      this.deps.connection.set('transferred');
+      return { ok: false, error: HUB_WRITE_REFUSED.transferred };
+    }
     if (kind === 'incompatible') {
       this.deps.connection.set('incompatible');
       return { ok: false, error: HUB_WRITE_REFUSED.incompatible };

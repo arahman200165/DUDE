@@ -11,7 +11,7 @@
   ],
   "classificationCounts": {
     "device-doc": 33,
-    "regex-heuristic (review flag)": 49,
+    "regex-heuristic (review flag)": 50,
     "agent-table": 17,
     "hub-table": 25,
     "setting-definition": 2,
@@ -202,6 +202,14 @@
       "key": null,
       "heuristicScope": "local-only",
       "reviewed": "Local History repository (web IndexedDB / desktop SQLite); local-only payloads."
+    },
+    {
+      "source": "apps/web/src/app/core/hub-web/hub-web-authority.ts",
+      "line": 72,
+      "namespace": null,
+      "key": "dude:v1:__device__:hubAuthority",
+      "heuristicScope": "local-only",
+      "reviewed": "Hub web authority record (Hub instance id + highest epoch seen, PD-071): declared local-only in SETTING_DEFINITIONS (__device__:hubAuthority), never synced; sign-out wipes it with the origin."
     },
     {
       "source": "apps/web/src/app/core/native-recents/native-recents.service.ts",
@@ -1884,6 +1892,20 @@
       "entityType": "home-layout",
       "classificationBasis": "entity-codec",
       "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
+    },
+    {
+      "source": "apps/web/src/app/core/hub-web/hub-web-authority.ts",
+      "line": 72,
+      "operation": "storage.set(AUTHORITY_STORAGE_KEY, JSON.stringify({ hubInstanceId: record.hubInstanceId, authorityEpoch: record.authorityEpoch }))",
+      "namespace": null,
+      "key": "dude:v1:__device__:hubAuthority",
+      "storage": "storage",
+      "storageLocation": "storage.set(AUTHORITY_STORAGE_KEY, JSON.stringify({ hubInstanceId: record.hubInstanceId, authorityEpoch: record.authorityEpoch }))",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "sensitive",
+      "classificationBasis": "regex-heuristic (review flag)",
+      "syncConsent": "not granted"
     },
     {
       "source": "apps/web/src/app/core/native-recents/native-recents.service.ts",

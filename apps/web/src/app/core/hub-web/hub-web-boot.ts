@@ -11,6 +11,7 @@ import { installLocalBackend } from '../persistence/local-backend-registry';
 import { createHubKvBackend, type HubKvBackend } from './hub-kv-backend';
 import { HubWebConnectionService } from './hub-web-connection.service';
 import { HubWebSyncInfo } from './hub-web-sync-info';
+import { checkBrowserAuthority, type HubAuthorityBlock, type SeenAuthority } from './hub-web-authority';
 import { HubWebEngine } from './hub-web-engine';
 import { HubWebFeedback } from './hub-web-feedback';
 import { classifyHubError, type HubWebAccess, type HubWebBoot, type HubWebClient } from './hub-web.types';
@@ -20,8 +21,12 @@ const NAMESPACE_PREFIX = 'dude:v1:';
 export const ATTACHED_MARKER_KEY = 'dude:v1:__device__:hub-web-attached';
 const SNAPSHOT_PAGE = 1000;
 
-/** `live`: attached to the Hub. `signed-out`: no owner session (the guard sends the visitor to sign-in). `offline`: the Hub could not be reached (read-only, retrying). */
-export type HubWebBootMode = 'live' | 'signed-out' | 'offline';
+/**
+ * `live`: attached to the Hub. `signed-out`: no owner session (the guard sends the visitor to sign-in). `offline`: the Hub could
+ * not be reached (read-only, retrying). `blocked`: the authority gate refused this Hub (transferred, or older than the one this
+ * browser used before); nothing is attached and the app does not start, only the blocking notice (PD-071).
+ */
+export type HubWebBootMode = 'live' | 'signed-out' | 'offline' | 'blocked';
 
 export interface HubWebBootResult {
   readonly mode: HubWebBootMode;
@@ -30,6 +35,8 @@ export interface HubWebBootResult {
   readonly feedback: HubWebFeedback;
   readonly sync: HubWebSyncInfo;
   readonly kv: HubKvBackend | null;
+  /** Blocked mode only: why, for the notice. */
+  readonly blocked?: HubAuthorityBlock;
   /** Offline mode only: resolves once the Hub answers at all (an answer of any kind, even 401), rejects while it cannot be reached. */
   readonly probe?: () => Promise<void>;
 }
@@ -37,6 +44,8 @@ export interface HubWebBootResult {
 /** What boot needs from the Hub client: the owner-session check (which also learns the CSRF token) and the browser routes. */
 export interface HubWebBootConnection {
   readonly client: HubWebClient;
+  /** Public `hello`: who this Hub is (instance id, authority epoch and state). Needs no session. */
+  hello(): Promise<SeenAuthority>;
   checkSession(): Promise<void>;
 }
 
@@ -52,6 +61,7 @@ async function connectToHub(): Promise<HubWebBootConnection> {
   const client = module.createHubClient(transport, { clientProtocol: 1, minHubProtocol: 1 });
   return {
     client,
+    hello: () => client.hello(),
     checkSession: async () => {
       hubCsrf.set((await client.currentSession()).csrfToken);
     },
@@ -188,6 +198,10 @@ export async function bootHubWeb(deps: HubWebBootDeps = { connect: connectToHub 
   try {
     const connected = await deps.connect();
     client = connected.client;
+    // Authority gate (PD-071): before any sign-in or attach, so a transferred or older Hub is never signed in to. A failed
+    // `hello` falls through to the ordinary boot below, which classifies the failure (unreachable, signed out) as it always did.
+    const gate = await checkBrowserAuthority(() => connected.hello(), createWindowStorageBackend('local'));
+    if (gate.kind === 'blocked') return { mode: 'blocked', boot: null, ...base, kv: null, blocked: gate.block };
     await connected.checkSession();
 
     const installationId = readOrMintInstallationId();
@@ -223,6 +237,8 @@ export async function bootHubWeb(deps: HubWebBootDeps = { connect: connectToHub 
     };
   } catch (error) {
     const { kind, message } = classifyHubError(error);
+    // The Hub answered `hub-transferred` although `hello` did not say so (it failed, or the Hub was retired in between).
+    if (kind === 'transferred') return { mode: 'blocked', boot: null, ...base, kv: null, blocked: { kind: 'transferred' } };
     if (kind !== 'unauthorized') console.warn(`[DUDE] Hub web boot failed (${kind}): ${message}`);
     if (decideBootFailure(error) === 'offline') return offlineBoot(base, client, deps);
     return { mode: 'signed-out', boot: null, ...base, kv: null };

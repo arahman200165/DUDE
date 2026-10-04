@@ -56,6 +56,11 @@ async function prepareHubWeb() {
 
 async function start(): Promise<void> {
   const hub = await prepareHubWeb();
+  if (hub?.result.mode === 'blocked') {
+    // The Hub is transferred or older than this browser's record (PD-071): show only the notice, never the app.
+    await hub.runtime.showAuthorityGate(hub.result);
+    return;
+  }
   const snapshot = await prepareLocalStorage();
   const providers = [...appConfig.providers, provideBootSnapshot(snapshot), ...(hub ? hub.runtime.hubWebProviders(hub.result) : [])];
   const appRef = await bootstrapApplication(App, { ...appConfig, providers });

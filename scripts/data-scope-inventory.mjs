@@ -26,6 +26,7 @@ const REVIEWED_HEURISTICS = {
   'apps/web/src/app/core/appearance/appearance.service.ts::*': 'Signal .set on the appearance state; persisted via the settings:appearance setting definition.',
   'apps/web/src/app/core/backup/dude-bundle.service.ts::*': 'User-initiated bundle import writing per-tool keys through the persistence backend; scope resolved per key on read.',
   'apps/web/src/app/core/device/device-identity.service.ts::*': 'Web installation id record: random opaque id, device identity on the web host.',
+  'apps/web/src/app/core/hub-web/hub-web-authority.ts::*': 'Hub web authority record (Hub instance id + highest epoch seen, PD-071): declared local-only in SETTING_DEFINITIONS (__device__:hubAuthority), never synced; sign-out wipes it with the origin.',
   'apps/web/src/app/core/history/history-db.ts::*': 'Local History IndexedDB adapter (web); local-only payloads.',
   'apps/web/src/app/core/history/history-repository.ts::*': 'Local History repository (web IndexedDB / desktop SQLite); local-only payloads.',
   'apps/web/src/app/core/native-recents/native-recents.service.ts::*': 'Signal .set on the native-recents state; entity-codec classified at the signal declaration (device).',

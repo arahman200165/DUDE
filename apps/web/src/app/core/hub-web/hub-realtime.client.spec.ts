@@ -282,4 +282,33 @@ describe('HubRealtimeClient', () => {
     await vi.advanceTimersByTimeAsync(25_000);
     expect(socket.sent.filter((m) => (m as { type: string }).type === 'heartbeat')).toHaveLength(1);
   });
+
+  it('stops for good on close code 4004 (Hub transferred): no reconnect, no polling, writes locked', async () => {
+    make();
+    const socket = await connect();
+    const opened = sockets.length;
+    const spy = vi.spyOn(rig.hub, 'webChanges');
+    socket.drop(REALTIME_CLOSE_CODES.transferred);
+    expect(rig.connection.state()).toBe('transferred');
+    await vi.advanceTimersByTimeAsync(BACKOFF_MAX_MS * 4 + POLL_MS * 4);
+    expect(sockets).toHaveLength(opened);
+    expect(spy).not.toHaveBeenCalled();
+    expect(signIn).not.toHaveBeenCalled();
+    // A locked state is never left.
+    rig.connection.set('live');
+    expect(rig.connection.state()).toBe('transferred');
+  });
+
+  it('a pull that answers hub-transferred locks the page and stops the loops instead of reporting an outage', async () => {
+    make();
+    const socket = await connect();
+    const opened = sockets.length;
+    vi.spyOn(rig.hub, 'webChanges').mockRejectedValue(apiError(503, 'hub-transferred'));
+    socket.event('changes-available', { revision: 50 });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(rig.connection.state()).toBe('transferred');
+    socket.drop(1006);
+    await vi.advanceTimersByTimeAsync(BACKOFF_MAX_MS * 2 + POLL_MS * 2);
+    expect(sockets).toHaveLength(opened);
+  });
 });

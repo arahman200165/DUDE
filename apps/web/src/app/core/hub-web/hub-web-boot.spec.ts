@@ -11,6 +11,9 @@ import { resetLocalBackend } from '../persistence/local-backend-registry';
 import { ATTACHED_MARKER_KEY, bootHubWeb, decideBootFailure, describeBrowser, dropOriginLocalSharedKeys, readOrMintInstallationId, type HubWebBootConnection } from './hub-web-boot';
 import { HUB_WEB_BOOT, type HubWebBoot } from './hub-web.types';
 import { ALL_ON, FakeHub, apiError, makeRig } from './testing/fake-hub';
+import { AUTHORITY_STORAGE_KEY, readAuthorityRecord, type SeenAuthority } from './hub-web-authority';
+
+const ACTIVE: SeenAuthority = { hubInstanceId: 'hub-a', authorityEpoch: 1, authorityState: 'active' };
 
 const local = createWindowStorageBackend('local');
 const clearLocal = (): void => local.keys('dude:v1:').forEach((k) => local.remove(k));
@@ -118,7 +121,7 @@ describe('Hub web boot decision', () => {
   const liveConnection = (): { hub: FakeHub; connection: HubWebBootConnection } => {
     const hub = new FakeHub();
     hub.webAttach = (async () => ({ deviceId: 'browser-1', access: ALL_ON, retentionDays: 30 })) as never;
-    return { hub, connection: { client: hub, checkSession: async () => undefined } };
+    return { hub, connection: { client: hub, hello: async () => ACTIVE, checkSession: async () => undefined } };
   };
 
   it('classifies the failure: only an unreachable Hub (network, 5xx) is offline', () => {
@@ -139,7 +142,7 @@ describe('Hub web boot decision', () => {
 
   it('takes the signed-out path on 401 and leaves the plain backend alone', async () => {
     const { hub } = liveConnection();
-    const result = await bootHubWeb({ connect: async () => ({ client: hub, checkSession: async () => { throw apiError(401, 'unauthorized'); } }) });
+    const result = await bootHubWeb({ connect: async () => ({ client: hub, hello: async () => ACTIVE, checkSession: async () => { throw apiError(401, 'unauthorized'); } }) });
     expect(result.mode).toBe('signed-out');
     expect(result.boot).toBeNull();
     expect(result.kv).toBeNull();
@@ -151,7 +154,7 @@ describe('Hub web boot decision', () => {
     let down = true;
     const connect = async (): Promise<HubWebBootConnection> => {
       if (down) throw new TypeError('Failed to fetch');
-      return { client: hub, checkSession: async () => undefined };
+      return { client: hub, hello: async () => ACTIVE, checkSession: async () => undefined };
     };
     const result = await bootHubWeb({ connect });
     expect(result.mode).toBe('offline');
@@ -177,13 +180,81 @@ describe('Hub web boot decision', () => {
     const result = await bootHubWeb({ connect: async () => { throw apiError(502); } });
     expect(result.mode).toBe('offline');
     const { hub } = liveConnection();
-    const answering = await bootHubWeb({ connect: async () => ({ client: hub, checkSession: async () => { throw apiError(401, 'unauthorized'); } }) });
+    const answering = await bootHubWeb({ connect: async () => ({ client: hub, hello: async () => ACTIVE, checkSession: async () => { throw apiError(401, 'unauthorized'); } }) });
     expect(answering.mode).toBe('signed-out');
   });
 
   it('treats a 5xx from the session check as offline too', async () => {
     const { hub } = liveConnection();
-    const result = await bootHubWeb({ connect: async () => ({ client: hub, checkSession: async () => { throw apiError(502); } }) });
+    const result = await bootHubWeb({ connect: async () => ({ client: hub, hello: async () => ACTIVE, checkSession: async () => { throw apiError(502); } }) });
     expect(result.mode).toBe('offline');
+  });
+
+  describe('authority gate (PD-071)', () => {
+    const withHello = (hello: HubWebBootConnection['hello']): { connection: HubWebBootConnection; calls: string[] } => {
+      const { hub } = liveConnection();
+      const calls: string[] = [];
+      return {
+        calls,
+        connection: {
+          client: hub, hello: async () => { calls.push('hello'); return hello(); },
+          checkSession: async () => { calls.push('checkSession'); },
+        },
+      };
+    };
+
+    it('an acceptable Hub persists the record and boots exactly as before', async () => {
+      const { connection, calls } = withHello(async () => ({ hubInstanceId: 'hub-a', authorityEpoch: 3 }));
+      const result = await bootHubWeb({ connect: async () => connection });
+      expect(result.mode).toBe('live');
+      expect(calls).toEqual(['hello', 'checkSession']);
+      expect(readAuthorityRecord(local)).toEqual({ hubInstanceId: 'hub-a', authorityEpoch: 3 });
+    });
+
+    it('a transferred Hub blocks before sign-in or attach: only hello is called and the stored record is untouched', async () => {
+      local.set(AUTHORITY_STORAGE_KEY, JSON.stringify({ hubInstanceId: 'hub-a', authorityEpoch: 2 }));
+      const { connection, calls } = withHello(async () => ({ hubInstanceId: 'hub-a', authorityEpoch: 2, authorityState: 'transferred' }));
+      const result = await bootHubWeb({ connect: async () => connection });
+      expect(result.mode).toBe('blocked');
+      expect(result.blocked).toEqual({ kind: 'transferred' });
+      expect(result.boot).toBeNull();
+      expect(result.kv).toBeNull();
+      expect(calls).toEqual(['hello']);
+      expect(readAuthorityRecord(local)).toEqual({ hubInstanceId: 'hub-a', authorityEpoch: 2 });
+    });
+
+    it('an older Hub blocks with the facts and the record to store if the owner chooses to continue', async () => {
+      local.set(AUTHORITY_STORAGE_KEY, JSON.stringify({ hubInstanceId: 'hub-a', authorityEpoch: 4 }));
+      const { connection, calls } = withHello(async () => ({ hubInstanceId: 'hub-b', authorityEpoch: 2 }));
+      const result = await bootHubWeb({ connect: async () => connection });
+      expect(result.mode).toBe('blocked');
+      expect(result.blocked).toEqual({ kind: 'older', storedEpoch: 4, seenEpoch: 2, seen: { hubInstanceId: 'hub-b', authorityEpoch: 2 } });
+      expect(calls).toEqual(['hello']);
+      expect(readAuthorityRecord(local)).toEqual({ hubInstanceId: 'hub-a', authorityEpoch: 4 });
+    });
+
+    it('a failed hello falls through to the ordinary boot (live here, unreachable below)', async () => {
+      const failing = withHello(async () => { throw new TypeError('Failed to fetch'); });
+      expect((await bootHubWeb({ connect: async () => failing.connection })).mode).toBe('live');
+      expect(failing.calls).toEqual(['hello', 'checkSession']);
+      expect(readAuthorityRecord(local)).toBeNull();
+
+      const { hub } = liveConnection();
+      const down = await bootHubWeb({
+        connect: async () => ({ client: hub, hello: async () => { throw apiError(502); }, checkSession: async () => { throw apiError(502); } }),
+      });
+      expect(down.mode).toBe('offline');
+    });
+
+    it('a failed hello followed by a hub-transferred session check still blocks, and is not an outage to retry', async () => {
+      const { hub } = liveConnection();
+      const result = await bootHubWeb({
+        connect: async () => ({ client: hub, hello: async () => { throw apiError(502); }, checkSession: async () => { throw apiError(503, 'hub-transferred'); } }),
+      });
+      expect(result.mode).toBe('blocked');
+      expect(result.blocked).toEqual({ kind: 'transferred' });
+      expect(result.probe).toBeUndefined();
+      expect(decideBootFailure(apiError(503, 'hub-transferred'))).toBe('signed-out');
+    });
   });
 });
