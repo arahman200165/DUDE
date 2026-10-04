@@ -4,6 +4,8 @@ import type { DiagnosticCheck, HubDiagnosticsCertificate, HubDiagnosticsReport }
 import { missingSubjectAltNames, certificateSubjectAltNames } from '../tls/names.js';
 import { spkiSha256 } from '../tls/self-signed.js';
 import type { TlsCertificateSource } from '../tls/ca-public.js';
+import { dnsNamesToResolve, listHubAddresses, resolveNames, stableAddresses } from './addresses.js';
+import type { InterfaceMap, NameResolution } from './addresses.js';
 
 /**
  * The single Hub endpoint-diagnostics engine (PD-060). It takes gathered facts (no database handle, no shell) and builds the
@@ -57,6 +59,12 @@ export interface DiagnosticsDeps {
   realtime: { available: boolean; owner: number; device: number };
   /** Cached firewall and service facts (the engine never shells out). */
   host: () => Promise<DiagnosticsHostFacts>;
+  /** The machine's own interfaces (default `os.networkInterfaces`). */
+  interfaces?: () => InterfaceMap;
+  /** The last recorded address set (meta `hub_addresses`); null/undefined when none is known (offline `doctor`). */
+  storedAddresses?: readonly string[] | null;
+  /** DNS resolution of the configured names (default: the system resolver, uncached); the Hub route injects a 60 s cache. */
+  resolveDns?: (names: readonly string[]) => Promise<NameResolution[]>;
 }
 
 const DAY_MS = 86_400_000;
@@ -169,6 +177,32 @@ export async function collectDiagnostics(deps: DiagnosticsDeps): Promise<HubDiag
   if (config.bind === 'container' && config.exposure.names.length === 0) {
     checks.push(check('container-host-allowlist', 'Host allowlist', 'warn', 'verified', 'Container mode with no configured names: any Host header is accepted.', 'dude-hub tls names add <name>'));
   } else checks.push(check('container-host-allowlist', 'Host allowlist', 'info', 'verified', config.bind === 'container' ? `${config.exposure.names.length} name(s) configured.` : 'Not a container.'));
+
+  // address-stability (reads the machine's own interfaces; never an external lookup)
+  const addresses = listHubAddresses(deps.interfaces?.());
+  const stable = stableAddresses(addresses);
+  const listing = addresses.length === 0 ? 'none' : addresses.map((a) => `${a.address} (${a.scope})`).join(', ');
+  const drift = deps.storedAddresses ? deps.storedAddresses.join('|') !== stable.join('|') : false;
+  const hasPublic = addresses.some((a) => a.scope === 'public');
+  if (config.exposure.mode === 'public' && !hasPublic) {
+    checks.push(check('address-stability', 'Address stability', 'warn', 'verified', `Addresses on this machine: ${listing}. None is a public address: inbound Internet connections need a router port-forward to this machine or a public IPv6 address, and carrier-grade NAT (100.64.0.0/10) cannot accept inbound connections at all.`, 'Forward the port on the router, use a public IPv6 address, or put the Hub behind a reverse proxy or tunnel you control.'));
+  } else if (drift) {
+    checks.push(check('address-stability', 'Address stability', 'warn', 'verified', `The address set changed since it was last recorded. Now: ${listing}.`, 'If DNS names point at this machine, update them (router DDNS client or your DNS provider); then run "dude-hub tls names add <name>" and "dude-hub tls acme issue" if the names changed.'));
+  } else checks.push(check('address-stability', 'Address stability', 'pass', 'verified', `Addresses on this machine: ${listing}.`));
+
+  // dns-resolution (the DNS answer is verified; reachability is never claimed)
+  const dnsNames = dnsNamesToResolve(config.exposure);
+  if (dnsNames.length === 0) checks.push(check('dns-resolution', 'DNS points at this machine', 'info', 'not-checked', 'No DNS names are configured.'));
+  else {
+    const resolutions = await (deps.resolveDns ?? ((names) => resolveNames(names)))(dnsNames).catch((): NameResolution[] => dnsNames.map((name) => ({ name, addresses: [], error: 'failed' as const })));
+    const local = new Set(addresses.map((a) => a.address));
+    const failed = resolutions.filter((r) => r.addresses.length === 0);
+    const foreign = resolutions.filter((r) => r.addresses.length > 0 && r.addresses.some((a) => !local.has(a)));
+    const lines = resolutions.map((r) => `${r.name} -> ${r.addresses.length > 0 ? r.addresses.join(', ') : (r.error ?? 'failed')}`).join('; ');
+    if (failed.length > 0) checks.push(check('dns-resolution', 'DNS points at this machine', 'warn', 'verified', `${failed.map((r) => r.name).join(', ')} did not resolve (${failed.map((r) => r.error ?? 'failed').join(', ')}). ${lines}.`, 'Create or fix the DNS record for the name at your DNS provider or router DDNS client.'));
+    else if (foreign.length > 0) checks.push(check('dns-resolution', 'DNS points at this machine', 'info', 'verified', `${lines}. These addresses are not on any interface of this machine: it is behind NAT or a port forward, or behind a reverse proxy, or DNS is stale. That cannot be verified from the machine itself; use the external reachability probe.`));
+    else checks.push(check('dns-resolution', 'DNS points at this machine', 'pass', 'verified', `DNS points at this machine. ${lines}. This does not confirm the port is reachable from outside.`));
+  }
 
   // external-reachability
   checks.push(check('external-reachability', 'Reachable from outside', 'info', 'not-checked', 'Verified in Phase 31F.'));

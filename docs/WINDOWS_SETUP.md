@@ -94,6 +94,16 @@ A reverse proxy (Caddy, nginx, IIS ARR) can publish the Hub under a name and cer
 3. Devices connect through the proxy, so they must pin the proxy's certificate: `dude-hub tls proxy-pin add <caddy-leaf.pem>`.
 4. Wait until enrolled devices acknowledge the staged pin (`dude-hub tls proxy-pin list`), then `dude-hub tls proxy-pin activate` (preview, then `--confirm <token>`).
 
+### Dynamic addresses and DNS
+
+If the Hub is reached by a DNS name and your home or office address changes, the name must follow it. DUDE never does this for you: the Hub does not update DNS and stores no DNS credential. It only detects and explains.
+
+- `dude-hub doctor` (and Settings > Endpoint) shows two checks. **Address stability** lists this machine's addresses and warns when they changed since last recorded, or when public mode has only private or CGNAT addresses. **DNS points at this machine** compares what your configured names resolve to with the machine's interface addresses. A match passes; an address that is not on this machine is informational (a router port forward, a reverse proxy or stale DNS look the same from inside the machine); a name that does not resolve warns. Neither check proves the port is reachable from outside.
+- A change of address is also recorded as a "Hub address changed" security alert, and the Hub prints an `addresses-changed` line when it starts with a different address set.
+- To keep DNS pointing at the Hub, run a DDNS client on the router, or your DNS provider's update client on any always-on machine, and keep that credential there, not in DUDE.
+- CGNAT (a 100.64.0.0/10 address on the router's WAN side) cannot accept inbound connections: ask your ISP for a public address, use a public IPv6 address, or use a tunnel or reverse proxy you control.
+- When a name itself changes, run `dude-hub tls names add <new-name>` and then `dude-hub tls acme issue --name <new-name>`, and finish with `dude-hub tls activate` once devices acknowledge the staged certificate.
+
 ### Updating the Hub
 
 A DUDE update never touches the Hub. When the desktop notices that the bundled Hub is newer than the installed one, it offers **Update Hub** in the app; that elevates the bundled `<DUDE folder>\resources\DUDE-Hub-Setup.exe /S /UPDATE` (stop, replace, start; data migrates when the service starts; only offered for a per-machine DUDE install). You can also run the newer `DUDE-Hub-Setup.exe` yourself.

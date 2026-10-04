@@ -20,6 +20,7 @@ import { runTlsNames } from '../service/tls-names.js';
 import { runTlsImport, runTlsProxyPin } from '../service/tls-external.js';
 import { runTlsAcme } from '../service/tls-acme.js';
 import { createAcmeRenewal } from '../tls/acme/acme-renewal.js';
+import { addressChangeNotice, createAddressWatch } from '../diagnostics/address-watch.js';
 import { AdminCallError, callAdmin } from '../admin/admin-client.js';
 import { startAdminEndpoint } from '../admin/admin-endpoint.js';
 import { buildAdminMethods } from '../admin/methods.js';
@@ -267,6 +268,18 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     recordCertificate: (certPem, spki) => void hub.db.prepare("UPDATE tls_pins SET cert_pem = ? WHERE state = 'active' AND spki_sha256 = ?").run(certPem, spki),
   });
   acmeRenewal.start();
+  // Detection only (PD-064): records this machine's addresses and audits a change; DNS is never updated and no DNS credential is stored.
+  const addressWatch = createAddressWatch({
+    db: hub.db,
+    audit: (event, detail) => audit(hub.db, { event, outcome: 'success', actorKind: 'system', detail, now: Date.now() }),
+  });
+  try {
+    const change = addressWatch.runOnce();
+    const notice = addressChangeNotice(change);
+    if (notice !== null) process.stdout.write(`${notice}
+`);
+  } catch { /* detection is best effort */ }
+  addressWatch.start();
   audit(hub.db, { event: 'hub.started', outcome: 'success', actorKind: 'system', detail: { version: hubVersion(), port, bind: config.bind }, now: Date.now() });
   process.stdout.write(`${JSON.stringify({ event: 'listening', url: `https://127.0.0.1:${port}`, spkiSha256: tls.spkiSha256 })}\n`);
 
@@ -279,6 +292,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
         let code = EXIT_OK;
         renewal.stop();
         acmeRenewal.stop();
+        addressWatch.stop();
         try { await admin.close(); } catch { /* best effort */ }
         try { await server.close(); } catch { code = EXIT_FAILURE; }
         try { hub.db.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch { /* best effort */ }

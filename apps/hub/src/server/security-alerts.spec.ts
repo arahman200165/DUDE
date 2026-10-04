@@ -52,8 +52,8 @@ describe('security alerts', () => {
 
   it('includes only the fixed event set, newest first, within the window', async () => {
     const now = h.clock.t;
-    for (const event of ['throttle.locked', 'security.ip-blocked', 'owner.password-changed', 'device.revoked', 'tls.rotation-activated', 'hub.started', 'device.renamed', 'owner.sign-out'] as const) {
-      audit(db(), { event, outcome: 'success', actorKind: 'system', ip: '198.51.100.4', detail: event === 'throttle.locked' ? { kind: 'password', scope: 'address' } : {}, now });
+    for (const event of ['throttle.locked', 'security.ip-blocked', 'owner.password-changed', 'device.revoked', 'tls.rotation-activated', 'network.address-changed', 'hub.started', 'device.renamed', 'owner.sign-out'] as const) {
+      audit(db(), { event, outcome: 'success', actorKind: 'system', ip: '198.51.100.4', detail: event === 'throttle.locked' ? { kind: 'password', scope: 'address' } : event === 'network.address-changed' ? { added: ['203.0.113.9'], removed: [] } : {}, now });
     }
     audit(db(), { event: 'device.enrolled', outcome: 'success', actorKind: 'system', now: now - ALERT_WINDOW_MS - 1000 }); // too old
     const s = await signInFrom('203.0.113.50');
@@ -63,6 +63,7 @@ describe('security alerts', () => {
     for (const excluded of ['hub.started', 'device.renamed', 'owner.sign-out', 'device.enrolled']) expect(events).not.toContain(excluded);
     expect(alerts.map((a) => a.seq)).toEqual([...alerts.map((a) => a.seq)].sort((a, b) => b - a));
     expect(alerts.find((a) => a.event === 'throttle.locked')?.summary).toMatch(/password/);
+    expect(alerts.find((a) => a.event === 'network.address-changed')?.summary).toBe("This Hub's network addresses changed. 1 added, 0 removed.");
     expect(alerts.length).toBeLessThanOrEqual(ALERT_LIMIT);
   });
 

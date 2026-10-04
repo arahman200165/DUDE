@@ -8,6 +8,8 @@ import type { TlsCertificateSource } from '../tls/ca-public.js';
 import { computeSubjectAltNames } from '../tls/names.js';
 import { firewallRuleExists, serviceState } from '../service/common.js';
 import type { ExecFn } from '../service/common.js';
+import { readAddressRecord } from './address-watch.js';
+import type { InterfaceMap, NameResolution } from './addresses.js';
 import type { DiagnosticsCertificateFacts, DiagnosticsDeps, DiagnosticsHostFacts } from './engine.js';
 
 /** Firewall and service facts shell out (`netsh`, `sc.exe`); the route and admin method share one cache so a request never does. */
@@ -123,6 +125,9 @@ export interface RunningHubSource {
   realtime?: { connectionCounts(): { owner: number; device: number } };
   host: () => Promise<DiagnosticsHostFacts>;
   platform?: NodeJS.Platform;
+  /** Cached DNS resolution (the route shares one 60 s cache); defaults to an uncached system resolver. */
+  resolveDns?: (names: readonly string[]) => Promise<NameResolution[]>;
+  interfaces?: () => InterfaceMap;
 }
 
 /** Facts from a running Hub: database, TLS files, on-disk configuration, realtime. */
@@ -149,6 +154,9 @@ export async function gatherRunningHubDeps(source: RunningHubSource): Promise<Di
     ownerExists: source.db.prepare('SELECT 1 AS x FROM owner LIMIT 1').get() !== undefined,
     realtime: { available: source.realtime !== undefined, ...counts },
     host: () => Promise.resolve(host),
+    storedAddresses: readAddressRecord(source.db)?.addresses ?? null,
+    ...(source.resolveDns ? { resolveDns: source.resolveDns } : {}),
+    ...(source.interfaces ? { interfaces: source.interfaces } : {}),
   };
 }
 

@@ -1,3 +1,4 @@
+import type { NetworkInterfaceInfo } from 'node:os';
 import { describe, expect, it } from 'vitest';
 import { Value } from 'typebox/value';
 import { HubDiagnosticsReport } from '@dude/contracts/hub';
@@ -6,6 +7,7 @@ import { generateSelfSigned } from '../tls/self-signed.js';
 import { collectDiagnostics, formatChecks } from './engine.js';
 import type { DiagnosticsDeps } from './engine.js';
 import { createHostFacts } from './gather.js';
+import type { InterfaceMap } from './addresses.js';
 import type { ExecResult } from '../service/common.js';
 
 const NOW = Date.parse('2026-10-03T00:00:00.000Z');
@@ -33,7 +35,7 @@ describe('collectDiagnostics', () => {
     expect(Value.Check(HubDiagnosticsReport, report)).toBe(true);
     expect(report.checks.map((c) => c.id)).toEqual([
       'service-running', 'https-configured', 'certificate-valid', 'certificate-covers-names', 'certificate-trustable', 'next-pin-pending',
-      'authentication-active', 'realtime-available', 'firewall-rule', 'exposure-mode', 'proxy-trust', 'container-host-allowlist', 'external-reachability',
+      'authentication-active', 'realtime-available', 'firewall-rule', 'exposure-mode', 'proxy-trust', 'container-host-allowlist', 'address-stability', 'dns-resolution', 'external-reachability',
     ]);
     expect(report.exposure.publicReleased).toBe(false);
     expect(report.realtime.connections).toEqual({ owner: 1, device: 2 });
@@ -176,5 +178,37 @@ describe('createHostFacts cache', () => {
     const broken = createHostFacts({ exec: () => Promise.reject(new Error('x')), platform: 'win32' });
     expect(await broken()).toMatchObject({ firewallPresent: false });
     expect(await createHostFacts({ exec, platform: 'linux' })()).toEqual({ firewallPresent: null });
+  });
+});
+
+describe('address checks', () => {
+  const info = (address: string, family: 'IPv4' | 'IPv6' = 'IPv4') => ({ address, family, internal: false, netmask: '', mac: '', cidr: null }) as NetworkInterfaceInfo;
+  const ifaces = (...a: string[]): (() => InterfaceMap) => () => ({ eth0: a.map((x) => info(x, x.includes(':') ? 'IPv6' : 'IPv4')) });
+  const pub = { mode: 'public' as const, names: ['hub.example.com'] };
+  const publicConfig = { port: 1, bind: 'lan' as const, bindAddress: '0.0.0.0', exposure: pub };
+  const resolving = (addresses: string[], error?: 'not-found' | 'timeout' | 'failed') => () => Promise.resolve([{ name: 'hub.example.com', addresses, ...(error ? { error } : {}) }]);
+
+  it('address-stability: private/CGNAT only in public mode warns; a public address passes', async () => {
+    const warn = (await byId(deps({ config: publicConfig, interfaces: ifaces('192.168.1.5', '100.64.0.9'), resolveDns: resolving([]) })))['address-stability'];
+    expect(warn).toMatchObject({ status: 'warn', basis: 'verified' });
+    expect(warn?.detail).toContain('carrier-grade NAT');
+    expect((await byId(deps({ config: publicConfig, interfaces: ifaces('192.168.1.5', '2001:db8::5'), resolveDns: resolving([]) })))['address-stability']?.status).toBe('pass');
+    expect((await byId(deps({ interfaces: ifaces('192.168.1.5') })))['address-stability']?.status).toBe('pass');
+  });
+  it('address-stability: warns when the stored record differs from the live set', async () => {
+    expect((await byId(deps({ interfaces: ifaces('192.168.1.5'), storedAddresses: ['192.168.1.5'] })))['address-stability']?.status).toBe('pass');
+    expect((await byId(deps({ interfaces: ifaces('192.168.1.6', 'fe80::1'), storedAddresses: ['192.168.1.5'] })))['address-stability']?.status).toBe('warn');
+  });
+  it('dns-resolution: no names is not-checked', async () => {
+    expect((await byId(deps()))['dns-resolution']).toMatchObject({ status: 'info', basis: 'not-checked' });
+  });
+  it('dns-resolution: interface address passes, foreign address is info, failure warns', async () => {
+    const base = { config: publicConfig, interfaces: ifaces('203.0.113.7') };
+    expect((await byId(deps({ ...base, resolveDns: resolving(['203.0.113.7']) })))['dns-resolution']).toMatchObject({ status: 'pass', basis: 'verified' });
+    const foreign = (await byId(deps({ ...base, resolveDns: resolving(['198.51.100.1']) })))['dns-resolution'];
+    expect(foreign).toMatchObject({ status: 'info', basis: 'verified' });
+    expect(foreign?.detail).toContain('external reachability probe');
+    expect((await byId(deps({ ...base, resolveDns: resolving([], 'not-found') })))['dns-resolution']).toMatchObject({ status: 'warn', basis: 'verified' });
+    expect((await byId(deps({ ...base, resolveDns: () => Promise.reject(new Error('x')) })))['dns-resolution']?.status).toBe('warn');
   });
 });

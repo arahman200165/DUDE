@@ -17,7 +17,7 @@ const SEEN_KEY = 'alerts_seen_seq';
 export const SECURITY_ALERT_EVENTS = [
   'owner.sign-in', 'throttle.locked', 'security.ip-blocked', 'owner.password-changed', 'owner.recovery-code-used',
   'owner.recovery-codes-regenerated', 'owner.reset-local', 'owner.recovery-device', 'session.revoked-all', 'device.revoked',
-  'device.enrolled', 'network.mode-changed', 'network.exposure-mode-changed', 'tls.rotation-activated',
+  'device.enrolled', 'network.mode-changed', 'network.exposure-mode-changed', 'network.address-changed', 'tls.rotation-activated',
 ] as const;
 
 const SUMMARIES: Record<string, string> = {
@@ -34,6 +34,7 @@ const SUMMARIES: Record<string, string> = {
   'network.mode-changed': 'The network mode was changed.',
   'network.exposure-mode-changed': 'The exposure mode was changed.',
   'tls.rotation-activated': 'The Hub certificate was rotated.',
+  'network.address-changed': "This Hub's network addresses changed.",
 };
 
 function summarize(event: string, detail: unknown): string {
@@ -41,6 +42,11 @@ function summarize(event: string, detail: unknown): string {
     const d = (detail ?? {}) as { kind?: unknown; scope?: unknown };
     const kind = typeof d.kind === 'string' ? d.kind.replace('-', ' ') : 'credential';
     return d.scope === 'global' ? `Too many failed ${kind} attempts; further attempts are temporarily locked for everyone.` : `Too many failed ${kind} attempts from one address; it is temporarily locked.`;
+  }
+  if (event === 'network.address-changed') {
+    const d = (detail ?? {}) as { added?: unknown; removed?: unknown };
+    const count = (v: unknown): number => (Array.isArray(v) ? v.length : 0);
+    return `${SUMMARIES[event]} ${count(d.added)} added, ${count(d.removed)} removed.`;
   }
   return SUMMARIES[event] ?? event;
 }

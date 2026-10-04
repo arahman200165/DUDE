@@ -43,6 +43,7 @@ export const AUDIT_EVENT_LABELS: Readonly<Record<string, string>> = {
   'network.mode-changed': 'Network mode changed',
   'network.proxy-changed': 'Reverse proxy changed',
   'network.exposure-mode-changed': 'Exposure mode changed',
+  'network.address-changed': 'Hub address changed',
   'throttle.locked': 'Sign-in locked after failures',
   'purge.previewed': 'Purge previewed',
   'purge.applied': 'Purge applied',

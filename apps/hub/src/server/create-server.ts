@@ -14,6 +14,8 @@ import { registerSecurityAlertRoutes } from './routes/security-alerts.js';
 import { registerDiagnosticsRoute } from './routes/diagnostics.js';
 import { createHostFacts, gatherRunningHubDeps } from '../diagnostics/gather.js';
 import { collectDiagnostics } from '../diagnostics/engine.js';
+import { createCachedNameResolver } from '../diagnostics/addresses.js';
+import type { InterfaceMap, NameResolution } from '../diagnostics/addresses.js';
 import type { HubDiagnosticsReport } from '@dude/contracts/hub';
 import type { DiagnosticsHostFacts } from '../diagnostics/engine.js';
 import { defaultExec } from '../service/common.js';
@@ -72,7 +74,7 @@ export interface CreateHubServerOptions {
   hub: { db: Db; hubInstanceId: string };
   hubVersion: string;
   /** Endpoint diagnostics: injectable host facts (service state, firewall rule; cached 60 s) so tests never touch Windows. */
-  diagnostics?: { exec?: ExecFn; platform?: NodeJS.Platform; host?: () => Promise<DiagnosticsHostFacts> };
+  diagnostics?: { exec?: ExecFn; platform?: NodeJS.Platform; host?: () => Promise<DiagnosticsHostFacts>; resolveDns?: (names: readonly string[]) => Promise<NameResolution[]>; interfaces?: () => InterfaceMap };
   logger?: boolean | HubLoggerOptions;
   /** Cheaper Argon2 settings for specs only. */
   passwordParams?: PasswordParams;
@@ -154,9 +156,10 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   registerSecurityAlertRoutes(app, { db: options.hub.db, now, requireOwner: authOptions.requireOwner });
   const startedAt = now();
   const hostFacts = options.diagnostics?.host ?? createHostFacts({ exec: options.diagnostics?.exec ?? defaultExec, ...(options.diagnostics?.platform ? { platform: options.diagnostics.platform } : {}), now });
+  const resolveDns = options.diagnostics?.resolveDns ?? createCachedNameResolver({ now });
   const collectHubDiagnostics = async (): Promise<HubDiagnosticsReport> => collectDiagnostics(await gatherRunningHubDeps({
     db: options.hub.db, tlsDir: options.paths.tlsDir, configFile: options.paths.configFile, config: { port: 0, ...(options.config.bind ? { bind: options.config.bind } : {}), ...(options.config.exposure ? { exposure: options.config.exposure } : {}) },
-    hubVersion: options.hubVersion, startedAt, now, getPort, hsts: hstsPolicy, realtime, host: hostFacts, ...(options.diagnostics?.platform ? { platform: options.diagnostics.platform } : {}),
+    hubVersion: options.hubVersion, startedAt, now, getPort, hsts: hstsPolicy, realtime, host: hostFacts, resolveDns, ...(options.diagnostics?.interfaces ? { interfaces: options.diagnostics.interfaces } : {}), ...(options.diagnostics?.platform ? { platform: options.diagnostics.platform } : {}),
   }));
   app.decorate('hubDiagnostics', collectHubDiagnostics);
   registerDiagnosticsRoute(app, { db: options.hub.db, now, requireOwner: authOptions.requireOwner, collect: collectHubDiagnostics });

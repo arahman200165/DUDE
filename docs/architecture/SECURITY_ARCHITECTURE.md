@@ -396,7 +396,15 @@ Using a domain registrar or DNS service does not mean the DUDE application is ex
 
 DNS merely publishes where the user-owned Hub can be reached.
 
-The Hub may optionally update dynamic DNS when the user's public IP changes.
+The Hub never updates DNS and stores no DNS provider credential (PD-064). The user's router or DDNS client owns address publication; the Hub only detects drift and explains it.
+
+#### Dynamic addresses and DNS
+
+- **Address inventory.** `src/diagnostics/addresses.ts` reads the machine's own interfaces and classifies each address (`private`, `cgnat`, `link-local`, `unique-local`, `public`; loopback is skipped). No external "what is my IP" service is ever contacted.
+- **Drift record and alert.** The last-seen non-loopback, non-link-local address set is stored in `meta.hub_addresses`. At startup and every 5 minutes the Hub compares it with the live set; a change writes one `network.address-changed` audit event (`added` and `removed`, at most 16 entries each), appears in the owner security alerts, and prints an `addresses-changed` startup notice. The first run only records.
+- **`address-stability` check** (verified): warns when the set changed since it was recorded, or when exposure mode is `public` and the machine has only private, CGNAT or unique-local addresses (a port forward or a public IPv6 address is required; CGNAT cannot accept inbound connections).
+- **`dns-resolution` check** (the DNS answer is verified; reachability is never claimed): resolves the configured DNS names and the canonical origin host through the system resolver (3 s timeout, cached 60 s). Every answer on a local interface passes; answers not on any interface are informational (NAT, port forward, reverse proxy or stale DNS cannot be told apart from inside the machine); a name that does not resolve warns.
+- The `external-reachability` check stays not-checked until the external probe ships.
 
 #### TLS is not application hosting
 
