@@ -1,0 +1,25 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'io.github.arahman200165.dude'
+version = '0.0.0'
+
+android {
+  namespace 'expo.modules.dudehub'
+  defaultConfig {
+    minSdkVersion 29
+    testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+  }
+}
+
+dependencies {
+  // Lightweight API only: never register/replace Android's global BC provider.
+  implementation 'org.bouncycastle:bcprov-jdk18on:1.86'
+  implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+  androidTestImplementation 'androidx.test:runner:1.6.2'
+  androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+  androidTestImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
+  androidTestImplementation 'com.squareup.okhttp3:okhttp-tls:4.12.0'
+}
