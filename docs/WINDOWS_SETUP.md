@@ -73,6 +73,14 @@ New Hubs issue their certificate from a built-in local certificate authority (th
 
 Public (Internet) exposure is not released until Phase 31F; `dude-hub network mode public` is refused unless you pass `--i-understand-unreleased`, and the Hub still will not start in public mode.
 
+### Verifying the Hub is reachable from the Internet
+
+The Hub verifies reachability itself, by looking at where a request comes from. On a phone using cellular data (Wi-Fi off), or any device on another network, open the Hub web through its public name (for example `https://hub.example.com:47821`), sign in, and open Settings › Endpoint & Exposure › Reachability › Verify from this browser. The Hub reports the kind of address it saw (never the address itself) and, when it was a public address on one of the Hub's configured names (behind a reverse proxy: the proxy's public origin), records the verification. The "Reachable from outside" check then passes for 7 days; after that, verify again.
+
+- A request from the same network (a private, CGNAT or loopback address) proves nothing and records nothing. If the public name works from inside your LAN only because your router loops the request back (hairpin NAT), the Hub sees a private address and correctly does not count it, so test from outside.
+- A request through an IP address instead of a name is not counted either; use the DNS name.
+- If it works from cellular but the check stays unverified, the Hub may be answering through a reverse proxy that is not configured as trusted; see "Behind a reverse proxy".
+
 ### Behind a reverse proxy
 
 A reverse proxy (Caddy, nginx, IIS ARR) can publish the Hub under a name and certificate you already manage. The Hub then trusts `X-Forwarded-For`, `-Host` and `-Proto` only from the proxy addresses you list (one hop), requires browser `Origin` headers to equal the public origin, hands the public origin out in pairing, and sends HSTS (the proxy terminates the browser's TLS). Direct connections to the Hub are accepted only for loopback host names.

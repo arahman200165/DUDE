@@ -148,8 +148,22 @@ describe('collectDiagnostics', () => {
     expect((await byId(deps({ config: { ...container, exposure: { mode: 'private', names: ['hub.lan'] } }, platform: 'linux' })))['container-host-allowlist']?.status).toBe('info');
   });
 
-  it('external-reachability is never checked before Phase 31F', async () => {
-    expect((await byId(deps()))['external-reachability']).toMatchObject({ status: 'info', basis: 'not-checked', detail: 'Verified in Phase 31F.' });
+  it('external-reachability: fresh record passes, stale or none is not-checked (warn in public mode)', async () => {
+    const day = 86_400_000;
+    const rec = (ageMs: number) => ({ at: new Date(NOW - ageMs).toISOString(), host: 'hub.example.com', ageMs });
+    const publicConfig = { port: 443, bind: 'lan' as const, bindAddress: '0.0.0.0', exposure: { mode: 'public' as const, names: ['hub.example.com'] } };
+    const none = (await byId(deps()))['external-reachability'];
+    expect(none).toMatchObject({ status: 'info', basis: 'not-checked' });
+    expect(none?.detail).toMatch(/outside your network/);
+    const fresh = (await byId(deps({ reachability: rec(day) })))['external-reachability'];
+    expect(fresh).toMatchObject({ status: 'pass', basis: 'verified' });
+    expect(fresh?.detail).toMatch(/Reached from a public address via hub\.example\.com at /);
+    const stale = (await byId(deps({ reachability: rec(9 * day) })))['external-reachability'];
+    expect(stale).toMatchObject({ status: 'info', basis: 'not-checked' });
+    expect(stale?.detail).toMatch(/Last verified 9 days ago; verify again\./);
+    expect((await byId(deps({ config: publicConfig })))['external-reachability']?.status).toBe('warn');
+    expect((await byId(deps({ config: publicConfig, reachability: rec(9 * day) })))['external-reachability']?.status).toBe('warn');
+    expect((await byId(deps({ config: publicConfig, reachability: rec(day) })))['external-reachability']?.status).toBe('pass');
   });
 
   it('a host-facts failure never fails the report', async () => {

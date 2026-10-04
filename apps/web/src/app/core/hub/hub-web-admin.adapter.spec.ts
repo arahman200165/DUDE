@@ -92,6 +92,13 @@ describe('Hub web admin adapter', () => {
     expect(calls[0]).toMatchObject({ url: '/api/v1/diagnostics', method: 'GET', credentials: 'same-origin' });
   });
 
+  it('asks the Hub for its reachability echo through the owner session', async () => {
+    const response = { observed: { scope: 'private', viaProxy: false }, host: 'hub.local', hostMatchesConfiguredName: true, verified: false, reason: 'r', at: 'x' };
+    const { admin, calls } = setup(() => ({ status: 200, body: response }));
+    await expect(admin.reachabilityEcho?.()).resolves.toEqual(response);
+    expect(calls[0]).toMatchObject({ url: '/api/v1/reachability/echo', method: 'GET', credentials: 'same-origin' });
+  });
+
   it('reads security alerts and marks them seen through the owner routes', async () => {
     const response = { alerts: [{ seq: 4, at: 'x', event: 'security.ip-blocked', outcome: 'success', ip: '10.0.0.1', summary: 's' }], unseen: 1, seenSeq: 0 };
     const { admin, calls } = setup((c) => (c.method === 'GET' ? { status: 200, body: response } : { status: 200, body: { ok: true } }));

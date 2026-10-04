@@ -12,7 +12,8 @@ import { registerDeviceRoutes } from './routes/devices.js';
 import { registerTlsAuditRoutes } from './routes/tls-audit.js';
 import { registerSecurityAlertRoutes } from './routes/security-alerts.js';
 import { registerDiagnosticsRoute } from './routes/diagnostics.js';
-import { createHostFacts, gatherRunningHubDeps } from '../diagnostics/gather.js';
+import { registerReachabilityRoute } from './routes/reachability.js';
+import { createHostFacts, currentConfig, gatherRunningHubDeps } from '../diagnostics/gather.js';
 import { collectDiagnostics } from '../diagnostics/engine.js';
 import { createCachedNameResolver } from '../diagnostics/addresses.js';
 import type { InterfaceMap, NameResolution } from '../diagnostics/addresses.js';
@@ -163,6 +164,13 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   }));
   app.decorate('hubDiagnostics', collectHubDiagnostics);
   registerDiagnosticsRoute(app, { db: options.hub.db, now, requireOwner: authOptions.requireOwner, collect: collectHubDiagnostics });
+  registerReachabilityRoute(app, {
+    db: options.hub.db, now, requireOwner: authOptions.requireOwner, requireDevice, hostGuard,
+    exposure: () => {
+      const wanted = currentConfig(options.paths.configFile, { port: 0, ...(options.config.bind ? { bind: options.config.bind } : {}), ...(options.config.exposure ? { exposure: options.config.exposure } : {}) }).exposure;
+      return { names: wanted.names, publicOrigin: wanted.proxy?.publicOrigin };
+    },
+  });
   registerDeviceAuthRoutes(app, { db: options.hub.db, now, hubInstanceId: options.hub.hubInstanceId });
   registerDeviceRecoveryRoutes(app, {
     db: options.hub.db, now, hubInstanceId: options.hub.hubInstanceId, requireDevice,

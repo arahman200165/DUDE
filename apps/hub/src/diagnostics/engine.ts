@@ -7,6 +7,7 @@ import type { TlsCertificateSource } from '../tls/ca-public.js';
 import { dnsNamesToResolve, listHubAddresses, resolveNames, stableAddresses } from './addresses.js';
 import type { InterfaceMap, NameResolution } from './addresses.js';
 import type { NativeListener } from '../service/listeners.js';
+import { REACHABILITY_FRESH_MS } from './reachability.js';
 
 /**
  * The single Hub endpoint-diagnostics engine (PD-060). It takes gathered facts (no database handle, no shell) and builds the
@@ -69,11 +70,32 @@ export interface DiagnosticsDeps {
   interfaces?: () => InterfaceMap;
   /** The last recorded address set (meta `hub_addresses`); null/undefined when none is known (offline `doctor`). */
   storedAddresses?: readonly string[] | null;
+  /** The last Hub-observed external reachability record (meta `reachability_last`); null/undefined when none is known. */
+  reachability?: { at: string; host: string; ageMs: number } | null;
   /** DNS resolution of the configured names (default: the system resolver, uncached); the Hub route injects a 60 s cache. */
   resolveDns?: (names: readonly string[]) => Promise<NameResolution[]>;
 }
 
 const DAY_MS = 86_400_000;
+
+const REACHABILITY_GUIDANCE = 'Open the Hub web (or use "Test from this device" in the desktop app) from a device outside your network, such as a phone on cellular data.';
+
+const describeAge = (ms: number): string => {
+  const hours = Math.floor(ms / 3_600_000);
+  return hours >= 48 ? `${Math.floor(hours / 24)} days` : hours >= 1 ? `${hours} hour${hours === 1 ? '' : 's'}` : 'less than an hour';
+};
+
+/** `external-reachability` (PD-065): verified only by the Hub observing a public client reach it through a configured name. */
+export function externalReachabilityCheck(record: { at: string; host: string; ageMs: number } | null, mode: 'private' | 'public'): DiagnosticCheck {
+  const id = 'external-reachability';
+  const label = 'Reachable from outside';
+  if (record !== null && record.ageMs <= REACHABILITY_FRESH_MS) {
+    return check(id, label, 'pass', 'verified', `Reached from a public address via ${record.host} at ${record.at}.`);
+  }
+  const level = mode === 'public' ? 'warn' : 'info';
+  if (record !== null) return check(id, label, level, 'not-checked', `Last verified ${describeAge(record.ageMs)} ago; verify again. ${REACHABILITY_GUIDANCE}`);
+  return check(id, label, level, 'not-checked', `Not verified yet. ${REACHABILITY_GUIDANCE}`);
+}
 
 function certificateSection(facts: DiagnosticsCertificateFacts, wanted: readonly string[], now: number): HubDiagnosticsCertificate {
   const cert = new X509Certificate(facts.pem);
@@ -254,7 +276,7 @@ export async function collectDiagnostics(deps: DiagnosticsDeps): Promise<HubDiag
   }
 
   // external-reachability
-  checks.push(check('external-reachability', 'Reachable from outside', 'info', 'not-checked', 'Verified in Phase 31F.'));
+  checks.push(externalReachabilityCheck(deps.reachability ?? null, config.exposure.mode));
 
   return {
     generatedAt: new Date(deps.now).toISOString(),

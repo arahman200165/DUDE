@@ -9,6 +9,7 @@ import { computeSubjectAltNames } from '../tls/names.js';
 import { firewallRuleExists, serviceState } from '../service/common.js';
 import type { ExecFn } from '../service/common.js';
 import { readAddressRecord } from './address-watch.js';
+import { readReachability } from './reachability.js';
 import type { InterfaceMap, NameResolution } from './addresses.js';
 import type { DiagnosticsCertificateFacts, DiagnosticsDeps, DiagnosticsHostFacts } from './engine.js';
 
@@ -155,6 +156,7 @@ export async function gatherRunningHubDeps(source: RunningHubSource): Promise<Di
     realtime: { available: source.realtime !== undefined, ...counts },
     host: () => Promise.resolve(host),
     storedAddresses: readAddressRecord(source.db)?.addresses ?? null,
+    reachability: readReachability(source.db, now),
     ...(source.resolveDns ? { resolveDns: source.resolveDns } : {}),
     ...(source.interfaces ? { interfaces: source.interfaces } : {}),
   };

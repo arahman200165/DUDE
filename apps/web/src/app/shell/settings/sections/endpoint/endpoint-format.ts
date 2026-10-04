@@ -1,5 +1,5 @@
 import type { AgentDiagnostics, AgentDiagnosticsState } from '@dude/contracts';
-import type { DiagnosticBasis, DiagnosticStatus, HubDiagnosticsReport } from '@dude/contracts/hub';
+import type { DiagnosticBasis, DiagnosticStatus, HubDiagnosticsReport, ReachabilityScope } from '@dude/contracts/hub';
 import type { StatusGlyphKind } from '../../../../shared/components/status-glyph/status-glyph';
 
 export interface CheckTone {
@@ -19,7 +19,18 @@ export const CHECK_TONE: Readonly<Record<DiagnosticStatus, CheckTone>> = {
 export const BASIS_LABEL: Readonly<Record<DiagnosticBasis, string>> = {
   verified: 'Verified',
   claimed: 'Operator-claimed',
-  'not-checked': 'Not checked — Phase 31F',
+  'not-checked': 'Not checked',
+};
+
+/** The observed source scope of a reachability echo, in words (the address itself is never shown). */
+export const REACHABILITY_SCOPE_WORDS: Readonly<Record<ReachabilityScope, string>> = {
+  public: 'a public Internet address',
+  private: 'a private network address',
+  cgnat: 'a carrier-grade NAT address',
+  'link-local': 'a link-local address',
+  'unique-local': 'a private IPv6 address',
+  loopback: 'the Hub machine itself',
+  unknown: 'an address the Hub could not classify',
 };
 
 export const SOURCE_LABEL: Readonly<Record<'self-signed' | 'local-ca' | 'imported' | 'acme', string>> = {

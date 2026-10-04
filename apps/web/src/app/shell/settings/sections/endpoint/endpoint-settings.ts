@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import type { AgentDiagnostics } from '@dude/contracts';
-import type { HubDiagnosticsReport } from '@dude/contracts/hub';
+import type { HubDiagnosticsReport, ReachabilityEchoResponse } from '@dude/contracts/hub';
 import { HUB_ADMIN } from '../../../../core/hub/hub-admin.token';
 import { PlatformService } from '../../../../core/platform/platform.service';
 import { CopyButton } from '../../../../shared/components/copy-button/copy-button';
@@ -11,7 +11,7 @@ import { groupFingerprint, hubErrorText, relativeTime } from '../hub/hub-format'
 import { HubOwnerSession } from '../hub/hub-owner-session.service';
 import { OwnerGate } from '../hub/owner-gate';
 import { EndpointBrowserPanel } from './endpoint-browser-panel';
-import { AGENT_STATE_COPY, BASIS_LABEL, BIND_LABEL, CHECK_TONE, SOURCE_LABEL, buildCopyReport, daysLeftTone, fixCommand, isSkewed } from './endpoint-format';
+import { AGENT_STATE_COPY, BASIS_LABEL, BIND_LABEL, CHECK_TONE, REACHABILITY_SCOPE_WORDS, SOURCE_LABEL, buildCopyReport, daysLeftTone, fixCommand, isSkewed } from './endpoint-format';
 
 /**
  * Settings > Endpoint & Exposure (PD-060). View-only by design: it reports what the Hub, this device and this browser
@@ -35,6 +35,11 @@ export class EndpointSettings {
   protected readonly agent = signal<AgentDiagnostics | null>(null);
   protected readonly agentError = signal<string | null>(null);
   protected readonly refreshToken = signal(0);
+  protected readonly canVerifyReachability = this.hub.reachabilityEcho !== undefined;
+  protected readonly echo = signal<ReachabilityEchoResponse | null>(null);
+  protected readonly echoError = signal<string | null>(null);
+  protected readonly echoing = signal(false);
+  protected readonly scopeWords = REACHABILITY_SCOPE_WORDS;
 
   protected readonly agentCopy = computed(() => {
     const a = this.agent();
@@ -68,6 +73,22 @@ export class EndpointSettings {
 
   protected when(iso: string | null): string {
     return iso === null ? 'Never' : `${new Date(iso).toLocaleString()} (${relativeTime(iso)})`;
+  }
+
+  /** Asks the Hub what it observed of this browser's request; the checklist is reloaded afterwards. */
+  protected async verifyReachability(): Promise<void> {
+    if (this.hub.reachabilityEcho === undefined) return;
+    this.echoing.set(true);
+    try {
+      this.echo.set(await this.hub.reachabilityEcho());
+      this.echoError.set(null);
+      await this.loadReport();
+    } catch (error) {
+      this.echo.set(null);
+      if (!this.session.noteError(error, { unauthorizedMeansExpired: true })) this.echoError.set(hubErrorText(error, 'The Hub could not check this request.'));
+    } finally {
+      this.echoing.set(false);
+    }
   }
 
   private async loadReport(): Promise<void> {

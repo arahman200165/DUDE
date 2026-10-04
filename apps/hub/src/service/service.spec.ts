@@ -427,7 +427,7 @@ describe('doctor', () => {
     expect(byId['service-running']).toMatchObject({ status: 'fail', fix: 'dude-hub service start' });
     expect(byId['realtime-available']).toMatchObject({ status: 'info', basis: 'not-checked' });
     expect(byId['authentication-active']?.basis).toBe('not-checked');
-    expect(byId['external-reachability']).toMatchObject({ basis: 'not-checked', detail: 'Verified in Phase 31F.' });
+    expect(byId['external-reachability']).toMatchObject({ basis: 'not-checked', detail: expect.stringContaining('outside your network') });
     expect(report.certificate?.source).toBe('self-signed');
     expect(offline.out.join('')).not.toContain('PRIVATE KEY');
 

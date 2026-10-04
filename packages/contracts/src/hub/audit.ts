@@ -14,7 +14,7 @@ export const HUB_AUDIT_EVENTS = [
   'auth.failure',
   'tls.rotation-staged', 'tls.rotation-activated', 'tls.names-changed', 'tls.ca-created', 'tls.renewed',
   'tls.import-staged', 'tls.acme-issued', 'tls.acme-failed', 'tls.proxy-pin-staged', 'tls.proxy-pin-activated', 'tls.proxy-pin-removed',
-  'network.mode-changed', 'network.proxy-changed', 'network.exposure-mode-changed', 'network.address-changed', 'throttle.locked', 'security.ip-blocked', 'security.ip-unblocked', 'security.audit-ips-changed', 'purge.previewed', 'purge.applied',
+  'network.mode-changed', 'network.proxy-changed', 'network.exposure-mode-changed', 'network.address-changed', 'network.reachability-verified', 'throttle.locked', 'security.ip-blocked', 'security.ip-unblocked', 'security.audit-ips-changed', 'purge.previewed', 'purge.applied',
   'sync.pushed', 'sync.snapshot', 'sync.state-reported', 'sync.compacted',
   'sync.environment-clear-previewed', 'sync.environment-cleared',
   'web.attached', 'web.access-changed',

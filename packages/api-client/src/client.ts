@@ -2,7 +2,7 @@ import { Value } from 'typebox/value';
 import type { TSchema, Static } from 'typebox';
 import {
   HUB_API_PREFIX, HelloResponse, ErrorEnvelope, checkProtocolCompatibility,
-  BootstrapResponse, TlsCertificatesResponse, AuditListResponse, SecurityAlertsResponse, HubDiagnosticsReport,
+  BootstrapResponse, TlsCertificatesResponse, AuditListResponse, SecurityAlertsResponse, HubDiagnosticsReport, ReachabilityEchoResponse,
   EnrollResponse, DeviceChallengeResponse, DeviceRecoveryChallengeResponse, DeviceTokenResponse, DeviceInfo, DeviceListResponse, OwnerBearerResponse, PairingCodeResponse,
   OkResponse, ConfirmPreview, SessionListResponse, RecoveryCodesResponse,
   StepUpResponse, ChangePasswordResponse,
@@ -65,6 +65,8 @@ export interface HubClient {
   revokeAll(auth: Bearer, confirmToken: string): Promise<OkResponse>;
   listAudit(auth: Bearer, query?: { beforeSeq?: number; limit?: number }): Promise<AuditListResponse>;
   diagnostics(auth: Bearer): Promise<HubDiagnosticsReport>;
+  /** Hub-observed external reachability (owner session or device token): the Hub reports what it saw of THIS request's source. */
+  reachabilityEcho(auth: Bearer): Promise<ReachabilityEchoResponse>;
   /** Security-relevant audit events of the last 30 days with the unseen count (owner session). */
   listSecurityAlerts(auth: Bearer): Promise<SecurityAlertsResponse>;
   markSecurityAlertsSeen(auth: Bearer, upToSeq: number): Promise<OkResponse>;
@@ -144,6 +146,7 @@ export function createHubClient(transport: HubTransport, opts: HubClientOptions)
     revokeAllPreview: (auth) => call(ConfirmPreview, { method: 'POST', path: `${P}/sessions/revoke-all/preview` }, auth),
     revokeAll: (auth, confirmToken) => call(OkResponse, { method: 'POST', path: `${P}/sessions/revoke-all`, body: { confirmToken } }, auth),
     diagnostics: (auth) => call(HubDiagnosticsReport, { method: 'GET', path: `${P}/diagnostics` }, auth),
+    reachabilityEcho: (auth) => call(ReachabilityEchoResponse, { method: 'GET', path: `${P}/reachability/echo` }, auth),
     listSecurityAlerts: (auth) => call(SecurityAlertsResponse, { method: 'GET', path: `${P}/security/alerts` }, auth),
     markSecurityAlertsSeen: (auth, upToSeq) => call(OkResponse, { method: 'POST', path: `${P}/security/alerts/seen`, body: { upToSeq } }, auth),
     listAudit: (auth, query) => {

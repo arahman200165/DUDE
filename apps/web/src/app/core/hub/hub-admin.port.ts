@@ -1,5 +1,5 @@
 import type {
-  AuditListResponse, SecurityAlertsResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary, HubDiagnosticsReport, TlsCertificatesResponse,
+  AuditListResponse, SecurityAlertsResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary, HubDiagnosticsReport, ReachabilityEchoResponse, TlsCertificatesResponse,
   OwnerResetResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SignInResponse,
 } from '@dude/contracts/hub';
 import type { AgentDiagnostics } from '@dude/contracts';
@@ -77,6 +77,8 @@ export interface HubAdminPort {
   installRootCertificate?(confirmToken: string): Promise<{ readonly installed: true }>;
   /** Desktop only: this device's own connection report (state, pins, latency, clock skew, sync counts). No owner session needed. */
   agentDiagnostics?(): Promise<AgentDiagnostics>;
+  /** Hub-served web build only (the desktop probe arrives later): the Hub reports what it observed of THIS request's source, and records a verification when it came from a public address through a configured name. */
+  reachabilityEcho?(): Promise<ReachabilityEchoResponse>;
   /** Hub-served web build only: the Hub's public TLS certificates route (active pin, source, public local-CA root). */
   tlsCertificates?(): Promise<TlsCertificatesResponse>;
   /** Hub-served web build only: the `Date` header of a public Hub response, for the browser's clock-skew check; null when absent. */

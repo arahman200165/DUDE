@@ -1,5 +1,5 @@
 import type {
-  AuditListResponse, SecurityAlertsResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary, HubDiagnosticsReport, TlsCertificatesResponse,
+  AuditListResponse, SecurityAlertsResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary, HubDiagnosticsReport, ReachabilityEchoResponse, TlsCertificatesResponse,
   OwnerResetResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SignInResponse,
 } from '@dude/contracts/hub';
 import type { HubClient } from '@dude/api-client';
@@ -123,6 +123,7 @@ export function createHubWebAdmin(options: HubWebAdminOptions): HubAdminPort {
     listDevices: (): Promise<DeviceListResponse> => viaClient((c) => c.listDevices(undefined)),
     syncSummary: (): Promise<SyncSummary> => viaClient((c) => c.syncSummary(undefined)),
     diagnostics: (): Promise<HubDiagnosticsReport> => viaClient((c) => c.diagnostics(undefined)),
+    reachabilityEcho: (): Promise<ReachabilityEchoResponse> => viaClient((c) => c.reachabilityEcho(undefined)),
     tlsCertificates: (): Promise<TlsCertificatesResponse> => viaClient((c) => c.tlsCertificates()),
     serverDate: async (): Promise<string | null> => {
       try {

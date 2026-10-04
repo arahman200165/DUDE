@@ -126,6 +126,34 @@
         }
       </div>
 
+      @if (canVerifyReachability) {
+        <div data-setting class="flex flex-col gap-2" data-testid="reachability">
+          <h3 class="text-ui-sm font-semibold text-text">Reachability</h3>
+          <p class="text-ui text-text-muted">
+            The Hub checks where this request came from. Open this page through the Hub's public name from a device outside your network (a phone on cellular data), then verify. A request from inside your network proves nothing.
+          </p>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text hover:bg-panel-elevated disabled:opacity-50" data-testid="verify-reachability" [disabled]="echoing()" (click)="verifyReachability()">Verify from this browser</button>
+          </div>
+          @if (echoError(); as message) {
+            <p class="text-ui text-error" role="alert" data-testid="echo-error">{{ message }}</p>
+          }
+          @if (echo(); as e) {
+            <div class="flex flex-col gap-1" data-testid="echo-result" role="status">
+              <p class="flex flex-wrap items-center gap-2 text-ui">
+                @if (e.verified) {
+                  <span class="inline-flex items-center gap-1 font-semibold text-success" data-testid="echo-outcome"><app-status-glyph kind="success" />Verified and recorded</span>
+                } @else {
+                  <span class="inline-flex items-center gap-1 font-semibold text-warning" data-testid="echo-outcome"><app-status-glyph kind="warning" />Not verified, nothing recorded</span>
+                }
+              </p>
+              <p class="text-ui text-text" data-testid="echo-reason">{{ e.reason }}</p>
+              <p class="text-ui text-text-muted" data-testid="echo-scope">The Hub saw this request come from {{ scopeWords[e.observed.scope] }}@if (e.observed.viaProxy) { , through your reverse proxy}. Host: <code class="font-mono text-text">{{ e.host }}</code>.</p>
+            </div>
+          }
+        </div>
+      }
+
       <div data-setting class="flex flex-col gap-2" data-testid="readiness">
         <h3 class="text-ui-sm font-semibold text-text">Readiness checklist @if (failing() > 0) { <span class="text-error">({{ failing() }} failing)</span> }</h3>
         <ul class="flex flex-col gap-2">
@@ -162,7 +190,7 @@
   <app-disclosure label="About the checklist" summary="Verified, operator-claimed, not checked">
     <p class="text-ui text-text-muted">
       <strong class="text-text">Verified</strong> means the Hub observed it itself. <strong class="text-text">Operator-claimed</strong> is configuration the Hub cannot confirm, such as a public name or a router rule.
-      <strong class="text-text">Not checked</strong> needs a view from outside your network, which arrives in Phase 31F. See <a class="text-accent underline" routerLink="/settings/environment">Environment &amp; Hub</a> for connection and pairing.
+      <strong class="text-text">Not checked</strong> needs a view from outside your network, such as reachability, which only a device outside your network can confirm. See <a class="text-accent underline" routerLink="/settings/environment">Environment &amp; Hub</a> for connection and pairing.
     </p>
   </app-disclosure>
 </div>

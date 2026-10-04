@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it, vi } from 'vitest';
-import { FAKE_AGENT_DIAGNOSTICS, FAKE_HUB_DIAGNOSTICS } from '../../../../core/platform/testing/fake-hub';
+import { FAKE_AGENT_DIAGNOSTICS, FAKE_HUB_DIAGNOSTICS, FAKE_REACHABILITY_PRIVATE, FAKE_REACHABILITY_VERIFIED } from '../../../../core/platform/testing/fake-hub';
 import { CORE_SETTINGS_SECTIONS, settingsSectionAvailability } from '../../settings-sections';
 import { buttonWithText, configureHubTest, createTestPort, settle, typeInto } from '../hub/testing/hub-test-port';
 import { BrowserChecks, type BrowserEnvironment } from './browser-checks.service';
@@ -36,6 +36,49 @@ describe('Endpoint & Exposure section registration', () => {
   });
 });
 
+describe('EndpointSettings reachability', () => {
+  it('hides the block when the port has no reachabilityEcho (desktop for now)', async () => {
+    const { port } = createTestPort({ agentDiagnostics: async () => FAKE_AGENT_DIAGNOSTICS });
+    const { fixture, el } = await mount(port);
+    await signIn(fixture, el);
+    expect(el.querySelector('[data-testid="readiness"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="reachability"]')).toBeNull();
+  });
+
+  it('shows the button, the reason and the observed scope for an unverified echo', async () => {
+    const { port } = createTestPort({ reachabilityEcho: async () => FAKE_REACHABILITY_PRIVATE });
+    const { fixture, el } = await mount(port, 'hub-web');
+    await signIn(fixture, el);
+    expect(el.querySelector('[data-testid="echo-result"]')).toBeNull();
+    (el.querySelector('[data-testid="verify-reachability"]') as HTMLButtonElement).click();
+    await settle(fixture);
+    expect(text(el, 'echo-outcome')).toBe('Not verified, nothing recorded');
+    expect(text(el, 'echo-reason')).toContain('private address');
+    expect(text(el, 'echo-scope')).toContain('a private network address');
+  });
+
+  it('shows a verified echo and reloads the diagnostics', async () => {
+    const { port } = createTestPort({ reachabilityEcho: async () => FAKE_REACHABILITY_VERIFIED });
+    const { fixture, el } = await mount(port, 'hub-web');
+    await signIn(fixture, el);
+    const before = port.diagnostics.mock.calls.length;
+    (el.querySelector('[data-testid="verify-reachability"]') as HTMLButtonElement).click();
+    await settle(fixture);
+    expect(text(el, 'echo-outcome')).toBe('Verified and recorded');
+    expect(text(el, 'echo-scope')).toContain('a public Internet address');
+    expect(port.diagnostics.mock.calls.length).toBe(before + 1);
+  });
+
+  it('shows an error when the echo fails', async () => {
+    const { port } = createTestPort({ reachabilityEcho: async () => { throw new Error('Hub unreachable'); } });
+    const { fixture, el } = await mount(port, 'hub-web');
+    await signIn(fixture, el);
+    (el.querySelector('[data-testid="verify-reachability"]') as HTMLButtonElement).click();
+    await settle(fixture);
+    expect(text(el, 'echo-error')).toBe('Hub unreachable');
+  });
+});
+
 describe('EndpointSettings (desktop)', () => {
   it('shows this device immediately and the owner gate instead of the Hub report while signed out', async () => {
     const { port } = createTestPort({ agentDiagnostics: async () => FAKE_AGENT_DIAGNOSTICS });
@@ -67,7 +110,7 @@ describe('EndpointSettings (desktop)', () => {
     expect(text(el, 'check-tls-names')).toContain('Fail');
     expect(text(el, 'check-tls-names')).toContain('Verified');
     expect(text(el, 'check-firewall')).toContain('Pass');
-    expect(text(el, 'check-external')).toContain('Not checked — Phase 31F');
+    expect(text(el, 'check-external')).toContain('Not checked');
     expect(text(el, 'check-external')).not.toContain('Run elevated');
   });
 

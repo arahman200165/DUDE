@@ -1,5 +1,5 @@
 import type { DesktopHubBridge, DesktopHubOwnerStatus, DesktopLocalHubInfo } from '@dude/contracts/shared/models/platform-bridge.model';
-import type { DeviceInfo, HubDiagnosticsReport, SessionInfo, SyncSummary } from '@dude/contracts/hub';
+import type { DeviceInfo, HubDiagnosticsReport, ReachabilityEchoResponse, SessionInfo, SyncSummary } from '@dude/contracts/hub';
 import type { AgentDiagnostics } from '@dude/contracts';
 
 export const FAKE_HUB_DEVICE_ID = '0190aaaa-0000-7000-8000-000000000001';
@@ -11,6 +11,16 @@ export const FAKE_SYNC_SUMMARY = (deviceId: string): SyncSummary => ({
   counts: { settings: 3, favorites: 1, pipelines: 0, projects: 2, workspaces: 0, home: 1, usage: 0, 'workspace-layout': 0, scratchpad: 0 },
   devices: [{ deviceId, kind: 'desktop' as const, paused: false, cursor: 42, lag: 0, lastPushAt: '2026-01-01T00:00:00.000Z', lastPullAt: '2026-01-01T00:05:00.000Z', quarantined: 0, conflicts: 0, pending: 0 }],
 });
+
+/** A reachability echo the Hub could return: from a private address (nothing proven) or from a public one on a configured name (verified). */
+export const FAKE_REACHABILITY_PRIVATE: ReachabilityEchoResponse = {
+  observed: { scope: 'private', viaProxy: false }, host: 'hub.local:47600', hostMatchesConfiguredName: true, verified: false,
+  reason: 'This request came from a private address, so it does not show the Hub is reachable from the Internet.', at: '2026-10-04T00:00:00.000Z',
+};
+export const FAKE_REACHABILITY_VERIFIED: ReachabilityEchoResponse = {
+  observed: { scope: 'public', viaProxy: false }, host: 'hub.example.com', hostMatchesConfiguredName: true, verified: true,
+  reason: 'The Hub saw this request arrive from a public Internet address through hub.example.com, so it is reachable from outside.', at: '2026-10-04T00:00:00.000Z',
+};
 
 /** A private-mode Hub report with a local-CA certificate, one passing and one failing check, for specs. */
 export const FAKE_HUB_DIAGNOSTICS: HubDiagnosticsReport = {
