@@ -1,4 +1,5 @@
-import { createHubWebAdmin } from './hub-web-admin.adapter';
+import { createHubWebAdmin, type HubWebAdminOptions } from './hub-web-admin.adapter';
+import { hubCsrf } from './hub-csrf';
 
 interface Call {
   url: string;
@@ -25,7 +26,8 @@ const SESSION = {
   owner: { ownerId: 'o1', displayName: 'Ada', remainingRecoveryCodes: 10 },
 };
 
-function setup(responder: Responder) {
+function setup(responder: Responder, extra: Partial<HubWebAdminOptions> = {}) {
+  hubCsrf.clear();
   const calls: Call[] = [];
   const fakeFetch = (async (url: string, init: RequestInit) => {
     const call: Call = {
@@ -39,7 +41,7 @@ function setup(responder: Responder) {
     const r = responder(call);
     return new Response(r.body === undefined ? '' : JSON.stringify(r.body), { status: r.status, headers: r.headers });
   }) as unknown as typeof fetch;
-  const admin = createHubWebAdmin({ loadApiClient: () => import('@dude/api-client'), fetch: fakeFetch, origin: () => 'https://hub.local:47600' });
+  const admin = createHubWebAdmin({ loadApiClient: () => import('@dude/api-client'), fetch: fakeFetch, origin: () => 'https://hub.local:47600', ...extra });
   return { admin, calls };
 }
 
@@ -144,5 +146,78 @@ describe('Hub web admin adapter', () => {
     const { admin } = setup(() => ({ status: 200, body: HELLO }));
     await expect(admin.enroll('dude-pair:v1:x')).rejects.toMatchObject({ code: 'unavailable' });
     await expect(admin.unenroll()).rejects.toMatchObject({ code: 'unavailable' });
+  });
+
+  describe('owner step-up', () => {
+    const PREVIEW = { confirmToken: 't', expiresAt: 'x', summary: { action: 'a' } };
+    const stepUpResponder = (accept: (pw: string) => boolean) => {
+      let stepped = false;
+      return (c: Call) => {
+        if (c.url.endsWith('/auth/sign-in')) return { status: 200, body: SESSION };
+        if (c.url.endsWith('/auth/step-up')) {
+          if (!accept((c.body as { password: string }).password)) return { status: 403, body: envelope('forbidden', 'Wrong password.') };
+          stepped = true;
+          return { status: 200, body: { ok: true, csrfToken: 'csrf-2', steppedUpUntil: '2099-01-01T00:00:00.000Z' } };
+        }
+        if (c.url.endsWith('/sessions/revoke-all/preview')) return stepped ? { status: 200, body: PREVIEW } : { status: 403, body: envelope('step-up-required', 'Confirm your password.') };
+        return { status: 404, body: envelope('not-found', 'no') };
+      };
+    };
+
+    it('asks for the password, steps up and retries once with the rotated CSRF token', async () => {
+      const ask = vi.fn(async (_message?: string) => 'pw' as string | null);
+      const { admin, calls } = setup(stepUpResponder(() => true), { requestStepUp: ask });
+      await admin.signIn('pw');
+      await expect(admin.revokeAllPreview()).resolves.toMatchObject({ confirmToken: 't' });
+      expect(ask).toHaveBeenCalledTimes(1);
+      expect(ask).toHaveBeenCalledWith(undefined);
+      expect(calls.map((c) => c.url.split('/api/v1')[1])).toEqual(['/auth/sign-in', '/sessions/revoke-all/preview', '/auth/step-up', '/sessions/revoke-all/preview']);
+      expect(calls[1].headers['X-DUDE-CSRF']).toBe('csrf-1');
+      expect(calls[3].headers['X-DUDE-CSRF']).toBe('csrf-2');
+      expect(hubCsrf.get()).toBe('csrf-2');
+    });
+
+    it('re-asks with the refusal message after a wrong password', async () => {
+      const answers: (string | null)[] = ['bad', 'pw'];
+      const ask = vi.fn(async (_message?: string) => answers.shift() ?? null);
+      const { admin } = setup(stepUpResponder((pw) => pw === 'pw'), { requestStepUp: ask });
+      await expect(admin.revokeAllPreview()).resolves.toMatchObject({ confirmToken: 't' });
+      expect(ask.mock.calls).toEqual([[undefined], ['Wrong password.']]);
+    });
+
+    it('fails with step-up-required when the prompt is cancelled', async () => {
+      const { admin, calls } = setup(stepUpResponder(() => true), { requestStepUp: async () => null });
+      await expect(admin.revokeAllPreview()).rejects.toMatchObject({ name: 'HubAdminError', code: 'step-up-required', message: 'Password confirmation was cancelled.' });
+      expect(calls).toHaveLength(1);
+    });
+
+    it('surfaces the original error when no prompt is wired', async () => {
+      const { admin } = setup(stepUpResponder(() => true));
+      await expect(admin.revokeAllPreview()).rejects.toMatchObject({ code: 'step-up-required' });
+    });
+
+    it('does not step up again when the retry still needs it, and gives up after three wrong passwords', async () => {
+      const ask = vi.fn(async (_message?: string) => 'pw' as string | null);
+      const never = setup((c) => (c.url.endsWith('/auth/step-up') ? { status: 200, body: { ok: true, csrfToken: null, steppedUpUntil: 'x' } } : { status: 403, body: envelope('step-up-required', 'no') }), { requestStepUp: ask });
+      await expect(never.admin.revokeAllPreview()).rejects.toMatchObject({ code: 'step-up-required' });
+      expect(ask).toHaveBeenCalledTimes(1);
+      const wrong = vi.fn(async (_message?: string) => 'bad' as string | null);
+      const w = setup(stepUpResponder(() => false), { requestStepUp: wrong });
+      await expect(w.admin.revokeAllPreview()).rejects.toMatchObject({ code: 'forbidden' });
+      expect(wrong).toHaveBeenCalledTimes(3);
+    });
+
+    it('stops on a lockout during step-up', async () => {
+      const ask = vi.fn(async (_message?: string) => 'pw' as string | null);
+      const { admin } = setup((c) => (c.url.endsWith('/auth/step-up') ? { status: 423, body: envelope('locked', 'Locked.') } : { status: 403, body: envelope('step-up-required', 'no') }), { requestStepUp: ask });
+      await expect(admin.revokeAllPreview()).rejects.toMatchObject({ code: 'locked' });
+      expect(ask).toHaveBeenCalledTimes(1);
+    });
+
+    it('adopts the CSRF token returned by a password change', async () => {
+      const { admin } = setup(() => ({ status: 200, body: { ok: true, csrfToken: 'csrf-9' } }));
+      await expect(admin.changePassword('a', 'b'.repeat(12))).resolves.toMatchObject({ ok: true });
+      expect(hubCsrf.get()).toBe('csrf-9');
+    });
   });
 });

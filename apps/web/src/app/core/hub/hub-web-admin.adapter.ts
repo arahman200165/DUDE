@@ -5,6 +5,7 @@ import type {
 import type { HubClient } from '@dude/api-client';
 import { HUB_ADMIN_UNAVAILABLE, HubAdminError, HubAdminPort, HubEnrollment, HubOwnerStatus, HubProbe, HubStatus } from './hub-admin.port';
 import { createFetchHubTransport } from './fetch-hub-transport';
+import { hubCsrf } from './hub-csrf';
 
 type ApiClientModule = typeof import('@dude/api-client');
 
@@ -13,6 +14,8 @@ export interface HubWebAdminOptions {
   readonly loadApiClient: () => Promise<ApiClientModule>;
   readonly fetch?: typeof fetch;
   readonly origin?: () => string | null;
+  /** Asks the owner for the password when a guarded call needs step-up; resolves null when cancelled. */
+  readonly requestStepUp?: (message?: string) => Promise<string | null>;
 }
 
 const unavailable = (what: string): Promise<never> => Promise.reject(new HubAdminError(HUB_ADMIN_UNAVAILABLE, `${what} is only available in the desktop app.`));
@@ -23,8 +26,7 @@ const unavailable = (what: string): Promise<never> => Promise.reject(new HubAdmi
  * the mapping plus CSRF bookkeeping.
  */
 export function createHubWebAdmin(options: HubWebAdminOptions): HubAdminPort {
-  let csrfToken: string | undefined;
-  const transport = createFetchHubTransport({ fetch: options.fetch, csrfToken: () => csrfToken });
+  const transport = createFetchHubTransport({ fetch: options.fetch, csrfToken: () => hubCsrf.get() });
   let clientPromise: Promise<{ readonly module: ApiClientModule; readonly client: HubClient }> | undefined;
   const origin = options.origin ?? (() => globalThis.location?.origin ?? null);
 
@@ -39,17 +41,46 @@ export function createHubWebAdmin(options: HubWebAdminOptions): HubAdminPort {
     return new HubAdminError('network', error instanceof Error ? error.message : 'The Hub could not be reached.');
   }
 
+  const isCode = (error: unknown, module: ApiClientModule, code: string): boolean => error instanceof module.HubApiError && error.code === code;
+  const MAX_STEP_UP_ATTEMPTS = 3;
+
+  /** Confirms the password (re-asking after a wrong one), adopting the rotated CSRF token. Throws when it cannot. */
+  async function stepUp(module: ApiClientModule, client: HubClient, ask: (message?: string) => Promise<string | null>): Promise<void> {
+    let message: string | undefined;
+    for (let attempt = 0; attempt < MAX_STEP_UP_ATTEMPTS; attempt++) {
+      const password = await ask(message);
+      if (password === null) throw new HubAdminError('step-up-required', 'Password confirmation was cancelled.');
+      try {
+        const response = await client.stepUp(undefined, password);
+        hubCsrf.set(response.csrfToken ?? undefined);
+        return;
+      } catch (error) {
+        if (!isCode(error, module, 'forbidden')) throw await normalize(error, module);
+        message = (error as Error).message;
+      }
+    }
+    throw new HubAdminError('forbidden', message ?? 'The password is incorrect.');
+  }
+
   async function viaClient<T>(call: (client: HubClient) => Promise<T>): Promise<T> {
     const { module, client } = await load();
     try {
       return await call(client);
     } catch (error) {
+      if (options.requestStepUp && isCode(error, module, 'step-up-required')) {
+        await stepUp(module, client, options.requestStepUp);
+        try {
+          return await call(client);
+        } catch (retryError) {
+          throw await normalize(retryError, module);
+        }
+      }
       throw await normalize(error, module);
     }
   }
 
   const remember = (session: SignInResponse): SignInResponse => {
-    csrfToken = session.csrfToken;
+    hubCsrf.set(session.csrfToken);
     return session;
   };
   const toOwner = (session: CurrentSessionResponse): HubOwnerStatus => ({ signedIn: true, ownerDisplayName: session.owner.displayName, expiresAt: session.session.absoluteExpiresAt });
@@ -60,7 +91,7 @@ export function createHubWebAdmin(options: HubWebAdminOptions): HubAdminPort {
     try {
       return await viaClient((c) => c.signOut());
     } finally {
-      csrfToken = undefined;
+      hubCsrf.clear();
     }
   };
 
@@ -112,7 +143,11 @@ export function createHubWebAdmin(options: HubWebAdminOptions): HubAdminPort {
     listAudit: (beforeSeq): Promise<AuditListResponse> => viaClient((c) => c.listAudit(undefined, beforeSeq === undefined ? undefined : { beforeSeq })),
     recoveryCodesPreview: (): Promise<ConfirmPreview> => viaClient((c) => c.recoveryCodesPreview(undefined)),
     regenerateRecoveryCodes: (token): Promise<RecoveryCodesResponse> => viaClient((c) => c.regenerateRecoveryCodes(undefined, token)),
-    changePassword: (current, next): Promise<OkResponse> => viaClient((c) => c.changePassword(undefined, current, next)),
+    changePassword: async (current, next): Promise<OkResponse> => {
+      const response = await viaClient((c) => c.changePassword(undefined, current, next));
+      if (response.csrfToken !== null) hubCsrf.set(response.csrfToken);
+      return response;
+    },
 
     bootstrap: (request: BootstrapRequest): Promise<BootstrapResponse> => viaClient((c) => c.bootstrap(request)),
     signIn,

@@ -1,3 +1,4 @@
+import { hubCsrf } from '../hub/hub-csrf';
 import type { SyncRecord } from '@dude/contracts/hub';
 import { defaultDisplayName, kvSyncEntityOfStored, uuidv7 } from '@dude/persistence';
 import { RecordBook, categoryOf } from '@dude/sync';
@@ -47,12 +48,12 @@ export interface HubWebBootDeps {
 async function connectToHub(): Promise<HubWebBootConnection> {
   const module = await loadHubClient();
   let csrf: string | undefined;
-  const transport = createFetchHubTransport({ csrfToken: () => csrf });
+  const transport = createFetchHubTransport({ csrfToken: () => hubCsrf.get() });
   const client = module.createHubClient(transport, { clientProtocol: 1, minHubProtocol: 1 });
   return {
     client,
     checkSession: async () => {
-      csrf = (await client.currentSession()).csrfToken;
+      hubCsrf.set((await client.currentSession()).csrfToken);
     },
   };
 }

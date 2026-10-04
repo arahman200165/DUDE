@@ -2,6 +2,7 @@ import { InjectionToken, inject } from '@angular/core';
 import { PLATFORM_BRIDGE } from '../platform/platform-bridge.adapter';
 import { PlatformService } from '../platform/platform.service';
 import { createDesktopHubAdmin } from './desktop-hub-admin.adapter';
+import { HubStepUpService } from './hub-step-up.service';
 import { HubAdminPort } from './hub-admin.port';
 import { createHubWebAdmin } from './hub-web-admin.adapter';
 import { loadHubClient } from './hub-client-loader';
@@ -20,7 +21,10 @@ export const HUB_ADMIN = new InjectionToken<HubAdminPort>('DUDE Hub administrati
       case 'desktop':
         return createDesktopHubAdmin(() => bridge.get()?.hub);
       case 'hub-web':
-        return createHubWebAdmin({ loadApiClient: loadHubClient });
+      {
+        const stepUp = inject(HubStepUpService);
+        return createHubWebAdmin({ loadApiClient: loadHubClient, requestStepUp: (message) => stepUp.ask(message) });
+      }
       default:
         return createUnavailableHubAdmin();
     }

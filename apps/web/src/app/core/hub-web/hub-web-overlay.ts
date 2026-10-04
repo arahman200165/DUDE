@@ -1,4 +1,6 @@
 import { Component, inject } from '@angular/core';
+import { HubStepUpService } from '../hub/hub-step-up.service';
+import { HubStepUpDialog } from '../../shared/components/hub-step-up-dialog/hub-step-up-dialog';
 import { HubConflictDialog } from '../../shared/components/hub-conflict-dialog/hub-conflict-dialog';
 import { HubWebFeedback } from './hub-web-feedback';
 
@@ -8,7 +10,7 @@ import { HubWebFeedback } from './hub-web-feedback';
  */
 @Component({
   selector: 'app-hub-web-overlay',
-  imports: [HubConflictDialog],
+  imports: [HubConflictDialog, HubStepUpDialog],
   template: `
     @if (feedback.toasts().length > 0) {
       <div class="fixed bottom-4 left-4 z-50 flex max-w-lg flex-col gap-2" role="status" aria-live="polite">
@@ -28,4 +30,5 @@ import { HubWebFeedback } from './hub-web-feedback';
 })
 export class HubWebOverlay {
   protected readonly feedback = inject(HubWebFeedback);
+  protected readonly stepUp = inject(HubStepUpService);
 }
