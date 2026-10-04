@@ -44,7 +44,7 @@ export interface ServiceDeps {
   stderr?: (text: string) => void;
   /** Directory the running binary was started from (the staged files). */
   sourceDir?: string;
-  call?: (dataDir: string, method: string, params: unknown) => Promise<unknown>;
+  call?: (dataDir: string, method: string, params: unknown, timeoutMs?: number) => Promise<unknown>;
   hello?: (dataDir: string, port: number) => Promise<HelloResponse | null>;
   sleep?: (ms: number) => Promise<void>;
   now?: () => number;
@@ -59,7 +59,7 @@ export interface ResolvedDeps {
   out: (text: string) => void;
   err: (text: string) => void;
   sourceDir: string;
-  call: (dataDir: string, method: string, params: unknown) => Promise<unknown>;
+  call: (dataDir: string, method: string, params: unknown, timeoutMs?: number) => Promise<unknown>;
   hello: (dataDir: string, port: number) => Promise<HelloResponse | null>;
   sleep: (ms: number) => Promise<void>;
   now: () => number;
@@ -74,7 +74,7 @@ export function resolveDeps(deps: ServiceDeps = {}): ResolvedDeps {
     out: deps.stdout ?? ((t) => void process.stdout.write(t)),
     err: deps.stderr ?? ((t) => void process.stderr.write(t)),
     sourceDir: deps.sourceDir ?? path.dirname(process.execPath),
-    call: deps.call ?? ((dataDir, method, params) => callAdmin(dataDir, method, params, 10_000)),
+    call: deps.call ?? ((dataDir, method, params, timeoutMs = 10_000) => callAdmin(dataDir, method, params, timeoutMs)),
     hello: deps.hello ?? fetchHello,
     sleep: deps.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms))),
     now: deps.now ?? Date.now,

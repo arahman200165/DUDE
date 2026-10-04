@@ -137,6 +137,23 @@ In public (Internet) mode Windows Firewall needs a rule the LAN mode does not ad
 - `dude-hub doctor` (as administrator) shows **Firewall allows public access** and **No native app port is exposed**; the second fails if `dude-agent.exe` listens on any TCP port, which it must never do. Settings > Endpoint cannot run these checks and shows them as not checked.
 - Uninstalling the Hub removes both rules.
 
+### Backups
+
+A Hub backup is one encrypted `.dudebackup` file: a scrubbed copy of the Hub database (no sign-in sessions, tokens, pairing codes or certificate keys) and its configuration, sealed with a passphrase you choose. The Hub must be running; run these from an elevated prompt:
+
+| Command | What it does |
+| --- | --- |
+| `dude-hub backup create [--folder <abs dir>]` | Two steps. The first run writes nothing: it prints the folder, the file name, what the backup will contain and a one-time token. Re-run with `--confirm <token>` (and the same `--folder`) within 60 seconds, enter the passphrase twice, and the Hub writes, re-opens and verifies the file before it keeps it. |
+| `dude-hub backup list [--folder <abs dir>]` | List the backup files in a folder (default: the scheduled folder, else `backups` under the Hub data directory). Needs no elevation. |
+| `dude-hub backup verify --file <abs path>` | Decrypt a backup with its passphrase and print what it contains, without changing anything. |
+| `dude-hub backup schedule set --folder <abs dir> --every-hours <n> --keep <n>` | Take a backup every `n` hours and keep the newest `keep`. Asks for the passphrase once. |
+| `dude-hub backup schedule off` / `status` | Stop scheduled backups, or show the schedule and the result of the last run (`status` needs no elevation). |
+
+- **The passphrase is never a command-line flag.** The CLI reads it from the `DUDE_HUB_BACKUP_PASSPHRASE` environment variable, else the first line of standard input when it is piped, else a hidden prompt. **Losing the passphrase makes the backup unrecoverable**; DUDE cannot reset it.
+- **The default folder is on the same machine as the Hub**, so it does not protect against losing that computer or its disk. Choose a folder on another drive or share, or copy the files elsewhere. The preview says so every time.
+- **A schedule stores a key derived from the passphrase**, protected by Windows (DPAPI, this computer only), so unattended backups can encrypt; the passphrase itself is not stored. A schedule can be set only from this elevated CLI.
+- Restore is documented with the restore command in a later milestone. Restoring is an offline operation, so keep the passphrase and at least one copy of the backup somewhere safe.
+
 ### Updating the Hub
 
 A DUDE update never touches the Hub. When the desktop notices that the bundled Hub is newer than the installed one, it offers **Update Hub** in the app; that elevates the bundled `<DUDE folder>\resources\DUDE-Hub-Setup.exe /S /UPDATE` (stop, replace, start; data migrates when the service starts; only offered for a per-machine DUDE install). You can also run the newer `DUDE-Hub-Setup.exe` yourself.

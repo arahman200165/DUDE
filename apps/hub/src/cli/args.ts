@@ -1,3 +1,5 @@
+import path from 'node:path';
+import { BACKUP_INTERVAL_HOURS_MAX, BACKUP_RETENTION_MAX } from '../config/hub-config.js';
 import type { HubBindMode } from '../config/hub-config.js';
 
 export type ParsedCommand =
@@ -18,6 +20,7 @@ export type ParsedCommand =
   | { command: 'network-firewall'; target: 'public' | 'acme'; action: 'on' | 'off' | 'status'; force?: boolean; dataDir?: string; installDir?: string }
   | { command: 'doctor'; json?: boolean; dataDir?: string; installDir?: string }
   | { command: 'purge'; dataDir?: string; includeBackups?: boolean; confirm?: string; type?: string }
+  | { command: 'backup'; action: 'create' | 'list' | 'verify' | 'schedule-set' | 'schedule-off' | 'schedule-status'; folder?: string; file?: string; confirm?: string; everyHours?: number; keep?: number; dataDir?: string; installDir?: string }
   | { command: 'version' }
   | { command: 'help' };
 
@@ -65,11 +68,17 @@ Usage:
   dude-hub network mode public [--accept-unverified-reachability] [--type "EXPOSE HUB TO THE INTERNET"] [--data-dir <dir>] [--install-dir <dir>]   (elevated; the running Hub must pass the readiness gate; without --type only the readiness report is printed)
   dude-hub doctor [--json] [--data-dir <dir>] [--install-dir <dir>]   (readiness checklist; --json prints the endpoint diagnostics report)
   dude-hub purge --data-dir <dir> [--include-backups] [--confirm <token> --type "DELETE HUB DATA"]
+  dude-hub backup create [--folder <abs dir>] [--data-dir <dir>] [--install-dir <dir>] [--confirm <token>]   (two steps: the preview prints a one-time token, --confirm asks for the passphrase and writes the encrypted backup; elevated, Hub running)
+  dude-hub backup list [--folder <abs dir>] [--data-dir <dir>] [--install-dir <dir>]
+  dude-hub backup verify --file <abs path> [--data-dir <dir>] [--install-dir <dir>]   (decrypts the backup with its passphrase and prints what it contains; elevated)
+  dude-hub backup schedule set --folder <abs dir> --every-hours <n> --keep <n> [--data-dir <dir>] [--install-dir <dir>]   (unattended backups; stores a protected derived key, never the passphrase; elevated)
+  dude-hub backup schedule off|status [--data-dir <dir>] [--install-dir <dir>]
   dude-hub version
   dude-hub help
 
 Flags override the saved configuration for this run only.
 The data directory may also be set with DUDE_HUB_DATA_DIR; the log level with DUDE_HUB_LOG_LEVEL.
+The backup passphrase is never a flag: it comes from DUDE_HUB_BACKUP_PASSPHRASE, the first line of standard input, or a hidden prompt.
 `;
 
 /** Parses `--flag value` / `--flag=value` pairs and bare boolean flags against an allow-list. */
@@ -93,6 +102,66 @@ function parseFlags(flags: readonly string[], allowed: readonly string[], boolea
 }
 
 const optional = (values: Record<string, string>, flag: string, key: string): Record<string, string> => (values[flag] !== undefined ? { [key]: values[flag] } : {});
+
+const BACKUP_USAGE = 'Usage: dude-hub backup create|list|verify --file <path>|schedule set|off|status. Run "dude-hub help".';
+
+function absolutePath(values: Record<string, string>, flag: string): string | undefined {
+  const value = values[flag];
+  if (value === undefined) return undefined;
+  if (value.length === 0 || !path.isAbsolute(value)) throw new UsageError(`Flag ${flag} must be an absolute path.`);
+  return value;
+}
+
+function positiveInteger(values: Record<string, string>, flag: string, max: number): number {
+  const text = values[flag];
+  if (text === undefined) throw new UsageError(`Flag ${flag} is required.`);
+  const value = Number(text);
+  if (!/^[0-9]{1,6}$/.test(text) || value < 1 || value > max) throw new UsageError(`Flag ${flag} must be an integer from 1 to ${max}.`);
+  return value;
+}
+
+/** `backup create|list|verify|schedule set|off|status`. The passphrase is never a flag (it is read from the environment, standard input or a hidden prompt). */
+function parseBackup(rest: readonly string[]): ParsedCommand {
+  let sub = rest[0];
+  let flags = rest.slice(1);
+  let action: Extract<ParsedCommand, { command: 'backup' }>['action'];
+  if (sub === 'schedule') {
+    sub = flags[0];
+    flags = flags.slice(1);
+    if (sub !== 'set' && sub !== 'off' && sub !== 'status') throw new UsageError('Usage: dude-hub backup schedule set --folder <abs dir> --every-hours <n> --keep <n> | off | status.');
+    action = sub === 'set' ? 'schedule-set' : sub === 'off' ? 'schedule-off' : 'schedule-status';
+  } else if (sub === 'create' || sub === 'list' || sub === 'verify') {
+    action = sub;
+  } else {
+    throw new UsageError(BACKUP_USAGE);
+  }
+  if (flags.some((flag) => flag === '--passphrase' || flag.startsWith('--passphrase='))) {
+    throw new UsageError('The backup passphrase is never accepted as a flag. Set DUDE_HUB_BACKUP_PASSPHRASE, pipe it on standard input, or type it at the prompt.');
+  }
+  const allowed: Record<typeof action, string[]> = {
+    create: ['--folder', '--confirm'],
+    list: ['--folder'],
+    verify: ['--file'],
+    'schedule-set': ['--folder', '--every-hours', '--keep'],
+    'schedule-off': [],
+    'schedule-status': [],
+  };
+  const values = parseFlags(flags, [...allowed[action], '--data-dir', '--install-dir'], []);
+  const folder = absolutePath(values, '--folder');
+  const file = absolutePath(values, '--file');
+  if (action === 'verify' && file === undefined) throw new UsageError('Usage: dude-hub backup verify --file <absolute path to a .dudebackup file>.');
+  if (action === 'schedule-set') {
+    if (folder === undefined) throw new UsageError('Usage: dude-hub backup schedule set --folder <abs dir> --every-hours <n> --keep <n>.');
+    const everyHours = positiveInteger(values, '--every-hours', BACKUP_INTERVAL_HOURS_MAX);
+    const keep = positiveInteger(values, '--keep', BACKUP_RETENTION_MAX);
+    return { command: 'backup', action, folder, everyHours, keep, ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir') };
+  }
+  return {
+    command: 'backup', action,
+    ...(folder !== undefined ? { folder } : {}), ...(file !== undefined ? { file } : {}),
+    ...optional(values, '--confirm', 'confirm'), ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir'),
+  };
+}
 
 /** Hand-rolled argv parsing (no CLI library). `argv` excludes the node binary and script path. */
 export function parseArgs(argv: readonly string[]): ParsedCommand {
@@ -318,6 +387,7 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
     }
     throw new UsageError('Usage: dude-hub network lan on|off|status | firewall public|acme on|off|status | proxy on|off|status | mode private|public. Run "dude-hub help".');
   }
+  if (command === 'backup') return parseBackup(rest);
   if (command === 'doctor') {
     const values = parseFlags(rest, ['--install-dir', '--data-dir', '--json'], ['--json']);
     return { command: 'doctor', ...(values['--json'] !== undefined ? { json: true } : {}), ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir') };
