@@ -160,6 +160,9 @@ export class HubRealtimeClient {
         } catch {
           // the close handler takes over
         }
+        // An HTTP failure while the socket stayed up (a dropped request, a 5xx from a proxy) leaves writes refused; the
+        // socket never reconnects to clear that, so probe the feed on the heartbeat until an answer arrives.
+        if (!this.deps.engine.connection.live()) void this.pull(true);
       }, every);
       void this.pull();
       return;
@@ -279,9 +282,10 @@ export class HubRealtimeClient {
         else if (!this.welcomed) this.deps.engine.connection.set(this.failures >= FAILURES_BEFORE_UNREACHABLE ? 'unreachable' : 'reconnecting');
         return;
       }
-      // A successful HTTP answer while the socket is down: writes work, and so does the feed.
-      if (polling && !this.welcomed) {
-        this.failures = 0;
+      // A successful HTTP answer while the socket is down (polling), or one that follows an HTTP-only failure while the
+      // socket stayed up: writes work, and so does the feed.
+      if (polling || this.welcomed) {
+        if (!this.welcomed) this.failures = 0;
         this.deps.engine.connection.set('live');
       }
       this.deliver(response.changes);

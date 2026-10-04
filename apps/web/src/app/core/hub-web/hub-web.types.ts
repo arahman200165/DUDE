@@ -43,6 +43,10 @@ export function classifyHubError(error: unknown): { kind: HubWebErrorKind; messa
     if (e.status >= 500 || e.status === 429) return { kind: 'unreachable', message };
     return { kind: 'rejected', message };
   }
-  if (e?.name === 'HubProtocolError') return { kind: 'incompatible', message };
+  if (e?.name === 'HubProtocolError') {
+    // A 5xx without a Hub error envelope is not the Hub speaking: the service worker answers 504 when the network is down,
+    // and a proxy in front of a stopped Hub answers 502/503/504. Only a malformed answer of a healthy status is a version mismatch.
+    return typeof e.status === 'number' && e.status >= 500 ? { kind: 'unreachable', message } : { kind: 'incompatible', message };
+  }
   return { kind: 'unreachable', message };
 }

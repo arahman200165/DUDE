@@ -268,6 +268,14 @@ describe('HubRealtimeClient', () => {
     expect(rig.connection.state()).toBe('live');
   });
 
+  it('recovers from an HTTP-only failure with the socket still up: the heartbeat probes the feed and goes live again', async () => {
+    make();
+    await connect();
+    rig.connection.set('unreachable');
+    await vi.advanceTimersByTimeAsync(25_000);
+    expect(rig.connection.state()).toBe('live');
+  });
+
   it('heartbeats at the interval the Hub announces', async () => {
     make();
     const socket = await connect();

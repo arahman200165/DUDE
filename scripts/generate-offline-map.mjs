@@ -102,8 +102,13 @@ for (const [id, files] of Object.entries(owned)) {
 // Lazy shell destinations (History, Pipelines, Settings sections, ...) are code-split too, and
 // can't be opened offline until cached. They're too large to prefetch (~0.8 MB), so they're listed
 // for "Make available offline" instead.
+// An output nothing imports is an orphan: the Hub-web runtime (`import()` guarded by `BUILD_HOST !== 'hub'`) is folded away
+// in the Pages and desktop builds, yet esbuild still lists its chunk, whose own imports were never emitted. It can never be
+// opened from such a build, so it is not a shell destination to cache.
+const referenced = new Set(Object.values(outputs).flatMap((output) => (output.imports ?? []).map((imported) => imported.path)));
 const shellRoots = Object.keys(outputs).filter(
-  (file) => file.endsWith('.js') && !prefetched.has(file) && /^apps\/web\/src\/app\/(shell|core|shared)\//.test(outputs[file].entryPoint ?? ''),
+  (file) =>
+    file.endsWith('.js') && !prefetched.has(file) && referenced.has(file) && /^apps\/web\/src\/app\/(shell|core|shared)\//.test(outputs[file].entryPoint ?? ''),
 );
 const shell = closure(undefined, shellRoots, true);
 

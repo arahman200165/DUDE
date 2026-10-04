@@ -2,7 +2,7 @@
  * Pure, framework-free CBOR decoding used by the CBOR Viewer tool.
  */
 
-import { decode } from 'cbor-x';
+import { decode } from 'cbor-x/decode-no-eval'; // the no-eval build: the default one probes `new Function`, which the Hub's CSP reports as a violation
 
 export interface CborDecodeError {
   readonly message: string;
