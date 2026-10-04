@@ -31,6 +31,7 @@
     "measure:hub": "node scripts/measure-hub.mjs",
     "measure:sync": "node scripts/measure-sync.mjs",
     "measure:hub-web": "node scripts/measure-hub-web.mjs",
+    "measure:backup": "node scripts/measure-backup.mjs",
     "test:hub": "vitest run --config vitest.hub.config.mts",
     "test:sync": "vitest run --config vitest.electron.config.mts apps/device-agent/src/sync/sync-integration.spec.ts",
     "test:perf": "vitest run --config vitest.perf.config.mts",
