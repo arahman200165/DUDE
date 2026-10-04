@@ -3008,6 +3008,62 @@ Phase 31F released Internet (public) mode behind an elevated readiness gate and 
 
 **Outcome (Milestones 683–699):** met, with the manual and real-network passes listed in the acceptance evidence owed; see [Phase 31F acceptance evidence](../delivery/PHASE31F_ACCEPTANCE.md).
 
+<a id="phase-31g"></a>
+
+## Phase 31G — Encrypted Backup, Restore and Hub Transfer
+
+**Status:** complete, Milestones 700–719; automated acceptance is recorded in [Phase 31G acceptance evidence](../delivery/PHASE31G_ACCEPTANCE.md), which also lists the manual and second-machine passes still owed. Decisions are PD-069 to PD-074 in the [decision log](DECISION_LOG.md#phase-31g-implementation-decisions), implemented with the amendments recorded there.
+
+Phase 31G made a self-hosted Hub recoverable and movable: a passphrase-encrypted, verified backup file, an offline staged restore that gives the restored Hub a new identity and a higher authority epoch, a fence that retires the old Hub, re-attach pairing codes, a device reconnect that keeps local data and pending edits and ends in the existing first-sync preview, a rebase that never deletes history the Hub regressed past, a Hub web authority gate and a view-only Backup & Transfer section.
+
+### Milestone map
+
+| Milestone | Delivered |
+|---|---|
+| 700 | Decisions PD-069 to PD-074 |
+| 701 | Hub authority epoch and state (`authority_epoch`, `authority_state` in `meta`, default 1 and active) reported as optional fields in `hello`, the device token response, the realtime welcome and sync responses (no protocol bump, no migration) |
+| 702 | `@dude/hub-backup`: the `.dudebackup` format (plaintext reader header, XChaCha20-Poly1305 64 KiB chunks, manifest inside the encryption, injected KDF, random and clock, NFKC passphrase, 512 MiB plaintext and 32-file ceiling) |
+| 703 | Device authority detection (device-store migration 0005 `hub_enrollment.authority_epoch`; `authority-changed` with reasons `transferred`, `instance-changed`, `epoch-lower`; hello checked on every connect, refresh, token, welcome and revoke confirmation; sync phase `needs-reconcile`; one recovery snapshot) |
+| 704 | Hub backup core: scrubbed `VACUUM INTO` snapshot, Node Argon2id (64 MiB, 3 passes, 1 lane), verified atomic write, retention that never deletes the newest, DPAPI-protected derived schedule key |
+| 705 | Device rebase safety: persisted `sync_reconcile_required` flag (`cursor-ahead`, `epoch-lower`, `history-regressed`); a rebase refuses to delete or move the cursor when an acknowledged local entity is newer than the snapshot; snapshots before any legitimate deletion |
+| 706 | Backup admin methods (`backup.create.preview\|apply`, `list`, `verify`, `schedule.set\|off\|status`), the scheduler, `backup.schedule` config, nine closed-list `backup.*` audit events and the confirmation-boundary spec |
+| 707 | `dude-hub backup create\|list\|verify\|schedule` CLI with no-echo passphrase input (`DUDE_HUB_BACKUP_PASSPHRASE`, standard input or a prompt, never a flag) |
+| 708 | Hub restore library and migration 0008 (`devices.needs_re_pair`, `pairing_codes.reattach_device_id`): offline staged restore, new instance id, epoch = source + 1, desktop devices marked needs-re-pair with keys revoked, transient, TLS and `device_sync_state` cleared, `hub.json` sanitized, replaced data moved to `backups/replaced-<stamp>` |
+| 709 | `dude-hub backup restore` (offline, elevated with a service installed, exact phrases `REPLACE HUB DATA` and `THE OLD HUB IS GONE`), `backup create --for-transfer` and `backup reactivate` commands |
+| 710 | Transfer fence (retired Hub answers `hello` and static assets only; everything else 503 `hub-transferred`, sockets closed 4004), `isHubTransferredError`, reactivate server side (epoch + 1) |
+| 711 | Re-attach pairing codes (`POST /pairing-codes {reattachDeviceId}`) and `GET /api/v1/backup/status` (owner session, read-only) |
+| 712 | Device `hub.reconnect` (`{pairingString, acknowledged: true}`) through the Agent RPC, desktop bridge, preload, `DesktopHubBridge`, the Hub admin port and a Settings reconnect panel; recovery snapshot, enrollment replaced, only sync bookkeeping reset |
+| 713 | Hub web boot authority gate (blocking notice, refusal of a lower epoch with forget-and-continue, local-only `__device__:hubAuthority`, runtime lock on 503 `hub-transferred` or close 4004) |
+| 714 | Settings › Backup & Transfer (view-only, desktop and Hub web) through the owner `backupStatus` call; Devices "Needs re-pair" badge with "Create re-pair code" |
+| 715 | `e2e/hub/50-backup-transfer.spec.ts`: six serial real-process tests (transfer, 503 and notice, restore onto a second data directory, old password signs in, re-attach, negative restore checks, reactivate) |
+| 716 | `e2e/sync/20-restore-reconnect.spec.ts`: eleven tests with two real desktops (stale-history restore with pending offline edits, union of all edits, nothing deleted, old Hub refused, live convergence) plus a transfer scenario |
+| 717 | `hub.reconnect` also allowed from `offline` and `connecting`, so a lost old Hub no longer forces force-unenroll; the Settings panel shows collapsed under "The Hub moved to a new address?" |
+| 718 | `npm run measure:backup` records backup, verify and restore cost |
+| 719 | Phase close-out: documentation, acceptance evidence |
+
+### Architecture and notes
+
+- A restored Hub is a new authority: new instance id, epoch + 1, every desktop device marked for re-pair with its key revoked, so nothing from the old authority is accepted by it and nothing it says is accepted as the old one. Certificates are never in a backup, so the restored Hub issues its own TLS identity.
+- The fence is the first Hub request hook so it outranks the IP block, the rate limit and authentication. `hello` stays open on purpose: devices and browsers need it to learn that the Hub moved.
+- Devices stop before any traffic when the Hub's identity or epoch differs and never read a changed Hub as a revoked one; the rebase guard is independent of the hello check and protects the stale-history case where a Hub looks legitimate but has less history than the device.
+- The only secret stored beyond the passphrase's lifetime is the DPAPI-protected derived key for scheduled backups (PD-074); the passphrase is never stored, logged or audited.
+- Backups are whole-buffer by design (PD-069): fine for typical Hub sizes, but memory is about five times the database and a live Hub stalls for about 2.5 seconds on a 170 MiB database (measured in the acceptance evidence). A streaming design is a later improvement.
+
+### Gotchas found
+
+- A restored Hub that gets a fresh TLS certificate at the old address makes devices report `untrusted-tls`, not `authority-changed`; reconnect handles both. The e2e drill reuses the old TLS directory for the second Hub to observe `authority-changed` at the old address.
+- The Hub web sign-out wipe spec had to exempt the boot authority record: sign-out wipes it with the origin, but the boot gate rewrites it on the sign-in page the sign-out lands on (local-only, no secret), so the e2e wipe assertion excludes `__device__:hubAuthority`.
+- A device whose Hub moved to a new address while the old Hub is gone only ever sees `offline`, and `hub.reconnect` first refused that state, so the only way out was a force-unenroll that strands local data (fixed in 717).
+- A stale-history restore (a backup older than the devices' cursors) is the dangerous case: the old rebase silently deleted acknowledged local entities missing from the Hub's snapshot. The 705 guard and the 716 drill exist for it.
+- Measurements must use the release bundle, not the test bundle: the test bundle relaxes rate limits and would flatter the numbers.
+- Restore does not carry certificates, the CA or ACME keys, so a restore always needs the operator to re-enable LAN, proxy and public exposure with the usual elevated commands.
+
+### Scope ceiling
+
+**Phase 31G delivers manual authority transfer, not automatic failover.** There is no leader election, multi-master or live standby, no streaming or compressed backup, no UI that sets or runs a backup (the owner UI is view-only and the schedule is set from the elevated CLI), no recovery-key file and no backup of certificates. The real second-machine pass, installed-service and elevated runs, the DPAPI schedule key on a real account and the first CI runs of the new suites are owed. Android sync is 31H–31I and collaboration persistence is 31J; a 31G desktop and Hub preview does not complete DUDE 2.0.
+
+**Outcome (Milestones 700–719):** met, with the manual passes listed in the acceptance evidence owed; see [Phase 31G acceptance evidence](../delivery/PHASE31G_ACCEPTANCE.md).
+
 ## Historical V1 Definition of Done
 
 DUDE V1 was declared done once all required items below were verified true, on 2026-09-19.

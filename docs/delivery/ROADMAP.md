@@ -31,7 +31,7 @@ Related: [DUDE — Product Requirements](../DUDE_PRD.md) · [Quality and Release
 | Horizon | Status |
 |---|---|
 | Phases 0–31 | Complete; Phase 31 closed at Milestone 614 |
-| Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A (Milestone 615) and 31B (Milestones 616–627) and 31C (Milestones 628–648) and 31D (Milestones 649–662) and 31E (Milestones 663–682) and 31F (Milestones 683–699) complete, 31G next, 31H–31J planned |
+| Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A (Milestone 615) and 31B (Milestones 616–627) and 31C (Milestones 628–648) and 31D (Milestones 649–662) and 31E (Milestones 663–682) and 31F (Milestones 683–699) and 31G (Milestones 700–719) complete, 31H next, 31I–31J planned |
 | Phase 32 | Core expansion begins only after every phase from 31A through 31J is complete |
 | Phases 33–100 | Retained long-horizon scope, subject to dependencies and product boundaries |
 
@@ -87,7 +87,7 @@ From Phase 22 onward, the roadmap deliberately stops treating raw tool count as 
 
 **Decision:** complete the distributed foundation and collaboration depth in Phases **31A–31J**, strictly in order, before beginning Phase 32 tool expansion. These inserted IDs preserve all historical Phase 0–31 and future Phase 32–100 references. They are new planned phases, not additional completed Phase 31 milestones. Do not reuse shipped Milestones 593–614 or assign new milestone numbers until implementation planning does so.
 
-The required sequence is **31A → 31B → 31C → 31D → 31E → 31F → 31G → 31H → 31I → 31J → Phase 32**. Complete each phase and its exit gate before starting the next. The first distributed release gate remains at 31I; complete 31J's collaboration depth afterward, before starting Phase 32. There is no fixed calendar commitment.
+The required sequence is **31A → 31B → 31C → 31D → 31E → 31F → 31G → 31H → 31I → 31J → Phase 32**. Complete each phase and its exit gate before starting the next. 31A–31G are complete and 31H is next. The first distributed release gate remains at 31I; complete 31J's collaboration depth afterward, before starting Phase 32. There is no fixed calendar commitment.
 
 Backup/transfer is deliberately moved ahead of mobile delivery, and security controls begin with the first authenticated Hub endpoint. The planning sequence listed backup late and placed collaboration differently in its two summaries; this sequence resolves that inconsistency by making durable recovery part of the first usable release and delivering richer collaboration afterward, before Phase 32. The WebSocket/realtime foundation remains required in 31C–31D.
 
@@ -208,9 +208,11 @@ Backup/transfer is deliberately moved ahead of mobile delivery, and security con
 
 <a id="phase-31g"></a>
 
-### Phase 31G — Encrypted Backup, Restore and Hub Transfer (Next)
+### Phase 31G — Encrypted Backup, Restore and Hub Transfer (Complete)
 
 **Depends on:** 31C–31F; backup design begins with canonical persistence.
+
+**Implementation status:** complete (Milestones 700–719; decisions [PD-069–PD-074](../history/DECISION_LOG.md#phase-31g-implementation-decisions), with the amendments recorded there). Milestone 701 adds the Hub authority epoch and state, reported as optional fields in `hello`, the device token response, the realtime welcome and sync responses; 702 adds `@dude/hub-backup` (the passphrase-encrypted `.dudebackup` format); 703 and 705 make devices detect a changed Hub authority (device-store migration 0005), stop syncing before any traffic and refuse a destructive rebase when the Hub's history regressed; 704 and 706–707 add the Hub backup core (scrubbed `VACUUM INTO` snapshot, verified atomic write, retention, a DPAPI-protected derived schedule key), the admin methods, scheduler and `dude-hub backup create|list|verify|schedule` CLI; 708–709 add the offline staged restore (Hub migration 0008, new instance id, epoch + 1, devices marked needs-re-pair) with `backup restore`, `--for-transfer` and `reactivate`; 710–711 add the transfer fence (503 `hub-transferred`, sockets closed 4004), re-attach pairing codes and the owner `GET /api/v1/backup/status`; 712 and 717 add `hub.reconnect` through the Agent, desktop bridge and Settings, so a device keeps its data and pending edits and the first-sync preview decides; 713 adds the Hub web authority gate; 714 adds the view-only Settings › Backup & Transfer and the Devices re-pair actions; 715–716 add the Hub and sync end-to-end drills; 718 adds `npm run measure:backup`; Milestone 719 closes the phase with documentation. See [acceptance evidence](PHASE31G_ACCEPTANCE.md), including the owed real second-machine pass, installed-service and elevated runs and the first CI runs of the new suites. Transfer is manual: there is no automatic failover, and backups are whole-buffer (about five times the database in Hub memory; see the measured limits).
 
 - encrypted backup/export;
 - restore;
@@ -221,7 +223,7 @@ Backup/transfer is deliberately moved ahead of mobile delivery, and security con
 
 <a id="phase-31h"></a>
 
-### Phase 31H — React Native Android Shell and Sync (Planned)
+### Phase 31H — React Native Android Shell and Sync (Next)
 
 **Depends on:** 31A–31G.
 
