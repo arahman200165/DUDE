@@ -89,7 +89,7 @@
     "preagent:sea": "npm run device-agent:compile",
     "precheck:mobile": "npm run build:packages",
     "check:mobile": "npm run check --workspace=@dude/mobile && node scripts/check-mobile-boundaries.mjs",
-    "test:mobile": "node --test tests/mobile-boundaries.test.mjs tests/mobile-bindings.test.mjs",
+    "test:mobile": "node --test tests/mobile-boundaries.test.mjs tests/mobile-bindings.test.mjs tests/mobile-shell.test.mjs",
     "premobile:start": "npm run build:packages",
     "mobile:start": "npm run start --workspace=@dude/mobile",
     "mobile:prebuild": "npm run prebuild --workspace=@dude/mobile",

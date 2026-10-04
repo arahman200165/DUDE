@@ -13,6 +13,10 @@
   },
   "dependencies": {
     "@dude/domain": "*",
+    "@dude/persistence": "*",
+    "@dude/shared-types": "*",
+    "@dude/tool-engine": "*",
+    "@dude/tool-registry": "*",
     "expo": "57.0.26",
     "expo-build-properties": "~57.0.22",
     "expo-constants": "~57.0.20",
