@@ -60,8 +60,8 @@ Gates were run as batches during implementation (after Milestones 652, 654, 656 
 
 ## Known limits and carried items
 
-- **Desktops only.** Android sync is 31H; the shared-state Hub web is 31E; encrypted backup is 31G.
-- **Unpackaged desktops cannot enroll against the self-signed Hub**: Electron-as-Node (BoringSSL) rejects the certificate as a trust anchor. The packaged SEA Agent (OpenSSL) is unaffected. The fix (certificate extensions or a pin-only verifier) is carried to the 31E/31F TLS work.
+- **Desktops only.** Android sync is 31H; the shared-state Hub web was delivered in 31E ([acceptance](PHASE31E_ACCEPTANCE.md)); encrypted backup is 31G.
+- **Unpackaged desktops cannot enroll against the self-signed Hub**: Electron-as-Node (BoringSSL) rejects the certificate as a trust anchor. The packaged SEA Agent (OpenSSL) is unaffected. *Resolved in Phase 31E (Milestone 664):* a pin-only `secureConnect` verifier and a self-signed leaf without `keyUsage` let unpackaged desktops enroll.
 - **`test:e2e:sync` is a local Windows gate**, not in CI (it needs the Electron renderer build). One of five local runs failed in shared setup during concurrent rebuilds and did not reproduce. `test:sync` runs inside `test:electron`, whose first CI run is pending.
 - **Test-only Hub knobs** ship in the binary and are inert unless set: `DUDE_HUB_TEST_RELAX_RATE_LIMITS`, `DUDE_HUB_TEST_SYNC_RETENTION_DAYS`, `DUDE_HUB_TEST_SYNC_COMPACTION_MS`. Phase 31F reviews or strips them.
 - **Only tool-id-shaped `environment` preferences and `SETTING_DEFINITIONS` journal keys sync**; other app namespaces do not.

@@ -58,22 +58,33 @@ Run these from an elevated prompt (the Hub CLI is `"%ProgramFiles%\DUDE Hub\dude
 | `dude-hub tls proxy-pin activate [--force] [--confirm <token>]` | Two-step: preview (lists devices that have not acknowledged), then `--confirm` promotes the staged proxy pin. |
 | `dude-hub tls proxy-pin remove <spki> [--confirm <token>]` | Two-step removal; removing the active proxy pin means devices can no longer connect through the proxy. |
 | `dude-hub tls proxy-pin list` | Show the active and staged proxy pins and pending acknowledgements. |
-| `dude-hub doctor` | Diagnose the service, certificates, port and firewall rule. |
+| `dude-hub doctor [--json]` | Diagnose the service, exposure, certificate, proxy pins, firewall rule and realtime health with the 13 readiness checks (each marked verified, operator-claimed or not-checked, with the exact elevated fix command). Plain output is the checklist followed by a `--- details ---` JSON block; `--json` prints the report only. It works with the service stopped from the configuration and public files. The same report is in Settings › Endpoint & Exposure. |
 | `dude-hub setup-token` | Print or deliver the one-time token for first-owner setup. |
 | `dude-hub owner reset` | Start a two-step owner reset (confirm with the printed token). |
+
+### Trusting the Hub in a browser
+
+New Hubs issue their certificate from a built-in local certificate authority (the root is name-constrained to private names and address ranges, so it cannot vouch for public sites). Devices pin the Hub's certificate and need no root; browsers need the root once per computer, otherwise they show a certificate warning and the Hub web cannot register its service worker.
+
+1. **On the Hub computer, from DUDE Desktop.** In **Settings › Environment & Hub**, choose **Install root certificate** under **Hub web**. DUDE shows the root's subject and SHA-256, then adds it to your current-user trusted roots with `certutil -user` after you confirm (no administrator rights; Windows shows its own security prompt for adding a root).
+2. **On another PC.** Run `dude-hub tls ca export` on the Hub computer (or download the root from Settings › Endpoint & Exposure in the Hub web), copy the `.cer` and run `certutil -user -addstore Root <file.cer>` there. Edge and Chrome use the Windows store.
+3. **Firefox** has its own store: import the `.cer` under Settings › Privacy & Security › Certificates › View Certificates › Authorities, or set `security.enterprise_roots.enabled` in `about:config` to trust the Windows store.
+4. Existing Hubs keep their self-signed certificate until you run `dude-hub tls ca init` (elevated, with the service running) and activate the staged certificate; a Hub with configured names (`dude-hub tls names add`) re-issues the certificate for them. `dude-hub doctor` reports missing names.
+
+Public (Internet) exposure is not released until Phase 31F; `dude-hub network mode public` is refused unless you pass `--i-understand-unreleased`, and the Hub still will not start in public mode.
 
 ### Behind a reverse proxy
 
 A reverse proxy (Caddy, nginx, IIS ARR) can publish the Hub under a name and certificate you already manage. The Hub then trusts `X-Forwarded-For`, `-Host` and `-Proto` only from the proxy addresses you list (one hop), requires browser `Origin` headers to equal the public origin, hands the public origin out in pairing, and sends HSTS (the proxy terminates the browser's TLS). Direct connections to the Hub are accepted only for loopback host names.
 
-1. `dude-hub network proxy on --trusted 127.0.0.1 --public-origin https://hub.example.com` (elevated). The Hub restarts on loopback only and the public name joins the Host allowlist.
+1. `dude-hub network proxy on --trusted 127.0.0.1 --public-origin https://dude.internal` (elevated). The Hub restarts on loopback only and the public name joins the Host allowlist.
 2. Point the proxy at the Hub over HTTPS, verifying the Hub with its exported root (`dude-hub tls ca export`, then convert to PEM) rather than skipping verification. A minimal Caddyfile:
 
    ```
-   hub.example.com {
+   dude.internal {
        reverse_proxy https://127.0.0.1:47600 {
            transport http {
-               tls_trusted_ca_certs C:\ProgramData\DudeHub\dude-hub-root.pem
+               tls_trusted_ca_certs C:\ProgramData\DUDE\Hub\dude-hub-root.pem
            }
        }
    }

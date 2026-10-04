@@ -2888,15 +2888,75 @@ Fix commits: a data-scope inventory refresh after the store migration and the mo
 ### Gotchas found
 
 - After compaction the Hub head revision must be `max(feed, floor)`, and an upsert based on a compacted tombstone must conflict rather than resurrect the record (found by the retention scenario, fixed in M661).
-- Electron-as-Node (BoringSSL) rejects the Hub's self-signed certificate as a trust anchor, so unpackaged desktops cannot enroll; the packaged SEA Agent is unaffected and the e2e uses `DUDE_E2E_AGENT_NODE`. The fix belongs to the 31E/31F TLS work.
+- Electron-as-Node (BoringSSL) rejects the Hub's self-signed certificate as a trust anchor, so unpackaged desktops cannot enroll; the packaged SEA Agent is unaffected and the e2e uses `DUDE_E2E_AGENT_NODE`. Fixed in Phase 31E (Milestone 664, pin-only verification) and `DUDE_E2E_AGENT_NODE` was removed.
 - An automatic merge must assign a new op id, otherwise an in-flight push of the older payload clears it.
 - The process-viewer confirmation-boundary spec timed out once under full `npm test` load and passes in `test:high-consequence`.
 
 ### Scope ceiling
 
-**Phase 31D synchronizes desktops only.** Unbuilt: the shared-state Hub web (31E), sync-time revoked-device verification for Internet exposure (31F), encrypted backup and transfer (31G), Android sync (31H–31I), collaboration persistence (31J), end-to-end encrypted or extended categories (Phase 82), secret synchronization and non-tool app-namespace settings.
+**Phase 31D synchronizes desktops only.** Unbuilt at its close: the shared-state Hub web (delivered in 31E), sync-time revoked-device verification for Internet exposure (31F), encrypted backup and transfer (31G), Android sync (31H–31I), collaboration persistence (31J), end-to-end encrypted or extended categories (Phase 82), secret synchronization and non-tool app-namespace settings.
 
 **Outcome (Milestones 649–662):** met, with the two-machine manual pass owed; see [Phase 31D acceptance evidence](../delivery/PHASE31D_ACCEPTANCE.md).
+
+<a id="phase-31e"></a>
+
+## Phase 31E — Hub-Served Angular Web and Private Access
+
+**Status:** complete, Milestones 663–682 plus fix commits; automated acceptance is recorded in [Phase 31E acceptance evidence](../delivery/PHASE31E_ACCEPTANCE.md), which also lists the manual passes still owed. Decisions are PD-050 to PD-062 in the [decision log](DECISION_LOG.md#phase-31e-implementation-decisions), implemented with the amendments recorded there.
+
+Phase 31E made the Hub-served Angular app a full authenticated shared-state web client and made private-mode access trustworthy: browser device rows and cookie-only web record routes, an in-browser three-way merge with realtime, a public-asset-only service worker with a sign-out wipe, sandboxed tools that run under the Hub CSP, pin-only device TLS verification, configured names, a built-in local CA, certificate import, reverse-proxy mode, a gated public mode, per-principal rate limits and one endpoint diagnostics engine.
+
+### Milestone map
+
+| Milestone | Delivered |
+|---|---|
+| 663 | Decisions PD-050 to PD-062 and the 31D/31E doc reconciliation |
+| 664 | Pin-only Hub TLS verification (`secureConnect` SPKI check); self-signed leaves drop `keyUsage`; the BoringSSL/Electron-as-Node enrollment fix; `DUDE_E2E_AGENT_NODE` removed |
+| 665 | Configured Hub names, SAN and Host allowlist (`exposure` config block, `tls names list`, `add`, `remove`, canonical origin for pairing; public parsed but refused) |
+| 666 | Sandboxed tools load static `sandbox/*.html` loader pages by `src` on every host (one-shot handshake; Hub per-page CSP and `frame-ancestors 'self'`; CORS only for `/assets/vendor/pyodide/*`) |
+| 667 | Hub web CSP relaxations (`connect-src https: wss:`, `img-src https:`, `camera=(self)`, never `'unsafe-eval'`); JSON Schema Validator moved to `@cfworker/json-schema`; Protobuf Decoder reflection fallback |
+| 668 | Built-in local CA, default for new Hubs (name-constrained root, 397-day leaf, DPAPI LocalMachine-protected CA key, isolated renewal re-certifying the same leaf key, `tls ca init`, `status`, `export`) |
+| 669 | Hub web service worker for public assets only (`ngsw-config.hub.json`, no `dataGroups`, navigation excludes `/api` and `/sandbox`; offline map and cache budget for the hub build) |
+| 670 | Static serving upgrades (br/gzip negotiation, ETag/304, HEAD, streaming, MIME) |
+| 671 | Packaging always ships the web UI (multi-stage Docker image; `hub:stage` and `hub:sea` build it on demand or fail; CI `docker-smoke` asserts `/` serves the app) |
+| 672 | Hub web share links (private Hub link and public companion link, `index.hub.html`), desktop "Open Hub web" and "Install root certificate" |
+| 673 | Certificate import (`tls import`) and proxy pins (`tls proxy-pin add`, `activate`, `remove`, `list`); Hub migration 0004; device-store migration 0004; hello advertises `proxySpkiSha256` |
+| 674 | Trusted Hub e2e (no `ignoreHTTPSErrors`: Chromium SPKI-list pin and `NODE_EXTRA_CA_CERTS`) and the sandbox 304 header fix |
+| 675 | Reverse-proxy mode (`network proxy on --trusted --public-origin`), the `network mode public` gate, HSTS only with a trustable certificate, per-principal rate limits and flood guard |
+| 676 | Diagnostics engine (13 readiness checks marked verified, claimed or not-checked; `doctor --json`) |
+| 677 | Browser device rows (Hub migration 0005) and cookie-only `/api/v1/web` routes; owner sockets receive `changes-available` and `web-access-changed`; the summary reports device kind and `paused` |
+| 678 | Settings › Endpoint & Exposure (Hub report, browser checks, Agent "This device" panel, `hub.diagnostics` RPC) |
+| 679 | Hub web shared state (boot attach and snapshot, Hub kv backend and entity collections, browser merge3 with a conflict dialog, online-only writes, realtime client) |
+| 680 | Hub web Sync UI (web-access toggles, per-device table), sign-out wipe, read-only offline boot |
+| 681 | Exit-gate suites (`e2e/hub/30-shared-state`, `40-routes-sweep` of all 333 tools and the workbench routes) |
+| 682 | Phase close-out: documentation, decision amendments, acceptance evidence |
+
+Fix commits: `3a92fc2c` (sync summary schema spec for device kind and paused), `893aa005` (the Hub e2e flow waits for the full-page sign-in and sign-out navigation) and `5279b9d8` (a 5xx classifies as unreachable; realtime recovery after an HTTP-only failure; `cbor-x/decode-no-eval`; the offline-map generator ignores an orphan chunk).
+
+### Architecture and notes
+
+- A browser is the existing cookie session plus a key-less browser device row: attribution and usage ownership, never a credential. It cannot get a device token, enroll, be recovery-trusted or block pin rotation.
+- The Hub stays the revision arbiter. The browser merges against the base it read and a real conflict opens a dialog at once; there is no browser outbox, so shared writes are online-only and the Hub wins on first attach.
+- The service worker caches public assets only; sign-out wipes every origin store except those caches, and session expiry only locks to sign-in.
+- Device TLS no longer relies on the TLS library trusting the leaf: pinning is verified at `secureConnect`. The local CA is a convenience for browsers, not a device trust anchor.
+- Exposure changes (names, CA, import, proxy, mode) stay elevated admin-pipe actions; the Settings and diagnostics UIs are view-only with copyable commands.
+
+### Gotchas found
+
+- A `srcdoc` iframe inherits the embedding page's CSP, which is why every sandbox moved to a static page loaded by `src` (the 31C playground finding).
+- A 304 revalidation merges its headers into the cached response, so the loader pages' frame and CSP headers must be sent on 304s too; otherwise the app's `X-Frame-Options: DENY` blocked every re-created frame.
+- Chromium refuses service worker registration on an origin with a certificate error, so the Hub e2e must trust the certificate (a Chromium SPKI list), and Playwright's `APIRequestContext` needs `NODE_EXTRA_CA_CERTS` set before it starts.
+- BoringSSL (Electron-as-Node) wants `keyCertSign` in `keyUsage` on a self-issued trust anchor if the extension is present; dropping `keyUsage` fixed it, and pin-only verification removed the dependency.
+- esbuild lists an orphan chunk in its metafile for a dynamic import that is folded away in the Pages and desktop builds, which broke the offline-map script and so the Pages postbuild from Milestone 679 until `5279b9d8`.
+- `cbor-x`'s `new Function` probe tripped CSP reporting on the Hub even though decoding worked; the no-eval entry point avoids it.
+- The service worker answers 504 when offline; a 5xx must read as Hub unreachable, not incompatible, or the page refuses writes forever.
+- `npm test` stops at the package stage when it fails, so a green-looking run can mean `ng test` never ran; check that it did. Two `EnvironmentTeardownError` suite flakes under full load pass on rerun.
+
+### Scope ceiling
+
+**Phase 31E delivers private mode.** Public (Internet) mode can be configured but is refused until Phase 31F, which also owns external reachability verification, ACME/DNS/dynamic address, sync-time revoked-device verification for Internet exposure and the review of the `DUDE_HUB_TEST_*` knobs. Encrypted backup and transfer are 31G, Android sync is 31H–31I and collaboration persistence is 31J.
+
+**Outcome (Milestones 663–682):** met, with the manual passes listed in the acceptance evidence owed; see [Phase 31E acceptance evidence](../delivery/PHASE31E_ACCEPTANCE.md).
 
 ## Historical V1 Definition of Done
 

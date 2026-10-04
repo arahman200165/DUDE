@@ -31,7 +31,7 @@ Related: [DUDE — Product Requirements](../DUDE_PRD.md) · [Quality and Release
 | Horizon | Status |
 |---|---|
 | Phases 0–31 | Complete; Phase 31 closed at Milestone 614 |
-| Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A (Milestone 615) and 31B (Milestones 616–627) and 31C (Milestones 628–648) and 31D (Milestones 649–662) complete, 31E next, 31F–31J planned |
+| Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A (Milestone 615) and 31B (Milestones 616–627) and 31C (Milestones 628–648) and 31D (Milestones 649–662) and 31E (Milestones 663–682) complete, 31F next, 31G–31J planned |
 | Phase 32 | Core expansion begins only after every phase from 31A through 31J is complete |
 | Phases 33–100 | Retained long-horizon scope, subject to dependencies and product boundaries |
 
@@ -172,11 +172,11 @@ Backup/transfer is deliberately moved ahead of mobile delivery, and security con
 
 <a id="phase-31e"></a>
 
-### Phase 31E — Hub-Served Angular Web and Private Access (Next)
+### Phase 31E — Hub-Served Angular Web and Private Access (Complete)
 
 **Depends on:** 31C–31D.
 
-**Implementation status:** in progress (Milestones 663–688; decisions [PD-050–PD-062](../history/DECISION_LOG.md#phase-31e-implementation-decisions) recorded before implementation).
+**Implementation status:** complete (Milestones 663–682; decisions [PD-050–PD-062](../history/DECISION_LOG.md#phase-31e-implementation-decisions), implemented as recorded with amendments to PD-050, PD-053, PD-055, PD-056, PD-058, PD-060 and PD-061). Milestones 664–665 deliver pin-only Hub TLS verification and configured Hub names with the SAN and Host allowlist; 666–667 move every sandboxed tool to static `sandbox/*.html` loader pages loaded by `src` and relax the Hub page CSP without `'unsafe-eval'`; 668 and 673 deliver the built-in local CA (default for new Hubs), certificate import and proxy pins; 669–672 deliver the Hub web service worker for public assets only, static serving upgrades, packaging that always ships the web UI and the Hub share links with the desktop Hub link; 674 makes the Hub e2e trust the Hub certificate; 675 delivers reverse-proxy mode, the gated public mode and per-principal rate limits; 676 and 678 deliver the diagnostics engine and Settings › Endpoint & Exposure; 677 and 679–680 deliver browser device rows, the cookie-only `/api/v1/web` routes, Hub web shared state with the in-browser three-way merge and realtime client, the Hub web Sync UI, the sign-out wipe and the read-only offline boot; Milestone 681 adds the exit-gate suites (`npm run test:e2e:hub`) and Milestone 682 closes the phase with documentation. See [acceptance evidence](PHASE31E_ACCEPTANCE.md), including the owed two-machine, second-PC, reverse-proxy, elevated and first-CI passes. Private mode is delivered; public (Internet) mode can be configured but the Hub refuses to run it until 31F, which also owns external reachability verification, ACME/DNS/dynamic-address support, sync-time revoked-device verification for Internet exposure and the review of the `DUDE_HUB_TEST_*` knobs.
 
 - authenticated Angular application served by Hub;
 - browser-safe local execution;
@@ -188,7 +188,7 @@ Backup/transfer is deliberately moved ahead of mobile delivery, and security con
 
 <a id="phase-31f"></a>
 
-### Phase 31F — Internet Readiness and Security Hardening (Planned)
+### Phase 31F — Internet Readiness and Security Hardening (Next)
 
 **Depends on:** 31C–31E; security design begins in 31C.
 

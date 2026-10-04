@@ -26,6 +26,7 @@ Related: [DUDE System Architecture](SYSTEM_ARCHITECTURE.md) · [DUDE Security Ar
 - [Persistence policy, scope and consent are separate dimensions](#persistence-policy-scope-and-consent-are-separate-dimensions)
 - [Sync Protocol Minimum Acceptance Contract](#sync-protocol-minimum-acceptance-contract)
 - [As built in Phase 31D (synchronization)](#as-built-in-phase-31d-synchronization)
+- [As built in Phase 31E (Hub web shared state)](#as-built-in-phase-31e-hub-web-shared-state)
 - [Migration from the delivered local stores](#migration-from-the-delivered-local-stores)
 - [Backup consistency, restore and authority transfer](#backup-consistency-restore-and-authority-transfer)
 
@@ -597,6 +598,28 @@ Revocation stops every Hub call. The device freezes: operations become `stranded
 Before anything is sent, a device with local records shows a preview and the user picks **Merge** (recommended for the default-on categories), **Use Hub** or **Keep local** (recommended for usage, workspace layout and scratchpad) per category. **Use Hub** runs behind a `VACUUM INTO` recovery snapshot and a single-use token and is resumable per category; the device re-keys to the Hub environment and every enrollment restarts the first sync. **Clear data** on an enrolled device keeps the enrollment and a rebase re-pulls; an optional **Also delete from Hub** is an owner-session, digest-bound two-step where a Hub failure wipes nothing. **Reset this device** unenrolls best-effort. Previews disclose unsent operations, and the high-consequence gate holds their confirmation-boundary specs.
 
 Remote changes apply live through `applyRemote` on the entity collections and the key/value backend; workspace layout is held for the next launch, the pipeline builder reloads silently, and a changed scratchpad shows a notice. Remote key/value deletes remove the cache entry but do not reset open signals until reload. The renderer surfaces state in Settings › Sync and the shell sync indicator ([UX](../product/UX_SPEC.md#environment-device-and-synchronization-navigation)).
+
+## As built in Phase 31E (Hub web shared state)
+
+**Delivered in Milestones 677-681, documented here as the contract.** Rationale and amendments are in [PD-050 to PD-054](../history/DECISION_LOG.md#phase-31e-implementation-decisions); evidence is in [Phase 31E acceptance](../delivery/PHASE31E_ACCEPTANCE.md). Limits are the 31D `SYNC_LIMITS`; browsers use the same record, operation and payload formats as the Agent.
+
+**Browser rows.** A signed-in Hub web browser attaches a key-less `kind: 'browser'` device row (Hub migration 0005: `devices.kind`, `installation_id`, `last_session_at`, `sessions.browser_device_id`, `web_access`) keyed by its installation id. The row owns the browser's usage records and audit attribution and appears in Devices; it can never obtain a device token, enroll, be recovery-trusted or block pin rotation. Revoking or removing it ends its sessions, and a row with no session for 90 days is pruned. Sign-out wipes the installation id, so each sign-in after a sign-out creates a new row.
+
+**Web routes.** `POST /api/v1/web/attach`, `GET /web/snapshot`, `GET /web/changes`, `POST /web/push`, `PUT /web/state` and `GET`/`PUT /web/access` reuse the sync contracts and `commitCanonical` (same policy enforcement, revision checks and change feed) with the browser row as the acting device. They accept the owner cookie session only (CSRF and Origin checks; bearer and device credentials get 401). A session without a browser row gets `not-attached` and must attach first. Records are filtered by per-category web access, an environment-level setting whose defaults match the desktop consent defaults (usage, workspace layout and scratchpad off); a disabled category is rejected as `category-disabled`. Desktops see browser edits as ordinary changes with the browser as origin. The sync summary reports each device's kind and the Agent-reported `paused` flag.
+
+**Realtime.** The Hub sends `changes-available` to owner sockets (browsers) as well as device sockets, and `web-access-changed` to owner sockets when web access is toggled. REST carries all data; the nudge only costs latency if lost. The browser's realtime client (same-origin WebSocket, hello and welcome, heartbeats, backoff, 15 s polling while down) pulls changes from its cursor into live apply, re-snapshots on an expired cursor, reloads on web-access changes and locks to sign-in when the session ends. While not live the heartbeat probes the change feed so an HTTP-only failure recovers.
+
+**Seeding and the Hub-wins rule.** Boot attaches and pages the snapshot before bootstrap. On first attach, origin-local copies of shared keys are dropped: the Hub wins and there is no first-sync preview. Syncable `environment` keys live in memory behind the Hub kv backend and are pushed in debounced batches; local-only keys stay in browser storage. Entity collections are optimistic with rollback.
+
+**Conflicts in the browser.** Writes carry `basedOnRevision`. For `lww` and `per-device` policies a conflict re-pushes; for `merge3` the browser runs the `@dude/sync` three-way merge against the base it read, re-commits a clean merge and opens a Keep Hub / Keep mine / Keep both dialog for a real conflict. Nothing is parked and there is no browser outbox or conflict inbox, so the never-silently-discard contract holds through the immediate prompt.
+
+**Online-only writes and offline boot.** While the Hub is unreachable (any 5xx, including the service worker's 504, counts as unreachable) shared writes are rolled back with a notice and never written locally; loaded tools keep working. If the Hub is unreachable at boot, Hub web starts read-only for shared state and reloads when the Hub answers. Session expiry locks to sign-in without wiping.
+
+**Sign-out wipe.** Signing out clears local and session storage (including the installation id) and every IndexedDB database, then hard-navigates to sign-in. The service worker's public asset caches are kept; no private data enters them.
+
+**Sync UI.** Hub web has a browser `SyncPort` behind the shell indicator and Settings › Sync: Live, Hub unreachable (changes paused), Session expired and Reload needed states, Sync now, environment-level web-access toggles (never desktop consent) and a per-device table from the summary (kind, cursor and lag, pending, conflicts, quarantined, paused, last push and pull). Desktop conflicts and quarantine hand off to DUDE Desktop; first-sync, pause, quarantine and standalone panels are desktop-only.
+
+**Not delivered.** A browser offline outbox, a server-side conflict inbox, collaboration persistence (31J), end-to-end encrypted categories (Phase 82) and Android sync (31H-31I).
 
 ## Migration from the delivered local stores
 
