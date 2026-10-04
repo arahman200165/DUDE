@@ -25,7 +25,7 @@ import { openReady, tempDir } from './test-utils.js';
 /** Shared helpers for the integration specs that run the compiled Hub bundle against real Device Agents. */
 
 export const ROOT = path.resolve(import.meta.dirname, '../../../..');
-export const BUNDLE = path.join(ROOT, 'dist', 'hub', 'dude-hub.cjs');
+export const BUNDLE = path.join(ROOT, 'dist', 'hub-test', 'dude-hub.cjs');
 export const CAPABILITIES = { desktop: true, filesystem: true, secureStorage: true };
 
 /** TEST-ONLY DPAPI stand-in: AES-GCM under a per-process random key, bound to the entropy like the real port. */
@@ -84,9 +84,9 @@ export interface HubHandle {
 
 export interface StartHubOptions { env?: Record<string, string>; bootstrap?: { password: string } }
 
-/** Spawns `dude-hub run` on a fresh data dir with relaxed (test-only) rate limits. Requires `npm run hub:compile`. */
+/** Spawns `dude-hub run` on a fresh data dir with relaxed (test-only) rate limits. Requires `npm run hub:compile:test`. */
 export async function startHub(options: StartHubOptions = {}): Promise<HubHandle> {
-  if (!existsSync(BUNDLE)) execSync('npm run hub:compile', { cwd: ROOT, stdio: 'ignore' });
+  if (!existsSync(BUNDLE)) execSync('npm run hub:compile:test', { cwd: ROOT, stdio: 'ignore' });
   const dir = mkdtempSync(path.join(os.tmpdir(), 'dude-hub-int-'));
   let child: ChildProcess | undefined;
   let output = '';

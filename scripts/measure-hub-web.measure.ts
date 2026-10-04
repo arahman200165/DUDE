@@ -18,7 +18,7 @@ import { SYNC_LIMITS } from '@dude/sync';
 import { createPinnedTransport, spkiSha256Of } from '../apps/device-agent/src/hub/pinned-transport.js';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
-const BUNDLE = path.join(ROOT, 'dist', 'hub', 'dude-hub.cjs');
+const BUNDLE = path.join(ROOT, 'dist', 'hub-test', 'dude-hub.cjs');
 const WEB_ROOT = path.join(ROOT, 'dist', 'hub-web', 'browser');
 const PASSWORD = 'correct horse battery staple';
 const log = (m: string): void => { process.stderr.write(`[measure-hub-web] ${m}\n`); };
@@ -247,7 +247,7 @@ async function staticServing(hub: Hub, mainJs: string): Promise<Record<string, u
 // --- Main ------------------------------------------------------------------------------------------------------------------
 
 it('measures the Hub-served web', async () => {
-  if (!existsSync(BUNDLE)) throw new Error('dist/hub/dude-hub.cjs is missing; run `npm run hub:compile`.');
+  if (!existsSync(BUNDLE)) throw new Error('dist/hub-test/dude-hub.cjs is missing; run `npm run hub:compile:test`.');
   if (!existsSync(path.join(WEB_ROOT, 'index.html'))) throw new Error('dist/hub-web/browser is missing; run `npm run build:hub-web`.');
   const cpus = os.cpus();
   const result: Record<string, unknown> = {

@@ -5,7 +5,7 @@ import path from 'node:path';
 import { createInterface } from 'node:readline';
 
 const root = path.resolve(__dirname, '../..');
-const HUB_BUNDLE = path.join(root, 'dist', 'hub', 'dude-hub.cjs');
+const HUB_BUNDLE = path.join(root, 'dist', 'hub-test', 'dude-hub.cjs');
 const WEB_ROOT = path.join(root, 'dist', 'hub-web', 'browser');
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
@@ -19,7 +19,7 @@ function run(script: string): Promise<void> {
 /** Builds anything missing, starts one Hub on an ephemeral port with a fresh data dir, and returns the teardown. */
 export default async function globalSetup(): Promise<() => Promise<void>> {
   if (!existsSync(path.join(WEB_ROOT, 'index.html'))) await run('build:hub-web');
-  if (!existsSync(HUB_BUNDLE)) await run('hub:compile');
+  if (!existsSync(HUB_BUNDLE)) await run('hub:compile:test');
 
   const dataDir = mkdtempSync(path.join(tmpdir(), 'dude-hub-e2e-'));
   const hub: ChildProcess = spawn(process.execPath, [HUB_BUNDLE, 'run', '--data-dir', dataDir, '--port', '0', '--web-root', WEB_ROOT], {

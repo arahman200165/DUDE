@@ -50,6 +50,7 @@
     "measure:desktop-startup": "ng build --configuration production,electron && npm run electron:compile && node scripts/measure-desktop-startup.mjs",
     "relay:compile": "esbuild apps/collab-relay/index.ts --bundle --platform=node --format=cjs --outdir=dist/relay",
     "hub:compile": "node scripts/build-hub.mjs",
+    "hub:compile:test": "node scripts/build-hub.mjs --test",
     "hub:sea": "node scripts/build-hub-sea.mjs",
     "hub:winsw": "node scripts/fetch-winsw.mjs",
     "hub:stage": "npm run hub:sea && npm run hub:winsw && node scripts/stage-hub.mjs",

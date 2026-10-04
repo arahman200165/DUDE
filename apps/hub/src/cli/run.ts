@@ -4,7 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import { ensureLayout, resolveDataDir } from '../config/data-dir.js';
 import { bindAddress, exposureRefusal, loadOrCreateHubConfig } from '../config/hub-config.js';
 import { openHubDb } from '../db/open-hub-db.js';
-import { readHubTestOverrides } from './test-overrides.js';
+import { presentTestKnobs, readHubTestOverrides } from './test-overrides.js';
 import { createHubServer } from '../server/create-server.js';
 import { createLogStream, hubLoggerOptions } from '../server/logger.js';
 import { existsSync } from 'node:fs';
@@ -147,6 +147,13 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   const refusal = exposureRefusal(config);
   if (refusal !== null) {
     process.stderr.write(`${refusal}\n`);
+    return EXIT_USAGE;
+  }
+
+  const knobs = presentTestKnobs();
+  if (config.exposure.mode === 'public' && knobs.length > 0) {
+    process.stderr.write(`Refusing to start in public mode with test knobs set (${knobs.join(', ')}). Unset them.
+`);
     return EXIT_USAGE;
   }
 

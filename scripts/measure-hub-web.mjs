@@ -18,7 +18,7 @@ const build = (script) => {
   if (r.status !== 0) process.exit(r.status ?? 1);
 };
 if (!existsSync(path.join(root, 'dist', 'hub-web', 'browser', 'index.html'))) build('build:hub-web');
-if (!existsSync(path.join(root, 'dist', 'hub', 'dude-hub.cjs'))) build('hub:compile');
+if (!existsSync(path.join(root, 'dist', 'hub-test', 'dude-hub.cjs'))) build('hub:compile:test');
 // Packaged Hubs serve precompressed variants (hub:stage, hub:sea and the Docker image run compress-static); measure
 // the same representation. Idempotent: existing .br/.gz files are kept.
 const compress = spawnSync(process.execPath, ['scripts/compress-static.mjs', 'dist/hub-web/browser'], { cwd: root, stdio: 'inherit' });
