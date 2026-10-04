@@ -2,14 +2,19 @@ import { X509Certificate } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { statfs } from 'node:fs/promises';
 import path from 'node:path';
+import { HUB_DEFAULT_PORT } from '@dude/contracts/hub';
 import { hubPaths } from '../config/data-dir.js';
 import { spkiSha256 } from '../tls/self-signed.js';
 import { Value } from 'typebox/value';
 import { HubDiagnosticsReport } from '@dude/contracts/hub';
 import { collectDiagnostics, formatChecks } from '../diagnostics/index.js';
+import { nativePortsCheck, publicFirewallCheck } from '../diagnostics/engine.js';
+import type { DiagnosticsHostFacts } from '../diagnostics/engine.js';
 import { gatherOfflineDeps } from '../diagnostics/gather.js';
-import { EXIT_OK, EXIT_USAGE, defaultInstallDir, firewallRuleExists, json, resolveDeps, serviceDataDir, serviceState, tryAdminStatus } from './common.js';
+import { EXIT_OK, EXIT_USAGE, defaultInstallDir, firewallRuleExists, json, readConfigPort, resolveDeps, serviceDataDir, serviceState, tryAdminStatus } from './common.js';
 import type { ServiceDeps } from './common.js';
+import { gatherPublicFirewallFact } from './firewall.js';
+import { auditNativeListeners } from './listeners.js';
 
 export interface DoctorOptions { dataDir?: string; installDir?: string; hubVersion: string; /** Print only the endpoint diagnostics report as JSON. */ json?: boolean }
 
@@ -76,17 +81,35 @@ export async function runDoctor(options: DoctorOptions, deps: ServiceDeps = {}):
   const status = await tryAdminStatus(d, dataRoot);
   const lanFirewallRule = d.platform === 'win32' ? await firewallRuleExists(d.exec) : null;
 
+  // PD-068: the elevated doctor inspects the Public rule and audits native listeners; the owner route never shells out for these.
+  const hostExtras: Pick<DiagnosticsHostFacts, 'publicFirewall' | 'nativeListeners'> = {};
+  if (d.platform === 'win32') {
+    const port = typeof status?.['port'] === 'number' ? status['port'] : readConfigPort(paths.configFile) ?? HUB_DEFAULT_PORT;
+    hostExtras.publicFirewall = await gatherPublicFirewallFact(d.exec, port, installDir);
+    const audit = await auditNativeListeners(d.exec, d.platform);
+    hostExtras.nativeListeners = { exposed: audit.exposed, desktopLan: audit.desktopLan, partial: audit.partial };
+  }
+
   // One engine (PD-060): the running Hub reports over the admin channel; otherwise it is built from config and public certificate files.
   let diagnostics: HubDiagnosticsReport | null = null;
   if (status !== null) {
     try {
       const reported = await d.call(dataRoot, 'diagnostics', {});
-      if (Value.Check(HubDiagnosticsReport, reported)) diagnostics = reported;
+      if (Value.Check(HubDiagnosticsReport, reported)) {
+        diagnostics = reported;
+        // The running Hub reported these two as not-checked; replace them with what this elevated terminal observed.
+        diagnostics = {
+          ...reported,
+          checks: reported.checks.map((c) => (c.id === 'public-firewall-rule'
+            ? publicFirewallCheck({ platform: d.platform, bind: reported.exposure.bind, mode: reported.exposure.mode, fact: hostExtras.publicFirewall })
+            : c.id === 'native-ports-exposed' ? nativePortsCheck({ platform: d.platform, fact: hostExtras.nativeListeners }) : c)),
+        };
+      }
     } catch { /* an older Hub without the method: fall back to the offline view */ }
   }
   diagnostics ??= await collectDiagnostics(gatherOfflineDeps({
     tlsDir: paths.tlsDir, configFile: paths.configFile, hubVersion: options.hubVersion, now: d.now(), platform: d.platform,
-    host: () => Promise.resolve({ serviceState: state, firewallPresent: lanFirewallRule }),
+    host: () => Promise.resolve({ serviceState: state, firewallPresent: lanFirewallRule, ...hostExtras }),
   }));
   if (options.json) {
     d.out(json(diagnostics));

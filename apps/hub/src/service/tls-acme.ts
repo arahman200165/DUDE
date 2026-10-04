@@ -1,7 +1,10 @@
 import { callAdmin } from '../admin/admin-client.js';
 import { LETS_ENCRYPT_DIRECTORY, LETS_ENCRYPT_STAGING_DIRECTORY } from '../config/hub-config.js';
-import { EXIT_FAILURE, EXIT_OK, EXIT_USAGE, json, requireElevated, resolveDeps, serviceDataDir, serviceState, tryAdminStatus } from './common.js';
+import path from 'node:path';
+import { hubPaths } from '../config/data-dir.js';
+import { EXIT_FAILURE, EXIT_OK, defaultInstallDir, EXIT_USAGE, json, requireElevated, resolveDeps, serviceDataDir, serviceState, tryAdminStatus } from './common.js';
 import type { ResolvedDeps, ServiceDeps } from './common.js';
+import { ACME_RULE_NAME, addAcmeRule, configuredAcmeHttpPort, deleteAcmeRule, inspectRule } from './firewall.js';
 
 export interface TlsAcmeOptions {
   action: 'issue' | 'status';
@@ -11,6 +14,8 @@ export interface TlsAcmeOptions {
   staging?: boolean;
   directory?: string;
   httpPort?: number;
+  /** Elevated Windows service only: add the ACME http-01 firewall rule for the order and always remove it afterwards. */
+  openFirewall?: boolean;
   dataDir?: string;
   installDir?: string;
 }
@@ -52,6 +57,40 @@ export async function runTlsAcme(options: TlsAcmeOptions, deps: ServiceDeps = {}
   const d = resolveDeps(deps);
   const session = await adminSession(d, 'Issuing an ACME certificate', options, options.action === 'issue');
   if (typeof session === 'number') return session;
+  let opened = false;
+  const installDir = path.resolve(options.installDir ?? defaultInstallDir(d.env));
+  if (options.action === 'issue' && options.openFirewall === true) {
+    const state = await serviceState(d);
+    if (d.platform !== 'win32' || state === 'not-installed' || state === 'unknown') {
+      d.err('--open-firewall applies only to an installed Windows service; no firewall rule was changed.\n');
+    } else {
+      const port = options.httpPort ?? configuredAcmeHttpPort(hubPaths(session.dataRoot).configFile);
+      const added = await addAcmeRule(d.exec, port, installDir).catch((error: unknown) => ({ code: 1, stdout: '', stderr: (error as Error).message }));
+      if (added.code !== 0) {
+        d.err(`The ACME firewall rule could not be added: ${(added.stderr || added.stdout).trim()}
+`);
+        return EXIT_FAILURE;
+      }
+      opened = true;
+      d.err(`Opened inbound port ${port} for the order (firewall rule "${ACME_RULE_NAME}"); it is removed when the order ends.
+`);
+    }
+  }
+  try {
+    return await runIssueOrStatus(options, d, deps, session.dataRoot);
+  } finally {
+    if (opened) {
+      const gone = await deleteAcmeRule(d.exec).catch((error: unknown) => ({ code: 1, stdout: '', stderr: (error as Error).message }));
+      if (gone.code !== 0 && (await inspectRule(d.exec, ACME_RULE_NAME).catch(() => ({ present: true }))).present) {
+        d.err(`WARNING: the ACME firewall rule "${ACME_RULE_NAME}" could not be removed (${(gone.stderr || gone.stdout).trim()}). Remove it now with "dude-hub network firewall acme off".
+`);
+      }
+    }
+  }
+}
+
+async function runIssueOrStatus(options: TlsAcmeOptions, d: ResolvedDeps, deps: ServiceDeps, dataRoot: string): Promise<number> {
+  const session = { dataRoot };
   const call = deps.call ?? ((dataDir: string, method: string, params: unknown) => callAdmin(dataDir, method, params, options.action === 'issue' ? ACME_ADMIN_TIMEOUT_MS : 10_000));
   try {
     if (options.action === 'status') {

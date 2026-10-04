@@ -6,6 +6,7 @@ import { spkiSha256 } from '../tls/self-signed.js';
 import type { TlsCertificateSource } from '../tls/ca-public.js';
 import { dnsNamesToResolve, listHubAddresses, resolveNames, stableAddresses } from './addresses.js';
 import type { InterfaceMap, NameResolution } from './addresses.js';
+import type { NativeListener } from '../service/listeners.js';
 
 /**
  * The single Hub endpoint-diagnostics engine (PD-060). It takes gathered facts (no database handle, no shell) and builds the
@@ -15,6 +16,7 @@ import type { InterfaceMap, NameResolution } from './addresses.js';
  */
 export const RENEWAL_WINDOW_DAYS = 30;
 export const FIREWALL_RULE_LABEL = 'DUDE Hub (LAN)';
+export const PUBLIC_RULE_LABEL = 'DUDE Hub (Public)';
 
 export interface DiagnosticsCertificateFacts {
   /** The active certificate (PEM text). Only public fields are read from it. */
@@ -32,6 +34,10 @@ export interface DiagnosticsHostFacts {
   serviceState?: string;
   /** Whether the Private-profile LAN rule exists; null when it could not be determined. */
   firewallPresent: boolean | null;
+  /** The `DUDE Hub (Public)` rule as inspected and validated by the elevated `doctor`; null/undefined when not inspected (the owner route never shells out). */
+  publicFirewall?: { present: boolean; problems: string[] } | null;
+  /** The native-listener audit from the elevated `doctor`; null/undefined when not audited. */
+  nativeListeners?: { exposed: readonly NativeListener[]; desktopLan?: readonly NativeListener[]; partial: boolean } | null;
 }
 
 export interface DiagnosticsDeps {
@@ -95,6 +101,45 @@ function certificateSection(facts: DiagnosticsCertificateFacts, wanted: readonly
 
 const check = (id: string, label: string, status: DiagnosticCheck['status'], basis: DiagnosticCheck['basis'], detail: string, fix?: string): DiagnosticCheck =>
   ({ id, label, status, basis, detail, ...(fix !== undefined ? { fix } : {}) });
+
+export const NOT_CHECKED_HERE = 'Run `dude-hub doctor` as administrator on the Hub machine.';
+
+const where = (l: Pick<NativeListener, 'address' | 'port'>): string => (l.address.includes(':') ? `[${l.address}]:${l.port}` : `${l.address}:${l.port}`);
+
+/** `public-firewall-rule`: the validated Public-profile inbound rule that public mode needs (PD-068). */
+export function publicFirewallCheck(input: { platform: NodeJS.Platform; bind: string; mode: 'private' | 'public'; fact: DiagnosticsHostFacts['publicFirewall'] }): DiagnosticCheck {
+  const label = 'Firewall allows public access';
+  const id = 'public-firewall-rule';
+  if (input.platform !== 'win32' || input.bind === 'container') return check(id, label, 'info', 'not-checked', 'Windows Firewall rules apply only to a Hub on Windows; on other hosts open the port in your own firewall.');
+  const fact = input.fact;
+  if (input.mode !== 'public') {
+    if (fact?.present) return check(id, label, 'info', 'verified', `Not public mode, but the "${PUBLIC_RULE_LABEL}" rule exists and opens the Hub port on every network profile.`, 'dude-hub network firewall public off');
+    return check(id, label, 'info', fact ? 'verified' : 'not-checked', 'Not applicable: the Hub is not in public mode.');
+  }
+  if (fact === undefined || fact === null) return check(id, label, 'info', 'not-checked', NOT_CHECKED_HERE, 'dude-hub doctor');
+  if (!fact.present) return check(id, label, 'warn', 'verified', `Public mode is configured but the "${PUBLIC_RULE_LABEL}" rule is missing; Internet clients cannot connect.`, 'dude-hub network firewall public on');
+  if (fact.problems.length > 0) return check(id, label, 'warn', 'verified', `The "${PUBLIC_RULE_LABEL}" rule exists but is not valid: ${fact.problems.join(' ')}`, 'dude-hub network firewall public on');
+  return check(id, label, 'pass', 'verified', `The "${PUBLIC_RULE_LABEL}" rule exists: inbound allow on the Hub port, every profile, program-scoped.`);
+}
+
+/** `native-ports-exposed`: the Device Agent must never listen on TCP; a desktop LAN listener is a deliberate exception (PD-068). */
+export function nativePortsCheck(input: { platform: NodeJS.Platform; fact: DiagnosticsHostFacts['nativeListeners'] }): DiagnosticCheck {
+  const label = 'No native app port is exposed';
+  const id = 'native-ports-exposed';
+  if (input.platform !== 'win32') return check(id, label, 'info', 'not-checked', 'The native Agent and desktop app listener audit runs only on Windows.');
+  const fact = input.fact;
+  if (fact === undefined || fact === null) return check(id, label, 'info', 'not-checked', NOT_CHECKED_HERE, 'dude-hub doctor');
+  if (fact.exposed.length > 0) {
+    const text = fact.exposed.map((l) => (l.scope === 'loopback'
+      ? `dude-agent.exe (pid ${l.pid}) listens on loopback ${where(l)}; the Agent must not open any TCP port`
+      : `dude-agent.exe (pid ${l.pid}) is listening on ${where(l)}, reachable from the network`)).join('; ');
+    return check(id, label, 'fail', 'verified', `${text}. The Device Agent talks over a named pipe only.`, 'Stop the Agent and report this build; do not forward or allow that port.');
+  }
+  const lan = fact.desktopLan ?? [];
+  if (lan.length > 0) return check(id, label, 'info', 'verified', `The desktop app listens on ${lan.map(where).join(', ')} (the optional LAN collaboration server, started by the user). The Agent has no TCP listener.`);
+  if (fact.partial) return check(id, label, 'info', 'not-checked', 'The listener list could not be read completely, so the audit is inconclusive.', 'dude-hub doctor');
+  return check(id, label, 'pass', 'verified', 'No Device Agent TCP listener and no desktop-app network listener was found.');
+}
 
 /** Builds the report. Pure given `deps` except for the (cached, injectable) `deps.host()` call. */
 export async function collectDiagnostics(deps: DiagnosticsDeps): Promise<HubDiagnosticsReport> {
@@ -162,6 +207,10 @@ export async function collectDiagnostics(deps: DiagnosticsDeps): Promise<HubDiag
     else checks.push(check('firewall-rule', 'Firewall allows the LAN port', 'warn', 'claimed', 'The firewall rule could not be read.', 'dude-hub network lan on'));
   } else if (config.bind === 'loopback') checks.push(check('firewall-rule', 'Firewall allows the LAN port', 'info', 'verified', 'Loopback only: no inbound firewall rule is needed.'));
   else checks.push(check('firewall-rule', 'Firewall allows the LAN port', 'info', 'claimed', `Bound to ${config.bindAddress}; the host firewall is outside this Hub's view, so confirm that port ${config.port} is allowed.`));
+
+  // public-firewall-rule and native-ports-exposed (PD-068); host facts come only from the elevated doctor
+  checks.push(publicFirewallCheck({ platform: deps.platform, bind: config.bind, mode: config.exposure.mode, fact: host.publicFirewall }));
+  checks.push(nativePortsCheck({ platform: deps.platform, fact: host.nativeListeners }));
 
   // exposure-mode
   if (config.exposure.mode === 'public') checks.push(check('exposure-mode', 'Exposure mode', 'fail', 'verified', 'Public exposure is not released until Phase 31F.', 'dude-hub network mode private'));

@@ -35,6 +35,7 @@ import { createProxyPins } from '../tls/proxy-pins.js';
 import { runServiceInstall } from '../service/install.js';
 import { runServiceControl, runServiceStatus, runServiceUninstall, runServiceUpdate } from '../service/lifecycle.js';
 import { runNetwork } from '../service/network.js';
+import { runFirewall } from '../service/firewall.js';
 import { createHstsPolicy } from '../security/hsts.js';
 import { runDoctor } from '../service/doctor.js';
 import { runPurge } from '../service/purge.js';
@@ -96,7 +97,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     return runTlsAcme({
       action: parsed.action, ...(parsed.names ? { names: parsed.names } : {}), ...(parsed.email !== undefined ? { email: parsed.email } : {}),
       ...(parsed.agreeTos ? { agreeTos: true } : {}), ...(parsed.staging ? { staging: true } : {}), ...(parsed.directory !== undefined ? { directory: parsed.directory } : {}),
-      ...(parsed.httpPort !== undefined ? { httpPort: parsed.httpPort } : {}), ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}),
+      ...(parsed.httpPort !== undefined ? { httpPort: parsed.httpPort } : {}), ...(parsed.openFirewall ? { openFirewall: true } : {}), ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}),
     });
   }
   if (parsed.command === 'tls-proxy-pin') {
@@ -132,6 +133,9 @@ export async function runCli(argv: readonly string[]): Promise<number> {
       case 'status': return runServiceStatus(base);
       default: return runServiceControl(parsed.action, base);
     }
+  }
+  if (parsed.command === 'network-firewall') {
+    return runFirewall({ target: parsed.target, action: parsed.action, ...(parsed.force ? { force: true } : {}), ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}) });
   }
   if (parsed.command === 'network') {
     return runNetwork({ action: parsed.action, ...(parsed.trusted !== undefined ? { trusted: parsed.trusted } : {}), ...(parsed.publicOrigin !== undefined ? { publicOrigin: parsed.publicOrigin } : {}), ...(parsed.acknowledgeUnreleased ? { acknowledgeUnreleased: true } : {}), ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}) });

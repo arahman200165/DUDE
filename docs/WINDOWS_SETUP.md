@@ -104,6 +104,16 @@ If the Hub is reached by a DNS name and your home or office address changes, the
 - CGNAT (a 100.64.0.0/10 address on the router's WAN side) cannot accept inbound connections: ask your ISP for a public address, use a public IPv6 address, or use a tunnel or reverse proxy you control.
 - When a name itself changes, run `dude-hub tls names add <new-name>` and then `dude-hub tls acme issue --name <new-name>`, and finish with `dude-hub tls activate` once devices acknowledge the staged certificate.
 
+### Public mode firewall
+
+In public (Internet) mode Windows Firewall needs a rule the LAN mode does not add. From an elevated terminal:
+
+- `dude-hub network firewall public on` adds **DUDE Hub (Public)**: inbound TCP on the Hub port for `dude-hub.exe`, all profiles (Home/Work routers are often classed Public), any remote address. It refuses unless the Hub is in public mode (or `--force`). `public status` prints the rule as Windows reports it plus any problems (wrong port, disabled, blocked, wrong program, narrower profile); `public off` removes it.
+- `dude-hub tls acme issue --name <dns> --open-firewall` opens **DUDE Hub (ACME http-01)** (port 80, or `exposure.acme.httpPort` / `--http-port`) only for the duration of the order and always removes it afterwards. Without the flag, open and close it yourself with `dude-hub network firewall acme on|off`.
+- On your router, forward the Hub port (and port 80 during ACME orders) to this machine yourself. DUDE never uses UPnP or NAT-PMP.
+- `dude-hub doctor` (as administrator) shows **Firewall allows public access** and **No native app port is exposed**; the second fails if `dude-agent.exe` listens on any TCP port, which it must never do. Settings > Endpoint cannot run these checks and shows them as not checked.
+- Uninstalling the Hub removes both rules.
+
 ### Updating the Hub
 
 A DUDE update never touches the Hub. When the desktop notices that the bundled Hub is newer than the installed one, it offers **Update Hub** in the app; that elevates the bundled `<DUDE folder>\resources\DUDE-Hub-Setup.exe /S /UPDATE` (stop, replace, start; data migrates when the service starts; only offered for a per-machine DUDE install). You can also run the newer `DUDE-Hub-Setup.exe` yourself.

@@ -10,7 +10,10 @@ export interface FakeSystem {
   exec: ExecFn;
   state: ServiceState;
   elevated: boolean;
+  /** The LAN rule. */
   firewallRule: boolean;
+  /** The Public and ACME rules (and any other non-LAN rule), by name, as the `netsh add rule` arguments. */
+  rules: Map<string, Record<string, string>>;
   /** Per-command overrides: return a result to replace the default, or undefined to fall through. */
   override?: (file: string, args: readonly string[]) => ExecResult | undefined;
 }
@@ -21,6 +24,22 @@ const SC_STATE: Record<string, string> = {
   running: '4  RUNNING', stopped: '1  STOPPED', starting: '2  START_PENDING', stopping: '3  STOP_PENDING', paused: '7  PAUSED', unknown: '0  UNKNOWN',
 };
 
+const PROFILES: Record<string, string> = { any: 'Domain,Private,Public', private: 'Private', public: 'Public', domain: 'Domain' };
+
+/** Realistic multi-line `netsh advfirewall firewall show rule ... verbose` output for a stored rule. */
+export function netshVerbose(name: string, rule: Record<string, string>): string {
+  const row = (key: string, value: string): string => `${`${key}:`.padEnd(38)}${value}`;
+  return [
+    '', row('Rule Name', name), '-'.repeat(70),
+    row('Enabled', (rule['enable'] ?? 'yes') === 'no' ? 'No' : 'Yes'), row('Direction', (rule['dir'] ?? 'in') === 'out' ? 'Out' : 'In'),
+    row('Profiles', PROFILES[(rule['profile'] ?? 'any').toLowerCase()] ?? rule['profile'] ?? ''), row('Grouping', ''), row('LocalIP', 'Any'),
+    row('RemoteIP', rule['remoteip'] && rule['remoteip'] !== 'any' ? rule['remoteip'] : 'Any'), row('Protocol', (rule['protocol'] ?? 'TCP').toUpperCase()),
+    row('LocalPort', rule['localport'] ?? 'Any'), row('RemotePort', 'Any'), row('Edge traversal', 'No'), row('Program', rule['program'] ?? 'Any'),
+    row('InterfaceTypes', 'Any'), row('Security', 'NotRequired'), row('Rule source', 'Local Setting'), row('Action', (rule['action'] ?? 'allow') === 'block' ? 'Block' : 'Allow'),
+    '', 'Ok.', '',
+  ].join('\r\n');
+}
+
 /** A scripted Windows: fltmc, sc.exe, the WinSW wrapper, icacls and netsh, with service and firewall state that follows the commands. */
 export function fakeSystem(initial: Partial<Pick<FakeSystem, 'state' | 'elevated' | 'firewallRule'>> = {}): FakeSystem {
   const system: FakeSystem = {
@@ -28,6 +47,7 @@ export function fakeSystem(initial: Partial<Pick<FakeSystem, 'state' | 'elevated
     state: initial.state ?? 'not-installed',
     elevated: initial.elevated ?? true,
     firewallRule: initial.firewallRule ?? false,
+    rules: new Map(),
     exec: async (file, args) => {
       system.calls.push([file, ...args].join(' '));
       const custom = system.override?.(file, args);
@@ -47,9 +67,24 @@ export function fakeSystem(initial: Partial<Pick<FakeSystem, 'state' | 'elevated
         return ok();
       }
       if (name === 'netsh') {
-        if (args[2] === 'add') system.firewallRule = true;
-        if (args[2] === 'delete') { const had = system.firewallRule; system.firewallRule = false; return had ? ok() : { stdout: 'No rules match', stderr: '', code: 1 }; }
-        if (args[2] === 'show') return system.firewallRule ? ok('Rule Name: DUDE Hub (LAN)') : { stdout: 'No rules match', stderr: '', code: 1 };
+        const ruleName = args.find((a) => a.startsWith('name='))?.slice(5) ?? '';
+        const lan = ruleName === 'DUDE Hub (LAN)';
+        if (args[2] === 'add') {
+          if (lan) system.firewallRule = true;
+          else system.rules.set(ruleName, Object.fromEntries(args.filter((a) => a.includes('=')).map((a) => [a.slice(0, a.indexOf('=')), a.slice(a.indexOf('=') + 1)])));
+          return ok('Ok.');
+        }
+        if (args[2] === 'delete') {
+          const had = lan ? system.firewallRule : system.rules.delete(ruleName);
+          if (lan) system.firewallRule = false;
+          return had ? ok('Deleted 1 rule(s).\nOk.') : { stdout: 'No rules match the specified criteria.', stderr: '', code: 1 };
+        }
+        if (args[2] === 'show') {
+          const none = { stdout: 'No rules match the specified criteria.', stderr: '', code: 1 };
+          if (lan) return system.firewallRule ? ok('Rule Name: DUDE Hub (LAN)') : none;
+          const rule = system.rules.get(ruleName);
+          return rule ? ok(netshVerbose(ruleName, rule)) : none;
+        }
       }
       return ok();
     },

@@ -7,6 +7,7 @@ import {
   defaultInstallDir, deleteFirewallRule, firewallRuleExists, json, readConfigPort, requireElevated, resolveDeps, serviceDataDir, serviceState,
   tryAdminStatus, waitForHello,
 } from './common.js';
+import { deleteAcmeRule, deletePublicRule } from './firewall.js';
 import type { ResolvedDeps, ServiceDeps } from './common.js';
 import { copyStagedFiles, failed, wrapper } from './install.js';
 
@@ -129,6 +130,9 @@ export async function runServiceUninstall(options: LifecycleOptions & { keepData
     if (removed.code !== 0) { d.err(`Removing the service failed: ${failed(removed)}\n`); return EXIT_FAILURE; }
   }
   if (await firewallRuleExists(d.exec)) await deleteFirewallRule(d.exec);
+  // PD-068: the Public and ACME http-01 rules are CLI-managed and never outlive the service (idempotent).
+  await deletePublicRule(d.exec).catch(() => undefined);
+  await deleteAcmeRule(d.exec).catch(() => undefined);
   const leftOver = removeInstalled(installDir);
   d.out(json({
     uninstalled: true,

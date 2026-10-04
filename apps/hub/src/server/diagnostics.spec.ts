@@ -44,6 +44,13 @@ describe('GET /diagnostics', () => {
     expect(res.json.checks.find((c: { id: string }) => c.id === 'authentication-active')).toMatchObject({ status: 'pass', basis: 'verified' });
     expect(res.json.checks.find((c: { id: string }) => c.id === 'external-reachability').basis).toBe('not-checked');
 
+    // PD-068: the owner route never runs netsh/netstat for the public-firewall and native-listener facts.
+    const byId = (id: string) => res.json.checks.find((c: { id: string }) => c.id === id);
+    expect(byId('public-firewall-rule').basis).toBe('not-checked');
+    expect(byId('native-ports-exposed').basis).toBe('not-checked');
+    if (process.platform === 'win32') expect(byId('native-ports-exposed').detail).toBe('Run `dude-hub doctor` as administrator on the Hub machine.');
+    expect(scripted.calls.some((c) => c.startsWith('netstat') || c.startsWith('tasklist'))).toBe(false);
+
     const token = ensureSetupToken(h.hub.hub.db, h.hub.paths.configDir, h.clock.t);
     for (const secret of ['PRIVATE KEY', 'BEGIN CERTIFICATE', owner.csrf, owner.cookie, token ?? 'no-token']) expect(res.raw.body).not.toContain(secret);
 

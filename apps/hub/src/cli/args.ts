@@ -8,13 +8,14 @@ export type ParsedCommand =
   | { command: 'tls'; action: 'status' | 'rotate' | 'activate'; dataDir?: string; restage?: boolean; force?: boolean; confirm?: string }
   | { command: 'tls-ca'; action: 'init' | 'status' | 'export'; suffixes?: string[]; out?: string; dataDir?: string; installDir?: string }
   | { command: 'tls-import'; cert: string; key: string; chain?: string; dataDir?: string; installDir?: string }
-  | { command: 'tls-acme'; action: 'issue' | 'status'; names?: string[]; email?: string; agreeTos?: boolean; staging?: boolean; directory?: string; httpPort?: number; dataDir?: string; installDir?: string }
+  | { command: 'tls-acme'; action: 'issue' | 'status'; names?: string[]; email?: string; agreeTos?: boolean; staging?: boolean; directory?: string; httpPort?: number; openFirewall?: boolean; dataDir?: string; installDir?: string }
   | { command: 'tls-proxy-pin'; action: 'add' | 'remove' | 'list' | 'activate'; value?: string; force?: boolean; confirm?: string; dataDir?: string; installDir?: string }
   | { command: 'security-blocks'; action: 'list' | 'clear'; ip?: string; dataDir?: string; installDir?: string }
   | { command: 'security-audit-ips'; mode?: 'full' | 'truncated'; dataDir?: string; installDir?: string }
   | { command: 'tls-names'; action: 'list' | 'add' | 'remove'; name?: string; dataDir?: string; installDir?: string }
   | { command: 'service'; action: 'install' | 'uninstall' | 'start' | 'stop' | 'restart' | 'status' | 'update'; dataDir?: string; installDir?: string; port?: number; lan?: boolean; source?: string; keepData?: boolean }
   | { command: 'network'; action: 'lan-on' | 'lan-off' | 'status' | 'proxy-on' | 'proxy-off' | 'proxy-status' | 'mode-private' | 'mode-public'; trusted?: string[]; publicOrigin?: string; acknowledgeUnreleased?: boolean; dataDir?: string; installDir?: string }
+  | { command: 'network-firewall'; target: 'public' | 'acme'; action: 'on' | 'off' | 'status'; force?: boolean; dataDir?: string; installDir?: string }
   | { command: 'doctor'; json?: boolean; dataDir?: string; installDir?: string }
   | { command: 'purge'; dataDir?: string; includeBackups?: boolean; confirm?: string; type?: string }
   | { command: 'version' }
@@ -38,7 +39,7 @@ Usage:
   dude-hub tls ca status [--data-dir <dir>]
   dude-hub tls ca export [--out <file.cer>] [--data-dir <dir>]
   dude-hub tls import --cert <pem> --key <pem> [--chain <pem>] [--data-dir <dir>] [--install-dir <dir>]   (validates and stages an operator certificate)
-  dude-hub tls acme issue --name <dns> [--name <dns>]... [--email <e>] [--agree-tos] [--staging | --directory <https-url>] [--http-port <n>] [--data-dir <dir>] [--install-dir <dir>]   (orders a certificate over ACME http-01 and stages it; port 80 must be reachable from the Internet for the CA)
+  dude-hub tls acme issue --name <dns> [--name <dns>]... [--email <e>] [--agree-tos] [--staging | --directory <https-url>] [--http-port <n>] [--open-firewall] [--data-dir <dir>] [--install-dir <dir>]   (orders a certificate over ACME http-01 and stages it; port 80 must be reachable from the Internet for the CA; --open-firewall adds the ACME firewall rule for the order and always removes it, elevated)
   dude-hub tls acme status [--data-dir <dir>]
   dude-hub tls proxy-pin add <pem-or-spki> [--data-dir <dir>] [--install-dir <dir>]   (reverse proxy: stages the proxy's leaf pin)
   dude-hub tls proxy-pin activate [--force] [--confirm <token>] [--data-dir <dir>]
@@ -56,6 +57,8 @@ Usage:
   dude-hub service update --source <staged dir> [--install-dir <dir>] [--data-dir <dir>]
   dude-hub network lan on|off|status [--data-dir <dir>] [--install-dir <dir>]
   dude-hub network status [--data-dir <dir>] [--install-dir <dir>]   (bind, exposure mode, names, proxy, HSTS)
+  dude-hub network firewall public on|off|status [--force] [--data-dir <dir>] [--install-dir <dir>]   (the "DUDE Hub (Public)" inbound rule for public mode, every profile; on needs public mode or --force; elevated)
+  dude-hub network firewall acme on|off|status [--data-dir <dir>] [--install-dir <dir>]   (the temporary "DUDE Hub (ACME http-01)" rule; normally managed by tls acme issue --open-firewall)
   dude-hub network proxy on --trusted <cidr>[,<cidr>...] --public-origin https://<name>[:<port>] [--data-dir <dir>] [--install-dir <dir>]
   dude-hub network proxy off|status [--data-dir <dir>] [--install-dir <dir>]
   dude-hub network mode private|public [--i-understand-unreleased] [--data-dir <dir>] [--install-dir <dir>]   (public is not released until Phase 31F)
@@ -167,7 +170,7 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
       return { command: 'tls-acme', action, ...optional(values, '--data-dir', 'dataDir') };
     }
     if (names.length === 0) throw new UsageError('Usage: dude-hub tls acme issue --name <dns> [--name <dns>]... [--agree-tos] [--staging].');
-    const values = parseFlags(flags, ['--email', '--agree-tos', '--staging', '--directory', '--http-port', '--data-dir', '--install-dir'], ['--agree-tos', '--staging']);
+    const values = parseFlags(flags, ['--email', '--agree-tos', '--staging', '--directory', '--http-port', '--open-firewall', '--data-dir', '--install-dir'], ['--agree-tos', '--staging', '--open-firewall']);
     if (values['--staging'] !== undefined && values['--directory'] !== undefined) throw new UsageError('Use either --staging or --directory <url>, not both.');
     let httpPort: number | undefined;
     if (values['--http-port'] !== undefined) {
@@ -175,7 +178,7 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
       if (!/^[0-9]{1,5}$/.test(values['--http-port']) || httpPort < 1 || httpPort > 65535) throw new UsageError('Flag --http-port must be an integer from 1 to 65535.');
     }
     return {
-      command: 'tls-acme', action, names, ...(values['--agree-tos'] !== undefined ? { agreeTos: true } : {}), ...(values['--staging'] !== undefined ? { staging: true } : {}),
+      command: 'tls-acme', action, names, ...(values['--agree-tos'] !== undefined ? { agreeTos: true } : {}), ...(values['--staging'] !== undefined ? { staging: true } : {}), ...(values['--open-firewall'] !== undefined ? { openFirewall: true } : {}),
       ...optional(values, '--email', 'email'), ...optional(values, '--directory', 'directory'), ...(httpPort !== undefined ? { httpPort } : {}),
       ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir'),
     };
@@ -284,6 +287,14 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
     if (group === 'status') {
       return { command: 'network', action: 'status', ...dirs(parseFlags(mode === undefined ? [] : [mode, ...flags], ['--install-dir', '--data-dir'], [])) };
     }
+    if (group === 'firewall') {
+      const [action, ...rest2] = flags;
+      if ((mode !== 'public' && mode !== 'acme') || (action !== 'on' && action !== 'off' && action !== 'status')) {
+        throw new UsageError('Usage: dude-hub network firewall public|acme on|off|status. Run "dude-hub help".');
+      }
+      const values = parseFlags(rest2, mode === 'public' && action === 'on' ? ['--force', '--install-dir', '--data-dir'] : ['--install-dir', '--data-dir'], mode === 'public' && action === 'on' ? ['--force'] : []);
+      return { command: 'network-firewall', target: mode, action, ...(values['--force'] !== undefined ? { force: true } : {}), ...dirs(values) };
+    }
     if (group === 'proxy' && (mode === 'on' || mode === 'off' || mode === 'status')) {
       if (mode !== 'on') return { command: 'network', action: mode === 'off' ? 'proxy-off' : 'proxy-status', ...dirs(parseFlags(flags, ['--install-dir', '--data-dir'], [])) };
       const values = parseFlags(flags, ['--trusted', '--public-origin', '--install-dir', '--data-dir'], []);
@@ -298,7 +309,7 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
       const values = parseFlags(flags, ['--i-understand-unreleased', '--install-dir', '--data-dir'], ['--i-understand-unreleased']);
       return { command: 'network', action: mode === 'private' ? 'mode-private' : 'mode-public', ...(values['--i-understand-unreleased'] !== undefined ? { acknowledgeUnreleased: true } : {}), ...dirs(values) };
     }
-    throw new UsageError('Usage: dude-hub network lan on|off|status | proxy on|off|status | mode private|public. Run "dude-hub help".');
+    throw new UsageError('Usage: dude-hub network lan on|off|status | firewall public|acme on|off|status | proxy on|off|status | mode private|public. Run "dude-hub help".');
   }
   if (command === 'doctor') {
     const values = parseFlags(rest, ['--install-dir', '--data-dir', '--json'], ['--json']);

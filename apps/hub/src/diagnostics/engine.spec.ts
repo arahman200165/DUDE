@@ -35,7 +35,7 @@ describe('collectDiagnostics', () => {
     expect(Value.Check(HubDiagnosticsReport, report)).toBe(true);
     expect(report.checks.map((c) => c.id)).toEqual([
       'service-running', 'https-configured', 'certificate-valid', 'certificate-covers-names', 'certificate-trustable', 'next-pin-pending',
-      'authentication-active', 'realtime-available', 'firewall-rule', 'exposure-mode', 'proxy-trust', 'container-host-allowlist', 'address-stability', 'dns-resolution', 'external-reachability',
+      'authentication-active', 'realtime-available', 'firewall-rule', 'public-firewall-rule', 'native-ports-exposed', 'exposure-mode', 'proxy-trust', 'container-host-allowlist', 'address-stability', 'dns-resolution', 'external-reachability',
     ]);
     expect(report.exposure.publicReleased).toBe(false);
     expect(report.realtime.connections).toEqual({ owner: 1, device: 2 });
@@ -210,5 +210,50 @@ describe('address checks', () => {
     expect(foreign?.detail).toContain('external reachability probe');
     expect((await byId(deps({ ...base, resolveDns: resolving([], 'not-found') })))['dns-resolution']).toMatchObject({ status: 'warn', basis: 'verified' });
     expect((await byId(deps({ ...base, resolveDns: () => Promise.reject(new Error('x')) })))['dns-resolution']?.status).toBe('warn');
+  });
+});
+
+describe('public-firewall-rule and native-ports-exposed (PD-068)', () => {
+  const publicCfg = { config: { port: 47821, bind: 'loopback' as const, bindAddress: '127.0.0.1', exposure: { mode: 'public' as const, names: [] as string[] } } };
+  const host = (extra: Record<string, unknown>) => (): Promise<{ firewallPresent: null }> => Promise.resolve({ firewallPresent: null, ...extra });
+  const agent = (scope: 'loopback' | 'any') => ({ image: 'dude-agent.exe', pid: 7, address: scope === 'any' ? '0.0.0.0' : '127.0.0.1', port: 5555, scope });
+
+  it('public-firewall-rule: pass when valid, warn with the exact command when missing or invalid, info otherwise', async () => {
+    const ok = (await byId(deps({ ...publicCfg, host: host({ publicFirewall: { present: true, problems: [] } }) })))['public-firewall-rule'];
+    expect(ok).toMatchObject({ status: 'pass', basis: 'verified' });
+    const missing = (await byId(deps({ ...publicCfg, host: host({ publicFirewall: { present: false, problems: [] } }) })))['public-firewall-rule'];
+    expect(missing).toMatchObject({ status: 'warn', basis: 'verified', fix: 'dude-hub network firewall public on' });
+    const bad = (await byId(deps({ ...publicCfg, host: host({ publicFirewall: { present: true, problems: ['The rule is disabled.'] } }) })))['public-firewall-rule'];
+    expect(bad).toMatchObject({ status: 'warn', fix: 'dude-hub network firewall public on' });
+    expect(bad?.detail).toContain('The rule is disabled.');
+    expect((await byId(deps()))['public-firewall-rule']).toMatchObject({ status: 'info', detail: expect.stringContaining('not in public mode') as string });
+    const stale = (await byId(deps({ host: host({ publicFirewall: { present: true, problems: [] } }) })))['public-firewall-rule'];
+    expect(stale).toMatchObject({ status: 'info', basis: 'verified', fix: 'dude-hub network firewall public off' });
+  });
+
+  it('public-firewall-rule: the owner route (no facts) and non-Windows hosts are not-checked', async () => {
+    expect((await byId(deps({ ...publicCfg })))['public-firewall-rule']).toMatchObject({
+      status: 'info', basis: 'not-checked', detail: 'Run `dude-hub doctor` as administrator on the Hub machine.',
+    });
+    expect((await byId(deps({ ...publicCfg, platform: 'linux' })))['public-firewall-rule']).toMatchObject({ status: 'info', basis: 'not-checked' });
+  });
+
+  it('native-ports-exposed: Agent listener fails (loopback worded differently), desktop LAN is info, none passes', async () => {
+    const exposed = (await byId(deps({ host: host({ nativeListeners: { exposed: [agent('any')], desktopLan: [], partial: false } }) })))['native-ports-exposed'];
+    expect(exposed).toMatchObject({ status: 'fail', basis: 'verified' });
+    expect(exposed?.detail).toContain('reachable from the network');
+    const loop = (await byId(deps({ host: host({ nativeListeners: { exposed: [agent('loopback')], partial: false } }) })))['native-ports-exposed'];
+    expect(loop?.status).toBe('fail');
+    expect(loop?.detail).toContain('listens on loopback');
+    const lan = (await byId(deps({ host: host({ nativeListeners: { exposed: [], desktopLan: [{ image: 'dude.exe', pid: 9, address: '0.0.0.0', port: 8080, scope: 'any' }], partial: false } }) })))['native-ports-exposed'];
+    expect(lan).toMatchObject({ status: 'info', basis: 'verified' });
+    expect(lan?.detail).toContain('0.0.0.0:8080');
+    expect((await byId(deps({ host: host({ nativeListeners: { exposed: [], partial: false } }) })))['native-ports-exposed']).toMatchObject({ status: 'pass', basis: 'verified' });
+    expect((await byId(deps({ host: host({ nativeListeners: { exposed: [], partial: true } }) })))['native-ports-exposed']).toMatchObject({ status: 'info', basis: 'not-checked' });
+  });
+
+  it('native-ports-exposed: not-checked on the owner route and off Windows', async () => {
+    expect((await byId(deps()))['native-ports-exposed']).toMatchObject({ basis: 'not-checked', detail: 'Run `dude-hub doctor` as administrator on the Hub machine.' });
+    expect((await byId(deps({ platform: 'linux' })))['native-ports-exposed']).toMatchObject({ basis: 'not-checked' });
   });
 });
