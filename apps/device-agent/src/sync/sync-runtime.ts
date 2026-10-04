@@ -11,7 +11,9 @@ import { getMeta, setMeta, transaction } from '@dude/sqlite-store';
 import type { CommitContext } from '../store/entity-commit.js';
 import { workingEnvironmentId } from '../store/environment.js';
 import { setStatusAll } from '../store/repos/outbox.repo.js';
-import { getSyncState, updateSyncState } from '../store/repos/sync-state.repo.js';
+import { getEnrollment, raiseAuthorityEpoch } from '../store/repos/hub-enrollment.repo.js';
+import { getReconcileRequired, getSyncState, setReconcileRequired, updateSyncState } from '../store/repos/sync-state.repo.js';
+import type { ReconcileDetail, ReconcileReason } from '../store/repos/sync-state.repo.js';
 import { HubManagerError } from '../hub/errors.js';
 import type { HubConnectionManager } from '../hub/hub-client.js';
 import { applyRemoteChanges } from './apply-remote.js';
@@ -20,7 +22,7 @@ import { resolveConflict as resolveConflictRow, listConflictViews } from './conf
 import type { ConflictChoice } from './conflicts.js';
 import { applyPushResults, buildPushBatch } from './push-results.js';
 import { discardQuarantined, exportQuarantined, retryQuarantined } from './quarantine.js';
-import { applySnapshotPage, beginSnapshot, finishSnapshot } from './rebase.js';
+import { HistoryRegressedError, applySnapshotPage, beginSnapshot, finishSnapshot, planSnapshotDeletions, snapshotKey } from './rebase.js';
 import { computeSyncStatus } from './status.js';
 import { FirstSyncError, firstSyncApply, firstSyncPreview, takeRecoverySnapshot } from './first-sync.js';
 import type { HubSnapshot } from './first-sync.js';
@@ -108,10 +110,26 @@ interface Failure { kind: FailureKind; message: string }
 const REBASE_META = 'sync_rebase_pending';
 /** `reason:hubInstanceId:epoch` of the last changed authority a recovery snapshot was taken for (PD-073). */
 const AUTHORITY_SNAPSHOT_META = 'authority_snapshot_taken';
+/** `reason:at` of the reconcile flag a recovery snapshot was taken for (PD-073). */
+const RECONCILE_SNAPSHOT_META = 'reconcile_snapshot_taken';
 const MAX_PUSH_BATCHES_PER_CYCLE = 50;
 const DISCARD_TOKEN_TTL_MS = 5 * 60_000;
 const FIRST_SYNC_TTL_MS = 10 * 60_000;
 const STANDALONE_TTL_MS = 2 * 60_000;
+
+/**
+ * Thrown inside a cycle once the reconcile flag was raised (the Hub's history or authority no longer matches this device). It is
+ * not a failure: the cycle stops cleanly, `blockedPhase()` reports `needs-reconcile` from the persisted flag, and nothing retries.
+ */
+class ReconcileRequiredSignal extends Error {
+  constructor() { super('Sync stopped: the Hub does not match this device. Reconnect to continue.'); }
+}
+
+const RECONCILE_MESSAGES: Record<ReconcileReason, string> = {
+  'cursor-ahead': 'The Hub has less history than this device already received. Reconnect this device to continue.',
+  'epoch-lower': 'The Hub is an older copy than one this device has seen. Reconnect this device to continue.',
+  'history-regressed': 'The Hub lost changes this device had already synced. Reconnect this device to continue.',
+};
 
 function classify(error: unknown): Failure {
   if (error instanceof HubManagerError) {
@@ -177,7 +195,7 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
     const hub = manager.status();
     if (!hub.enrollment || hub.state === 'standalone') return 'standalone';
     if (hub.state === 'revoked' || hub.enrollment.state === 'revoked') return 'revoked';
-    if (hub.state === 'authority-changed') return 'needs-reconcile';
+    if (hub.state === 'authority-changed' || getReconcileRequired(db) !== null) return 'needs-reconcile';
     if (hub.state === 'incompatible' || hub.state === 'untrusted-tls') return 'error';
     const protocol = manager.hubProtocol();
     if (protocol !== null && !hubSupportsSync(protocol)) return 'hub-outdated';
@@ -201,7 +219,10 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
     const hub = manager.status();
     if ((phase === 'error' || phase === 'offline' || phase === 'revoked') && hub.lastError) return hub.lastError;
     if (phase === 'hub-outdated') return 'The Hub is too old to sync. Update the Hub.';
-    if (phase === 'needs-reconcile') return hub.lastError ?? 'The Hub changed. Reconnect this device to continue.';
+    if (phase === 'needs-reconcile') {
+      const flag = hub.state === 'authority-changed' ? null : getReconcileRequired(db);
+      return hub.lastError ?? (flag ? RECONCILE_MESSAGES[flag.reason] : 'The Hub changed. Reconnect this device to continue.');
+    }
     if (deferredSeen > 0) return 'needs-update';
     return null;
   }
@@ -241,6 +262,7 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
         return;
       }
       const response = await call<SyncPushResponse>((api, token) => api.syncPush(token, batch.ops));
+      if (inspectHub(response.headRevision, undefined, state.cursor)) throw new ReconcileRequiredSignal();
       headRevision = response.headRevision;
       const outcome = applyPushResults(db, batch.sent, response.results, ctx);
       emitApplied(outcome.applied);
@@ -254,26 +276,60 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
     return records.filter((r) => enabled(categoryOf(r.entityType), categories));
   }
 
+  /**
+   * Fetches the whole snapshot first, then decides: a Hub behind this device, or a regressed history (an acknowledged local entity
+   * above the snapshot's `asOfRevision`), raises the reconcile flag and changes nothing. Otherwise a recovery snapshot of the
+   * store is taken when entities are about to be deleted, and only then are the pages applied.
+   */
   async function rebase(ctx: SyncApplyContext): Promise<void> {
-    const collector = beginSnapshot();
+    const pages: SyncRecord[][] = [];
+    const seen = new Set<string>();
     let asOf: number | null = null;
     let floor = 0;
+    let epoch: number | undefined;
     let after: { afterType: string; afterId: string } | undefined;
     do {
       const page = await call<SyncSnapshotResponse>((api, token) => api.syncSnapshot(token, { ...after, limit: SYNC_LIMITS.snapshotPage }));
       asOf ??= page.asOfRevision;
+      epoch ??= page.authorityEpoch;
       floor = page.floor;
-      headRevision = Math.max(headRevision ?? 0, page.asOfRevision);
-      applySnapshotPage(db, collector, pullRecords(page.records), ctx);
+      const records = pullRecords(page.records);
+      for (const r of records) seen.add(snapshotKey(r.entityType, r.entityId));
+      pages.push(records);
       after = page.next ?? undefined;
     } while (after);
-    const result = transaction(db, () => {
-      const categories = getSyncState(db).categories;
-      const outcome = finishSnapshot(db, collector, ctx, (type) => enabled(categoryOf(type), categories));
-      updateSyncState(db, { cursor: asOf ?? 0, floor });
-      db.prepare('DELETE FROM meta WHERE key = ?').run(REBASE_META);
-      return outcome;
-    });
+    const asOfRevision = asOf ?? 0;
+    if (inspectHub(asOfRevision, epoch, getSyncState(db).cursor)) throw new ReconcileRequiredSignal();
+    headRevision = Math.max(headRevision ?? 0, asOfRevision);
+
+    const categories = getSyncState(db).categories;
+    const include = (type: string): boolean => enabled(categoryOf(type), categories);
+    const plan = planSnapshotDeletions(db, seen, include);
+    if (plan.maxRevision > asOfRevision) {
+      raiseReconcile('history-regressed', { maxRevision: plan.maxRevision, asOfRevision });
+      throw new ReconcileRequiredSignal();
+    }
+    if (plan.missing.length > 0 && deps.backupDir) {
+      // A failure aborts the rebase before anything is deleted and takes the normal error path (retry with backoff).
+      const file = takeRecoverySnapshot(db, deps.backupDir, deps.now(), 'rebase');
+      log('sync: recovery snapshot taken before a rebase deletes entities', { file, deleting: plan.missing.length });
+    }
+
+    const collector = beginSnapshot();
+    for (const records of pages) applySnapshotPage(db, collector, records, ctx);
+    let result: ReturnType<typeof finishSnapshot>;
+    try {
+      result = transaction(db, () => {
+        const outcome = finishSnapshot(db, collector, ctx, include, { asOfRevision });
+        updateSyncState(db, { cursor: asOfRevision, floor });
+        db.prepare('DELETE FROM meta WHERE key = ?').run(REBASE_META);
+        return outcome;
+      });
+    } catch (error) {
+      if (!(error instanceof HistoryRegressedError)) throw error;
+      raiseReconcile('history-regressed', { maxRevision: error.maxRevision, asOfRevision: error.asOfRevision });
+      throw new ReconcileRequiredSignal();
+    }
     deferredSeen += result.deferred.length;
     emitApplied(result.applied);
     log('sync: snapshot rebase finished', { applied: result.applied.length, deletedLocally: result.deletedLocally, conflicts: result.conflicts });
@@ -292,6 +348,7 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
         if (isCursorExpired(error) && !rebased) { await rebase(ctx); rebased = true; continue; }
         throw error;
       }
+      if (inspectHub(page.headRevision, page.authorityEpoch, before)) throw new ReconcileRequiredSignal();
       headRevision = page.headRevision;
       // The cursor moves in the same transaction as the apply, so a crash replays the page idempotently.
       const result = transaction(db, () => {
@@ -331,10 +388,11 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
     const nowMs = Date.now();
     if (lastReport && lastReport.key === key && nowMs - lastReport.at < intervals.reportMinIntervalMs) return;
     try {
-      const response = await call<{ headRevision: number }>((api, token) => api.syncReportState(token, {
+      const response = await call<{ headRevision: number; authorityEpoch?: number }>((api, token) => api.syncReportState(token, {
         cursor: current.cursor, pending: current.pending, quarantined: current.quarantined, conflicts: current.conflicts, stranded: current.stranded,
         categories: current.categories, lastSyncAt: current.lastSyncAt, paused,
       }));
+      if (inspectHub(response.headRevision, response.authorityEpoch, current.cursor)) return;
       headRevision = response.headRevision;
       lastReport = { key, at: nowMs };
     } catch (error) {
@@ -394,13 +452,20 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
       failures = 0;
       backoffUntil = 0;
     } catch (error) {
-      const found = classify(error);
-      failure = found;
-      log('sync: cycle failed', { kind: found.kind, message: found.message });
-      if (found.kind !== 'fatal') {
-        failures += 1;
-        retryIn = Math.min(intervals.backoffMaxMs, intervals.backoffMinMs * 2 ** (failures - 1));
-        backoffUntil = Date.now() + retryIn;
+      if (error instanceof ReconcileRequiredSignal) {
+        // Not a failure: the persisted flag now makes `blockedPhase()` report needs-reconcile, so nothing retries or backs off.
+        failure = null;
+        failures = 0;
+        backoffUntil = 0;
+      } else {
+        const found = classify(error);
+        failure = found;
+        log('sync: cycle failed', { kind: found.kind, message: found.message });
+        if (found.kind !== 'fatal') {
+          failures += 1;
+          retryIn = Math.min(intervals.backoffMaxMs, intervals.backoffMinMs * 2 ** (failures - 1));
+          backoffUntil = Date.now() + retryIn;
+        }
       }
     } finally {
       running = false;
@@ -436,17 +501,51 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
   // --- Reactions --------------------------------------------------------------------------------------------------------
 
   /** Once per changed authority (and across restarts): a full copy of the store before anything can be reconciled. */
-  function snapshotForAuthority(hub: AgentHubStatus): void {
-    if (hub.state !== 'authority-changed' || !deps.backupDir) return;
-    const key = `${hub.authority?.reason ?? 'unknown'}:${hub.authority?.hubInstanceId ?? ''}:${hub.authority?.epoch ?? ''}`;
-    if (getMeta(db, AUTHORITY_SNAPSHOT_META) === key) return;
+  function snapshotOnce(metaKey: string, key: string, prefix: string, what: string): void {
+    if (!deps.backupDir || getMeta(db, metaKey) === key) return;
     try {
-      const file = takeRecoverySnapshot(db, deps.backupDir, deps.now(), 'authority-changed');
-      setMeta(db, AUTHORITY_SNAPSHOT_META, key);
-      log('sync: Hub authority changed, recovery snapshot taken', { reason: hub.authority?.reason, file });
+      const file = takeRecoverySnapshot(db, deps.backupDir, deps.now(), prefix);
+      setMeta(db, metaKey, key);
+      log(`sync: ${what}, recovery snapshot taken`, { file });
     } catch (error) {
-      log('sync: recovery snapshot for a changed Hub failed', error instanceof Error ? error.message : 'unknown');
+      log(`sync: recovery snapshot for ${what} failed`, error instanceof Error ? error.message : 'unknown');
     }
+  }
+
+  function snapshotForAuthority(hub: AgentHubStatus): void {
+    if (hub.state !== 'authority-changed') return;
+    const key = `${hub.authority?.reason ?? 'unknown'}:${hub.authority?.hubInstanceId ?? ''}:${hub.authority?.epoch ?? ''}`;
+    snapshotOnce(AUTHORITY_SNAPSHOT_META, key, 'authority-changed', `Hub authority changed (${hub.authority?.reason ?? 'unknown'})`);
+  }
+
+  /** Once per reconcile flag (and across restarts): a full copy of the store, taken before anything can be reconciled. */
+  function snapshotForReconcile(): void {
+    const flag = getReconcileRequired(db);
+    if (flag) snapshotOnce(RECONCILE_SNAPSHOT_META, `${flag.reason}:${flag.at}`, 'sync-reconcile', `the Hub does not match this device (${flag.reason})`);
+  }
+
+  /** Raises the persisted reconcile flag (the first one wins). Nothing local is changed; the caller stops the cycle. */
+  function raiseReconcile(reason: ReconcileReason, detail: ReconcileDetail): void {
+    const flag = setReconcileRequired(db, reason, deps.now(), detail);
+    log('sync: reconcile required', { reason: flag.reason, detail: flag.detail });
+    snapshotForReconcile();
+    emitStatus();
+  }
+
+  /**
+   * Compares what the Hub just reported (its head revision and, when it says, its authority epoch) with what this device stored.
+   * True when the reconcile flag was raised and the caller must stop without applying anything: a lower epoch, or a head revision
+   * below the cursor (the Hub is behind what this device consumed). A higher epoch is recorded and sync continues; a response
+   * without an epoch carries no information about it.
+   */
+  function inspectHub(hubHead: number | undefined, epoch: number | undefined, cursor: number): boolean {
+    if (epoch !== undefined) {
+      const stored = getEnrollment(db)?.authorityEpoch ?? 1;
+      if (epoch < stored) { raiseReconcile('epoch-lower', { epoch, storedEpoch: stored }); return true; }
+      if (epoch > stored) raiseAuthorityEpoch(db, epoch, deps.now());
+    }
+    if (typeof hubHead === 'number' && hubHead < cursor) { raiseReconcile('cursor-ahead', { cursor, headRevision: hubHead }); return true; }
+    return false;
   }
 
   function onHubChange(hub: AgentHubStatus): void {
@@ -474,6 +573,7 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
       pollTimer.unref();
       if (lastHubState === 'revoked') setStatusAll(db, ['pending'], 'stranded');
       snapshotForAuthority(manager.status());
+      snapshotForReconcile();
       if (lastHubState === 'online') trigger(0, true);
       emitStatus();
     },

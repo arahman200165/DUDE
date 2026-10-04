@@ -1,6 +1,7 @@
 import { SYNC_CATEGORY_IDS, defaultCategoryMap } from '@dude/sync';
 import type { SyncCategory } from '@dude/sync';
 import type { Db } from '@dude/sqlite-store';
+import { getMeta, setMeta } from '@dude/sqlite-store';
 
 export interface SyncStateRow {
   cursor: number;
@@ -63,6 +64,50 @@ export function updateSyncState(db: Db, patch: SyncStatePatch): SyncStateRow {
   return next;
 }
 
+/** The meta key of the persisted reconcile flag (PD-073): the Hub's history or authority no longer matches what this device consumed. */
+export const RECONCILE_META = 'sync_reconcile_required';
+
+export type ReconcileReason = 'cursor-ahead' | 'epoch-lower' | 'history-regressed';
+
+export interface ReconcileDetail {
+  cursor?: number;
+  headRevision?: number;
+  epoch?: number;
+  storedEpoch?: number;
+  /** `history-regressed`: the highest acknowledged local revision and the snapshot's `asOfRevision` it exceeds. */
+  maxRevision?: number;
+  asOfRevision?: number;
+}
+
+export interface ReconcileRequired { reason: ReconcileReason; at: string; detail?: ReconcileDetail }
+
+const REASONS: readonly ReconcileReason[] = ['cursor-ahead', 'epoch-lower', 'history-regressed'];
+
+/** The reconcile flag, or null. A present but unreadable value still blocks (reason `history-regressed`, empty time). */
+export function getReconcileRequired(db: Db): ReconcileRequired | null {
+  const raw = getMeta(db, RECONCILE_META);
+  if (raw === undefined) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<ReconcileRequired> | null;
+    const reason = REASONS.find((r) => r === parsed?.reason);
+    if (reason && typeof parsed?.at === 'string') return { reason, at: parsed.at, ...(parsed.detail && typeof parsed.detail === 'object' ? { detail: parsed.detail } : {}) };
+  } catch { /* fall through to the blocking default */ }
+  return { reason: 'history-regressed', at: '' };
+}
+
+/** Sets the flag. The first flag wins (its time stays stable, so a recovery snapshot is taken once). Returns the flag now stored. */
+export function setReconcileRequired(db: Db, reason: ReconcileReason, now: Date, detail?: ReconcileDetail): ReconcileRequired {
+  const existing = getReconcileRequired(db);
+  if (existing) return existing;
+  const flag: ReconcileRequired = { reason, at: now.toISOString(), ...(detail ? { detail } : {}) };
+  setMeta(db, RECONCILE_META, JSON.stringify(flag));
+  return flag;
+}
+
+export function clearReconcileRequired(db: Db): void {
+  db.prepare('DELETE FROM meta WHERE key = ?').run(RECONCILE_META);
+}
+
 /** Back to a never-synced device (cursor 0, first sync pending, default categories). */
 export function resetSyncState(db: Db): void {
   ensureRow(db);
@@ -77,6 +122,6 @@ export function resetSyncState(db: Db): void {
  */
 export function resetHubBookkeeping(db: Db): void {
   db.exec('UPDATE records SET hub_revision = NULL, hub_payload_json = NULL; DELETE FROM kv_sync; UPDATE outbox SET based_on_revision = NULL');
-  db.exec("DELETE FROM meta WHERE key IN ('first_sync_progress', 'sync_rebase_pending')");
+  db.exec("DELETE FROM meta WHERE key IN ('first_sync_progress', 'sync_rebase_pending', 'sync_reconcile_required')");
   resetSyncState(db);
 }

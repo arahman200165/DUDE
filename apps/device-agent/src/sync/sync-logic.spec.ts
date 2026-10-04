@@ -13,7 +13,7 @@ import type { DeviceStore } from '../store/open-store.js';
 import { applyRemoteChanges } from './apply-remote.js';
 import type { SyncApplyContext } from './apply-remote.js';
 import { applyPushResults, buildPushBatch } from './push-results.js';
-import { applySnapshot, applySnapshotPage, beginSnapshot, finishSnapshot } from './rebase.js';
+import { HistoryRegressedError, applySnapshot, applySnapshotPage, beginSnapshot, finishSnapshot, planSnapshotDeletions, snapshotKey } from './rebase.js';
 import { listConflictViews, resolveConflict } from './conflicts.js';
 import { computeSyncStatus } from './status.js';
 import { discardQuarantined, exportQuarantined, retryQuarantined } from './quarantine.js';
@@ -274,6 +274,29 @@ describe('snapshot', () => {
     expect(listRecords(s.store.db, 'pipeline')).toHaveLength(0);
     expect(listOutbox(s.store.db, 10)).toHaveLength(0);
     expect(listConflicts(s.store.db)[0]).toMatchObject({ kind: 'edit-delete', remoteDeleted: true });
+  });
+
+  it('refuses to delete when an acknowledged entity is above the snapshot as-of revision (the Hub regressed) and changes nothing', () => {
+    const { store, ctx, commit } = setup();
+    applyRemoteChanges(store.db, [rec('favorite', 'tool:future', 120, fav('future')), rec('favorite', 'tool:old', 50, fav('old'))], ctx);
+    commitEntity(store.db, commit, upsert('favorite', 'tool:future', fav('future', 4)));
+    const before = JSON.stringify([listRecords(store.db, 'favorite'), listOutbox(store.db, 10)]);
+    const collector = beginSnapshot();
+    expect(() => finishSnapshot(store.db, collector, ctx, () => true, { asOfRevision: 100 })).toThrow(HistoryRegressedError);
+    expect(JSON.stringify([listRecords(store.db, 'favorite'), listOutbox(store.db, 10)])).toBe(before);
+    expect(listConflicts(store.db)).toHaveLength(0);
+    // Below the as-of revision (and for a disabled category) the usual deletion rules apply.
+    const ok = finishSnapshot(store.db, beginSnapshot(), ctx, (type) => type === 'favorite', { asOfRevision: 200 });
+    expect(ok.deletedLocally).toBe(2);
+  });
+
+  it('plans deletions without touching anything and reports the highest acknowledged revision', () => {
+    const { store, ctx } = setup();
+    applyRemoteChanges(store.db, [rec('favorite', 'tool:a', 7, fav('a')), rec('favorite', 'tool:b', 9, fav('b'))], ctx);
+    const plan = planSnapshotDeletions(store.db, new Set([snapshotKey('favorite', 'tool:b')]));
+    expect(plan.missing.map((k) => k.entityId)).toEqual(['tool:a']);
+    expect(plan.maxRevision).toBe(7);
+    expect(listRecords(store.db, 'favorite')).toHaveLength(2);
   });
 
   it('keeps deferred (newer-schema) records and reports them', () => {

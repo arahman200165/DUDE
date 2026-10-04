@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HubApiError } from '@dude/api-client';
@@ -6,10 +6,11 @@ import type { AgentHubStatus } from '@dude/contracts';
 import type { SyncOpResult, SyncRecord, SyncSnapshotResponse } from '@dude/contracts/hub';
 import { cleanupTemp, commitContext, openReady, tempDir } from '../testing/test-utils.js';
 import { commitEntity } from '../store/entity-commit.js';
-import { saveEnrollment } from '../store/repos/hub-enrollment.repo.js';
+import { getEnrollment, raiseAuthorityEpoch, saveEnrollment } from '../store/repos/hub-enrollment.repo.js';
+import { listConflicts } from '../store/repos/sync-conflicts.repo.js';
 import { listOutbox } from '../store/repos/outbox.repo.js';
 import { listRecords } from '../store/repos/records.repo.js';
-import { getSyncState } from '../store/repos/sync-state.repo.js';
+import { getReconcileRequired, getSyncState, resetHubBookkeeping } from '../store/repos/sync-state.repo.js';
 import { HubManagerError } from '../hub/errors.js';
 import type { SyncManagerPort } from './sync-runtime.js';
 import { createSyncRuntime } from './sync-runtime.js';
@@ -57,9 +58,10 @@ function setup(options: { protocol?: number; hubState?: AgentHubStatus['state'];
   const nudges = new Set<(rev: number) => void>();
   const api = {
     syncPush: vi.fn(async (_t: string, ops: readonly { opId: string }[]): Promise<{ results: SyncOpResult[]; headRevision: number }> => ({ results: ops.map((o, i) => ({ opId: o.opId, status: 'applied' as const, revision: i + 1 })), headRevision: 9 })),
-    syncChanges: vi.fn(async (_t: string, _after: number, _limit?: number): Promise<ReturnType<typeof changes>> => changes([], 0)),
+    // An idle Hub echoes the caller's cursor back (its head is never behind what the caller already consumed).
+    syncChanges: vi.fn(async (_t: string, after: number, _limit?: number): Promise<ReturnType<typeof changes>> => changes([], after)),
     syncSnapshot: vi.fn(async (_t: string, _page?: unknown): Promise<SyncSnapshotResponse> => ({ records: [], asOfRevision: 0, next: null, floor: 0 })),
-    syncReportState: vi.fn(async (_t: string, _r: unknown) => ({ floor: 0, headRevision: 9, retentionDays: 90 })),
+    syncReportState: vi.fn(async (_t: string, r: unknown): Promise<{ floor: number; headRevision: number; retentionDays: number; authorityEpoch?: number }> => ({ floor: 0, headRevision: Math.max(9, (r as { cursor?: number }).cursor ?? 0), retentionDays: 90 })),
   };
   const manager: SyncManagerPort = {
     status: () => hub,
@@ -352,6 +354,187 @@ describe('cycle', () => {
     const status = await t.runtime.syncNow();
     expect(status).toMatchObject({ cursor: 4, lastError: 'needs-update' });
     expect(listRecords(t.store.db, 'pipeline')).toHaveLength(0);
+  });
+});
+
+describe('reconcile flag (PD-073)', () => {
+  const snapshotFiles = (dir: string, prefix: string): string[] => (existsSync(dir) ? readdirSync(dir).filter((f) => f.startsWith(prefix) && f.endsWith('.db')) : []);
+  const cursorAt = (t: ReturnType<typeof setup>, revision: number) => {
+    t.api.syncChanges.mockResolvedValueOnce(changes([rec('favorite', 'tool:b', revision, fav('b', 2))], revision));
+    return t.runtime.syncNow();
+  };
+
+  it('a Hub head behind the cursor blocks sync without applying the page, keeps data, and snapshots once', async () => {
+    const backupDir = path.join(tempDir(), 'backups');
+    const t = setup({ backupDir });
+    await cursorAt(t, 5);
+    expect(getSyncState(t.store.db).cursor).toBe(5);
+    t.api.syncChanges.mockResolvedValueOnce(changes([rec('favorite', 'tool:x', 3, fav('x'))], 3));
+    const status = await t.runtime.syncNow();
+    expect(status).toMatchObject({ phase: 'needs-reconcile', cursor: 5 });
+    expect(status.lastError).toMatch(/less history/);
+    expect(getReconcileRequired(t.store.db)).toMatchObject({ reason: 'cursor-ahead', detail: { cursor: 5, headRevision: 3 } });
+    expect(listRecords(t.store.db, 'favorite').map((r) => r.entityId)).toEqual(['tool:b']);
+    expect(snapshotFiles(backupDir, 'sync-reconcile-')).toHaveLength(1);
+
+    // Later runs (a nudge, another syncNow, a local commit) neither push nor pull, and do not snapshot again.
+    t.api.syncPush.mockClear();
+    t.api.syncChanges.mockClear();
+    t.commitFavorite('c');
+    t.nudge();
+    expect((await t.runtime.syncNow()).phase).toBe('needs-reconcile');
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(t.api.syncPush).not.toHaveBeenCalled();
+    expect(t.api.syncChanges).not.toHaveBeenCalled();
+    expect(snapshotFiles(backupDir, 'sync-reconcile-')).toHaveLength(1);
+    expect(listOutbox(t.store.db, 10).filter((o) => o.status === 'pending')).toHaveLength(1);
+
+    // The reconnect flow resets the Hub bookkeeping, which clears the flag.
+    resetHubBookkeeping(t.store.db);
+    expect(getReconcileRequired(t.store.db)).toBeNull();
+  });
+
+  it('the flag is persisted: a restarted runtime is still blocked and does not snapshot again', async () => {
+    const backupDir = path.join(tempDir(), 'backups');
+    const t = setup({ backupDir });
+    await cursorAt(t, 5);
+    t.api.syncChanges.mockResolvedValueOnce(changes([], 2));
+    expect((await t.runtime.syncNow()).phase).toBe('needs-reconcile');
+    t.runtime.stop();
+    t.api.syncPush.mockClear();
+    t.api.syncChanges.mockClear();
+    t.runtime.start();
+    expect((await t.runtime.syncNow()).phase).toBe('needs-reconcile');
+    expect(t.api.syncChanges).not.toHaveBeenCalled();
+    expect(snapshotFiles(backupDir, 'sync-reconcile-')).toHaveLength(1);
+  });
+
+  it('a push response whose head is behind the cursor stops the cycle and leaves the outbox untouched', async () => {
+    const t = setup();
+    await cursorAt(t, 5);
+    t.api.syncPush.mockImplementationOnce(async (_t, ops) => ({ results: ops.map((o) => ({ opId: o.opId, status: 'applied' as const, revision: 1 })), headRevision: 2 }));
+    t.commitFavorite('c');
+    t.api.syncChanges.mockClear();
+    expect((await t.runtime.syncNow()).phase).toBe('needs-reconcile');
+    expect(getReconcileRequired(t.store.db)).toMatchObject({ reason: 'cursor-ahead', detail: { cursor: 5, headRevision: 2 } });
+    expect(t.api.syncChanges).not.toHaveBeenCalled();
+    expect(listOutbox(t.store.db, 10).map((o) => o.status)).toEqual(['pending']);
+  });
+
+  it('a state report whose head is behind the cursor raises the flag', async () => {
+    const t = setup();
+    t.api.syncReportState.mockResolvedValueOnce({ floor: 0, headRevision: 1, retentionDays: 90 });
+    await cursorAt(t, 5);
+    expect(t.runtime.status().phase).toBe('needs-reconcile');
+    expect(getReconcileRequired(t.store.db)).toMatchObject({ reason: 'cursor-ahead' });
+  });
+
+  it('a lower authority epoch in a sync response blocks and the page is not applied', async () => {
+    const backupDir = path.join(tempDir(), 'backups');
+    const t = setup({ backupDir });
+    raiseAuthorityEpoch(t.store.db, 2, T0);
+    t.api.syncChanges.mockResolvedValueOnce(changes([rec('favorite', 'tool:x', 6, fav('x'))], 6, { authorityEpoch: 1 }));
+    expect((await t.runtime.syncNow()).phase).toBe('needs-reconcile');
+    expect(getReconcileRequired(t.store.db)).toMatchObject({ reason: 'epoch-lower', detail: { epoch: 1, storedEpoch: 2 } });
+    expect(listRecords(t.store.db, 'favorite')).toHaveLength(0);
+    expect(getSyncState(t.store.db).cursor).toBe(0);
+    expect(snapshotFiles(backupDir, 'sync-reconcile-')).toHaveLength(1);
+    t.api.syncChanges.mockClear();
+    await t.runtime.syncNow();
+    expect(t.api.syncChanges).not.toHaveBeenCalled();
+  });
+
+  it('a higher authority epoch is recorded and sync continues; a response without an epoch is no information', async () => {
+    const t = setup();
+    t.api.syncChanges.mockResolvedValueOnce(changes([rec('favorite', 'tool:x', 6, fav('x'))], 6, { authorityEpoch: 3 }));
+    expect(await t.runtime.syncNow()).toMatchObject({ phase: 'idle', cursor: 6 });
+    expect(getEnrollment(t.store.db)?.authorityEpoch).toBe(3);
+    expect(getReconcileRequired(t.store.db)).toBeNull();
+    await cursorAt(t, 7);
+    expect(getEnrollment(t.store.db)?.authorityEpoch).toBe(3);
+    expect(t.runtime.status().phase).toBe('idle');
+  });
+
+  it('a normal Hub (head at or above the cursor, including cursor 0) behaves as before', async () => {
+    const backupDir = path.join(tempDir(), 'backups');
+    const t = setup({ backupDir });
+    expect(await t.runtime.syncNow()).toMatchObject({ phase: 'idle', cursor: 0 });
+    await cursorAt(t, 5);
+    t.api.syncChanges.mockResolvedValueOnce(changes([], 5, { headRevision: 9 }));
+    expect(await t.runtime.syncNow()).toMatchObject({ phase: 'idle', cursor: 5 });
+    expect(getReconcileRequired(t.store.db)).toBeNull();
+    expect(snapshotFiles(backupDir, '')).toHaveLength(0);
+  });
+
+  describe('rebase safety', () => {
+    /** A favorite the Hub acknowledged at `revision` (through a push response), then a cursor-expired pull that triggers a rebase. */
+    async function ackedThenRebase(t: ReturnType<typeof setup>, revision: number, asOfRevision: number): Promise<void> {
+      t.api.syncPush.mockImplementationOnce(async (_t, ops) => ({ results: ops.map((o) => ({ opId: o.opId, status: 'applied' as const, revision })), headRevision: revision }));
+      t.commitFavorite('a');
+      await t.runtime.syncNow();
+      expect(listOutbox(t.store.db, 10)).toHaveLength(0);
+      t.api.syncChanges.mockRejectedValueOnce(new HubApiError(410, 'cursor-expired', 'expired'));
+      t.api.syncSnapshot.mockResolvedValueOnce({ records: [], asOfRevision, next: null, floor: 0 });
+    }
+
+    it('an entity acknowledged above the snapshot as-of revision is kept and the flag is raised (history regressed)', async () => {
+      const backupDir = path.join(tempDir(), 'backups');
+      const t = setup({ backupDir });
+      await ackedThenRebase(t, 120, 100);
+      const before = JSON.stringify(listRecords(t.store.db, 'favorite'));
+      const status = await t.runtime.syncNow();
+      expect(status).toMatchObject({ phase: 'needs-reconcile', cursor: 0 });
+      expect(JSON.stringify(listRecords(t.store.db, 'favorite'))).toBe(before);
+      expect(listRecords(t.store.db, 'favorite')).toHaveLength(1);
+      expect(getReconcileRequired(t.store.db)).toMatchObject({ reason: 'history-regressed', detail: { maxRevision: 120, asOfRevision: 100 } });
+      expect(getSyncState(t.store.db).cursor).toBe(0);
+      expect(listConflicts(t.store.db)).toHaveLength(0);
+      expect(snapshotFiles(backupDir, 'rebase-')).toHaveLength(0);
+      expect(snapshotFiles(backupDir, 'sync-reconcile-')).toHaveLength(1);
+      // Not an error loop: no retry is scheduled.
+      t.api.syncSnapshot.mockClear();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(t.api.syncSnapshot).not.toHaveBeenCalled();
+      expect(t.runtime.status().phase).toBe('needs-reconcile');
+    });
+
+    it('a legitimate deletion still happens, with an edit-delete conflict for a pending edit, after a rebase recovery snapshot', async () => {
+      const backupDir = path.join(tempDir(), 'backups');
+      const t = setup({ backupDir });
+      await ackedThenRebase(t, 50, 100);
+      // A local edit that the Hub never received (the push answers with no results, so the op stays pending).
+      t.api.syncPush.mockResolvedValueOnce({ results: [], headRevision: 100 });
+      commitEntity(t.store.db, t.commit, { entityType: 'favorite', entityId: 'tool:a', op: 'upsert', payload: fav('a', 7) });
+      const status = await t.runtime.syncNow();
+      expect(status.phase).toBe('idle');
+      expect(listRecords(t.store.db, 'favorite')).toHaveLength(0);
+      expect(listConflicts(t.store.db)[0]).toMatchObject({ kind: 'edit-delete', entityId: 'tool:a' });
+      expect(getSyncState(t.store.db).cursor).toBe(100);
+      expect(snapshotFiles(backupDir, 'rebase-')).toHaveLength(1);
+      expect(getReconcileRequired(t.store.db)).toBeNull();
+    });
+
+    it('a rebase with nothing to delete takes no recovery snapshot', async () => {
+      const backupDir = path.join(tempDir(), 'backups');
+      const t = setup({ backupDir });
+      t.api.syncChanges.mockRejectedValueOnce(new HubApiError(410, 'cursor-expired', 'expired'));
+      t.api.syncSnapshot.mockResolvedValueOnce({ records: [], asOfRevision: 10, next: null, floor: 0 });
+      expect((await t.runtime.syncNow()).phase).toBe('idle');
+      expect(snapshotFiles(backupDir, '')).toHaveLength(0);
+    });
+
+    it('a failing recovery snapshot aborts the rebase before anything is deleted', async () => {
+      const dir = tempDir();
+      const blocker = path.join(dir, 'not-a-directory');
+      writeFileSync(blocker, 'x');
+      const t = setup({ backupDir: path.join(blocker, 'backups') });
+      await ackedThenRebase(t, 50, 100);
+      const status = await t.runtime.syncNow();
+      expect(status.phase).toBe('error');
+      expect(listRecords(t.store.db, 'favorite')).toHaveLength(1);
+      expect(getSyncState(t.store.db).cursor).toBe(0);
+      expect(getReconcileRequired(t.store.db)).toBeNull();
+    });
   });
 });
 
