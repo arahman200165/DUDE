@@ -92,6 +92,7 @@ const bridge: PlatformBridge = {
   hub: {
     status: () => ipcRenderer.invoke('dude:hub:status'),
     probeLocal: (a) => ipcRenderer.invoke('dude:hub:probeLocal', a),
+    reachabilityEcho: (a) => ipcRenderer.invoke('dude:hub:reachabilityEcho', a),
     enroll: (a) => ipcRenderer.invoke('dude:hub:enroll', a),
     unenroll: (a) => ipcRenderer.invoke('dude:hub:unenroll', a),
     ownerStatus: () => ipcRenderer.invoke('dude:hub:owner:status'),

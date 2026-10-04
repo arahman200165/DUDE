@@ -367,6 +367,7 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
       nonce: str(p.nonce, 'nonce'), environmentName: str(p.environmentName, 'environmentName'),
       ownerDisplayName: str(p.ownerDisplayName, 'ownerDisplayName'), password: str(p.password, 'password'),
     })),
+    'hub.reachabilityEcho': (p) => hubGuard(() => hubRuntime().manager.reachabilityEcho(str(p.publicUrl, 'publicUrl'))),
     'hub.enroll': (p) => hubGuard(() => hubRuntime().enroll(str(p.pairingString, 'pairingString'))),
     'hub.unenroll': (p) => hubGuard(async () => {
       const { hubStillListsDevice } = await hubRuntime().manager.unenroll({ force: p.force === true });

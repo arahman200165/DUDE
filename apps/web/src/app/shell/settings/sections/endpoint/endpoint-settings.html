@@ -129,12 +129,28 @@
       @if (canVerifyReachability) {
         <div data-setting class="flex flex-col gap-2" data-testid="reachability">
           <h3 class="text-ui-sm font-semibold text-text">Reachability</h3>
-          <p class="text-ui text-text-muted">
-            The Hub checks where this request came from. Open this page through the Hub's public name from a device outside your network (a phone on cellular data), then verify. A request from inside your network proves nothing.
-          </p>
-          <div class="flex flex-wrap items-center gap-2">
-            <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text hover:bg-panel-elevated disabled:opacity-50" data-testid="verify-reachability" [disabled]="echoing()" (click)="verifyReachability()">Verify from this browser</button>
-          </div>
+          @if (isDesktop) {
+            <p class="text-ui text-text-muted">The Hub checks where this device's request came from. This device calls the Hub through its public address with its own device credential.</p>
+            @if (publicUrl() === '' && suggestedUrl() === '') {
+              <p class="text-ui text-text-muted" data-testid="no-public-name">The Hub has no public name configured, so there is nothing to test yet. Add one with the elevated <code class="font-mono text-text">dude-hub</code> command shown in the checklist below, then come back here.</p>
+            } @else {
+              <label class="flex flex-col gap-1 text-ui text-text">
+                Hub public address
+                <input type="text" class="rounded-sm border border-border bg-panel px-2 py-0.5 font-mono text-ui text-text" data-testid="public-url" autocomplete="off" spellcheck="false" placeholder="https://hub.example.com" [value]="publicUrl()" (input)="setPublicUrl($any($event.target).value)" />
+              </label>
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text hover:bg-panel-elevated disabled:opacity-50" data-testid="verify-reachability" [disabled]="echoing() || publicUrl().trim() === ''" (click)="verifyReachability()">Test from this device</button>
+              </div>
+              <p class="text-ui text-text-muted" data-testid="echo-hint">Run this from a device outside your home or office network; a request from inside your network proves nothing.</p>
+            }
+          } @else {
+            <p class="text-ui text-text-muted">
+              The Hub checks where this request came from. Open this page through the Hub's public name from a device outside your network (a phone on cellular data), then verify. A request from inside your network proves nothing.
+            </p>
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui text-text hover:bg-panel-elevated disabled:opacity-50" data-testid="verify-reachability" [disabled]="echoing()" (click)="verifyReachability()">Verify from this browser</button>
+            </div>
+          }
           @if (echoError(); as message) {
             <p class="text-ui text-error" role="alert" data-testid="echo-error">{{ message }}</p>
           }
@@ -148,7 +164,7 @@
                 }
               </p>
               <p class="text-ui text-text" data-testid="echo-reason">{{ e.reason }}</p>
-              <p class="text-ui text-text-muted" data-testid="echo-scope">The Hub saw this request come from {{ scopeWords[e.observed.scope] }}@if (e.observed.viaProxy) { , through your reverse proxy}. Host: <code class="font-mono text-text">{{ e.host }}</code>.</p>
+              <p class="text-ui text-text-muted" data-testid="echo-scope">The Hub saw this request come from {{ scopeWords[e.observed.scope] }}@if (e.observed.viaProxy) { , through your reverse proxy}. Host: <code class="font-mono text-text">{{ e.host }}</code>.@if (e.rttMs !== undefined) { Round trip {{ e.rttMs }} ms. }</p>
             </div>
           }
         </div>

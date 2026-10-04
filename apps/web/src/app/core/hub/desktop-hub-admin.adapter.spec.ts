@@ -41,6 +41,17 @@ describe('desktop Hub admin adapter', () => {
     await expect(admin.markSecurityAlertsSeen(3)).resolves.toEqual({ ok: true });
   });
 
+  it('passes the public address to the device-side reachability test and normalizes failures', async () => {
+    const hub = fakeHub();
+    const seen: string[] = [];
+    const spied = { ...hub, reachabilityEcho: (url: string) => { seen.push(url); return hub.reachabilityEcho(url); } };
+    const admin = createDesktopHubAdmin(() => spied);
+    await expect(admin.reachabilityEcho?.('https://hub.example.com')).resolves.toMatchObject({ verified: true, rttMs: 42 });
+    expect(seen).toEqual(['https://hub.example.com']);
+    const failing = { ...hub, reachabilityEcho: async () => ({ ok: false as const, error: { code: 'untrusted-tls', message: 'Not trusted.' } }) };
+    await expect(createDesktopHubAdmin(() => failing).reachabilityEcho?.('https://x.example.com')).rejects.toMatchObject({ code: 'untrusted-tls' });
+  });
+
   it('carries retryAfterMs from a locked result', async () => {
     const hub = { ...fakeHub(), ownerSignIn: async () => ({ ok: false as const, error: { code: 'locked', message: 'Too many attempts.', retryAfterMs: 30_000 } }) };
     const admin = createDesktopHubAdmin(() => hub);

@@ -36,7 +36,19 @@ export class EndpointSettings {
   protected readonly agentError = signal<string | null>(null);
   protected readonly refreshToken = signal(0);
   protected readonly canVerifyReachability = this.hub.reachabilityEcho !== undefined;
-  protected readonly echo = signal<ReachabilityEchoResponse | null>(null);
+  protected readonly echo = signal<(ReachabilityEchoResponse & { readonly rttMs?: number }) | null>(null);
+  /** What the user typed into the public-URL field (desktop only); null until they edit, so a reloaded report can still prefill. */
+  private readonly typedUrl = signal<string | null>(null);
+  /** The Hub's public address from its report: canonical origin, else the proxy public origin, else the first configured name. */
+  protected readonly suggestedUrl = computed(() => {
+    const exposure = this.report()?.exposure;
+    if (exposure === undefined) return '';
+    if (exposure.canonicalOrigin !== null) return exposure.canonicalOrigin;
+    if (exposure.proxy !== null) return exposure.proxy.publicOrigin;
+    const name = exposure.names[0];
+    return name === undefined ? '' : `https://${name}${exposure.port === 443 ? '' : `:${exposure.port}`}`;
+  });
+  protected readonly publicUrl = computed(() => this.typedUrl() ?? this.suggestedUrl());
   protected readonly echoError = signal<string | null>(null);
   protected readonly echoing = signal(false);
   protected readonly scopeWords = REACHABILITY_SCOPE_WORDS;
@@ -65,6 +77,10 @@ export class EndpointSettings {
     });
   }
 
+  protected setPublicUrl(value: string): void {
+    this.typedUrl.set(value);
+  }
+
   protected refresh(): void {
     this.refreshToken.update((n) => n + 1);
     if (this.isDesktop) void this.loadAgent();
@@ -75,12 +91,15 @@ export class EndpointSettings {
     return iso === null ? 'Never' : `${new Date(iso).toLocaleString()} (${relativeTime(iso)})`;
   }
 
-  /** Asks the Hub what it observed of this browser's request; the checklist is reloaded afterwards. */
+  /**
+   * Asks the Hub what it observed of this request's source; the checklist is reloaded afterwards. Hub web: this browser's own origin.
+   * Desktop: this device's agent calls the public address in the field.
+   */
   protected async verifyReachability(): Promise<void> {
     if (this.hub.reachabilityEcho === undefined) return;
     this.echoing.set(true);
     try {
-      this.echo.set(await this.hub.reachabilityEcho());
+      this.echo.set(await (this.isDesktop ? this.hub.reachabilityEcho(this.publicUrl().trim()) : this.hub.reachabilityEcho()));
       this.echoError.set(null);
       await this.loadReport();
     } catch (error) {

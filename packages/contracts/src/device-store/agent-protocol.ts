@@ -1,4 +1,4 @@
-import type { TlsCertificatesResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, PairingCodeResponse, SessionListResponse, AuditListResponse, SecurityAlertsResponse, RecoveryCodesResponse, SyncCategory, SyncSummary, HubDiagnosticsReport } from '../hub/index.js';
+import type { TlsCertificatesResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, PairingCodeResponse, SessionListResponse, AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, RecoveryCodesResponse, SyncCategory, SyncSummary, HubDiagnosticsReport } from '../hub/index.js';
 import type { EntityCommit, EntityCommitResult, KvMutation, ResetKind, StoreHealth, DeviceStoreBoot } from './device-store.model.js';
 
 /** Row shapes exchanged with the state service; payloads are opaque JSON. */
@@ -205,6 +205,12 @@ export interface AgentMethodMap {
   'hub.probeLocal': { params: { port?: number }; result: AgentHubProbe };
   /** Public, credential-free Hub TLS info (pinned channel): the active pin, source and the public local-CA root. Errors: `not-enrolled`, `hub-*`. */
   'hub.tlsCertificates': { params: Record<string, never>; result: TlsCertificatesResponse };
+  /**
+   * "Test from this device": GET /reachability/echo against the supplied PUBLIC origin with a device token (fetched from the enrolled Hub URL).
+   * TLS: the enrollment pins, else ordinary system-CA validation; neither passing fails with `untrusted-tls`. No redirects, 10 s, 16 KiB.
+   * Errors: `invalid-url`, `not-enrolled`, `untrusted-tls`, `hub-unreachable`, `hub-*`.
+   */
+  'hub.reachabilityEcho': { params: { publicUrl: string }; result: ReachabilityEchoResponse & { rttMs: number } };
   'hub.enroll': { params: { pairingString: string }; result: AgentHubStatus };
   /**
    * First-run local Hub setup: reads and deletes `%LOCALAPPDATA%\DUDE\hub-handoff-<nonce>.json` (written by the elevated
@@ -310,7 +316,7 @@ export const AGENT_METHODS = [
   'docs.get', 'docs.set', 'docs.remove',
   'secrets.status', 'secrets.list', 'secrets.set', 'secrets.remove', 'secrets.getCiphertext',
   'device.rename', 'reset.preview', 'reset.apply', 'hub.enrollment',
-  'hub.status', 'hub.diagnostics', 'hub.probeLocal', 'hub.tlsCertificates', 'hub.enroll', 'hub.bootstrapLocal', 'hub.unenroll', 'hub.owner.signIn', 'hub.owner.signOut', 'hub.owner.status',
+  'hub.status', 'hub.diagnostics', 'hub.probeLocal', 'hub.tlsCertificates', 'hub.reachabilityEcho', 'hub.enroll', 'hub.bootstrapLocal', 'hub.unenroll', 'hub.owner.signIn', 'hub.owner.signOut', 'hub.owner.status',
   'hub.owner.listDevices', 'hub.owner.syncSummary', 'hub.owner.diagnostics', 'hub.owner.createPairingCode', 'hub.owner.renameDevice', 'hub.owner.revokeDevicePreview', 'hub.owner.revokeDevice',
   'hub.owner.setRecoveryTrust', 'hub.owner.listSessions', 'hub.owner.revokeSession', 'hub.owner.revokeAllPreview', 'hub.owner.revokeAll',
   'hub.owner.listAudit', 'hub.owner.listSecurityAlerts', 'hub.owner.markSecurityAlertsSeen', 'hub.owner.recoveryCodesPreview', 'hub.owner.regenerateRecoveryCodes', 'hub.owner.changePassword', 'hub.recoverOwner',

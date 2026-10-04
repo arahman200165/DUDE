@@ -37,12 +37,52 @@ describe('Endpoint & Exposure section registration', () => {
 });
 
 describe('EndpointSettings reachability', () => {
-  it('hides the block when the port has no reachabilityEcho (desktop for now)', async () => {
+  it('hides the block when the port has no reachabilityEcho', async () => {
     const { port } = createTestPort({ agentDiagnostics: async () => FAKE_AGENT_DIAGNOSTICS });
+    delete (port as { reachabilityEcho?: unknown }).reachabilityEcho;
     const { fixture, el } = await mount(port);
     await signIn(fixture, el);
     expect(el.querySelector('[data-testid="readiness"]')).not.toBeNull();
     expect(el.querySelector('[data-testid="reachability"]')).toBeNull();
+  });
+
+  it('on desktop prefills the public address, tests from this device with it and shows the round trip', async () => {
+    const { port } = createTestPort({ agentDiagnostics: async () => FAKE_AGENT_DIAGNOSTICS });
+    const { fixture, el } = await mount(port);
+    await signIn(fixture, el);
+    const input = el.querySelector('[data-testid="public-url"]') as HTMLInputElement;
+    expect(input.value).toBe('https://hub.local:47600');
+    expect(text(el, 'echo-hint')).toBe('Run this from a device outside your home or office network; a request from inside your network proves nothing.');
+    expect(buttonWithText(el, 'Test from this device')).toBeTruthy();
+    typeInto(input, ' https://hub.example.com ');
+    await settle(fixture);
+    (el.querySelector('[data-testid="verify-reachability"]') as HTMLButtonElement).click();
+    await settle(fixture);
+    expect(port.reachabilityEcho).toHaveBeenCalledWith('https://hub.example.com');
+    expect(text(el, 'echo-outcome')).toBe('Verified and recorded');
+    expect(text(el, 'echo-scope')).toContain('Round trip 42 ms');
+  });
+
+  it('on desktop shows guidance instead of the field when the Hub has no public name', async () => {
+    const quiet = { ...FAKE_HUB_DIAGNOSTICS, exposure: { ...FAKE_HUB_DIAGNOSTICS.exposure, names: [], canonicalOrigin: null } };
+    const { port } = createTestPort({ agentDiagnostics: async () => FAKE_AGENT_DIAGNOSTICS, diagnostics: async () => quiet });
+    const { fixture, el } = await mount(port);
+    await signIn(fixture, el);
+    expect(el.querySelector('[data-testid="no-public-name"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="public-url"]')).toBeNull();
+    expect(el.querySelector('[data-testid="verify-reachability"]')).toBeNull();
+  });
+
+  it('on desktop reports a failed test from the device (for example an untrusted certificate)', async () => {
+    const { port } = createTestPort({
+      agentDiagnostics: async () => FAKE_AGENT_DIAGNOSTICS,
+      reachabilityEcho: async () => { throw Object.assign(new Error('The certificate on that address is not trusted.'), { code: 'untrusted-tls' }); },
+    });
+    const { fixture, el } = await mount(port);
+    await signIn(fixture, el);
+    (el.querySelector('[data-testid="verify-reachability"]') as HTMLButtonElement).click();
+    await settle(fixture);
+    expect(text(el, 'echo-error')).toBe('The certificate on that address is not trusted.');
   });
 
   it('shows the button, the reason and the observed scope for an unverified echo', async () => {

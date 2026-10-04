@@ -95,7 +95,7 @@ describe('Hub web admin adapter', () => {
   it('asks the Hub for its reachability echo through the owner session', async () => {
     const response = { observed: { scope: 'private', viaProxy: false }, host: 'hub.local', hostMatchesConfiguredName: true, verified: false, reason: 'r', at: 'x' };
     const { admin, calls } = setup(() => ({ status: 200, body: response }));
-    await expect(admin.reachabilityEcho?.()).resolves.toEqual(response);
+    await expect(admin.reachabilityEcho?.('https://ignored.example.com')).resolves.toEqual(response);
     expect(calls[0]).toMatchObject({ url: '/api/v1/reachability/echo', method: 'GET', credentials: 'same-origin' });
   });
 

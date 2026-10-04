@@ -1,4 +1,4 @@
-import type { AuditListResponse, SecurityAlertsResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, OkResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SyncSummary, HubDiagnosticsReport } from "../../hub/index.js";
+import type { AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, OkResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SyncSummary, HubDiagnosticsReport } from "../../hub/index.js";
 import type { LlmChatRequest, LlmChatResult } from "./llm-chat.model.js";
 import type { SnapshotDiff, SnapshotHeader } from "../../fs/snapshot-diff.js";
 import type { ChangeEvent, FolderWatchSettings, FolderWatchState, TimelineQuery, WatchedFolder } from "../../fs/watch-types.js";
@@ -135,6 +135,11 @@ export interface DesktopHubBridge {
   diagnostics(): Promise<DesktopHubResult<HubDiagnosticsReport>>;
   /** This device's own connection report (no owner session needed): state, pins, latency, clock skew, sync counts. */
   agentDiagnostics(): Promise<DesktopHubResult<AgentDiagnostics>>;
+  /**
+   * Device-side reachability probe: this device calls the Hub's echo route through the supplied PUBLIC origin (`https://name[:port]`),
+   * authenticated with its device token. Error codes: `bad-request` (malformed address), `not-enrolled`, `untrusted-tls`, `hub-unreachable`, `hub-*`.
+   */
+  reachabilityEcho(publicUrl: string): Promise<DesktopHubResult<ReachabilityEchoResponse & { readonly rttMs: number }>>;
   createPairingCode(host?: string): Promise<DesktopHubResult<PairingCodeResponse>>;
   renameDevice(deviceId: string, displayName: string): Promise<DesktopHubResult<DeviceInfo>>;
   revokeDevicePreview(deviceId: string): Promise<DesktopHubResult<ConfirmPreview>>;

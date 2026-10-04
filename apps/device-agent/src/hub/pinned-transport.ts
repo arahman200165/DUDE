@@ -27,6 +27,16 @@ export interface PinnedTarget {
   pins: readonly string[];
   /** Called with the SPKI of every certificate that passed the pin check (before any byte is written). */
   onPeerSpki?: (spki: string) => void;
+  /**
+   * Public-name mode ("Test from this device"): when the SPKI is not pinned, still accept a certificate that Node's ordinary
+   * validation accepts (system CA chain AND hostname/IP match via the default `checkServerIdentity`). Never disables verification:
+   * a peer that is neither pinned nor system-trusted is refused with `PIN_MISMATCH_CODE`. `onPeerSpki` fires only for pin matches.
+   */
+  allowSystemTrust?: boolean;
+  /** Overrides the default request timeout (`createPinnedTransport`'s explicit argument still wins). */
+  timeoutMs?: number;
+  /** Overrides `HUB_MAX_RESPONSE_BYTES` for `createPinnedTransport`. */
+  maxResponseBytes?: number;
 }
 
 export const unbracketHost = (host: string): string => (host.startsWith('[') && host.endsWith(']') ? host.slice(1, -1) : host);
@@ -71,12 +81,14 @@ export function connectPinned(target: PinnedTarget, timeoutMs = HUB_REQUEST_TIME
         finish(socket, Object.assign(new Error('The Hub certificate could not be read.'), { code: PIN_MISMATCH_CODE }));
         return;
       }
-      if (!target.pins.includes(spki)) {
+      const pinned = target.pins.includes(spki);
+      // `authorized` is Node's own verdict (default CA store, chain and hostname/IP identity) even with rejectUnauthorized off.
+      if (!pinned && !(target.allowSystemTrust === true && socket.authorized)) {
         finish(socket, Object.assign(new Error('The Hub certificate does not match the pinned key.'), { code: PIN_MISMATCH_CODE }));
         return;
       }
       try {
-        target.onPeerSpki?.(spki);
+        if (pinned) target.onPeerSpki?.(spki);
       } catch (error) {
         finish(socket, error instanceof Error ? error : new Error(String(error)));
         return;
@@ -103,7 +115,8 @@ export function pinnedConnectOptions(target: PinnedTarget, timeoutMs = HUB_REQUE
 }
 
 /** A `HubTransport` over node:https with certificate pinning, a 15 s timeout, a 1 MiB cap and JSON-only bodies. */
-export function createPinnedTransport(target: PinnedTarget, timeoutMs = HUB_REQUEST_TIMEOUT_MS): HubTransport {
+export function createPinnedTransport(target: PinnedTarget, timeoutMs = target.timeoutMs ?? HUB_REQUEST_TIMEOUT_MS): HubTransport {
+  const maxBytes = target.maxResponseBytes ?? HUB_MAX_RESPONSE_BYTES;
   const conn = pinnedConnectOptions(target, timeoutMs);
   const host = unbracketHost(target.host);
   return {
@@ -119,7 +132,7 @@ export function createPinnedTransport(target: PinnedTarget, timeoutMs = HUB_REQU
             let size = 0;
             res.on('data', (chunk: Buffer) => {
               size += chunk.length;
-              if (size > HUB_MAX_RESPONSE_BYTES) { request.destroy(new HubTransportError('too-large', 'The Hub response is too large.')); return; }
+              if (size > maxBytes) { request.destroy(new HubTransportError('too-large', 'The Hub response is too large.')); return; }
               chunks.push(chunk);
             });
             res.on('error', reject);

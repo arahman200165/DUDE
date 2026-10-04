@@ -8,6 +8,9 @@ export type HubManagerErrorCode =
   | 'owner-not-signed-in'
   | 'owner-session-expired'
   | 'tls-untrusted'
+  | 'untrusted-tls'
+  | 'invalid-url'
+  | 'hub-unreachable'
   | 'not-trusted'
   | 'owner-recovery-failed';
 

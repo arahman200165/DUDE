@@ -143,6 +143,7 @@ export function fakeHub(options: { password?: string; localHub?: FakeLocalHubSce
     syncSummary: track('syncSummary', async () =>
       needOwner() ?? ok(FAKE_SYNC_SUMMARY(FAKE_HUB_DEVICE_ID))),
     diagnostics: track('diagnostics', async () => needOwner() ?? ok(FAKE_HUB_DIAGNOSTICS)),
+    reachabilityEcho: track('reachabilityEcho', async (_publicUrl: string) => ok({ ...FAKE_REACHABILITY_VERIFIED, rttMs: 42 })),
     agentDiagnostics: track('agentDiagnostics', async () => ok(FAKE_AGENT_DIAGNOSTICS)),
     createPairingCode: track('createPairingCode', async () =>
       needOwner() ?? ok({ pairingCode: 'ABCD-2345', pairingString: FAKE_HUB_PAIRING_STRING, expiresAt: '2099-01-01T00:00:00.000Z', hubUrl: 'https://hub.local:47600', spkiSha256: 'A'.repeat(43) })),

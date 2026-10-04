@@ -1,4 +1,5 @@
 import { ipcMain, type BrowserWindow } from 'electron';
+import { parseHubPublicUrl } from '@dude/contracts';
 import type { AgentHubOwnerStatus, AgentHubStatus, AgentMethod, AgentMethodMap } from '@dude/contracts';
 import type { DesktopHubOwnerStatus, DesktopHubProbe, DesktopHubResult, DesktopHubStatus } from '@dude/contracts/shared/models/platform-bridge.model';
 import { isUuidShaped, validateDisplayName } from '@dude/persistence';
@@ -126,6 +127,16 @@ export function registerHubHandlers(
     map: (probe, port): DesktopHubProbe => ({
       found: probe.found, port: probe.found ? (port ?? null) : null, hubInstanceId: probe.hubInstanceId, hubVersion: probe.hubVersion, bootstrapped: probe.bootstrapped,
     }),
+  });
+
+  // Device-side reachability probe. The URL rules are re-validated here (the agent validates again) so main never forwards a malformed target.
+  define({
+    channel: 'dude:hub:reachabilityEcho', method: 'hub.reachabilityEcho',
+    parse: (args) => {
+      if (args.length !== 1 || typeof args[0] !== 'string') return bad();
+      const parsed = parseHubPublicUrl(args[0]);
+      return parsed.ok ? { ok: true, params: { publicUrl: parsed.origin } } : bad(parsed.error);
+    },
   });
 
   define({

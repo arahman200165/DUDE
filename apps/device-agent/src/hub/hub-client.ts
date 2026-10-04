@@ -20,6 +20,8 @@ import { createOwnerSession } from './owner-session.js';
 import type { OwnerSession } from './owner-session.js';
 import { PIN_MISMATCH_CODE, createPinnedTransport, pinnedConnectOptions, spkiSha256Of } from './pinned-transport.js';
 import type { PinnedTarget } from './pinned-transport.js';
+import { reachabilityEchoViaPublicUrl } from './public-echo.js';
+import type { ReachabilityEchoResult } from './public-echo.js';
 
 export interface HubTimings {
   heartbeatIntervalMs: number;
@@ -71,6 +73,11 @@ export interface HubConnectionManager {
   call<T>(fn: (api: HubClient) => Promise<T>): Promise<T>;
   /** Call with a valid device token; refreshes once on 401/403 and handles revocation. */
   deviceCall<T>(fn: (api: HubClient, deviceToken: string) => Promise<T>, options?: { authRetryOn403?: boolean }): Promise<T>;
+  /**
+   * "Test from this device": the Hub's reachability echo through its PUBLIC origin, authenticated with a device token (fetched from the
+   * enrolled URL). TLS accepts the enrollment pins, else system-CA validation; else `untrusted-tls` (never unverified). See `public-echo.ts`.
+   */
+  reachabilityEcho(publicUrl: string): Promise<ReachabilityEchoResult>;
   /**
    * Device-assisted owner recovery (PD-029): challenge, sign with the device key, POST the new password. Fails with
    * `not-trusted` (the Hub does not trust this device for recovery) or `owner-recovery-failed`. The caller is
@@ -519,6 +526,23 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
       stopLoop();
     },
     resetToStandalone,
+    async reachabilityEcho(publicUrl) {
+      const enrollment = requireEnrollment();
+      const pins = [enrollment.spkiActive, ...(enrollment.spkiNext ? [enrollment.spkiNext] : []), ...enrollment.proxySpkis];
+      return reachabilityEchoViaPublicUrl({
+        publicUrl, pins, makeTransport,
+        withToken: async (fn) => {
+          try {
+            return await fn(await getToken());
+          } catch (error) {
+            // An expired or rotated token looks like a 401: one fresh token, then the answer stands.
+            if (!(error instanceof HubApiError && error.status === 401)) throw error;
+            token = null;
+            return fn(await getToken(true));
+          }
+        },
+      });
+    },
     async recoverOwner(newPassword) {
       const key = await loadKey();
       const enrollment = requireEnrollment();

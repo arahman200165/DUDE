@@ -38,6 +38,7 @@ const call = (channel: string, sender: unknown, ...args: unknown[]) => (mock.han
 const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged'>, { channel: string; args: unknown[]; invalid: unknown[][] }> = {
   status: { channel: 'dude:hub:status', args: [], invalid: [[1]] },
   probeLocal: { channel: 'dude:hub:probeLocal', args: [47600], invalid: [['47600'], [0], [70000], [1.5], [1, 2]] },
+  reachabilityEcho: { channel: 'dude:hub:reachabilityEcho', args: ['https://hub.example.com'], invalid: [[], [1], ['http://hub.example.com'], ['https://u:p@hub.example.com'], ['https://hub.example.com/path'], ['https://hub.example.com?x=1'], ['https://hub.example.com#f'], ['https://hub.example.com:0'], ['https://hub.example.com', 'x']] },
   enroll: { channel: 'dude:hub:enroll', args: [PAIRING], invalid: [[], ['x'], ['https://evil'], ['dude-pair:v1:' + 'a'.repeat(512)], [PAIRING, 1]] },
   unenroll: { channel: 'dude:hub:unenroll', args: [true], invalid: [['yes'], [1], [true, true]] },
   ownerStatus: { channel: 'dude:hub:owner:status', args: [], invalid: [[1]] },
@@ -191,6 +192,15 @@ describe('hub bridge', () => {
       const narrow = Buffer.alloc(4); narrow.writeUInt32LE(0x1234);
       expect(nativeHandleString(narrow)).toBe('4660');
     });
+  });
+
+  it('forwards the normalized public origin to the agent and rejects bad addresses with a clear message', async () => {
+    setup(() => ({ observed: { scope: 'public', viaProxy: false }, host: 'hub.example.com', hostMatchesConfiguredName: true, verified: true, reason: 'ok', at: 'now', rttMs: 12 }));
+    expect(await call('dude:hub:reachabilityEcho', own, 'https://Hub.Example.com:443/')).toMatchObject({ ok: true, result: { verified: true, rttMs: 12 } });
+    expect(ctx.calls[0]).toEqual({ method: 'hub.reachabilityEcho', params: { publicUrl: 'https://hub.example.com' } });
+    const bad = await call('dude:hub:reachabilityEcho', own, 'http://hub.example.com');
+    expect(bad).toEqual({ ok: false, error: { code: 'bad-request', message: expect.stringContaining('https://') } });
+    expect(ctx.calls).toHaveLength(1);
   });
 
   it('accepts omitted optionals (undefined trailing argument)', async () => {
