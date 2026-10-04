@@ -15,6 +15,7 @@ import { spkiSha256 } from '../tls/self-signed.js';
 import { buildAdminMethods } from '../admin/methods.js';
 import { parseArgs } from '../cli/args.js';
 import { runTls } from '../cli/tls.js';
+import { setAuthority } from '../hub/authority.js';
 import { listAudit } from '../security/audit.js';
 
 
@@ -120,8 +121,21 @@ describe('realtime socket', () => {
     expect(welcome).toMatchObject({
       type: 'welcome', protocolVersion: HUB_PROTOCOL_VERSION, sessionKind: 'owner-cookie', deviceId: null, heartbeatIntervalMs: 25_000,
       tls: { spkiSha256: h.hub.tls.spkiSha256, nextSpkiSha256: null },
+      authorityEpoch: 1,
     });
     client.ws.close();
+  });
+
+  it('reports the stored authority epoch in the welcome', async () => {
+    try {
+      setAuthority(h.hub.hub.db, { epoch: 3, state: 'active' });
+      const { client, welcome } = await welcomed(h, ownerHeaders(h, owner));
+      track(client);
+      expect(welcome).toMatchObject({ type: 'welcome', authorityEpoch: 3 });
+      client.ws.close();
+    } finally {
+      setAuthority(h.hub.hub.db, { epoch: 1, state: 'active' });
+    }
   });
 
   it('welcomes a device, reports it online while connected and offline after', async () => {

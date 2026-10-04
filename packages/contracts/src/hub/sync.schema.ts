@@ -93,6 +93,8 @@ export const SyncChangesQuery = Type.Object({
 export type SyncChangesQuery = Static<typeof SyncChangesQuery>;
 export const SyncChangesResponse = Type.Object({
   changes: Type.Array(SyncRecord), cursor: Revision, hasMore: Type.Boolean(), floor: Revision, headRevision: Revision,
+  /** Authority epoch of the Hub. Absent on Hubs that predate authority epochs. */
+  authorityEpoch: Type.Optional(Type.Integer({ minimum: 1 })),
 });
 export type SyncChangesResponse = Static<typeof SyncChangesResponse>;
 
@@ -107,6 +109,8 @@ export const SyncSnapshotResponse = Type.Object({
   asOfRevision: Revision,
   next: Type.Union([Type.Object({ afterType: EntityType, afterId: EntityId }), Type.Null()]),
   floor: Revision,
+  /** Authority epoch of the Hub. Absent on Hubs that predate authority epochs. */
+  authorityEpoch: Type.Optional(Type.Integer({ minimum: 1 })),
 });
 export type SyncSnapshotResponse = Static<typeof SyncSnapshotResponse>;
 
@@ -122,7 +126,13 @@ export const SyncStateReport = Type.Object({
   paused: Type.Optional(Type.Boolean()),
 });
 export type SyncStateReport = Static<typeof SyncStateReport>;
-export const SyncStateResponse = Type.Object({ floor: Revision, headRevision: Revision, retentionDays: Type.Integer({ minimum: 1 }) });
+export const SyncStateResponse = Type.Object({
+  floor: Revision,
+  headRevision: Revision,
+  retentionDays: Type.Integer({ minimum: 1 }),
+  /** Authority epoch of the Hub. Absent on Hubs that predate authority epochs. */
+  authorityEpoch: Type.Optional(Type.Integer({ minimum: 1 })),
+});
 export type SyncStateResponse = Static<typeof SyncStateResponse>;
 
 export const SyncDeviceSummary = Type.Object({

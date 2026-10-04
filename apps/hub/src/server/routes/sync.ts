@@ -16,6 +16,7 @@ import type { SyncCommitResult } from '../../db/canonical-repository.js';
 import {
   changesAfter, countLiveRecordsByCategory, getRetentionDays, getSyncFloor, listDeviceSyncState, recordDeviceSyncState, snapshotPage,
 } from '../../db/sync-repository.js';
+import { getAuthorityEpoch } from '../../hub/authority.js';
 import { audit } from '../../security/audit.js';
 import { ConfirmationStore } from '../../security/confirmation-store.js';
 import { envelope } from '../errors.js';
@@ -135,7 +136,7 @@ export function registerSyncRoutes(app: FastifyInstance, options: SyncRouteOptio
       const last = changes[changes.length - 1];
       const cursor = hasMore && last ? last.revision : headRevision;
       recordDeviceSyncState(db, deviceId, null, iso(), { pull: true, cursor });
-      return reply.code(200).send({ changes, cursor, hasMore, floor, headRevision });
+      return reply.code(200).send({ changes, cursor, hasMore, floor, headRevision, authorityEpoch: getAuthorityEpoch(db) });
     },
   );
 
@@ -157,7 +158,7 @@ export function registerSyncRoutes(app: FastifyInstance, options: SyncRouteOptio
       if (afterType === undefined) {
         audit(db, { event: 'sync.snapshot', outcome: 'success', actorKind: 'device', actorId: deviceId, ip: ipOf(request), detail: { records: records.length }, now: now() });
       }
-      return reply.code(200).send({ records, asOfRevision, next, floor: getSyncFloor(db) });
+      return reply.code(200).send({ records, asOfRevision, next, floor: getSyncFloor(db), authorityEpoch: getAuthorityEpoch(db) });
     },
   );
 
@@ -171,7 +172,7 @@ export function registerSyncRoutes(app: FastifyInstance, options: SyncRouteOptio
       nostore(reply);
       const deviceId = request.device!.deviceId;
       recordDeviceSyncState(db, deviceId, request.body, iso());
-      return reply.code(200).send({ floor: getSyncFloor(db), headRevision: currentRevision(db), retentionDays: getRetentionDays(db) });
+      return reply.code(200).send({ floor: getSyncFloor(db), headRevision: currentRevision(db), retentionDays: getRetentionDays(db), authorityEpoch: getAuthorityEpoch(db) });
     },
   );
 

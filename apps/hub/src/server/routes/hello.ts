@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { HUB_API_PREFIX, HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION, HUB_SERVICE_ID, HelloResponse } from '@dude/contracts/hub';
 import type { Db } from '@dude/sqlite-store';
+import { getAuthorityEpoch, getAuthorityState } from '../../hub/authority.js';
 import { proxyPinSpkis } from '../../tls/proxy-pins.js';
 
 export interface HelloRouteOptions {
@@ -31,6 +32,8 @@ export function registerHelloRoute(app: FastifyInstance, options: HelloRouteOpti
         environmentId: environment?.environment_id ?? null,
         bootstrapped: owner !== undefined,
         tls: { spkiSha256: active?.spki_sha256 ?? options.spkiSha256, nextSpkiSha256: next?.spki_sha256 ?? null, proxySpkiSha256: proxyPinSpkis(options.db) },
+        authorityEpoch: getAuthorityEpoch(options.db),
+        authorityState: getAuthorityState(options.db),
       } as const;
     },
   );

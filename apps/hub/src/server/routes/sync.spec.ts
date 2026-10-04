@@ -6,6 +6,7 @@ import { startAuthHub } from '../auth-test-helpers.js';
 import type { AuthHub, Signed } from '../auth-test-helpers.js';
 import { deviceToken, enrolled } from '../device-test-helpers.js';
 import type { SimDevice } from '../device-test-helpers.js';
+import { setAuthority } from '../../hub/authority.js';
 import { listAudit } from '../../security/audit.js';
 
 const DAY = 24 * 3600_000;
@@ -198,6 +199,22 @@ describe('sync routes', () => {
     expect(row).toMatchObject({ cursor: 1, lag: head - 1, quarantined: 1, conflicts: 3, pending: 2 });
     expect(row.lastPushAt).not.toBeNull();
     expect((await h.call('PUT', '/sync/state', { bearer: b.token, body: { cursor: 1 } })).status).toBe(400);
+  });
+
+  it('reports the authority epoch on changes, snapshot and state, following setAuthority', async () => {
+    const state = () => h.call('PUT', '/sync/state', { bearer: b.token, body: { cursor: 1, pending: 0, quarantined: 0, conflicts: 0, stranded: 0, categories: Object.fromEntries(['settings', 'favorites', 'pipelines', 'projects', 'workspaces', 'home', 'usage', 'workspace-layout', 'scratchpad'].map((k) => [k, true])), lastSyncAt: null } });
+    const epochs = async (): Promise<unknown[]> => [
+      (await changes(b.token, 0)).json.authorityEpoch,
+      (await h.call('GET', '/sync/snapshot?limit=1', { bearer: b.token })).json.authorityEpoch,
+      (await state()).json.authorityEpoch,
+    ];
+    expect(await epochs()).toEqual([1, 1, 1]);
+    try {
+      setAuthority(h.hub.hub.db, { epoch: 3, state: 'active' });
+      expect(await epochs()).toEqual([3, 3, 3]);
+    } finally {
+      setAuthority(h.hub.hub.db, { epoch: 1, state: 'active' });
+    }
   });
 
   it('environment clear is a two-step action that tombstones everything for the devices', async () => {

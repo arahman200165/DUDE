@@ -17,5 +17,9 @@ export const HelloResponse = Type.Object({
     /** Reverse-proxy leaf pins (active plus staged next) registered with `dude-hub tls proxy-pin`. Absent on Hubs that predate proxy pins. */
     proxySpkiSha256: Type.Optional(Type.Array(SpkiSha256)),
   }),
+  /** Authority epoch of this Hub (positive integer, 1 until an authority transfer raises it). Absent on Hubs that predate authority epochs. */
+  authorityEpoch: Type.Optional(Type.Integer({ minimum: 1 })),
+  /** `active` while this Hub is the authoritative one; `transferred` once its authority moved to another Hub. Absent on Hubs that predate authority epochs. */
+  authorityState: Type.Optional(Type.Union([Type.Literal('active'), Type.Literal('transferred')])),
 });
 export type HelloResponse = Static<typeof HelloResponse>;

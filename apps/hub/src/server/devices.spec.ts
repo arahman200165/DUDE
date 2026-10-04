@@ -4,6 +4,7 @@ import { DEVICE_CAPABILITIES, DEVICE_CHALLENGE_TTL_MS, DEVICE_PLATFORMS, DEVICE_
 import { startAuthHub } from './auth-test-helpers.js';
 import type { AuthHub, Signed } from './auth-test-helpers.js';
 import { createPairingCode, deviceMeta, deviceToken, enroll, enrolled, newDevice } from './device-test-helpers.js';
+import { setAuthority } from '../hub/authority.js';
 import { listAudit } from '../security/audit.js';
 
 describe('device registry', () => {
@@ -50,6 +51,7 @@ describe('device registry', () => {
     expect(tokenRes.status).toBe(200);
     expect(token).toMatch(/^ddt_[A-Za-z0-9_-]{43}$/);
     expect(tokenRes.json.expiresAt).toBe(new Date(h.clock.t + DEVICE_TOKEN_TTL_MS).toISOString());
+    expect(tokenRes.json.authorityEpoch).toBe(1);
     const hashStored = h.hub.hub.db.prepare('SELECT token_hash FROM device_tokens').all() as Array<{ token_hash: string }>;
     expect(JSON.stringify(hashStored)).not.toContain(token.slice(4));
 
@@ -317,5 +319,17 @@ describe('device registry', () => {
     // neither (CLI-like)
     const cli = await enroll(h, newDevice(), { code: (await createPairingCode(h, owner)).json.pairingCode });
     expect(cli.status).toBe(200);
+  });
+
+  it('reports the stored authority epoch on the device token response', async () => {
+    const { device } = await enrolled(h, owner);
+    try {
+      setAuthority(h.hub.hub.db, { epoch: 3, state: 'active' });
+      const { res } = await deviceToken(h, device);
+      expect(res.status).toBe(200);
+      expect(res.json.authorityEpoch).toBe(3);
+    } finally {
+      setAuthority(h.hub.hub.db, { epoch: 1, state: 'active' });
+    }
   });
 });

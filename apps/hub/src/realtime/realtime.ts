@@ -12,6 +12,7 @@ import type { HubEventMap } from '../auth/hub-events.js';
 import { resolveOwner } from '../auth/owner-auth.js';
 import { DEVICE_TOKEN_PREFIX, resolveDeviceToken } from '../devices/device-tokens.js';
 import { noteRevokedToken } from '../devices/revoked-attempts.js';
+import { getAuthorityEpoch } from '../hub/authority.js';
 import { touchLastSeen } from '../devices/registry.js';
 import { OWNER_BEARER_PREFIX } from '../auth/sessions.js';
 import { classifyCredential } from '../security/request-guard.js';
@@ -303,6 +304,7 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
         send(conn, {
           type: 'welcome', protocolVersion: HUB_PROTOCOL_VERSION, sessionKind: principal.kind, deviceId: principal.deviceId,
           heartbeatIntervalMs: timings.heartbeatIntervalMs, tls: { spkiSha256: options.activeSpki(), nextSpkiSha256: next?.spki_sha256 ?? null, proxySpkiSha256: proxyPinSpkis(options.db) },
+          authorityEpoch: getAuthorityEpoch(options.db),
         });
         return;
       }

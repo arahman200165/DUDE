@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { Value } from 'typebox/value';
 import { ErrorEnvelope, HUB_API_PREFIX, HelloResponse } from '@dude/contracts/hub';
+import { setAuthority } from '../hub/authority.js';
 import { request, startTestHub } from './test-helpers.js';
 import type { TestHub } from './test-helpers.js';
 
@@ -21,6 +22,21 @@ describe('hub server', () => {
     expect(hello.tls.spkiSha256).toBe(hub.tls.spkiSha256);
     expect(hello.tls.nextSpkiSha256).toBeNull();
     expect(hello.hubInstanceId).toBe(hub.hub.hubInstanceId);
+    expect(hello.authorityEpoch).toBe(1);
+    expect(hello.authorityState).toBe('active');
+  });
+
+  it('reports the stored authority epoch and state on hello', async () => {
+    try {
+      setAuthority(hub.hub.db, { epoch: 3, state: 'active' });
+      let hello = JSON.parse((await request(hub.port, hub.tls.certPem, `${HUB_API_PREFIX}/hello`)).body) as HelloResponse;
+      expect(hello).toMatchObject({ authorityEpoch: 3, authorityState: 'active' });
+      setAuthority(hub.hub.db, { epoch: 4, state: 'transferred' });
+      hello = JSON.parse((await request(hub.port, hub.tls.certPem, `${HUB_API_PREFIX}/hello`)).body) as HelloResponse;
+      expect(hello).toMatchObject({ authorityEpoch: 4, authorityState: 'transferred' });
+    } finally {
+      setAuthority(hub.hub.db, { epoch: 1, state: 'active' });
+    }
   });
 
   it('records the active certificate pin', () => {

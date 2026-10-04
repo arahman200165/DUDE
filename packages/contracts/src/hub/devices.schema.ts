@@ -156,7 +156,12 @@ export const DeviceTokenRequest = Type.Object(
 );
 export type DeviceTokenRequest = Static<typeof DeviceTokenRequest>;
 
-export const DeviceTokenResponse = Type.Object({ accessToken: Type.String({ pattern: '^ddt_[A-Za-z0-9_-]{43}$' }), expiresAt: Iso });
+export const DeviceTokenResponse = Type.Object({
+  accessToken: Type.String({ pattern: '^ddt_[A-Za-z0-9_-]{43}$' }),
+  expiresAt: Iso,
+  /** Authority epoch of the issuing Hub. Absent on Hubs that predate authority epochs. */
+  authorityEpoch: Type.Optional(Type.Integer({ minimum: 1 })),
+});
 export type DeviceTokenResponse = Static<typeof DeviceTokenResponse>;
 
 /** Message the device signs to obtain a token: `dude-device-auth:v1|<hubInstanceId>|<nonce>|<deviceId>`. */

@@ -37,6 +37,8 @@ export const RealtimeServerMessage = Type.Union([
     deviceId: Type.Union([Type.String(), Type.Null()]),
     heartbeatIntervalMs: Type.Integer({ minimum: 1 }),
     tls: Type.Object({ spkiSha256: SpkiSha256, nextSpkiSha256: Type.Union([SpkiSha256, Type.Null()]), proxySpkiSha256: Type.Optional(Type.Array(SpkiSha256)) }),
+    /** Authority epoch of the Hub. Absent on Hubs that predate authority epochs. */
+    authorityEpoch: Type.Optional(Type.Integer({ minimum: 1 })),
   }),
   Type.Object({
     type: Type.Literal('event'),

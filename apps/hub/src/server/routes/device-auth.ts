@@ -6,6 +6,7 @@ import {
   enrollMessage,
 } from '@dude/contracts/hub';
 import { currentRevision } from '../../db/canonical-repository.js';
+import { getAuthorityEpoch } from '../../hub/authority.js';
 import { createChallenge, redeemChallenge } from '../../devices/device-tokens.js';
 import { ED25519_PUBLIC_KEY_BYTES, ED25519_SIGNATURE_BYTES, decodeBase64url, publicKeyFromRaw, verifyEd25519 } from '../../devices/keys.js';
 import { consumePairingCode, normalizeSubmittedCode, pairingCodeIsLive, recordWrongPairingAttempt } from '../../devices/pairing.js';
@@ -123,7 +124,7 @@ export function registerDeviceAuthRoutes(app: FastifyInstance, options: DeviceAu
         return reply.code(401).send(envelope('unauthorized', 'The device could not be authenticated.'));
       }
       recordSuccessKeys(db, keys);
-      return reply.code(200).send({ accessToken: issued.accessToken, expiresAt: issued.expiresAt });
+      return reply.code(200).send({ accessToken: issued.accessToken, expiresAt: issued.expiresAt, authorityEpoch: getAuthorityEpoch(db) });
     },
   );
 }
