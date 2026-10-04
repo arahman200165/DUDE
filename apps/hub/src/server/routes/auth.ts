@@ -4,16 +4,18 @@ import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { transaction } from '@dude/sqlite-store';
 import type { Db } from '@dude/sqlite-store';
 import {
-  ChangePasswordRequest, ConfirmApply, ConfirmPreview, CurrentSessionResponse, ErrorEnvelope, HUB_API_PREFIX, OkResponse, OwnerResetRequest,
-  OwnerResetResponse, RecoverRequest, RecoveryCodesResponse, SignInRequest, SignInResponse,
+  ChangePasswordRequest, ChangePasswordResponse, ConfirmApply, ConfirmPreview, CurrentSessionResponse, ErrorEnvelope, HUB_API_PREFIX, OkResponse, OwnerResetRequest,
+  OwnerResetResponse, RecoverRequest, RecoveryCodesResponse, SignInRequest, SignInResponse, StepUpRequest, StepUpResponse,
 } from '@dude/contracts/hub';
 import { emitRevoked } from '../../auth/hub-events.js';
 import { getOwner, getStoredPassword, remainingRecoveryCodes, setStoredPassword } from '../../auth/owner.js';
 import type { OwnerContext } from '../../auth/owner-auth.js';
 import { hashPassword, validateOwnerPassword, verifyPassword } from '../../auth/password.js';
 import type { PasswordParams } from '../../auth/password.js';
+import { checkOwnerPassword } from '../../auth/owner-password-check.js';
+import { createRequireStepUp } from '../../auth/step-up.js';
 import { consumeRecoveryCode, replaceRecoveryCodes } from '../../auth/recovery-codes.js';
-import { SESSION_POLICY, createSession, deriveCsrfToken, revokeAllSessions, revokeSession, toSessionInfo } from '../../auth/sessions.js';
+import { STEP_UP_WINDOW_MS, SESSION_POLICY, createSession, deriveCsrfToken, revokeAllSessions, revokeSession, rotateSession, toSessionInfo } from '../../auth/sessions.js';
 import type { CreatedSession } from '../../auth/sessions.js';
 import { consumeSetupToken, deleteSetupTokenFile, resetPending, verifySetupToken } from '../../auth/setup-token.js';
 import { audit } from '../../security/audit.js';
@@ -62,6 +64,7 @@ export function registerAuthRoutes(app: FastifyInstance, options: AuthRouteOptio
   const { db, now } = options;
   const typed = app.withTypeProvider<TypeBoxTypeProvider>();
   const P = HUB_API_PREFIX;
+  const requireStepUp = createRequireStepUp(now);
   const nostore = (reply: FastifyReply): void => void reply.header('Cache-Control', 'no-store');
   const hashFor = (password: string) => hashPassword(password, options.passwordParams);
 
@@ -165,10 +168,35 @@ export function registerAuthRoutes(app: FastifyInstance, options: AuthRouteOptio
   );
 
   typed.post(
+    `${P}/auth/step-up`,
+    {
+      preHandler: options.requireOwner,
+      schema: { body: StepUpRequest, response: { 200: StepUpResponse, 400: ErrorEnvelope, 401: ErrorEnvelope, 403: ErrorEnvelope, 423: ErrorEnvelope } },
+    },
+    async (request, reply) => {
+      nostore(reply);
+      const ctx = request.owner as OwnerContext;
+      if (await checkOwnerPassword({ db, now }, request, reply, request.body.password, { kind: 'owner', id: ctx.ownerId })) return reply;
+      const ip = ipOf(request);
+      const at = now();
+      const until = new Date(at + STEP_UP_WINDOW_MS).toISOString();
+      // Bearer sessions are always stepped up (minted from a password check) and are never rotated.
+      const rotated = ctx.kind === 'cookie' ? rotateSession(db, ctx.sessionHash, at, { steppedUp: true }) : null;
+      if (ctx.kind === 'cookie' && rotated === null) return reply.code(401).send(envelope('unauthorized', 'Authentication is required.'));
+      audit(db, { event: 'owner.step-up', outcome: 'success', actorKind: 'owner', actorId: ctx.ownerId, ip, detail: { kind: ctx.kind }, now: at });
+      if (rotated) {
+        setSessionCookie(reply, rotated);
+        audit(db, { event: 'session.rotated', outcome: 'success', actorKind: 'owner', actorId: ctx.ownerId, ip, detail: { reason: 'step-up', sessionId: toSessionInfo(rotated.record, undefined).sessionId }, now: at });
+      }
+      return reply.code(200).send({ ok: true, csrfToken: rotated?.csrfToken ?? null, steppedUpUntil: until });
+    },
+  );
+
+  typed.post(
     `${P}/owner/password`,
     {
       preHandler: options.requireOwner,
-      schema: { body: ChangePasswordRequest, response: { 200: OkResponse, 400: ErrorEnvelope, 401: ErrorEnvelope, 403: ErrorEnvelope } },
+      schema: { body: ChangePasswordRequest, response: { 200: ChangePasswordResponse, 400: ErrorEnvelope, 401: ErrorEnvelope, 403: ErrorEnvelope } },
     },
     async (request, reply) => {
       nostore(reply);
@@ -196,7 +224,13 @@ export function registerAuthRoutes(app: FastifyInstance, options: AuthRouteOptio
         return others;
       });
       emitRevoked(app, revoked, 'password-changed');
-      return reply.code(200).send({ ok: true });
+      // Privilege event: a cookie session gets a fresh token (rotated after the others were revoked, which spared this one).
+      const rotated = ctx.kind === 'cookie' ? rotateSession(db, ctx.sessionHash, now(), { steppedUp: true }) : null;
+      if (rotated) {
+        setSessionCookie(reply, rotated);
+        audit(db, { event: 'session.rotated', outcome: 'success', actorKind: 'owner', actorId: ctx.ownerId, ip, detail: { reason: 'password-changed', sessionId: toSessionInfo(rotated.record, undefined).sessionId }, now: now() });
+      }
+      return reply.code(200).send({ ok: true, csrfToken: rotated?.csrfToken ?? null });
     },
   );
 
@@ -207,7 +241,7 @@ export function registerAuthRoutes(app: FastifyInstance, options: AuthRouteOptio
 
   typed.post(
     `${P}/owner/recovery-codes/preview`,
-    { preHandler: options.requireOwner, schema: { response: { 200: ConfirmPreview, 401: ErrorEnvelope } } },
+    { preHandler: [options.requireOwner, requireStepUp], schema: { response: { 200: ConfirmPreview, 401: ErrorEnvelope, 403: ErrorEnvelope } } },
     async (request, reply) => {
       nostore(reply);
       const ctx = request.owner as OwnerContext;
@@ -223,7 +257,7 @@ export function registerAuthRoutes(app: FastifyInstance, options: AuthRouteOptio
   typed.post(
     `${P}/owner/recovery-codes`,
     {
-      preHandler: options.requireOwner,
+      preHandler: [options.requireOwner, requireStepUp],
       schema: { body: ConfirmApply, response: { 200: RecoveryCodesResponse, 401: ErrorEnvelope, 403: ErrorEnvelope, 409: ErrorEnvelope } },
     },
     async (request, reply) => {

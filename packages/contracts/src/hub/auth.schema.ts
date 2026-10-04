@@ -81,3 +81,13 @@ export type SessionListResponse = Static<typeof SessionListResponse>;
 
 export const SessionIdParams = Type.Object({ sessionId: Type.String({ pattern: '^[0-9a-f]{16}$' }) });
 export type SessionIdParams = Static<typeof SessionIdParams>;
+
+export const StepUpRequest = Type.Object({ password: Password }, { additionalProperties: false });
+export type StepUpRequest = Static<typeof StepUpRequest>;
+
+/** `csrfToken` is the new session's token after a cookie rotation, and null for a bearer session (no rotation). */
+export const StepUpResponse = Type.Object({ ok: Type.Literal(true), csrfToken: Type.Union([Type.String(), Type.Null()]), steppedUpUntil: Type.String() });
+export type StepUpResponse = Static<typeof StepUpResponse>;
+
+export const ChangePasswordResponse = Type.Object({ ok: Type.Literal(true), csrfToken: Type.Union([Type.String(), Type.Null()]) });
+export type ChangePasswordResponse = Static<typeof ChangePasswordResponse>;

@@ -42,6 +42,7 @@ const ARGS: Record<string, readonly unknown[]> = {
   recoveryCodesPreview: ['t'],
   regenerateRecoveryCodes: ['t', 'c'],
   changePassword: ['t', 'a', 'b'],
+  stepUp: ['t', 'pw'],
   syncPush: ['t', []],
   syncChanges: ['t', 0, 10],
   syncSnapshot: ['t', { afterType: 'a', afterId: 'b', limit: 1 }],

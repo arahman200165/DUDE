@@ -11,6 +11,10 @@ export const BEARER_ABSOLUTE_MS = 12 * HOUR_MS;
 /** The sliding idle expiry is written at most once per minute to limit database writes. */
 export const SLIDE_MIN_INTERVAL_MS = 60_000;
 export const USER_AGENT_MAX = 256;
+/** A cookie session counts as freshly password-confirmed for this long after sign-in, recovery or a step-up. */
+export const STEP_UP_WINDOW_MS = 5 * 60_000;
+/** After a rotation the predecessor session keeps working this long, so in-flight requests and open sockets survive. */
+export const ROTATION_GRACE_MS = 60_000;
 
 /** Owner bearer sessions (the desktop Agent). Device tokens use `ddt_`. */
 export const OWNER_BEARER_PREFIX = 'dob_';
@@ -31,7 +35,7 @@ export const publicSessionId = (sessionHash: string): string => sessionHash.slic
 interface SessionRow {
   session_hash: string; owner_id: string; kind: SessionKind; device_id: string | null; csrf_hash: string | null;
   created_at: string; last_active_at: string; idle_expires_at: string; absolute_expires_at: string; revoked_at: string | null;
-  user_agent: string | null; ip: string | null;
+  user_agent: string | null; ip: string | null; stepped_up_at: string | null;
 }
 
 export interface SessionRecord {
@@ -45,16 +49,30 @@ export interface SessionRecord {
   absoluteExpiresAt: string;
   userAgent: string | null;
   ip: string | null;
+  /** When a cookie session last confirmed the password; null for bearer sessions. */
+  steppedUpAt: string | null;
 }
 
-const COLUMNS = 'session_hash, owner_id, kind, device_id, csrf_hash, created_at, last_active_at, idle_expires_at, absolute_expires_at, revoked_at, user_agent, ip';
+const COLUMNS = 'session_hash, owner_id, kind, device_id, csrf_hash, created_at, last_active_at, idle_expires_at, absolute_expires_at, revoked_at, user_agent, ip, stepped_up_at';
 
 function toRecord(row: SessionRow): SessionRecord {
   return {
     sessionHash: row.session_hash, ownerId: row.owner_id, kind: row.kind, deviceId: row.device_id, createdAt: row.created_at,
     lastActiveAt: row.last_active_at, idleExpiresAt: row.idle_expires_at, absoluteExpiresAt: row.absolute_expires_at,
-    userAgent: row.user_agent, ip: row.ip,
+    userAgent: row.user_agent, ip: row.ip, steppedUpAt: row.stepped_up_at,
   };
+}
+
+/**
+ * Whether the session recently proved the owner password. Bearer sessions are always stepped up: they are minted from a
+ * password check (`POST /auth/owner-bearer`), are device-bound and live 30 minutes idle / 12 hours absolute. A cookie
+ * session is stepped up for STEP_UP_WINDOW_MS after sign-in, recovery or `POST /auth/step-up`.
+ */
+export function isSteppedUp(record: SessionRecord, now: number): boolean {
+  if (record.kind === 'bearer') return true;
+  if (record.steppedUpAt === null) return false;
+  const at = Date.parse(record.steppedUpAt);
+  return Number.isFinite(at) && now - at < STEP_UP_WINDOW_MS;
 }
 
 export function toSessionInfo(record: SessionRecord, currentHash: string | undefined): SessionInfo {
@@ -113,12 +131,45 @@ export function createSession(db: Db, input: CreateSessionInput): CreatedSession
     sessionHash, ownerId: input.ownerId, kind: input.kind, deviceId: input.kind === 'bearer' ? input.deviceId ?? null : null, createdAt: at,
     lastActiveAt: at, idleExpiresAt: iso(input.now + policy.idleMs), absoluteExpiresAt: iso(input.now + policy.absoluteMs),
     userAgent: input.userAgent ? input.userAgent.slice(0, USER_AGENT_MAX) : null, ip: input.ip ?? null,
+    steppedUpAt: input.kind === 'cookie' ? at : null,
   };
-  db.prepare(`INSERT INTO sessions(${COLUMNS}) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`).run(
+  db.prepare(`INSERT INTO sessions(${COLUMNS}) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)`).run(
     record.sessionHash, record.ownerId, record.kind, record.deviceId, csrfToken === null ? null : sha256Hex(csrfToken), record.createdAt,
-    record.lastActiveAt, record.idleExpiresAt, record.absoluteExpiresAt, record.userAgent, record.ip,
+    record.lastActiveAt, record.idleExpiresAt, record.absoluteExpiresAt, record.userAgent, record.ip, record.steppedUpAt,
   );
   return { token, csrfToken, record };
+}
+
+/**
+ * Rotates a live cookie session on a privilege event: a new row (fresh token and CSRF) inherits everything session-specific
+ * (owner, absolute expiry, browser binding), and the old row is pointed at it (`rotated_to`) and shortened to
+ * ROTATION_GRACE_MS. The old row is not revoked and emits no event, so open requests and sockets finish; `sessionLive`
+ * follows `rotated_to`. `opts.steppedUp` stamps the new row as freshly password-confirmed, otherwise the stamp carries over.
+ */
+export function rotateSession(db: Db, sessionHash: string, now: number, opts: { steppedUp?: boolean } = {}): CreatedSession | null {
+  return transaction(db, () => {
+    const old = liveRow(db, sessionHash, now);
+    if (!old || old.kind !== 'cookie') return null;
+    const token = randomBytes(32).toString('base64url');
+    const newHash = hashSessionToken(token);
+    const csrfToken = deriveCsrfToken(db, newHash);
+    const at = iso(now);
+    const idle = iso(Math.min(now + SESSION_POLICY.cookie.idleMs, Date.parse(old.absolute_expires_at)));
+    const steppedUpAt = opts.steppedUp ? at : old.stepped_up_at;
+    db.prepare(
+      `INSERT INTO sessions(session_hash, owner_id, kind, device_id, csrf_hash, created_at, last_active_at, idle_expires_at, absolute_expires_at, revoked_at, user_agent, ip, stepped_up_at, browser_device_id)
+       SELECT ?, owner_id, kind, device_id, ?, created_at, ?, ?, absolute_expires_at, NULL, user_agent, ip, ?, browser_device_id FROM sessions WHERE session_hash = ?`,
+    ).run(newHash, sha256Hex(csrfToken), at, idle, steppedUpAt, old.session_hash);
+    const graceEnd = now + ROTATION_GRACE_MS;
+    db.prepare('UPDATE sessions SET rotated_to = ?, idle_expires_at = ?, absolute_expires_at = ? WHERE session_hash = ?').run(
+      newHash, iso(Math.min(Date.parse(old.idle_expires_at), graceEnd)), iso(Math.min(Date.parse(old.absolute_expires_at), graceEnd)), old.session_hash,
+    );
+    const record: SessionRecord = {
+      sessionHash: newHash, ownerId: old.owner_id, kind: 'cookie', deviceId: old.device_id, createdAt: old.created_at, lastActiveAt: at, idleExpiresAt: idle,
+      absoluteExpiresAt: old.absolute_expires_at, userAgent: old.user_agent, ip: old.ip, steppedUpAt,
+    };
+    return { token, csrfToken, record };
+  });
 }
 
 function liveRow(db: Db, sessionHash: string, now: number): SessionRow | undefined {

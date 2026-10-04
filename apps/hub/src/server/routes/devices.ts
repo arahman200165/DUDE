@@ -7,9 +7,10 @@ import {
   OkResponse, OwnerBearerRequest, OwnerBearerResponse, PairingCodeRequest, PairingCodeResponse, RecoveryTrustRequest, displayPairingCode, formatPairingString,
 } from '@dude/contracts/hub';
 import { emitRevoked } from '../../auth/hub-events.js';
-import { getOwner, getStoredPassword } from '../../auth/owner.js';
+import { getOwner } from '../../auth/owner.js';
 import type { OwnerContext } from '../../auth/owner-auth.js';
-import { verifyPassword } from '../../auth/password.js';
+import { checkOwnerPassword } from '../../auth/owner-password-check.js';
+import { createRequireStepUp } from '../../auth/step-up.js';
 import { createSession } from '../../auth/sessions.js';
 import { createPairingCode } from '../../devices/pairing.js';
 import {
@@ -59,35 +60,21 @@ export function registerDeviceRoutes(app: FastifyInstance, options: DeviceRouteO
   const { db, now } = options;
   const typed = app.withTypeProvider<TypeBoxTypeProvider>();
   const P = `${HUB_API_PREFIX}/devices`;
+  const requireStepUp = createRequireStepUp(now);
   const nostore = (reply: FastifyReply): void => void reply.header('Cache-Control', 'no-store');
   const changed = (deviceId: string, change: 'enrolled' | 'renamed' | 'revoked' | 'unenrolled' | 'recovery-trust' | 'updated'): void => {
     app.hubEvents.emit('device-registry-changed', { deviceId, change });
   };
 
-  /** Throttled password re-verification shared by recovery-trust and the owner bearer exchange. True when it already replied (a reply is thenable, so it cannot be returned through an async helper). */
-  async function checkPassword(request: FastifyRequest, reply: FastifyReply, password: string, actor: { kind: 'owner' | 'device'; id: string }): Promise<boolean> {
-    const ip = ipOf(request);
-    const keys = throttleKeys.password(ip);
-    const decision = checkThrottleKeys(db, keys, now());
-    if (!decision.allowed) { void lockedReply(reply, decision.retryAfterMs); return true; }
-    const owner = getOwner(db);
-    const stored = owner ? getStoredPassword(db, owner.ownerId) : null;
-    if (stored === null || !(await verifyPassword(password, stored))) {
-      recordFailureKeys(db, keys, now());
-      audit(db, { event: 'auth.failure', outcome: 'failure', actorKind: actor.kind, actorId: actor.id, ip, detail: { kind: 'password' }, now: now() });
-      void reply.code(403).send(envelope('forbidden', 'The password is not correct.'));
-      return true;
-    }
-    recordSuccessKeys(db, keys);
-    return false;
-  }
+  const checkPassword = (request: FastifyRequest, reply: FastifyReply, password: string, actor: { kind: 'owner' | 'device'; id: string }): Promise<boolean> =>
+    checkOwnerPassword({ db, now }, request, reply, password, actor);
 
   // --- Owner ---------------------------------------------------------------------------------------------------
 
   typed.post(
     `${HUB_API_PREFIX}/pairing-codes`,
     {
-      preHandler: options.requireOwner,
+      preHandler: [options.requireOwner, requireStepUp],
       schema: { body: PairingCodeRequest, response: { 200: PairingCodeResponse, 400: ErrorEnvelope, 401: ErrorEnvelope, 403: ErrorEnvelope } },
     },
     async (request, reply) => {

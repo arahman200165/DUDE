@@ -3,6 +3,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import type { Db } from '@dude/sqlite-store';
 import { ConfirmApply, ConfirmPreview, ErrorEnvelope, HUB_API_PREFIX, OkResponse, SessionIdParams, SessionListResponse } from '@dude/contracts/hub';
+import { createRequireStepUp } from '../../auth/step-up.js';
 import { emitRevoked } from '../../auth/hub-events.js';
 import type { OwnerContext } from '../../auth/owner-auth.js';
 import { findSessionByPublicId, listSessions, otherActiveSessionHashes, revokeAllSessions, revokeSession } from '../../auth/sessions.js';
@@ -21,6 +22,7 @@ export function registerSessionRoutes(app: FastifyInstance, options: Pick<AuthRo
   const { db, now } = options;
   const typed = app.withTypeProvider<TypeBoxTypeProvider>();
   const P = `${HUB_API_PREFIX}/sessions`;
+  const requireStepUp = createRequireStepUp(now);
   const nostore = (reply: FastifyReply): void => void reply.header('Cache-Control', 'no-store');
   const digestOf = (database: Db, ctx: OwnerContext): string => sha256Hex(otherActiveSessionHashes(database, ctx.ownerId, ctx.sessionHash, now()).join('\n'));
 
@@ -36,7 +38,7 @@ export function registerSessionRoutes(app: FastifyInstance, options: Pick<AuthRo
 
   typed.post(
     `${P}/revoke-all/preview`,
-    { preHandler: options.requireOwner, schema: { response: { 200: ConfirmPreview, 401: ErrorEnvelope } } },
+    { preHandler: [options.requireOwner, requireStepUp], schema: { response: { 200: ConfirmPreview, 401: ErrorEnvelope, 403: ErrorEnvelope } } },
     async (request, reply) => {
       nostore(reply);
       const ctx = request.owner as OwnerContext;
@@ -50,7 +52,7 @@ export function registerSessionRoutes(app: FastifyInstance, options: Pick<AuthRo
   typed.post(
     `${P}/revoke-all`,
     {
-      preHandler: options.requireOwner,
+      preHandler: [options.requireOwner, requireStepUp],
       schema: { body: ConfirmApply, response: { 200: OkResponse, 401: ErrorEnvelope, 403: ErrorEnvelope, 409: ErrorEnvelope } },
     },
     async (request, reply) => {

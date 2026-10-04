@@ -15,7 +15,8 @@ describe('device registry', () => {
   });
   afterAll(async () => { await h.close(); });
   // Failure counters are global; reset them so each case starts from a clean throttle.
-  beforeEach(() => { h.hub.hub.db.prepare('DELETE FROM throttle').run(); });
+  // A cookie session is only stepped up for 5 minutes and these cases move the clock, so sign in fresh each time.
+  beforeEach(async () => { h.hub.hub.db.prepare('DELETE FROM throttle').run(); owner = await h.signIn(); });
 
   const audits = (event: string) => listAudit(h.hub.hub.db, { limit: 200 }).filter((r) => r.event === event);
   const self = (token: string) => h.call('GET', '/devices/self', { bearer: token });

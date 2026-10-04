@@ -3,7 +3,7 @@ export const HUB_AUDIT_EVENTS = [
   'hub.started', 'hub.bootstrap',
   'owner.sign-in', 'owner.sign-out', 'owner.password-changed', 'owner.recovery-code-used',
   'owner.recovery-codes-regenerated', 'owner.reset-local', 'owner.recovery-device',
-  'session.revoked', 'session.revoked-all',
+  'owner.step-up', 'session.revoked', 'session.revoked-all', 'session.rotated',
   'pairing.created', 'device.enrolled', 'device.renamed', 'device.revoked', 'device.unenrolled',
   'device.recovery-trust-changed', 'device.token-issued',
   'auth.failure',

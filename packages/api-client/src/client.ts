@@ -5,6 +5,7 @@ import {
   BootstrapResponse, TlsCertificatesResponse, AuditListResponse, HubDiagnosticsReport,
   EnrollResponse, DeviceChallengeResponse, DeviceRecoveryChallengeResponse, DeviceTokenResponse, DeviceInfo, DeviceListResponse, OwnerBearerResponse, PairingCodeResponse,
   OkResponse, ConfirmPreview, SessionListResponse, RecoveryCodesResponse,
+  StepUpResponse, ChangePasswordResponse,
   SignInResponse, CurrentSessionResponse, OwnerResetResponse,
   SyncPushResponse, SyncChangesResponse, SyncSnapshotResponse, SyncStateResponse, SyncSummary, SyncClearPreview, SyncClearResponse, SYNC_PATHS,
   WEB_PATHS, WebAttachResponse, WebAccessResponse,
@@ -66,7 +67,8 @@ export interface HubClient {
   diagnostics(auth: Bearer): Promise<HubDiagnosticsReport>;
   recoveryCodesPreview(auth: Bearer): Promise<ConfirmPreview>;
   regenerateRecoveryCodes(auth: Bearer, confirmToken: string): Promise<RecoveryCodesResponse>;
-  changePassword(auth: Bearer, currentPassword: string, newPassword: string): Promise<OkResponse>;
+  changePassword(auth: Bearer, currentPassword: string, newPassword: string): Promise<ChangePasswordResponse>;
+  stepUp(auth: Bearer, password: string): Promise<StepUpResponse>;
 
   // Synchronization (Phase 31D). Device token required, except summary and the environment clear (owner).
   syncPush(auth: Bearer, ops: readonly SyncOp[]): Promise<SyncPushResponse>;
@@ -147,7 +149,8 @@ export function createHubClient(transport: HubTransport, opts: HubClientOptions)
     },
     recoveryCodesPreview: (auth) => call(ConfirmPreview, { method: 'POST', path: `${P}/owner/recovery-codes/preview` }, auth),
     regenerateRecoveryCodes: (auth, confirmToken) => call(RecoveryCodesResponse, { method: 'POST', path: `${P}/owner/recovery-codes`, body: { confirmToken } }, auth),
-    changePassword: (auth, currentPassword, newPassword) => call(OkResponse, { method: 'POST', path: `${P}/owner/password`, body: { currentPassword, newPassword } }, auth),
+    changePassword: (auth, currentPassword, newPassword) => call(ChangePasswordResponse, { method: 'POST', path: `${P}/owner/password`, body: { currentPassword, newPassword } }, auth),
+    stepUp: (auth, password) => call(StepUpResponse, { method: 'POST', path: `${P}/auth/step-up`, body: { password } }, auth),
 
     syncPush: (auth, ops) => call(SyncPushResponse, { method: 'POST', path: `${P}${SYNC_PATHS.push}`, body: { ops } }, auth),
     syncChanges: (auth, after, limit) => {

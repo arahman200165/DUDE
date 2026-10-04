@@ -79,9 +79,21 @@ interface Connection {
   recent: number[];
 }
 
-const sessionLive = (db: Db, sessionHash: string, now: number): boolean => {
+/**
+ * A session is live while unrevoked and unexpired. A rotated session (`rotated_to`) is live while its successor is live
+ * (followed up to 5 hops), so an open socket survives a rotation but ends when the successor is revoked or expires.
+ */
+export const sessionLive = (db: Db, sessionHash: string, now: number): boolean => {
   const at = new Date(now).toISOString();
-  return db.prepare('SELECT 1 AS x FROM sessions WHERE session_hash = ? AND revoked_at IS NULL AND idle_expires_at > ? AND absolute_expires_at > ?').get(sessionHash, at, at) !== undefined;
+  const query = db.prepare('SELECT revoked_at, idle_expires_at, absolute_expires_at, rotated_to FROM sessions WHERE session_hash = ?');
+  let hash: string | null = sessionHash;
+  for (let hop = 0; hop <= 5 && hash !== null; hop += 1) {
+    const row = query.get(hash) as { revoked_at: string | null; idle_expires_at: string; absolute_expires_at: string; rotated_to: string | null } | undefined;
+    if (row === undefined || row.revoked_at !== null) return false;
+    if (row.rotated_to === null) return row.idle_expires_at > at && row.absolute_expires_at > at;
+    hash = row.rotated_to;
+  }
+  return false;
 };
 
 /**
