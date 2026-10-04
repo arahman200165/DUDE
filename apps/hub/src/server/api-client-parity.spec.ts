@@ -39,6 +39,7 @@ const ARGS: Record<string, readonly unknown[]> = {
   revokeAll: ['t', 'c'],
   listAudit: ['t', { beforeSeq: 1, limit: 2 }],
   diagnostics: ['t'],
+  backupStatus: ['t'],
   reachabilityEcho: ['t'],
   listSecurityAlerts: ['t'],
   markSecurityAlertsSeen: ['t', 3],

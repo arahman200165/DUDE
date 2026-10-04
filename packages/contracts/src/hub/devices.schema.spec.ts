@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Value } from 'typebox/value';
 import {
-  DEVICE_CAPABILITIES, DeviceSelfUpdate, EnrollRequest, deviceAuthMessage, displayPairingCode, enrollMessage, formatPairingString, normalizePairingCode,
+  DEVICE_CAPABILITIES, DeviceSelfUpdate, EnrollRequest, PairingCodeRequest, PairingCodeResponse, deviceAuthMessage, displayPairingCode, enrollMessage, formatPairingString, normalizePairingCode,
   parsePairingString,
 } from './devices.schema.js';
 
@@ -64,5 +64,22 @@ describe('signed messages and schemas', () => {
     expect(Value.Check(EnrollRequest, { ...ok, publicKey: 'short' })).toBe(false);
     expect(Value.Check(DeviceSelfUpdate, { displayName: '' })).toBe(false);
     expect(Value.Check(DeviceSelfUpdate, {})).toBe(true);
+  });
+});
+
+describe('re-attach pairing codes', () => {
+  const id = '123e4567-e89b-42d3-a456-426614174000';
+  it('accepts an optional reattachDeviceId that is a uuid, and nothing else', () => {
+    expect(Value.Check(PairingCodeRequest, {})).toBe(true);
+    expect(Value.Check(PairingCodeRequest, { reattachDeviceId: id })).toBe(true);
+    expect(Value.Check(PairingCodeRequest, { reattachDeviceId: 'not-a-uuid' })).toBe(false);
+    expect(Value.Check(PairingCodeRequest, { reattachDeviceId: id, other: 1 })).toBe(false);
+  });
+  it('reports reattachDeviceId as a uuid, null, or absent (older Hubs)', () => {
+    const base = { pairingCode: 'ABCD-EFGH', pairingString: 'x', expiresAt: 'now', hubUrl: 'https://h', spkiSha256: spki };
+    expect(Value.Check(PairingCodeResponse, base)).toBe(true);
+    expect(Value.Check(PairingCodeResponse, { ...base, reattachDeviceId: null })).toBe(true);
+    expect(Value.Check(PairingCodeResponse, { ...base, reattachDeviceId: id })).toBe(true);
+    expect(Value.Check(PairingCodeResponse, { ...base, reattachDeviceId: 5 })).toBe(false);
   });
 });

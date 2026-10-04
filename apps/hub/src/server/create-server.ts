@@ -14,6 +14,7 @@ import { registerTlsAuditRoutes } from './routes/tls-audit.js';
 import { registerSecurityAlertRoutes } from './routes/security-alerts.js';
 import { registerDiagnosticsRoute } from './routes/diagnostics.js';
 import { registerReachabilityRoute } from './routes/reachability.js';
+import { registerBackupRoutes } from './routes/backup.js';
 import { createHostFacts, currentConfig, gatherRunningHubDeps } from '../diagnostics/gather.js';
 import { collectDiagnostics } from '../diagnostics/engine.js';
 import { createCachedNameResolver } from '../diagnostics/addresses.js';
@@ -78,6 +79,8 @@ export interface CreateHubServerOptions {
   hubVersion: string;
   /** Endpoint diagnostics: injectable host facts (service state, firewall rule; cached 60 s) so tests never touch Windows. */
   diagnostics?: { exec?: ExecFn; platform?: NodeJS.Platform; host?: () => Promise<DiagnosticsHostFacts>; resolveDns?: (names: readonly string[]) => Promise<NameResolution[]>; interfaces?: () => InterfaceMap };
+  /** Backup status read model: `run` supplies the schedule-key presence check (request handlers never import the schedule-key module). */
+  backup?: { scheduleKeyPresent?: () => boolean };
   logger?: boolean | HubLoggerOptions;
   /** Cheaper Argon2 settings for specs only. */
   passwordParams?: PasswordParams;
@@ -178,6 +181,11 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   };
   app.decorate('hubDiagnostics', collectHubDiagnostics);
   registerDiagnosticsRoute(app, { db: options.hub.db, now, requireOwner: authOptions.requireOwner, collect: collectHubDiagnostics });
+  registerBackupRoutes(app, {
+    db: options.hub.db, requireOwner: authOptions.requireOwner, defaultFolder: options.paths.backupsDir,
+    schedule: () => currentConfig(options.paths.configFile, { port: 0 }).backup?.schedule,
+    ...(options.backup?.scheduleKeyPresent ? { scheduleKeyPresent: options.backup.scheduleKeyPresent } : {}),
+  });
   registerReachabilityRoute(app, {
     db: options.hub.db, now, requireOwner: authOptions.requireOwner, requireDevice, hostGuard,
     exposure: () => {

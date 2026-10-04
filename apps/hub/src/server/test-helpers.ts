@@ -53,10 +53,13 @@ export interface TestHubOptions {
   passwordParams?: PasswordParams;
   realtime?: Partial<RealtimeTimings>;
   sync?: SyncCompactionOptions;
+  backup?: { scheduleKeyPresent?: () => boolean };
+  /** Serve an existing data root (for example a restored Hub) instead of a fresh temporary one. */
+  dataRoot?: string;
 }
 
-export async function startTestHub(config: Partial<HubConfig> = {}, extra: TestHubOptions = {}): Promise<TestHub> {
-  const paths = ensureLayout(tempDir('hub-data-'));
+export async function startTestHub(config: Partial<HubConfig> = {}, { dataRoot, ...extra }: TestHubOptions = {}): Promise<TestHub> {
+  const paths = ensureLayout(dataRoot ?? tempDir('hub-data-'));
   const opened = openHubDb({ dbFile: paths.dbFile, preMigrationDir: paths.preMigrationDir });
   if (opened.status !== 'ready') throw new Error('database not ready');
   const hub = opened.hub;

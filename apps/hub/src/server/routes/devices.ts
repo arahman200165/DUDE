@@ -75,7 +75,7 @@ export function registerDeviceRoutes(app: FastifyInstance, options: DeviceRouteO
     `${HUB_API_PREFIX}/pairing-codes`,
     {
       preHandler: [options.requireOwner, requireStepUp],
-      schema: { body: PairingCodeRequest, response: { 200: PairingCodeResponse, 400: ErrorEnvelope, 401: ErrorEnvelope, 403: ErrorEnvelope } },
+      schema: { body: PairingCodeRequest, response: { 200: PairingCodeResponse, 400: ErrorEnvelope, 401: ErrorEnvelope, 403: ErrorEnvelope, 404: ErrorEnvelope, 409: ErrorEnvelope } },
     },
     async (request, reply) => {
       nostore(reply);
@@ -88,9 +88,22 @@ export function registerDeviceRoutes(app: FastifyInstance, options: DeviceRouteO
       if (request.body.host !== undefined && !options.hostGuard.isAllowed(`${host.toLowerCase()}:${port}`)) {
         return reply.code(400).send(envelope('bad-request', 'That host is not one of this Hub\'s allowed host names.'));
       }
-      const created = createPairingCode(db, ctx.sessionHash, now());
-      audit(db, { event: 'pairing.created', outcome: 'success', actorKind: 'owner', actorId: ctx.ownerId, ip: ipOf(request), detail: { host, expiresAt: created.expiresAt }, now: now() });
+      const reattachDeviceId = request.body.reattachDeviceId;
+      if (reattachDeviceId !== undefined) {
+        // A re-attach code is only for a desktop device that a Hub restore left awaiting re-pair (PD-072).
+        const target = getDevice(db, reattachDeviceId);
+        if (!target || target.kind !== 'desktop') return reply.code(404).send(envelope('not-found', 'No such device.'));
+        if (target.needsRePair !== true || target.revokedAt !== null || target.unenrolledAt !== null) {
+          return reply.code(409).send(envelope('conflict', 'That device is not waiting to be paired again.'));
+        }
+      }
+      const created = createPairingCode(db, ctx.sessionHash, now(), reattachDeviceId);
+      audit(db, {
+        event: 'pairing.created', outcome: 'success', actorKind: 'owner', actorId: ctx.ownerId, ip: ipOf(request),
+        detail: { host, expiresAt: created.expiresAt, ...(reattachDeviceId !== undefined ? { reattach: true } : {}) }, now: now(),
+      });
       return reply.code(200).send({
+        reattachDeviceId: reattachDeviceId ?? null,
         pairingCode: displayPairingCode(created.code),
         pairingString: formatPairingString({ host, port, code: created.code, spkiSha256: options.spkiSha256() }),
         expiresAt: created.expiresAt,

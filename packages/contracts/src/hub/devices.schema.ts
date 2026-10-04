@@ -55,7 +55,14 @@ export const isNormalizedPairingCode = (value: string): boolean => NORMALIZED_CO
 export const displayPairingCode = (normalized: string): string => `${normalized.slice(0, 4)}-${normalized.slice(4)}`;
 
 export const PairingCodeRequest = Type.Object(
-  { host: Type.Optional(Type.String({ minLength: 1, maxLength: 255, pattern: '^(\\[[0-9A-Fa-f:.]+\\]|[A-Za-z0-9.-]+)$' })) },
+  {
+    host: Type.Optional(Type.String({ minLength: 1, maxLength: 255, pattern: '^(\\[[0-9A-Fa-f:.]+\\]|[A-Za-z0-9.-]+)$' })),
+    /**
+     * Re-attach (PD-072): binds the code to a desktop device row that a Hub restore marked `needsRePair`. Only that deviceId can
+     * enroll with the code, and its new key attaches to the old row. 404 for an unknown id, 409 for a row not awaiting re-pair.
+     */
+    reattachDeviceId: Type.Optional(Uuid),
+  },
   { additionalProperties: false },
 );
 export type PairingCodeRequest = Static<typeof PairingCodeRequest>;
@@ -66,6 +73,8 @@ export const PairingCodeResponse = Type.Object({
   expiresAt: Iso,
   hubUrl: Type.String(),
   spkiSha256: Type.String({ pattern: '^[A-Za-z0-9_-]{43}$' }),
+  /** The device the code is bound to (a re-attach code), else null. Absent on Hubs that predate re-attach codes. */
+  reattachDeviceId: Type.Optional(Type.Union([Uuid, Type.Null()])),
 });
 export type PairingCodeResponse = Static<typeof PairingCodeResponse>;
 

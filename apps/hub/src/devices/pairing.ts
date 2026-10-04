@@ -17,13 +17,13 @@ export function generatePairingCode(): string {
 export interface CreatedPairingCode { code: string; displayCode: string; expiresAt: string }
 
 /** Stores only SHA-256 of the normalized code; the plaintext is returned once. */
-export function createPairingCode(db: Db, createdBySessionHash: string, now: number): CreatedPairingCode {
+export function createPairingCode(db: Db, createdBySessionHash: string, now: number, reattachDeviceId?: string): CreatedPairingCode {
   const expiresAt = new Date(now + PAIRING_CODE_TTL_MS).toISOString();
   for (;;) {
     const code = generatePairingCode();
     try {
-      db.prepare('INSERT INTO pairing_codes(code_hash, created_by_session_hash, created_at, expires_at, attempts) VALUES(?, ?, ?, ?, 0)').run(
-        hashPairingCode(code), createdBySessionHash, new Date(now).toISOString(), expiresAt,
+      db.prepare('INSERT INTO pairing_codes(code_hash, created_by_session_hash, created_at, expires_at, attempts, reattach_device_id) VALUES(?, ?, ?, ?, 0, ?)').run(
+        hashPairingCode(code), createdBySessionHash, new Date(now).toISOString(), expiresAt, reattachDeviceId ?? null,
       );
       return { code, displayCode: displayPairingCode(code), expiresAt };
     } catch (error) {
@@ -44,6 +44,17 @@ export function pairingCodeIsLive(db: Db, normalized: string, now: number): bool
     hashPairingCode(normalized), new Date(now).toISOString(), PAIRING_MAX_WRONG_ATTEMPTS,
   );
   return row !== undefined;
+}
+
+/**
+ * Read-only: the device a live code is bound to (a re-attach code, PD-072). `undefined` = the code is not live or unknown,
+ * `null` = an ordinary code, a string = bound to exactly that deviceId.
+ */
+export function pairingCodeReattachTarget(db: Db, normalized: string, now: number): string | null | undefined {
+  const row = db.prepare('SELECT reattach_device_id FROM pairing_codes WHERE code_hash = ? AND consumed_at IS NULL AND expires_at > ? AND attempts < ?').get(
+    hashPairingCode(normalized), new Date(now).toISOString(), PAIRING_MAX_WRONG_ATTEMPTS,
+  ) as { reattach_device_id: string | null } | undefined;
+  return row === undefined ? undefined : row.reattach_device_id;
 }
 
 /** Single-use: marks the code consumed by the device; false if it was not live. */

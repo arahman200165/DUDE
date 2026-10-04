@@ -155,7 +155,9 @@ describe('transfer and reactivate are reachable only over the admin pipe', () =>
     const hub = await startTestHub();
     try {
       const routes = hub.app.printRoutes({ commonPrefix: false });
-      expect(routes).not.toMatch(/backup|transfer|reactivate/i);
+      // The only backup route is the owner's read-only status model (GET); nothing can transfer, reactivate or issue/consume a token.
+      expect(routes).toContain('/api/v1/backup/status (GET, HEAD)');
+      expect(routes.replace('/api/v1/backup/status (GET, HEAD)', '')).not.toMatch(/backup|transfer|reactivate/i);
     } finally {
       await hub.close();
     }

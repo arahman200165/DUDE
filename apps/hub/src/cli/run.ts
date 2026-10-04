@@ -21,7 +21,7 @@ import { runTlsImport, runTlsProxyPin } from '../service/tls-external.js';
 import { runTlsAcme } from '../service/tls-acme.js';
 import { nodeBackupDeps } from '../backup/kdf.js';
 import { createBackupScheduler } from '../backup/scheduler.js';
-import { defaultScheduleKeyProtector } from '../backup/schedule-key.js';
+import { defaultScheduleKeyProtector, scheduleKeyExists } from '../backup/schedule-key.js';
 import { createAcmeRenewal } from '../tls/acme/acme-renewal.js';
 import { addressChangeNotice, createAddressWatch } from '../diagnostics/address-watch.js';
 import { AdminCallError, callAdmin } from '../admin/admin-client.js';
@@ -241,6 +241,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     tls,
     hub: { db: hub.db, hubInstanceId: hub.hubInstanceId },
     hubVersion: hubVersion(),
+    backup: { scheduleKeyPresent: () => scheduleKeyExists(paths.configDir) },
     logger: hubLoggerOptions(logStream),
     ...readHubTestOverrides(),
   });

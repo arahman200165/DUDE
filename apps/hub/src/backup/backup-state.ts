@@ -1,34 +1,12 @@
-import { getMeta, setMeta } from '@dude/sqlite-store';
+import { setMeta } from '@dude/sqlite-store';
 import type { Db } from '@dude/sqlite-store';
 import { BackupError } from '@dude/hub-backup';
+import { BACKUP_LAST_META } from '../hub/backup-last.js';
+import type { BackupLastRecord } from '../hub/backup-last.js';
 
-/** `meta` key holding the outcome of the most recent backup run (manual or scheduled), as JSON. */
-export const BACKUP_LAST_META = 'backup_last';
-
-/** What the last run recorded. Only the folder-relative file name and a short error code ever go in here: no path, no secret. */
-export interface BackupLastRecord {
-  at: string;
-  ok: boolean;
-  file?: string;
-  size?: number;
-  error?: string;
-}
-
-export function readBackupLast(db: Db): BackupLastRecord | null {
-  const raw = getMeta(db, BACKUP_LAST_META);
-  if (raw === undefined) return null;
-  try {
-    const parsed = JSON.parse(raw) as Partial<BackupLastRecord> | null;
-    if (typeof parsed !== 'object' || parsed === null || typeof parsed.at !== 'string' || typeof parsed.ok !== 'boolean') return null;
-    const record: BackupLastRecord = { at: parsed.at, ok: parsed.ok };
-    if (typeof parsed.file === 'string') record.file = parsed.file;
-    if (typeof parsed.size === 'number') record.size = parsed.size;
-    if (typeof parsed.error === 'string') record.error = parsed.error;
-    return record;
-  } catch {
-    return null;
-  }
-}
+// The record shape and its reader live in `hub/backup-last.ts` (the owner status route reads it without importing `backup/`).
+export { BACKUP_LAST_META, readBackupLast } from '../hub/backup-last.js';
+export type { BackupLastRecord } from '../hub/backup-last.js';
 
 export function writeBackupLast(db: Db, record: BackupLastRecord): void {
   setMeta(db, BACKUP_LAST_META, JSON.stringify(record));

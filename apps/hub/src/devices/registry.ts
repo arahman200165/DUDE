@@ -56,16 +56,26 @@ export function activeKeyIds(db: Db, deviceId: string): string[] {
 }
 
 export type EnrollOutcome =
-  | { status: 'enrolled'; keyId: string; registeredAt: string; environmentId: string }
+  | { status: 'enrolled'; keyId: string; registeredAt: string; environmentId: string; reattached: boolean }
   | { status: 'active-conflict' }
   | { status: 'key-reused' }
   | { status: 'no-environment' }
   | { status: 'code-rejected' };
 
-export interface EnrollInput { device: EnrollDevice; publicKey: Buffer; now: number }
+export interface EnrollInput {
+  device: EnrollDevice;
+  publicKey: Buffer;
+  now: number;
+  /**
+   * The device the submitted pairing code is bound to (PD-072): `null`/absent for an ordinary code. A bound code enrolls ONLY that
+   * deviceId, and only while its row is an active desktop row awaiting re-pair; it is then the sole way to enroll over such a row.
+   */
+  reattachDeviceId?: string | null;
+}
 
 /**
- * Registers a device or re-enrolls a revoked/unenrolled one. A revoked key is dead forever: re-enrollment needs a key
+ * Registers a device, re-enrolls a revoked/unenrolled one, or (with a bound re-attach code) attaches a new key to an active
+ * desktop row that a Hub restore marked `needs_re_pair`. A revoked key is dead forever: re-enrollment needs a key
  * that differs from every key the device ever registered. `consumeCode` runs inside the same transaction, after every
  * other check, so a rejected enrollment never burns a pairing code.
  */
@@ -74,8 +84,14 @@ export function enrollDevice(db: Db, input: EnrollInput, consumeCode: () => bool
     const environment = db.prepare('SELECT environment_id FROM environment LIMIT 1').get() as { environment_id: string } | undefined;
     if (!environment) return { status: 'no-environment' };
     const existing = rowOf(db, input.device.deviceId);
-    // A browser row can never be enrolled over (or re-enrolled as) a device.
-    if (existing && (existing.kind === 'browser' || isActiveRow(existing))) return { status: 'active-conflict' };
+    const bound = input.reattachDeviceId ?? null;
+    // A code bound to a device enrolls that device and nothing else, and only while the row still awaits re-pair.
+    const reattaching = bound !== null;
+    if (reattaching && (bound !== input.device.deviceId || !existing || existing.kind !== 'desktop' || existing.needs_re_pair !== 1 || !isActiveRow(existing))) {
+      return { status: 'code-rejected' };
+    }
+    // A browser row can never be enrolled over (or re-enrolled as) a device; an active row only by its own re-attach code.
+    if (existing && !reattaching && (existing.kind === 'browser' || isActiveRow(existing))) return { status: 'active-conflict' };
     if (existing) {
       const reused = db.prepare('SELECT 1 AS x FROM device_keys WHERE device_id = ? AND public_key = ?').get(input.device.deviceId, input.publicKey);
       if (reused !== undefined) return { status: 'key-reused' };
@@ -88,7 +104,7 @@ export function enrollDevice(db: Db, input: EnrollInput, consumeCode: () => bool
     if (existing) {
       db.prepare(
         `UPDATE devices SET display_name = ?, platform = ?, app_version = ?, capabilities_json = ?, hub_eligible = ?, protocol_version = ?,
-         registered_at = ?, last_seen_at = NULL, revoked_at = NULL, unenrolled_at = NULL, recovery_trusted = 0 WHERE device_id = ?`,
+         registered_at = ?, last_seen_at = NULL, revoked_at = NULL, unenrolled_at = NULL, recovery_trusted = 0, needs_re_pair = 0 WHERE device_id = ?`,
       ).run(d.displayName, d.platform, d.appVersion, capabilities, hubEligible, d.protocolVersion, at, d.deviceId);
     } else {
       db.prepare(
@@ -98,7 +114,7 @@ export function enrollDevice(db: Db, input: EnrollInput, consumeCode: () => bool
     }
     const keyId = newId(() => input.now);
     db.prepare("INSERT INTO device_keys(key_id, device_id, algorithm, public_key, created_at, revoked_at) VALUES(?, ?, 'ed25519', ?, ?, NULL)").run(keyId, d.deviceId, input.publicKey, at);
-    return { status: 'enrolled', keyId, registeredAt: at, environmentId: environment.environment_id };
+    return { status: 'enrolled', keyId, registeredAt: at, environmentId: environment.environment_id, reattached: reattaching };
   });
 }
 

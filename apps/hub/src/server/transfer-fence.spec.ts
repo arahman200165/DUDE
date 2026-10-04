@@ -93,6 +93,7 @@ describe('transferred Hub fencing', () => {
       ['POST', '/sessions/revoke-all/preview', { ...cookie, body: {} }],
       ['GET', '/audit', cookie],
       ['GET', '/diagnostics', cookie],
+      ['GET', '/backup/status', cookie],
       ['GET', '/reachability/echo', cookie],
       ['GET', '/reachability/echo', bearer],
       ['GET', '/security/alerts', cookie],

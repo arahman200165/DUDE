@@ -34,7 +34,7 @@ export interface Signed { cookie: string; csrf: string; body: any; setCookie: st
 
 export const cookieValueOf = (setCookie: string | undefined): string => /__Host-dude_session=([^;]*)/.exec(setCookie ?? '')?.[1] ?? '';
 
-export async function startAuthHub({ config, rateLimit, ...extra }: Pick<TestHubOptions, 'realtime' | 'sync' | 'rateLimit'> & { config?: Partial<HubConfig> } = {}): Promise<AuthHub> {
+export async function startAuthHub({ config, rateLimit, bootstrapped, ...extra }: Pick<TestHubOptions, 'realtime' | 'sync' | 'rateLimit' | 'backup' | 'dataRoot'> & { config?: Partial<HubConfig>; bootstrapped?: boolean } = {}): Promise<AuthHub> {
   const clock = { t: START };
   const hub = await startTestHub(config ?? {}, {
     now: () => clock.t,
@@ -61,9 +61,13 @@ export async function startAuthHub({ config, rateLimit, ...extra }: Pick<TestHub
     return { status: raw.status, json, raw, setCookie: Array.isArray(sc) ? sc[0] : sc };
   };
 
-  const token = ensureSetupToken(hub.hub.db, hub.paths.configDir, clock.t)!;
-  const boot = await call('POST', '/bootstrap', { body: { setupToken: token, ownerDisplayName: 'Ada', environmentName: 'Home', password: PASSWORD } });
-  if (boot.status !== 201) throw new Error(`bootstrap failed: ${boot.status} ${boot.raw.body}`);
+  // `bootstrapped`: the data root already holds an owner (a restored Hub), so there is nothing to bootstrap.
+  let boot: ApiResult = { status: 201, json: { ownerId: (hub.hub.db.prepare('SELECT owner_id FROM owner LIMIT 1').get() as { owner_id: string } | undefined)?.owner_id ?? '', recoveryCodes: [] }, raw: undefined as never, setCookie: undefined };
+  if (bootstrapped !== true) {
+    const token = ensureSetupToken(hub.hub.db, hub.paths.configDir, clock.t)!;
+    boot = await call('POST', '/bootstrap', { body: { setupToken: token, ownerDisplayName: 'Ada', environmentName: 'Home', password: PASSWORD } });
+    if (boot.status !== 201) throw new Error(`bootstrap failed: ${boot.status} ${boot.raw.body}`);
+  }
 
   const signIn = async (password = PASSWORD): Promise<Signed> => {
     const res = await call('POST', '/auth/sign-in', { body: { password } });

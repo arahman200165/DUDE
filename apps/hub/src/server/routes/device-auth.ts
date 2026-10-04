@@ -9,7 +9,7 @@ import { currentRevision } from '../../db/canonical-repository.js';
 import { getAuthorityEpoch } from '../../hub/authority.js';
 import { createChallenge, redeemChallenge } from '../../devices/device-tokens.js';
 import { ED25519_PUBLIC_KEY_BYTES, ED25519_SIGNATURE_BYTES, decodeBase64url, publicKeyFromRaw, verifyEd25519 } from '../../devices/keys.js';
-import { consumePairingCode, normalizeSubmittedCode, pairingCodeIsLive, recordWrongPairingAttempt } from '../../devices/pairing.js';
+import { consumePairingCode, normalizeSubmittedCode, pairingCodeReattachTarget, recordWrongPairingAttempt } from '../../devices/pairing.js';
 import { enrollDevice } from '../../devices/registry.js';
 import { isRevokedDevice, noteRevokedAttempt } from '../../devices/revoked-attempts.js';
 import { audit } from '../../security/audit.js';
@@ -64,12 +64,14 @@ export function registerDeviceAuthRoutes(app: FastifyInstance, options: DeviceAu
       // Proof of possession: the signature covers this Hub, the code, the device id and the very key being registered.
       const message = enrollMessage({ hubInstanceId: options.hubInstanceId, pairingCode: code, deviceId: body.device.deviceId, publicKey: body.publicKey });
       if (!verifyEd25519(publicKey, message, signature)) return reject('device-signature', 'The device signature is not valid.');
-      if (!pairingCodeIsLive(db, code, now())) {
+      // `undefined`: not live or unknown; `null`: an ordinary code; a string: a re-attach code bound to exactly that device (PD-072).
+      const reattachDeviceId = pairingCodeReattachTarget(db, code, now());
+      if (reattachDeviceId === undefined) {
         recordWrongPairingAttempt(db, now());
         return reject('pairing', 'The pairing code is not valid.');
       }
 
-      const outcome = enrollDevice(db, { device: body.device, publicKey, now: now() }, () => consumePairingCode(db, code, body.device.deviceId, now()));
+      const outcome = enrollDevice(db, { device: body.device, publicKey, now: now(), reattachDeviceId }, () => consumePairingCode(db, code, body.device.deviceId, now()));
       if (outcome.status === 'code-rejected') return reject('pairing', 'The pairing code is not valid.');
       if (outcome.status === 'active-conflict') return reply.code(409).send(envelope('conflict', 'That device is already enrolled.'));
       if (outcome.status === 'key-reused') return reply.code(409).send(envelope('conflict', 'A revoked key cannot be enrolled again; generate a new key.'));
@@ -78,7 +80,7 @@ export function registerDeviceAuthRoutes(app: FastifyInstance, options: DeviceAu
       recordSuccessKeys(db, keys);
       audit(db, {
         event: 'device.enrolled', outcome: 'success', actorKind: 'device', actorId: body.device.deviceId, ip,
-        detail: { deviceId: body.device.deviceId, platform: body.device.platform, protocolVersion: body.device.protocolVersion }, now: now(),
+        detail: { deviceId: body.device.deviceId, platform: body.device.platform, protocolVersion: body.device.protocolVersion, ...(outcome.reattached ? { reattach: true } : {}) }, now: now(),
       });
       app.hubEvents.emit('device-registry-changed', { deviceId: body.device.deviceId, change: 'enrolled' });
       return reply.code(200).send({
