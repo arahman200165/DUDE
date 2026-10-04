@@ -9,7 +9,7 @@ import { createHubServer } from '../server/create-server.js';
 import { createLogStream, hubLoggerOptions } from '../server/logger.js';
 import { existsSync } from 'node:fs';
 import { ensureTlsIdentity } from '../tls/index.js';
-import { defaultCaKeyProtector } from '../tls/ca-key-protector.js';
+import { defaultAcmeKeyProtector, defaultCaKeyProtector } from '../tls/ca-key-protector.js';
 import { localCaExists, rootSha256, readCaCertPem } from '../tls/ca-public.js';
 import { createLeafRenewal } from '../tls/renewal.js';
 import { runTlsCa } from '../service/tls-ca.js';
@@ -18,6 +18,8 @@ import { runSecurityBlocks } from '../service/security-blocks.js';
 import { runSecurityAuditIps } from '../service/security-audit-ips.js';
 import { runTlsNames } from '../service/tls-names.js';
 import { runTlsImport, runTlsProxyPin } from '../service/tls-external.js';
+import { runTlsAcme } from '../service/tls-acme.js';
+import { createAcmeRenewal } from '../tls/acme/acme-renewal.js';
 import { AdminCallError, callAdmin } from '../admin/admin-client.js';
 import { startAdminEndpoint } from '../admin/admin-endpoint.js';
 import { buildAdminMethods } from '../admin/methods.js';
@@ -88,6 +90,13 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   }
   if (parsed.command === 'tls-import') {
     return runTlsImport({ cert: parsed.cert, key: parsed.key, ...(parsed.chain !== undefined ? { chain: parsed.chain } : {}), ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}) });
+  }
+  if (parsed.command === 'tls-acme') {
+    return runTlsAcme({
+      action: parsed.action, ...(parsed.names ? { names: parsed.names } : {}), ...(parsed.email !== undefined ? { email: parsed.email } : {}),
+      ...(parsed.agreeTos ? { agreeTos: true } : {}), ...(parsed.staging ? { staging: true } : {}), ...(parsed.directory !== undefined ? { directory: parsed.directory } : {}),
+      ...(parsed.httpPort !== undefined ? { httpPort: parsed.httpPort } : {}), ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}),
+    });
   }
   if (parsed.command === 'tls-proxy-pin') {
     return runTlsProxyPin({
@@ -182,6 +191,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   const hadIdentity = existsSync(path.join(paths.tlsDir, 'cert.pem')) && existsSync(path.join(paths.tlsDir, 'key.pem'));
   // A NEW identity carries every configured name; an existing one is never replaced silently (devices pin it).
   const caProtector = defaultCaKeyProtector();
+  const acmeProtector = defaultAcmeKeyProtector();
   const hadCa = localCaExists(paths.tlsDir);
   // New Hubs default to the built-in local CA (PD-058); an existing self-signed Hub opts in with "tls ca init".
   const tls = ensureTlsIdentity(paths.tlsDir, { hubInstanceId: hub.hubInstanceId, extraNames: wantedNames, localCa: { protector: caProtector, configuredNames: configuredDnsNames(config) } });
@@ -223,7 +233,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
         db: hub.db, hubVersion: hubVersion(), hubInstanceId: hub.hubInstanceId, bind: config.bind, getPort: () => port, startedAt, configDir: paths.configDir, configFile: paths.configFile, tlsDir: paths.tlsDir, spkiSha256: tls.spkiSha256,
         onNamesChanged: (names) => server.hostGuard.setNames(names),
         hsts: createHstsPolicy({ db: hub.db, tlsDir: paths.tlsDir, proxy: config.exposure.proxy !== undefined }),
-        caProtector,
+        caProtector, acmeProtector,
         tls: createTlsRotation({
           db: hub.db, tlsDir: paths.tlsDir, hubInstanceId: hub.hubInstanceId, caProtector,
           applySecureContext: (context) => (server.server as unknown as TlsServer).setSecureContext(context),
@@ -249,6 +259,14 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     recordCertificate: (certPem, spki) => void hub.db.prepare("UPDATE tls_pins SET cert_pem = ? WHERE state = 'active' AND spki_sha256 = ?").run(certPem, spki),
   });
   renewal.start();
+  // Re-orders an ACME-issued active certificate (same key) within 30 days of expiry; the http-01 listener binds only during an order.
+  const acmeRenewal = createAcmeRenewal({
+    db: hub.db, tlsDir: paths.tlsDir, configFile: paths.configFile, protector: acmeProtector,
+    applySecureContext: (context) => (server.server as unknown as TlsServer).setSecureContext(context),
+    audit: (event, outcome, detail) => audit(hub.db, { event, outcome, actorKind: 'system', detail, now: Date.now() }),
+    recordCertificate: (certPem, spki) => void hub.db.prepare("UPDATE tls_pins SET cert_pem = ? WHERE state = 'active' AND spki_sha256 = ?").run(certPem, spki),
+  });
+  acmeRenewal.start();
   audit(hub.db, { event: 'hub.started', outcome: 'success', actorKind: 'system', detail: { version: hubVersion(), port, bind: config.bind }, now: Date.now() });
   process.stdout.write(`${JSON.stringify({ event: 'listening', url: `https://127.0.0.1:${port}`, spkiSha256: tls.spkiSha256 })}\n`);
 
@@ -260,6 +278,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
       void (async () => {
         let code = EXIT_OK;
         renewal.stop();
+        acmeRenewal.stop();
         try { await admin.close(); } catch { /* best effort */ }
         try { await server.close(); } catch { code = EXIT_FAILURE; }
         try { hub.db.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch { /* best effort */ }

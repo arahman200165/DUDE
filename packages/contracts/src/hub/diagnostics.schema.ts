@@ -25,7 +25,7 @@ export const DiagnosticCheck = Type.Object({
 export type DiagnosticCheck = Static<typeof DiagnosticCheck>;
 
 export const HubDiagnosticsCertificate = Type.Object({
-  source: Type.Union([Type.Literal('self-signed'), Type.Literal('local-ca'), Type.Literal('imported')]),
+  source: Type.Union([Type.Literal('self-signed'), Type.Literal('local-ca'), Type.Literal('imported'), Type.Literal('acme')]),
   subject: Type.String(),
   sans: Type.Array(Type.String()),
   missingNames: Type.Array(Type.String()),

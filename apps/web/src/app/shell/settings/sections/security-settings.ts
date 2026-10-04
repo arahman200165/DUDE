@@ -35,6 +35,8 @@ export const AUDIT_EVENT_LABELS: Readonly<Record<string, string>> = {
   'tls.ca-created': 'Local CA created',
   'tls.renewed': 'Certificate renewed',
   'tls.import-staged': 'Imported certificate staged',
+  'tls.acme-issued': 'ACME certificate staged',
+  'tls.acme-failed': 'ACME certificate request failed',
   'tls.proxy-pin-staged': 'Proxy certificate pin staged',
   'tls.proxy-pin-activated': 'Proxy certificate pin activated',
   'tls.proxy-pin-removed': 'Proxy certificate pin removed',

@@ -22,10 +22,11 @@ export const BASIS_LABEL: Readonly<Record<DiagnosticBasis, string>> = {
   'not-checked': 'Not checked — Phase 31F',
 };
 
-export const SOURCE_LABEL: Readonly<Record<'self-signed' | 'local-ca' | 'imported', string>> = {
+export const SOURCE_LABEL: Readonly<Record<'self-signed' | 'local-ca' | 'imported' | 'acme', string>> = {
   'self-signed': 'Self-signed',
   'local-ca': 'Local CA',
   imported: 'Imported',
+  acme: 'ACME (public CA)',
 };
 
 export const BIND_LABEL: Readonly<Record<HubDiagnosticsReport['exposure']['bind'], string>> = {

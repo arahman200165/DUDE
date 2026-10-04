@@ -76,7 +76,7 @@ export function certificateFacts(tlsDir: string, db: Db | null, hsts: boolean): 
   let pendingAcks = 0;
   if (db !== null) {
     const active = db.prepare("SELECT source FROM tls_pins WHERE state = 'active' LIMIT 1").get() as { source: string } | undefined;
-    if (active?.source === 'imported') source = 'imported';
+    if (active?.source === 'imported' || active?.source === 'acme') source = active.source;
     const next = db.prepare("SELECT spki_sha256 FROM tls_pins WHERE state = 'next' LIMIT 1").get() as { spki_sha256: string } | undefined;
     if (next) {
       nextSpkiSha256 = next.spki_sha256;

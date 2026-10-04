@@ -2,7 +2,7 @@ import type { Db } from '@dude/sqlite-store';
 import type { HubBindMode } from '../config/hub-config.js';
 import { AdminError } from './admin-endpoint.js';
 import type { AdminMethod } from './admin-endpoint.js';
-import { createHash } from 'node:crypto';
+import { X509Certificate, createHash } from 'node:crypto';
 import { transaction } from '@dude/sqlite-store';
 import { ensureSetupToken, createResetToken, pendingResetToken } from '../auth/setup-token.js';
 import { getOwner } from '../auth/owner.js';
@@ -26,6 +26,13 @@ import { createLeafIssuer } from '../tls/leaf-issuer.js';
 import { createLocalCa, validateCaSuffixes } from '../tls/local-ca.js';
 import { configuredDnsNames } from '../tls/names.js';
 import { clearBlock, listBlocks } from '../security/ip-block.js';
+import { acmeAccountKeyExists } from '../tls/acme/account-key.js';
+import { AcmeIssueError, directoryHost, issueAcmeCertificate } from '../tls/acme/acme-issue.js';
+import type { Http01ListenerFactory } from '../tls/acme/acme-issue.js';
+import type { AcmeClientOptions } from '../tls/acme/acme-client.js';
+import { ACME_LAST_ATTEMPT_META, ACME_RENEWAL_WINDOW_DAYS } from '../tls/acme/acme-renewal.js';
+import { DEFAULT_ACME_HTTP_PORT, normalizeAcmeDirectoryUrl } from '../config/hub-config.js';
+import { getMeta } from '@dude/sqlite-store';
 import { getAuditIpMode, isAuditIpMode, setAuditIpMode } from '../security/address-privacy.js';
 
 export interface AdminMethodContext {
@@ -51,6 +58,10 @@ export interface AdminMethodContext {
   /** Called with sessions revoked by an admin action, so the server can emit realtime events. */
   /** Protects the local CA key; enables `tls.ca.init`. Key use is limited to admin-pipe CA commands and the renewal job. */
   caProtector?: CaKeyProtector;
+  /** Protects the ACME account key (own entropy/file); enables `tls.acme.issue`. Key use: the issuance method and the renewal job only. */
+  acmeProtector?: CaKeyProtector;
+  /** TEST-ONLY injection for `tls.acme.issue`. */
+  acmeTest?: { fetchImpl?: typeof fetch; listenerFactory?: Http01ListenerFactory; clientOptions?: Partial<AcmeClientOptions> };
   /** Certificate rotation (dual pin). Absent in contexts that cannot swap the listener. */
   tls?: TlsRotation;
   /** Reverse-proxy leaf pins (separate pin set). */
@@ -109,6 +120,13 @@ export function buildAdminMethods(context: AdminMethodContext): Record<string, A
   const activeCertMissing = (wanted: readonly string[]): string[] => {
     const certFile = context.tlsDir ? path.join(context.tlsDir, 'cert.pem') : null;
     return certFile !== null && existsSync(certFile) ? missingSubjectAltNames(readFileSync(certFile, 'utf8'), wanted) : [];
+  };
+  const acmeError = (error: unknown): never => {
+    if (error instanceof AcmeIssueError) {
+      const code = error.code === 'busy' ? 'conflict' : error.code === 'port-unavailable' ? 'unavailable' : error.code;
+      throw new AdminError(code, error.message);
+    }
+    throw error;
   };
   const flag = (params: unknown, name: string): boolean => (params as Record<string, unknown> | null)?.[name] === true;
   return {
@@ -207,6 +225,67 @@ export function buildAdminMethods(context: AdminMethodContext): Record<string, A
       }
       const staged = rotate(() => rotation().stageExternal({ keyPem: valid.keyPem, certChainPem: valid.certChainPem, source: 'imported' }));
       return { ...staged, notAfter: valid.notAfter, subject: valid.subjectCn, warnings: valid.warnings };
+    },
+    /**
+     * Orders a certificate through ACME (http-01) and STAGES it as the next identity (source `acme`) through the dual-pin
+     * rotation. The http-01 listener is bound only while the order runs. Terms of service need `agreeTos` unless already recorded
+     * for this directory in hub.json.
+     */
+    'tls.acme.issue': async (params) => {
+      const input = (params ?? {}) as { names?: unknown; directoryUrl?: unknown; email?: unknown; agreeTos?: unknown; httpPort?: unknown };
+      if (!Array.isArray(input.names) || input.names.length === 0 || input.names.some((n) => typeof n !== 'string')) throw new AdminError('bad-request', 'names (an array of DNS names) is required.');
+      if (input.directoryUrl !== undefined && typeof input.directoryUrl !== 'string') throw new AdminError('bad-request', 'directoryUrl must be a string.');
+      if (input.email !== undefined && (typeof input.email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email))) throw new AdminError('bad-request', 'email must be an email address.');
+      if (input.agreeTos !== undefined && typeof input.agreeTos !== 'boolean') throw new AdminError('bad-request', 'agreeTos must be true or false.');
+      if (input.httpPort !== undefined && (typeof input.httpPort !== 'number' || !Number.isInteger(input.httpPort) || input.httpPort < 1 || input.httpPort > 65535)) throw new AdminError('bad-request', 'httpPort must be an integer from 1 to 65535.');
+      if (!context.tlsDir || !context.configFile || !context.acmeProtector) throw new AdminError('unavailable', 'ACME is not available in this context.');
+      const saved = loadOrCreateHubConfig(context.configFile).exposure.acme;
+      const directoryRaw = (input.directoryUrl as string | undefined) ?? saved?.directoryUrl;
+      if (directoryRaw === undefined) throw new AdminError('refused', 'No ACME directory is configured. Pass --staging or --directory <url>.');
+      let directoryUrl: string;
+      try { directoryUrl = normalizeAcmeDirectoryUrl(directoryRaw, 'directoryUrl'); } catch (error) { throw new AdminError('bad-request', (error as Error).message); }
+      const alreadyAgreed = saved?.termsAgreedAt !== undefined && saved.directoryUrl === directoryUrl;
+      const email = (input.email as string | undefined) ?? saved?.email;
+      const test = context.acmeTest;
+      try {
+        return await issueAcmeCertificate({
+          names: input.names as string[], directoryUrl, ...(email !== undefined ? { email } : {}),
+          agreeTos: input.agreeTos === true || alreadyAgreed, httpPort: (input.httpPort as number | undefined) ?? saved?.httpPort ?? DEFAULT_ACME_HTTP_PORT,
+          tlsDir: context.tlsDir, rotation: rotation(), protector: context.acmeProtector, configFile: context.configFile,
+          ...(context.onNamesChanged ? { onNamesChanged: context.onNamesChanged } : {}),
+          audit: (event, outcome, detail) => audit(context.db, { event, outcome, actorKind: 'cli', detail, now: now() }),
+          now,
+          ...(test?.fetchImpl ? { fetchImpl: test.fetchImpl } : {}), ...(test?.listenerFactory ? { listenerFactory: test.listenerFactory } : {}),
+          ...(test?.clientOptions ? { clientOptions: test.clientOptions } : {}),
+        });
+      } catch (error) {
+        if (error instanceof RotationError) throw new AdminError(error.code, error.message);
+        return acmeError(error);
+      }
+    },
+    /** ACME read model: configuration, account, the active certificate's source and expiry, the renewal window and the last failure. */
+    'tls.acme.status': () => {
+      const config = context.configFile ? loadOrCreateHubConfig(context.configFile) : null;
+      const acme = config?.exposure.acme;
+      const pin = context.db.prepare("SELECT source, cert_pem FROM tls_pins WHERE state = 'active' LIMIT 1").get() as { source: string; cert_pem: string } | undefined;
+      let notAfter: string | null = null;
+      if (pin) { try { notAfter = new Date(new X509Certificate(pin.cert_pem).validTo).toISOString(); } catch { /* unreadable: reported as unknown */ } }
+      const isAcme = pin?.source === 'acme';
+      const failure = context.db.prepare("SELECT at, detail_json FROM audit_events WHERE event = 'tls.acme-failed' ORDER BY seq DESC LIMIT 1").get() as { at: string; detail_json: string | null } | undefined;
+      const failureDetail = failure?.detail_json ? (JSON.parse(failure.detail_json) as { problem?: string; detail?: string }) : null;
+      const lastAttempt = Number(getMeta(context.db, ACME_LAST_ATTEMPT_META) ?? 0);
+      return {
+        configured: acme !== undefined,
+        directoryHost: acme ? directoryHost(acme.directoryUrl) : null,
+        httpPort: acme ? (acme.httpPort ?? DEFAULT_ACME_HTTP_PORT) : null,
+        termsAgreedAt: acme?.termsAgreedAt ?? null,
+        accountRegistered: acme?.termsAgreedAt !== undefined && context.tlsDir !== undefined && context.acmeProtector !== undefined && acmeAccountKeyExists(context.tlsDir, context.acmeProtector),
+        activeSource: pin?.source ?? null,
+        notAfter,
+        nextRenewalWindow: isAcme && notAfter !== null ? new Date(new Date(notAfter).getTime() - ACME_RENEWAL_WINDOW_DAYS * 86_400_000).toISOString() : null,
+        lastAttemptAt: lastAttempt > 0 ? new Date(lastAttempt).toISOString() : null,
+        lastFailure: failure ? { at: failure.at, problem: failureDetail?.problem ?? null, detail: failureDetail?.detail ?? null } : null,
+      };
     },
     'tls.proxy.list': () => ({ ...proxy().status() }),
     'tls.proxy.add': (params) => rotate(() => proxy().add(text(params, 'pin'))),

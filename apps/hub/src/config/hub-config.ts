@@ -17,7 +17,24 @@ export interface HubExposureConfig {
   canonicalOrigin?: string;
   /** Reverse-proxy mode (PD-058): only `trusted` peers may supply forwarded client address, host and protocol. */
   proxy?: HubProxyConfig;
+  /** ACME (RFC 8555) certificate source (31F). Absent means not configured. */
+  acme?: HubAcmeConfig;
 }
+
+export interface HubAcmeConfig {
+  /** `https://` ACME directory (plain http only for a loopback test CA). */
+  directoryUrl: string;
+  /** Optional account contact. */
+  email?: string;
+  /** Port of the http-01 responder, bound only during an order (default 80). */
+  httpPort?: number;
+  /** When the operator agreed to the CA's terms (ISO). Set only by an issuance run with `--agree-tos`. */
+  termsAgreedAt?: string;
+}
+
+export const DEFAULT_ACME_HTTP_PORT = 80;
+export const LETS_ENCRYPT_DIRECTORY = 'https://acme-v02.api.letsencrypt.org/directory';
+export const LETS_ENCRYPT_STAGING_DIRECTORY = 'https://acme-staging-v02.api.letsencrypt.org/directory';
 
 export interface HubProxyConfig {
   /** 1 to 16 IP literals or CIDRs of the proxy hop(s) allowed to set `X-Forwarded-*` (one hop is trusted). */
@@ -37,7 +54,8 @@ export const MAX_EXPOSURE_NAMES = 32;
 const BIND_MODES: readonly HubBindMode[] = ['loopback', 'lan', 'container'];
 const EXPOSURE_MODES: readonly HubExposureMode[] = ['private', 'public'];
 const KNOWN_KEYS = new Set(['port', 'bind', 'webRoot', 'exposure']);
-const EXPOSURE_KEYS = new Set(['mode', 'names', 'canonicalOrigin', 'proxy']);
+const EXPOSURE_KEYS = new Set(['mode', 'names', 'canonicalOrigin', 'proxy', 'acme']);
+const ACME_KEYS = new Set(['directoryUrl', 'email', 'httpPort', 'termsAgreedAt']);
 const PROXY_KEYS = new Set(['trusted', 'publicOrigin']);
 export const MAX_TRUSTED_PROXIES = 16;
 const DNS_LABEL = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
@@ -143,6 +161,40 @@ function parseProxy(raw: unknown, names: readonly string[]): HubProxyConfig {
   return { trusted: normalized, publicOrigin };
 }
 
+/** Validates an ACME directory URL: https, or http only on a loopback host (a local test CA). Returns the normalized URL. */
+export function normalizeAcmeDirectoryUrl(raw: string, key = 'exposure.acme.directoryUrl'): string {
+  let url: URL;
+  try { url = new URL(raw); } catch { throw new Error(`Hub config "${key}" "${raw}" is not a valid URL.`); }
+  const loopback = url.hostname === 'localhost' || url.hostname === '[::1]' || /^127(\.\d{1,3}){3}$/.test(url.hostname);
+  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && loopback)) throw new Error(`Hub config "${key}" must be an https URL.`);
+  if (url.username !== '' || url.password !== '' || url.hash !== '') throw new Error(`Hub config "${key}" must not contain credentials or a fragment.`);
+  return url.toString();
+}
+
+export function normalizeAcmeConfig(raw: unknown): HubAcmeConfig {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) throw new Error('Hub config "exposure.acme" must be an object.');
+  const record = raw as Record<string, unknown>;
+  for (const key of Object.keys(record)) if (!ACME_KEYS.has(key)) throw new Error(`Hub config "exposure.acme" has an unknown key "${key}".`);
+  if (typeof record['directoryUrl'] !== 'string') throw new Error('Hub config "exposure.acme.directoryUrl" must be a string.');
+  const acme: HubAcmeConfig = { directoryUrl: normalizeAcmeDirectoryUrl(record['directoryUrl']) };
+  if (record['email'] !== undefined) {
+    const email = record['email'];
+    if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) throw new Error('Hub config "exposure.acme.email" must be an email address.');
+    acme.email = email;
+  }
+  if (record['httpPort'] !== undefined) {
+    const port = record['httpPort'];
+    if (typeof port !== 'number' || !Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Hub config "exposure.acme.httpPort" must be an integer from 1 to 65535.');
+    acme.httpPort = port;
+  }
+  if (record['termsAgreedAt'] !== undefined) {
+    const at = record['termsAgreedAt'];
+    if (typeof at !== 'string' || Number.isNaN(Date.parse(at))) throw new Error('Hub config "exposure.acme.termsAgreedAt" must be an ISO date string.');
+    acme.termsAgreedAt = at;
+  }
+  return acme;
+}
+
 function parseExposure(raw: unknown): HubExposureConfig {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) throw new Error('Hub config "exposure" must be an object.');
   const record = raw as Record<string, unknown>;
@@ -170,6 +222,7 @@ function parseExposure(raw: unknown): HubExposureConfig {
     exposure.canonicalOrigin = parseCanonicalOrigin(origin, exposure.names);
   }
   if (record['proxy'] !== undefined) exposure.proxy = parseProxy(record['proxy'], exposure.names);
+  if (record['acme'] !== undefined) exposure.acme = normalizeAcmeConfig(record['acme']);
   return exposure;
 }
 
@@ -224,7 +277,7 @@ export function writeHubConfig(file: string, config: HubConfig): void {
   mkdirSync(path.dirname(file), { recursive: true });
   const tmp = `${file}.${randomBytes(4).toString('hex')}.tmp`;
   const { exposure, ...rest } = config;
-  const isDefault = exposure.mode === 'private' && exposure.names.length === 0 && exposure.canonicalOrigin === undefined && exposure.proxy === undefined;
+  const isDefault = exposure.mode === 'private' && exposure.names.length === 0 && exposure.canonicalOrigin === undefined && exposure.proxy === undefined && exposure.acme === undefined;
   writeFileSync(tmp, JSON.stringify(isDefault ? rest : { ...rest, exposure }, null, 2) + '\n');
   renameSync(tmp, file);
 }

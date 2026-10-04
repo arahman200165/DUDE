@@ -64,7 +64,7 @@ const DAY_MS = 86_400_000;
 function certificateSection(facts: DiagnosticsCertificateFacts, wanted: readonly string[], now: number): HubDiagnosticsCertificate {
   const cert = new X509Certificate(facts.pem);
   const notAfter = new Date(cert.validTo);
-  const automatic = facts.source === 'local-ca';
+  const automatic = facts.source === 'local-ca' || facts.source === 'acme';
   const windowStart = notAfter.getTime() - RENEWAL_WINDOW_DAYS * DAY_MS;
   return {
     source: facts.source,
@@ -79,7 +79,7 @@ function certificateSection(facts: DiagnosticsCertificateFacts, wanted: readonly
     pendingAcks: facts.pendingAcks,
     chainLength: facts.chainLength,
     ca: facts.ca,
-    // The renewal job re-certifies a CA-issued leaf (same key) every 12 h once inside the 30-day window.
+    // The renewal jobs re-certify a CA-issued leaf, or re-order an ACME one, with the same key every 12 h once inside the 30-day window.
     renewal: { automatic, nextCheckAt: automatic && windowStart > now ? new Date(windowStart).toISOString() : null },
     hsts: facts.hsts,
   };
@@ -111,7 +111,7 @@ export async function collectDiagnostics(deps: DiagnosticsDeps): Promise<HubDiag
   // certificate-valid
   if (certificate === null) checks.push(check('certificate-valid', 'Certificate is valid', 'fail', 'verified', 'No active certificate was found.', 'dude-hub run'));
   else {
-    const renewFix = certificate.source === 'imported' ? 'dude-hub tls import --cert <file> --key <file>' : 'dude-hub tls rotate';
+    const renewFix = certificate.source === 'imported' ? 'dude-hub tls import --cert <file> --key <file>' : certificate.source === 'acme' ? 'dude-hub tls acme status' : 'dude-hub tls rotate';
     if (certificate.daysLeft < 0) checks.push(check('certificate-valid', 'Certificate is valid', 'fail', 'verified', `The certificate expired on ${certificate.notAfter.slice(0, 10)}.`, renewFix));
     else if (certificate.daysLeft < RENEWAL_WINDOW_DAYS && !certificate.renewal.automatic) checks.push(check('certificate-valid', 'Certificate is valid', 'warn', 'verified', `Expires in ${certificate.daysLeft} days (${certificate.notAfter.slice(0, 10)}); it is not renewed automatically.`, renewFix));
     else checks.push(check('certificate-valid', 'Certificate is valid', 'pass', 'verified', `Valid until ${certificate.notAfter.slice(0, 10)} (${certificate.daysLeft} days${certificate.renewal.automatic ? ', renewed automatically' : ''}).`));
@@ -127,6 +127,7 @@ export async function collectDiagnostics(deps: DiagnosticsDeps): Promise<HubDiag
   // certificate-trustable
   if (certificate === null) checks.push(check('certificate-trustable', 'Certificate is browser-trusted', 'info', 'not-checked', 'No certificate.'));
   else if (certificate.source === 'imported') checks.push(check('certificate-trustable', 'Certificate is browser-trusted', 'pass', 'claimed', 'Imported certificate; browsers trust it if its chain is publicly or locally trusted.'));
+  else if (certificate.source === 'acme') checks.push(check('certificate-trustable', 'Certificate is browser-trusted', 'pass', 'claimed', 'Issued through ACME; browsers trust it if the CA is publicly trusted (the chain is not yet verified against public roots).'));
   else if (certificate.source === 'local-ca') checks.push(check('certificate-trustable', 'Certificate is browser-trusted', 'info', 'claimed', 'Issued by the Hub local CA; install the root certificate on each device or browser that opens the Hub.', 'dude-hub tls ca export'));
   else {
     const exposed = config.bind !== 'loopback' || config.exposure.names.length > 0;

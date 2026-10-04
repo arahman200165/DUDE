@@ -84,6 +84,7 @@ describe('collectDiagnostics', () => {
     expect(lan['certificate-trustable']).toMatchObject({ status: 'warn', fix: 'dude-hub tls ca init' });
     expect((await byId(deps({}, { source: 'local-ca' })))['certificate-trustable']).toMatchObject({ status: 'info', fix: 'dude-hub tls ca export' });
     expect((await byId(deps({}, { source: 'imported' })))['certificate-trustable']).toMatchObject({ status: 'pass', basis: 'claimed' });
+    expect((await byId(deps({}, { source: 'acme' })))['certificate-trustable']).toMatchObject({ status: 'pass', basis: 'claimed' });
   });
 
   it('next-pin-pending: info with the pending count while a pin awaits acknowledgements', async () => {

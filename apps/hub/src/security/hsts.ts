@@ -3,7 +3,7 @@ import { describeCertificateSource } from '../tls/ca-public.js';
 
 /**
  * HSTS is sent only when browsers can actually trust the origin: the active certificate came from the Hub's local CA
- * (once installed) or was imported, or the Hub sits behind a reverse proxy that terminates TLS with its own
+ * (once installed) or was imported or issued by ACME, or the Hub sits behind a reverse proxy that terminates TLS with its own
  * certificate (PD-057). On a self-signed certificate a one-year HSTS would lock a browser into an error page it cannot
  * click through, so it is omitted.
  */
@@ -18,7 +18,7 @@ export function createHstsPolicy(options: { db: Db; tlsDir: string; proxy: boole
     const key = `${row.spki_sha256}:${row.source}`;
     let trustable = cache.get(key);
     if (trustable === undefined) {
-      trustable = row.source === 'imported' || row.source === 'local-ca' || describeCertificateSource(options.tlsDir, row.cert_pem).source === 'local-ca';
+      trustable = row.source === 'imported' || row.source === 'acme' || row.source === 'local-ca' || describeCertificateSource(options.tlsDir, row.cert_pem).source === 'local-ca';
       cache.set(key, trustable);
     }
     return trustable;

@@ -30,8 +30,9 @@ export function registerTlsAuditRoutes(app: FastifyInstance, options: TlsAuditRo
       if (!active) return reply.code(404).send(envelope('not-found', 'No active certificate.'));
       // Public data only: the root certificate, never a key (this module must not import the CA key protector).
       const derived = describeCertificateSource(options.tlsDir, active.certPem);
-      // `imported` cannot be derived from the files: it is recorded on the pin when the operator stages the import.
-      const source = rows.find((r) => r.state === 'active')?.source === 'imported' ? 'imported' : derived.source;
+      // `imported` and `acme` cannot be derived from the files: it is recorded on the pin when the operator stages the import.
+      const recorded = rows.find((r) => r.state === 'active')?.source;
+      const source = recorded === 'imported' || recorded === 'acme' ? recorded : derived.source;
       return reply.code(200).send({
         active, next: pick('next'), source, caCertPem: derived.caCertPem, leafNotAfter: new Date(new X509Certificate(active.certPem).validTo).toISOString(),
         proxySpkiSha256: proxyPinSpkis(db),

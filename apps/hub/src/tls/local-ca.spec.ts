@@ -436,7 +436,7 @@ describe('rotation and admin commands with a local CA', () => {
 });
 
 describe('key-use isolation', () => {
-  it('no Hub request-handling module imports the CA key code', () => {
+  it('no Hub request-handling module imports the CA key code or the ACME account key code', () => {
     const root = path.join(__dirname, '..');
     const offenders: string[] = [];
     const walk = (dir: string): void => {
@@ -444,7 +444,7 @@ describe('key-use isolation', () => {
         const full = path.join(dir, entry.name);
         if (entry.isDirectory()) walk(full);
         else if (entry.name.endsWith('.ts') && !entry.name.endsWith('.spec.ts') && /\/(server|auth|devices|realtime|security|sync)\//.test(full.replace(/\\/g, '/'))) {
-          if (/(local-ca|ca-key-protector|renewal|leaf-issuer|identity)\.js'/.test(readFileSync(full, 'utf8'))) offenders.push(path.relative(root, full));
+          if (/(local-ca|ca-key-protector|renewal|leaf-issuer|identity|account-key|acme-issue|acme-renewal)\.js'/.test(readFileSync(full, 'utf8'))) offenders.push(path.relative(root, full));
         }
       }
     };

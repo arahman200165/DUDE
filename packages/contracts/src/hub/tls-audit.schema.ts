@@ -4,7 +4,7 @@ const SpkiSha256 = Type.String({ pattern: '^[A-Za-z0-9_-]{43}$' });
 const PinnedCertificate = Type.Object({ spkiSha256: SpkiSha256, certPem: Type.String() });
 
 /** Where the active leaf comes from. A later 31E milestone may grow this with `proxy`. */
-export const TlsCertificateSource = Type.Union([Type.Literal('self-signed'), Type.Literal('local-ca'), Type.Literal('imported')]);
+export const TlsCertificateSource = Type.Union([Type.Literal('self-signed'), Type.Literal('local-ca'), Type.Literal('imported'), Type.Literal('acme')]);
 export type TlsCertificateSource = Static<typeof TlsCertificateSource>;
 
 /**

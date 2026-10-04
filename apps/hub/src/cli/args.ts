@@ -8,6 +8,7 @@ export type ParsedCommand =
   | { command: 'tls'; action: 'status' | 'rotate' | 'activate'; dataDir?: string; restage?: boolean; force?: boolean; confirm?: string }
   | { command: 'tls-ca'; action: 'init' | 'status' | 'export'; suffixes?: string[]; out?: string; dataDir?: string; installDir?: string }
   | { command: 'tls-import'; cert: string; key: string; chain?: string; dataDir?: string; installDir?: string }
+  | { command: 'tls-acme'; action: 'issue' | 'status'; names?: string[]; email?: string; agreeTos?: boolean; staging?: boolean; directory?: string; httpPort?: number; dataDir?: string; installDir?: string }
   | { command: 'tls-proxy-pin'; action: 'add' | 'remove' | 'list' | 'activate'; value?: string; force?: boolean; confirm?: string; dataDir?: string; installDir?: string }
   | { command: 'security-blocks'; action: 'list' | 'clear'; ip?: string; dataDir?: string; installDir?: string }
   | { command: 'security-audit-ips'; mode?: 'full' | 'truncated'; dataDir?: string; installDir?: string }
@@ -37,6 +38,8 @@ Usage:
   dude-hub tls ca status [--data-dir <dir>]
   dude-hub tls ca export [--out <file.cer>] [--data-dir <dir>]
   dude-hub tls import --cert <pem> --key <pem> [--chain <pem>] [--data-dir <dir>] [--install-dir <dir>]   (validates and stages an operator certificate)
+  dude-hub tls acme issue --name <dns> [--name <dns>]... [--email <e>] [--agree-tos] [--staging | --directory <https-url>] [--http-port <n>] [--data-dir <dir>] [--install-dir <dir>]   (orders a certificate over ACME http-01 and stages it; port 80 must be reachable from the Internet for the CA)
+  dude-hub tls acme status [--data-dir <dir>]
   dude-hub tls proxy-pin add <pem-or-spki> [--data-dir <dir>] [--install-dir <dir>]   (reverse proxy: stages the proxy's leaf pin)
   dude-hub tls proxy-pin activate [--force] [--confirm <token>] [--data-dir <dir>]
   dude-hub tls proxy-pin remove <spki> [--confirm <token>] [--data-dir <dir>]
@@ -144,6 +147,38 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
     const values = parseFlags(rest.slice(1), ['--cert', '--key', '--chain', '--data-dir', '--install-dir'], []);
     if (values['--cert'] === undefined || values['--key'] === undefined) throw new UsageError('Usage: dude-hub tls import --cert <pem> --key <pem> [--chain <pem>].');
     return { command: 'tls-import', cert: values['--cert'], key: values['--key'], ...optional(values, '--chain', 'chain'), ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir') };
+  }
+  if (command === 'tls' && rest[0] === 'acme') {
+    const action = rest[1];
+    if (action !== 'issue' && action !== 'status') throw new UsageError('Usage: dude-hub tls acme issue --name <dns> [--agree-tos] [--staging]|status. Run "dude-hub help".');
+    const names: string[] = [];
+    const flags: string[] = [];
+    const tail = rest.slice(2);
+    for (let i = 0; i < tail.length; i++) {
+      const flag = tail[i]!;
+      if (action === 'issue' && (flag === '--name' || flag.startsWith('--name='))) {
+        const value = flag === '--name' ? tail[++i] : flag.slice('--name='.length);
+        if (value === undefined || value === '' || value.startsWith('--')) throw new UsageError('Flag --name needs a value.');
+        names.push(value);
+      } else flags.push(flag);
+    }
+    if (action === 'status') {
+      const values = parseFlags(flags, ['--data-dir'], []);
+      return { command: 'tls-acme', action, ...optional(values, '--data-dir', 'dataDir') };
+    }
+    if (names.length === 0) throw new UsageError('Usage: dude-hub tls acme issue --name <dns> [--name <dns>]... [--agree-tos] [--staging].');
+    const values = parseFlags(flags, ['--email', '--agree-tos', '--staging', '--directory', '--http-port', '--data-dir', '--install-dir'], ['--agree-tos', '--staging']);
+    if (values['--staging'] !== undefined && values['--directory'] !== undefined) throw new UsageError('Use either --staging or --directory <url>, not both.');
+    let httpPort: number | undefined;
+    if (values['--http-port'] !== undefined) {
+      httpPort = Number(values['--http-port']);
+      if (!/^[0-9]{1,5}$/.test(values['--http-port']) || httpPort < 1 || httpPort > 65535) throw new UsageError('Flag --http-port must be an integer from 1 to 65535.');
+    }
+    return {
+      command: 'tls-acme', action, names, ...(values['--agree-tos'] !== undefined ? { agreeTos: true } : {}), ...(values['--staging'] !== undefined ? { staging: true } : {}),
+      ...optional(values, '--email', 'email'), ...optional(values, '--directory', 'directory'), ...(httpPort !== undefined ? { httpPort } : {}),
+      ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir'),
+    };
   }
   if (command === 'tls' && rest[0] === 'proxy-pin') {
     const action = rest[1];

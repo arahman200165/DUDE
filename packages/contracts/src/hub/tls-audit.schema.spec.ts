@@ -9,10 +9,11 @@ describe('TlsCertificatesResponse', () => {
   it('accepts self-signed and local-ca responses (the CA root is public PEM or null)', () => {
     expect(Value.Check(TlsCertificatesResponse, valid)).toBe(true);
     expect(Value.Check(TlsCertificatesResponse, { ...valid, next: pinned, source: 'local-ca', caCertPem: pinned.certPem })).toBe(true);
+    expect(Value.Check(TlsCertificatesResponse, { ...valid, source: 'acme' })).toBe(true);
   });
   it.each([
     ['missing source', { ...valid, source: undefined }],
-    ['unknown source', { ...valid, source: 'acme' }],
+    ['unknown source', { ...valid, source: 'letsencrypt' }],
     ['missing caCertPem', { ...valid, caCertPem: undefined }],
     ['non-string caCertPem', { ...valid, caCertPem: 5 }],
     ['missing leafNotAfter', { ...valid, leafNotAfter: undefined }],

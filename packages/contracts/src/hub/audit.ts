@@ -13,7 +13,7 @@ export const HUB_AUDIT_EVENTS = [
   'device.recovery-trust-changed', 'device.token-issued',
   'auth.failure',
   'tls.rotation-staged', 'tls.rotation-activated', 'tls.names-changed', 'tls.ca-created', 'tls.renewed',
-  'tls.import-staged', 'tls.proxy-pin-staged', 'tls.proxy-pin-activated', 'tls.proxy-pin-removed',
+  'tls.import-staged', 'tls.acme-issued', 'tls.acme-failed', 'tls.proxy-pin-staged', 'tls.proxy-pin-activated', 'tls.proxy-pin-removed',
   'network.mode-changed', 'network.proxy-changed', 'network.exposure-mode-changed', 'throttle.locked', 'security.ip-blocked', 'security.ip-unblocked', 'security.audit-ips-changed', 'purge.previewed', 'purge.applied',
   'sync.pushed', 'sync.snapshot', 'sync.state-reported', 'sync.compacted',
   'sync.environment-clear-previewed', 'sync.environment-cleared',

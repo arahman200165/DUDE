@@ -111,7 +111,7 @@ export function createTlsRotation(options: TlsRotationOptions) {
    * Stages an operator-supplied (already validated) key and certificate chain as the `next` identity. Refuses while a next pin exists.
    * The source is recorded on the pin row so the active identity keeps reporting `imported` after activation.
    */
-  function stageExternal(input: { keyPem: string; certChainPem: string; source: 'imported' }): { spkiSha256: string; source: 'imported' } {
+  function stageExternal(input: { keyPem: string; certChainPem: string; source: 'imported' | 'acme' }): { spkiSha256: string; source: 'imported' | 'acme' } {
     if (pin('next')) throw new RotationError('conflict', 'A next certificate is already staged. Run "dude-hub tls activate" first.');
     const spki = spkiSha256(input.certChainPem);
     if (spkiSha256(input.keyPem) !== spki) throw new RotationError('bad-request', 'The private key does not match the certificate.');
@@ -125,10 +125,13 @@ export function createTlsRotation(options: TlsRotationOptions) {
     transaction(db, () => {
       if (existing) db.prepare('DELETE FROM tls_pins WHERE spki_sha256 = ?').run(spki);
       db.prepare("INSERT INTO tls_pins(spki_sha256, cert_pem, key_ref, state, created_at, activated_at, source) VALUES(?, ?, ?, 'next', ?, NULL, ?)").run(spki, leafPem, NEXT_KEY_FILE, at, input.source);
-      audit(db, {
-        event: 'tls.import-staged', outcome: 'success', actorKind: 'cli',
-        detail: { spki, notAfter: new Date(leaf.validTo).toISOString(), subject: /CN=([^\n,]*)/.exec(leaf.subject)?.[1]?.trim() ?? '' }, now: now(),
-      });
+      // An ACME staging is audited by the issuance code (`tls.acme-issued`), so it is not double-counted as an import.
+      if (input.source === 'imported') {
+        audit(db, {
+          event: 'tls.import-staged', outcome: 'success', actorKind: 'cli',
+          detail: { spki, notAfter: new Date(leaf.validTo).toISOString(), subject: /CN=([^\n,]*)/.exec(leaf.subject)?.[1]?.trim() ?? '' }, now: now(),
+        });
+      }
     });
     options.announceNext?.(spki);
     return { spkiSha256: spki, source: input.source };
