@@ -13,7 +13,7 @@
     "device-doc": 33,
     "regex-heuristic (review flag)": 49,
     "agent-table": 17,
-    "hub-table": 24,
+    "hub-table": 25,
     "setting-definition": 2,
     "policy-rule": 775,
     "entity-codec": 10
@@ -1711,6 +1711,21 @@
       "scope": "environment",
       "sensitivity": "non-sensitive",
       "note": "per-category Hub web access toggles (no content)",
+      "classificationBasis": "hub-table",
+      "syncConsent": "not granted"
+    },
+    {
+      "source": "apps/hub/src/db/migrations/0006-ip-blocks.ts",
+      "line": 13,
+      "operation": "CREATE TABLE ip_blocks",
+      "namespace": null,
+      "key": "ip_blocks",
+      "storage": "Hub database (node:sqlite)",
+      "storageLocation": "data/dude.db table ip_blocks",
+      "retention": "existing per-table policy",
+      "scope": "local-only",
+      "sensitivity": "sensitive",
+      "note": "Hub-private temporary address blocks after repeated failures",
       "classificationBasis": "hub-table",
       "syncConsent": "not granted"
     },

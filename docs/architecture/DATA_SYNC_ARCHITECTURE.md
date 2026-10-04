@@ -307,7 +307,7 @@ The Hub's canonical database is `data/dude.db`, opened by the Hub process alone 
 | Sessions | `sessions` | Hashed cookie and device-bound bearer sessions with idle and absolute expiry |
 | Devices | `devices`, `device_keys`, `device_tokens`, `challenges`, `pairing_codes` | The registry (including the recovery-trust flag), Ed25519 public keys, hashed access tokens, single-use challenges and pairing codes |
 | TLS | `tls_pins`, `tls_pin_acks` | Active, next and retired certificate pins and per-device acknowledgements |
-| Hardening | `throttle`, `audit_events` | Persisted failure throttles; the append-only audit log (closed event list, credential-free details, retained 365 days or 100,000 events) |
+| Hardening | `throttle`, `ip_blocks`, `audit_events` | Persisted failure throttles and temporary address blocks; the append-only audit log (closed event list, credential-free details, retained 365 days or 100,000 events) |
 | Canonical records | `records`, `change_feed`, `applied_ops` | Entity rows keyed by environment, type and ID with revision, tombstone and schema version; the global monotonic change feed; applied op IDs for duplicate suppression |
 | Sync (0003) | `device_sync_state`; `meta` keys `sync_floor` and `sync_retention_days`; a `records(environment_id, revision)` index | Per-device reported cursor, counts, consent and last push/pull times; the compaction floor and retention |
 

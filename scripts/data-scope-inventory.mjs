@@ -199,6 +199,7 @@ const hubTables = {
   pairing_codes: ['local-only', 'Hub-private pairing code hashes'],
   setup_state: ['local-only', 'Hub-private first-run setup token hash'],
   throttle: ['local-only', 'Hub-private authentication throttling counters'],
+  ip_blocks: ['local-only', 'Hub-private temporary address blocks after repeated failures'],
   audit_events: ['local-only', 'Hub-private audit trail; never carries credentials or payloads'],
   tls_pins: ['local-only', 'Hub-private TLS certificate pin lifecycle'],
   tls_pin_acks: ['local-only', 'Hub-private per-device TLS pin acknowledgements'],
