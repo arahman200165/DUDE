@@ -32,6 +32,15 @@ describe('desktop Hub admin adapter', () => {
     await expect(admin.diagnostics()).resolves.toMatchObject({ exposure: { mode: 'private' } });
   });
 
+  it('passes security alerts through the owner bridge', async () => {
+    const hub = fakeHub();
+    const admin = createDesktopHubAdmin(() => hub);
+    await expect(admin.listSecurityAlerts()).rejects.toMatchObject({ code: 'unauthorized' });
+    await admin.ownerSignIn('correct horse battery');
+    await expect(admin.listSecurityAlerts()).resolves.toEqual({ alerts: [], unseen: 0, seenSeq: 0 });
+    await expect(admin.markSecurityAlertsSeen(3)).resolves.toEqual({ ok: true });
+  });
+
   it('carries retryAfterMs from a locked result', async () => {
     const hub = { ...fakeHub(), ownerSignIn: async () => ({ ok: false as const, error: { code: 'locked', message: 'Too many attempts.', retryAfterMs: 30_000 } }) };
     const admin = createDesktopHubAdmin(() => hub);
@@ -84,7 +93,8 @@ describe('desktop Hub admin adapter', () => {
   });
 
   it('keeps the hub-web-only methods unavailable', async () => {
-    const admin = createDesktopHubAdmin(() => fakeHub());
+    const hub = fakeHub();
+    const admin = createDesktopHubAdmin(() => hub);
     await expect(admin.signIn('x')).rejects.toMatchObject({ code: 'unavailable' });
     await expect(admin.currentSession()).rejects.toMatchObject({ code: 'unavailable' });
   });

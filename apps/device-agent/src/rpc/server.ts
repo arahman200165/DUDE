@@ -395,6 +395,8 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
     'hub.owner.revokeAllPreview': () => owner((api, t) => api.revokeAllPreview(t)),
     'hub.owner.revokeAll': (p) => owner((api, t) => api.revokeAll(t, str(p.confirmToken, 'confirmToken'))),
     'hub.owner.listAudit': (p) => owner((api, t) => api.listAudit(t, { ...(p.beforeSeq === undefined ? {} : { beforeSeq: Number(p.beforeSeq) }), ...(p.limit === undefined ? {} : { limit: Number(p.limit) }) })),
+    'hub.owner.listSecurityAlerts': () => owner((api, t) => api.listSecurityAlerts(t)),
+    'hub.owner.markSecurityAlertsSeen': (p) => owner((api, t) => api.markSecurityAlertsSeen(t, Number(p.upToSeq))),
     'hub.owner.recoveryCodesPreview': () => owner((api, t) => api.recoveryCodesPreview(t)),
     'hub.owner.regenerateRecoveryCodes': (p) => owner((api, t) => api.regenerateRecoveryCodes(t, str(p.confirmToken, 'confirmToken'))),
     'hub.owner.changePassword': (p) => owner((api, t) => api.changePassword(t, str(p.currentPassword, 'currentPassword'), str(p.newPassword, 'newPassword'))),

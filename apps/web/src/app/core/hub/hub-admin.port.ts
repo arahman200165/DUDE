@@ -1,5 +1,5 @@
 import type {
-  AuditListResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary, HubDiagnosticsReport, TlsCertificatesResponse,
+  AuditListResponse, SecurityAlertsResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary, HubDiagnosticsReport, TlsCertificatesResponse,
   OwnerResetResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SignInResponse,
 } from '@dude/contracts/hub';
 import type { AgentDiagnostics } from '@dude/contracts';
@@ -52,6 +52,9 @@ export interface HubAdminPort {
   revokeAllPreview(): Promise<ConfirmPreview>;
   revokeAll(confirmToken: string): Promise<OkResponse>;
   listAudit(beforeSeq?: number): Promise<AuditListResponse>;
+  /** Owner only: recent security-relevant audit events, with how many the owner has not yet seen. */
+  listSecurityAlerts(): Promise<SecurityAlertsResponse>;
+  markSecurityAlertsSeen(upToSeq: number): Promise<OkResponse>;
   recoveryCodesPreview(): Promise<ConfirmPreview>;
   regenerateRecoveryCodes(confirmToken: string): Promise<RecoveryCodesResponse>;
   changePassword(currentPassword: string, newPassword: string): Promise<OkResponse>;

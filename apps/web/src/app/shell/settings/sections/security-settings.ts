@@ -1,5 +1,5 @@
 import { Component, DestroyRef, inject, signal } from '@angular/core';
-import type { AuditListEvent, ConfirmPreview, SessionInfo } from '@dude/contracts/hub';
+import type { AuditListEvent, ConfirmPreview, SecurityAlert, SessionInfo } from '@dude/contracts/hub';
 import { HubAdminError } from '../../../core/hub/hub-admin.port';
 import { HUB_ADMIN } from '../../../core/hub/hub-admin.token';
 import { HubWebSignOut } from '../../../core/hub-web/hub-web-sign-out.service';
@@ -47,6 +47,11 @@ export const AUDIT_EVENT_LABELS: Readonly<Record<string, string>> = {
   'web.attached': 'Browser attached',
   'web.access-changed': 'Web access changed',
   'hub.diagnostics-viewed': 'Endpoint diagnostics viewed',
+  'security.ip-blocked': 'Address blocked',
+  'security.ip-unblocked': 'Address unblocked',
+  'security.audit-ips-changed': 'Audit address recording changed',
+  'owner.step-up': 'Owner confirmed with password',
+  'session.rotated': 'Session renewed',
 };
 
 export function auditEventLabel(event: string): string {
@@ -131,6 +136,13 @@ export class SecuritySettings {
   protected readonly auditBusy = signal(false);
   protected readonly auditError = signal('');
 
+  protected readonly alerts = signal<readonly SecurityAlert[]>([]);
+  protected readonly alertsUnseen = signal(0);
+  protected readonly alertsSeenSeq = signal(0);
+  protected readonly alertsLoaded = signal(false);
+  protected readonly alertsBusy = signal(false);
+  protected readonly alertsError = signal('');
+
   protected readonly auditLabel = auditEventLabel;
   protected readonly auditDetail = auditDetailText;
   protected readonly shortAgent = shortUserAgent;
@@ -146,6 +158,38 @@ export class SecuritySettings {
     void this.loadSessions();
     void this.loadRemainingCodes();
     void this.loadAudit(true);
+    void this.loadAlerts();
+  }
+
+  protected async loadAlerts(): Promise<void> {
+    try {
+      const result = await this.admin.listSecurityAlerts();
+      this.alerts.set(result.alerts);
+      this.alertsUnseen.set(result.unseen);
+      this.alertsSeenSeq.set(result.seenSeq);
+      this.alertsError.set('');
+    } catch (e) {
+      this.alertsError.set(describeHubError(e).message);
+    } finally {
+      this.alertsLoaded.set(true);
+    }
+  }
+
+  protected isUnseen(alert: SecurityAlert): boolean {
+    return alert.seq > this.alertsSeenSeq();
+  }
+
+  protected async markAlertsSeen(): Promise<void> {
+    if (this.alertsBusy() || this.alerts().length === 0) return;
+    this.alertsBusy.set(true);
+    try {
+      await this.admin.markSecurityAlertsSeen(Math.max(...this.alerts().map((a) => a.seq)));
+      await this.loadAlerts();
+    } catch (e) {
+      this.alertsError.set(describeHubError(e).message);
+    } finally {
+      this.alertsBusy.set(false);
+    }
   }
 
   protected async loadSessions(): Promise<void> {

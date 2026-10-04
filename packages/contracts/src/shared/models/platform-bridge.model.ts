@@ -1,4 +1,4 @@
-import type { AuditListResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, OkResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SyncSummary, HubDiagnosticsReport } from "../../hub/index.js";
+import type { AuditListResponse, SecurityAlertsResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, OkResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SyncSummary, HubDiagnosticsReport } from "../../hub/index.js";
 import type { LlmChatRequest, LlmChatResult } from "./llm-chat.model.js";
 import type { SnapshotDiff, SnapshotHeader } from "../../fs/snapshot-diff.js";
 import type { ChangeEvent, FolderWatchSettings, FolderWatchState, TimelineQuery, WatchedFolder } from "../../fs/watch-types.js";
@@ -145,6 +145,8 @@ export interface DesktopHubBridge {
   revokeAllPreview(): Promise<DesktopHubResult<ConfirmPreview>>;
   revokeAll(confirmToken: string): Promise<DesktopHubResult<OkResponse>>;
   listAudit(beforeSeq?: number): Promise<DesktopHubResult<AuditListResponse>>;
+  listSecurityAlerts(): Promise<DesktopHubResult<SecurityAlertsResponse>>;
+  markSecurityAlertsSeen(upToSeq: number): Promise<DesktopHubResult<OkResponse>>;
   recoveryCodesPreview(): Promise<DesktopHubResult<ConfirmPreview>>;
   regenerateRecoveryCodes(confirmToken: string): Promise<DesktopHubResult<RecoveryCodesResponse>>;
   changePassword(currentPassword: string, newPassword: string): Promise<DesktopHubResult<OkResponse>>;

@@ -92,6 +92,15 @@ describe('Hub web admin adapter', () => {
     expect(calls[0]).toMatchObject({ url: '/api/v1/diagnostics', method: 'GET', credentials: 'same-origin' });
   });
 
+  it('reads security alerts and marks them seen through the owner routes', async () => {
+    const response = { alerts: [{ seq: 4, at: 'x', event: 'security.ip-blocked', outcome: 'success', ip: '10.0.0.1', summary: 's' }], unseen: 1, seenSeq: 0 };
+    const { admin, calls } = setup((c) => (c.method === 'GET' ? { status: 200, body: response } : { status: 200, body: { ok: true } }));
+    await expect(admin.listSecurityAlerts()).resolves.toEqual(response);
+    expect(calls[0]).toMatchObject({ url: '/api/v1/security/alerts', method: 'GET', credentials: 'same-origin' });
+    await expect(admin.markSecurityAlertsSeen(4)).resolves.toEqual({ ok: true });
+    expect(calls[1]).toMatchObject({ url: '/api/v1/security/alerts/seen', method: 'POST', body: { upToSeq: 4 } });
+  });
+
   it('exposes the Date header of a public Hub response for the clock-skew check', async () => {
     const { admin, calls } = setup(() => ({ status: 200, body: HELLO, headers: { date: 'Thu, 01 Oct 2026 10:00:00 GMT' } }));
     await expect(admin.serverDate?.()).resolves.toBe('Thu, 01 Oct 2026 10:00:00 GMT');

@@ -1,4 +1,4 @@
-import type { TlsCertificatesResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, PairingCodeResponse, SessionListResponse, AuditListResponse, RecoveryCodesResponse, SyncCategory, SyncSummary, HubDiagnosticsReport } from '../hub/index.js';
+import type { TlsCertificatesResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, PairingCodeResponse, SessionListResponse, AuditListResponse, SecurityAlertsResponse, RecoveryCodesResponse, SyncCategory, SyncSummary, HubDiagnosticsReport } from '../hub/index.js';
 import type { EntityCommit, EntityCommitResult, KvMutation, ResetKind, StoreHealth, DeviceStoreBoot } from './device-store.model.js';
 
 /** Row shapes exchanged with the state service; payloads are opaque JSON. */
@@ -231,6 +231,8 @@ export interface AgentMethodMap {
   'hub.owner.revokeAllPreview': { params: Record<string, never>; result: ConfirmPreview };
   'hub.owner.revokeAll': { params: { confirmToken: string }; result: { ok: true } };
   'hub.owner.listAudit': { params: { beforeSeq?: number; limit?: number }; result: AuditListResponse };
+  'hub.owner.listSecurityAlerts': { params: Record<string, never>; result: SecurityAlertsResponse };
+  'hub.owner.markSecurityAlertsSeen': { params: { upToSeq: number }; result: { ok: true } };
   'hub.owner.recoveryCodesPreview': { params: Record<string, never>; result: ConfirmPreview };
   'hub.owner.regenerateRecoveryCodes': { params: { confirmToken: string }; result: RecoveryCodesResponse };
   'hub.owner.changePassword': { params: { currentPassword: string; newPassword: string }; result: { ok: true } };
@@ -311,7 +313,7 @@ export const AGENT_METHODS = [
   'hub.status', 'hub.diagnostics', 'hub.probeLocal', 'hub.tlsCertificates', 'hub.enroll', 'hub.bootstrapLocal', 'hub.unenroll', 'hub.owner.signIn', 'hub.owner.signOut', 'hub.owner.status',
   'hub.owner.listDevices', 'hub.owner.syncSummary', 'hub.owner.diagnostics', 'hub.owner.createPairingCode', 'hub.owner.renameDevice', 'hub.owner.revokeDevicePreview', 'hub.owner.revokeDevice',
   'hub.owner.setRecoveryTrust', 'hub.owner.listSessions', 'hub.owner.revokeSession', 'hub.owner.revokeAllPreview', 'hub.owner.revokeAll',
-  'hub.owner.listAudit', 'hub.owner.recoveryCodesPreview', 'hub.owner.regenerateRecoveryCodes', 'hub.owner.changePassword', 'hub.recoverOwner',
+  'hub.owner.listAudit', 'hub.owner.listSecurityAlerts', 'hub.owner.markSecurityAlertsSeen', 'hub.owner.recoveryCodesPreview', 'hub.owner.regenerateRecoveryCodes', 'hub.owner.changePassword', 'hub.recoverOwner',
   'sync.status', 'sync.setCategories', 'sync.setPaused', 'sync.now', 'sync.conflicts.list', 'sync.conflicts.resolve',
   'sync.quarantine.list', 'sync.quarantine.retry', 'sync.quarantine.discardPreview', 'sync.quarantine.discard', 'sync.quarantine.export',
   'sync.firstSync.preview', 'sync.firstSync.apply', 'sync.standalone.preview', 'sync.standalone.apply',

@@ -30,6 +30,8 @@ export function fakeHubAdmin(): HubAdminPort & Mocked {
     revokeSession: vi.fn(async () => ({ ok: true })),
     revokeAllPreview: vi.fn(async () => preview), revokeAll: vi.fn(async () => ({ ok: true })),
     listAudit: vi.fn(async () => ({ events: [], nextBeforeSeq: null })),
+    listSecurityAlerts: vi.fn(async () => ({ alerts: [], unseen: 0, seenSeq: 0 })),
+    markSecurityAlertsSeen: vi.fn(async () => ({ ok: true as const })),
     recoveryCodesPreview: vi.fn(async () => preview), regenerateRecoveryCodes: vi.fn(async () => ({ recoveryCodes: CODES })),
     changePassword: vi.fn(async () => ({ ok: true })),
     bootstrap: vi.fn(async () => ({ environmentId: 'e', ownerId: 'o', recoveryCodes: CODES })),

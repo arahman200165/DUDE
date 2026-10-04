@@ -229,6 +229,13 @@ export function registerHubHandlers(
     },
   });
 
+  define({ channel: 'dude:hub:owner:listSecurityAlerts', method: 'hub.owner.listSecurityAlerts', parse: none });
+
+  define({
+    channel: 'dude:hub:owner:markSecurityAlertsSeen', method: 'hub.owner.markSecurityAlertsSeen',
+    parse: (args) => (args.length === 1 && typeof args[0] === 'number' && Number.isSafeInteger(args[0]) && args[0] >= 0 ? { ok: true, params: { upToSeq: args[0] } } : bad()),
+  });
+
   define({ channel: 'dude:hub:owner:recoveryCodesPreview', method: 'hub.owner.recoveryCodesPreview', parse: none });
 
   define({

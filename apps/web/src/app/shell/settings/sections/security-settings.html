@@ -111,6 +111,30 @@
     </form>
   </section>
 
+  <section data-setting class="flex flex-col gap-2" data-testid="alerts" aria-labelledby="alerts-h">
+    <h3 id="alerts-h" class="text-ui-sm font-semibold text-text">Security alerts</h3>
+    @if (alertsError()) { <p class="text-ui text-error" role="alert" data-testid="alerts-error">{{ alertsError() }}</p> }
+    @if (alertsLoaded() && alerts().length === 0 && !alertsError()) {
+      <p class="text-ui text-text-muted" data-testid="alerts-empty">No recent security alerts</p>
+    }
+    @if (alerts().length > 0) {
+      <p class="text-ui text-text-muted" data-testid="alerts-unseen">{{ alertsUnseen() }} unseen</p>
+      <ul class="flex flex-col">
+        @for (a of alerts(); track a.seq) {
+          <li class="flex flex-wrap items-baseline gap-x-3 border-t border-border py-1 pl-2 text-ui" data-testid="alert-row"
+            [class.border-l-2]="isUnseen(a)" [class.border-l-accent]="isUnseen(a)" [attr.data-unseen]="isUnseen(a) ? 'true' : null">
+            <span class="whitespace-nowrap text-text-muted">{{ formatTime(a.at) }}</span>
+            <span class="text-text">{{ a.summary }}</span>
+            @if (a.ip) { <span class="font-mono text-ui-sm text-text-muted" data-testid="alert-ip">{{ a.ip }}</span> }
+            @if (isUnseen(a)) { <span class="rounded-sm border border-accent px-1 text-ui-sm text-accent">New</span> }
+          </li>
+        }
+      </ul>
+      <div><button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10 disabled:opacity-50" data-testid="alerts-mark-seen"
+        [disabled]="alertsBusy() || alertsUnseen() === 0" (click)="markAlertsSeen()">Mark all as seen</button></div>
+    }
+  </section>
+
   <section data-setting class="flex flex-col gap-2" data-testid="audit" aria-labelledby="audit-h">
     <h3 id="audit-h" class="text-ui-sm font-semibold text-text">Audit log</h3>
     @if (auditError()) { <p class="text-ui text-error" role="alert" data-testid="audit-error">{{ auditError() }}</p> }

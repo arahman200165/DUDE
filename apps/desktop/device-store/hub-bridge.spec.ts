@@ -57,6 +57,8 @@ const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged'>, { channe
   revokeAllPreview: { channel: 'dude:hub:owner:revokeAllPreview', args: [], invalid: [[1]] },
   revokeAll: { channel: 'dude:hub:owner:revokeAll', args: [TOKEN], invalid: [[], ['a b'], [1]] },
   listAudit: { channel: 'dude:hub:owner:listAudit', args: [10], invalid: [['10'], [-1], [1.5], [1, 2]] },
+  listSecurityAlerts: { channel: 'dude:hub:owner:listSecurityAlerts', args: [], invalid: [[1]] },
+  markSecurityAlertsSeen: { channel: 'dude:hub:owner:markSecurityAlertsSeen', args: [12], invalid: [[], ['12'], [-1], [1.5], [1, 2]] },
   recoveryCodesPreview: { channel: 'dude:hub:owner:recoveryCodesPreview', args: [], invalid: [[1]] },
   regenerateRecoveryCodes: { channel: 'dude:hub:owner:regenerateRecoveryCodes', args: [TOKEN], invalid: [[], ['a b'], [{}]] },
   recoverOwner: { channel: 'dude:hub:recoverOwner', args: ['a recovered long password'], invalid: [[], [''], ['short'], ['a'.repeat(1025)], [1], ['a recovered long password', 'x']] },

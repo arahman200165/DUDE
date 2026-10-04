@@ -27,6 +27,8 @@ describe('Security & Sessions helpers', () => {
   it('humanises audit events and details', () => {
     expect(auditEventLabel('owner.sign-in')).toBe('Owner signed in');
     expect(auditEventLabel('something.new')).toBe('something.new');
+    expect(auditEventLabel('security.ip-blocked')).toBe('Address blocked');
+    expect(auditEventLabel('session.rotated')).toBe('Session renewed');
     expect(auditDetailText({ sessionId: 'abc', count: 2, nested: { a: 1 } })).toBe('sessionId=abc count=2 nested={"a":1}');
     expect(auditDetailText(null)).toBe('');
   });
@@ -112,6 +114,38 @@ describe('SecuritySettings', () => {
       const { el } = await submit(new HubAdminError('locked', 'x', 20_000));
       expect(byId(el, 'password-error')?.textContent).toContain('20 s');
       expect((byId(el, 'password-submit') as HTMLButtonElement).disabled).toBe(true);
+    });
+  });
+
+  describe('security alerts', () => {
+    const alert = (seq: number, ip: string | null) => ({ seq, at: '2026-10-01T10:00:00Z', event: 'security.ip-blocked', outcome: 'success', ip, summary: `Blocked ${seq}` });
+
+    it('shows an empty state', async () => {
+      const { el } = await setup();
+      expect(byId(el, 'alerts-empty')?.textContent).toContain('No recent security alerts');
+    });
+
+    it('renders alerts, marks unseen ones and marks all seen at the highest seq', async () => {
+      const { fixture, el, admin } = await setup('hub-web', (a) => {
+        a.listSecurityAlerts.mockResolvedValueOnce({ alerts: [alert(5, '10.0.0.9'), alert(2, null)], unseen: 1, seenSeq: 3 });
+        a.listSecurityAlerts.mockResolvedValueOnce({ alerts: [alert(5, '10.0.0.9'), alert(2, null)], unseen: 0, seenSeq: 5 });
+      });
+      const rows = el.querySelectorAll('[data-testid="alert-row"]');
+      expect(rows.length).toBe(2);
+      expect(rows[0].getAttribute('data-unseen')).toBe('true');
+      expect(rows[1].getAttribute('data-unseen')).toBeNull();
+      expect(rows[0].textContent).toContain('10.0.0.9');
+      expect(byId(el, 'alerts-unseen')?.textContent).toContain('1 unseen');
+      (byId(el, 'alerts-mark-seen') as HTMLButtonElement).click();
+      await settle(fixture);
+      expect(admin.markSecurityAlertsSeen).toHaveBeenCalledWith(5);
+      expect(admin.listSecurityAlerts).toHaveBeenCalledTimes(2);
+      expect(el.querySelectorAll('[data-unseen="true"]').length).toBe(0);
+    });
+
+    it('shows a load error', async () => {
+      const { el } = await setup('hub-web', (a) => { a.listSecurityAlerts.mockRejectedValueOnce(new HubAdminError('unavailable', 'Nope')); });
+      expect(byId(el, 'alerts-error')).not.toBeNull();
     });
   });
 

@@ -1,5 +1,5 @@
 import type {
-  AuditListResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary, HubDiagnosticsReport, TlsCertificatesResponse,
+  AuditListResponse, SecurityAlertsResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary, HubDiagnosticsReport, TlsCertificatesResponse,
   OwnerResetResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SignInResponse,
 } from '@dude/contracts/hub';
 import type { HubClient } from '@dude/api-client';
@@ -141,6 +141,8 @@ export function createHubWebAdmin(options: HubWebAdminOptions): HubAdminPort {
     revokeAllPreview: (): Promise<ConfirmPreview> => viaClient((c) => c.revokeAllPreview(undefined)),
     revokeAll: (token): Promise<OkResponse> => viaClient((c) => c.revokeAll(undefined, token)),
     listAudit: (beforeSeq): Promise<AuditListResponse> => viaClient((c) => c.listAudit(undefined, beforeSeq === undefined ? undefined : { beforeSeq })),
+    listSecurityAlerts: (): Promise<SecurityAlertsResponse> => viaClient((c) => c.listSecurityAlerts(undefined)),
+    markSecurityAlertsSeen: (upToSeq): Promise<OkResponse> => viaClient((c) => c.markSecurityAlertsSeen(undefined, upToSeq)),
     recoveryCodesPreview: (): Promise<ConfirmPreview> => viaClient((c) => c.recoveryCodesPreview(undefined)),
     regenerateRecoveryCodes: (token): Promise<RecoveryCodesResponse> => viaClient((c) => c.regenerateRecoveryCodes(undefined, token)),
     changePassword: async (current, next): Promise<OkResponse> => {

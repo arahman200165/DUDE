@@ -168,6 +168,8 @@ export function fakeHub(options: { password?: string; localHub?: FakeLocalHubSce
       return ok({ ok: true as const });
     }),
     listAudit: track('listAudit', async () => needOwner() ?? ok({ events: [], nextBeforeSeq: null })),
+    listSecurityAlerts: track('listSecurityAlerts', async () => needOwner() ?? ok({ alerts: [], unseen: 0, seenSeq: 0 })),
+    markSecurityAlertsSeen: track('markSecurityAlertsSeen', async (_upToSeq: number) => needOwner() ?? ok({ ok: true as const })),
     recoveryCodesPreview: track('recoveryCodesPreview', async () => needOwner() ?? ok(issue('regenerate-recovery-codes'))),
     regenerateRecoveryCodes: track('regenerateRecoveryCodes', async (token: string) => {
       if (!consume(token)) return badConfirm();

@@ -43,6 +43,8 @@ export function createDesktopHubAdmin(bridge: () => DesktopHubBridge | undefined
     revokeAllPreview: () => run((h) => h.revokeAllPreview()),
     revokeAll: (token) => run((h) => h.revokeAll(token)),
     listAudit: (beforeSeq) => run((h) => h.listAudit(beforeSeq)),
+    listSecurityAlerts: () => run((h) => h.listSecurityAlerts()),
+    markSecurityAlertsSeen: (upToSeq) => run((h) => h.markSecurityAlertsSeen(upToSeq)),
     recoveryCodesPreview: () => run((h) => h.recoveryCodesPreview()),
     regenerateRecoveryCodes: (token) => run((h) => h.regenerateRecoveryCodes(token)),
     changePassword: (current, next) => run((h) => h.changePassword(current, next)),

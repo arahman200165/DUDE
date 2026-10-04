@@ -6,7 +6,7 @@ export function createUnavailableHubAdmin(reason = 'Hub administration is not av
   return {
     status: reject, probeLocal: reject, enroll: reject, unenroll: reject, ownerStatus: reject, ownerSignIn: reject, ownerSignOut: reject,
     listDevices: reject, syncSummary: reject, diagnostics: reject, createPairingCode: reject, renameDevice: reject, revokeDevicePreview: reject, revokeDevice: reject, setRecoveryTrust: reject,
-    listSessions: reject, revokeSession: reject, revokeAllPreview: reject, revokeAll: reject, listAudit: reject, recoveryCodesPreview: reject,
+    listSessions: reject, revokeSession: reject, revokeAllPreview: reject, revokeAll: reject, listAudit: reject, listSecurityAlerts: reject, markSecurityAlertsSeen: reject, recoveryCodesPreview: reject,
     regenerateRecoveryCodes: reject, changePassword: reject, bootstrap: reject, signIn: reject, currentSession: reject, signOut: reject,
     recover: reject, ownerReset: reject,
   };
