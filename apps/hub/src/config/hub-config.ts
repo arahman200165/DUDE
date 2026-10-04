@@ -43,17 +43,39 @@ export interface HubProxyConfig {
   publicOrigin: string;
 }
 
+/** A scheduled backup (31G, PD-074): the folder, interval and retention only; the derived key lives in a DPAPI-protected file, never here. */
+export interface HubBackupScheduleConfig {
+  /** Absolute folder the scheduled backups are written to. */
+  folder: string;
+  /** Hours between backups, 1 to 8760. */
+  intervalHours: number;
+  /** How many backups to keep, 1 to 1000. */
+  retention: number;
+}
+
+export interface HubBackupConfig {
+  /** Absent means no scheduled backups. */
+  schedule?: HubBackupScheduleConfig;
+}
+
 export interface HubConfig {
   port: number;
   bind: HubBindMode;
   webRoot?: string;
   exposure: HubExposureConfig;
+  /** Backup settings (31G). Absent by default. */
+  backup?: HubBackupConfig;
 }
+
+export const BACKUP_INTERVAL_HOURS_MAX = 8760;
+export const BACKUP_RETENTION_MAX = 1000;
 
 export const MAX_EXPOSURE_NAMES = 32;
 const BIND_MODES: readonly HubBindMode[] = ['loopback', 'lan', 'container'];
 const EXPOSURE_MODES: readonly HubExposureMode[] = ['private', 'public'];
-const KNOWN_KEYS = new Set(['port', 'bind', 'webRoot', 'exposure']);
+const KNOWN_KEYS = new Set(['port', 'bind', 'webRoot', 'exposure', 'backup']);
+const BACKUP_KEYS = new Set(['schedule']);
+const BACKUP_SCHEDULE_KEYS = new Set(['folder', 'intervalHours', 'retention']);
 const EXPOSURE_KEYS = new Set(['mode', 'names', 'canonicalOrigin', 'proxy', 'acme']);
 const ACME_KEYS = new Set(['directoryUrl', 'email', 'httpPort', 'termsAgreedAt']);
 const PROXY_KEYS = new Set(['trusted', 'publicOrigin']);
@@ -226,6 +248,39 @@ function parseExposure(raw: unknown): HubExposureConfig {
   return exposure;
 }
 
+function parseBackupSchedule(raw: unknown): HubBackupScheduleConfig {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) throw new Error('Hub config "backup.schedule" must be an object.');
+  const record = raw as Record<string, unknown>;
+  for (const key of Object.keys(record)) if (!BACKUP_SCHEDULE_KEYS.has(key)) throw new Error(`Hub config "backup.schedule" has an unknown key "${key}".`);
+  const folder = record['folder'];
+  if (typeof folder !== 'string' || folder.length === 0 || !path.isAbsolute(folder)) throw new Error('Hub config "backup.schedule.folder" must be a non-empty absolute path.');
+  const hours = record['intervalHours'];
+  if (typeof hours !== 'number' || !Number.isInteger(hours) || hours < 1 || hours > BACKUP_INTERVAL_HOURS_MAX) {
+    throw new Error(`Hub config "backup.schedule.intervalHours" must be an integer from 1 to ${BACKUP_INTERVAL_HOURS_MAX}.`);
+  }
+  const retention = record['retention'];
+  if (typeof retention !== 'number' || !Number.isInteger(retention) || retention < 1 || retention > BACKUP_RETENTION_MAX) {
+    throw new Error(`Hub config "backup.schedule.retention" must be an integer from 1 to ${BACKUP_RETENTION_MAX}.`);
+  }
+  return { folder, intervalHours: hours, retention };
+}
+
+function parseBackup(raw: unknown): HubBackupConfig {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) throw new Error('Hub config "backup" must be an object.');
+  const record = raw as Record<string, unknown>;
+  for (const key of Object.keys(record)) if (!BACKUP_KEYS.has(key)) throw new Error(`Hub config "backup" has an unknown key "${key}".`);
+  const backup: HubBackupConfig = {};
+  if (record['schedule'] !== undefined) backup.schedule = parseBackupSchedule(record['schedule']);
+  return backup;
+}
+
+/** Returns a validated copy of `config` with the backup schedule set, or removed (`null`; the empty `backup` block goes with it). */
+export function applyBackupScheduleChange(config: HubConfig, schedule: HubBackupScheduleConfig | null): HubConfig {
+  const { backup: _previous, ...rest } = config;
+  if (schedule === null) return parseHubConfig(rest);
+  return parseHubConfig({ ...rest, backup: { schedule } });
+}
+
 /**
  * A message when this config may not start, else null. Public exposure (PD-066) is released behind an elevated readiness gate at
  * the moment the mode is set, so a configured `public` mode starts. The one start-time refusal is a bind that cannot accept
@@ -268,6 +323,10 @@ export function parseHubConfig(raw: unknown): HubConfig {
     config.webRoot = webRoot;
   }
   if (record['exposure'] !== undefined) config.exposure = parseExposure(record['exposure']);
+  if (record['backup'] !== undefined) {
+    const backup = parseBackup(record['backup']);
+    if (backup.schedule !== undefined) config.backup = backup;
+  }
   return config;
 }
 

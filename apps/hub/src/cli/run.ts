@@ -19,6 +19,9 @@ import { runSecurityAuditIps } from '../service/security-audit-ips.js';
 import { runTlsNames } from '../service/tls-names.js';
 import { runTlsImport, runTlsProxyPin } from '../service/tls-external.js';
 import { runTlsAcme } from '../service/tls-acme.js';
+import { nodeBackupDeps } from '../backup/kdf.js';
+import { createBackupScheduler } from '../backup/scheduler.js';
+import { defaultScheduleKeyProtector } from '../backup/schedule-key.js';
 import { createAcmeRenewal } from '../tls/acme/acme-renewal.js';
 import { addressChangeNotice, createAddressWatch } from '../diagnostics/address-watch.js';
 import { AdminCallError, callAdmin } from '../admin/admin-client.js';
@@ -197,6 +200,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   // A NEW identity carries every configured name; an existing one is never replaced silently (devices pin it).
   const caProtector = defaultCaKeyProtector();
   const acmeProtector = defaultAcmeKeyProtector();
+  const scheduleKeyProtector = defaultScheduleKeyProtector();
   const hadCa = localCaExists(paths.tlsDir);
   // New Hubs default to the built-in local CA (PD-058); an existing self-signed Hub opts in with "tls ca init".
   const tls = ensureTlsIdentity(paths.tlsDir, { hubInstanceId: hub.hubInstanceId, extraNames: wantedNames, localCa: { protector: caProtector, configuredNames: configuredDnsNames(config) } });
@@ -242,7 +246,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
         db: hub.db, hubVersion: hubVersion(), hubInstanceId: hub.hubInstanceId, bind: config.bind, getPort: () => port, startedAt, configDir: paths.configDir, configFile: paths.configFile, tlsDir: paths.tlsDir, spkiSha256: tls.spkiSha256,
         onNamesChanged: (names) => server.hostGuard.setNames(names),
         hsts: createHstsPolicy({ db: hub.db, tlsDir: paths.tlsDir, proxy: config.exposure.proxy !== undefined }),
-        caProtector, acmeProtector,
+        caProtector, acmeProtector, paths, scheduleKeyProtector,
         tls: createTlsRotation({
           db: hub.db, tlsDir: paths.tlsDir, hubInstanceId: hub.hubInstanceId, caProtector,
           applySecureContext: (context) => (server.server as unknown as TlsServer).setSecureContext(context),
@@ -276,6 +280,12 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     recordCertificate: (certPem, spki) => void hub.db.prepare("UPDATE tls_pins SET cert_pem = ? WHERE state = 'active' AND spki_sha256 = ?").run(certPem, spki),
   });
   acmeRenewal.start();
+  // Unattended backups (31G): checks every 10 minutes and does nothing unless `backup schedule set` configured one in hub.json.
+  const backupScheduler = createBackupScheduler({
+    db: hub.db, paths, hubVersion: hubVersion(), hubInstanceId: hub.hubInstanceId,
+    readConfig: () => loadOrCreateHubConfig(paths.configFile), protector: scheduleKeyProtector, deps: nodeBackupDeps(),
+  });
+  backupScheduler.start();
   // Detection only (PD-064): records this machine's addresses and audits a change; DNS is never updated and no DNS credential is stored.
   const addressWatch = createAddressWatch({
     db: hub.db,
@@ -300,6 +310,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
         let code = EXIT_OK;
         renewal.stop();
         acmeRenewal.stop();
+        backupScheduler.stop();
         addressWatch.stop();
         try { await admin.close(); } catch { /* best effort */ }
         try { await server.close(); } catch { code = EXIT_FAILURE; }

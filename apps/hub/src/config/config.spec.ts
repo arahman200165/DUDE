@@ -4,7 +4,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { HUB_DEFAULT_PORT } from '@dude/contracts/hub';
 import { ensureLayout, resolveDataDir } from './data-dir.js';
-import { applyHubNameChange, bindAddress, exposureRefusal, formatHostHeader, loadOrCreateHubConfig, normalizeHubName, parseHubConfig, writeHubConfig } from './hub-config.js';
+import { applyBackupScheduleChange, applyHubNameChange, bindAddress, exposureRefusal, formatHostHeader, loadOrCreateHubConfig, normalizeHubName, parseHubConfig, writeHubConfig } from './hub-config.js';
 
 const tmp = () => mkdtempSync(path.join(os.tmpdir(), 'hub-config-'));
 
@@ -106,6 +106,33 @@ describe('hub config', () => {
     expect(() => applyHubNameChange(exposure, { remove: 'zzz.example' })).toThrow(/not a configured/);
     expect(() => applyHubNameChange(exposure, { remove: 'a.example' })).toThrow(/canonicalOrigin/);
     expect(() => applyHubNameChange({ mode: 'private', names: Array.from({ length: 32 }, (_, i) => `h${i}.example`) }, { add: 'x.example' })).toThrow(/at most 32/i);
+  });
+
+  it('validates the optional backup schedule strictly, round-trips it and is absent by default', () => {
+    const folder = path.resolve(tmp(), 'backups-out');
+    expect(parseHubConfig({}).backup).toBeUndefined();
+    expect(parseHubConfig({ backup: {} }).backup).toBeUndefined();
+    const configured = parseHubConfig({ backup: { schedule: { folder, intervalHours: 24, retention: 7 } } });
+    expect(configured.backup).toEqual({ schedule: { folder, intervalHours: 24, retention: 7 } });
+    const paths = ensureLayout(tmp());
+    writeHubConfig(paths.configFile, configured);
+    expect(JSON.parse(readFileSync(paths.configFile, 'utf8')).backup).toEqual({ schedule: { folder, intervalHours: 24, retention: 7 } });
+    expect(loadOrCreateHubConfig(paths.configFile)).toEqual(configured);
+    const schedule = (value: unknown) => parseHubConfig({ backup: { schedule: value } });
+    expect(() => parseHubConfig({ backup: { extra: 1 } })).toThrow(/unknown key "extra"/);
+    expect(() => parseHubConfig({ backup: [] })).toThrow(/backup/);
+    expect(() => schedule({ folder, intervalHours: 24, retention: 7, extra: 1 })).toThrow(/unknown key "extra"/);
+    expect(() => schedule({ folder: 'relative/dir', intervalHours: 24, retention: 7 })).toThrow(/absolute/);
+    expect(() => schedule({ folder: '', intervalHours: 24, retention: 7 })).toThrow(/folder/);
+    expect(() => schedule({ folder, intervalHours: 0, retention: 7 })).toThrow(/intervalHours/);
+    expect(() => schedule({ folder, intervalHours: 8761, retention: 7 })).toThrow(/intervalHours/);
+    expect(() => schedule({ folder, intervalHours: 1.5, retention: 7 })).toThrow(/intervalHours/);
+    expect(() => schedule({ folder, intervalHours: 24, retention: 0 })).toThrow(/retention/);
+    expect(() => schedule({ folder, intervalHours: 24, retention: 1001 })).toThrow(/retention/);
+    expect(() => schedule({ folder, intervalHours: '24', retention: 7 })).toThrow(/intervalHours/);
+    expect(schedule({ folder, intervalHours: 8760, retention: 1000 }).backup?.schedule).toMatchObject({ intervalHours: 8760, retention: 1000 });
+    expect(applyBackupScheduleChange(parseHubConfig({}), { folder, intervalHours: 6, retention: 3 }).backup?.schedule?.intervalHours).toBe(6);
+    expect(applyBackupScheduleChange(configured, null).backup).toBeUndefined();
   });
 
   it('maps bind modes to addresses', () => {

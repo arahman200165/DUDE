@@ -1,5 +1,8 @@
 import type { Db } from '@dude/sqlite-store';
 import type { HubBindMode } from '../config/hub-config.js';
+import type { HubPaths } from '../config/data-dir.js';
+import type { BackupDeps } from '@dude/hub-backup';
+import { buildBackupMethods } from './backup-methods.js';
 import { AdminError } from './admin-endpoint.js';
 import type { AdminMethod } from './admin-endpoint.js';
 import { X509Certificate, createHash } from 'node:crypto';
@@ -75,6 +78,12 @@ export interface AdminMethodContext {
   /** The platform the Hub runs on (default `process.platform`); used by the public-readiness gate. */
   platform?: NodeJS.Platform;
   onSessionsRevoked?: (sessions: readonly RevokedSession[]) => void;
+  /** The data-directory layout; enables the `backup.*` methods (31G). */
+  paths?: HubPaths;
+  /** Key derivation, randomness and clock for backups (default: Node's Argon2id). TEST-ONLY override for cheap specs. */
+  backupDeps?: BackupDeps;
+  /** Protects the derived key behind scheduled backups (default: DPAPI on Windows, a 0600 file elsewhere). Key use: the schedule commands and the scheduler only. */
+  scheduleKeyProtector?: CaKeyProtector;
 }
 
 /** Validates the Windows host facts the elevated CLI sends with `network.mode.set`; anything malformed is ignored (treated as not inspected). */
@@ -156,6 +165,8 @@ export function buildAdminMethods(context: AdminMethodContext): Record<string, A
   };
   const flag = (params: unknown, name: string): boolean => (params as Record<string, unknown> | null)?.[name] === true;
   return {
+    /** Backup create (two-step), list, verify and schedule (31G, PD-074). Passphrases are never logged or audited. */
+    ...buildBackupMethods(context, { now, confirmations }),
     /** Automatic address blocks (31F): the elevated recovery path for an owner whose own address was blocked. */
     'security.blocks.list': () => ({ blocks: listBlocks(context.db, now()) }),
     'security.blocks.clear': (params) => {

@@ -19,6 +19,8 @@ export const HUB_AUDIT_EVENTS = [
   'sync.environment-clear-previewed', 'sync.environment-cleared',
   'web.attached', 'web.access-changed',
   'hub.diagnostics-viewed',
+  'backup.create-previewed', 'backup.created', 'backup.failed', 'backup.transferred', 'backup.reactivated',
+  'backup.restore-previewed', 'backup.restored', 'backup.scheduled', 'backup.pruned',
 ] as const;
 export type HubAuditEvent = (typeof HUB_AUDIT_EVENTS)[number];
 
