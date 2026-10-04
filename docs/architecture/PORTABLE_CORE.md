@@ -19,6 +19,7 @@ Phase 31A introduced npm workspaces with one root lockfile, and Phase 31B filled
 | `persistence` | Device/environment records, UUIDv7, setting definitions and scope rules, entity codec interface, repository ports, secret references, in-memory adapters and host-neutral contract suites (`@dude/persistence/testing`) |
 | `sync` | Outbox op model and coalescing; sync categories, `SYNC_POLICIES`, three-way merge, `SYNC_LIMITS`, `SyncStatus`, JSON diff and display helpers (Phase 31D); transport lives in `@dude/api-client` and the engine in `apps/device-agent` |
 | `api-client` | Portable typed Hub client over an injected transport port; consumed by the Agent and the hub-web build, kept out of the Pages and desktop renderer bundles (a Hub parity spec checks it against the Hub's routes) |
+| `hub-backup` | Portable encrypted Hub backup file format (`.dudebackup`, Phase 31G): chunked XChaCha20-Poly1305 with the passphrase KDF, random source and clock injected by the Hub; no Node built-ins |
 | `sqlite-store` | Node-only `node:sqlite` plumbing (open, WAL, checksummed migration runner, helpers) shared by the Hub and the Device Agent; excluded from the portable-core gate |
 | `agent-pipe` | Node-only authenticated named-pipe protocol between the desktop and the Device Agent; excluded from the portable-core gate |
 | `collab-protocol` | Existing Node-only Yjs room implementation; excluded from the portable-core gate |
@@ -29,7 +30,7 @@ Mobile and infrastructure directories are documented placeholders with no implem
 
 Packages emit JavaScript and declarations into untracked `dist/` directories. Applications consume explicit package/subpath exports. Electron still bundles CommonJS with esbuild. Existing browser, Electron and relay production artifact paths remain root-controlled.
 
-`npm run build:packages` builds in dependency order; `watch:packages` builds before watching. Root `start`, `test`, `build`, Electron and relay commands prepare packages automatically. `test:packages` owns moved transform tests; `ng test` owns Angular adapter tests. `check:boundaries` rejects forbidden and undeclared imports. `check:portable` installs and builds the ten portable packages independently without Angular/Electron, compiles a consumer and imports compiled exports.
+`npm run build:packages` builds in dependency order; `watch:packages` builds before watching. Root `start`, `test`, `build`, Electron and relay commands prepare packages automatically. `test:packages` owns moved transform tests; `ng test` owns Angular adapter tests. `check:boundaries` rejects forbidden and undeclared imports. `check:portable` installs and builds the eleven portable packages independently without Angular/Electron, compiles a consumer and imports compiled exports.
 
 `EngineHostPorts` explicitly provides WebCrypto, requests, compression, HTML sanitization/entity parsing, image decoding and xxhash WASM initialization. Browser, worker, Electron and test adapters install supported facilities. Workers do not offer a DOM sanitizer; Electron does not offer browser image decoding or DOM sanitization/entity parsing. Unsupported facilities fail explicitly. Browser worker creation, cancellation, progress and failure isolation remain in the application. Files crossing engines use structural read-only contracts.
 

@@ -1,4 +1,4 @@
-// Build and consume the ten portable workspaces in a separate installation with no apps/hosts.
+// Build and consume the eleven portable workspaces in a separate installation with no apps/hosts.
 import {cpSync,mkdtempSync,readFileSync,writeFileSync,existsSync,readdirSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
@@ -6,7 +6,7 @@ import {spawnSync} from 'node:child_process';
 import {readManifests} from './tool-manifests.mjs';
 const repo=path.resolve(import.meta.dirname,'..'), isolated=mkdtempSync(path.join(tmpdir(),'dude31a-core-'));
 const root=JSON.parse(readFileSync(path.join(repo,'package.json'),'utf8'));
-const packageNames=['shared-types','domain','contracts','validation','crypto','tool-engine','tool-registry','sync','api-client','persistence'];
+const packageNames=['shared-types','domain','contracts','validation','crypto','tool-engine','tool-registry','sync','api-client','persistence','hub-backup'];
 for(const name of packageNames){const destination=path.join(isolated,'packages',name);cpSync(path.join(repo,'packages',name),destination,{recursive:true,filter:f=>!/[\\/](dist|node_modules)([\\/]|$)/.test(f)});}
 cpSync(path.join(repo,'tsconfig.packages.json'),path.join(isolated,'tsconfig.packages.json'));
 writeFileSync(path.join(isolated,'package.json'),JSON.stringify({name:'dude-portable-consumption',private:true,type:'module',workspaces:['packages/*'],engines:root.engines,packageManager:root.packageManager,devDependencies:{typescript:JSON.parse(readFileSync(path.join(repo,'node_modules/typescript/package.json'),'utf8')).version}},null,2));
@@ -27,7 +27,7 @@ import { encodeBase64 } from '@dude/crypto';
 import { isDataScope, type DataScope } from '@dude/domain';
 import type { EngineHostPorts, PlatformBridgePort } from '@dude/contracts';
 import { pipelineStep } from '@dude/tool-engine/tools/base64/base64.pipeline-step';
-import '@dude/validation'; import '@dude/api-client';
+import '@dude/validation'; import '@dude/api-client'; import '@dude/hub-backup';
 import { uuidv7, resolveToolKeyScope } from '@dude/persistence';
 import { coalesceOutbox } from '@dude/sync';
 if (typeof uuidv7 !== 'function' || typeof coalesceOutbox !== 'function' || resolveToolKeyScope('local') !== 'environment') throw Error('Persistence consumer mismatch');
