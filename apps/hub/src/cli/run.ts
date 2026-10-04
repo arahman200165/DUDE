@@ -43,6 +43,7 @@ import { createHstsPolicy } from '../security/hsts.js';
 import { runDoctor } from '../service/doctor.js';
 import { runPurge } from '../service/purge.js';
 import { runBackup } from '../service/backup.js';
+import { runRestore } from '../service/restore.js';
 import { HELP_TEXT, UsageError, parseArgs } from './args.js';
 
 export const EXIT_OK = 0;
@@ -159,7 +160,15 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     return runBackup({
       action: parsed.action,
       ...(parsed.folder !== undefined ? { folder: parsed.folder } : {}), ...(parsed.file !== undefined ? { file: parsed.file } : {}), ...(parsed.confirm !== undefined ? { confirm: parsed.confirm } : {}),
+      ...(parsed.forTransfer ? { forTransfer: true } : {}),
       ...(parsed.everyHours !== undefined ? { everyHours: parsed.everyHours } : {}), ...(parsed.keep !== undefined ? { keep: parsed.keep } : {}),
+      ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}),
+    });
+  }
+  if (parsed.command === 'backup-restore') {
+    return runRestore({
+      file: parsed.file,
+      ...(parsed.confirm !== undefined ? { confirm: parsed.confirm } : {}), ...(parsed.replace !== undefined ? { replace: parsed.replace } : {}), ...(parsed.oldHubGone !== undefined ? { oldHubGone: parsed.oldHubGone } : {}),
       ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}),
     });
   }

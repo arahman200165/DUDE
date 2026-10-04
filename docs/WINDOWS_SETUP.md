@@ -152,7 +152,34 @@ A Hub backup is one encrypted `.dudebackup` file: a scrubbed copy of the Hub dat
 - **The passphrase is never a command-line flag.** The CLI reads it from the `DUDE_HUB_BACKUP_PASSPHRASE` environment variable, else the first line of standard input when it is piped, else a hidden prompt. **Losing the passphrase makes the backup unrecoverable**; DUDE cannot reset it.
 - **The default folder is on the same machine as the Hub**, so it does not protect against losing that computer or its disk. Choose a folder on another drive or share, or copy the files elsewhere. The preview says so every time.
 - **A schedule stores a key derived from the passphrase**, protected by Windows (DPAPI, this computer only), so unattended backups can encrypt; the passphrase itself is not stored. A schedule can be set only from this elevated CLI.
-- Restore is documented with the restore command in a later milestone. Restoring is an offline operation, so keep the passphrase and at least one copy of the backup somewhere safe.
+- Keep the passphrase and at least one copy of the backup somewhere safe; restoring is an offline operation and needs both.
+
+#### Restoring a backup
+
+`dude-hub backup restore --file <abs path> [--data-dir <dir>]` restores a backup into a Hub data directory. It is an **offline** command: the Hub (and its Windows service) must be stopped (`dude-hub service stop`), or it refuses with exit code 2. When the service is installed it also needs an elevated prompt. It is two steps, like `purge`:
+
+1. Run it without `--confirm`. It asks for the passphrase, decrypts and validates the file, changes nothing, and prints a summary (the source Hub and its authority epoch, the new epoch, when the backup was made, what it contains, whether it was made for a transfer, and whether the target directory is empty) plus a one-time token valid for 60 seconds.
+2. Re-run the same command with `--confirm <token>` (and the phrases below when the summary asks for them). It asks for the passphrase again and restores.
+
+| Phrase | When it is needed |
+| --- | --- |
+| `--replace "REPLACE HUB DATA"` | The data directory already contains a Hub. Its database, `hub.json` and TLS directory are moved to `backups\replaced-<UTC stamp>\`, never deleted. |
+| `--old-hub-gone "THE OLD HUB IS GONE"` | The backup was not made with `--for-transfer`, so the old Hub may still be running; two Hubs would then exist. |
+
+The phrases are compared exactly (case-sensitive, no extra spaces). If one is missing the command says so, changes nothing and the token stays valid, so you can re-run it with the phrase.
+
+What a restored Hub looks like:
+
+- **A new identity.** The Hub gets a new instance id and an authority epoch one higher than the backup's, so devices can tell it from the original.
+- **Devices must be paired again.** Their entries are kept but marked as needing re-pairing and their keys are revoked; each device keeps its own local data. Sign-in sessions, tokens and pairing codes are not restored. The owner signs in with the **old owner password** (owner credentials and recovery codes are restored). A re-pair code flow for devices lands later in this phase.
+- **A new TLS identity.** Certificates, the local CA and ACME account keys are never in a backup; the restored Hub issues its own, so browsers and devices must trust it again. Public/Internet exposure and reverse-proxy mode are turned off (the port and configured names are kept and the Hub listens on loopback only); re-enable them with the usual elevated `network` and `tls` commands, which re-run the readiness checks. A backup schedule is not carried over either.
+- The command prints the new instance id, the epoch, how many devices need re-pairing and the folder the previous data was moved to. Then start the Hub, sign in and pair each device again.
+
+#### Moving the Hub to another machine
+
+`dude-hub backup create --for-transfer [--folder <abs dir>]` is `backup create` plus a retirement: after the backup is written and verified, **this Hub is retired** (state `transferred`). It still answers `hello` and `status`, but it refuses sign-in, sync, web record access and pairing until you run `dude-hub backup reactivate`. Both steps (preview and `--confirm`) repeat the warning, and the confirming run must repeat `--for-transfer` (and `--folder`). Copy the file to the new machine and restore it there (no `--old-hub-gone` phrase is needed for a transfer backup), and check the new Hub before you throw anything away.
+
+`dude-hub backup reactivate` (elevated, Hub running, two steps like `create`) returns a retired Hub to service with a new authority epoch, for example when the transfer was abandoned. It refuses with a clear message when the Hub is not retired.
 
 ### Updating the Hub
 

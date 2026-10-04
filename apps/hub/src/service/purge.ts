@@ -2,10 +2,9 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { AdminCallError, callAdmin, HUB_NOT_RUNNING } from '../admin/admin-client.js';
 import { hubPaths } from '../config/data-dir.js';
 import type { HubPaths } from '../config/data-dir.js';
-import { EXIT_FAILURE, EXIT_OK, EXIT_USAGE, json, resolveDeps, serviceState } from './common.js';
+import { EXIT_FAILURE, EXIT_OK, EXIT_USAGE, isHubRunning, json, resolveDeps } from './common.js';
 import type { ServiceDeps } from './common.js';
 
 /**
@@ -88,17 +87,6 @@ function preview(root: string, includeBackups: boolean, counts: PurgeCounts, inc
   };
 }
 
-async function defaultIsRunning(root: string, d: ReturnType<typeof resolveDeps>): Promise<boolean> {
-  const state = await serviceState(d);
-  if (state !== 'not-installed' && state !== 'stopped') return true; // running, pending, paused or unknown: refuse
-  try {
-    await callAdmin(root, 'status', {}, 2000);
-    return true;
-  } catch (error) {
-    return !(error instanceof AdminCallError && error.code === HUB_NOT_RUNNING);
-  }
-}
-
 function looksLikeHubRoot(root: string): boolean {
   const paths = hubPaths(root);
   return existsSync(paths.dbFile) || existsSync(paths.configFile);
@@ -134,7 +122,7 @@ export async function runPurge(options: PurgeOptions, deps: PurgeDeps = {}): Pro
     d.err(`${root} does not look like a Hub data directory (no config/hub.json or data/dude.db).\n`);
     return EXIT_USAGE;
   }
-  const running = await (deps.isRunning ? deps.isRunning(root) : defaultIsRunning(root, d));
+  const running = await (deps.isRunning ? deps.isRunning(root) : isHubRunning(root, d));
   if (running) {
     d.err('The Hub is running (or its service is not stopped). Stop it first with "dude-hub service stop"; purge refuses to run against a live Hub.\n');
     return EXIT_FAILURE;

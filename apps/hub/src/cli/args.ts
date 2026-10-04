@@ -20,7 +20,8 @@ export type ParsedCommand =
   | { command: 'network-firewall'; target: 'public' | 'acme'; action: 'on' | 'off' | 'status'; force?: boolean; dataDir?: string; installDir?: string }
   | { command: 'doctor'; json?: boolean; dataDir?: string; installDir?: string }
   | { command: 'purge'; dataDir?: string; includeBackups?: boolean; confirm?: string; type?: string }
-  | { command: 'backup'; action: 'create' | 'list' | 'verify' | 'schedule-set' | 'schedule-off' | 'schedule-status'; folder?: string; file?: string; confirm?: string; everyHours?: number; keep?: number; dataDir?: string; installDir?: string }
+  | { command: 'backup'; action: 'create' | 'list' | 'verify' | 'schedule-set' | 'schedule-off' | 'schedule-status' | 'reactivate'; folder?: string; file?: string; confirm?: string; forTransfer?: boolean; everyHours?: number; keep?: number; dataDir?: string; installDir?: string }
+  | { command: 'backup-restore'; file: string; confirm?: string; replace?: string; oldHubGone?: string; dataDir?: string; installDir?: string }
   | { command: 'version' }
   | { command: 'help' };
 
@@ -68,7 +69,9 @@ Usage:
   dude-hub network mode public [--accept-unverified-reachability] [--type "EXPOSE HUB TO THE INTERNET"] [--data-dir <dir>] [--install-dir <dir>]   (elevated; the running Hub must pass the readiness gate; without --type only the readiness report is printed)
   dude-hub doctor [--json] [--data-dir <dir>] [--install-dir <dir>]   (readiness checklist; --json prints the endpoint diagnostics report)
   dude-hub purge --data-dir <dir> [--include-backups] [--confirm <token> --type "DELETE HUB DATA"]
-  dude-hub backup create [--folder <abs dir>] [--data-dir <dir>] [--install-dir <dir>] [--confirm <token>]   (two steps: the preview prints a one-time token, --confirm asks for the passphrase and writes the encrypted backup; elevated, Hub running)
+  dude-hub backup create [--for-transfer] [--folder <abs dir>] [--data-dir <dir>] [--install-dir <dir>] [--confirm <token>]   (two steps: the preview prints a one-time token, --confirm asks for the passphrase and writes the encrypted backup; --for-transfer then RETIRES this Hub until "backup reactivate"; elevated, Hub running)
+  dude-hub backup reactivate [--data-dir <dir>] [--install-dir <dir>] [--confirm <token>]   (two steps: returns a retired (transferred) Hub to service with a new authority epoch; elevated, Hub running)
+  dude-hub backup restore --file <abs path> [--data-dir <dir>] [--install-dir <dir>] [--confirm <token>] [--replace "REPLACE HUB DATA"] [--old-hub-gone "THE OLD HUB IS GONE"]   (OFFLINE, Hub stopped; two steps: the preview decrypts the file and prints a one-time token, --confirm restores it with a new Hub identity; every device must be paired again; elevated when the service is installed)
   dude-hub backup list [--folder <abs dir>] [--data-dir <dir>] [--install-dir <dir>]
   dude-hub backup verify --file <abs path> [--data-dir <dir>] [--install-dir <dir>]   (decrypts the backup with its passphrase and prints what it contains; elevated)
   dude-hub backup schedule set --folder <abs dir> --every-hours <n> --keep <n> [--data-dir <dir>] [--install-dir <dir>]   (unattended backups; stores a protected derived key, never the passphrase; elevated)
@@ -103,7 +106,7 @@ function parseFlags(flags: readonly string[], allowed: readonly string[], boolea
 
 const optional = (values: Record<string, string>, flag: string, key: string): Record<string, string> => (values[flag] !== undefined ? { [key]: values[flag] } : {});
 
-const BACKUP_USAGE = 'Usage: dude-hub backup create|list|verify --file <path>|schedule set|off|status. Run "dude-hub help".';
+const BACKUP_USAGE = 'Usage: dude-hub backup create|reactivate|list|verify --file <path>|restore --file <path>|schedule set|off|status. Run "dude-hub help".';
 
 function absolutePath(values: Record<string, string>, flag: string): string | undefined {
   const value = values[flag];
@@ -130,8 +133,10 @@ function parseBackup(rest: readonly string[]): ParsedCommand {
     flags = flags.slice(1);
     if (sub !== 'set' && sub !== 'off' && sub !== 'status') throw new UsageError('Usage: dude-hub backup schedule set --folder <abs dir> --every-hours <n> --keep <n> | off | status.');
     action = sub === 'set' ? 'schedule-set' : sub === 'off' ? 'schedule-off' : 'schedule-status';
-  } else if (sub === 'create' || sub === 'list' || sub === 'verify') {
+  } else if (sub === 'create' || sub === 'list' || sub === 'verify' || sub === 'reactivate') {
     action = sub;
+  } else if (sub === 'restore') {
+    return parseBackupRestore(flags);
   } else {
     throw new UsageError(BACKUP_USAGE);
   }
@@ -139,16 +144,18 @@ function parseBackup(rest: readonly string[]): ParsedCommand {
     throw new UsageError('The backup passphrase is never accepted as a flag. Set DUDE_HUB_BACKUP_PASSPHRASE, pipe it on standard input, or type it at the prompt.');
   }
   const allowed: Record<typeof action, string[]> = {
-    create: ['--folder', '--confirm'],
+    create: ['--folder', '--confirm', '--for-transfer'],
+    reactivate: ['--confirm'],
     list: ['--folder'],
     verify: ['--file'],
     'schedule-set': ['--folder', '--every-hours', '--keep'],
     'schedule-off': [],
     'schedule-status': [],
   };
-  const values = parseFlags(flags, [...allowed[action], '--data-dir', '--install-dir'], []);
+  const values = parseFlags(flags, [...allowed[action], '--data-dir', '--install-dir'], ['--for-transfer']);
   const folder = absolutePath(values, '--folder');
   const file = absolutePath(values, '--file');
+  const forTransfer = values['--for-transfer'] !== undefined;
   if (action === 'verify' && file === undefined) throw new UsageError('Usage: dude-hub backup verify --file <absolute path to a .dudebackup file>.');
   if (action === 'schedule-set') {
     if (folder === undefined) throw new UsageError('Usage: dude-hub backup schedule set --folder <abs dir> --every-hours <n> --keep <n>.');
@@ -158,8 +165,23 @@ function parseBackup(rest: readonly string[]): ParsedCommand {
   }
   return {
     command: 'backup', action,
-    ...(folder !== undefined ? { folder } : {}), ...(file !== undefined ? { file } : {}),
+    ...(folder !== undefined ? { folder } : {}), ...(file !== undefined ? { file } : {}), ...(forTransfer ? { forTransfer: true } : {}),
     ...optional(values, '--confirm', 'confirm'), ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir'),
+  };
+}
+
+/** `backup restore --file <abs> [--confirm <token>] [--replace <phrase>] [--old-hub-gone <phrase>]`: the typed phrases are validated by the command, not here. */
+function parseBackupRestore(flags: readonly string[]): ParsedCommand {
+  if (flags.some((flag) => flag === '--passphrase' || flag.startsWith('--passphrase='))) {
+    throw new UsageError('The backup passphrase is never accepted as a flag. Set DUDE_HUB_BACKUP_PASSPHRASE, pipe it on standard input, or type it at the prompt.');
+  }
+  const values = parseFlags(flags, ['--file', '--confirm', '--replace', '--old-hub-gone', '--data-dir', '--install-dir'], []);
+  const file = absolutePath(values, '--file');
+  if (file === undefined) throw new UsageError('Usage: dude-hub backup restore --file <absolute path to a .dudebackup file> [--confirm <token>].');
+  return {
+    command: 'backup-restore', file,
+    ...optional(values, '--confirm', 'confirm'), ...optional(values, '--replace', 'replace'), ...optional(values, '--old-hub-gone', 'oldHubGone'),
+    ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir'),
   };
 }
 

@@ -35,7 +35,9 @@ function harness(initial: Parameters<typeof fixture>[0] = {}, extra: Partial<Bac
               hubInstanceId: 'hub-1', authorityEpoch: 4, counts: { devices: 2, audit_events: 31 }, passphraseWarning: 'Losing the passphrase makes the backup unrecoverable.',
             },
           };
-        case 'backup.create.apply': return { file: FILE, name: path.basename(FILE), size: 4096, sha256: 'ab'.repeat(32), manifest: { counts: {} } };
+        case 'backup.create.apply': return { file: FILE, name: path.basename(FILE), size: 4096, sha256: 'ab'.repeat(32), manifest: { counts: {} }, ...(params !== null && typeof params === 'object' && (params as { forTransfer?: unknown }).forTransfer === true ? { retired: true } : {}) };
+        case 'backup.reactivate.preview': return { confirmToken: 'rtok-9', expiresAt: 1_700_000_060_000, summary: { state: 'transferred', authorityEpoch: 4, newEpoch: 5 } };
+        case 'backup.reactivate.apply': return { reactivated: true, authorityEpoch: 5 };
         case 'backup.list': return { folder: FOLDER, backups: [{ name: path.basename(FILE), size: 4096, modifiedAt: '2026-01-01T00:00:00.000Z' }] };
         case 'backup.verify': return { ok: true, manifest: { formatVersion: 1, counts: { devices: 2 } } };
         case 'backup.schedule.set': return { configured: true, folder: FOLDER, intervalHours: 24, retention: 7, replaced: false };
@@ -142,6 +144,95 @@ describe('backup create', () => {
     expect(await h.run({ action: 'create', confirm: 'tok-123' })).toBe(2);
     expect(asked).toBe(0);
     expect(h.f.err.join('')).toMatch(/Hub is not running/);
+  });
+});
+
+const RETIRE = /RETIRED after the backup is written and verified.*"dude-hub backup reactivate"/s;
+
+describe('backup create --for-transfer', () => {
+  it('sends forTransfer in the preview, prints the retire warning and keeps the token on stdout', async () => {
+    const h = harness();
+    expect(await h.run({ action: 'create', folder: FOLDER, forTransfer: true })).toBe(0);
+    expect(h.backupCalls()).toEqual([{ method: 'backup.create.preview', params: { folder: FOLDER, forTransfer: true }, timeoutMs: undefined }]);
+    expect(JSON.parse(h.f.out.join(''))).toEqual({ confirmToken: 'tok-123', expiresAt: 1_700_000_060_000 });
+    expect(h.f.err.join('')).toMatch(RETIRE);
+    expect(h.f.err.join('')).toContain('and --for-transfer');
+  });
+
+  it('sends forTransfer in the apply, warns before asking for the passphrase and reports the retirement', async () => {
+    const order: string[] = [];
+    const h = harness({}, { readPassphrase: async () => { order.push(`ask after ${h.f.err.join('').includes('RETIRED') ? 'warning' : 'nothing'}`); return PASSPHRASE; } });
+    expect(await h.run({ action: 'create', folder: FOLDER, confirm: 'tok-123', forTransfer: true })).toBe(0);
+    expect(order).toEqual(['ask after warning']);
+    expect(h.backupCalls()).toEqual([{ method: 'backup.create.apply', params: { confirmToken: 'tok-123', folder: FOLDER, passphrase: PASSPHRASE, forTransfer: true }, timeoutMs: 10 * 60 * 1000 }]);
+    expect(JSON.parse(h.f.out.join(''))).toEqual({ file: FILE, size: 4096, sha256: 'ab'.repeat(32), retired: true });
+    expect(h.f.err.join('')).toMatch(RETIRE);
+    expect(h.f.err.join('')).toContain('This Hub is now retired (transferred).');
+    expect(h.output()).not.toContain(PASSPHRASE);
+  });
+
+  it('does not claim a retirement the Hub did not report, and plain create never mentions one', async () => {
+    const h = harness({}, { ...withEnv, call: async (_dir, method) => (method === 'status' ? { ok: true } : { file: FILE, size: 1, sha256: 'cd'.repeat(32) }) });
+    expect(await h.run({ action: 'create', confirm: 'tok-123', forTransfer: true })).toBe(0);
+    expect(h.f.err.join('')).not.toContain('is now retired');
+    expect(h.f.err.join('')).toContain('did not report that it was retired');
+    const plain = harness({}, withEnv);
+    await plain.run({ action: 'create', confirm: 'tok-123' });
+    expect(plain.backupCalls()[0]!.params).not.toHaveProperty('forTransfer');
+    expect(plain.f.err.join('')).not.toMatch(/RETIRED|retired/);
+  });
+
+  it('is elevated in both steps like create', async () => {
+    for (const confirm of [undefined, 'tok']) {
+      const h = harness({ state: 'running', elevated: false }, withEnv);
+      expect(await h.run({ action: 'create', forTransfer: true, ...(confirm !== undefined ? { confirm } : {}) })).toBe(2);
+      expect(h.calls).toEqual([]);
+    }
+  });
+});
+
+describe('backup reactivate', () => {
+  it('previews without writing, printing the summary on stderr and the token on stdout', async () => {
+    let asked = 0;
+    const h = harness({}, { readPassphrase: async () => { asked++; return PASSPHRASE; } });
+    expect(await h.run({ action: 'reactivate' })).toBe(0);
+    expect(asked).toBe(0);
+    expect(h.backupCalls()).toEqual([{ method: 'backup.reactivate.preview', params: {}, timeoutMs: undefined }]);
+    expect(JSON.parse(h.f.out.join(''))).toEqual({ confirmToken: 'rtok-9', expiresAt: 1_700_000_060_000 });
+    expect(h.f.err.join('')).toContain('state: transferred');
+    expect(h.f.err.join('')).toMatch(/--confirm <confirmToken> within 60 seconds/);
+  });
+
+  it('applies with the token only (no passphrase) and prints the new epoch', async () => {
+    let asked = 0;
+    const h = harness({}, { readPassphrase: async () => { asked++; return PASSPHRASE; } });
+    expect(await h.run({ action: 'reactivate', confirm: 'rtok-9' })).toBe(0);
+    expect(asked).toBe(0);
+    expect(h.backupCalls()).toEqual([{ method: 'backup.reactivate.apply', params: { confirmToken: 'rtok-9' }, timeoutMs: undefined }]);
+    expect(JSON.parse(h.f.out.join(''))).toEqual({ reactivated: true, authorityEpoch: 5 });
+    expect(h.f.err.join('')).toContain('authority epoch 5');
+  });
+
+  it('is refused in both steps without elevation when the service is installed, and runs elevated', async () => {
+    for (const confirm of [undefined, 'rtok-9']) {
+      const h = harness({ state: 'running', elevated: false });
+      expect(await h.run({ action: 'reactivate', ...(confirm !== undefined ? { confirm } : {}) })).toBe(2);
+      expect(h.calls).toEqual([]);
+      expect(h.f.err.join('')).toMatch(/elevated \(Administrator\) terminal/);
+    }
+    expect(await harness({ state: 'running', elevated: true }).run({ action: 'reactivate' })).toBe(0);
+  });
+
+  it('maps a conflict (not transferred), an expired token and a stopped Hub to clear messages', async () => {
+    const conflict = harness({}, { fail: (method) => (method === 'backup.reactivate.preview' ? new AdminCallError('conflict', 'This Hub is not retired, so there is nothing to reactivate.') : undefined) });
+    expect(await conflict.run({ action: 'reactivate' })).toBe(1);
+    expect(conflict.f.err.join('')).toContain('This Hub is not retired, so there is nothing to reactivate.');
+    const expired = harness({}, { fail: (method) => (method === 'backup.reactivate.apply' ? new AdminCallError('confirmation-required', 'x') : undefined) });
+    expect(await expired.run({ action: 'reactivate', confirm: 'rtok-9' })).toBe(1);
+    expect(expired.f.err.join('')).toMatch(/expired or already used.*backup reactivate/s);
+    const gone = harness({}, { fail: () => new AdminCallError(HUB_NOT_RUNNING, 'gone') });
+    expect(await gone.run({ action: 'reactivate' })).toBe(2);
+    expect(gone.f.err.join('')).toMatch(/Reactivation is done by the running Hub/);
   });
 });
 

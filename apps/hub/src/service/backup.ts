@@ -5,13 +5,15 @@ import type { ReadPassphraseOptions } from '../cli/passphrase.js';
 import { EXIT_FAILURE, EXIT_OK, EXIT_USAGE, json, requireElevated, resolveDeps, serviceDataDir, serviceState, tryAdminStatus } from './common.js';
 import type { ResolvedDeps, ServiceDeps } from './common.js';
 
-export type BackupAction = 'create' | 'list' | 'verify' | 'schedule-set' | 'schedule-off' | 'schedule-status';
+export type BackupAction = 'create' | 'list' | 'verify' | 'schedule-set' | 'schedule-off' | 'schedule-status' | 'reactivate';
 
 export interface BackupCommandOptions {
   action: BackupAction;
   folder?: string;
   file?: string;
   confirm?: string;
+  /** `backup create --for-transfer`: the Hub is retired once the backup is written and verified. */
+  forTransfer?: boolean;
   everyHours?: number;
   keep?: number;
   dataDir?: string;
@@ -35,9 +37,12 @@ const WHAT: Record<BackupAction, string> = {
   'schedule-set': 'Scheduling backups',
   'schedule-off': 'Turning off scheduled backups',
   'schedule-status': 'Showing the backup schedule',
+  reactivate: 'Reactivating the Hub',
 };
 /** Everything that writes, reads a secret or changes the schedule needs the elevated terminal; list and status only read. */
-const ELEVATED: ReadonlySet<BackupAction> = new Set(['create', 'verify', 'schedule-set', 'schedule-off']);
+const ELEVATED: ReadonlySet<BackupAction> = new Set(['create', 'verify', 'schedule-set', 'schedule-off', 'reactivate']);
+const RETIRE_WARNING = 'This Hub will be RETIRED after the backup is written and verified: it will refuse sign-in, sync and pairing until you run "dude-hub backup reactivate". Restore the backup on the new machine before you retire anything you need.';
+const RETIRED_NOTICE = 'This Hub is now retired (transferred).';
 
 interface PreviewResult {
   confirmToken?: unknown;
@@ -72,16 +77,27 @@ function previewLines(preview: PreviewResult): string {
   return `${lines.join('\n')}\n`;
 }
 
+/** The readable reactivate preview on stderr (whatever string and number fields the Hub reports); the token goes to stdout separately. */
+function reactivatePreviewLines(preview: PreviewResult): string {
+  const lines = ['Reactivate preview (nothing has been changed)'];
+  for (const [name, value] of Object.entries(preview.summary ?? {})) {
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') lines.push(`  ${name}: ${String(value)}`);
+  }
+  return `${lines.join('\n')}\n`;
+}
+
 /** A clear one-line message for an admin failure and the exit code: 2 when the Hub is not running, else 1. */
-function failure(d: ResolvedDeps, error: unknown, what: string): number {
+function failure(d: ResolvedDeps, error: unknown, what: string, action: BackupAction = 'create'): number {
   if (error instanceof AdminCallError) {
     const detail = error.detail as { reason?: unknown } | undefined;
     switch (error.code) {
       case HUB_NOT_RUNNING:
-        d.err('The Hub is not running. Backups are made by the running Hub; start it and run this again.\n');
+        d.err(action === 'reactivate'
+          ? 'The Hub is not running. Reactivation is done by the running Hub; start it and run this again.\n'
+          : 'The Hub is not running. Backups are made by the running Hub; start it and run this again.\n');
         return EXIT_USAGE;
       case 'confirmation-required':
-        d.err('The confirmation is missing, expired or already used. Run "dude-hub backup create" again to get a new token.\n');
+        d.err(`The confirmation is missing, expired or already used. Run "dude-hub backup ${action === 'reactivate' ? 'reactivate' : 'create'}" again to get a new token.\n`);
         return EXIT_FAILURE;
       case 'timeout':
         d.err(`${what}: the Hub did not answer in time. It may still be working; check "dude-hub backup list" before trying again.\n`);
@@ -123,7 +139,9 @@ export async function runBackup(options: BackupCommandOptions, deps: BackupComma
     }
   }
   if ((await tryAdminStatus(d, dataRoot)) === null) {
-    d.err('The Hub is not running. Backups are made by the running Hub; start it and run this again.\n');
+    d.err(options.action === 'reactivate'
+      ? 'The Hub is not running. Reactivation is done by the running Hub; start it and run this again.\n'
+      : 'The Hub is not running. Backups are made by the running Hub; start it and run this again.\n');
     return EXIT_USAGE;
   }
 
@@ -155,18 +173,38 @@ export async function runBackup(options: BackupCommandOptions, deps: BackupComma
     switch (options.action) {
       case 'create': {
         const folder = options.folder !== undefined ? { folder: options.folder } : {};
+        const transfer = options.forTransfer === true ? { forTransfer: true } : {};
         if (options.confirm === undefined) {
-          const preview = (await d.call(dataRoot, 'backup.create.preview', folder)) as PreviewResult;
+          const preview = (await d.call(dataRoot, 'backup.create.preview', { ...folder, ...transfer })) as PreviewResult;
           d.err(previewLines(preview));
+          if (options.forTransfer === true) d.err(`  Warning:   ${RETIRE_WARNING}\n`);
           d.out(`${JSON.stringify({ confirmToken: preview.confirmToken, expiresAt: preview.expiresAt })}\n`);
-          d.err('Nothing has been written. Re-run with --confirm <confirmToken> within 60 seconds (and the same --folder) to be asked for a passphrase and create the backup.\n');
+          d.err(`Nothing has been written. Re-run with --confirm <confirmToken> within 60 seconds (and the same --folder${options.forTransfer === true ? ' and --for-transfer' : ''}) to be asked for a passphrase and create the backup.\n`);
           return EXIT_OK;
         }
+        if (options.forTransfer === true) d.err(`${RETIRE_WARNING}\n`);
         d.err(`${PASSPHRASE_WARNING}\n`);
         const passphrase = await passphraseFor('Backup passphrase (min 12 characters): ', true, true);
         if (passphrase === null) return EXIT_FAILURE;
-        const result = (await callAdminLong('backup.create.apply', { confirmToken: options.confirm, ...folder, passphrase })) as { file?: unknown; size?: unknown; sha256?: unknown };
-        d.out(`${JSON.stringify({ file: result.file, size: result.size, sha256: result.sha256 })}\n`);
+        const result = (await callAdminLong('backup.create.apply', { confirmToken: options.confirm, ...folder, passphrase, ...transfer })) as { file?: unknown; size?: unknown; sha256?: unknown; retired?: unknown };
+        d.out(`${JSON.stringify({ file: result.file, size: result.size, sha256: result.sha256, ...(options.forTransfer === true ? { retired: result.retired === true } : {}) })}\n`);
+        if (options.forTransfer === true) {
+          d.err(result.retired === true ? `${RETIRED_NOTICE}\n` : 'The backup was written, but the Hub did not report that it was retired. Check "dude-hub status" before restoring elsewhere.\n');
+        }
+        return EXIT_OK;
+      }
+      case 'reactivate': {
+        if (options.confirm === undefined) {
+          const preview = (await d.call(dataRoot, 'backup.reactivate.preview', {})) as PreviewResult;
+          d.err(reactivatePreviewLines(preview));
+          d.out(`${JSON.stringify({ confirmToken: preview.confirmToken, expiresAt: preview.expiresAt })}\n`);
+          d.err('Nothing has been changed. Re-run with --confirm <confirmToken> within 60 seconds to return this Hub to service with a new authority epoch.\n');
+          return EXIT_OK;
+        }
+        const result = (await d.call(dataRoot, 'backup.reactivate.apply', { confirmToken: options.confirm })) as { authorityEpoch?: unknown; epoch?: unknown };
+        const epoch = result.authorityEpoch ?? result.epoch;
+        d.out(json(result));
+        d.err(`This Hub is active again at authority epoch ${text(epoch)}. Devices paired to it before the transfer may need to be paired again.\n`);
         return EXIT_OK;
       }
       case 'list': {
@@ -202,6 +240,6 @@ export async function runBackup(options: BackupCommandOptions, deps: BackupComma
         return EXIT_OK;
     }
   } catch (error) {
-    return failure(d, error, WHAT[options.action]);
+    return failure(d, error, WHAT[options.action], options.action);
   }
 }

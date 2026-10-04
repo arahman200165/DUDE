@@ -26,8 +26,34 @@ describe('backup CLI parsing', () => {
     expect(parseArgs(['backup', 'schedule', 'status', '--data-dir', 'd'])).toEqual({ command: 'backup', action: 'schedule-status', dataDir: 'd' });
   });
 
+  it('parses backup create --for-transfer and backup reactivate', () => {
+    expect(parseArgs(['backup', 'create', '--for-transfer'])).toEqual({ command: 'backup', action: 'create', forTransfer: true });
+    expect(parseArgs(['backup', 'create', '--for-transfer', '--folder', FOLDER, '--confirm', 'tok'])).toEqual({
+      command: 'backup', action: 'create', forTransfer: true, folder: FOLDER, confirm: 'tok',
+    });
+    expect(parseArgs(['backup', 'create'])).not.toHaveProperty('forTransfer');
+    expect(parseArgs(['backup', 'reactivate'])).toEqual({ command: 'backup', action: 'reactivate' });
+    expect(parseArgs(['backup', 'reactivate', '--confirm', 'tok', '--data-dir', 'd', '--install-dir', 'i'])).toEqual({
+      command: 'backup', action: 'reactivate', confirm: 'tok', dataDir: 'd', installDir: 'i',
+    });
+  });
+
+  it('parses backup restore with the typed phrases passed through verbatim', () => {
+    expect(parseArgs(['backup', 'restore', '--file', FILE])).toEqual({ command: 'backup-restore', file: FILE });
+    expect(parseArgs(['backup', 'restore', '--file', FILE, '--data-dir', 'd', '--install-dir', 'i', '--confirm', 'tok', '--replace', 'REPLACE HUB DATA', '--old-hub-gone', 'THE OLD HUB IS GONE'])).toEqual({
+      command: 'backup-restore', file: FILE, dataDir: 'd', installDir: 'i', confirm: 'tok', replace: 'REPLACE HUB DATA', oldHubGone: 'THE OLD HUB IS GONE',
+    });
+    // A near miss is not normalised here; the command refuses it.
+    expect(parseArgs(['backup', 'restore', '--file', FILE, '--replace=replace hub data '])).toMatchObject({ replace: 'replace hub data ' });
+    expect(() => parseArgs(['backup', 'restore', '--file', 'x.dudebackup'])).toThrow(/absolute path/);
+    expect(() => parseArgs(['backup', 'restore', '--file', FILE, '--replace'])).toThrow(/needs a value/);
+  });
+
   it('never accepts the passphrase as a flag, for any backup command', () => {
     const attempts = [
+      ['backup', 'restore', '--file', FILE, '--passphrase', 'hunter2hunter2'],
+      ['backup', 'restore', '--passphrase=hunter2hunter2'],
+      ['backup', 'reactivate', '--passphrase', 'hunter2hunter2'],
       ['backup', 'create', '--passphrase', 'hunter2hunter2'],
       ['backup', 'create', '--confirm', 'tok', '--passphrase=hunter2hunter2'],
       ['backup', 'verify', '--file', FILE, '--passphrase', 'hunter2hunter2'],
@@ -46,7 +72,13 @@ describe('backup CLI parsing', () => {
 
   it('rejects an unknown subcommand, an unknown flag and a flag from another action', () => {
     expect(() => parseArgs(['backup'])).toThrow(UsageError);
-    expect(() => parseArgs(['backup', 'restore'])).toThrow(/Usage: dude-hub backup/);
+    expect(() => parseArgs(['backup', 'restore'])).toThrow(/Usage: dude-hub backup restore --file/);
+    expect(() => parseArgs(['backup', 'transfer'])).toThrow(/Usage: dude-hub backup/);
+    expect(() => parseArgs(['backup', 'verify', '--file', FILE, '--for-transfer'])).toThrow(/Unknown flag/);
+    expect(() => parseArgs(['backup', 'list', '--for-transfer'])).toThrow(/Unknown flag/);
+    expect(() => parseArgs(['backup', 'create', '--for-transfer=yes'])).toThrow(/takes no value/);
+    expect(() => parseArgs(['backup', 'reactivate', '--folder', FOLDER])).toThrow(/Unknown flag/);
+    expect(() => parseArgs(['backup', 'restore', '--file', FILE, '--folder', FOLDER])).toThrow(/Unknown flag/);
     expect(() => parseArgs(['backup', 'schedule'])).toThrow(UsageError);
     expect(() => parseArgs(['backup', 'schedule', 'run'])).toThrow(UsageError);
     expect(() => parseArgs(['backup', 'create', '--nope'])).toThrow(/Unknown flag/);
@@ -81,7 +113,7 @@ describe('backup CLI parsing', () => {
   });
 
   it('documents the commands in the help text without a passphrase flag', () => {
-    for (const line of ['backup create', 'backup list', 'backup verify', 'backup schedule set', 'backup schedule off|status', 'DUDE_HUB_BACKUP_PASSPHRASE']) {
+    for (const line of ['backup create', 'backup list', 'backup verify', 'backup schedule set', 'backup schedule off|status', 'backup restore', 'backup reactivate', '--for-transfer', 'REPLACE HUB DATA', 'THE OLD HUB IS GONE', 'DUDE_HUB_BACKUP_PASSPHRASE']) {
       expect(HELP_TEXT).toContain(line);
     }
   });

@@ -5,7 +5,7 @@ import https from 'node:https';
 import path from 'node:path';
 import { HUB_API_PREFIX } from '@dude/contracts/hub';
 import type { HelloResponse } from '@dude/contracts/hub';
-import { callAdmin } from '../admin/admin-client.js';
+import { AdminCallError, callAdmin, HUB_NOT_RUNNING } from '../admin/admin-client.js';
 import { hubPaths, resolveDataDir } from '../config/data-dir.js';
 import { readCaCertPem } from '../tls/ca-public.js';
 import { spkiSha256 } from '../tls/self-signed.js';
@@ -145,6 +145,21 @@ export async function serviceState(d: Pick<ResolvedDeps, 'exec' | 'platform'>): 
     return parseScState(result.stdout);
   } catch {
     return 'unknown';
+  }
+}
+
+/**
+ * True when a Hub may be running on `root`: the service is anything but not-installed or stopped, or the admin channel answers
+ * (or fails in any way other than "not running"). The offline commands (purge, restore) refuse on true.
+ */
+export async function isHubRunning(root: string, d: Pick<ResolvedDeps, 'exec' | 'platform'>): Promise<boolean> {
+  const state = await serviceState(d);
+  if (state !== 'not-installed' && state !== 'stopped') return true; // running, pending, paused or unknown: refuse
+  try {
+    await callAdmin(root, 'status', {}, 2000);
+    return true;
+  } catch (error) {
+    return !(error instanceof AdminCallError && error.code === HUB_NOT_RUNNING);
   }
 }
 
