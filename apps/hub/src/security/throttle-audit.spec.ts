@@ -70,7 +70,7 @@ describe('throttle', () => {
   it('builds per-IP and global keys for every kind and takes the longer wait', () => {
     const { hub } = open();
     const keys = throttleKeys['password']('9.9.9.9');
-    expect(keys).toEqual({ ip: 'password:ip:9.9.9.9', global: 'password:global' });
+    expect(keys).toEqual({ ip: 'password:ip:9.9.9.9', global: 'password:global', address: '9.9.9.9' });
     for (const kind of ['recovery-code', 'setup-token'] as const) {
       expect(throttleKeys[kind]('1.1.1.1').global).toBe(`${kind}:global`);
     }

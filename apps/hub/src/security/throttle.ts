@@ -1,6 +1,7 @@
 import type { FastifyReply } from 'fastify';
 import type { Db } from '@dude/sqlite-store';
 import { envelope } from '../server/errors.js';
+import { noteCredentialFailure } from './ip-block.js';
 
 export const THROTTLE_FREE_FAILURES = 5;
 export const THROTTLE_WINDOW_MS = 15 * 60_000;
@@ -9,7 +10,12 @@ export const THROTTLE_MAX_DELAY_MS = 15 * 60_000;
 export const THROTTLE_KINDS = ['password', 'recovery-code', 'pairing', 'setup-token', 'device-challenge'] as const;
 export type ThrottleKind = (typeof THROTTLE_KINDS)[number];
 
-export interface ThrottleKeys { ip: string; global: string | null }
+export interface ThrottleKeys {
+  ip: string;
+  global: string | null;
+  /** The bare client address, for the automatic IP block counter. */
+  address: string;
+}
 
 /**
  * Kinds without a global key. Device challenges are Ed25519 signatures (not guessable) and every pairing code
@@ -19,7 +25,7 @@ export interface ThrottleKeys { ip: string; global: string | null }
 const PER_IP_ONLY: ReadonlySet<ThrottleKind> = new Set(['device-challenge', 'pairing']);
 
 export const throttleKeys: Record<ThrottleKind, (ip: string) => ThrottleKeys> = Object.fromEntries(
-  THROTTLE_KINDS.map((kind) => [kind, (ip: string): ThrottleKeys => ({ ip: `${kind}:ip:${ip}`, global: PER_IP_ONLY.has(kind) ? null : `${kind}:global` })]),
+  THROTTLE_KINDS.map((kind) => [kind, (ip: string): ThrottleKeys => ({ ip: `${kind}:ip:${ip}`, global: PER_IP_ONLY.has(kind) ? null : `${kind}:global`, address: ip })]),
 ) as Record<ThrottleKind, (ip: string) => ThrottleKeys>;
 
 export type ThrottleDecision = { allowed: true } | { allowed: false; retryAfterMs: number };
@@ -77,6 +83,7 @@ export function checkThrottleKeys(db: Db, keys: ThrottleKeys, now: number): Thro
 export function recordFailureKeys(db: Db, keys: ThrottleKeys, now: number): void {
   recordFailure(db, keys.ip, now);
   if (keys.global !== null) recordFailure(db, keys.global, now);
+  noteCredentialFailure(db, keys.address, now);
 }
 
 /** A success clears only the per-IP key; the global counter keeps its history. */

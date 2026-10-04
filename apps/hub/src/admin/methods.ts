@@ -25,6 +25,7 @@ import { isIssuedByCa, readCaCertPem } from '../tls/ca-public.js';
 import { createLeafIssuer } from '../tls/leaf-issuer.js';
 import { createLocalCa, validateCaSuffixes } from '../tls/local-ca.js';
 import { configuredDnsNames } from '../tls/names.js';
+import { clearBlock, listBlocks } from '../security/ip-block.js';
 
 export interface AdminMethodContext {
   db: Db;
@@ -110,6 +111,13 @@ export function buildAdminMethods(context: AdminMethodContext): Record<string, A
   };
   const flag = (params: unknown, name: string): boolean => (params as Record<string, unknown> | null)?.[name] === true;
   return {
+    /** Automatic address blocks (31F): the elevated recovery path for an owner whose own address was blocked. */
+    'security.blocks.list': () => ({ blocks: listBlocks(context.db, now()) }),
+    'security.blocks.clear': (params) => {
+      const ip = (params as { ip?: unknown } | null)?.ip;
+      if (typeof ip !== 'string' || ip.length === 0 || ip.length > 64) throw new AdminError('bad-request', 'Provide the blocked address as ip.');
+      return { cleared: clearBlock(context.db, ip, now()) };
+    },
     'tls.status': () => rotation().status(),
     'tls.stage': (params) => rotate(() => rotation().stage({ restage: flag(params, 'restage'), ...(desiredSans() ? { extraNames: desiredSans() as string[] } : {}) })),
     /**

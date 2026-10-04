@@ -9,6 +9,7 @@ export type ParsedCommand =
   | { command: 'tls-ca'; action: 'init' | 'status' | 'export'; suffixes?: string[]; out?: string; dataDir?: string; installDir?: string }
   | { command: 'tls-import'; cert: string; key: string; chain?: string; dataDir?: string; installDir?: string }
   | { command: 'tls-proxy-pin'; action: 'add' | 'remove' | 'list' | 'activate'; value?: string; force?: boolean; confirm?: string; dataDir?: string; installDir?: string }
+  | { command: 'security-blocks'; action: 'list' | 'clear'; ip?: string; dataDir?: string; installDir?: string }
   | { command: 'tls-names'; action: 'list' | 'add' | 'remove'; name?: string; dataDir?: string; installDir?: string }
   | { command: 'service'; action: 'install' | 'uninstall' | 'start' | 'stop' | 'restart' | 'status' | 'update'; dataDir?: string; installDir?: string; port?: number; lan?: boolean; source?: string; keepData?: boolean }
   | { command: 'network'; action: 'lan-on' | 'lan-off' | 'status' | 'proxy-on' | 'proxy-off' | 'proxy-status' | 'mode-private' | 'mode-public'; trusted?: string[]; publicOrigin?: string; acknowledgeUnreleased?: boolean; dataDir?: string; installDir?: string }
@@ -42,6 +43,8 @@ Usage:
   dude-hub tls names list [--data-dir <dir>]
   dude-hub tls names add <name> [--data-dir <dir>] [--install-dir <dir>]   (stages a re-issued certificate)
   dude-hub tls names remove <name> [--data-dir <dir>] [--install-dir <dir>]
+  dude-hub security blocks list [--data-dir <dir>] [--install-dir <dir>]   (addresses blocked after repeated failures; elevated, Hub running)
+  dude-hub security blocks clear <address> [--data-dir <dir>] [--install-dir <dir>]
   dude-hub service install [--install-dir <dir>] [--data-dir <dir>] [--port <n>] [--lan]   (elevated, Windows)
   dude-hub service uninstall [--keep-data] [--install-dir <dir>] [--data-dir <dir>]
   dude-hub service start|stop|restart|status [--install-dir <dir>] [--data-dir <dir>]
@@ -156,6 +159,20 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
       command: 'tls-proxy-pin', action, ...(value !== undefined ? { value } : {}), ...(values['--force'] !== undefined ? { force: true } : {}),
       ...optional(values, '--confirm', 'confirm'), ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir'),
     };
+  }
+  if (command === 'security') {
+    if (rest[0] !== 'blocks') throw new UsageError('Usage: dude-hub security blocks list|clear <address>.');
+    const action = rest[1];
+    if (action !== 'list' && action !== 'clear') throw new UsageError('Usage: dude-hub security blocks list|clear <address>.');
+    let ip: string | undefined;
+    let flags = rest.slice(2);
+    if (action === 'clear') {
+      ip = flags[0];
+      if (ip === undefined || ip.startsWith('--')) throw new UsageError('Usage: dude-hub security blocks clear <address>.');
+      flags = flags.slice(1);
+    }
+    const values = parseFlags(flags, ['--data-dir', '--install-dir'], []);
+    return { command: 'security-blocks', action, ...(ip !== undefined ? { ip } : {}), ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir') };
   }
   if (command === 'tls' && rest[0] === 'names') {
     const action = rest[1];

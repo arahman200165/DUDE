@@ -55,6 +55,8 @@ export interface RateLimiter {
   checkAddress(ip: string, kind: { authLimited: boolean; anonymous: boolean }): number;
   /** After authentication, per principal key (`owner:<session>` or `device:<id>`). Seconds to wait, or 0. */
   checkPrincipal(key: string, read: boolean): number;
+  /** True when the most recent `checkAddress` rejection came from the per-address flood bucket. */
+  readonly lastRejectionWasFlood: boolean;
   sweep(): void;
   readonly size: number;
 }
@@ -75,10 +77,13 @@ export function createRateLimiter(options: RateLimiterOptions = {}): RateLimiter
   const auth = new TokenBuckets(options.auth ?? AUTH_POLICY);
   const principal = new TokenBuckets(options.global ?? GLOBAL_POLICY);
   const read = new TokenBuckets(options.read ?? READ_POLICY);
+  let lastFlood = false;
   return {
+    get lastRejectionWasFlood() { return lastFlood; },
     checkAddress(ip, kind) {
       const t = now();
       const wait = flood.take(ip, t);
+      lastFlood = wait > 0;
       if (wait > 0) return wait;
       if (!kind.anonymous && !kind.authLimited) return 0; // an authenticated request is metered per principal later
       const global = anonymous.take(ip, t);
@@ -110,15 +115,17 @@ function tooMany(reply: FastifyReply, wait: number): FastifyReply {
  * reverse-proxy mode and only for a configured trusted proxy, the client address from `X-Forwarded-For`. Authenticated
  * requests are metered per principal by `withPrincipalLimit` after auth. Idle keys are swept periodically.
  */
-export function registerRateLimit(app: FastifyInstance, limiter: RateLimiter, sweepIntervalMs = 60_000): void {
+export function registerRateLimit(app: FastifyInstance, limiter: RateLimiter, sweepIntervalMs = 60_000, options: { onFlood?: (ip: string) => void } = {}): void {
   app.addHook('onRequest', async (request, reply) => {
     // The public web bundle is dozens of module requests per page load; only API calls consume tokens.
     if (!isApiPath(request.url)) return;
-    const wait = limiter.checkAddress(request.ip || 'unknown', {
+    const ip = request.ip || 'unknown';
+    const wait = limiter.checkAddress(ip, {
       authLimited: request.routeOptions.config?.authLimited === true,
       anonymous: classifyCredential(request).kind === 'none',
     });
     if (wait === 0) return;
+    if (limiter.lastRejectionWasFlood) options.onFlood?.(ip);
     return tooMany(reply, wait);
   });
   const timer = setInterval(() => limiter.sweep(), sweepIntervalMs);
