@@ -277,7 +277,9 @@ test('i. sign-out wipes the origin (storage and IndexedDB) but keeps the service
   const defaults = await freshPage.evaluate(() => Object.fromEntries(Object.keys(localStorage).map((k) => [k, localStorage.getItem(k)])));
   await fresh.close();
   expect(after.local, 'localStorage holds only what a fresh browser holds (installation id and sentinel wiped)').toEqual(defaults);
-  expect(Object.keys(after.local).filter((k) => /__device__|e2e-/.test(k))).toEqual([]);
+  // The boot authority gate (Phase 31G) records the Hub it just saw (`__device__:hubAuthority`, local-only, no secret) on every
+  // boot, including the sign-in page this sign-out lands on, so that key is rewritten by design; the installation id is not.
+  expect(Object.keys(after.local).filter((k) => /__device__(?!:hubAuthority$)|e2e-/.test(k))).toEqual([]);
   expect(after.session).toEqual([]);
   expect(after.databases).not.toContain('e2e-sentinel-db');
   expect(after.caches.some((k) => k.startsWith('ngsw:'))).toBe(true);

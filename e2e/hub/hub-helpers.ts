@@ -1,8 +1,10 @@
+import { spawn, type ChildProcess } from 'node:child_process';
 import { generateKeyPairSync, randomUUID, sign, type KeyObject } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import https from 'node:https';
 import path from 'node:path';
-import { expect, type Page } from '@playwright/test';
+import { createInterface } from 'node:readline';
+import { chromium, expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import { createHubClient, type HubClient, type HubRequest, type HubResponse, type HubTransport } from '@dude/api-client';
 import { deviceAuthMessage, enrollMessage, parsePairingString } from '@dude/contracts/hub';
 import type { SyncOp, SyncOpResult, SyncRecord } from '@dude/contracts/hub';
@@ -15,9 +17,26 @@ export function readSetupToken(): string {
   return readFileSync(path.join(hubDataDir(), 'config', 'setup-token'), 'utf8').trim();
 }
 
+/** One running Hub the specs talk to: the shared one (global setup) or an extra one spawned by a spec (`spawnExtraHub`). */
+export interface HubTarget {
+  readonly url: string;
+  readonly port: number;
+  /** PEM of the Hub's leaf and, when it has one, its local CA root: what a Node client pins. */
+  readonly cert: string;
+  /** The leaf's SPKI SHA-256 (base64url): what Chromium is told to trust. */
+  readonly spki: string;
+  readonly dataDir: string;
+}
+
+/** The Hub that the global setup started and the other specs share. */
+export const sharedHub = (): HubTarget => ({
+  url: hubUrl(), port: hubPort(), cert: process.env['HUB_E2E_CERT']!, spki: process.env['HUB_E2E_SPKI']!, dataDir: hubDataDir(),
+});
+
 /** A Node HubTransport that pins the Hub's own self-signed certificate (`ca`); certificate errors are never ignored. */
-export function pinnedTransport(): HubTransport {
-  const ca = process.env['HUB_E2E_CERT']!;
+export function pinnedTransport(target: HubTarget = sharedHub()): HubTransport {
+  const ca = target.cert;
+  const port = target.port;
   return {
     request: (req: HubRequest) =>
       new Promise<HubResponse>((resolve, reject) => {
@@ -25,13 +44,13 @@ export function pinnedTransport(): HubTransport {
         const r = https.request(
           {
             host: '127.0.0.1',
-            port: hubPort(),
+            port,
             servername: 'localhost',
             method: req.method,
             path: req.path,
             ca,
             headers: {
-              host: `localhost:${hubPort()}`,
+              host: `localhost:${port}`,
               accept: 'application/json',
               ...(body === undefined ? {} : { 'content-type': 'application/json', 'content-length': String(Buffer.byteLength(body)) }),
               ...req.headers,
@@ -59,21 +78,39 @@ export function pinnedTransport(): HubTransport {
   };
 }
 
-export const hubClient = (): HubClient => createHubClient(pinnedTransport(), { clientProtocol: 1, minHubProtocol: 1 });
+export const hubClient = (target: HubTarget = sharedHub()): HubClient => createHubClient(pinnedTransport(target), { clientProtocol: 1, minHubProtocol: 1 });
 
 const b64url = (buf: Buffer): string => buf.toString('base64url');
 
 /** A device simulated in Node: an Ed25519 key, enrolled with a pairing string over the pinned transport. */
 export class SimulatedDevice {
-  readonly deviceId = randomUUID();
+  readonly deviceId: string;
   private readonly privateKey: KeyObject;
   private readonly publicKey: string;
-  private readonly client = hubClient();
+  private readonly client: HubClient;
 
-  constructor() {
-    const pair = generateKeyPairSync('ed25519');
-    this.privateKey = pair.privateKey;
-    this.publicKey = pair.publicKey.export({ format: 'jwk' }).x!;
+  /** `identity` re-uses a device id and (optionally) key, e.g. to present the same device to another Hub (`moveTo`). */
+  constructor(private readonly target: HubTarget = sharedHub(), identity?: { deviceId: string; privateKey?: KeyObject; publicKey?: string }) {
+    this.deviceId = identity?.deviceId ?? randomUUID();
+    if (identity?.privateKey !== undefined && identity.publicKey !== undefined) {
+      this.privateKey = identity.privateKey;
+      this.publicKey = identity.publicKey;
+    } else {
+      const pair = generateKeyPairSync('ed25519');
+      this.privateKey = pair.privateKey;
+      this.publicKey = pair.publicKey.export({ format: 'jwk' }).x!;
+    }
+    this.client = hubClient(target);
+  }
+
+  /** The same device id (and, unless `newKey`, the same key) talking to another Hub: what a restored Hub sees from a paired desktop. */
+  moveTo(target: HubTarget, options: { newKey?: boolean } = {}): SimulatedDevice {
+    return new SimulatedDevice(target, options.newKey === true ? { deviceId: this.deviceId } : { deviceId: this.deviceId, privateKey: this.privateKey, publicKey: this.publicKey });
+  }
+
+  /** The Hub's own `hello` as this device's client sees it. */
+  hello(): ReturnType<HubClient['hello']> {
+    return this.client.hello();
   }
 
   private sign(message: string): string {
@@ -83,8 +120,8 @@ export class SimulatedDevice {
   async enroll(pairingString: string, displayName: string): Promise<void> {
     const parts = parsePairingString(pairingString);
     if (parts === null) throw new Error(`Unparseable pairing string: ${pairingString}`);
-    if (parts.port !== hubPort()) throw new Error(`Pairing string port ${parts.port} is not the Hub's ${hubPort()}`);
-    if (parts.spkiSha256 !== process.env['HUB_E2E_SPKI']) throw new Error('The pairing string pins a different certificate');
+    if (parts.port !== this.target.port) throw new Error(`Pairing string port ${parts.port} is not the Hub's ${this.target.port}`);
+    if (parts.spkiSha256 !== this.target.spki) throw new Error('The pairing string pins a different certificate');
     const hello = await this.client.hello();
     await this.client.enroll({
       pairingCode: parts.code,
@@ -248,11 +285,110 @@ export async function signInAsOwner(p: Page, password = NEW_PASSWORD, returnTo =
 }
 
 /** Opens Settings > Devices, mints a pairing string through the UI and enrolls a new simulated device with it. */
-export async function pairSimulatedDevice(p: Page, name: string): Promise<SimulatedDevice> {
+export async function pairSimulatedDevice(p: Page, name: string, target: HubTarget = sharedHub()): Promise<SimulatedDevice> {
   await p.goto('/settings/devices');
   await p.getByRole('button', { name: 'Pair a device' }).click();
   const pairingString = (await p.getByTestId('pairing-string').innerText()).trim();
-  const device = new SimulatedDevice();
+  const device = new SimulatedDevice(target);
   await device.enroll(pairingString, name);
   return device;
+}
+
+// --- Extra Hubs, the dude-hub CLI and a Chromium that trusts one extra Hub (Phase 31G backup/transfer drill) ---------------------
+
+const REPO_ROOT = path.resolve(__dirname, '../..');
+const HUB_BUNDLE = path.join(REPO_ROOT, 'dist', 'hub-test', 'dude-hub.cjs');
+const WEB_ROOT = path.join(REPO_ROOT, 'dist', 'hub-web', 'browser');
+
+export interface ExtraHub {
+  readonly target: HubTarget;
+  /** Stops the process and waits for it to exit (idempotent). */
+  stop(): Promise<void>;
+  /** Everything the Hub wrote to stderr (for failure messages). */
+  stderr(): string;
+}
+
+/**
+ * Starts one more Hub from the compiled TEST bundle on `dataDir` (a fresh directory or a restored one) and an OS-chosen port.
+ * It never touches the shared Hub of the other specs. Its certificate is read from the data directory once it listens, so
+ * Node clients pin it (`ca`) and Chromium trusts exactly its leaf key (`openHubBrowser`).
+ */
+export async function spawnExtraHub(dataDir: string): Promise<ExtraHub> {
+  if (!existsSync(HUB_BUNDLE)) throw new Error(`The test bundle is missing: ${HUB_BUNDLE}`);
+  const child: ChildProcess = spawn(process.execPath, [HUB_BUNDLE, 'run', '--data-dir', dataDir, '--port', '0', '--web-root', WEB_ROOT], {
+    cwd: REPO_ROOT,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, DUDE_HUB_TEST_RELAX_RATE_LIMITS: '1' },
+  });
+  let stderr = '';
+  child.stderr?.on('data', (chunk: Buffer) => (stderr += chunk.toString()));
+  let exited = false;
+  const exit = new Promise<void>((resolve) => child.once('exit', () => { exited = true; resolve(); }));
+  const stop = async (): Promise<void> => {
+    if (exited) return;
+    const force = setTimeout(() => child.kill('SIGKILL'), 10_000);
+    child.kill('SIGTERM');
+    await exit;
+    clearTimeout(force);
+  };
+
+  try {
+    const listening = await new Promise<{ url: string; spkiSha256: string }>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error(`The extra Hub did not start within 60 s. ${stderr}`)), 60_000);
+      child.once('exit', (code) => reject(new Error(`The extra Hub exited early with ${code}. ${stderr}`)));
+      createInterface({ input: child.stdout! }).on('line', (line) => {
+        try {
+          const parsed = JSON.parse(line) as { event?: string; url?: string; spkiSha256?: string };
+          if (parsed.event === 'listening' && parsed.url && parsed.spkiSha256) {
+            clearTimeout(timer);
+            resolve({ url: parsed.url, spkiSha256: parsed.spkiSha256 });
+          }
+        } catch {
+          // Not a JSON line (log output).
+        }
+      });
+    });
+    const port = Number(new URL(listening.url).port);
+    const rootFile = path.join(dataDir, 'config', 'tls', 'ca', 'ca-cert.pem');
+    const cert = readFileSync(path.join(dataDir, 'config', 'tls', 'cert.pem'), 'utf8') + (existsSync(rootFile) ? readFileSync(rootFile, 'utf8') : '');
+    return { target: { url: `https://localhost:${port}`, port, cert, spki: listening.spkiSha256, dataDir }, stop, stderr: () => stderr };
+  } catch (error) {
+    await stop();
+    throw error;
+  }
+}
+
+export interface CliResult {
+  readonly code: number | null;
+  readonly stdout: string;
+  readonly stderr: string;
+}
+
+/** Runs one real `dude-hub` CLI command of the test bundle to completion. The backup passphrase goes in `env`, never a flag. */
+export function runHubCli(args: readonly string[], options: { env?: Record<string, string>; timeoutMs?: number } = {}): Promise<CliResult> {
+  return new Promise<CliResult>((resolve, reject) => {
+    const child = spawn(process.execPath, [HUB_BUNDLE, ...args], {
+      cwd: REPO_ROOT,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...process.env, ...options.env },
+    });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (chunk: Buffer) => (stdout += chunk.toString()));
+    child.stderr.on('data', (chunk: Buffer) => (stderr += chunk.toString()));
+    const timer = setTimeout(() => {
+      child.kill('SIGKILL');
+      reject(new Error(`dude-hub ${args.join(' ')} did not finish within ${options.timeoutMs ?? 120_000} ms. ${stderr}`));
+    }, options.timeoutMs ?? 120_000);
+    child.once('error', (error) => { clearTimeout(timer); reject(error); });
+    child.once('exit', (code) => { clearTimeout(timer); resolve({ code, stdout, stderr }); });
+  });
+}
+
+/** A Chromium that trusts exactly one Hub's leaf key (`--ignore-certificate-errors-spki-list`, never a blanket override), in its own cookie jar. */
+export async function openHubBrowser(target: HubTarget): Promise<{ browser: Browser; context: BrowserContext; page: Page }> {
+  const pin = Buffer.from(target.spki, 'base64url').toString('base64');
+  const browser = await chromium.launch({ args: [`--ignore-certificate-errors-spki-list=${pin}`] });
+  const context = await browser.newContext({ baseURL: target.url });
+  return { browser, context, page: await context.newPage() };
 }
