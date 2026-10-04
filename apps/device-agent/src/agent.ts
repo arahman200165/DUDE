@@ -87,7 +87,7 @@ export async function runAgent(options: RunAgentOptions): Promise<RunningAgent> 
       const store = result.store;
       const hub = createHubRuntime({
         db: store.db, dpapi: options.dpapi ?? windowsDpapi, now, timings: options.hubTimings, createTransport: options.hubCreateTransport,
-        device: () => readDeviceRecord(store.db, config.capabilities),
+        device: () => readDeviceRecord(store.db, config.capabilities), backupDir: path.join(options.storeDir, 'backups'),
       });
       // Push every Hub state change to all connected desktops (frames without an id; clients ignore frames they do not know).
       hub.manager.onChange((status) => {

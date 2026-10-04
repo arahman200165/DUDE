@@ -210,7 +210,7 @@ export function startAgent(dpapi: DpapiPort, options: StartAgentOptions = {}): A
   const now = (): Date => new Date();
   const hub = createHubRuntime({
     db: store.db, dpapi, now, timings: { backoffMinMs: 200, backoffMaxMs: 1_000, rateLimitBackoffMs: 7_000 },
-    device: () => readDeviceRecord(store.db, CAPABILITIES),
+    device: () => readDeviceRecord(store.db, CAPABILITIES), backupDir: path.join(dir, 'backups'),
     ...(options.createTransport ? { createTransport: options.createTransport } : {}),
   });
   const sync = createSyncRuntime({

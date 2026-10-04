@@ -135,6 +135,140 @@ describe('EnvironmentSettings (desktop)', () => {
   });
 });
 
+describe('EnvironmentSettings reconnect panel (PD-073)', () => {
+  const CHANGED = (reason?: 'transferred' | 'instance-changed' | 'epoch-lower') => ({
+    ...ENROLLED_STATUS, connection: 'authority-changed' as const, reachable: null,
+    ...(reason ? { authority: { reason, hubInstanceId: 'h2', epoch: 2 } } : {}),
+  });
+  const ack = (el: HTMLElement): HTMLInputElement => el.querySelector('[data-testid="reconnect-ack"]') as HTMLInputElement;
+  const input = (el: HTMLElement): HTMLInputElement => el.querySelector('#reconnect-pairing-string') as HTMLInputElement;
+  const button = (el: HTMLElement): HTMLButtonElement => el.querySelector('[data-testid="reconnect-button"]') as HTMLButtonElement;
+
+  it.each([
+    ['authority-changed', CHANGED('instance-changed')],
+    ['untrusted-tls', { ...ENROLLED_STATUS, connection: 'untrusted-tls' as const, reachable: null }],
+    ['revoked', { ...ENROLLED_STATUS, enrollmentState: 'revoked' as const, reachable: null, connection: undefined }],
+  ])('shows the panel (and not the first-time connect form) when %s', async (_name, status) => {
+    const { port } = createTestPort({ status: async () => status });
+    const { el } = await mount(port);
+    expect(el.querySelector('[data-testid="reconnect"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="connect"]')).toBeNull();
+    expect(text(el, 'reconnect-facts')).toContain('Your local data and pending changes are kept. A recovery snapshot is taken first.');
+    expect(text(el, 'reconnect-facts')).toContain('Merge, Use Hub or Keep local');
+  });
+
+  it.each([
+    ['online', ENROLLED_STATUS],
+    ['offline', { ...ENROLLED_STATUS, connection: 'offline' as const, reachable: false }],
+    ['connecting', { ...ENROLLED_STATUS, connection: 'connecting' as const, reachable: null }],
+    ['incompatible', { ...ENROLLED_STATUS, connection: 'incompatible' as const, reachable: null }],
+    ['standalone', STANDALONE_STATUS],
+  ])('does not show the panel when %s', async (_name, status) => {
+    const { port } = createTestPort({ status: async () => status });
+    const { el } = await mount(port);
+    expect(el.querySelector('[data-testid="reconnect"]')).toBeNull();
+  });
+
+  it('is not offered on the Hub-served web build', async () => {
+    const { port } = createTestPort({ status: async () => CHANGED('transferred') });
+    const { el } = await mount(port, 'hub-web');
+    expect(el.querySelector('[data-testid="reconnect"]')).toBeNull();
+  });
+
+  it.each([
+    ['transferred', 'This Hub was moved to another machine.'],
+    ['instance-changed', 'This Hub was restored or replaced.'],
+    ['epoch-lower', 'This Hub is older than one this device already used.'],
+    [undefined, 'This is not the Hub this device was paired with.'],
+  ] as const)('explains the %s reason', async (reason, copy) => {
+    const { port } = createTestPort({ status: async () => CHANGED(reason) });
+    const { el } = await mount(port);
+    expect(text(el, 'reconnect-reason')).toBe(copy);
+  });
+
+  it('keeps Reconnect disabled until the string is entered AND the acknowledgement is ticked, and never calls without both', async () => {
+    const { port } = createTestPort({ status: async () => CHANGED('instance-changed') });
+    const { fixture, el } = await mount(port);
+    expect(button(el).disabled).toBe(true);
+    typeInto(input(el), FAKE_HUB_PAIRING_STRING);
+    await settle(fixture);
+    expect(text(el, 'reconnect-host')).toBe('hub.local:47600');
+    expect(button(el).disabled).toBe(true);
+    button(el).click();
+    await settle(fixture);
+    expect(port.reconnect).not.toHaveBeenCalled();
+
+    ack(el).click();
+    await settle(fixture);
+    expect(button(el).disabled).toBe(false);
+    typeInto(input(el), '');
+    await settle(fixture);
+    expect(button(el).disabled).toBe(true);
+    expect(port.reconnect).not.toHaveBeenCalled();
+  });
+
+  it('calls the port once with acknowledged: true, then refreshes the status', async () => {
+    const { port } = createTestPort({
+      status: async () => CHANGED('instance-changed'),
+      reconnect: async () => ({ deviceId: 'd', environmentId: 'e', hubInstanceId: 'h', hubUrl: 'https://hub.local:47600' }),
+    });
+    const { fixture, el } = await mount(port);
+    const statusCalls = port.status.mock.calls.length;
+    typeInto(input(el), `  ${FAKE_HUB_PAIRING_STRING}  `);
+    ack(el).click();
+    await settle(fixture);
+    button(el).click();
+    await settle(fixture);
+    expect(port.reconnect).toHaveBeenCalledExactlyOnceWith({ pairingString: FAKE_HUB_PAIRING_STRING, acknowledged: true });
+    expect(port.status.mock.calls.length).toBeGreaterThan(statusCalls);
+    expect(text(el, 'reconnect-done')).toContain('Reconnected');
+    expect(input(el).value).toBe('');
+    expect(ack(el).checked).toBe(false);
+  });
+
+  it('shows progress while reconnecting', async () => {
+    let release: () => void = () => undefined;
+    const { port } = createTestPort({
+      status: async () => CHANGED('transferred'),
+      reconnect: () => new Promise((resolve) => { release = () => resolve({ deviceId: 'd', environmentId: 'e', hubInstanceId: 'h', hubUrl: 'u' }); }),
+    });
+    const { fixture, el } = await mount(port);
+    typeInto(input(el), FAKE_HUB_PAIRING_STRING);
+    ack(el).click();
+    await settle(fixture);
+    button(el).click();
+    fixture.detectChanges();
+    expect(text(el, 'reconnecting')).toContain('Reconnecting');
+    expect(button(el).disabled).toBe(true);
+    release();
+    await settle(fixture);
+    expect(el.querySelector('[data-testid="reconnecting"]')).toBeNull();
+  });
+
+  it.each([
+    ['pairing-rejected', 'rejected the pairing code'],
+    ['tls-pin-mismatch', 'certificate does not match'],
+    ['hub-unreachable', 'could not be reached'],
+    ['not-reconnectable', 'nothing to reconnect'],
+    ['not-enrolled', 'not connected to a Hub'],
+    ['snapshot-failed', 'recovery snapshot could not be taken'],
+  ])('explains the %s failure', async (code, snippet) => {
+    const { port } = createTestPort({
+      status: async () => CHANGED('instance-changed'),
+      reconnect: async () => { throw new HubAdminError(code, 'raw'); },
+    });
+    const { fixture, el } = await mount(port);
+    typeInto(input(el), FAKE_HUB_PAIRING_STRING);
+    ack(el).click();
+    await settle(fixture);
+    button(el).click();
+    await settle(fixture);
+    expect(text(el, 'reconnect-error')).toContain(snippet);
+    expect(el.querySelector('[data-testid="reconnect-done"]')).toBeNull();
+    expect(input(el).value).toBe(FAKE_HUB_PAIRING_STRING);
+  });
+});
+
 describe('EnvironmentSettings (Hub web)', () => {
   const hubWebPort = () =>
     createTestPort({

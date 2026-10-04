@@ -23,6 +23,16 @@ describe('desktop Hub admin adapter', () => {
     expect(await admin.status()).toMatchObject({ enrollmentState: 'enrolled', hubUrl: 'https://hub.local:47600' });
   });
 
+  it('passes the reconnect request (with its acknowledgement) through and normalizes failures', async () => {
+    const hub = fakeHub();
+    const seen: unknown[] = [];
+    const admin = createDesktopHubAdmin(() => ({ ...hub, reconnect: (request: { pairingString: string; acknowledged: true }) => { seen.push(request); return hub.reconnect(request); } }));
+    await expect(admin.reconnect({ pairingString: FAKE_HUB_PAIRING_STRING, acknowledged: true })).rejects.toMatchObject({ code: 'not-enrolled' });
+    await admin.enroll(FAKE_HUB_PAIRING_STRING);
+    await expect(admin.reconnect({ pairingString: FAKE_HUB_PAIRING_STRING, acknowledged: true })).resolves.toMatchObject({ hubInstanceId: 'fake-hub' });
+    expect(seen).toEqual([{ pairingString: FAKE_HUB_PAIRING_STRING, acknowledged: true }, { pairingString: FAKE_HUB_PAIRING_STRING, acknowledged: true }]);
+  });
+
   it('passes the Hub and device diagnostics through; the Hub report needs the owner', async () => {
     const hub = fakeHub();
     const admin = createDesktopHubAdmin(() => hub);

@@ -16,6 +16,21 @@ import { OwnerRecoveryPanel } from './hub/owner-recovery-panel';
 
 type DisconnectStep = 'idle' | 'confirm' | 'unreachable' | 'force-confirm';
 
+const RECONNECT_AUTHORITY_COPY: Readonly<Record<'transferred' | 'instance-changed' | 'epoch-lower' | 'unknown', string>> = {
+  transferred: 'This Hub was moved to another machine.',
+  'instance-changed': 'This Hub was restored or replaced.',
+  'epoch-lower': 'This Hub is older than one this device already used.',
+  unknown: 'This is not the Hub this device was paired with.',
+};
+
+function pairingProblemOf(raw: string): string | null {
+  const text = raw.trim();
+  if (text === '' || parsePairingString(raw) !== null) return null;
+  return text.startsWith(PAIRING_STRING_PREFIX)
+    ? 'That pairing string looks incomplete or damaged. Copy it again from the Hub in full.'
+    : `That is not a DUDE pairing string. It starts with ${PAIRING_STRING_PREFIX}`;
+}
+
 /**
  * Settings > Environment & Hub. Desktop: connection status, connect (pairing string) and disconnect.
  * Hub-served web: what this Hub is, its TLS pin and the owner session.
@@ -49,9 +64,23 @@ export class EnvironmentSettings {
     return iso === undefined || iso === null ? 'Not yet' : `${relativeTime(iso)} (${new Date(iso).toLocaleString()})`;
   });
   protected readonly enrolled = computed(() => this.status()?.enrollmentState === 'enrolled');
+  /** Only a standalone device pairs from scratch; an enrolled one that lost its Hub, or was revoked, reconnects instead. */
   protected readonly canConnect = computed(() => {
     const status = this.status();
-    return status !== null && !this.isHubWeb && status.enrollmentState !== 'enrolled';
+    return status !== null && !this.isHubWeb && status.enrollmentState === 'standalone';
+  });
+  /** The Hub changed under this device, its certificate no longer matches, or it was revoked: the owner reconnects it with a new pairing string (PD-073). */
+  protected readonly needsReconnect = computed(() => {
+    const status = this.status();
+    return status !== null && !this.isHubWeb
+      && (status.connection === 'authority-changed' || status.connection === 'untrusted-tls' || status.enrollmentState === 'revoked');
+  });
+  protected readonly reconnectReason = computed(() => {
+    const status = this.status();
+    if (status === null) return '';
+    if (status.connection === 'authority-changed') return RECONNECT_AUTHORITY_COPY[status.authority?.reason ?? 'unknown'];
+    if (status.connection === 'untrusted-tls') return "This Hub's certificate no longer matches the one this device pinned.";
+    return 'This device was revoked from the Hub.';
   });
   protected readonly canDisconnect = computed(() => {
     const status = this.status();
@@ -61,16 +90,20 @@ export class EnvironmentSettings {
   // Connect
   protected readonly pairingText = signal('');
   protected readonly parsed = computed(() => parsePairingString(this.pairingText()));
-  protected readonly pairingProblem = computed(() => {
-    const text = this.pairingText().trim();
-    if (text === '' || this.parsed() !== null) return null;
-    return text.startsWith(PAIRING_STRING_PREFIX)
-      ? 'That pairing string looks incomplete or damaged. Copy it again from the Hub in full.'
-      : `That is not a DUDE pairing string. It starts with ${PAIRING_STRING_PREFIX}`;
-  });
+  protected readonly pairingProblem = computed(() => pairingProblemOf(this.pairingText()));
   protected readonly connecting = signal(false);
   protected readonly connectError = signal<string | null>(null);
   protected readonly connectDone = signal<string | null>(null);
+
+  // Reconnect
+  protected readonly reconnectText = signal('');
+  protected readonly reconnectParsed = computed(() => parsePairingString(this.reconnectText()));
+  protected readonly reconnectProblem = computed(() => pairingProblemOf(this.reconnectText()));
+  protected readonly reconnectAcknowledged = signal(false);
+  protected readonly reconnecting = signal(false);
+  protected readonly reconnectError = signal<string | null>(null);
+  protected readonly reconnectDone = signal<string | null>(null);
+  protected readonly canReconnect = computed(() => this.reconnectText().trim() !== '' && this.reconnectAcknowledged() && !this.reconnecting());
 
   // Disconnect
   protected readonly step = signal<DisconnectStep>('idle');
@@ -123,6 +156,35 @@ export class EnvironmentSettings {
       this.connectError.set(hubErrorText(error, 'The device could not be connected.'));
     } finally {
       this.connecting.set(false);
+    }
+  }
+
+  protected onReconnectInput(event: Event): void {
+    this.reconnectText.set((event.target as HTMLInputElement).value);
+    this.reconnectError.set(null);
+    this.reconnectDone.set(null);
+  }
+
+  protected onReconnectAcknowledge(event: Event): void {
+    this.reconnectAcknowledged.set((event.target as HTMLInputElement).checked);
+  }
+
+  /** Needs the pairing string and the ticked acknowledgement; nothing is sent otherwise. */
+  protected async reconnect(): Promise<void> {
+    if (!this.canReconnect()) return;
+    this.reconnecting.set(true);
+    this.reconnectError.set(null);
+    this.reconnectDone.set(null);
+    try {
+      await this.hub.reconnect({ pairingString: this.reconnectText().trim(), acknowledged: true });
+      this.reconnectText.set('');
+      this.reconnectAcknowledged.set(false);
+      this.reconnectDone.set('Reconnected. Nothing was shared yet: choose Merge, Use Hub or Keep local when sync asks.');
+      await this.refresh();
+    } catch (error) {
+      this.reconnectError.set(hubErrorText(error, 'The device could not be reconnected.'));
+    } finally {
+      this.reconnecting.set(false);
     }
   }
 

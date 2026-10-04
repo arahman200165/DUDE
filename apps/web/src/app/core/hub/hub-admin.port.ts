@@ -34,6 +34,12 @@ export interface HubAdminPort {
   status(): Promise<DesktopHubStatus>;
   probeLocal(port?: number): Promise<DesktopHubProbe>;
   enroll(pairingString: string): Promise<DesktopHubEnrollment>;
+  /**
+   * Desktop only: reconnects this ENROLLED device to a changed Hub (restored, moved or replaced) with a new pairing code, keeping its local
+   * data and pending changes (a recovery snapshot is taken first). `acknowledged` must be `true`. Hub-served web: rejects `unavailable`.
+   * Codes: `not-enrolled`, `not-reconnectable`, `snapshot-failed`, `pairing-rejected`, `tls-pin-mismatch`, `hub-unreachable`, `incompatible`, ...
+   */
+  reconnect(request: { readonly pairingString: string; readonly acknowledged: true }): Promise<DesktopHubEnrollment>;
   unenroll(force?: boolean): Promise<{ readonly unenrolled: boolean; readonly hubNotified: boolean }>;
   ownerStatus(): Promise<DesktopHubOwnerStatus>;
   ownerSignIn(password: string): Promise<DesktopHubOwnerStatus>;

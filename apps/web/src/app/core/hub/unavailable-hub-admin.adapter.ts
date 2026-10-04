@@ -4,7 +4,7 @@ import { HUB_ADMIN_UNAVAILABLE, HubAdminError, HubAdminPort } from './hub-admin.
 export function createUnavailableHubAdmin(reason = 'Hub administration is not available in this app.'): HubAdminPort {
   const reject = (): Promise<never> => Promise.reject(new HubAdminError(HUB_ADMIN_UNAVAILABLE, reason));
   return {
-    status: reject, probeLocal: reject, enroll: reject, unenroll: reject, ownerStatus: reject, ownerSignIn: reject, ownerSignOut: reject,
+    status: reject, probeLocal: reject, enroll: reject, reconnect: reject, unenroll: reject, ownerStatus: reject, ownerSignIn: reject, ownerSignOut: reject,
     listDevices: reject, syncSummary: reject, diagnostics: reject, createPairingCode: reject, renameDevice: reject, revokeDevicePreview: reject, revokeDevice: reject, setRecoveryTrust: reject,
     listSessions: reject, revokeSession: reject, revokeAllPreview: reject, revokeAll: reject, listAudit: reject, listSecurityAlerts: reject, markSecurityAlertsSeen: reject, recoveryCodesPreview: reject,
     regenerateRecoveryCodes: reject, changePassword: reject, bootstrap: reject, signIn: reject, currentSession: reject, signOut: reject,

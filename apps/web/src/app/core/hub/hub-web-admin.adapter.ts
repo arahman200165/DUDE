@@ -109,6 +109,7 @@ export function createHubWebAdmin(options: HubWebAdminOptions): HubAdminPort {
         return { found: true, port: Number.isInteger(port) && port > 0 ? port : null, hubInstanceId: hello.hubInstanceId, hubVersion: hello.hubVersion, bootstrapped: hello.bootstrapped };
       }),
     enroll: (): Promise<HubEnrollment> => unavailable('Enrolling this device'),
+    reconnect: (): Promise<HubEnrollment> => unavailable('Reconnecting this device'),
     unenroll: () => unavailable('Unenrolling this device'),
     ownerStatus: async (): Promise<HubOwnerStatus> => {
       try {

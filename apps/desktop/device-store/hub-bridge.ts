@@ -1,7 +1,7 @@
 import { ipcMain, type BrowserWindow } from 'electron';
 import { parseHubPublicUrl } from '@dude/contracts';
 import type { AgentHubOwnerStatus, AgentHubStatus, AgentMethod, AgentMethodMap } from '@dude/contracts';
-import type { DesktopHubOwnerStatus, DesktopHubProbe, DesktopHubResult, DesktopHubStatus } from '@dude/contracts/shared/models/platform-bridge.model';
+import type { DesktopHubEnrollment, DesktopHubOwnerStatus, DesktopHubProbe, DesktopHubResult, DesktopHubStatus } from '@dude/contracts/shared/models/platform-bridge.model';
 import { isUuidShaped, validateDisplayName } from '@dude/persistence';
 import { DeviceStoreError } from './agent-host';
 import type { DeviceStoreHost } from './agent-host';
@@ -140,6 +140,14 @@ export function registerHubHandlers(
     },
   });
 
+  const enrollmentSummary = async (status: AgentHubStatus, _ctx: unknown, h: DeviceStoreHost): Promise<DesktopHubEnrollment> => {
+    const enrollment = status.enrollment;
+    if (!enrollment) throw new DeviceStoreError('internal', 'Enrollment did not complete.');
+    let deviceId = '';
+    try { deviceId = (await h.call('store.hydrate', {})).device?.deviceId ?? ''; } catch { /* the id is informational */ }
+    return { deviceId, environmentId: enrollment.environmentId, hubInstanceId: enrollment.hubInstanceId, hubUrl: enrollment.hubUrl };
+  };
+
   define({
     channel: 'dude:hub:enroll', method: 'hub.enroll',
     parse: (args) => {
@@ -148,13 +156,25 @@ export function registerHubHandlers(
       if (!isString(pairing, 1, 512) || !pairing.startsWith(PAIRING_PREFIX)) return bad('That is not a DUDE pairing string.');
       return { ok: true, params: { pairingString: pairing } };
     },
-    map: async (status, _ctx, h) => {
-      const enrollment = status.enrollment;
-      if (!enrollment) throw new DeviceStoreError('internal', 'Enrollment did not complete.');
-      let deviceId = '';
-      try { deviceId = (await h.call('store.hydrate', {})).device?.deviceId ?? ''; } catch { /* the id is informational */ }
-      return { deviceId, environmentId: enrollment.environmentId, hubInstanceId: enrollment.hubInstanceId, hubUrl: enrollment.hubUrl };
+    map: enrollmentSummary,
+  });
+
+  // Reconnect (PD-073): a re-pairing of an already enrolled device, so the acknowledgement travels with the request and is
+  // re-checked here and again in the agent. Exactly one plain object `{ pairingString, acknowledged: true }`, nothing else.
+  define({
+    channel: 'dude:hub:reconnect', method: 'hub.reconnect',
+    parse: (args) => {
+      if (args.length !== 1) return bad();
+      const [request] = args;
+      if (typeof request !== 'object' || request === null || Array.isArray(request)) return bad();
+      const keys = Object.keys(request);
+      const { pairingString, acknowledged } = request as { pairingString?: unknown; acknowledged?: unknown };
+      if (keys.length !== 2 || !keys.includes('pairingString') || !keys.includes('acknowledged')) return bad();
+      if (acknowledged !== true) return bad('Confirm that you want to reconnect this device.');
+      if (!isString(pairingString, 1, 512) || !pairingString.startsWith(PAIRING_PREFIX)) return bad('That is not a DUDE pairing string.');
+      return { ok: true, params: { pairingString, acknowledged: true } };
     },
+    map: enrollmentSummary,
   });
 
   define({

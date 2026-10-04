@@ -369,6 +369,17 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
     })),
     'hub.reachabilityEcho': (p) => hubGuard(() => hubRuntime().manager.reachabilityEcho(str(p.publicUrl, 'publicUrl'))),
     'hub.enroll': (p) => hubGuard(() => hubRuntime().enroll(str(p.pairingString, 'pairingString'))),
+    'hub.reconnect': (p) => {
+      // The acknowledgement is part of the request, so nothing can trigger a re-pairing incidentally.
+      if (p.acknowledged !== true) throw invalid('acknowledged must be true: reconnecting re-keys this device and needs the owner to confirm.');
+      const pairingString = str(p.pairingString, 'pairingString');
+      return hubGuard(async () => {
+        const status = await hubRuntime().reconnect(pairingString);
+        // The previous Hub's in-memory sync state (head revision, cached first-sync preview, tokens) no longer applies.
+        deps.sync?.afterReset();
+        return status;
+      });
+    },
     'hub.unenroll': (p) => hubGuard(async () => {
       const { hubStillListsDevice } = await hubRuntime().manager.unenroll({ force: p.force === true });
       // Unenrolling is itself the confirmation: the records stay, as a standalone environment of their own.

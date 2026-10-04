@@ -50,7 +50,9 @@ export interface AgentHubStatus {
 }
 /** Typed enrollment failures (the RPC error `code`). */
 export type AgentHubEnrollError =
-  | 'invalid-pairing-string' | 'already-enrolled' | 'tls-pin-mismatch' | 'hub-unreachable' | 'incompatible' | 'pairing-rejected' | 'dpapi-unavailable' | 'conflict';
+  | 'invalid-pairing-string' | 'already-enrolled' | 'tls-pin-mismatch' | 'hub-unreachable' | 'incompatible' | 'pairing-rejected' | 'dpapi-unavailable' | 'conflict'
+  /** `hub.reconnect` only: no enrollment to reconnect, a healthy connection (nothing to repair), or the recovery snapshot taken first failed. */
+  | 'not-enrolled' | 'not-reconnectable' | 'snapshot-failed';
 /** Typed failures of `hub.bootstrapLocal` (besides the enrollment ones and `hub-*` codes). */
 export type AgentHubBootstrapError = 'handoff-missing' | 'handoff-expired' | 'already-bootstrapped';
 export interface AgentHubBootstrapResult {
@@ -219,6 +221,13 @@ export interface AgentMethodMap {
   'hub.reachabilityEcho': { params: { publicUrl: string }; result: ReachabilityEchoResponse & { rttMs: number } };
   'hub.enroll': { params: { pairingString: string }; result: AgentHubStatus };
   /**
+   * Reconnects an ENROLLED device whose Hub changed (authority-changed), whose certificate no longer matches, whose enrollment was
+   * revoked, or that is blocked by the reconcile flag (PD-073): same device id, new key, local data and outbox untouched, bookkeeping
+   * reset so the first-sync preview runs again. `acknowledged` must be exactly `true` (no incidental triggering); a recovery
+   * snapshot is taken first. Errors: enrollment codes plus `not-enrolled`, `not-reconnectable`, `snapshot-failed`, `invalid-params`.
+   */
+  'hub.reconnect': { params: { pairingString: string; acknowledged: true }; result: AgentHubStatus };
+  /**
    * First-run local Hub setup: reads and deletes `%LOCALAPPDATA%\DUDE\hub-handoff-<nonce>.json` (written by the elevated
    * `dude-hub setup-token --deliver-to`), bootstraps the Hub, self-enrolls through the normal pairing path and signs the
    * owner in. Errors: `handoff-missing`, `handoff-expired`, `already-bootstrapped`, `tls-pin-mismatch`, enrollment codes, `hub-*`.
@@ -322,7 +331,7 @@ export const AGENT_METHODS = [
   'docs.get', 'docs.set', 'docs.remove',
   'secrets.status', 'secrets.list', 'secrets.set', 'secrets.remove', 'secrets.getCiphertext',
   'device.rename', 'reset.preview', 'reset.apply', 'hub.enrollment',
-  'hub.status', 'hub.diagnostics', 'hub.probeLocal', 'hub.tlsCertificates', 'hub.reachabilityEcho', 'hub.enroll', 'hub.bootstrapLocal', 'hub.unenroll', 'hub.owner.signIn', 'hub.owner.signOut', 'hub.owner.status',
+  'hub.status', 'hub.diagnostics', 'hub.probeLocal', 'hub.tlsCertificates', 'hub.reachabilityEcho', 'hub.enroll', 'hub.reconnect', 'hub.bootstrapLocal', 'hub.unenroll', 'hub.owner.signIn', 'hub.owner.signOut', 'hub.owner.status',
   'hub.owner.listDevices', 'hub.owner.syncSummary', 'hub.owner.diagnostics', 'hub.owner.createPairingCode', 'hub.owner.renameDevice', 'hub.owner.revokeDevicePreview', 'hub.owner.revokeDevice',
   'hub.owner.setRecoveryTrust', 'hub.owner.listSessions', 'hub.owner.revokeSession', 'hub.owner.revokeAllPreview', 'hub.owner.revokeAll',
   'hub.owner.listAudit', 'hub.owner.listSecurityAlerts', 'hub.owner.markSecurityAlertsSeen', 'hub.owner.recoveryCodesPreview', 'hub.owner.regenerateRecoveryCodes', 'hub.owner.changePassword', 'hub.recoverOwner',

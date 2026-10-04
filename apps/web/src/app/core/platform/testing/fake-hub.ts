@@ -124,6 +124,12 @@ export function fakeHub(options: { password?: string; localHub?: FakeLocalHubSce
       enrolled = true;
       return ok({ deviceId: FAKE_HUB_DEVICE_ID, environmentId: 'fake-environment', hubInstanceId: 'fake-hub', hubUrl: 'https://hub.local:47600' });
     }),
+    reconnect: track('reconnect', async (request: { pairingString: string; acknowledged: true }) => {
+      if (request.acknowledged !== true) return fail('bad-request', 'Confirm that you want to reconnect this device.');
+      if (request.pairingString !== FAKE_HUB_PAIRING_STRING) return fail('bad-request', 'That pairing string is not valid.');
+      if (!enrolled) return fail('not-enrolled', 'This device is not enrolled with a Hub.');
+      return ok({ deviceId: FAKE_HUB_DEVICE_ID, environmentId: 'fake-environment', hubInstanceId: 'fake-hub', hubUrl: 'https://hub.local:47600' });
+    }),
     unenroll: track('unenroll', async () => {
       enrolled = false;
       signedIn = false;

@@ -24,7 +24,7 @@ export function fakeHubAdmin(): HubAdminPort & Mocked {
   const preview = { confirmToken: 'tok', expiresAt: '2099-01-01T00:00:00Z', summary: { action: 'x', affectedSessions: 2, remainingRecoveryCodes: 3 } };
   const fake = {
     status: vi.fn(), probeLocal: vi.fn(async () => ({ found: true, port: 1, hubInstanceId: 'h', hubVersion: '1', bootstrapped: true })),
-    enroll: vi.fn(), unenroll: vi.fn(), ownerStatus: vi.fn(), ownerSignIn: vi.fn(), ownerSignOut: vi.fn(async () => ({ ok: true })),
+    enroll: vi.fn(), reconnect: vi.fn(), unenroll: vi.fn(), ownerStatus: vi.fn(), ownerSignIn: vi.fn(), ownerSignOut: vi.fn(async () => ({ ok: true })),
     listDevices: vi.fn(), syncSummary: vi.fn(), createPairingCode: vi.fn(), renameDevice: vi.fn(), revokeDevicePreview: vi.fn(), revokeDevice: vi.fn(), setRecoveryTrust: vi.fn(),
     listSessions: vi.fn(async () => [session({ current: true, sessionId: 'aaaaaaaaaaaaaaaa' }), session({ sessionId: 'bbbbbbbbbbbbbbbb' })]),
     revokeSession: vi.fn(async () => ({ ok: true })),

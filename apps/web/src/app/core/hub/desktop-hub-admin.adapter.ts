@@ -26,6 +26,7 @@ export function createDesktopHubAdmin(bridge: () => DesktopHubBridge | undefined
     probeLocal: (port) => run((h) => h.probeLocal(port)),
     reachabilityEcho: (publicUrl) => run((h) => h.reachabilityEcho(publicUrl ?? '')),
     enroll: (pairingString) => run((h) => h.enroll(pairingString)),
+    reconnect: (request) => run((h) => h.reconnect(request)),
     unenroll: (force) => run((h) => h.unenroll(force)),
     ownerStatus: () => run((h) => h.ownerStatus()),
     ownerSignIn: (password) => run((h) => h.ownerSignIn(password)),

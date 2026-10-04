@@ -158,9 +158,10 @@ describe('Hub web admin adapter', () => {
     expect(calls[2]).toMatchObject({ url: '/api/v1/owner/reset', body: { resetToken: 't'.repeat(43), newPassword: 'a long new password' } });
   });
 
-  it('keeps enroll and unenroll desktop-only', async () => {
+  it('keeps enroll, reconnect and unenroll desktop-only', async () => {
     const { admin } = setup(() => ({ status: 200, body: HELLO }));
     await expect(admin.enroll('dude-pair:v1:x')).rejects.toMatchObject({ code: 'unavailable' });
+    await expect(admin.reconnect({ pairingString: 'dude-pair:v1:x', acknowledged: true })).rejects.toMatchObject({ code: 'unavailable' });
     await expect(admin.unenroll()).rejects.toMatchObject({ code: 'unavailable' });
   });
 

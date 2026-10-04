@@ -127,6 +127,13 @@ export interface DesktopHubBridge {
   status(): Promise<DesktopHubResult<DesktopHubStatus>>;
   probeLocal(port?: number): Promise<DesktopHubResult<DesktopHubProbe>>;
   enroll(pairingString: string): Promise<DesktopHubResult<DesktopHubEnrollment>>;
+  /**
+   * Reconnects this ENROLLED device to a changed Hub (restored, moved or replaced; PD-073) with a new pairing code: same device, new key,
+   * local data and pending changes kept, a recovery snapshot taken first. `acknowledged` must be `true` (main and the agent both refuse otherwise).
+   * Error codes: `bad-request`, `not-enrolled`, `not-reconnectable` (healthy connection), `snapshot-failed`, enrollment codes (`pairing-rejected`,
+   * `tls-pin-mismatch`, `hub-unreachable`, `incompatible`, ...).
+   */
+  reconnect(request: { readonly pairingString: string; readonly acknowledged: true }): Promise<DesktopHubResult<DesktopHubEnrollment>>;
   unenroll(force?: boolean): Promise<DesktopHubResult<{ readonly unenrolled: boolean; readonly hubNotified: boolean }>>;
   ownerStatus(): Promise<DesktopHubResult<DesktopHubOwnerStatus>>;
   ownerSignIn(password: string): Promise<DesktopHubResult<DesktopHubOwnerStatus>>;

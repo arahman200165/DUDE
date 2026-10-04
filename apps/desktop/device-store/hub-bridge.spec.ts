@@ -40,6 +40,12 @@ const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged'>, { channe
   probeLocal: { channel: 'dude:hub:probeLocal', args: [47600], invalid: [['47600'], [0], [70000], [1.5], [1, 2]] },
   reachabilityEcho: { channel: 'dude:hub:reachabilityEcho', args: ['https://hub.example.com'], invalid: [[], [1], ['http://hub.example.com'], ['https://u:p@hub.example.com'], ['https://hub.example.com/path'], ['https://hub.example.com?x=1'], ['https://hub.example.com#f'], ['https://hub.example.com:0'], ['https://hub.example.com', 'x']] },
   enroll: { channel: 'dude:hub:enroll', args: [PAIRING], invalid: [[], ['x'], ['https://evil'], ['dude-pair:v1:' + 'a'.repeat(512)], [PAIRING, 1]] },
+  reconnect: {
+    channel: 'dude:hub:reconnect', args: [{ pairingString: PAIRING, acknowledged: true }],
+    invalid: [[], [PAIRING], [{}], [{ pairingString: PAIRING }], [{ pairingString: PAIRING, acknowledged: false }], [{ pairingString: PAIRING, acknowledged: 'true' }], [{ pairingString: PAIRING, acknowledged: 1 }],
+      [{ pairingString: 'https://evil', acknowledged: true }], [{ pairingString: 'dude-pair:v1:' + 'a'.repeat(512), acknowledged: true }], [{ pairingString: PAIRING, acknowledged: true, extra: 1 }],
+      [[PAIRING, true]], [{ pairingString: PAIRING, acknowledged: true }, 1]],
+  },
   unenroll: { channel: 'dude:hub:unenroll', args: [true], invalid: [['yes'], [1], [true, true]] },
   ownerStatus: { channel: 'dude:hub:owner:status', args: [], invalid: [[1]] },
   ownerSignIn: { channel: 'dude:hub:owner:signIn', args: ['pw'], invalid: [[], [''], ['a'.repeat(1025)], [1], ['a', 'b']] },
@@ -137,7 +143,7 @@ describe('hub bridge', () => {
 
   // The install step needs a token from a preview; its boundary is covered in hub-web-bridge.confirmation-boundary.spec.ts.
   it.each(Object.entries(VALID).filter(([name]) => name !== 'installRootCertificate'))('%s forwards valid payloads from this window', async (_name, v) => {
-    setup((method) => (method === 'hub.status' || method === 'hub.enroll' ? ENROLLED : method === 'hub.probeLocal' ? { found: true, bootstrapped: true, hubInstanceId: 'h', spkiSha256: 's', compatibility: 'compatible', hubVersion: '0.1.0' }
+    setup((method) => (method === 'hub.status' || method === 'hub.enroll' || method === 'hub.reconnect' ? ENROLLED : method === 'hub.probeLocal' ? { found: true, bootstrapped: true, hubInstanceId: 'h', spkiSha256: 's', compatibility: 'compatible', hubVersion: '0.1.0' }
       : method === 'hub.bootstrapLocal' ? { recoveryCodes: ['A'], status: ENROLLED }
       : method === 'hub.unenroll' ? { ok: true, hubStillListsDevice: false } : method === 'hub.owner.status' || method === 'hub.owner.signIn' ? { signedIn: true, displayName: 'O', expiresAt: null }
       : method === 'store.hydrate' ? { device: { deviceId: UUID } } : { ok: true }));
@@ -192,6 +198,22 @@ describe('hub bridge', () => {
       const narrow = Buffer.alloc(4); narrow.writeUInt32LE(0x1234);
       expect(nativeHandleString(narrow)).toBe('4660');
     });
+  });
+
+  it('reconnect forwards the pairing string with the acknowledgement and returns the enrollment summary', async () => {
+    setup((method) => (method === 'hub.reconnect' ? ENROLLED : method === 'store.hydrate' ? { device: { deviceId: UUID } } : { ok: true }));
+    const result = await call('dude:hub:reconnect', own, { pairingString: PAIRING, acknowledged: true });
+    expect(result).toEqual({ ok: true, result: { deviceId: UUID, environmentId: 'env-1', hubInstanceId: 'hub-1', hubUrl: 'https://hub.local:47600' } });
+    expect(ctx.calls[0]).toEqual({ method: 'hub.reconnect', params: { pairingString: PAIRING, acknowledged: true } });
+    // Without the acknowledgement the agent is never reached.
+    ctx.calls.length = 0;
+    expect(await call('dude:hub:reconnect', own, { pairingString: PAIRING, acknowledged: false })).toMatchObject({ ok: false, error: { code: 'bad-request' } });
+    expect(ctx.calls).toEqual([]);
+  });
+
+  it('reconnect passes the agent error code through', async () => {
+    setup(() => new DeviceStoreError('not-reconnectable', 'This device is connected to its Hub as expected.'));
+    expect(await call('dude:hub:reconnect', own, { pairingString: PAIRING, acknowledged: true })).toEqual({ ok: false, error: { code: 'not-reconnectable', message: 'This device is connected to its Hub as expected.' } });
   });
 
   it('forwards the normalized public origin to the agent and rejects bad addresses with a clear message', async () => {

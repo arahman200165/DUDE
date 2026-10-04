@@ -3,7 +3,6 @@ import type { AgentHubBootstrapError, AgentHubEnrollError } from '@dude/contract
 export type HubManagerErrorCode =
   | AgentHubEnrollError
   | AgentHubBootstrapError
-  | 'not-enrolled'
   | 'enrollment-revoked'
   | 'owner-not-signed-in'
   | 'owner-session-expired'
