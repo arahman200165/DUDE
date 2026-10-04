@@ -7,6 +7,7 @@ const outputs=[
  'README.md','SECURITY.md','build/installer.nsh',
  'apps/web/public/manifest.webmanifest','apps/web/src/styles/theme.generated.css',
  'packages/domain/src/core/appearance/appearance-axes.generated.ts',
+ 'packages/domain/src/core/appearance/theme-tokens.generated.ts','apps/mobile/src/registry/mobile-bindings.generated.ts',
  'packages/tool-registry/src/index.ts','apps/web/src/app/core/registry/tool-definitions.ts',
  'apps/web/src/app/core/registry/panel-definitions.ts','apps/web/src/app/core/registry/tool-loaders.generated.ts',
  'apps/web/src/app/core/pipeline/pipeline-workers.generated.ts','apps/web/src/app/core/parity/testing/fixture-loaders.generated.ts',

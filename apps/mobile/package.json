@@ -12,6 +12,7 @@
     "check": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@dude/domain": "*",
     "expo": "57.0.26",
     "expo-build-properties": "~57.0.22",
     "expo-constants": "~57.0.20",
