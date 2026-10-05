@@ -182,7 +182,7 @@
     "xxhash-wasm": "^1.1.0",
     "y-protocols": "^1.0.7",
     "yaml": "^2.9.1",
-    "yjs": "^13.6.32"
+    "yjs": "^13.6.33"
   },
   "devDependencies": {
     "@angular/build": "^22.2.1",
