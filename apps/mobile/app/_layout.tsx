@@ -19,6 +19,8 @@ function WorkbenchNavigator() {
       <Stack.Screen name="tools/[id]" options={{ title: 'Tool details' }} />
       <Stack.Screen name="settings/appearance" options={{ title: 'Appearance' }} />
       <Stack.Screen name="settings/connection" options={{ title: 'Environment & Hub' }} />
+      <Stack.Screen name="settings/sync" options={{ title: 'Synchronization' }} />
+      <Stack.Screen name="settings/recovery" options={{ title: 'Recovery' }} />
     </Stack>
   </>;
 }

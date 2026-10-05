@@ -15,6 +15,8 @@ export function ConnectionStatus() {
     <Label muted>{snapshot.connection.detail}</Label>
     <Label>{snapshot.sync.phase.replaceAll('-', ' ')} · {snapshot.sync.pending} pending · {snapshot.sync.conflicts} conflicts</Label>
     <Label muted>{snapshot.sync.detail}</Label>
+    {snapshot.recovery?.warning && <Label accessibilityRole="alert" style={{ color: theme.status.warning }}>{snapshot.recovery.warning}</Label>}
+    {['revoked', 'reauth-required', 'restore-repair-required'].includes(snapshot.connection.kind) && <Label muted>Cached environment is read-only. Pending edits are preserved for recovery or re-pairing.</Label>}
     {snapshot.durability === 'memory' && <Label muted>Favorites and appearance changes last for this session.</Label>}
   </View>;
 }

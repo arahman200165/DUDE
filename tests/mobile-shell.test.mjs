@@ -11,11 +11,13 @@ test('native tool links use the shared parser and support navigation-only tools 
   assert.equal(mobileDeepLinkPath('dude://tools/json'), '/tools/json');
   assert.equal(mobileDeepLinkPath('dude://open/settings/appearance'), '/settings/appearance');
   assert.equal(mobileDeepLinkPath('dude://open/settings/connection'), '/settings/connection');
+  assert.equal(mobileDeepLinkPath('dude://open/settings/sync'), '/settings/sync');
+  assert.equal(mobileDeepLinkPath('dude://open/settings/recovery'), '/settings/recovery');
   assert.equal(mobileDeepLinkPath('dude://open/settings'), '/(tabs)/settings');
 });
 
 test('native links refuse execution, payloads, credentials and malformed routes', () => {
-  for (const link of ['dude://run/pipeline/id', 'dude://open/project/id', 'dude://tools/json?input=secret', 'dude://tools/json#payload', 'dude://tools/json/extra', 'dude://user:secret@tools/json', 'dude://tools/json%2Fextra', 'dude://open/settings/unknown', 'https://tools/json', 'dude://tools/' + 'x'.repeat(2050)]) {
+  for (const link of ['dude://run/pipeline/id', 'dude://open/project/id', 'dude://tools/json?input=secret', 'dude://tools/json#payload', 'dude://tools/json/extra', 'dude://user:secret@tools/json', 'dude://tools/json%2Fextra', 'dude://open/settings/unknown', 'dude://open/settings/recovery?import=secret', 'dude://open/settings/connection?pairing=secret', 'https://tools/json', 'dude://tools/' + 'x'.repeat(2050)]) {
     assert.equal(mobileDeepLinkPath(link), null, link);
   }
 });

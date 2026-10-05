@@ -5,6 +5,7 @@ import { androidCertificatePin, androidHubTransport, androidRandomBytes, android
 import { openMobileDatabase } from '../storage/expo-sql';
 import { MobileStore } from '../storage/store';
 import { DurableWorkbench } from './durable-backend';
+import { MobileLifecycle } from '../lifecycle/mobile-lifecycle';
 
 /** Failure preserves the private database and keys; the caller shows an error instead of creating a memory replica. */
 export async function openProductionWorkbench(): Promise<DurableWorkbench> {
@@ -16,6 +17,11 @@ export async function openProductionWorkbench(): Promise<DurableWorkbench> {
     const identity = await store.installIdentity();
     const backend = new DurableWorkbench({ store, deviceId: identity.deviceId, installId: identity.installId, id, now,
       appVersion: Constants.expoConfig?.version ?? '0.0.0', ports: { signer: androidSigner, transport: androidHubTransport, certificatePin: androidCertificatePin }, realtime: androidRealtime });
-    await backend.start(); return backend;
+    await backend.start();
+    backend.installLifecycle(new MobileLifecycle(store, backend.ports, backend.enrollment, {
+      stopSync: () => backend.quiesce(), unenroll: () => backend.unenroll(), changed: () => backend.changed(),
+    }, { id, now }));
+    await backend.refresh();
+    return backend;
   } catch (error) { await database.close(); throw error; }
 }

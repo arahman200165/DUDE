@@ -14,7 +14,7 @@ export function mobileDeepLinkPath(raw: string): string | null {
   if (link.target === 'tool') return `/tools/${encodeURIComponent(link.id)}`;
   if (link.target === 'settings') {
     if (!link.section) return '/(tabs)/settings';
-    if (link.section === 'appearance' || link.section === 'connection') return `/settings/${link.section}`;
+    if (link.section === 'appearance' || link.section === 'connection' || link.section === 'sync' || link.section === 'recovery') return `/settings/${link.section}`;
   }
   return null;
 }
