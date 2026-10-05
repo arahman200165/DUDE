@@ -211,7 +211,7 @@
     "avsc": "^5.7.9",
     "concurrently": "^10.0.5",
     "cross-env": "^10.1.0",
-    "electron": "^44.0.0",
+    "electron": "^44.5.1",
     "electron-builder": "^26.15.3",
     "esbuild": "^0.28.2",
     "eslint": "^10.11.0",
