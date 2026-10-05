@@ -10,6 +10,7 @@ interface NativeHubModule {
   signChallenge(keyRef: string, hubInstanceId: string, nonce: string, deviceId: string): Promise<string>;
   deleteKey(keyRef: string): Promise<void>;
   randomBytes(length: number): Promise<string>;
+  randomBytesSync(length: number): string;
   certificatePin(pem: string): Promise<string>;
   request(origin: string, pins: readonly string[], method: string, path: string, headers: Record<string, string>, body: string | null): Promise<{ status: number; headers: Record<string, string>; body: string }>;
   openSocket(id: string, origin: string, pins: readonly string[], token: string): Promise<void>;
@@ -34,6 +35,19 @@ export const androidSigner: MobileSigner = {
   randomBytes: length => native().randomBytes(length),
 };
 export const androidCertificatePin = (pem: string): Promise<string> => native().certificatePin(pem);
+/** Public CSPRNG bytes for UUIDv7 ids, never signing material. The native port enforces 1..128 bytes. */
+export function androidRandomBytes(length: number): Uint8Array {
+  const encoded = native().randomBytesSync(length);
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  if (!Number.isInteger(length) || length < 1 || length > 128 || !/^[A-Za-z0-9_-]+$/.test(encoded)) throw new Error('Invalid native randomness.');
+  const bytes: number[] = []; let bits = 0; let value = 0;
+  for (const char of encoded) {
+    value = (value << 6) | alphabet.indexOf(char); bits += 6;
+    if (bits >= 8) { bits -= 8; bytes.push((value >> bits) & 255); }
+  }
+  if (bytes.length !== length) throw new Error('Native randomness has an invalid length.');
+  return Uint8Array.from(bytes);
+}
 export function androidHubTransport(target: MobileHubTarget): HubTransport {
   return { request: async (req: HubRequest) => {
     try {

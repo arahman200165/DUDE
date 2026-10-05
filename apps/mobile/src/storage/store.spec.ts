@@ -96,6 +96,20 @@ describe('durable Android store', () => {
     const nextAttempt = { ...attempt, environmentId: 'other-env', hubInstanceId: 'other-hub' }; await store.savePendingAttempt(nextAttempt); await store.commitEnrollment({ ...enrollment, ...nextAttempt });
     expect((await store.favoriteRepository((await store.activeContext()).id).list()).map(r => r.targetId)).toEqual(['standalone']);
   });
+  it('a full retained standalone outbox does not block isolated enrollment, consent or archive import', async () => {
+    const { store, db, context } = await fixture();
+    await store.favoriteRepository(context.id).upsert(favorite('retained-local'));
+    await db.exclusive(async tx => { for (let i = 0; i < 9999; i++) await tx.run('INSERT INTO outbox(context_id,op_id,entity_type,entity_id,body) VALUES(?,?,?,?,?)', context.id, `retained-${i}`, 'favorite', `tool:seed-${i}`, '{}'); });
+    const enrolled = await consent(store);
+    expect(await store.favoriteRepository(enrolled.id).list()).toEqual([favorite('retained-local')]);
+    expect((await store.pending(enrolled.id)).length).toBe(1);
+    expect((await db.first<{ n: number }>('SELECT COUNT(*) n FROM outbox WHERE context_id=?', context.id))?.n).toBe(10000);
+    const exported = await store.exportRecovery(enrolled.id);
+    const target = await fixture();
+    await target.db.exclusive(async tx => { for (let i = 0; i < 10000; i++) await tx.run('INSERT INTO outbox(context_id,op_id,entity_type,entity_id,body) VALUES(?,?,?,?,?)', target.context.id, `target-${i}`, 'favorite', `tool:seed-${i}`, '{}'); });
+    const archive = await target.store.importRecovery(JSON.stringify(exported));
+    expect((await target.store.pending(archive)).map(op => op.opId)).toEqual(exported.pending.map(op => op.opId));
+  });
   it('refuses schema downgrades without changing the database', async () => {
     const db = new NodeSql(); databases.push(db); await db.exec('PRAGMA user_version=99'); await expect(MobileStore.open(db, options())).rejects.toThrow('downgrade'); expect((await db.first<{ user_version: number }>('PRAGMA user_version'))?.user_version).toBe(99);
   });
@@ -158,5 +172,60 @@ describe('durable Android store', () => {
     const { store, context } = await fixture(); await store.favoriteRepository(context.id).upsert(favorite()); const expected = (await store.context(context.id)).localRevision;
     await store.favoriteRepository(context.id).upsert(favorite('later'));
     await expect(store.clearContext(context.id, expected)).rejects.toThrow('stale'); expect((await store.pending(context.id)).length).toBe(2);
+  });
+  it('rejects standalone conversion after its destination changed without copying or removing source data', async () => {
+    const { store, context: standalone } = await fixture(); const enrolled = await consent(store);
+    await store.favoriteRepository(enrolled.id).upsert(favorite('archive-value'));
+    await store.archiveActive('disconnect');
+    const sourceRevision = (await store.context(enrolled.id)).localRevision;
+    const targetRevision = (await store.context(standalone.id)).localRevision;
+    await store.favoriteRepository(standalone.id).upsert(favorite('new-local'));
+    await expect(store.convertArchiveToStandalone(enrolled.id, sourceRevision, targetRevision)).rejects.toThrow('stale');
+    expect(await store.favoriteRepository(standalone.id).list()).toEqual([favorite('new-local')]);
+    expect(await store.favoriteRepository(enrolled.id).list()).toEqual([favorite('archive-value')]);
+    expect((await store.pending(enrolled.id)).length).toBe(1);
+  });
+  it('requires reviewed safe reconciliation after a changed authority regresses history and preserves missing acknowledged values', async () => {
+    const { store } = await fixture(); const context = await consent(store);
+    const oldValue = favorite('acknowledged-local');
+    await store.applyChanges(context.id, [{ entityType: 'favorite', entityId: oldValue.id, payload: oldValue, deleted: false, revision: 10, schemaVersion: 1, updatedAt: 'now', updatedByDeviceId: 'desktop' }], 10, 10, 1);
+    const repair = { ...attempt, mode: 'reconnect' as const, keyRef: 'new-key', hubInstanceId: 'restored-hub', authorityEpoch: 2 };
+    await store.savePendingAttempt(repair); await store.commitEnrollment({ ...enrollment, ...repair });
+    expect(await store.repairState(context.id)).toMatchObject({ previousHubInstanceId: 'hub', previousEpoch: 1, previousHead: 10, hubInstanceId: 'restored-hub', epoch: 2 });
+    const copy = (await store.recoveryCopies(context.id)).find(item => item.reason === 'before-authority-repair')!;
+    const original = await store.readRecoveryCopy(copy.id);
+    expect(original.authority?.hubInstanceId).toBe('hub'); expect(original.context.head).toBe(10); expect(original.records[0].hubRevision).toBe(10);
+    // Another repair before consent cannot erase the original acknowledged-history floor.
+    const repeatedRepair = { ...repair, hubInstanceId: 'second-restored-hub', authorityEpoch: 3, keyRef: 'second-new-key' };
+    await store.savePendingAttempt(repeatedRepair); await store.commitEnrollment({ ...enrollment, ...repeatedRepair });
+    expect(await store.repairState(context.id)).toMatchObject({ previousHubInstanceId: 'hub', previousHead: 10, hubInstanceId: 'second-restored-hub', epoch: 3 });
+    const revision = (await store.context(context.id)).localRevision;
+    const stage = await store.beginSnapshot(context.id, ['favorites', 'settings'], 2, 3);
+    const hubValue = favorite('hub-only');
+    await store.stageSnapshotPage(stage, [{ entityType: 'favorite', entityId: hubValue.id, payload: hubValue, deleted: false, revision: 2, schemaVersion: 1, updatedAt: 'now', updatedByDeviceId: 'desktop' }], true);
+    await expect(store.commitSnapshot(stage, { choices: { favorites: 'hub', settings: 'merge' }, expectedLocalRevision: revision })).rejects.toThrow('destructive Use Hub is refused');
+    expect(await store.favoriteRepository(context.id).list()).toEqual([oldValue]);
+    await store.commitSnapshot(stage, { choices: { favorites: 'merge', settings: 'local' }, expectedLocalRevision: revision });
+    expect((await store.favoriteRepository(context.id).list()).map(item => item.targetId).sort()).toEqual(['acknowledged-local', 'hub-only']);
+    expect((await store.pending(context.id)).find(op => op.entityId === oldValue.id)?.basedOnRevision).toBeNull();
+    expect(await store.repairState(context.id)).toBeNull();
+  });
+  it('same-authority re-pair retains acknowledged head and cannot silently reset history', async () => {
+    const { store } = await fixture(); const context = await consent(store);
+    await store.applyChanges(context.id, [], 10, 10, 1);
+    await store.savePendingAttempt({ ...attempt, mode: 'reconnect', keyRef: 'new-key' }); await store.commitEnrollment({ ...enrollment, keyRef: 'new-key' });
+    expect((await store.context(context.id)).head).toBe(10);
+    await expect(store.beginSnapshot(context.id, ['favorites'], 2, 1)).rejects.toThrow('regressed');
+    expect(await store.repairState(context.id)).toBeNull();
+  });
+  it('missing keys freeze the cache without dropping credentials, device identity or pending operations', async () => {
+    const { store } = await fixture(); const context = await consent(store); await store.favoriteRepository(context.id).upsert(favorite());
+    const pending = await store.pending(context.id);
+    await store.freezeEnvironment('missing-key');
+    expect(await store.failureState(context.id)).toBe('missing-key');
+    expect((await store.context(context.id)).writable).toBe(false);
+    expect(await store.pending(context.id)).toEqual(pending); expect((await store.readEnrollment())?.deviceId).toBe('phone');
+    expect((await store.recoveryCopies(context.id)).map(copy => copy.reason)).toContain('missing-key');
+    await expect(store.favoriteRepository(context.id).upsert(favorite('blocked'))).rejects.toThrow('read-only');
   });
 });

@@ -13,7 +13,7 @@ import type { SyncRecord } from '@dude/contracts/hub';
 import type { MobileEnrollmentAttempt, MobileHubEnrollment, MobileHubPersistence } from '../hub/types';
 import { migrateMobileDatabase } from './migrations';
 import type { SqlConnection, SqlDatabase } from './sql';
-import type { CategoryFlags, ClaimedOperation, MobileCategory, PushResults, RecoveryExport, SnapshotChoice, StagedSnapshot, StorageContext, StoredRecord, StoreOptions } from './types';
+import type { CategoryFlags, ClaimedOperation, MobileCategory, PushResults, RecoveryExport, RepairAuthority, SnapshotChoice, StagedSnapshot, StorageContext, StoredRecord, StoreOptions } from './types';
 
 interface ContextRow { id: string; kind: StorageContext['kind']; environment_id: string; device_id: string; writable: number; local_revision: number; cursor: number; head: number; epoch: number; categories: string; consent: number }
 interface RecordRow { entity_type: string; entity_id: string; payload: string | null; deleted: number; local_revision: number; hub_revision: number | null }
@@ -100,7 +100,7 @@ export class MobileStore implements MobileHubPersistence {
       ? { ...next, createdAt: previous.createdAt } : coalesceOutbox(previous, next);
     if (previousRow) await tx.run('DELETE FROM outbox WHERE op_id=?', previousRow.op_id);
     if (!result) return undefined;
-    const count = (await tx.first<{ count: number }>('SELECT COUNT(*) AS count FROM outbox'))!.count;
+    const count = (await tx.first<{ count: number }>('SELECT COUNT(*) AS count FROM outbox WHERE context_id=?', context.id))!.count;
     if (count >= OUTBOX_MAX_ROWS) throw new Error('Pending edit limit reached. Sync or export pending edits before making more changes.');
     if (utf8Bytes(json(result.payload)) > SYNC_LIMITS.maxRecordBytes) throw new Error('Record exceeds the shared sync size limit.');
     await tx.run('INSERT INTO outbox(context_id,op_id,entity_type,entity_id,body) VALUES(?,?,?,?,?)', context.id, result.opId, type, entityId, json(result));
@@ -181,7 +181,15 @@ export class MobileStore implements MobileHubPersistence {
     if (retained) {
       if (current && current.id !== retained.id) await tx.run('UPDATE contexts SET kind=?,writable=0 WHERE id=?', 'archive', current.id);
       contextId = retained.id;
-      await tx.run('UPDATE contexts SET kind=?,writable=1,cursor=0,head=0,epoch=?,consent=0 WHERE id=?', 'environment', safe.authorityEpoch, contextId);
+      const previous = await this.readMeta<RecoveryExport['authority']>(tx, `context_enrollment:${contextId}`) ?? await this.readMeta<RecoveryExport['authority']>(tx, `context_authority:${contextId}`);
+      const changedAuthority = previous && (previous.hubInstanceId !== safe.hubInstanceId || previous.authorityEpoch !== safe.authorityEpoch);
+      if (changedAuthority) {
+        const unfinished = await this.readMeta<RepairAuthority>(tx, `repair_authority:${contextId}`);
+        await this.recoveryCopyTx(tx, contextId, 'before-authority-repair');
+        await this.meta(tx, `repair_authority:${contextId}`, { previousHubInstanceId: unfinished?.previousHubInstanceId ?? previous.hubInstanceId, previousEpoch: unfinished?.previousEpoch ?? previous.authorityEpoch,
+          previousHead: Math.max(retained.head, unfinished?.previousHead ?? 0), hubInstanceId: safe.hubInstanceId, epoch: safe.authorityEpoch, categories: CATEGORIES } satisfies RepairAuthority);
+      }
+      await tx.run('UPDATE contexts SET kind=?,writable=1,cursor=0,head=?,epoch=?,consent=0 WHERE id=?', 'environment', changedAuthority ? 0 : retained.head, safe.authorityEpoch, contextId);
       // Existing pending/claimed operations and records are preserved for a fresh consent preview.
     } else {
       if (current) await tx.run('UPDATE contexts SET kind=?,writable=0 WHERE id=?', 'archive', current.id);
@@ -196,8 +204,11 @@ export class MobileStore implements MobileHubPersistence {
       }
     }
     await this.meta(tx, 'enrollment', safe); await this.meta(tx, `context_enrollment:${contextId}`, safe); await this.meta(tx, 'active_context', contextId);
+    await tx.run('DELETE FROM metadata WHERE key=?', `context_failure:${contextId}`);
     await tx.run('DELETE FROM metadata WHERE key=?', 'pending_attempt');
   }); }
+  async repairState(id: string): Promise<RepairAuthority | null> { return this.readMeta(this.database, `repair_authority:${id}`); }
+  async failureState(id: string): Promise<'revoked' | 'missing-key' | 'authority-changed' | null> { return this.readMeta(this.database, `context_failure:${id}`); }
   async setCategories(id: string, flags: CategoryFlags): Promise<void> { await this.write(async tx => {
     const context = await this.writable(tx, id);
     if (typeof flags.favorites !== 'boolean' || typeof flags.settings !== 'boolean') throw new Error('Invalid category selection.');
@@ -288,7 +299,10 @@ export class MobileStore implements MobileHubPersistence {
     if (!stage.complete || context.localRevision !== approval.expectedLocalRevision || stage.localRevision !== approval.expectedLocalRevision || context.epoch !== stage.epoch || context.head > stage.head) throw new Error('Preview is stale. Refresh it before approving.');
     for (const category of stage.categories) if (!['merge', 'hub', 'local'].includes(approval.choices[category] ?? '')) throw new Error('Every selected category needs a choice.');
     const local = await this.listRecords(context.id, tx);
-    if (local.some(r => r.hubRevision !== null && r.hubRevision > stage.head)) throw new Error('Snapshot regressed acknowledged history.');
+    const repair = await this.readMeta<RepairAuthority>(tx, `repair_authority:${context.id}`);
+    const reviewedNewAuthority = repair && repair.hubInstanceId === (await this.readMeta<MobileHubEnrollment>(tx, `context_enrollment:${context.id}`))?.hubInstanceId && repair.epoch === stage.epoch && stage.categories.some(category => repair.categories.includes(category));
+    const regressed = local.some(r => stage.categories.includes(categoryOf(r.entityType) as MobileCategory) && r.hubRevision !== null && r.hubRevision > stage.head) || !!reviewedNewAuthority && stage.head < repair.previousHead;
+    if (regressed && (!reviewedNewAuthority || approval.preservePending || stage.categories.some(category => approval.choices[category] === 'hub'))) throw new Error('Snapshot regressed acknowledged history. Use Merge or Use local after reviewing the new Hub authority; destructive Use Hub is refused.');
     // An uncertain delivery must be resolved first, rather than deleting stable operation identities during reconciliation.
     if (!approval.preservePending && (await this.pending(context.id, tx)).some(op => op.claimed && stage.categories.includes(categoryOf(op.entityType) as MobileCategory))) throw new Error('Resolve in-flight operations before snapshot approval. Pending edits are preserved.');
     if (approval.preservePending) {
@@ -331,6 +345,11 @@ export class MobileStore implements MobileHubPersistence {
       }
     }
     await tx.run('UPDATE contexts SET cursor=?,head=?,consent=1 WHERE id=?', stage.cursor, stage.head, context.id);
+    if (reviewedNewAuthority) {
+      const remaining = repair.categories.filter(category => !stage.categories.includes(category));
+      if (remaining.length) await this.meta(tx, `repair_authority:${context.id}`, { ...repair, categories: remaining });
+      else await tx.run('DELETE FROM metadata WHERE key=?', `repair_authority:${context.id}`);
+    }
     await tx.run('DELETE FROM snapshot_records WHERE snapshot_id=?', stageId); await tx.run('DELETE FROM snapshots WHERE id=?', stageId);
   }); }
   private async exportTx(tx: SqlConnection, id: string): Promise<RecoveryExport> {
@@ -388,16 +407,26 @@ export class MobileStore implements MobileHubPersistence {
         const body: OutboxOp = { opId: op.opId, environmentId: op.environmentId, deviceId: op.deviceId, entityType: op.entityType, entityId: op.entityId, opKind: op.opKind, schemaVersion: op.schemaVersion, basedOnRevision: op.basedOnRevision, localRevision: op.localRevision, payload: op.payload, status: op.status, createdAt: op.createdAt, updatedAt: op.updatedAt };
         await tx.run('INSERT INTO outbox(context_id,op_id,entity_type,entity_id,body,claimed,rejected) VALUES(?,?,?,?,?,?,?)', contextId, op.opId, op.entityType, op.entityId, json(body), +op.claimed, op.rejected);
       }
-      const count = (await tx.first<{ count: number }>('SELECT COUNT(*) AS count FROM outbox'))!.count; if (count > OUTBOX_MAX_ROWS) throw new Error('Recovery import exceeds the pending edit ceiling.');
+      const count = (await tx.first<{ count: number }>('SELECT COUNT(*) AS count FROM outbox WHERE context_id=?', contextId))!.count; if (count > OUTBOX_MAX_ROWS) throw new Error('Recovery import exceeds the pending edit ceiling.');
       if (value.authority) await this.meta(tx, `context_authority:${contextId}`, value.authority);
       await this.meta(tx, 'active_context', contextId); return contextId;
     });
   }
   async activateArchiveForPairing(id: string): Promise<void> { await this.write(async tx => { const context = await this.context(id, tx); if (context.kind !== 'archive') throw new Error('Select a retained archive for re-pairing.'); await this.meta(tx, 'active_context', id); }); }
+  /** Remote/session failure freezes a cache and keeps every operation; it never deletes an identity. */
+  async freezeEnvironment(reason: 'revoked' | 'missing-key' | 'authority-changed'): Promise<void> { await this.write(async tx => {
+    const context = await tx.first<ContextRow>('SELECT * FROM contexts WHERE kind=?', 'environment');
+    if (!context) return;
+    await this.meta(tx, `context_failure:${context.id}`, reason);
+    if (!context.writable) return;
+    await this.recoveryCopyTx(tx, context.id, reason);
+    await tx.run('UPDATE contexts SET writable=0 WHERE id=?', context.id);
+  }); }
   /** Copies selected archive values into standalone; both source and previous standalone are recoverable. */
-  async convertArchiveToStandalone(id: string, expectedRevision: number): Promise<void> { await this.write(async tx => {
+  async convertArchiveToStandalone(id: string, expectedRevision: number, expectedStandaloneRevision?: number): Promise<void> { await this.write(async tx => {
     const source = await this.context(id, tx); if (source.kind !== 'archive' && source.writable || source.localRevision !== expectedRevision) throw new Error('Conversion preview is stale or the environment is still writable.');
     const targetRow = await tx.first<{ id: string }>('SELECT id FROM contexts WHERE kind=?', 'standalone'); const target = await this.writable(tx, targetRow!.id);
+    if (expectedStandaloneRevision !== undefined && target.localRevision !== expectedStandaloneRevision) throw new Error('Standalone conversion preview is stale.');
     await this.recoveryCopyTx(tx, source.id, 'convert-source'); await this.recoveryCopyTx(tx, target.id, 'convert-standalone'); const revision = await this.bump(tx, target.id);
     for (const record of await this.listRecords(source.id, tx)) {
       await this.putRecord(tx, target.id, record.entityType, record.entityId, record.payload, record.deleted, revision, null);

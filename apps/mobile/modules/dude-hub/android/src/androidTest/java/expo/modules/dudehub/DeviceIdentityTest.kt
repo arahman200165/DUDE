@@ -57,4 +57,12 @@ class DeviceIdentityTest {
     val identity = DeviceIdentity(InstrumentationRegistry.getInstrumentation().targetContext)
     assertThrows(IllegalArgumentException::class.java) { identity.publicKey("../../seed") }
   }
+  @Test fun publicRandomnessIsBoundedAndIndependent() {
+    val identity = DeviceIdentity(InstrumentationRegistry.getInstrumentation().targetContext)
+    assertEquals(1, decode(identity.randomBytes(1)).size)
+    assertEquals(128, decode(identity.randomBytes(128)).size)
+    assertNotEquals(identity.randomBytes(32), identity.randomBytes(32))
+    assertThrows(IllegalArgumentException::class.java) { identity.randomBytes(0) }
+    assertThrows(IllegalArgumentException::class.java) { identity.randomBytes(129) }
+  }
 }

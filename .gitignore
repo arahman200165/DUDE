@@ -73,3 +73,5 @@ Thumbs.db
 /apps/mobile/ios/
 /apps/mobile/.expo/
 /apps/mobile/dist/
+/apps/mobile/modules/*/android/build/
+/.gradle-mobile/

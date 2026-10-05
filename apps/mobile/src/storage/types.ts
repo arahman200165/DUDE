@@ -5,6 +5,11 @@ import type { SyncableToolInfo } from '@dude/persistence/settings/syncable-key';
 export type MobileCategory = 'favorites' | 'settings';
 export type CategoryFlags = Readonly<Record<MobileCategory, boolean>>;
 export type SnapshotChoice = 'merge' | 'hub' | 'local';
+export interface RepairAuthority {
+  readonly previousHubInstanceId: string; readonly previousEpoch: number; readonly previousHead: number;
+  readonly hubInstanceId: string; readonly epoch: number;
+  readonly categories: readonly MobileCategory[];
+}
 export interface StoreOptions { readonly deviceId: string; readonly id: () => string; readonly now: () => number; readonly tools?: readonly SyncableToolInfo[] }
 export interface StorageContext {
   readonly id: string; readonly kind: 'standalone' | 'environment' | 'archive'; readonly environmentId: string;
