@@ -102,7 +102,7 @@
     "@noble/hashes": "^2.4.0",
     "@paralleldrive/cuid2": "^3.3.0",
     "@sindresorhus/slugify": "^3.0.1",
-    "@tiptap/core": "^3.31.3",
+    "@tiptap/core": "^3.31.4",
     "@tiptap/starter-kit": "^3.31.3",
     "@zxing/library": "^0.23.0",
     "ajv": "^8.20.0",
