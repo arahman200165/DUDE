@@ -1,8 +1,20 @@
 # DUDE System Architecture
 
-The desktop is the privileged local workbench; the Hub is authoritative for synchronized shared state. Delivered paths are described separately from the target package/service architecture. Phase 31C delivered the Hub service foundation and the resident Device Agent ([as built](#as-built-in-phase-31c)) Phase 31D delivered desktop synchronization ([as built](DATA_SYNC_ARCHITECTURE.md#as-built-in-phase-31d-synchronization)) and Phase 31E delivered the shared-state Hub web with private access ([as built](#as-built-in-phase-31e-hub-served-web), decisions [PD-050–PD-062](../history/DECISION_LOG.md#phase-31e-implementation-decisions)); Internet mode was released by 31F (Milestones 683–699) and encrypted backup, restore and Hub transfer by 31G (Milestones 700–719, [as built](#as-built-in-phase-31g-backup-restore-and-transfer)); mobile is still planned.
+The desktop is the privileged local workbench; the Hub is authoritative for synchronized shared state. Delivered paths are described separately from the target package/service architecture. Phase 31C delivered the Hub service foundation and the resident Device Agent ([as built](#as-built-in-phase-31c)) Phase 31D delivered desktop synchronization ([as built](DATA_SYNC_ARCHITECTURE.md#as-built-in-phase-31d-synchronization)) and Phase 31E delivered the shared-state Hub web with private access ([as built](#as-built-in-phase-31e-hub-served-web), decisions [PD-050–PD-062](../history/DECISION_LOG.md#phase-31e-implementation-decisions)); Internet mode was released by 31F (Milestones 683–699) and encrypted backup, restore and Hub transfer by 31G (Milestones 700–719, [as built](#as-built-in-phase-31g-backup-restore-and-transfer)); Android shell/sync implementation is undergoing Phase 31H acceptance; executable mobile tools remain 31I.
 
-Workspace implementation and host ownership are documented in [Portable Core](PORTABLE_CORE.md). The Hub service (`apps/hub`) and the Hub API client are delivered as of Phase 31C; the mobile and sync-replay reservations provide no runtime capabilities.
+Workspace implementation and host ownership are documented in [Portable Core](PORTABLE_CORE.md). The Hub service and API client are delivered; Android shell and sync adapters are implemented under Phase 31H with [acceptance still pending](../delivery/PHASE31H_ACCEPTANCE.md).
+
+## As built in Phase 31H: Android shell and sync
+
+`apps/mobile` owns an Expo development-build workspace using SDK 57.0.26, React Native 0.86.3, React 19.2.3, Hermes and Expo Router. Local prebuild emits an untracked Android project; Kotlin modules and config plugins remain the native sources of truth. JDK 17, API 29 minimum and compile/target API 36 define the baseline. The preview identity is `io.github.arahman200165.dude.preview` (**DUDE Preview**).
+
+Home, Tools, Search, Favorites and Settings consume shared registry metadata, portable search and durable repositories. Tool details explain availability; the executable mobile binding map is initially empty. The canonical `dude://open/tool/<id>` form and `dude://tools/<id>` alias only navigate: they cannot enroll, import input or execute tools. Home layout synchronization and executable native screens are outside 31H.
+
+Dedicated native identity and pinned HTTPS/WebSocket ports implement existing API contracts. Android advertises only verified `secure-storage`, never desktop privileges or recovery trust. Its SQLite repositories and foreground driver reuse shared codecs, scopes, Hub-order last-write-wins policies and limits. Desktop orchestration remains in the Device Agent. Mobile requires Hub category-filtered reads rather than requesting unwanted categories.
+
+The canonical theme JSON generates portable token data and a semantic native resolver alongside web CSS. Native controls expose shared appearance axes, preserve unsupported synchronized choices, use Android system/monospace font fallbacks, honor enlarged text and system motion/contrast preferences, and maintain minimum 48 dp targets.
+
+Preview `versionName` uses the existing root major/minor and full `master` commit count; `versionCode` is that count. Protected signing is mandatory for distributable APK/AAB artifacts. The existing single draft-release writer owns uploads. Hosted Expo builds, OTA delivery, background sync workers, owner administration, Play publication and tool execution are absent. Implementation does not close 31H until [signed/install, accessibility and physical acceptance](../delivery/PHASE31H_ACCEPTANCE.md) passes.
 
 Read [the master PRD](../DUDE_PRD.md) first. Product direction and invariants live there; this document owns the detailed contracts in its domain.
 
@@ -362,7 +374,7 @@ apps/desktop/            Electron composition and native adapters
 apps/device-agent/      Resident per-user Device Agent process (node:sqlite Device State Store, Hub client); never executes tools
 apps/collab-relay/       Existing standalone relay
 apps/hub/                Self-hosted DUDE Hub service (Fastify, node:sqlite, Node SEA); delivered in 31C
-apps/mobile/             Documented future placeholder
+apps/mobile/             Expo/React Native Android shell, native ports, SQLite and foreground sync
 packages/shared-types/  Closed vocabularies
 packages/domain/        Workbench entities, metadata and scope
 packages/contracts/     Execution, worker and native/host ports

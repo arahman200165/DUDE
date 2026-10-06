@@ -2,7 +2,23 @@
 
 This specification owns trust boundaries and authorization. Device enrollment enables identity and synchronization; it does not authorize privileged remote execution. Existing native mutation protections remain mandatory throughout the distributed transition.
 
-Workspace implementation and host ownership are documented in [Portable Core](PORTABLE_CORE.md#package-and-host-boundaries). The Hub service, owner identity and device registry are delivered (Phase 31C, [as built](#as-built-in-phase-31c)); sync and mobile reservations provide no runtime capabilities.
+Workspace implementation and host ownership are documented in [Portable Core](PORTABLE_CORE.md#package-and-host-boundaries). The Hub, owner identity, device registry and desktop sync are delivered. Phase 31H adds Android-specific security adapters with [acceptance still pending](../delivery/PHASE31H_ACCEPTANCE.md).
+
+## As built in Phase 31H: Android identity and recovery
+
+Enrollment is explicit paste/QR input followed by review of endpoint, name, SPKI pin and privacy disclosure. Camera permission is requested only when scanning; denial retains paste. Owner login and pairing-code creation remain on existing owner surfaces. Navigation links cannot enroll or execute. Devices register `platform: android`, advertise only `secure-storage` and keep recovery trust off. Existing key-bearing internal `desktop` device-kind compatibility is preserved without granting desktop privileges.
+
+The dedicated Kotlin HTTPS/WebSocket client verifies the approved leaf SPKI during TLS authentication before application bytes. Active/next pins and approved reverse-proxy pins remain confined to this client. No process-wide trust override, cleartext request or redirect is allowed. Requests are bounded to 15 seconds and HTTP responses to 4 MiB; diagnostics exclude credentials and request/response payloads. Private, VPN and public connectivity use the same reviewed trust identity, with physical off-LAN and rotation acceptance still required.
+
+Bouncy Castle Ed25519 signing uses an AES-GCM wrapping key in Android Keystore. Decrypted signing seeds stay in Kotlin and never cross JavaScript. JavaScript receives opaque key references, public keys and signatures. Short-lived device tokens remain in memory and renew through a single-flight signed challenge; expiration is distinguished from confirmed revocation. Before enrollment, durable storage records only endpoint/pins, public identity, expected authority and key reference. Pairing codes, proofs, tokens and request bodies are excluded; an ambiguous enrollment response recovers the same registration through a signed challenge or requests pairing input again.
+
+The application-private SQLite database is not encrypted with SQLCipher. Native backup/device-transfer rules exclude databases, credential material and recovery copies. Missing Keystore material never silently generates a replacement enrolled identity; explicit recovery/re-pair preserves cached records and pending operations. Credential-free recovery export omits key references, keys, tokens and enrollment secrets, but contains personal cached state and must be handled accordingly.
+
+Committing a new enrollment atomically records superseded signing-key references for deletion. A failed native deletion leaves a visible cleanup warning and retries on recovery or reopen; the runtime still adopts the committed identity. Sessions bearing the old key reference or public key cannot overwrite that enrollment. Cleanup references are private metadata and do not appear in recovery exports.
+
+Local lifecycle actions use expiring single-use confirmations bound to action, active context, revisions, pending work and relevant enrollment state. Disconnect, cache clearing, pending-attempt discard and conversion cross the destructive-action boundary; Use Hub takes a recovery copy before replacing values. Remote events may freeze revoked data but cannot mint or consume local confirmation tokens. Recovery exports and archived data remain separate from standalone state until explicit previewed conversion.
+
+Protected preview signing keys are CI secrets in `android-preview`; local release packaging requires an explicit keystore path and passwords. Missing signing configuration fails packaging without a debug-key fallback. Disposable emulator acceptance keys do not prove distributable preview signing. The existing release writer alone attaches APK/AAB/checksums to a draft; no Play publication or OTA update channel is configured.
 
 Read [the master PRD](../DUDE_PRD.md) first. Product direction and invariants live there; this document owns the detailed contracts in its domain.
 

@@ -1,0 +1,49 @@
+appId: io.github.arahman200165.dude.preview
+name: Connection review and shared appearance
+---
+- launchApp:
+    clearState: true
+    permissions:
+      camera: deny
+- assertVisible: "This workbench"
+- tapOn: "Tools.*"
+- assertVisible: "Filter tools"
+- tapOn: "Search.*"
+- assertVisible: "Search tools"
+- inputText: "base64"
+- hideKeyboard
+- assertVisible: "Base64 Encoder / Decoder"
+- tapOn: "Favorites.*"
+- assertVisible: "Pinned tools and pipelines"
+- assertVisible: "No favorites yet. Pin a tool from its details."
+- tapOn: "Settings.*"
+- tapOn: "Appearance"
+- assertVisible: "Theme"
+- tapOn: "Light"
+- assertVisible: "✓ Light"
+- tapOn: "Dark"
+- assertVisible: "✓ Dark"
+- scrollUntilVisible:
+    element:
+      text: "High"
+    direction: DOWN
+- tapOn: "High"
+- assertVisible: "✓ High"
+- takeScreenshot: appearance-high-contrast
+- scrollUntilVisible:
+    element:
+      text: "Reduce"
+    direction: DOWN
+- tapOn: "Reduce"
+- assertVisible: "✓ Reduce"
+- takeScreenshot: appearance-reduced-motion
+- back
+- tapOn: "Environment & Hub"
+- assertVisible: "Connect to your own Hub"
+- tapOn: "Review connection"
+- assertVisible: "Enter a valid pairing string and a device display name."
+- tapOn: "Scan pairing QR"
+- assertVisible: "Camera permission is needed to scan a QR code. Pasting a pairing string also works."
+- takeScreenshot: denied-camera-paste
+- tapOn: "Return to connection review"
+- assertVisible: "Pairing string"

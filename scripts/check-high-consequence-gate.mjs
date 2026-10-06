@@ -23,3 +23,5 @@ run('node_modules/@angular/cli/bin/ng.js',['test',...coreBoundarySpecs.map(spec=
 run('node_modules/vitest/vitest.mjs',['run','--config','vitest.electron.config.mts','apps/desktop/device-store/store-reset.confirmation-boundary.spec.ts','apps/desktop/device-store/hub-web-bridge.confirmation-boundary.spec.ts','apps/device-agent/src/sync/standalone.confirmation-boundary.spec.ts','apps/device-agent/src/rpc/lifecycle.spec.ts']);
 // The Hub's own destructive actions (revoke-all sessions, recovery-code regeneration, device revoke, purge).
 run('node_modules/vitest/vitest.mjs',['run','--config','vitest.hub.config.mts','confirmation-boundary']);
+// Android local cache, disconnect, recovery import/conversion and Use Hub.
+run('node_modules/vitest/vitest.mjs',['run','--config','vitest.mobile.config.mts','confirmation']);

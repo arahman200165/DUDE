@@ -405,6 +405,24 @@ These decisions were taken while planning Phase 31G (recorded 2026-10-04), numbe
 
 *Amendment (2026-10-04, Milestones 706 and 710):* `backup reactivate` carries the transfer consequence classes (`filesystem-write`, `secret-management`, `system-config`) and its preview writes no audit event (the closed audit list has no event for it). `backup.create.apply` validates the folder and the passphrase before it consumes the confirmation token, so a typo does not spend the preview. The scheduler retries a failed run after the smaller of the interval and 6 hours, and `backup_last` is cleared on restore (a restored Hub has taken no backup yet).
 
+### Phase 31H implementation decisions
+
+PD-075–PD-083 govern the Android shell and durable sync work beginning at Milestone 720. The exact baseline, dependency compatibility pins and implementation decisions are recorded in [Phase 31H decisions](../delivery/PHASE31H_PLAN.md); verified results and outstanding exit gates are in [Phase 31H acceptance](../delivery/PHASE31H_ACCEPTANCE.md).
+
+| Decision | Scope |
+|---|---|
+| PD-075 | Expo SDK 57 / React Native 0.86 / React 19.2, Hermes, JDK 17, API 29 minimum and compile/target API 36 |
+| PD-076 | Separate DUDE Preview identity, local prebuild/Gradle, no hosted build or OTA |
+| PD-077 | Compiled shared exports and enforceable mobile host/engine boundaries |
+| PD-078 | Native Keystore-wrapped signing, dedicated TLS pinning, explicit pairing and memory-only tokens |
+| PD-079 | Hub category filtering before serialization and capability-required favorites/settings consent |
+| PD-080 | Isolated SQLite contexts, exclusive transactions, claimed outbox identities and per-context shared ceiling |
+| PD-081 | Foreground-only Android driver, shared policies/limits and guarded staged snapshot recovery |
+| PD-082 | Credential-free recovery, retained archives and confirmation-bound lifecycle operations |
+| PD-083 | Protected signed preview packaging, existing release writer and evidence-bound phase closure |
+
+The Android-inclusive DUDE 2.0 gate remains 31I. Local compilation or automated tests alone do not establish physical-device or protected signing acceptance.
+
 ### Testing, accessibility, and performance evolution
 
 The original MVP deliberately rejected exhaustive coverage targets. The modern PRD keeps that pragmatic stance while replacing blanket exclusions with risk-based quality requirements:

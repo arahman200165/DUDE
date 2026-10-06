@@ -21,6 +21,7 @@ const config: ExpoConfig = {
   plugins: [
     'expo-router',
     './plugins/with-hermes.cjs',
+    './plugins/with-preview-signing.cjs',
     './plugins/with-android-privacy.cjs',
     ['expo-camera', { cameraPermission: 'Allow DUDE to scan a Hub pairing QR code.', recordAudioAndroid: false }],
     ['expo-build-properties', { android: { minSdkVersion: 29, compileSdkVersion: 36, targetSdkVersion: 36 } }],

@@ -173,15 +173,19 @@ describe('Android sync driver with real SQLite and contract-shaped Hub', () => {
     f.hub.head = 0; f.hub.records.clear(); f.hub.applied.clear();
     await f.store.savePendingAttempt({ ...receipt, mode: 'reconnect', keyRef: 'new-key' });
     await f.store.commitEnrollment({ ...enrollment, keyRef: 'new-key' });
+    await f.driver.stop();
+    const repairedDriver = new MobileSyncDriver({ store: f.store, session: new MobileDeviceSession(f.ports, (await f.store.readEnrollment())!),
+      contextId: f.context.id, id: f.id, now: () => NOW, onState: state => f.states.push(state) });
+    cleanup.push(() => repairedDriver.stop());
     await f.store.favoriteRepository(f.context.id).upsert(favorite('fresh-local'));
-    await f.driver.setForeground(true); await f.driver.preview();
+    await repairedDriver.setForeground(true); await repairedDriver.preview();
     expect(f.hub.requests.filter(request => request.path.endsWith('/sync/push'))).toHaveLength(1);
-    const preview = f.driver.getState().preview!;
-    await expect(f.driver.approve({ favorites: 'merge', settings: 'local' }, preview.id)).rejects.toThrow('refreshed');
+    const preview = repairedDriver.getState().preview!;
+    await expect(repairedDriver.approve({ favorites: 'merge', settings: 'local' }, preview.id)).rejects.toThrow('refreshed');
     const pushes = f.hub.requests.filter(request => request.path.endsWith('/sync/push'));
     expect((pushes[1]!.body as { ops: SyncOp[] }).ops.map(op => op.opId)).toEqual([claimedId]);
     expect((await f.store.context(f.context.id)).consent).toBe(false);
-    await f.driver.approve({ favorites: 'merge', settings: 'local' }, f.driver.getState().preview!.id);
+    await repairedDriver.approve({ favorites: 'merge', settings: 'local' }, repairedDriver.getState().preview!.id);
     expect(f.hub.records.get('favorite/tool:fresh-local')!.payload).toEqual(favorite('fresh-local'));
   });
 
@@ -340,6 +344,35 @@ describe('Android sync driver with real SQLite and contract-shaped Hub', () => {
     await backend.changed();
     expect(backend.getSnapshot().connection.kind).toBe('reauth-required');
     expect(f.hub.requests).toEqual([]);
+    await backend.close();
+  });
+  it('takes over a committed re-pair identity after old-key cleanup fails and retries the durable cleanup', async () => {
+    const f = await syncFixture();
+    await f.store.favoriteRepository(f.context.id).upsert(favorite('preserved'));
+    let cleanupFails = true;
+    const deleted: string[] = [];
+    const backend = new DurableWorkbench({ store: f.store, ports: { ...f.ports, signer: { ...signer,
+      prepareKey: async () => 'fresh-key', deleteKey: async key => { deleted.push(key); if (cleanupFails) throw new Error('Native key deletion failed.'); },
+    }, transport: target => ({ request: request => request.path.endsWith('/devices/enroll')
+      ? Promise.resolve(ok({ deviceId: DEVICE, environmentId: ENV, hubInstanceId: HUB, keyId: 'new-key-id', registeredAt: new Date(NOW).toISOString(), hubRevision: 0 }))
+      : f.ports.transport(target).request(request) }) },
+      installId: 'install', deviceId: DEVICE, appVersion: '0.0.0', now: () => NOW, id: f.id });
+    await backend.start(); await backend.setForeground(true);
+    const previousSession = backend.session!;
+    const result = await backend.actions.rePair({ pairingString: `dude-pair:v1:hub:47600:01234567:${pin}`, displayName: 'Phone', acknowledged: true });
+    expect(result).toMatchObject({ ok: false, reason: 'Native key deletion failed.' });
+    expect((await f.store.readEnrollment())?.keyRef).toBe('fresh-key');
+    expect(await f.store.readPendingAttempt()).toBeNull();
+    expect(backend.session?.getEnrollment().keyRef).toBe('fresh-key');
+    await expect(previousSession.token()).rejects.toThrow('closed');
+    expect(backend.getSnapshot().recovery.warning).toMatch(/old signing key could not be deleted/);
+    expect(await f.store.pendingKeyCleanup()).toEqual(['opaque-key']);
+    expect(await f.store.favoriteRepository(f.context.id).list()).toEqual([favorite('preserved')]);
+    cleanupFails = false;
+    expect(await backend.actions.recover()).toMatchObject({ ok: true });
+    expect(await f.store.pendingKeyCleanup()).toEqual([]);
+    expect(backend.getSnapshot().recovery.warning).toBeUndefined();
+    expect(deleted.every(key => key === 'opaque-key')).toBe(true);
     await backend.close();
   });
 });

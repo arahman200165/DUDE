@@ -1,0 +1,29 @@
+appId: io.github.arahman200165.dude.preview
+name: Standalone shell and navigation-only deep links
+---
+- launchApp:
+    clearState: true
+- assertVisible: "This workbench"
+- assertVisible: ".*Standalone"
+- openLink: "dude://tools/base64"
+- assertVisible: "Base64 Encoder / Decoder"
+- assertVisible: "Android availability"
+- assertVisible: "Pin tool"
+- tapOn: "Pin tool"
+- assertVisible: "Unpin tool"
+- stopApp
+- launchApp
+- assertVisible: "This workbench"
+- assertVisible: "Unpin Base64 Encoder / Decoder"
+- takeScreenshot: native-sqlite-restart
+- openLink: "dude://tools/base64"
+- assertVisible: "Unpin tool"
+- tapOn: "Unpin tool"
+- assertVisible: "Pin tool"
+- stopApp
+- openLink: "dude://tools/base64"
+- assertVisible: "Base64 Encoder / Decoder"
+- assertVisible: "Pin tool"
+- openLink: "dude://tools/not-a-registered-tool"
+- assertVisible: "Unknown tool"
+- assertVisible: "This tool is absent from this client’s registry."

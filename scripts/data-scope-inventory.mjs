@@ -112,8 +112,8 @@ function heuristic({ namespace, key, policy, file, receiver }) {
 const entries = [], reviewFlags = [];
 const storageMethods = new Set(['setItem', 'writeFile', 'writeFileSync', 'put', 'add', 'set', 'open', 'openDatabase']);
 const importedSettings = Object.fromEntries([...readFileSync('packages/tool-engine/src/core/persistence/app-settings.ts', 'utf8').matchAll(/export const (\w+) = '([^']+)'/g)].map(m => [m[1], m[2]]));
-const scanFiles = [...files('apps/web/src/app'), ...files('apps/desktop'), ...files('apps/device-agent'), ...(existsSync('apps/hub/src') ? files('apps/hub') : [])]
-  .filter(f => f.endsWith('.ts') && !f.endsWith('.spec.ts') && !/[\\/](testing|node_modules|dist)[\\/]/.test(f) && !f.endsWith('.d.ts'));
+const scanFiles = [...files('apps/web/src/app'), ...files('apps/desktop'), ...files('apps/device-agent'), ...(existsSync('apps/hub/src') ? files('apps/hub') : []), ...files('apps/mobile/src')]
+  .filter(f => /\.tsx?$/.test(f) && !/\.spec\.tsx?$/.test(f) && !/[\\/](testing|node_modules|dist)[\\/]/.test(f) && !f.endsWith('.d.ts'));
 for (const file of scanFiles) {
   const source = norm(file), sf = parse(file);
   const constants = new Map();
@@ -211,17 +211,28 @@ const hubTables = {
   change_feed: ['environment', 'canonical per-environment change feed'],
   applied_ops: ['environment', 'canonical idempotency ledger for applied operations'],
 };
+const mobileTables = {
+  metadata: ['device', 'Installation identity and opaque enrollment/pending receipt; no tokens, pairing codes, signing seeds or proof bodies.', 'sensitive'],
+  contexts: ['device', 'Standalone/environment/archive separation, bound authority, approved categories, cursor and local revision.', 'sensitive'],
+  records: ['per-row', 'Favorites/settings codecs; only environment-scoped approved records can sync after category consent.', 'sensitive'],
+  kv: ['per-row', 'Shared key scopes and sensitivity rules; secret-valued settings refused.', 'sensitive'],
+  outbox: ['device', 'Atomic coalesced operations and durable uncertain deliveries; no eviction at the shared row ceiling.', 'sensitive'],
+  snapshots: ['device', 'Staged filtered preview/reconciliation identity, revisions and consent guards.', 'sensitive'],
+  snapshot_records: ['device', 'Approved-category records staged before atomic reconciliation.', 'sensitive'],
+  recovery_copies: ['local-only', 'Credential-free recovery records and pending operations retained before destructive changes.', 'sensitive'],
+};
 const migrationSources = [
   { dir: 'apps/device-agent/src/store/migrations', tables: agentTables, label: 'device-agent', basis: 'agent-table', storage: 'Device Store (node:sqlite)', location: name => `userData/device-store/dude-device.db table ${name}` },
   { dir: 'apps/hub/src/db/migrations', tables: hubTables, label: 'hub', basis: 'hub-table', storage: 'Hub database (node:sqlite)', location: name => `data/dude.db table ${name}` },
+  { dir: 'apps/mobile/src/storage', filenames: ['migrations.ts'], tables: mobileTables, label: 'mobile', basis: 'mobile-table', storage: 'Android private SQLite (expo-sqlite)', location: name => `app-private files/SQLite/dude-mobile.db table ${name}` },
 ];
 for (const src of migrationSources) {
   if (!existsSync(src.dir)) continue;
-  for (const fileName of readdirSync(src.dir).filter(n => /^\d{4}-.*\.ts$/.test(n)).sort()) {
+  for (const fileName of (src.filenames ?? readdirSync(src.dir).filter(n => /^\d{4}-.*\.ts$/.test(n))).sort()) {
     const f = src.dir + '/' + fileName, text = readFileSync(f, 'utf8');
     for (const m of text.matchAll(/CREATE TABLE (\w+)/g)) {
       const t = src.tables[m[1]]; if (!t) throw Error(`Unclassified ${src.label} table ${m[1]}`);
-      entries.push({ source: f, line: text.slice(0, m.index).split('\n').length, operation: `CREATE TABLE ${m[1]}`, namespace: null, key: m[1], storage: src.storage, storageLocation: src.location(m[1]), retention: 'existing per-table policy', scope: t[0], sensitivity: m[1] === 'secret_values' || m[1] === 'hub_enrollment' ? 'secret' : t[0] === 'local-only' ? 'sensitive' : 'non-sensitive', note: t[1], classificationBasis: src.basis, syncConsent: 'not granted' });
+      entries.push({ source: f, line: text.slice(0, m.index).split('\n').length, operation: `CREATE TABLE ${m[1]}`, namespace: null, key: m[1], storage: src.storage, storageLocation: src.location(m[1]), retention: 'existing per-table policy', scope: t[0], sensitivity: t[2] ?? (m[1] === 'secret_values' || m[1] === 'hub_enrollment' ? 'secret' : t[0] === 'local-only' ? 'sensitive' : 'non-sensitive'), note: t[1], classificationBasis: src.basis, syncConsent: 'not granted' });
     }
   }
 }

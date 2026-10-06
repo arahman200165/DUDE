@@ -168,6 +168,37 @@ describe('durable Android store', () => {
     expect(await target.store.favoriteRepository((await target.store.activeContext()).id).list()).toEqual([favorite()]); expect((await target.store.pending(id)).length).toBe(1);
     await expect(target.store.importRecovery(JSON.stringify({ ...exported, keyRef: 'secret' }))).rejects.toThrow('Invalid recovery');
   });
+  it.each([false, true])('re-pairs the explicitly selected archive ahead of other matching caches (enrolled: %s)', async alreadyEnrolled => {
+    const source = await fixture(); const sourceContext = await enroll(source.store);
+    await source.store.favoriteRepository(sourceContext.id).upsert(favorite('selected'));
+    const selectedExport = { ...await source.store.exportRecovery(sourceContext.id), pending: [] };
+    await source.store.favoriteRepository(sourceContext.id).upsert(favorite('later-import'));
+    const laterExport = { ...await source.store.exportRecovery(sourceContext.id), pending: [] };
+    const target = await fixture();
+    const previousContext = alreadyEnrolled ? await enroll(target.store) : null;
+    const selected = await target.store.importRecovery(JSON.stringify(selectedExport));
+    const later = await target.store.importRecovery(JSON.stringify(laterExport));
+    await target.store.activateArchiveForPairing(selected);
+    const repair = { ...attempt, keyRef: 'fresh-key' };
+    await target.store.savePendingAttempt(repair);
+    // The durable receipt still owns its source after a lost acknowledgement and subsequent archive browsing.
+    await target.store.selectContext(later);
+    await target.store.commitEnrollment({ ...enrollment, ...repair });
+    expect((await target.store.activeContext()).id).toBe(selected);
+    expect(await target.store.favoriteRepository(selected).list()).toEqual([favorite('selected')]);
+    expect((await target.store.context(later)).kind).toBe('archive');
+    if (previousContext) expect((await target.store.context(previousContext.id)).kind).toBe('archive');
+  });
+  it('rejects trust writes from a superseded session and retains old key cleanup until confirmed', async () => {
+    const { store } = await fixture(); await enroll(store);
+    const next = { ...attempt, mode: 'reconnect' as const, keyRef: 'new-key', publicKey: 'new-public-key' };
+    await store.savePendingAttempt(next); await store.commitEnrollment({ ...enrollment, ...next });
+    await expect(store.saveEnrollment(enrollment)).rejects.toThrow('signing identity changed');
+    expect((await store.readEnrollment())?.keyRef).toBe('new-key');
+    expect(await store.pendingKeyCleanup()).toEqual(['opaque-key']);
+    expect(JSON.stringify(await store.exportRecovery((await store.activeContext()).id))).not.toContain('opaque-key');
+    await store.completeKeyCleanup('opaque-key'); expect(await store.pendingKeyCleanup()).toEqual([]);
+  });
   it('rejects stale clear previews atomically without removing pending data', async () => {
     const { store, context } = await fixture(); await store.favoriteRepository(context.id).upsert(favorite()); const expected = (await store.context(context.id)).localRevision;
     await store.favoriteRepository(context.id).upsert(favorite('later'));

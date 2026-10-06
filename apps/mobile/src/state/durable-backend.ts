@@ -56,6 +56,7 @@ export class DurableWorkbench implements WorkbenchBackend {
   private foreground = false;
   private busy = false;
   private warning: string | undefined;
+  private cleanupWarning: string | undefined;
   constructor(readonly options: DurableWorkbenchOptions) {
     this.store = options.store; this.ports = { ...options.ports, persistence: options.store, now: options.now };
     this.enrollment = this.enrollmentService(options.deviceId);
@@ -83,20 +84,22 @@ export class DurableWorkbench implements WorkbenchBackend {
       setSyncCategory: (category: Parameters<WorkbenchActions['setSyncCategory']>[0], enabled: boolean) => this.run(() => this.requireDriver().setCategory(category, enabled)),
       recover: () => this.run(async () => {
         await this.quiesce();
-        if (!await this.store.readPendingAttempt() && !(await this.store.activeContext()).writable) throw new Error('This cached environment needs a reviewed pairing string before it can reconnect.');
-        await this.enrollment.recoverPending();
-        await this.changed();
+        try {
+          if (!await this.store.readPendingAttempt() && !(await this.store.activeContext()).writable) throw new Error('This cached environment needs a reviewed pairing string before it can reconnect.');
+          await this.enrollment.recoverPending();
+        } finally { await this.changed(); }
         if (this.driver && !(await this.store.activeContext()).consent && this.foreground) await this.driver.preview();
       }),
       rePair: (input: ConnectionInput, contextId?: string) => this.run(async () => {
         await this.quiesce();
-        const existing = await this.store.readEnrollment();
-        if (contextId && existing && (await this.store.context(contextId)).deviceId !== existing.deviceId) throw new Error('Disconnect the current enrolled environment before re-pairing this archive.');
-        if (contextId) await this.store.activateArchiveForPairing(contextId);
-        const context = await this.store.activeContext();
-        this.enrollment = this.enrollmentService(context.deviceId);
-        await this.enrollment.connect(input, await this.store.readEnrollment() ? 'reconnect' : 'enroll');
-        await this.changed();
+        try {
+          const existing = await this.store.readEnrollment();
+          if (contextId && existing && (await this.store.context(contextId)).deviceId !== existing.deviceId) throw new Error('Disconnect the current enrolled environment before re-pairing this archive.');
+          if (contextId) await this.store.activateArchiveForPairing(contextId);
+          const context = await this.store.activeContext();
+          this.enrollment = this.enrollmentService(context.deviceId);
+          await this.enrollment.connect(input, await this.store.readEnrollment() ? 'reconnect' : 'enroll');
+        } finally { await this.changed(); }
       }),
       previewDisconnect: () => this.result(() => this.requireLifecycle().previewDisconnect()),
       disconnect: (token: string) => this.run(async () => { const result = await this.requireLifecycle().disconnect(token); this.warning = result.warning; }),
@@ -116,7 +119,7 @@ export class DurableWorkbench implements WorkbenchBackend {
   private enrollmentService(deviceId: string): MobileEnrollmentService {
     return new MobileEnrollmentService({ ...this.ports, deviceId, installId: this.options.installId, appVersion: this.options.appVersion,
       beforeReconnect: async () => { await this.quiesce(); await this.store.createRecoveryCopy((await this.store.activeContext()).id, 'before-reconnect'); },
-      onReconnected: async previous => { await this.ports.signer.deleteKey(previous.keyRef); },
+      onReconnected: async previous => { await this.ports.signer.deleteKey(previous.keyRef); await this.store.completeKeyCleanup(previous.keyRef); },
     });
   }
   async start(): Promise<void> {
@@ -172,7 +175,7 @@ export class DurableWorkbench implements WorkbenchBackend {
       recovery: { contextId: context.id, pendingAttempt: attempt !== null, archives, copies,
         standaloneContextId: contexts.find(item => item.kind === 'standalone')!.id,
         enrolledContextId: enrollment ? contexts.find(item => item.kind === 'environment' && item.environmentId === enrollment.environmentId && item.deviceId === enrollment.deviceId)?.id : undefined,
-        ...(this.warning ? { warning: this.warning } : {}) },
+        ...((this.warning || this.cleanupWarning) ? { warning: [this.warning, this.cleanupWarning].filter(Boolean).join(' ') } : {}) },
       capabilities: { appearance: context.writable && !failure && !state?.failure, favorites: context.writable && !failure && !state?.failure,
         connect: !attempt && (!enrollment || kind !== 'connected'),
         disconnect: !!this.lifecycle && !!belongs, sync: !!belongs && context.writable && !!this.driver, recover: !!attempt || !!enrollment,
@@ -205,6 +208,11 @@ export class DurableWorkbench implements WorkbenchBackend {
         this.driver = new MobileSyncDriver({ store: this.store, session: this.session, contextId: context.id, id: this.options.id,
           now: this.options.now, realtime: this.options.realtime, onState: state => { void this.driverChanged(state).catch(error => this.storageFailure(error)); } });
       }
+    }
+    this.cleanupWarning = undefined;
+    for (const keyRef of await this.store.pendingKeyCleanup()) {
+      try { await this.ports.signer.deleteKey(keyRef); await this.store.completeKeyCleanup(keyRef); }
+      catch { this.cleanupWarning = 'The new enrollment is saved, but an old signing key could not be deleted. Use Recover to retry cleanup; cleanup also retries when the workbench reopens.'; }
     }
     await this.refresh();
     if (this.foreground) await this.driver?.setForeground(true);

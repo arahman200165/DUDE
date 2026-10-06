@@ -2,7 +2,23 @@
 
 This specification separates canonical Hub state from local Device Stores, retained inputs and synchronization consent. Delivered local persistence remains supported; the canonical Hub skeleton and Hub enrollment are delivered (Phase 31C), while the synchronization protocol and the remaining distributed stores are planned.
 
-Workspace implementation and host ownership are documented in [Portable Core](PORTABLE_CORE.md#data-scope). The Hub service and Hub enrollment are delivered; the sync and mobile reservations provide no runtime capabilities.
+Workspace implementation and host ownership are documented in [Portable Core](PORTABLE_CORE.md#data-scope). Desktop/Hub synchronization is delivered. Android owns a separate durable adapter and driver under Phase 31H; its [acceptance gate remains pending](../delivery/PHASE31H_ACCEPTANCE.md).
+
+## As built in Phase 31H: Android persistence and synchronization
+
+Android uses app-private `expo-sqlite`, WAL and exclusive transactions. Numbered structural migrations refuse downgrades; entity shape evolution still belongs to shared codecs. The database is unencrypted application-private storage with no application unlock requirement. Signing secrets stay in Keystore-backed native storage. Backup/device-transfer rules exclude databases, credential material and recovery copies.
+
+Standalone state, the one enrolled environment and retained read-only archives have separate context IDs. Enrollment identity, trust configuration, authority epoch, cursor and outbox are environment-bound; archive recovery preserves authority identity. Enrollment copies standalone records into a separate environment for preview while retaining standalone state. Disconnect does not merge those contexts. Credential-free restore imports preserve device identity, records and pending operation IDs in a read-only archive; explicit re-pair creates a fresh signing key and repeats consent. Its durable receipt binds the reviewed source context, so another matching archive or subsequent browsing cannot redirect recovery.
+
+Each local record edit and its coalesced outbox operation commit in one exclusive transaction. The shared 10,000-row ceiling applies per isolated context; reaching it rejects the entire edit without evicting pending operations. Before upload, operations are durably claimed. Claimed operations cannot be overwritten or canceled by later edits: later changes receive another operation, the earliest operation for an entity replays with its stable ID, and acknowledgments remove only the exact operation while retaining newer edits and advancing their base. Disk-full/transaction failures roll back records, revisions and outbox together. Settings reuse shared scope/sensitivity rules, retain approved settings without mobile editors and preserve unsupported appearance fields.
+
+Only favorites and settings are selected for mobile sync. `hello.syncCategoryFiltering` must be true. Validated optional `categories` snapshot/change queries are enforced by the Hub before serialization, including tombstones, using shared entity/category policies. Omitted filters retain existing desktop behavior. Global change cursors advance through sparse/empty filtered reads to the environment head without missing later matches. Newly enabled categories require a fresh filtered snapshot and preview.
+
+First upload requires per-category Merge / Use Hub / Keep local review. Merge unions non-overlapping IDs with Hub values winning overlaps; Keep local publishes local values; Use Hub creates a recovery copy and crosses a confirmation boundary. Previews bind context, categories and local revision; intervening edits require refresh. Disabling a category retains its cache and queued edits while stopping reads/writes. Previews never upload. Explicit approval first resolves previously claimed uncertain operations using their original IDs; if this changes Hub state, a refreshed preview requires review before applying choices or uploading new operations.
+
+The Android driver runs single-flight cycles on foreground edits, resume, connection recovery, realtime nudges and manual refresh. Realtime and retry scheduling stop in the background. Pulls use 16-record pages and a native 4 MiB response ceiling; pushes use shared limits and retries use bounded exponential backoff. Expired cursors use staged snapshots preserving pending operations. Pagination retains the first observed revision as the catch-up cursor so mid-pagination changes cannot disappear behind a later head. Changed authority or regressed acknowledged history blocks destructive reconciliation.
+
+Revocation invalidates the session and makes cached environment data read-only. Disconnect previews unsent edits, attempts unenrollment, deletes the signing key and retains an archive; an unreachable Hub may retain a registry row requiring owner revocation. Export, cache clearing, pending-attempt discard and standalone conversion have local recovery paths. Destructive operations use context/revision-bound confirmations and preserve recovery copies. Storage errors, missing keys and rejected operations do not silently reset databases or drop pending edits. Native SQLite restart and physical transfer acceptance remain required in [the phase evidence](../delivery/PHASE31H_ACCEPTANCE.md).
 
 Read [the master PRD](../DUDE_PRD.md) first. Product direction and invariants live there; this document owns the detailed contracts in its domain.
 
@@ -621,7 +637,7 @@ Remote changes apply live through `applyRemote` on the entity collections and th
 
 **Sync UI.** Hub web has a browser `SyncPort` behind the shell indicator and Settings › Sync: Live, Hub unreachable (changes paused), Session expired and Reload needed states, Sync now, environment-level web-access toggles (never desktop consent) and a per-device table from the summary (kind, cursor and lag, pending, conflicts, quarantined, paused, last push and pull). Desktop conflicts and quarantine hand off to DUDE Desktop; first-sync, pause, quarantine and standalone panels are desktop-only.
 
-**Not delivered.** A browser offline outbox, a server-side conflict inbox, collaboration persistence (31J), end-to-end encrypted categories (Phase 82) and Android sync (31H-31I).
+**Not delivered.** A browser offline outbox, a server-side conflict inbox, collaboration persistence (31J) and end-to-end encrypted categories (Phase 82). Android shell/sync implementation and its outstanding acceptance are described below; executable Android tools remain 31I.
 
 ## As built in Phase 31G (backup, restore and transfer)
 

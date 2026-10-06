@@ -24,6 +24,8 @@ const assets = [
   `release/DUDE-Setup-${version}.exe.blockmap`,
   'release/latest.yml',
   'dist/hub-installer/DUDE-Hub-Setup.exe',
+  `dist/mobile-package/DUDE-Preview-${version}.apk`,
+  `dist/mobile-package/DUDE-Preview-${version}.aab`,
   'release/SHA256SUMS.txt',
 ];
 
@@ -130,11 +132,11 @@ function execute(script, scenario, overrides = {}, missing) {
   }
 }
 
-const gates = Object.keys(workflow.jobs).filter(name => !['package', 'publish', 'deploy'].includes(name));
+const gates = Object.keys(workflow.jobs).filter(name => !['package', 'mobile-package', 'publish', 'deploy'].includes(name));
 const master = "github.ref == 'refs/heads/master' && github.event_name == 'push'";
 
 test('publishes only from master pushes, after every gate and the packaging pass', () => {
-  assert.deepEqual(new Set(publishJob.needs), new Set([...gates, 'package']));
+  assert.deepEqual(new Set(publishJob.needs), new Set([...gates, 'package', 'mobile-package']));
   // Nothing ships, web or desktop, unless every check passes.
   assert.deepEqual(new Set(workflow.jobs.deploy.needs), new Set(gates));
   // Packaging runs alongside the gates, so it must not be able to write releases.
@@ -161,7 +163,14 @@ test('packaging hands publish every asset through one artifact, verified before 
   assert.ok(publishJob.steps.indexOf(download) < publishJob.steps.indexOf(publish));
   // The artifact carries exactly what the publish script expects, at the same paths.
   const files = upload.with.path.trim().split(/\r?\n/).map(line => line.trim().replaceAll('${{ steps.release.outputs.version }}', version));
-  assert.deepEqual(files, assets.slice(0, -1));
+  assert.deepEqual(files, assets.slice(0, 4));
+  const mobile = workflow.jobs['mobile-package'];
+  assert.equal(mobile.environment, 'android-preview');
+  assert.equal(mobile.permissions.contents, 'read');
+  assert.equal(mobile.steps[0].with['fetch-depth'], 0);
+  assert.ok(mobile.steps.some(step => step.run === 'npm run mobile:package'));
+  const mobileDownload = publishJob.steps.find(step => step.with?.name === 'android-preview-assets');
+  assert.equal(mobileDownload.with.path, 'dist/mobile-package');
   for (const name of ['Verify packaged network helper', 'Verify the desktop installer embeds the Hub installer']) {
     assert.ok(steps.findIndex(step => step.name === name) < steps.indexOf(upload));
   }
@@ -198,7 +207,7 @@ test('release version is the package major.minor with the commit count as patch'
 });
 
 for (const scenario of ['new', 'reuse']) {
-  test(`${scenario}: uploads all five assets into one draft and verifies completeness`, () => {
+  test(`${scenario}: uploads all seven assets into one draft and verifies completeness`, () => {
     const result = execute(publish.run, scenario);
     assert.equal(result.status, 0, result.stderr);
     const commands = result.calls.map(call => call.slice(0, 2).join(' '));
@@ -210,7 +219,7 @@ for (const scenario of ['new', 'reuse']) {
     const upload = result.calls.find(call => call[1] === 'upload');
     assert.deepEqual(upload.slice(3, -1).map(file => file.replaceAll('\\', '/')), assets);
     assert.equal(upload.at(-1), '--clobber');
-    const expected = [assets[0], assets[3]].map(file =>
+    const expected = [assets[0], assets[3], assets[4], assets[5]].map(file =>
       `${createHash('sha256').update(`fixture: ${file}`).digest('hex')}  ${path.basename(file)}`);
     assert.deepEqual(result.checksums.trim().split(/\r?\n/), expected);
   });

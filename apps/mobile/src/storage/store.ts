@@ -163,11 +163,15 @@ export class MobileStore implements MobileHubPersistence {
   }
   async readEnrollment(): Promise<MobileHubEnrollment | null> { return this.readMeta(this.database, 'enrollment'); }
   async readPendingAttempt(): Promise<MobileEnrollmentAttempt | null> { return this.readMeta(this.database, 'pending_attempt'); }
-  async savePendingAttempt(attempt: MobileEnrollmentAttempt): Promise<void> { await this.write(tx => this.meta(tx, 'pending_attempt', receipt(attempt, true))); }
-  async clearPendingAttempt(): Promise<void> { await this.write(tx => tx.run('DELETE FROM metadata WHERE key=?', 'pending_attempt')); }
+  async savePendingAttempt(attempt: MobileEnrollmentAttempt): Promise<void> { await this.write(async tx => {
+    await this.meta(tx, 'pending_attempt', receipt(attempt, true));
+    // Recovery must retain the reviewed cache even if the user browses another context before the receipt is confirmed.
+    await this.meta(tx, 'pending_attempt_context', await this.readMeta<string>(tx, 'active_context'));
+  }); }
+  async clearPendingAttempt(): Promise<void> { await this.write(tx => tx.run('DELETE FROM metadata WHERE key IN (?,?)', 'pending_attempt', 'pending_attempt_context')); }
   async saveEnrollment(enrollment: MobileHubEnrollment): Promise<void> { await this.write(async tx => {
     const existing = await this.readMeta<MobileHubEnrollment>(tx, 'enrollment');
-    if (!existing || existing.environmentId !== enrollment.environmentId || existing.deviceId !== enrollment.deviceId || existing.hubInstanceId !== enrollment.hubInstanceId || enrollment.authorityEpoch < existing.authorityEpoch) throw new Error('Enrollment authority changed. Re-pair explicitly.');
+    if (!existing || existing.environmentId !== enrollment.environmentId || existing.deviceId !== enrollment.deviceId || existing.hubInstanceId !== enrollment.hubInstanceId || existing.keyRef !== enrollment.keyRef || existing.publicKey !== enrollment.publicKey || enrollment.authorityEpoch < existing.authorityEpoch) throw new Error('Enrollment authority or signing identity changed. Re-pair explicitly.');
     const safe = receipt(enrollment); await this.meta(tx, 'enrollment', safe);
     const context = await tx.first<{ id: string }>('SELECT id FROM contexts WHERE kind=?', 'environment'); if (context) await this.meta(tx, `context_enrollment:${context.id}`, safe);
   }); }
@@ -175,8 +179,11 @@ export class MobileStore implements MobileHubPersistence {
     const safe = receipt(enrollment); const attempt = await this.readMeta<MobileEnrollmentAttempt>(tx, 'pending_attempt');
     if (!attempt || attempt.deviceId !== safe.deviceId || attempt.environmentId !== safe.environmentId || attempt.keyRef !== safe.keyRef || attempt.hubInstanceId !== safe.hubInstanceId) throw new Error('Enrollment does not match its durable attempt.');
     const current = await tx.first<ContextRow>('SELECT * FROM contexts WHERE kind=?', 'environment');
+    const sourceId = await this.readMeta<string>(tx, 'pending_attempt_context') ?? await this.readMeta<string>(tx, 'active_context');
+    const source = sourceId ? await tx.first<ContextRow>('SELECT * FROM contexts WHERE id=?', sourceId) : null;
+    const selectedArchive = source?.kind === 'archive' && source.environment_id === safe.environmentId && source.device_id === safe.deviceId ? source : null;
     const restored = await tx.first<ContextRow>('SELECT * FROM contexts WHERE kind=? AND environment_id=? AND device_id=? ORDER BY rowid DESC LIMIT 1', 'archive', safe.environmentId, safe.deviceId);
-    const retained = current && current.environment_id === safe.environmentId && current.device_id === safe.deviceId ? current : restored;
+    const retained = selectedArchive ?? (current && current.environment_id === safe.environmentId && current.device_id === safe.deviceId ? current : restored);
     let contextId: string;
     if (retained) {
       if (current && current.id !== retained.id) await tx.run('UPDATE contexts SET kind=?,writable=0 WHERE id=?', 'archive', current.id);
@@ -203,9 +210,20 @@ export class MobileStore implements MobileHubPersistence {
         await tx.run('UPDATE contexts SET local_revision=? WHERE id=?', source.localRevision, contextId);
       }
     }
+    const previousEnrollment = await this.readMeta<MobileHubEnrollment>(tx, 'enrollment');
+    if (previousEnrollment && previousEnrollment.keyRef !== safe.keyRef) {
+      const keys = await this.readMeta<string[]>(tx, 'retired_signing_keys') ?? [];
+      await this.meta(tx, 'retired_signing_keys', [...new Set([...keys, previousEnrollment.keyRef])]);
+    }
     await this.meta(tx, 'enrollment', safe); await this.meta(tx, `context_enrollment:${contextId}`, safe); await this.meta(tx, 'active_context', contextId);
     await tx.run('DELETE FROM metadata WHERE key=?', `context_failure:${contextId}`);
-    await tx.run('DELETE FROM metadata WHERE key=?', 'pending_attempt');
+    await tx.run('DELETE FROM metadata WHERE key IN (?,?)', 'pending_attempt', 'pending_attempt_context');
+  }); }
+  async pendingKeyCleanup(): Promise<readonly string[]> { return await this.readMeta<string[]>(this.database, 'retired_signing_keys') ?? []; }
+  async completeKeyCleanup(keyRef: string): Promise<void> { await this.write(async tx => {
+    const keys = (await this.readMeta<string[]>(tx, 'retired_signing_keys') ?? []).filter(key => key !== keyRef);
+    if (keys.length) await this.meta(tx, 'retired_signing_keys', keys);
+    else await tx.run('DELETE FROM metadata WHERE key=?', 'retired_signing_keys');
   }); }
   async repairState(id: string): Promise<RepairAuthority | null> { return this.readMeta(this.database, `repair_authority:${id}`); }
   async failureState(id: string): Promise<'revoked' | 'missing-key' | 'authority-changed' | null> { return this.readMeta(this.database, `context_failure:${id}`); }
@@ -442,7 +460,7 @@ export class MobileStore implements MobileHubPersistence {
     await this.recoveryCopyTx(tx, context.id, reason);
     if (reason === 'revoked') { await tx.run('UPDATE contexts SET writable=0 WHERE id=?', context.id); return; }
     await tx.run('UPDATE contexts SET kind=?,writable=0 WHERE id=?', 'archive', context.id);
-    await tx.run('DELETE FROM metadata WHERE key IN (?,?)', 'enrollment', 'pending_attempt');
+    await tx.run('DELETE FROM metadata WHERE key IN (?,?,?)', 'enrollment', 'pending_attempt', 'pending_attempt_context');
     const standalone = await tx.first<{ id: string }>('SELECT id FROM contexts WHERE kind=?', 'standalone'); await this.meta(tx, 'active_context', standalone!.id);
   }); }
   /** Internal lifecycle primitive: never invoke from startup, errors or remote messages. */

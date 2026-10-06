@@ -24,7 +24,7 @@ Phase 31A introduced npm workspaces with one root lockfile, and Phase 31B filled
 | `agent-pipe` | Node-only authenticated named-pipe protocol between the desktop and the Device Agent; excluded from the portable-core gate |
 | `collab-protocol` | Existing Node-only Yjs room implementation; excluded from the portable-core gate |
 
-Mobile and infrastructure directories are documented placeholders with no implementation. Device identity, the desktop SQLite store with its migration runner and the local outbox are delivered by Phase 31B in `persistence`, `sync` and `apps/device-agent`; Phase 31C adds `apps/hub`, Hub registration and the Hub client. Phase 31D adds synchronization: the categories, policies, merge and limits live in `sync`, the typed transport in `api-client` and the replay, cursor and conflict engine in `apps/device-agent`; Android sync is not delivered (31H).
+`apps/mobile` now owns the Expo/React Native Android shell and its native identity, transport, SQLite and foreground sync adapters. Its Phase 31H acceptance gate remains pending ([evidence](../delivery/PHASE31H_ACCEPTANCE.md)); infrastructure reservations grant no runtime capability. Device identity, the desktop SQLite store and local outbox are delivered by Phase 31B; Phase 31C adds Hub registration and the API client; Phase 31D adds desktop replay and conflict orchestration. Shared categories, policies and limits remain in `sync`, and typed transport contracts remain in `api-client`. Android has its own driver and does not import desktop orchestration.
 
 ## Package and host boundaries
 
@@ -41,6 +41,10 @@ The renderer accesses native capabilities through injected `PlatformBridgePort`.
 ## Tool ownership and discovery
 
 Each tool has one metadata manifest in `packages/tool-registry/src/tools/<id>/`, an Angular `<id>.bindings.ts` beside its component, and engine modules under their package owner. Metadata has no functions, engines, UI loaders or native implementations. Bindings retain literal lazy imports for components/settings.
+
+Mobile metadata discovery consumes the compiled registry and lightweight search subpath. `generate:registry` also discovers `apps/mobile/src/tools/<id>/<id>.mobile-bindings.ts`, validates the stable `bindingId` and emits literal lazy loaders in `mobile-bindings.generated.ts`. The initial executable map is empty; compatible native tool UIs belong to 31I. Availability requires a real host binding and capability checks, rather than a hand-maintained platform list. Mobile production boundaries reject Angular, Electron, Node-only packages, browser adapters, application-source imports and eagerly loaded engines.
+
+The canonical appearance JSON continues to generate web CSS and shared appearance axes. It now also generates portable token data in `domain`; `@dude/domain/core/appearance/native-theme` resolves semantic native colors, spacing, contrast and fonts. Native fallbacks do not rewrite synchronized font selections.
 
 `generate:registry` discovers manifests and bindings, composes Angular definitions and generates literal pipeline/workspace/fixture loader maps and worker factories. Routes, sidebar, search, command palette, file associations, shortcuts and documentation derive from the same metadata. Adding a tool requires no manual core/shell registration. IDs, routes and metadata are compared with the captured Phase 31 baseline.
 

@@ -19,6 +19,22 @@ apps/web/src/app/tools/<id>/<id>.worker.ts             — optional browser adap
 
 ## 2. Declare metadata and UI bindings
 
+### Android presentation ownership (Phase 31I)
+
+Phase 31H discovers shared metadata and renders tool details; its executable mobile binding map is initially empty. When 31I is authorized, contribute the native screen beside its binding at `apps/mobile/src/tools/<id>/<id>.mobile-bindings.ts`. Reuse the existing stable registry ID:
+
+```ts
+import type { MobileToolBinding } from '../../registry/mobile-binding';
+export const bindingId = 'base64';
+export const binding: MobileToolBinding = {
+  load: () => import('./base64-screen'),
+};
+```
+
+The screen module exports its React Native component as `default`; an optional `settingsLoad` uses the same literal lazy-loader shape. Run `npm run generate:registry` to discover the binding and generate `mobile-bindings.generated.ts`. Do not edit mobile tabs, shell, routes or the generated map to register a tool. Validate native runtime support, permission denial, scoped persistence and shared transform fixtures before claiming availability. Portable TypeScript alone does not establish mobile compatibility. Native presentation uses resolved shared semantic tokens, font scaling and 48 dp touch targets. Enrollment never grants desktop privileges, and tool inputs/outputs do not become syncable preferences by passing through a mobile screen.
+
+### Shared metadata and Angular binding
+
 Create exactly one metadata manifest, exporting `manifest: ToolMetadata` from `@dude/domain/shared/models/tool-metadata.model`. Preserve the closed category vocabulary and the tool's stable ID/route. Metadata contains no functions, application imports, engine imports or native implementation imports.
 
 ```ts
