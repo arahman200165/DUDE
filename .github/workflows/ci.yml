@@ -241,7 +241,7 @@ jobs:
 
       - name: Upload Playwright report
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report-hub
           path: playwright-report-hub
@@ -324,7 +324,7 @@ jobs:
       - name: Remove verification-only key
         if: always()
         run: rm -f -- "$RUNNER_TEMP/acceptance.p12"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: android-acceptance-api-${{ matrix.api-level }}
@@ -370,7 +370,7 @@ jobs:
       - name: Remove protected preview keystore
         if: always()
         run: rm -f -- "$RUNNER_TEMP/dude-preview.p12"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: android-preview-assets
           path: dist/mobile-package/*
@@ -502,7 +502,7 @@ jobs:
 
       # The common root keeps the release\ and dist\hub-installer\ paths, so publish sees the same tree.
       - name: Upload release assets
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-assets
           path: |
