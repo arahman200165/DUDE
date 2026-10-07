@@ -153,7 +153,11 @@ async function main() {
   assert(json(run(cli, ['status', '--data-dir', dataDir])).bind === 'loopback', 'the Hub is back on loopback');
 
   step('doctor');
-  const doctor = json(run(cli, ['doctor', ...common]));
+  // The checklist comes first; the machine-readable report follows the "--- details ---" marker.
+  const doctorOutput = run(cli, ['doctor', ...common]).stdout;
+  const marker = '--- details ---';
+  assert(doctorOutput.includes(marker), 'doctor prints a details section');
+  const doctor = JSON.parse(doctorOutput.slice(doctorOutput.indexOf(marker) + marker.length));
   assert(doctor.hubVersion === currentVersion && doctor.admin && Array.isArray(doctor.logTail), 'doctor reports the version, admin status and log tail');
   assert(!JSON.stringify(doctor).includes(PASSWORD) && !JSON.stringify(doctor).includes(tokenInfo.token), 'doctor output has no secrets');
 
@@ -176,6 +180,27 @@ try {
   failure = error;
   console.error(`\nFAILED at step "${steps.at(-1) ?? 'setup'}": ${error.message}`);
 }
+
+// The cleanup below deletes the logs, so print what the service and its wrapper wrote while they still exist.
+function dumpLogs() {
+  const folders = [path.join(dataDir, 'logs'), path.join(dataDir, 'logs', 'service'), installDir];
+  for (const folder of folders) {
+    let names = [];
+    try { names = readdirSync(folder).filter((name) => /\.(log|err|out|wrapper)(\.\w+)?$/i.test(name)); } catch { /* folder missing */ }
+    for (const name of names) {
+      let text = '';
+      try { text = readFileSync(path.join(folder, name), 'utf8'); } catch { /* unreadable */ }
+      console.log(`
+--- ${path.join(folder, name)} (last 6000 characters)
+${text.slice(-6000)}`);
+    }
+  }
+  const state = spawnSync('sc.exe', ['query', 'DudeHub'], { encoding: 'utf8', windowsHide: true });
+  console.log(`
+--- sc query DudeHub
+${state.stdout ?? ''}${state.stderr ?? ''}`);
+}
+if (failure) dumpLogs();
 
 // Clean up even on failure; the data directory is removed by this script, never by "purge".
 try { if (serviceExists()) spawnSync(path.join(stage, 'dude-hub.exe'), ['service', 'uninstall', '--install-dir', installDir, '--data-dir', dataDir], { windowsHide: true, timeout: 120_000 }); } catch { /* best effort */ }
