@@ -211,7 +211,7 @@ describe('admin network.proxy.set, network.mode.set and the status exposure mode
     });
     return { ...report, certificate: report.certificate ? { ...report.certificate, missingNames: [] } : null };
   };
-  function methodsFor(config: Record<string, unknown> = { port: 4711, bind: 'lan' }, hsts?: () => boolean, diagnostics: ReturnType<typeof diagnosticsFor> = diagnosticsFor()) {
+  function methodsFor(config: Record<string, unknown> = { port: 4711, bind: 'lan' }, hsts?: () => boolean, diagnostics: ReturnType<typeof diagnosticsFor> = diagnosticsFor(), platform?: NodeJS.Platform) {
     const root = tempDir('hub-exposure-');
     const paths = hubPaths(root);
     const opened = openHubDb({ dbFile: paths.dbFile, preMigrationDir: paths.preMigrationDir });
@@ -220,7 +220,7 @@ describe('admin network.proxy.set, network.mode.set and the status exposure mode
     writeFileSync(paths.configFile, JSON.stringify(config));
     const methods = buildAdminMethods({
       db: opened.hub.db, hubVersion: '9.9.9', hubInstanceId: opened.hub.hubInstanceId, bind: 'lan', getPort: () => 4711, startedAt: 1000,
-      configDir: paths.configDir, configFile: paths.configFile, spkiSha256: 'B'.repeat(43), now: () => 6000, diagnostics, ...(hsts ? { hsts } : {}),
+      configDir: paths.configDir, configFile: paths.configFile, spkiSha256: 'B'.repeat(43), now: () => 6000, diagnostics, ...(hsts ? { hsts } : {}), ...(platform ? { platform } : {}),
     });
     return { methods, paths, hub: opened.hub };
   }
@@ -290,7 +290,7 @@ describe('admin network.proxy.set, network.mode.set and the status exposure mode
   it('network.mode.set public: the host facts sent by the CLI are evaluated (a missing firewall rule blocks) and malformed ones are ignored', async () => {
     const seen: Array<DiagnosticsOverride | undefined> = [];
     const diagnostics = async (override?: DiagnosticsOverride) => { seen.push(override); return diagnosticsFor({ platform: 'win32', serviceMode: 'service' })(override); };
-    const { methods, hub } = methodsFor(undefined, undefined, diagnostics);
+    const { methods, hub } = methodsFor(undefined, undefined, diagnostics, 'win32');
     const hostFacts = { publicFirewall: { present: false, problems: [] }, nativeListeners: { exposed: [], desktopLan: [], partial: false } };
     const error = await refusal(methods['network.mode.set']!({ mode: 'public', acknowledgement: PHRASE, hostFacts }));
     expect(error.detail.blockers.map((b) => b.id)).toEqual(['public-firewall-rule']);
