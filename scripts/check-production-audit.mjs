@@ -16,7 +16,17 @@ const ACCEPTED = new Map([
   // verify result is informational only (CSR Inspector badge, Certificate Chain Tools "Verify
   // chain"); desktop trust decisions use node:crypto. Accepted 2026-10-02.
   ['node-forge', new Set(['https://github.com/advisories/GHSA-86w9-cpqp-85rv'])],
+  // Stack exhaustion on deeply nested brace patterns; braces 3.0.3 is the latest release and the
+  // advisory covers <=3.0.3. Reached only through expo's Metro file map in the mobile workspace,
+  // which globs the developer's own project at build time, never untrusted input or shipped code.
+  // Accepted 2026-10-07.
+  ['braces', new Set(['https://github.com/advisories/GHSA-vfj7-8cjw-p6xm'])],
 ]);
+
+// `npm audit` reports `fixAvailable` as a semver-major object for a package whose only "fix" is
+// downgrading the parent that pulls it in (e.g. expo 44 for node-forge). That is not a patched
+// release of the vulnerable package, so only `true` or a non-major bump counts as a fix.
+const hasFix = (fixAvailable) => fixAvailable === true || (typeof fixAvailable === 'object' && fixAvailable !== null && !fixAvailable.isSemVerMajor);
 
 const npmCli = process.env.npm_execpath;
 if (!npmCli) throw Error('Run through npm run audit:prod');
@@ -42,7 +52,7 @@ for (const [name, vuln] of Object.entries(vulnerabilities)) {
   const allowed = ACCEPTED.get(name);
   const unaccepted = advisories.filter((via) => !allowed?.has(via.url));
   if (unaccepted.length) failures.push(`${name} (${vuln.severity}): ${unaccepted.map((via) => `${via.url} ${via.title}`).join('; ')}`);
-  else if (vuln.fixAvailable) failures.push(`${name} (${vuln.severity}): accepted advisory now has a fix; upgrade and remove it from ACCEPTED`);
+  else if (hasFix(vuln.fixAvailable)) failures.push(`${name} (${vuln.severity}): accepted advisory now has a fix; upgrade and remove it from ACCEPTED`);
   else accepted.push(`${name}: ${advisories.map((via) => via.url).join(', ')}`);
 }
 
