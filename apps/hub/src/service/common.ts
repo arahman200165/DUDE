@@ -190,10 +190,11 @@ export function fetchHello(dataDir: string, port: number): Promise<HelloResponse
   let pem: string;
   try { pem = readFileSync(certFile, 'utf8'); } catch { return Promise.resolve(null); }
   const pin = spkiSha256(pem);
+  const caPem = readCaCertPem(hubPaths(dataDir).tlsDir);
   return new Promise((resolve) => {
     const req = https.request(
       {
-        host: '127.0.0.1', port, path: `${HUB_API_PREFIX}/hello`, method: 'GET', ca: [pem, ...(readCaCertPem(hubPaths(dataDir).tlsDir) ?? [])], servername: 'localhost', timeout: 4000,
+        host: '127.0.0.1', port, path: `${HUB_API_PREFIX}/hello`, method: 'GET', ca: caPem === null ? [pem] : [pem, caPem], servername: 'localhost', timeout: 4000,
         checkServerIdentity: (_host, cert) => (spkiSha256(new X509Certificate(cert.raw)) === pin ? undefined : new Error('Pinned certificate mismatch.')),
       },
       (res) => {
