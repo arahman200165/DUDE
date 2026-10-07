@@ -96,7 +96,7 @@
     "xmllint-wasm": "^5.3.0",
     "y-protocols": "^1.0.7",
     "yaml": "^2.9.1",
-    "yjs": "^13.6.32"
+    "yjs": "^13.6.33"
   },
   "devDependencies": {
     "@types/diff-match-patch": "^1.0.36",
