@@ -10,7 +10,7 @@ const response = await fetch(`https://api.github.com/repos/mobile-dev-inc/maestr
 if (!response.ok) throw new Error(`Could not read official Maestro ${version} release metadata.`);
 const release = await response.json();
 const asset = release.assets.find(item => item.name === 'maestro.zip');
-if (!asset?.digest?.match(/^sha256:[a-f0-9]{64}$/) || !asset.browser_download_url.startsWith('https://github.com/mobile-dev-inc/maestro/releases/download/')) throw new Error('Official Maestro archive has no verifiable SHA256 digest.');
+if (!asset?.digest?.match(/^sha256:[a-f0-9]{64}$/) || !asset.browser_download_url.toLowerCase().startsWith('https://github.com/mobile-dev-inc/maestro/releases/download/')) throw new Error('Official Maestro archive has no verifiable SHA256 digest.');
 const archiveResponse = await fetch(asset.browser_download_url);
 if (!archiveResponse.ok) throw new Error('Could not download official Maestro archive.');
 const bytes = Buffer.from(await archiveResponse.arrayBuffer());

@@ -5,7 +5,7 @@ vi.mock('electron', () => ({
 }));
 
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { X509Certificate } from 'node:crypto';
 import type { AgentHubStatus } from '@dude/contracts';
 import { DeviceStoreError } from './agent-host';
@@ -109,7 +109,7 @@ describe('Hub root certificate install: confirmation boundary', () => {
     const { result } = await call('dude:hub:rootCertificate:preview', own);
     expect(deps.execs).toEqual([]);
     expect(await call('dude:hub:rootCertificate:install', own, result.confirmToken)).toEqual({ ok: true, result: { installed: true } });
-    expect(deps.execs).toEqual([{ file: 'certutil', args: ['-user', '-addstore', 'Root', 'C:\\Temp\\dude-root-x\\dude-hub-root.cer'] }]);
+    expect(deps.execs).toEqual([{ file: 'certutil', args: ['-user', '-addstore', 'Root', join('C:\\Temp\\dude-root-x', 'dude-hub-root.cer')] }]);
     expect(deps.written).toHaveLength(1);
     expect(deps.written[0]!.equals(Buffer.from(new X509Certificate(ROOT_PEM).raw))).toBe(true);
     expect(deps.removed).toEqual(['C:\\Temp\\dude-root-x']);

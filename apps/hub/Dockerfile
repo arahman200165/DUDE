@@ -6,7 +6,7 @@
 # only publish the port beyond loopback deliberately (container bind mode listens on all interfaces).
 #
 # Multi-stage: the build stage compiles the Hub and the Angular hub web build; the runtime stage carries only
-# dude-hub.cjs and service/web (the Hub's default web root, /opt/dude-hub/service/web).
+# dude-hub.cjs and service/web, which the entrypoint serves through --web-root (the Hub's default web root lives under the data volume).
 #
 # Every workspace package.json must be copied before `npm ci` or the lockfile
 # no longer matches; `npm run check:dockerfiles` enforces this.
@@ -54,4 +54,4 @@ ENV DUDE_HUB_DATA_DIR=/data
 VOLUME /data
 EXPOSE 47600
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3   CMD ["node", "/opt/dude-hub/healthcheck.cjs"]
-ENTRYPOINT ["node", "/opt/dude-hub/dude-hub.cjs", "run", "--bind", "container"]
+ENTRYPOINT ["node", "/opt/dude-hub/dude-hub.cjs", "run", "--bind", "container", "--web-root", "/opt/dude-hub/service/web"]
