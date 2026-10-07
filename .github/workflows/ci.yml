@@ -313,6 +313,16 @@ jobs:
           echo "DUDE_ANDROID_VERSION_NAME=$(node -p "require('./package.json').version.split('.').slice(0,2).join('.')").$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
       - run: npm run generate:registry && npm run build:packages && npm run mobile:prebuild
       - run: node scripts/fetch-maestro.mjs
+      # Without /dev/kvm access the emulator falls back to software emulation (-accel off) and goes unresponsive.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      # Compile before the emulator boots so the build does not compete with it for CPU.
+      - name: Build the instrumentation and release APKs
+        working-directory: apps/mobile/android
+        run: ./gradlew :dude-hub:assembleDebugAndroidTest :app:assembleRelease -PreactNativeArchitectures=x86_64 --console=plain --max-workers=4
       - name: API29/API36 native and shell acceptance
         uses: reactivecircus/android-emulator-runner@v2
         with:
