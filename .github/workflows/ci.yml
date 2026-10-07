@@ -328,6 +328,10 @@ jobs:
         with:
           api-level: ${{ matrix.api-level }}
           arch: x86_64
+          # The default AVD is a 320x640 screen with a 16 MB app heap: journeys fall below the fold and tests run out of memory.
+          profile: pixel_6
+          ram-size: 4096M
+          heap-size: 576M
           disable-animations: true
           script: |
             cd apps/mobile/android && ./gradlew :dude-hub:connectedDebugAndroidTest :app:assembleRelease -PreactNativeArchitectures=x86_64 --console=plain --max-workers=4 && cd ../../..
