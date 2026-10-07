@@ -13,5 +13,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ['tests/engine-host.setup.ts'],
     maxWorkers: 4,
+    // Windows runners are slow enough for Hub-backed Agent specs to pass the 5 s default.
+    testTimeout: 30000,
   },
 });

@@ -313,6 +313,8 @@ jobs:
           echo "DUDE_ANDROID_VERSION_NAME=$(node -p "require('./package.json').version.split('.').slice(0,2).join('.')").$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
       - run: npm run generate:registry && npm run build:packages && npm run mobile:prebuild
       - run: node scripts/fetch-maestro.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
       # Without /dev/kvm access the emulator falls back to software emulation (-accel off) and goes unresponsive.
       - name: Enable KVM
         run: |
