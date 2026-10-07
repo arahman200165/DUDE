@@ -27,6 +27,7 @@ name: Connection review and shared appearance
     element:
       text: "High"
     direction: DOWN
+    centerElement: true
 - tapOn: "High"
 - assertVisible: "✓ High"
 - takeScreenshot: appearance-high-contrast
@@ -34,6 +35,7 @@ name: Connection review and shared appearance
     element:
       text: "Reduce"
     direction: DOWN
+    centerElement: true
 - tapOn: "Reduce"
 - assertVisible: "✓ Reduce"
 - takeScreenshot: appearance-reduced-motion
