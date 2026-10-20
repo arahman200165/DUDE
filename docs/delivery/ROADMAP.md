@@ -14,6 +14,7 @@ Related: [DUDE — Product Requirements](../DUDE_PRD.md) · [Quality and Release
 - [Completed Phases](#completed-phases)
 - [Post-Phase-31 Priority — Self-Hosted Distributed Foundation (Planned)](#near-term-roadmap)
 - [Core Expansion Roadmap](#core-expansion-roadmap)
+- [Utility Catalog Backlog (Unscheduled)](#utility-catalog-backlog)
 - [Long-Horizon Roadmap](#long-horizon-roadmap)
 - [Roadmap Rule Beyond Phase 21](#roadmap-rule-beyond-phase-21)
 - [Roadmap Sequencing Rationale](#roadmap-sequencing-rationale)
@@ -331,7 +332,7 @@ Build a serious **local-first API development surface**: a lightweight Postman/w
 1. **REST Client** — request builder, collections, environment variables, request variables, secret variables, request history, authentication helpers, pre-request scripts, post-request tests, and request timing
 2. **Local Mock HTTP Server** — static/dynamic responses, configurable delay, error simulation (`500`, timeout, rate limit, malformed response), route variables, and request logging
 3. **Local Webhook Listener** — request inspector/history, replay, modify-and-replay, test-webhook generation, and signature verification
-4. **WebSocket Client** — message history, JSON formatting, binary-message inspection, auto-reconnect, and ping/pong inspection
+4. **WebSocket Client** — message history, JSON formatting, binary-message inspection, auto-reconnect, and ping/pong inspection (shares its client core with the lightweight WebSocket Tester in the [Utility Catalog Backlog](#utility-catalog-networking))
 5. **Local Static HTTP Server** — serve a selected folder over HTTP with one click
 6. **Local HTTPS Static Server**
 7. **CORS Proxy**
@@ -448,7 +449,7 @@ Stay lightweight: a developer diagnostics/orchestration companion that talks to 
 
 #### Notes
 
-Phase 19 already covers static Dockerfile/Compose linting, formatting, validation, `docker run`↔Compose conversion, Kubernetes manifest validation/formatting/diffing, and kubeconfig inspection. Phase 34 is specifically the **live daemon/cluster** layer: querying runtime state, reading logs/stats/events, changing selected resource state, and managing port forwards/contexts.
+Phase 19 already covers static Dockerfile/Compose linting, formatting, validation, `docker run`↔Compose conversion, Kubernetes manifest validation/formatting/diffing, and kubeconfig inspection; further static conversions and generators (Compose→Kubernetes/Quadlets, `docker inspect`→`docker run` and similar) are in the [Utility Catalog Backlog](#utility-catalog-devops). Phase 34 is specifically the **live daemon/cluster** layer: querying runtime state, reading logs/stats/events, changing selected resource state, and managing port forwards/contexts.
 
 Mutating daemon/cluster operations must display the target context/namespace/resource prominently and require explicit confirmation for destructive or state-changing actions.
 
@@ -815,6 +816,345 @@ Goal: extend the read-leaning database toolkit into deeper development/debugging
 
 Goal: deepen diagnostics without trying to become the runtime itself.
 
+<a id="utility-catalog-backlog"></a>
+
+## Utility Catalog Backlog (Unscheduled)
+
+A comparison with the IT-Tools catalog found these focused utilities missing from DUDE. This section is an inventory, not a phase. Items have no phase or milestone number until implementation planning assigns one, and none begins before the [Phase 32 entry gate](#strict-phase-progression). Each item follows `ADDING_A_TOOL.md`, takes one of the eight closed registry categories through the [Domain and Category Map](#domain-and-category-map) and is judged by the [Roadmap Rule Beyond Phase 21](#roadmap-rule-beyond-phase-21), not by count. If an item overlaps a shipped tool, extend that tool with a mode, preset or target where that serves users better than a new route.
+
+Standing rules for the whole backlog:
+
+- **Network-dependent items** (third-party lookups, downloads, translation, dictionaries, live URL checks) follow [Network-dependent tools](../product/PRODUCT_SPEC.md#network-dependent-tools). Requests are explicit, user-initiated and disclosed, with desktop-native transport where browser CORS forbids the request. DUDE never adds a hosted proxy or service for them.
+- **Model-dependent items** (OCR, Math OCR, background removal, any ML-based vectorization) ship only with an on-device runtime (see [Phase 69](#phase-69)) and never upload content silently.
+- **Command generators and builders produce text only.** Executing a generated command is out of scope; any later execution would have to meet the [Destructive-Action Contract](../architecture/SECURITY_ARCHITECTURE.md#destructive-action-contract).
+- **Secret inputs** (passphrases, private keys, vault passwords, PDF passwords) follow [Sensitive Inputs](../architecture/SECURITY_ARCHITECTURE.md#sensitive-inputs) and are never persisted automatically.
+- **Libraries** are allowed only where the [Dependency Philosophy](../architecture/SYSTEM_ARCHITECTURE.md#dependency-philosophy) justifies them, for example XLSX, PDF, phone-number metadata, PGP, Argon2 and non-Gregorian calendars.
+
+<a id="utility-catalog-security"></a>
+
+### Cryptography, Security and Validation
+
+1. AGE Cryptography
+2. Argon2 Hasher
+3. Bcrypt
+4. BIP39 Passphrase Generator
+5. PGP Encryption / Decryption
+6. PGP File Encryption
+7. PGP Key Generator
+8. Paseto / PASERK Local Encryption
+9. Paseto / PASERK Public-Key Tokens
+10. RSA Text Encryption / Decryption
+11. RSA / DSA / ECDSA Message Signer and Verifier
+12. Shamir's Secret Sharing
+13. Self-Signed X.509 Certificate Generator
+14. Ansible Vault Encrypt / Decrypt
+15. Jasypt String Encryption
+16. WPA PSK Generator
+17. Htpasswd Generator
+18. Luhn Validator / Check-Digit Generator
+19. Bech32 / Bech32m Encoder and Decoder
+20. Niceware Bytes-to-Passphrase Converter
+21. OTP Code Generator and Validator (TOTP / HOTP)
+22. SAML Parser and Signature Validator
+23. Credit Card Checker
+24. IBAN Validator / Parser
+25. VAT Number Validator
+26. GTIN Validator
+
+**Notes:** DUDE already ships password generation (including diceware passphrases), general digests, HMAC, AES, ChaCha20-Poly1305, JWT signing and verification, RSA/EC/Ed25519 key generation, CSR generation and certificate inspection. The items above are the functions those tools do not provide. The Self-Signed X.509 Certificate Generator only generates the certificate in the browser. Trust-store installation and renewal stay in [Phase 52](#phase-52) item 13. The Credit Card Checker and the Luhn Validator share one check-digit core and must not fork it. The QR Code Generator's TOTP provisioning preset neither generates nor validates codes, so item 21 remains a gap.
+
+<a id="utility-catalog-networking"></a>
+
+### Networking, DNS and IP Administration
+
+1. DNS Propagation Tester
+2. DNSBL / Blacklist Checker
+3. DMARC Report Analyzer
+4. DKIM DNS Record Generator
+5. DMARC DNS Record Generator
+6. BIMI DNS Record Generator
+7. SPF DNS Record Generator
+8. IP Geolocation Lookup
+9. IPv6 Subnet Calculator
+10. IPv4 / IPv6 Range-to-CIDR Calculator
+11. IPv4 / IPv6 CIDR-to-Range Calculator
+12. IP Range / CIDR Containment Checker
+13. IP Subnets Exclusion Calculator
+14. IPv4 Subnets Lister
+15. Visual Subnet Calculator
+16. MAC Address Generator
+17. MAC Address EUI-48 / EUI-64 Converter
+18. Random Port Generator
+19. Port Number Lookup
+20. ARPA Decoder
+21. PTR DNS Record Generator
+22. WireGuard Configuration Generator
+23. DHCP Option 43 Generator
+24. WebSocket Tester
+25. TCP / UDP Payload Tester via WebSocket Bridge
+26. Nmap Command Builder
+27. TCPDump Command Generator
+
+**Notes:** This group leaves out the capabilities DUDE already ships: DNS lookup, reverse DNS, WHOIS, IPv4 CIDR calculation and splitting, port scanning, TCP/UDP port testing, ping and traceroute (some of them desktop-only). The shipped `dns-propagation` tool (Phase 28) already covers most of the DNS Propagation Tester. Item 1 is kept so the list stays complete. Before building it, scope only what that tool lacks, or extend the tool instead. The SPF, DKIM, DMARC and BIMI record generators author records, while the shipped Email Auth Inspector only inspects them. The MAC generator and EUI-48/EUI-64 converter complement the MAC Address Inspector. The IPv6 and range/CIDR items extend the IPv4-only CIDR and Subnet calculators and IPv6 Explorer. The WebSocket Tester is a lightweight browser-safe tester. [Phase 32](#phase-32) item 4's WebSocket Client owns history, reconnect and binary inspection, and the two must share one client core. The TCP/UDP Payload Tester relies on a bridge the user runs. DUDE's native raw TCP/UDP clients remain Phase 32 items 15–16.
+
+<a id="utility-catalog-devops"></a>
+
+### Docker, Kubernetes, Linux and DevOps
+
+1. Docker Compose Format Converter
+2. Docker Compose to Kubernetes
+3. Docker Run to Kubernetes
+4. Docker Compose to Quadlets
+5. Docker Run to Quadlets
+6. Docker Compose to .env
+7. Docker Inspect to Docker Run
+8. Docker Pangolin Labels / Blueprints Converter
+9. Docker Image Downloader
+10. Dockerfile Label Generator
+11. Traefik Docker Compose Maker
+12. Kubernetes RBAC Generator
+13. Fstab Generator
+14. .htaccess Generator
+15. iptables Command Generator
+16. firewalld Command Generator
+17. UFW Command Generator
+18. RSync Command Generator
+19. Sed Command Generator
+20. Shutdown Command Generator
+21. Restic Command Generator
+22. Shell Commands Formatter
+23. Shell Commands Linearizer
+24. Explain Shell Command
+25. CLI Command Editor
+26. K6 Load Testing Script Generator
+27. Gitattributes Generator
+28. Software License Compatibility Checker
+29. RAID Calculator
+30. RAID Reliability / MTTDL Calculator
+31. ZPOOL RAID Calculator
+32. SMART Raw Values Converter
+33. SLA Calculator
+
+**Notes:** Phase 19 shipped Dockerfile linting, Compose validation, `docker run`↔Compose conversion and Kubernetes manifest validation and diffing. DUDE's Kubernetes tools validate, inspect and compare manifests, while these items are static conversion and policy-generation utilities. They are not the live daemon/cluster layer ([Phases 34](#phase-34), [49](#phase-49) and [50](#phase-50)). Docker Inspect to Docker Run converts pasted `docker inspect` JSON without querying a daemon. Docker Image Downloader pulls registry layers and is a disclosed network action. Browsing registry metadata remains Phase 49 item 4. The Kubernetes RBAC Generator authors Role and Binding YAML; the live RBAC explorer is Phase 50 item 6. Explain Shell Command is deterministic, and AI explanation belongs to [Phase 36](#phase-36). The Software License Compatibility Checker complements [Phase 44](#phase-44) item 10's license inventory.
+
+<a id="utility-catalog-documents-media"></a>
+
+### PDF, Documents, Images, Video and Hardware
+
+1. PDF Encrypt
+2. PDF Decrypt / Unlock
+3. PDF Linearizer
+4. PDF Concatenator / Merger
+5. PDF Page Extractor
+6. PDF Text Extractor
+7. PDF Compressor
+8. PDF Digital Signature Checker
+9. HTML / URL to PDF
+10. OCRize Image and PDF
+11. Math OCR (formula image to LaTeX)
+12. EPUB to Markdown
+13. Image to SVG
+14. Remove Image Background
+15. Image to ASCII Art
+16. Image to CSS
+17. Image Color Inverter
+18. Image Watermarker
+19. SVG Placeholder Generator
+20. Favicon Generator
+21. ICO / PNG Converter
+22. Mermaid Exporter
+23. GIF to MP4
+24. Camera Recorder
+25. Microphone Tester
+26. Serial Port Console
+27. Multi-Link Downloader
+28. Dead Pixel Tester
+29. Keyboard Keycode Information
+30. Keyboard Layout Converter
+31. Font Comparison Tool
+32. RSVP Speed Reader
+
+**Notes:** This group leaves out SVG viewing, image cropping, resizing and compression, metadata inspection and basic format conversion, which DUDE already ships. PDF operations run locally on the user's file. In IT-Tools, some PDF and AI-image operations need downloaded models or a configured backend, and here they fall under the model-dependent rule above. HTML / URL to PDF fetches the URL as a disclosed network action and may need the desktop renderer. Camera Recorder, Microphone Tester and Serial Port Console use browser device APIs (MediaDevices, Web Serial) behind explicit permission prompts. They show an unavailable state where the host lacks the API. The Serial Port Console sends only bytes the user enters. The Multi-Link Downloader saves only to a location the user chooses. Tools that preview the user's images or documents use the shared preview-background primitive.
+
+<a id="utility-catalog-data"></a>
+
+### Data, Databases, JSON, XML and Code Conversion
+
+1. JSON to PHP Array
+2. JSON to PHP Classes / Code
+3. JSON to Protobuf Schema
+4. JSON to MongoDB / Mongoose Schema
+5. JSON to ClickHouse Schema
+6. JSON to BigQuery Schema
+7. JSON Schema Generator
+8. JSON Size Analyzer
+9. JSON to MessagePack
+10. JSON to TOON
+11. TOON to JSON
+12. jq Tester
+13. YAML Flatten / Unflatten
+14. XSLT Tester
+15. CSS Selector to XPath Converter
+16. Database Connection String Builder
+17. Database Creation Builder
+18. Visual Database Table Generator
+19. SQL Parameters Generator (parameter substitution, the reverse of DUDE's parameterizer)
+20. MongoDB ObjectId Converter
+21. HTML Table to Data
+22. Markdown Table to Data
+23. Excel / XLSX to Structured Data
+24. Structured Data to XLSX
+25. HTML to XHTML
+26. ObjGen to HTML
+27. ObjGen to JSON
+28. JavaScript Obfuscator
+29. JavaScript Unpacker / Deobfuscator
+30. CSS / JavaScript Prettify and Minify
+31. Nginx Formatter
+
+**Notes:** This group leaves out functions DUDE already ships: JSON-to-model generation (TypeScript, C#, Java, Kotlin, Swift, Python, Rust, Go, SQL), JSON/YAML/XML/TOML/CSV conversion, MessagePack decoding, JSON Schema validation and CREATE TABLE generation from sample data. Items 1–6 should be added as Model Generator targets that reuse its type inference, not as forks of it. Item 9 is the encode direction of the existing MessagePack decoder. Item 19 is the reverse of the SQL Parameterizer. CSS formatting already ships in the CSS Formatter, so item 30's gap is JavaScript. The connection-string and database-creation builders generate text only; live connection profiles are [Phase 33](#phase-33) item 8. The JavaScript Unpacker must never evaluate its input outside the Phase 6 sandboxed executable-tool model.
+
+<a id="utility-catalog-web"></a>
+
+### Email, Websites, URLs and Web-Specific Tools
+
+1. Bounce Email Parser
+2. EML Email Parser
+3. Outlook MSG Parser
+4. Email Normalizer
+5. MIME Encoded-Word Converter
+6. X-VR-SpamCause Decoder
+7. URL Redirect Checker
+8. Short URL Expander
+9. URL Cleaner (tracking-parameter removal)
+10. URL Defang / Refang
+11. URL Text Fragment Generator
+12. UTM URL Generator
+13. Social Link Sharer
+14. SharePoint URL Decoder
+15. Outlook SafeLinks Decoder
+16. EPC / SEPA Payment QR Code Generator
+17. Phone Number Parser and Formatter
+18. iCal / ICS Generator
+19. iCal / ICS Parser
+20. iCal / ICS Merger
+
+**Notes:** These go further than the shipped URL Inspector, URL Normalizer, query-string builder, QR Code Generator and HTTP diagnostic tools. The URL Redirect Checker and Short URL Expander make live requests, which are disclosed network actions that never run automatically on paste. The email parsers render untrusted content sanitized, with no scripts and no remote image loading. The iCal/ICS tools complement the shipped Recurrence Rule expander and should share its RRULE handling.
+
+<a id="utility-catalog-text"></a>
+
+### Text, Language and AI Utilities
+
+1. AI Prompt Splitter
+2. GPT Token Estimator
+3. GPT Token Encoder / Decoder
+4. Pack Files for AI
+5. Text Translator
+6. Text to NATO Phonetic Alphabet
+7. Morse Code Converter
+8. Rune Converter
+9. Roman Numeral Converter
+10. RMB Uppercase Converter
+11. Unicode Formatter / Stylized Fonts
+12. Unicode to GSM-7
+13. Unicode Characters to Java Entities Converter
+14. Zalgo Generator / Cleaner
+15. Markdown Lorem Ipsum Generator
+16. HTML Text Extractor
+17. Markdown to Plain Text
+18. Markdown Table Generator
+19. Online Dictionary / Wiktionary
+20. Emoji Picker
+21. Active Directory / LDAP Properties Searcher
+22. ISO 639 Language Code Searcher
+23. ISBN Validator / Parser
+24. ISO Country Code Searcher
+
+**Notes:** DUDE already offers Unicode inspection, normalization and tables, ROT ciphers and ordinary Lorem Ipsum generation. Those do not cover GSM-7 conversion, decorative Unicode fonts or formatted Markdown placeholder text. The token estimator and token encoder/decoder run a deterministic tokenizer locally. The Prompt Splitter and Pack Files for AI prepare content locally and send nothing anywhere. None of the four is an AI-assisted feature in the [Phase 36](#phase-36) sense. The Text Translator and Online Dictionary are disclosed network actions, or run locally through Phase 69. Item 13 may extend the Escape / Unescape Toolkit instead of becoming a new route. The AD/LDAP Properties Searcher searches a bundled attribute reference; querying a live directory is out of scope.
+
+<a id="utility-catalog-math-units"></a>
+
+### Mathematics, Science, Finance and Unit Conversion
+
+1. Amortization Calculator
+2. Tip Calculator
+3. Fitness Computer (BMI, BMR, TDEE, body fat, ideal weight, heart rate)
+4. Running Pace Calculator
+5. Geo Distance Calculator
+6. Geographic Coordinates Converter
+7. Energy Consumption and Expense Calculator
+8. Resistor Calculator
+9. dBm / mW Converter
+10. Trigonometric / Equation Curve Visualizer
+11. Math Format Converter (AsciiMath / LaTeX / MathML)
+12. Acceleration Converter
+13. Angle Units Converter
+14. Area Units Converter
+15. Data Storage Units Converter
+16. Data Transfer Rate Converter
+17. Energy Units Converter
+18. Food Energy Converter
+19. Force Units Converter
+20. Frequency Converter
+21. Illuminance Converter
+22. Length Units Converter
+23. Mass Units Converter
+24. Power Units Converter
+25. Pressure Units Converter
+26. Speed Units Converter
+27. Temperature Units Converter
+28. Volume Units Converter
+29. Volume Flow Rate Converter
+30. SI Prefixes Converter
+31. CSS Pixel / REM Unit Converter
+
+**Notes:** DUDE includes general mathematics, percentages, statistics, numeric representations and time utilities. It does not offer these specialist calculators and unit converters as tools of their own. The Expression Evaluator already evaluates unit expressions, so the converters in items 12–30 should share one unit-conversion core rather than each embedding its own tables. The Kubernetes Quantity Converter remains the Kubernetes-specific variant. The Data Storage Units Converter states decimal (kB) and binary (KiB) units explicitly. Calculators show their formulas and assumptions, and Fitness Computer results are informational only. The Curve Visualizer re-reads token colors when the appearance revision changes.
+
+<a id="utility-catalog-time-random"></a>
+
+### Time, Scheduling, Randomization and Other Utilities
+
+1. Calendar Converter (Gregorian, Julian, Hebrew, Islamic, Persian, Mayan and others)
+2. Cron Expression Builder
+3. Pomodoro Timer
+4. Time Alarm
+5. ETA Calculator
+6. Which Day? (weekday of a date over multiple years)
+7. Random Line Picker
+8. Random Number Generator
+9. Unique PIN Generator
+10. Dice Roller
+11. Card Picker
+12. Coin Flipper
+13. Fortune Wheel
+14. Benchmark Builder
+15. Torrent File to Magnet Link Converter
+16. Ethereum Transaction Decoder
+
+**Notes:** This group leaves out countdowns, stopwatches, date arithmetic and cron parsing, which DUDE already offers. The Cron Expression Builder writes expressions and shares the shipped Cron parser's validation. The Calendar Converter uses `Intl` calendars where they cover a system, and a vetted library only for systems they lack, such as Julian and Mayan. Items 7–13 use a CSPRNG with unbiased range reduction. The Benchmark Builder runs user code only inside the Phase 6 sandbox, while comparing imported benchmark results stays in [Phase 45](#phase-45) item 8. The Torrent and Ethereum decoders are offline parsers that query no network or blockchain node.
+
+<a id="utility-catalog-reference"></a>
+
+### Reference and Cheatsheet Tools
+
+These are informational tools rather than processors, but each is a distinct entry in the IT-Tools inventory.
+
+1. Git Cheatsheet
+2. Sed Cheatsheet
+3. Vim Cheatsheet
+4. Nano Cheatsheet
+5. PowerShell Cheatsheet
+6. Screen Command Cheatsheet
+7. Tmux Command Cheatsheet
+8. Zellij Command Cheatsheet
+9. ZPool / OpenZFS Cheatsheet
+10. RJ45 Cat6 Wiring Cheatsheet
+11. Docker and Docker Swarm Cheatsheets
+12. Kubernetes Cheatsheet
+13. Nginx Cheatsheet
+
+**Notes:** DUDE builds and explains Git commands, but a searchable reference sheet is a different experience. The shipped Dev Snippets Reference already contains some Git and Docker commands. Before building, decide whether each cheatsheet gets its own route or a section in one shared reference surface, so search and the command palette stay useful. Bundled reference content must be license-compatible and available offline.
+
 ## Long-Horizon Roadmap
 
 <a id="phase-50"></a>
@@ -826,7 +1166,7 @@ Goal: deepen diagnostics without trying to become the runtime itself.
 3. Pod restart/error analysis
 4. Events timeline
 5. ConfigMap/Secret metadata inspection
-6. RBAC explorer
+6. RBAC explorer (authoring Role/Binding YAML is the Kubernetes RBAC Generator in the [Utility Catalog Backlog](#utility-catalog-devops))
 7. Service/Ingress relationship viewer
 8. Resource diff
 9. Namespace health dashboard
@@ -873,7 +1213,7 @@ Goal: give native workflows access to credentials without normalizing unsafe pla
 10. SSH certificate inspection
 11. mTLS profile builder
 12. Certificate renewal workflow hooks
-13. Self-signed local-development certificate workflow
+13. Self-signed local-development certificate workflow (the browser-safe certificate generator itself is in the [Utility Catalog Backlog](#utility-catalog-security))
 
 Goal: consolidate DUDE's scattered certificate utilities into a coherent PKI troubleshooting surface.
 
@@ -1831,6 +2171,8 @@ The progression is deliberate. Phases 22–26 slow raw feature accumulation to d
 Phases 27–31 delivered the native/workbench expansion. The inserted Phases 31A–31J establish the distributed architecture and collaboration depth strictly in order, completing every phase and its exit gate before Phase 32 begins. Phases 32–38 then resume the core expansion. Their authoritative text is intentionally self-contained: each phase states the static/browser-safe capabilities it complements, the live/native boundary it crosses, the relevant safety rules, and the full feature scope. No phase in this range depends on an obsolete numbering scheme or an archived roadmap definition to explain what it means.
 
 The longer progression remains: 39–55 deepen the interconnected workbench; 56–68 turn DUDE into an extensible automation platform; 69–80 move into AI/project/IDE-adjacent territory under the workbench-identity gate; 81–96 retain advanced identity/encryption/continuity, team, enterprise, mobile and commercial depth, with only vendor-hosted variants blocked behind the explicit product boundary; and 97–100 describe DUDE as a platform/ecosystem.
+
+The [Utility Catalog Backlog](#utility-catalog-backlog) is unsequenced: once the Phase 32 entry gate passes, its items may be interleaved with any phase and are scheduled individually on their merits.
 
 Phase 100 provides the intentionally extreme long-horizon endpoint without requiring distant platform scope in the immediate Phase 31A–31J foundation and collaboration work.
 
