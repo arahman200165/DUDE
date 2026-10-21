@@ -31,7 +31,8 @@ import { binding as binding27 } from '../tools/url-inspector/url-inspector.mobil
 import { binding as binding28 } from '../tools/user-agent/user-agent.mobile-bindings';
 import { binding as binding29 } from '../tools/uuid/uuid.mobile-bindings';
 import { binding as binding30 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
-import { binding as binding31 } from '../tools/yaml-json/yaml-json.mobile-bindings';
+import { binding as binding31 } from '../tools/xml-formatter/xml-formatter.mobile-bindings';
+import { binding as binding32 } from '../tools/yaml-json/yaml-json.mobile-bindings';
 export const MOBILE_BINDINGS: MobileBindingMap = {
   'base64': binding0,
   'case-converter': binding1,
@@ -64,5 +65,6 @@ export const MOBILE_BINDINGS: MobileBindingMap = {
   'user-agent': binding28,
   'uuid': binding29,
   'whitespace-cleaner': binding30,
-  'yaml-json': binding31,
+  'xml-formatter': binding31,
+  'yaml-json': binding32,
 };

@@ -1,0 +1,44 @@
+appId: io.github.arahman200165.dude.preview
+name: XML Formatter on Android
+tags: [tools, text]
+---
+- launchApp
+- openLink: "dude://tools/xml-formatter"
+- assertVisible:
+    id: "tool-input"
+- tapOn:
+    id: "mode-minify"
+- tapOn:
+    id: "tool-input"
+- inputText: "<root> <a>1</a> </root>"
+- hideKeyboard
+# Computed with processXml('<root> <a>1</a> </root>', 'minify', 2) from @dude/tool-engine/tools/xml-formatter/xml-format
+# (same shape as xml-format.spec.ts:36 'minifies formatted XML'); the engine runs on the worklet worker runtime.
+- assertVisible:
+    id: "tool-output"
+    text: "<root><a>1</a></root>"
+- tapOn:
+    id: "mode-format"
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "<root><a>1</a></root>"
+- hideKeyboard
+# Computed with processXml('<root><a>1</a></root>', 'format', 2): "<root>\n  <a>1</a>\n</root>" (xml-format.spec.ts:19 shape)
+- assertVisible:
+    id: "tool-output"
+    text: "(?s)<root>.+<a>1</a>.+</root>"
+- tapOn:
+    id: "mode-validate"
+- assertVisible:
+    id: "xml-valid"
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "<root><a></root>"
+- hideKeyboard
+# Invalid input (xml-format.spec.ts:60 'rejects malformed XML in validate mode too')
+- assertVisible:
+    id: "tool-error"
