@@ -4,6 +4,7 @@ export const MOBILE_TOOL_IDS: readonly string[] = [
   'base64',
   'case-converter',
   'hex-text-converter',
+  'hmac-generator',
   'number-base',
   'password-generator',
   'password-strength-analyzer',

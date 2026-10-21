@@ -1,0 +1,46 @@
+appId: io.github.arahman200165.dude.preview
+name: HMAC Generator on Android
+tags: [tools, security]
+---
+- launchApp:
+    clearState: true
+- openLink: "dude://tools/hmac-generator"
+- assertVisible:
+    id: "tool-input"
+# Vector: RFC 4231 test case 2 (key "Jefe", message "what do ya want for nothing?", packages/tool-engine/src/tools/hmac-generator/hmac-generator-logic.spec.ts:28)
+# without the trailing "?" so Maestro inputText stays plain ASCII. Expected values computed with Node:
+#   node -e "const c=require('crypto');const m='what do ya want for nothing';console.log(c.createHmac('sha256','Jefe').update(m).digest('hex'),c.createHmac('sha1','Jefe').update(m).digest('hex'),c.createHmac('sha256','Jefe').update(m).digest('base64'))"
+- tapOn:
+    id: "tool-input"
+- inputText: "what do ya want for nothing"
+- hideKeyboard
+- tapOn:
+    id: "tool-input-key"
+- inputText: "Jefe"
+- hideKeyboard
+- tapOn:
+    id: "mode-SHA-256"
+- tapOn:
+    id: "mode-key-utf8"
+- tapOn:
+    id: "mode-out-hex"
+- assertVisible:
+    id: "tool-output"
+    text: "a0f14ba018012b764b32dc157ce0a20e8322dae09da80cae035670ce0879e5d4"
+- tapOn:
+    id: "mode-SHA-1"
+- assertVisible:
+    id: "tool-output"
+    text: "689abfa6d45b31ad4de2ebf43f92eec231ae9600"
+- tapOn:
+    id: "mode-SHA-256"
+- tapOn:
+    id: "mode-out-base64"
+- assertVisible:
+    id: "tool-output"
+    text: "oPFLoBgBK3ZLMtwVfOCiDoMi2uCdqAyuA1Zwzgh55dQ="
+# "Jefe" is not valid hex, so choosing the Hex key encoding reports the engine error.
+- tapOn:
+    id: "mode-key-hex"
+- assertVisible:
+    id: "tool-error"
