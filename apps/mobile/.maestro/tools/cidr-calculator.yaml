@@ -1,0 +1,61 @@
+appId: io.github.arahman200165.dude.preview
+name: CIDR Calculator on Android
+tags: [tools, developer]
+---
+- launchApp:
+    clearState: true
+- openLink: "dude://tools/cidr-calculator"
+- assertVisible:
+    id: "tool-input"
+# Vector from packages/tool-engine/src/tools/cidr-calculator/cidr-calculator-logic.spec.ts:19 (10.0.0.5/30).
+# The wildcard mask is mobile-side: 255 minus each netmask octet = 0.0.0.3 (node -e "console.log('255.255.255.252'.split('.').map(o=>255-o).join('.'))").
+- tapOn:
+    id: "tool-input"
+- inputText: "10.0.0.5/30"
+- hideKeyboard
+- assertVisible:
+    id: "kv-network-value"
+    text: "10.0.0.4"
+- assertVisible:
+    id: "kv-broadcast-value"
+    text: "10.0.0.7"
+- assertVisible:
+    id: "kv-first-value"
+    text: "10.0.0.5"
+- assertVisible:
+    id: "kv-last-value"
+    text: "10.0.0.6"
+- assertVisible:
+    id: "kv-hosts-value"
+    text: "2"
+- assertVisible:
+    id: "kv-netmask-value"
+    text: "255.255.255.252"
+- assertVisible:
+    id: "kv-wildcard-value"
+    text: "0.0.0.3"
+# Vector from cidr-calculator-logic.spec.ts:4 (RFC 4632 section 3.1, 172.16.0.0/16).
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "172.16.0.0/16"
+- hideKeyboard
+- assertVisible:
+    id: "kv-broadcast-value"
+    text: "172.16.255.255"
+- assertVisible:
+    id: "kv-hosts-value"
+    text: "65534"
+- assertVisible:
+    id: "kv-wildcard-value"
+    text: "0.0.255.255"
+# Out-of-range prefix (cidr-calculator-logic.spec.ts:51) shows the error banner.
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "192.168.1.1/33"
+- hideKeyboard
+- assertVisible:
+    id: "tool-error"
