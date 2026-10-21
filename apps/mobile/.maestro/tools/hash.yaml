@@ -1,0 +1,23 @@
+appId: io.github.arahman200165.dude.preview
+name: Hash Generator on Android
+tags: [tools, security]
+---
+- launchApp:
+    clearState: true
+- openLink: "dude://tools/hash"
+- assertVisible:
+    id: "tool-input"
+- tapOn:
+    id: "tool-input"
+- inputText: "abc"
+- hideKeyboard
+# Expected values copied from packages/crypto/src/hash-compute.spec.ts:5 (MD5), :9 (SHA-1) and :13 (SHA-256) for "abc"
+- assertVisible:
+    id: "kv-SHA-256-value"
+    text: "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+- assertVisible:
+    id: "kv-SHA-1-value"
+    text: "a9993e364706816aba3e25717850c26c9cd0d89d"
+- assertVisible:
+    id: "kv-MD5-value"
+    text: "900150983cd24fb0d6963f7d28e17f72"
