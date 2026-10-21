@@ -1,0 +1,40 @@
+appId: io.github.arahman200165.dude.preview
+name: URL Encoder / Decoder on Android
+tags: [tools, encoding]
+---
+- launchApp:
+    clearState: true
+- openLink: "dude://tools/url-encode"
+- assertVisible:
+    id: "tool-input"
+- tapOn:
+    id: "mode-encode"
+- tapOn:
+    id: "tool-input"
+- inputText: "a b&c/d"
+- hideKeyboard
+# Expected value copied from packages/tool-engine/src/tools/url-encode/url-encode-codec.spec.ts:16 (component variant is the default)
+- assertVisible:
+    id: "tool-output"
+    text: "a%20b%26c%2Fd"
+- tapOn:
+    id: "mode-decode"
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "a%20b%26c"
+- hideKeyboard
+# Expected value copied from packages/tool-engine/src/tools/url-encode/url-encode-codec.spec.ts:36
+- assertVisible:
+    id: "tool-output"
+    text: "a b&c"
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "%E0%A4%A"
+- hideKeyboard
+# Malformed percent-escape: decodeURIComponent throws; computed with decodeUrl from @dude/tool-engine/tools/url-encode/url-encode-codec
+- assertVisible:
+    id: "tool-error"
