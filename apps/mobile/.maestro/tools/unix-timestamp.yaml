@@ -1,0 +1,73 @@
+appId: io.github.arahman200165.dude.preview
+name: Unix Timestamp Converter on Android
+tags: [tools, date-time]
+---
+- launchApp:
+    clearState: true
+- openLink: "dude://tools/unix-timestamp"
+- assertVisible:
+    id: "tool-input"
+# The live clock is visible and can be paused.
+- assertVisible:
+    id: "now-seconds"
+- tapOn:
+    id: "now-toggle"
+- assertVisible: "Resume"
+# Epoch zero (auto-detected as seconds). Expected value computed with parseTimestamp('0', 'auto') from
+# @dude/tool-engine/tools/unix-timestamp/timestamp-convert: new Date(0).toISOString().
+- tapOn:
+    id: "tool-input"
+- inputText: "0"
+- hideKeyboard
+- assertVisible:
+    id: "kv-utc-value"
+    text: "1970-01-01T00:00:00.000Z"
+- assertVisible:
+    id: "kv-seconds-value"
+    text: "0"
+# 1700000000 seconds. Expected value from packages/tool-engine/src/tools/unix-timestamp/timestamp-convert.spec.ts:35-39
+# (1_700_000_000_000 ms = 2023-11-14T22:13:20.000Z).
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "1700000000"
+- hideKeyboard
+- assertVisible:
+    id: "kv-utc-value"
+    text: "2023-11-14T22:13:20.000Z"
+- assertVisible:
+    id: "kv-milliseconds-value"
+    text: "1700000000000"
+- assertVisible:
+    id: "kv-detected-value"
+    text: "seconds"
+# 13 digits are detected as milliseconds (timestamp-convert.spec.ts:9).
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "1700000000000"
+- hideKeyboard
+- assertVisible:
+    id: "kv-detected-value"
+    text: "milliseconds"
+- assertVisible:
+    id: "kv-utc-value"
+    text: "2023-11-14T22:13:20.000Z"
+# "Use now" fills the input, so a result row appears.
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-use-now"
+- assertVisible:
+    id: "kv-relative-value"
+# Invalid input shows the error banner (timestamp-convert.spec.ts:50).
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "not-a-number"
+- hideKeyboard
+- assertVisible:
+    id: "tool-error"

@@ -15,6 +15,7 @@ export const MOBILE_TOOL_IDS: readonly string[] = [
   'slug-generator',
   'text-inspector',
   'unicode-normalization',
+  'unix-timestamp',
   'url-encode',
   'url-inspector',
   'user-agent',

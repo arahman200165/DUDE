@@ -14,11 +14,12 @@ import { binding as binding10 } from '../tools/password-strength-analyzer/passwo
 import { binding as binding11 } from '../tools/slug-generator/slug-generator.mobile-bindings';
 import { binding as binding12 } from '../tools/text-inspector/text-inspector.mobile-bindings';
 import { binding as binding13 } from '../tools/unicode-normalization/unicode-normalization.mobile-bindings';
-import { binding as binding14 } from '../tools/url-encode/url-encode.mobile-bindings';
-import { binding as binding15 } from '../tools/url-inspector/url-inspector.mobile-bindings';
-import { binding as binding16 } from '../tools/user-agent/user-agent.mobile-bindings';
-import { binding as binding17 } from '../tools/uuid/uuid.mobile-bindings';
-import { binding as binding18 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
+import { binding as binding14 } from '../tools/unix-timestamp/unix-timestamp.mobile-bindings';
+import { binding as binding15 } from '../tools/url-encode/url-encode.mobile-bindings';
+import { binding as binding16 } from '../tools/url-inspector/url-inspector.mobile-bindings';
+import { binding as binding17 } from '../tools/user-agent/user-agent.mobile-bindings';
+import { binding as binding18 } from '../tools/uuid/uuid.mobile-bindings';
+import { binding as binding19 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
 export const MOBILE_BINDINGS: MobileBindingMap = {
   'base64': binding0,
   'case-converter': binding1,
@@ -34,9 +35,10 @@ export const MOBILE_BINDINGS: MobileBindingMap = {
   'slug-generator': binding11,
   'text-inspector': binding12,
   'unicode-normalization': binding13,
-  'url-encode': binding14,
-  'url-inspector': binding15,
-  'user-agent': binding16,
-  'uuid': binding17,
-  'whitespace-cleaner': binding18,
+  'unix-timestamp': binding14,
+  'url-encode': binding15,
+  'url-inspector': binding16,
+  'user-agent': binding17,
+  'uuid': binding18,
+  'whitespace-cleaner': binding19,
 };
