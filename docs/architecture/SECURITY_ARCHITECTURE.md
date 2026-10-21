@@ -2,7 +2,7 @@
 
 This specification owns trust boundaries and authorization. Device enrollment enables identity and synchronization; it does not authorize privileged remote execution. Existing native mutation protections remain mandatory throughout the distributed transition.
 
-Workspace implementation and host ownership are documented in [Portable Core](PORTABLE_CORE.md#package-and-host-boundaries). The Hub, owner identity, device registry and desktop sync are delivered. Phase 31H adds Android-specific security adapters with [acceptance still pending](../delivery/PHASE31H_ACCEPTANCE.md).
+Workspace implementation and host ownership are documented in [Portable Core](PORTABLE_CORE.md#package-and-host-boundaries). The Hub, owner identity, device registry and desktop sync are delivered. Phase 31H adds Android-specific security adapters with [remaining acceptance passes carried into the Phase 31I gate](../delivery/PHASE31H_ACCEPTANCE.md).
 
 ## As built in Phase 31H: Android identity and recovery
 

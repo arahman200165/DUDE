@@ -21,7 +21,7 @@ apps/web/src/app/tools/<id>/<id>.worker.ts             — optional browser adap
 
 ### Android presentation ownership (Phase 31I)
 
-Phase 31H discovers shared metadata and renders tool details; its executable mobile binding map is initially empty. When 31I is authorized, contribute the native screen beside its binding at `apps/mobile/src/tools/<id>/<id>.mobile-bindings.ts`. Reuse the existing stable registry ID:
+Phase 31H discovers shared metadata and renders tool details; its executable mobile binding map is initially empty. In Phase 31I (see [PHASE31I_PLAN.md](docs/delivery/PHASE31I_PLAN.md) for the locked tool list), contribute the native screen beside its binding at `apps/mobile/src/tools/<id>/<id>.mobile-bindings.ts`. Reuse the existing stable registry ID:
 
 ```ts
 import type { MobileToolBinding } from '../../registry/mobile-binding';

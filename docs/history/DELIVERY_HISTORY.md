@@ -3066,7 +3066,7 @@ Phase 31G made a self-hosted Hub recoverable and movable: a passphrase-encrypted
 
 ## Phase 31H — Android Shell and Durable Sync
 
-**Status:** implemented in Milestones 720–728; final acceptance remains open. Decisions [PD-075–PD-083](DECISION_LOG.md#phase-31h-implementation-decisions) and [Phase 31H evidence](../delivery/PHASE31H_ACCEPTANCE.md) distinguish implementation from verified exit-gate results.
+**Status:** implemented in Milestones 720–728; the remaining acceptance passes are carried into the Phase 31I final gate ([PD-084](../delivery/PHASE31I_PLAN.md)). Decisions [PD-075–PD-083](DECISION_LOG.md#phase-31h-implementation-decisions) and [Phase 31H evidence](../delivery/PHASE31H_ACCEPTANCE.md) distinguish implementation from verified exit-gate results.
 
 The Android workspace uses Expo 57.0.26, React Native 0.86.3, React 19.2.3, Hermes, JDK 17 and local prebuild/Gradle, supporting API 29 onward with compile/target API 36. Home, Tools, Search, Favorites and Settings share metadata/search, appearance tokens and stable codecs. The catalog opens details with availability explanations; executable tools remain 31I and the mobile binding map starts empty.
 
@@ -3084,7 +3084,7 @@ Native signing and pinned HTTPS/WebSocket adapters reuse the device protocol wit
 | 727 | Revocation, disconnect/archive, category changes and restore/re-pair lifecycle |
 | 728 | Preview packaging/CI, measurements, acceptance and documentation |
 
-Local debug and disposable-key release APK/AAB builds passed; seven native security tests and two bundled Maestro journeys passed on each of API 29 and API 36. Local automated regressions are recorded in the acceptance evidence. Protected signing configuration, shipping artifact/install evidence, physical LAN/off-LAN/replay/re-pair, manual accessibility and first CI runs remain outstanding. Updated results belong in the acceptance record. Existing Windows, Hub and Pages/PWA release gates remain required. No Play publication, hosted builds, OTA channel, background worker or owner-admin mobile surface is added. Closing 31H permits 31I; the Android-inclusive DUDE 2.0 gate remains 31I.
+Local debug and disposable-key release APK/AAB builds passed; seven native security tests and two bundled Maestro journeys passed on each of API 29 and API 36. Local automated regressions are recorded in the acceptance evidence. Protected signing configuration, shipping artifact/install evidence, physical LAN/off-LAN/replay/re-pair, manual accessibility and first CI runs remain outstanding. Updated results belong in the acceptance record. Existing Windows, Hub and Pages/PWA release gates remain required. No Play publication, hosted builds, OTA channel, background worker or owner-admin mobile surface is added. The remaining 31H passes are carried into the 31I final gate (PD-084); the Android-inclusive DUDE 2.0 gate remains 31I.
 
 ## Historical V1 Definition of Done
 

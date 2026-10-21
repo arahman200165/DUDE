@@ -2,7 +2,7 @@
 
 This specification separates canonical Hub state from local Device Stores, retained inputs and synchronization consent. Delivered local persistence remains supported; the canonical Hub skeleton and Hub enrollment are delivered (Phase 31C), while the synchronization protocol and the remaining distributed stores are planned.
 
-Workspace implementation and host ownership are documented in [Portable Core](PORTABLE_CORE.md#data-scope). Desktop/Hub synchronization is delivered. Android owns a separate durable adapter and driver under Phase 31H; its [acceptance gate remains pending](../delivery/PHASE31H_ACCEPTANCE.md).
+Workspace implementation and host ownership are documented in [Portable Core](PORTABLE_CORE.md#data-scope). Desktop/Hub synchronization is delivered. Android owns a separate durable adapter and driver under Phase 31H; its [remaining acceptance passes are carried into the Phase 31I gate](../delivery/PHASE31H_ACCEPTANCE.md).
 
 ## As built in Phase 31H: Android persistence and synchronization
 
@@ -18,7 +18,7 @@ First upload requires per-category Merge / Use Hub / Keep local review. Merge un
 
 The Android driver runs single-flight cycles on foreground edits, resume, connection recovery, realtime nudges and manual refresh. Realtime and retry scheduling stop in the background. Pulls use 16-record pages and a native 4 MiB response ceiling; pushes use shared limits and retries use bounded exponential backoff. Expired cursors use staged snapshots preserving pending operations. Pagination retains the first observed revision as the catch-up cursor so mid-pagination changes cannot disappear behind a later head. Changed authority or regressed acknowledged history blocks destructive reconciliation.
 
-Revocation invalidates the session and makes cached environment data read-only. Disconnect previews unsent edits, attempts unenrollment, deletes the signing key and retains an archive; an unreachable Hub may retain a registry row requiring owner revocation. Export, cache clearing, pending-attempt discard and standalone conversion have local recovery paths. Destructive operations use context/revision-bound confirmations and preserve recovery copies. Storage errors, missing keys and rejected operations do not silently reset databases or drop pending edits. Native SQLite restart and physical transfer acceptance remain required in [the phase evidence](../delivery/PHASE31H_ACCEPTANCE.md).
+Revocation invalidates the session and makes cached environment data read-only. Disconnect previews unsent edits, attempts unenrollment, deletes the signing key and retains an archive; an unreachable Hub may retain a registry row requiring owner revocation. Export, cache clearing, pending-attempt discard and standalone conversion have local recovery paths. Destructive operations use context/revision-bound confirmations and preserve recovery copies. Storage errors, missing keys and rejected operations do not silently reset databases or drop pending edits. Native SQLite restart and physical transfer acceptance remain required and are carried into the Phase 31I gate ([the phase evidence](../delivery/PHASE31H_ACCEPTANCE.md)).
 
 Read [the master PRD](../DUDE_PRD.md) first. Product direction and invariants live there; this document owns the detailed contracts in its domain.
 
@@ -637,7 +637,7 @@ Remote changes apply live through `applyRemote` on the entity collections and th
 
 **Sync UI.** Hub web has a browser `SyncPort` behind the shell indicator and Settings › Sync: Live, Hub unreachable (changes paused), Session expired and Reload needed states, Sync now, environment-level web-access toggles (never desktop consent) and a per-device table from the summary (kind, cursor and lag, pending, conflicts, quarantined, paused, last push and pull). Desktop conflicts and quarantine hand off to DUDE Desktop; first-sync, pause, quarantine and standalone panels are desktop-only.
 
-**Not delivered.** A browser offline outbox, a server-side conflict inbox, collaboration persistence (31J) and end-to-end encrypted categories (Phase 82). Android shell/sync implementation and its outstanding acceptance are described below; executable Android tools remain 31I.
+**Not delivered.** A browser offline outbox, a server-side conflict inbox, collaboration persistence (31J) and end-to-end encrypted categories (Phase 82). Android shell/sync implementation and its outstanding acceptance (carried into the 31I gate) are described below; executable Android tools are in progress in 31I.
 
 ## As built in Phase 31G (backup, restore and transfer)
 

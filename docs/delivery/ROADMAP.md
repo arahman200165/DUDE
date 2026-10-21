@@ -32,7 +32,7 @@ Related: [DUDE — Product Requirements](../DUDE_PRD.md) · [Quality and Release
 | Horizon | Status |
 |---|---|
 | Phases 0–31 | Complete; Phase 31 closed at Milestone 614 |
-| Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A (Milestone 615) and 31B (Milestones 616–627) and 31C (Milestones 628–648) and 31D (Milestones 649–662) and 31E (Milestones 663–682) and 31F (Milestones 683–699) and 31G (Milestones 700–719) complete, 31H implemented with acceptance pending, 31I–31J planned |
+| Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A (Milestone 615) and 31B (Milestones 616–627) and 31C (Milestones 628–648) and 31D (Milestones 649–662) and 31E (Milestones 663–682) and 31F (Milestones 683–699) and 31G (Milestones 700–719) complete, 31H implemented with its owed passes carried into the 31I final gate, 31I in progress, 31J planned |
 | Phase 32 | Core expansion begins only after every phase from 31A through 31J is complete |
 | Phases 33–100 | Retained long-horizon scope, subject to dependencies and product boundaries |
 
@@ -88,7 +88,7 @@ From Phase 22 onward, the roadmap deliberately stops treating raw tool count as 
 
 **Decision:** complete the distributed foundation and collaboration depth in Phases **31A–31J**, strictly in order, before beginning Phase 32 tool expansion. These inserted IDs preserve all historical Phase 0–31 and future Phase 32–100 references. They are new planned phases, not additional completed Phase 31 milestones. Do not reuse shipped Milestones 593–614 or assign new milestone numbers until implementation planning does so.
 
-The required sequence is **31A → 31B → 31C → 31D → 31E → 31F → 31G → 31H → 31I → 31J → Phase 32**. Complete each phase and its exit gate before starting the next. 31A–31G are complete; 31H implementation is undergoing acceptance. Its exit gate must close before 31I begins. The first distributed release gate remains at 31I; complete 31J's collaboration depth afterward, before starting Phase 32. There is no fixed calendar commitment.
+The required sequence is **31A → 31B → 31C → 31D → 31E → 31F → 31G → 31H → 31I → 31J → Phase 32**. Complete each phase and its exit gate before starting the next. 31A–31G are complete; 31H is implemented and its owed physical, signing and accessibility passes are carried into the 31I final gate ([PD-084](PHASE31I_PLAN.md)), so 31I implementation is in progress. The first distributed release gate remains at 31I; complete 31J's collaboration depth afterward, before starting Phase 32. There is no fixed calendar commitment.
 
 Backup/transfer is deliberately moved ahead of mobile delivery, and security controls begin with the first authenticated Hub endpoint. The planning sequence listed backup late and placed collaboration differently in its two summaries; this sequence resolves that inconsistency by making durable recovery part of the first usable release and delivering richer collaboration afterward, before Phase 32. The WebSocket/realtime foundation remains required in 31C–31D.
 
@@ -224,7 +224,7 @@ Backup/transfer is deliberately moved ahead of mobile delivery, and security con
 
 <a id="phase-31h"></a>
 
-### Phase 31H — React Native Android Shell and Sync (Implementation; Acceptance Pending)
+### Phase 31H — React Native Android Shell and Sync (Implemented; Owed Passes Carried to the 31I Gate)
 
 **Depends on:** 31A–31G.
 
@@ -236,21 +236,23 @@ Backup/transfer is deliberately moved ahead of mobile delivery, and security con
 - confirmed recovery, archive, cache clearing, disconnect and restore/re-pair;
 - local APK/AAB packaging, native/emulator acceptance and measured performance evidence.
 
-**Implementation record:** Milestones 720–728 are described in [Phase 31H acceptance](PHASE31H_ACCEPTANCE.md) and [the decisions](PHASE31H_PLAN.md). Local debug APK compilation and seven native security tests on each of API 29 and API 36 have passed. Local automated regressions, disposable-key APK/AAB builds and both Maestro journeys on each API have passed. Protected signing/install evidence, manual accessibility and a physical Android pass remain required. Tool screens are metadata-only in this phase; the executable binding map is initially empty.
+**Implementation record:** Milestones 720–728 are described in [Phase 31H acceptance](PHASE31H_ACCEPTANCE.md) and [the decisions](PHASE31H_PLAN.md). Local debug APK compilation and seven native security tests on each of API 29 and API 36 have passed. Local automated regressions, disposable-key APK/AAB builds and both Maestro journeys on each API have passed. Protected signing/install evidence, manual accessibility and a physical Android pass remain required and are carried into the single 31I/DUDE 2.0 final gate ([PD-084](PHASE31I_PLAN.md)); they are not closed by this phase. Tool screens are metadata-only in this phase; the executable binding map is initially empty.
 
-**Exit gate:** Android connects/authenticates/registers, uses shared registry/design tokens/API/sync contracts, isolates environment state and handles local cache/offline/session failure cleanly. Close the phase only after the documented regressions, signed APK/AAB/install evidence, accessibility and physical LAN/off-LAN/offline/restore passes succeed. Completion permits 31I; it does not complete DUDE 2.0.
+**Exit gate:** Android connects/authenticates/registers, uses shared registry/design tokens/API/sync contracts, isolates environment state and handles local cache/offline/session failure cleanly. The documented regressions, signed APK/AAB/install evidence, accessibility and physical LAN/off-LAN/offline/restore passes are recorded at the 31I final gate rather than before 31I starts. Recording them does not by itself complete DUDE 2.0.
 
 <a id="phase-31i"></a>
 
-### Phase 31I — Initial Mobile Tool Set and DUDE 2.0 Gate (Planned)
+### Phase 31I — Initial Mobile Tool Set and DUDE 2.0 Gate (In Progress)
 
-**Depends on:** 31H.
+**Depends on:** 31H implementation; 31H's owed passes are part of this phase's exit gate.
 
 - first 30-50 portable tools;
 - mobile-native controls;
 - QR/barcode/share-sheet/device utilities where appropriate.
 
-**Exit gate:** Approximately 30–50 explicitly listed compatible tools have usable native UI and shared-engine verification; APK/AAB build/install evidence and all [DUDE 2.0 Distributed Release Definition of Done — All Planned](QUALITY_AND_RELEASE.md#dude-20-distributed-release-definition-of-done--all-planned) release checks are recorded.
+**Implementation record:** Milestones 729–784 are planned in [the Phase 31I decisions](PHASE31I_PLAN.md) (PD-084–PD-097): a locked 40-tool list with a reserve and swap rule, a mobile-owned declarative kit, a fixed host-polyfill set, worklet off-thread execution for six heavy tools, Share-to-DUDE, camera scanning, bwip-js barcodes on every surface, a new all-surface `device-info` tool and on-device Maestro journeys. Implementation started at Milestone 729; DUDE 2.0 is declared only at Milestone 784.
+
+**Exit gate:** The 40 listed compatible tools (or recorded reserve swaps) have usable native UI and shared-engine verification on API 29, API 36 and a physical phone; the carried Phase 31H passes (protected signed install, physical LAN/off-LAN/offline/restore/re-pair, failure cases, TalkBack, native measurements and first CI runs) and the owed 31B–31G manual passes are recorded; APK/AAB build/install evidence and all [DUDE 2.0 Distributed Release Definition of Done — All Planned](QUALITY_AND_RELEASE.md#dude-20-distributed-release-definition-of-done--all-planned) release checks are recorded.
 
 <a id="phase-31j"></a>
 

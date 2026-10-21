@@ -421,7 +421,28 @@ PD-075–PD-083 govern the Android shell and durable sync work beginning at Mile
 | PD-082 | Credential-free recovery, retained archives and confirmation-bound lifecycle operations |
 | PD-083 | Protected signed preview packaging, existing release writer and evidence-bound phase closure |
 
-The Android-inclusive DUDE 2.0 gate remains 31I. Local compilation or automated tests alone do not establish physical-device or protected signing acceptance.
+The Android-inclusive DUDE 2.0 gate remains 31I. Local compilation or automated tests alone do not establish physical-device or protected signing acceptance. Phase 31H's automated scope is implemented; its owed physical, signing and accessibility passes are carried into the 31I final gate (PD-084).
+
+### Phase 31I implementation decisions
+
+PD-084–PD-097 govern the initial Android tool set and the DUDE 2.0 gate beginning at Milestone 729. The locked tool list, reserve and swap rule, host facilities, off-thread requirement and milestone map are recorded in [Phase 31I decisions](../delivery/PHASE31I_PLAN.md); evidence will be recorded in the Phase 31I acceptance document at Milestone 783.
+
+| Decision | Scope |
+|---|---|
+| PD-084 | Single final gate: 31H's automated scope implemented, its owed passes carried into the 31I/DUDE 2.0 gate |
+| PD-085 | Locked 40-tool list, bespoke-screen set, reserve list and recorded swap rule |
+| PD-086 | Mobile-owned declarative kit plus bespoke screens calling engine functions, lazy per-tool chunks only |
+| PD-087 | Fixed polyfill set through `EngineHostPorts`; unavailable facilities fail explicitly; no xxhash on mobile |
+| PD-088 | Heavy tools must run on a worklets worker runtime or be swapped for a reserve tool |
+| PD-089 | Manifest `local` preferences persist and sync as settings; session inputs memory-only; 5-minute background wipe |
+| PD-090 | Copy, Share and SAF save on every output; SAF/Photo Picker input; storage and media permissions stay blocked |
+| PD-091 | Share-to-DUDE inbound with size caps, Smart Paste suggestions, never auto-run, persisted or synced |
+| PD-092 | Camera scanning, `qrcode` and bwip-js generation (replacing `jsbarcode` on all surfaces), portable scan classification, new `device-info` tool |
+| PD-093 | Runnable-first catalog, local-only Recents, native controls and generated "Also on Android" badge |
+| PD-094 | On-device Maestro journeys on API 29/API 36 every push plus physical phone, with engine-sourced expected values |
+| PD-095 | Root version becomes 2.0 only at Milestone 784 after every Definition of Done item has evidence |
+| PD-096 | NFC, BLE, camera OCR, network diagnostics, pipelines/Smart Paste page, background work and iOS deferred to Phase 91 |
+| PD-097 | Owed 31B–31G manual passes executed in the close-out through a guided script |
 
 ### Testing, accessibility, and performance evolution
 

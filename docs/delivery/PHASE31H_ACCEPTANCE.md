@@ -1,6 +1,6 @@
 # Phase 31H implementation and acceptance evidence
 
-**Status: exit gate pending.** Milestones 720–728 implement the Android shell and durable favorites/settings synchronization. Local debug and disposable-key release APK/AAB builds passed; native security instrumentation and bundled-app journeys passed on API 29 and API 36. Protected preview signing/install evidence and physical Android acceptance are outstanding; neither executable mobile tools nor the Android-inclusive DUDE 2.0 release is declared complete. Phase 31I may begin only after this exit gate closes.
+**Status: implementation complete; remaining physical, signing and accessibility requirements carried into the Phase 31I final gate ([PHASE31I_PLAN.md PD-084](PHASE31I_PLAN.md)).** Milestones 720–728 implement the Android shell and durable favorites/settings synchronization. Local debug and disposable-key release APK/AAB builds passed; native security instrumentation and bundled-app journeys passed on API 29 and API 36. Protected preview signing/install evidence and physical Android acceptance are outstanding and are not closed here; they are recorded at the single 31I/DUDE 2.0 final gate, so Phase 31I implementation proceeds without waiting for them. Neither executable mobile tools nor the Android-inclusive DUDE 2.0 release is declared complete.
 
 ## Implemented scope
 
@@ -78,4 +78,4 @@ Physical device measurements remain separate. Record hardware, API, app version,
 - Complete manual TalkBack and visual accessibility acceptance, and repeat camera denial/paste, bare links, enlarged text, reduced motion and appearance combinations on the physical phone. API 29/API 36 focused emulator journeys have passed; their automation does not replace screen-reader acceptance.
 - Record signed artifact/install evidence and startup/catch-up/memory/database/outbox measurements; complete first CI runs; existing local regression results are recorded above.
 
-31H remains open until these requirements and the final automated gates pass. Completion authorizes Phase 31I; approximately 30–50 named executable mobile tools and the complete DUDE 2.0 gate remain that phase's work.
+These requirements are carried into the Phase 31I final gate (PD-084) and must be recorded, with the final automated gates, before DUDE 2.0 is declared at Milestone 784. The 40 named executable mobile tools and the complete DUDE 2.0 gate are that phase's work.
