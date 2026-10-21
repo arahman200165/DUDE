@@ -1,0 +1,93 @@
+appId: io.github.arahman200165.dude.preview
+name: Regex Tester on Android
+tags: [tools, developer]
+---
+# clearState gives the default preferences (flags "g", Match mode).
+- launchApp:
+    clearState: true
+- openLink: "dude://tools/regex"
+- assertVisible:
+    id: "tool-input-pattern"
+# Match vector from packages/tool-engine/src/tools/regex/regex-match.spec.ts:15 (cat in "cat sat cat mat" matches at indices 0 and 8).
+- tapOn:
+    id: "tool-input-pattern"
+- inputText: "cat"
+- hideKeyboard
+- tapOn:
+    id: "tool-input-text"
+- inputText: "cat sat cat mat"
+- hideKeyboard
+- assertVisible:
+    id: "match-count"
+    text: "2 matches"
+- assertVisible:
+    id: "match-1"
+    text: "cat"
+- assertVisible:
+    id: "match-2-index"
+    text: "at 8"
+# Flag toggle, same shape as regex-match.spec.ts:21 (the i flag makes the pattern case-insensitive): CAT finds nothing until i is on.
+- tapOn:
+    id: "tool-input-pattern"
+- eraseText: 10
+- inputText: "CAT"
+- hideKeyboard
+- assertVisible:
+    id: "match-count"
+    text: "0 matches"
+- tapOn:
+    id: "option-flag-i"
+- assertVisible:
+    id: "match-count"
+    text: "2 matches"
+# Numbered groups, same shape as regex-match.spec.ts:28 ((\d+)-(\d+) on "10-20" gives groups 10 and 20); written with [0-9] so the
+# flow has no backslash. Verified in Node: new RegExp("([0-9]+)-([0-9]+)", "g").exec("10-20") -> index 0, groups "10" and "20".
+- tapOn:
+    id: "tool-input-pattern"
+- eraseText: 10
+- inputText: "([0-9]+)-([0-9]+)"
+- hideKeyboard
+- tapOn:
+    id: "tool-input-text-clear"
+- tapOn:
+    id: "tool-input-text"
+- inputText: "10-20"
+- hideKeyboard
+- assertVisible:
+    id: "match-count"
+    text: "1 match"
+- assertVisible:
+    id: "match-1-group-1"
+    text: "group 1: 10"
+- assertVisible:
+    id: "match-1-group-2"
+    text: "group 2: 20"
+# Replace mode, vector from regex-match.spec.ts:80 (cat with g, "cat sat cat" -> "dog sat dog").
+- tapOn:
+    id: "tool-input-pattern"
+- eraseText: 30
+- inputText: "cat"
+- hideKeyboard
+- tapOn:
+    id: "tool-input-text-clear"
+- tapOn:
+    id: "tool-input-text"
+- inputText: "cat sat cat"
+- hideKeyboard
+- tapOn:
+    id: "mode-replace"
+- tapOn:
+    id: "tool-input-replacement"
+- inputText: "dog"
+- hideKeyboard
+- assertVisible:
+    id: "tool-output"
+    text: "dog sat dog"
+# Invalid pattern (regex-match.spec.ts:9 uses "(unclosed") shows the error banner.
+- tapOn:
+    id: "tool-input-pattern"
+- eraseText: 10
+- inputText: "(unclosed"
+- hideKeyboard
+- assertVisible:
+    id: "tool-error"

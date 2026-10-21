@@ -15,16 +15,17 @@ import { binding as binding11 } from '../tools/jwt/jwt.mobile-bindings';
 import { binding as binding12 } from '../tools/number-base/number-base.mobile-bindings';
 import { binding as binding13 } from '../tools/password-generator/password-generator.mobile-bindings';
 import { binding as binding14 } from '../tools/password-strength-analyzer/password-strength-analyzer.mobile-bindings';
-import { binding as binding15 } from '../tools/slug-generator/slug-generator.mobile-bindings';
-import { binding as binding16 } from '../tools/text-inspector/text-inspector.mobile-bindings';
-import { binding as binding17 } from '../tools/timezone-offset-comparator/timezone-offset-comparator.mobile-bindings';
-import { binding as binding18 } from '../tools/unicode-normalization/unicode-normalization.mobile-bindings';
-import { binding as binding19 } from '../tools/unix-timestamp/unix-timestamp.mobile-bindings';
-import { binding as binding20 } from '../tools/url-encode/url-encode.mobile-bindings';
-import { binding as binding21 } from '../tools/url-inspector/url-inspector.mobile-bindings';
-import { binding as binding22 } from '../tools/user-agent/user-agent.mobile-bindings';
-import { binding as binding23 } from '../tools/uuid/uuid.mobile-bindings';
-import { binding as binding24 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
+import { binding as binding15 } from '../tools/regex/regex.mobile-bindings';
+import { binding as binding16 } from '../tools/slug-generator/slug-generator.mobile-bindings';
+import { binding as binding17 } from '../tools/text-inspector/text-inspector.mobile-bindings';
+import { binding as binding18 } from '../tools/timezone-offset-comparator/timezone-offset-comparator.mobile-bindings';
+import { binding as binding19 } from '../tools/unicode-normalization/unicode-normalization.mobile-bindings';
+import { binding as binding20 } from '../tools/unix-timestamp/unix-timestamp.mobile-bindings';
+import { binding as binding21 } from '../tools/url-encode/url-encode.mobile-bindings';
+import { binding as binding22 } from '../tools/url-inspector/url-inspector.mobile-bindings';
+import { binding as binding23 } from '../tools/user-agent/user-agent.mobile-bindings';
+import { binding as binding24 } from '../tools/uuid/uuid.mobile-bindings';
+import { binding as binding25 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
 export const MOBILE_BINDINGS: MobileBindingMap = {
   'base64': binding0,
   'case-converter': binding1,
@@ -41,14 +42,15 @@ export const MOBILE_BINDINGS: MobileBindingMap = {
   'number-base': binding12,
   'password-generator': binding13,
   'password-strength-analyzer': binding14,
-  'slug-generator': binding15,
-  'text-inspector': binding16,
-  'timezone-offset-comparator': binding17,
-  'unicode-normalization': binding18,
-  'unix-timestamp': binding19,
-  'url-encode': binding20,
-  'url-inspector': binding21,
-  'user-agent': binding22,
-  'uuid': binding23,
-  'whitespace-cleaner': binding24,
+  'regex': binding15,
+  'slug-generator': binding16,
+  'text-inspector': binding17,
+  'timezone-offset-comparator': binding18,
+  'unicode-normalization': binding19,
+  'unix-timestamp': binding20,
+  'url-encode': binding21,
+  'url-inspector': binding22,
+  'user-agent': binding23,
+  'uuid': binding24,
+  'whitespace-cleaner': binding25,
 };
