@@ -9,7 +9,7 @@ export const PIPELINE_STEP_LOADERS: Readonly<Record<string, () => Promise<Pipeli
  'aspect-ratio-calculator': () => import('@dude/tool-engine/tools/aspect-ratio-calculator/aspect-ratio-calculator.pipeline-step').then(m => m.pipelineStep),
  'asymmetric-key-generator': () => import('@dude/tool-engine/tools/asymmetric-key-generator/asymmetric-key-generator.pipeline-step').then(m => m.pipelineStep),
  'avro-viewer': () => import('@dude/tool-engine/tools/avro-viewer/avro-viewer.pipeline-step').then(m => m.pipelineStep),
- 'barcode-generator': () => import('../../tools/barcode-generator/barcode-generator.pipeline-step').then(m => m.pipelineStep),
+ 'barcode-generator': () => import('@dude/tool-engine/tools/barcode-generator/barcode-generator.pipeline-step').then(m => m.pipelineStep),
  'base-n-encoder': () => import('@dude/tool-engine/tools/base-n-encoder/base-n-encoder.pipeline-step').then(m => m.pipelineStep),
  'base64': () => import('@dude/tool-engine/tools/base64/base64.pipeline-step').then(m => m.pipelineStep),
  'base64-image-viewer': () => import('@dude/tool-engine/tools/base64-image-viewer/base64-image-viewer.pipeline-step').then(m => m.pipelineStep),

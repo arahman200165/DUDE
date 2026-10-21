@@ -1,0 +1,10 @@
+[
+  [
+    "apps/web/src/app/tools/barcode-generator/barcode-generator.pipeline-step.ts",
+    "packages/tool-engine/src/tools/barcode-generator/barcode-generator.pipeline-step.ts"
+  ],
+  [
+    "apps/web/src/app/tools/barcode-generator/barcode-generator.pipeline-step.spec.ts",
+    "packages/tool-engine/src/tools/barcode-generator/barcode-generator.pipeline-step.spec.ts"
+  ]
+]

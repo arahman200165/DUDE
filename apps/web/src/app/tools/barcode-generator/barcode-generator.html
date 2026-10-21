@@ -4,11 +4,27 @@
       <label class="flex flex-col gap-1 text-ui text-text-muted">
         Format
         <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="format()" (change)="setFormat($any($event.target).value)">
-          @for (item of formats; track item) {
-            <option [value]="item">{{ item }}</option>
+          @for (item of symbologies; track item.id) {
+            <option [value]="item.id" [selected]="item.id === format()">{{ item.label }}</option>
           }
         </select>
       </label>
+
+      <label class="flex flex-col gap-1 text-ui text-text-muted">
+        Scale
+        <select class="rounded-sm border border-border bg-panel px-2 py-1 text-text" [value]="scale()" (change)="setScale($any($event.target).value)">
+          @for (item of scales; track item) {
+            <option [value]="item" [selected]="item === scale()">{{ item }}x</option>
+          }
+        </select>
+      </label>
+
+      @if (info().kind === 'linear') {
+        <label class="flex items-center gap-2 pb-1 text-ui text-text-muted">
+          <input type="checkbox" [checked]="includeText()" (change)="includeText.set($any($event.target).checked)" />
+          Show text
+        </label>
+      }
 
       <label class="flex flex-1 flex-col gap-1 text-ui text-text-muted">
         Value
@@ -21,14 +37,20 @@
       </label>
     </div>
 
-    @if (!validation().ok) {
-      <app-error-panel [message]="validation().message!" />
+    <p class="text-ui text-text-muted">{{ info().hint }}</p>
+
+    @if (error(); as message) {
+      <app-error-panel [message]="message" />
     }
 
     <div class="flex flex-col items-start gap-2 rounded-sm border border-border bg-panel-elevated p-3">
-      <svg #svg></svg>
-      @if (validation().ok) {
-        <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10" (click)="download()">Download SVG</button>
+      @if (dataUrl(); as url) {
+        <app-preview-background [(value)]="previewBg" />
+        <img [src]="url" alt="Generated barcode" [appPreviewBackground]="previewBg()" class="max-w-full rounded-sm border border-border object-contain" />
+        <div class="flex gap-2">
+          <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10" (click)="downloadSvg()">Download SVG</button>
+          <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui text-accent hover:bg-accent/10" (click)="downloadPng()">Download PNG</button>
+        </div>
       }
     </div>
   </div>

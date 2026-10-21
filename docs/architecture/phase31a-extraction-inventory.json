@@ -6124,17 +6124,24 @@
       "remainingAdapterCode": "apps/web/src/app/tools/barcode-generator/barcode-generator.bindings.ts"
     },
     {
-      "source": "apps/web/src/app/tools/barcode-generator/barcode-generator.pipeline-step.ts",
-      "destination": "apps/web/src/app/tools/barcode-generator/barcode-generator.pipeline-step.ts",
-      "classification": "host-adapter",
-      "hostDependencies": [
-        "host API: document",
-        "host API: XMLSerializer"
-      ],
+      "source": "apps/web/src/app/tools/barcode-generator/barcode-generator.pipeline-step.spec.ts",
+      "destination": "packages/tool-engine/src/tools/barcode-generator/barcode-generator.pipeline-step.spec.ts",
+      "classification": "portable",
+      "hostDependencies": [],
       "tests": [
-        "apps/web/src/app/tools/barcode-generator/barcode-generator.pipeline-step.spec.ts"
+        "packages/tool-engine/src/tools/barcode-generator/barcode-generator.pipeline-step.spec.ts"
       ],
-      "remainingAdapterCode": "apps/web/src/app/tools/barcode-generator/barcode-generator.pipeline-step.ts"
+      "remainingAdapterCode": null
+    },
+    {
+      "source": "apps/web/src/app/tools/barcode-generator/barcode-generator.pipeline-step.ts",
+      "destination": "packages/tool-engine/src/tools/barcode-generator/barcode-generator.pipeline-step.ts",
+      "classification": "portable",
+      "hostDependencies": [],
+      "tests": [
+        "packages/tool-engine/src/tools/barcode-generator/barcode-generator.pipeline-step.spec.ts"
+      ],
+      "remainingAdapterCode": null
     },
     {
       "source": "apps/web/src/app/tools/barcode-generator/barcode-generator.ts",
@@ -6142,12 +6149,11 @@
       "classification": "host-adapter",
       "hostDependencies": [
         "host import: @angular/core",
-        "host API: XMLSerializer",
         "host API: Blob",
+        "host API: Image",
         "host API: document"
       ],
       "tests": [
-        "apps/web/src/app/tools/barcode-generator/barcode-generator.pipeline-step.spec.ts",
         "apps/web/src/app/tools/barcode-generator/barcode-generator.property.spec.ts",
         "apps/web/src/app/tools/barcode-generator/barcode-generator.workspace-step.spec.ts"
       ],
@@ -29317,22 +29323,24 @@
       "manifest": "packages/tool-registry/src/tools/barcode-generator/barcode-generator.manifest.ts",
       "binding": "apps/web/src/app/tools/barcode-generator/barcode-generator.bindings.ts",
       "engineModules": [
+        "packages/tool-engine/src/tools/barcode-generator/barcode-generator.pipeline-step.ts",
+        "packages/tool-engine/src/tools/barcode-generator/barcode-render.ts",
         "packages/tool-engine/src/tools/barcode-generator/barcode-validate.ts"
       ],
       "adapters": [
-        "apps/web/src/app/tools/barcode-generator/barcode-generator.pipeline-step.ts",
         "apps/web/src/app/tools/barcode-generator/barcode-generator.ts",
         "apps/web/src/app/tools/barcode-generator/barcode-generator.workspace-step.ts"
       ],
       "tests": [
+        "packages/tool-engine/src/tools/barcode-generator/barcode-generator.pipeline-step.spec.ts",
+        "packages/tool-engine/src/tools/barcode-generator/barcode-render.spec.ts",
         "packages/tool-engine/src/tools/barcode-generator/barcode-validate.spec.ts",
-        "apps/web/src/app/tools/barcode-generator/barcode-generator.pipeline-step.spec.ts",
         "apps/web/src/app/tools/barcode-generator/barcode-generator.property.spec.ts",
         "apps/web/src/app/tools/barcode-generator/barcode-generator.workspace-step.spec.ts"
       ],
       "runtimeRequirements": [
         "application Blob",
-        "application XMLSerializer",
+        "application Image",
         "application document"
       ],
       "unsupportedHosts": [

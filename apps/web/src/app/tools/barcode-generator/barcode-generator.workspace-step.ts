@@ -1,6 +1,5 @@
 import { WorkspaceSnapshot, WorkspaceStep } from "@dude/contracts/shared/models/workspace-step.model";
 import { readStorageValue, writeStorageValue } from '../../core/workspace/workspace-storage-bridge';
-import { BarcodeFormat } from "@dude/tool-engine/tools/barcode-generator/barcode-validate";
 
 const TOOL_ID = 'barcode-generator';
 
@@ -10,7 +9,7 @@ export const workspaceStep: WorkspaceStep = {
   snapshot(): WorkspaceSnapshot | undefined {
     const value = readStorageValue<string>(TOOL_ID, 'value', 'session');
     if (!value) return undefined;
-    const format = readStorageValue<BarcodeFormat>(TOOL_ID, 'format', 'local') ?? 'CODE128';
+    const format = readStorageValue<string>(TOOL_ID, 'format', 'local') ?? 'code128';
     return { state: { format, value }, summary: `${format} barcode: "${value}"` };
   },
 

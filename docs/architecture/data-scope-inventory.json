@@ -154,7 +154,7 @@
       "namespace": null,
       "key": null,
       "heuristicScope": "local-only",
-      "reviewed": null
+      "reviewed": "Android local Recents under mobile.local with policy session / scope local-only; never journaled, queued or synced."
     },
     {
       "source": "apps/mobile/src/tools-host/use-tool-input.ts",
@@ -162,7 +162,7 @@
       "namespace": null,
       "key": null,
       "heuristicScope": "local-only",
-      "reviewed": null
+      "reviewed": "In-memory tool input (ToolInputStore); never persisted or synced, wiped after 5 minutes in background."
     },
     {
       "source": "apps/web/src/app/core/appearance/appearance-prepaint-mirror.ts",

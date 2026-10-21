@@ -265,7 +265,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Unicode Table](https://arahman200165.github.io/DUDE/tools/unicode-table) | Text | Browse Unicode characters by block, or search by code point, character, or name. |
 | [Whitespace Cleaner / Normalizer](https://arahman200165.github.io/DUDE/tools/whitespace-cleaner) | Text | Trim, collapse, and normalize whitespace, line endings, tabs/spaces, and indentation. |
 | [Archive Creator / Extractor](https://arahman200165.github.io/DUDE/tools/archive-tool) | Encoding | Creates or extracts ZIP, TAR, and TAR.GZ archives entirely client-side. |
-| [Barcode Generator](https://arahman200165.github.io/DUDE/tools/barcode-generator) | Encoding | Generates a CODE128, EAN-13/8, UPC, CODE39, ITF-14, or codabar barcode, with check-digit validation. |
+| [Barcode Generator](https://arahman200165.github.io/DUDE/tools/barcode-generator) | Encoding | Generates Code 128, GS1-128, EAN-13/8, UPC-A/E, Code 39, ITF-14, Codabar, Data Matrix, PDF417 or Aztec barcodes as SVG or PNG, with GS1 check-digit validation. |
 | [Barcode Reader](https://arahman200165.github.io/DUDE/tools/barcode-reader) | Encoding | Decodes a barcode from an uploaded image or a live webcam feed, entirely client-side. |
 | [Base-N Encoder / Decoder](https://arahman200165.github.io/DUDE/tools/base-n-encoder) | Encoding | Encode or decode text as Binary, Base16, Base32, Base36, Base58, Base62, Base85/ASCII85, or basE91. |
 | [Base64 Encoder / Decoder](https://arahman200165.github.io/DUDE/tools/base64) | Encoding | UTF-8-safe text-to-Base64 and Base64-to-text conversion. |
