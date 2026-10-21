@@ -1,0 +1,47 @@
+appId: io.github.arahman200165.dude.preview
+name: URL Inspector on Android
+tags: [tools, web]
+---
+- launchApp
+- openLink: "dude://tools/url-inspector"
+- assertVisible:
+    id: "tool-input"
+- tapOn:
+    id: "tool-input-sample"
+# Expected values copied from packages/tool-engine/src/tools/url-inspector/url-parts.spec.ts:5-20 (the sample is that spec's URL)
+- assertVisible:
+    id: "kv-protocol-value"
+    text: "https"
+- assertVisible:
+    id: "kv-username-value"
+    text: "user"
+- assertVisible:
+    id: "kv-hostname-value"
+    text: "example.com"
+- assertVisible:
+    id: "kv-port-value"
+    text: "8443"
+- assertVisible:
+    id: "kv-pathname-value"
+    text: "/a/b"
+- assertVisible:
+    id: "kv-hash-value"
+    text: "section"
+- assertVisible:
+    id: "kv-origin-value"
+    text: "https://example.com:8443"
+- assertVisible:
+    id: "kv-query-0-value"
+    text: "1"
+- assertVisible:
+    id: "kv-query-1-value"
+    text: "2"
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "not a url"
+- hideKeyboard
+# url-parts.spec.ts:34 (parseUrl('not a url').ok is false)
+- assertVisible:
+    id: "tool-error"

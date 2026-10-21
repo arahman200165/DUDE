@@ -11,8 +11,9 @@ import { binding as binding7 } from '../tools/slug-generator/slug-generator.mobi
 import { binding as binding8 } from '../tools/text-inspector/text-inspector.mobile-bindings';
 import { binding as binding9 } from '../tools/unicode-normalization/unicode-normalization.mobile-bindings';
 import { binding as binding10 } from '../tools/url-encode/url-encode.mobile-bindings';
-import { binding as binding11 } from '../tools/uuid/uuid.mobile-bindings';
-import { binding as binding12 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
+import { binding as binding11 } from '../tools/url-inspector/url-inspector.mobile-bindings';
+import { binding as binding12 } from '../tools/uuid/uuid.mobile-bindings';
+import { binding as binding13 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
 export const MOBILE_BINDINGS: MobileBindingMap = {
   'base64': binding0,
   'case-converter': binding1,
@@ -25,6 +26,7 @@ export const MOBILE_BINDINGS: MobileBindingMap = {
   'text-inspector': binding8,
   'unicode-normalization': binding9,
   'url-encode': binding10,
-  'uuid': binding11,
-  'whitespace-cleaner': binding12,
+  'url-inspector': binding11,
+  'uuid': binding12,
+  'whitespace-cleaner': binding13,
 };
