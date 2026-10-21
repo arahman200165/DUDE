@@ -1,0 +1,60 @@
+appId: io.github.arahman200165.dude.preview
+name: Cookie Tools on Android
+tags: [tools, web]
+---
+- launchApp
+- openLink: "dude://tools/cookie-tools"
+- assertVisible:
+    id: "tool-input"
+- tapOn:
+    id: "mode-cookie"
+- tapOn:
+    id: "tool-input"
+- inputText: "session=abc123; theme=dark"
+- hideKeyboard
+# Input from packages/tool-engine/src/tools/cookie-tools/cookie-header.spec.ts:11 (parses to session=abc123, theme=dark)
+- assertVisible:
+    id: "kv-cookie-0-value"
+    text: "abc123"
+- assertVisible:
+    id: "kv-cookie-1-value"
+    text: "dark"
+- assertVisible:
+    id: "kv-header-value"
+    text: "session=abc123; theme=dark"
+- tapOn:
+    id: "mode-set-cookie"
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "SID=31d4d96e407aad42; Path=/; Secure; HttpOnly"
+- hideKeyboard
+# Expected values from packages/tool-engine/src/tools/cookie-tools/set-cookie.spec.ts:6-7
+- assertVisible:
+    id: "kv-name-value"
+    text: "SID"
+- assertVisible:
+    id: "kv-value-value"
+    text: "31d4d96e407aad42"
+- assertVisible:
+    id: "kv-path-value"
+    text: "/"
+- assertVisible:
+    id: "kv-secure-value"
+    text: "Yes"
+- assertVisible:
+    id: "kv-http-only-value"
+    text: "Yes"
+- assertVisible:
+    id: "kv-header-value"
+    text: "SID=31d4d96e407aad42; Path=/; Secure; HttpOnly"
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: ";"
+- hideKeyboard
+# parseSetCookieHeader(';') yields no parts (EMPTY_SET_COOKIE), so the name is empty and the tool reports an error
+- assertVisible:
+    id: "tool-error"
