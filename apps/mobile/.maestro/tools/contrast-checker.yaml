@@ -1,0 +1,68 @@
+appId: io.github.arahman200165.dude.preview
+name: Contrast Checker on Android
+tags: [tools, encoding]
+---
+- launchApp:
+    clearState: true
+- openLink: "dude://tools/contrast-checker"
+- assertVisible:
+    id: "tool-input-foreground"
+# Vector: black on white is 21:1 and passes every level (packages/tool-engine/src/tools/contrast-checker/contrast-checker-logic.spec.ts:5 and :20)
+- tapOn:
+    id: "tool-input-foreground"
+- eraseText: 40
+- inputText: "#000000"
+- hideKeyboard
+- tapOn:
+    id: "tool-input-background"
+- eraseText: 40
+- inputText: "#ffffff"
+- hideKeyboard
+- assertVisible:
+    id: "kv-ratio-value"
+    text: "21.00:1"
+- assertVisible:
+    id: "check-aa-normal-result"
+    text: "✓ Pass"
+- assertVisible:
+    id: "check-aaa-normal-result"
+    text: "✓ Pass"
+- assertVisible:
+    id: "check-ui-result"
+    text: "✓ Pass"
+- assertVisible:
+    id: "contrast-sample"
+# Swap keeps the same ratio (contrast is symmetric) and exchanges the two fields.
+- tapOn:
+    id: "tool-swap"
+- assertVisible:
+    id: "tool-input-foreground"
+    text: "#ffffff"
+- assertVisible:
+    id: "kv-ratio-value"
+    text: "21.00:1"
+# Failing pair: #777777 on #888888 fails every level (computed with checkContrast; see contrast-checker-mobile.spec.ts)
+- tapOn:
+    id: "tool-input-foreground"
+- eraseText: 40
+- inputText: "#777777"
+- hideKeyboard
+- tapOn:
+    id: "tool-input-background"
+- eraseText: 40
+- inputText: "#888888"
+- hideKeyboard
+- assertVisible:
+    id: "check-aa-normal-result"
+    text: "✕ Fail"
+- assertVisible:
+    id: "check-ui-result"
+    text: "✕ Fail"
+# Invalid input: engine error 'Could not recognize "notacolor" as a color.'
+- tapOn:
+    id: "tool-input-foreground"
+- eraseText: 40
+- inputText: "notacolor"
+- hideKeyboard
+- assertVisible:
+    id: "tool-error"
