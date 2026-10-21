@@ -1,0 +1,36 @@
+appId: io.github.arahman200165.dude.preview
+name: Text Diff on Android
+tags: [tools, text]
+---
+- launchApp
+- openLink: "dude://tools/diff"
+- assertVisible:
+    id: "tool-input-left"
+- tapOn:
+    id: "tool-input-left"
+- inputText: "a"
+- hideKeyboard
+- tapOn:
+    id: "tool-input-right"
+- inputText: "b"
+- hideKeyboard
+# Computed with computeLineDiff('a', 'b') from @dude/tool-engine/tools/diff/text-diff:
+# lines [remove "a", add "b"], summary { added: 1, removed: 1, unchanged: 0 } (cf. text-diff.spec.ts:30 'changed line as remove + add')
+- assertVisible:
+    id: "diff-summary"
+    text: "1 added, 1 removed, 0 unchanged"
+- assertVisible:
+    id: "tool-output"
+    text: "(?s).*- a.*"
+- assertVisible:
+    id: "tool-output"
+    text: "(?s).*[+] b.*"
+# Identical texts
+- tapOn:
+    id: "tool-input-right"
+- eraseText
+- inputText: "a"
+- hideKeyboard
+- assertVisible:
+    id: "diff-summary"
+    text: "No differences (1 unchanged)"

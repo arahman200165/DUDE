@@ -10,6 +10,7 @@ export const MOBILE_TOOL_IDS: readonly string[] = [
   'cookie-tools',
   'cron',
   'csv-viewer',
+  'diff',
   'duration-formatter',
   'hash',
   'hex-text-converter',
