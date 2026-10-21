@@ -1,0 +1,42 @@
+appId: io.github.arahman200165.dude.preview
+name: CSV Viewer on Android
+tags: [tools, data]
+---
+- launchApp
+- openLink: "dude://tools/csv-viewer"
+- assertVisible:
+    id: "tool-input"
+- tapOn:
+    id: "tool-input-sample"
+# Sample "name,age\nAda,36\nGrace,45". Computed with parseCsv(sample, ',', true) from
+# @dude/tool-engine/tools/csv-viewer/csv-convert: columns [name, age], 2 rows (the parse runs off-thread; allow a few seconds).
+- extendedWaitUntil:
+    visible:
+      id: "csv-summary"
+    timeout: 20000
+- assertVisible:
+    id: "csv-summary"
+    text: "2 rows, 2 columns"
+- assertVisible:
+    id: "csv-shown"
+    text: "Showing 2 of 2 rows"
+- assertVisible:
+    id: "csv-grid"
+# JSON export from csvToJson(sample, ',', true): [{"name": "Ada", "age": "36"}, {"name": "Grace", "age": "45"}] (pretty-printed)
+- assertVisible:
+    id: "tool-output"
+    text: "(?s).*\"name\": \"Ada\".*\"age\": \"45\".*"
+# Header-only input: parseCsv("a,b", ",", true) gives columns [a, b] and no rows (computed with the engine)
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "a,b"
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      id: "csv-summary"
+    timeout: 20000
+- assertVisible:
+    id: "csv-summary"
+    text: "0 rows, 2 columns"
