@@ -5,6 +5,8 @@ import type { NativeStatus } from '@dude/domain/core/appearance/native-theme';
 import { useWorkbench } from '../state/workbench-provider';
 import { Button, Label } from '../ui/primitives';
 import { hapticSelection, hapticSuccess, readClipboard, writeClipboard } from './feedback';
+import { SaveOutputButton } from './file-actions';
+import { defaultOutputName } from './file-io-core';
 import type { KeyValueRow } from './text-tool-controller';
 
 /** Transient screen-reader announcement (TalkBack). Never throws. */
@@ -68,8 +70,10 @@ export function InputEditor({ value, onChangeText, name, label = 'Input', placeh
 }
 
 /** Selectable monospace output with Copy (haptic and "Copied" announcement), Share and an `extraActions` slot (Save to file). */
-export function OutputViewer({ value, name, label = 'Output', emptyText = 'Nothing to show yet.', extraActions, shareTitle }: {
+export function OutputViewer({ value, name, label = 'Output', emptyText = 'Nothing to show yet.', extraActions, shareTitle, saveName, toolId }: {
   readonly value: string; readonly name?: string; readonly label?: string; readonly emptyText?: string; readonly extraActions?: ReactNode; readonly shareTitle?: string;
+  /** Suggested file name for Save. Defaults to `<toolId>-output.txt` when `toolId` is given; with neither, Save is hidden. */
+  readonly saveName?: string; readonly toolId?: string;
 }) {
   const { theme } = useWorkbench();
   const [copied, setCopied] = useState(false);
@@ -98,6 +102,7 @@ export function OutputViewer({ value, name, label = 'Output', emptyText = 'Nothi
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: theme.metrics.spaceNormal }}>
       <Button testID={`tool-output${suffix(name)}-copy`} title="Copy" disabled={empty} onPress={() => { void copy(); }} />
       <Button testID={`tool-output${suffix(name)}-share`} title="Share" disabled={empty} onPress={() => { void share(); }} />
+      {(saveName || toolId) && <SaveOutputButton name={name} text={value} fileName={saveName ?? defaultOutputName(toolId!)} disabled={empty} />}
       {extraActions}
       {copied && <Label testID={`tool-output${suffix(name)}-copied`} accessibilityLiveRegion="polite" muted>Copied</Label>}
     </View>

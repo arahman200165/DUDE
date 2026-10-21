@@ -4,6 +4,8 @@ import { useToolInput } from '../tools-host/use-tool-input';
 import { useWorkbench } from '../state/workbench-provider';
 import { Button } from '../ui/primitives';
 import { ErrorBanner, InputEditor, KeyValueList, ModeSegment, OutputViewer, StatusPill, ToolScreen } from './components';
+import { OpenFileButton } from './file-actions';
+import { fileInputLimitFor } from './file-io-core';
 import { hapticError } from './feedback';
 import { OptionsSheet } from './options-sheet';
 import {
@@ -19,14 +21,15 @@ export type { KeyValueRow, OptionChoice, OptionSpec, OptionValues, TextToolMode,
  * `default` export. Input is in memory only (`useToolInput`); the mode and options are tool preferences, so they follow the
  * manifest's persistence policy (`local` preferences persist and sync under the same keys as web; the rest stay in memory).
  *
- * testIDs: `mode-<id>`, `tool-input`, `tool-input-paste|clear|swap|sample`, `tool-options`, `option-<id>`, `tool-run`,
- * `tool-output`, `tool-output-copy|share`, `kv-<key>`, `tool-error`.
+ * testIDs: `mode-<id>`, `tool-input`, `tool-input-paste|clear|swap|sample|open`, `tool-options`, `option-<id>`, `tool-run`,
+ * `tool-output`, `tool-output-copy|share|save`, `kv-<key>`, `tool-error`.
  */
 export function defineTextTool<O extends OptionValues = OptionValues>(spec: TextToolSpec<O>): ComponentType {
   const modes = resolveModes(spec);
   const optionSpecs: readonly OptionSpec[] = spec.options ?? [];
   const modeKey = spec.modeKey ?? 'mode';
   const live = spec.live !== false;
+  const openFile = spec.openFile ?? fileInputLimitFor(spec.toolId).supported;
   const entries: readonly PreferenceEntry[] = [
     { key: modeKey, defaultValue: modes[0]!.id, codec: { decode: raw => typeof raw === 'string' && modes.some(mode => mode.id === raw) ? raw : null } },
     ...optionSpecs.map(option => ({ key: optionKey(option), defaultValue: option.default as unknown, codec: { decode: (raw: unknown) => coerceOption(option, raw) } })),
@@ -74,7 +77,10 @@ export function defineTextTool<O extends OptionValues = OptionValues>(spec: Text
         {modes.length > 1 && <ModeSegment modes={modes} value={modeId} onChange={next => setPref(modeKey, next)} />}
         <InputEditor value={input} onChangeText={text => update({ input: text })} label={spec.inputLabel ?? 'Input'}
           onSwap={spec.swap ? onSwap : undefined} swapDisabled={swapText === null}
-          extraActions={spec.sampleInput !== undefined ? <Button testID="tool-input-sample" title="Sample" hint="Fills the input with an example" onPress={() => update({ input: spec.sampleInput! })} /> : undefined} />
+          extraActions={(spec.sampleInput !== undefined || openFile) ? <>
+            {spec.sampleInput !== undefined && <Button testID="tool-input-sample" title="Sample" hint="Fills the input with an example" onPress={() => update({ input: spec.sampleInput! })} />}
+            {openFile && <OpenFileButton toolId={spec.toolId} onText={text => update({ input: text })} />}
+          </> : undefined} />
       </View>}
       options={(optionSpecs.length > 0 || !live) ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: theme.metrics.spaceNormal }}>
         <OptionsSheet options={optionSpecs} values={optionValues} onChange={onOption} />
@@ -86,7 +92,7 @@ export function defineTextTool<O extends OptionValues = OptionValues>(spec: Text
         : result && result.ok && typeof result.output !== 'string'
           ? <KeyValueList rows={result.output} />
           : spec.outputKind === 'kv' && !result ? null
-            : <OutputViewer value={result?.ok && typeof result.output === 'string' ? result.output : ''} label={spec.outputLabel ?? 'Output'} emptyText="Output appears here." />}
+            : <OutputViewer value={result?.ok && typeof result.output === 'string' ? result.output : ''} label={spec.outputLabel ?? 'Output'} emptyText="Output appears here." toolId={spec.toolId} />}
     />;
   }
   TextTool.displayName = `TextTool(${spec.toolId})`;

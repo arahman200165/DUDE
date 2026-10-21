@@ -4,3 +4,6 @@ export { defineTextTool } from './define-text-tool';
 export { hapticError, hapticSelection, hapticSuccess, readClipboard, writeClipboard } from './feedback';
 export { useToolPreference, useToolPreferences, toolPreferenceStore } from './tool-preferences';
 export type { KeyValueRow, OptionChoice, OptionSpec, OptionValue, OptionValues, TextToolMode, TextToolSpec, ToolRunResult } from './text-tool-controller';
+export { OpenFileButton, SaveOutputButton } from './file-actions';
+export { DEFAULT_FILE_INPUT_BYTES, defaultOutputName, fileInputLimitFor, FileInputError, pickImage, pickTextFile, sanitizeFileName, saveBase64File, saveTextFile, shareFile, shareText } from './file-io';
+export type { FileInputLimit, PickedImage, PickedTextFile, SaveResult } from './file-io';

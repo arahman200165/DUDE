@@ -39,6 +39,8 @@ export interface TextToolSpec<O extends OptionValues = OptionValues> {
   readonly live?: boolean;
   /** Run even when the input is empty (generators). Default false. */
   readonly allowEmptyInput?: boolean;
+  /** Show an Open file button (SAF picker, limited by the manifest `fileInput`). Defaults to whether the manifest declares `fileInput`. */
+  readonly openFile?: boolean;
   readonly inputLabel?: string;
   readonly outputLabel?: string;
 }
