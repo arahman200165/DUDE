@@ -1,0 +1,51 @@
+appId: io.github.arahman200165.dude.preview
+name: UUID Generator / Inspector on Android
+tags: [tools, developer]
+---
+# clearState gives the default preferences (mode, version, count); the flow then selects what it asserts on explicitly.
+- launchApp:
+    clearState: true
+- openLink: "dude://tools/uuid"
+- assertVisible:
+    id: "tool-input"
+# Generate v4: the output must be a lowercase v4 UUID (random, so a pattern is asserted, not a value).
+- tapOn:
+    id: "mode-generate"
+- tapOn:
+    id: "tool-options"
+- tapOn:
+    id: "option-version-v4"
+- tapOn:
+    id: "tool-options-done"
+- tapOn:
+    id: "tool-run"
+- assertVisible:
+    id: "tool-output"
+    text: "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"
+# Inspect: RFC 9562 UUIDv1 vector, expected values copied from packages/tool-engine/src/tools/uuid/uuid-tool.spec.ts:143
+# (decodeV1Timestamp('C232AB00-9414-11EC-B3C8-9F6BDECED846') = 1645557742000 ms = 2022-02-22T19:22:22.000Z).
+- tapOn:
+    id: "mode-inspect"
+- tapOn:
+    id: "tool-input"
+- inputText: "C232AB00-9414-11EC-B3C8-9F6BDECED846"
+- hideKeyboard
+- tapOn:
+    id: "tool-run"
+- assertVisible:
+    id: "kv-version-value"
+    text: "1"
+- assertVisible:
+    id: "kv-timestamp-value"
+    text: "2022-02-22T19:22:22.000Z"
+# Invalid input shows the error banner.
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "not-a-uuid"
+- hideKeyboard
+- tapOn:
+    id: "tool-run"
+- assertVisible:
+    id: "tool-error"

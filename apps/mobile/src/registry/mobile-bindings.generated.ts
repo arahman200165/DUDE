@@ -8,7 +8,8 @@ import { binding as binding4 } from '../tools/slug-generator/slug-generator.mobi
 import { binding as binding5 } from '../tools/text-inspector/text-inspector.mobile-bindings';
 import { binding as binding6 } from '../tools/unicode-normalization/unicode-normalization.mobile-bindings';
 import { binding as binding7 } from '../tools/url-encode/url-encode.mobile-bindings';
-import { binding as binding8 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
+import { binding as binding8 } from '../tools/uuid/uuid.mobile-bindings';
+import { binding as binding9 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
 export const MOBILE_BINDINGS: MobileBindingMap = {
   'base64': binding0,
   'case-converter': binding1,
@@ -18,5 +19,6 @@ export const MOBILE_BINDINGS: MobileBindingMap = {
   'text-inspector': binding5,
   'unicode-normalization': binding6,
   'url-encode': binding7,
-  'whitespace-cleaner': binding8,
+  'uuid': binding8,
+  'whitespace-cleaner': binding9,
 };
