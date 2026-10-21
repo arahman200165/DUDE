@@ -6,6 +6,7 @@ import { binding as binding2 } from '../tools/hex-text-converter/hex-text-conver
 import { binding as binding3 } from '../tools/number-base/number-base.mobile-bindings';
 import { binding as binding4 } from '../tools/slug-generator/slug-generator.mobile-bindings';
 import { binding as binding5 } from '../tools/url-encode/url-encode.mobile-bindings';
+import { binding as binding6 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
 export const MOBILE_BINDINGS: MobileBindingMap = {
   'base64': binding0,
   'case-converter': binding1,
@@ -13,4 +14,5 @@ export const MOBILE_BINDINGS: MobileBindingMap = {
   'number-base': binding3,
   'slug-generator': binding4,
   'url-encode': binding5,
+  'whitespace-cleaner': binding6,
 };

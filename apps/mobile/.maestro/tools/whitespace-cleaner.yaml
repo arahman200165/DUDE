@@ -1,0 +1,29 @@
+appId: io.github.arahman200165.dude.preview
+name: Whitespace Cleaner on Android
+tags: [tools, text]
+---
+# clearState: the cleanup options are persisted preferences, so start from the defaults.
+- launchApp:
+    clearState: true
+- openLink: "dude://tools/whitespace-cleaner"
+- assertVisible:
+    id: "tool-input"
+- tapOn:
+    id: "tool-input"
+- inputText: "  hello    world  "
+- hideKeyboard
+# Default options (trim, collapse, strip trailing, LF): computed with cleanWhitespace(input, DEFAULT_WHITESPACE_OPTIONS)
+# from @dude/tool-engine/tools/whitespace-cleaner/whitespace-clean; trim alone is whitespace-clean.spec.ts:21-23.
+- assertVisible:
+    id: "tool-output"
+    text: "hello world"
+# Collapse off: computed with { ...DEFAULT_WHITESPACE_OPTIONS, collapseSpaces: false } -> "hello    world".
+- tapOn:
+    id: "tool-options"
+- tapOn:
+    id: "option-collapseSpaces"
+- tapOn:
+    id: "tool-options-done"
+- assertVisible:
+    id: "tool-output"
+    text: "hello    world"

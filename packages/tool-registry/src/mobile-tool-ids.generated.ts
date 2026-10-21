@@ -7,4 +7,5 @@ export const MOBILE_TOOL_IDS: readonly string[] = [
   'number-base',
   'slug-generator',
   'url-encode',
+  'whitespace-cleaner',
 ];
