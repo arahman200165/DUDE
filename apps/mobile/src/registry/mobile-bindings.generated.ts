@@ -5,16 +5,18 @@ import { binding as binding1 } from '../tools/case-converter/case-converter.mobi
 import { binding as binding2 } from '../tools/hex-text-converter/hex-text-converter.mobile-bindings';
 import { binding as binding3 } from '../tools/number-base/number-base.mobile-bindings';
 import { binding as binding4 } from '../tools/slug-generator/slug-generator.mobile-bindings';
-import { binding as binding5 } from '../tools/unicode-normalization/unicode-normalization.mobile-bindings';
-import { binding as binding6 } from '../tools/url-encode/url-encode.mobile-bindings';
-import { binding as binding7 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
+import { binding as binding5 } from '../tools/text-inspector/text-inspector.mobile-bindings';
+import { binding as binding6 } from '../tools/unicode-normalization/unicode-normalization.mobile-bindings';
+import { binding as binding7 } from '../tools/url-encode/url-encode.mobile-bindings';
+import { binding as binding8 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
 export const MOBILE_BINDINGS: MobileBindingMap = {
   'base64': binding0,
   'case-converter': binding1,
   'hex-text-converter': binding2,
   'number-base': binding3,
   'slug-generator': binding4,
-  'unicode-normalization': binding5,
-  'url-encode': binding6,
-  'whitespace-cleaner': binding7,
+  'text-inspector': binding5,
+  'unicode-normalization': binding6,
+  'url-encode': binding7,
+  'whitespace-cleaner': binding8,
 };

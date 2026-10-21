@@ -1,0 +1,65 @@
+appId: io.github.arahman200165.dude.preview
+name: Text Inspector on Android
+tags: [tools, text]
+---
+- launchApp
+- openLink: "dude://tools/text-inspector"
+- assertVisible:
+    id: "tool-input"
+- tapOn:
+    id: "mode-metrics"
+- tapOn:
+    id: "tool-input"
+- inputText: "hello world"
+- hideKeyboard
+# Expected values: packages/tool-engine/src/tools/text-inspector/text-metrics.spec.ts:18-25.
+- assertVisible:
+    id: "kv-characters-value"
+    text: "11"
+- assertVisible:
+    id: "kv-code-points-value"
+    text: "11"
+- assertVisible:
+    id: "kv-words-value"
+    text: "2"
+- assertVisible:
+    id: "kv-lines-value"
+    text: "1"
+- assertVisible:
+    id: "kv-bytes-value"
+    text: "11"
+- assertVisible:
+    id: "kv-whitespace-value"
+    text: "1"
+# Readability: one sentence.
+# Computed with computeReadability('The cat sat on the mat.') from @dude/tool-engine/tools/text-inspector/readability:
+# fleschReadingEase 116.1, grade -1.4, 1 sentence, 6 syllables.
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "The cat sat on the mat."
+- hideKeyboard
+- tapOn:
+    id: "mode-readability"
+- assertVisible:
+    id: "kv-reading-ease-value"
+    text: "116.1 .Very Easy."
+- assertVisible:
+    id: "kv-grade-value"
+    text: "-1.4"
+- assertVisible:
+    id: "kv-sentences-value"
+    text: "1"
+- assertVisible:
+    id: "kv-syllables-value"
+    text: "6"
+# A whitespace-only text has no sentence (computeReadability returns null), so the tool shows its error.
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: " "
+- hideKeyboard
+- assertVisible:
+    id: "tool-error"
