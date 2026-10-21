@@ -1,0 +1,50 @@
+appId: io.github.arahman200165.dude.preview
+name: Cron Expression Parser on Android
+tags: [tools, date-time]
+---
+- launchApp:
+    clearState: true
+- openLink: "dude://tools/cron"
+- assertVisible:
+    id: "tool-input"
+# Preset chips fill the input; "* * * * *" has a "*" minute field.
+- tapOn:
+    id: "preset-every-minute"
+- assertVisible:
+    id: "kv-field-minute-value"
+    text: "\\*"
+# */5 * * * *: the engine uses cronstrue verbose output, computed with parseCronExpression('*/5 * * * *', ...) from
+# @dude/tool-engine/tools/cron/cron-parse => "Every 5 minutes, every hour, every day".
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "*/5 * * * *"
+- hideKeyboard
+- assertVisible:
+    id: "tool-output"
+    text: "Every 5 minutes.*"
+- assertVisible:
+    id: "kv-field-minute-value"
+    text: "\\*/5"
+# UTC display: run rows are ISO strings whose minute is a multiple of 5.
+- tapOn:
+    id: "mode-utc"
+- assertVisible:
+    id: "kv-run-1-value"
+    text: "[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}[05]:00\\.000Z"
+# Previous runs.
+- tapOn:
+    id: "mode-previous"
+- assertVisible:
+    id: "kv-run-1-value"
+    text: "[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}[05]:00\\.000Z"
+# Out-of-range field: engine error "Constraint error, got value 61 expected range 0-59" (computed with parseCronExpression).
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "61 * * * *"
+- hideKeyboard
+- assertVisible:
+    id: "tool-error"

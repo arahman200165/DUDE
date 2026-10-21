@@ -6,6 +6,7 @@ export const MOBILE_TOOL_IDS: readonly string[] = [
   'color-converter',
   'contrast-checker',
   'cookie-tools',
+  'cron',
   'hex-text-converter',
   'hmac-generator',
   'http-status',
