@@ -1,0 +1,40 @@
+appId: io.github.arahman200165.dude.preview
+name: Base64 Encoder / Decoder on Android
+tags: [tools, encoding]
+---
+- launchApp:
+    clearState: true
+- openLink: "dude://tools/base64"
+- assertVisible:
+    id: "tool-input"
+- tapOn:
+    id: "mode-encode"
+- tapOn:
+    id: "tool-input"
+- inputText: "foobar"
+- hideKeyboard
+# Expected value copied from packages/crypto/src/base64-codec.spec.ts:13 (RFC 4648 vector foobar -> Zm9vYmFy)
+- assertVisible:
+    id: "tool-output"
+    text: "Zm9vYmFy"
+- tapOn:
+    id: "mode-decode"
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "Zm9vYmFy"
+- hideKeyboard
+# Same vector decoded: packages/crypto/src/base64-codec.spec.ts:19
+- assertVisible:
+    id: "tool-output"
+    text: "foobar"
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "not-valid-base64!!!"
+- hideKeyboard
+# Invalid input: packages/crypto/src/base64-codec.spec.ts:43
+- assertVisible:
+    id: "tool-error"
