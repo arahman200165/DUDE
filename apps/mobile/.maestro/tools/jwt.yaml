@@ -1,0 +1,84 @@
+appId: io.github.arahman200165.dude.preview
+name: JWT Debugger on Android
+tags: [tools, security]
+---
+- launchApp:
+    clearState: true
+- openLink: "dude://tools/jwt"
+- assertVisible:
+    id: "tool-input"
+- tapOn:
+    id: "tool-input"
+# The jwt.io sample token (HS256, payload {"sub":"1234567890","name":"John Doe","iat":1516239022}). Its characters are all
+# plain ASCII, so Maestro inputText can type it. The decode itself is covered by packages/tool-engine/src/tools/jwt/jwt-decode.spec.ts.
+- inputText: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "tool-output-payload"
+- assertVisible:
+    id: "tool-output-payload"
+    text: '(?s).*John Doe.*'
+- assertVisible:
+    id: "tool-output-header"
+    text: '(?s).*HS256.*'
+- scrollUntilVisible:
+    element:
+      id: "kv-alg-value"
+- assertVisible:
+    id: "kv-alg-value"
+    text: "HS256"
+# iat 1516239022 -> computed with: node -e "console.log(new Date(1516239022*1000).toISOString())"
+- assertVisible:
+    id: "kv-iat-value"
+    text: "2018-01-18T01:30:22.000Z"
+# The sample has no exp claim.
+- assertVisible:
+    id: "jwt-status"
+- assertVisible: ".*No exp claim.*"
+# The signature is displayed raw and never verified.
+- scrollUntilVisible:
+    element:
+      id: "jwt-signature-note"
+- assertVisible: ".*Signature not verified.*"
+# Expired token: RFC 7515 Appendix A.2 header and payload (jwt-decode.spec.ts:19-21, exp 1300819380) with a placeholder signature,
+# since decoding never checks it. exp -> computed with: node -e "console.log(new Date(1300819380*1000).toISOString())"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFtcGxlLmNvbS9pc19yb290Ijp0cnVlfQ.sig"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "kv-exp-value"
+- assertVisible:
+    id: "kv-exp-value"
+    text: "2011-03-22T18:43:00.000Z"
+- assertVisible:
+    id: "kv-iss-value"
+    text: "joe"
+- scrollUntilVisible:
+    element:
+      id: "jwt-status"
+    direction: UP
+- assertVisible:
+    id: "jwt-status"
+    text: ".*Expired.*"
+# Garbage is not a JWT (jwt-decode.spec.ts: a token without three segments is rejected).
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "abc"
+- hideKeyboard
+- assertVisible:
+    id: "tool-error"
