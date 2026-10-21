@@ -2,6 +2,7 @@
 /** Tool IDs that have an executable Android binding. */
 export const MOBILE_TOOL_IDS: readonly string[] = [
   'base64',
+  'case-converter',
   'hex-text-converter',
   'number-base',
   'url-encode',

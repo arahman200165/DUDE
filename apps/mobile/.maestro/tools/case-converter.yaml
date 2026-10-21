@@ -1,0 +1,49 @@
+appId: io.github.arahman200165.dude.preview
+name: Case Converter on Android
+tags: [tools, text]
+---
+- launchApp
+- openLink: "dude://tools/case-converter"
+- assertVisible:
+    id: "tool-input"
+- tapOn:
+    id: "tool-input"
+- inputText: "Hello World Example"
+- hideKeyboard
+# Expected values: packages/tool-engine/src/tools/case-converter/case-convert.spec.ts:34-54 (input 'Hello World Example');
+# snake/dot/path/alternating computed with convertCase from @dude/tool-engine/tools/case-converter/case-convert.
+- tapOn:
+    id: "mode-camel"
+- assertVisible:
+    id: "tool-output"
+    text: "helloWorldExample"
+- tapOn:
+    id: "mode-pascal"
+- assertVisible:
+    id: "tool-output"
+    text: "HelloWorldExample"
+- tapOn:
+    id: "mode-snake"
+- assertVisible:
+    id: "tool-output"
+    text: "hello_world_example"
+- tapOn:
+    id: "mode-kebab"
+- assertVisible:
+    id: "tool-output"
+    text: "hello-world-example"
+- tapOn:
+    id: "mode-constant"
+- assertVisible:
+    id: "tool-output"
+    text: "HELLO_WORLD_EXAMPLE"
+- tapOn:
+    id: "mode-sentence"
+- assertVisible:
+    id: "tool-output"
+    text: "Hello world example"
+- tapOn:
+    id: "mode-alternating"
+- assertVisible:
+    id: "tool-output"
+    text: "hElLo WoRlD eXaMpLe"
