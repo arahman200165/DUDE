@@ -2,6 +2,7 @@ import { DEFAULT_APPEARANCE, type AppearancePrefs } from '@dude/domain/core/appe
 import { favoriteItemId, type FavoriteItem } from '@dude/persistence/codecs/favorite.codec';
 import type { ConsequenceClass } from '@dude/domain/shared/models/tool-metadata.model';
 import type { LocalStatePort } from '../tools-host/recents';
+import type { ToolSettingsPort } from '../kit/tool-preference-store';
 
 export type ActionResult<T = undefined> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly reason: string };
 export type SyncCategory = 'favorites' | 'settings';
@@ -81,6 +82,8 @@ export interface WorkbenchBackend {
   readonly actions: WorkbenchActions;
   /** Device-local, never-synced key/value port (recents). Absent in the memory facade. */
   readonly localState?: LocalStatePort;
+  /** Settings KV of the active context for environment-scoped tool preferences (synced via `settings`). Absent in the memory facade. */
+  readonly toolSettings?: ToolSettingsPort;
 }
 export const INITIAL_WORKBENCH: WorkbenchSnapshot = {
   appearance: { ...DEFAULT_APPEARANCE }, favorites: [], durability: 'memory',

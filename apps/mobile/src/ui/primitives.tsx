@@ -17,12 +17,12 @@ export function Section({ title, children }: PropsWithChildren<{ readonly title:
   const { theme } = useWorkbench();
   return <View style={{ gap: theme.metrics.spaceNormal }}><Label accessibilityRole="header" style={{ fontWeight: '700' }}>{title}</Label>{children}</View>;
 }
-export function Button({ title, onPress, disabled, selected, hint }: {
-  readonly title: string; readonly onPress: () => void; readonly disabled?: boolean; readonly selected?: boolean; readonly hint?: string;
+export function Button({ title, onPress, disabled, selected, hint, testID, accessibilityLabel }: {
+  readonly title: string; readonly onPress: () => void; readonly disabled?: boolean; readonly selected?: boolean; readonly hint?: string; readonly testID?: string; readonly accessibilityLabel?: string;
 }) {
   const { theme } = useWorkbench();
   const [focused, setFocused] = useState(false);
-  return <Pressable accessibilityRole="button" accessibilityLabel={title} accessibilityHint={hint} accessibilityState={{ disabled: !!disabled, selected: !!selected }} disabled={disabled} onPress={onPress} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} style={({ pressed }) => ({
+  return <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? title} accessibilityHint={hint} accessibilityState={{ disabled: !!disabled, selected: !!selected }} disabled={disabled} onPress={onPress} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} style={({ pressed }) => ({
     minHeight: theme.metrics.touchMin, minWidth: theme.metrics.touchMin, justifyContent: 'center', paddingHorizontal: theme.metrics.spacePanel, paddingVertical: theme.metrics.spaceNormal,
     borderRadius: theme.metrics.radius, borderWidth: focused ? theme.metrics.focusWidth : 1, borderColor: focused || selected ? theme.colors.accent : theme.colors.border,
     backgroundColor: selected ? theme.colors.accent : pressed ? theme.colors.panelElevated : theme.colors.panel,

@@ -8,6 +8,7 @@ import { MobileSyncDriver, type SyncDriverState } from '../sync/driver';
 import type { MobileStore } from '../storage/store';
 import type { StorageContext } from '../storage/types';
 import { RECENTS_NAMESPACE, type LocalStatePort } from '../tools-host/recents';
+import type { ToolSettingsPort } from '../kit/tool-preference-store';
 import { INITIAL_WORKBENCH, patchAppearanceFields, type ActionResult, type ConnectionInput, type DestructivePreview, type WorkbenchActions, type WorkbenchBackend, type WorkbenchSnapshot } from './workbench-model';
 
 /** Installed by the lifecycle owner; sync cannot invoke destructive methods as an error response. */
@@ -50,6 +51,17 @@ export class DurableWorkbench implements WorkbenchBackend {
   readonly localState: LocalStatePort = {
     get: async key => this.store.kvRepository((await this.store.activeContext()).id).get(RECENTS_NAMESPACE, key),
     set: async (key, value) => { await this.store.kvRepository((await this.store.activeContext()).id).set(RECENTS_NAMESPACE, key, value, { policy: 'session', scope: 'local-only' }); },
+  };
+  /**
+   * Tool preferences resolved to environment scope: the same `(toolId, key)` KV rows the web app writes, so they journal as
+   * `setting` ops in the existing `settings` category. The store validates scope and syncability on every write.
+   */
+  readonly toolSettings: ToolSettingsPort = {
+    get: async (namespace, key) => this.store.kvRepository((await this.store.activeContext()).id).get(namespace, key),
+    set: async (namespace, key, value, meta) => {
+      await this.store.kvRepository((await this.store.activeContext()).id).set(namespace, key, value, meta);
+      void this.driver?.syncNow();
+    },
   };
   private lifecycle: MobileLifecyclePort | null = null;
   private snapshot: WorkbenchSnapshot = { ...INITIAL_WORKBENCH, durability: 'durable' };
