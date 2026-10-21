@@ -19,6 +19,7 @@ export const MOBILE_TOOL_IDS: readonly string[] = [
   'password-generator',
   'password-strength-analyzer',
   'regex',
+  'semver-comparator',
   'slug-generator',
   'text-inspector',
   'timezone-offset-comparator',
