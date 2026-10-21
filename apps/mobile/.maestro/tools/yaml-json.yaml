@@ -1,0 +1,45 @@
+appId: io.github.arahman200165.dude.preview
+name: YAML <-> JSON Converter on Android
+tags: [tools, data]
+---
+- launchApp:
+    clearState: true
+- openLink: "dude://tools/yaml-json"
+- assertVisible:
+    id: "tool-input"
+- tapOn:
+    id: "mode-yaml-to-json"
+- tapOn:
+    id: "tool-input-sample"
+# Sample "a: 1 / b: [2, 3]" as YAML to JSON, 2-space indent: packages/tool-engine/src/tools/yaml-json/yaml-convert.spec.ts:29
+- assertVisible:
+    id: "tool-output"
+    text: '(?s)\{\s+"a": 1,\s+"b": \[\s+2,\s+3\s+\]\s+\}'
+- tapOn:
+    id: "mode-json-to-yaml"
+- tapOn:
+    id: "tool-input-sample"
+# Sample {"a":1,"b":[2,3]} as JSON to YAML: packages/tool-engine/src/tools/yaml-json/yaml-convert.spec.ts:41
+- assertVisible:
+    id: "tool-output"
+    text: '(?s)a: 1\s+b:\s+- 2\s+- 3\s*'
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "{a:1}"
+- hideKeyboard
+# Unquoted property name is invalid JSON (json-to-yaml parses with JSON.parse)
+- assertVisible:
+    id: "tool-error"
+- tapOn:
+    id: "mode-yaml-to-json"
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "a: [1, 2"
+- hideKeyboard
+# Unterminated flow sequence: js-yaml "unexpected end of the stream within a flow collection"
+- assertVisible:
+    id: "tool-error"

@@ -32,4 +32,5 @@ export const MOBILE_TOOL_IDS: readonly string[] = [
   'user-agent',
   'uuid',
   'whitespace-cleaner',
+  'yaml-json',
 ];
