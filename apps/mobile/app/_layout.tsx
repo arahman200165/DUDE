@@ -1,3 +1,5 @@
+import '../src/engine-host/polyfills';
+import { installMobileEngineHost } from '../src/engine-host/mobile-engine-host';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
@@ -7,6 +9,8 @@ import { DEFAULT_APPEARANCE } from '@dude/domain/core/appearance/appearance.mode
 import { openProductionWorkbench } from '../src/state/boot';
 import type { DurableWorkbench } from '../src/state/durable-backend';
 import { WorkbenchProvider, useWorkbench } from '../src/state/workbench-provider';
+
+installMobileEngineHost();
 
 export const unstable_settings = { initialRouteName: '(tabs)' };
 

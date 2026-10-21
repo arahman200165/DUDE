@@ -9,11 +9,23 @@ const nodeModules = new Set(builtinModules.map(name => name.replace(/^node:/, ''
 const hostWorkspaces = new Set(['web', 'desktop', 'hub', 'device-agent', 'sqlite-store', 'agent-pipe', 'collab-relay', 'collab-protocol']);
 const hostGlobals = new Set(['window', 'document', 'localStorage', 'sessionStorage', 'indexedDB', 'DOMParser', 'HTMLElement', 'HTMLCanvasElement', 'OffscreenCanvas', 'FileReader', 'XMLSerializer', 'Worker', 'process', 'Buffer', '__dirname', '__filename']);
 const searchExport = '@dude/tool-engine/core/registry/tool-search';
+const pasteExport = '@dude/tool-engine/core/paste-detect/paste-detect';
+const shellEngineExports = new Set([searchExport, pasteExport]);
+const cryptoHost = '@dude/crypto/host';
+
+/** shell: everything outside src/tools and src/engine-host; tools: lazily bound tool screens; host: the engine-host adapter. */
+export function mobileRegion(file, mobileRoot = 'apps/mobile') {
+  const relative = path.relative(path.resolve(mobileRoot), path.resolve(file)).replaceAll('\\', '/');
+  if (relative.startsWith('src/tools/')) return 'tools';
+  if (relative.startsWith('src/engine-host/')) return 'host';
+  return 'shell';
+}
 const packageName = name => name.startsWith('@') ? name.split('/').slice(0, 2).join('/') : name.split('/')[0];
 
 export function mobileBoundaryFailures(file, text, manifest, mobileRoot = 'apps/mobile') {
   const failures = [];
   const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  const region = mobileRegion(file, mobileRoot);
   const declared = { ...manifest.dependencies, ...manifest.devDependencies };
   for (const imp of imports(sf)) {
     const name = packageName(imp.text);
@@ -25,7 +37,16 @@ export function mobileBoundaryFailures(file, text, manifest, mobileRoot = 'apps/
     if (imp.text.startsWith('node:') || nodeModules.has(imp.text)) failures.push(`${file}: Node-only import ${imp.text}`);
     else if (!declared[name] && name !== manifest.name) failures.push(`${file}: undeclared mobile dependency ${name}`);
     if (name.startsWith('@angular/') || name === 'electron' || name.startsWith('electron-') || name === 'ws' || name === 'better-sqlite3' || hostWorkspaces.has(name.replace('@dude/', ''))) failures.push(`${file}: forbidden mobile host dependency ${imp.text}`);
-    if (name === '@dude/tool-engine' && imp.text !== searchExport) failures.push(`${file}: shell cannot import tool execution (${imp.text}); tools start in Phase 31I`);
+    if (name === '@dude/tool-engine') {
+      if (region === 'shell' && !shellEngineExports.has(imp.text)) failures.push(`${file}: shell code may import only ${searchExport} and ${pasteExport} from the tool engine (${imp.text}); tool engines load only from lazily bound apps/mobile/src/tools/** modules`);
+      else if (region === 'tools' && !/^@dude\/tool-engine\/(?:tools|shared)\/.+/.test(imp.text) && !shellEngineExports.has(imp.text)) failures.push(`${file}: tool screens may import only @dude/tool-engine/tools/**, @dude/tool-engine/shared/** and the search/paste-detect subpaths (${imp.text})`);
+      else if (region === 'host') failures.push(`${file}: the engine host must not import tool engines (${imp.text})`);
+    }
+    if (name === '@dude/crypto') {
+      if (region === 'shell') failures.push(`${file}: shell code cannot import ${imp.text}; crypto helpers load only from lazily bound tool screens and the engine host`);
+      else if (region === 'host' && imp.text !== cryptoHost) failures.push(`${file}: the engine host may import only ${cryptoHost} (${imp.text})`);
+      else if (region === 'tools' && imp.text === '@dude/crypto') failures.push(`${file}: import a specific @dude/crypto subpath, not the barrel`);
+    }
     if (imp.text.startsWith('@dude/') && /\/(src|dist)(\/|$)/.test(imp.text)) failures.push(`${file}: use the public package export (${imp.text})`);
   }
   function visit(node) {

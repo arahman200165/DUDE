@@ -89,7 +89,7 @@
     "preagent:sea": "npm run device-agent:compile",
     "precheck:mobile": "npm run build:packages",
     "check:mobile": "npm run check --workspace=@dude/mobile && node scripts/check-mobile-boundaries.mjs",
-    "test:mobile": "node --test tests/mobile-boundaries.test.mjs tests/mobile-bindings.test.mjs tests/mobile-shell.test.mjs tests/mobile-native-privacy.test.mjs tests/mobile-package.test.mjs && vitest run --config vitest.mobile.config.mts",
+    "test:mobile": "node --test tests/mobile-boundaries.test.mjs tests/mobile-bindings.test.mjs tests/mobile-shell.test.mjs tests/mobile-native-privacy.test.mjs tests/mobile-package.test.mjs tests/mobile-lazy-tools.test.mjs && vitest run --config vitest.mobile.config.mts",
     "test:e2e:mobile": "node scripts/mobile-e2e.mjs",
     "mobile:package": "node scripts/mobile-package.mjs",
     "measure:mobile": "node scripts/measure-mobile.mjs",
