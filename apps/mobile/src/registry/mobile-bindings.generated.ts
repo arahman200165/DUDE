@@ -4,21 +4,23 @@ import { binding as binding0 } from '../tools/base64/base64.mobile-bindings';
 import { binding as binding1 } from '../tools/case-converter/case-converter.mobile-bindings';
 import { binding as binding2 } from '../tools/hex-text-converter/hex-text-converter.mobile-bindings';
 import { binding as binding3 } from '../tools/number-base/number-base.mobile-bindings';
-import { binding as binding4 } from '../tools/slug-generator/slug-generator.mobile-bindings';
-import { binding as binding5 } from '../tools/text-inspector/text-inspector.mobile-bindings';
-import { binding as binding6 } from '../tools/unicode-normalization/unicode-normalization.mobile-bindings';
-import { binding as binding7 } from '../tools/url-encode/url-encode.mobile-bindings';
-import { binding as binding8 } from '../tools/uuid/uuid.mobile-bindings';
-import { binding as binding9 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
+import { binding as binding4 } from '../tools/password-generator/password-generator.mobile-bindings';
+import { binding as binding5 } from '../tools/slug-generator/slug-generator.mobile-bindings';
+import { binding as binding6 } from '../tools/text-inspector/text-inspector.mobile-bindings';
+import { binding as binding7 } from '../tools/unicode-normalization/unicode-normalization.mobile-bindings';
+import { binding as binding8 } from '../tools/url-encode/url-encode.mobile-bindings';
+import { binding as binding9 } from '../tools/uuid/uuid.mobile-bindings';
+import { binding as binding10 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
 export const MOBILE_BINDINGS: MobileBindingMap = {
   'base64': binding0,
   'case-converter': binding1,
   'hex-text-converter': binding2,
   'number-base': binding3,
-  'slug-generator': binding4,
-  'text-inspector': binding5,
-  'unicode-normalization': binding6,
-  'url-encode': binding7,
-  'uuid': binding8,
-  'whitespace-cleaner': binding9,
+  'password-generator': binding4,
+  'slug-generator': binding5,
+  'text-inspector': binding6,
+  'unicode-normalization': binding7,
+  'url-encode': binding8,
+  'uuid': binding9,
+  'whitespace-cleaner': binding10,
 };
