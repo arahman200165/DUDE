@@ -2,37 +2,39 @@
 import type { MobileBindingMap } from './mobile-binding';
 import { binding as binding0 } from '../tools/base64/base64.mobile-bindings';
 import { binding as binding1 } from '../tools/case-converter/case-converter.mobile-bindings';
-import { binding as binding2 } from '../tools/cookie-tools/cookie-tools.mobile-bindings';
-import { binding as binding3 } from '../tools/hex-text-converter/hex-text-converter.mobile-bindings';
-import { binding as binding4 } from '../tools/hmac-generator/hmac-generator.mobile-bindings';
-import { binding as binding5 } from '../tools/http-status/http-status.mobile-bindings';
-import { binding as binding6 } from '../tools/number-base/number-base.mobile-bindings';
-import { binding as binding7 } from '../tools/password-generator/password-generator.mobile-bindings';
-import { binding as binding8 } from '../tools/password-strength-analyzer/password-strength-analyzer.mobile-bindings';
-import { binding as binding9 } from '../tools/slug-generator/slug-generator.mobile-bindings';
-import { binding as binding10 } from '../tools/text-inspector/text-inspector.mobile-bindings';
-import { binding as binding11 } from '../tools/unicode-normalization/unicode-normalization.mobile-bindings';
-import { binding as binding12 } from '../tools/url-encode/url-encode.mobile-bindings';
-import { binding as binding13 } from '../tools/url-inspector/url-inspector.mobile-bindings';
-import { binding as binding14 } from '../tools/user-agent/user-agent.mobile-bindings';
-import { binding as binding15 } from '../tools/uuid/uuid.mobile-bindings';
-import { binding as binding16 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
+import { binding as binding2 } from '../tools/color-converter/color-converter.mobile-bindings';
+import { binding as binding3 } from '../tools/cookie-tools/cookie-tools.mobile-bindings';
+import { binding as binding4 } from '../tools/hex-text-converter/hex-text-converter.mobile-bindings';
+import { binding as binding5 } from '../tools/hmac-generator/hmac-generator.mobile-bindings';
+import { binding as binding6 } from '../tools/http-status/http-status.mobile-bindings';
+import { binding as binding7 } from '../tools/number-base/number-base.mobile-bindings';
+import { binding as binding8 } from '../tools/password-generator/password-generator.mobile-bindings';
+import { binding as binding9 } from '../tools/password-strength-analyzer/password-strength-analyzer.mobile-bindings';
+import { binding as binding10 } from '../tools/slug-generator/slug-generator.mobile-bindings';
+import { binding as binding11 } from '../tools/text-inspector/text-inspector.mobile-bindings';
+import { binding as binding12 } from '../tools/unicode-normalization/unicode-normalization.mobile-bindings';
+import { binding as binding13 } from '../tools/url-encode/url-encode.mobile-bindings';
+import { binding as binding14 } from '../tools/url-inspector/url-inspector.mobile-bindings';
+import { binding as binding15 } from '../tools/user-agent/user-agent.mobile-bindings';
+import { binding as binding16 } from '../tools/uuid/uuid.mobile-bindings';
+import { binding as binding17 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
 export const MOBILE_BINDINGS: MobileBindingMap = {
   'base64': binding0,
   'case-converter': binding1,
-  'cookie-tools': binding2,
-  'hex-text-converter': binding3,
-  'hmac-generator': binding4,
-  'http-status': binding5,
-  'number-base': binding6,
-  'password-generator': binding7,
-  'password-strength-analyzer': binding8,
-  'slug-generator': binding9,
-  'text-inspector': binding10,
-  'unicode-normalization': binding11,
-  'url-encode': binding12,
-  'url-inspector': binding13,
-  'user-agent': binding14,
-  'uuid': binding15,
-  'whitespace-cleaner': binding16,
+  'color-converter': binding2,
+  'cookie-tools': binding3,
+  'hex-text-converter': binding4,
+  'hmac-generator': binding5,
+  'http-status': binding6,
+  'number-base': binding7,
+  'password-generator': binding8,
+  'password-strength-analyzer': binding9,
+  'slug-generator': binding10,
+  'text-inspector': binding11,
+  'unicode-normalization': binding12,
+  'url-encode': binding13,
+  'url-inspector': binding14,
+  'user-agent': binding15,
+  'uuid': binding16,
+  'whitespace-cleaner': binding17,
 };

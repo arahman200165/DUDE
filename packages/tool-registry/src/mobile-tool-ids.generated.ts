@@ -3,6 +3,7 @@
 export const MOBILE_TOOL_IDS: readonly string[] = [
   'base64',
   'case-converter',
+  'color-converter',
   'cookie-tools',
   'hex-text-converter',
   'hmac-generator',

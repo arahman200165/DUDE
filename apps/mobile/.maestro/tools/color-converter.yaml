@@ -1,0 +1,47 @@
+appId: io.github.arahman200165.dude.preview
+name: Color Converter on Android
+tags: [tools, encoding]
+---
+- launchApp:
+    clearState: true
+- openLink: "dude://tools/color-converter"
+- assertVisible:
+    id: "tool-input"
+# Vector: packages/tool-engine/src/tools/color-converter/color-convert.spec.ts:10-12 ('#ff0000' -> rgb(255, 0, 0), hsl(0, 100%, 50%), name red)
+- tapOn:
+    id: "tool-input"
+- eraseText: 40
+- inputText: "#ff0000"
+- hideKeyboard
+- assertVisible:
+    id: "kv-rgb-value"
+    text: "rgb(255, 0, 0)"
+- assertVisible:
+    id: "kv-hsl-value"
+    text: "hsl(0, 100%, 50%)"
+- assertVisible:
+    id: "kv-name-value"
+    text: "red"
+- assertVisible:
+    id: "color-swatch"
+# Alpha: hex8 '#0080ff80' computed with colord (the engine's parser): node -e "console.log(require('colord').colord('#0080ff80').toRgbString())"
+# -> rgba(0, 128, 255, 0.5); the rgba string form is asserted in color-convert.spec.ts:45.
+- tapOn:
+    id: "tool-input"
+- eraseText: 40
+- inputText: "#0080ff80"
+- hideKeyboard
+- assertVisible:
+    id: "kv-rgb-value"
+    text: "rgba\\(0, 128, 255, 0\\.5\\)"
+- assertVisible:
+    id: "kv-alpha-value"
+    text: "0.5"
+# Invalid input: engine error 'Could not recognize this as a color.' (color-convert.ts parseColor)
+- tapOn:
+    id: "tool-input"
+- eraseText: 40
+- inputText: "notacolor"
+- hideKeyboard
+- assertVisible:
+    id: "tool-error"
