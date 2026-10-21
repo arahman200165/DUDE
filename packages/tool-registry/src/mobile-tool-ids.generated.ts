@@ -5,5 +5,6 @@ export const MOBILE_TOOL_IDS: readonly string[] = [
   'case-converter',
   'hex-text-converter',
   'number-base',
+  'slug-generator',
   'url-encode',
 ];

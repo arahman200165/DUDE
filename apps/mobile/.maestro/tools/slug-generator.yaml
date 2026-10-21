@@ -1,0 +1,38 @@
+appId: io.github.arahman200165.dude.preview
+name: Slug Generator on Android
+tags: [tools, text]
+---
+# clearState: the separator and stopword options are persisted preferences, so start from the defaults.
+- launchApp:
+    clearState: true
+- openLink: "dude://tools/slug-generator"
+- assertVisible:
+    id: "tool-input"
+- tapOn:
+    id: "tool-input"
+- inputText: "The Quick Brown Fox and the Lazy Dog"
+- hideKeyboard
+# Default options: computed with generateSlug(input, DEFAULT_SLUG_OPTIONS) from @dude/tool-engine/tools/slug-generator/slug-generate;
+# stopword removal matches packages/tool-engine/src/tools/slug-generator/slug-generate.spec.ts:24-27.
+- assertVisible:
+    id: "tool-output"
+    text: "the-quick-brown-fox-and-the-lazy-dog"
+- tapOn:
+    id: "tool-options"
+- tapOn:
+    id: "option-removeStopwords"
+- tapOn:
+    id: "tool-options-done"
+- assertVisible:
+    id: "tool-output"
+    text: "quick-brown-fox-lazy-dog"
+# Underscore separator + stopwords: computed with generateSlug(input, { ...DEFAULT_SLUG_OPTIONS, separator: '_', removeStopwords: true }).
+- tapOn:
+    id: "tool-options"
+- tapOn:
+    id: "option-separator-_"
+- tapOn:
+    id: "tool-options-done"
+- assertVisible:
+    id: "tool-output"
+    text: "quick_brown_fox_lazy_dog"

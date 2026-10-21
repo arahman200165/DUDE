@@ -4,11 +4,13 @@ import { binding as binding0 } from '../tools/base64/base64.mobile-bindings';
 import { binding as binding1 } from '../tools/case-converter/case-converter.mobile-bindings';
 import { binding as binding2 } from '../tools/hex-text-converter/hex-text-converter.mobile-bindings';
 import { binding as binding3 } from '../tools/number-base/number-base.mobile-bindings';
-import { binding as binding4 } from '../tools/url-encode/url-encode.mobile-bindings';
+import { binding as binding4 } from '../tools/slug-generator/slug-generator.mobile-bindings';
+import { binding as binding5 } from '../tools/url-encode/url-encode.mobile-bindings';
 export const MOBILE_BINDINGS: MobileBindingMap = {
   'base64': binding0,
   'case-converter': binding1,
   'hex-text-converter': binding2,
   'number-base': binding3,
-  'url-encode': binding4,
+  'slug-generator': binding4,
+  'url-encode': binding5,
 };
