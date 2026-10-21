@@ -1,0 +1,40 @@
+appId: io.github.arahman200165.dude.preview
+name: Hex / Text Converter on Android
+tags: [tools, encoding]
+---
+- launchApp:
+    clearState: true
+- openLink: "dude://tools/hex-text-converter"
+- assertVisible:
+    id: "tool-input"
+- tapOn:
+    id: "mode-toHex"
+- tapOn:
+    id: "tool-input"
+- inputText: "foobar"
+- hideKeyboard
+# Expected value copied from packages/tool-engine/src/tools/hex-text-converter/hex-text-convert.spec.ts:12 (RFC 4648 Base16 vector; UTF-8 default equals ASCII here)
+- assertVisible:
+    id: "tool-output"
+    text: "666f6f626172"
+- tapOn:
+    id: "mode-toText"
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "666f6f626172"
+- hideKeyboard
+# Reverse direction of the same vector (hex-text-convert.spec.ts:13)
+- assertVisible:
+    id: "tool-output"
+    text: "foobar"
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "zz"
+- hideKeyboard
+# Non-hex input: computed with convertHexText('zz','toText','utf8') from @dude/tool-engine -> "Contains non-hex characters."
+- assertVisible:
+    id: "tool-error"
