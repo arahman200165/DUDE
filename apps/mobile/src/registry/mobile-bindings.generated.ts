@@ -13,8 +13,9 @@ import { binding as binding9 } from '../tools/text-inspector/text-inspector.mobi
 import { binding as binding10 } from '../tools/unicode-normalization/unicode-normalization.mobile-bindings';
 import { binding as binding11 } from '../tools/url-encode/url-encode.mobile-bindings';
 import { binding as binding12 } from '../tools/url-inspector/url-inspector.mobile-bindings';
-import { binding as binding13 } from '../tools/uuid/uuid.mobile-bindings';
-import { binding as binding14 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
+import { binding as binding13 } from '../tools/user-agent/user-agent.mobile-bindings';
+import { binding as binding14 } from '../tools/uuid/uuid.mobile-bindings';
+import { binding as binding15 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
 export const MOBILE_BINDINGS: MobileBindingMap = {
   'base64': binding0,
   'case-converter': binding1,
@@ -29,6 +30,7 @@ export const MOBILE_BINDINGS: MobileBindingMap = {
   'unicode-normalization': binding10,
   'url-encode': binding11,
   'url-inspector': binding12,
-  'uuid': binding13,
-  'whitespace-cleaner': binding14,
+  'user-agent': binding13,
+  'uuid': binding14,
+  'whitespace-cleaner': binding15,
 };

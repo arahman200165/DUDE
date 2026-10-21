@@ -1,0 +1,33 @@
+appId: io.github.arahman200165.dude.preview
+name: User-Agent Parser on Android
+tags: [tools, web]
+---
+- launchApp
+- openLink: "dude://tools/user-agent"
+- assertVisible:
+    id: "tool-input"
+- tapOn:
+    id: "tool-input-sample"
+# Sample is DESKTOP_CHROME_UA from packages/tool-engine/src/tools/user-agent/ua-parse.spec.ts:3-4 (spec asserts Chrome 119.0.0.0, Blink, Windows 10).
+# cpu "amd64" and engine version computed with parseUserAgent from @dude/tool-engine/tools/user-agent/ua-parse.
+- assertVisible:
+    id: "kv-browser-value"
+    text: "Chrome 119.0.0.0"
+- assertVisible:
+    id: "kv-engine-value"
+    text: "Blink 119.0.0.0"
+- assertVisible:
+    id: "kv-os-value"
+    text: "Windows 10"
+- assertVisible:
+    id: "kv-cpu-value"
+    text: "amd64"
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: " "
+- hideKeyboard
+# ua-parse.spec.ts:11 (blank input is an error)
+- assertVisible:
+    id: "tool-error"

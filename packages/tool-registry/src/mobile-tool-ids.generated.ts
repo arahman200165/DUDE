@@ -14,6 +14,7 @@ export const MOBILE_TOOL_IDS: readonly string[] = [
   'unicode-normalization',
   'url-encode',
   'url-inspector',
+  'user-agent',
   'uuid',
   'whitespace-cleaner',
 ];
