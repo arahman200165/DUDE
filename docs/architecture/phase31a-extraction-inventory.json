@@ -29346,18 +29346,22 @@
       "route": "/tools/barcode-reader",
       "manifest": "packages/tool-registry/src/tools/barcode-reader/barcode-reader.manifest.ts",
       "binding": "apps/web/src/app/tools/barcode-reader/barcode-reader.bindings.ts",
-      "engineModules": [],
+      "engineModules": [
+        "packages/tool-engine/src/tools/barcode-reader/barcode-result.ts"
+      ],
       "adapters": [
         "apps/web/src/app/tools/barcode-reader/barcode-reader.ts"
       ],
-      "tests": [],
+      "tests": [
+        "packages/tool-engine/src/tools/barcode-reader/barcode-result.spec.ts"
+      ],
       "runtimeRequirements": [
         "application File"
       ],
       "unsupportedHosts": [
         "Mobile execution is not verified; host facilities must be supplied explicitly"
       ],
-      "registration": "shared engines or application capability adapter",
+      "registration": "portable engines plus application bindings",
       "mobileVerified": false
     },
     {
@@ -36316,13 +36320,16 @@
       "route": "/tools/qr-code-scanner",
       "manifest": "packages/tool-registry/src/tools/qr-code-scanner/qr-code-scanner.manifest.ts",
       "binding": "apps/web/src/app/tools/qr-code-scanner/qr-code-scanner.bindings.ts",
-      "engineModules": [],
+      "engineModules": [
+        "packages/tool-engine/src/tools/qr-code-scanner/scan-payload.ts"
+      ],
       "adapters": [
         "apps/web/src/app/tools/qr-code-scanner/qr-code-scanner.pipeline-step.ts",
         "apps/web/src/app/tools/qr-code-scanner/qr-code-scanner.ts",
         "apps/web/src/app/tools/qr-code-scanner/qr-decode.ts"
       ],
       "tests": [
+        "packages/tool-engine/src/tools/qr-code-scanner/scan-payload.spec.ts",
         "apps/web/src/app/tools/qr-code-scanner/qr-code-scanner.pipeline-step.spec.ts",
         "apps/web/src/app/tools/qr-code-scanner/qr-code-scanner.property.spec.ts",
         "apps/web/src/app/tools/qr-code-scanner/qr-decode.spec.ts"
@@ -36337,7 +36344,7 @@
       "unsupportedHosts": [
         "Mobile execution is not verified; host facilities must be supplied explicitly"
       ],
-      "registration": "shared engines or application capability adapter",
+      "registration": "portable engines plus application bindings",
       "mobileVerified": false
     },
     {

@@ -1,9 +1,10 @@
-import { Component, ElementRef, OnDestroy, signal, viewChild } from '@angular/core';
+import { Component, OnDestroy, computed, signal, viewChild } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
 import { CopyButton } from '../../shared/components/copy-button/copy-button';
 import { FileDrop } from '../../shared/components/file-drop/file-drop';
 import { CameraCapture } from '../../shared/components/camera-capture/camera-capture';
+import { classifyScanPayload, scanPayloadKindLabel } from "@dude/tool-engine/tools/qr-code-scanner/scan-payload";
 import { decodeQrFromImageData } from './qr-decode';
 
 /**
@@ -19,6 +20,10 @@ export class QrCodeScanner implements OnDestroy {
   protected readonly rejection = signal<string | null>(null);
   protected readonly result = signal<string | null>(null);
   protected readonly scanning = signal(false);
+  protected readonly kindLabel = computed(() => {
+    const data = this.result();
+    return data === null ? null : scanPayloadKindLabel(classifyScanPayload(data).kind);
+  });
 
   private readonly cameraRef = viewChild<CameraCapture>('camera');
   private readonly scanCanvas = document.createElement('canvas');

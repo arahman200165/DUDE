@@ -1,5 +1,6 @@
-import { Component, OnDestroy, signal, viewChild } from '@angular/core';
-import { BrowserMultiFormatReader } from '@zxing/library';
+import { Component, OnDestroy, computed, signal, viewChild } from '@angular/core';
+import { BarcodeFormat, BrowserMultiFormatReader, type Result } from '@zxing/library';
+import { interpretBarcode } from "@dude/tool-engine/tools/barcode-reader/barcode-result";
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
 import { CopyButton } from '../../shared/components/copy-button/copy-button';
@@ -19,18 +20,27 @@ import { CameraCapture } from '../../shared/components/camera-capture/camera-cap
 export class BarcodeReader implements OnDestroy {
   protected readonly rejection = signal<string | null>(null);
   protected readonly result = signal<string | null>(null);
+  private readonly formatName = signal<string | null>(null);
+  protected readonly summary = computed(() => {
+    const data = this.result();
+    if (data === null) return null;
+    const interpreted = interpretBarcode(data, this.formatName());
+    const parts = [interpreted.label];
+    if (interpreted.checkDigit) parts.push(interpreted.checkDigit.valid ? 'check digit valid' : `check digit invalid (expected ${interpreted.checkDigit.expected})`);
+    return parts.join(' - ');
+  });
 
   private readonly cameraRef = viewChild<CameraCapture>('camera');
   private readonly reader = new BrowserMultiFormatReader();
 
   protected async onFileSelected(file: File): Promise<void> {
     this.rejection.set(null);
-    this.result.set(null);
+    this.setResult(null);
 
     const url = URL.createObjectURL(file);
     try {
       const decoded = await this.reader.decodeFromImageUrl(url);
-      this.result.set(decoded.getText());
+      this.setResult(decoded);
     } catch {
       this.rejection.set('No barcode found in this image.');
     } finally {
@@ -44,7 +54,7 @@ export class BarcodeReader implements OnDestroy {
 
   protected onCameraStreamReady(stream: MediaStream): void {
     this.rejection.set(null);
-    this.result.set(null);
+    this.setResult(null);
 
     const video = this.cameraRef()?.videoElement;
     if (!video) return;
@@ -52,7 +62,7 @@ export class BarcodeReader implements OnDestroy {
     this.reader
       .decodeFromStream(stream, video, (decoded) => {
         if (decoded) {
-          this.result.set(decoded.getText());
+          this.setResult(decoded);
           this.reader.stopContinuousDecode();
           this.cameraRef()?.stop();
         }
@@ -61,6 +71,11 @@ export class BarcodeReader implements OnDestroy {
         // decodeFromStream's promise settles when decoding stops; a stopContinuousDecode()-triggered
         // rejection here is expected and not an error worth surfacing.
       });
+  }
+
+  private setResult(decoded: Result | null): void {
+    this.formatName.set(decoded ? BarcodeFormat[decoded.getBarcodeFormat()] : null);
+    this.result.set(decoded ? decoded.getText() : null);
   }
 
   protected onCameraStopped(): void {
