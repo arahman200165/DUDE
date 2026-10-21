@@ -1,0 +1,58 @@
+appId: io.github.arahman200165.dude.preview
+name: Chmod Converter on Android
+tags: [tools, developer]
+---
+- launchApp:
+    clearState: true
+- openLink: "dude://tools/chmod-converter"
+- assertVisible:
+    id: "tool-input-octal"
+# The default state is 755 / rwxr-xr-x (the same default as the web tool).
+- assertVisible:
+    id: "kv-symbolic-value"
+    text: "rwxr-xr-x"
+# Octal to symbolic, vector from packages/tool-engine/src/tools/chmod-converter/chmod-convert.spec.ts:6 (754 -> rwxr-xr--).
+- tapOn:
+    id: "tool-input-octal"
+- eraseText: 6
+- inputText: "754"
+- hideKeyboard
+- assertVisible:
+    id: "kv-symbolic-value"
+    text: "rwxr-xr--"
+# Grid toggle: other gains write, 754 -> 756 (other r-- becomes rw-). Computed with the engine: permissionsToOctal/permissionsToSymbolic on
+# the 754 permissions with other.write flipped (also asserted in chmod-converter-mobile.spec.ts).
+- tapOn:
+    id: "perm-other-w"
+- assertVisible:
+    id: "kv-octal-value"
+    text: "756"
+- assertVisible:
+    id: "kv-symbolic-value"
+    text: "rwxr-xrw-"
+# Symbolic to octal: rw-r--r-- is 644 (chmod-convert.spec.ts:44 covers the symbolic parser; digits are r=4, w=2, x=1 per class).
+- tapOn:
+    id: "tool-input-symbolic"
+- eraseText: 12
+- inputText: "rw-r--r--"
+- hideKeyboard
+- assertVisible:
+    id: "kv-octal-value"
+    text: "644"
+# Setuid, vector from chmod-convert.spec.ts:17 (4755 -> rwsr-xr-x).
+- tapOn:
+    id: "tool-input-octal"
+- eraseText: 6
+- inputText: "4755"
+- hideKeyboard
+- assertVisible:
+    id: "kv-symbolic-value"
+    text: "rwsr-xr-x"
+# Invalid octal (chmod-convert.spec.ts:46 rejects 999) shows the error banner.
+- tapOn:
+    id: "tool-input-octal"
+- eraseText: 6
+- inputText: "999"
+- hideKeyboard
+- assertVisible:
+    id: "tool-error"
