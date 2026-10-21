@@ -1,0 +1,37 @@
+appId: io.github.arahman200165.dude.preview
+name: JSON Flatten / Unflatten on Android
+tags: [tools, data]
+---
+- launchApp:
+    clearState: true
+- openLink: "dude://tools/json-flatten"
+- assertVisible:
+    id: "tool-input"
+- tapOn:
+    id: "mode-flatten"
+# Maestro inputText is unreliable with quotes and braces, so the Sample button fills the input with {"a":{"b":1,"c":[2,3]}}.
+# Expected output: packages/tool-engine/src/tools/json-flatten/json-flatten-transform.spec.ts:4-7
+# (flatten of {"a":{"b":1,"c":[2,3]}} -> {"a.b":1,"a.c[0]":2,"a.c[1]":3}, pretty-printed with 2 spaces).
+- tapOn:
+    id: "tool-input-sample"
+- assertVisible:
+    id: "tool-output"
+    text: '(?s).*"a\.b": 1.*"a\.c\[0\]": 2.*"a\.c\[1\]": 3.*'
+# Swap moves the flattened output into the input; Unflatten then restores the nested shape.
+# Expected: json-flatten-transform.spec.ts:20-24 (unflatten of the same flat keys -> {"a":{"b":1,"c":[2,3]}}).
+- tapOn:
+    id: "tool-input-swap"
+- tapOn:
+    id: "mode-unflatten"
+- assertVisible:
+    id: "tool-output"
+    text: '(?s).*"a": \{.*"b": 1.*"c": \[.*2,.*3.*\].*\}.*'
+# Invalid JSON reports a parse error (json-flatten-transform.spec.ts:38-43).
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "abc"
+- hideKeyboard
+- assertVisible:
+    id: "tool-error"
