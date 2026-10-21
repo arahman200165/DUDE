@@ -9,6 +9,7 @@ import { DEFAULT_APPEARANCE } from '@dude/domain/core/appearance/appearance.mode
 import { openProductionWorkbench } from '../src/state/boot';
 import type { DurableWorkbench } from '../src/state/durable-backend';
 import { WorkbenchProvider, useWorkbench } from '../src/state/workbench-provider';
+import { useBackgroundWipe } from '../src/tools-host/use-background-wipe';
 
 installMobileEngineHost();
 
@@ -30,6 +31,7 @@ function WorkbenchNavigator() {
 }
 
 export default function RootLayout() {
+  useBackgroundWipe();
   const [backend, setBackend] = useState<DurableWorkbench | null>(null);
   const [error, setError] = useState<string>();
   const [attempt, setAttempt] = useState(0);

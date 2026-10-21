@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { FlatList, ScrollView, View } from 'react-native';
+import { FlatList, ScrollView, Switch, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CATEGORY_METADATA, TOOL_CATEGORIES, type ToolCategory } from '@dude/shared-types/shared/models/tool-category.model';
 import { useWorkbench } from '../state/workbench-provider';
 import { discoverTools } from '../registry/discovery';
+import { partitionCatalog } from '../registry/catalog-partition';
+import { MOBILE_BINDINGS } from '../registry/mobile-bindings.generated';
 import { Button, Field, Label } from '../ui/primitives';
 import { ToolRow } from '../ui/tool-row';
 
@@ -13,7 +15,8 @@ export function CatalogScreen({ search = false }: { readonly search?: boolean })
   const category = TOOL_CATEGORIES.find(category => category === params.category);
   const router = useRouter();
   const [query, setQuery] = useState('');
-  const tools = discoverTools(query, category);
+  const [showAll, setShowAll] = useState(false);
+  const partition = partitionCatalog(discoverTools(query, category), MOBILE_BINDINGS, showAll);
   const select = (next?: ToolCategory) => router.setParams({ category: next ?? '' });
   return <View style={{ flex: 1, backgroundColor: theme.colors.bg }}>
     <View style={{ padding: theme.metrics.spacePanel, gap: theme.metrics.spaceNormal }}>
@@ -22,8 +25,12 @@ export function CatalogScreen({ search = false }: { readonly search?: boolean })
         <Button title="All categories" selected={!category} onPress={() => select()} />
         {TOOL_CATEGORIES.map(item => <Button key={item} title={CATEGORY_METADATA[item].label} selected={category === item} onPress={() => select(item)} />)}
       </ScrollView>
-      <Label muted accessibilityLiveRegion="polite">{tools.length} tools · registry discovery</Label>
+      {!partition.forcedAll && partition.desktopOnlyCount > 0 && <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: theme.metrics.touchMin, gap: theme.metrics.spaceNormal }}>
+        <Label style={{ flex: 1 }}>Show desktop/web-only tools ({partition.desktopOnlyCount})</Label>
+        <Switch accessibilityLabel="Show desktop/web-only tools" value={showAll} onValueChange={setShowAll} trackColor={{ false: theme.colors.border, true: theme.colors.accent }} thumbColor={theme.colors.text} style={{ minHeight: theme.metrics.touchMin, minWidth: theme.metrics.touchMin }} />
+      </View>}
+      <Label muted accessibilityLiveRegion="polite">{partition.entries.length} tools · {partition.runnableCount} run on Android{partition.forcedAll ? ' · showing the full registry' : showAll ? ' · including desktop/web-only' : ''}</Label>
     </View>
-    <FlatList data={tools} keyExtractor={tool => tool.id} renderItem={({ item }) => <ToolRow tool={item} />} contentContainerStyle={{ paddingHorizontal: theme.metrics.spacePanel, paddingBottom: theme.metrics.spacePanel }} keyboardShouldPersistTaps="handled" ListEmptyComponent={<Label muted>No matching tools. Try another search or category.</Label>} />
+    <FlatList data={partition.entries} keyExtractor={entry => entry.tool.id} renderItem={({ item }) => <ToolRow tool={item.tool} showReason />} contentContainerStyle={{ paddingHorizontal: theme.metrics.spacePanel, paddingBottom: theme.metrics.spacePanel }} keyboardShouldPersistTaps="handled" ListEmptyComponent={<Label muted>No matching tools. Try another search or category.</Label>} />
   </View>;
 }

@@ -6,10 +6,15 @@ import { useWorkbench } from '../../src/state/workbench-provider';
 import { ActionButton, Button, Label, Screen, Section } from '../../src/ui/primitives';
 import { FavoriteList } from '../../src/ui/favorite-list';
 import { ConnectionStatus } from '../../src/ui/connection-status';
+import { ToolRow } from '../../src/ui/tool-row';
+import { TOOL_BY_ID } from '../../src/registry/discovery';
+import { useRecents } from '../../src/tools-host/use-recents';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { snapshot, actions, theme } = useWorkbench();
+  const { recents } = useRecents();
+  const recentTools = recents.flatMap(id => TOOL_BY_ID.get(id) ?? []);
   const favorites = [...snapshot.favorites].sort((a, b) => a.order - b.order).slice(0, 6);
   return <Screen>
     <Section title="This workbench"><ConnectionStatus />
@@ -20,6 +25,7 @@ export default function HomeScreen() {
       {snapshot.capabilities.recover && <ActionButton title="Retry connection or recover registration" onPress={() => actions.recover()} />}
       {(snapshot.capabilities.recover || !!snapshot.recovery?.archives.length) && <Button title="Recovery and cached environments" onPress={() => router.push('/settings/recovery')} />}
     </Section>
+    {recentTools.length > 0 && <Section title="Recent"><View>{recentTools.map(tool => <ToolRow key={tool.id} tool={tool} />)}</View></Section>}
     <Section title="Favorites"><FavoriteList items={favorites} /><Button title="All favorites" onPress={() => router.navigate('/(tabs)/favorites')} /></Section>
     <Section title="Browse by category"><View>{TOOL_CATEGORIES.map(category => {
       const count = TOOL_METADATA.filter(tool => tool.category === category).length;
@@ -27,6 +33,6 @@ export default function HomeScreen() {
         <Label style={{ color: theme.categories[category].color }}>▦ {CATEGORY_METADATA[category].label} · {count}</Label>
       </Pressable>;
     })}</View></Section>
-    <Label muted>Discover the full registry. Native tool execution arrives in Phase 31I.</Label>
+    <Label muted>Browse the full registry. Tools with a mobile screen run on this device; the rest are listed with the reason they are desktop or web only.</Label>
   </Screen>;
 }

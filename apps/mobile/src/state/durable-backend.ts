@@ -7,6 +7,7 @@ import type { MobileRealtimePort } from '../hub/native';
 import { MobileSyncDriver, type SyncDriverState } from '../sync/driver';
 import type { MobileStore } from '../storage/store';
 import type { StorageContext } from '../storage/types';
+import { RECENTS_NAMESPACE, type LocalStatePort } from '../tools-host/recents';
 import { INITIAL_WORKBENCH, patchAppearanceFields, type ActionResult, type ConnectionInput, type DestructivePreview, type WorkbenchActions, type WorkbenchBackend, type WorkbenchSnapshot } from './workbench-model';
 
 /** Installed by the lifecycle owner; sync cannot invoke destructive methods as an error response. */
@@ -45,6 +46,11 @@ export class DurableWorkbench implements WorkbenchBackend {
   session: MobileDeviceSession | null = null;
   enrollment: MobileEnrollmentService;
   readonly actions: WorkbenchActions;
+  /** local-only scope under a non-tool namespace: never journaled, never in the outbox, never synced. */
+  readonly localState: LocalStatePort = {
+    get: async key => this.store.kvRepository((await this.store.activeContext()).id).get(RECENTS_NAMESPACE, key),
+    set: async (key, value) => { await this.store.kvRepository((await this.store.activeContext()).id).set(RECENTS_NAMESPACE, key, value, { policy: 'session', scope: 'local-only' }); },
+  };
   private lifecycle: MobileLifecyclePort | null = null;
   private snapshot: WorkbenchSnapshot = { ...INITIAL_WORKBENCH, durability: 'durable' };
   private driverState: SyncDriverState | null = null;

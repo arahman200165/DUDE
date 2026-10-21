@@ -11,7 +11,7 @@ export function FavoriteList({ items }: { readonly items: readonly FavoriteItem[
   return <View style={{ gap: theme.metrics.spaceNormal }}>{items.map(item => {
     const tool = item.kind === 'tool' ? TOOL_BY_ID.get(item.targetId) : undefined;
     return <View key={item.id} style={{ gap: theme.metrics.spaceMicro }}>
-      {tool ? <ToolRow tool={tool} /> : <View style={{ paddingVertical: theme.metrics.spaceNormal }}>
+      {tool ? <ToolRow tool={tool} showReason /> : <View style={{ paddingVertical: theme.metrics.spaceNormal }}>
         <Label>{item.kind === 'pipeline' ? 'Pipeline' : 'Unknown tool'}: {item.targetId}</Label>
         <Label muted>{item.kind === 'pipeline' ? 'Pipeline execution is unavailable on Android.' : 'This tool is absent from this client’s registry.'}</Label>
       </View>}

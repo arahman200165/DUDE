@@ -8,7 +8,7 @@ import { mobileAvailability } from '../registry/mobile-binding';
 import { MOBILE_BINDINGS } from '../registry/mobile-bindings.generated';
 import { Label } from './primitives';
 
-export function ToolRow({ tool }: { readonly tool: ToolMetadata }) {
+export function ToolRow({ tool, showReason }: { readonly tool: ToolMetadata; readonly showReason?: boolean }) {
   const { theme } = useWorkbench();
   const router = useRouter();
   const [focused, setFocused] = useState(false);
@@ -22,6 +22,7 @@ export function ToolRow({ tool }: { readonly tool: ToolMetadata }) {
       <Label style={{ fontWeight: '600' }}>{tool.title}</Label>
       <Label muted>{tool.description}</Label>
       <Label style={{ color: theme.categories[tool.category].color, fontSize: theme.metrics.textUiSm }}>{CATEGORY_METADATA[tool.category].label} · {availability.available ? 'Mobile UI available' : 'Mobile UI unavailable'}</Label>
+      {showReason && !availability.available && <Label muted style={{ fontSize: theme.metrics.textUiSm }}>{availability.reason}</Label>}
     </View>
   </Pressable>;
 }

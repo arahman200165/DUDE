@@ -7,6 +7,7 @@ export interface WorkbenchContextValue {
   readonly snapshot: WorkbenchSnapshot;
   readonly actions: WorkbenchActions;
   readonly theme: NativeTheme;
+  readonly localState?: WorkbenchBackend['localState'];
 }
 const WorkbenchContext = createContext<WorkbenchContextValue | null>(null);
 
@@ -30,7 +31,7 @@ export function WorkbenchProvider({ children, backend }: PropsWithChildren<{ rea
   const theme = useMemo(() => resolveNativeTheme(snapshot.appearance, {
     prefersLight: scheme === 'light', prefersMoreContrast: highContrast, prefersReducedMotion: reducedMotion,
   }), [snapshot.appearance, scheme, highContrast, reducedMotion]);
-  return <WorkbenchContext.Provider value={{ snapshot, actions: source.actions, theme }}>{children}</WorkbenchContext.Provider>;
+  return <WorkbenchContext.Provider value={{ snapshot, actions: source.actions, theme, localState: source.localState }}>{children}</WorkbenchContext.Provider>;
 }
 export function useWorkbench(): WorkbenchContextValue {
   const value = useContext(WorkbenchContext);

@@ -11,12 +11,12 @@
   ],
   "classificationCounts": {
     "device-doc": 33,
-    "regex-heuristic (review flag)": 50,
+    "regex-heuristic (review flag)": 52,
     "agent-table": 17,
     "hub-table": 25,
     "mobile-table": 8,
     "setting-definition": 2,
-    "policy-rule": 775,
+    "policy-rule": 778,
     "entity-codec": 10
   },
   "reviewFlags": [
@@ -147,6 +147,22 @@
       "key": null,
       "heuristicScope": "local-only",
       "reviewed": "System snapshot files; local-only, unredacted system values."
+    },
+    {
+      "source": "apps/mobile/src/state/durable-backend.ts",
+      "line": 52,
+      "namespace": null,
+      "key": null,
+      "heuristicScope": "local-only",
+      "reviewed": null
+    },
+    {
+      "source": "apps/mobile/src/tools-host/use-tool-input.ts",
+      "line": 12,
+      "namespace": null,
+      "key": null,
+      "heuristicScope": "local-only",
+      "reviewed": null
     },
     {
       "source": "apps/web/src/app/core/appearance/appearance-prepaint-mirror.ts",
@@ -1739,6 +1755,20 @@
       "syncConsent": "not granted"
     },
     {
+      "source": "apps/mobile/src/state/durable-backend.ts",
+      "line": 52,
+      "operation": "this.store.kvRepository((await this.store.activeContext()).id).set(RECENTS_NAMESPACE, key, value, { policy: 'session', scope: 'local-only' })",
+      "namespace": null,
+      "key": null,
+      "storage": "this.store.kvRepository((await this.store.activeContext()).id)",
+      "storageLocation": "this.store.kvRepository((await this.store.activeContext()).id).set(RECENTS_NAMESPACE, key, value, { policy: 'session', scope: 'local-only' })",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "sensitive",
+      "classificationBasis": "regex-heuristic (review flag)",
+      "syncConsent": "not granted"
+    },
+    {
       "source": "apps/mobile/src/storage/migrations.ts",
       "line": 6,
       "operation": "CREATE TABLE contexts",
@@ -1856,6 +1886,20 @@
       "sensitivity": "sensitive",
       "note": "Staged filtered preview/reconciliation identity, revisions and consent guards.",
       "classificationBasis": "mobile-table",
+      "syncConsent": "not granted"
+    },
+    {
+      "source": "apps/mobile/src/tools-host/use-tool-input.ts",
+      "line": 12,
+      "operation": "store.set(toolId, partial)",
+      "namespace": null,
+      "key": null,
+      "storage": "store",
+      "storageLocation": "store.set(toolId, partial)",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "sensitive",
+      "classificationBasis": "regex-heuristic (review flag)",
       "syncConsent": "not granted"
     },
     {
@@ -3158,7 +3202,35 @@
     },
     {
       "source": "apps/web/src/app/tools/barcode-generator/barcode-generator.ts",
-      "line": 20,
+      "line": 37,
+      "operation": "this.persistence.signal('barcode-generator', 'includeText', 'local', true)",
+      "namespace": "barcode-generator",
+      "key": "includeText",
+      "storage": "PersistenceService",
+      "storageLocation": "Device Store kv (browser localStorage mirror): dude:v1:barcode-generator:includeText",
+      "retention": "local",
+      "scope": "environment",
+      "sensitivity": "non-sensitive",
+      "classificationBasis": "policy-rule",
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
+    },
+    {
+      "source": "apps/web/src/app/tools/barcode-generator/barcode-generator.ts",
+      "line": 36,
+      "operation": "this.persistence.signal('barcode-generator', 'scale', 'local', 2)",
+      "namespace": "barcode-generator",
+      "key": "scale",
+      "storage": "PersistenceService",
+      "storageLocation": "Device Store kv (browser localStorage mirror): dude:v1:barcode-generator:scale",
+      "retention": "local",
+      "scope": "environment",
+      "sensitivity": "non-sensitive",
+      "classificationBasis": "policy-rule",
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
+    },
+    {
+      "source": "apps/web/src/app/tools/barcode-generator/barcode-generator.ts",
+      "line": 35,
       "operation": "this.persistence.signal('barcode-generator', 'value', 'session', '123456789012')",
       "namespace": "barcode-generator",
       "key": "value",
@@ -3172,12 +3244,26 @@
     },
     {
       "source": "apps/web/src/app/tools/barcode-generator/barcode-generator.ts",
-      "line": 19,
-      "operation": "this.persistence.signal<BarcodeFormat>('barcode-generator', 'format', 'local', 'CODE128')",
+      "line": 32,
+      "operation": "this.persistence.signal<BarcodeSymbology>('barcode-generator', 'format', 'local', DEFAULT_BARCODE_SYMBOLOGY, {\n    decode: (raw) => normalizeBarcodeSymbology(raw),\n  })",
       "namespace": "barcode-generator",
       "key": "format",
       "storage": "PersistenceService",
       "storageLocation": "Device Store kv (browser localStorage mirror): dude:v1:barcode-generator:format",
+      "retention": "local",
+      "scope": "environment",
+      "sensitivity": "non-sensitive",
+      "classificationBasis": "policy-rule",
+      "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
+    },
+    {
+      "source": "apps/web/src/app/tools/barcode-generator/barcode-generator.ts",
+      "line": 38,
+      "operation": "this.persistence.signal<PreviewBackground>('barcode-generator', 'preview-background', 'local', 'theme')",
+      "namespace": "barcode-generator",
+      "key": "preview-background",
+      "storage": "PersistenceService",
+      "storageLocation": "Device Store kv (browser localStorage mirror): dude:v1:barcode-generator:preview-background",
       "retention": "local",
       "scope": "environment",
       "sensitivity": "non-sensitive",
