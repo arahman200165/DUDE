@@ -10,6 +10,8 @@ import { PIPELINE_STEP_LOADERS } from '../registry/tool-loaders.generated';
  * `core/pipeline/AGENTS.md`.
  */
 const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
+  // Phase 31I: Device Info reports facts about the current runtime; it takes no input to transform.
+  'device-info': 'reads the current device and runtime rather than transforming its input, so it has no deterministic pipeline step',
   // Phase 27 native network checks require explicit action; they have no workspace or pipeline adapter.
   'ping': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',
   'traceroute': 'native network access requires a user-directed Run action and cannot execute invisibly in a pipeline',

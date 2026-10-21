@@ -13,6 +13,8 @@ import { loadWorkspaceStep } from "./workspace-step-loader";
  * network-dependent tools are NOT excluded on those grounds (see `core/history/AGENTS.md`).
  */
 const DOCUMENTED_EXCLUSIONS: Readonly<Record<string, string>> = {
+  // Phase 31I: Device Info reports facts about the current runtime and stores nothing.
+  'device-info': 'the report is collected live from the current device each time and is never stored, so there is no content to snapshot',
   // Phase 27 native network checks require explicit action; they have no workspace or pipeline adapter.
   'ping': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',
   'traceroute': 'live native network checks use only in-session state; saving a selected result uses the separate explicit network history',

@@ -1,7 +1,7 @@
 import { hostCrypto } from '@dude/crypto/host';
 
 export interface ProbeEntry { readonly name: string; readonly ok: boolean; readonly detail?: string }
-type Env = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+type Env = Record<string, any>;
 
 const SHA256_ABC = 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad';
 const toHex = (buffer: ArrayBuffer) => [...new Uint8Array(buffer)].map(byte => byte.toString(16).padStart(2, '0')).join('');

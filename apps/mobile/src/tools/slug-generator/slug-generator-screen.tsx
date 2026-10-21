@@ -31,7 +31,6 @@ export default function SlugGeneratorScreen() {
   const [decoded, setOptions] = useToolPreference<SlugOptions>(TOOL_ID, 'options', DEFAULT_SLUG_OPTIONS, { decode: decodeOptions });
   // The decoded object is rebuilt on every render; keep one identity per value so the memo below only reruns on a real change.
   const signature = JSON.stringify(decoded);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const options = useMemo(() => decoded, [signature]);
   const values = useMemo<OptionValues>(() => ({ separator: options.separator, removeStopwords: options.removeStopwords, maxLength: options.maxLength ?? 0 }), [options]);
   const onOption = (id: string, value: OptionValue) => {

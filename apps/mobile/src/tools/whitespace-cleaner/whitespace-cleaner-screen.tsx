@@ -61,7 +61,6 @@ export default function WhitespaceCleanerScreen() {
   const [decoded, setOptions] = useToolPreference<WhitespaceCleanOptions>(TOOL_ID, 'options', D, { decode: decodeOptions });
   // The decoded object is rebuilt on every render; keep one identity per value so the memo below only reruns on a real change.
   const signature = JSON.stringify(decoded);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const options = useMemo(() => decoded, [signature]);
   const values = options as unknown as OptionValues;
   const onOption = (id: string, value: OptionValue) => {
