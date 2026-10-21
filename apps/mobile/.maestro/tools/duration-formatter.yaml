@@ -1,0 +1,43 @@
+appId: io.github.arahman200165.dude.preview
+name: Duration Parser / Formatter on Android
+tags: [tools, date-time]
+---
+- launchApp:
+    clearState: true
+- openLink: "dude://tools/duration-formatter"
+- assertVisible:
+    id: "tool-input"
+# Human shorthand. Expected values from packages/tool-engine/src/tools/duration-formatter/duration-convert.spec.ts:7 (ms 95_400_000)
+# and :15 (iso8601 P1DT2H30M); the human string is computed with parseDuration from @dude/tool-engine (humanize-duration).
+- tapOn:
+    id: "tool-input"
+- inputText: "1d 2h 30m"
+- hideKeyboard
+- assertVisible:
+    id: "kv-ms-value"
+    text: "95400000"
+- assertVisible:
+    id: "kv-iso8601-value"
+    text: "P1DT2H30M"
+- assertVisible:
+    id: "kv-human-value"
+    text: "1 day, 2 hours, 30 minutes"
+# ISO 8601 input. 5_400_000 ms = 90 minutes (duration-convert.spec.ts:34).
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "PT1H30M"
+- hideKeyboard
+- assertVisible:
+    id: "kv-ms-value"
+    text: "5400000"
+# Invalid input shows the error banner (duration-convert.spec.ts:55).
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "not a duration"
+- hideKeyboard
+- assertVisible:
+    id: "tool-error"
