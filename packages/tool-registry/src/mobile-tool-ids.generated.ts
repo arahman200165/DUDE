@@ -15,6 +15,7 @@ export const MOBILE_TOOL_IDS: readonly string[] = [
   'password-strength-analyzer',
   'slug-generator',
   'text-inspector',
+  'timezone-offset-comparator',
   'unicode-normalization',
   'unix-timestamp',
   'url-encode',

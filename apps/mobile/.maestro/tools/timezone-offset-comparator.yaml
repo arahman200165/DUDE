@@ -1,0 +1,75 @@
+appId: io.github.arahman200165.dude.preview
+name: Timezone Offset Comparator on Android
+tags: [tools, date-time]
+---
+# clearState gives the default view (Zones, in memory) and preferences (zone A America/New_York, zone B Europe/London) and default zones
+# "America/New_York, Europe/London". All asserted rows are derived from a UTC moment, so the emulator time zone does not matter.
+- launchApp:
+    clearState: true
+- openLink: "dude://tools/timezone-offset-comparator"
+- assertVisible:
+    id: "tool-input"
+# Zones view. 2023-11-14T12:00Z: New York is UTC-5 in November (timezone-offset-comparator-logic.spec.ts:11 shows January -05:00),
+# London is on UTC+0; wall-clock values computed with Intl.DateTimeFormat (the same call the tool uses).
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "2023-11-14T12:00"
+- hideKeyboard
+- assertVisible:
+    id: "kv-America-New_York-value"
+    text: "2023-11-14 07:00:00 -05:00"
+- assertVisible:
+    id: "kv-Europe-London-value"
+    text: "2023-11-14 12:00:00 \\+00:00"
+# Add a zone from the searchable list: Tokyo is UTC+9 -> 21:00 the same day.
+- tapOn:
+    id: "zone-add-search"
+- inputText: "tokyo"
+- hideKeyboard
+- tapOn:
+    id: "zone-add-option-Asia-Tokyo"
+- assertVisible:
+    id: "kv-Asia-Tokyo-value"
+    text: "2023-11-14 21:00:00 \\+09:00"
+# Invalid moment shows the error banner.
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "garbage"
+- hideKeyboard
+- assertVisible:
+    id: "tool-error"
+# Pairwise view. Expected values from packages/tool-engine/src/tools/timezone-offset-comparator/timezone-offset-comparator-logic.spec.ts:37-39
+# (America/New_York -05:00 vs +00:00 in January, gap -300 min); label computed with comparePairwise from @dude/tool-engine
+# at 2026-01-15T12:00Z => "A is 5h behind B".
+- tapOn:
+    id: "mode-pairwise"
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "2026-01-15T12:00"
+- hideKeyboard
+- assertVisible:
+    id: "kv-offset-a-value"
+    text: "-05:00"
+- assertVisible:
+    id: "kv-offset-b-value"
+    text: "\\+00:00"
+- assertVisible:
+    id: "kv-gap-value"
+    text: "A is 5h behind B"
+# Year grid. Spec lines 11-12: January -05:00, April -04:00 for America/New_York (2026 grid computed with buildOffsetGrid).
+- tapOn:
+    id: "mode-grid"
+- tapOn:
+    id: "tool-year"
+- eraseText
+- inputText: "2026"
+- hideKeyboard
+- assertVisible:
+    id: "kv-America-New_York-value"
+    text: "Jan -05:00, Feb -05:00, Mar -05:00, Apr -04:00.*Dec -05:00"

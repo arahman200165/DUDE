@@ -14,13 +14,14 @@ import { binding as binding10 } from '../tools/password-generator/password-gener
 import { binding as binding11 } from '../tools/password-strength-analyzer/password-strength-analyzer.mobile-bindings';
 import { binding as binding12 } from '../tools/slug-generator/slug-generator.mobile-bindings';
 import { binding as binding13 } from '../tools/text-inspector/text-inspector.mobile-bindings';
-import { binding as binding14 } from '../tools/unicode-normalization/unicode-normalization.mobile-bindings';
-import { binding as binding15 } from '../tools/unix-timestamp/unix-timestamp.mobile-bindings';
-import { binding as binding16 } from '../tools/url-encode/url-encode.mobile-bindings';
-import { binding as binding17 } from '../tools/url-inspector/url-inspector.mobile-bindings';
-import { binding as binding18 } from '../tools/user-agent/user-agent.mobile-bindings';
-import { binding as binding19 } from '../tools/uuid/uuid.mobile-bindings';
-import { binding as binding20 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
+import { binding as binding14 } from '../tools/timezone-offset-comparator/timezone-offset-comparator.mobile-bindings';
+import { binding as binding15 } from '../tools/unicode-normalization/unicode-normalization.mobile-bindings';
+import { binding as binding16 } from '../tools/unix-timestamp/unix-timestamp.mobile-bindings';
+import { binding as binding17 } from '../tools/url-encode/url-encode.mobile-bindings';
+import { binding as binding18 } from '../tools/url-inspector/url-inspector.mobile-bindings';
+import { binding as binding19 } from '../tools/user-agent/user-agent.mobile-bindings';
+import { binding as binding20 } from '../tools/uuid/uuid.mobile-bindings';
+import { binding as binding21 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
 export const MOBILE_BINDINGS: MobileBindingMap = {
   'base64': binding0,
   'case-converter': binding1,
@@ -36,11 +37,12 @@ export const MOBILE_BINDINGS: MobileBindingMap = {
   'password-strength-analyzer': binding11,
   'slug-generator': binding12,
   'text-inspector': binding13,
-  'unicode-normalization': binding14,
-  'unix-timestamp': binding15,
-  'url-encode': binding16,
-  'url-inspector': binding17,
-  'user-agent': binding18,
-  'uuid': binding19,
-  'whitespace-cleaner': binding20,
+  'timezone-offset-comparator': binding14,
+  'unicode-normalization': binding15,
+  'unix-timestamp': binding16,
+  'url-encode': binding17,
+  'url-inspector': binding18,
+  'user-agent': binding19,
+  'uuid': binding20,
+  'whitespace-cleaner': binding21,
 };
