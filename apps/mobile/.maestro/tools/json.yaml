@@ -1,0 +1,38 @@
+appId: io.github.arahman200165.dude.preview
+name: JSON Formatter on Android
+tags: [tools, data]
+---
+- launchApp:
+    clearState: true
+- openLink: "dude://tools/json"
+- assertVisible:
+    id: "tool-input"
+- tapOn:
+    id: "mode-pretty"
+- tapOn:
+    id: "tool-input-sample"
+# Sample {"a":1,"b":[2,3]} pretty-printed with 2 spaces: packages/tool-engine/src/tools/json/json-format.spec.ts:23
+- assertVisible:
+    id: "tool-output"
+    text: '(?s)\{\s+"a": 1,\s+"b": \[\s+2,\s+3\s+\]\s+\}'
+- tapOn:
+    id: "mode-minify"
+# Minified form of the same sample (JSON.stringify of the parsed value)
+- assertVisible:
+    id: "tool-output"
+    text: '\{"a":1,"b":\[2,3\]\}'
+- tapOn:
+    id: "mode-validate"
+- assertVisible:
+    id: "json-valid"
+- tapOn:
+    id: "mode-pretty"
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "{a:1}"
+- hideKeyboard
+# Unquoted property name is invalid JSON (processJson returns an error)
+- assertVisible:
+    id: "tool-error"

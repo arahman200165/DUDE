@@ -14,6 +14,7 @@ export const MOBILE_TOOL_IDS: readonly string[] = [
   'hex-text-converter',
   'hmac-generator',
   'http-status',
+  'json',
   'json-flatten',
   'jwt',
   'number-base',
