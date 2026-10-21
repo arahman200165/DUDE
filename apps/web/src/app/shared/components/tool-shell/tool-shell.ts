@@ -14,6 +14,7 @@ import { OfflineBadge } from '../offline-badge/offline-badge';
 import { CategoryIcon } from '../category-icon/category-icon';
 import { SecurityBadge } from '../security-badge/security-badge';
 import { DesktopCapabilityBadge } from '../desktop-capability-badge/desktop-capability-badge';
+import { MobileAvailabilityBadge } from '../mobile-availability-badge/mobile-availability-badge';
 import { ToolShareMenu } from '../tool-share-menu/tool-share-menu';
 import { OpenInDesktop } from '../open-in-desktop/open-in-desktop';
 import { DesktopHandoffService } from '../../../core/deep-link/desktop-handoff.service';
@@ -23,7 +24,7 @@ import { StatusGlyph, StatusGlyphKind } from '../status-glyph/status-glyph';
 
 @Component({
   selector: 'app-tool-shell',
-  imports: [StatusGlyph, OfflineBadge, CategoryIcon, SecurityBadge, DesktopCapabilityBadge, RouterLink, RelatedToolsPanel, ToolShareMenu, OpenInDesktop],
+  imports: [StatusGlyph, OfflineBadge, CategoryIcon, SecurityBadge, DesktopCapabilityBadge, MobileAvailabilityBadge, RouterLink, RelatedToolsPanel, ToolShareMenu, OpenInDesktop],
   templateUrl: './tool-shell.html',
 })
 export class ToolShell implements OnDestroy {
