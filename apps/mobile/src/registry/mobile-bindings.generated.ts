@@ -2,9 +2,11 @@
 import type { MobileBindingMap } from './mobile-binding';
 import { binding as binding0 } from '../tools/base64/base64.mobile-bindings';
 import { binding as binding1 } from '../tools/hex-text-converter/hex-text-converter.mobile-bindings';
-import { binding as binding2 } from '../tools/url-encode/url-encode.mobile-bindings';
+import { binding as binding2 } from '../tools/number-base/number-base.mobile-bindings';
+import { binding as binding3 } from '../tools/url-encode/url-encode.mobile-bindings';
 export const MOBILE_BINDINGS: MobileBindingMap = {
   'base64': binding0,
   'hex-text-converter': binding1,
-  'url-encode': binding2,
+  'number-base': binding2,
+  'url-encode': binding3,
 };
