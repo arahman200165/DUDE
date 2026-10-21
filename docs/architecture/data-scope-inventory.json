@@ -11,7 +11,7 @@
   ],
   "classificationCounts": {
     "device-doc": 33,
-    "regex-heuristic (review flag)": 52,
+    "regex-heuristic (review flag)": 53,
     "agent-table": 17,
     "hub-table": 25,
     "mobile-table": 8,
@@ -150,7 +150,15 @@
     },
     {
       "source": "apps/mobile/src/state/durable-backend.ts",
-      "line": 52,
+      "line": 53,
+      "namespace": null,
+      "key": null,
+      "heuristicScope": "local-only",
+      "reviewed": "Android local Recents under mobile.local with policy session / scope local-only; never journaled, queued or synced."
+    },
+    {
+      "source": "apps/mobile/src/state/durable-backend.ts",
+      "line": 62,
       "namespace": null,
       "key": null,
       "heuristicScope": "local-only",
@@ -1756,7 +1764,21 @@
     },
     {
       "source": "apps/mobile/src/state/durable-backend.ts",
-      "line": 52,
+      "line": 62,
+      "operation": "this.store.kvRepository((await this.store.activeContext()).id).set(namespace, key, value, meta)",
+      "namespace": null,
+      "key": null,
+      "storage": "this.store.kvRepository((await this.store.activeContext()).id)",
+      "storageLocation": "this.store.kvRepository((await this.store.activeContext()).id).set(namespace, key, value, meta)",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "sensitive",
+      "classificationBasis": "regex-heuristic (review flag)",
+      "syncConsent": "not granted"
+    },
+    {
+      "source": "apps/mobile/src/state/durable-backend.ts",
+      "line": 53,
       "operation": "this.store.kvRepository((await this.store.activeContext()).id).set(RECENTS_NAMESPACE, key, value, { policy: 'session', scope: 'local-only' })",
       "namespace": null,
       "key": null,

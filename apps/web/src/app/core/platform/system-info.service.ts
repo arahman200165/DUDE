@@ -1,6 +1,7 @@
 import { inject as injectPlatformBridge } from '@angular/core';
 import { PLATFORM_BRIDGE } from './platform-bridge.adapter';
 import { Injectable } from '@angular/core';
+import type { DeviceOsFacts } from "@dude/contracts/shared/models/platform-bridge.model";
 import type { StartupProgramsResult } from "@dude/contracts/system/startup-types";
 import type { InstalledSoftware } from "@dude/contracts/system/software-types";
 import type { WindowsCapability, WindowsFeature } from "@dude/contracts/system/feature-types";
@@ -62,6 +63,11 @@ export class SystemInfoService {
     const walker = this.platformBridgePort.get()?.dependencyWalker;
     if (!walker) throw new Error(UNAVAILABLE);
     return walker.walk(path);
+  }
+  /** Non-identifying OS facts (Device Info); `null` on the web or when main refuses the request. */
+  async osFacts(): Promise<DeviceOsFacts | null> {
+    const deviceInfo = this.platformBridgePort.get()?.deviceInfo;
+    return deviceInfo ? deviceInfo.osFacts() : null;
   }
   helperInfo(): Promise<HelperInfo> { return this.call('helper.info', {}); }
   listProcesses(): Promise<ProcessListResult> { return this.call('process.list', {}); }

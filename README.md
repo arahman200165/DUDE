@@ -92,6 +92,7 @@ Every tool not listed here behaves identically on the web companion and the desk
 | [Certificate Transparency Lookup](https://arahman200165.github.io/DUDE/tools/ct-lookup) | Native network diagnostics | Desktop-only feature | runs live checks through the Windows desktop network bridge |
 | [Dependency Walker](https://arahman200165.github.io/DUDE/tools/dependency-walker) | Native filesystem access | Desktop-only feature | opens the selected executable through the desktop file picker |
 | [Dependency Walker](https://arahman200165.github.io/DUDE/tools/dependency-walker) | Native Windows system access | Desktop-only feature | resolves Windows DLL dependencies using live operating-system search context in Desktop DUDE |
+| [Device Info](https://arahman200165.github.io/DUDE/tools/device-info) | Native Windows system access | Works — weaker browser fallback | adds operating system, CPU and memory facts in Desktop DUDE; the web companion reports browser facts only |
 | [Directory Diff](https://arahman200165.github.io/DUDE/tools/directory-diff) | File watching | Desktop-only feature | optionally rescans open folders when their contents change |
 | [Directory Diff](https://arahman200165.github.io/DUDE/tools/directory-diff) | Native filesystem access | Works — weaker browser fallback | compares real folders on disk, not zipped/pasted file lists |
 | [Directory Tree Generator](https://arahman200165.github.io/DUDE/tools/directory-tree-generator) | Native filesystem access | Desktop-only feature | walks real folders on disk in the desktop fs worker |
@@ -185,7 +186,7 @@ them (never prefetched), and ship locally inside the desktop app.
 
 ## Tools
 
-333 tools ship today, each self-registered in [`tool-definitions.ts`](apps/web/src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
+334 tools ship today, each self-registered in [`tool-definitions.ts`](apps/web/src/app/core/registry/tool-definitions.ts) — nothing about the shell knows any tool by name.
 
 | Tool | Category | What it does |
 | --- | --- | --- |
@@ -391,6 +392,7 @@ them (never prefetched), and ship locally inside the desktop app.
 | [Dependency Version Comparator](https://arahman200165.github.io/DUDE/tools/dependency-version-comparator) | Developer | Diffs two pasted dependency lists (package.json-style), classifying each change as added, removed, or a major/minor/patch upgrade or downgrade. |
 | [Dependency Walker](https://arahman200165.github.io/DUDE/tools/dependency-walker) | Developer | Recursively resolves Windows PE imports and delay-loads, checking architecture, imported symbols, forwarders, and unresolved modules. |
 | [Dev Snippets Reference](https://arahman200165.github.io/DUDE/tools/dev-snippets-reference) | Developer | Searchable reference of common HTTP headers, regex syntax, git/docker commands, shell idioms, SQL, CSS, HTML, Unicode, MIME types, cron syntax, and chmod. |
+| [Device Info](https://arahman200165.github.io/DUDE/tools/device-info) | Developer | Read-only report of this device and runtime: browser, display, locale, hardware and, in the desktop app, operating system facts. |
 | [DNS Lookup](https://arahman200165.github.io/DUDE/tools/dns-lookup) | Developer | Query live DNS records (incl. CAA, DNSSEC, TLSA, HTTPS/SVCB) over system, custom, DoH, or DoT resolvers, with flags and transport diagnostics. |
 | [DNS Propagation Tester](https://arahman200165.github.io/DUDE/tools/dns-propagation) | Developer | Compare one DNS record across public presets, the system resolver, and up to five custom classic, DoH, or DoT resolvers. |
 | [DNSSEC Inspector](https://arahman200165.github.io/DUDE/tools/dnssec-inspector) | Developer | Validate a DNS answer locally from the IANA root trust anchors: DS/DNSKEY/RRSIG chain, NSEC/NSEC3 denial proofs, and algorithm warnings. |

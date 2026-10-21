@@ -31333,6 +31333,34 @@
       "mobileVerified": false
     },
     {
+      "id": "device-info",
+      "route": "/tools/device-info",
+      "manifest": "packages/tool-registry/src/tools/device-info/device-info.manifest.ts",
+      "binding": "apps/web/src/app/tools/device-info/device-info.bindings.ts",
+      "engineModules": [
+        "packages/tool-engine/src/tools/device-info/device-report.ts"
+      ],
+      "adapters": [
+        "apps/web/src/app/tools/device-info/device-info.collector.ts",
+        "apps/web/src/app/tools/device-info/device-info.ts"
+      ],
+      "tests": [
+        "packages/tool-engine/src/tools/device-info/device-report.spec.ts",
+        "apps/web/src/app/tools/device-info/device-info.collector.spec.ts",
+        "apps/web/src/app/tools/device-info/device-info.parity.spec.ts",
+        "apps/web/src/app/tools/device-info/device-info.spec.ts"
+      ],
+      "runtimeRequirements": [
+        "application window",
+        "platform: native-system; web fallback"
+      ],
+      "unsupportedHosts": [
+        "Mobile execution is not verified; host facilities must be supplied explicitly"
+      ],
+      "registration": "portable engines plus application bindings",
+      "mobileVerified": false
+    },
+    {
       "id": "diff",
       "route": "/tools/diff",
       "manifest": "packages/tool-registry/src/tools/diff/diff.manifest.ts",

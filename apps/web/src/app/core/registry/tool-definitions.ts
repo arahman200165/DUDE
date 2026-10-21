@@ -79,261 +79,262 @@ import { binding as binding74 } from '../../tools/date-calculator/date-calculato
 import { binding as binding75 } from '../../tools/dependency-version-comparator/dependency-version-comparator.bindings';
 import { binding as binding76 } from '../../tools/dependency-walker/dependency-walker.bindings';
 import { binding as binding77 } from '../../tools/dev-snippets-reference/dev-snippets-reference.bindings';
-import { binding as binding78 } from '../../tools/diff/diff.bindings';
-import { binding as binding79 } from '../../tools/directory-diff/directory-diff.bindings';
-import { binding as binding80 } from '../../tools/directory-tree-generator/directory-tree-generator.bindings';
-import { binding as binding81 } from '../../tools/dns-lookup/dns-lookup.bindings';
-import { binding as binding82 } from '../../tools/dns-propagation/dns-propagation.bindings';
-import { binding as binding83 } from '../../tools/dnssec-inspector/dnssec-inspector.bindings';
-import { binding as binding84 } from '../../tools/docker-compose-validator/docker-compose-validator.bindings';
-import { binding as binding85 } from '../../tools/docker-run-compose-converter/docker-run-compose-converter.bindings';
-import { binding as binding86 } from '../../tools/dockerfile-linter/dockerfile-linter.bindings';
-import { binding as binding87 } from '../../tools/dom-tree-viewer/dom-tree-viewer.bindings';
-import { binding as binding88 } from '../../tools/dpi-calculator/dpi-calculator.bindings';
-import { binding as binding89 } from '../../tools/dst-transition-explorer/dst-transition-explorer.bindings';
-import { binding as binding90 } from '../../tools/duplicate-files/duplicate-files.bindings';
-import { binding as binding91 } from '../../tools/duplicate-finder/duplicate-finder.bindings';
-import { binding as binding92 } from '../../tools/duration-formatter/duration-formatter.bindings';
-import { binding as binding93 } from '../../tools/elf-header-viewer/elf-header-viewer.bindings';
-import { binding as binding94 } from '../../tools/email-auth-inspector/email-auth-inspector.bindings';
-import { binding as binding95 } from '../../tools/encoding-detector/encoding-detector.bindings';
-import { binding as binding96 } from '../../tools/env-diff/env-diff.bindings';
-import { binding as binding97 } from '../../tools/env-editor/env-editor.bindings';
-import { binding as binding98 } from '../../tools/env-json-converter/env-json-converter.bindings';
-import { binding as binding99 } from '../../tools/env-validator/env-validator.bindings';
-import { binding as binding100 } from '../../tools/environment-variables/environment-variables.bindings';
-import { binding as binding101 } from '../../tools/epoch-timeline-visualizer/epoch-timeline-visualizer.bindings';
-import { binding as binding102 } from '../../tools/error-code-reference/error-code-reference.bindings';
-import { binding as binding103 } from '../../tools/escape-unescape-toolkit/escape-unescape-toolkit.bindings';
-import { binding as binding104 } from '../../tools/event-log-viewer/event-log-viewer.bindings';
-import { binding as binding105 } from '../../tools/exif-viewer/exif-viewer.bindings';
-import { binding as binding106 } from '../../tools/expression-evaluator/expression-evaluator.bindings';
-import { binding as binding107 } from '../../tools/extract-columns/extract-columns.bindings';
-import { binding as binding108 } from '../../tools/file-base64/file-base64.bindings';
-import { binding as binding109 } from '../../tools/file-entropy-analyzer/file-entropy-analyzer.bindings';
-import { binding as binding110 } from '../../tools/file-hash/file-hash.bindings';
-import { binding as binding111 } from '../../tools/file-inspector/file-inspector.bindings';
-import { binding as binding112 } from '../../tools/file-lock-inspector/file-lock-inspector.bindings';
-import { binding as binding113 } from '../../tools/file-split-join/file-split-join.bindings';
-import { binding as binding114 } from '../../tools/file-type-detector/file-type-detector.bindings';
-import { binding as binding115 } from '../../tools/find-replace-text/find-replace-text.bindings';
-import { binding as binding116 } from '../../tools/flexbox-playground/flexbox-playground.bindings';
-import { binding as binding117 } from '../../tools/folder-size-analyzer/folder-size-analyzer.bindings';
-import { binding as binding118 } from '../../tools/git-command-builder/git-command-builder.bindings';
-import { binding as binding119 } from '../../tools/git-command-explainer/git-command-explainer.bindings';
-import { binding as binding120 } from '../../tools/git-diff/git-diff.bindings';
-import { binding as binding121 } from '../../tools/git-remote-inspector/git-remote-inspector.bindings';
-import { binding as binding122 } from '../../tools/git-url-parser/git-url-parser.bindings';
-import { binding as binding123 } from '../../tools/gitignore-generator/gitignore-generator.bindings';
-import { binding as binding124 } from '../../tools/gitignore-tester/gitignore-tester.bindings';
-import { binding as binding125 } from '../../tools/glob-tester/glob-tester.bindings';
-import { binding as binding126 } from '../../tools/gradient-generator/gradient-generator.bindings';
-import { binding as binding127 } from '../../tools/hash/hash.bindings';
-import { binding as binding128 } from '../../tools/hash-manifest/hash-manifest.bindings';
-import { binding as binding129 } from '../../tools/hex-diff/hex-diff.bindings';
-import { binding as binding130 } from '../../tools/hex-dump/hex-dump.bindings';
-import { binding as binding131 } from '../../tools/hex-editor/hex-editor.bindings';
-import { binding as binding132 } from '../../tools/hex-text-converter/hex-text-converter.bindings';
-import { binding as binding133 } from '../../tools/hmac-generator/hmac-generator.bindings';
-import { binding as binding134 } from '../../tools/hostname-resolver/hostname-resolver.bindings';
-import { binding as binding135 } from '../../tools/html-entities/html-entities.bindings';
-import { binding as binding136 } from '../../tools/html-entity-explorer/html-entity-explorer.bindings';
-import { binding as binding137 } from '../../tools/html-formatter/html-formatter.bindings';
-import { binding as binding138 } from '../../tools/html-jsx-converter/html-jsx-converter.bindings';
-import { binding as binding139 } from '../../tools/html-preview/html-preview.bindings';
-import { binding as binding140 } from '../../tools/http-digest-auth-helper/http-digest-auth-helper.bindings';
-import { binding as binding141 } from '../../tools/http-header-inspector/http-header-inspector.bindings';
-import { binding as binding142 } from '../../tools/http-request-builder/http-request-builder.bindings';
-import { binding as binding143 } from '../../tools/http-response-viewer/http-response-viewer.bindings';
-import { binding as binding144 } from '../../tools/http-status/http-status.bindings';
-import { binding as binding145 } from '../../tools/https-config-analyzer/https-config-analyzer.bindings';
-import { binding as binding146 } from '../../tools/image-compressor/image-compressor.bindings';
-import { binding as binding147 } from '../../tools/image-cropper/image-cropper.bindings';
-import { binding as binding148 } from '../../tools/image-format-converter/image-format-converter.bindings';
-import { binding as binding149 } from '../../tools/image-metadata-inspector/image-metadata-inspector.bindings';
-import { binding as binding150 } from '../../tools/image-resizer/image-resizer.bindings';
-import { binding as binding151 } from '../../tools/ini-formatter/ini-formatter.bindings';
-import { binding as binding152 } from '../../tools/installed-software/installed-software.bindings';
-import { binding as binding153 } from '../../tools/invisible-char-scanner/invisible-char-scanner.bindings';
-import { binding as binding154 } from '../../tools/ip-address-inspector/ip-address-inspector.bindings';
-import { binding as binding155 } from '../../tools/ipv4-integer-converter/ipv4-integer-converter.bindings';
-import { binding as binding156 } from '../../tools/ipv6-explorer/ipv6-explorer.bindings';
-import { binding as binding157 } from '../../tools/js-playground/js-playground.bindings';
-import { binding as binding158 } from '../../tools/json/json.bindings';
-import { binding as binding159 } from '../../tools/json-flatten/json-flatten.bindings';
-import { binding as binding160 } from '../../tools/json-ld-tester/json-ld-tester.bindings';
-import { binding as binding161 } from '../../tools/json-merge/json-merge.bindings';
-import { binding as binding162 } from '../../tools/json-patch-generate/json-patch-generate.bindings';
-import { binding as binding163 } from '../../tools/json-patch-test/json-patch-test.bindings';
-import { binding as binding164 } from '../../tools/json-pointer/json-pointer.bindings';
-import { binding as binding165 } from '../../tools/json-query/json-query.bindings';
-import { binding as binding166 } from '../../tools/json-schema-validator/json-schema-validator.bindings';
-import { binding as binding167 } from '../../tools/json-sort-keys/json-sort-keys.bindings';
-import { binding as binding168 } from '../../tools/jsonl-viewer/jsonl-viewer.bindings';
-import { binding as binding169 } from '../../tools/jwks-to-pem/jwks-to-pem.bindings';
-import { binding as binding170 } from '../../tools/jwks-viewer/jwks-viewer.bindings';
-import { binding as binding171 } from '../../tools/jwt/jwt.bindings';
-import { binding as binding172 } from '../../tools/jwt-claims-analyzer/jwt-claims-analyzer.bindings';
-import { binding as binding173 } from '../../tools/jwt-expiration-visualizer/jwt-expiration-visualizer.bindings';
-import { binding as binding174 } from '../../tools/jwt-signer/jwt-signer.bindings';
-import { binding as binding175 } from '../../tools/jwt-verify/jwt-verify.bindings';
-import { binding as binding176 } from '../../tools/k8s-cronjob-tester/k8s-cronjob-tester.bindings';
-import { binding as binding177 } from '../../tools/k8s-manifest-diff/k8s-manifest-diff.bindings';
-import { binding as binding178 } from '../../tools/k8s-manifest-validator/k8s-manifest-validator.bindings';
-import { binding as binding179 } from '../../tools/k8s-quantity-converter/k8s-quantity-converter.bindings';
-import { binding as binding180 } from '../../tools/k8s-resource-calculator/k8s-resource-calculator.bindings';
-import { binding as binding181 } from '../../tools/k8s-secret-base64/k8s-secret-base64.bindings';
-import { binding as binding182 } from '../../tools/keyword-frequency-analyzer/keyword-frequency-analyzer.bindings';
-import { binding as binding183 } from '../../tools/ksuid-tools/ksuid-tools.bindings';
-import { binding as binding184 } from '../../tools/kubeconfig-inspector/kubeconfig-inspector.bindings';
-import { binding as binding185 } from '../../tools/large-file-inspector/large-file-inspector.bindings';
-import { binding as binding186 } from '../../tools/latency-monitor/latency-monitor.bindings';
-import { binding as binding187 } from '../../tools/line-order-tools/line-order-tools.bindings';
-import { binding as binding188 } from '../../tools/line-prefix-numbering/line-prefix-numbering.bindings';
-import { binding as binding189 } from '../../tools/live-certificate-chain/live-certificate-chain.bindings';
-import { binding as binding190 } from '../../tools/local-network/local-network.bindings';
-import { binding as binding191 } from '../../tools/lockfile-inspector/lockfile-inspector.bindings';
-import { binding as binding192 } from '../../tools/lorem-ipsum-generator/lorem-ipsum-generator.bindings';
-import { binding as binding193 } from '../../tools/mac-address-inspector/mac-address-inspector.bindings';
-import { binding as binding194 } from '../../tools/macho-header-viewer/macho-header-viewer.bindings';
-import { binding as binding195 } from '../../tools/markdown/markdown.bindings';
-import { binding as binding196 } from '../../tools/markdown-workspace/markdown-workspace.bindings';
-import { binding as binding197 } from '../../tools/matrix-calculator/matrix-calculator.bindings';
-import { binding as binding198 } from '../../tools/meta-tag-generator/meta-tag-generator.bindings';
-import { binding as binding199 } from '../../tools/mime-types/mime-types.bindings';
-import { binding as binding200 } from '../../tools/missing-env-var-detector/missing-env-var-detector.bindings';
-import { binding as binding201 } from '../../tools/mock-data-studio/mock-data-studio.bindings';
-import { binding as binding202 } from '../../tools/model-generator/model-generator.bindings';
-import { binding as binding203 } from '../../tools/msgpack-decoder/msgpack-decoder.bindings';
-import { binding as binding204 } from '../../tools/mtu-discovery/mtu-discovery.bindings';
-import { binding as binding205 } from '../../tools/multipart-form-builder/multipart-form-builder.bindings';
-import { binding as binding206 } from '../../tools/nanoid-generator/nanoid-generator.bindings';
-import { binding as binding207 } from '../../tools/network-diagnostic-bundle/network-diagnostic-bundle.bindings';
-import { binding as binding208 } from '../../tools/number-base/number-base.bindings';
-import { binding as binding209 } from '../../tools/number-theory-toolkit/number-theory-toolkit.bindings';
-import { binding as binding210 } from '../../tools/numeric-representation-inspector/numeric-representation-inspector.bindings';
-import { binding as binding211 } from '../../tools/oauth-playground/oauth-playground.bindings';
-import { binding as binding212 } from '../../tools/oauth-scope-parser/oauth-scope-parser.bindings';
-import { binding as binding213 } from '../../tools/oauth-token-inspector/oauth-token-inspector.bindings';
-import { binding as binding214 } from '../../tools/oidc-discovery-inspector/oidc-discovery-inspector.bindings';
-import { binding as binding215 } from '../../tools/opengraph-preview/opengraph-preview.bindings';
-import { binding as binding216 } from '../../tools/package-metadata-inspector/package-metadata-inspector.bindings';
-import { binding as binding217 } from '../../tools/packet-loss/packet-loss.bindings';
-import { binding as binding218 } from '../../tools/palette-generator/palette-generator.bindings';
-import { binding as binding219 } from '../../tools/parquet-viewer/parquet-viewer.bindings';
-import { binding as binding220 } from '../../tools/password-generator/password-generator.bindings';
-import { binding as binding221 } from '../../tools/password-strength-analyzer/password-strength-analyzer.bindings';
-import { binding as binding222 } from '../../tools/path-editor/path-editor.bindings';
-import { binding as binding223 } from '../../tools/pe-header-viewer/pe-header-viewer.bindings';
-import { binding as binding224 } from '../../tools/pem-der-inspector/pem-der-inspector.bindings';
-import { binding as binding225 } from '../../tools/percentage-ratio-calculator/percentage-ratio-calculator.bindings';
-import { binding as binding226 } from '../../tools/ping/ping.bindings';
-import { binding as binding227 } from '../../tools/pixel-color-picker/pixel-color-picker.bindings';
-import { binding as binding228 } from '../../tools/pkce-generator/pkce-generator.bindings';
-import { binding as binding229 } from '../../tools/pkce-verifier/pkce-verifier.bindings';
-import { binding as binding230 } from '../../tools/pkcs12-inspector/pkcs12-inspector.bindings';
-import { binding as binding231 } from '../../tools/port-process-lookup/port-process-lookup.bindings';
-import { binding as binding232 } from '../../tools/port-scanner/port-scanner.bindings';
-import { binding as binding233 } from '../../tools/powershell-builder/powershell-builder.bindings';
-import { binding as binding234 } from '../../tools/process-diagnostic-bundle/process-diagnostic-bundle.bindings';
-import { binding as binding235 } from '../../tools/process-viewer/process-viewer.bindings';
-import { binding as binding236 } from '../../tools/programmer-calculator/programmer-calculator.bindings';
-import { binding as binding237 } from '../../tools/properties-parser/properties-parser.bindings';
-import { binding as binding238 } from '../../tools/protobuf-decoder/protobuf-decoder.bindings';
-import { binding as binding239 } from '../../tools/public-ip/public-ip.bindings';
-import { binding as binding240 } from '../../tools/punycode-converter/punycode-converter.bindings';
-import { binding as binding241 } from '../../tools/python-playground/python-playground.bindings';
-import { binding as binding242 } from '../../tools/qr-code-generator/qr-code-generator.bindings';
-import { binding as binding243 } from '../../tools/qr-code-scanner/qr-code-scanner.bindings';
-import { binding as binding244 } from '../../tools/query-string/query-string.bindings';
-import { binding as binding245 } from '../../tools/random-data-generator/random-data-generator.bindings';
-import { binding as binding246 } from '../../tools/range-generator/range-generator.bindings';
-import { binding as binding247 } from '../../tools/range-header-builder/range-header-builder.bindings';
-import { binding as binding248 } from '../../tools/recurrence-rule/recurrence-rule.bindings';
-import { binding as binding249 } from '../../tools/regex/regex.bindings';
-import { binding as binding250 } from '../../tools/regex-benchmark/regex-benchmark.bindings';
-import { binding as binding251 } from '../../tools/regex-flavor-converter/regex-flavor-converter.bindings';
-import { binding as binding252 } from '../../tools/regex-generator/regex-generator.bindings';
-import { binding as binding253 } from '../../tools/regex-visualizer/regex-visualizer.bindings';
-import { binding as binding254 } from '../../tools/registry-editor/registry-editor.bindings';
-import { binding as binding255 } from '../../tools/relative-time-parser/relative-time-parser.bindings';
-import { binding as binding256 } from '../../tools/resolution-calculator/resolution-calculator.bindings';
-import { binding as binding257 } from '../../tools/resx-tool/resx-tool.bindings';
-import { binding as binding258 } from '../../tools/reverse-dns/reverse-dns.bindings';
-import { binding as binding259 } from '../../tools/revocation-inspector/revocation-inspector.bindings';
-import { binding as binding260 } from '../../tools/rich-text-editor/rich-text-editor.bindings';
-import { binding as binding261 } from '../../tools/rot-cipher/rot-cipher.bindings';
-import { binding as binding262 } from '../../tools/route-comparison/route-comparison.bindings';
-import { binding as binding263 } from '../../tools/runtime-detector/runtime-detector.bindings';
-import { binding as binding264 } from '../../tools/scheduled-tasks/scheduled-tasks.bindings';
-import { binding as binding265 } from '../../tools/schema-diff/schema-diff.bindings';
-import { binding as binding266 } from '../../tools/scientific-notation-converter/scientific-notation-converter.bindings';
-import { binding as binding267 } from '../../tools/secret-detector/secret-detector.bindings';
-import { binding as binding268 } from '../../tools/semver-comparator/semver-comparator.bindings';
-import { binding as binding269 } from '../../tools/services-viewer/services-viewer.bindings';
-import { binding as binding270 } from '../../tools/sid-account-resolver/sid-account-resolver.bindings';
-import { binding as binding271 } from '../../tools/slug-generator/slug-generator.bindings';
-import { binding as binding272 } from '../../tools/smart-quotes-normalizer/smart-quotes-normalizer.bindings';
-import { binding as binding273 } from '../../tools/snowflake-id-tools/snowflake-id-tools.bindings';
-import { binding as binding274 } from '../../tools/soundex-metaphone/soundex-metaphone.bindings';
-import { binding as binding275 } from '../../tools/sql-dialect-converter/sql-dialect-converter.bindings';
-import { binding as binding276 } from '../../tools/sql-formatter-tool/sql-formatter-tool.bindings';
-import { binding as binding277 } from '../../tools/sql-parameterizer/sql-parameterizer.bindings';
-import { binding as binding278 } from '../../tools/sql-query-explainer/sql-query-explainer.bindings';
-import { binding as binding279 } from '../../tools/sql-syntax-checker/sql-syntax-checker.bindings';
-import { binding as binding280 } from '../../tools/sqlite-viewer/sqlite-viewer.bindings';
-import { binding as binding281 } from '../../tools/ssh-key-tools/ssh-key-tools.bindings';
-import { binding as binding282 } from '../../tools/stack-trace-formatter/stack-trace-formatter.bindings';
-import { binding as binding283 } from '../../tools/starttls-inspector/starttls-inspector.bindings';
-import { binding as binding284 } from '../../tools/startup-programs/startup-programs.bindings';
-import { binding as binding285 } from '../../tools/statistics-calculator/statistics-calculator.bindings';
-import { binding as binding286 } from '../../tools/stopwatch-countdown/stopwatch-countdown.bindings';
-import { binding as binding287 } from '../../tools/string-similarity-calculator/string-similarity-calculator.bindings';
-import { binding as binding288 } from '../../tools/structured-data-converter/structured-data-converter.bindings';
-import { binding as binding289 } from '../../tools/subnet-calculator/subnet-calculator.bindings';
-import { binding as binding290 } from '../../tools/svg-data-uri/svg-data-uri.bindings';
-import { binding as binding291 } from '../../tools/svg-viewer/svg-viewer.bindings';
-import { binding as binding292 } from '../../tools/system-changes/system-changes.bindings';
-import { binding as binding293 } from '../../tools/tailwind-color-matcher/tailwind-color-matcher.bindings';
-import { binding as binding294 } from '../../tools/tcp-port-tester/tcp-port-tester.bindings';
-import { binding as binding295 } from '../../tools/template-renderer/template-renderer.bindings';
-import { binding as binding296 } from '../../tools/text-inspector/text-inspector.bindings';
-import { binding as binding297 } from '../../tools/text-tokenizer-ngram/text-tokenizer-ngram.bindings';
-import { binding as binding298 } from '../../tools/timezone-converter/timezone-converter.bindings';
-import { binding as binding299 } from '../../tools/timezone-offset-comparator/timezone-offset-comparator.bindings';
-import { binding as binding300 } from '../../tools/tls-inspector/tls-inspector.bindings';
-import { binding as binding301 } from '../../tools/toml-formatter/toml-formatter.bindings';
-import { binding as binding302 } from '../../tools/traceroute/traceroute.bindings';
-import { binding as binding303 } from '../../tools/tree-search/tree-search.bindings';
-import { binding as binding304 } from '../../tools/udp-port-tester/udp-port-tester.bindings';
-import { binding as binding305 } from '../../tools/ulid-tools/ulid-tools.bindings';
-import { binding as binding306 } from '../../tools/unicode-character-inspector/unicode-character-inspector.bindings';
-import { binding as binding307 } from '../../tools/unicode-code-point-converter/unicode-code-point-converter.bindings';
-import { binding as binding308 } from '../../tools/unicode-normalization/unicode-normalization.bindings';
-import { binding as binding309 } from '../../tools/unicode-table/unicode-table.bindings';
-import { binding as binding310 } from '../../tools/unix-timestamp/unix-timestamp.bindings';
-import { binding as binding311 } from '../../tools/url-encode/url-encode.bindings';
-import { binding as binding312 } from '../../tools/url-inspector/url-inspector.bindings';
-import { binding as binding313 } from '../../tools/url-normalizer/url-normalizer.bindings';
-import { binding as binding314 } from '../../tools/url-percent-inspector/url-percent-inspector.bindings';
-import { binding as binding315 } from '../../tools/url-safety-inspector/url-safety-inspector.bindings';
-import { binding as binding316 } from '../../tools/user-agent/user-agent.bindings';
-import { binding as binding317 } from '../../tools/uuid/uuid.bindings';
-import { binding as binding318 } from '../../tools/watched-folders/watched-folders.bindings';
-import { binding as binding319 } from '../../tools/week-number-calculator/week-number-calculator.bindings';
-import { binding as binding320 } from '../../tools/whitespace-cleaner/whitespace-cleaner.bindings';
-import { binding as binding321 } from '../../tools/whois-lookup/whois-lookup.bindings';
-import { binding as binding322 } from '../../tools/windows-features/windows-features.bindings';
-import { binding as binding323 } from '../../tools/x509-certificate-inspector/x509-certificate-inspector.bindings';
-import { binding as binding324 } from '../../tools/xml-csv/xml-csv.bindings';
-import { binding as binding325 } from '../../tools/xml-formatter/xml-formatter.bindings';
-import { binding as binding326 } from '../../tools/xml-xpath/xml-xpath.bindings';
-import { binding as binding327 } from '../../tools/xml-xsd-validator/xml-xsd-validator.bindings';
-import { binding as binding328 } from '../../tools/yaml-anchors/yaml-anchors.bindings';
-import { binding as binding329 } from '../../tools/yaml-json/yaml-json.bindings';
-import { binding as binding330 } from '../../tools/yaml-linter/yaml-linter.bindings';
-import { binding as binding331 } from '../../tools/yaml-merge/yaml-merge.bindings';
-import { binding as binding332 } from '../../tools/yaml-path/yaml-path.bindings';
+import { binding as binding78 } from '../../tools/device-info/device-info.bindings';
+import { binding as binding79 } from '../../tools/diff/diff.bindings';
+import { binding as binding80 } from '../../tools/directory-diff/directory-diff.bindings';
+import { binding as binding81 } from '../../tools/directory-tree-generator/directory-tree-generator.bindings';
+import { binding as binding82 } from '../../tools/dns-lookup/dns-lookup.bindings';
+import { binding as binding83 } from '../../tools/dns-propagation/dns-propagation.bindings';
+import { binding as binding84 } from '../../tools/dnssec-inspector/dnssec-inspector.bindings';
+import { binding as binding85 } from '../../tools/docker-compose-validator/docker-compose-validator.bindings';
+import { binding as binding86 } from '../../tools/docker-run-compose-converter/docker-run-compose-converter.bindings';
+import { binding as binding87 } from '../../tools/dockerfile-linter/dockerfile-linter.bindings';
+import { binding as binding88 } from '../../tools/dom-tree-viewer/dom-tree-viewer.bindings';
+import { binding as binding89 } from '../../tools/dpi-calculator/dpi-calculator.bindings';
+import { binding as binding90 } from '../../tools/dst-transition-explorer/dst-transition-explorer.bindings';
+import { binding as binding91 } from '../../tools/duplicate-files/duplicate-files.bindings';
+import { binding as binding92 } from '../../tools/duplicate-finder/duplicate-finder.bindings';
+import { binding as binding93 } from '../../tools/duration-formatter/duration-formatter.bindings';
+import { binding as binding94 } from '../../tools/elf-header-viewer/elf-header-viewer.bindings';
+import { binding as binding95 } from '../../tools/email-auth-inspector/email-auth-inspector.bindings';
+import { binding as binding96 } from '../../tools/encoding-detector/encoding-detector.bindings';
+import { binding as binding97 } from '../../tools/env-diff/env-diff.bindings';
+import { binding as binding98 } from '../../tools/env-editor/env-editor.bindings';
+import { binding as binding99 } from '../../tools/env-json-converter/env-json-converter.bindings';
+import { binding as binding100 } from '../../tools/env-validator/env-validator.bindings';
+import { binding as binding101 } from '../../tools/environment-variables/environment-variables.bindings';
+import { binding as binding102 } from '../../tools/epoch-timeline-visualizer/epoch-timeline-visualizer.bindings';
+import { binding as binding103 } from '../../tools/error-code-reference/error-code-reference.bindings';
+import { binding as binding104 } from '../../tools/escape-unescape-toolkit/escape-unescape-toolkit.bindings';
+import { binding as binding105 } from '../../tools/event-log-viewer/event-log-viewer.bindings';
+import { binding as binding106 } from '../../tools/exif-viewer/exif-viewer.bindings';
+import { binding as binding107 } from '../../tools/expression-evaluator/expression-evaluator.bindings';
+import { binding as binding108 } from '../../tools/extract-columns/extract-columns.bindings';
+import { binding as binding109 } from '../../tools/file-base64/file-base64.bindings';
+import { binding as binding110 } from '../../tools/file-entropy-analyzer/file-entropy-analyzer.bindings';
+import { binding as binding111 } from '../../tools/file-hash/file-hash.bindings';
+import { binding as binding112 } from '../../tools/file-inspector/file-inspector.bindings';
+import { binding as binding113 } from '../../tools/file-lock-inspector/file-lock-inspector.bindings';
+import { binding as binding114 } from '../../tools/file-split-join/file-split-join.bindings';
+import { binding as binding115 } from '../../tools/file-type-detector/file-type-detector.bindings';
+import { binding as binding116 } from '../../tools/find-replace-text/find-replace-text.bindings';
+import { binding as binding117 } from '../../tools/flexbox-playground/flexbox-playground.bindings';
+import { binding as binding118 } from '../../tools/folder-size-analyzer/folder-size-analyzer.bindings';
+import { binding as binding119 } from '../../tools/git-command-builder/git-command-builder.bindings';
+import { binding as binding120 } from '../../tools/git-command-explainer/git-command-explainer.bindings';
+import { binding as binding121 } from '../../tools/git-diff/git-diff.bindings';
+import { binding as binding122 } from '../../tools/git-remote-inspector/git-remote-inspector.bindings';
+import { binding as binding123 } from '../../tools/git-url-parser/git-url-parser.bindings';
+import { binding as binding124 } from '../../tools/gitignore-generator/gitignore-generator.bindings';
+import { binding as binding125 } from '../../tools/gitignore-tester/gitignore-tester.bindings';
+import { binding as binding126 } from '../../tools/glob-tester/glob-tester.bindings';
+import { binding as binding127 } from '../../tools/gradient-generator/gradient-generator.bindings';
+import { binding as binding128 } from '../../tools/hash/hash.bindings';
+import { binding as binding129 } from '../../tools/hash-manifest/hash-manifest.bindings';
+import { binding as binding130 } from '../../tools/hex-diff/hex-diff.bindings';
+import { binding as binding131 } from '../../tools/hex-dump/hex-dump.bindings';
+import { binding as binding132 } from '../../tools/hex-editor/hex-editor.bindings';
+import { binding as binding133 } from '../../tools/hex-text-converter/hex-text-converter.bindings';
+import { binding as binding134 } from '../../tools/hmac-generator/hmac-generator.bindings';
+import { binding as binding135 } from '../../tools/hostname-resolver/hostname-resolver.bindings';
+import { binding as binding136 } from '../../tools/html-entities/html-entities.bindings';
+import { binding as binding137 } from '../../tools/html-entity-explorer/html-entity-explorer.bindings';
+import { binding as binding138 } from '../../tools/html-formatter/html-formatter.bindings';
+import { binding as binding139 } from '../../tools/html-jsx-converter/html-jsx-converter.bindings';
+import { binding as binding140 } from '../../tools/html-preview/html-preview.bindings';
+import { binding as binding141 } from '../../tools/http-digest-auth-helper/http-digest-auth-helper.bindings';
+import { binding as binding142 } from '../../tools/http-header-inspector/http-header-inspector.bindings';
+import { binding as binding143 } from '../../tools/http-request-builder/http-request-builder.bindings';
+import { binding as binding144 } from '../../tools/http-response-viewer/http-response-viewer.bindings';
+import { binding as binding145 } from '../../tools/http-status/http-status.bindings';
+import { binding as binding146 } from '../../tools/https-config-analyzer/https-config-analyzer.bindings';
+import { binding as binding147 } from '../../tools/image-compressor/image-compressor.bindings';
+import { binding as binding148 } from '../../tools/image-cropper/image-cropper.bindings';
+import { binding as binding149 } from '../../tools/image-format-converter/image-format-converter.bindings';
+import { binding as binding150 } from '../../tools/image-metadata-inspector/image-metadata-inspector.bindings';
+import { binding as binding151 } from '../../tools/image-resizer/image-resizer.bindings';
+import { binding as binding152 } from '../../tools/ini-formatter/ini-formatter.bindings';
+import { binding as binding153 } from '../../tools/installed-software/installed-software.bindings';
+import { binding as binding154 } from '../../tools/invisible-char-scanner/invisible-char-scanner.bindings';
+import { binding as binding155 } from '../../tools/ip-address-inspector/ip-address-inspector.bindings';
+import { binding as binding156 } from '../../tools/ipv4-integer-converter/ipv4-integer-converter.bindings';
+import { binding as binding157 } from '../../tools/ipv6-explorer/ipv6-explorer.bindings';
+import { binding as binding158 } from '../../tools/js-playground/js-playground.bindings';
+import { binding as binding159 } from '../../tools/json/json.bindings';
+import { binding as binding160 } from '../../tools/json-flatten/json-flatten.bindings';
+import { binding as binding161 } from '../../tools/json-ld-tester/json-ld-tester.bindings';
+import { binding as binding162 } from '../../tools/json-merge/json-merge.bindings';
+import { binding as binding163 } from '../../tools/json-patch-generate/json-patch-generate.bindings';
+import { binding as binding164 } from '../../tools/json-patch-test/json-patch-test.bindings';
+import { binding as binding165 } from '../../tools/json-pointer/json-pointer.bindings';
+import { binding as binding166 } from '../../tools/json-query/json-query.bindings';
+import { binding as binding167 } from '../../tools/json-schema-validator/json-schema-validator.bindings';
+import { binding as binding168 } from '../../tools/json-sort-keys/json-sort-keys.bindings';
+import { binding as binding169 } from '../../tools/jsonl-viewer/jsonl-viewer.bindings';
+import { binding as binding170 } from '../../tools/jwks-to-pem/jwks-to-pem.bindings';
+import { binding as binding171 } from '../../tools/jwks-viewer/jwks-viewer.bindings';
+import { binding as binding172 } from '../../tools/jwt/jwt.bindings';
+import { binding as binding173 } from '../../tools/jwt-claims-analyzer/jwt-claims-analyzer.bindings';
+import { binding as binding174 } from '../../tools/jwt-expiration-visualizer/jwt-expiration-visualizer.bindings';
+import { binding as binding175 } from '../../tools/jwt-signer/jwt-signer.bindings';
+import { binding as binding176 } from '../../tools/jwt-verify/jwt-verify.bindings';
+import { binding as binding177 } from '../../tools/k8s-cronjob-tester/k8s-cronjob-tester.bindings';
+import { binding as binding178 } from '../../tools/k8s-manifest-diff/k8s-manifest-diff.bindings';
+import { binding as binding179 } from '../../tools/k8s-manifest-validator/k8s-manifest-validator.bindings';
+import { binding as binding180 } from '../../tools/k8s-quantity-converter/k8s-quantity-converter.bindings';
+import { binding as binding181 } from '../../tools/k8s-resource-calculator/k8s-resource-calculator.bindings';
+import { binding as binding182 } from '../../tools/k8s-secret-base64/k8s-secret-base64.bindings';
+import { binding as binding183 } from '../../tools/keyword-frequency-analyzer/keyword-frequency-analyzer.bindings';
+import { binding as binding184 } from '../../tools/ksuid-tools/ksuid-tools.bindings';
+import { binding as binding185 } from '../../tools/kubeconfig-inspector/kubeconfig-inspector.bindings';
+import { binding as binding186 } from '../../tools/large-file-inspector/large-file-inspector.bindings';
+import { binding as binding187 } from '../../tools/latency-monitor/latency-monitor.bindings';
+import { binding as binding188 } from '../../tools/line-order-tools/line-order-tools.bindings';
+import { binding as binding189 } from '../../tools/line-prefix-numbering/line-prefix-numbering.bindings';
+import { binding as binding190 } from '../../tools/live-certificate-chain/live-certificate-chain.bindings';
+import { binding as binding191 } from '../../tools/local-network/local-network.bindings';
+import { binding as binding192 } from '../../tools/lockfile-inspector/lockfile-inspector.bindings';
+import { binding as binding193 } from '../../tools/lorem-ipsum-generator/lorem-ipsum-generator.bindings';
+import { binding as binding194 } from '../../tools/mac-address-inspector/mac-address-inspector.bindings';
+import { binding as binding195 } from '../../tools/macho-header-viewer/macho-header-viewer.bindings';
+import { binding as binding196 } from '../../tools/markdown/markdown.bindings';
+import { binding as binding197 } from '../../tools/markdown-workspace/markdown-workspace.bindings';
+import { binding as binding198 } from '../../tools/matrix-calculator/matrix-calculator.bindings';
+import { binding as binding199 } from '../../tools/meta-tag-generator/meta-tag-generator.bindings';
+import { binding as binding200 } from '../../tools/mime-types/mime-types.bindings';
+import { binding as binding201 } from '../../tools/missing-env-var-detector/missing-env-var-detector.bindings';
+import { binding as binding202 } from '../../tools/mock-data-studio/mock-data-studio.bindings';
+import { binding as binding203 } from '../../tools/model-generator/model-generator.bindings';
+import { binding as binding204 } from '../../tools/msgpack-decoder/msgpack-decoder.bindings';
+import { binding as binding205 } from '../../tools/mtu-discovery/mtu-discovery.bindings';
+import { binding as binding206 } from '../../tools/multipart-form-builder/multipart-form-builder.bindings';
+import { binding as binding207 } from '../../tools/nanoid-generator/nanoid-generator.bindings';
+import { binding as binding208 } from '../../tools/network-diagnostic-bundle/network-diagnostic-bundle.bindings';
+import { binding as binding209 } from '../../tools/number-base/number-base.bindings';
+import { binding as binding210 } from '../../tools/number-theory-toolkit/number-theory-toolkit.bindings';
+import { binding as binding211 } from '../../tools/numeric-representation-inspector/numeric-representation-inspector.bindings';
+import { binding as binding212 } from '../../tools/oauth-playground/oauth-playground.bindings';
+import { binding as binding213 } from '../../tools/oauth-scope-parser/oauth-scope-parser.bindings';
+import { binding as binding214 } from '../../tools/oauth-token-inspector/oauth-token-inspector.bindings';
+import { binding as binding215 } from '../../tools/oidc-discovery-inspector/oidc-discovery-inspector.bindings';
+import { binding as binding216 } from '../../tools/opengraph-preview/opengraph-preview.bindings';
+import { binding as binding217 } from '../../tools/package-metadata-inspector/package-metadata-inspector.bindings';
+import { binding as binding218 } from '../../tools/packet-loss/packet-loss.bindings';
+import { binding as binding219 } from '../../tools/palette-generator/palette-generator.bindings';
+import { binding as binding220 } from '../../tools/parquet-viewer/parquet-viewer.bindings';
+import { binding as binding221 } from '../../tools/password-generator/password-generator.bindings';
+import { binding as binding222 } from '../../tools/password-strength-analyzer/password-strength-analyzer.bindings';
+import { binding as binding223 } from '../../tools/path-editor/path-editor.bindings';
+import { binding as binding224 } from '../../tools/pe-header-viewer/pe-header-viewer.bindings';
+import { binding as binding225 } from '../../tools/pem-der-inspector/pem-der-inspector.bindings';
+import { binding as binding226 } from '../../tools/percentage-ratio-calculator/percentage-ratio-calculator.bindings';
+import { binding as binding227 } from '../../tools/ping/ping.bindings';
+import { binding as binding228 } from '../../tools/pixel-color-picker/pixel-color-picker.bindings';
+import { binding as binding229 } from '../../tools/pkce-generator/pkce-generator.bindings';
+import { binding as binding230 } from '../../tools/pkce-verifier/pkce-verifier.bindings';
+import { binding as binding231 } from '../../tools/pkcs12-inspector/pkcs12-inspector.bindings';
+import { binding as binding232 } from '../../tools/port-process-lookup/port-process-lookup.bindings';
+import { binding as binding233 } from '../../tools/port-scanner/port-scanner.bindings';
+import { binding as binding234 } from '../../tools/powershell-builder/powershell-builder.bindings';
+import { binding as binding235 } from '../../tools/process-diagnostic-bundle/process-diagnostic-bundle.bindings';
+import { binding as binding236 } from '../../tools/process-viewer/process-viewer.bindings';
+import { binding as binding237 } from '../../tools/programmer-calculator/programmer-calculator.bindings';
+import { binding as binding238 } from '../../tools/properties-parser/properties-parser.bindings';
+import { binding as binding239 } from '../../tools/protobuf-decoder/protobuf-decoder.bindings';
+import { binding as binding240 } from '../../tools/public-ip/public-ip.bindings';
+import { binding as binding241 } from '../../tools/punycode-converter/punycode-converter.bindings';
+import { binding as binding242 } from '../../tools/python-playground/python-playground.bindings';
+import { binding as binding243 } from '../../tools/qr-code-generator/qr-code-generator.bindings';
+import { binding as binding244 } from '../../tools/qr-code-scanner/qr-code-scanner.bindings';
+import { binding as binding245 } from '../../tools/query-string/query-string.bindings';
+import { binding as binding246 } from '../../tools/random-data-generator/random-data-generator.bindings';
+import { binding as binding247 } from '../../tools/range-generator/range-generator.bindings';
+import { binding as binding248 } from '../../tools/range-header-builder/range-header-builder.bindings';
+import { binding as binding249 } from '../../tools/recurrence-rule/recurrence-rule.bindings';
+import { binding as binding250 } from '../../tools/regex/regex.bindings';
+import { binding as binding251 } from '../../tools/regex-benchmark/regex-benchmark.bindings';
+import { binding as binding252 } from '../../tools/regex-flavor-converter/regex-flavor-converter.bindings';
+import { binding as binding253 } from '../../tools/regex-generator/regex-generator.bindings';
+import { binding as binding254 } from '../../tools/regex-visualizer/regex-visualizer.bindings';
+import { binding as binding255 } from '../../tools/registry-editor/registry-editor.bindings';
+import { binding as binding256 } from '../../tools/relative-time-parser/relative-time-parser.bindings';
+import { binding as binding257 } from '../../tools/resolution-calculator/resolution-calculator.bindings';
+import { binding as binding258 } from '../../tools/resx-tool/resx-tool.bindings';
+import { binding as binding259 } from '../../tools/reverse-dns/reverse-dns.bindings';
+import { binding as binding260 } from '../../tools/revocation-inspector/revocation-inspector.bindings';
+import { binding as binding261 } from '../../tools/rich-text-editor/rich-text-editor.bindings';
+import { binding as binding262 } from '../../tools/rot-cipher/rot-cipher.bindings';
+import { binding as binding263 } from '../../tools/route-comparison/route-comparison.bindings';
+import { binding as binding264 } from '../../tools/runtime-detector/runtime-detector.bindings';
+import { binding as binding265 } from '../../tools/scheduled-tasks/scheduled-tasks.bindings';
+import { binding as binding266 } from '../../tools/schema-diff/schema-diff.bindings';
+import { binding as binding267 } from '../../tools/scientific-notation-converter/scientific-notation-converter.bindings';
+import { binding as binding268 } from '../../tools/secret-detector/secret-detector.bindings';
+import { binding as binding269 } from '../../tools/semver-comparator/semver-comparator.bindings';
+import { binding as binding270 } from '../../tools/services-viewer/services-viewer.bindings';
+import { binding as binding271 } from '../../tools/sid-account-resolver/sid-account-resolver.bindings';
+import { binding as binding272 } from '../../tools/slug-generator/slug-generator.bindings';
+import { binding as binding273 } from '../../tools/smart-quotes-normalizer/smart-quotes-normalizer.bindings';
+import { binding as binding274 } from '../../tools/snowflake-id-tools/snowflake-id-tools.bindings';
+import { binding as binding275 } from '../../tools/soundex-metaphone/soundex-metaphone.bindings';
+import { binding as binding276 } from '../../tools/sql-dialect-converter/sql-dialect-converter.bindings';
+import { binding as binding277 } from '../../tools/sql-formatter-tool/sql-formatter-tool.bindings';
+import { binding as binding278 } from '../../tools/sql-parameterizer/sql-parameterizer.bindings';
+import { binding as binding279 } from '../../tools/sql-query-explainer/sql-query-explainer.bindings';
+import { binding as binding280 } from '../../tools/sql-syntax-checker/sql-syntax-checker.bindings';
+import { binding as binding281 } from '../../tools/sqlite-viewer/sqlite-viewer.bindings';
+import { binding as binding282 } from '../../tools/ssh-key-tools/ssh-key-tools.bindings';
+import { binding as binding283 } from '../../tools/stack-trace-formatter/stack-trace-formatter.bindings';
+import { binding as binding284 } from '../../tools/starttls-inspector/starttls-inspector.bindings';
+import { binding as binding285 } from '../../tools/startup-programs/startup-programs.bindings';
+import { binding as binding286 } from '../../tools/statistics-calculator/statistics-calculator.bindings';
+import { binding as binding287 } from '../../tools/stopwatch-countdown/stopwatch-countdown.bindings';
+import { binding as binding288 } from '../../tools/string-similarity-calculator/string-similarity-calculator.bindings';
+import { binding as binding289 } from '../../tools/structured-data-converter/structured-data-converter.bindings';
+import { binding as binding290 } from '../../tools/subnet-calculator/subnet-calculator.bindings';
+import { binding as binding291 } from '../../tools/svg-data-uri/svg-data-uri.bindings';
+import { binding as binding292 } from '../../tools/svg-viewer/svg-viewer.bindings';
+import { binding as binding293 } from '../../tools/system-changes/system-changes.bindings';
+import { binding as binding294 } from '../../tools/tailwind-color-matcher/tailwind-color-matcher.bindings';
+import { binding as binding295 } from '../../tools/tcp-port-tester/tcp-port-tester.bindings';
+import { binding as binding296 } from '../../tools/template-renderer/template-renderer.bindings';
+import { binding as binding297 } from '../../tools/text-inspector/text-inspector.bindings';
+import { binding as binding298 } from '../../tools/text-tokenizer-ngram/text-tokenizer-ngram.bindings';
+import { binding as binding299 } from '../../tools/timezone-converter/timezone-converter.bindings';
+import { binding as binding300 } from '../../tools/timezone-offset-comparator/timezone-offset-comparator.bindings';
+import { binding as binding301 } from '../../tools/tls-inspector/tls-inspector.bindings';
+import { binding as binding302 } from '../../tools/toml-formatter/toml-formatter.bindings';
+import { binding as binding303 } from '../../tools/traceroute/traceroute.bindings';
+import { binding as binding304 } from '../../tools/tree-search/tree-search.bindings';
+import { binding as binding305 } from '../../tools/udp-port-tester/udp-port-tester.bindings';
+import { binding as binding306 } from '../../tools/ulid-tools/ulid-tools.bindings';
+import { binding as binding307 } from '../../tools/unicode-character-inspector/unicode-character-inspector.bindings';
+import { binding as binding308 } from '../../tools/unicode-code-point-converter/unicode-code-point-converter.bindings';
+import { binding as binding309 } from '../../tools/unicode-normalization/unicode-normalization.bindings';
+import { binding as binding310 } from '../../tools/unicode-table/unicode-table.bindings';
+import { binding as binding311 } from '../../tools/unix-timestamp/unix-timestamp.bindings';
+import { binding as binding312 } from '../../tools/url-encode/url-encode.bindings';
+import { binding as binding313 } from '../../tools/url-inspector/url-inspector.bindings';
+import { binding as binding314 } from '../../tools/url-normalizer/url-normalizer.bindings';
+import { binding as binding315 } from '../../tools/url-percent-inspector/url-percent-inspector.bindings';
+import { binding as binding316 } from '../../tools/url-safety-inspector/url-safety-inspector.bindings';
+import { binding as binding317 } from '../../tools/user-agent/user-agent.bindings';
+import { binding as binding318 } from '../../tools/uuid/uuid.bindings';
+import { binding as binding319 } from '../../tools/watched-folders/watched-folders.bindings';
+import { binding as binding320 } from '../../tools/week-number-calculator/week-number-calculator.bindings';
+import { binding as binding321 } from '../../tools/whitespace-cleaner/whitespace-cleaner.bindings';
+import { binding as binding322 } from '../../tools/whois-lookup/whois-lookup.bindings';
+import { binding as binding323 } from '../../tools/windows-features/windows-features.bindings';
+import { binding as binding324 } from '../../tools/x509-certificate-inspector/x509-certificate-inspector.bindings';
+import { binding as binding325 } from '../../tools/xml-csv/xml-csv.bindings';
+import { binding as binding326 } from '../../tools/xml-formatter/xml-formatter.bindings';
+import { binding as binding327 } from '../../tools/xml-xpath/xml-xpath.bindings';
+import { binding as binding328 } from '../../tools/xml-xsd-validator/xml-xsd-validator.bindings';
+import { binding as binding329 } from '../../tools/yaml-anchors/yaml-anchors.bindings';
+import { binding as binding330 } from '../../tools/yaml-json/yaml-json.bindings';
+import { binding as binding331 } from '../../tools/yaml-linter/yaml-linter.bindings';
+import { binding as binding332 } from '../../tools/yaml-merge/yaml-merge.bindings';
+import { binding as binding333 } from '../../tools/yaml-path/yaml-path.bindings';
 interface Binding { readonly load: () => Promise<unknown>; readonly settingsLoad?: () => Promise<unknown>; }
 const BINDINGS: Readonly<Record<string, Binding>> = {
  'accept-header-builder': binding0,
@@ -414,261 +415,262 @@ const BINDINGS: Readonly<Record<string, Binding>> = {
  'dependency-version-comparator': binding75,
  'dependency-walker': binding76,
  'dev-snippets-reference': binding77,
- 'diff': binding78,
- 'directory-diff': binding79,
- 'directory-tree-generator': binding80,
- 'dns-lookup': binding81,
- 'dns-propagation': binding82,
- 'dnssec-inspector': binding83,
- 'docker-compose-validator': binding84,
- 'docker-run-compose-converter': binding85,
- 'dockerfile-linter': binding86,
- 'dom-tree-viewer': binding87,
- 'dpi-calculator': binding88,
- 'dst-transition-explorer': binding89,
- 'duplicate-files': binding90,
- 'duplicate-finder': binding91,
- 'duration-formatter': binding92,
- 'elf-header-viewer': binding93,
- 'email-auth-inspector': binding94,
- 'encoding-detector': binding95,
- 'env-diff': binding96,
- 'env-editor': binding97,
- 'env-json-converter': binding98,
- 'env-validator': binding99,
- 'environment-variables': binding100,
- 'epoch-timeline-visualizer': binding101,
- 'error-code-reference': binding102,
- 'escape-unescape-toolkit': binding103,
- 'event-log-viewer': binding104,
- 'exif-viewer': binding105,
- 'expression-evaluator': binding106,
- 'extract-columns': binding107,
- 'file-base64': binding108,
- 'file-entropy-analyzer': binding109,
- 'file-hash': binding110,
- 'file-inspector': binding111,
- 'file-lock-inspector': binding112,
- 'file-split-join': binding113,
- 'file-type-detector': binding114,
- 'find-replace-text': binding115,
- 'flexbox-playground': binding116,
- 'folder-size-analyzer': binding117,
- 'git-command-builder': binding118,
- 'git-command-explainer': binding119,
- 'git-diff': binding120,
- 'git-remote-inspector': binding121,
- 'git-url-parser': binding122,
- 'gitignore-generator': binding123,
- 'gitignore-tester': binding124,
- 'glob-tester': binding125,
- 'gradient-generator': binding126,
- 'hash': binding127,
- 'hash-manifest': binding128,
- 'hex-diff': binding129,
- 'hex-dump': binding130,
- 'hex-editor': binding131,
- 'hex-text-converter': binding132,
- 'hmac-generator': binding133,
- 'hostname-resolver': binding134,
- 'html-entities': binding135,
- 'html-entity-explorer': binding136,
- 'html-formatter': binding137,
- 'html-jsx-converter': binding138,
- 'html-preview': binding139,
- 'http-digest-auth-helper': binding140,
- 'http-header-inspector': binding141,
- 'http-request-builder': binding142,
- 'http-response-viewer': binding143,
- 'http-status': binding144,
- 'https-config-analyzer': binding145,
- 'image-compressor': binding146,
- 'image-cropper': binding147,
- 'image-format-converter': binding148,
- 'image-metadata-inspector': binding149,
- 'image-resizer': binding150,
- 'ini-formatter': binding151,
- 'installed-software': binding152,
- 'invisible-char-scanner': binding153,
- 'ip-address-inspector': binding154,
- 'ipv4-integer-converter': binding155,
- 'ipv6-explorer': binding156,
- 'js-playground': binding157,
- 'json': binding158,
- 'json-flatten': binding159,
- 'json-ld-tester': binding160,
- 'json-merge': binding161,
- 'json-patch-generate': binding162,
- 'json-patch-test': binding163,
- 'json-pointer': binding164,
- 'json-query': binding165,
- 'json-schema-validator': binding166,
- 'json-sort-keys': binding167,
- 'jsonl-viewer': binding168,
- 'jwks-to-pem': binding169,
- 'jwks-viewer': binding170,
- 'jwt': binding171,
- 'jwt-claims-analyzer': binding172,
- 'jwt-expiration-visualizer': binding173,
- 'jwt-signer': binding174,
- 'jwt-verify': binding175,
- 'k8s-cronjob-tester': binding176,
- 'k8s-manifest-diff': binding177,
- 'k8s-manifest-validator': binding178,
- 'k8s-quantity-converter': binding179,
- 'k8s-resource-calculator': binding180,
- 'k8s-secret-base64': binding181,
- 'keyword-frequency-analyzer': binding182,
- 'ksuid-tools': binding183,
- 'kubeconfig-inspector': binding184,
- 'large-file-inspector': binding185,
- 'latency-monitor': binding186,
- 'line-order-tools': binding187,
- 'line-prefix-numbering': binding188,
- 'live-certificate-chain': binding189,
- 'local-network': binding190,
- 'lockfile-inspector': binding191,
- 'lorem-ipsum-generator': binding192,
- 'mac-address-inspector': binding193,
- 'macho-header-viewer': binding194,
- 'markdown': binding195,
- 'markdown-workspace': binding196,
- 'matrix-calculator': binding197,
- 'meta-tag-generator': binding198,
- 'mime-types': binding199,
- 'missing-env-var-detector': binding200,
- 'mock-data-studio': binding201,
- 'model-generator': binding202,
- 'msgpack-decoder': binding203,
- 'mtu-discovery': binding204,
- 'multipart-form-builder': binding205,
- 'nanoid-generator': binding206,
- 'network-diagnostic-bundle': binding207,
- 'number-base': binding208,
- 'number-theory-toolkit': binding209,
- 'numeric-representation-inspector': binding210,
- 'oauth-playground': binding211,
- 'oauth-scope-parser': binding212,
- 'oauth-token-inspector': binding213,
- 'oidc-discovery-inspector': binding214,
- 'opengraph-preview': binding215,
- 'package-metadata-inspector': binding216,
- 'packet-loss': binding217,
- 'palette-generator': binding218,
- 'parquet-viewer': binding219,
- 'password-generator': binding220,
- 'password-strength-analyzer': binding221,
- 'path-editor': binding222,
- 'pe-header-viewer': binding223,
- 'pem-der-inspector': binding224,
- 'percentage-ratio-calculator': binding225,
- 'ping': binding226,
- 'pixel-color-picker': binding227,
- 'pkce-generator': binding228,
- 'pkce-verifier': binding229,
- 'pkcs12-inspector': binding230,
- 'port-process-lookup': binding231,
- 'port-scanner': binding232,
- 'powershell-builder': binding233,
- 'process-diagnostic-bundle': binding234,
- 'process-viewer': binding235,
- 'programmer-calculator': binding236,
- 'properties-parser': binding237,
- 'protobuf-decoder': binding238,
- 'public-ip': binding239,
- 'punycode-converter': binding240,
- 'python-playground': binding241,
- 'qr-code-generator': binding242,
- 'qr-code-scanner': binding243,
- 'query-string': binding244,
- 'random-data-generator': binding245,
- 'range-generator': binding246,
- 'range-header-builder': binding247,
- 'recurrence-rule': binding248,
- 'regex': binding249,
- 'regex-benchmark': binding250,
- 'regex-flavor-converter': binding251,
- 'regex-generator': binding252,
- 'regex-visualizer': binding253,
- 'registry-editor': binding254,
- 'relative-time-parser': binding255,
- 'resolution-calculator': binding256,
- 'resx-tool': binding257,
- 'reverse-dns': binding258,
- 'revocation-inspector': binding259,
- 'rich-text-editor': binding260,
- 'rot-cipher': binding261,
- 'route-comparison': binding262,
- 'runtime-detector': binding263,
- 'scheduled-tasks': binding264,
- 'schema-diff': binding265,
- 'scientific-notation-converter': binding266,
- 'secret-detector': binding267,
- 'semver-comparator': binding268,
- 'services-viewer': binding269,
- 'sid-account-resolver': binding270,
- 'slug-generator': binding271,
- 'smart-quotes-normalizer': binding272,
- 'snowflake-id-tools': binding273,
- 'soundex-metaphone': binding274,
- 'sql-dialect-converter': binding275,
- 'sql-formatter-tool': binding276,
- 'sql-parameterizer': binding277,
- 'sql-query-explainer': binding278,
- 'sql-syntax-checker': binding279,
- 'sqlite-viewer': binding280,
- 'ssh-key-tools': binding281,
- 'stack-trace-formatter': binding282,
- 'starttls-inspector': binding283,
- 'startup-programs': binding284,
- 'statistics-calculator': binding285,
- 'stopwatch-countdown': binding286,
- 'string-similarity-calculator': binding287,
- 'structured-data-converter': binding288,
- 'subnet-calculator': binding289,
- 'svg-data-uri': binding290,
- 'svg-viewer': binding291,
- 'system-changes': binding292,
- 'tailwind-color-matcher': binding293,
- 'tcp-port-tester': binding294,
- 'template-renderer': binding295,
- 'text-inspector': binding296,
- 'text-tokenizer-ngram': binding297,
- 'timezone-converter': binding298,
- 'timezone-offset-comparator': binding299,
- 'tls-inspector': binding300,
- 'toml-formatter': binding301,
- 'traceroute': binding302,
- 'tree-search': binding303,
- 'udp-port-tester': binding304,
- 'ulid-tools': binding305,
- 'unicode-character-inspector': binding306,
- 'unicode-code-point-converter': binding307,
- 'unicode-normalization': binding308,
- 'unicode-table': binding309,
- 'unix-timestamp': binding310,
- 'url-encode': binding311,
- 'url-inspector': binding312,
- 'url-normalizer': binding313,
- 'url-percent-inspector': binding314,
- 'url-safety-inspector': binding315,
- 'user-agent': binding316,
- 'uuid': binding317,
- 'watched-folders': binding318,
- 'week-number-calculator': binding319,
- 'whitespace-cleaner': binding320,
- 'whois-lookup': binding321,
- 'windows-features': binding322,
- 'x509-certificate-inspector': binding323,
- 'xml-csv': binding324,
- 'xml-formatter': binding325,
- 'xml-xpath': binding326,
- 'xml-xsd-validator': binding327,
- 'yaml-anchors': binding328,
- 'yaml-json': binding329,
- 'yaml-linter': binding330,
- 'yaml-merge': binding331,
- 'yaml-path': binding332,
+ 'device-info': binding78,
+ 'diff': binding79,
+ 'directory-diff': binding80,
+ 'directory-tree-generator': binding81,
+ 'dns-lookup': binding82,
+ 'dns-propagation': binding83,
+ 'dnssec-inspector': binding84,
+ 'docker-compose-validator': binding85,
+ 'docker-run-compose-converter': binding86,
+ 'dockerfile-linter': binding87,
+ 'dom-tree-viewer': binding88,
+ 'dpi-calculator': binding89,
+ 'dst-transition-explorer': binding90,
+ 'duplicate-files': binding91,
+ 'duplicate-finder': binding92,
+ 'duration-formatter': binding93,
+ 'elf-header-viewer': binding94,
+ 'email-auth-inspector': binding95,
+ 'encoding-detector': binding96,
+ 'env-diff': binding97,
+ 'env-editor': binding98,
+ 'env-json-converter': binding99,
+ 'env-validator': binding100,
+ 'environment-variables': binding101,
+ 'epoch-timeline-visualizer': binding102,
+ 'error-code-reference': binding103,
+ 'escape-unescape-toolkit': binding104,
+ 'event-log-viewer': binding105,
+ 'exif-viewer': binding106,
+ 'expression-evaluator': binding107,
+ 'extract-columns': binding108,
+ 'file-base64': binding109,
+ 'file-entropy-analyzer': binding110,
+ 'file-hash': binding111,
+ 'file-inspector': binding112,
+ 'file-lock-inspector': binding113,
+ 'file-split-join': binding114,
+ 'file-type-detector': binding115,
+ 'find-replace-text': binding116,
+ 'flexbox-playground': binding117,
+ 'folder-size-analyzer': binding118,
+ 'git-command-builder': binding119,
+ 'git-command-explainer': binding120,
+ 'git-diff': binding121,
+ 'git-remote-inspector': binding122,
+ 'git-url-parser': binding123,
+ 'gitignore-generator': binding124,
+ 'gitignore-tester': binding125,
+ 'glob-tester': binding126,
+ 'gradient-generator': binding127,
+ 'hash': binding128,
+ 'hash-manifest': binding129,
+ 'hex-diff': binding130,
+ 'hex-dump': binding131,
+ 'hex-editor': binding132,
+ 'hex-text-converter': binding133,
+ 'hmac-generator': binding134,
+ 'hostname-resolver': binding135,
+ 'html-entities': binding136,
+ 'html-entity-explorer': binding137,
+ 'html-formatter': binding138,
+ 'html-jsx-converter': binding139,
+ 'html-preview': binding140,
+ 'http-digest-auth-helper': binding141,
+ 'http-header-inspector': binding142,
+ 'http-request-builder': binding143,
+ 'http-response-viewer': binding144,
+ 'http-status': binding145,
+ 'https-config-analyzer': binding146,
+ 'image-compressor': binding147,
+ 'image-cropper': binding148,
+ 'image-format-converter': binding149,
+ 'image-metadata-inspector': binding150,
+ 'image-resizer': binding151,
+ 'ini-formatter': binding152,
+ 'installed-software': binding153,
+ 'invisible-char-scanner': binding154,
+ 'ip-address-inspector': binding155,
+ 'ipv4-integer-converter': binding156,
+ 'ipv6-explorer': binding157,
+ 'js-playground': binding158,
+ 'json': binding159,
+ 'json-flatten': binding160,
+ 'json-ld-tester': binding161,
+ 'json-merge': binding162,
+ 'json-patch-generate': binding163,
+ 'json-patch-test': binding164,
+ 'json-pointer': binding165,
+ 'json-query': binding166,
+ 'json-schema-validator': binding167,
+ 'json-sort-keys': binding168,
+ 'jsonl-viewer': binding169,
+ 'jwks-to-pem': binding170,
+ 'jwks-viewer': binding171,
+ 'jwt': binding172,
+ 'jwt-claims-analyzer': binding173,
+ 'jwt-expiration-visualizer': binding174,
+ 'jwt-signer': binding175,
+ 'jwt-verify': binding176,
+ 'k8s-cronjob-tester': binding177,
+ 'k8s-manifest-diff': binding178,
+ 'k8s-manifest-validator': binding179,
+ 'k8s-quantity-converter': binding180,
+ 'k8s-resource-calculator': binding181,
+ 'k8s-secret-base64': binding182,
+ 'keyword-frequency-analyzer': binding183,
+ 'ksuid-tools': binding184,
+ 'kubeconfig-inspector': binding185,
+ 'large-file-inspector': binding186,
+ 'latency-monitor': binding187,
+ 'line-order-tools': binding188,
+ 'line-prefix-numbering': binding189,
+ 'live-certificate-chain': binding190,
+ 'local-network': binding191,
+ 'lockfile-inspector': binding192,
+ 'lorem-ipsum-generator': binding193,
+ 'mac-address-inspector': binding194,
+ 'macho-header-viewer': binding195,
+ 'markdown': binding196,
+ 'markdown-workspace': binding197,
+ 'matrix-calculator': binding198,
+ 'meta-tag-generator': binding199,
+ 'mime-types': binding200,
+ 'missing-env-var-detector': binding201,
+ 'mock-data-studio': binding202,
+ 'model-generator': binding203,
+ 'msgpack-decoder': binding204,
+ 'mtu-discovery': binding205,
+ 'multipart-form-builder': binding206,
+ 'nanoid-generator': binding207,
+ 'network-diagnostic-bundle': binding208,
+ 'number-base': binding209,
+ 'number-theory-toolkit': binding210,
+ 'numeric-representation-inspector': binding211,
+ 'oauth-playground': binding212,
+ 'oauth-scope-parser': binding213,
+ 'oauth-token-inspector': binding214,
+ 'oidc-discovery-inspector': binding215,
+ 'opengraph-preview': binding216,
+ 'package-metadata-inspector': binding217,
+ 'packet-loss': binding218,
+ 'palette-generator': binding219,
+ 'parquet-viewer': binding220,
+ 'password-generator': binding221,
+ 'password-strength-analyzer': binding222,
+ 'path-editor': binding223,
+ 'pe-header-viewer': binding224,
+ 'pem-der-inspector': binding225,
+ 'percentage-ratio-calculator': binding226,
+ 'ping': binding227,
+ 'pixel-color-picker': binding228,
+ 'pkce-generator': binding229,
+ 'pkce-verifier': binding230,
+ 'pkcs12-inspector': binding231,
+ 'port-process-lookup': binding232,
+ 'port-scanner': binding233,
+ 'powershell-builder': binding234,
+ 'process-diagnostic-bundle': binding235,
+ 'process-viewer': binding236,
+ 'programmer-calculator': binding237,
+ 'properties-parser': binding238,
+ 'protobuf-decoder': binding239,
+ 'public-ip': binding240,
+ 'punycode-converter': binding241,
+ 'python-playground': binding242,
+ 'qr-code-generator': binding243,
+ 'qr-code-scanner': binding244,
+ 'query-string': binding245,
+ 'random-data-generator': binding246,
+ 'range-generator': binding247,
+ 'range-header-builder': binding248,
+ 'recurrence-rule': binding249,
+ 'regex': binding250,
+ 'regex-benchmark': binding251,
+ 'regex-flavor-converter': binding252,
+ 'regex-generator': binding253,
+ 'regex-visualizer': binding254,
+ 'registry-editor': binding255,
+ 'relative-time-parser': binding256,
+ 'resolution-calculator': binding257,
+ 'resx-tool': binding258,
+ 'reverse-dns': binding259,
+ 'revocation-inspector': binding260,
+ 'rich-text-editor': binding261,
+ 'rot-cipher': binding262,
+ 'route-comparison': binding263,
+ 'runtime-detector': binding264,
+ 'scheduled-tasks': binding265,
+ 'schema-diff': binding266,
+ 'scientific-notation-converter': binding267,
+ 'secret-detector': binding268,
+ 'semver-comparator': binding269,
+ 'services-viewer': binding270,
+ 'sid-account-resolver': binding271,
+ 'slug-generator': binding272,
+ 'smart-quotes-normalizer': binding273,
+ 'snowflake-id-tools': binding274,
+ 'soundex-metaphone': binding275,
+ 'sql-dialect-converter': binding276,
+ 'sql-formatter-tool': binding277,
+ 'sql-parameterizer': binding278,
+ 'sql-query-explainer': binding279,
+ 'sql-syntax-checker': binding280,
+ 'sqlite-viewer': binding281,
+ 'ssh-key-tools': binding282,
+ 'stack-trace-formatter': binding283,
+ 'starttls-inspector': binding284,
+ 'startup-programs': binding285,
+ 'statistics-calculator': binding286,
+ 'stopwatch-countdown': binding287,
+ 'string-similarity-calculator': binding288,
+ 'structured-data-converter': binding289,
+ 'subnet-calculator': binding290,
+ 'svg-data-uri': binding291,
+ 'svg-viewer': binding292,
+ 'system-changes': binding293,
+ 'tailwind-color-matcher': binding294,
+ 'tcp-port-tester': binding295,
+ 'template-renderer': binding296,
+ 'text-inspector': binding297,
+ 'text-tokenizer-ngram': binding298,
+ 'timezone-converter': binding299,
+ 'timezone-offset-comparator': binding300,
+ 'tls-inspector': binding301,
+ 'toml-formatter': binding302,
+ 'traceroute': binding303,
+ 'tree-search': binding304,
+ 'udp-port-tester': binding305,
+ 'ulid-tools': binding306,
+ 'unicode-character-inspector': binding307,
+ 'unicode-code-point-converter': binding308,
+ 'unicode-normalization': binding309,
+ 'unicode-table': binding310,
+ 'unix-timestamp': binding311,
+ 'url-encode': binding312,
+ 'url-inspector': binding313,
+ 'url-normalizer': binding314,
+ 'url-percent-inspector': binding315,
+ 'url-safety-inspector': binding316,
+ 'user-agent': binding317,
+ 'uuid': binding318,
+ 'watched-folders': binding319,
+ 'week-number-calculator': binding320,
+ 'whitespace-cleaner': binding321,
+ 'whois-lookup': binding322,
+ 'windows-features': binding323,
+ 'x509-certificate-inspector': binding324,
+ 'xml-csv': binding325,
+ 'xml-formatter': binding326,
+ 'xml-xpath': binding327,
+ 'xml-xsd-validator': binding328,
+ 'yaml-anchors': binding329,
+ 'yaml-json': binding330,
+ 'yaml-linter': binding331,
+ 'yaml-merge': binding332,
+ 'yaml-path': binding333,
 };
 export const TOOL_DEFINITIONS: readonly ToolDefinition[] = TOOL_METADATA.map(metadata => {
  const binding = BINDINGS[metadata.id];

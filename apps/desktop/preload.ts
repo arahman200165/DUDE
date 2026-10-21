@@ -35,6 +35,9 @@ const bridge: PlatformBridge = {
   external: {
     open: (url) => ipcRenderer.invoke('dude:external:open', url),
   },
+  deviceInfo: {
+    osFacts: () => ipcRenderer.invoke('dude:deviceInfo:osFacts'),
+  },
   store: {
     hydrate: () => ipcRenderer.invoke('dude:store:hydrate'),
     commitKv: (mutations) => ipcRenderer.invoke('dude:store:kv:commit', mutations),

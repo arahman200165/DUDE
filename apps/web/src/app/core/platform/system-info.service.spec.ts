@@ -13,6 +13,13 @@ describe('SystemInfoService', () => {
     await expect(service.listProcesses()).rejects.toThrow('Windows system tools are available in Desktop DUDE.');
   });
 
+  it('returns OS facts from the desktop bridge and null on the web', async () => {
+    removeBridge();
+    expect(await TestBed.inject(SystemInfoService).osFacts()).toBeNull();
+    installBridge(fakeElectronBridge());
+    expect((await TestBed.inject(SystemInfoService).osFacts())?.osName).toBe('Windows 11 Pro');
+  });
+
   it('unwraps successful results and forwards method and params', async () => {
     const call = vi.fn(async () => ({ ok: true as const, data: { version: '1', pid: 4, elevated: true, arch: 'x64' } }));
     installBridge(fakeElectronBridge({ sys: { ...fakeElectronBridge().sys, call: call as never } }));

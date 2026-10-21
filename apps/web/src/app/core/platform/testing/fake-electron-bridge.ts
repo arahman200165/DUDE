@@ -16,6 +16,9 @@ export function fakeElectronBridge(overrides: Partial<PlatformBridge> = {}): Pla
     platform: { isDesktop: true, wasRestoredAfterCrash: false },
     deepLink: { ready: () => {}, onItem: () => () => {} },
     external: { open: async () => ({ ok: true }) },
+    deviceInfo: {
+      osFacts: async () => ({ platform: 'win32', osName: 'Windows 11 Pro', osRelease: '10.0.26200', arch: 'x64', cpuModel: 'Test CPU', cpuCount: 8, totalMemoryBytes: 16 * 1024 ** 3 }),
+    },
     store: fakeStore(),
     hub: fakeHub(),
     device: fakeDevice(),

@@ -34,6 +34,7 @@ import { initialWindowBounds, trackWindowBounds } from './window-state';
 import { enqueueCommandLine, registerOpenHandlers } from './open-bridge';
 import { enqueueDeepLinkArguments, extractDeepLinkArgument, registerDeepLinkHandlers } from './deep-link-bridge';
 import { registerExternalLinkHandlers } from './external-link-bridge';
+import { registerDeviceInfoHandlers } from './device-info-bridge';
 import { applyNativeThemeSource, loadNativeAppearance, registerAppearanceBridge } from './appearance-bridge';
 import { registerNativeMenu } from './native-menu';
 import { registerQuickLauncherHotkey, registerQuickLauncherRenderer } from './quick-launcher';
@@ -125,6 +126,7 @@ async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
   registerOpenHandlers(window);
   registerDeepLinkHandlers(window);
   registerExternalLinkHandlers(window);
+  registerDeviceInfoHandlers(window);
   registerDeviceStoreHandlers(window);
   registerAgentHandlers(window);
   registerHubHandlers(window);

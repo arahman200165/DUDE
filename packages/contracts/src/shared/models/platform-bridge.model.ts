@@ -248,6 +248,11 @@ export interface PlatformBridge {
     /** Opens an http(s) link in the default browser; main re-validates and refuses anything else. */
     open(url: string): Promise<VoidResult>;
   };
+  /** Read-only, non-identifying operating system facts for the Device Info tool (no hostname, user name, paths or addresses). */
+  readonly deviceInfo: {
+    /** Resolves `null` when main refuses the request. */
+    osFacts(): Promise<DeviceOsFacts | null>;
+  };
   /**
    * Device State Store broker (Phase 31B). Every call goes through main, which validates it; the
    * renderer never holds a store port. A degraded store hydrates empty and commits report `ok: false`.
@@ -538,6 +543,20 @@ export interface PlatformBridge {
     onUpdateDownloaded(callback: (info: { readonly version: string }) => void): () => void;
     onUpdateError(callback: (message: string) => void): () => void;
   };
+}
+
+/** Operating system facts main reports to Device Info. Deliberately excludes anything that identifies a person or machine. */
+export interface DeviceOsFacts {
+  /** Node `process.platform`, for example `win32`. */
+  readonly platform: string;
+  /** Node `os.version()`, for example `Windows 11 Pro`. */
+  readonly osName: string;
+  /** Node `os.release()`, for example `10.0.26200`. */
+  readonly osRelease: string;
+  readonly arch: string;
+  readonly cpuModel: string;
+  readonly cpuCount: number;
+  readonly totalMemoryBytes: number;
 }
 
 export interface NativeMenuToolInfo {
