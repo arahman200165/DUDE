@@ -1,0 +1,46 @@
+appId: io.github.arahman200165.dude.preview
+name: Unicode Normalization on Android
+tags: [tools, text]
+---
+- launchApp
+- openLink: "dude://tools/unicode-normalization"
+- assertVisible:
+    id: "tool-input"
+- tapOn:
+    id: "mode-NFC"
+- tapOn:
+    id: "tool-input"
+- inputText: "hello"
+- hideKeyboard
+# Already-normalized ASCII: packages/tool-engine/src/tools/unicode-normalization/unicode-normalize.spec.ts:19-23.
+- assertVisible:
+    id: "kv-output-value"
+    text: "hello"
+- assertVisible:
+    id: "kv-code-points-value"
+    text: "5 .unchanged."
+# Non-ASCII cannot be typed through Maestro, so the Sample button supplies "caf<e-acute> <ROMAN NUMERAL ONE> <fi ligature>" (8 code points).
+# Code-point counts computed with normalizeText(sample, form) from @dude/tool-engine/tools/unicode-normalization/unicode-normalize:
+# NFC 8 unchanged, NFD 8 -> 9, NFKC 8 -> 9, NFKD 8 -> 10 (NFKC "cafe I fi" compatibility folding: spec.ts:25-29).
+- tapOn:
+    id: "tool-input-sample"
+- tapOn:
+    id: "mode-NFC"
+- assertVisible:
+    id: "kv-code-points-value"
+    text: "8 .unchanged."
+- tapOn:
+    id: "mode-NFD"
+- assertVisible:
+    id: "kv-code-points-value"
+    text: "8 → 9"
+- tapOn:
+    id: "mode-NFKC"
+- assertVisible:
+    id: "kv-code-points-value"
+    text: "8 → 9"
+- tapOn:
+    id: "mode-NFKD"
+- assertVisible:
+    id: "kv-code-points-value"
+    text: "8 → 10"
