@@ -22,20 +22,21 @@ import { binding as binding18 } from '../tools/jwt/jwt.mobile-bindings';
 import { binding as binding19 } from '../tools/number-base/number-base.mobile-bindings';
 import { binding as binding20 } from '../tools/password-generator/password-generator.mobile-bindings';
 import { binding as binding21 } from '../tools/password-strength-analyzer/password-strength-analyzer.mobile-bindings';
-import { binding as binding22 } from '../tools/regex/regex.mobile-bindings';
-import { binding as binding23 } from '../tools/semver-comparator/semver-comparator.mobile-bindings';
-import { binding as binding24 } from '../tools/slug-generator/slug-generator.mobile-bindings';
-import { binding as binding25 } from '../tools/text-inspector/text-inspector.mobile-bindings';
-import { binding as binding26 } from '../tools/timezone-offset-comparator/timezone-offset-comparator.mobile-bindings';
-import { binding as binding27 } from '../tools/unicode-normalization/unicode-normalization.mobile-bindings';
-import { binding as binding28 } from '../tools/unix-timestamp/unix-timestamp.mobile-bindings';
-import { binding as binding29 } from '../tools/url-encode/url-encode.mobile-bindings';
-import { binding as binding30 } from '../tools/url-inspector/url-inspector.mobile-bindings';
-import { binding as binding31 } from '../tools/user-agent/user-agent.mobile-bindings';
-import { binding as binding32 } from '../tools/uuid/uuid.mobile-bindings';
-import { binding as binding33 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
-import { binding as binding34 } from '../tools/xml-formatter/xml-formatter.mobile-bindings';
-import { binding as binding35 } from '../tools/yaml-json/yaml-json.mobile-bindings';
+import { binding as binding22 } from '../tools/qr-code-scanner/qr-code-scanner.mobile-bindings';
+import { binding as binding23 } from '../tools/regex/regex.mobile-bindings';
+import { binding as binding24 } from '../tools/semver-comparator/semver-comparator.mobile-bindings';
+import { binding as binding25 } from '../tools/slug-generator/slug-generator.mobile-bindings';
+import { binding as binding26 } from '../tools/text-inspector/text-inspector.mobile-bindings';
+import { binding as binding27 } from '../tools/timezone-offset-comparator/timezone-offset-comparator.mobile-bindings';
+import { binding as binding28 } from '../tools/unicode-normalization/unicode-normalization.mobile-bindings';
+import { binding as binding29 } from '../tools/unix-timestamp/unix-timestamp.mobile-bindings';
+import { binding as binding30 } from '../tools/url-encode/url-encode.mobile-bindings';
+import { binding as binding31 } from '../tools/url-inspector/url-inspector.mobile-bindings';
+import { binding as binding32 } from '../tools/user-agent/user-agent.mobile-bindings';
+import { binding as binding33 } from '../tools/uuid/uuid.mobile-bindings';
+import { binding as binding34 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
+import { binding as binding35 } from '../tools/xml-formatter/xml-formatter.mobile-bindings';
+import { binding as binding36 } from '../tools/yaml-json/yaml-json.mobile-bindings';
 export const MOBILE_BINDINGS: MobileBindingMap = {
   'base64': binding0,
   'case-converter': binding1,
@@ -59,18 +60,19 @@ export const MOBILE_BINDINGS: MobileBindingMap = {
   'number-base': binding19,
   'password-generator': binding20,
   'password-strength-analyzer': binding21,
-  'regex': binding22,
-  'semver-comparator': binding23,
-  'slug-generator': binding24,
-  'text-inspector': binding25,
-  'timezone-offset-comparator': binding26,
-  'unicode-normalization': binding27,
-  'unix-timestamp': binding28,
-  'url-encode': binding29,
-  'url-inspector': binding30,
-  'user-agent': binding31,
-  'uuid': binding32,
-  'whitespace-cleaner': binding33,
-  'xml-formatter': binding34,
-  'yaml-json': binding35,
+  'qr-code-scanner': binding22,
+  'regex': binding23,
+  'semver-comparator': binding24,
+  'slug-generator': binding25,
+  'text-inspector': binding26,
+  'timezone-offset-comparator': binding27,
+  'unicode-normalization': binding28,
+  'unix-timestamp': binding29,
+  'url-encode': binding30,
+  'url-inspector': binding31,
+  'user-agent': binding32,
+  'uuid': binding33,
+  'whitespace-cleaner': binding34,
+  'xml-formatter': binding35,
+  'yaml-json': binding36,
 };

@@ -23,6 +23,7 @@ export const MOBILE_TOOL_IDS: readonly string[] = [
   'number-base',
   'password-generator',
   'password-strength-analyzer',
+  'qr-code-scanner',
   'regex',
   'semver-comparator',
   'slug-generator',

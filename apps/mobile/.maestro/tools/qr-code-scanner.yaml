@@ -1,0 +1,133 @@
+appId: io.github.arahman200165.dude.preview
+name: QR Code Scanner on Android
+tags: [tools, encoding]
+---
+# clearState also revokes the camera permission, so the first tap on Scan with camera raises the system dialog.
+- launchApp:
+    clearState: true
+- openLink: "dude://tools/qr-code-scanner"
+- assertVisible:
+    id: "scan-camera"
+- assertVisible:
+    id: "scan-image"
+# Permission denial: the camera is never opened by itself; denying keeps the paste path. The dialog wording differs by API level
+# (API 29: "Deny", API 30+: "Don't allow"), so the tap is optional and matches both.
+- tapOn:
+    id: "scan-camera"
+- tapOn:
+    text: ".*(Deny|Don.t allow).*"
+    optional: true
+- assertVisible: ".*Camera permission was denied.*"
+- assertVisible:
+    id: "scan-camera"
+- assertVisible:
+    id: "tool-input"
+# Wi-Fi payload: vector from packages/tool-engine/src/tools/qr-code-scanner/scan-payload.spec.ts:51-53 (kind label from :22).
+- tapOn:
+    id: "tool-input"
+- inputText: "WIFI:T:WPA;S:HomeNet;P:hunter2;;"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "kv-kind-value"
+- assertVisible:
+    id: "kv-kind-value"
+    text: "Wi-Fi network"
+- assertVisible:
+    id: "kv-ssid-value"
+    text: "HomeNet"
+- assertVisible:
+    id: "kv-security-value"
+    text: "WPA"
+- assertVisible:
+    id: "kv-hidden-value"
+    text: "No"
+# The password is masked by default ('***' is the engine's redactedRaw mask, scan-payload.spec.ts:53) and so is the raw text.
+- scrollUntilVisible:
+    element:
+      id: "kv-password-value"
+- assertVisible:
+    id: "kv-password-value"
+    text: "\\*\\*\\*"
+- assertNotVisible:
+    id: "kv-password-value"
+    text: "hunter2"
+- assertNotVisible: "hunter2"
+- assertVisible:
+    id: "tool-output-raw"
+    text: "WIFI:T:WPA;S:HomeNet;P:\\*\\*\\*;;"
+# Copy is disabled until the secret is revealed; Reveal shows the password and the raw text.
+- scrollUntilVisible:
+    element:
+      id: "scan-reveal"
+- tapOn:
+    id: "scan-reveal"
+- assertVisible:
+    id: "kv-password-value"
+    text: "hunter2"
+- assertVisible:
+    id: "tool-output-raw"
+    text: "WIFI:T:WPA;S:HomeNet;P:hunter2;;"
+# Copying a secret shows the clipboard warning.
+- tapOn:
+    id: "kv-password-copy"
+- assertVisible:
+    id: "scan-secret-warning"
+- tapOn:
+    id: "scan-reveal"
+- assertNotVisible:
+    id: "kv-password-value"
+    text: "hunter2"
+# Link payload (scan-payload.spec.ts:28-31 classifies an https link with host example.com as kind 'url' / 'Web link').
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "https://example.com"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "kv-kind-value"
+- assertVisible:
+    id: "kv-kind-value"
+    text: "Web link"
+- assertVisible:
+    id: "kv-host-value"
+    text: "example.com"
+- assertVisible:
+    id: "kv-url-value"
+    text: "https://example.com"
+# Opening a link needs an explicit tap and a confirmation that shows the full URL; cancelling opens nothing.
+- scrollUntilVisible:
+    element:
+      id: "scan-open-url"
+- tapOn:
+    id: "scan-open-url"
+- assertVisible:
+    id: "scan-open-url-full"
+    text: "https://example.com"
+- tapOn:
+    id: "scan-open-url-cancel"
+- assertNotVisible:
+    id: "scan-open-url-full"
+# Unrecognised text stays plain text (scan-payload.spec.ts:7).
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "hello world"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "kv-kind-value"
+- assertVisible:
+    id: "kv-kind-value"
+    text: "Text"
