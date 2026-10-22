@@ -10,6 +10,7 @@ import { openProductionWorkbench } from '../src/state/boot';
 import type { DurableWorkbench } from '../src/state/durable-backend';
 import { WorkbenchProvider, useWorkbench } from '../src/state/workbench-provider';
 import { useBackgroundWipe } from '../src/tools-host/use-background-wipe';
+import { useKeyboardBack } from '../src/tools-host/use-keyboard-back';
 import { useIncomingShare } from '../src/share/use-incoming-share';
 
 installMobileEngineHost();
@@ -19,6 +20,8 @@ export const unstable_settings = { initialRouteName: '(tabs)' };
 function WorkbenchNavigator() {
   const { theme } = useWorkbench();
   useIncomingShare();
+  // One shell-level handler covers every screen and tab: the first Back with a keyboard up only dismisses it.
+  useKeyboardBack();
   return <>
     <StatusBar style={theme.effective['theme'] === 'light' ? 'dark' : 'light'} />
     <Stack screenOptions={{ headerStyle: { backgroundColor: theme.colors.panel }, headerTintColor: theme.colors.text, headerTitleStyle: { fontSize: theme.metrics.textUi }, contentStyle: { backgroundColor: theme.colors.bg }, animation: theme.reducedMotion ? 'none' : 'default' }}>

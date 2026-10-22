@@ -50,22 +50,49 @@ mkdirSync(output, { recursive: true });
 console.log(`Maestro flows (${flows.length}) on ${device}: ${flows.map(flowId).join(', ')}`);
 const previousScale = setting(['get', 'system', 'font_scale']);
 // Explicit file list: Maestro does not recurse into subdirectories (tools/) of a flow directory.
-function runMaestro(files, dir) {
+function runMaestroOnce(files, dir) {
   mkdirSync(dir, { recursive: true });
   return spawnSync(maestro, ['--device', device, 'test', '--format', 'junit', '--output', path.join(dir, 'maestro.xml'), '--debug-output', dir, '--test-output-dir', dir, ...files], {
     cwd: root, stdio: 'inherit', env: { ...process.env, MAESTRO_CLI_NO_ANALYTICS: '1' }, shell: process.platform === 'win32',
   });
 }
+// A single Maestro session loses its device connection after about 11 minutes on the API 29 emulator ("Device server died ...
+// connection age 666022ms" or "device offline"), failing every remaining flow within ~135 ms. Flows therefore run in batches of
+// DUDE_E2E_BATCH (default 8, roughly 6 minutes), each in a fresh Maestro session writing to part-N/.
+const batchSize = Number(process.env.DUDE_E2E_BATCH ?? '8');
+if (!Number.isInteger(batchSize) || batchSize < 1) throw new Error('DUDE_E2E_BATCH must be a positive integer.');
+function runMaestro(files, dir) {
+  const parts = [];
+  for (let index = 0; index < files.length; index += batchSize) parts.push(files.slice(index, index + batchSize));
+  if (parts.length === 1) return runMaestroOnce(files, dir);
+  let status = 0;
+  for (const [index, part] of parts.entries()) {
+    const result = runMaestroOnce(part, path.join(dir, 'part-' + (index + 1)));
+    if (result.error) return result;
+    if (result.status !== 0) status = result.status ?? 1;
+  }
+  return { status };
+}
 // A flow that fails once and passes on a fresh re-run is reported loudly as flaky (see flaky.json) instead of failing the gate;
-// DUDE_E2E_RETRIES=0 disables this. Default 3: a fresh-data cold start occasionally dies in native expo-sqlite (SIGSEGV, ~1 in 10 launches); see the report. A flow that fails every attempt always fails the run.
-const retries = Number(process.env.DUDE_E2E_RETRIES ?? '3');
+// DUDE_E2E_RETRIES=0 disables this. Default 1 (one re-run): emulator/Maestro-driver hiccups happen, but the fresh-data native
+// expo-sqlite crash is fixed at the source (storage/serial-gate.ts), so a flow that needs more than one re-run is a real defect.
+// A flow that fails every attempt always fails the run.
+const retries = Number(process.env.DUDE_E2E_RETRIES ?? '1');
 if (!Number.isInteger(retries) || retries < 0 || retries > 3) throw new Error('DUDE_E2E_RETRIES must be an integer from 0 to 3.');
 function failedFlows(dir) {
-  try {
-    const xml = readFileSync(path.join(dir, 'maestro.xml'), 'utf8');
-    const sep = String.fromCharCode(92);
-    return xml.split('<testcase').slice(1).filter(part => part.includes('<failure')).map(part => path.resolve(root, /file="([^"]+)"/.exec(part)[1].split(sep).join('/')));
-  } catch { return undefined; }
+  const reports = [path.join(dir, 'maestro.xml')];
+  try { for (const entry of readdirSync(dir, { withFileTypes: true })) if (entry.isDirectory() && /^part-[0-9]+$/.test(entry.name)) reports.push(path.join(dir, entry.name, 'maestro.xml')); } catch { /* no report directory */ }
+  const sep = String.fromCharCode(92);
+  const failed = [];
+  let read = false;
+  for (const report of reports) {
+    try {
+      const xml = readFileSync(report, 'utf8');
+      read = true;
+      failed.push(...xml.split('<testcase').slice(1).filter(part => part.includes('<failure')).map(part => path.resolve(root, /file="([^"]+)"/.exec(part)[1].split(sep).join('/'))));
+    } catch { /* batch produced no report */ }
+  }
+  return read ? failed : undefined;
 }
 const appId = 'io.github.arahman200165.dude.preview';
 const adbShell = (...shellArgs) => spawnSync(adb, ['-s', device, 'shell', ...shellArgs], { encoding: 'utf8' });
