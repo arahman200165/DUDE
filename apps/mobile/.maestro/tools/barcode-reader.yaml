@@ -1,0 +1,125 @@
+appId: io.github.arahman200165.dude.preview
+name: Barcode Reader on Android
+tags: [tools, encoding]
+---
+- launchApp:
+    clearState: true
+- openLink: "dude://tools/barcode-reader"
+# The camera is never opened automatically; it needs a tap (and the permission dialog). CI emulators cannot scan, so the
+# rest of the journey uses the paste path with an explicit format (default EAN-13).
+- assertVisible:
+    id: "scan-camera"
+- assertVisible:
+    id: "scan-image"
+- assertVisible:
+    id: "mode-ean13"
+- tapOn:
+    id: "tool-input"
+# Vectors from packages/tool-engine/src/tools/barcode-reader/barcode-result.spec.ts: 4006381333931 valid with GTIN-14 04006381333931 (:58).
+- inputText: "4006381333931"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "kv-check-digit-value"
+- assertVisible:
+    id: "kv-format-value"
+    text: "EAN-13 \\(1D\\)"
+- assertVisible:
+    id: "kv-check-digit-value"
+    text: "Valid \\(1\\)"
+- assertVisible:
+    id: "kv-gtin14-value"
+    text: "04006381333931"
+# 4006381333932: check digit expected 1, found 2, no GTIN (barcode-result.spec.ts:44-45,64-66).
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "4006381333932"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "kv-check-digit-value"
+- assertVisible:
+    id: "kv-check-digit-value"
+    text: "Invalid \\(expected 1, found 2\\)"
+- assertNotVisible:
+    id: "kv-gtin14-value"
+# ISBN-13 9780306406157 (barcode-result.spec.ts:71).
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "9780306406157"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "kv-isbn13-value"
+- assertVisible:
+    id: "kv-isbn13-value"
+    text: "9780306406157"
+# Code 128 carries no GS1 check digit (barcode-result.spec.ts:80).
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+- tapOn:
+    id: "tool-input-clear"
+- scrollUntilVisible:
+    element:
+      id: "mode-code128"
+    direction: UP
+- tapOn:
+    id: "mode-code128"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+- tapOn:
+    id: "tool-input"
+- inputText: "ABC-123"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "kv-format-value"
+- assertVisible:
+    id: "kv-format-value"
+    text: "Code 128 \\(1D\\)"
+- assertNotVisible:
+    id: "kv-check-digit-value"
+# A QR payload is classified too (barcode-result.spec.ts:88: https://example.com is a url).
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+- tapOn:
+    id: "tool-input-clear"
+- scrollUntilVisible:
+    element:
+      id: "mode-qr"
+    direction: UP
+- tapOn:
+    id: "mode-qr"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+- tapOn:
+    id: "tool-input"
+- inputText: "https://example.com"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "kv-kind-value"
+- assertVisible:
+    id: "kv-format-value"
+    text: "QR Code \\(2D\\)"
+- assertVisible:
+    id: "kv-kind-value"
+    text: "Web link"
