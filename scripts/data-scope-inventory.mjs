@@ -11,6 +11,7 @@ const norm = f => f.replaceAll('\\', '/');
 // Heuristic sites that were reviewed by hand. Key: `<source>::<namespace>::<key>` or `<source>::*` (whole file).
 const REVIEWED_HEURISTICS = {
   'apps/mobile/src/state/durable-backend.ts::*': 'Android local Recents under mobile.local with policy session / scope local-only; never journaled, queued or synced.',
+  'apps/mobile/src/share/use-incoming-share.ts::*': 'Share-to-DUDE content held in the in-memory ShareStore and ToolInputStore prefill; never persisted or synced, wiped with tool inputs.',
   'apps/mobile/src/tools-host/use-tool-input.ts::*': 'In-memory tool input (ToolInputStore); never persisted or synced, wiped after 5 minutes in background.',
   'apps/desktop/crash-detection.ts::*': 'Crash-state marker file (clean-exit flag); device-local, non-sensitive.',
   'apps/desktop/fs-job-convert.ts::*': 'Tool output staged into a user-chosen destination, not app state.',

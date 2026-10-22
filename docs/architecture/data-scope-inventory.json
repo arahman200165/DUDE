@@ -11,7 +11,7 @@
   ],
   "classificationCounts": {
     "device-doc": 33,
-    "regex-heuristic (review flag)": 53,
+    "regex-heuristic (review flag)": 55,
     "agent-table": 17,
     "hub-table": 25,
     "mobile-table": 8,
@@ -147,6 +147,22 @@
       "key": null,
       "heuristicScope": "local-only",
       "reviewed": "System snapshot files; local-only, unredacted system values."
+    },
+    {
+      "source": "apps/mobile/src/share/use-incoming-share.ts",
+      "line": 20,
+      "namespace": null,
+      "key": null,
+      "heuristicScope": "local-only",
+      "reviewed": "Share-to-DUDE content held in the in-memory ShareStore and ToolInputStore prefill; never persisted or synced, wiped with tool inputs."
+    },
+    {
+      "source": "apps/mobile/src/share/use-incoming-share.ts",
+      "line": 25,
+      "namespace": null,
+      "key": null,
+      "heuristicScope": "local-only",
+      "reviewed": "Share-to-DUDE content held in the in-memory ShareStore and ToolInputStore prefill; never persisted or synced, wiped with tool inputs."
     },
     {
       "source": "apps/mobile/src/state/durable-backend.ts",
@@ -1760,6 +1776,34 @@
       "sensitivity": "sensitive",
       "note": "Hub-private temporary address blocks after repeated failures",
       "classificationBasis": "hub-table",
+      "syncConsent": "not granted"
+    },
+    {
+      "source": "apps/mobile/src/share/use-incoming-share.ts",
+      "line": 25,
+      "operation": "shareStore.set({ error: code === 'ERR_SHARE_UNSUPPORTED' ? 'Only content shared through the Android share sheet can be opened.' : 'The shared content could not be read.' })",
+      "namespace": null,
+      "key": null,
+      "storage": "shareStore",
+      "storageLocation": "shareStore.set({ error: code === 'ERR_SHARE_UNSUPPORTED' ? 'Only content shared through the Android share sheet can be opened.' : 'The shared content could not be read.' })",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "sensitive",
+      "classificationBasis": "regex-heuristic (review flag)",
+      "syncConsent": "not granted"
+    },
+    {
+      "source": "apps/mobile/src/share/use-incoming-share.ts",
+      "line": 20,
+      "operation": "shareStore.set({ share })",
+      "namespace": null,
+      "key": null,
+      "storage": "shareStore",
+      "storageLocation": "shareStore.set({ share })",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "sensitive",
+      "classificationBasis": "regex-heuristic (review flag)",
       "syncConsent": "not granted"
     },
     {
