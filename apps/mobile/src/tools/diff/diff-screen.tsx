@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { View } from 'react-native';
 import { ErrorBanner, InputEditor, OutputViewer, StatusPill, ToolScreen } from '../../kit';
-import { isAbortError, runOffThread } from '../../kit/off-thread';
+import { useOffThreadRun } from '../../kit/use-off-thread-run';
 import { useToolInput } from '../../tools-host/use-tool-input';
 import { useWorkbench } from '../../state/workbench-provider';
 import { Label } from '../../ui/primitives';
@@ -10,30 +10,6 @@ import { diffTask, type DiffTaskPayload, type DiffTaskResult } from './diff-task
 
 const TOOL_ID = 'diff';
 const DEBOUNCE_MS = 200;
-
-type Run = { readonly status: 'idle' | 'running' | 'done'; readonly result: DiffTaskResult | null; readonly failure: string | null };
-const IDLE: Run = { status: 'idle', result: null, failure: null };
-
-/** Debounced off-thread diff; a stale run is aborted (never dispatched, or its result dropped) when either side changes. */
-function useDiffRun(payload: DiffTaskPayload | null): Run {
-  const [run, setRun] = useState<Run>(IDLE);
-  useEffect(() => {
-    if (payload === null) { setRun(IDLE); return undefined; }
-    const controller = new AbortController();
-    setRun(previous => ({ ...previous, status: 'running' }));
-    const timer = setTimeout(() => {
-      runOffThread(diffTask, payload, { signal: controller.signal }).then(
-        result => setRun({ status: 'done', result, failure: null }),
-        (error: unknown) => {
-          if (isAbortError(error)) return;
-          setRun({ status: 'done', result: null, failure: error instanceof Error && error.message ? error.message : 'The diff engine failed.' });
-        },
-      );
-    }, DEBOUNCE_MS);
-    return () => { clearTimeout(timer); controller.abort(); };
-  }, [payload]);
-  return run;
-}
 
 /**
  * Line diff of two texts. Web persists only `paneRatio` for this tool, which has no Android meaning, and the engine has no
@@ -46,10 +22,7 @@ export default function DiffScreen() {
   const right = typeof stored.right === 'string' ? stored.right : '';
   const oversize = oversizeMessage(left.length, right.length);
   const payload = useMemo<DiffTaskPayload | null>(() => (oversize !== null || (left === '' && right === '') ? null : { left, right }), [left, right, oversize]);
-  const run = useDiffRun(payload);
-  const result = payload === null ? null : run.result;
-  const failure = payload === null ? null : run.failure;
-  const busy = payload !== null && run.status === 'running';
+  const { result, error: failure, busy } = useOffThreadRun(diffTask, payload, { debounceMs: DEBOUNCE_MS, fallbackError: 'The diff engine failed.' });
 
   return <ToolScreen
     input={<View style={{ gap: theme.metrics.spaceMajor }}>

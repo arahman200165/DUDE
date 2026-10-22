@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { FlatList, ScrollView, Text, View } from 'react-native';
 import type { CsvDelimiter } from '@dude/tool-engine/tools/csv-viewer/csv-convert';
 import { ErrorBanner, InputEditor, OptionsSheet, OutputViewer, StatusPill, ToolScreen, useToolPreference } from '../../kit';
-import { isAbortError, runOffThread } from '../../kit/off-thread';
+import { useOffThreadRun } from '../../kit/use-off-thread-run';
 import { useToolInput } from '../../tools-host/use-tool-input';
 import { useWorkbench } from '../../state/workbench-provider';
 import { Button, Label } from '../../ui/primitives';
@@ -13,30 +13,6 @@ const TOOL_ID = 'csv-viewer';
 const SAMPLE = 'name,age\nAda,36\nGrace,45';
 const DEBOUNCE_MS = 400;
 const GRID_VISIBLE_ROWS = 9;
-
-type Run = { readonly status: 'idle' | 'running' | 'done'; readonly result: CsvTaskResult | null; readonly failure: string | null };
-const IDLE: Run = { status: 'idle', result: null, failure: null };
-
-/** Debounced off-thread parse; a stale run is aborted (never dispatched, or its result dropped) when the payload changes. */
-function useCsvRun(payload: CsvTaskPayload | null): Run {
-  const [run, setRun] = useState<Run>(IDLE);
-  useEffect(() => {
-    if (payload === null) { setRun(IDLE); return undefined; }
-    const controller = new AbortController();
-    setRun(previous => ({ ...previous, status: 'running' }));
-    const timer = setTimeout(() => {
-      runOffThread(csvParseTask, payload, { signal: controller.signal }).then(
-        result => setRun({ status: 'done', result, failure: null }),
-        (error: unknown) => {
-          if (isAbortError(error)) return;
-          setRun({ status: 'done', result: null, failure: error instanceof Error && error.message ? error.message : 'The CSV engine failed.' });
-        },
-      );
-    }, DEBOUNCE_MS);
-    return () => { clearTimeout(timer); controller.abort(); };
-  }, [payload]);
-  return run;
-}
 
 /** Header row plus a virtualized body, inside one horizontal scroller. The body scrolls vertically inside a bounded height. */
 function CsvGrid({ columns, rows }: { readonly columns: readonly string[]; readonly rows: readonly (readonly string[])[] }) {
@@ -91,10 +67,7 @@ export default function CsvViewerScreen() {
     () => (input.trim() === '' || oversize !== null ? null : { input, delimiter, hasHeaderRow, maxRows: MAX_RENDERED_ROWS }),
     [input, delimiter, hasHeaderRow, oversize],
   );
-  const run = useCsvRun(payload);
-  const result = payload === null ? null : run.result;
-  const failure = payload === null ? null : run.failure;
-  const busy = payload !== null && run.status === 'running';
+  const { result, error: failure, busy } = useOffThreadRun(csvParseTask, payload, { debounceMs: DEBOUNCE_MS, fallbackError: 'The CSV engine failed.' });
 
   return <ToolScreen
     input={<InputEditor value={input} onChangeText={text => update({ input: text })} label="CSV"

@@ -1,20 +1,21 @@
 import { useState } from 'react';
 import { TextInput, View } from 'react-native';
-import { useWorkbench } from '../../state/workbench-provider';
-import { Button, Label } from '../../ui/primitives';
+import { useWorkbench } from '../state/workbench-provider';
+import { Button, Label } from '../ui/primitives';
 
 /**
  * Single-line masked field for secrets: hidden by default, no autofill or suggestions, a Show/Hide toggle and Clear.
- * testIDs: `<testID>`, `<testID>-toggle`, `<testID>-clear`. The caller owns the value; this keeps no copy.
+ * testIDs: `<testID>`, `<testID>-toggle`, `<testID>-clear`. The caller owns the value and the `show` state; this keeps no copy.
+ * `compact` is the in-form variant: a plain (non-heading) label and a tighter gap, for a field among several others.
  */
-export function SecretField({ label, value, onChangeText, testID, show, onToggleShow }: {
+export function SecretField({ label, value, onChangeText, testID, show, onToggleShow, compact = false }: {
   readonly label: string; readonly value: string; readonly onChangeText: (text: string) => void; readonly testID: string;
-  readonly show: boolean; readonly onToggleShow: () => void;
+  readonly show: boolean; readonly onToggleShow: () => void; readonly compact?: boolean;
 }) {
   const { theme } = useWorkbench();
   const [focused, setFocused] = useState(false);
-  return <View style={{ gap: theme.metrics.spaceNormal }}>
-    <Label accessibilityRole="header" style={{ fontWeight: '700' }}>{label}</Label>
+  return <View style={{ gap: compact ? theme.metrics.spaceMicro : theme.metrics.spaceNormal }}>
+    {compact ? <Label>{label}</Label> : <Label accessibilityRole="header" style={{ fontWeight: '700' }}>{label}</Label>}
     <TextInput testID={testID} accessibilityLabel={label} value={value} onChangeText={onChangeText} secureTextEntry={!show}
       autoCorrect={false} autoCapitalize="none" autoComplete="off" spellCheck={false} importantForAutofill="no" allowFontScaling
       placeholderTextColor={theme.colors.textMuted} selectionColor={theme.colors.accent} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}

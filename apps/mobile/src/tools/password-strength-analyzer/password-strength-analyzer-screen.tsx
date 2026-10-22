@@ -1,11 +1,10 @@
 import { useMemo } from 'react';
 import { View } from 'react-native';
-import { KeyValueList, StatusPill, ToolScreen, useToolPreference } from '../../kit';
+import { KeyValueList, SecretField, StatusPill, ToolScreen, useToolPreference } from '../../kit';
 import { useToolInput } from '../../tools-host/use-tool-input';
 import { useWorkbench } from '../../state/workbench-provider';
 import { Label } from '../../ui/primitives';
 import { strengthView, VERDICT_LABELS, VERDICT_TONES } from './password-strength-analyzer-mobile';
-import { SecretField } from './secret-field';
 
 const TOOL_ID = 'password-strength-analyzer';
 

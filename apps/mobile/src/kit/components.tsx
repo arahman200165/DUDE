@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { NativeStatus } from '@dude/domain/core/appearance/native-theme';
+import type { NativeStatus, NativeTheme } from '@dude/domain/core/appearance/native-theme';
 import { useWorkbench } from '../state/workbench-provider';
 import { Button, Label } from '../ui/primitives';
 import { hapticSelection, hapticSuccess, readClipboard, writeClipboard } from './feedback';
@@ -37,6 +37,15 @@ export function ToolScreen({ input, options, output, children, standalone }: {
   </KeyboardAvoidingView>;
 }
 
+/** Box styling shared by the kit's text inputs: panel fill, token border (accent and thicker while focused), monospace text. */
+function inputBoxStyle(theme: NativeTheme, focused: boolean) {
+  return {
+    color: theme.colors.text, backgroundColor: theme.colors.panel, borderColor: focused ? theme.colors.accent : theme.colors.border,
+    borderWidth: focused ? theme.metrics.focusWidth : 1, borderRadius: theme.metrics.radius,
+    padding: theme.metrics.spaceNormal, fontSize: theme.metrics.textMono, fontFamily: theme.fonts.monoFamily,
+  };
+}
+
 /** Multiline monospace input with Paste (clipboard is read only on tap), Clear and optional Swap. */
 export function InputEditor({ value, onChangeText, name, label = 'Input', placeholder, onSwap, swapDisabled, extraActions }: {
   readonly value: string; readonly onChangeText: (text: string) => void; readonly name?: string; readonly label?: string;
@@ -55,16 +64,45 @@ export function InputEditor({ value, onChangeText, name, label = 'Input', placeh
     <TextInput testID={`tool-input${suffix(name)}`} accessibilityLabel={label} value={value} onChangeText={onChangeText} placeholder={placeholder} multiline
       autoCorrect={false} autoCapitalize="none" autoComplete="off" spellCheck={false} importantForAutofill="no" keyboardType="visible-password" allowFontScaling textAlignVertical="top"
       placeholderTextColor={theme.colors.textMuted} selectionColor={theme.colors.accent} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-      style={{
-        color: theme.colors.text, backgroundColor: theme.colors.panel, borderColor: focused ? theme.colors.accent : theme.colors.border,
-        borderWidth: focused ? theme.metrics.focusWidth : 1, borderRadius: theme.metrics.radius, minHeight: theme.metrics.controlHeight * 3,
-        padding: theme.metrics.spaceNormal, fontSize: theme.metrics.textMono, fontFamily: theme.fonts.monoFamily,
-      }} />
+      style={{ ...inputBoxStyle(theme, focused), minHeight: theme.metrics.controlHeight * 3 }} />
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.metrics.spaceNormal }}>
       <Button testID={`tool-input${suffix(name)}-paste`} title="Paste" hint="Pastes the clipboard text into the input" onPress={() => { void paste(); }} />
       <Button testID={`tool-input${suffix(name)}-clear`} title="Clear" disabled={!value} onPress={() => { onChangeText(''); void hapticSelection(); }} />
       {onSwap && <Button testID={`tool-input${suffix(name)}-swap`} title="Swap" hint="Moves the output into the input" disabled={swapDisabled} onPress={onSwap} />}
       {extraActions}
+    </View>
+  </View>;
+}
+
+/**
+ * Single-line monospace input with Paste (clipboard is read only on tap; `trimPaste` trims it) and Clear. `leading` renders
+ * in the row before the input (a preview chip, for example). testIDs: `tool-input[-<name>]`, `-paste`, `-clear`.
+ */
+export function SingleLineField({ value, onChangeText, name, label, placeholder, leading, trimPaste }: {
+  readonly value: string; readonly onChangeText: (text: string) => void; readonly name?: string; readonly label: string;
+  readonly placeholder?: string; readonly leading?: ReactNode; readonly trimPaste?: boolean;
+}) {
+  const { theme } = useWorkbench();
+  const [focused, setFocused] = useState(false);
+  const paste = async () => {
+    const text = await readClipboard();
+    if (!text) { announce('Clipboard is empty'); return; }
+    onChangeText(trimPaste ? text.trim() : text);
+    void hapticSelection();
+  };
+  return <View style={{ gap: theme.metrics.spaceNormal }}>
+    <Label accessibilityRole="header" style={{ fontWeight: '700' }}>{label}</Label>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.metrics.spaceNormal }}>
+      {leading}
+      <TextInput testID={`tool-input${suffix(name)}`} accessibilityLabel={label} value={value} onChangeText={onChangeText}
+        autoCorrect={false} autoCapitalize="none" autoComplete="off" spellCheck={false} importantForAutofill="no" allowFontScaling
+        placeholder={placeholder} placeholderTextColor={theme.colors.textMuted} selectionColor={theme.colors.accent}
+        onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+        style={{ ...inputBoxStyle(theme, focused), flex: 1, minHeight: theme.metrics.touchMin }} />
+    </View>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.metrics.spaceNormal }}>
+      <Button testID={`tool-input${suffix(name)}-paste`} title="Paste" hint={`Pastes the clipboard text into ${label}`} onPress={() => { void paste(); }} />
+      <Button testID={`tool-input${suffix(name)}-clear`} title="Clear" disabled={!value} onPress={() => { onChangeText(''); void hapticSelection(); }} />
     </View>
   </View>;
 }

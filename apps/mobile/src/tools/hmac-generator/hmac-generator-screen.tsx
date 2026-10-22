@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
-import { ErrorBanner, InputEditor, ModeSegment, OutputViewer, ToolScreen, useToolPreference } from '../../kit';
+import { ErrorBanner, InputEditor, ModeSegment, OutputViewer, SecretField, ToolScreen, useToolPreference } from '../../kit';
 import { useToolInput } from '../../tools-host/use-tool-input';
 import { useWorkbench } from '../../state/workbench-provider';
 import { Label } from '../../ui/primitives';
 import { HASHES, hmacFor, KEY_ENCODINGS, type HmacOutcome, type HmacOutputFormat } from './hmac-generator-mobile';
-import { SecretField } from './secret-field';
 import type { HmacHashAlgorithm, HmacKeyEncoding } from '@dude/tool-engine/tools/hmac-generator/hmac-generator-logic';
 
 const TOOL_ID = 'hmac-generator';

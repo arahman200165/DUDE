@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, TextInput, useWindowDimensions, View } from 'react-native';
+import { AppState, useWindowDimensions, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 import type { QrPreset } from '@dude/tool-engine/tools/qr-code-generator/qr-payload';
 import {
-  announce, ErrorBanner, hapticError, hapticSuccess, InputEditor, ModeSegment, OptionsSheet, ResultCard, saveBase64File, saveTextFile, shareFile, shareText,
+  announce, ErrorBanner, hapticError, hapticSuccess, InputEditor, ModeSegment, OptionsSheet, ResultCard, SecretField, saveBase64File, saveTextFile, shareFile, shareText,
   ToolScreen, useToolPreferences, writeClipboard, type OptionSpec, type OptionValue,
 } from '../../kit';
 import { coerceOption, optionKey } from '../../kit/text-tool-controller';
@@ -33,28 +33,6 @@ const INPUT_DEFAULTS = {
 };
 
 const str = (value: unknown): string => typeof value === 'string' ? value : '';
-
-function SecretInput({ label, value, onChangeText, testID, show, onToggle }: {
-  readonly label: string; readonly value: string; readonly onChangeText: (text: string) => void; readonly testID: string; readonly show: boolean; readonly onToggle: () => void;
-}) {
-  const { theme } = useWorkbench();
-  const [focused, setFocused] = useState(false);
-  return <View style={{ gap: theme.metrics.spaceMicro }}>
-    <Label>{label}</Label>
-    <TextInput testID={testID} accessibilityLabel={label} value={value} onChangeText={onChangeText} secureTextEntry={!show}
-      autoCorrect={false} autoCapitalize="none" autoComplete="off" spellCheck={false} importantForAutofill="no" allowFontScaling
-      placeholderTextColor={theme.colors.textMuted} selectionColor={theme.colors.accent} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-      style={{
-        color: theme.colors.text, backgroundColor: theme.colors.panel, borderColor: focused ? theme.colors.accent : theme.colors.border,
-        borderWidth: focused ? theme.metrics.focusWidth : 1, borderRadius: theme.metrics.radius, minHeight: theme.metrics.controlHeight,
-        paddingHorizontal: theme.metrics.spaceNormal, fontSize: theme.metrics.textMono, fontFamily: theme.fonts.monoFamily,
-      }} />
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.metrics.spaceNormal }}>
-      <Button testID={`${testID}-toggle`} title={show ? 'Hide' : 'Show'} accessibilityLabel={show ? `Hide ${label}` : `Show ${label}`} onPress={onToggle} />
-      <Button testID={`${testID}-clear`} title="Clear" disabled={!value} onPress={() => onChangeText('')} />
-    </View>
-  </View>;
-}
 
 export default function QrCodeGeneratorScreen() {
   const { theme } = useWorkbench();
@@ -168,7 +146,7 @@ export default function QrCodeGeneratorScreen() {
     {preset === 'wifi' && <View style={{ gap: theme.metrics.spaceNormal }}>
       {field('wifiSsid', 'Network name (SSID)', 'qr-wifi-ssid')}
       <ModeSegment label="Security" modes={WIFI_SECURITIES} value={wifiSecurity} onChange={next => setPref('wifiSecurity', next)} />
-      {wifiSecurity !== 'nopass' && <SecretInput label="Password" testID="qr-wifi-password" value={wifiPassword} onChangeText={setWifiPassword} show={showWifi} onToggle={() => setShowWifi(value => !value)} />}
+      {wifiSecurity !== 'nopass' && <SecretField compact label="Password" testID="qr-wifi-password" value={wifiPassword} onChangeText={setWifiPassword} show={showWifi} onToggleShow={() => setShowWifi(value => !value)} />}
     </View>}
     {preset === 'contact' && <View style={{ gap: theme.metrics.spaceNormal }}>
       {field('contactName', 'Name', 'qr-contact-name')}
@@ -177,7 +155,7 @@ export default function QrCodeGeneratorScreen() {
       {field('contactOrg', 'Organization', 'qr-contact-org')}
     </View>}
     {preset === 'totp' && <View style={{ gap: theme.metrics.spaceNormal }}>
-      <SecretInput label="Secret (Base32)" testID="qr-totp-secret" value={totpSecret} onChangeText={setTotpSecret} show={showTotp} onToggle={() => setShowTotp(value => !value)} />
+      <SecretField compact label="Secret (Base32)" testID="qr-totp-secret" value={totpSecret} onChangeText={setTotpSecret} show={showTotp} onToggleShow={() => setShowTotp(value => !value)} />
       {field('totpIssuer', 'Issuer', 'qr-totp-issuer')}
       {field('totpAccount', 'Account name', 'qr-totp-account')}
       <Label muted>Uses SHA1, 6 digits and a 30 second period, like the web tool.</Label>

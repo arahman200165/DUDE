@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildHashRows, hexToBase64, HASH_ORDER, UNAVAILABLE_TEXT, utf8ByteLength } from './hash-mobile';
+import { buildHashRows, hexToBase64, HASH_ORDER, UNAVAILABLE_TEXT } from './hash-mobile';
 
 describe('hash mobile helpers', () => {
   it('converts a hex digest to padded base64', () => {
@@ -14,8 +14,5 @@ describe('hash mobile helpers', () => {
     expect(rows.find(row => row.key === 'SHA-256')?.value).toBe('ba78');
     expect(rows.find(row => row.key === 'XXH32')?.value).toBe(UNAVAILABLE_TEXT);
     expect(rows.find(row => row.key === 'XXH64')?.value).toBe(UNAVAILABLE_TEXT);
-  });
-  it('counts UTF-8 bytes', () => {
-    expect(utf8ByteLength('aé€\u{1F600}')).toBe(1 + 2 + 3 + 4);
   });
 });

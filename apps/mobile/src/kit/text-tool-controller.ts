@@ -33,8 +33,12 @@ export interface TextToolSpec<O extends OptionValues = OptionValues> {
   readonly sampleInput?: string;
   /** `text` (default) shows an OutputViewer, `kv` shows a KeyValueList when the result is a row list. */
   readonly outputKind?: 'text' | 'kv';
-  /** Replaces `run` when provided, e.g. an off-thread worker call. Passed in by the tool; the kit never imports it. */
-  readonly offThread?: (input: string, options: O, mode: string) => Promise<ToolRunResult>;
+  /**
+   * Replaces `run` when provided, e.g. an off-thread worker call. Passed in by the tool; the kit never imports it.
+   * `signal` aborts when the run is superseded (a newer run starts, the request resets, or the output is swapped away); pass it to
+   * `runOffThread`. A result that settles after its signal aborted is discarded.
+   */
+  readonly offThread?: (input: string, options: O, mode: string, signal: AbortSignal) => Promise<ToolRunResult>;
   /** Recompute on every change (debounced 150 ms). Default true. When false a Run button is shown. */
   readonly live?: boolean;
   /** Run even when the input is empty (generators). Default false. */
@@ -124,28 +128,35 @@ export function createTextToolController<O extends OptionValues = OptionValues>(
   let state: TextToolState = { status: 'idle', result: null, sequence: 0 };
   let request: TextToolRequest | null = null;
   let timer: unknown = null;
+  let inflight: AbortController | null = null;
   const listeners = new Set<() => void>();
   const publish = (next: TextToolState): void => {
     state = next;
     for (const listener of [...listeners]) listener();
   };
   const cancelTimer = (): void => { if (timer !== null) { scheduler.clear(timer); timer = null; } };
+  /** Aborts the signal handed to the run that is currently in flight (if any). */
+  const abortInflight = (): void => { const controller = inflight; inflight = null; controller?.abort(); };
 
   const execute = (current: TextToolRequest): Promise<void> => {
     const sequence = state.sequence + 1;
+    abortInflight();
     if (current.input === '' && !spec.allowEmptyInput) {
       publish({ status: 'idle', result: null, sequence });
       return Promise.resolve();
     }
     const mode = modes.find(candidate => candidate.id === current.modeId) ?? modes[0]!;
     publish({ ...state, status: 'running', sequence });
+    const controller = new AbortController();
+    inflight = controller;
     const settle = (result: ToolRunResult): void => {
       // A newer run (or request) owns the state: a late result is discarded, never shown.
-      if (sequence !== state.sequence) return;
+      if (sequence !== state.sequence || controller.signal.aborted) return;
+      if (inflight === controller) inflight = null;
       publish({ status: 'done', result, sequence });
     };
     let pending: ToolRunResult | Promise<ToolRunResult>;
-    try { pending = spec.offThread ? spec.offThread(current.input, current.options as O, mode.id) : mode.run(current.input, current.options as O); }
+    try { pending = spec.offThread ? spec.offThread(current.input, current.options as O, mode.id, controller.signal) : mode.run(current.input, current.options as O); }
     catch (error) { settle({ ok: false, error: toErrorMessage(error) }); return Promise.resolve(); }
     if (!(pending instanceof Promise)) { settle(normalize(pending)); return Promise.resolve(); }
     return pending.then(value => settle(normalize(value)), error => settle({ ok: false, error: toErrorMessage(error) }));
@@ -161,6 +172,7 @@ export function createTextToolController<O extends OptionValues = OptionValues>(
       cancelTimer();
       if (!live) {
         // The shown result no longer matches the request; bumping the sequence also discards any in-flight run.
+        abortInflight();
         if (state.result || state.status === 'running') publish({ status: 'idle', result: null, sequence: state.sequence + 1 });
         return;
       }
@@ -177,6 +189,7 @@ export function createTextToolController<O extends OptionValues = OptionValues>(
       if (!result?.ok || typeof result.output !== 'string') return null;
       const text = result.output;
       cancelTimer();
+      abortInflight();
       publish({ status: 'idle', result: null, sequence: state.sequence + 1 });
       return text;
     },

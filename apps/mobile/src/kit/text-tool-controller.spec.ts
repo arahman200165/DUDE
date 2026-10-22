@@ -6,7 +6,11 @@ import {
 
 const upper = (input: string): ToolRunResult => ({ ok: true, output: input.toUpperCase() });
 const request = (input: string, modeId = 'default', options: TextToolRequest['options'] = {}): TextToolRequest => ({ input, modeId, options });
-const deferred = () => { let resolve!: (value: ToolRunResult) => void; const promise = new Promise<ToolRunResult>(done => { resolve = done; }); return { promise, resolve }; };
+const deferred = () => {
+  let resolve!: (value: ToolRunResult) => void; let reject!: (error: unknown) => void;
+  const promise = new Promise<ToolRunResult>((done, fail) => { resolve = done; reject = fail; });
+  return { promise, resolve, reject };
+};
 
 beforeEach(() => { vi.useFakeTimers(); });
 afterEach(() => { vi.useRealTimers(); });
@@ -103,8 +107,66 @@ describe('createTextToolController', () => {
     const controller = createTextToolController({ toolId: 't', modes: [{ id: 'format', label: 'Format', run }], offThread });
     controller.setRequest(request('{}', 'format')); await vi.advanceTimersByTimeAsync(150);
     expect(run).not.toHaveBeenCalled();
-    expect(offThread).toHaveBeenCalledWith('{}', {}, 'format');
+    expect(offThread).toHaveBeenCalledWith('{}', {}, 'format', expect.any(AbortSignal));
     expect(controller.getState().result).toEqual({ ok: true, output: 'format:{}' });
+  });
+  describe('offThread abort signal', () => {
+    const signals: AbortSignal[] = [];
+    const gated = () => {
+      signals.length = 0;
+      const gates: ReturnType<typeof deferred>[] = [];
+      const offThread = vi.fn((_input: string, _options: unknown, _mode: string, signal: AbortSignal) => { signals.push(signal); const gate = deferred(); gates.push(gate); return gate.promise; });
+      return { offThread, gates };
+    };
+    it('aborts the in-flight run when a newer run starts and discards its late result', async () => {
+      const { offThread, gates } = gated();
+      const controller = createTextToolController({ toolId: 't', run: upper, offThread });
+      controller.setRequest(request('a')); await vi.advanceTimersByTimeAsync(150);
+      expect(signals[0]!.aborted).toBe(false);
+      controller.setRequest(request('ab')); await vi.advanceTimersByTimeAsync(150);
+      expect(signals[0]!.aborted).toBe(true);
+      expect(signals[1]!.aborted).toBe(false);
+      gates[0]!.resolve({ ok: true, output: 'stale' });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(controller.getState().status).toBe('running');
+      gates[1]!.resolve({ ok: true, output: 'fresh' });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(controller.getState().result).toEqual({ ok: true, output: 'fresh' });
+    });
+    it('does not report an AbortError from a superseded run as a tool error', async () => {
+      const { offThread, gates } = gated();
+      const controller = createTextToolController({ toolId: 't', run: upper, offThread });
+      controller.setRequest(request('a')); await vi.advanceTimersByTimeAsync(150);
+      controller.setRequest(request('ab')); await vi.advanceTimersByTimeAsync(150);
+      const abort = new Error('The operation was aborted.'); abort.name = 'AbortError';
+      gates[0]!.reject(abort);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(controller.getState()).toMatchObject({ status: 'running', result: null });
+    });
+    it('aborts when the request of a non-live tool changes', async () => {
+      const { offThread } = gated();
+      const manual = createTextToolController({ toolId: 't', live: false, run: upper, offThread });
+      manual.setRequest(request('a')); void manual.runNow();
+      expect(signals[0]!.aborted).toBe(false);
+      manual.setRequest(request('ab'));
+      expect(signals[0]!.aborted).toBe(true);
+    });
+    it('keeps the signal live once a run settles, and a settled run is not aborted by the next idle reset', async () => {
+      const offThread = vi.fn(async (_input: string, _options: unknown, _mode: string, signal: AbortSignal): Promise<ToolRunResult> => { signals.push(signal); return { ok: true, output: 'done' }; });
+      signals.length = 0;
+      const controller = createTextToolController({ toolId: 't', run: upper, offThread });
+      controller.setRequest(request('a')); await vi.advanceTimersByTimeAsync(150);
+      expect(controller.takeSwap()).toBe('done');
+      expect(signals[0]!.aborted).toBe(false);
+    });
+    it('aborts the previous run for an immediate runNow', async () => {
+      const { offThread } = gated();
+      const controller = createTextToolController({ toolId: 't', live: false, run: upper, offThread });
+      controller.setRequest(request('a')); void controller.runNow();
+      void controller.runNow();
+      expect(signals[0]!.aborted).toBe(true);
+      expect(signals[1]!.aborted).toBe(false);
+    });
   });
   it('non-live tools wait for runNow, and an edit clears the stale result', async () => {
     const run = vi.fn(upper);

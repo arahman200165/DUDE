@@ -1,5 +1,8 @@
 import { createWorkletRuntime, scheduleOnRN, scheduleOnRuntime, type WorkletRuntime } from 'react-native-worklets';
 import { installWorkerHost } from '../engine-host/worker-host';
+import { abortError, isAbortError } from './abort-error';
+
+export { isAbortError };
 
 /**
  * Heavy tool engines run here, off the React Native JS thread, on one dedicated react-native-worklets worker runtime.
@@ -23,8 +26,6 @@ export class OffThreadUnavailableError extends Error {
   constructor(detail: string) { super(`Off-thread execution is unavailable: ${detail}`); this.name = 'OffThreadUnavailableError'; }
 }
 
-function abortError(): Error { const error = new Error('The operation was aborted.'); error.name = 'AbortError'; return error; }
-export function isAbortError(error: unknown): boolean { return error instanceof Error && error.name === 'AbortError'; }
 
 /**
  * Marks a worklet function as an off-thread task. `fn` must start with the 'worklet' directive; the Worklets Babel plugin

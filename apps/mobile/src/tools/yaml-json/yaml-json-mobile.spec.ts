@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { convertYaml } from '@dude/tool-engine/tools/yaml-json/yaml-convert';
-import { decodeDirection, decodeIndent, flipDirection, SAMPLES, toOutcome, utf8ByteLength } from './yaml-json-mobile';
+import { decodeDirection, decodeIndent, flipDirection, SAMPLES, toOutcome } from './yaml-json-mobile';
 
 describe('yaml-json mobile helpers', () => {
   it('decodes the web direction and indent values', () => {
@@ -18,8 +18,5 @@ describe('yaml-json mobile helpers', () => {
   it('reports the invalid inputs used by the Maestro journey', () => {
     expect(toOutcome(convertYaml('a: [1, 2', 'yaml-to-json', 2)).ok).toBe(false);
     expect(toOutcome(convertYaml('{a:1}', 'json-to-yaml', 2)).ok).toBe(false);
-  });
-  it('counts UTF-8 bytes', () => {
-    expect(utf8ByteLength('aé€\u{1F600}')).toBe(1 + 2 + 3 + 4);
   });
 });

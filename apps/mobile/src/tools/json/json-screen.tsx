@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { View } from 'react-native';
 import { processJson, type JsonIndent, type JsonMode } from '@dude/tool-engine/tools/json/json-format';
-import { ErrorBanner, InputEditor, ModeSegment, OutputViewer, ResultCard, StatusPill, ToolScreen, hapticError, useToolPreference } from '../../kit';
-import { defineOffThreadTask, isAbortError, runOffThread } from '../../kit/off-thread';
+import { ErrorBanner, InputEditor, ModeSegment, OutputViewer, ResultCard, StatusPill, ToolScreen, hapticError, useToolPreference, utf8ByteLength } from '../../kit';
+import { defineOffThreadTask } from '../../kit/off-thread';
+import { useOffThreadRun } from '../../kit/use-off-thread-run';
 import { useWorkbench } from '../../state/workbench-provider';
 import { useToolInput } from '../../tools-host/use-tool-input';
 import { Button, Label } from '../../ui/primitives';
 import {
-  decodeIndent, decodeMode, indentId, INDENT_PREFIX, INDENTS, INPUT_TOO_LARGE, JSON_MODES, MAX_INPUT_BYTES, SAMPLE_JSON, toOutcome, utf8ByteLength,
+  decodeIndent, decodeMode, indentId, INDENT_PREFIX, INDENTS, INPUT_TOO_LARGE, JSON_MODES, MAX_INPUT_BYTES, SAMPLE_JSON, toOutcome,
   type JsonOutcome,
 } from './json-mobile';
 
@@ -33,26 +34,14 @@ export default function JsonScreen() {
   const input = typeof stored.input === 'string' ? stored.input : '';
   const [mode, setMode] = useToolPreference<JsonMode>(TOOL_ID, 'mode', 'pretty', { decode: decodeMode });
   const [indent, setIndent] = useToolPreference<JsonIndent>(TOOL_ID, 'indent', 2, { decode: decodeIndent });
-  const [outcome, setOutcome] = useState<JsonOutcome | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (input === '') { setOutcome(null); setBusy(false); return; }
-    if (utf8ByteLength(input) > MAX_INPUT_BYTES) { setOutcome({ ok: false, error: INPUT_TOO_LARGE }); setBusy(false); return; }
-    const controller = new AbortController();
-    setBusy(true);
-    const timer = setTimeout(() => {
-      runOffThread(formatTask, { input, mode, indent }, { signal: controller.signal }).then(result => {
-        setOutcome(toOutcome(result));
-        setBusy(false);
-      }, (error: unknown) => {
-        if (isAbortError(error)) return;
-        setOutcome({ ok: false, error: error instanceof Error && error.message ? error.message : 'Could not process this JSON.' });
-        setBusy(false);
-      });
-    }, RUN_DELAY_MS);
-    return () => { clearTimeout(timer); controller.abort(); };
-  }, [input, mode, indent]);
+  const empty = input === '';
+  const oversize = !empty && utf8ByteLength(input) > MAX_INPUT_BYTES;
+  const payload = useMemo(() => (empty || oversize ? null : { input, mode, indent }), [empty, oversize, input, mode, indent]);
+  const { result, error, busy } = useOffThreadRun(formatTask, payload, { debounceMs: RUN_DELAY_MS, fallbackError: 'Could not process this JSON.' });
+  const outcome = useMemo<JsonOutcome | null>(
+    () => empty ? null : oversize ? { ok: false, error: INPUT_TOO_LARGE } : error !== null ? { ok: false, error } : result ? toOutcome(result) : null,
+    [empty, oversize, error, result],
+  );
 
   useEffect(() => { if (outcome && !outcome.ok) void hapticError(); }, [outcome]);
 
