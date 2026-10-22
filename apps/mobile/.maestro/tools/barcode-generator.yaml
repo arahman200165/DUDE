@@ -1,0 +1,71 @@
+appId: io.github.arahman200165.dude.preview
+name: Barcode Generator on Android
+tags: [tools, encoding]
+---
+- launchApp:
+    clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
+- openLink: "dude://tools/barcode-generator"
+- assertVisible:
+    id: "tool-input"
+# EAN-13 with a valid check digit (barcode-render.spec.ts:32 lists 5901234123457 as a valid EAN-13).
+- tapOn:
+    id: "mode-ean13"
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "5901234123457"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "barcode-preview"
+    direction: DOWN
+- assertVisible:
+    id: "barcode-preview"
+- assertNotVisible:
+    id: "tool-error"
+# Wrong check digit. Message from validateBarcodeValue (barcode-validate.ts:51; same format as barcode-render.spec.ts:55),
+# computed with renderBarcodeSvg({ symbology: 'ean13', text: '5901234123458' }) from
+# @dude/tool-engine/tools/barcode-generator/barcode-render: "Invalid check digit -- expected 7, got 8."
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "5901234123458"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "tool-error"
+    direction: DOWN
+- assertVisible:
+    id: "tool-error"
+    text: ".*Invalid check digit -- expected 7, got 8.*"
+- assertNotVisible:
+    id: "barcode-preview"
+# Data Matrix renders any text.
+- scrollUntilVisible:
+    element:
+      id: "mode-datamatrix"
+    direction: UP
+- tapOn:
+    id: "mode-datamatrix"
+- tapOn:
+    id: "tool-input-clear"
+- tapOn:
+    id: "tool-input"
+- inputText: "hello"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "barcode-preview"
+    direction: DOWN
+- assertVisible:
+    id: "barcode-preview"
+- assertNotVisible:
+    id: "tool-error"
