@@ -4,9 +4,23 @@ tags: [tools, encoding]
 ---
 - launchApp:
     clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/url-encode"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input"
+- scrollUntilVisible:
+    element:
+      id: "mode-encode"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-encode"
 - tapOn:
@@ -14,9 +28,21 @@ tags: [tools, encoding]
 - inputText: "a b&c/d"
 - hideKeyboard
 # Expected value copied from packages/tool-engine/src/tools/url-encode/url-encode-codec.spec.ts:16 (component variant is the default)
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "a%20b%26c%2Fd"
+- scrollUntilVisible:
+    element:
+      id: "mode-decode"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-decode"
 - tapOn:
@@ -26,9 +52,21 @@ tags: [tools, encoding]
 - inputText: "a%20b%26c"
 - hideKeyboard
 # Expected value copied from packages/tool-engine/src/tools/url-encode/url-encode-codec.spec.ts:36
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "a b&c"
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
@@ -36,5 +74,11 @@ tags: [tools, encoding]
 - inputText: "%E0%A4%A"
 - hideKeyboard
 # Malformed percent-escape: decodeURIComponent throws; computed with decodeUrl from @dude/tool-engine/tools/url-encode/url-encode-codec
+- scrollUntilVisible:
+    element:
+      id: "tool-error"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-error"

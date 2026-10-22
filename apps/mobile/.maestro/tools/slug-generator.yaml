@@ -5,7 +5,15 @@ tags: [tools, text]
 # clearState: the separator and stopword options are persisted preferences, so start from the defaults.
 - launchApp:
     clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/slug-generator"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input"
 - tapOn:
@@ -14,25 +22,67 @@ tags: [tools, text]
 - hideKeyboard
 # Default options: computed with generateSlug(input, DEFAULT_SLUG_OPTIONS) from @dude/tool-engine/tools/slug-generator/slug-generate;
 # stopword removal matches packages/tool-engine/src/tools/slug-generator/slug-generate.spec.ts:24-27.
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "the-quick-brown-fox-and-the-lazy-dog"
+- scrollUntilVisible:
+    element:
+      id: "tool-options"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-options"
+- scrollUntilVisible:
+    element:
+      id: "option-removeStopwords"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "option-removeStopwords"
 - tapOn:
     id: "tool-options-done"
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "quick-brown-fox-lazy-dog"
 # Underscore separator + stopwords: computed with generateSlug(input, { ...DEFAULT_SLUG_OPTIONS, separator: '_', removeStopwords: true }).
+- scrollUntilVisible:
+    element:
+      id: "tool-options"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-options"
+- scrollUntilVisible:
+    element:
+      id: "option-separator-_"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "option-separator-_"
 - tapOn:
     id: "tool-options-done"
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "quick_brown_fox_lazy_dog"

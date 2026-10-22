@@ -4,7 +4,15 @@ tags: [tools, developer]
 ---
 - launchApp:
     clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/cidr-calculator"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input"
 # Vector from packages/tool-engine/src/tools/cidr-calculator/cidr-calculator-logic.spec.ts:19 (10.0.0.5/30).
@@ -13,49 +21,127 @@ tags: [tools, developer]
     id: "tool-input"
 - inputText: "10.0.0.5/30"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "kv-network-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-network-value"
     text: "10.0.0.4"
+- scrollUntilVisible:
+    element:
+      id: "kv-broadcast-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-broadcast-value"
     text: "10.0.0.7"
+- scrollUntilVisible:
+    element:
+      id: "kv-first-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-first-value"
     text: "10.0.0.5"
+- scrollUntilVisible:
+    element:
+      id: "kv-last-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-last-value"
     text: "10.0.0.6"
+- scrollUntilVisible:
+    element:
+      id: "kv-hosts-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-hosts-value"
     text: "2"
+- scrollUntilVisible:
+    element:
+      id: "kv-netmask-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-netmask-value"
     text: "255.255.255.252"
+- scrollUntilVisible:
+    element:
+      id: "kv-wildcard-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-wildcard-value"
     text: "0.0.0.3"
 # Vector from cidr-calculator-logic.spec.ts:4 (RFC 4632 section 3.1, 172.16.0.0/16).
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
     id: "tool-input"
 - inputText: "172.16.0.0/16"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "kv-broadcast-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-broadcast-value"
     text: "172.16.255.255"
+- scrollUntilVisible:
+    element:
+      id: "kv-hosts-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-hosts-value"
     text: "65534"
+- scrollUntilVisible:
+    element:
+      id: "kv-wildcard-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-wildcard-value"
     text: "0.0.255.255"
 # Out-of-range prefix (cidr-calculator-logic.spec.ts:51) shows the error banner.
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
     id: "tool-input"
 - inputText: "192.168.1.1/33"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "tool-error"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-error"

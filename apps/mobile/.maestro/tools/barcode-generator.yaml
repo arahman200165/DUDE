@@ -7,9 +7,21 @@ tags: [tools, encoding]
 # Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
 - assertVisible: "This workbench"
 - openLink: "dude://tools/barcode-generator"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input"
 # EAN-13 with a valid check digit (barcode-render.spec.ts:32 lists 5901234123457 as a valid EAN-13).
+- scrollUntilVisible:
+    element:
+      id: "mode-ean13"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-ean13"
 - tapOn:
@@ -22,6 +34,12 @@ tags: [tools, encoding]
     element:
       id: "barcode-preview"
     direction: DOWN
+- scrollUntilVisible:
+    element:
+      id: "barcode-preview"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "barcode-preview"
 - assertNotVisible:
@@ -33,6 +51,12 @@ tags: [tools, encoding]
     element:
       id: "tool-input-clear"
     direction: UP
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
@@ -43,6 +67,12 @@ tags: [tools, encoding]
     element:
       id: "tool-error"
     direction: DOWN
+- scrollUntilVisible:
+    element:
+      id: "tool-error"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-error"
     text: ".*Invalid check digit -- expected 7, got 8.*"
@@ -53,6 +83,12 @@ tags: [tools, encoding]
     element:
       id: "mode-datamatrix"
     direction: UP
+- scrollUntilVisible:
+    element:
+      id: "mode-datamatrix"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-datamatrix"
 - tapOn:
@@ -65,6 +101,12 @@ tags: [tools, encoding]
     element:
       id: "barcode-preview"
     direction: DOWN
+- scrollUntilVisible:
+    element:
+      id: "barcode-preview"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "barcode-preview"
 - assertNotVisible:

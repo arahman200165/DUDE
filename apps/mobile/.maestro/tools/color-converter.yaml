@@ -4,7 +4,15 @@ tags: [tools, encoding]
 ---
 - launchApp:
     clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/color-converter"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input"
 # Vector: packages/tool-engine/src/tools/color-converter/color-convert.spec.ts:10-12 ('#ff0000' -> rgb(255, 0, 0), hsl(0, 100%, 50%), name red)
@@ -13,35 +21,89 @@ tags: [tools, encoding]
 - eraseText: 40
 - inputText: "#ff0000"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "kv-rgb-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-rgb-value"
     text: "rgb(255, 0, 0)"
+- scrollUntilVisible:
+    element:
+      id: "kv-hsl-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-hsl-value"
     text: "hsl(0, 100%, 50%)"
+- scrollUntilVisible:
+    element:
+      id: "kv-name-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-name-value"
     text: "red"
+- scrollUntilVisible:
+    element:
+      id: "color-swatch"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "color-swatch"
 # Alpha: hex8 '#0080ff80' computed with colord (the engine's parser): node -e "console.log(require('colord').colord('#0080ff80').toRgbString())"
 # -> rgba(0, 128, 255, 0.5); the rgba string form is asserted in color-convert.spec.ts:45.
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input"
 - eraseText: 40
 - inputText: "#0080ff80"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "kv-rgb-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-rgb-value"
     text: "rgba\\(0, 128, 255, 0\\.5\\)"
+- scrollUntilVisible:
+    element:
+      id: "kv-alpha-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-alpha-value"
     text: "0.5"
 # Invalid input: engine error 'Could not recognize this as a color.' (color-convert.ts parseColor)
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input"
 - eraseText: 40
 - inputText: "notacolor"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "tool-error"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-error"

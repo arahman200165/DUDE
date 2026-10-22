@@ -4,27 +4,77 @@ tags: [tools, data]
 ---
 - launchApp:
     clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/json"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input"
+- scrollUntilVisible:
+    element:
+      id: "mode-pretty"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-pretty"
 - tapOn:
     id: "tool-input-sample"
 # Sample {"a":1,"b":[2,3]} pretty-printed with 2 spaces: packages/tool-engine/src/tools/json/json-format.spec.ts:23
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: '(?s)\{\s+"a": 1,\s+"b": \[\s+2,\s+3\s+\]\s+\}'
+- scrollUntilVisible:
+    element:
+      id: "mode-minify"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-minify"
 # Minified form of the same sample (JSON.stringify of the parsed value)
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: '\{"a":1,"b":\[2,3\]\}'
+- scrollUntilVisible:
+    element:
+      id: "mode-validate"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-validate"
+- scrollUntilVisible:
+    element:
+      id: "json-valid"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "json-valid"
+- scrollUntilVisible:
+    element:
+      id: "mode-pretty"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-pretty"
 - tapOn:
@@ -34,5 +84,11 @@ tags: [tools, data]
 - inputText: "{a:1}"
 - hideKeyboard
 # Unquoted property name is invalid JSON (processJson returns an error)
+- scrollUntilVisible:
+    element:
+      id: "tool-error"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-error"

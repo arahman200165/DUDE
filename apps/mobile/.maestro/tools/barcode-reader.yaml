@@ -4,15 +4,41 @@ tags: [tools, encoding]
 ---
 - launchApp:
     clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/barcode-reader"
 # The camera is never opened automatically; it needs a tap (and the permission dialog). CI emulators cannot scan, so the
 # rest of the journey uses the paste path with an explicit format (default EAN-13).
+- scrollUntilVisible:
+    element:
+      id: "scan-camera"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "scan-camera"
+- scrollUntilVisible:
+    element:
+      id: "scan-image"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "scan-image"
+- scrollUntilVisible:
+    element:
+      id: "mode-ean13"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "mode-ean13"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input"
 # Vectors from packages/tool-engine/src/tools/barcode-reader/barcode-result.spec.ts: 4006381333931 valid with GTIN-14 04006381333931 (:58).
@@ -21,12 +47,30 @@ tags: [tools, encoding]
 - scrollUntilVisible:
     element:
       id: "kv-check-digit-value"
+- scrollUntilVisible:
+    element:
+      id: "kv-format-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-format-value"
     text: "EAN-13 \\(1D\\)"
+- scrollUntilVisible:
+    element:
+      id: "kv-check-digit-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-check-digit-value"
     text: "Valid \\(1\\)"
+- scrollUntilVisible:
+    element:
+      id: "kv-gtin14-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-gtin14-value"
     text: "04006381333931"
@@ -35,6 +79,12 @@ tags: [tools, encoding]
     element:
       id: "tool-input-clear"
     direction: UP
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
@@ -44,6 +94,12 @@ tags: [tools, encoding]
 - scrollUntilVisible:
     element:
       id: "kv-check-digit-value"
+- scrollUntilVisible:
+    element:
+      id: "kv-check-digit-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-check-digit-value"
     text: "Invalid \\(expected 1, found 2\\)"
@@ -54,6 +110,12 @@ tags: [tools, encoding]
     element:
       id: "tool-input-clear"
     direction: UP
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
@@ -63,6 +125,12 @@ tags: [tools, encoding]
 - scrollUntilVisible:
     element:
       id: "kv-isbn13-value"
+- scrollUntilVisible:
+    element:
+      id: "kv-isbn13-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-isbn13-value"
     text: "9780306406157"
@@ -71,12 +139,24 @@ tags: [tools, encoding]
     element:
       id: "tool-input-clear"
     direction: UP
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - scrollUntilVisible:
     element:
       id: "mode-code128"
     direction: UP
+- scrollUntilVisible:
+    element:
+      id: "mode-code128"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-code128"
 - scrollUntilVisible:
@@ -89,6 +169,12 @@ tags: [tools, encoding]
 - scrollUntilVisible:
     element:
       id: "kv-format-value"
+- scrollUntilVisible:
+    element:
+      id: "kv-format-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-format-value"
     text: "Code 128 \\(1D\\)"
@@ -99,12 +185,24 @@ tags: [tools, encoding]
     element:
       id: "tool-input-clear"
     direction: UP
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - scrollUntilVisible:
     element:
       id: "mode-qr"
     direction: UP
+- scrollUntilVisible:
+    element:
+      id: "mode-qr"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-qr"
 - scrollUntilVisible:
@@ -117,9 +215,21 @@ tags: [tools, encoding]
 - scrollUntilVisible:
     element:
       id: "kv-kind-value"
+- scrollUntilVisible:
+    element:
+      id: "kv-format-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-format-value"
     text: "QR Code \\(2D\\)"
+- scrollUntilVisible:
+    element:
+      id: "kv-kind-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-kind-value"
     text: "Web link"

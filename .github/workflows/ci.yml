@@ -325,7 +325,7 @@ jobs:
       - name: Build the instrumentation and release APKs
         working-directory: apps/mobile/android
         run: ./gradlew :dude-hub:assembleDebugAndroidTest :app:assembleRelease -PreactNativeArchitectures=x86_64 --console=plain --max-workers=4
-      - name: API29/API36 native and shell acceptance
+      - name: API29/API36 native, shell and tool-journey acceptance
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}

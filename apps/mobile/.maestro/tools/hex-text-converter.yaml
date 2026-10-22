@@ -4,9 +4,23 @@ tags: [tools, encoding]
 ---
 - launchApp:
     clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/hex-text-converter"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input"
+- scrollUntilVisible:
+    element:
+      id: "mode-toHex"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-toHex"
 - tapOn:
@@ -14,9 +28,21 @@ tags: [tools, encoding]
 - inputText: "foobar"
 - hideKeyboard
 # Expected value copied from packages/tool-engine/src/tools/hex-text-converter/hex-text-convert.spec.ts:12 (RFC 4648 Base16 vector; UTF-8 default equals ASCII here)
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "666f6f626172"
+- scrollUntilVisible:
+    element:
+      id: "mode-toText"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-toText"
 - tapOn:
@@ -26,9 +52,21 @@ tags: [tools, encoding]
 - inputText: "666f6f626172"
 - hideKeyboard
 # Reverse direction of the same vector (hex-text-convert.spec.ts:13)
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "foobar"
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
@@ -36,5 +74,11 @@ tags: [tools, encoding]
 - inputText: "zz"
 - hideKeyboard
 # Non-hex input: computed with convertHexText('zz','toText','utf8') from @dude/tool-engine -> "Contains non-hex characters."
+- scrollUntilVisible:
+    element:
+      id: "tool-error"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-error"

@@ -2,8 +2,17 @@ appId: io.github.arahman200165.dude.preview
 name: Text Diff on Android
 tags: [tools, text]
 ---
-- launchApp
+- launchApp:
+    clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/diff"
+- scrollUntilVisible:
+    element:
+      id: "tool-input-left"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input-left"
 - tapOn:
@@ -16,9 +25,21 @@ tags: [tools, text]
 - hideKeyboard
 # Computed with computeLineDiff('a', 'b') from @dude/tool-engine/tools/diff/text-diff:
 # lines [remove "a", add "b"], summary { added: 1, removed: 1, unchanged: 0 } (cf. text-diff.spec.ts:30 'changed line as remove + add')
+- scrollUntilVisible:
+    element:
+      id: "diff-summary"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "diff-summary"
     text: "1 added, 1 removed, 0 unchanged"
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "(?s).*- a.*"
@@ -26,11 +47,23 @@ tags: [tools, text]
     id: "tool-output"
     text: "(?s).*[+] b.*"
 # Identical texts
+- scrollUntilVisible:
+    element:
+      id: "tool-input-right"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-right"
 - eraseText
 - inputText: "a"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "diff-summary"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "diff-summary"
     text: "No differences (1 unchanged)"

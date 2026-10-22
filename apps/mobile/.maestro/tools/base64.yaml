@@ -4,9 +4,23 @@ tags: [tools, encoding]
 ---
 - launchApp:
     clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/base64"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input"
+- scrollUntilVisible:
+    element:
+      id: "mode-encode"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-encode"
 - tapOn:
@@ -14,9 +28,21 @@ tags: [tools, encoding]
 - inputText: "foobar"
 - hideKeyboard
 # Expected value copied from packages/crypto/src/base64-codec.spec.ts:13 (RFC 4648 vector foobar -> Zm9vYmFy)
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "Zm9vYmFy"
+- scrollUntilVisible:
+    element:
+      id: "mode-decode"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-decode"
 - tapOn:
@@ -26,9 +52,21 @@ tags: [tools, encoding]
 - inputText: "Zm9vYmFy"
 - hideKeyboard
 # Same vector decoded: packages/crypto/src/base64-codec.spec.ts:19
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "foobar"
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
@@ -36,5 +74,11 @@ tags: [tools, encoding]
 - inputText: "not-valid-base64!!!"
 - hideKeyboard
 # Invalid input: packages/crypto/src/base64-codec.spec.ts:43
+- scrollUntilVisible:
+    element:
+      id: "tool-error"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-error"

@@ -5,7 +5,15 @@ tags: [tools, developer]
 # clearState gives the default tab (Compare), sort direction (ascending) and the web default inputs.
 - launchApp:
     clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/semver-comparator"
+- scrollUntilVisible:
+    element:
+      id: "tool-input-a"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input-a"
 # Compare, vector from packages/tool-engine/src/tools/semver-comparator/semver-compare.spec.ts:11 (1.2.3 vs 1.2.4 -> order -1, patch).
@@ -14,72 +22,180 @@ tags: [tools, developer]
 - eraseText: 20
 - inputText: "1.2.4"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "kv-result-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-result-value"
     text: "Version A < Version B"
+- scrollUntilVisible:
+    element:
+      id: "kv-diff-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-diff-value"
     text: "patch"
 # Compare, invalid version (semver-compare.spec.ts:32) shows the error banner.
+- scrollUntilVisible:
+    element:
+      id: "tool-input-a"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-a"
 - eraseText: 20
 - inputText: "not-a-version"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "tool-error"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-error"
 # Range check, default inputs 1.2.5 and ^1.2.0 (semver-compare.spec.ts:52 says it satisfies). The normalized range was computed with
 # checkRange from @dude/tool-engine: checkRange('1.2.5','^1.2.0') -> normalizedRange ">=1.2.0 <2.0.0-0".
+- scrollUntilVisible:
+    element:
+      id: "mode-range"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-range"
+- scrollUntilVisible:
+    element:
+      id: "kv-result-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-result-value"
     text: "satisfies"
+- scrollUntilVisible:
+    element:
+      id: "kv-normalized-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-normalized-value"
     text: ">=1.2.0 <2.0.0-0"
 # Version 2.0.0 does not satisfy ^1.2.0 (semver-compare.spec.ts:58).
+- scrollUntilVisible:
+    element:
+      id: "tool-input-version"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-version"
 - eraseText: 20
 - inputText: "2.0.0"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "kv-result-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-result-value"
     text: "does not satisfy"
 # Invalid range (semver-compare.spec.ts:69).
+- scrollUntilVisible:
+    element:
+      id: "tool-input-range"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-range"
 - eraseText: 20
 - inputText: "not-a-range"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "tool-error"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-error"
 # Sort, default list "1.2.3, 1.0.0, 2.0.0-beta.1, 1.10.0". Computed with sortVersions from @dude/tool-engine:
 # sortVersions([...]).valid -> 1.0.0|1.2.3|1.10.0|2.0.0-beta.1 (ascending, same ordering rule as semver-compare.spec.ts:39).
+- scrollUntilVisible:
+    element:
+      id: "mode-sort"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-sort"
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "1.0.0\n1.2.3\n1.10.0\n2.0.0-beta.1"
+- scrollUntilVisible:
+    element:
+      id: "mode-dir-desc"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-dir-desc"
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "2.0.0-beta.1\n1.10.0\n1.2.3\n1.0.0"
 # Visualize, default ranges. ^1.2.0 covers 1.2.0 and 1.9.0 but not 1.0.0 or 2.0.0 (semver-compare.spec.ts:82); the full probe list and the
 # second range (>=1.0.0 <2.0.0) were computed with visualizeRanges and RANGE_PROBE_VERSIONS from @dude/tool-engine.
+- scrollUntilVisible:
+    element:
+      id: "mode-visualize"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-visualize"
 - scrollUntilVisible:
     element:
       id: "viz-0-matches"
+- scrollUntilVisible:
+    element:
+      id: "viz-0-matches"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "viz-0-matches"
     text: "Matches: 1.2.0, 1.5.0, 1.9.0"
 - scrollUntilVisible:
     element:
       id: "viz-1-matches"
+- scrollUntilVisible:
+    element:
+      id: "viz-1-matches"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "viz-1-matches"
     text: "Matches: 1.0.0, 1.2.0, 1.5.0, 1.9.0"

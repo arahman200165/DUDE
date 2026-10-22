@@ -4,7 +4,15 @@ tags: [tools, security]
 ---
 - launchApp:
     clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/hmac-generator"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input"
 # Vector: RFC 4231 test case 2 (key "Jefe", message "what do ya want for nothing?", packages/tool-engine/src/tools/hmac-generator/hmac-generator-logic.spec.ts:28)
@@ -18,29 +26,95 @@ tags: [tools, security]
     id: "tool-input-key"
 - inputText: "Jefe"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "mode-SHA-256"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-SHA-256"
+- scrollUntilVisible:
+    element:
+      id: "mode-key-utf8"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-key-utf8"
+- scrollUntilVisible:
+    element:
+      id: "mode-out-hex"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-out-hex"
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "a0f14ba018012b764b32dc157ce0a20e8322dae09da80cae035670ce0879e5d4"
+- scrollUntilVisible:
+    element:
+      id: "mode-SHA-1"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-SHA-1"
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "689abfa6d45b31ad4de2ebf43f92eec231ae9600"
+- scrollUntilVisible:
+    element:
+      id: "mode-SHA-256"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-SHA-256"
+- scrollUntilVisible:
+    element:
+      id: "mode-out-base64"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-out-base64"
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "oPFLoBgBK3ZLMtwVfOCiDoMi2uCdqAyuA1Zwzgh55dQ="
 # "Jefe" is not valid hex, so choosing the Hex key encoding reports the engine error.
+- scrollUntilVisible:
+    element:
+      id: "mode-key-hex"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-key-hex"
+- scrollUntilVisible:
+    element:
+      id: "tool-error"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-error"

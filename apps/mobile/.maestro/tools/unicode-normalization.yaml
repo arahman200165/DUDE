@@ -2,10 +2,25 @@ appId: io.github.arahman200165.dude.preview
 name: Unicode Normalization on Android
 tags: [tools, text]
 ---
-- launchApp
+- launchApp:
+    clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/unicode-normalization"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input"
+- scrollUntilVisible:
+    element:
+      id: "mode-NFC"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-NFC"
 - tapOn:
@@ -13,34 +28,100 @@ tags: [tools, text]
 - inputText: "hello"
 - hideKeyboard
 # Already-normalized ASCII: packages/tool-engine/src/tools/unicode-normalization/unicode-normalize.spec.ts:19-23.
+- scrollUntilVisible:
+    element:
+      id: "kv-output-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-output-value"
     text: "hello"
+- scrollUntilVisible:
+    element:
+      id: "kv-code-points-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-code-points-value"
     text: "5 .unchanged."
 # Non-ASCII cannot be typed through Maestro, so the Sample button supplies "caf<e-acute> <ROMAN NUMERAL ONE> <fi ligature>" (8 code points).
 # Code-point counts computed with normalizeText(sample, form) from @dude/tool-engine/tools/unicode-normalization/unicode-normalize:
 # NFC 8 unchanged, NFD 8 -> 9, NFKC 8 -> 9, NFKD 8 -> 10 (NFKC "cafe I fi" compatibility folding: spec.ts:25-29).
+- scrollUntilVisible:
+    element:
+      id: "tool-input-sample"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-sample"
+- scrollUntilVisible:
+    element:
+      id: "mode-NFC"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-NFC"
+- scrollUntilVisible:
+    element:
+      id: "kv-code-points-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-code-points-value"
     text: "8 .unchanged."
+- scrollUntilVisible:
+    element:
+      id: "mode-NFD"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-NFD"
+- scrollUntilVisible:
+    element:
+      id: "kv-code-points-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-code-points-value"
     text: "8 → 9"
+- scrollUntilVisible:
+    element:
+      id: "mode-NFKC"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-NFKC"
+- scrollUntilVisible:
+    element:
+      id: "kv-code-points-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-code-points-value"
     text: "8 → 9"
+- scrollUntilVisible:
+    element:
+      id: "mode-NFKD"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-NFKD"
+- scrollUntilVisible:
+    element:
+      id: "kv-code-points-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-code-points-value"
     text: "8 → 10"

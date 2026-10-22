@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, ScrollView, Switch, TextInput, View } from 'react-native';
+import { Keyboard, Modal, Pressable, ScrollView, Switch, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useWorkbench } from '../state/workbench-provider';
 import { Button, Label } from '../ui/primitives';
@@ -14,7 +14,8 @@ export function OptionsSheet({ options, values, onChange, title = 'Options' }: {
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
   if (!options.length) return null;
-  const close = () => setOpen(false);
+  // Android may hand focus back to the tool input when the sheet closes (seen on API 29), which reopens the keyboard over the results.
+  const close = () => { setOpen(false); setTimeout(() => Keyboard.dismiss(), 150); };
   return <>
     <Button testID="tool-options" title="Options" hint="Opens the options sheet" onPress={() => setOpen(true)} />
     <Modal visible={open} transparent animationType={theme.reducedMotion ? 'none' : 'slide'} onRequestClose={close} statusBarTranslucent navigationBarTranslucent>

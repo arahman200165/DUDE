@@ -2,26 +2,65 @@ appId: io.github.arahman200165.dude.preview
 name: User-Agent Parser on Android
 tags: [tools, web]
 ---
-- launchApp
+- launchApp:
+    clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/user-agent"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input"
 - tapOn:
     id: "tool-input-sample"
 # Sample is DESKTOP_CHROME_UA from packages/tool-engine/src/tools/user-agent/ua-parse.spec.ts:3-4 (spec asserts Chrome 119.0.0.0, Blink, Windows 10).
 # cpu "amd64" and engine version computed with parseUserAgent from @dude/tool-engine/tools/user-agent/ua-parse.
+- scrollUntilVisible:
+    element:
+      id: "kv-browser-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-browser-value"
     text: "Chrome 119.0.0.0"
+- scrollUntilVisible:
+    element:
+      id: "kv-engine-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-engine-value"
     text: "Blink 119.0.0.0"
+- scrollUntilVisible:
+    element:
+      id: "kv-os-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-os-value"
     text: "Windows 10"
+- scrollUntilVisible:
+    element:
+      id: "kv-cpu-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-cpu-value"
     text: "amd64"
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
@@ -29,5 +68,11 @@ tags: [tools, web]
 - inputText: " "
 - hideKeyboard
 # ua-parse.spec.ts:11 (blank input is an error)
+- scrollUntilVisible:
+    element:
+      id: "tool-error"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-error"

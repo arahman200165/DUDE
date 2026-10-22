@@ -4,7 +4,15 @@ tags: [tools, encoding]
 ---
 - launchApp:
     clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/contrast-checker"
+- scrollUntilVisible:
+    element:
+      id: "tool-input-foreground"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input-foreground"
 # Vector: black on white is 21:1 and passes every level (packages/tool-engine/src/tools/contrast-checker/contrast-checker-logic.spec.ts:5 and :20)
@@ -18,30 +26,84 @@ tags: [tools, encoding]
 - eraseText: 40
 - inputText: "#ffffff"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "kv-ratio-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-ratio-value"
     text: "21.00:1"
+- scrollUntilVisible:
+    element:
+      id: "check-aa-normal-result"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "check-aa-normal-result"
     text: "✓ Pass"
+- scrollUntilVisible:
+    element:
+      id: "check-aaa-normal-result"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "check-aaa-normal-result"
     text: "✓ Pass"
+- scrollUntilVisible:
+    element:
+      id: "check-ui-result"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "check-ui-result"
     text: "✓ Pass"
+- scrollUntilVisible:
+    element:
+      id: "contrast-sample"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "contrast-sample"
 # Swap keeps the same ratio (contrast is symmetric) and exchanges the two fields.
+- scrollUntilVisible:
+    element:
+      id: "tool-swap"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-swap"
+- scrollUntilVisible:
+    element:
+      id: "tool-input-foreground"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input-foreground"
     text: "#ffffff"
+- scrollUntilVisible:
+    element:
+      id: "kv-ratio-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-ratio-value"
     text: "21.00:1"
 # Failing pair: #777777 on #888888 fails every level (computed with checkContrast; see contrast-checker-mobile.spec.ts)
+- scrollUntilVisible:
+    element:
+      id: "tool-input-foreground"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-foreground"
 - eraseText: 40
@@ -52,17 +114,41 @@ tags: [tools, encoding]
 - eraseText: 40
 - inputText: "#888888"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "check-aa-normal-result"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "check-aa-normal-result"
     text: "✕ Fail"
+- scrollUntilVisible:
+    element:
+      id: "check-ui-result"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "check-ui-result"
     text: "✕ Fail"
 # Invalid input: engine error 'Could not recognize "notacolor" as a color.'
+- scrollUntilVisible:
+    element:
+      id: "tool-input-foreground"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-foreground"
 - eraseText: 40
 - inputText: "notacolor"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "tool-error"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-error"

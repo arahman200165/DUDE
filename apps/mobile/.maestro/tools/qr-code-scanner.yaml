@@ -2,24 +2,58 @@ appId: io.github.arahman200165.dude.preview
 name: QR Code Scanner on Android
 tags: [tools, encoding]
 ---
-# clearState also revokes the camera permission, so the first tap on Scan with camera raises the system dialog.
+# Maestro grants every permission on launch unless told otherwise; deny the camera so the first tap on Scan with camera raises the system dialog.
 - launchApp:
     clearState: true
+    permissions:
+      camera: deny
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/qr-code-scanner"
+- scrollUntilVisible:
+    element:
+      id: "scan-camera"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "scan-camera"
+- scrollUntilVisible:
+    element:
+      id: "scan-image"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "scan-image"
 # Permission denial: the camera is never opened by itself; denying keeps the paste path. The dialog wording differs by API level
 # (API 29: "Deny", API 30+: "Don't allow"), so the tap is optional and matches both.
+- scrollUntilVisible:
+    element:
+      id: "scan-camera"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "scan-camera"
 - tapOn:
     text: ".*(Deny|Don.t allow).*"
     optional: true
 - assertVisible: ".*Camera permission was denied.*"
+- scrollUntilVisible:
+    element:
+      id: "scan-camera"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "scan-camera"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input"
 # Wi-Fi payload: vector from packages/tool-engine/src/tools/qr-code-scanner/scan-payload.spec.ts:51-53 (kind label from :22).
@@ -30,15 +64,39 @@ tags: [tools, encoding]
 - scrollUntilVisible:
     element:
       id: "kv-kind-value"
+- scrollUntilVisible:
+    element:
+      id: "kv-kind-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-kind-value"
     text: "Wi-Fi network"
+- scrollUntilVisible:
+    element:
+      id: "kv-ssid-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-ssid-value"
     text: "HomeNet"
+- scrollUntilVisible:
+    element:
+      id: "kv-security-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-security-value"
     text: "WPA"
+- scrollUntilVisible:
+    element:
+      id: "kv-hidden-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-hidden-value"
     text: "No"
@@ -46,6 +104,12 @@ tags: [tools, encoding]
 - scrollUntilVisible:
     element:
       id: "kv-password-value"
+- scrollUntilVisible:
+    element:
+      id: "kv-password-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-password-value"
     text: "\\*\\*\\*"
@@ -53,6 +117,12 @@ tags: [tools, encoding]
     id: "kv-password-value"
     text: "hunter2"
 - assertNotVisible: "hunter2"
+- scrollUntilVisible:
+    element:
+      id: "tool-output-raw"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output-raw"
     text: "WIFI:T:WPA;S:HomeNet;P:\\*\\*\\*;;"
@@ -60,19 +130,55 @@ tags: [tools, encoding]
 - scrollUntilVisible:
     element:
       id: "scan-reveal"
+- scrollUntilVisible:
+    element:
+      id: "scan-reveal"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "scan-reveal"
+- scrollUntilVisible:
+    element:
+      id: "kv-password-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-password-value"
     text: "hunter2"
+- scrollUntilVisible:
+    element:
+      id: "tool-output-raw"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output-raw"
     text: "WIFI:T:WPA;S:HomeNet;P:hunter2;;"
 # Copying a secret shows the clipboard warning.
+- scrollUntilVisible:
+    element:
+      id: "kv-password-copy"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "kv-password-copy"
+- scrollUntilVisible:
+    element:
+      id: "scan-secret-warning"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "scan-secret-warning"
+- scrollUntilVisible:
+    element:
+      id: "scan-reveal"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "scan-reveal"
 - assertNotVisible:
@@ -83,21 +189,46 @@ tags: [tools, encoding]
     element:
       id: "tool-input-clear"
     direction: UP
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
     id: "tool-input"
 - inputText: "https://example.com"
-- hideKeyboard
+# After the clipboard copy above Maestro hideKeyboard cannot confirm the IME is gone (floating toolbar); Back only closes the keyboard (useKeyboardBack).
+- back
 - scrollUntilVisible:
     element:
       id: "kv-kind-value"
+- scrollUntilVisible:
+    element:
+      id: "kv-kind-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-kind-value"
     text: "Web link"
+- scrollUntilVisible:
+    element:
+      id: "kv-host-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-host-value"
     text: "example.com"
+- scrollUntilVisible:
+    element:
+      id: "kv-url-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-url-value"
     text: "https://example.com"
@@ -105,11 +236,29 @@ tags: [tools, encoding]
 - scrollUntilVisible:
     element:
       id: "scan-open-url"
+- scrollUntilVisible:
+    element:
+      id: "scan-open-url"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "scan-open-url"
+- scrollUntilVisible:
+    element:
+      id: "scan-open-url-full"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "scan-open-url-full"
     text: "https://example.com"
+- scrollUntilVisible:
+    element:
+      id: "scan-open-url-cancel"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "scan-open-url-cancel"
 - assertNotVisible:
@@ -119,15 +268,28 @@ tags: [tools, encoding]
     element:
       id: "tool-input-clear"
     direction: UP
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
     id: "tool-input"
 - inputText: "hello world"
-- hideKeyboard
+# After the clipboard copy above Maestro hideKeyboard cannot confirm the IME is gone (floating toolbar); Back only closes the keyboard (useKeyboardBack).
+- back
 - scrollUntilVisible:
     element:
       id: "kv-kind-value"
+- scrollUntilVisible:
+    element:
+      id: "kv-kind-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-kind-value"
     text: "Text"

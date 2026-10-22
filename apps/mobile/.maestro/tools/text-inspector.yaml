@@ -2,10 +2,25 @@ appId: io.github.arahman200165.dude.preview
 name: Text Inspector on Android
 tags: [tools, text]
 ---
-- launchApp
+- launchApp:
+    clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/text-inspector"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input"
+- scrollUntilVisible:
+    element:
+      id: "mode-metrics"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-metrics"
 - tapOn:
@@ -13,53 +28,137 @@ tags: [tools, text]
 - inputText: "hello world"
 - hideKeyboard
 # Expected values: packages/tool-engine/src/tools/text-inspector/text-metrics.spec.ts:18-25.
+- scrollUntilVisible:
+    element:
+      id: "kv-characters-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-characters-value"
     text: "11"
+- scrollUntilVisible:
+    element:
+      id: "kv-code-points-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-code-points-value"
     text: "11"
+- scrollUntilVisible:
+    element:
+      id: "kv-words-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-words-value"
     text: "2"
+- scrollUntilVisible:
+    element:
+      id: "kv-lines-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-lines-value"
     text: "1"
+- scrollUntilVisible:
+    element:
+      id: "kv-bytes-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-bytes-value"
     text: "11"
+- scrollUntilVisible:
+    element:
+      id: "kv-whitespace-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-whitespace-value"
     text: "1"
 # Readability: one sentence.
 # Computed with computeReadability('The cat sat on the mat.') from @dude/tool-engine/tools/text-inspector/readability:
 # fleschReadingEase 116.1, grade -1.4, 1 sentence, 6 syllables.
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
     id: "tool-input"
 - inputText: "The cat sat on the mat."
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "mode-readability"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-readability"
+- scrollUntilVisible:
+    element:
+      id: "kv-reading-ease-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-reading-ease-value"
     text: "116.1 .Very Easy."
+- scrollUntilVisible:
+    element:
+      id: "kv-grade-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-grade-value"
     text: "-1.4"
+- scrollUntilVisible:
+    element:
+      id: "kv-sentences-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-sentences-value"
     text: "1"
+- scrollUntilVisible:
+    element:
+      id: "kv-syllables-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-syllables-value"
     text: "6"
 # A whitespace-only text has no sentence (computeReadability returns null), so the tool shows its error.
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
     id: "tool-input"
 - inputText: " "
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "tool-error"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-error"

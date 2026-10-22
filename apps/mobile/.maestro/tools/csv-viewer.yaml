@@ -2,8 +2,17 @@ appId: io.github.arahman200165.dude.preview
 name: CSV Viewer on Android
 tags: [tools, data]
 ---
-- launchApp
+- launchApp:
+    clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/csv-viewer"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input"
 - tapOn:
@@ -14,19 +23,49 @@ tags: [tools, data]
     visible:
       id: "csv-summary"
     timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "csv-summary"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "csv-summary"
     text: "2 rows, 2 columns"
+- scrollUntilVisible:
+    element:
+      id: "csv-shown"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "csv-shown"
     text: "Showing 2 of 2 rows"
+- scrollUntilVisible:
+    element:
+      id: "csv-grid"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "csv-grid"
 # JSON export from csvToJson(sample, ',', true): [{"name": "Ada", "age": "36"}, {"name": "Grace", "age": "45"}] (pretty-printed)
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "(?s).*\"name\": \"Ada\".*\"age\": \"45\".*"
 # Header-only input: parseCsv("a,b", ",", true) gives columns [a, b] and no rows (computed with the engine)
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
@@ -37,6 +76,12 @@ tags: [tools, data]
     visible:
       id: "csv-summary"
     timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "csv-summary"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "csv-summary"
     text: "0 rows, 2 columns"

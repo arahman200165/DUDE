@@ -2,10 +2,25 @@ appId: io.github.arahman200165.dude.preview
 name: Cookie Tools on Android
 tags: [tools, web]
 ---
-- launchApp
+- launchApp:
+    clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/cookie-tools"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input"
+- scrollUntilVisible:
+    element:
+      id: "mode-cookie"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-cookie"
 - tapOn:
@@ -13,15 +28,39 @@ tags: [tools, web]
 - inputText: "session=abc123; theme=dark"
 - hideKeyboard
 # Input from packages/tool-engine/src/tools/cookie-tools/cookie-header.spec.ts:11 (parses to session=abc123, theme=dark)
+- scrollUntilVisible:
+    element:
+      id: "kv-cookie-0-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-cookie-0-value"
     text: "abc123"
+- scrollUntilVisible:
+    element:
+      id: "kv-cookie-1-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-cookie-1-value"
     text: "dark"
+- scrollUntilVisible:
+    element:
+      id: "kv-header-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-header-value"
     text: "session=abc123; theme=dark"
+- scrollUntilVisible:
+    element:
+      id: "mode-set-cookie"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-set-cookie"
 - tapOn:
@@ -31,24 +70,66 @@ tags: [tools, web]
 - inputText: "SID=31d4d96e407aad42; Path=/; Secure; HttpOnly"
 - hideKeyboard
 # Expected values from packages/tool-engine/src/tools/cookie-tools/set-cookie.spec.ts:6-7
+- scrollUntilVisible:
+    element:
+      id: "kv-name-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-name-value"
     text: "SID"
+- scrollUntilVisible:
+    element:
+      id: "kv-value-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-value-value"
     text: "31d4d96e407aad42"
+- scrollUntilVisible:
+    element:
+      id: "kv-path-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-path-value"
     text: "/"
+- scrollUntilVisible:
+    element:
+      id: "kv-secure-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-secure-value"
     text: "Yes"
+- scrollUntilVisible:
+    element:
+      id: "kv-http-only-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-http-only-value"
     text: "Yes"
+- scrollUntilVisible:
+    element:
+      id: "kv-header-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-header-value"
     text: "SID=31d4d96e407aad42; Path=/; Secure; HttpOnly"
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
@@ -56,5 +137,11 @@ tags: [tools, web]
 - inputText: ";"
 - hideKeyboard
 # parseSetCookieHeader(';') yields no parts (EMPTY_SET_COOKIE), so the name is empty and the tool reports an error
+- scrollUntilVisible:
+    element:
+      id: "tool-error"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-error"

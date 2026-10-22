@@ -4,7 +4,15 @@ tags: [tools, encoding]
 ---
 - launchApp:
     clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/number-base"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input"
 - tapOn:
@@ -12,21 +20,57 @@ tags: [tools, encoding]
 - inputText: "255"
 - hideKeyboard
 # 255 in base 16 is ff: packages/tool-engine/src/tools/number-base/number-base-convert.spec.ts:58; others and base 36 computed with formatInBase(255n, base) from @dude/tool-engine
+- scrollUntilVisible:
+    element:
+      id: "kv-bin-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-bin-value"
     text: "11111111"
+- scrollUntilVisible:
+    element:
+      id: "kv-oct-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-oct-value"
     text: "377"
+- scrollUntilVisible:
+    element:
+      id: "kv-dec-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-dec-value"
     text: "255"
+- scrollUntilVisible:
+    element:
+      id: "kv-hex-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-hex-value"
     text: "ff"
+- scrollUntilVisible:
+    element:
+      id: "kv-custom-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-custom-value"
     text: "73"
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
@@ -34,12 +78,30 @@ tags: [tools, encoding]
 - inputText: "-10"
 - hideKeyboard
 # -10 in base 2 is -1010: number-base-convert.spec.ts:66; hex -a computed with formatInBase(-10n, 16)
+- scrollUntilVisible:
+    element:
+      id: "kv-bin-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-bin-value"
     text: "-1010"
+- scrollUntilVisible:
+    element:
+      id: "kv-hex-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-hex-value"
     text: "-a"
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
@@ -47,5 +109,11 @@ tags: [tools, encoding]
 - inputText: "12x"
 - hideKeyboard
 # Invalid digit: engine error '"x" is not a valid digit in base 10.' (see number-base-convert.spec.ts:35)
+- scrollUntilVisible:
+    element:
+      id: "tool-error"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-error"

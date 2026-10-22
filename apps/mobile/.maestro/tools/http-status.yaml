@@ -2,8 +2,17 @@ appId: io.github.arahman200165.dude.preview
 name: HTTP Status Codes on Android
 tags: [tools, web]
 ---
-- launchApp
+- launchApp:
+    clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/http-status"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input"
 - tapOn:
@@ -11,12 +20,30 @@ tags: [tools, web]
 - inputText: "418"
 - hideKeyboard
 # Row label from packages/tool-engine/src/shared/utils/http-status-codes.ts:272-273 (name "I'm a Teapot")
+- scrollUntilVisible:
+    element:
+      id: "kv-status-418"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-status-418"
 - assertVisible: "418 I'm a Teapot.*"
+- scrollUntilVisible:
+    element:
+      id: "kv-status-418-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-status-418-value"
     text: "Originally defined by.*"
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
@@ -25,9 +52,21 @@ tags: [tools, web]
 - hideKeyboard
 # http-status-codes.ts:188-191
 - assertVisible: "404 Not Found.*"
+- scrollUntilVisible:
+    element:
+      id: "kv-status-404-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-status-404-value"
     text: "The server has not found anything matching the requested URI."
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
@@ -35,5 +74,11 @@ tags: [tools, web]
 - inputText: "zzzzqq"
 - hideKeyboard
 # No entry contains this text; filterHttpStatusCodes returns [] (http-status-search.spec.ts:36 style)
+- scrollUntilVisible:
+    element:
+      id: "tool-error"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-error"

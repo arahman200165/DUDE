@@ -5,7 +5,15 @@ tags: [tools, developer]
 # clearState gives the default preferences (flags "g", Match mode).
 - launchApp:
     clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/regex"
+- scrollUntilVisible:
+    element:
+      id: "tool-input-pattern"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input-pattern"
 # Match vector from packages/tool-engine/src/tools/regex/regex-match.spec.ts:15 (cat in "cat sat cat mat" matches at indices 0 and 8).
@@ -17,52 +25,125 @@ tags: [tools, developer]
     id: "tool-input-text"
 - inputText: "cat sat cat mat"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "match-count"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "match-count"
     text: "2 matches"
+- scrollUntilVisible:
+    element:
+      id: "match-1"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "match-1"
     text: "cat"
+- scrollUntilVisible:
+    element:
+      id: "match-2-index"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "match-2-index"
     text: "at 8"
 # Flag toggle, same shape as regex-match.spec.ts:21 (the i flag makes the pattern case-insensitive): CAT finds nothing until i is on.
+- scrollUntilVisible:
+    element:
+      id: "tool-input-pattern"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-pattern"
 - eraseText: 10
 - inputText: "CAT"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "match-count"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "match-count"
     text: "0 matches"
+- scrollUntilVisible:
+    element:
+      id: "option-flag-i"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "option-flag-i"
+- scrollUntilVisible:
+    element:
+      id: "match-count"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "match-count"
     text: "2 matches"
-# Numbered groups, same shape as regex-match.spec.ts:28 ((\d+)-(\d+) on "10-20" gives groups 10 and 20); written with [0-9] so the
-# flow has no backslash. Verified in Node: new RegExp("([0-9]+)-([0-9]+)", "g").exec("10-20") -> index 0, groups "10" and "20".
+# Numbered groups, same shape as regex-match.spec.ts:28 ((\d+)-(\d+) on "10-20"); a short pattern/text keeps the field narrow enough that the
+# Maestro centre tap lands after the last character (so the next eraseText clears everything).
+# Verified in Node: /(1)-(2)/g.exec("1-2") -> index 0, groups "1" and "2".
+- scrollUntilVisible:
+    element:
+      id: "tool-input-pattern"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-pattern"
 - eraseText: 10
-- inputText: "([0-9]+)-([0-9]+)"
+- inputText: "(1)-(2)"
 - hideKeyboard
 - tapOn:
     id: "tool-input-text-clear"
 - tapOn:
     id: "tool-input-text"
-- inputText: "10-20"
+- inputText: "1-2"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "match-count"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "match-count"
     text: "1 match"
+- scrollUntilVisible:
+    element:
+      id: "match-1-group-1"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "match-1-group-1"
-    text: "group 1: 10"
+    text: "group 1: 1"
+- scrollUntilVisible:
+    element:
+      id: "match-1-group-2"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "match-1-group-2"
-    text: "group 2: 20"
+    text: "group 2: 2"
 # Replace mode, vector from regex-match.spec.ts:80 (cat with g, "cat sat cat" -> "dog sat dog").
+- scrollUntilVisible:
+    element:
+      id: "tool-input-pattern"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-pattern"
 - eraseText: 30
@@ -74,20 +155,50 @@ tags: [tools, developer]
     id: "tool-input-text"
 - inputText: "cat sat cat"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "mode-replace"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-replace"
+- scrollUntilVisible:
+    element:
+      id: "tool-input-replacement"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-replacement"
 - inputText: "dog"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "dog sat dog"
 # Invalid pattern (regex-match.spec.ts:9 uses "(unclosed") shows the error banner.
+- scrollUntilVisible:
+    element:
+      id: "tool-input-pattern"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-pattern"
 - eraseText: 10
 - inputText: "(unclosed"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "tool-error"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-error"

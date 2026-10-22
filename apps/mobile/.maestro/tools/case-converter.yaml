@@ -2,8 +2,17 @@ appId: io.github.arahman200165.dude.preview
 name: Case Converter on Android
 tags: [tools, text]
 ---
-- launchApp
+- launchApp:
+    clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/case-converter"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input"
 - tapOn:
@@ -12,38 +21,122 @@ tags: [tools, text]
 - hideKeyboard
 # Expected values: packages/tool-engine/src/tools/case-converter/case-convert.spec.ts:34-54 (input 'Hello World Example');
 # snake/dot/path/alternating computed with convertCase from @dude/tool-engine/tools/case-converter/case-convert.
+- scrollUntilVisible:
+    element:
+      id: "mode-camel"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-camel"
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "helloWorldExample"
+- scrollUntilVisible:
+    element:
+      id: "mode-pascal"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-pascal"
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "HelloWorldExample"
+- scrollUntilVisible:
+    element:
+      id: "mode-snake"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-snake"
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "hello_world_example"
+- scrollUntilVisible:
+    element:
+      id: "mode-kebab"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-kebab"
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "hello-world-example"
+- scrollUntilVisible:
+    element:
+      id: "mode-constant"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-constant"
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "HELLO_WORLD_EXAMPLE"
+- scrollUntilVisible:
+    element:
+      id: "mode-sentence"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-sentence"
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "Hello world example"
+- scrollUntilVisible:
+    element:
+      id: "mode-alternating"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-alternating"
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: "hElLo WoRlD eXaMpLe"

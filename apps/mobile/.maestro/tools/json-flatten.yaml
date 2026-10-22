@@ -4,9 +4,23 @@ tags: [tools, data]
 ---
 - launchApp:
     clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/json-flatten"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input"
+- scrollUntilVisible:
+    element:
+      id: "mode-flatten"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-flatten"
 # Maestro inputText is unreliable with quotes and braces, so the Sample button fills the input with {"a":{"b":1,"c":[2,3]}}.
@@ -14,24 +28,60 @@ tags: [tools, data]
 # (flatten of {"a":{"b":1,"c":[2,3]}} -> {"a.b":1,"a.c[0]":2,"a.c[1]":3}, pretty-printed with 2 spaces).
 - tapOn:
     id: "tool-input-sample"
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: '(?s).*"a\.b": 1.*"a\.c\[0\]": 2.*"a\.c\[1\]": 3.*'
 # Swap moves the flattened output into the input; Unflatten then restores the nested shape.
 # Expected: json-flatten-transform.spec.ts:20-24 (unflatten of the same flat keys -> {"a":{"b":1,"c":[2,3]}}).
+- scrollUntilVisible:
+    element:
+      id: "tool-input-swap"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-swap"
+- scrollUntilVisible:
+    element:
+      id: "mode-unflatten"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-unflatten"
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output"
     text: '(?s).*"a": \{.*"b": 1.*"c": \[.*2,.*3.*\].*\}.*'
 # Invalid JSON reports a parse error (json-flatten-transform.spec.ts:38-43).
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
     id: "tool-input"
 - inputText: "abc"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "tool-error"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-error"

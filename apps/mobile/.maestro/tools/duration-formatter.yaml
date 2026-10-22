@@ -4,7 +4,15 @@ tags: [tools, date-time]
 ---
 - launchApp:
     clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/duration-formatter"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input"
 # Human shorthand. Expected values from packages/tool-engine/src/tools/duration-formatter/duration-convert.spec.ts:7 (ms 95_400_000)
@@ -13,31 +21,73 @@ tags: [tools, date-time]
     id: "tool-input"
 - inputText: "1d 2h 30m"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "kv-ms-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-ms-value"
     text: "95400000"
+- scrollUntilVisible:
+    element:
+      id: "kv-iso8601-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-iso8601-value"
     text: "P1DT2H30M"
+- scrollUntilVisible:
+    element:
+      id: "kv-human-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-human-value"
     text: "1 day, 2 hours, 30 minutes"
 # ISO 8601 input. 5_400_000 ms = 90 minutes (duration-convert.spec.ts:34).
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
     id: "tool-input"
 - inputText: "PT1H30M"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "kv-ms-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-ms-value"
     text: "5400000"
 # Invalid input shows the error banner (duration-convert.spec.ts:55).
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
     id: "tool-input"
 - inputText: "not a duration"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "tool-error"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-error"

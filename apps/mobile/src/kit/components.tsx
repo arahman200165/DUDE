@@ -53,7 +53,7 @@ export function InputEditor({ value, onChangeText, name, label = 'Input', placeh
   return <View style={{ gap: theme.metrics.spaceNormal }}>
     <Label accessibilityRole="header" style={{ fontWeight: '700' }}>{label}</Label>
     <TextInput testID={`tool-input${suffix(name)}`} accessibilityLabel={label} value={value} onChangeText={onChangeText} placeholder={placeholder} multiline
-      autoCorrect={false} autoCapitalize="none" autoComplete="off" spellCheck={false} importantForAutofill="no" allowFontScaling textAlignVertical="top"
+      autoCorrect={false} autoCapitalize="none" autoComplete="off" spellCheck={false} importantForAutofill="no" keyboardType="visible-password" allowFontScaling textAlignVertical="top"
       placeholderTextColor={theme.colors.textMuted} selectionColor={theme.colors.accent} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
       style={{
         color: theme.colors.text, backgroundColor: theme.colors.panel, borderColor: focused ? theme.colors.accent : theme.colors.border,
@@ -170,7 +170,7 @@ export function KeyValueList({ rows, emptyText = 'No values.' }: { readonly rows
 /** Error with a non-color cue: the glyph and the "Error:" prefix carry the meaning as well as the status color. */
 export function ErrorBanner({ message }: { readonly message: string }) {
   const { theme } = useWorkbench();
-  return <View testID="tool-error" accessibilityRole="alert" accessibilityLiveRegion="polite" style={{
+  return <View testID="tool-error" accessible accessibilityRole="alert" accessibilityLabel={`Error: ${message}`} accessibilityLiveRegion="polite" style={{
     flexDirection: 'row', gap: theme.metrics.spaceNormal, padding: theme.metrics.spaceNormal, backgroundColor: theme.colors.panel,
     borderRadius: theme.metrics.radius, borderWidth: 1, borderColor: theme.status.error, minHeight: theme.metrics.touchMin,
   }}>

@@ -2,40 +2,109 @@ appId: io.github.arahman200165.dude.preview
 name: URL Inspector on Android
 tags: [tools, web]
 ---
-- launchApp
+- launchApp:
+    clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/url-inspector"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input"
 - tapOn:
     id: "tool-input-sample"
 # Expected values copied from packages/tool-engine/src/tools/url-inspector/url-parts.spec.ts:5-20 (the sample is that spec's URL)
+- scrollUntilVisible:
+    element:
+      id: "kv-protocol-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-protocol-value"
     text: "https"
+- scrollUntilVisible:
+    element:
+      id: "kv-username-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-username-value"
     text: "user"
+- scrollUntilVisible:
+    element:
+      id: "kv-hostname-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-hostname-value"
     text: "example.com"
+- scrollUntilVisible:
+    element:
+      id: "kv-port-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-port-value"
     text: "8443"
+- scrollUntilVisible:
+    element:
+      id: "kv-pathname-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-pathname-value"
     text: "/a/b"
+- scrollUntilVisible:
+    element:
+      id: "kv-hash-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-hash-value"
     text: "section"
+- scrollUntilVisible:
+    element:
+      id: "kv-origin-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-origin-value"
     text: "https://example.com:8443"
+- scrollUntilVisible:
+    element:
+      id: "kv-query-0-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-query-0-value"
     text: "1"
+- scrollUntilVisible:
+    element:
+      id: "kv-query-1-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-query-1-value"
     text: "2"
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
@@ -43,5 +112,11 @@ tags: [tools, web]
 - inputText: "not a url"
 - hideKeyboard
 # url-parts.spec.ts:34 (parseUrl('not a url').ok is false)
+- scrollUntilVisible:
+    element:
+      id: "tool-error"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-error"

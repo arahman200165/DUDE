@@ -4,7 +4,15 @@ tags: [tools, security]
 ---
 - launchApp:
     clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/jwt"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input"
 - tapOn:
@@ -16,23 +24,53 @@ tags: [tools, security]
 - scrollUntilVisible:
     element:
       id: "tool-output-payload"
+- scrollUntilVisible:
+    element:
+      id: "tool-output-payload"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output-payload"
     text: '(?s).*John Doe.*'
+- scrollUntilVisible:
+    element:
+      id: "tool-output-header"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-output-header"
     text: '(?s).*HS256.*'
 - scrollUntilVisible:
     element:
       id: "kv-alg-value"
+- scrollUntilVisible:
+    element:
+      id: "kv-alg-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-alg-value"
     text: "HS256"
 # iat 1516239022 -> computed with: node -e "console.log(new Date(1516239022*1000).toISOString())"
+- scrollUntilVisible:
+    element:
+      id: "kv-iat-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-iat-value"
     text: "2018-01-18T01:30:22.000Z"
 # The sample has no exp claim.
+- scrollUntilVisible:
+    element:
+      id: "jwt-status"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "jwt-status"
 - assertVisible: ".*No exp claim.*"
@@ -47,6 +85,12 @@ tags: [tools, security]
     element:
       id: "tool-input"
     direction: UP
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
@@ -56,9 +100,21 @@ tags: [tools, security]
 - scrollUntilVisible:
     element:
       id: "kv-exp-value"
+- scrollUntilVisible:
+    element:
+      id: "kv-exp-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-exp-value"
     text: "2011-03-22T18:43:00.000Z"
+- scrollUntilVisible:
+    element:
+      id: "kv-iss-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-iss-value"
     text: "joe"
@@ -66,6 +122,12 @@ tags: [tools, security]
     element:
       id: "jwt-status"
     direction: UP
+- scrollUntilVisible:
+    element:
+      id: "jwt-status"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "jwt-status"
     text: ".*Expired.*"
@@ -74,11 +136,23 @@ tags: [tools, security]
     element:
       id: "tool-input"
     direction: UP
+- scrollUntilVisible:
+    element:
+      id: "tool-input-clear"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-clear"
 - tapOn:
     id: "tool-input"
 - inputText: "abc"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "tool-error"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-error"

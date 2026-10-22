@@ -11,6 +11,7 @@ import { MOBILE_BINDINGS } from '../../src/registry/mobile-bindings.generated';
 import { ToolAbout } from '../../src/tools-host/tool-about';
 import { ToolRunner } from '../../src/tools-host/tool-runner';
 import { ToolSettingsAction } from '../../src/tools-host/tool-settings-modal';
+import { useKeyboardBack } from '../../src/tools-host/use-keyboard-back';
 import { ActionButton, Label, Screen, Section } from '../../src/ui/primitives';
 
 export default function ToolDetailScreen() {
@@ -21,6 +22,7 @@ export default function ToolDetailScreen() {
 }
 
 function ToolScreen({ tool }: { readonly tool: ToolMetadata }) {
+  useKeyboardBack();
   const { snapshot, actions, theme } = useWorkbench();
   const availability = mobileAvailability(tool, MOBILE_BINDINGS);
   const favorite = snapshot.favorites.find(item => item.id === favoriteItemId('tool', tool.id));

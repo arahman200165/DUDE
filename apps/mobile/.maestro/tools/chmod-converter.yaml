@@ -4,55 +4,135 @@ tags: [tools, developer]
 ---
 - launchApp:
     clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
 - openLink: "dude://tools/chmod-converter"
+- scrollUntilVisible:
+    element:
+      id: "tool-input-octal"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input-octal"
 # The default state is 755 / rwxr-xr-x (the same default as the web tool).
+- scrollUntilVisible:
+    element:
+      id: "kv-symbolic-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-symbolic-value"
     text: "rwxr-xr-x"
 # Octal to symbolic, vector from packages/tool-engine/src/tools/chmod-converter/chmod-convert.spec.ts:6 (754 -> rwxr-xr--).
+- scrollUntilVisible:
+    element:
+      id: "tool-input-octal"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-octal"
 - eraseText: 6
 - inputText: "754"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "kv-symbolic-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-symbolic-value"
     text: "rwxr-xr--"
 # Grid toggle: other gains write, 754 -> 756 (other r-- becomes rw-). Computed with the engine: permissionsToOctal/permissionsToSymbolic on
 # the 754 permissions with other.write flipped (also asserted in chmod-converter-mobile.spec.ts).
+- scrollUntilVisible:
+    element:
+      id: "perm-other-w"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "perm-other-w"
+- scrollUntilVisible:
+    element:
+      id: "kv-octal-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-octal-value"
     text: "756"
+- scrollUntilVisible:
+    element:
+      id: "kv-symbolic-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-symbolic-value"
     text: "rwxr-xrw-"
 # Symbolic to octal: rw-r--r-- is 644 (chmod-convert.spec.ts:44 covers the symbolic parser; digits are r=4, w=2, x=1 per class).
+- scrollUntilVisible:
+    element:
+      id: "tool-input-symbolic"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-symbolic"
 - eraseText: 12
 - inputText: "rw-r--r--"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "kv-octal-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-octal-value"
     text: "644"
 # Setuid, vector from chmod-convert.spec.ts:17 (4755 -> rwsr-xr-x).
+- scrollUntilVisible:
+    element:
+      id: "tool-input-octal"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-octal"
 - eraseText: 6
 - inputText: "4755"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "kv-symbolic-value"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "kv-symbolic-value"
     text: "rwsr-xr-x"
 # Invalid octal (chmod-convert.spec.ts:46 rejects 999) shows the error banner.
+- scrollUntilVisible:
+    element:
+      id: "tool-input-octal"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "tool-input-octal"
 - eraseText: 6
 - inputText: "999"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "tool-error"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-error"

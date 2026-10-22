@@ -7,6 +7,12 @@ tags: [tools, encoding]
 # Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
 - assertVisible: "This workbench"
 - openLink: "dude://tools/qr-code-generator"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "tool-input"
 # Text preset: replace the web default text with "hello".
@@ -23,9 +29,21 @@ tags: [tools, encoding]
 # Matrix size computed in Node: QRCode.create('hello', { errorCorrectionLevel: 'M' }).modules.size === 21
 #   node -e "console.log(require('qrcode').create('hello',{errorCorrectionLevel:'M'}).modules.size)"   -> 21
 # (the tool formats it as "21 x 21 modules" with U+00D7).
+- scrollUntilVisible:
+    element:
+      id: "qr-size"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "qr-size"
     text: "21 × 21 modules"
+- scrollUntilVisible:
+    element:
+      id: "qr-payload"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "qr-payload"
     text: "hello"
@@ -34,19 +52,49 @@ tags: [tools, encoding]
     element:
       id: "mode-wifi"
     direction: UP
+- scrollUntilVisible:
+    element:
+      id: "mode-wifi"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-wifi"
+- scrollUntilVisible:
+    element:
+      id: "qr-wifi-ssid"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "qr-wifi-ssid"
 - inputText: "Home"
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "mode-WPA"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "mode-WPA"
+- scrollUntilVisible:
+    element:
+      id: "qr-wifi-password"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "qr-wifi-password"
 - inputText: "secret123"
 - hideKeyboard
 # The password is masked until Show is tapped (the payload text hides it too).
+- scrollUntilVisible:
+    element:
+      id: "qr-wifi-password-toggle"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - tapOn:
     id: "qr-wifi-password-toggle"
 - scrollUntilVisible:
@@ -56,8 +104,20 @@ tags: [tools, encoding]
 # Expected value computed with buildWifiPayload({ ssid: 'Home', password: 'secret123', security: 'WPA', hidden: false }) from
 # @dude/tool-engine/tools/qr-code-generator/qr-payload (same builder as qr-payload.spec.ts:6 uses for 'HomeNet'/'hunter2'):
 #   -> WIFI:T:WPA;S:Home;P:secret123;;
+- scrollUntilVisible:
+    element:
+      id: "qr-payload"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "qr-payload"
     text: "WIFI:T:WPA;S:Home;P:secret123;;"
+- scrollUntilVisible:
+    element:
+      id: "qr-preview"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
 - assertVisible:
     id: "qr-preview"
