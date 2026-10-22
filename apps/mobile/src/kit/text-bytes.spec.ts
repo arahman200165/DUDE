@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { utf8ByteLength } from './text-bytes';
+import { checkInputBudget, formatInputSize, inputBudgetMessage, utf8ByteLength } from './text-bytes';
 
 describe('utf8ByteLength', () => {
   it('counts 1 to 4 byte characters', () => {
@@ -13,5 +13,21 @@ describe('utf8ByteLength', () => {
   it('matches TextEncoder for mixed text', () => {
     const text = 'Hello, wÃ¶rld! â‚¬ \u{1F4A9} \u{10FFFF} end';
     expect(utf8ByteLength(text)).toBe(new TextEncoder().encode(text).length);
+  });
+});
+
+describe('input budget helpers', () => {
+  it('formats KB below 1 MiB (rounded up) and MB above', () => {
+    expect(formatInputSize(128 * 1024)).toBe('128 KB');
+    expect(formatInputSize(128 * 1024 + 1)).toBe('129 KB');
+    expect(formatInputSize(1024 * 1024)).toBe('1 MB');
+    expect(formatInputSize(2.5 * 1024 * 1024)).toBe('2.5 MB');
+  });
+  it('builds the message and returns null at or under the budget', () => {
+    expect(inputBudgetMessage(300 * 1024, 128 * 1024)).toBe('Input is 300 KB; this tool handles up to 128 KB on Android.');
+    expect(checkInputBudget('a'.repeat(100), 100)).toBeNull();
+    expect(checkInputBudget('a'.repeat(101), 100)).toBe('Input is 1 KB; this tool handles up to 1 KB on Android.');
+    expect(checkInputBudget('€'.repeat(34), 100)).not.toBeNull();
+    expect(checkInputBudget('€'.repeat(33), 100)).toBeNull();
   });
 });

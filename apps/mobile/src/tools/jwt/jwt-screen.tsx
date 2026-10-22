@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { View } from 'react-native';
 import { decodeJwt } from '@dude/tool-engine/tools/jwt/jwt-decode';
-import { ErrorBanner, InputEditor, KeyValueList, OutputViewer, ResultCard, StatusPill, ToolScreen } from '../../kit';
+import { checkInputBudget, DEFAULT_MAIN_THREAD_INPUT_BYTES, ErrorBanner, InputEditor, KeyValueList, OutputViewer, ResultCard, StatusPill, ToolScreen, useCrossingHaptic } from '../../kit';
 import { useToolInput } from '../../tools-host/use-tool-input';
 import { useWorkbench } from '../../state/workbench-provider';
 import { Label } from '../../ui/primitives';
@@ -19,12 +19,15 @@ export default function JwtScreen() {
   const { theme } = useWorkbench();
   const [stored, update] = useToolInput(TOOL_ID, { input: '' });
   const token = typeof stored.input === 'string' ? stored.input : '';
+  const tooLarge = useMemo(() => checkInputBudget(token, DEFAULT_MAIN_THREAD_INPUT_BYTES), [token]);
+  useCrossingHaptic(tooLarge !== null);
   const decoded = useMemo(() => {
     if (token.trim() === '') return null;
+    if (tooLarge !== null) return { ok: false as const, error: tooLarge };
     const now = new Date();
     const result = decodeJwt(token, now);
     return result.ok ? { ok: true as const, result, pill: expiryPill(result.expiry, now), rows: claimRows(result.header, result.payload) } : { ok: false as const, error: result.error };
-  }, [token]);
+  }, [token, tooLarge]);
 
   return <ToolScreen
     input={<InputEditor value={token} onChangeText={text => update({ input: text })} label="Token" placeholder="header.payload.signature" />}

@@ -1,8 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { View } from 'react-native';
-import { processJson, type JsonIndent, type JsonMode } from '@dude/tool-engine/tools/json/json-format';
+import type { JsonIndent, JsonMode } from '@dude/tool-engine/tools/json/json-format';
 import { ErrorBanner, InputEditor, ModeSegment, OutputViewer, ResultCard, StatusPill, ToolScreen, hapticError, useToolPreference, utf8ByteLength } from '../../kit';
-import { defineOffThreadTask } from '../../kit/off-thread';
 import { useOffThreadRun } from '../../kit/use-off-thread-run';
 import { useWorkbench } from '../../state/workbench-provider';
 import { useToolInput } from '../../tools-host/use-tool-input';
@@ -11,17 +10,11 @@ import {
   decodeIndent, decodeMode, indentId, INDENT_PREFIX, INDENTS, INPUT_TOO_LARGE, JSON_MODES, MAX_INPUT_BYTES, SAMPLE_JSON, toOutcome,
   type JsonOutcome,
 } from './json-mobile';
+import { formatTask } from './json-task';
 
 const TOOL_ID = 'json';
 const RUN_DELAY_MS = 150;
 const INDENT_MODES = INDENTS.map(indent => ({ id: INDENT_PREFIX + indent.id, label: indent.label }));
-
-/** Runs on the worker runtime. Validate returns no output text, so the input does not cross the boundary twice. */
-const formatTask = defineOffThreadTask((payload: { input: string; mode: JsonMode; indent: JsonIndent }) => {
-  'worklet';
-  const result = processJson(payload.input, payload.mode, payload.indent);
-  return result.ok && payload.mode === 'validate' ? { ok: true as const, output: '' } : result;
-});
 
 /**
  * Same engine and persisted keys as the web tool (`mode`: pretty|minify|validate, `indent`: 2|4|'tab'). The input is session-only.

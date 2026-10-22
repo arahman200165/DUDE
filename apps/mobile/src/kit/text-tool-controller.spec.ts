@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DEFAULT_MAIN_THREAD_INPUT_BYTES } from './text-bytes';
 import {
-  coerceOption, createTextToolController, defaultOptions, resolveModes, toErrorMessage,
+  coerceOption, createTextToolController, defaultOptions, resolveMaxInputBytes, resolveModes, toErrorMessage,
   type OptionSpec, type TextToolRequest, type TextToolSpec, type ToolRunResult,
 } from './text-tool-controller';
 
@@ -255,5 +256,84 @@ describe('spec helpers', () => {
     expect(coerceOption(options[2]!, -3)).toBe(0);
     expect(coerceOption(options[2]!, Number.NaN)).toBe(2);
     expect(coerceOption(options[3]!, 7)).toBe(',');
+  });
+});
+
+describe('input budget', () => {
+  const KB = 1024;
+  it('defaults to 128 KiB on the main thread and to no kit cap when offThread is set', () => {
+    expect(resolveMaxInputBytes({ toolId: 't', run: upper })).toBe(DEFAULT_MAIN_THREAD_INPUT_BYTES);
+    expect(DEFAULT_MAIN_THREAD_INPUT_BYTES).toBe(128 * KB);
+    expect(resolveMaxInputBytes({ toolId: 't', run: upper, offThread: async () => ({ ok: true, output: '' }) })).toBeNull();
+    expect(resolveMaxInputBytes({ toolId: 't', run: upper, maxInputBytes: 64 * KB })).toBe(64 * KB);
+  });
+  it('runs under and at the budget, and does not run over it', async () => {
+    const run = vi.fn(upper);
+    const controller = createTextToolController({ toolId: 't', run, maxInputBytes: 10 });
+    controller.setRequest(request('a'.repeat(9))); await vi.advanceTimersByTimeAsync(150);
+    controller.setRequest(request('a'.repeat(10))); await vi.advanceTimersByTimeAsync(150);
+    expect(run).toHaveBeenCalledTimes(2);
+    expect(controller.getState()).toMatchObject({ result: { ok: true }, overBudget: false });
+    controller.setRequest(request('a'.repeat(11))); await vi.advanceTimersByTimeAsync(500);
+    expect(run).toHaveBeenCalledTimes(2);
+    expect(controller.getState()).toMatchObject({ status: 'done', overBudget: true, result: { ok: false, error: 'Input is 1 KB; this tool handles up to 1 KB on Android.' } });
+  });
+  it('measures UTF-8 bytes, not characters', async () => {
+    const run = vi.fn(upper);
+    const controller = createTextToolController({ toolId: 't', run, maxInputBytes: 9 });
+    controller.setRequest(request('€€€')); await vi.advanceTimersByTimeAsync(150); // 3 x 3 bytes = 9
+    expect(run).toHaveBeenCalledTimes(1);
+    controller.setRequest(request('€€€€')); // 12 bytes
+    expect(controller.getState().overBudget).toBe(true);
+  });
+  it('reports the size error immediately with a KB/MB message, without waiting for the debounce', () => {
+    const run = vi.fn(upper);
+    const controller = createTextToolController({ toolId: 't', run });
+    controller.setRequest(request('a'.repeat(300 * KB)));
+    expect(controller.getState().result).toEqual({ ok: false, error: 'Input is 300 KB; this tool handles up to 128 KB on Android.' });
+    controller.setRequest(request('a'.repeat(3 * 1024 * KB)));
+    expect(controller.getState().result).toEqual({ ok: false, error: 'Input is 3 MB; this tool handles up to 128 KB on Android.' });
+    expect(run).not.toHaveBeenCalled();
+  });
+  it('recovers when the input shrinks back under the budget', async () => {
+    const run = vi.fn(upper);
+    const controller = createTextToolController({ toolId: 't', run, maxInputBytes: 5 });
+    controller.setRequest(request('abcdef'));
+    expect(controller.getState().overBudget).toBe(true);
+    controller.setRequest(request('abc')); await vi.advanceTimersByTimeAsync(150);
+    expect(controller.getState()).toMatchObject({ overBudget: false, result: { ok: true, output: 'ABC' } });
+  });
+  it('rejects an over-budget runNow of a non-live tool and clears stale results on a non-live edit', async () => {
+    const run = vi.fn(upper);
+    const controller = createTextToolController({ toolId: 't', run, live: false, maxInputBytes: 3 });
+    controller.setRequest(request('ab')); await controller.runNow();
+    expect(controller.getState().result).toEqual({ ok: true, output: 'AB' });
+    controller.setRequest(request('abcd'));
+    expect(controller.getState()).toMatchObject({ overBudget: true, result: { ok: false } });
+    await controller.runNow();
+    expect(run).toHaveBeenCalledTimes(1);
+    controller.setRequest(request('abc'));
+    expect(controller.getState()).toMatchObject({ overBudget: false, result: null });
+  });
+  it('leaves offThread tools unbounded by default but honors an explicit cap', async () => {
+    const offThread = vi.fn(async (): Promise<ToolRunResult> => ({ ok: true, output: 'done' }));
+    const unbounded = createTextToolController({ toolId: 't', run: upper, offThread });
+    unbounded.setRequest(request('a'.repeat(2 * 1024 * KB))); await vi.advanceTimersByTimeAsync(150);
+    expect(offThread).toHaveBeenCalledTimes(1);
+    expect(unbounded.getState()).toMatchObject({ overBudget: false, result: { ok: true } });
+    const capped = createTextToolController({ toolId: 't', run: upper, offThread, maxInputBytes: 4 });
+    capped.setRequest(request('abcde'));
+    expect(capped.getState().overBudget).toBe(true);
+    expect(offThread).toHaveBeenCalledTimes(1);
+  });
+  it('flags a crossing once however many keystrokes stay over the budget', () => {
+    const controller = createTextToolController({ toolId: 't', run: upper, maxInputBytes: 4 });
+    let crossings = 0; let previous = false;
+    controller.subscribe(() => { const now = controller.getState().overBudget; if (now && !previous) crossings += 1; previous = now; });
+    for (const text of ['abc', 'abcde', 'abcdef', 'abcdefg']) controller.setRequest(request(text));
+    expect(crossings).toBe(1);
+    controller.setRequest(request('ab'));
+    controller.setRequest(request('abcdefgh'));
+    expect(crossings).toBe(2);
   });
 });

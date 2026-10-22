@@ -111,3 +111,23 @@ test('import extraction separates static value, erased type and lazy imports', (
     });
   } finally { rmSync(directory, { recursive: true, force: true }); }
 });
+
+test('the measurement harness is reachable only through the flagged lazy import in the dev route', () => {
+  const measureDir = path.join(toolsDir, '_measure');
+  assert.ok(existsSync(measureDir), 'measurement module is missing');
+  const route = path.join(mobile, 'app/dev/measure.tsx');
+  const routeRefs = moduleReferences(route);
+  assert.deepEqual(routeRefs.staticImports.filter(specifier => specifier.includes('_measure')), []);
+  assert.deepEqual(routeRefs.dynamicImports, ['../../src/tools/_measure/measure-runner']);
+  // The lazy import must sit in the branch of the build-time flag so Metro folds it out of every other build.
+  assert.match(readFileSync(route, 'utf8'), /process\.env\.EXPO_PUBLIC_DUDE_MEASURE === '1' \? lazy\(\(\) => import\('\.\.\/\.\.\/src\/tools\/_measure\/measure-runner'\)\) : null/);
+  const intent = readFileSync(path.join(mobile, 'app/+native-intent.tsx'), 'utf8');
+  assert.match(intent, /if \(process\.env\.EXPO_PUBLIC_DUDE_MEASURE === '1'\) \{[\s\S]*?\/dev\/measure[\s\S]*?\r?\n  \}\r?\n  return mobileDeepLinkPath/);
+  // Nothing else in the app may import the harness, statically or lazily.
+  const offenders = [...walk(path.join(mobile, 'app')), ...walk(path.join(mobile, 'src'))]
+    .filter(file => !inside(file, measureDir) && file !== route)
+    .filter(file => { const refs = moduleReferences(file); return [...refs.staticImports, ...refs.dynamicImports].some(specifier => specifier?.includes('_measure')); });
+  assert.deepEqual(offenders, []);
+  // Underscore folders are never discovered as tool bindings.
+  assert.deepEqual(walk(measureDir).filter(file => /\.mobile-bindings\.ts$/.test(file)), []);
+});

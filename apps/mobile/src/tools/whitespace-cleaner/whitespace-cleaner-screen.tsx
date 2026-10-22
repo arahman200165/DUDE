@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import {
   DEFAULT_WHITESPACE_OPTIONS, cleanWhitespace, migrateWhitespaceOptions, type IndentStyle, type LineEnding, type TabConversion, type WhitespaceCleanOptions,
 } from '@dude/tool-engine/tools/whitespace-cleaner/whitespace-clean';
-import { ErrorBanner, InputEditor, OptionsSheet, OutputViewer, ToolScreen, useToolPreference, type OptionSpec, type OptionValue, type OptionValues } from '../../kit';
+import { checkInputBudget, DEFAULT_MAIN_THREAD_INPUT_BYTES, ErrorBanner, InputEditor, OptionsSheet, OutputViewer, ToolScreen, useCrossingHaptic, useToolPreference, type OptionSpec, type OptionValue, type OptionValues } from '../../kit';
 import { useWorkbench } from '../../state/workbench-provider';
 import { useToolInput } from '../../tools-host/use-tool-input';
 
@@ -67,11 +67,14 @@ export default function WhitespaceCleanerScreen() {
     const next = decodeOptions({ ...options, [id]: value });
     if (next) setOptions(next);
   };
+  const tooLarge = useMemo(() => checkInputBudget(input, DEFAULT_MAIN_THREAD_INPUT_BYTES), [input]);
+  useCrossingHaptic(tooLarge !== null);
   const result = useMemo(() => {
     if (input === '') return null;
+    if (tooLarge !== null) return { ok: false as const, error: tooLarge };
     try { return { ok: true as const, output: cleanWhitespace(input, options) }; }
     catch (error) { return { ok: false as const, error: error instanceof Error ? error.message : 'The text could not be cleaned.' }; }
-  }, [input, options]);
+  }, [input, options, tooLarge]);
 
   return <ToolScreen
     input={<InputEditor value={input} onChangeText={text => update({ input: text })} label="Text" />}

@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildHashRows, hexToBase64, HASH_ORDER, UNAVAILABLE_TEXT } from './hash-mobile';
+import { buildHashRows, hexToBase64, HASH_ORDER, INPUT_TOO_LARGE, MAX_INPUT_BYTES, UNAVAILABLE_TEXT } from './hash-mobile';
 
 describe('hash mobile helpers', () => {
+  it('states its measured input cap', () => {
+    expect(MAX_INPUT_BYTES).toBe(128 * 1024);
+    expect(INPUT_TOO_LARGE).toContain('128 KiB');
+  });
   it('converts a hex digest to padded base64', () => {
     // sha256("abc") computed with node:crypto
     expect(hexToBase64('ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad')).toBe('ungWv48Bz+pBQUDeXa4iI7ADYaOWF3qctBD/YfIAFa0=');

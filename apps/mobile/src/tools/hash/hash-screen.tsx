@@ -1,13 +1,7 @@
-import { computeHashes, type HashAlgorithm } from '@dude/crypto/hash-compute';
 import { defineTextTool, utf8ByteLength, type ToolRunResult } from '../../kit';
-import { defineOffThreadTask, isAbortError, runOffThread } from '../../kit/off-thread';
+import { isAbortError, runOffThread } from '../../kit/off-thread';
+import { hashTask } from './hash-task';
 import { buildHashRows, COMPUTED_ALGORITHMS, INPUT_TOO_LARGE, MAX_INPUT_BYTES, type HashOutputFormat } from './hash-mobile';
-
-/** Runs on the worker runtime: SHA-1/2 through the engine host's digest, MD5/SHA-3/BLAKE/CRC in pure JS. */
-const hashTask = defineOffThreadTask((payload: { text: string; algorithms: readonly string[] }) => {
-  'worklet';
-  return computeHashes(payload.text, payload.algorithms as HashAlgorithm[]);
-});
 
 let cache: { text: string; digests: Map<string, string> } | null = null;
 

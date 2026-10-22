@@ -4,6 +4,8 @@ import { defineTextTool } from '../../kit';
 /** Same `style` preference key as the web tool; the mode ids are the engine's CaseStyle values. */
 export default defineTextTool({
   toolId: 'case-converter',
+  // Main thread: the alternating style takes 58 ms at 64 KiB and 124 ms at 128 KiB on the Phase 31I emulator measurements.
+  maxInputBytes: 64 * 1024,
   modeKey: 'style',
   swap: true,
   sampleInput: 'Hello World Example',

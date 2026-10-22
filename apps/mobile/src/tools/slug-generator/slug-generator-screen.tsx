@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { View } from 'react-native';
 import { DEFAULT_SLUG_OPTIONS, generateSlug, type SlugOptions } from '@dude/tool-engine/tools/slug-generator/slug-generate';
-import { ErrorBanner, InputEditor, OptionsSheet, OutputViewer, ToolScreen, useToolPreference, type OptionSpec, type OptionValue, type OptionValues } from '../../kit';
+import { checkInputBudget, DEFAULT_MAIN_THREAD_INPUT_BYTES, ErrorBanner, InputEditor, OptionsSheet, OutputViewer, ToolScreen, useCrossingHaptic, useToolPreference, type OptionSpec, type OptionValue, type OptionValues } from '../../kit';
 import { useWorkbench } from '../../state/workbench-provider';
 import { useToolInput } from '../../tools-host/use-tool-input';
 
@@ -38,11 +38,14 @@ export default function SlugGeneratorScreen() {
     else if (id === 'removeStopwords') setOptions({ ...options, removeStopwords: value === true });
     else if (id === 'maxLength') setOptions({ ...options, maxLength: typeof value === 'number' && value > 0 ? Math.trunc(value) : null });
   };
+  const tooLarge = useMemo(() => checkInputBudget(input, DEFAULT_MAIN_THREAD_INPUT_BYTES), [input]);
+  useCrossingHaptic(tooLarge !== null);
   const result = useMemo(() => {
     if (input === '') return null;
+    if (tooLarge !== null) return { ok: false as const, error: tooLarge };
     try { return { ok: true as const, output: generateSlug(input, options) }; }
     catch (error) { return { ok: false as const, error: error instanceof Error ? error.message : 'The slug could not be generated.' }; }
-  }, [input, options]);
+  }, [input, options, tooLarge]);
 
   return <ToolScreen
     input={<InputEditor value={input} onChangeText={text => update({ input: text })} label="Text" />}

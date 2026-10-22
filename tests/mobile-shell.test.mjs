@@ -14,6 +14,9 @@ test('native tool links use the shared parser and support navigation-only tools 
   assert.equal(mobileDeepLinkPath('dude://open/settings/sync'), '/settings/sync');
   assert.equal(mobileDeepLinkPath('dude://open/settings/recovery'), '/settings/recovery');
   assert.equal(mobileDeepLinkPath('dude://open/settings'), '/(tabs)/settings');
+  // The measurement harness link is not a navigation target: default builds ignore it (only a flagged build maps it in +native-intent).
+  assert.equal(mobileDeepLinkPath('dude://dev/measure'), null);
+  assert.equal(mobileDeepLinkPath('dude://dev/measure?scope=json-peak'), null);
 });
 
 test('native links refuse execution, payloads, credentials and malformed routes', () => {

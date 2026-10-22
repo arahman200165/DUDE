@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
-import { ErrorBanner, InputEditor, ModeSegment, OutputViewer, SecretField, ToolScreen, useToolPreference } from '../../kit';
+import { checkInputBudget, DEFAULT_MAIN_THREAD_INPUT_BYTES, ErrorBanner, InputEditor, ModeSegment, OutputViewer, SecretField, ToolScreen, useToolPreference } from '../../kit';
 import { useToolInput } from '../../tools-host/use-tool-input';
 import { useWorkbench } from '../../state/workbench-provider';
 import { Label } from '../../ui/primitives';
@@ -31,6 +31,9 @@ export default function HmacGeneratorScreen() {
 
   useEffect(() => {
     if (key === '') { setOutcome(null); return; }
+    // HMAC runs on the main thread (noble), so the message takes the kit's main-thread budget.
+    const tooLarge = checkInputBudget(message, DEFAULT_MAIN_THREAD_INPUT_BYTES);
+    if (tooLarge) { setOutcome({ ok: false, error: tooLarge }); return; }
     let cancelled = false;
     void hmacFor(message, key, keyEncoding, hash, format).then(result => { if (!cancelled) setOutcome(result); });
     return () => { cancelled = true; };

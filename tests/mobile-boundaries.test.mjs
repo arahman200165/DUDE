@@ -64,3 +64,17 @@ test('Share-to-DUDE may load the curated paste detectors from the shell, but sti
   assert.deepEqual(check("export const load = () => import('@dude/tool-engine/core/paste-detect/paste-detectors');"), []);
   assert.ok(check("import x from '@dude/tool-engine/core/paste-detect/other';").length);
 });
+
+test('only the inlined measurement flag may read process.env in mobile source', () => {
+  assert.deepEqual(check("export const on = process.env.EXPO_PUBLIC_DUDE_MEASURE === '1';"), []);
+  for (const expression of ['process.env.EXPO_PUBLIC_OTHER', 'process.env', 'process.env.EXPO_PUBLIC_DUDE_MEASURE_X', 'process.cwd()', 'process["env"]']) {
+    assert.ok(check(`export const value = ${expression};`).length, expression);
+  }
+});
+
+test('the measurement harness is a bundle failure unless the build opted in with the flag', () => {
+  const source = '../../apps/mobile/src/tools/_measure/measure-runner.tsx';
+  assert.deepEqual(bundleSourceFailures([source]), [source]);
+  assert.deepEqual(bundleSourceFailures([source], { allowMeasurement: true }), []);
+  assert.deepEqual(bundleSourceFailures(['../../apps/mobile/app/dev/measure.tsx']), []);
+});

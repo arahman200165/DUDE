@@ -1,4 +1,5 @@
 /** Pure state machine behind `defineTextTool`: no React, no native modules. */
+import { checkInputBudget, DEFAULT_MAIN_THREAD_INPUT_BYTES } from './text-bytes';
 
 export type OptionValue = string | number | boolean;
 export type OptionValues = Readonly<Record<string, OptionValue>>;
@@ -47,6 +48,17 @@ export interface TextToolSpec<O extends OptionValues = OptionValues> {
   readonly openFile?: boolean;
   readonly inputLabel?: string;
   readonly outputLabel?: string;
+  /**
+   * Largest input, in UTF-8 bytes, the tool accepts; a larger input shows an error and never reaches the engine (typed, pasted,
+   * opened from a file and shared input all go through the same check). Defaults to `DEFAULT_MAIN_THREAD_INPUT_BYTES` (128 KiB) for
+   * a tool that runs on the JS thread, and to no kit cap when `offThread` is set (those tools enforce their own measured caps).
+   */
+  readonly maxInputBytes?: number;
+}
+
+/** The effective kit input cap of a spec, or null when the kit enforces none. */
+export function resolveMaxInputBytes<O extends OptionValues>(spec: TextToolSpec<O>): number | null {
+  return spec.maxInputBytes ?? (spec.offThread ? null : DEFAULT_MAIN_THREAD_INPUT_BYTES);
 }
 
 export const DEFAULT_DEBOUNCE_MS = 150;
@@ -84,6 +96,8 @@ export interface TextToolState {
   readonly result: ToolRunResult | null;
   /** Monotonic id of the latest started run (exposed for tests and debugging). */
   readonly sequence: number;
+  /** True while the current input exceeds the tool's input budget (the result is then the size error and the engine did not run). */
+  readonly overBudget: boolean;
 }
 export interface Scheduler { readonly set: (fn: () => void, ms: number) => unknown; readonly clear: (handle: unknown) => void }
 const timers: Scheduler = { set: (fn, ms) => setTimeout(fn, ms), clear: handle => clearTimeout(handle as ReturnType<typeof setTimeout>) };
@@ -125,7 +139,8 @@ export function createTextToolController<O extends OptionValues = OptionValues>(
   const live = spec.live !== false;
   const debounceMs = options.debounceMs ?? DEFAULT_DEBOUNCE_MS;
   const scheduler = options.scheduler ?? timers;
-  let state: TextToolState = { status: 'idle', result: null, sequence: 0 };
+  const maxInputBytes = resolveMaxInputBytes(spec);
+  let state: TextToolState = { status: 'idle', result: null, sequence: 0, overBudget: false };
   let request: TextToolRequest | null = null;
   let timer: unknown = null;
   let inflight: AbortController | null = null;
@@ -138,22 +153,33 @@ export function createTextToolController<O extends OptionValues = OptionValues>(
   /** Aborts the signal handed to the run that is currently in flight (if any). */
   const abortInflight = (): void => { const controller = inflight; inflight = null; controller?.abort(); };
 
+  const budgetError = (input: string): string | null => maxInputBytes === null ? null : checkInputBudget(input, maxInputBytes);
+  /** Shows the size error for an over-budget input; the engine does not run. Returns false when the input fits. */
+  const rejectOverBudget = (input: string): boolean => {
+    const error = budgetError(input);
+    if (error === null) return false;
+    abortInflight();
+    publish({ status: 'done', result: { ok: false, error }, sequence: state.sequence + 1, overBudget: true });
+    return true;
+  };
+
   const execute = (current: TextToolRequest): Promise<void> => {
+    if (rejectOverBudget(current.input)) return Promise.resolve();
     const sequence = state.sequence + 1;
     abortInflight();
     if (current.input === '' && !spec.allowEmptyInput) {
-      publish({ status: 'idle', result: null, sequence });
+      publish({ status: 'idle', result: null, sequence, overBudget: false });
       return Promise.resolve();
     }
     const mode = modes.find(candidate => candidate.id === current.modeId) ?? modes[0]!;
-    publish({ ...state, status: 'running', sequence });
+    publish({ ...state, status: 'running', sequence, overBudget: false });
     const controller = new AbortController();
     inflight = controller;
     const settle = (result: ToolRunResult): void => {
       // A newer run (or request) owns the state: a late result is discarded, never shown.
       if (sequence !== state.sequence || controller.signal.aborted) return;
       if (inflight === controller) inflight = null;
-      publish({ status: 'done', result, sequence });
+      publish({ status: 'done', result, sequence, overBudget: false });
     };
     let pending: ToolRunResult | Promise<ToolRunResult>;
     try { pending = spec.offThread ? spec.offThread(current.input, current.options as O, mode.id, controller.signal) : mode.run(current.input, current.options as O); }
@@ -170,10 +196,14 @@ export function createTextToolController<O extends OptionValues = OptionValues>(
       if (previous && previous.input === next.input && previous.modeId === next.modeId && shallowEqual(previous.options, next.options)) return;
       request = next;
       cancelTimer();
+      // An over-budget input is reported at once (no debounce, no Run press): checking is a single pass over the text.
+      if (rejectOverBudget(next.input)) return;
+      // Back under the budget: drop the size error now, so a later crossing is a fresh one.
+      if (state.overBudget) publish({ status: 'idle', result: null, sequence: state.sequence + 1, overBudget: false });
       if (!live) {
         // The shown result no longer matches the request; bumping the sequence also discards any in-flight run.
         abortInflight();
-        if (state.result || state.status === 'running') publish({ status: 'idle', result: null, sequence: state.sequence + 1 });
+        if (state.result || state.status === 'running') publish({ status: 'idle', result: null, sequence: state.sequence + 1, overBudget: false });
         return;
       }
       if (next.input === '' && !spec.allowEmptyInput) { void execute(next); return; }
@@ -190,7 +220,7 @@ export function createTextToolController<O extends OptionValues = OptionValues>(
       const text = result.output;
       cancelTimer();
       abortInflight();
-      publish({ status: 'idle', result: null, sequence: state.sequence + 1 });
+      publish({ status: 'idle', result: null, sequence: state.sequence + 1, overBudget: false });
       return text;
     },
     /** Cancels pending work and forgets the request, so a remounted view (StrictMode) schedules a fresh run. */

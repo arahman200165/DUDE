@@ -1,9 +1,12 @@
 import type { HashAlgorithm } from '@dude/shared-types/hash-algorithm';
 import type { KeyValueRow } from '../../kit';
 
-/** Inputs above this many UTF-8 bytes are rejected on Android (budgets are refined later). */
-export const MAX_INPUT_BYTES = 2 * 1024 * 1024;
-export const INPUT_TOO_LARGE = 'Input is larger than 2 MiB. Android hashes up to 2 MiB of text at a time.';
+/**
+ * Inputs above this many UTF-8 bytes are rejected on Android. Phase 31I measurements: all 13 algorithms take about 11 to 12 ms per KiB on the
+ * API 29 emulator fixture (128 KiB in 1.6 s, 256 KiB in 3.1 s, 2 MiB in 22.9 s), so 128 KiB keeps a run within the 3 s budget.
+ */
+export const MAX_INPUT_BYTES = 128 * 1024;
+export const INPUT_TOO_LARGE = 'Input is larger than 128 KiB. Android hashes up to 128 KiB of text at a time.';
 
 export type HashOutputFormat = 'hex' | 'base64';
 

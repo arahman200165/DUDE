@@ -14,6 +14,8 @@ const pasteExport = '@dude/tool-engine/core/paste-detect/paste-detect';
 const pasteDetectorsExport = '@dude/tool-engine/core/paste-detect/paste-detectors';
 const shellEngineExports = new Set([searchExport, pasteExport, pasteDetectorsExport]);
 const cryptoHost = '@dude/crypto/host';
+// The one build-time constant Expo inlines for the measurement harness (EXPO_PUBLIC_DUDE_MEASURE); any other `process` access stays forbidden.
+const isMeasureFlag = node => node.text === 'process' && node.parent?.parent?.getText?.() === 'process.env.EXPO_PUBLIC_DUDE_MEASURE';
 
 /** shell: everything outside src/tools and src/engine-host; tools: lazily bound tool screens; host: the engine-host adapter. */
 export function mobileRegion(file, mobileRoot = 'apps/mobile') {
@@ -57,7 +59,7 @@ export function mobileBoundaryFailures(file, text, manifest, mobileRoot = 'apps/
       if (!node.arguments[0] || !ts.isStringLiteral(node.arguments[0])) failures.push(`${file}: nonliteral module loading cannot be boundary checked`);
       if (ts.isIdentifier(node.expression)) failures.push(`${file}: Node require is unavailable in mobile source`);
     }
-    if (ts.isIdentifier(node) && hostGlobals.has(node.text)) {
+    if (ts.isIdentifier(node) && hostGlobals.has(node.text) && !isMeasureFlag(node)) {
       const parent = node.parent;
       const propertyName = (ts.isPropertyAccessExpression(parent) && parent.name === node && !['globalThis', 'global', 'self'].includes(parent.expression.getText(sf))) || ((ts.isPropertyAssignment(parent) || ts.isPropertySignature(parent) || ts.isMethodDeclaration(parent)) && parent.name === node);
       if (!propertyName) failures.push(`${file}: host global ${node.text} is unavailable in mobile source`);

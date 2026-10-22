@@ -1,8 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { View } from 'react-native';
-import { convertYaml, type JsonIndent, type YamlDirection } from '@dude/tool-engine/tools/yaml-json/yaml-convert';
+import type { JsonIndent, YamlDirection } from '@dude/tool-engine/tools/yaml-json/yaml-convert';
 import { ErrorBanner, InputEditor, ModeSegment, OutputViewer, StatusPill, ToolScreen, hapticError, useToolPreference, utf8ByteLength } from '../../kit';
-import { defineOffThreadTask } from '../../kit/off-thread';
 import { useOffThreadRun } from '../../kit/use-off-thread-run';
 import { useWorkbench } from '../../state/workbench-provider';
 import { useToolInput } from '../../tools-host/use-tool-input';
@@ -11,16 +10,11 @@ import {
   decodeDirection, decodeIndent, DIRECTIONS, flipDirection, indentId, INDENT_PREFIX, INDENTS, INPUT_TOO_LARGE, MAX_INPUT_BYTES, SAMPLES, toOutcome,
   type YamlOutcome,
 } from './yaml-json-mobile';
+import { convertTask } from './yaml-json-task';
 
 const TOOL_ID = 'yaml-json';
 const RUN_DELAY_MS = 150;
 const INDENT_MODES = INDENTS.map(indent => ({ id: INDENT_PREFIX + indent.id, label: indent.label }));
-
-/** Runs on the worker runtime (js-yaml is imported by the engine module and bundled for the worker). */
-const convertTask = defineOffThreadTask((payload: { input: string; direction: YamlDirection; indent: JsonIndent }) => {
-  'worklet';
-  return convertYaml(payload.input, payload.direction, payload.indent);
-});
 
 /**
  * Same engine and persisted keys as the web tool (`direction`: yaml-to-json|json-to-yaml, `indent`: 2|4|'tab', used for the JSON

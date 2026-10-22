@@ -8,6 +8,7 @@ import { OpenFileButton } from './file-actions';
 import { fileInputLimitFor } from './file-io-core';
 import { hapticError } from './feedback';
 import { OptionsSheet } from './options-sheet';
+import { useCrossingHaptic } from './use-crossing-haptic';
 import {
   coerceOption, createTextToolController, optionKey, resolveModes,
   type OptionSpec, type OptionValue, type OptionValues, type TextToolSpec,
@@ -59,8 +60,10 @@ export function defineTextTool<O extends OptionValues = OptionValues>(spec: Text
     const result = state.result;
     const lastErrorHaptic = useRef<unknown>(null);
     useEffect(() => {
-      if (result && !result.ok && lastErrorHaptic.current !== result) { lastErrorHaptic.current = result; void hapticError(); }
-    }, [result]);
+      // The size error is re-issued on every keystroke over the budget; it gets one haptic per crossing instead (below).
+      if (result && !result.ok && !state.overBudget && lastErrorHaptic.current !== result) { lastErrorHaptic.current = result; void hapticError(); }
+    }, [result, state.overBudget]);
+    useCrossingHaptic(state.overBudget);
 
     const swapText = result?.ok && typeof result.output === 'string' ? result.output : null;
     const onSwap = useCallback(() => {

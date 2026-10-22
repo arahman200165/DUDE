@@ -1,7 +1,7 @@
 import type { CsvDelimiter } from '@dude/tool-engine/tools/csv-viewer/csv-convert';
 
-/** Android input cap: the engine parses ~200 KB in 4-6 s on a device, so larger inputs are refused with a message. */
-export const MAX_INPUT_CHARS = 512 * 1024;
+/** Android input cap (Phase 31I measurements): a 384 KiB table parsed in 2.3 s on the API 29 emulator fixture, 512 KiB took 4.0 s, so larger inputs are refused with a message. */
+export const MAX_INPUT_CHARS = 384 * 1024;
 /** Rows rendered in the grid; the counts and the JSON export always cover every row. */
 export const MAX_RENDERED_ROWS = 500;
 /** Above this size a "this can take a while" hint is shown while parsing. */

@@ -60,6 +60,8 @@ const modes: readonly TextToolMode[] = [
 
 export default defineTextTool({
   toolId: 'text-inspector',
+  // Main thread: readability takes 75-83 ms at 128 KiB and 146 ms at 256 KiB on the Phase 31I emulator measurements (the kit default).
+  maxInputBytes: 128 * 1024,
   modeKey: 'view',
   outputKind: 'kv',
   inputLabel: 'Text',

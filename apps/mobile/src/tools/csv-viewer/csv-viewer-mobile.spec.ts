@@ -13,7 +13,7 @@ describe('csv-viewer mobile helpers', () => {
   });
   it('refuses inputs above the cap', () => {
     expect(oversizeMessage(MAX_INPUT_CHARS)).toBeNull();
-    expect(oversizeMessage(MAX_INPUT_CHARS + 1)).toContain('512 KiB');
+    expect(oversizeMessage(MAX_INPUT_CHARS + 1)).toContain('384 KiB');
   });
   it('bounds column widths', () => {
     expect(columnWidths(['a', 'name'], [['x'.repeat(100), 'ab']])).toEqual([32, 8]);
