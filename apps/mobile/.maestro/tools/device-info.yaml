@@ -1,0 +1,37 @@
+appId: io.github.arahman200165.dude.preview
+name: Device Info on Android
+tags: [tools, developer]
+---
+- launchApp
+- openLink: "dude://tools/device-info"
+- assertVisible:
+    id: "device-info-refresh"
+# Values are device-dependent, so assert row shape (collector: apps/mobile/src/tools/device-info/device-info-collector.ts).
+- assertVisible:
+    id: "kv-os-version-value"
+    text: "Android .*"
+- assertVisible:
+    id: "kv-hermes-value"
+    text: "Yes"
+- scrollUntilVisible:
+    element:
+      id: "kv-pixel-ratio-value"
+- assertVisible:
+    id: "kv-pixel-ratio-value"
+    text: "[0-9.]+"
+- assertVisible:
+    id: "kv-font-scale-value"
+    text: "[0-9.]+"
+- scrollUntilVisible:
+    element:
+      id: "kv-time-zone-value"
+- assertVisible:
+    id: "kv-time-zone-value"
+    text: ".+"
+- tapOn:
+    id: "device-info-refresh"
+- assertVisible:
+    id: "kv-hermes-value"
+    text: "Yes"
+- assertVisible:
+    id: "device-info-copy-json"

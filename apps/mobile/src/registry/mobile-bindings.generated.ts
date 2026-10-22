@@ -9,32 +9,33 @@ import { binding as binding5 } from '../tools/contrast-checker/contrast-checker.
 import { binding as binding6 } from '../tools/cookie-tools/cookie-tools.mobile-bindings';
 import { binding as binding7 } from '../tools/cron/cron.mobile-bindings';
 import { binding as binding8 } from '../tools/csv-viewer/csv-viewer.mobile-bindings';
-import { binding as binding9 } from '../tools/diff/diff.mobile-bindings';
-import { binding as binding10 } from '../tools/duration-formatter/duration-formatter.mobile-bindings';
-import { binding as binding11 } from '../tools/hash/hash.mobile-bindings';
-import { binding as binding12 } from '../tools/hex-text-converter/hex-text-converter.mobile-bindings';
-import { binding as binding13 } from '../tools/hmac-generator/hmac-generator.mobile-bindings';
-import { binding as binding14 } from '../tools/http-status/http-status.mobile-bindings';
-import { binding as binding15 } from '../tools/json/json.mobile-bindings';
-import { binding as binding16 } from '../tools/json-flatten/json-flatten.mobile-bindings';
-import { binding as binding17 } from '../tools/jwt/jwt.mobile-bindings';
-import { binding as binding18 } from '../tools/number-base/number-base.mobile-bindings';
-import { binding as binding19 } from '../tools/password-generator/password-generator.mobile-bindings';
-import { binding as binding20 } from '../tools/password-strength-analyzer/password-strength-analyzer.mobile-bindings';
-import { binding as binding21 } from '../tools/regex/regex.mobile-bindings';
-import { binding as binding22 } from '../tools/semver-comparator/semver-comparator.mobile-bindings';
-import { binding as binding23 } from '../tools/slug-generator/slug-generator.mobile-bindings';
-import { binding as binding24 } from '../tools/text-inspector/text-inspector.mobile-bindings';
-import { binding as binding25 } from '../tools/timezone-offset-comparator/timezone-offset-comparator.mobile-bindings';
-import { binding as binding26 } from '../tools/unicode-normalization/unicode-normalization.mobile-bindings';
-import { binding as binding27 } from '../tools/unix-timestamp/unix-timestamp.mobile-bindings';
-import { binding as binding28 } from '../tools/url-encode/url-encode.mobile-bindings';
-import { binding as binding29 } from '../tools/url-inspector/url-inspector.mobile-bindings';
-import { binding as binding30 } from '../tools/user-agent/user-agent.mobile-bindings';
-import { binding as binding31 } from '../tools/uuid/uuid.mobile-bindings';
-import { binding as binding32 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
-import { binding as binding33 } from '../tools/xml-formatter/xml-formatter.mobile-bindings';
-import { binding as binding34 } from '../tools/yaml-json/yaml-json.mobile-bindings';
+import { binding as binding9 } from '../tools/device-info/device-info.mobile-bindings';
+import { binding as binding10 } from '../tools/diff/diff.mobile-bindings';
+import { binding as binding11 } from '../tools/duration-formatter/duration-formatter.mobile-bindings';
+import { binding as binding12 } from '../tools/hash/hash.mobile-bindings';
+import { binding as binding13 } from '../tools/hex-text-converter/hex-text-converter.mobile-bindings';
+import { binding as binding14 } from '../tools/hmac-generator/hmac-generator.mobile-bindings';
+import { binding as binding15 } from '../tools/http-status/http-status.mobile-bindings';
+import { binding as binding16 } from '../tools/json/json.mobile-bindings';
+import { binding as binding17 } from '../tools/json-flatten/json-flatten.mobile-bindings';
+import { binding as binding18 } from '../tools/jwt/jwt.mobile-bindings';
+import { binding as binding19 } from '../tools/number-base/number-base.mobile-bindings';
+import { binding as binding20 } from '../tools/password-generator/password-generator.mobile-bindings';
+import { binding as binding21 } from '../tools/password-strength-analyzer/password-strength-analyzer.mobile-bindings';
+import { binding as binding22 } from '../tools/regex/regex.mobile-bindings';
+import { binding as binding23 } from '../tools/semver-comparator/semver-comparator.mobile-bindings';
+import { binding as binding24 } from '../tools/slug-generator/slug-generator.mobile-bindings';
+import { binding as binding25 } from '../tools/text-inspector/text-inspector.mobile-bindings';
+import { binding as binding26 } from '../tools/timezone-offset-comparator/timezone-offset-comparator.mobile-bindings';
+import { binding as binding27 } from '../tools/unicode-normalization/unicode-normalization.mobile-bindings';
+import { binding as binding28 } from '../tools/unix-timestamp/unix-timestamp.mobile-bindings';
+import { binding as binding29 } from '../tools/url-encode/url-encode.mobile-bindings';
+import { binding as binding30 } from '../tools/url-inspector/url-inspector.mobile-bindings';
+import { binding as binding31 } from '../tools/user-agent/user-agent.mobile-bindings';
+import { binding as binding32 } from '../tools/uuid/uuid.mobile-bindings';
+import { binding as binding33 } from '../tools/whitespace-cleaner/whitespace-cleaner.mobile-bindings';
+import { binding as binding34 } from '../tools/xml-formatter/xml-formatter.mobile-bindings';
+import { binding as binding35 } from '../tools/yaml-json/yaml-json.mobile-bindings';
 export const MOBILE_BINDINGS: MobileBindingMap = {
   'base64': binding0,
   'case-converter': binding1,
@@ -45,30 +46,31 @@ export const MOBILE_BINDINGS: MobileBindingMap = {
   'cookie-tools': binding6,
   'cron': binding7,
   'csv-viewer': binding8,
-  'diff': binding9,
-  'duration-formatter': binding10,
-  'hash': binding11,
-  'hex-text-converter': binding12,
-  'hmac-generator': binding13,
-  'http-status': binding14,
-  'json': binding15,
-  'json-flatten': binding16,
-  'jwt': binding17,
-  'number-base': binding18,
-  'password-generator': binding19,
-  'password-strength-analyzer': binding20,
-  'regex': binding21,
-  'semver-comparator': binding22,
-  'slug-generator': binding23,
-  'text-inspector': binding24,
-  'timezone-offset-comparator': binding25,
-  'unicode-normalization': binding26,
-  'unix-timestamp': binding27,
-  'url-encode': binding28,
-  'url-inspector': binding29,
-  'user-agent': binding30,
-  'uuid': binding31,
-  'whitespace-cleaner': binding32,
-  'xml-formatter': binding33,
-  'yaml-json': binding34,
+  'device-info': binding9,
+  'diff': binding10,
+  'duration-formatter': binding11,
+  'hash': binding12,
+  'hex-text-converter': binding13,
+  'hmac-generator': binding14,
+  'http-status': binding15,
+  'json': binding16,
+  'json-flatten': binding17,
+  'jwt': binding18,
+  'number-base': binding19,
+  'password-generator': binding20,
+  'password-strength-analyzer': binding21,
+  'regex': binding22,
+  'semver-comparator': binding23,
+  'slug-generator': binding24,
+  'text-inspector': binding25,
+  'timezone-offset-comparator': binding26,
+  'unicode-normalization': binding27,
+  'unix-timestamp': binding28,
+  'url-encode': binding29,
+  'url-inspector': binding30,
+  'user-agent': binding31,
+  'uuid': binding32,
+  'whitespace-cleaner': binding33,
+  'xml-formatter': binding34,
+  'yaml-json': binding35,
 };
