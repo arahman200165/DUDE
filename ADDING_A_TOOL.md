@@ -21,17 +21,172 @@ apps/web/src/app/tools/<id>/<id>.worker.ts             — optional browser adap
 
 ### Android presentation ownership (Phase 31I)
 
-Phase 31H discovers shared metadata and renders tool details; its executable mobile binding map is initially empty. In Phase 31I (see [PHASE31I_PLAN.md](docs/delivery/PHASE31I_PLAN.md) for the locked tool list), contribute the native screen beside its binding at `apps/mobile/src/tools/<id>/<id>.mobile-bindings.ts`. Reuse the existing stable registry ID:
+A tool reaches Android by adding files under `apps/mobile/src/tools/<id>/` and one Maestro flow. Nothing in the mobile shell, tabs, routes or the generated map is edited, and the manifest from the next section is reused unchanged. Forty tools shipped this way in Phase 31I ([decisions](docs/delivery/PHASE31I_PLAN.md), locked list in PD-085); the same recipe applies to a later one. Only tools whose engine can run on Hermes belong here: `request`, compression, HTML sanitization, entity parsing, image decoding and xxhash throw `HostFacilityUnavailableError` on Android, and nothing is stubbed.
+
+#### 1. The binding file and the screen
+
+The binding is a file named exactly `<id>.mobile-bindings.ts` beside the screen. It exports the stable registry ID as a string literal and one literal lazy `import()`; the generator rejects a mismatched ID, a non-literal import or a missing one. This is the real `base64` binding:
 
 ```ts
+// apps/mobile/src/tools/base64/base64.mobile-bindings.ts
 import type { MobileToolBinding } from '../../registry/mobile-binding';
+
 export const bindingId = 'base64';
 export const binding: MobileToolBinding = {
   load: () => import('./base64-screen'),
 };
 ```
 
-The screen module exports its React Native component as `default`; an optional `settingsLoad` uses the same literal lazy-loader shape. Run `npm run generate:registry` to discover the binding and generate `mobile-bindings.generated.ts`. Do not edit mobile tabs, shell, routes or the generated map to register a tool. Validate native runtime support, permission denial, scoped persistence and shared transform fixtures before claiming availability. Portable TypeScript alone does not establish mobile compatibility. Native presentation uses resolved shared semantic tokens, font scaling and 48 dp touch targets. Enrollment never grants desktop privileges, and tool inputs/outputs do not become syncable preferences by passing through a mobile screen.
+The screen module exports a React Native component as `default`. An optional `settingsLoad` uses the same literal lazy-loader shape. Run `npm run generate:registry`: it validates every binding, regenerates `mobile-bindings.generated.ts` and `packages/tool-registry/src/mobile-tool-ids.generated.ts`, and the web and desktop tool page then shows the **Also on Android** badge by itself (the badge is generated from the binding IDs through `MOBILE_TOOL_IDS`; nothing is hand-listed). A directory whose name starts with `_` is never discovered, which keeps spikes out of the map. Never edit the generated files.
+
+#### 2. `defineTextTool` or a bespoke screen
+
+Use **`defineTextTool`** when the tool is text in, text (or a key/value list) out, with an optional mode switch and a few options. The `base64` screen is the whole of it:
+
+```tsx
+// apps/mobile/src/tools/base64/base64-screen.tsx
+import { decodeBase64, encodeBase64 } from '@dude/crypto/base64-codec';
+import { defineTextTool, type ToolRunResult } from '../../kit';
+
+const toResult = (result: ReturnType<typeof encodeBase64>): ToolRunResult =>
+  result.ok ? { ok: true, output: result.value } : { ok: false, error: result.error };
+
+export default defineTextTool({
+  toolId: 'base64',
+  modeKey: 'mode',
+  swap: true,
+  modes: [
+    { id: 'encode', label: 'Encode', run: input => toResult(encodeBase64(input)) },
+    { id: 'decode', label: 'Decode', run: input => toResult(decodeBase64(input)) },
+  ],
+});
+```
+
+Call the same engine functions the Angular component calls, never a pipeline step (pipeline steps are one-way and take no parameters). The spec also accepts `options` (`switch`, `select`, `number`, `text`, shown in the options sheet), `sampleInput`, `outputKind: 'kv'` for `KeyValueRow[]` results, `live: false` for a Run button, `allowEmptyInput` for generators, `openFile` and an `offThread` runner. It renders the mode segment, the input editor with Paste, Clear, Swap, Sample and Open, the options sheet, the output viewer with Copy, Share and Save, and the error banner, and it persists the mode and options as tool preferences.
+
+Write a **bespoke screen** when the tool has several inputs, a secret, a live canvas or a table, or a result that is not a flat output. Compose it from the kit instead of React Native primitives so spacing, 48 dp targets, font scaling, haptics and test IDs stay consistent:
+
+| Kit component | Use |
+|---|---|
+| `ToolScreen` | Lays out `input`, `options` and `output` regions; the tool host supplies scrolling and the error boundary |
+| `InputEditor` | Multiline input with Paste, Clear, Swap and extra actions (`tool-input`, `tool-input-paste`, `tool-input-clear`) |
+| `SingleLineField` | One-line input such as a URL, a timestamp or a pattern (Paste reads the clipboard only on tap) |
+| `SecretField` | Masked single line for keys and passwords: hidden by default, Show/Hide, Clear, no autofill; the caller owns the value and the `show` flag |
+| `ModeSegment` | Mode switch (`mode-<id>`) |
+| `OptionsSheet` | Options on a React Native `Modal`; the same option specs as `defineTextTool` |
+| `KeyValueList` | Labelled rows, each copyable (`kv-<key>`) |
+| `OutputViewer` | Text result with Copy, Share and Save; pass `toolId` (or `saveName`) to enable Save through the Storage Access Framework |
+| `ResultCard`, `StatusPill`, `ErrorBanner` | Grouped result, "Working" state, and the single accessible `tool-error` alert |
+
+Keep the input in memory with `useToolInput(toolId, { input: '' })`: it is wiped after the app has been in the background for 5 minutes and is never persisted or synchronized. The tool host already wraps the screen in an error boundary, so let engine errors become `{ ok: false, error }` results rather than throwing.
+
+#### 3. Reuse the web preference keys
+
+Do not invent new persisted keys for settings web already has. `useToolPreference(toolId, key, default, codec)` and `useToolPreferences(toolId, entries)` resolve the key's data scope exactly as web does (`resolveKvScope` plus the manifest `settingScopes`). A manifest `local` preference is stored in the environment scope under the same namespace and key as web and rides the existing settings sync category, so web, desktop and Android converge with no mapping; every other policy stays in memory. Always pass a `decode` codec that returns `null` for values you do not understand:
+
+```ts
+const [hash, setHash] = useToolPreference<HmacHashAlgorithm>('hmac-generator', 'hash', 'SHA-256',
+  { decode: raw => HASHES.find(candidate => candidate === raw) ?? null });
+```
+
+A mobile-only preference (for example `outputFormat`) uses a new key under the same tool ID; keep Android-only values out of keys that web also reads, as the Timezone Comparator does by keeping its Android "Zones" view in memory.
+
+#### 4. Heavy work runs off the JS thread
+
+If the engine can take more than a few tens of milliseconds on a realistic input (parsers, formatters, diffs, hashing), run it on the worker runtime. Define a task in the tool folder with `defineOffThreadTask` and the `'worklet'` directive, and run it with `runOffThread` or the `useOffThreadRun` hook. The kit never imports a tool engine, so the task always lives under `src/tools/<id>/`:
+
+```ts
+// the Hash tool's task
+const hashTask = defineOffThreadTask((payload: { text: string; algorithms: readonly string[] }) => {
+  'worklet';
+  return computeHashes(payload.text, payload.algorithms as HashAlgorithm[]);
+});
+const outputs = await runOffThread(hashTask, { text: input, algorithms }, { signal });
+```
+
+```tsx
+// a bespoke screen (CSV Viewer): a memoized payload, or null for "nothing to run"
+const { result, error, busy } = useOffThreadRun(csvParseTask, payload, { debounceMs: 400, fallbackError: 'The CSV engine failed.' });
+```
+
+Rules and limits:
+
+- **Imports.** Anything a task body imports must be forwarded to the worker: `@dude/tool-engine`, `@dude/crypto`, `@dude/shared-types` and `@dude/domain` are listed in `apps/mobile/babel.config.cjs` (`importForwarding.moduleNames`), and `src/tools`, `src/kit` and `src/engine-host` are listed as `relativePaths`. Any other import is captured from the JS thread as a closure value and is not callable on the worker; add a package to `moduleNames` only as a deliberate decision.
+- **A worker is bare Hermes.** No `URL`, no expo or React Native native modules and no random source (`crypto.getRandomValues` throws). Only `TextEncoder`/`TextDecoder` and the digest/HMAC host are installed. A task that needs any of those is not an off-thread candidate: generate random values on the JS thread and pass them in the payload.
+- **JSON only.** The payload and the result cross the boundary as JSON text: no functions, `Map`s, `Set`s or class instances, and errors cross as name and message.
+- **One job at a time, in order.** A new payload aborts the previous run: a queued job is never dispatched; a running job cannot be interrupted, so its result is dropped and the next job waits for the worker. `useOffThreadRun` keeps the last result visible until the next settles. Memoize the payload (`useMemo`) because it is compared by identity.
+- **No JS-thread fallback.** If the worker cannot start, show the error; never run the engine on the JS thread instead. A tool that fails this requirement is swapped for a reserve entry through a dated deviation in the phase plan.
+- **Fresh installs.** Worklet bodies are generated into `node_modules/react-native-worklets/.worklets`; after a fresh `npm ci` run Metro with `--clear` (for example `expo export --clear`).
+
+#### 5. Engine host facilities
+
+Engines see only what `installMobileEngineHost()` provides: `crypto.getRandomValues` and `randomUUID` (`expo-crypto`), a `subtle.digest` and HMAC subset for SHA-1, SHA-256, SHA-384 and SHA-512 (`@noble/hashes`), `URL`/`URLSearchParams` (`react-native-url-polyfill`) and `TextEncoder`/`TextDecoder` (`fast-text-encoding`). A facility outside that list fails with `HostFacilityUnavailableError`; show the reason in the UI as the Hash tool does for XXH32 and XXH64 ("Unavailable on Android (needs WebAssembly)"). Adding a polyfill is a recorded decision, not an incidental dependency. Import engine code only from `@dude/tool-engine/tools/**` and `shared/**` subpaths and from specific `@dude/crypto` subpaths (never the barrel); `npm run check:mobile` enforces the per-region import rules.
+
+#### 6. Input caps
+
+Every tool states how much input it accepts and refuses more with a visible message instead of freezing. A tool that runs on the JS thread must set or accept the kit main-thread budget: `defineTextTool` takes `maxInputBytes` and defaults to `DEFAULT_MAIN_THREAD_INPUT_BYTES` (128 KiB; base64 sets 256 KiB and case-converter 64 KiB), and a bespoke screen calls `checkInputBudget(text, DEFAULT_MAIN_THREAD_INPUT_BYTES)` and shows the message it returns. An off-thread tool chooses its own cap by measuring: build with `EXPO_PUBLIC_DUDE_MEASURE=1`, add the task to `apps/mobile/src/tools/_measure/`, run `npm run measure:mobile -- --tools` and keep the largest size whose wall time stays near 3 s with a JS-thread tick gap under 100 ms on API 29. Measured caps: 2 MiB of UTF-8 bytes for json, yaml-json and xml-formatter (use `utf8ByteLength`), 128 KiB for Hash (its pure-JS algorithms took 22.9 s at 2 MiB), 384 KiB for CSV Viewer and 512 KiB per side for Diff, and 64 KiB of text, a 2000-character pattern and 200 rendered matches for Regex. The numbers are emulator-fixture observations, not hardware guarantees; see the [measured budgets](docs/delivery/PHASE31I_PLAN.md#measured-input-budgets). File open and Share-to-DUDE default to 2 MiB because `fileInput` has no size field yet; a `maxBytes` that a manifest `fileInput` later declares is already honored by the kit's file reader.
+
+#### 7. Maestro journey
+
+Each tool ships `apps/mobile/.maestro/tools/<id>.yaml`. Follow the `base64` flow's conventions:
+
+```yaml
+appId: io.github.arahman200165.dude.preview
+name: Base64 Encoder / Decoder on Android
+tags: [tools, encoding]
+---
+- launchApp:
+    clearState: true
+# Wait for the shell before the deep link: a link delivered while the cold-started app is still mounting the router is dropped.
+- assertVisible: "This workbench"
+- openLink: "dude://tools/base64"
+- scrollUntilVisible:
+    element:
+      id: "tool-input"
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 30000
+- tapOn:
+    id: "tool-input"
+- inputText: "foobar"
+- hideKeyboard
+# Expected value copied from packages/crypto/src/base64-codec.spec.ts:13 (RFC 4648 vector foobar -> Zm9vYmFy)
+- scrollUntilVisible:
+    element:
+      id: "tool-output"
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 30000
+- assertVisible:
+    id: "tool-output"
+    text: "Zm9vYmFy"
+```
+
+- Start with `launchApp` and `clearState: true`, then `assertVisible: "This workbench"` before `openLink`, then deep-link with `dude://tools/<id>`.
+- Journeys run at Android font scale 1.5, where controls sit below or above the fold and Maestro only sees on-screen elements: `scrollUntilVisible` (timeout 30000) before every assertion or tap on something that may be off-screen.
+- Drive the UI with the kit test IDs (`mode-<id>`, `tool-input`, `tool-input-clear`, `tool-input-sample`, `tool-output`, `kv-<key>`, `tool-error`) and give a bespoke screen its own stable IDs.
+- Assert **expected values from the shared engine**, never from the screen: copy a vector from the engine's spec file and cite it in a comment beside the assertion (`# packages/crypto/src/base64-codec.spec.ts:13`), or compute it in Node with the same engine function. Include one error case that asserts `tool-error`.
+- Maestro cannot type non-ASCII text, newlines or some quotes. Put such input behind a Sample button and tap it. `hideKeyboard` sends Back, which the tool host handles by dismissing the keyboard first.
+- Camera scanning is not exercised on an emulator. A scanner flow denies the camera permission at launch and covers the paste and image paths; the camera itself is a physical-phone check.
+- Name the file `<id>.yaml` and avoid characters that are invalid in Windows file names in the `name:` field.
+
+Run one tool, the tool flows only, or everything (an emulator or device must be connected; select it with `ANDROID_SERIAL`):
+
+```bash
+npm run test:e2e:mobile -- --flow base64   # one tool journey, repeatable
+npm run test:e2e:mobile -- --tools-only    # every tools/*.yaml
+npm run test:e2e:mobile                    # shell flows, 03-share, then every tool
+```
+
+The harness raises the font scale to 1.5 and restores it, re-runs a failed flow up to `DUDE_E2E_RETRIES` times (default 1, `0` disables, at most 3), runs the flows in batches of `DUDE_E2E_BATCH` per Maestro session (default 8, so an adb drop costs one batch) and reports a flow that only passed on a retry as FLAKY, and writes JUnit under `test-results/mobile/<serial>/`. CI runs the same journeys on API 29 and API 36.
+
+#### 8. Share-to-DUDE input fields
+
+Share-to-DUDE puts shared text into the tool's in-memory input under the key `input`. If the main field of your screen is stored under another key (as `diff` stores `left`), add one entry to `TEXT_INPUT_KEYS` in `apps/mobile/src/share/share-model.ts` (currently `diff: 'left'`, `regex: 'testText'`, `timezone-offset-comparator: 'zonesText'`). That map is the only per-tool share configuration. A tool whose main field is `input` needs nothing, and a tool that is not bound is never suggested. Shared content is never run, saved or synchronized.
+
+#### 9. Before you call it done
+
+Native presentation uses resolved shared semantic tokens, font scaling and 48 dp touch targets; no raw colors. Validate permission denial, scoped persistence, the engine against the shared fixtures and the journey on API 29 and API 36 before claiming availability. Portable TypeScript alone does not establish mobile compatibility. Enrollment never grants desktop privileges, and tool inputs and outputs do not become syncable data by passing through a mobile screen. Read [apps/mobile/AGENTS.md](apps/mobile/AGENTS.md) first.
 
 ### Shared metadata and Angular binding
 

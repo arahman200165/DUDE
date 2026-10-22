@@ -128,6 +128,30 @@ Clipboard transforms
 ```
 
 Mobile should not be treated merely as "smaller DUDE."
+
+#### As built in Phase 31I: Android tools
+
+Implementation milestones 729–783 landed; acceptance is pending, so the following describes shipped code, not a release claim. Android has 40 executable tools, each with a native screen and an on-device journey; the list is locked by [PD-085](../delivery/PHASE31I_PLAN.md) and no reserve tool was needed.
+
+| Group | Tools |
+|---|---|
+| Native (5) | QR Code Scanner, Barcode Reader, QR Code Generator, Barcode Generator, Device Info |
+| Encoding (6) | Base64, URL Encode/Decode, Hex/Text, Number Base, Color Converter, Contrast Checker |
+| Text (6) | Text Inspector, Case Converter, Slug Generator, Whitespace Cleaner, Text Diff, Unicode Normalization |
+| Data (5) | JSON Formatter, YAML/JSON, XML Formatter, CSV Viewer, JSON Flatten/Unflatten |
+| Security (6) | JWT Debugger, Hash Generator, HMAC Generator, UUID, Password Generator, Password Strength Analyzer |
+| Date-time (4) | Unix Timestamp, Cron, Timezone Offset Comparator, Duration Parser/Formatter |
+| Web (4) | URL Inspector, HTTP Status Codes, User-Agent Parser, Cookie Tools |
+| Developer (4) | Regex Tester, CIDR Calculator, chmod Converter, Semver Comparator |
+
+Offline behavior: all 40 run fully offline. They execute the same shared engines as web and desktop on the device, with no request port, Hub or network call, and they work in standalone mode and with the Hub unreachable. Device Info is the only tool that reads network state, and it reports no address or network name. Facilities Hermes lacks are explicit rather than faked (the Hash tool shows XXH32/XXH64 as unavailable on Android), and a few web conveniences are not mirrored: the URL Inspector editable parts form, Text Inspector grammar check and selection metrics, a CSV auto delimiter, Diff ignore-whitespace and User-Agent "use this device" ([deviations](../delivery/PHASE31I_PLAN.md#deviations-and-implementation-notes)). Heavy tools (hash, JSON, YAML, XML, CSV, diff) run on a background worker, and each tool has an input cap so a large paste cannot freeze the app.
+
+Share-to-DUDE: any app can share text, JSON, a PEM/certificate or an image to DUDE. DUDE shows Smart Paste suggestions limited to tools that run on Android, above a searchable tool picker; choosing one fills that tool's input. A share never runs a tool by itself, is held in memory only, is never saved or synchronized, is capped at 2 MiB and is cleared like other tool inputs after 5 minutes in the background. Secret-looking content (tokens, keys, credentials) is redacted in the preview, and images go only to the two scanners.
+
+Web and desktop tool pages show an "Also on Android" badge for every tool with an Android binding. Device Info is new on all three surfaces, and bwip-js now draws every barcode on all surfaces, adding DataMatrix, PDF417, Aztec and GS1-128.
+
+The rest of the list above stays outside this scope: the NFC inspector, BLE scanner, camera OCR, network diagnostics, pipelines and the Smart Paste page on mobile, background work and iOS are deferred to Phase 91 ([PD-096](../delivery/PHASE31I_PLAN.md)), and request-bearing tools wait for a decided `request` port.
+
 ### Angular Web Application
 
 The Angular application should be served by the user's Hub.
@@ -411,7 +435,7 @@ That is the literal consequence of personal ownership.
 
 | Capability | Desktop with Hub unavailable | Hub web during outage | Android during outage |
 |---|---|---|---|
-| Portable local tool | Works when its runtime is available | Works once loaded; the Hub web service worker caches the public app shell and tool chunks (31E), and loaded tools keep working | Works for implemented compatible tools |
+| Portable local tool | Works when its runtime is available | Works once loaded; the Hub web service worker caches the public app shell and tool chunks (31E), and loaded tools keep working | All 40 Phase 31I tools work fully offline (acceptance pending); a tool without an Android binding is unavailable |
 | Local filesystem/process/network work | Works when local capabilities/permissions are available | Not made native by Hub connectivity | Limited to declared mobile OS capabilities |
 | Cached workbench records | Available within local access policy | Not cached: shared state is held in memory and seeded from the Hub; none is written to the browser or the service worker cache (31E) | Available where mobile cache is implemented |
 | Shared edits | Durable local outbox and explicit pending state | Online-only (31E): edits are refused with a visible Hub unreachable notice and rolled back; no browser outbox | Queue only for implemented sync entities |
@@ -507,7 +531,7 @@ The planning direction is sufficiently defined to begin 31A. The following imple
 | Public exposure release, DNS/dynamic address and verified external reachability | 31F | Explicit public access and optional external infrastructure; Internet mode is released behind an elevated readiness gate (Phase 31F, Milestones 683–699); the 31F exit gate closed the phase in Milestone 699 |
 | Backup format, recovery keys and authority-transfer mechanism | 31G (resolved, implemented) | One passphrase-encrypted `.dudebackup` file (XChaCha20-Poly1305, Argon2id), no recovery-key file, an offline staged restore that gives the Hub a new instance id and a higher authority epoch, a fence on the retired Hub and a device reconnect through the first-sync preview. See [PD-069 to PD-074](../history/DECISION_LOG.md#phase-31g-implementation-decisions); the real second-machine pass is owed ([acceptance](../delivery/PHASE31G_ACCEPTANCE.md)) |
 | Android framework tooling, SQLite/secure-storage adapters and supported OS baseline | 31H (resolved, implemented) | React Native; audited runtime compatibility and permission handling |
-| Exact initial 30–50 mobile tools and input budgets | 31I | Tool selection resolved: 40 tools with a reserve and swap rule ([PD-085](../delivery/PHASE31I_PLAN.md)); per-tool input budgets are set at Milestone 781 from emulator and physical-phone measurements. Usable native UI and core parity are verified on-device |
+| Exact initial 30–50 mobile tools and input budgets | 31I | Resolved by [PD-085](../delivery/PHASE31I_PLAN.md) (40 tools with a reserve and swap rule, none used) plus the [measured input budgets](../delivery/PHASE31I_PLAN.md#measured-input-budgets) of Milestone 783, taken on API 29 and API 36 emulators (hash 128 KiB, csv-viewer 384 KiB, JS-thread tools 128 KiB by default). Those are emulator-fixture figures, not hardware guarantees; physical-phone timings are still owed to the physical pass. Usable native UI and core parity are verified on-device |
 | Hub collaboration persistence and retention | 31J | Separate from the shipped ephemeral BYO relay |
 | End-to-end encrypted data/secret synchronization | Phase 82 or separately approved scope | Not claimed by initial TLS-protected Hub-readable sync |
 | Standby backup/replication and manual promotion UX | Later, under Phase 96 scope | No automatic multi-master/election requirement |

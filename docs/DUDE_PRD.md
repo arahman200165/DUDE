@@ -2,7 +2,7 @@
 
 **Project:** DUDE — Developer Utility Dashboard Engine  
 **Product:** local-first developer workbench evolving into a personally owned distributed developer environment  
-**Baseline:** V1 and Phases 0–31 delivered; distributed Phases 31A–31G delivered; 31H implemented with its owed physical, signing and accessibility passes carried into the 31I final gate; 31I in progress (Milestone 729 onward); 31J planned
+**Baseline:** V1 and Phases 0–31 delivered; distributed Phases 31A–31G delivered; 31H implemented with its owed physical, signing and accessibility passes carried into the 31I final gate; 31I in progress (implementation milestones 729–783 landed; acceptance pending); 31J planned
 **Next priority:** complete Phases 31I–31J strictly in order before beginning Phase 32
 
 Phase 31A (portable core and workspace extraction, Milestone 615) and Phase 31B (device identity, scoped local state and recoverable migration, Milestones 616–627) are complete; [31A](delivery/PHASE31A_ACCEPTANCE.md) and [31B](delivery/PHASE31B_ACCEPTANCE.md) acceptance evidence record the verified results, and 31B lists one owed installed-build manual pass. Phase 31C (self-hosted Hub, owner identity, device registry and resident Device Agent, Milestones 628–648) is complete with its decisions recorded in the [decision log](history/DECISION_LOG.md#phase-31c-implementation-decisions); [31C acceptance evidence](delivery/PHASE31C_ACCEPTANCE.md) records the verified results and the owed manual passes. Phase 31D (scoped synchronization, offline replay, conflict handling and the first-sync preview between desktops through the Hub, Milestones 649–662) is complete with its decisions in the [decision log](history/DECISION_LOG.md#phase-31d-implementation-decisions); [31D acceptance evidence](delivery/PHASE31D_ACCEPTANCE.md) records the verified results and the owed two-machine manual pass. Phase 31E (the Hub-served authenticated Angular web with shared state, private-mode access with a built-in local CA, trusted-certificate sources, reverse-proxy mode, endpoint diagnostics and the gated public mode, Milestones 663–682) is complete with its decisions in the [decision log](history/DECISION_LOG.md#phase-31e-implementation-decisions); [31E acceptance evidence](delivery/PHASE31E_ACCEPTANCE.md) records the verified results and the owed manual passes. Later distributed capabilities remain planned.
@@ -324,7 +324,7 @@ Each device may have its own SQLite store, but those stores have a different pur
 
 The number of DUDE installations must **not** increase the number of authoritative DUDE backends or canonical user databases.
 
-The Windows desktop, standalone Pages/PWA companion and Hub-served web are delivered. The React Native Android shell and sync are implemented ([Phase 31H](delivery/PHASE31H_ACCEPTANCE.md)); its owed physical, signing and accessibility passes are carried into the Phase 31I final gate, and executable mobile tools are in progress in [Phase 31I](delivery/PHASE31I_PLAN.md). iOS and macOS/Linux desktop remain later scope. See [Product Surfaces](product/PRODUCT_SPEC.md#product-surfaces) for platform behavior.
+The Windows desktop, standalone Pages/PWA companion and Hub-served web are delivered. The React Native Android shell and sync are implemented ([Phase 31H](delivery/PHASE31H_ACCEPTANCE.md)); its owed physical, signing and accessibility passes are carried into the Phase 31I final gate, and 40 executable mobile tools are implemented in [Phase 31I](delivery/PHASE31I_PLAN.md) (milestones 729–783 landed; acceptance pending). iOS and macOS/Linux desktop remain later scope. See [Product Surfaces](product/PRODUCT_SPEC.md#product-surfaces) for platform behavior.
 
 ## Architectural Invariants
 
@@ -547,7 +547,7 @@ The required sequence is **31A → 31B → 31C → 31D → 31E → 31F → 31G �
 | 31F (complete) | Internet readiness and security verification |
 | 31G (complete) | Encrypted backup, restore and sole-authority Hub transfer |
 | 31H (implemented; owed passes carried to the 31I gate) | React Native Android shell and sync; [acceptance](delivery/PHASE31H_ACCEPTANCE.md) |
-| 31I (in progress) | Initial compatible mobile tools and complete DUDE 2.0 gate; [decisions](delivery/PHASE31I_PLAN.md) |
+| 31I (in progress; implementation milestones 729–783 landed, acceptance pending) | Initial compatible mobile tools and complete DUDE 2.0 gate; [decisions](delivery/PHASE31I_PLAN.md) |
 | 31J | Deeper authorized Hub collaboration and realtime behavior |
 
 All Phase 32 implementation waits until every phase from 31A through 31J is complete, as specified in [Strict Phase Progression](delivery/ROADMAP.md#strict-phase-progression). Remote privileged execution remains deferred to Phase 88.

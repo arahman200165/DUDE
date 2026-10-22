@@ -41,6 +41,17 @@ FilePicker
 ResultCard
 ```
 
+**As built in Phase 31I.** Implementation milestones 729–783 landed; acceptance is pending. The 40 Android tools are built from one mobile-owned kit (`apps/mobile/src/kit`), so they look and behave alike:
+
+- **Controls.** `ToolScreen` lays out input, options and output; `InputEditor` (multiline), `SingleLineField` and `SecretField` (masked, Show/Hide and Clear, no autofill) take text; `ModeSegment` switches modes; `KeyValueList` and `ResultCard` show structured results; `ErrorBanner` is one accessible `Error: <message>` alert that TalkBack reads once; `StatusPill` shows "Working" for slow runs. Output uses `OutputViewer` with Copy, Share and Save. Simple text-in/text-out tools are declared with `defineTextTool`; flagship tools are bespoke screens built from the same parts.
+- **Options sheet.** Tool options (delimiter, case style, indentation and similar) open in an options sheet on a React Native `Modal`, not a third-party sheet library. Closing it dismisses the keyboard so the results stay visible.
+- **Paste, Sample and Open.** Every input has an explicit Paste button that reads the clipboard only on tap, plus Clear, a Sample button and, for tools with `fileInput`, Open. Swap moves an output into the input where the web tool has Swap.
+- **Haptics.** Haptic feedback accompanies copy, scan success and errors, and silently does nothing when the device or module has no vibrator.
+- **Targets and text size.** Every control keeps a 48 dp minimum target and honors Android font scale. All 40 journeys run at font scale 1.5 on API 29 and API 36, scrolling to controls that move below the fold; manual TalkBack and a physical-phone pass remain owed.
+- **Keyboard.** The first Back with the soft keyboard open only dismisses the keyboard; the second leaves the tool. This holds on every screen, including the Search tab, because the handler is mounted once at the shell.
+- **Catalog.** Tools and Search list runnable tools first. Desktop/web-only tools sit behind a "Show desktop/web-only tools" switch, and synced favorites of tools Android cannot run stay visible with the reason. Home shows local-only Recents. Web and desktop tool pages carry an "Also on Android" badge generated from the binding IDs.
+- **Share.** Sharing to DUDE opens a route with Smart Paste suggestions for runnable tools above a searchable picker; nothing runs until the user opens a tool and acts.
+
 ## Appearance System
 
 ### Theme

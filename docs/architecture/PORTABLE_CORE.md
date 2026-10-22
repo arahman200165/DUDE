@@ -34,7 +34,7 @@ Packages emit JavaScript and declarations into untracked `dist/` directories. Ap
 
 `EngineHostPorts` explicitly provides WebCrypto, requests, compression, HTML sanitization/entity parsing, image decoding and xxhash WASM initialization. Browser, worker, Electron and test adapters install supported facilities. Workers do not offer a DOM sanitizer; Electron does not offer browser image decoding or DOM sanitization/entity parsing. Unsupported facilities fail explicitly. Browser worker creation, cancellation, progress and failure isolation remain in the application. Files crossing engines use structural read-only contracts.
 
-Framework neutrality does not establish universal host support. An engine can require WebCrypto, streams, a sanitizer, a decoder, a network connection or a browser-managed WASM/sandbox runtime. Mobile compatibility remains unverified.
+Framework neutrality does not establish universal host support. An engine can require WebCrypto, streams, a sanitizer, a decoder, a network connection or a browser-managed WASM/sandbox runtime. Android compatibility is established per engine, not assumed: the 40 Phase 31I tools run on Hermes through the mobile host ports described [below](#as-built-in-phase-31i-mobile-engine-host), and an engine needing an unsupported facility is not offered there.
 
 The renderer accesses native capabilities through injected `PlatformBridgePort`. Its browser adapter returns unavailable when preload is absent. Electron implementations and global Window declarations stay in applications. Extraction does not change IPC names, allowlists, sender checks, grants, confirmation tokens, mutation previews, journals, undo or elevation handling.
 
@@ -42,7 +42,7 @@ The renderer accesses native capabilities through injected `PlatformBridgePort`.
 
 Each tool has one metadata manifest in `packages/tool-registry/src/tools/<id>/`, an Angular `<id>.bindings.ts` beside its component, and engine modules under their package owner. Metadata has no functions, engines, UI loaders or native implementations. Bindings retain literal lazy imports for components/settings.
 
-Mobile metadata discovery consumes the compiled registry and lightweight search subpath. `generate:registry` also discovers `apps/mobile/src/tools/<id>/<id>.mobile-bindings.ts`, validates the stable `bindingId` and emits literal lazy loaders in `mobile-bindings.generated.ts`. The initial executable map is empty; compatible native tool UIs belong to 31I. Availability requires a real host binding and capability checks, rather than a hand-maintained platform list. Mobile production boundaries reject Angular, Electron, Node-only packages, browser adapters, application-source imports and eagerly loaded engines.
+Mobile metadata discovery consumes the compiled registry and lightweight search subpath. `generate:registry` also discovers `apps/mobile/src/tools/<id>/<id>.mobile-bindings.ts`, validates the stable `bindingId` and emits literal lazy loaders in `mobile-bindings.generated.ts`. At the end of 31H the executable map was empty; Phase 31I populated it with the 40 locked tools ([as built](#as-built-in-phase-31i-mobile-engine-host)). Availability requires a real host binding and capability checks, rather than a hand-maintained platform list. Mobile production boundaries reject Angular, Electron, Node-only packages, browser adapters, application-source imports and eagerly loaded engines.
 
 The canonical appearance JSON continues to generate web CSS and shared appearance axes. It now also generates portable token data in `domain`; `@dude/domain/core/appearance/native-theme` resolves semantic native colors, spacing, contrast and fonts. Native fallbacks do not rewrite synchronized font selections.
 
@@ -53,6 +53,28 @@ The canonical appearance JSON continues to generate web CSS and shared appearanc
 `DataScope` is `environment | workspace | device | local-only`. Project membership belongs to workspace scope. Scope is independent of retention, sensitivity and synchronization consent; classification never grants permission to synchronize.
 
 Shared definitions do not implicitly contain payloads, credentials, absolute paths, history or journals. Mixed entities require field-level classification. The checked storage inventory classifies every storage site by scope without granting synchronization permission. Phase 31B closed the identity/versioning gaps: persisted entities have stable IDs, schema versions and codecs in `@dude/persistence`, tool keys resolve scope through the policy rule or a manifest `settingScopes` override, and the Device State Store records scope per write.
+
+## As built in Phase 31I: mobile engine host
+
+Phase 31I runs real tool engines on Android. Engines stay in their package owners; `apps/mobile` consumes them only through compiled subpath exports and never gains a second copy of a transform.
+
+**Engine-host ports.** `installMobileEngineHost()` (`apps/mobile/src/engine-host`) installs `EngineHostPorts` at app entry. Supported: WebCrypto random values and UUIDs from `expo-crypto`; a `subtle.digest` and HMAC subset (SHA-1, SHA-256, SHA-384, SHA-512) from `@noble/hashes`; `URL` and `URLSearchParams` from `react-native-url-polyfill`; `TextEncoder`/`TextDecoder` from `fast-text-encoding`. Unsupported and explicit: `request`, `compression`, `sanitizeHtml`, `htmlEntities`, `decodeImage` and `xxhash` throw `HostFacilityUnavailableError`, and none is stubbed. Hermes has no WebAssembly, so the mobile Hash tool reports XXH32 and XXH64 as unavailable. Request-bearing tools stay out of scope until a `request` port is decided. Adding a polyfill later is a recorded decision, not an incidental dependency.
+
+**Worker host.** The off-thread worker runtime is a bare Hermes runtime without `URL`, expo native modules or React Native `NativeModules`. `installWorkerHost()` therefore installs only `fast-text-encoding`, a random source that throws and `installMobileEngineHost()` for the digest/HMAC subset. A task needing `URL` or random values is not an off-thread candidate. Task payloads and results are plain JSON text; functions, `Map`s and class instances do not cross. The worker runs one job at a time and cannot interrupt a running job, so cancellation drops the result and a stale queued job is never dispatched. Imports inside a task body must be covered by `importForwarding` (`@dude/tool-engine`, `@dude/crypto`, `@dude/shared-types`, `@dude/domain`, plus the app's `src/tools`, `src/kit` and `src/engine-host` paths); anything else is captured from the JS thread as an uncallable closure value.
+
+**Mobile import regions.** `scripts/check-mobile-boundaries.mjs` classifies each `apps/mobile` file into one of three regions, and `check:mobile` fails on a violation.
+
+| Region | Path | May import from `@dude/tool-engine` | May import from `@dude/crypto` |
+|---|---|---|---|
+| shell | everything outside the two below, including `src/kit` | only `core/registry/tool-search`, `core/paste-detect/paste-detect` and the lazily `import()`ed `core/paste-detect/paste-detectors` | nothing |
+| tools | `src/tools/**` | `tools/**` and `shared/**` subpaths plus the three shell subpaths | specific subpaths, never the barrel |
+| host | `src/engine-host/**` | nothing | only `@dude/crypto/host` |
+
+In every region Angular, Electron, `ws`, Node built-ins, host workspaces, host globals (`window`, `document`, `Worker`, `Buffer` and so on), non-literal `import()`, `require`, relative imports that leave `apps/mobile` and `src/` or `dist/` package paths are rejected.
+
+**Portable additions.** QR and barcode scan classification (URL, Wi-Fi, contact/vCard, one-time-password, email, phone, SMS, geo and plain text, and GS1 check-digit validation) and the Device Info report model and formatter are portable `tool-engine` code shared by web, desktop and Android; web now shows the payload kind, barcode format and check-digit result from the same classifier. bwip-js (`bwip-js/generic`, `toSVG`, no canvas) replaces `jsbarcode` as the one barcode renderer on every surface, with the barcode pipeline step moved into the engine. `generate:registry` also emits `MOBILE_TOOL_IDS` into `packages/tool-registry` so web and desktop can show the "Also on Android" badge without importing application code. The portable-core gate is unchanged: the packages stay free of Angular, Electron and React Native.
+
+The earlier statement that the executable map was empty describes the end of Phase 31H; it now holds the 40 locked 31I tools.
 
 ## Acceptance status
 

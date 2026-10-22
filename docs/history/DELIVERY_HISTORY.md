@@ -3086,6 +3086,74 @@ Native signing and pinned HTTPS/WebSocket adapters reuse the device protocol wit
 
 Local debug and disposable-key release APK/AAB builds passed; seven native security tests and two bundled Maestro journeys passed on each of API 29 and API 36. Local automated regressions are recorded in the acceptance evidence. Protected signing configuration, shipping artifact/install evidence, physical LAN/off-LAN/replay/re-pair, manual accessibility and first CI runs remain outstanding. Updated results belong in the acceptance record. Existing Windows, Hub and Pages/PWA release gates remain required. No Play publication, hosted builds, OTA channel, background worker or owner-admin mobile surface is added. The remaining 31H passes are carried into the 31I final gate (PD-084); the Android-inclusive DUDE 2.0 gate remains 31I.
 
+## Phase 31I — Initial Android Tool Set (In Progress)
+
+**Status:** in progress. Implementation milestones 729–783 landed; acceptance pending. DUDE 2.0 is not declared: documentation (784), acceptance evidence from the guided script (785) and the DUDE 2.0 milestone (786, only after every Definition of Done item has evidence) have not landed. Decisions [PD-084–PD-097](DECISION_LOG.md#phase-31i-implementation-decisions) and the [Phase 31I plan with its deviations](../delivery/PHASE31I_PLAN.md#deviations-and-implementation-notes) record what was decided and what differed.
+
+Android gained 40 executable tools that run the shared engines fully offline, built from a mobile-owned kit (`defineTextTool` plus bespoke screens), an engine host with a fixed polyfill set, and a `react-native-worklets` Bundle Mode runtime for the six heavy tools. Share-to-DUDE routes shared text and images to Smart Paste suggestions without running anything. bwip-js replaced `jsbarcode` on every surface, scan classification became portable code, `device-info` is new on web, desktop and Android, and web and desktop tool pages show a generated "Also on Android" badge. Per-tool Maestro journeys pass on API 29 and API 36 at font scale 1.5. No reserve tool was needed. Two unnumbered fix commits sit between milestones: gate findings after 772 (Device Info coverage exclusions, mobile lint directives) and the data-scope inventory entry for the Share-to-DUDE in-memory store after 779.
+
+| Milestone | Deliverable |
+|---|---|
+| 729 | Phase 31I decisions PD-084 to PD-097 and the merged 31H/31I gate |
+| 730 | Mobile engine host, Hermes polyfills and per-region mobile boundaries |
+| 731 | Portable QR and barcode scan result classification |
+| 732 | Android tool host, runnable-first catalog, local Recents and background input wipe |
+| 733 | bwip-js barcode engine on every surface with DataMatrix, PDF417, Aztec and GS1-128 |
+| 734 | Generated Also on Android badge on web and desktop tool pages |
+| 735 | Android tool kit, defineTextTool, haptics and synced tool preferences |
+| 736 | Base64 Encoder / Decoder on Android |
+| 737 | URL Encoder / Decoder on Android |
+| 738 | Hex Text Converter on Android |
+| 739 | Number Base Converter on Android |
+| 740 | Case Converter on Android |
+| 741 | Slug Generator on Android |
+| 742 | Whitespace Cleaner / Normalizer on Android |
+| 743 | Unicode Normalization on Android |
+| 744 | Text Inspector on Android |
+| 745 | Device Info tool on web and desktop with a read-only OS facts bridge |
+| 746 | UUID Generator / Inspector on Android |
+| 747 | Password / Passphrase Generator on Android |
+| 748 | Password Strength & Entropy Analyzer on Android |
+| 749 | HMAC Generator on Android |
+| 750 | Worklets bundle-mode off-thread runtime for heavy Android tools |
+| 751 | URL / URI Inspector on Android |
+| 752 | HTTP Status Code Reference on Android |
+| 753 | User-Agent Parser on Android |
+| 754 | Cookie Tools on Android |
+| 755 | Color Converter on Android |
+| 756 | Contrast Checker / WCAG Compliance Checker on Android |
+| 757 | Unix Timestamp Converter on Android |
+| 758 | Cron Expression Parser on Android |
+| 759 | Timezone Offset Comparator on Android |
+| 760 | Duration Parser / Formatter on Android |
+| 761 | JWT Debugger on Android |
+| 762 | JSON Flatten / Unflatten on Android |
+| 763 | Regex Tester on Android |
+| 764 | CIDR Calculator on Android |
+| 765 | chmod / Unix Permissions Converter on Android |
+| 766 | Semantic Version Comparator on Android |
+| 767 | Hash Generator on Android |
+| 768 | JSON Formatter on Android |
+| 769 | YAML ↔ JSON Converter on Android |
+| 770 | XML Formatter on Android |
+| 771 | CSV Viewer / Converter on Android |
+| 772 | Text Diff on Android |
+| 773 | Android file open, Photo Picker, save and share with blocked storage permissions |
+| 774 | Device Info on Android |
+| 775 | QR Code Scanner on Android with camera, image and paste paths |
+| 776 | Barcode Reader on Android |
+| 777 | QR Code Generator on Android with presets and image export |
+| 778 | Barcode Generator on Android |
+| 779 | Share-to-DUDE inbound with Smart Paste suggestions and in-memory prefill |
+| 780 | Android tool-journey harness on API 29 and API 36 with keyboard-back and input fixes |
+| 781 | Consolidate Android kit primitives: SecretField, SingleLineField, useOffThreadRun with cancellation |
+| 782 | Serial SQLite gate that fixes the first-launch use-after-free in expo-sqlite 57.0.3, shell-level keyboard Back, harness retries default 1 and batches of 8 flows |
+| 783 | Flag-gated on-device measurements, measured input budgets (hash 128 KiB, csv-viewer 384 KiB), kit main-thread budget and emulator-fixture release thresholds |
+
+**Milestone 782 and 783 outcomes.** The first-launch crash was a use-after-free in expo-sqlite 57.0.3: `closeAsync` finalizes statements without marking the Kotlin side finalized and `getColumnNamesAsync` does not check the database is open, so a statement chain in flight at close touches freed memory. It reproduced on demand (six `getAllAsync` calls racing `closeAsync`, 2 of 2 runs of 300 iterations crashed), and `apps/mobile/src/storage/serial-gate.ts`, a FIFO gate for every statement and exclusive transaction that drains on `close()` and then refuses new work, fixed it: 0 crashes in 40 fresh-data launches on each API. The Search tab now dismisses the keyboard on Back because `useKeyboardBack` is mounted once in `app/_layout.tsx`. The harness defaults to one retry and batches 8 flows per Maestro session (`DUDE_E2E_BATCH`); without retries API 36 passed 43 of 43 flows first time, and API 29 passed every flow in pieces because the emulator lost its adb connection when the host suspended. Milestone 783 added the flag-gated measurement screen (`EXPO_PUBLIC_DUDE_MEASURE=1`, `dude://dev/measure`, absent from normal bundles) and `measure-mobile.mjs --tools`, cut the hash cap from 2 MiB to 128 KiB and csv-viewer from 512 to 384 KiB, added a kit main-thread input budget (default 128 KiB; base64 256 KiB, case-converter 64 KiB) and recorded emulator-fixture release thresholds at measured plus 25 percent. Those thresholds are not hardware guarantees; the figures are in the [Phase 31I plan](../delivery/PHASE31I_PLAN.md#measured-input-budgets).
+
+**Phase 31I is not complete.** Open at this entry: camera scanning on a physical phone, TalkBack, protected signed install evidence, the physical LAN/off-LAN/offline/restore/re-pair passes carried from 31H, physical-device timings and thresholds, the owed 31B–31G manual passes, and the first CI runs of the Android tool journeys. Deferred to Phase 91: the NFC inspector, BLE scanner, camera OCR, network diagnostics, pipelines and Smart Paste page on mobile, background work and iOS.
+
 ## Historical V1 Definition of Done
 
 DUDE V1 was declared done once all required items below were verified true, on 2026-09-19.

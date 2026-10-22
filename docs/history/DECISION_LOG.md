@@ -425,7 +425,7 @@ The Android-inclusive DUDE 2.0 gate remains 31I. Local compilation or automated 
 
 ### Phase 31I implementation decisions
 
-PD-084–PD-097 govern the initial Android tool set and the DUDE 2.0 gate beginning at Milestone 729. The locked tool list, reserve and swap rule, host facilities, off-thread requirement and milestone map are recorded in [Phase 31I decisions](../delivery/PHASE31I_PLAN.md); evidence will be recorded in the Phase 31I acceptance document at Milestone 783.
+PD-084–PD-097 govern the initial Android tool set and the DUDE 2.0 gate beginning at Milestone 729. The locked tool list, reserve and swap rule, host facilities, off-thread requirement and milestone map are recorded in [Phase 31I decisions](../delivery/PHASE31I_PLAN.md); evidence will be recorded in the Phase 31I acceptance document at the acceptance-evidence milestone (planned as 783, 785 as built). The as-built milestone map and deviations are in the plan.
 
 | Decision | Scope |
 |---|---|
@@ -440,9 +440,11 @@ PD-084–PD-097 govern the initial Android tool set and the DUDE 2.0 gate beginn
 | PD-092 | Camera scanning, `qrcode` and bwip-js generation (replacing `jsbarcode` on all surfaces), portable scan classification, new `device-info` tool |
 | PD-093 | Runnable-first catalog, local-only Recents, native controls and generated "Also on Android" badge |
 | PD-094 | On-device Maestro journeys on API 29/API 36 every push plus physical phone, with engine-sourced expected values |
-| PD-095 | Root version becomes 2.0 only at Milestone 784 after every Definition of Done item has evidence |
+| PD-095 | Root version becomes 2.0 only at the final milestone (planned as 784, 786 as built) after every Definition of Done item has evidence |
 | PD-096 | NFC, BLE, camera OCR, network diagnostics, pipelines/Smart Paste page, background work and iOS deferred to Phase 91 |
 | PD-097 | Owed 31B–31G manual passes executed in the close-out through a guided script |
+
+As built, PD-090 and PD-091 resolve to a 2 MiB default because manifest `fileInput` has no size field, PD-092's scan classification is new portable code rather than a move and desktop Device Info uses one new read-only IPC (`dude:deviceInfo:osFacts`), and no PD-085 reserve swap occurred. See the [deviations](../delivery/PHASE31I_PLAN.md#deviations-and-implementation-notes).
 
 ### Testing, accessibility, and performance evolution
 

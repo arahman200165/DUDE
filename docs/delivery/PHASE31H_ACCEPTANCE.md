@@ -78,4 +78,4 @@ Physical device measurements remain separate. Record hardware, API, app version,
 - Complete manual TalkBack and visual accessibility acceptance, and repeat camera denial/paste, bare links, enlarged text, reduced motion and appearance combinations on the physical phone. API 29/API 36 focused emulator journeys have passed; their automation does not replace screen-reader acceptance.
 - Record signed artifact/install evidence and startup/catch-up/memory/database/outbox measurements; complete first CI runs; existing local regression results are recorded above.
 
-These requirements are carried into the Phase 31I final gate (PD-084) and must be recorded, with the final automated gates, before DUDE 2.0 is declared at Milestone 784. The 40 named executable mobile tools and the complete DUDE 2.0 gate are that phase's work.
+These requirements are carried into the Phase 31I final gate (PD-084) and must be recorded, with the final automated gates, before DUDE 2.0 is declared (planned as Milestone 784; Milestone 786 as built in the 31I plan). The 40 named executable mobile tools and the complete DUDE 2.0 gate are that phase's work.

@@ -20,6 +20,26 @@ Local lifecycle actions use expiring single-use confirmations bound to action, a
 
 Protected preview signing keys are CI secrets in `android-preview`; local release packaging requires an explicit keystore path and passwords. Missing signing configuration fails packaging without a debug-key fallback. Disposable emulator acceptance keys do not prove distributable preview signing. The existing release writer alone attaches APK/AAB/checksums to a draft; no Play publication or OTA update channel is configured.
 
+## As built in Phase 31I: Android tool permissions and input boundaries
+
+Android tools add input paths but no new credential, enrollment or network capability. A tool screen reaches no Hub API, and tool inputs and outputs do not become syncable data by passing through it.
+
+**Permissions.** The merged release manifest requests `CAMERA`, `INTERNET`, `VIBRATE` and `ACCESS_NETWORK_STATE`, plus AndroidX's non-exported-receiver signature permission. The config plugin removes, with `tools:node="remove"`, `READ_EXTERNAL_STORAGE`, `WRITE_EXTERNAL_STORAGE`, every `READ_MEDIA_*` permission, `RECORD_AUDIO`, `SYSTEM_ALERT_WINDOW` and `ACCESS_WIFI_STATE` (a library merges the last one in); the native privacy test asserts the list. `expo-image-picker` is configured with photo and microphone permissions off and uses the Android Photo Picker. A new permission is a security decision recorded here, not a dependency side effect.
+
+**Camera.** Only the QR Code Scanner and Barcode Reader use the camera. Permission is requested only when the user taps Scan, scanning is single-shot, and denial leaves the paste and image paths working. The enrollment scanner keeps its own separate path. Emulators exercise paste, image and denial only, so camera decoding needs the physical-phone pass.
+
+**Photo Picker and files.** Scan-from-image uses the Photo Picker through `scanFromURLAsync`, so no media permission is needed. Text file open uses the Storage Access Framework document picker: the app receives one user-chosen document, copies it to the app cache, size-checks it against the 2 MiB default before and after reading, rejects binary, UTF-16 or oversized files and deletes the cache copy afterwards. Save asks the user to pick a destination folder through the SAF directory picker and writes one sanitized file name into it; it never writes to shared storage by path. Share uses the system share sheet, and generated images are written to the app cache before sharing.
+
+**Share-to-DUDE.** The manifest declares an `ACTION_SEND` filter for `text/plain`, `text/*`, `application/json`, `image/*`, `application/x-pem-file`, `application/pkix-cert`, `application/x-x509-ca-cert` and `application/octet-stream`. The `dude-share` module reads only `content:` URIs (a `file:` URI is refused), enforces the cap on the declared size and on the streamed bytes, and accepts text only when it is strict UTF-8 without NUL. It never logs content. Previews of secret-like shapes (JWT, `.env`, private keys, Bearer and Basic credentials) are redacted. Images route only to the two scanners. A shared payload is never auto-run, persisted or synchronized, and deep links remain navigation-only: they cannot enroll, import input or execute a tool.
+
+**Sensitive scan payloads.** The portable classifier flags Wi-Fi passwords and `otpauth` secrets as `sensitive` and supplies a redacted form. The scanner screens show the redacted form with an explicit Reveal control, hold the value only in memory and never write it to the preference store, Recents, the outbox or an export. The classifier recognizes the shape; it does not act on it.
+
+**URL open confirmation.** A URL found in a scan opens only after a second tap on a confirmation card that shows the full target. There is no automatic open and opening is not part of any transform.
+
+**Workers and engine failure.** The off-thread worker has no `URL`, random source or native module, so a task cannot reach a capability its screen does not hold. `request`, `compression`, `sanitizeHtml`, `htmlEntities`, `decodeImage` and `xxhash` throw `HostFacilityUnavailableError` instead of falling back to a weaker implementation. An engine failure stays behind the tool error boundary and never reaches the shell.
+
+**Device Info.** Android reports facts from React Native, `expo-device`, `expo-network` and `expo-constants`. It never reports a device name, serial number, Android ID, IP address, MAC address or SSID, and the desktop `dude:deviceInfo:osFacts` IPC returns only platform, OS name and release, architecture, CPU model and count, and total memory. The channel is read-only and carries no path, user name or environment value.
+
 Read [the master PRD](../DUDE_PRD.md) first. Product direction and invariants live there; this document owns the detailed contracts in its domain.
 
 Related: [DUDE System Architecture](SYSTEM_ARCHITECTURE.md) · [Data, Persistence and Synchronization](DATA_SYNC_ARCHITECTURE.md) · [Quality and Release Specification](../delivery/QUALITY_AND_RELEASE.md) · [DUDE UX Specification](../product/UX_SPEC.md).
