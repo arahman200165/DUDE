@@ -10,6 +10,7 @@ import { openProductionWorkbench } from '../src/state/boot';
 import type { DurableWorkbench } from '../src/state/durable-backend';
 import { WorkbenchProvider, useWorkbench } from '../src/state/workbench-provider';
 import { useBackgroundWipe } from '../src/tools-host/use-background-wipe';
+import { useIncomingShare } from '../src/share/use-incoming-share';
 
 installMobileEngineHost();
 
@@ -17,11 +18,13 @@ export const unstable_settings = { initialRouteName: '(tabs)' };
 
 function WorkbenchNavigator() {
   const { theme } = useWorkbench();
+  useIncomingShare();
   return <>
     <StatusBar style={theme.effective['theme'] === 'light' ? 'dark' : 'light'} />
     <Stack screenOptions={{ headerStyle: { backgroundColor: theme.colors.panel }, headerTintColor: theme.colors.text, headerTitleStyle: { fontSize: theme.metrics.textUi }, contentStyle: { backgroundColor: theme.colors.bg }, animation: theme.reducedMotion ? 'none' : 'default' }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="tools/[id]" options={{ title: 'Tool details' }} />
+      <Stack.Screen name="share" options={{ title: 'Share to DUDE' }} />
       <Stack.Screen name="settings/appearance" options={{ title: 'Appearance' }} />
       <Stack.Screen name="settings/connection" options={{ title: 'Environment & Hub' }} />
       <Stack.Screen name="settings/sync" options={{ title: 'Synchronization' }} />

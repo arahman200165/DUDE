@@ -40,3 +40,41 @@ test('file and photo access use SAF and the Photo Picker: expo-image-picker requ
   const pkg = JSON.parse(readFileSync(new URL('../apps/mobile/package.json', import.meta.url), 'utf8'));
   for (const dependency of ['expo-document-picker', 'expo-image-picker', 'expo-file-system', 'expo-sharing', 'expo-network', 'expo-device', 'react-native-svg']) assert.ok(pkg.dependencies[dependency], dependency);
 });
+
+// Share-to-DUDE (PD-091): one ACTION_SEND filter on MainActivity, no SEND_MULTIPLE and no permission (the content URI grant is temporary).
+const { applyShareIntent, shareMimeTypes } = createRequire(import.meta.url)('../apps/mobile/plugins/with-share-intent.cjs');
+const manifestWith = filters => ({ manifest: { application: [{ activity: [{ $: { 'android:name': '.MainActivity' }, 'intent-filter': filters }] }], 'uses-permission': [] } });
+const launcherFilter = { action: [{ $: { 'android:name': 'android.intent.action.MAIN' } }], category: [{ $: { 'android:name': 'android.intent.category.LAUNCHER' } }] };
+
+test('share plugin adds exactly one SEND intent filter with the vetted MIME types and no permissions', () => {
+  const manifest = applyShareIntent(manifestWith([launcherFilter]));
+  const filters = manifest.manifest.application[0].activity[0]['intent-filter'];
+  assert.equal(filters.length, 2);
+  assert.deepEqual(filters[0], launcherFilter);
+  const send = filters[1];
+  assert.deepEqual(send.action.map(item => item.$['android:name']), ['android.intent.action.SEND']);
+  assert.deepEqual(send.category.map(item => item.$['android:name']), ['android.intent.category.DEFAULT']);
+  assert.deepEqual(send.data.map(item => item.$['android:mimeType']), ['text/plain', 'text/*', 'application/json', 'image/*', 'application/x-pem-file', 'application/pkix-cert', 'application/x-x509-ca-cert', 'application/octet-stream']);
+  assert.deepEqual(shareMimeTypes, send.data.map(item => item.$['android:mimeType']));
+  assert.ok(!JSON.stringify(manifest).includes('SEND_MULTIPLE'));
+  assert.deepEqual(manifest.manifest['uses-permission'], []);
+  for (const entry of send.data) assert.deepEqual(Object.keys(entry.$), ['android:mimeType']);
+});
+test('share plugin is idempotent and registered in app.config.ts without touching blocked permissions', () => {
+  const once = applyShareIntent(manifestWith([launcherFilter]));
+  const twice = applyShareIntent(once);
+  assert.equal(twice.manifest.application[0].activity[0]['intent-filter'].length, 2);
+  assert.throws(() => applyShareIntent({ manifest: { application: [{ activity: [] }] } }), /MainActivity/);
+  const config = readFileSync(new URL('../apps/mobile/app.config.ts', import.meta.url), 'utf8');
+  assert.ok(config.includes("'./plugins/with-share-intent.cjs'"));
+  const plugin = readFileSync(new URL('../apps/mobile/plugins/with-share-intent.cjs', import.meta.url), 'utf8');
+  assert.ok(!/uses-permission|SEND_MULTIPLE|withPermissions/.test(plugin.replace(/\/\*[\s\S]*?\*\//, '')));
+});
+test('the dude-share module is a local autolinked Expo module that never logs content or reads file: URIs', () => {
+  const root = new URL('../apps/mobile/modules/dude-share/', import.meta.url);
+  assert.deepEqual(JSON.parse(readFileSync(new URL('expo-module.config.json', root), 'utf8')).android.modules, ['expo.modules.dudeshare.DudeShareModule']);
+  const kotlin = readFileSync(new URL('android/src/main/java/expo/modules/dudeshare/DudeShareModule.kt', root), 'utf8');
+  assert.ok(!/\bLog\.|println\(|Timber/.test(kotlin));
+  assert.ok(kotlin.includes('isAllowedScheme'));
+  assert.ok(!readFileSync(new URL('android/src/main/AndroidManifest.xml', root), 'utf8').includes('uses-permission'));
+});

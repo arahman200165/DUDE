@@ -8,12 +8,13 @@ import { mobileAvailability } from '../registry/mobile-binding';
 import { MOBILE_BINDINGS } from '../registry/mobile-bindings.generated';
 import { Label } from './primitives';
 
-export function ToolRow({ tool, showReason }: { readonly tool: ToolMetadata; readonly showReason?: boolean }) {
+/** `onPress` replaces opening the tool details, e.g. Share-to-DUDE hands the shared content to the chosen tool. */
+export function ToolRow({ tool, showReason, onPress }: { readonly tool: ToolMetadata; readonly showReason?: boolean; readonly onPress?: (tool: ToolMetadata) => void }) {
   const { theme } = useWorkbench();
   const router = useRouter();
   const [focused, setFocused] = useState(false);
   const availability = mobileAvailability(tool, MOBILE_BINDINGS);
-  return <Pressable accessibilityRole="button" accessibilityLabel={`${tool.title}, ${CATEGORY_METADATA[tool.category].label}, ${availability.available ? 'mobile UI available' : 'mobile UI unavailable'}`} accessibilityHint="Open tool details" onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} onPress={() => router.push(`/tools/${tool.id}`)} style={({ pressed }) => ({
+  return <Pressable accessibilityRole="button" accessibilityLabel={`${tool.title}, ${CATEGORY_METADATA[tool.category].label}, ${availability.available ? 'mobile UI available' : 'mobile UI unavailable'}`} accessibilityHint="Open tool details" onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} onPress={() => onPress ? onPress(tool) : router.push(`/tools/${tool.id}`)} style={({ pressed }) => ({
     minHeight: theme.metrics.rowHeight, paddingVertical: theme.metrics.spacePanel, paddingHorizontal: theme.metrics.spaceNormal,
     borderBottomWidth: focused ? theme.metrics.focusWidth : 1, borderBottomColor: focused ? theme.colors.accent : theme.colors.border, borderLeftWidth: theme.metrics.focusWidth, borderLeftColor: theme.categories[tool.category].color,
     backgroundColor: pressed ? theme.colors.panelElevated : theme.colors.bg,

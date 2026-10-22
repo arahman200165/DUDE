@@ -59,3 +59,8 @@ test('production bundle sources reject host dependencies and workspaces independ
     assert.deepEqual(bundleSourceFailures([source]), [source.replaceAll('\\', '/')], source);
   }
 });
+
+test('Share-to-DUDE may load the curated paste detectors from the shell, but still no tool engine', () => {
+  assert.deepEqual(check("export const load = () => import('@dude/tool-engine/core/paste-detect/paste-detectors');"), []);
+  assert.ok(check("import x from '@dude/tool-engine/core/paste-detect/other';").length);
+});

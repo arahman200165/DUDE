@@ -10,7 +10,9 @@ const hostWorkspaces = new Set(['web', 'desktop', 'hub', 'device-agent', 'sqlite
 const hostGlobals = new Set(['window', 'document', 'localStorage', 'sessionStorage', 'indexedDB', 'DOMParser', 'HTMLElement', 'HTMLCanvasElement', 'OffscreenCanvas', 'FileReader', 'XMLSerializer', 'Worker', 'process', 'Buffer', '__dirname', '__filename']);
 const searchExport = '@dude/tool-engine/core/registry/tool-search';
 const pasteExport = '@dude/tool-engine/core/paste-detect/paste-detect';
-const shellEngineExports = new Set([searchExport, pasteExport]);
+// Share-to-DUDE (src/share, app/share.tsx) loads the curated detector list lazily with import(); it must not be a static shell import.
+const pasteDetectorsExport = '@dude/tool-engine/core/paste-detect/paste-detectors';
+const shellEngineExports = new Set([searchExport, pasteExport, pasteDetectorsExport]);
 const cryptoHost = '@dude/crypto/host';
 
 /** shell: everything outside src/tools and src/engine-host; tools: lazily bound tool screens; host: the engine-host adapter. */

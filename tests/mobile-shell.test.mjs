@@ -76,3 +76,9 @@ test('memory facade publishes local edits and returns no native enrollment or sy
   await backend.actions.setFavorite(pin, false);
   assert.equal(notifications, 2);
 });
+
+test('share intents are a separate path: deep links still refuse payloads, shares and input hand-offs', () => {
+  for (const link of ['dude://share', 'dude://open/share', 'dude://share?text=secret', 'dude://tools/jwt?input=eyJ', 'dude://open/tool/base64?input=abc', 'dude://tools/base64#share', 'android.intent.action.SEND', 'content://com.example/shared.txt', 'file:///data/data/x/secret']) {
+    assert.equal(mobileDeepLinkPath(link), null, link);
+  }
+});

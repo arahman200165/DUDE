@@ -1,0 +1,22 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'io.github.arahman200165.dude'
+version = '0.0.0'
+
+android {
+  namespace 'expo.modules.dudeshare'
+  defaultConfig {
+    minSdkVersion 29
+    versionCode 1
+    versionName project.version.toString()
+    testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+  }
+}
+
+dependencies {
+  androidTestImplementation 'androidx.test:runner:1.6.2'
+  androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+}

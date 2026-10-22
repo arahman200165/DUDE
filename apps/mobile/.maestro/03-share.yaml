@@ -1,0 +1,22 @@
+appId: io.github.arahman200165.dude.preview
+name: Share-to-DUDE inbound text routes to Smart Paste suggestions
+# Maestro cannot send intents. The harness must first (app installed, app data cleared) run:
+#   adb shell am start -a android.intent.action.SEND -t text/plain --es android.intent.extra.TEXT "<JWT below>" -n io.github.arahman200165.dude.preview/.MainActivity
+# and only then run this flow, which must NOT relaunch or clear the app (that would drop the pending share).
+# JWT (jwt.io sample, HS256, sub 1234567890): eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+---
+- assertVisible: "Shared content"
+- assertVisible: "Suggested tools"
+- assertVisible: "JWT Debugger"
+# A JWT is secret-like: the preview is hidden, the token text is never shown.
+- assertVisible: "Hidden: this looks like a secret.*"
+- assertNotVisible: "eyJhbGciOiJIUzI1NiIs.*"
+- assertVisible: "Nothing runs automatically.*"
+- tapOn: "JWT Debugger"
+- assertVisible: "JWT Debugger"
+# The shared token is prefilled into the tool input, and nothing ran until the user acts.
+- assertVisible:
+    id: "tool-input"
+    text: "eyJhbGciOiJIUzI1NiIs.*"
+- pressKey: back
+- assertNotVisible: "Shared content"

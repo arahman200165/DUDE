@@ -23,6 +23,7 @@ const config: ExpoConfig = {
     './plugins/with-hermes.cjs',
     './plugins/with-preview-signing.cjs',
     './plugins/with-android-privacy.cjs',
+    './plugins/with-share-intent.cjs',
     ['expo-camera', { cameraPermission: 'Allow DUDE to scan a Hub pairing QR code.', recordAudioAndroid: false }],
     // Photo Picker only: no READ_MEDIA_*/storage permissions (blocked above and in with-android-privacy.cjs); CAMERA stays from expo-camera.
     ['expo-image-picker', { photosPermission: false, microphonePermission: false }],
