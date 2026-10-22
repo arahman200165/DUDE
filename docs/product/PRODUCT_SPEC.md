@@ -131,7 +131,7 @@ Mobile should not be treated merely as "smaller DUDE."
 
 #### As built in Phase 31I: Android tools
 
-Implementation milestones 729–783 landed; acceptance is pending, so the following describes shipped code, not a release claim. Android has 40 executable tools, each with a native screen and an on-device journey; the list is locked by [PD-085](../delivery/PHASE31I_PLAN.md) and no reserve tool was needed.
+Implementation milestones 729–785 landed; acceptance is pending, so the following describes shipped code, not a release claim. Android has 40 executable tools, each with a native screen and an on-device journey; the list is locked by [PD-085](../delivery/PHASE31I_PLAN.md) and no reserve tool was needed.
 
 | Group | Tools |
 |---|---|

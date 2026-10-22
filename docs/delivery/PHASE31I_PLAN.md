@@ -1,6 +1,6 @@
 # Phase 31I implementation decisions
 
-Status: in progress. Implementation milestones 729–783 landed; acceptance pending. The exit gate is open; DUDE 2.0 is declared only at the final milestone (786 as built; planned as 784, see [Deviations](#deviations-and-implementation-notes)) after every Definition of Done item has recorded evidence. [Phase 31H acceptance](PHASE31H_ACCEPTANCE.md) records the carried passes; the [DUDE 2.0 release definition](QUALITY_AND_RELEASE.md#dude-20-distributed-release-definition-of-done--all-planned) governs the final gate.
+Status: in progress. Implementation milestones 729–785 landed; acceptance pending. The exit gate is open; DUDE 2.0 is declared only at the final milestone (786 as built; planned as 784, see [Deviations](#deviations-and-implementation-notes)) after every Definition of Done item has recorded evidence. [Phase 31H acceptance](PHASE31H_ACCEPTANCE.md) records the carried passes; [Phase 31I acceptance](PHASE31I_ACCEPTANCE.md) records the final automated gate, the Definition of Done status and the guided manual script; the [DUDE 2.0 release definition](QUALITY_AND_RELEASE.md#dude-20-distributed-release-definition-of-done--all-planned) governs the final gate.
 
 - **PD-084 — Single final gate.** Phase 31H's automated scope is declared implemented. Its owed passes (protected signed install, physical LAN/off-LAN/offline/restore/re-pair, failure cases, TalkBack, native measurements and first CI runs) are not closed separately; they are carried into the single 31I/DUDE 2.0 final gate, so 31I implementation starts before they run. Nothing in 31H or 31I is represented as accepted until that gate records evidence.
 - **PD-085 — Locked tool list.** Forty tools, by group below. Every row is an existing stable registry ID except `device-info`, which is new and available on every surface (category `developer`). Nothing else is promised to Android in this phase.
@@ -54,7 +54,9 @@ The map below is as built. The numbering drifted from the plan written at Milest
 | 781 | Kit consolidation: `SecretField`, `SingleLineField` and `useOffThreadRun` with cancellation |
 | 782 | Landed: serial SQLite gate (`apps/mobile/src/storage/serial-gate.ts`) that fixes the first-launch native crash, shell-level keyboard Back, harness retries default 1 and batches of 8 flows |
 | 783 | Landed: flag-gated on-device measurement screen and `measure-mobile.mjs --tools`, measured input budgets, kit main-thread budget, emulator-fixture release thresholds |
-| 784–786 | Planned, not landed: documentation (784), acceptance evidence from the guided script (785), DUDE 2.0 (786, only after every Definition of Done item has evidence) |
+| 784 | As-built documentation, recipe, deviations, measured budgets and thresholds |
+| 785 | Acceptance evidence, Definition of Done status and the guided manual script ([acceptance](PHASE31I_ACCEPTANCE.md)) |
+| 786 | Planned, not landed: DUDE 2.0 (only after every Definition of Done item and every guided-script row has evidence) |
 
 Two unnumbered fix commits sit between milestones: gate findings after 772 (Device Info coverage exclusions and mobile lint directives) and the data-scope inventory declaration for the Share-to-DUDE in-memory store after 779.
 

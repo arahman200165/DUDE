@@ -41,7 +41,7 @@ FilePicker
 ResultCard
 ```
 
-**As built in Phase 31I.** Implementation milestones 729–783 landed; acceptance is pending. The 40 Android tools are built from one mobile-owned kit (`apps/mobile/src/kit`), so they look and behave alike:
+**As built in Phase 31I.** Implementation milestones 729–785 landed; acceptance is pending. The 40 Android tools are built from one mobile-owned kit (`apps/mobile/src/kit`), so they look and behave alike:
 
 - **Controls.** `ToolScreen` lays out input, options and output; `InputEditor` (multiline), `SingleLineField` and `SecretField` (masked, Show/Hide and Clear, no autofill) take text; `ModeSegment` switches modes; `KeyValueList` and `ResultCard` show structured results; `ErrorBanner` is one accessible `Error: <message>` alert that TalkBack reads once; `StatusPill` shows "Working" for slow runs. Output uses `OutputViewer` with Copy, Share and Save. Simple text-in/text-out tools are declared with `defineTextTool`; flagship tools are bespoke screens built from the same parts.
 - **Options sheet.** Tool options (delimiter, case style, indentation and similar) open in an options sheet on a React Native `Modal`, not a third-party sheet library. Closing it dismisses the keyboard so the results stay visible.
