@@ -137,8 +137,9 @@ const master = "github.ref == 'refs/heads/master' && github.event_name == 'push'
 
 test('publishes only from master pushes, after every gate and the packaging pass', () => {
   assert.deepEqual(new Set(publishJob.needs), new Set([...gates, 'package', 'mobile-package']));
-  // Nothing ships, web or desktop, unless every check passes.
-  assert.deepEqual(new Set(workflow.jobs.deploy.needs), new Set(gates));
+  // Pages ships only the web build, so it waits for the gates covering it; no release ships unless every gate passes.
+  assert.deepEqual(new Set(workflow.jobs.deploy.needs), new Set(['checks', 'unit', 'web']));
+  assert.equal(workflow.jobs.deploy.if, master);
   // Packaging runs alongside the gates, so it must not be able to write releases.
   assert.equal(packageJob.needs, undefined);
   assert.equal(packageJob.permissions.contents, 'read');
@@ -146,7 +147,6 @@ test('publishes only from master pushes, after every gate and the packaging pass
   assert.equal(packageJob.if, master);
   // Path-skipped Android jobs must not skip the release, but any failed or cancelled upstream job must stop it.
   assert.equal(publishJob.if, `\${{ !cancelled() && !failure() && ${master} }}`);
-  assert.equal(workflow.jobs.deploy.if, `\${{ !cancelled() && !failure() && ${master} }}`);
   assert.equal(steps[0].with?.['fetch-depth'], 0);
   // The version is set after install and before anything that bakes it in.
   const index = name => steps.findIndex(step => step.name === name);

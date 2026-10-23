@@ -1,8 +1,8 @@
 name: CI
 
 # One run per push: parallel Linux gates and, on master pushes, Windows packaging
-# alongside them. The GitHub Pages deploy and the draft release (`publish`) wait
-# for every gate below. The Android build and emulator journeys are skipped when
+# alongside them. The GitHub Pages deploy waits for the web gates; the draft
+# release (`publish`) waits for every gate below. The Android build and emulator journeys are skipped when
 # no changed file reaches the Android app (scripts/ci-changes.mjs).
 #
 # The release version is never committed. package.json holds a <major>.<minor>.0
@@ -515,9 +515,11 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # Pages serves only the web build, so it waits for the gates that cover it (lint and generated files, unit tests, build and e2e),
+  # not for the desktop, Hub and Android jobs. The draft release still waits for every gate.
   deploy:
-    needs: [changes, checks, unit, desktop-tests, web, docker-smoke, hub-e2e, hub-service, mobile-checks, mobile-build, mobile-native]
-    if: ${{ !cancelled() && !failure() && github.ref == 'refs/heads/master' && github.event_name == 'push' }}
+    needs: [checks, unit, web]
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
     concurrency:
       group: pages
