@@ -155,11 +155,13 @@ tags: [tools, developer]
     id: "tool-input-text"
 - inputText: "cat sat cat"
 - hideKeyboard
+# Centre the Match/Replace row before tapping: at 10% visibility it can sit under the navigation bar, and the tap on Replace then lands on Recents.
 - scrollUntilVisible:
     element:
       id: "mode-replace"
     direction: DOWN
     visibilityPercentage: 10
+    centerElement: true
     timeout: 30000
 - tapOn:
     id: "mode-replace"
@@ -168,6 +170,7 @@ tags: [tools, developer]
       id: "tool-input-replacement"
     direction: DOWN
     visibilityPercentage: 10
+    centerElement: true
     timeout: 30000
 - tapOn:
     id: "tool-input-replacement"
