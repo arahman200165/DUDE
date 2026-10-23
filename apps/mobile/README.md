@@ -1,6 +1,6 @@
 # DUDE Android Preview
 
-Phase 31H is in progress. The native shell has Home, Tools, Search, Favorites and Settings tabs, stacked registry metadata, Appearance and Environment & Hub pages. Discovery uses the complete shared registry; no tool executes in 31H. The current shell keeps favorites and appearance in session memory and reports standalone/local-only status. Native enrollment, durable cache and synchronization arrive in subsequent milestones. Tool execution belongs to 31I.
+Phase 31H built the native shell (Home, Tools, Search, Favorites and Settings tabs, stacked registry metadata, Appearance and Environment & Hub pages), native enrollment, the durable cache and favorites/settings synchronization. Phase 31I added 40 executable tools, Share-to-DUDE and camera scanning, and DUDE 2.0 was declared at Milestone 786. Discovery uses the complete shared registry; tools that cannot run on Android are listed behind a switch with the reason.
 
 From the repository root, `npm ci` installs the owning workspace dependencies and `npm run mobile:bundle` builds portable packages and exports the Android JavaScript/assets into `dist/mobile`. `npm run check:mobile` checks TypeScript and host boundaries; `npm run test:mobile` exercises that boundary gate.
 

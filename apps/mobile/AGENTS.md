@@ -1,6 +1,6 @@
 # AGENTS.md — apps/mobile/
 
-Android companion, Expo SDK 57 / React Native 0.86 / React 19.2, Hermes and Expo Router. Read the root instructions, [Phase 31H decisions](../../docs/delivery/PHASE31H_PLAN.md) and [Phase 31I decisions](../../docs/delivery/PHASE31I_PLAN.md) (PD-084 to PD-097 and its deviations section). Phase 31H built the shell and sync; Phase 31I added 40 executable tools, the kit, the off-thread runtime, Share-to-DUDE and the Maestro harness (implementation milestones 729–785 landed; acceptance is pending, so do not describe 31I or DUDE 2.0 as complete). Adding a tool starts with the Android section of [ADDING_A_TOOL.md](../../ADDING_A_TOOL.md).
+Android companion, Expo SDK 57 / React Native 0.86 / React 19.2, Hermes and Expo Router. Read the root instructions, [Phase 31H decisions](../../docs/delivery/PHASE31H_PLAN.md) and [Phase 31I decisions](../../docs/delivery/PHASE31I_PLAN.md) (PD-084 to PD-098 and its deviations section). Phase 31H built the shell and sync; Phase 31I added 40 executable tools, the kit, the off-thread runtime, Share-to-DUDE and the Maestro harness (Milestones 729–786 landed and DUDE 2.0 was declared at Milestone 786; the missing-Keystore and corrupt/full-storage failure cases are automated-only, so do not describe them as physically verified). Adding a tool starts with the Android section of [ADDING_A_TOOL.md](../../ADDING_A_TOOL.md).
 
 ## Layout and import regions
 

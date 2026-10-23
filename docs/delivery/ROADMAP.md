@@ -32,7 +32,7 @@ Related: [DUDE — Product Requirements](../DUDE_PRD.md) · [Quality and Release
 | Horizon | Status |
 |---|---|
 | Phases 0–31 | Complete; Phase 31 closed at Milestone 614 |
-| Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A (Milestone 615) and 31B (Milestones 616–627) and 31C (Milestones 628–648) and 31D (Milestones 649–662) and 31E (Milestones 663–682) and 31F (Milestones 683–699) and 31G (Milestones 700–719) complete, 31H implemented with its owed passes carried into the 31I final gate, 31I in progress (implementation milestones 729–785 landed; acceptance pending), 31J planned |
+| Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A (Milestone 615) and 31B (Milestones 616–627) and 31C (Milestones 628–648) and 31D (Milestones 649–662) and 31E (Milestones 663–682) and 31F (Milestones 683–699) and 31G (Milestones 700–719) complete, 31H (Milestones 720–728) and 31I (Milestones 729–786) complete; DUDE 2.0 was declared at Milestone 786 on 2026-10-23, with 31H's carried passes recorded in the 31I gate (the missing-Keystore and corrupt/full-storage cases are automated-only under PD-098); 31J planned and not started |
 | Phase 32 | Core expansion begins only after every phase from 31A through 31J is complete |
 | Phases 33–100 | Retained long-horizon scope, subject to dependencies and product boundaries |
 
@@ -40,7 +40,7 @@ Related: [DUDE — Product Requirements](../DUDE_PRD.md) · [Quality and Release
 
 The roadmap deliberately extends beyond what any single delivery phase covers.
 
-Phase 0 was the weekend commitment; it is complete. **Phases 1–31 are also complete.** Phase 8 established the Windows desktop track, Phase 21 established the cross-tool workflow foundations, and Phase 22 hardened the platform (distributed manifests, single-sourced metadata, structural validation, generated docs, dependency boundaries, chunk/cache budgets) for the next several hundred tools. Phase 30 (30A–30L) shipped the workbench shell, discovery, insights, appearance, and verification program. Phase 31 (Milestones 593–614) shipped the Windows process/system troubleshooting tools and the second local mutation engine. The next priority is to complete Phases 31A–31J strictly in order before beginning Phase 32 tool expansion. Existing Phase 32–100 identifiers and feature inventories are retained; delivered milestones remain 593–614 for Phase 31. Milestone 615 records the Phase 31A implementation, and Phase 31A is complete.
+Phase 0 was the weekend commitment; it is complete. **Phases 1–31 are also complete.** Phase 8 established the Windows desktop track, Phase 21 established the cross-tool workflow foundations, and Phase 22 hardened the platform (distributed manifests, single-sourced metadata, structural validation, generated docs, dependency boundaries, chunk/cache budgets) for the next several hundred tools. Phase 30 (30A–30L) shipped the workbench shell, discovery, insights, appearance, and verification program. Phase 31 (Milestones 593–614) shipped the Windows process/system troubleshooting tools and the second local mutation engine. The next priority is to complete Phases 31A–31J strictly in order before beginning Phase 32 tool expansion. Existing Phase 32–100 identifiers and feature inventories are retained; delivered milestones remain 593–614 for Phase 31. Milestone 615 records the Phase 31A implementation; Phases 31A–31I are complete (31I's 40-tool Android set is delivered and DUDE 2.0 was declared at Milestone 786), and 31J has not started.
 
 From Phase 22 onward, the roadmap deliberately stops treating raw tool count as the primary measure of progress. Platform trust, correctness, composition, native capability, local/offline strength, automation safety, discoverability, and reuse across surfaces matter more.
 
@@ -80,15 +80,23 @@ From Phase 22 onward, the roadmap deliberately stops treating raw tool count as 
 | Phase 29 | ✅ Complete | Filesystem scans, watching and previewed mutation. | [Phase 29](../history/DELIVERY_HISTORY.md#phase-29) |
 | Phase 30 | ✅ Complete | Workbench Home, Browse Tools, insights, appearance and integrated verification. | [Phase 30](../history/DELIVERY_HISTORY.md#phase-30) |
 | Phase 31 | ✅ Complete | Windows process/system troubleshooting and the system mutation engine. | [Phase 31](../history/DELIVERY_HISTORY.md#phase-31) |
-| Phase 31A | ✅ Complete | npm workspaces, portable core packages, registry-owned manifests, platform ports and data-scope types. | [Phase 31A acceptance](PHASE31A_ACCEPTANCE.md) |
+| Phase 31A | ✅ Complete | npm workspaces, portable core packages, registry-owned manifests, platform ports and data-scope types (Milestone 615). | [Phase 31A acceptance](PHASE31A_ACCEPTANCE.md) |
+| Phase 31B | ✅ Complete | Stable device identity, the SQLite Device State Store, scoped persistence codecs, durable outbox, secret references and Settings › This Device (Milestones 616–627). | [Phase 31B acceptance](PHASE31B_ACCEPTANCE.md) |
+| Phase 31C | ✅ Complete | Self-hosted Hub: Fastify service, canonical SQLite, owner identity and recovery, Ed25519 device pairing, realtime WebSocket, resident Device Agent and Hub installer/service packaging (Milestones 628–648). | [Phase 31C acceptance](PHASE31C_ACCEPTANCE.md) |
+| Phase 31D | ✅ Complete | Revision-based synchronization with offline reconciliation, three-way merge, conflict inbox and first-sync preview (Milestones 649–662). | [Phase 31D acceptance](PHASE31D_ACCEPTANCE.md) |
+| Phase 31E | ✅ Complete | Hub-served Angular web with shared state, private access, built-in local CA, reverse-proxy mode and endpoint diagnostics (Milestones 663–682). | [Phase 31E acceptance](PHASE31E_ACCEPTANCE.md) |
+| Phase 31F | ✅ Complete | Internet readiness: step-up re-authentication, session rotation, ACME, dynamic addresses, reachability echo, sync-time revocation checks and the gated public mode (Milestones 683–699). | [Phase 31F acceptance](PHASE31F_ACCEPTANCE.md) |
+| Phase 31G | ✅ Complete | Encrypted `.dudebackup` backup, offline restore, authority epoch and fence, manual Hub transfer and device reconnect (Milestones 700–719). | [Phase 31G acceptance](PHASE31G_ACCEPTANCE.md) |
+| Phase 31H | ✅ Complete | React Native Android shell with QR/paste enrollment, pinned transport, synchronized favorites/settings and local APK/AAB packaging (Milestones 720–728); its physical/signing/accessibility passes were carried into and recorded in 31I. | [Phase 31H acceptance](PHASE31H_ACCEPTANCE.md) |
+| Phase 31I | ✅ Complete | 40 executable Android tools, Share-to-DUDE, camera scanning, on-device journeys and the DUDE 2.0 declaration (Milestones 729–786). | [Phase 31I acceptance](PHASE31I_ACCEPTANCE.md) |
 
 <a id="near-term-roadmap"></a>
 
-## Post-Phase-31 Priority — Self-Hosted Distributed Foundation (Planned)
+## Post-Phase-31 Priority — Self-Hosted Distributed Foundation (31A–31I Complete; 31J Planned)
 
 **Decision:** complete the distributed foundation and collaboration depth in Phases **31A–31J**, strictly in order, before beginning Phase 32 tool expansion. These inserted IDs preserve all historical Phase 0–31 and future Phase 32–100 references. They are new planned phases, not additional completed Phase 31 milestones. Do not reuse shipped Milestones 593–614 or assign new milestone numbers until implementation planning does so.
 
-The required sequence is **31A → 31B → 31C → 31D → 31E → 31F → 31G → 31H → 31I → 31J → Phase 32**. Complete each phase and its exit gate before starting the next. 31A–31G are complete; 31H is implemented and its owed physical, signing and accessibility passes are carried into the 31I final gate ([PD-084](PHASE31I_PLAN.md)), so 31I implementation is in progress (milestones 729–785 landed; acceptance pending). The first distributed release gate remains at 31I; complete 31J's collaboration depth afterward, before starting Phase 32. There is no fixed calendar commitment.
+The required sequence is **31A → 31B → 31C → 31D → 31E → 31F → 31G → 31H → 31I → 31J → Phase 32**. Complete each phase and its exit gate before starting the next. 31A–31I are complete; 31H's physical, signing and accessibility passes were carried into the 31I final gate ([PD-084](PHASE31I_PLAN.md)) and recorded there, and DUDE 2.0 was declared at Milestone 786 (2026-10-23). The first distributed release gate closed at 31I; complete 31J's collaboration depth next, before starting Phase 32. There is no fixed calendar commitment.
 
 Backup/transfer is deliberately moved ahead of mobile delivery, and security controls begin with the first authenticated Hub endpoint. The planning sequence listed backup late and placed collaboration differently in its two summaries; this sequence resolves that inconsistency by making durable recovery part of the first usable release and delivering richer collaboration afterward, before Phase 32. The WebSocket/realtime foundation remains required in 31C–31D.
 
@@ -224,7 +232,7 @@ Backup/transfer is deliberately moved ahead of mobile delivery, and security con
 
 <a id="phase-31h"></a>
 
-### Phase 31H — React Native Android Shell and Sync (Implemented; Owed Passes Carried to the 31I Gate)
+### Phase 31H — React Native Android Shell and Sync (Complete; Passes Recorded in the 31I Gate)
 
 **Depends on:** 31A–31G.
 
@@ -242,7 +250,7 @@ Backup/transfer is deliberately moved ahead of mobile delivery, and security con
 
 <a id="phase-31i"></a>
 
-### Phase 31I — Initial Mobile Tool Set and DUDE 2.0 Gate (In Progress)
+### Phase 31I — Initial Mobile Tool Set and DUDE 2.0 Gate (Complete)
 
 **Depends on:** 31H implementation; 31H's owed passes are part of this phase's exit gate.
 
@@ -250,15 +258,19 @@ Backup/transfer is deliberately moved ahead of mobile delivery, and security con
 - mobile-native controls;
 - QR/barcode/share-sheet/device utilities where appropriate.
 
-**Implementation record:** Implementation milestones 729–785 landed; acceptance pending ([Phase 31I acceptance](PHASE31I_ACCEPTANCE.md) holds the recorded verification, the DUDE 2.0 Definition of Done status and the guided manual script). The decisions are in [the Phase 31I plan](PHASE31I_PLAN.md) (PD-084–PD-097) and its as-built map and deviations; the plan promised: a locked 40-tool list with a reserve and swap rule, a mobile-owned declarative kit, a fixed host-polyfill set, worklet off-thread execution for six heavy tools, Share-to-DUDE, camera scanning, bwip-js barcodes on every surface, a new all-surface `device-info` tool and on-device Maestro journeys. As built, all 40 tools and the framework landed with no reserve swap and 43 on-device journeys pass on API 29 and API 36. Milestone 782 fixed the first-launch SQLite crash with a serial statement gate and Milestone 783 measured and set the per-tool input budgets and emulator-fixture release thresholds. Not yet landed: documentation (784), acceptance evidence (785) and DUDE 2.0 (786). DUDE 2.0 is declared only at Milestone 786, after every Definition of Done item has recorded evidence.
+**Acceptance status (2026-10-23):** the final automated gate passed on `9f0575ce` (691 package files / 4,686 tests, 778 Angular files / 8,380 tests, lint, mobile, portable and Electron gates). Protected signing (group A) passed: the protected key signs the local `0.0.1017` build and the CI-built draft `v0.0.1018`. The first CI run of the Android journeys is green (run 39889069778, 43 journeys on API 29 and API 36); CI was then sped up with sharded emulators, a once-built APK, Gradle/ccache caching, arm64-v8a-only preview builds, Markdown-only and path-based gating and cancelled superseded pull-request runs. On a Galaxy S25 Ultra (API 37, arm64) with the protected preview, **43 of 43 journeys passed with no retries**; Share-to-DUDE, file open/save, camera scanning and TalkBack (owner-reported), LAN and Tailscale pairing, offline replay, restore and re-pair, revocation, changed authority with a regressed Hub and the incompatible-Hub refusal are recorded; startup was 105–135 ms with 106,384 KiB PSS. The published arm64-v8a preview (draft `v0.0.1029`) is APK 97,681,008 B and AAB 43,081,033 B. The owner then reported the remaining sessions complete (owner-reported; per-step detail not recorded): the pin active/next rotation, font scale 2.0 and bare links, the per-tool physical measurements and all of group G (installed NSIS and Hub, elevated runs, second PC, real Let's Encrypt with a phone on cellular, second-machine transfer). Not exercised on the phone: the missing-Keystore and corrupt/full-storage failure cases (they need a rooted or debuggable build); they are carried forward as automated-only by [PD-098](../history/DECISION_LOG.md), and the enrolled catch-up figures are not recorded. **Milestone 786 landed (2026-10-23):** every Definition of Done box is ticked, the root version base is `2.0.0` and DUDE 2.0 is declared ([close-out](PHASE31I_ACCEPTANCE.md#milestone-786-close-out)).
 
-**Exit gate:** The 40 listed compatible tools (or recorded reserve swaps) have usable native UI and shared-engine verification on API 29, API 36 and a physical phone; the carried Phase 31H passes (protected signed install, physical LAN/off-LAN/offline/restore/re-pair, failure cases, TalkBack, native measurements and first CI runs) and the owed 31B–31G manual passes are recorded; APK/AAB build/install evidence and all [DUDE 2.0 Distributed Release Definition of Done — All Planned](QUALITY_AND_RELEASE.md#dude-20-distributed-release-definition-of-done--all-planned) release checks are recorded.
+**Implementation record:** Implementation milestones 729–786 landed ([Phase 31I acceptance](PHASE31I_ACCEPTANCE.md) holds the recorded verification, the DUDE 2.0 Definition of Done status and the guided manual script). The decisions are in [the Phase 31I plan](PHASE31I_PLAN.md) (PD-084–PD-098) and its as-built map and deviations; the plan promised: a locked 40-tool list with a reserve and swap rule, a mobile-owned declarative kit, a fixed host-polyfill set, worklet off-thread execution for six heavy tools, Share-to-DUDE, camera scanning, bwip-js barcodes on every surface, a new all-surface `device-info` tool and on-device Maestro journeys. As built, all 40 tools and the framework landed with no reserve swap and 43 on-device journeys pass on API 29 and API 36. Milestone 782 fixed the first-launch SQLite crash with a serial statement gate and Milestone 783 measured and set the per-tool input budgets and emulator-fixture release thresholds. Documentation (784), acceptance evidence (785) and DUDE 2.0 (786) then landed. DUDE 2.0 was declared at Milestone 786, after every Definition of Done item had recorded evidence.
+
+**Exit gate:** The 40 listed compatible tools (or recorded reserve swaps) have usable native UI and shared-engine verification on API 29, API 36 and a physical phone; the carried Phase 31H passes (protected signed install, physical LAN/off-LAN/offline/restore/re-pair, failure cases, TalkBack, native measurements and first CI runs) and the owed 31B–31G manual passes are recorded (met at Milestone 786; two failure cases are automated-only under PD-098); APK/AAB build/install evidence and all [DUDE 2.0 Distributed Release Definition of Done — All Planned](QUALITY_AND_RELEASE.md#dude-20-distributed-release-definition-of-done--all-planned) release checks are recorded.
 
 <a id="phase-31j"></a>
 
 ### Phase 31J — Hub Collaboration and Realtime Depth (Planned)
 
 **Depends on:** 31D–31I for delivery; realtime transport foundation starts in 31C.
+
+**Implementation status:** not started. Only the foundation below exists: the authenticated Hub realtime WebSocket (31C) and its Hub web client (31E). No presence, Yjs, collaborative-document or notification/job-status milestone has landed, and 31J begins after 31I's exit gate and DUDE 2.0 are recorded.
 
 - presence;
 - Yjs where appropriate;

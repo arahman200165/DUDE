@@ -651,7 +651,7 @@ Remote changes apply live through `applyRemote` on the entity collections and th
 
 **Sync UI.** Hub web has a browser `SyncPort` behind the shell indicator and Settings › Sync: Live, Hub unreachable (changes paused), Session expired and Reload needed states, Sync now, environment-level web-access toggles (never desktop consent) and a per-device table from the summary (kind, cursor and lag, pending, conflicts, quarantined, paused, last push and pull). Desktop conflicts and quarantine hand off to DUDE Desktop; first-sync, pause, quarantine and standalone panels are desktop-only.
 
-**Not delivered.** A browser offline outbox, a server-side conflict inbox, collaboration persistence (31J) and end-to-end encrypted categories (Phase 82). Android shell/sync implementation and its outstanding acceptance (carried into the 31I gate) are described below; executable Android tools are in progress in 31I (implementation landed; acceptance pending, [as built](#as-built-in-phase-31i-tool-state-on-android)).
+**Not delivered.** A browser offline outbox, a server-side conflict inbox, collaboration persistence (31J) and end-to-end encrypted categories (Phase 82). Android shell/sync (31H, with its acceptance recorded in the 31I gate) and the executable Android tools (31I, [as built](#as-built-in-phase-31i-tool-state-on-android)) are delivered and described below.
 
 ## As built in Phase 31G (backup, restore and transfer)
 

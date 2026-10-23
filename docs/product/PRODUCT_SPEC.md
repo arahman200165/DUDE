@@ -131,7 +131,7 @@ Mobile should not be treated merely as "smaller DUDE."
 
 #### As built in Phase 31I: Android tools
 
-Implementation milestones 729–785 landed; acceptance is pending, so the following describes shipped code, not a release claim. Android has 40 executable tools, each with a native screen and an on-device journey; the list is locked by [PD-085](../delivery/PHASE31I_PLAN.md) and no reserve tool was needed.
+Implementation milestones 729–786 landed and DUDE 2.0 was declared at Milestone 786; the following describes shipped code. Android has 40 executable tools, each with a native screen and an on-device journey; the list is locked by [PD-085](../delivery/PHASE31I_PLAN.md) and no reserve tool was needed.
 
 | Group | Tools |
 |---|---|
@@ -435,7 +435,7 @@ That is the literal consequence of personal ownership.
 
 | Capability | Desktop with Hub unavailable | Hub web during outage | Android during outage |
 |---|---|---|---|
-| Portable local tool | Works when its runtime is available | Works once loaded; the Hub web service worker caches the public app shell and tool chunks (31E), and loaded tools keep working | All 40 Phase 31I tools work fully offline (acceptance pending); a tool without an Android binding is unavailable |
+| Portable local tool | Works when its runtime is available | Works once loaded; the Hub web service worker caches the public app shell and tool chunks (31E), and loaded tools keep working | All 40 Phase 31I tools work fully offline; a tool without an Android binding is unavailable |
 | Local filesystem/process/network work | Works when local capabilities/permissions are available | Not made native by Hub connectivity | Limited to declared mobile OS capabilities |
 | Cached workbench records | Available within local access policy | Not cached: shared state is held in memory and seeded from the Hub; none is written to the browser or the service worker cache (31E) | Available where mobile cache is implemented |
 | Shared edits | Durable local outbox and explicit pending state | Online-only (31E): edits are refused with a visible Hub unreachable notice and rolled back; no browser outbox | Queue only for implemented sync entities |
