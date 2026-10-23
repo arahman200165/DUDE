@@ -258,6 +258,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      - run: npm install -g npm@11.19.0
       - run: npm ci
       - run: npm run hub:stage
       - name: Service lifecycle (install, bootstrap, update, LAN, uninstall)
