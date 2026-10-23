@@ -322,3 +322,8 @@ test('installed electron-builder generates updater metadata with publishing disa
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('the ccache directory inside the checkout is ignored so the dirty-tree guard in mobile-package stays quiet', () => {
+  const ignore = readFileSync(path.join(root, '.gitignore'), 'utf8').split(/\r?\n/);
+  assert.ok(ignore.includes('/.ccache/'), 'hendrikmuhs/ccache-action keeps its cache in <workspace>/.ccache; an untracked folder makes scripts/mobile-package.mjs refuse to package');
+});
