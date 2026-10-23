@@ -34,6 +34,12 @@ permissions:
   pages: write
   id-token: write
 
+# A new push to a pull request cancels its superseded run. Each master push gets its own group, because a shared group would
+# leave at most one master run queued and cancel the rest, and every master commit gets its own release version.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # Which optional jobs this change needs. Diffing needs only commits and trees, hence the blob-less clone.
   changes:

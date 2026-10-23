@@ -191,6 +191,11 @@ test('packaging hands publish every asset through one artifact, verified before 
   }
 });
 
+test('only pull-request runs cancel each other; every master push runs to completion', () => {
+  assert.equal(workflow.concurrency.group, "ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}");
+  assert.equal(workflow.concurrency['cancel-in-progress'], "${{ github.event_name == 'pull_request' }}");
+});
+
 test('one writer per commit, packaging without uploads', () => {
   assert.equal(publishJob.concurrency.group, 'release-${{ github.sha }}');
   assert.equal(publishJob.concurrency['cancel-in-progress'], false);
