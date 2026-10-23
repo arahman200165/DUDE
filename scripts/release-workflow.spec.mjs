@@ -143,7 +143,10 @@ test('publishes only from master pushes, after every gate and the packaging pass
   assert.equal(packageJob.needs, undefined);
   assert.equal(packageJob.permissions.contents, 'read');
   assert.equal(publishJob.permissions.contents, 'write');
-  for (const job of [packageJob, publishJob]) assert.equal(job.if, master);
+  assert.equal(packageJob.if, master);
+  // Path-skipped Android jobs must not skip the release, but any failed or cancelled upstream job must stop it.
+  assert.equal(publishJob.if, `\${{ !cancelled() && !failure() && ${master} }}`);
+  assert.equal(workflow.jobs.deploy.if, `\${{ !cancelled() && !failure() && ${master} }}`);
   assert.equal(steps[0].with?.['fetch-depth'], 0);
   // The version is set after install and before anything that bakes it in.
   const index = name => steps.findIndex(step => step.name === name);
@@ -153,6 +156,18 @@ test('publishes only from master pushes, after every gate and the packaging pass
   assert.equal(packageJob.outputs.tag, '${{ steps.release.outputs.tag }}');
   assert.equal(publish.env.RELEASE_VERSION, '${{ needs.package.outputs.version }}');
   assert.equal(publish.env.RELEASE_TAG, '${{ needs.package.outputs.tag }}');
+});
+
+test('only the Android build and journeys can be skipped by path, and only through the change detector', () => {
+  const skippable = Object.entries(workflow.jobs).filter(([, job]) => /needs\.changes\.outputs/.test(job.if ?? '')).map(([name]) => name);
+  assert.deepEqual(skippable, ['mobile-build']);
+  assert.equal(workflow.jobs['mobile-build'].if, "needs.changes.outputs.mobile == 'true'");
+  assert.equal(workflow.jobs['mobile-native'].needs, 'mobile-build');
+  assert.equal(workflow.jobs['mobile-native'].if, undefined);
+  // The release packaging always runs on master, so publish never lacks the Android preview.
+  assert.equal(workflow.jobs['mobile-package'].needs, undefined);
+  const markdown = ['*/**/*.md', 'ADDING_A_TOOL.md', 'AGENTS.md', 'DUDE_PRD.md'];
+  for (const event of ['push', 'pull_request']) assert.deepEqual(workflow.on[event]['paths-ignore'], markdown);
 });
 
 test('packaging hands publish every asset through one artifact, verified before upload', () => {

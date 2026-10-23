@@ -631,7 +631,7 @@ Local packaging requires `DUDE_ANDROID_KEYSTORE_PATH`, `DUDE_ANDROID_KEYSTORE_PA
 
 ## Deployment
 
-Every push to `master` runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml): parallel check, test and build jobs, then deploy `dist/dude/browser` to GitHub Pages and prepare one draft release with the Windows, Hub and protected Android preview artifacts. Missing Android preview signing configuration fails preview packaging explicitly. Existing desktop, Hub and Pages verification gates remain in place.
+Every push to `master` that changes more than Markdown runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml): parallel check, test and build jobs (the Android emulator journeys only when the change reaches the Android app), then deploy `dist/dude/browser` to GitHub Pages and prepare one draft release with the Windows, Hub and protected Android preview artifacts. Missing Android preview signing configuration fails preview packaging explicitly. Existing desktop, Hub and Pages verification gates remain in place.
 
 Two details make clean, bookmarkable routes work correctly on GitHub Pages' static hosting:
 

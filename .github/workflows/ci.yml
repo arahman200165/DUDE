@@ -2,18 +2,32 @@ name: CI
 
 # One run per push: parallel Linux gates and, on master pushes, Windows packaging
 # alongside them. The GitHub Pages deploy and the draft release (`publish`) wait
-# for every gate below.
+# for every gate below. The Android build and emulator journeys are skipped when
+# no changed file reaches the Android app (scripts/ci-changes.mjs).
 #
 # The release version is never committed. package.json holds a <major>.<minor>.0
 # base and the package job sets the patch to the commit count of master
 # (`git rev-list --count HEAD`) inside the runner, so every build of a commit
 # gets the same, ever-increasing version and nothing pushes back to master.
+#
+# Markdown-only changes do not run CI, so they get no Pages deploy or draft release.
+# The root README.md and SECURITY.md are generated and checked, so they still do.
 
 on:
   push:
     branches: [master]
+    paths-ignore:
+      - '*/**/*.md'
+      - ADDING_A_TOOL.md
+      - AGENTS.md
+      - DUDE_PRD.md
   pull_request:
     branches: [master]
+    paths-ignore:
+      - '*/**/*.md'
+      - ADDING_A_TOOL.md
+      - AGENTS.md
+      - DUDE_PRD.md
 
 permissions:
   contents: read
@@ -21,6 +35,25 @@ permissions:
   id-token: write
 
 jobs:
+  # Which optional jobs this change needs. Diffing needs only commits and trees, hence the blob-less clone.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      mobile: ${{ steps.diff.outputs.mobile }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          filter: blob:none
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - id: diff
+        run: node scripts/ci-changes.mjs "$BASE" "$HEAD"
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
   # The Linux gates run as parallel jobs; each repeats only the ~1 minute of setup.
   checks:
     runs-on: ubuntu-latest
@@ -62,6 +95,9 @@ jobs:
 
       - name: Verify desktop and relay declarations
         run: npm run check:hosts
+
+      - name: Verify CI change detection
+        run: node --test scripts/ci-changes.spec.mjs
 
   # `npm run test:high-consequence` is not repeated here: it re-runs test:packages and filtered subsets of
   # ng test, test:electron and test:hub, all of which CI runs in full.
@@ -278,6 +314,8 @@ jobs:
 
   # The x86_64 acceptance APKs are built once here and installed on every emulator shard of `mobile-native`.
   mobile-build:
+    needs: changes
+    if: needs.changes.outputs.mobile == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -351,6 +389,7 @@ jobs:
           retention-days: 1
 
   # Each API level's journeys are split across emulator shards (scripts/mobile-e2e.mjs --shard); the count in `script` must match `shard`.
+  # Skipped together with mobile-build when no changed file reaches the Android app.
   mobile-native:
     needs: mobile-build
     runs-on: ubuntu-latest
@@ -477,8 +516,8 @@ jobs:
           retention-days: 7
 
   deploy:
-    needs: [checks, unit, desktop-tests, web, docker-smoke, hub-e2e, hub-service, mobile-checks, mobile-build, mobile-native]
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    needs: [changes, checks, unit, desktop-tests, web, docker-smoke, hub-e2e, hub-service, mobile-checks, mobile-build, mobile-native]
+    if: ${{ !cancelled() && !failure() && github.ref == 'refs/heads/master' && github.event_name == 'push' }}
     runs-on: ubuntu-latest
     concurrency:
       group: pages
@@ -612,10 +651,11 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  # The only job that writes releases, so nothing is published unless every gate and the packaging passed.
+  # The only job that writes releases, so nothing is published unless every gate and the packaging passed. mobile-build and
+  # mobile-native may be skipped (see `changes`); a failed or cancelled job anywhere upstream still stops the release.
   publish:
-    needs: [checks, unit, desktop-tests, web, docker-smoke, hub-e2e, hub-service, mobile-checks, mobile-build, mobile-native, package, mobile-package]
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    needs: [changes, checks, unit, desktop-tests, web, docker-smoke, hub-e2e, hub-service, mobile-checks, mobile-build, mobile-native, package, mobile-package]
+    if: ${{ !cancelled() && !failure() && github.ref == 'refs/heads/master' && github.event_name == 'push' }}
     runs-on: windows-latest
     permissions:
       contents: write
