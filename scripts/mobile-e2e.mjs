@@ -6,11 +6,20 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 //   (no flag)      shell journeys (apps/mobile/.maestro/*.yaml) then every tool journey (.maestro/tools/*.yaml)
 //   --tools-only   only the tool journeys
 //   --flow <id>    only the named flow(s): a tool id (tools/<id>.yaml) or a shell flow name (e.g. 01-shell); repeatable
+//   --shard <i>/<n> only every n-th selected flow starting at the i-th (1-based), so n emulators split the journeys between them
 const root = path.resolve(import.meta.dirname, '..');
 const flowRoot = path.join(root, 'apps/mobile/.maestro');
 const args = process.argv.slice(2);
 let toolsOnly = false;
+let shard;
 const wanted = [];
+const parseShard = value => {
+  const match = /^([0-9]+)\/([0-9]+)$/.exec(value ?? '');
+  const index = Number(match?.[1]);
+  const count = Number(match?.[2]);
+  if (!match || index < 1 || index > count) throw new Error('--shard requires <i>/<n> with 1 <= i <= n.');
+  return { index, count };
+};
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--tools-only') toolsOnly = true;
   else if (args[i] === '--flow') {
@@ -18,7 +27,9 @@ for (let i = 0; i < args.length; i++) {
     if (!id || id.startsWith('--')) throw new Error('--flow requires a flow id.');
     wanted.push(id);
   } else if (args[i].startsWith('--flow=')) wanted.push(args[i].slice('--flow='.length));
-  else throw new Error(`Unknown argument ${args[i]}. Supported: --tools-only, --flow <id>.`);
+  else if (args[i] === '--shard') shard = parseShard(args[++i]);
+  else if (args[i].startsWith('--shard=')) shard = parseShard(args[i].slice('--shard='.length));
+  else throw new Error(`Unknown argument ${args[i]}. Supported: --tools-only, --flow <id>, --shard <i>/<n>.`);
 }
 const yamlIn = dir => readdirSync(dir, { withFileTypes: true }).filter(entry => entry.isFile() && /\.ya?ml$/.test(entry.name) && entry.name !== 'config.yaml').map(entry => path.join(dir, entry.name)).sort();
 const flowId = file => path.basename(file).replace(/\.ya?ml$/, '');
@@ -28,6 +39,8 @@ if (wanted.length) {
   const missing = wanted.filter(id => !flows.some(file => flowId(file) === id));
   if (missing.length) throw new Error(`No Maestro flow named ${missing.join(', ')}${toolsOnly ? ' among tool flows' : ''}.`);
 }
+// Round-robin over the sorted list spreads the shell flows and the long tool journeys across shards.
+if (shard) flows = flows.filter((_, index) => index % shard.count === shard.index - 1);
 if (!flows.length) throw new Error('No Maestro flows selected.');
 
 const sdk = process.env.ANDROID_HOME ?? process.env.ANDROID_SDK_ROOT;

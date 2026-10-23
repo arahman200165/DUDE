@@ -178,7 +178,7 @@ npm run test:e2e:mobile -- --tools-only    # every tools/*.yaml
 npm run test:e2e:mobile                    # shell flows, 03-share, then every tool
 ```
 
-The harness raises the font scale to 1.5 and restores it, re-runs a failed flow up to `DUDE_E2E_RETRIES` times (default 1, `0` disables, at most 3), runs the flows in batches of `DUDE_E2E_BATCH` per Maestro session (default 8, so an adb drop costs one batch) and reports a flow that only passed on a retry as FLAKY, and writes JUnit under `test-results/mobile/<serial>/`. CI runs the same journeys on API 29 and API 36.
+The harness raises the font scale to 1.5 and restores it, re-runs a failed flow up to `DUDE_E2E_RETRIES` times (default 1, `0` disables, at most 3), runs the flows in batches of `DUDE_E2E_BATCH` per Maestro session (default 8, so an adb drop costs one batch) and reports a flow that only passed on a retry as FLAKY, and writes JUnit under `test-results/mobile/<serial>/`. CI runs the same journeys on API 29 and API 36, split across four emulators per API level with `--shard <i>/4`.
 
 #### 8. Share-to-DUDE input fields
 
