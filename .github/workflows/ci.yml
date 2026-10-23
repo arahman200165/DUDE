@@ -375,7 +375,7 @@ jobs:
       - name: Build the instrumentation and release APKs
         working-directory: apps/mobile/android
         # --no-daemon so no Gradle process holds the user home while the cache is saved.
-        run: ./gradlew :dude-hub:assembleDebugAndroidTest :app:assembleRelease -PreactNativeArchitectures=x86_64 --console=plain --no-daemon
+        run: ./gradlew :dude-hub:assembleDebugAndroidTest :app:assembleRelease -PreactNativeArchitectures=x86_64 -Dorg.gradle.jvmargs=-Xmx4g --console=plain --no-daemon
         env:
           CMAKE_C_COMPILER_LAUNCHER: ccache
           CMAKE_CXX_COMPILER_LAUNCHER: ccache

@@ -327,3 +327,9 @@ test('the ccache directory inside the checkout is ignored so the dirty-tree guar
   const ignore = readFileSync(path.join(root, '.gitignore'), 'utf8').split(/\r?\n/);
   assert.ok(ignore.includes('/.ccache/'), 'hendrikmuhs/ccache-action keeps its cache in <workspace>/.ccache; an untracked folder makes scripts/mobile-package.mjs refuse to package');
 });
+
+test('every CI Gradle build raises the daemon heap above the generated 2 GiB cap (the dex merge runs out of memory otherwise)', () => {
+  const steps = Object.values(workflow.jobs).flatMap(job => job.steps ?? []).filter(step => /\.\/gradlew\b/.test(step.run ?? ''));
+  assert.ok(steps.length > 0, 'expected at least one Gradle invocation in ci.yml');
+  for (const step of steps) assert.match(step.run, /-Dorg\.gradle\.jvmargs=-Xmx4g/, `${step.name ?? step.run} must pass -Dorg.gradle.jvmargs=-Xmx4g`);
+});

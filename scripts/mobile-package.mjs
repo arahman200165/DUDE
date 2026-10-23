@@ -8,6 +8,8 @@ const root = path.resolve(import.meta.dirname, '..');
 export const signingVariables = ['DUDE_ANDROID_KEYSTORE_PATH', 'DUDE_ANDROID_KEYSTORE_PASSWORD', 'DUDE_ANDROID_KEY_ALIAS', 'DUDE_ANDROID_KEY_PASSWORD'];
 // The published preview carries 64-bit ARM code only (current phones); emulators use the x86_64 acceptance build instead.
 export const previewArchitectures = 'arm64-v8a';
+// The generated android/gradle.properties caps the Gradle daemon at 2 GiB, which the dex merge exhausts; no space so a Windows shell keeps it one argument.
+export const GRADLE_HEAP_ARG = '-Dorg.gradle.jvmargs=-Xmx4g';
 
 export function packageConfiguration(env, baseVersion, shallow, count) {
   const missing = signingVariables.filter(name => !env[name]?.trim());
@@ -46,7 +48,7 @@ export function packageMobile(env = process.env) {
   npmRun(['run', 'build:packages']);
   npmRun(['run', 'mobile:prebuild']);
   const android = path.join(root, 'apps/mobile/android');
-  run(process.platform === 'win32' ? 'gradlew.bat' : './gradlew', [':app:assembleRelease', ':app:bundleRelease', `-PreactNativeArchitectures=${previewArchitectures}`, '--console=plain', '--no-daemon'], { cwd: android, env: buildEnv, stdio: 'inherit', shell: process.platform === 'win32' });
+  run(process.platform === 'win32' ? 'gradlew.bat' : './gradlew', [':app:assembleRelease', ':app:bundleRelease', `-PreactNativeArchitectures=${previewArchitectures}`, GRADLE_HEAP_ARG, '--console=plain', '--no-daemon'], { cwd: android, env: buildEnv, stdio: 'inherit', shell: process.platform === 'win32' });
   const output = path.join(root, 'dist/mobile-package');
   mkdirSync(output, { recursive: true });
   const files = [
