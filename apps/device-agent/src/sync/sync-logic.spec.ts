@@ -381,9 +381,9 @@ describe('conflict resolution', () => {
     // drawerExpanded: local changed true, remote left it; snippets changed remote only -> merged, no conflict.
     expect(listConflicts(s.store.db)).toHaveLength(0);
     expect(readLocal(s.store.db, 'scratchpad', 'default').payload).toMatchObject({ drawerExpanded: true, snippets: [{ id: 'x' }] });
-    // Force an overlapping edit.
-    commitKvBatch(s.store.db, [{ namespace: '__workspace__', key: 'scratchpad', value: { ...base, snippets: [{ id: 'mine' }] }, policy: 'local' }], undefined, undefined, s.commit);
-    applyRemoteChanges(s.store.db, [rec('scratchpad', 'default', 3, { ...base, snippets: [{ id: 'theirs' }] })], s.ctx);
+    // Force an overlapping edit: snippets merge by id (PD-102), so both sides add the same id with different content.
+    commitKvBatch(s.store.db, [{ namespace: '__workspace__', key: 'scratchpad', value: { ...base, snippets: [{ id: 'n', title: 'mine' }] }, policy: 'local' }], undefined, undefined, s.commit);
+    applyRemoteChanges(s.store.db, [rec('scratchpad', 'default', 3, { ...base, snippets: [{ id: 'n', title: 'theirs' }] })], s.ctx);
     const [c] = listConflicts(s.store.db);
     expect(listConflictViews(s.store.db)[0].canKeepBoth).toBe(false);
     expect(resolveConflict(s.store.db, c.id, 'both', s.commit)).toMatchObject({ ok: false });
