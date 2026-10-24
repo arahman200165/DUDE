@@ -7,7 +7,7 @@ vi.mock('electron', () => ({
   ipcMain: { handle: (channel: string, handler: (...args: any[]) => unknown) => mock.handlers.set(channel, handler) },
 }));
 
-import type { AgentHubStatus, AgentHubStatusEvent } from '@dude/contracts';
+import type { AgentEvent, AgentHubStatus } from '@dude/contracts';
 import type { DesktopHubBridge } from '@dude/contracts/shared/models/platform-bridge.model';
 import { DeviceStoreError } from './agent-host';
 import type { DeviceStoreHost } from './agent-host';
@@ -35,7 +35,7 @@ type Handler = (event: { sender: unknown }, ...args: unknown[]) => Promise<any>;
 const call = (channel: string, sender: unknown, ...args: unknown[]) => (mock.handlers.get(channel) as Handler)({ sender }, ...args);
 
 // Every bridge method with a valid argument list; `satisfies` makes tsc fail when the type gains or loses a method.
-const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged'>, { channel: string; args: unknown[]; invalid: unknown[][] }> = {
+const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged' | 'onViewChanged'>, { channel: string; args: unknown[]; invalid: unknown[][] }> = {
   status: { channel: 'dude:hub:status', args: [], invalid: [[1]] },
   probeLocal: { channel: 'dude:hub:probeLocal', args: [47600], invalid: [['47600'], [0], [70000], [1.5], [1, 2]] },
   reachabilityEcho: { channel: 'dude:hub:reachabilityEcho', args: ['https://hub.example.com'], invalid: [[], [1], ['http://hub.example.com'], ['https://u:p@hub.example.com'], ['https://hub.example.com/path'], ['https://hub.example.com?x=1'], ['https://hub.example.com#f'], ['https://hub.example.com:0'], ['https://hub.example.com', 'x']] },
@@ -89,7 +89,7 @@ const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged'>, { channe
 
 function fakeHost(handler: (method: string, params: unknown) => unknown = () => ({ ok: true })) {
   const calls: Array<{ method: string; params: unknown }> = [];
-  const listeners = new Set<(e: AgentHubStatusEvent) => void>();
+  const listeners = new Set<(e: AgentEvent) => void>();
   const host = {
     call: async (method: string, params: unknown) => {
       calls.push({ method, params });
@@ -97,9 +97,9 @@ function fakeHost(handler: (method: string, params: unknown) => unknown = () => 
       if (out instanceof Error) throw out;
       return out;
     },
-    onEvent: (l: (e: AgentHubStatusEvent) => void) => { listeners.add(l); return () => { listeners.delete(l); }; },
+    onEvent: (l: (e: AgentEvent) => void) => { listeners.add(l); return () => { listeners.delete(l); }; },
   } as unknown as DeviceStoreHost;
-  return { host, calls, push: (status: AgentHubStatus) => listeners.forEach((l) => l({ type: 'event', event: 'hub.status', status })) };
+  return { host, calls, push: (status: AgentHubStatus) => listeners.forEach((l) => l({ type: 'event', event: 'hub.status', status })), pushFrame: (frame: unknown) => listeners.forEach((l) => l(frame as AgentEvent)) };
 }
 
 const SID = 'S-1-5-21-111-222-333-1001';
@@ -301,6 +301,16 @@ describe('hub bridge', () => {
     expect(JSON.stringify(own.send.mock.calls)).not.toMatch(/spkiActive|enrollment"/);
   });
 
+  it('pushes an owner-view-changed topic to this window only, and nothing for an unknown one (PD-113)', () => {
+    own.send.mockClear();
+    ctx.pushFrame({ type: 'event', event: 'hub.viewChanged', topic: 'devices' });
+    expect(own.send.mock.calls).toEqual([['dude:hub:viewChanged', 'devices']]);
+    own.send.mockClear();
+    ctx.pushFrame({ type: 'event', event: 'hub.viewChanged', topic: 'passwords' });
+    ctx.pushFrame({ type: 'event', event: 'hub.viewChanged' });
+    expect(own.send).not.toHaveBeenCalled();
+  });
+
   it('never logs payloads', () => {
     const source = readFileSync(resolve(__dirname, 'hub-bridge.ts'), 'utf-8');
     expect(source).not.toMatch(/console\./);
@@ -313,10 +323,11 @@ describe('preload hub surface', () => {
 
   it('exposes exactly the DesktopHubBridge methods, each on its own channel, with no generic invoke', () => {
     const keys = [...block.matchAll(/^    (\w+): /gm)].map((m) => m[1]);
-    expect(keys.sort()).toEqual([...Object.keys(VALID), 'onStatusChanged'].sort());
+    expect(keys.sort()).toEqual([...Object.keys(VALID), 'onStatusChanged', 'onViewChanged'].sort());
     const channels = [...block.matchAll(/ipcRenderer\.invoke\('(dude:hub:[\w:]+)'/g)].map((m) => m[1]);
     expect(channels.sort()).toEqual(Object.values(VALID).map((v) => v.channel).sort());
     expect(block).toMatch(/ipcRenderer\.on\('dude:hub:statusChanged'/);
+    expect(block).toMatch(/ipcRenderer\.on\('dude:hub:viewChanged'/);
     expect(block).not.toMatch(/invoke:\s|ipcRenderer\.invoke\([a-z]/);
   });
 });

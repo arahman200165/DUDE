@@ -208,6 +208,30 @@ describe('realtime socket', () => {
     for (const c of [tab, watcher, legacy]) c.ws.close();
   });
 
+  it('coalesces owner-view-changed per topic to protocol-3 owner and device sockets only', async () => {
+    const V3 = { type: 'hello', protocolVersion: HUB_PROTOCOL_VERSION, minHubProtocol: 1 };
+    const ownerView = track(await connect(h, ownerHeaders(h, owner)));
+    ownerView.send(V3);
+    await ownerView.next((m) => m.type === 'welcome');
+    const legacy = track((await welcomed(h, ownerHeaders(h, owner))).client);
+    const { token } = await enrolled(h, owner);
+    const desk = track(await connect(h, { authorization: `Bearer ${token}` }));
+    desk.send(V3);
+    await desk.next((m) => m.type === 'welcome');
+    const legacyDevice = track((await welcomed(h, { authorization: `Bearer ${(await enrolled(h, owner)).token}` })).client);
+    await sleep(400);
+    for (const c of [ownerView, desk]) c.messages.length = 0;
+
+    for (let i = 0; i < 5; i += 1) await h.call('PATCH', `/devices/${(await listDevices())[0].deviceId}`, { cookie: owner.cookie, csrf: owner.csrf, body: { displayName: `Renamed ${i}` } });
+    await ownerView.next((m) => m.event === 'owner-view-changed' && m.data.topic === 'devices');
+    await desk.next((m) => m.event === 'owner-view-changed' && m.data.topic === 'devices');
+    await sleep(400);
+    expect(ownerView.messages.filter((m) => m.event === 'owner-view-changed' && m.data.topic === 'devices').length).toBeLessThanOrEqual(2);
+    expect(Object.keys(desk.messages.find((m) => m.event === 'owner-view-changed')!.data)).toEqual(['topic']);
+    for (const c of [legacy, legacyDevice]) expect(c.messages.some((m) => m.event === 'owner-view-changed')).toBe(false);
+    for (const c of [ownerView, legacy, desk, legacyDevice]) c.ws.close();
+  });
+
   it('accepts an owner bearer session', async () => {
     const { token } = await enrolled(h, owner);
     const bearer = (await h.call('POST', '/auth/owner/bearer', { bearer: token, body: { password: 'a very long password' } })).json.accessToken as string;

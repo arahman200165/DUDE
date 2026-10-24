@@ -1,5 +1,6 @@
 import { ipcMain, type BrowserWindow } from 'electron';
 import { parseHubPublicUrl } from '@dude/contracts';
+import { isOwnerViewTopic } from '@dude/contracts/hub';
 import type { AgentHubOwnerStatus, AgentHubStatus, AgentMethod, AgentMethodMap } from '@dude/contracts';
 import type { DesktopHubEnrollment, DesktopHubOwnerStatus, DesktopHubProbe, DesktopHubResult, DesktopHubStatus } from '@dude/contracts/shared/models/platform-bridge.model';
 import { isUuidShaped, validateDisplayName } from '@dude/persistence';
@@ -331,6 +332,12 @@ export function registerHubHandlers(
 
   // Status pushes: the agent reports every Hub connection change; the renderer gets the same shape `status()` returns.
   host()?.onEvent?.((frame) => {
+    if (frame.event === 'hub.viewChanged') {
+      // Owner admin view changed (PD-113): only a topic from the closed list, never content, goes to this window.
+      if (!isOwnerViewTopic(frame.topic) || window.isDestroyed() || window.webContents.isDestroyed()) return;
+      window.webContents.send('dude:hub:viewChanged', frame.topic);
+      return;
+    }
     if (frame.event !== 'hub.status') return;
     if (window.isDestroyed() || window.webContents.isDestroyed()) return;
     window.webContents.send('dude:hub:statusChanged', scrubCredentials(toDesktopStatus(frame.status)));

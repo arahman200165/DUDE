@@ -135,6 +135,11 @@ const bridge: PlatformBridge = {
       ipcRenderer.on('dude:hub:statusChanged', listener);
       return () => ipcRenderer.removeListener('dude:hub:statusChanged', listener);
     },
+    onViewChanged: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, topic: Parameters<typeof callback>[0]) => callback(topic);
+      ipcRenderer.on('dude:hub:viewChanged', listener);
+      return () => ipcRenderer.removeListener('dude:hub:viewChanged', listener);
+    },
   },
   sync: {
     status: () => ipcRenderer.invoke('dude:sync:status'),

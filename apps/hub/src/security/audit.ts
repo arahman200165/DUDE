@@ -52,13 +52,48 @@ export interface AuditInput {
   now: number;
 }
 
+/** What an in-process observer sees after a row is written: never the IP, and the detail exactly as stored. */
+export interface AuditNotice {
+  seq: number;
+  event: HubAuditEvent;
+  outcome: HubAuditOutcome;
+  actorKind: HubAuditActorKind;
+  actorId: string | null;
+  at: string;
+  detail: Record<string, unknown> | null;
+}
+export type AuditObserver = (notice: AuditNotice) => void;
+
+const observers = new WeakMap<Db, Set<AuditObserver>>();
+
+/**
+ * Observes audit rows written to `db` in this process (live views and notifications, PD-109/PD-113), including those
+ * written through the admin pipe. An observer runs after the insert and its failure never fails the audited action.
+ */
+export function onAudit(db: Db, observer: AuditObserver): () => void {
+  const set = observers.get(db) ?? new Set<AuditObserver>();
+  observers.set(db, set);
+  set.add(observer);
+  return () => { set.delete(observer); };
+}
+
 export function audit(db: Db, input: AuditInput): void {
   if (!isHubAuditEvent(input.event)) throw new Error(`Unknown audit event "${input.event}".`);
   if (!(HUB_AUDIT_ACTOR_KINDS as readonly string[]).includes(input.actorKind)) throw new Error('Unknown audit actor kind.');
   const detail = input.detail === undefined ? null : sanitizeDetail(input.detail);
-  db.prepare('INSERT INTO audit_events(at, actor_kind, actor_id, event, outcome, ip, detail_json) VALUES(?, ?, ?, ?, ?, ?, ?)').run(
-    new Date(input.now).toISOString(), input.actorKind, input.actorId ?? null, input.event, input.outcome, maskAddress(db, input.ip) ?? null, detail,
+  const at = new Date(input.now).toISOString();
+  const result = db.prepare('INSERT INTO audit_events(at, actor_kind, actor_id, event, outcome, ip, detail_json) VALUES(?, ?, ?, ?, ?, ?, ?)').run(
+    at, input.actorKind, input.actorId ?? null, input.event, input.outcome, maskAddress(db, input.ip) ?? null, detail,
   );
+  const set = observers.get(db);
+  if (set === undefined || set.size === 0) return;
+  const notice: AuditNotice = {
+    seq: Number(result.lastInsertRowid), event: input.event, outcome: input.outcome, actorKind: input.actorKind, actorId: input.actorId ?? null, at,
+    detail: detail === null ? null : (JSON.parse(detail) as Record<string, unknown>),
+  };
+  for (const observer of [...set]) {
+    try { observer(notice); } catch { /* an observer never fails the audited action */ }
+  }
 }
 
 export interface AuditRecord {

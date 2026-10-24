@@ -4,6 +4,7 @@ import type { BackupStatusResponse } from '@dude/contracts/hub';
 import { formatBytes } from '@dude/tool-engine/shared/fs/format-size';
 import { HUB_ADMIN } from '../../../../core/hub/hub-admin.token';
 import { HubAdminError } from '../../../../core/hub/hub-admin.port';
+import { refetchOnHubChange } from '../../../../core/hub-events/refetch-on-hub-change';
 import { CopyButton } from '../../../../shared/components/copy-button/copy-button';
 import { StatusGlyph } from '../../../../shared/components/status-glyph/status-glyph';
 import { hubErrorText, relativeTime } from '../hub/hub-format';
@@ -77,6 +78,8 @@ export class BackupSettings {
       if (this.session.signedIn()) untracked(() => void this.load());
       else this.status.set(null);
     });
+    // A backup finished, was scheduled or the Hub was transferred (PD-113): refetch the read-only status without a spinner.
+    refetchOnHubChange('backup', () => void this.load(true), { when: () => this.session.signedIn() && this.status() !== null });
   }
 
   protected refresh(): void {
@@ -88,8 +91,8 @@ export class BackupSettings {
     return Number.isNaN(date.getTime()) ? iso : `${date.toLocaleString()} (${relativeTime(iso)})`;
   }
 
-  private async load(): Promise<void> {
-    this.loading.set(true);
+  private async load(quiet = false): Promise<void> {
+    if (!quiet) this.loading.set(true);
     try {
       this.status.set(await this.hub.backupStatus());
       this.error.set(null);

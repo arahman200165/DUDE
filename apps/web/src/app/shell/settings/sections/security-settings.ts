@@ -2,6 +2,7 @@ import { Component, DestroyRef, inject, signal } from '@angular/core';
 import type { AuditListEvent, ConfirmPreview, SecurityAlert, SessionInfo } from '@dude/contracts/hub';
 import { HubAdminError } from '../../../core/hub/hub-admin.port';
 import { HUB_ADMIN } from '../../../core/hub/hub-admin.token';
+import { refetchOnHubChange } from '../../../core/hub-events/refetch-on-hub-change';
 import { HubWebSignOut } from '../../../core/hub-web/hub-web-sign-out.service';
 import { PlatformService } from '../../../core/platform/platform.service';
 import { MIN_PASSWORD_LENGTH, RetryCountdown, describeHubError } from '../../hub/hub-utils';
@@ -163,6 +164,9 @@ export class SecuritySettings {
     void this.loadRemainingCodes();
     void this.loadAudit(true);
     void this.loadAlerts();
+    // A security alert was raised or marked seen elsewhere (PD-113): refetch the read-only list. The password and recovery-code
+    // flows below are separate state, so none of them resets.
+    refetchOnHubChange('alerts', () => void this.loadAlerts(), { when: () => this.alertsLoaded() && !this.alertsBusy() });
   }
 
   protected async loadAlerts(): Promise<void> {

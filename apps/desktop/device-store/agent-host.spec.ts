@@ -48,7 +48,7 @@ describe('agent host', () => {
     await ready(h);
     const host = await starting;
     const seen: unknown[] = [];
-    const off = host.onEvent!((event) => seen.push(event.event === 'sync.applied' ? event.changes : event.status));
+    const off = host.onEvent!((event) => seen.push(event.event === 'sync.applied' ? event.changes : event.event === 'hub.viewChanged' ? event.topic : event.status));
     const conn = h.attempts[0].conn;
     conn.deliver({ type: 'event', event: 'hub.status', status: { state: 'online' } });
     conn.deliver({ type: 'event', event: 'other', status: {} });
@@ -57,10 +57,13 @@ describe('agent host', () => {
     conn.deliver({ type: 'event', event: 'sync.status' });
     conn.deliver({ type: 'event', event: 'sync.applied', changes: [{ entityType: 'setting' }] });
     conn.deliver({ type: 'event', event: 'sync.applied', changes: 'nope' });
-    expect(seen).toEqual([{ state: 'online' }, { phase: 'idle' }, [{ entityType: 'setting' }]]);
+    conn.deliver({ type: 'event', event: 'hub.viewChanged', topic: 'backup' });
+    conn.deliver({ type: 'event', event: 'hub.viewChanged', topic: 'passwords' });
+    conn.deliver({ type: 'event', event: 'hub.viewChanged' });
+    expect(seen).toEqual([{ state: 'online' }, { phase: 'idle' }, [{ entityType: 'setting' }], 'backup']);
     off();
     conn.deliver({ type: 'event', event: 'hub.status', status: { state: 'offline' } });
-    expect(seen).toHaveLength(3);
+    expect(seen).toHaveLength(4);
   });
 
   it('waits for the ready handshake and reports an incompatible store', async () => {

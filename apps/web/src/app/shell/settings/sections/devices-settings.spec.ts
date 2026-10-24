@@ -2,6 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import type { PresenceEntry } from '@dude/contracts/hub';
 import { HubAdminError, type HubAdminPort } from '../../../core/hub/hub-admin.port';
+import { HUB_EVENTS, HubEventsFeed } from '../../../core/hub-events/hub-events.port';
+import { HUB_REFETCH_DEBOUNCE_MS } from '../../../core/hub-events/refetch-on-hub-change';
 import { DevicesSettings } from './devices-settings';
 import { buttonWithText, configureHubTest, createTestPort, device, settle, typeInto } from './hub/testing/hub-test-port';
 
@@ -375,6 +377,60 @@ describe('DevicesSettings', () => {
       await settle(fixture);
       expect(el.querySelector('[data-testid="device-activity-' + PHONE_ID + '"]')).toBeNull();
       expect(row(el, 2).textContent).toContain('Offline');
+    });
+  });
+
+  describe('live refetch (PD-113)', () => {
+    /** Delivers events on the fake clock, then lets the real one settle the refetch. */
+    const fire = async (fixture: Parameters<typeof settle>[0], ...topics: string[]): Promise<void> => {
+      vi.useFakeTimers();
+      try {
+        const feed = TestBed.inject(HUB_EVENTS) as HubEventsFeed;
+        for (const topic of topics) feed.notify(topic);
+        vi.advanceTimersByTime(HUB_REFETCH_DEBOUNCE_MS);
+      } finally {
+        vi.useRealTimers();
+      }
+      await settle(fixture);
+    };
+
+    it('refetches the list once for a burst of devices events', async () => {
+      const renamed = [...LIST.slice(0, 4), device('0190aaaa-0000-7000-8000-000000000005', 'Work PC (renamed)')];
+      let next = LIST;
+      const { fixture, el, port } = await mount({ listDevices: async () => next }, 'hub-web');
+      expect(port.listDevices).toHaveBeenCalledTimes(1);
+      next = renamed;
+      await fire(fixture, 'devices', 'devices', 'devices', 'devices');
+      expect(port.listDevices).toHaveBeenCalledTimes(2);
+      expect(row(el, 4).textContent).toContain('Work PC (renamed)');
+    });
+
+    it('refetches only the sync stats for a sync event, and nothing for other topics', async () => {
+      const { fixture, port } = await mount({}, 'hub-web');
+      const before = { devices: port.listDevices.mock.calls.length, sync: port.syncSummary.mock.calls.length };
+      await fire(fixture, 'backup', 'alerts', 'diagnostics', 'jobs');
+      expect(port.listDevices.mock.calls.length).toBe(before.devices);
+      expect(port.syncSummary.mock.calls.length).toBe(before.sync);
+      await fire(fixture, 'sync', 'sync');
+      expect(port.listDevices.mock.calls.length).toBe(before.devices);
+      expect(port.syncSummary.mock.calls.length).toBe(before.sync + 1);
+    });
+
+    it('does not refetch while the owner gate is up', async () => {
+      const { fixture, port } = await mount({}, 'hub-web', false);
+      await fire(fixture, 'devices');
+      expect(port.listDevices).not.toHaveBeenCalled();
+    });
+
+    it('keeps a rename in progress through a refetch', async () => {
+      const { fixture, el } = await mount({}, 'hub-web');
+      buttonWithText(el, 'Rename').click();
+      await settle(fixture);
+      const field = el.querySelector('input[type="text"]') as HTMLInputElement;
+      typeInto(field, 'Typing');
+      await settle(fixture);
+      await fire(fixture, 'devices');
+      expect((el.querySelector('input[type="text"]') as HTMLInputElement).value).toBe('Typing');
     });
   });
 });

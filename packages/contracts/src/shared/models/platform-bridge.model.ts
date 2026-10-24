@@ -1,4 +1,4 @@
-import type { AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, OkResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SyncSummary, HubDiagnosticsReport, BackupStatusResponse, PresenceActivity, PresenceResponse } from "../../hub/index.js";
+import type { AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, OkResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SyncSummary, HubDiagnosticsReport, BackupStatusResponse, PresenceActivity, PresenceResponse, OwnerViewTopic } from "../../hub/index.js";
 import type { LlmChatRequest, LlmChatResult } from "./llm-chat.model.js";
 import type { SnapshotDiff, SnapshotHeader } from "../../fs/snapshot-diff.js";
 import type { ChangeEvent, FolderWatchSettings, FolderWatchState, TimelineQuery, WatchedFolder } from "../../fs/watch-types.js";
@@ -197,6 +197,11 @@ export interface DesktopHubBridge {
   installRootCertificate(confirmToken: string): Promise<DesktopHubResult<{ readonly installed: true }>>;
   /** Pushed by main whenever the Device Agent's Hub connection state changes. Returns the unsubscribe function. */
   onStatusChanged(callback: (status: DesktopHubStatus) => void): () => void;
+  /**
+   * Pushed by main when the Hub says an owner admin view changed (PD-113): the topic only, never content; the page refetches what it
+   * shows. Fires only while the Agent holds a protocol-3 Hub connection. Returns the unsubscribe function.
+   */
+  onViewChanged(callback: (topic: OwnerViewTopic) => void): () => void;
 }
 
 /** Sync state and actions served by the Device Agent (Phase 31D). Same `{ ok, result | error }` envelope as the Hub bridge; main validates every argument. */

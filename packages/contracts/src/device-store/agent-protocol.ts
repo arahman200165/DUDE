@@ -1,4 +1,6 @@
 import type { TlsCertificatesResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, PairingCodeResponse, SessionListResponse, AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, RecoveryCodesResponse, SyncCategory, SyncSummary, HubDiagnosticsReport, BackupStatusResponse, PresenceActivity, PresenceResponse } from '../hub/index.js';
+import { isOwnerViewTopic } from '../hub/owner-view-topics.js';
+import type { OwnerViewTopic } from '../hub/owner-view-topics.js';
 import type { EntityCommit, EntityCommitResult, KvMutation, ResetKind, StoreHealth, DeviceStoreBoot } from './device-store.model.js';
 
 /** Row shapes exchanged with the state service; payloads are opaque JSON. */
@@ -137,7 +139,9 @@ export interface FirstSyncPreview {
 export interface AgentSyncStatusEvent { type: 'event'; event: 'sync.status'; status: AgentSyncStatus }
 /** Pushed after remote changes (or a conflict resolution) were written locally. */
 export interface AgentSyncAppliedEvent { type: 'event'; event: 'sync.applied'; changes: AgentAppliedChange[] }
-export type AgentEvent = AgentHubStatusEvent | AgentSyncStatusEvent | AgentSyncAppliedEvent;
+/** Pushed when the Hub says an owner admin view changed (PD-113). Carries the topic only, never content; the renderer refetches what it shows. */
+export interface AgentHubViewChangedEvent { type: 'event'; event: 'hub.viewChanged'; topic: OwnerViewTopic }
+export type AgentEvent = AgentHubStatusEvent | AgentSyncStatusEvent | AgentSyncAppliedEvent | AgentHubViewChangedEvent;
 export type AgentEventName = AgentEvent['event'];
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 /** Shape check for a push frame; unknown events return null so clients ignore frames they do not know. */
@@ -145,6 +149,7 @@ export function parseAgentEvent(frame: unknown): AgentEvent | null {
   if (!isRecord(frame) || frame['type'] !== 'event') return null;
   if ((frame['event'] === 'hub.status' || frame['event'] === 'sync.status') && isRecord(frame['status'])) return frame as unknown as AgentEvent;
   if (frame['event'] === 'sync.applied' && Array.isArray(frame['changes'])) return frame as unknown as AgentEvent;
+  if (frame['event'] === 'hub.viewChanged' && isOwnerViewTopic(frame['topic'])) return frame as unknown as AgentEvent;
   return null;
 }
 export interface LegacyImportResult { status: 'none' | 'done' | 'partial'; imported: Record<string, number>; warnings: string[] }

@@ -97,6 +97,10 @@ export async function runAgent(options: RunAgentOptions): Promise<RunningAgent> 
         db: store.db, manager: hub.manager, now, intervals: options.syncIntervals, backupDir: path.join(options.storeDir, 'backups'),
         newOpId: () => uuidv7(bytes, () => now().getTime()),
       });
+      // The Hub says an owner admin view changed (PD-113): relay only the topic; the renderer refetches what it shows.
+      hub.manager.onOwnerViewChanged((topic) => {
+        for (const connection of [...connections]) void connection.send({ type: 'event', event: 'hub.viewChanged', topic }).catch(() => undefined);
+      });
       sync.onStatus((status) => {
         for (const connection of [...connections]) void connection.send({ type: 'event', event: 'sync.status', status }).catch(() => undefined);
       });

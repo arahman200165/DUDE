@@ -6,7 +6,7 @@ import {
   HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION, HUB_REALTIME_PATH, REALTIME_CLOSE_CODES, REALTIME_HEARTBEAT_INTERVAL_MS, REALTIME_HELLO_TIMEOUT_MS,
   REALTIME_IDLE_TIMEOUT_MS, REALTIME_MAX_MESSAGE_BYTES, RealtimeClientMessage, checkProtocolCompatibility,
 } from '@dude/contracts/hub';
-import type { PresenceActivity, PresenceEntry, RealtimeEvent, RealtimeEventDataOf, RealtimeServerMessage } from '@dude/contracts/hub';
+import type { OwnerViewTopic, PresenceActivity, PresenceEntry, RealtimeEvent, RealtimeEventDataOf, RealtimeServerMessage } from '@dude/contracts/hub';
 import { realtimeEventAllowed } from '@dude/contracts/hub';
 import type { HubEventMap } from '../auth/hub-events.js';
 import { getAuthorityEpoch, getAuthorityState } from '../hub/authority.js';
@@ -18,6 +18,8 @@ import { proxyPinSpkis } from '../tls/proxy-pins.js';
 import { TOOL_METADATA } from '@dude/tool-registry';
 import { authenticateUpgrade, type WsPrincipal } from './ws-auth.js';
 import { PresenceTracker } from './presence.js';
+import { ownerViewTopicsForAudit } from './owner-views.js';
+import { onAudit } from '../security/audit.js';
 
 export interface RealtimeTimings {
   helloTimeoutMs: number;
@@ -27,6 +29,8 @@ export interface RealtimeTimings {
   revalidateIntervalMs: number;
   /** Messages allowed per window per connection. */
   rateLimit: { max: number; windowMs: number };
+  /** Bursts of changes to one owner view are coalesced into one `owner-view-changed` within this delay. */
+  ownerViewDelayMs: number;
 }
 
 export const DEFAULT_REALTIME_TIMINGS: RealtimeTimings = {
@@ -35,6 +39,7 @@ export const DEFAULT_REALTIME_TIMINGS: RealtimeTimings = {
   heartbeatIntervalMs: REALTIME_HEARTBEAT_INTERVAL_MS,
   revalidateIntervalMs: 60_000,
   rateLimit: { max: 30, windowMs: 10_000 },
+  ownerViewDelayMs: 250,
 };
 
 export interface RealtimeOptions {
@@ -57,6 +62,8 @@ export interface RealtimeHub {
   connectionCount(): number;
   /** Open sockets by principal: owner (cookie or bearer) and device. */
   connectionCounts(): { owner: number; device: number };
+  /** Tells owner views (and protocol-3 device sockets, PD-113) that `topic` changed; coalesced per topic. */
+  notifyOwnerView(topic: OwnerViewTopic): void;
   /** Closes every open socket with `code` (a transferred Hub closes all of them with 4004, PD-071). Invalidates nothing else. */
   closeAll(code: number, reason?: string): void;
 }
@@ -102,6 +109,7 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
     closeAll: (code, reason = '') => {
       for (const conn of [...connections]) close(conn, code, reason);
     },
+    notifyOwnerView: (topic) => notifyOwnerView(topic),
   };
   app.decorate('realtime', hub);
 
@@ -158,6 +166,23 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
   const onWebAccessChanged = (): void => {
     for (const conn of where((c) => c.principal.kind === 'owner-cookie')) sendEvent(conn, 'web-access-changed', {});
   };
+  // Owner views: owner sockets and device sockets (an enrolled desktop shows its owner the same pages); the event carries
+  // only the topic and is withheld from sockets below protocol 3.
+  const pendingViews = new Map<OwnerViewTopic, NodeJS.Timeout>();
+  const notifyOwnerView = (topic: OwnerViewTopic): void => {
+    if (pendingViews.has(topic)) return;
+    const timer = setTimeout(() => {
+      pendingViews.delete(topic);
+      for (const conn of where(() => true)) sendEvent(conn, 'owner-view-changed', { topic });
+    }, timings.ownerViewDelayMs);
+    timer.unref();
+    pendingViews.set(topic, timer);
+  };
+  const onViewRegistryChanged = (): void => notifyOwnerView('devices');
+  const onViewRecordsChanged = (): void => notifyOwnerView('sync');
+  const stopAuditViews = onAudit(options.db, (notice) => { for (const topic of ownerViewTopicsForAudit(notice)) notifyOwnerView(topic); });
+  app.hubEvents.on('device-registry-changed', onViewRegistryChanged);
+  app.hubEvents.on('records-changed', onViewRecordsChanged);
   app.hubEvents.on('records-changed', onRecordsChanged);
   app.hubEvents.on('web-access-changed', onWebAccessChanged);
   app.hubEvents.on('device-registry-changed', onRegistryChanged);
@@ -187,6 +212,11 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
     for (const conn of connections) { for (const t of conn.timers) clearInterval(t); if (conn.idle) clearTimeout(conn.idle); }
   });
   app.addHook('onClose', async () => {
+    stopAuditViews();
+    for (const timer of pendingViews.values()) clearTimeout(timer);
+    pendingViews.clear();
+    app.hubEvents.off('device-registry-changed', onViewRegistryChanged);
+    app.hubEvents.off('records-changed', onViewRecordsChanged);
     app.hubEvents.off('records-changed', onRecordsChanged);
     app.hubEvents.off('web-access-changed', onWebAccessChanged);
     app.hubEvents.off('device-registry-changed', onRegistryChanged);

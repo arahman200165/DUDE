@@ -2,6 +2,7 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import type { SyncSummary } from '@dude/contracts/hub';
 import { SYNC_CATEGORIES } from '@dude/sync';
 import { HUB_ADMIN } from '../../../../core/hub/hub-admin.token';
+import { refetchOnHubChange } from '../../../../core/hub-events/refetch-on-hub-change';
 import { hubErrorText } from './hub-format';
 import { HubOwnerSession } from './hub-owner-session.service';
 
@@ -44,6 +45,8 @@ export class SyncSummaryPanel {
     effect(() => {
       if (this.session.signedIn()) void this.load();
     });
+    // The Hub's counts moved (PD-113): refetch once the first load has shown something.
+    refetchOnHubChange('sync', () => void this.load(), { when: () => this.session.signedIn() && this.summary() !== null });
   }
 
   private async load(): Promise<void> {

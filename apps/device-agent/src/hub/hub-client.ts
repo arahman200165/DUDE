@@ -5,10 +5,10 @@ import { Value } from 'typebox/value';
 import { HubApiError, HubProtocolError, createHubClient } from '@dude/api-client';
 import type { HubClient, HubTransport } from '@dude/api-client';
 import type { AgentHubAuthorityReason, AgentHubState, AgentHubStatus } from '@dude/contracts';
-import type { PresenceActivity } from '@dude/contracts/hub';
+import type { OwnerViewTopic, PresenceActivity } from '@dude/contracts/hub';
 import {
   DEVICE_TOKEN_TTL_MS, HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION, HUB_REALTIME_DEPTH_PROTOCOL, HUB_REALTIME_PATH, REALTIME_CLOSE_CODES, REALTIME_HEARTBEAT_INTERVAL_MS,
-  RealtimeServerMessage, deviceAuthMessage, ownerRecoveryMessage,
+  RealtimeServerMessage, deviceAuthMessage, isOwnerViewTopic, ownerRecoveryMessage,
 } from '@dude/contracts/hub';
 import type { Db } from '@dude/sqlite-store';
 import { addProxyPin, clearEnrollment, getEnrollment, markRevoked, promoteNextPin, publicEnrollment, raiseAuthorityEpoch, setNextPin, setProxyPins, touchContact } from '../store/repos/hub-enrollment.repo.js';
@@ -72,6 +72,8 @@ export interface HubConnectionManager {
   hubProtocol(): number | null;
   /** The Hub announced new canonical changes (`changes-available`, device sockets only). */
   onChangesAvailable(listener: (revision: number) => void): () => void;
+  /** The Hub announced that an owner admin view changed (`owner-view-changed`, protocol 3 and later; PD-113). The topic only, never content. */
+  onOwnerViewChanged(listener: (topic: OwnerViewTopic) => void): () => void;
   /**
    * What this device is showing (PD-108), or null to clear it. The latest value is remembered and sent on the realtime socket after every
    * welcome of a Hub that speaks protocol 3 or later (an older Hub closes the socket on an unknown message, so it is never sent one). A dropped
@@ -124,6 +126,7 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
   const makeTransport = deps.createTransport ?? ((target: PinnedTarget): HubTransport => createPinnedTransport(target));
   const listeners = new Set<(status: AgentHubStatus) => void>();
   const changeListeners = new Set<(revision: number) => void>();
+  const viewListeners = new Set<(topic: OwnerViewTopic) => void>();
   let welcomeProtocol: number | null = null;
   /** The latest activity the renderer asked to share (null: none). Survives reconnects; the Hub holds it only for the live socket. */
   let activity: PresenceActivity | null = null;
@@ -492,6 +495,11 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
         for (const listener of [...changeListeners]) { try { listener(typeof revision === 'number' ? revision : 0); } catch { /* a listener must not break the connection */ } }
         return;
       }
+      if (parsed.type === 'event' && parsed.event === 'owner-view-changed') {
+        const topic = parsed.data['topic'];
+        if (isOwnerViewTopic(topic)) for (const listener of [...viewListeners]) { try { listener(topic); } catch { /* a listener must not break the connection */ } }
+        return;
+      }
       if (parsed.type === 'event' && parsed.event === 'device-registry-changed') { refreshMeta(); return; }
       if (parsed.type === 'event' && parsed.event === 'tls-next-pin') {
         const announced = parsed.data['spkiSha256'];
@@ -571,6 +579,7 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
     onChange: (listener) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
     hubProtocol: () => welcomeProtocol ?? getEnrollment(deps.db)?.protocolVersion ?? null,
     onChangesAvailable: (listener) => { changeListeners.add(listener); return () => { changeListeners.delete(listener); }; },
+    onOwnerViewChanged: (listener) => { viewListeners.add(listener); return () => { viewListeners.delete(listener); }; },
     setActivity(next) {
       activity = next;
       sendActivity?.({ type: 'activity', activity: next });

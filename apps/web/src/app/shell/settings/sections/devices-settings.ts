@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import type { ConfirmPreview, DeviceInfo, PairingCodeResponse, PresenceEntry, SyncDeviceSummary } from '@dude/contracts/hub';
 import { validateDisplayName } from '@dude/persistence';
 import { HUB_ADMIN } from '../../../core/hub/hub-admin.token';
+import { refetchOnHubChange } from '../../../core/hub-events/refetch-on-hub-change';
 import { ToolRegistryService } from '../../../core/registry/tool-registry.service';
 import { StatusGlyph } from '../../../shared/components/status-glyph/status-glyph';
 import { DeviceSyncStats } from './hub/device-sync-stats';
@@ -78,6 +79,10 @@ export class DevicesSettings {
     // Hub web: the realtime link pushes presence changes, so the Online status and activity line follow without a refresh.
     const stopPresence = this.hub.onPresenceChanged?.((entry) => this.applyPresence(entry));
     if (stopPresence) inject(DestroyRef).onDestroy(stopPresence);
+    // The Hub says the registry or the sync stats changed (PD-113): refetch quietly. A revoke preview, a trust password and a rename
+    // draft are held outside the lists, so none of them resets.
+    refetchOnHubChange('devices', () => void this.load(true), { when: () => this.session.signedIn() });
+    refetchOnHubChange('sync', () => void this.loadSyncStats(), { when: () => this.session.signedIn() });
     effect(() => this.confirmButton()?.nativeElement.focus());
     effect(() => this.trustField()?.nativeElement.focus());
     effect(() => this.renameField()?.nativeElement.focus());

@@ -375,5 +375,22 @@ describe('HubRealtimeClient', () => {
       socket.event('presence-changed', {});
       expect(seen).toEqual([{ deviceId: 'd1', online: true, activity: { kind: 'tool', id: 'base64' } }]);
     });
+
+    it('hands owner-view-changed topics to the listener and ignores unknown or malformed ones (PD-113)', async () => {
+      const seen: string[] = [];
+      client = new HubRealtimeClient({
+        engine: rig.engine, access: ALL_ON, cursor: 0, apply: () => undefined, snapshot: async () => ({ records: [], cursor: 0 }),
+        openSocket: () => { const s = new FakeSocket(); sockets.push(s); return s; }, socketUrl: () => 'wss://hub.test/api/v1/realtime',
+        goToSignIn: signIn, reload, isVisible: () => visible, onOwnerViewChanged: (topic) => seen.push(topic),
+      });
+      const socket = await connect(HUB_REALTIME_DEPTH_PROTOCOL);
+      socket.event('owner-view-changed', { topic: 'devices' });
+      socket.event('owner-view-changed', { topic: 'jobs' });
+      socket.event('owner-view-changed', { topic: 'passwords' });
+      socket.event('owner-view-changed', { topic: 7 });
+      socket.event('owner-view-changed', {});
+      expect(seen).toEqual(['devices', 'jobs']);
+      expect(rig.connection.state()).toBe('live');
+    });
   });
 });

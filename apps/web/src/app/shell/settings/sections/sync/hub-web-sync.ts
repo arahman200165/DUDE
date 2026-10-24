@@ -2,6 +2,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import type { DeviceInfo, SyncDeviceSummary } from '@dude/contracts/hub';
 import { SYNC_CATEGORIES, type SyncCategory } from '@dude/sync';
 import { HUB_ADMIN } from '../../../../core/hub/hub-admin.token';
+import { refetchOnHubChange } from '../../../../core/hub-events/refetch-on-hub-change';
 import { DESKTOP_RELEASES_URL, DesktopHandoffService } from '../../../../core/deep-link/desktop-handoff.service';
 import { HUB_WEB_BOOT } from '../../../../core/hub-web/hub-web.types';
 import { SyncStatusService } from '../../../../core/sync/sync-status.service';
@@ -150,6 +151,11 @@ export class HubWebSync implements OnInit {
   protected readonly lastSync = computed(() => when(this.status()?.lastSyncAt ?? null));
   protected readonly when = when;
 
+  constructor() {
+    // Another device pushed or paired (PD-113): refetch the per-device table without the spinner or the error banner flashing.
+    refetchOnHubChange(['sync', 'devices'], () => void this.load(true), { when: () => !this.loading() });
+  }
+
   ngOnInit(): void {
     void this.load();
   }
@@ -169,12 +175,13 @@ export class HubWebSync implements OnInit {
     this.handoffResult.set(await this.handoff.open({ action: 'open', target: 'settings', section: 'sync' }));
   }
 
-  protected async load(): Promise<void> {
-    this.loading.set(true);
-    this.loadError.set(null);
+  protected async load(quiet = false): Promise<void> {
+    if (!quiet) this.loading.set(true);
+    if (!quiet) this.loadError.set(null);
     try {
       const [summary, devices] = await Promise.all([this.admin.syncSummary(), this.admin.listDevices()]);
       this.rows.set(buildRows(summary.devices, devices, this.boot?.deviceId ?? null));
+      this.loadError.set(null);
     } catch (error) {
       this.loadError.set(hubErrorText(error, 'The device list could not be loaded.'));
     } finally {

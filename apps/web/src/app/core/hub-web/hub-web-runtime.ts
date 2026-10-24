@@ -10,6 +10,7 @@ import { PersistenceService } from '../persistence/persistence.service';
 import { RemoteChangesService } from '../sync/remote-changes.service';
 import { HubRealtimeClient } from './hub-realtime.client';
 import { HubWebConnectionService } from './hub-web-connection.service';
+import { HubEventsFeed } from '../hub-events/hub-events.port';
 import { HubWebPresence } from './hub-web-presence';
 import { HubWebFeedback } from './hub-web-feedback';
 import { startOfflineRetry } from './hub-web-retry';
@@ -110,6 +111,7 @@ export function startHubWebRuntime(appRef: ApplicationRef, result: HubWebBootRes
   const remote = injector.get(RemoteChangesService);
   const router = injector.get(Router);
   const presence = injector.get(HubWebPresence);
+  const hubEvents = injector.get(HubEventsFeed);
 
   result.kv?.setAdopter((namespace, key, value) => persistence.adoptRemote(namespace, key, value));
 
@@ -136,6 +138,7 @@ export function startHubWebRuntime(appRef: ApplicationRef, result: HubWebBootRes
     onPulling: (pulling) => result.sync.setPulling(pulling),
     onProgress: ({ cursor, head }) => result.sync.notePull(cursor, head),
     onPresenceChanged: (entry) => presence.notify(entry),
+    onOwnerViewChanged: (topic) => hubEvents.notify(topic),
   });
   result.sync.pullNow = () => realtime.pull();
   result.sync.onStop(() => realtime.stop());

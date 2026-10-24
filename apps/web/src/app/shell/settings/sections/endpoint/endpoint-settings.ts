@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import type { AgentDiagnostics } from '@dude/contracts';
 import type { HubDiagnosticsReport, ReachabilityEchoResponse } from '@dude/contracts/hub';
 import { HUB_ADMIN } from '../../../../core/hub/hub-admin.token';
+import { refetchOnHubChange } from '../../../../core/hub-events/refetch-on-hub-change';
 import { PlatformService } from '../../../../core/platform/platform.service';
 import { CopyButton } from '../../../../shared/components/copy-button/copy-button';
 import { Disclosure } from '../../../../shared/components/disclosure/disclosure';
@@ -75,6 +76,9 @@ export class EndpointSettings {
       if (this.session.signedIn()) untracked(() => void this.loadReport());
       else this.report.set(null);
     });
+    // The Hub's exposure, certificates or checks changed (PD-113): refetch its report quietly. The typed public URL and a running
+    // reachability check are held outside the report, so neither resets.
+    refetchOnHubChange('diagnostics', () => void this.loadReport(true), { when: () => this.session.signedIn() && this.report() !== null && !this.echoing() });
   }
 
   protected setPublicUrl(value: string): void {
@@ -110,8 +114,8 @@ export class EndpointSettings {
     }
   }
 
-  private async loadReport(): Promise<void> {
-    this.loading.set(true);
+  private async loadReport(quiet = false): Promise<void> {
+    if (!quiet) this.loading.set(true);
     try {
       this.report.set(await this.hub.diagnostics());
       this.reportError.set(null);

@@ -110,6 +110,7 @@ export function fakeHub(options: { password?: string; localHub?: FakeLocalHubSce
   return {
     calls,
     onStatusChanged: () => () => undefined,
+    onViewChanged: () => () => undefined,
     status: track('status', async () =>
       ok({
         enrollmentState: enrolled ? ('enrolled' as const) : ('standalone' as const),

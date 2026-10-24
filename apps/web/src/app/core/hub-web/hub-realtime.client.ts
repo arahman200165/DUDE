@@ -1,5 +1,5 @@
-import type { PresenceActivity, PresenceEntry, SyncRecord } from '@dude/contracts/hub';
-import { HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION, HUB_REALTIME_DEPTH_PROTOCOL, HUB_REALTIME_PATH, REALTIME_CLOSE_CODES } from '@dude/contracts/hub';
+import type { OwnerViewTopic, PresenceActivity, PresenceEntry, SyncRecord } from '@dude/contracts/hub';
+import { HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION, HUB_REALTIME_DEPTH_PROTOCOL, HUB_REALTIME_PATH, REALTIME_CLOSE_CODES, isOwnerViewTopic } from '@dude/contracts/hub';
 import { RecordBook, categoryOf, toAppliedChange, type AppliedChangeShape } from '@dude/sync';
 import type { HubWebEngine } from './hub-web-engine';
 import { classifyHubError, type HubWebAccess } from './hub-web.types';
@@ -37,6 +37,8 @@ export interface HubRealtimeDeps {
   readonly onProgress?: (progress: { cursor: number; head: number | null }) => void;
   /** The Hub reported a device's presence (a `presence-changed` event; owner sockets on a protocol 3 hello only). */
   readonly onPresenceChanged?: (entry: PresenceEntry) => void;
+  /** The Hub said an owner admin view changed (an `owner-view-changed` event on a protocol 3 hello; PD-113). Only a known topic is passed on. */
+  readonly onOwnerViewChanged?: (topic: OwnerViewTopic) => void;
 }
 
 export const BACKOFF_MIN_MS = 1000;
@@ -193,6 +195,11 @@ export class HubRealtimeClient {
       case 'presence-changed': {
         const { deviceId, online } = message.data ?? {};
         if (typeof deviceId === 'string' && typeof online === 'boolean') this.deps.onPresenceChanged?.(message.data as unknown as PresenceEntry);
+        return;
+      }
+      case 'owner-view-changed': {
+        const topic = message.data?.['topic'];
+        if (isOwnerViewTopic(topic)) this.deps.onOwnerViewChanged?.(topic);
         return;
       }
       case 'session-revoked':
