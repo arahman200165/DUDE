@@ -11,7 +11,7 @@
   ],
   "classificationCounts": {
     "device-doc": 33,
-    "regex-heuristic (review flag)": 59,
+    "regex-heuristic (review flag)": 61,
     "agent-table": 17,
     "hub-table": 30,
     "mobile-table": 8,
@@ -219,6 +219,22 @@
       "key": null,
       "heuristicScope": "local-only",
       "reviewed": "User-initiated bundle import writing per-tool keys through the persistence backend; scope resolved per key on read."
+    },
+    {
+      "source": "apps/web/src/app/core/collab/collab-text-session.ts",
+      "line": 166,
+      "namespace": null,
+      "key": null,
+      "heuristicScope": "local-only",
+      "reviewed": "Angular signal writes holding the in-memory collaboration session (Phase 31J); the edited entity persists only through its own store."
+    },
+    {
+      "source": "apps/web/src/app/core/collab/collab-text-session.ts",
+      "line": 210,
+      "namespace": null,
+      "key": null,
+      "heuristicScope": "local-only",
+      "reviewed": "Angular signal writes holding the in-memory collaboration session (Phase 31J); the edited entity persists only through its own store."
     },
     {
       "source": "apps/web/src/app/core/device/device-identity.service.ts",
@@ -2139,6 +2155,34 @@
       "key": null,
       "storage": "this.local",
       "storageLocation": "this.local.set(buildStorageKey(toolId, key), raw)",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "sensitive",
+      "classificationBasis": "regex-heuristic (review flag)",
+      "syncConsent": "not granted"
+    },
+    {
+      "source": "apps/web/src/app/core/collab/collab-text-session.ts",
+      "line": 166,
+      "operation": "this.session.set(key === null ? null : this.collab.open(key))",
+      "namespace": null,
+      "key": null,
+      "storage": "this.session",
+      "storageLocation": "this.session.set(key === null ? null : this.collab.open(key))",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "sensitive",
+      "classificationBasis": "regex-heuristic (review flag)",
+      "syncConsent": "not granted"
+    },
+    {
+      "source": "apps/web/src/app/core/collab/collab-text-session.ts",
+      "line": 210,
+      "operation": "this.session.set(this.openedKey === null ? null : this.collab.open(this.openedKey))",
+      "namespace": null,
+      "key": null,
+      "storage": "this.session",
+      "storageLocation": "this.session.set(this.openedKey === null ? null : this.collab.open(this.openedKey))",
       "retention": "owned by the referenced backend; no policy change",
       "scope": "local-only",
       "sensitivity": "sensitive",

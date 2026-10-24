@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
@@ -9,6 +9,7 @@ import { DudeDataType } from "@dude/shared-types/shared/models/tool-io.model";
 import { PipelineValue, PipelineStepResult } from "@dude/contracts/shared/models/pipeline-step.model";
 import { UserScriptStoreService } from '../../../core/pipeline/user-script-store.service';
 import { OpenEditorMerge } from '../../../core/sync/open-editor-merge';
+import { CollabTextSession } from '../../../core/collab/collab-text-session';
 import { RemoteChangeNotice } from '../../../shared/components/remote-change-notice/remote-change-notice';
 import { runUserScriptStep } from "@dude/tool-engine/core/pipeline/user-script-step";
 import { UserScriptDefinition, createUserScript } from "@dude/domain/core/pipeline/pipeline.model";
@@ -35,9 +36,24 @@ export class ScriptEditor {
   protected readonly script = signal<UserScriptDefinition>(this.initScript());
 
   /**
-   * Another device's changes to this script apply live to the open form (PD-113). `body` is the field a later milestone
-   * makes collaborative, so it is only ever replaced while the local body is unchanged: a body edited on both sides is
-   * a conflict (notice, local draft untouched), never an overwrite.
+   * The body of a saved script is collaborative (PD-099): while the Hub accepts it (the `pipelines` category is on) it is the
+   * shared `user-script:<id>` document and every keystroke is live. Pages, standalone, an unsaved script or a refusal keep the
+   * plain body and Save; a desktop that loses its Hub keeps editing locally and returns to the live body once that is saved.
+   */
+  protected readonly collab = new CollabTextSession({
+    docKey: () => {
+      const id = this.script().id;
+      return this.saved() && /^[A-Za-z0-9_-]{1,64}$/.test(id) ? `user-script:${id}` : null;
+    },
+    textName: 'body',
+    keepLocally: (text) => this.updateField('body', text),
+    canPromote: () => (this.store.getById(this.script().id)?.body ?? '') === this.script().body,
+  });
+
+  /**
+   * Another device's changes to this script apply live to the open form (PD-113). While the body is live it is kept current by
+   * the shared document, so it is left out here; otherwise a body edited on both sides is a conflict (notice, local draft
+   * untouched), never an overwrite.
    */
   protected readonly remote = new OpenEditorMerge<UserScriptDefinition>({
     entityType: 'user-script',
@@ -45,6 +61,7 @@ export class ScriptEditor {
     stored: () => this.store.getById(this.script().id),
     draft: () => this.script(),
     setDraft: (value) => this.script.set(value),
+    ignore: () => (this.collab.mode() === 'local' ? ['updatedAt'] : ['updatedAt', 'body']),
   });
 
   protected readonly testInput = signal('');
@@ -52,6 +69,22 @@ export class ScriptEditor {
   protected readonly testResult = signal<PipelineStepResult | null>(null);
 
   protected readonly canSave = computed(() => this.script().name.trim() !== '' && this.script().produces.length > 0);
+
+  constructor() {
+    // The form's body follows the shared text, so Save and Test always use what everyone sees.
+    effect(() => {
+      if (this.collab.mode() === 'local') return;
+      const text = this.collab.text();
+      untracked(() => {
+        if (this.collab.binding() !== null && this.script().body !== text) this.script.update((current) => ({ ...current, body: text }));
+      });
+    });
+  }
+
+  /** The script exists in the store (a new one becomes collaborative after its first save). */
+  private saved(): boolean {
+    return this.store.getById(this.script().id) !== undefined;
+  }
 
   private initScript(): UserScriptDefinition {
     const id = this.route.snapshot.paramMap.get('id');
@@ -61,6 +94,11 @@ export class ScriptEditor {
 
   protected updateField<K extends keyof UserScriptDefinition>(key: K, value: UserScriptDefinition[K]): void {
     this.script.update((current) => ({ ...current, [key]: value }));
+  }
+
+  /** The editor's text changed: live, it is the shared text (a no-op when the bound editor already wrote it); otherwise the form. */
+  protected onBodyChange(value: string): void {
+    if (!this.collab.setText(value)) this.updateField('body', value);
   }
 
   protected toggleAccepts(type: DudeDataType): void {

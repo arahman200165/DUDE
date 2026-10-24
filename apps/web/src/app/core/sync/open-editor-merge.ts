@@ -18,8 +18,11 @@ export interface OpenEditorMergeConfig<T> {
   readonly setDraft: (value: T) => void;
   /** Rejects a clean merge the editor cannot hold; it is then treated as a conflict. */
   readonly accept?: (merged: T) => boolean;
-  /** Bookkeeping fields that never count as an edit. Defaults to `updatedAt`. */
-  readonly ignore?: readonly string[];
+  /**
+   * Fields that never count as an edit. Defaults to `updatedAt`. A function is read at each remote change, so a field can be
+   * left out while another channel keeps it current (a collaborative body bound to the live document, PD-099).
+   */
+  readonly ignore?: readonly string[] | (() => readonly string[]);
 }
 
 /**
@@ -91,7 +94,7 @@ export class OpenEditorMerge<T> {
     if (remote === null && this.base === null) return;
     const outcome = mergeIntoOpenEditor(this.config.entityType, this.base, this.config.draft(), remote, {
       accept: this.config.accept,
-      ignore: this.config.ignore ?? ['updatedAt'],
+      ignore: (typeof this.config.ignore === 'function' ? this.config.ignore() : this.config.ignore) ?? ['updatedAt'],
     });
     switch (outcome.kind) {
       case 'unchanged':

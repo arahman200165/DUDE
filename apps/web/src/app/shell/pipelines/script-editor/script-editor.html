@@ -69,6 +69,16 @@
     <p class="mb-1 text-ui-sm text-text-muted">
       Script body — a function body, not a module. Read the incoming value from <code>input</code> (<code>input.type</code>/<code>input.value</code>) and end with an explicit <code>return</code> — there's no implicit "last expression" result.
     </p>
+    @if (collab.mode() === 'live') {
+      <p class="mb-1 flex items-center gap-1.5 text-ui-xs text-text-muted" role="status" data-script-live>
+        <span class="size-1.5 rounded-full" aria-hidden="true" [class.bg-success]="collab.linkUp()" [class.bg-warning]="!collab.linkUp()"></span>
+        {{ collab.linkUp() ? 'Live' : 'Live, reconnecting' }} · {{ collab.participants() }} participant{{ collab.participants() === 1 ? '' : 's' }}
+        · the body is shared as you type; Save still applies the other fields
+      </p>
+    }
+    @if (collab.note(); as note) {
+      <p class="mb-1 rounded-sm border border-info/40 bg-info/10 px-1.5 py-0.5 text-ui-xs text-text" role="status" data-script-note>{{ note }}</p>
+    }
     <app-code-editor
       class="mb-4 rounded-sm border border-border"
       language="javascript"
@@ -79,7 +89,9 @@
       maxHeight="32rem"
       placeholder="return input.value.toUpperCase();"
       [value]="script().body"
-      (valueChange)="updateField('body', $event)"
+      [binding]="collab.binding()"
+      [readonly]="collab.mode() === 'read-only'"
+      (valueChange)="onBodyChange($event)"
     />
 
     <div class="rounded-sm border border-border bg-panel-elevated p-2">
