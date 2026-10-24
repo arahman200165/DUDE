@@ -171,6 +171,42 @@ describe('MarkdownCollabClient', () => {
     clientB.destroy();
   });
 
+  it('exposes the shared text and presence for an editor binding, and reports the first sync once seeded', async () => {
+    const synced: string[] = [];
+    const host = new MarkdownCollabClient({
+      url: 'ws://127.0.0.1:5',
+      sessionCode: 'code',
+      initialText: 'seeded',
+      onRemoteTextChange: () => {},
+      onStatusChange: () => {},
+      onParticipantCountChange: () => {},
+      onInitialSync: () => synced.push(host.ytext.toString()),
+    });
+    const joiner = new MarkdownCollabClient({
+      url: 'ws://127.0.0.1:5',
+      sessionCode: 'code',
+      initialText: '',
+      onRemoteTextChange: () => {},
+      onStatusChange: () => {},
+      onParticipantCountChange: () => {},
+    });
+    await flush();
+
+    // The host's callback fires once, after its initial text is already in the shared text.
+    expect(synced).toEqual(['seeded']);
+    expect(host.ytext.toString()).toBe('seeded');
+    expect(joiner.ytext.toString()).toBe('seeded');
+    expect(host.awareness.getLocalState()).toEqual({});
+
+    // An edit made straight on the shared text (what a bound editor does) reaches the peer.
+    host.ytext.insert(6, '!');
+    await flush();
+    expect(joiner.getText()).toBe('seeded!');
+
+    host.destroy();
+    joiner.destroy();
+  });
+
   it('reports connection status transitions', async () => {
     const statuses: string[] = [];
     const client = new MarkdownCollabClient({

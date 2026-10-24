@@ -35,15 +35,19 @@
             <input
               type="text"
               class="mb-1 w-full rounded-sm border border-border bg-panel px-1.5 py-0.5 text-ui-sm text-text focus:outline-none focus:ring-1 focus:ring-accent"
+              aria-label="Note title"
               [value]="draftTitle()"
               (input)="onTitleInput($event)"
             />
-            <textarea
-              rows="3"
-              class="mb-1 w-full rounded-sm border border-border bg-panel px-1.5 py-0.5 font-mono text-ui-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
+            <app-code-editor
+              class="mb-1 rounded-sm border border-border"
+              textSize="ui-xs"
+              ariaLabel="Note body"
+              minHeight="4.5rem"
+              maxHeight="10rem"
               [value]="draftBody()"
-              (input)="onBodyInput($event)"
-            ></textarea>
+              (valueChange)="draftBody.set($event)"
+            />
             <div class="flex gap-2">
               <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui-xs text-accent hover:bg-accent/10" (click)="saveEdit()">
                 Save

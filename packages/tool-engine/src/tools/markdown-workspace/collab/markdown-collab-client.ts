@@ -6,22 +6,24 @@ import * as decoding from 'lib0/decoding';
 import { computeTextDelta } from "./text-delta.js";
 
 /**
- * Binds a `Y.Text` CRDT to Advanced Markdown Workspace's plain `source`
- * signal/textarea (Phase 8 Stage 6) — there's no existing editor-library
- * abstraction layer to route a binding through, so this attaches directly:
- * local edits are diffed against the doc's current text (`text-delta.ts`)
- * and applied as a small Yjs op; remote edits are pushed back out via
- * `onRemoteTextChange` for the component to `source.set(...)`.
+ * Owns the `Y.Doc`, its `Y.Text('markdown')` and the awareness of one Advanced
+ * Markdown Workspace LAN/relay session (Phase 8 Stage 6), and speaks the sync
+ * wire protocol over a plain WebSocket. It has no editor dependency: the web
+ * app binds `ytext` and `awareness` to its CodeMirror editor through
+ * `y-codemirror.next` (Phase 31J, PD-107), so local edits and remote cursors
+ * flow through the CRDT without ever replacing the editor's text, and a remote
+ * edit no longer moves the local cursor.
+ *
+ * `applyLocalEdit` remains for whole-text writes that do not come from the
+ * bound editor (an opened file, Clear, a plugin result, or typing into the
+ * plain-textarea fallback): it is diffed against the doc (`text-delta.ts`) and
+ * applied as a small Yjs op. `onRemoteTextChange` keeps the caller's plain text
+ * in step with the doc whether or not an editor is bound.
  *
  * Speaks the same wire protocol as `apps/desktop/collab-server.ts` (hand-rolled
  * `y-protocols/sync` + `y-protocols/awareness` message framing over a plain
  * WebSocket) — see that file's doc comment for why this isn't `y-websocket`
  * itself.
- *
- * Known limitation: a remote update replaces the textarea's whole `value`
- * (no cursor-position preservation) since there's no rich-editor selection
- * model to map the CRDT op onto — acceptable for this MVP, same caveat the
- * Stage 6 plan flagged going in.
  */
 
 const MESSAGE_SYNC = 0;
@@ -47,12 +49,20 @@ export interface MarkdownCollabClientOptions {
   readonly onRemoteTextChange: (text: string) => void;
   readonly onStatusChange: (status: CollabConnectionStatus) => void;
   readonly onParticipantCountChange: (count: number) => void;
+  /**
+   * Called once, after the first sync message has been handled and (for the host) the initial text has been
+   * seeded. The caller binds its editor to `ytext` and `awareness` then, so the editor never shows a doc that is
+   * still empty only because the first sync round-trip has not landed.
+   */
+  readonly onInitialSync?: () => void;
 }
 
 export class MarkdownCollabClient {
   private readonly doc = new Y.Doc();
-  private readonly ytext = this.doc.getText('markdown');
-  private readonly awareness = new awarenessProtocol.Awareness(this.doc);
+  /** The shared Markdown text; the editor binds to this. */
+  readonly ytext = this.doc.getText('markdown');
+  /** Presence for this session (cursors and participants); the editor binds to this. */
+  readonly awareness = new awarenessProtocol.Awareness(this.doc);
   private ws: WebSocket | null = null;
   private receivedInitialSync = false;
 
@@ -85,7 +95,7 @@ export class MarkdownCollabClient {
     this.connect();
   }
 
-  /** Exposed for tests; the component reads state via `onRemoteTextChange` instead. */
+  /** The current shared text. */
   getText(): string {
     return this.ytext.toString();
   }
@@ -155,6 +165,7 @@ export class MarkdownCollabClient {
         if (this.ytext.length === 0 && this.options.initialText) {
           this.doc.transact(() => this.ytext.insert(0, this.options.initialText), LOCAL_EDIT_ORIGIN);
         }
+        this.options.onInitialSync?.();
       }
     } else if (messageType === MESSAGE_AWARENESS) {
       awarenessProtocol.applyAwarenessUpdate(this.awareness, decoding.readVarUint8Array(decoder), this);

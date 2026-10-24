@@ -42,4 +42,29 @@ Planned at Milestone 787; the close-out rewrites it as built.
 
 ## Deviations and implementation notes
 
-None yet.
+### 2026-10-24, Milestone 803: editor dependencies (PD-107)
+
+New direct `apps/web` dependencies (also listed in the root `package.json`, like the other application libraries). Editor packages are exact-pinned and were each published at least two weeks before this milestone; `yjs`, `y-protocols` and `lib0` keep the root's ranges and the installed versions.
+
+| Package | Version | Why |
+|---|---|---|
+| `@codemirror/state` | 6.7.6 | Editor state, compartments, transactions |
+| `@codemirror/view` | 6.43.14 | The editor view, theming, keymaps (6.43.15 is newer but only five days old) |
+| `@codemirror/commands` | 6.11.1 | Default keymap and history (Tab is deliberately not bound) |
+| `@codemirror/language` | 6.13.1 | Syntax highlighting |
+| `@codemirror/search` | 6.7.2 | Find and replace in all three editors |
+| `@codemirror/lang-markdown` | 6.5.2 | Markdown (GFM) highlighting; loaded only for Markdown editors |
+| `@codemirror/lang-javascript` | 6.2.5 | User-script body; loaded only for script editors |
+| `@lezer/highlight` | 1.2.5 | Highlight tags for the token-colored highlight style (already a transitive dependency; the boundary check requires a direct declaration for a direct import) |
+| `y-codemirror.next` | 0.3.6 | Yjs binding: sync, remote cursors, undo manager |
+| `yjs` / `y-protocols` / `lib0` | ^13.6.32 / ^1.0.7 / ^0.2.117 | Types and runtime the editor binding and the Markdown collaboration client share |
+
+Transitive additions from `lang-markdown`/`lang-javascript` are the `@lezer/*` parsers, `@codemirror/lang-html`, `lang-css`, `autocomplete` and `lint`, `crelt`, `style-mod` and `w3c-keyname` (all MIT).
+
+Implementation notes:
+
+- `<app-code-editor>` (`shared/components/code-editor/`) is a thin component; `code-editor.engine.ts` is the only module that imports CodeMirror and is loaded through one dynamic `import()` in `code-editor.loader.ts`. A textarea renders first and is the permanent fallback if the chunk cannot load (offline first visit). In the production build the main bundle is 246.7 kB (raw) and the editor adds no code to it or to the shell chunk beyond a 5.6 kB component chunk. The lazy chunks are the engine (329.8 kB raw, 106.8 kB gzip), `lang-markdown` with its HTML/CSS parsers (102.0 kB, 38.4 kB gzip), and `lang-javascript` with `autocomplete` (120.4 kB, 44.3 kB gzip). They sit in the lazy `tool-chunks` cache group, so the 800 kB prefetch budget is unchanged (452.0 kB web, 444.1 kB hub-web).
+- `valueChange` fires synchronously on every edit rather than debounced: the Markdown preview already rendered per keystroke, and a debounce would let the drawer and script forms lag behind the document.
+- The Markdown LAN and relay client no longer needs a textarea-diff on typing: `MarkdownCollabClient` exposes `ytext` and `awareness`, calls `onInitialSync` once after the first sync message and the host seed, and the workspace binds the editor then. `computeTextDelta` stays for whole-text writes that do not come from the bound editor (opened file, Clear, plugin output, the textarea fallback). Remote edits no longer move the local cursor.
+- Remote cursor colors are palette tokens: a peer sends a `colorSlot` (0-7) and each viewer maps it to a category token through its own theme; the engine hands `y-codemirror.next` a guarded awareness view that rebuilds every peer's `user` (name truncated, color from the slot), because the library writes `user.color` straight into a style attribute. Slots are picked from the client id, so two peers can collide (1 in 8). The name label uses `--dude-bg` text on the category fill (there is no `on-cat` token); the contrast of that pair is covered by the owed "cursor colors across themes and contrast modes" pass.
+- The editor shows a focus outline of the theme's focus width, wraps lines, and never binds Tab or Shift+Tab; `Ctrl+F` opens the CodeMirror search panel inside the editor.

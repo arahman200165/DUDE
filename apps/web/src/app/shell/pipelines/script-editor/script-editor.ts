@@ -2,6 +2,7 @@ import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
+import { CodeEditor } from '../../../shared/components/code-editor/code-editor';
 import { CodeSandboxHost } from '../../../shared/code-sandbox/code-sandbox-host';
 import { ErrorPanel } from '../../../shared/components/error-panel/error-panel';
 import { DudeDataType } from "@dude/shared-types/shared/models/tool-io.model";
@@ -16,7 +17,7 @@ const ALL_TYPES: readonly DudeDataType[] = ['text', 'json', 'bytes', 'file', 'ta
 
 @Component({
   selector: 'app-script-editor',
-  imports: [ErrorPanel, RouterLink, CodeSandboxHost, RemoteChangeNotice],
+  imports: [ErrorPanel, RouterLink, CodeSandboxHost, RemoteChangeNotice, CodeEditor],
   templateUrl: './script-editor.html',
 })
 export class ScriptEditor {

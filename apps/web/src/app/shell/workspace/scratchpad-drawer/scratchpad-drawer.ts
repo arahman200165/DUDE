@@ -1,4 +1,5 @@
 import { Component, effect, inject, signal, untracked } from '@angular/core';
+import { CodeEditor } from '../../../shared/components/code-editor/code-editor';
 import { RemoteChangesService } from '../../../core/sync/remote-changes.service';
 import { ScratchpadService } from '../../../core/workspace/scratchpad.service';
 import { WorkspaceSnippet } from "@dude/domain/core/workspace/scratchpad.model";
@@ -6,6 +7,7 @@ import { WorkspaceSnippet } from "@dude/domain/core/workspace/scratchpad.model";
 /** Collapsible bottom drawer listing manually-saved scratchpad snippets (Milestone 292). */
 @Component({
   selector: 'app-scratchpad-drawer',
+  imports: [CodeEditor],
   templateUrl: './scratchpad-drawer.html',
 })
 export class ScratchpadDrawer {
@@ -89,9 +91,5 @@ export class ScratchpadDrawer {
 
   protected onTitleInput(event: Event): void {
     this.draftTitle.set((event.target as HTMLInputElement).value);
-  }
-
-  protected onBodyInput(event: Event): void {
-    this.draftBody.set((event.target as HTMLTextAreaElement).value);
   }
 }

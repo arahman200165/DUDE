@@ -69,14 +69,18 @@
     <p class="mb-1 text-ui-sm text-text-muted">
       Script body — a function body, not a module. Read the incoming value from <code>input</code> (<code>input.type</code>/<code>input.value</code>) and end with an explicit <code>return</code> — there's no implicit "last expression" result.
     </p>
-    <textarea
-      rows="10"
-      [value]="script().body"
-      (input)="updateField('body', $any($event.target).value)"
-      spellcheck="false"
-      class="mb-4 w-full rounded-sm border border-border bg-panel-elevated p-2 font-mono text-ui-sm text-text"
+    <app-code-editor
+      class="mb-4 rounded-sm border border-border"
+      language="javascript"
+      surface="elevated"
+      textSize="ui-sm"
+      ariaLabel="Script body"
+      minHeight="15rem"
+      maxHeight="32rem"
       placeholder="return input.value.toUpperCase();"
-    ></textarea>
+      [value]="script().body"
+      (valueChange)="updateField('body', $event)"
+    />
 
     <div class="rounded-sm border border-border bg-panel-elevated p-2">
       <p class="mb-1 text-ui-sm font-semibold text-text">Test</p>

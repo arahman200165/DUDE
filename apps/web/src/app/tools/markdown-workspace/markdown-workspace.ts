@@ -1,5 +1,6 @@
 import { MarkdownWorkspace_formatFrontMatterValue } from "@dude/tool-engine/tools/markdown-workspace/markdown-workspace.embedded-engine";
 import { Component, ElementRef, OnDestroy, ViewEncapsulation, computed, effect, inject, signal, viewChild, viewChildren } from '@angular/core';
+import { CodeEditor, type CodeEditorBinding } from '../../shared/components/code-editor/code-editor';
 import { DesktopOnlyControl } from '../../shared/components/desktop-only-control/desktop-only-control';
 import { DomSanitizer } from '@angular/platform-browser';
 import DOMPurify from 'dompurify';
@@ -27,6 +28,7 @@ import { WorkspaceRenderResult, buildWorkspaceResult } from "@dude/tool-engine/t
 import { MarkdownWorkspacePayload } from "@dude/tool-engine/tools/markdown-workspace/markdown-workspace-payload";
 import { MarkdownInsertAction, applyMarkdownInsertion } from "@dude/tool-engine/tools/markdown-workspace/markdown-toolbar-insert";
 import { computeSyncedScrollTop } from "@dude/tool-engine/tools/markdown-workspace/markdown-scroll-sync";
+import { computeTextDelta } from "@dude/tool-engine/tools/markdown-workspace/collab/text-delta";
 import { MarkdownPluginKind, MarkdownPluginManifest } from "@dude/tool-engine/tools/markdown-workspace/plugins/plugin-manifest.model";
 import { BUILT_IN_PLUGINS } from "@dude/tool-engine/tools/markdown-workspace/plugins/builtin-plugins";
 import { lintMarkdown } from "@dude/tool-engine/tools/markdown-workspace/markdown-lint";
@@ -44,7 +46,7 @@ const DEFAULT_SOURCE =
 
 @Component({
   selector: 'app-markdown-workspace',
-  imports: [ToolShell, SplitPane, BusyIndicator, SandboxedMarkdownPreview, ErrorPanel, PluginRuntimeHost, OpenTextFile, TextFileDrop, SaveTextFile, DesktopOnlyControl],
+  imports: [ToolShell, SplitPane, BusyIndicator, SandboxedMarkdownPreview, ErrorPanel, PluginRuntimeHost, OpenTextFile, TextFileDrop, SaveTextFile, DesktopOnlyControl, CodeEditor],
   templateUrl: './markdown-workspace.html',
   // Emulated encapsulation adds a scoping attribute to elements the Angular
   // template compiler renders, but never to content injected via
@@ -78,7 +80,7 @@ export class MarkdownWorkspace implements OnDestroy {
   );
   protected readonly syncScroll = this.persistence.signal('markdown-workspace', 'syncScroll', 'local', true);
 
-  private readonly sourceTextarea = viewChild<ElementRef<HTMLTextAreaElement>>('sourceTextarea');
+  private readonly sourceEditor = viewChild<CodeEditor>('sourceEditor');
   private readonly previewPane = viewChild<ElementRef<HTMLDivElement>>('previewPane');
 
   protected readonly usesWorker = computed(() => this.source().length > WORKER_THRESHOLD);
@@ -151,6 +153,8 @@ export class MarkdownWorkspace implements OnDestroy {
   protected readonly joinUrlInput = signal('');
   protected readonly joinCodeInput = signal('');
   protected readonly showCollabPanel = signal(false);
+  /** The editor's Yjs binding while a LAN/relay session is live (set after the first sync, cleared on leaving). */
+  protected readonly collabBinding = signal<CodeEditorBinding | null>(null);
 
   // Stage 7: BYO relay. The global value is this tool's own `local` preference (edited from
   // Settings › Tools › Markdown Workspace); the live workspace may override it, and templates/
@@ -178,11 +182,16 @@ export class MarkdownWorkspace implements OnDestroy {
     });
   }
 
-  protected onSourceInput(event: Event): void {
-    this.onFileLoaded((event.target as HTMLTextAreaElement).value);
+  /**
+   * The editor reported a change. While it is bound to the session's `Y.Text` the edit is already in the CRDT, so
+   * nothing more is written to it; with the plain-textarea fallback (or an unbound editor) the edit is diffed in.
+   */
+  protected onSourceChange(value: string): void {
+    this.source.set(value);
+    if (!this.sourceEditor()?.bound()) this.collabClient?.applyLocalEdit(value);
   }
 
-  /** A typed edit and an opened/dropped file are the same edit as far as collaborators are concerned. */
+  /** An opened/dropped file, Clear and plugin output are edits as far as collaborators are concerned, like typing. */
   protected onFileLoaded(value: string): void {
     this.source.set(value);
     this.collabClient?.applyLocalEdit(value);
@@ -266,12 +275,14 @@ export class MarkdownWorkspace implements OnDestroy {
   }
 
   private connectCollabClient(url: string, sessionCode: string, initialText: string): void {
+    this.collabBinding.set(null);
     this.collabClient?.destroy();
     this.collabClient = new MarkdownCollabClient({
       url,
       sessionCode,
       initialText,
       onRemoteTextChange: (text) => this.source.set(text),
+      onInitialSync: () => this.bindEditorToSession(),
       onStatusChange: (status) => this.collabStatus.set(status),
       onParticipantCountChange: (count) => {
         const previous = this.collabParticipantCount();
@@ -283,7 +294,20 @@ export class MarkdownWorkspace implements OnDestroy {
     });
   }
 
+  /** Switches the editor to the session's shared text; the plain `source` follows it from here on. */
+  private bindEditorToSession(): void {
+    const client = this.collabClient;
+    if (!client) return;
+    this.source.set(client.ytext.toString());
+    this.collabBinding.set({
+      ytext: client.ytext,
+      awareness: client.awareness,
+      user: { name: this.collabRole() === 'host' ? 'Host' : 'Guest' },
+    });
+  }
+
   protected async stopCollabSession(): Promise<void> {
+    this.collabBinding.set(null);
     this.collabClient?.destroy();
     this.collabClient = null;
     if (this.collabRole() === 'host') {
@@ -339,30 +363,31 @@ export class MarkdownWorkspace implements OnDestroy {
     this.linkCheckStatus.set('idle');
   }
 
-  /** Moves the textarea's cursor/selection to the start of the given 1-based line and focuses it. */
+  /** Selects the given 1-based line of the source and focuses the editor. */
   protected goToLine(line: number): void {
-    const textarea = this.sourceTextarea()?.nativeElement;
-    if (!textarea) return;
+    const editor = this.sourceEditor();
+    if (!editor) return;
 
-    const lines = this.source().split('\n');
+    const lines = editor.getText().split('\n');
     let offset = 0;
     for (let i = 0; i < line - 1 && i < lines.length; i++) offset += lines[i].length + 1;
 
-    textarea.focus();
-    textarea.setSelectionRange(offset, offset + (lines[line - 1]?.length ?? 0));
+    editor.focus();
+    editor.setSelection(offset, offset + (lines[line - 1]?.length ?? 0));
   }
 
   protected insert(action: MarkdownInsertAction): void {
-    const textarea = this.sourceTextarea()?.nativeElement;
-    if (!textarea) return;
+    const editor = this.sourceEditor();
+    if (!editor) return;
 
-    const result = applyMarkdownInsertion(this.source(), textarea.selectionStart, textarea.selectionEnd, action);
-    this.source.set(result.text);
+    const current = editor.getText();
+    const { start, end } = editor.getSelection();
+    const result = applyMarkdownInsertion(current, start, end, action);
 
-    queueMicrotask(() => {
-      textarea.focus();
-      textarea.setSelectionRange(result.selectionStart, result.selectionEnd);
-    });
+    // Only the changed span is replaced, so collaborators' cursors and the editor's undo history are left alone.
+    const delta = computeTextDelta(current, result.text);
+    editor.replaceRange(delta.index, delta.index + delta.deleteCount, delta.insertText, { start: result.selectionStart, end: result.selectionEnd });
+    editor.focus();
   }
   protected formatFrontMatterValue = MarkdownWorkspace_formatFrontMatterValue;
 
@@ -371,9 +396,8 @@ export class MarkdownWorkspace implements OnDestroy {
     this.previewPane()?.nativeElement.querySelector(`#${CSS.escape(slug)}`)?.scrollIntoView({ block: 'start' });
   }
 
-  protected onSourceScroll(event: Event): void {
+  protected onSourceScroll(source: HTMLElement): void {
     if (!this.syncScroll() || this.isSyncingScroll) return;
-    const source = event.target as HTMLTextAreaElement;
     const preview = this.previewPane()?.nativeElement;
     if (!preview) return;
 
@@ -392,7 +416,7 @@ export class MarkdownWorkspace implements OnDestroy {
   protected onPreviewScroll(event: Event): void {
     if (!this.syncScroll() || this.isSyncingScroll) return;
     const preview = event.target as HTMLDivElement;
-    const source = this.sourceTextarea()?.nativeElement;
+    const source = this.sourceEditor()?.scroller();
     if (!source) return;
 
     const targetTop = computeSyncedScrollTop(
@@ -416,7 +440,7 @@ export class MarkdownWorkspace implements OnDestroy {
   }
 
   protected clear(): void {
-    this.source.set('');
+    this.onFileLoaded('');
   }
 
   protected onStylePresetChange(event: Event): void {
@@ -489,30 +513,28 @@ export class MarkdownWorkspace implements OnDestroy {
       }
     }
 
-    this.source.set(current);
+    this.onFileLoaded(current);
     this.pluginRunStatus.set('idle');
   }
 
-  /** Runs one toolbar-action plugin against the current textarea selection, replacing it with the plugin's output. */
+  /** Runs one toolbar-action plugin against the current editor selection, replacing it with the plugin's output. */
   protected async runToolbarActionPlugin(pluginId: string): Promise<void> {
-    const textarea = this.sourceTextarea()?.nativeElement;
-    if (!textarea) return;
+    const editor = this.sourceEditor();
+    if (!editor) return;
 
     const list = this.plugins();
     const index = list.findIndex((p) => p.id === pluginId);
     const host = this.pluginHosts()[index];
     if (index === -1 || !host) return;
 
-    const { selectionStart, selectionEnd } = textarea;
-    const selected = this.source().slice(selectionStart, selectionEnd);
+    const { start: selectionStart, end: selectionEnd } = editor.getSelection();
+    const selected = editor.getText().slice(selectionStart, selectionEnd);
 
     this.pluginRunStatus.set('running');
     this.pluginRunError.set('');
     try {
       const replacement = await host.run(selected);
-      const before = this.source().slice(0, selectionStart);
-      const after = this.source().slice(selectionEnd);
-      this.source.set(before + replacement + after);
+      editor.replaceRange(selectionStart, selectionEnd, replacement);
     } catch (error) {
       this.pluginRunError.set(`Plugin "${list[index].name}" failed: ${error instanceof Error ? error.message : String(error)}`);
     } finally {

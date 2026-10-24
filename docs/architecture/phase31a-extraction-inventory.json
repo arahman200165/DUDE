@@ -4813,7 +4813,9 @@
         "host import: @angular/core/rxjs-interop",
         "host import: @angular/router"
       ],
-      "tests": [],
+      "tests": [
+        "apps/web/src/app/shell/pipelines/script-editor/script-editor.spec.ts"
+      ],
       "remainingAdapterCode": "apps/web/src/app/shell/pipelines/script-editor/script-editor.ts"
     },
     {
@@ -5096,10 +5098,11 @@
         "host import: @angular/core",
         "host API: navigator",
         "host API: Event",
-        "host API: HTMLInputElement",
-        "host API: HTMLTextAreaElement"
+        "host API: HTMLInputElement"
       ],
-      "tests": [],
+      "tests": [
+        "apps/web/src/app/shell/workspace/scratchpad-drawer/scratchpad-drawer.spec.ts"
+      ],
       "remainingAdapterCode": "apps/web/src/app/shell/workspace/scratchpad-drawer/scratchpad-drawer.ts"
     },
     {
@@ -18289,15 +18292,17 @@
       "hostDependencies": [
         "host import: @angular/core",
         "host import: @angular/platform-browser",
-        "host API: HTMLTextAreaElement",
         "host API: HTMLDivElement",
         "host API: Worker",
         "host API: Event",
         "host API: HTMLInputElement",
         "host API: navigator",
-        "host API: HTMLSelectElement"
+        "host API: HTMLElement",
+        "host API: HTMLSelectElement",
+        "host API: HTMLTextAreaElement"
       ],
       "tests": [
+        "apps/web/src/app/tools/markdown-workspace/markdown-workspace-collab.spec.ts",
         "apps/web/src/app/tools/markdown-workspace/markdown-workspace-relay.spec.ts",
         "apps/web/src/app/tools/markdown-workspace/markdown-workspace.property.spec.ts",
         "apps/web/src/app/tools/markdown-workspace/markdown-workspace.spec.ts",
@@ -34962,6 +34967,7 @@
         "packages/tool-engine/src/tools/markdown-workspace/markdown-workspace-render.spec.ts",
         "packages/tool-engine/src/tools/markdown-workspace/plugins/builtin-plugins.spec.ts",
         "packages/tool-engine/src/tools/markdown-workspace/plugins/plugin-runtime.spec.ts",
+        "apps/web/src/app/tools/markdown-workspace/markdown-workspace-collab.spec.ts",
         "apps/web/src/app/tools/markdown-workspace/markdown-workspace-relay.spec.ts",
         "apps/web/src/app/tools/markdown-workspace/markdown-workspace.property.spec.ts",
         "apps/web/src/app/tools/markdown-workspace/markdown-workspace.spec.ts",
@@ -34975,6 +34981,7 @@
         "WebCrypto",
         "application Event",
         "application HTMLDivElement",
+        "application HTMLElement",
         "application HTMLIFrameElement",
         "application HTMLInputElement",
         "application HTMLSelectElement",

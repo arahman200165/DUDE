@@ -32,9 +32,9 @@ async function stable(): Promise<void> {
 }
 
 function setSource(fixture: ComponentFixture<MarkdownWorkspace>, value: string): void {
-  // Not the first `<textarea>` in the DOM — the custom-CSS `<details>` block
-  // above the split-pane also renders one; select the source editor specifically.
-  const textarea: HTMLTextAreaElement = fixture.nativeElement.querySelector('textarea[placeholder="Type Markdown here…"]');
+  // Not the first `<textarea>` in the DOM — the custom-CSS `<details>` block above the split-pane also renders
+  // one. jsdom never loads CodeMirror, so the source editor shows its textarea fallback (the editor's test hook).
+  const textarea: HTMLTextAreaElement = fixture.nativeElement.querySelector('app-code-editor textarea[data-code-editor-fallback]');
   textarea.value = value;
   textarea.dispatchEvent(new Event('input'));
 }

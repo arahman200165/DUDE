@@ -1,0 +1,18 @@
+@if (state() !== 'editor') {
+  <textarea
+    #fallback
+    class="block h-full w-full resize-none bg-transparent px-2 py-1.5 font-mono text-text focus:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+    spellcheck="false"
+    data-code-editor-fallback
+    [placeholder]="placeholder()"
+    [readOnly]="readonly()"
+    [attr.aria-label]="ariaLabel()"
+    [attr.aria-labelledby]="ariaLabelledby()"
+    [style.min-height]="minHeight()"
+    [style.max-height]="maxHeight()"
+    [value]="value()"
+    (input)="onFallbackInput($event)"
+    (scroll)="onFallbackScroll($event)"
+  ></textarea>
+}
+<div #mount class="h-full" [hidden]="state() !== 'editor'"></div>
