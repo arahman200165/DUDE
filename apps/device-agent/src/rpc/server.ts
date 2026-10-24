@@ -30,6 +30,8 @@ import { quarantineStore } from '../store/open-store.js';
 import { HUB_TRANSFERRED_CODE, HubApiError, HubProtocolError, isHubTransferredError } from '@dude/api-client';
 import type { HubClient } from '@dude/api-client';
 import { HubManagerError } from '../hub/errors.js';
+import { CollabRelayError } from '../hub/collab-socket.js';
+import type { CollabHolder, CollabRelay } from '../hub/collab-socket.js';
 import type { HubRuntime } from '../hub/index.js';
 import { withNotificationsCredential } from '../hub/notifications-access.js';
 import { SyncRuntimeError } from '../sync/sync-runtime.js';
@@ -51,8 +53,11 @@ export interface RpcDeps {
   sync?: SyncRuntime;
 }
 
+/** What a request knows about its caller: the desktop connection, for the methods that are bound to one (the collaboration relay, PD-106). */
+export interface RpcCaller { holder?: CollabHolder }
+
 export interface RpcServer {
-  handle(message: unknown): Promise<AgentResponse>;
+  handle(message: unknown, caller?: RpcCaller): Promise<AgentResponse>;
   /** True once `store.shutdown` has completed. */
   readonly closed: boolean;
 }
@@ -61,7 +66,7 @@ class RpcError extends Error {
   constructor(readonly code: string, message: string) { super(message); }
 }
 
-type Handlers = { [M in keyof AgentMethodMap]: (params: AgentMethodMap[M]['params']) => AgentMethodMap[M]['result'] | Promise<AgentMethodMap[M]['result']> };
+type Handlers = { [M in keyof AgentMethodMap]: (params: AgentMethodMap[M]['params'], caller: RpcCaller) => AgentMethodMap[M]['result'] | Promise<AgentMethodMap[M]['result']> };
 
 const invalid = (message: string): RpcError => new RpcError('invalid-params', message);
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -153,6 +158,23 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
   const syncRuntime = (): SyncRuntime => {
     if (!deps.sync) throw new RpcError('unavailable', 'Sync support is not available.');
     return deps.sync;
+  };
+  const collabRelay = (): CollabRelay => {
+    if (!deps.hub) throw new RpcError('unavailable', 'Hub support is not available.');
+    return deps.hub.collab;
+  };
+  /** The collaboration relay is bound to a desktop connection; a call with no connection (an in-process test) has nothing to bind to. */
+  const collabHolder = (caller: RpcCaller): CollabHolder => {
+    if (caller.holder === undefined) throw new RpcError('unavailable', 'Hub collaboration needs a desktop connection.');
+    return caller.holder;
+  };
+  const collabGuard = <T>(fn: () => T): T => {
+    try {
+      return fn();
+    } catch (error) {
+      if (error instanceof CollabRelayError) throw new RpcError(error.code, error.message);
+      throw error;
+    }
   };
   const owner = <T>(fn: (api: HubClient, ownerToken: string) => Promise<T>): Promise<T> => hubGuard(() => hubRuntime().manager.owner.withOwner(fn));
 
@@ -364,6 +386,18 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
       deps.hub?.manager.setActivity(p.activity);
       return { ok: true as const };
     },
+    'collab.open': (_p, caller) => {
+      const holder = collabHolder(caller);
+      return collabGuard(() => collabRelay().open(holder));
+    },
+    'collab.send': (p, caller) => {
+      const holder = collabHolder(caller);
+      return collabGuard(() => { collabRelay().send(holder, p); return { ok: true as const }; });
+    },
+    'collab.close': (_p, caller) => {
+      if (caller.holder !== undefined) deps.hub?.collab.close(caller.holder);
+      return { ok: true };
+    },
     'hub.enrollment': () => publicEnrollment(db()),
     'hub.status': () => hubRuntime().manager.status(),
     'hub.diagnostics': () => hubRuntime().diagnostics(deps.sync ? deps.sync.status() : null),
@@ -463,6 +497,7 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
       return { ok: true };
     },
     'store.shutdown': () => {
+      deps.hub?.collab.stop();
       deps.sync?.stop();
       deps.hub?.manager.stop();
       if (store) {
@@ -476,7 +511,7 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
 
   const fail = (id: number, code: string, message: string): AgentResponse => ({ id, ok: false, error: { code, message } });
 
-  async function handle(message: unknown): Promise<AgentResponse> {
+  async function handle(message: unknown, caller: RpcCaller = {}): Promise<AgentResponse> {
     if (!isObject(message) || typeof message.id !== 'number' || !Number.isFinite(message.id) || typeof message.method !== 'string') {
       return fail(isObject(message) && typeof message.id === 'number' ? message.id : -1, 'bad-request', 'Malformed request envelope.');
     }
@@ -504,8 +539,8 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
     }
 
     try {
-      const handler = handlers[method] as (p: unknown) => unknown;
-      return { id, ok: true, result: await handler(params) } as AgentResponse;
+      const handler = handlers[method] as (p: unknown, caller: RpcCaller) => unknown;
+      return { id, ok: true, result: await handler(params, caller) } as AgentResponse;
     } catch (error) {
       if (error instanceof RpcError) return fail(id, error.code, error.message);
       return fail(id, 'internal', error instanceof Error ? error.message : 'Internal error.');

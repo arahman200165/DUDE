@@ -9,7 +9,7 @@ import type { StartupProgramsResult } from "../../system/startup-types.js";
 import type { InstalledSoftware } from "../../system/software-types.js";
 import type { WindowsCapability, WindowsFeature } from "../../system/feature-types.js";
 import type { SysApplyResult, SysJournalEntry, SysMutationSettings, SysMutResult, SysPlanPreview, SysPlanRequest, SysSnapshot, SysSnapshotHeader, SysSnapshotKind } from "../../system/sys-mutation-types.js";
-import type { AgentAppliedChange, AgentDiagnostics, AgentHistoryRecord, AgentNetworkRun, AgentStandalonePreview, AgentSyncStatus, FirstSyncChoice, FirstSyncPreview, QuarantinedOpExport, QuarantinedOpView, SyncCategoryFlags, SyncConflictChoice, SyncConflictView } from "../../device-store/agent-protocol.js";
+import type { AgentAppliedChange, AgentDiagnostics, CollabRefusalReason, CollabRelayFrame, CollabRelayState, AgentHistoryRecord, AgentNetworkRun, AgentStandalonePreview, AgentSyncStatus, FirstSyncChoice, FirstSyncPreview, QuarantinedOpExport, QuarantinedOpView, SyncCategoryFlags, SyncConflictChoice, SyncConflictView } from "../../device-store/agent-protocol.js";
 import type { SyncCategory } from "../../hub/index.js";
 import type { DeviceStoreBoot, DeviceStoreDevice, EntityCommit, EntityCommitResult, KvMutation, QuarantinePreviewResult, ResetApplyResult, ResetKind, ResetPreviewOptions, ResetPreviewResult, StoreHealth } from "../../device-store/device-store.model.js";
 import type { NetworkRequest, NetworkJobEvent, NetworkStartResult, NetworkPrepareResult, WatchEntry, WatchSettings, WatchState, WatchResult } from "../../core/platform/network-types.js";
@@ -260,6 +260,23 @@ export interface DesktopPresenceBridge {
   setActivity(activity: PresenceActivity | null): Promise<DesktopHubResult<{ readonly ok: true }>>;
 }
 
+/**
+ * Hub collaboration relay (PD-106): the renderer keeps the Y.Doc and the editor binding; the Device Agent holds the pinned collaboration socket
+ * and main passes opaque frames between them (a control frame as JSON `text`, a binary frame as `base64`). Main accepts calls only from this window,
+ * caps every frame (`COLLAB_MAX_CONTROL_BYTES` / `COLLAB_MAX_FRAME_BYTES`) and relays only `subscribe`/`unsubscribe` controls; hello and heartbeat
+ * belong to the Agent. `open` answers `{ ok: false, reason }` (`CollabRefusalReason`) when the Agent will not hold a socket now; `send` while the
+ * socket is not welcomed is dropped. Result codes: `bad-request`, `forbidden`, `unavailable`, `collab-not-open`.
+ */
+export interface DesktopCollabHubBridge {
+  open(): Promise<DesktopHubResult<{ readonly ok: true } | { readonly ok: false; readonly reason: CollabRefusalReason; readonly message: string }>>;
+  send(frame: CollabRelayFrame): Promise<DesktopHubResult<{ readonly ok: true }>>;
+  close(): Promise<DesktopHubResult<{ readonly ok: true }>>;
+  /** A Hub frame, in wire order. Returns the unsubscribe function. */
+  onFrame(callback: (frame: CollabRelayFrame) => void): () => void;
+  /** The relay's state: connecting, open, or closed (with `willRetry` telling whether the Agent reconnects by itself). Returns the unsubscribe function. */
+  onState(callback: (state: CollabRelayState) => void): () => void;
+}
+
 export interface PlatformBridge {
   /** Absent until the Electron main/preload implementation of Hub administration ships. */
   readonly hub?: DesktopHubBridge;
@@ -267,6 +284,8 @@ export interface PlatformBridge {
   readonly sync?: DesktopSyncBridge;
   /** Absent on builds that predate presence. */
   readonly presence?: DesktopPresenceBridge;
+  /** Absent on builds that predate Hub collaboration. */
+  readonly collabHub?: DesktopCollabHubBridge;
   readonly preferences: {
     get(): Promise<DesktopPreferences>;
     set(patch: Partial<DesktopPreferences>): Promise<{ readonly ok: true; readonly value: DesktopPreferences } | { readonly ok: false; readonly error: string }>;

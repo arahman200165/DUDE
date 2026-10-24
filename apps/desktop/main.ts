@@ -47,6 +47,7 @@ import { registerHubHandlers } from './device-store/hub-bridge';
 import { installHubNotificationToasts } from './hub-notification-toasts';
 import { registerSyncHandlers } from './device-store/sync-bridge';
 import { registerPresenceHandlers } from './device-store/presence-bridge';
+import { registerCollabHubHandlers } from './collab-hub-bridge';
 import { installQuitCoordinator } from './device-store/quit-coordinator';
 import { getDeviceStoreHost, setDeviceStoreHost } from './device-store/store-client';
 import { startStoreMaintenance } from './device-store/store-maintenance';
@@ -136,6 +137,7 @@ async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
   installHubNotificationToasts(window, getDeviceStoreHost);
   registerSyncHandlers(window);
   registerPresenceHandlers(window);
+  registerCollabHubHandlers(window);
   registerStoreResetHandlers(window, defaultStoreResetDeps(() => app.getPath('userData'), async () => {
     await startDeviceStore();
     const host = getDeviceStoreHost();

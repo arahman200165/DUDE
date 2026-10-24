@@ -11,9 +11,9 @@ export type {
 export type {
   AgentMethodMap, AgentMethod, AgentRequest, AgentResponse, AgentHistoryRecord, AgentNetworkRun, JournalEngine,
   AgentJournalEntry, AgentSecretPurpose, AgentSecretStatus, AgentSnapshotHeader, AgentResetPreview, AgentStandalonePreview, LegacyImportResult, AgentHubEnrollment, AgentHubState, AgentHubAuthorityReason, AgentHubStatus, AgentHubEnrollError, AgentHubProbe, AgentHubBootstrapError, AgentHubBootstrapResult, AgentHubOwnerStatus, AgentDiagnostics, AgentDiagnosticsState, AgentHubStatusEvent,
-  AgentSyncPhase, AgentSyncStatus, AgentAppliedChange, SyncConflictKind, SyncConflictView, SyncConflictChoice, QuarantinedOpView, QuarantinedOpExport, SyncCategoryFlags, FirstSyncChoice, FirstSyncEntityRef, FirstSyncNameCollision, FirstSyncCategoryPreview, FirstSyncPreview, AgentSyncStatusEvent, AgentSyncAppliedEvent, AgentHubViewChangedEvent, AgentHubNotificationEvent, AgentEvent, AgentEventName,
+  AgentSyncPhase, AgentSyncStatus, AgentAppliedChange, SyncConflictKind, SyncConflictView, SyncConflictChoice, QuarantinedOpView, QuarantinedOpExport, SyncCategoryFlags, FirstSyncChoice, FirstSyncEntityRef, FirstSyncNameCollision, FirstSyncCategoryPreview, FirstSyncPreview, AgentSyncStatusEvent, AgentSyncAppliedEvent, AgentHubViewChangedEvent, AgentHubNotificationEvent, AgentCollabFrameEvent, AgentCollabStateEvent, CollabRelayFrame, CollabRelayState, CollabRefusalReason, AgentEvent, AgentEventName,
 } from "./device-store/agent-protocol.js";
-export { AGENT_METHODS, isAgentMethod, parseAgentEvent } from "./device-store/agent-protocol.js";
+export { AGENT_METHODS, COLLAB_MAX_FRAME_BASE64_LENGTH, COLLAB_TRANSIENT_REFUSALS, isAgentMethod, isCollabRefusalReason, isCollabRefusalTransient, parseAgentEvent, parseCollabRelayFrame } from "./device-store/agent-protocol.js";
 export { HUB_PUBLIC_URL_MAX_LENGTH, parseHubPublicUrl } from "./device-store/hub-public-url.js";
 export type { HubPublicUrlResult } from "./device-store/hub-public-url.js";
 export type { DeviceRegistrationRequest, DeviceRegistrationResponse } from "./device/device-registration.model.js";

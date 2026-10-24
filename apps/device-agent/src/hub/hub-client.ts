@@ -85,6 +85,13 @@ export interface HubConnectionManager {
    * socket sends nothing (the Hub clears a closed socket's presence itself); only going standalone forgets the value.
    */
   setActivity(activity: PresenceActivity | null): void;
+  /**
+   * A pinned WebSocket to `path` on the enrolled Hub, authenticated with the device token (PD-106: the collaboration socket). The credential-free
+   * authority check runs first, so a changed Hub is never handed a credential (`HubManagerError` `authority-changed`; the connection state follows). A
+   * rejected token is refreshed once with `refreshToken`. The socket is returned unopened-to-the-protocol: the caller owns its listeners, hello and
+   * lifetime, and the realtime loop is untouched.
+   */
+  openDeviceSocket(path: string, options: { maxPayload: number; refreshToken?: boolean }): Promise<WebSocket>;
   /** Pinned, credential-free call (hello, tls). */
   call<T>(fn: (api: HubClient) => Promise<T>): Promise<T>;
   /** Call with a valid device token; refreshes once on 401/403 and handles revocation. */
@@ -557,6 +564,24 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
     }
   }
 
+  async function openDeviceSocket(path: string, options: { maxPayload: number; refreshToken?: boolean }): Promise<WebSocket> {
+    requireEnrollment();
+    if (!await helloHolds()) throw new HubManagerError('authority-changed', lastError ?? AUTHORITY_MESSAGES[authority?.reason ?? 'instance-changed']);
+    let value: string;
+    try {
+      value = await getToken(options.refreshToken === true);
+    } catch (error) {
+      if (error instanceof HubManagerError || error instanceof HubApiError || error instanceof HubProtocolError) throw error;
+      if (isTlsError(error)) throw new HubManagerError('tls-untrusted', 'The Hub certificate does not match the pinned key.');
+      throw new HubManagerError('hub-unreachable', error instanceof Error ? error.message : 'The Hub could not be reached.');
+    }
+    // The enrollment is read again: the hello above may have recorded a higher epoch, and a pin can have moved.
+    const target = targetOf(requireEnrollment());
+    return new WebSocket(`wss://${target.url.host}${path}`, {
+      ...pinnedConnectOptions(target), headers: { authorization: `Bearer ${value}` }, handshakeTimeout: 15_000, perMessageDeflate: false, maxPayload: options.maxPayload,
+    });
+  }
+
   /** Fetches the announced next certificate over the pinned channel, verifies it against the announced pin and acks it. */
   function queueNextPin(announced: string, send: (message: unknown) => void): void {
     const stageOnce = async (): Promise<void> => {
@@ -600,6 +625,7 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
     },
     call,
     deviceCall,
+    openDeviceSocket,
     start() {
       const enrollment = getEnrollment(deps.db);
       if (!enrollment) { stopLoop(); setState('standalone'); return; }

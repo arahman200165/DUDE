@@ -19,6 +19,7 @@ import { createHubRuntime } from './hub/index.js';
 import { createSyncRuntime } from './sync/sync-runtime.js';
 import type { SyncIntervals, SyncRuntime } from './sync/sync-runtime.js';
 import type { HubRuntime, HubRuntimeDeps } from './hub/index.js';
+import type { CollabHolder } from './hub/collab-socket.js';
 
 /** Sent as `ready.boot` on every authenticated connection before any request is served. */
 export type AgentReadyEvent =
@@ -106,6 +107,8 @@ export async function runAgent(options: RunAgentOptions): Promise<RunningAgent> 
         for (const connection of [...connections]) void connection.send({ type: 'event', event: 'hub.notification', notification }).catch(() => undefined);
       });
       sync.onStatus((status) => {
+        // The collaboration gate also reads the first-sync and reconcile state sync owns (PD-106).
+        hub.collab.recheck();
         for (const connection of [...connections]) void connection.send({ type: 'event', event: 'sync.status', status }).catch(() => undefined);
       });
       sync.onApplied((changes) => {
@@ -151,12 +154,21 @@ export async function runAgent(options: RunAgentOptions): Promise<RunningAgent> 
       // (health, shutdown) that is not cached, so the first real desktop connection still opens the store.
       const current = openPromise ? await openPromise : placeholder();
       connections.add(connection);
-      connection.onClose(() => { connections.delete(connection); });
+      // The collaboration relay pushes Hub frames and state only to the connection that holds the socket (PD-106); it is let go with the connection.
+      const holder: CollabHolder = {
+        id: connection,
+        frame: (frame) => { void connection.send({ type: 'event', event: 'collab.frame', ...frame }).catch(() => undefined); },
+        state: (state) => { void connection.send({ type: 'event', event: 'collab.state', ...state }).catch(() => undefined); },
+      };
+      connection.onClose(() => {
+        connections.delete(connection);
+        current.hub?.collab.close(holder);
+      });
       // Requests on one connection are answered in order; node:sqlite serialises the work itself.
       let chain: Promise<void> = Promise.resolve();
       connection.onMessage((message) => {
         chain = chain.then(async () => {
-          const response = await current.server.handle(message);
+          const response = await current.server.handle(message, { holder });
           await connection.send(response).catch(() => undefined);
           if (current.server.closed) void finish();
         });
@@ -178,6 +190,7 @@ export async function runAgent(options: RunAgentOptions): Promise<RunningAgent> 
   const close = async (): Promise<void> => {
     // Close the store cleanly (checkpoint) unless a shutdown request already did.
     const current = await openPromise?.catch(() => null);
+    current?.hub?.collab.stop();
     current?.sync?.stop();
     current?.hub?.manager.stop();
     if (current && !current.server.closed) await current.server.handle({ id: 0, method: 'store.shutdown', params: {} }).catch(() => undefined);

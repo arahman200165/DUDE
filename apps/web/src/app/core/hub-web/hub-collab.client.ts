@@ -1,5 +1,5 @@
-import { isCollabAwarenessIdentity } from '@dude/collab-doc';
-import type { CollabLink, CollabLinkControl, CollabLinkEvents, CollabSubscriptionControl, CollabTransport } from '@dude/collab-doc';
+import { isCollabAwarenessIdentity, toCollabLinkControl } from '@dude/collab-doc';
+import type { CollabLink, CollabLinkEvents, CollabSubscriptionControl, CollabTransport } from '@dude/collab-doc';
 import { HUB_COLLAB_PATH, HUB_PROTOCOL_VERSION, HUB_REALTIME_DEPTH_PROTOCOL, REALTIME_CLOSE_CODES } from '@dude/contracts/hub';
 import type { HubWebConnectionService } from './hub-web-connection.service';
 import { BACKOFF_MAX_MS, BACKOFF_MIN_MS } from './hub-realtime.client';
@@ -29,22 +29,6 @@ export const COLLAB_MIN_HUB_PROTOCOL = HUB_REALTIME_DEPTH_PROTOCOL;
 const DEFAULT_HEARTBEAT_MS = 25_000;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
-const isChannel = (value: unknown): value is number => typeof value === 'number' && Number.isInteger(value) && value >= 1;
-
-/** Narrows an inbound control message to the shapes the service acts on; anything else is dropped. */
-function toControl(message: Record<string, unknown>): CollabLinkControl | null {
-  const { type, channel, doc, code } = message;
-  switch (type) {
-    case 'subscribed':
-      return isChannel(channel) && typeof doc === 'string' ? { type, channel, doc } : null;
-    case 'doc-error':
-      return isChannel(channel) && typeof code === 'string' ? { type, channel, code } : null;
-    case 'error':
-      return typeof code === 'string' ? { type, code } : null;
-    default:
-      return null;
-  }
-}
 
 function toBytes(data: unknown): Uint8Array | null {
   if (data instanceof Uint8Array) return data;
@@ -178,7 +162,7 @@ class HubCollabLink implements CollabLink {
       return;
     }
     if (!this.welcomed) return;
-    const control = toControl(message);
+    const control = toCollabLinkControl(message);
     if (control !== null) this.events.control(control);
   }
 

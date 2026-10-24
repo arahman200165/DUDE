@@ -1,4 +1,5 @@
 import type { TlsCertificatesResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, PairingCodeResponse, SessionListResponse, AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, RecoveryCodesResponse, SyncCategory, SyncSummary, HubDiagnosticsReport, BackupStatusResponse, PresenceActivity, PresenceResponse, HubJobsResponse, HubNotificationsResponse, NotificationEventData } from '../hub/index.js';
+import { COLLAB_MAX_CONTROL_BYTES, COLLAB_MAX_FRAME_BYTES } from '../hub/collab.schema.js';
 import { isOwnerViewTopic } from '../hub/owner-view-topics.js';
 import type { OwnerViewTopic } from '../hub/owner-view-topics.js';
 import type { EntityCommit, EntityCommitResult, KvMutation, ResetKind, StoreHealth, DeviceStoreBoot } from './device-store.model.js';
@@ -146,9 +147,66 @@ export interface AgentHubViewChangedEvent { type: 'event'; event: 'hub.viewChang
  * notification access). Carries what an OS notification needs (id, kind, severity, title), never the body; the renderer refetches the list.
  */
 export interface AgentHubNotificationEvent { type: 'event'; event: 'hub.notification'; notification: NotificationEventData }
-export type AgentEvent = AgentHubStatusEvent | AgentSyncStatusEvent | AgentSyncAppliedEvent | AgentHubViewChangedEvent | AgentHubNotificationEvent;
+/**
+ * Hub collaboration relay (PD-106). The Agent holds the pinned collaboration socket and passes opaque frames between it and the renderer:
+ * a JSON control frame as `text`, a binary `[channel][kind][payload]` frame as `base64` (the pipe carries JSON). It depends on neither Yjs nor
+ * `@dude/collab-doc`; every hop enforces `COLLAB_MAX_CONTROL_BYTES` / `COLLAB_MAX_FRAME_BYTES`.
+ */
+export type CollabRelayFrame = { kind: 'control'; text: string } | { kind: 'binary'; base64: string };
+/**
+ * Why the Agent will not open (or keep) the collaboration socket. `hub-offline` and `first-sync-pending` clear by themselves; the rest need
+ * the user to act (pair again, reconcile, finish the first sync decision elsewhere).
+ */
+export type CollabRefusalReason = 'not-enrolled' | 'revoked' | 'authority-changed' | 'untrusted-tls' | 'incompatible' | 'needs-reconcile' | 'hub-offline' | 'first-sync-pending';
+export const COLLAB_TRANSIENT_REFUSALS: readonly CollabRefusalReason[] = ['hub-offline', 'first-sync-pending'];
+export const isCollabRefusalTransient = (reason: unknown): boolean => (COLLAB_TRANSIENT_REFUSALS as readonly unknown[]).includes(reason);
+const COLLAB_REFUSALS: readonly string[] = ['not-enrolled', 'revoked', 'authority-changed', 'untrusted-tls', 'incompatible', 'needs-reconcile', 'hub-offline', 'first-sync-pending'];
+export const isCollabRefusalReason = (value: unknown): value is CollabRefusalReason => typeof value === 'string' && COLLAB_REFUSALS.includes(value);
+/** The longest base64 text a binary relay frame may carry (the encoding of `COLLAB_MAX_FRAME_BYTES`). */
+export const COLLAB_MAX_FRAME_BASE64_LENGTH = Math.ceil(COLLAB_MAX_FRAME_BYTES / 3) * 4;
+const BASE64 = /^[A-Za-z0-9+/]*={0,2}$/;
+/** The frame when `value` is exactly a well-formed, size-capped relay frame, else null. Returns a fresh object holding only the known fields. */
+export function parseCollabRelayFrame(value: unknown): CollabRelayFrame | null {
+  if (!isRecord(value)) return null;
+  if (value['kind'] === 'control') {
+    const text = value['text'];
+    // UTF-8 never takes fewer bytes than UTF-16 code units, so the length is a cheap first cut before measuring.
+    if (typeof text !== 'string' || text.length === 0 || text.length > COLLAB_MAX_CONTROL_BYTES || utf8Length(text) > COLLAB_MAX_CONTROL_BYTES) return null;
+    return { kind: 'control', text };
+  }
+  if (value['kind'] === 'binary') {
+    const base64 = value['base64'];
+    if (typeof base64 !== 'string' || base64.length === 0 || base64.length > COLLAB_MAX_FRAME_BASE64_LENGTH || base64.length % 4 !== 0 || !BASE64.test(base64)) return null;
+    const padding = base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0;
+    if ((base64.length / 4) * 3 - padding > COLLAB_MAX_FRAME_BYTES) return null;
+    return { kind: 'binary', base64 };
+  }
+  return null;
+}
+function utf8Length(text: string): number {
+  let bytes = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    const code = text.charCodeAt(i);
+    if (code < 0x80) bytes += 1;
+    else if (code < 0x800) bytes += 2;
+    else if (code >= 0xd800 && code <= 0xdbff) { bytes += 4; i += 1; }
+    else bytes += 3;
+  }
+  return bytes;
+}
+/**
+ * `closed` with `willRetry` true means the Agent reconnects on its own while the renderer keeps the link; `willRetry` false means the Agent
+ * dropped the hold (the renderer must open again, or stop for good when `reason` is not transient). `code` is the Hub's close code when there was one;
+ * `reason` is a `CollabRefusalReason` when the gate stopped the socket, else a short transport label.
+ */
+export interface CollabRelayState { state: 'connecting' | 'open' | 'closed'; code?: number; reason?: string; willRetry?: boolean }
+const COLLAB_STATES: readonly string[] = ['connecting', 'open', 'closed'];
+/** A Hub frame for the renderer, pushed only to the desktop connection that holds the socket. */
+export type AgentCollabFrameEvent = { type: 'event'; event: 'collab.frame' } & CollabRelayFrame;
+export type AgentCollabStateEvent = { type: 'event'; event: 'collab.state' } & CollabRelayState;
+export type AgentEvent = AgentHubStatusEvent | AgentSyncStatusEvent | AgentSyncAppliedEvent | AgentHubViewChangedEvent | AgentHubNotificationEvent | AgentCollabFrameEvent | AgentCollabStateEvent;
 export type AgentEventName = AgentEvent['event'];
-const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+function isRecord(v: unknown): v is Record<string, unknown> { return typeof v === 'object' && v !== null && !Array.isArray(v); }
 /** Shape check for a push frame; unknown events return null so clients ignore frames they do not know. */
 export function parseAgentEvent(frame: unknown): AgentEvent | null {
   if (!isRecord(frame) || frame['type'] !== 'event') return null;
@@ -158,6 +216,21 @@ export function parseAgentEvent(frame: unknown): AgentEvent | null {
   if (frame['event'] === 'hub.notification' && isRecord(frame['notification'])) {
     const { id, kind, severity, title } = frame['notification'];
     if (typeof id === 'string' && typeof kind === 'string' && typeof severity === 'string' && typeof title === 'string') return frame as unknown as AgentEvent;
+  }
+  if (frame['event'] === 'collab.frame') {
+    const parsed = parseCollabRelayFrame(frame);
+    return parsed === null ? null : { type: 'event', event: 'collab.frame', ...parsed };
+  }
+  if (frame['event'] === 'collab.state') {
+    const { state, code, reason, willRetry } = frame;
+    if (typeof state !== 'string' || !COLLAB_STATES.includes(state)) return null;
+    if (code !== undefined && (typeof code !== 'number' || !Number.isInteger(code) || code < 0 || code > 65535)) return null;
+    if (reason !== undefined && (typeof reason !== 'string' || reason.length > 64)) return null;
+    if (willRetry !== undefined && typeof willRetry !== 'boolean') return null;
+    return {
+      type: 'event', event: 'collab.state', state: state as CollabRelayState['state'],
+      ...(code === undefined ? {} : { code: code as number }), ...(reason === undefined ? {} : { reason: reason as string }), ...(willRetry === undefined ? {} : { willRetry: willRetry as boolean }),
+    };
   }
   return null;
 }
@@ -300,6 +373,17 @@ export interface AgentMethodMap {
    * Not enrolled: a no-op. Held in Hub memory only and never audited (PD-108).
    */
   'presence.setActivity': { params: { activity: PresenceActivity | null }; result: { ok: true } };
+  /**
+   * Hub collaboration relay (PD-106). `collab.open` takes the pinned collaboration socket for the calling desktop connection (a different
+   * connection displaces it) and answers at once; progress comes as `collab.state` pushes and Hub frames as `collab.frame` pushes, only to
+   * that connection. Refused with a reason unless the device is online, first-synced, free of reconcile/authority flags and the authority
+   * check holds. `collab.send` relays one frame (a control frame must be a `subscribe` or `unsubscribe`; hello and heartbeat belong to the
+   * Agent) and drops it while the socket is not yet welcomed; errors: `invalid-params`, `collab-not-open`. `collab.close` lets go (the
+   * socket lingers briefly in case a renderer reload asks again).
+   */
+  'collab.open': { params: Record<string, never>; result: { ok: true } | { ok: false; reason: CollabRefusalReason; message: string } };
+  'collab.send': { params: CollabRelayFrame; result: { ok: true } };
+  'collab.close': { params: Record<string, never>; result: { ok: true } };
   'sync.status': { params: Record<string, never>; result: AgentSyncStatus };
   /** Enabling a category re-fetches it from the Hub (a snapshot rebase). */
   'sync.setCategories': { params: { categories: SyncCategoryFlags }; result: AgentSyncStatus };
@@ -370,7 +454,7 @@ export const AGENT_METHODS = [
   'secrets.status', 'secrets.list', 'secrets.set', 'secrets.remove', 'secrets.getCiphertext',
   'device.rename', 'reset.preview', 'reset.apply', 'hub.enrollment',
   'hub.status', 'hub.diagnostics', 'hub.probeLocal', 'hub.tlsCertificates', 'hub.reachabilityEcho', 'hub.enroll', 'hub.reconnect', 'hub.bootstrapLocal', 'hub.unenroll', 'hub.owner.signIn', 'hub.owner.signOut', 'hub.owner.status',
-  'hub.owner.listDevices', 'hub.owner.syncSummary', 'hub.owner.presence', 'presence.setActivity', 'hub.owner.diagnostics', 'hub.owner.createPairingCode', 'hub.owner.backupStatus', 'hub.owner.renameDevice', 'hub.owner.revokeDevicePreview', 'hub.owner.revokeDevice',
+  'hub.owner.listDevices', 'hub.owner.syncSummary', 'hub.owner.presence', 'presence.setActivity', 'collab.open', 'collab.send', 'collab.close', 'hub.owner.diagnostics', 'hub.owner.createPairingCode', 'hub.owner.backupStatus', 'hub.owner.renameDevice', 'hub.owner.revokeDevicePreview', 'hub.owner.revokeDevice',
   'hub.owner.setRecoveryTrust', 'hub.owner.setNotificationsAccess', 'hub.owner.listSessions', 'hub.owner.revokeSession', 'hub.owner.revokeAllPreview', 'hub.owner.revokeAll',
   'hub.owner.listAudit', 'hub.owner.listSecurityAlerts', 'hub.owner.markSecurityAlertsSeen', 'hub.owner.recoveryCodesPreview', 'hub.owner.regenerateRecoveryCodes', 'hub.owner.changePassword', 'hub.owner.jobs', 'notifications.list', 'notifications.markRead', 'notifications.dismiss', 'hub.recoverOwner',
   'sync.status', 'sync.setCategories', 'sync.setPaused', 'sync.now', 'sync.conflicts.list', 'sync.conflicts.resolve',

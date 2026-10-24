@@ -189,6 +189,21 @@ const bridge: PlatformBridge = {
   presence: {
     setActivity: (activity) => ipcRenderer.invoke('dude:presence:setActivity', activity),
   },
+  collabHub: {
+    open: () => ipcRenderer.invoke('dude:collab-hub:open'),
+    send: (frame) => ipcRenderer.invoke('dude:collab-hub:send', frame),
+    close: () => ipcRenderer.invoke('dude:collab-hub:close'),
+    onFrame: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, frame: Parameters<typeof callback>[0]) => callback(frame);
+      ipcRenderer.on('dude:collab-hub:frame', listener);
+      return () => ipcRenderer.removeListener('dude:collab-hub:frame', listener);
+    },
+    onState: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, state: Parameters<typeof callback>[0]) => callback(state);
+      ipcRenderer.on('dude:collab-hub:state', listener);
+      return () => ipcRenderer.removeListener('dude:collab-hub:state', listener);
+    },
+  },
   menu: {
     ready: () => ipcRenderer.send('dude:menu:ready'),
     setToolMenuData: (tools) => ipcRenderer.invoke('dude:menu:setToolMenuData', tools),

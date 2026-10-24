@@ -6,9 +6,10 @@ import https from 'node:https';
 import os from 'node:os';
 import path from 'node:path';
 import { createHubClient } from '@dude/api-client';
-import type { AgentMethod, AgentMethodMap } from '@dude/contracts';
+import type { AgentMethod, AgentMethodMap, CollabRelayFrame, CollabRelayState } from '@dude/contracts';
 import { HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION } from '@dude/contracts/hub';
 import { uuidv7 } from '@dude/persistence';
+import type { CollabHolder } from '../hub/collab-socket.js';
 import { createHubRuntime } from '../hub/index.js';
 import type { HubRuntime, HubRuntimeDeps } from '../hub/index.js';
 import { createPinnedTransport, pinnedConnectOptions, spkiSha256Of } from '../hub/pinned-transport.js';
@@ -184,8 +185,12 @@ export async function startHub(options: StartHubOptions = {}): Promise<HubHandle
   return handle;
 }
 
+/** The desktop connection the harness stands in for: what the collaboration relay pushed to it. */
+export interface AgentCollab { readonly holder: CollabHolder; readonly frames: CollabRelayFrame[]; readonly states: CollabRelayState[] }
+
 export interface Agent {
   store: DeviceStore;
+  collab: AgentCollab;
   hub: HubRuntime;
   sync: SyncRuntime;
   dir: string;
@@ -198,6 +203,7 @@ export interface StartAgentOptions {
   /** Reuse an existing store directory (restart). */
   dir?: string;
   createTransport?: HubRuntimeDeps['createTransport'];
+  collabTimings?: HubRuntimeDeps['collabTimings'];
 }
 
 let nextRpcId = 1;
@@ -212,25 +218,32 @@ export function startAgent(dpapi: DpapiPort, options: StartAgentOptions = {}): A
     db: store.db, dpapi, now, timings: { backoffMinMs: 200, backoffMaxMs: 1_000, rateLimitBackoffMs: 7_000 },
     device: () => readDeviceRecord(store.db, CAPABILITIES), backupDir: path.join(dir, 'backups'),
     ...(options.createTransport ? { createTransport: options.createTransport } : {}),
+    ...(options.collabTimings ? { collabTimings: options.collabTimings } : {}),
   });
   const sync = createSyncRuntime({
     db: store.db, manager: hub.manager, now, newOpId: () => uuidv7((n) => new Uint8Array(randomBytes(n)), () => Date.now()),
     backupDir: path.join(dir, 'backups'),
     intervals: { debounceMs: 50, pollMs: 3_000, backoffMinMs: 200, backoffMaxMs: 1_000, reportMinIntervalMs: 1_000 },
   });
+  sync.onStatus(() => hub.collab.recheck());
+  const collab: AgentCollab = {
+    frames: [], states: [],
+    holder: { id: Symbol('harness-desktop'), frame: (frame) => { collab.frames.push(frame); }, state: (state) => { collab.states.push(state); } },
+  };
   // Like `agent.ts`: a store that already has an enrollment reconnects at start.
   if (getEnrollment(store.db)) hub.manager.start();
   sync.start();
   const server: RpcServer = createRpcServer(store, { now, randomBytes: (n) => new Uint8Array(randomBytes(n)), hub, sync });
   const agent: Agent = {
-    store, hub, sync, dir,
+    store, collab, hub, sync, dir,
     async rpc(method, params) {
-      const response = await server.handle({ id: nextRpcId++, method, params });
+      const response = await server.handle({ id: nextRpcId++, method, params }, { holder: collab.holder });
       if (!response.ok) throw Object.assign(new Error(response.error.message), { code: response.error.code });
       return response.result as never;
     },
     kill() {
       agents.delete(agent);
+      hub.collab.stop();
       sync.stop();
       hub.manager.stop();
       try { store.close(); } catch { /* already closed */ }
@@ -242,6 +255,6 @@ export function startAgent(dpapi: DpapiPort, options: StartAgentOptions = {}): A
 
 /** Stops every started agent's background work (the stores are closed by `cleanupTemp`). */
 export function stopAgents(): void {
-  for (const agent of agents) { agent.sync.stop(); agent.hub.manager.stop(); }
+  for (const agent of agents) { agent.hub.collab.stop(); agent.sync.stop(); agent.hub.manager.stop(); }
   agents.clear();
 }
