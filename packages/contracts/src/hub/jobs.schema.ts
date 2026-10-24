@@ -3,8 +3,11 @@ import Type, { type Static } from 'typebox';
 /** Owner read of the Hub's background jobs (PD-112). Credential: owner cookie or bearer session. */
 export const HUB_JOBS_PATH = '/api/v1/jobs';
 
-/** The closed list of Hub background jobs, in display order. Collaboration maintenance jobs join it with their milestones. */
-export const HUB_JOB_IDS = ['leaf-renewal', 'acme-renewal', 'backup-schedule', 'sync-compaction', 'address-watch', 'audit-prune'] as const;
+/**
+ * The closed list of Hub background jobs, in display order. Collaboration maintenance jobs join it with their milestones
+ * (`collab-history-prune`: the daily removal of history snapshots past retention, PD-105).
+ */
+export const HUB_JOB_IDS = ['leaf-renewal', 'acme-renewal', 'backup-schedule', 'sync-compaction', 'address-watch', 'audit-prune', 'collab-history-prune'] as const;
 export type HubJobId = (typeof HUB_JOB_IDS)[number];
 
 export const HUB_JOB_OUTCOMES = ['success', 'skipped', 'failed'] as const;

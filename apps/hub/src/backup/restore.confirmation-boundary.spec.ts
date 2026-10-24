@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, wri
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { sealBackup } from '@dude/hub-backup';
+import { HUB_COLLAB_HISTORY_PATH } from '@dude/contracts/hub';
 import { hubPaths } from '../config/data-dir.js';
 import { openHubDb } from '../db/open-hub-db.js';
 import { startTestHub } from '../server/test-helpers.js';
@@ -137,9 +138,12 @@ describe('backup restore confirmation boundary', () => {
   });
 
   it('is offline-only: no HTTP route, admin method or credential-bearing server module can issue or consume it', async () => {
-    const hub = await startTestHub();
+    const routes: string[] = [];
+    const hub = await startTestHub({}, { configure: (app) => app.addHook('onRoute', (route) => { for (const method of [route.method].flat()) routes.push(`${method} ${route.url}`); }) });
     try {
-      expect(hub.app.printRoutes({ commonPrefix: false })).not.toMatch(/restore/i);
+      // The only route named "restore" is the collaborative document history restore (PD-105): a forward Yjs edit of one document,
+      // unrelated to a Hub backup. It is exempted exactly; any other restore route still fails.
+      expect(routes.filter((route) => /restore/i.test(route))).toEqual([`POST ${HUB_COLLAB_HISTORY_PATH}/:snapshotId/restore`]);
     } finally {
       await hub.close();
     }

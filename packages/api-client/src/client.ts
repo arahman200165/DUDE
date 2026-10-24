@@ -2,7 +2,7 @@ import { Value } from 'typebox/value';
 import type { TSchema, Static } from 'typebox';
 import {
   HUB_API_PREFIX, HelloResponse, ErrorEnvelope, checkProtocolCompatibility,
-  BootstrapResponse, TlsCertificatesResponse, AuditListResponse, SecurityAlertsResponse, PresenceResponse, HUB_PRESENCE_PATH, HubJobsResponse, HUB_JOBS_PATH, HubNotificationsResponse, HUB_NOTIFICATIONS_PATH, CollabRoom, CollabRoomsResponse, HUB_COLLAB_ROOMS_PATH, KeepCollabRoomResponse, CollabDocumentsResponse, HUB_COLLAB_DOCUMENTS_PATH, HubDiagnosticsReport, ReachabilityEchoResponse, BackupStatusResponse,
+  BootstrapResponse, TlsCertificatesResponse, AuditListResponse, SecurityAlertsResponse, PresenceResponse, HUB_PRESENCE_PATH, HubJobsResponse, HUB_JOBS_PATH, HubNotificationsResponse, HUB_NOTIFICATIONS_PATH, CollabRoom, CollabRoomsResponse, HUB_COLLAB_ROOMS_PATH, KeepCollabRoomResponse, CollabDocumentsResponse, HUB_COLLAB_DOCUMENTS_PATH, CollabHistoryResponse, CollabSnapshotResponse, CollabRestoreResponse, HUB_COLLAB_HISTORY_PATH, HubDiagnosticsReport, ReachabilityEchoResponse, BackupStatusResponse,
   EnrollResponse, DeviceChallengeResponse, DeviceRecoveryChallengeResponse, DeviceTokenResponse, DeviceInfo, DeviceListResponse, OwnerBearerResponse, PairingCodeResponse,
   OkResponse, ConfirmPreview, SessionListResponse, RecoveryCodesResponse,
   StepUpResponse, ChangePasswordResponse,
@@ -106,6 +106,14 @@ export interface HubClient {
   listCollabDocuments(auth: Bearer): Promise<CollabDocumentsResponse>;
   /** Tombstones a kept document (404 when it does not exist or is already deleted); audited. */
   deleteCollabDocument(auth: Bearer, id: string): Promise<OkResponse>;
+  /**
+   * Document history (PD-105) of a persisted collaborative document (`kind:id`, never a room): owner session or a device token, each
+   * refused (403) unless the document's sync category is on for the caller. Lists newest first; a snapshot preview carries the record
+   * payload it holds. A restore snapshots the current state first, is applied as a forward edit and is audited (404 for an unknown snapshot).
+   */
+  listCollabHistory(auth: Bearer, doc: string): Promise<CollabHistoryResponse>;
+  getCollabSnapshot(auth: Bearer, snapshotId: string): Promise<CollabSnapshotResponse>;
+  restoreCollabSnapshot(auth: Bearer, snapshotId: string): Promise<CollabRestoreResponse>;
   recoveryCodesPreview(auth: Bearer): Promise<ConfirmPreview>;
   regenerateRecoveryCodes(auth: Bearer, confirmToken: string): Promise<RecoveryCodesResponse>;
   changePassword(auth: Bearer, currentPassword: string, newPassword: string): Promise<ChangePasswordResponse>;
@@ -198,6 +206,9 @@ export function createHubClient(transport: HubTransport, opts: HubClientOptions)
     keepCollabRoom: (auth, roomId, title) => call(KeepCollabRoomResponse, { method: 'POST', path: `${HUB_COLLAB_ROOMS_PATH}/${seg(roomId)}/keep`, body: { title } }, auth),
     listCollabDocuments: (auth) => call(CollabDocumentsResponse, { method: 'GET', path: HUB_COLLAB_DOCUMENTS_PATH }, auth),
     deleteCollabDocument: (auth, id) => call(OkResponse, { method: 'DELETE', path: `${HUB_COLLAB_DOCUMENTS_PATH}/${seg(id)}` }, auth),
+    listCollabHistory: (auth, doc) => call(CollabHistoryResponse, { method: 'GET', path: `${HUB_COLLAB_HISTORY_PATH}?${new URLSearchParams({ doc }).toString()}` }, auth),
+    getCollabSnapshot: (auth, id) => call(CollabSnapshotResponse, { method: 'GET', path: `${HUB_COLLAB_HISTORY_PATH}/${seg(id)}` }, auth),
+    restoreCollabSnapshot: (auth, id) => call(CollabRestoreResponse, { method: 'POST', path: `${HUB_COLLAB_HISTORY_PATH}/${seg(id)}/restore` }, auth),
     listAudit: (auth, query) => {
       const qs: string[] = [];
       if (query?.beforeSeq !== undefined) qs.push(`beforeSeq=${query.beforeSeq}`);

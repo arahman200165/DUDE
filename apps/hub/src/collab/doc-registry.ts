@@ -9,6 +9,8 @@ import { createCollabDocStore } from './doc-store.js';
 import type { CollabDocStore, CollabDocStoreOptions, CollabLog } from './doc-store.js';
 import { createMaterializer } from './materializer.js';
 import type { MaterializeSource, Materializer, MaterializerOptions } from './materializer.js';
+import { createCollabHistory } from './history.js';
+import type { CollabHistory, CollabHistoryOptions } from './history.js';
 
 /** A document unloads this long after its last subscriber released it (its state is already compacted by then). */
 export const COLLAB_IDLE_UNLOAD_MS = 60_000;
@@ -54,6 +56,8 @@ export interface CollabRegistryOptions {
   compactAfterUpdates?: number;
   store?: Pick<CollabDocStoreOptions, 'flushMs' | 'flushCount'>;
   materializer?: Pick<MaterializerOptions, 'quietMs' | 'maxWaitMs' | 'retryMs'>;
+  /** History snapshot timings and caps (PD-105; tests inject short ones). */
+  history?: Pick<CollabHistoryOptions, 'idleMs' | 'minIntervalMs' | 'maxSnapshots' | 'maxBytes'>;
 }
 
 export interface CollabRegistry {
@@ -70,6 +74,8 @@ export interface CollabRegistry {
   loadedKeys(): string[];
   readonly store: CollabDocStore;
   readonly materializer: Materializer;
+  /** Version history snapshots (PD-105) of the loaded documents. */
+  readonly history: CollabHistory;
 }
 
 interface Entry {
@@ -120,6 +126,14 @@ export function createCollabRegistry(options: CollabRegistryOptions): CollabRegi
     },
   });
 
+  const history = createCollabHistory({
+    db, now, ...(options.log ? { log: options.log } : {}), ...options.history,
+    resolveSource: (docKey) => {
+      const entry = entries.get(docKey);
+      return entry ? { docKey, kind: entry.kind, doc: entry.doc } : undefined;
+    },
+  });
+
   const bytesOf = (entry: Entry): number => {
     entry.bytes ??= contentBytes(entry.doc, entry.kind);
     return entry.bytes;
@@ -135,6 +149,7 @@ export function createCollabRegistry(options: CollabRegistryOptions): CollabRegi
     store.appendUpdate(entry.docKey, update);
     if (store.tailLength(entry.docKey) >= compactAfter) store.compact(entry.docKey, entry.doc);
     materializer.schedule(entry.docKey);
+    history.edited(entry.docKey);
     for (const handle of entry.handles) {
       for (const listener of handle.updateListeners) listener(update, origin);
     }
@@ -198,6 +213,11 @@ export function createCollabRegistry(options: CollabRegistryOptions): CollabRegi
   /** The last subscriber left: write the document to its record, fold the tail into the state, and unload after the idle delay. */
   function settle(entry: Entry): void {
     persist(entry);
+    try {
+      history.settled(entry.docKey);
+    } catch (error) {
+      options.log?.warn({ event: 'collab.snapshot-failed', doc: entry.docKey, code: (error as { code?: unknown }).code }, 'A history snapshot could not be written.');
+    }
     if (entry.idleTimer !== undefined) clearTimeout(entry.idleTimer);
     entry.idleTimer = setTimeout(() => {
       entry.idleTimer = undefined;
@@ -218,10 +238,20 @@ export function createCollabRegistry(options: CollabRegistryOptions): CollabRegi
     }
   }
 
-  function unload(entry: Entry): void {
+  /** `keepHistory` false: the document is being deleted, so a pending snapshot is dropped rather than kept for its deferred write. */
+  function unload(entry: Entry, keepHistory = true): void {
     if (entry.idleTimer !== undefined) clearTimeout(entry.idleTimer);
     entry.idleTimer = undefined;
     materializer.cancel(entry.docKey);
+    if (!keepHistory) history.forget(entry.docKey);
+    else {
+      try {
+        history.unloading({ docKey: entry.docKey, kind: entry.kind, doc: entry.doc });
+      } catch (error) {
+        history.forget(entry.docKey);
+        options.log?.warn({ event: 'collab.snapshot-failed', doc: entry.docKey, code: (error as { code?: unknown }).code }, 'A history snapshot could not be kept.');
+      }
+    }
     entries.delete(entry.docKey);
     entry.doc.destroy();
   }
@@ -272,6 +302,7 @@ export function createCollabRegistry(options: CollabRegistryOptions): CollabRegi
   return {
     store,
     materializer,
+    history,
 
     open(docKey, opener) {
       const ref = parseCollabDocKey(docKey);
@@ -292,18 +323,20 @@ export function createCollabRegistry(options: CollabRegistryOptions): CollabRegi
     evict(docKey) {
       const entry = entries.get(docKey);
       if (entry) {
-        unload(entry);
+        unload(entry, false);
         endHandles(entry, 'evicted');
       }
+      history.forget(docKey);
       materializer.cancel(docKey);
       store.deleteDoc(docKey);
     },
 
     evictAll() {
       for (const entry of [...entries.values()]) {
-        unload(entry);
+        unload(entry, false);
         endHandles(entry, 'evicted');
       }
+      history.forgetAll();
       store.deleteAll();
     },
 
@@ -313,6 +346,7 @@ export function createCollabRegistry(options: CollabRegistryOptions): CollabRegi
       try {
         closeAll();
       } finally {
+        history.close();
         materializer.close();
         store.close();
       }

@@ -33,6 +33,8 @@ import { registerDeviceAuthRoutes } from './routes/device-auth.js';
 import { registerSyncRoutes } from './routes/sync.js';
 import { registerWebRecordRoutes } from './routes/web-records.js';
 import { registerCollabRoomRoutes } from './routes/collab-rooms.js';
+import { registerCollabHistoryRoutes } from './routes/collab-history.js';
+import { COLLAB_HISTORY_PRUNE_INTERVAL_MS, startCollabHistoryPruning } from '../collab/history.js';
 import { collabKindForEntity } from '@dude/collab-doc';
 import { createCollabRegistry } from '../collab/doc-registry.js';
 import type { CollabRegistry, CollabRegistryOptions } from '../collab/doc-registry.js';
@@ -95,7 +97,7 @@ export interface CreateHubServerOptions {
   /** Sync compaction timer and retention (tests inject short ones). */
   sync?: SyncCompactionOptions;
   /** Collaborative document timings (tests inject short ones): idle unload, tail compaction, update flush and materialization. */
-  collab?: Pick<CollabRegistryOptions, 'idleUnloadMs' | 'compactAfterUpdates' | 'store' | 'materializer'>;
+  collab?: Pick<CollabRegistryOptions, 'idleUnloadMs' | 'compactAfterUpdates' | 'store' | 'materializer' | 'history'>;
   /** Collaboration socket timers and limits (tests inject short ones). */
   collabSocket?: Partial<CollabSocketTimings>;
   /** Markdown room limits and idle close (tests inject short ones). */
@@ -272,6 +274,10 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
     db: options.hub.db, now, hostGuard, registry: collab, rooms: collabRooms, ...(options.collabSocket ? { timings: options.collabSocket } : {}),
   });
   registerCollabRoomRoutes(app, { db: options.hub.db, now, rooms: collabRooms, hubEvents: app.hubEvents, requireOwner: authOptions.requireOwner, requireDevice });
+  registerCollabHistoryRoutes(app, { db: options.hub.db, now, registry: collab, requireOwner: authOptions.requireOwner, requireDevice });
+  // History retention (PD-105): snapshots past 30 days are removed once a day.
+  jobs.register('collab-history-prune', COLLAB_HISTORY_PRUNE_INTERVAL_MS);
+  const stopHistoryPruning = startCollabHistoryPruning(options.hub.db, now, COLLAB_HISTORY_PRUNE_INTERVAL_MS, jobs.handle('collab-history-prune'));
   const stopObservingCommits = observeCanonicalCommits(options.hub.db, (event) => {
     const kind = event.op === 'delete' ? collabKindForEntity(event.entityType) : null;
     if (kind !== null) collab.evict(`${kind}:${event.entityId}`);
@@ -280,6 +286,7 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   app.hubEvents.on('environment-cleared', onEnvironmentCleared);
   app.addHook('onClose', async () => {
     stopObservingCommits();
+    stopHistoryPruning();
     app.hubEvents.off('environment-cleared', onEnvironmentCleared);
     collab.dispose();
   });

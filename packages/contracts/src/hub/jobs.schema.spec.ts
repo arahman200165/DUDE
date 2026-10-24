@@ -8,7 +8,7 @@ describe('HubJobsResponse', () => {
 
   it('names the path and a closed, ordered job list', () => {
     expect(HUB_JOBS_PATH).toBe('/api/v1/jobs');
-    expect([...HUB_JOB_IDS]).toEqual(['leaf-renewal', 'acme-renewal', 'backup-schedule', 'sync-compaction', 'address-watch', 'audit-prune']);
+    expect([...HUB_JOB_IDS]).toEqual(['leaf-renewal', 'acme-renewal', 'backup-schedule', 'sync-compaction', 'address-watch', 'audit-prune', 'collab-history-prune']);
   });
 
   it('accepts a never-run job, a finished job and a running job', () => {

@@ -129,11 +129,17 @@ export type CollabDocumentsResponse = Static<typeof CollabDocumentsResponse>;
 export const CollabDocumentParams = Type.Object({ id: DocumentId });
 export type CollabDocumentParams = Static<typeof CollabDocumentParams>;
 
-/** Document history (PD-105). Credential: owner cookie or bearer session. A restore is a forward edit and is audited. */
+/**
+ * Document history (PD-105) of the persisted documents (never a room). Credential: owner cookie or bearer session, or a device token;
+ * each needs the document's sync category on for the caller (PD-103: scratchpad, pipelines for a user script, collab-documents for a
+ * Markdown document). A restore snapshots the current state first, is applied as a forward edit and is audited `collab.history-restored`.
+ */
 export const HUB_COLLAB_HISTORY_PATH = '/api/v1/collab/history';
-const SnapshotId = Type.String({ minLength: 1, maxLength: 64 });
+const SnapshotId = Type.String({ pattern: '^[A-Za-z0-9_-]{1,64}$' });
+/** A `kind:id` key of a persisted document: a room has no history. */
+const PersistedDocKey = Type.String({ pattern: `^(${COLLAB_WIRE_DOC_KINDS.filter((k) => k !== 'room').join('|')}):[A-Za-z0-9_-]{1,64}$`, maxLength: 80 });
 
-export const CollabHistoryQuery = Type.Object({ doc: DocKey });
+export const CollabHistoryQuery = Type.Object({ doc: PersistedDocKey });
 export type CollabHistoryQuery = Static<typeof CollabHistoryQuery>;
 export const CollabSnapshotSummary = Type.Object({
   id: SnapshotId,
@@ -148,7 +154,7 @@ export const CollabSnapshotParams = Type.Object({ snapshotId: SnapshotId });
 export type CollabSnapshotParams = Static<typeof CollabSnapshotParams>;
 /** The preview: the plain JSON a restore would write, in the document's own record shape. */
 export const CollabSnapshotResponse = Type.Object({
-  doc: DocKey,
+  doc: PersistedDocKey,
   takenAt: Instant,
   payload: Type.Record(Type.String(), Type.Unknown()),
 }, { additionalProperties: false });

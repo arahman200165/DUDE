@@ -120,6 +120,9 @@ describe('createHubClient', () => {
     ['keepCollabRoom', (c) => c.keepCollabRoom('t', 'r 1', 'Title'), 'POST', '/api/v1/collab/rooms/r%201/keep'],
     ['listCollabDocuments', (c) => c.listCollabDocuments('t'), 'GET', '/api/v1/collab/documents'],
     ['deleteCollabDocument', (c) => c.deleteCollabDocument('t', 'd 1'), 'DELETE', '/api/v1/collab/documents/d%201'],
+    ['listCollabHistory', (c) => c.listCollabHistory('t', 'markdown-doc:m1'), 'GET', '/api/v1/collab/history?doc=markdown-doc%3Am1'],
+    ['getCollabSnapshot', (c) => c.getCollabSnapshot('t', 's 1'), 'GET', '/api/v1/collab/history/s%201'],
+    ['restoreCollabSnapshot', (c) => c.restoreCollabSnapshot('t', 's 1'), 'POST', '/api/v1/collab/history/s%201/restore'],
   ];
   it.each(table)('%s hits %s %s', async (_name, fn, method, path) => {
     const t = fake({ body: null });

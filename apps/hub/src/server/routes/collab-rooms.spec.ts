@@ -210,7 +210,8 @@ describe('Markdown Hub rooms', () => {
     const listed = await h.call('GET', '/collab/documents', asOwner());
     expect(listed.status).toBe(200);
     expect(Value.Check(CollabDocumentsResponse, listed.json)).toBe(true);
-    expect(listed.json.documents[0]).toMatchObject({ id: entityId, title: 'Kept one', bytes: 6 });
+    // Order is newest first; the test clock is fixed, so find the document by id instead of relying on its position.
+    expect(listed.json.documents.find((d: { id: string }) => d.id === entityId)).toMatchObject({ id: entityId, title: 'Kept one', bytes: 6 });
     expect(JSON.stringify(listed.json)).not.toContain('héllo');
 
     // Credentials and consent: none is 401; a device without the category and a cookie with web access off are 403.

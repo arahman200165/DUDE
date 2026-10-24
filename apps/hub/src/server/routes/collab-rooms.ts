@@ -7,19 +7,14 @@ import {
   COLLAB_MAX_ROOMS, CollabRoom, CollabRoomParams, CollabRoomsResponse, CreateCollabRoomRequest, ErrorEnvelope, HUB_COLLAB_ROOMS_PATH,
   KeepCollabRoomRequest, KeepCollabRoomResponse, COLLAB_DOCUMENTS_LIST_MAX, CollabDocumentParams, CollabDocumentsResponse, HUB_COLLAB_DOCUMENTS_PATH, OkResponse,
 } from '@dude/contracts/hub';
-import type { OwnerContext } from '../../auth/owner-auth.js';
 import { principalConsents } from '../../collab/collab-consent.js';
 import type { CollabRooms } from '../../collab/rooms.js';
 import { DeviceInactiveError, commitCanonical, getCanonicalRecord, listCanonicalRecords } from '../../db/canonical-repository.js';
-import type { CommitActor } from '../../db/canonical-repository.js';
-import { boundBrowser } from '../../devices/browsers.js';
-import { DEVICE_TOKEN_PREFIX } from '../../devices/device-tokens.js';
 import { audit } from '../../security/audit.js';
-import { classifyCredential } from '../../security/request-guard.js';
 import { envelope } from '../errors.js';
 import type { HubEvents } from '../../auth/hub-events.js';
-
-type Preparer = (request: FastifyRequest, reply: FastifyReply) => Promise<FastifyReply | undefined>;
+import { createCollabCallers } from './collab-caller.js';
+import type { Preparer } from './collab-caller.js';
 
 export interface CollabRoomRouteOptions {
   db: Db;
@@ -31,19 +26,6 @@ export interface CollabRoomRouteOptions {
 }
 
 const ipOf = (request: FastifyRequest): string => request.ip || 'unknown';
-
-/** The authenticated caller of a room route, whichever credential it presented. */
-interface Caller {
-  kind: 'owner-cookie' | 'owner-bearer' | 'device';
-  /** Audit actor: the owner, or the device. */
-  actorKind: 'owner' | 'device';
-  actorId: string;
-  /** The registry row the work is attributed to (a device, a bound owner-bearer's device, or the cookie session's attached browser row). */
-  rowId: string | null;
-  deviceId: string | null;
-  boundDeviceId: string | null;
-  actor: CommitActor | undefined;
-}
 
 /**
  * Markdown Workspace rooms on the Hub (PD-104). Credential types: owner cookie or bearer session, or a device token (a device
@@ -59,29 +41,7 @@ export function registerCollabRoomRoutes(app: FastifyInstance, options: CollabRo
   const typed = app.withTypeProvider<TypeBoxTypeProvider>();
   const P = HUB_COLLAB_ROOMS_PATH;
   const nostore = (reply: FastifyReply): void => void reply.header('Cache-Control', 'no-store');
-  const callers = new WeakMap<FastifyRequest, Caller>();
-
-  const requireCaller: Preparer = async (request, reply) => {
-    const isDevice = classifyCredential(request).bearerToken?.startsWith(DEVICE_TOKEN_PREFIX) === true;
-    const denied = isDevice ? await options.requireDevice(request, reply) : await options.requireOwner(request, reply);
-    if (denied !== undefined) return denied;
-    if (isDevice) {
-      const device = request.device!;
-      callers.set(request, {
-        kind: 'device', actorKind: 'device', actorId: device.deviceId, rowId: device.deviceId, deviceId: device.deviceId, boundDeviceId: null,
-        actor: { kind: 'device', deviceId: device.deviceId, keyId: device.keyId },
-      });
-      return undefined;
-    }
-    const ctx = request.owner as OwnerContext;
-    const browser = ctx.kind === 'cookie' ? boundBrowser(db, ctx.sessionHash) : null;
-    callers.set(request, {
-      kind: ctx.kind === 'cookie' ? 'owner-cookie' : 'owner-bearer', actorKind: 'owner', actorId: ctx.ownerId,
-      rowId: ctx.kind === 'cookie' ? (browser?.deviceId ?? null) : ctx.deviceId, deviceId: null, boundDeviceId: ctx.kind === 'bearer' ? ctx.deviceId : null,
-      actor: browser ? { kind: 'browser', deviceId: browser.deviceId, sessionHash: ctx.sessionHash } : undefined,
-    });
-    return undefined;
-  };
+  const { requireCaller, callerOf } = createCollabCallers({ db, requireOwner: options.requireOwner, requireDevice: options.requireDevice });
 
   typed.get(
     P,
@@ -114,7 +74,7 @@ export function registerCollabRoomRoutes(app: FastifyInstance, options: CollabRo
     },
     async (request, reply) => {
       nostore(reply);
-      const caller = callers.get(request)!;
+      const caller = callerOf(request);
       const at = now();
       if (!principalConsents(db, caller, 'collab-documents')) {
         audit(db, { event: 'collab.document-kept', outcome: 'denied', actorKind: caller.actorKind, actorId: caller.actorId, ip: ipOf(request), detail: { reason: 'consent-required' }, now: at });
@@ -159,7 +119,7 @@ export function registerCollabRoomRoutes(app: FastifyInstance, options: CollabRo
     { preHandler: requireCaller, schema: { response: { 200: CollabDocumentsResponse, 401: ErrorEnvelope, 403: ErrorEnvelope } } },
     async (request, reply) => {
       nostore(reply);
-      const caller = callers.get(request)!;
+      const caller = callerOf(request);
       if (!principalConsents(db, caller, 'collab-documents')) return reply.code(403).send(envelope('forbidden', CONSENT_MESSAGE));
       const environmentId = environmentIdOf();
       const records = environmentId === undefined ? [] : listCanonicalRecords(db, environmentId, 'markdown-doc');
@@ -178,7 +138,7 @@ export function registerCollabRoomRoutes(app: FastifyInstance, options: CollabRo
     { preHandler: requireCaller, schema: { params: CollabDocumentParams, response: { 200: OkResponse, 401: ErrorEnvelope, 403: ErrorEnvelope, 404: ErrorEnvelope } } },
     async (request, reply) => {
       nostore(reply);
-      const caller = callers.get(request)!;
+      const caller = callerOf(request);
       const at = now();
       const entityId = request.params.id;
       if (!principalConsents(db, caller, 'collab-documents')) {

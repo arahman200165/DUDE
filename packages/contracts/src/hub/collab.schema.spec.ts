@@ -4,7 +4,7 @@ import { HUB_AUDIT_EVENTS } from './audit.js';
 import {
   COLLAB_DOC_ERROR_CODES, COLLAB_HISTORY_MAX_BYTES, COLLAB_HISTORY_MAX_SNAPSHOTS, COLLAB_MAX_CHANNELS, COLLAB_MAX_ROOMS, COLLAB_MAX_ROOM_PARTICIPANTS,
   COLLAB_ROOM_NAME_MAX, COLLAB_DOCUMENT_TITLE_MAX, COLLAB_MAX_CONTROL_BYTES, COLLAB_MAX_FRAME_BYTES, COLLAB_ROOM_IDLE_CLOSE_MS, COLLAB_SNAPSHOT_IDLE_MS,
-  COLLAB_SNAPSHOT_MIN_INTERVAL_MS, COLLAB_HISTORY_RETENTION_DAYS, CollabClientControl, CollabHistoryQuery, CollabHistoryResponse, CollabRestoreResponse,
+  COLLAB_SNAPSHOT_MIN_INTERVAL_MS, COLLAB_HISTORY_RETENTION_DAYS, CollabClientControl, CollabHistoryQuery, CollabHistoryResponse, CollabRestoreResponse, CollabSnapshotParams,
   CollabRoomsResponse, CollabServerControl, CollabSnapshotResponse, CreateCollabRoomRequest, HUB_COLLAB_HISTORY_PATH, HUB_COLLAB_PATH, HUB_COLLAB_ROOMS_PATH,
   KeepCollabRoomRequest, KeepCollabRoomResponse, HUB_COLLAB_DOCUMENTS_PATH, COLLAB_DOCUMENTS_LIST_MAX, CollabDocumentsResponse, CollabDocumentParams,
 } from './collab.schema.js';
@@ -85,12 +85,17 @@ describe('Hub collaboration contract', () => {
   it('validates the history routes', () => {
     expect(Value.Check(CollabHistoryQuery, { doc: 'markdown-doc:abc' })).toBe(true);
     expect(Value.Check(CollabHistoryQuery, { doc: 'nope' })).toBe(false);
+    // A room is ephemeral and has no history.
+    expect(Value.Check(CollabHistoryQuery, { doc: 'room:abc' })).toBe(false);
+    expect(Value.Check(CollabSnapshotParams, { snapshotId: 'abc_DEF-1' })).toBe(true);
+    expect(Value.Check(CollabSnapshotParams, { snapshotId: 'a/b' })).toBe(false);
     const snapshot = { id: 's1', takenAt: '2026-10-24T10:00:00.000Z', bytes: 120 };
     expect(Value.Check(CollabHistoryResponse, { snapshots: [snapshot] })).toBe(true);
     expect(Value.Check(CollabHistoryResponse, { snapshots: Array.from({ length: COLLAB_HISTORY_MAX_SNAPSHOTS + 1 }, () => snapshot) })).toBe(false);
     expect(Value.Check(CollabHistoryResponse, { snapshots: [{ ...snapshot, bytes: -1 }] })).toBe(false);
     expect(Value.Check(CollabSnapshotResponse, { doc: 'scratchpad:default', takenAt: snapshot.takenAt, payload: { snippets: [] } })).toBe(true);
     expect(Value.Check(CollabSnapshotResponse, { doc: 'scratchpad:default', takenAt: snapshot.takenAt, payload: null })).toBe(false);
+    expect(Value.Check(CollabSnapshotResponse, { doc: 'room:abc', takenAt: snapshot.takenAt, payload: {} })).toBe(false);
     expect(Value.Check(CollabRestoreResponse, { ok: true })).toBe(true);
     expect(Value.Check(CollabRestoreResponse, { ok: false })).toBe(false);
   });
