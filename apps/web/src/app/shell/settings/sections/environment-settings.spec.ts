@@ -1,3 +1,4 @@
+import { HUB_JOB_IDS } from '@dude/contracts/hub';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { HubEventsFeed } from '../../../core/hub-events/hub-events.port';
@@ -389,7 +390,7 @@ describe('EnvironmentSettings (Hub web)', () => {
     const { el } = await mount(port, 'hub-web');
     const card = el.querySelector('[data-testid="hub-jobs-block"]')!;
     expect(card.querySelector('h3')?.textContent).toContain('Hub jobs');
-    expect(card.querySelectorAll('tbody tr')).toHaveLength(6);
+    expect(card.querySelectorAll('tbody tr')).toHaveLength(HUB_JOB_IDS.length);
     const backup = card.querySelector('[data-testid="job-backup-schedule"]')!;
     expect(backup.textContent).toContain('Scheduled backup');
     expect(backup.querySelector('[data-testid="job-outcome"]')?.textContent).toContain('Failed');
