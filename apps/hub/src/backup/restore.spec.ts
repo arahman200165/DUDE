@@ -194,7 +194,7 @@ describe('restore: round trip', () => {
     for (const table of ['sessions', 'device_tokens', 'challenges', 'pairing_codes', 'setup_state', 'device_sync_state', 'tls_pins', 'tls_pin_acks', 'tls_proxy_pins', 'tls_proxy_pin_acks']) {
       expect([table, count(table)]).toEqual([table, 0]);
     }
-    for (const key of ['csrf_key', 'alerts_seen_seq', 'hub_addresses', 'reachability_last', 'acme_last_attempt', 'backup_last', 'revoked_attempt:token:dev-1', 'revoked-attempts:legacy']) {
+    for (const key of ['csrf_key', 'alerts_seen_seq', 'hub_addresses', 'reachability_last', 'acme_last_attempt', 'backup_last', 'revoked_attempt:token:dev-1', 'revoked-attempts:legacy', 'job_last:audit-prune']) {
       expect([key, getMeta(db, key)]).toEqual([key, undefined]);
     }
     expect(getMeta(db, 'sync_floor')).toBe('0');

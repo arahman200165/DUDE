@@ -4,6 +4,7 @@ import path from 'node:path';
 import type { CaKeyProtector } from './ca-key-protector.js';
 import { isIssuedByCa, readCaCertPem } from './ca-public.js';
 import { issueLeafFromCa, loadCaKey } from './local-ca.js';
+import type { JobHandle } from '../jobs/job-status.js';
 import { certificateSubjectAltNames } from './names.js';
 import { spkiSha256 } from './self-signed.js';
 
@@ -21,6 +22,8 @@ export interface LeafRenewalOptions {
   recordCertificate?: (certPem: string, spkiSha256: string) => void;
   now?: () => number;
   intervalMs?: number;
+  /** Reports each timer run to the job status registry (PD-112); optional and observation-only. */
+  job?: JobHandle;
 }
 
 export interface RenewalResult { renewed: boolean; notAfter?: string; spkiSha256?: string }
@@ -62,7 +65,10 @@ export function createLeafRenewal(options: LeafRenewalOptions) {
   }
 
   const safeRun = (): void => {
-    try { runOnce(); } catch { /* retried at the next interval; the old certificate keeps serving */ }
+    try {
+      if (options.job) options.job.track(runOnce, (r) => (r.renewed ? { outcome: 'success', summary: 'The leaf certificate was renewed.' } : { outcome: 'skipped', summary: 'No local-CA certificate within 30 days of expiry.' }));
+      else runOnce();
+    } catch { /* retried at the next interval; the old certificate keeps serving */ }
   };
 
   return {

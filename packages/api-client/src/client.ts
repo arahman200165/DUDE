@@ -2,7 +2,7 @@ import { Value } from 'typebox/value';
 import type { TSchema, Static } from 'typebox';
 import {
   HUB_API_PREFIX, HelloResponse, ErrorEnvelope, checkProtocolCompatibility,
-  BootstrapResponse, TlsCertificatesResponse, AuditListResponse, SecurityAlertsResponse, PresenceResponse, HUB_PRESENCE_PATH, HubDiagnosticsReport, ReachabilityEchoResponse, BackupStatusResponse,
+  BootstrapResponse, TlsCertificatesResponse, AuditListResponse, SecurityAlertsResponse, PresenceResponse, HUB_PRESENCE_PATH, HubJobsResponse, HUB_JOBS_PATH, HubDiagnosticsReport, ReachabilityEchoResponse, BackupStatusResponse,
   EnrollResponse, DeviceChallengeResponse, DeviceRecoveryChallengeResponse, DeviceTokenResponse, DeviceInfo, DeviceListResponse, OwnerBearerResponse, PairingCodeResponse,
   OkResponse, ConfirmPreview, SessionListResponse, RecoveryCodesResponse,
   StepUpResponse, ChangePasswordResponse,
@@ -75,6 +75,8 @@ export interface HubClient {
   markSecurityAlertsSeen(auth: Bearer, upToSeq: number): Promise<OkResponse>;
   /** Owner: every online registry row with its opted-in activity (PD-108). */
   presence(auth: Bearer): Promise<PresenceResponse>;
+  /** Owner: read-only status of the Hub's background jobs (PD-112). */
+  listJobs(auth: Bearer): Promise<HubJobsResponse>;
   recoveryCodesPreview(auth: Bearer): Promise<ConfirmPreview>;
   regenerateRecoveryCodes(auth: Bearer, confirmToken: string): Promise<RecoveryCodesResponse>;
   changePassword(auth: Bearer, currentPassword: string, newPassword: string): Promise<ChangePasswordResponse>;
@@ -157,6 +159,7 @@ export function createHubClient(transport: HubTransport, opts: HubClientOptions)
     listSecurityAlerts: (auth) => call(SecurityAlertsResponse, { method: 'GET', path: `${P}/security/alerts` }, auth),
     markSecurityAlertsSeen: (auth, upToSeq) => call(OkResponse, { method: 'POST', path: `${P}/security/alerts/seen`, body: { upToSeq } }, auth),
     presence: (auth) => call(PresenceResponse, { method: 'GET', path: HUB_PRESENCE_PATH }, auth),
+    listJobs: (auth) => call(HubJobsResponse, { method: 'GET', path: HUB_JOBS_PATH }, auth),
     listAudit: (auth, query) => {
       const qs: string[] = [];
       if (query?.beforeSeq !== undefined) qs.push(`beforeSeq=${query.beforeSeq}`);

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { Db } from '@dude/sqlite-store';
 import { getRow } from '@dude/sqlite-store';
+import type { JobHandle } from '../jobs/job-status.js';
 import { audit } from '../security/audit.js';
 import { pruneBrowserDevices } from '../devices/registry.js';
 import { compactBefore, getRetentionDays, getSyncFloor } from '../db/sync-repository.js';
@@ -43,10 +44,14 @@ export function runSyncCompaction(db: Db, now: () => number, options: SyncCompac
 }
 
 /** Decorates `app.syncCompaction` and runs it once at startup and then on an unref'd timer; stopped on close. */
-export function registerSyncCompaction(app: FastifyInstance, db: Db, now: () => number, options: SyncCompactionOptions = {}): void {
+export function registerSyncCompaction(app: FastifyInstance, db: Db, now: () => number, options: SyncCompactionOptions = {}, job?: JobHandle): void {
   const run = (): SyncCompactionResult | null => runSyncCompaction(db, now, options);
   app.decorate('syncCompaction', { run });
-  const safe = (): void => { try { run(); pruneBrowserDevices(db, now()); } catch (error) { app.log.error({ errCode: (error as { code?: string }).code }, 'sync compaction failed'); } };
+  const pass = (): SyncCompactionResult | null => { const result = run(); pruneBrowserDevices(db, now()); return result; };
+  const classify = (result: SyncCompactionResult | null): { outcome: 'success' | 'skipped'; summary: string } => (result === null
+    ? { outcome: 'skipped', summary: 'Nothing is past the retention window.' }
+    : { outcome: 'success', summary: `Compacted ${result.changeFeed} change entries, ${result.tombstones} tombstones and ${result.appliedOps} applied operations.` });
+  const safe = (): void => { try { if (job) job.track(pass, classify); else pass(); } catch (error) { app.log.error({ errCode: (error as { code?: string }).code }, 'sync compaction failed'); } };
   const interval = options.compactionIntervalMs ?? SYNC_COMPACTION_INTERVAL_MS;
   let timer: NodeJS.Timeout | undefined;
   app.addHook('onReady', async () => {

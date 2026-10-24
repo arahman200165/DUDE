@@ -44,6 +44,7 @@ const ARGS: Record<string, readonly unknown[]> = {
   listSecurityAlerts: ['t'],
   markSecurityAlertsSeen: ['t', 3],
   presence: ['t'],
+  listJobs: ['t'],
   recoveryCodesPreview: ['t'],
   regenerateRecoveryCodes: ['t', 'c'],
   changePassword: ['t', 'a', 'b'],

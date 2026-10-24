@@ -13,6 +13,8 @@ import { registerDeviceRoutes } from './routes/devices.js';
 import { registerTlsAuditRoutes } from './routes/tls-audit.js';
 import { registerSecurityAlertRoutes } from './routes/security-alerts.js';
 import { registerPresenceRoutes } from './routes/presence.js';
+import { registerJobsRoute } from './routes/jobs.js';
+import { createJobRegistry } from '../jobs/job-status.js';
 import { registerDiagnosticsRoute } from './routes/diagnostics.js';
 import { registerReachabilityRoute } from './routes/reachability.js';
 import { registerBackupRoutes } from './routes/backup.js';
@@ -27,7 +29,7 @@ import type { ExecFn } from '../service/common.js';
 import { registerDeviceAuthRoutes } from './routes/device-auth.js';
 import { registerSyncRoutes } from './routes/sync.js';
 import { registerWebRecordRoutes } from './routes/web-records.js';
-import { registerSyncCompaction } from './sync-compaction.js';
+import { SYNC_COMPACTION_INTERVAL_MS, registerSyncCompaction } from './sync-compaction.js';
 import type { SyncCompactionOptions } from './sync-compaction.js';
 import { registerDeviceRecoveryRoutes } from './routes/device-recovery.js';
 import { createRequireDevice } from '../auth/device-auth.js';
@@ -42,7 +44,7 @@ import { registerRealtime } from '../realtime/realtime.js';
 import { registerWsHost } from '../realtime/ws-host.js';
 import type { RealtimeTimings } from '../realtime/realtime.js';
 import type { HubLoggerOptions } from './logger.js';
-import { startAuditPruning } from '../security/audit.js';
+import { AUDIT_PRUNE_INTERVAL_MS, startAuditPruning } from '../security/audit.js';
 import { registerSecurityHeaders } from '../security/headers.js';
 import { createHostGuard, registerHostGuard } from '../security/host-guard.js';
 import { createRateLimiter, registerRateLimit, withPrincipalLimit } from '../security/rate-limit.js';
@@ -121,7 +123,12 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   registerHostGuard(app, hostGuard);
   const csrfVerifier: CsrfVerifier = options.csrfVerifier ?? ((cookie, header) => verifyCsrf(options.hub.db, cookie, header, now()));
   registerRequestGuard(app, { hostGuard, csrfVerifier });
-  const stopPruning = startAuditPruning(options.hub.db, now);
+  // Read-only job status (PD-112). `run` registers the timers it starts; the two below belong to this server. `onChange` is wired once realtime exists.
+  const jobs = createJobRegistry({ db: options.hub.db, now });
+  app.decorate('hubJobs', jobs);
+  jobs.register('audit-prune', AUDIT_PRUNE_INTERVAL_MS);
+  jobs.register('sync-compaction', options.sync?.compactionIntervalMs ?? SYNC_COMPACTION_INTERVAL_MS);
+  const stopPruning = startAuditPruning(options.hub.db, now, AUDIT_PRUNE_INTERVAL_MS, jobs.handle('audit-prune'));
   app.addHook('onClose', async () => { stopPruning(); });
   options.configure?.(app);
 
@@ -166,6 +173,8 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   registerTlsAuditRoutes(app, { db: options.hub.db, tlsDir: options.paths.tlsDir, requireOwner: authOptions.requireOwner });
   registerSecurityAlertRoutes(app, { db: options.hub.db, now, requireOwner: authOptions.requireOwner });
   registerPresenceRoutes(app, { realtime, requireOwner: authOptions.requireOwner });
+  jobs.onChange = () => realtime.notifyOwnerView('jobs');
+  registerJobsRoute(app, { jobs, requireOwner: authOptions.requireOwner });
   const startedAt = now();
   const hostFacts = options.diagnostics?.host ?? createHostFacts({ exec: options.diagnostics?.exec ?? defaultExec, ...(options.diagnostics?.platform ? { platform: options.diagnostics.platform } : {}), now });
   const resolveDns = options.diagnostics?.resolveDns ?? createCachedNameResolver({ now });
@@ -212,7 +221,7 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
     db: options.hub.db, now, confirmations, requireOwner: authOptions.requireOwner, requireDevice,
   });
   registerWebRecordRoutes(app, { db: options.hub.db, now, requireCookieOwner: authOptions.requireCookieOwner });
-  registerSyncCompaction(app, options.hub.db, now, options.sync);
+  registerSyncCompaction(app, options.hub.db, now, options.sync, jobs.handle('sync-compaction'));
 
   const serveStatic = createStaticHandler({ root: options.config.webRoot ?? options.paths.webRoot });
   app.setNotFoundHandler(async (request, reply) => {

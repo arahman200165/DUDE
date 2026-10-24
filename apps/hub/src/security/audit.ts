@@ -1,5 +1,6 @@
 import type { Db } from '@dude/sqlite-store';
 import { HUB_AUDIT_ACTOR_KINDS, isHubAuditEvent } from '@dude/contracts/hub';
+import type { JobHandle } from '../jobs/job-status.js';
 import { maskAddress } from './address-privacy.js';
 import type { HubAuditActorKind, HubAuditEvent, HubAuditOutcome } from '@dude/contracts/hub';
 
@@ -132,9 +133,12 @@ export function pruneAudit(db: Db, now: number, maxRows = AUDIT_MAX_ROWS): numbe
 }
 
 /** Prunes now and every 24 h. The timer is unref'd; call the returned function to stop it. */
-export function startAuditPruning(db: Db, now: () => number = Date.now, intervalMs = AUDIT_PRUNE_INTERVAL_MS): () => void {
+export function startAuditPruning(db: Db, now: () => number = Date.now, intervalMs = AUDIT_PRUNE_INTERVAL_MS, job?: JobHandle): () => void {
   const run = (): void => {
-    try { pruneAudit(db, now()); } catch { /* the database may be closing */ }
+    try {
+      if (job) job.track(() => pruneAudit(db, now()), (deleted) => ({ outcome: 'success', summary: deleted === 0 ? 'No audit events were past retention.' : `Removed ${deleted} old audit events.` }));
+      else pruneAudit(db, now());
+    } catch { /* the database may be closing */ }
   };
   run();
   const timer = setInterval(run, intervalMs);

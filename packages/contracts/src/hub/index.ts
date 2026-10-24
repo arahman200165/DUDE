@@ -17,3 +17,4 @@ export * from './web.schema.js';
 export * from './security-alerts.schema.js';
 export * from './reachability.schema.js';
 export * from './backup.schema.js';
+export * from './jobs.schema.js';

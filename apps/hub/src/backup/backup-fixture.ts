@@ -69,5 +69,6 @@ INSERT INTO change_feed(revision, environment_id, entity_type, entity_id, op, at
   setMeta(db, 'acme_last_attempt', '1');
   setMeta(db, 'revoked_attempt:token:dev-1', '123');
   setMeta(db, 'revoked-attempts:legacy', '123');
+  setMeta(db, 'job_last:audit-prune', '{"startedAt":"2026-10-24T00:00:00.000Z","finishedAt":"2026-10-24T00:00:01.000Z","outcome":"success","summary":"Completed."}');
   setMeta(db, 'authority_epoch', '3');
 }

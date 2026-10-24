@@ -38,7 +38,7 @@ describe('createScrubbedDbSnapshot', () => {
     const copy = openBytes(root, snapshot.bytes);
     try {
       for (const table of ['sessions', 'device_tokens', 'challenges', 'pairing_codes', 'setup_state']) expect(count(copy, table)).toBe(0);
-      for (const key of ['csrf_key', 'alerts_seen_seq', 'hub_addresses', 'reachability_last', 'acme_last_attempt', 'revoked_attempt:token:dev-1', 'revoked-attempts:legacy']) {
+      for (const key of ['csrf_key', 'alerts_seen_seq', 'hub_addresses', 'reachability_last', 'acme_last_attempt', 'revoked_attempt:token:dev-1', 'revoked-attempts:legacy', 'job_last:audit-prune']) {
         expect(getMeta(copy, key)).toBeUndefined();
       }
       expect(count(copy, 'devices')).toBe(1);

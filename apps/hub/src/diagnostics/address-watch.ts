@@ -1,5 +1,6 @@
 import { getMeta, setMeta } from '@dude/sqlite-store';
 import type { Db } from '@dude/sqlite-store';
+import type { JobHandle } from '../jobs/job-status.js';
 import { listHubAddresses, stableAddresses } from './addresses.js';
 import type { InterfaceMap } from './addresses.js';
 
@@ -28,6 +29,8 @@ export interface AddressWatchOptions {
   interfaces?: () => InterfaceMap;
   /** Writes `network.address-changed` (outcome success, actor system). */
   audit: (event: 'network.address-changed', detail: { added: string[]; removed: string[] }) => void;
+  /** Reports each check (the startup one included) to the job status registry (PD-112); optional and observation-only. */
+  job?: JobHandle;
 }
 
 /** The startup JSON notice line for a changed set (same style as `tls-names-stale`), or null when nothing changed. */
@@ -40,7 +43,7 @@ export function createAddressWatch(options: AddressWatchOptions) {
   const now = options.now ?? Date.now;
   let timer: NodeJS.Timeout | undefined;
 
-  function runOnce(): AddressChange {
+  function check(): AddressChange {
     const current = stableAddresses(listHubAddresses(options.interfaces?.()));
     const stored = readAddressRecord(options.db);
     const store = (): void => setMeta(options.db, ADDRESS_META_KEY, JSON.stringify({ addresses: current, at: new Date(now()).toISOString() } satisfies AddressRecord));
@@ -55,6 +58,12 @@ export function createAddressWatch(options: AddressWatchOptions) {
     options.audit('network.address-changed', bounded);
     return { first: false, changed: true, ...bounded };
   }
+
+  const classify = (change: AddressChange): { outcome: 'success'; summary: string } => ({
+    outcome: 'success',
+    summary: change.first ? "Recorded this Hub's addresses for the first time." : change.changed ? `Addresses changed: ${change.added.length} added, ${change.removed.length} removed.` : 'No address change.',
+  });
+  const runOnce = (): AddressChange => (options.job ? options.job.track(check, classify) : check());
 
   const safeRun = (): void => {
     try { runOnce(); } catch { /* retried at the next interval */ }

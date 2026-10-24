@@ -5,6 +5,7 @@ import path from 'node:path';
 import { getMeta, setMeta } from '@dude/sqlite-store';
 import type { Db } from '@dude/sqlite-store';
 import { loadOrCreateHubConfig } from '../../config/hub-config.js';
+import type { JobHandle, JobRunReport } from '../../jobs/job-status.js';
 import type { CaKeyProtector } from '../ca-key-protector.js';
 import { ImportError, parseCertificatePems, validateImport } from '../import.js';
 import { certificateSubjectAltNames } from '../names.js';
@@ -35,11 +36,27 @@ export interface AcmeRenewalOptions {
   fetchImpl?: typeof fetch;
   listenerFactory?: Http01ListenerFactory;
   clientOptions?: Partial<AcmeClientOptions>;
+  /** Reports each timer run to the job status registry (PD-112); optional and observation-only. */
+  job?: JobHandle;
 }
 
 export type AcmeRenewalResult =
   | { renewed: true; notAfter: string; spkiSha256: string }
   | { renewed: false; reason: 'not-acme' | 'not-due' | 'backoff' | 'busy' | 'no-certificate' | 'failed'; problem?: string };
+
+const SKIP_SUMMARIES = {
+  'not-acme': 'The active certificate is not an ACME certificate.',
+  'not-due': 'The certificate is not within 30 days of expiry.',
+  backoff: 'Waiting out the retry back-off after a failed attempt.',
+  busy: 'An ACME order is already running.',
+  'no-certificate': 'There is no active certificate file.',
+} as const;
+
+function describeRun(result: AcmeRenewalResult): JobRunReport {
+  if (result.renewed) return { outcome: 'success', summary: 'The ACME certificate was renewed.' };
+  if (result.reason === 'failed') return { outcome: 'failed', summary: 'The renewal order failed; see the audit log.' };
+  return { outcome: 'skipped', summary: SKIP_SUMMARIES[result.reason] };
+}
 
 /**
  * Re-orders the ACTIVE certificate with the SAME leaf key when its source is `acme` and it expires within 30 days, so the SPKI
@@ -98,7 +115,7 @@ export function createAcmeRenewal(options: AcmeRenewalOptions) {
   const safeRun = async (): Promise<void> => {
     if (running) return;
     running = true;
-    try { await runOnce(); } catch { /* retried at the next interval; the old certificate keeps serving */ } finally { running = false; }
+    try { await (options.job ? options.job.track(runOnce, describeRun) : runOnce()); } catch { /* retried at the next interval; the old certificate keeps serving */ } finally { running = false; }
   };
 
   return {

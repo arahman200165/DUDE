@@ -1,6 +1,7 @@
 import type { NetworkInterfaceInfo } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
 import { describe, expect, it } from 'vitest';
+import { createJobRegistry } from '../jobs/job-status.js';
 import { addressChangeNotice, ADDRESS_META_KEY, createAddressWatch, readAddressRecord } from './address-watch.js';
 import type { InterfaceMap } from './addresses.js';
 
@@ -60,5 +61,18 @@ describe('address watch', () => {
     s.watch.start();
     s.watch.stop();
     s.watch.stop();
+  });
+  it('reports each check to the job registry, the startup one included, and never changes what runOnce returns', () => {
+    const s = setup(['192.168.1.5']);
+    s.watch.runOnce();
+    const clock = { t: Date.parse('2026-10-04T00:00:00Z') };
+    const jobs = createJobRegistry({ db: s.db, now: () => clock.t });
+    jobs.register('address-watch', 300_000);
+    const watch = createAddressWatch({ db: s.db, now: () => clock.t, interfaces: () => ({ eth0: [info('192.168.1.5')] }), audit: () => undefined, job: jobs.handle('address-watch') });
+    expect(watch.runOnce()).toMatchObject({ first: false, changed: false });
+    expect(jobs.list().find((j) => j.id === 'address-watch')).toMatchObject({ running: false, lastOutcome: 'success', lastSummary: 'No address change.', nextDueAt: '2026-10-04T00:05:00.000Z' });
+    const changing = createAddressWatch({ db: s.db, now: () => clock.t, interfaces: () => ({ eth0: [info('192.168.1.9')] }), audit: () => undefined, job: jobs.handle('address-watch') });
+    expect(changing.runOnce()).toMatchObject({ changed: true });
+    expect(jobs.list().find((j) => j.id === 'address-watch')?.lastSummary).toBe('Addresses changed: 1 added, 1 removed.');
   });
 });

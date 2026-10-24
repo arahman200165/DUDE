@@ -11,7 +11,7 @@ import { existsSync } from 'node:fs';
 import { ensureTlsIdentity } from '../tls/index.js';
 import { defaultAcmeKeyProtector, defaultCaKeyProtector } from '../tls/ca-key-protector.js';
 import { localCaExists, rootSha256, readCaCertPem } from '../tls/ca-public.js';
-import { createLeafRenewal } from '../tls/renewal.js';
+import { RENEWAL_INTERVAL_MS, createLeafRenewal } from '../tls/renewal.js';
 import { runTlsCa } from '../service/tls-ca.js';
 import { canonicalSanName, computeSubjectAltNames, configuredDnsNames, missingSubjectAltNames, operatorCertificateNames } from '../tls/names.js';
 import { runSecurityBlocks } from '../service/security-blocks.js';
@@ -20,10 +20,10 @@ import { runTlsNames } from '../service/tls-names.js';
 import { runTlsImport, runTlsProxyPin } from '../service/tls-external.js';
 import { runTlsAcme } from '../service/tls-acme.js';
 import { nodeBackupDeps } from '../backup/kdf.js';
-import { createBackupScheduler } from '../backup/scheduler.js';
+import { BACKUP_SCHEDULER_CHECK_MS, createBackupScheduler } from '../backup/scheduler.js';
 import { defaultScheduleKeyProtector, scheduleKeyExists } from '../backup/schedule-key.js';
-import { createAcmeRenewal } from '../tls/acme/acme-renewal.js';
-import { addressChangeNotice, createAddressWatch } from '../diagnostics/address-watch.js';
+import { ACME_RENEWAL_INTERVAL_MS, createAcmeRenewal } from '../tls/acme/acme-renewal.js';
+import { ADDRESS_WATCH_INTERVAL_MS, addressChangeNotice, createAddressWatch } from '../diagnostics/address-watch.js';
 import { AdminCallError, callAdmin } from '../admin/admin-client.js';
 import { startAdminEndpoint } from '../admin/admin-endpoint.js';
 import { buildAdminMethods } from '../admin/methods.js';
@@ -292,7 +292,9 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     applySecureContext: (context) => (server.server as unknown as TlsServer).setSecureContext(context),
     audit: (event, detail) => audit(hub.db, { event, outcome: 'success', actorKind: 'system', detail, now: Date.now() }),
     recordCertificate: (certPem, spki) => void hub.db.prepare("UPDATE tls_pins SET cert_pem = ? WHERE state = 'active' AND spki_sha256 = ?").run(certPem, spki),
+    job: server.hubJobs.handle('leaf-renewal'),
   });
+  server.hubJobs.register('leaf-renewal', RENEWAL_INTERVAL_MS);
   renewal.start();
   // Re-orders an ACME-issued active certificate (same key) within 30 days of expiry; the http-01 listener binds only during an order.
   const acmeRenewal = createAcmeRenewal({
@@ -300,19 +302,25 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     applySecureContext: (context) => (server.server as unknown as TlsServer).setSecureContext(context),
     audit: (event, outcome, detail) => audit(hub.db, { event, outcome, actorKind: 'system', detail, now: Date.now() }),
     recordCertificate: (certPem, spki) => void hub.db.prepare("UPDATE tls_pins SET cert_pem = ? WHERE state = 'active' AND spki_sha256 = ?").run(certPem, spki),
+    job: server.hubJobs.handle('acme-renewal'),
   });
+  server.hubJobs.register('acme-renewal', ACME_RENEWAL_INTERVAL_MS);
   acmeRenewal.start();
   // Unattended backups (31G): checks every 10 minutes and does nothing unless `backup schedule set` configured one in hub.json.
   const backupScheduler = createBackupScheduler({
     db: hub.db, paths, hubVersion: hubVersion(), hubInstanceId: hub.hubInstanceId,
     readConfig: () => loadOrCreateHubConfig(paths.configFile), protector: scheduleKeyProtector, deps: nodeBackupDeps(),
+    job: server.hubJobs.handle('backup-schedule'),
   });
+  server.hubJobs.register('backup-schedule', BACKUP_SCHEDULER_CHECK_MS);
   backupScheduler.start();
   // Detection only (PD-064): records this machine's addresses and audits a change; DNS is never updated and no DNS credential is stored.
   const addressWatch = createAddressWatch({
     db: hub.db,
     audit: (event, detail) => audit(hub.db, { event, outcome: 'success', actorKind: 'system', detail, now: Date.now() }),
+    job: server.hubJobs.handle('address-watch'),
   });
+  server.hubJobs.register('address-watch', ADDRESS_WATCH_INTERVAL_MS);
   try {
     const change = addressWatch.runOnce();
     const notice = addressChangeNotice(change);

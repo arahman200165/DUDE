@@ -3,6 +3,7 @@ import type { BackupDeps } from '@dude/hub-backup';
 import type { Db } from '@dude/sqlite-store';
 import type { HubPaths } from '../config/data-dir.js';
 import type { HubConfig } from '../config/hub-config.js';
+import type { JobHandle, JobRunReport } from '../jobs/job-status.js';
 import { audit } from '../security/audit.js';
 import type { CaKeyProtector } from '../tls/ca-key-protector.js';
 import { getAuthorityEpoch } from '../hub/authority.js';
@@ -34,9 +35,19 @@ export interface BackupSchedulerOptions {
   checkMs?: number;
   /** Default: writes the audit row as the system actor. */
   audit?: BackupAuditFn;
+  /** Reports each timer check to the job status registry (PD-112); optional and observation-only. */
+  job?: JobHandle;
 }
 
 export type BackupRunOutcome = 'not-configured' | 'not-due' | 'busy' | 'created' | 'failed';
+
+const RUN_REPORTS: Record<BackupRunOutcome, JobRunReport> = {
+  'not-configured': { outcome: 'skipped', summary: 'No backup schedule is configured.' },
+  'not-due': { outcome: 'skipped', summary: 'The next scheduled backup is not due yet.' },
+  busy: { outcome: 'skipped', summary: 'A backup was already running.' },
+  created: { outcome: 'success', summary: 'A scheduled backup was created and verified.' },
+  failed: { outcome: 'failed', summary: 'The scheduled backup failed; see the backup status.' },
+};
 
 export interface BackupScheduler {
   start(): void;
@@ -129,7 +140,7 @@ export function createBackupScheduler(options: BackupSchedulerOptions): BackupSc
   return {
     start() {
       if (handle !== undefined) return;
-      handle = setTimer(() => { void runNow(); }, checkMs);
+      handle = setTimer(() => { void (options.job ? options.job.track(runNow, (outcome) => RUN_REPORTS[outcome]) : runNow()); }, checkMs);
     },
     stop() {
       if (handle === undefined) return;

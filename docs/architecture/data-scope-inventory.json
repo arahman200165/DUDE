@@ -310,7 +310,7 @@
     },
     {
       "source": "apps/web/src/app/core/persistence/persistence.service.ts",
-      "line": 101,
+      "line": 106,
       "namespace": null,
       "key": null,
       "heuristicScope": "local-only",
@@ -318,7 +318,7 @@
     },
     {
       "source": "apps/web/src/app/core/persistence/persistence.service.ts",
-      "line": 114,
+      "line": 122,
       "namespace": null,
       "key": null,
       "heuristicScope": "local-only",
@@ -326,7 +326,7 @@
     },
     {
       "source": "apps/web/src/app/core/persistence/persistence.service.ts",
-      "line": 148,
+      "line": 156,
       "namespace": null,
       "key": null,
       "heuristicScope": "local-only",
@@ -2281,7 +2281,7 @@
     },
     {
       "source": "apps/web/src/app/core/persistence/persistence.service.ts",
-      "line": 114,
+      "line": 122,
       "operation": "backend.set(storageKey, json, meta)",
       "namespace": null,
       "key": null,
@@ -2295,7 +2295,7 @@
     },
     {
       "source": "apps/web/src/app/core/persistence/persistence.service.ts",
-      "line": 101,
+      "line": 106,
       "operation": "backend.set(storageKey, JSON.stringify(value()), meta)",
       "namespace": null,
       "key": null,
@@ -2309,7 +2309,7 @@
     },
     {
       "source": "apps/web/src/app/core/persistence/persistence.service.ts",
-      "line": 148,
+      "line": 156,
       "operation": "this.local.set(buildConsentKey(toolId, key), JSON.stringify(granted), { policy: 'local', scope: 'device' })",
       "namespace": null,
       "key": null,
@@ -2466,7 +2466,7 @@
     {
       "source": "apps/web/src/app/core/presence/presence.service.ts",
       "line": 27,
-      "operation": "inject(PersistenceService).signal('__device__', 'presenceShareActivity', 'local', false)",
+      "operation": "inject(PersistenceService).signal('__device__', 'presenceShareActivity', 'local', false, { writeDefault: false })",
       "namespace": "__device__",
       "key": "presenceShareActivity",
       "storage": "PersistenceService",

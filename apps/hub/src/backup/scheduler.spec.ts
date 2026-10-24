@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { deriveBackupKey, openBackup } from '@dude/hub-backup';
 import type { BackupDeps } from '@dude/hub-backup';
 import { getMeta, setMeta } from '@dude/sqlite-store';
@@ -12,6 +12,7 @@ import { cheapDeps, openFixtureHub, seedHubDb, tempRoot } from './backup-fixture
 import { BACKUP_RETRY_AFTER_FAILURE_MS, BACKUP_SCHEDULER_CHECK_MS, createBackupScheduler } from './scheduler.js';
 import type { BackupAuditFn, BackupSchedulerOptions } from './scheduler.js';
 import { saveScheduleKey } from './schedule-key.js';
+import { createJobRegistry } from '../jobs/job-status.js';
 
 const PASSPHRASE = 'scheduled passphrase for tests';
 const HOUR = 3_600_000;
@@ -217,5 +218,22 @@ describe('backup scheduler', () => {
     f.advance(2 * HOUR);
     expect(await live.runNow()).toBe('not-configured');
     expect(f.names()).toHaveLength(1);
+  });
+
+  it('reports each timer check to the job registry without changing the outcome', async () => {
+    const f = await fixture({ schedule: false });
+    const jobs = createJobRegistry({ db: f.hub.db });
+    const timed = f.make({ job: jobs.handle('backup-schedule') });
+    timed.start();
+    f.timers[0]!.fn();
+    await vi.waitFor(() => expect(jobs.list().find((j) => j.id === 'backup-schedule')).toMatchObject({ running: false, lastOutcome: 'skipped', lastSummary: 'No backup schedule is configured.' }));
+
+    const configured = await fixture();
+    const jobs2 = createJobRegistry({ db: configured.hub.db });
+    const created = configured.make({ job: jobs2.handle('backup-schedule') });
+    created.start();
+    configured.timers[0]!.fn();
+    await vi.waitFor(() => expect(jobs2.list().find((j) => j.id === 'backup-schedule')).toMatchObject({ lastOutcome: 'success', lastSummary: 'A scheduled backup was created and verified.' }));
+    expect(configured.names()).toHaveLength(1);
   });
 });

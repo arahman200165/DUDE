@@ -13,9 +13,9 @@ export const SCRUBBED_META_KEYS = ['csrf_key', 'alerts_seen_seq', 'hub_addresses
 
 /**
  * Meta key prefixes removed from the snapshot copy. The Hub writes `revoked_attempt:<via>:<deviceId>` (devices/revoked-attempts.ts);
- * PD-070 spells it `revoked-attempts`, so both spellings are scrubbed.
+ * PD-070 spells it `revoked-attempts`, so both spellings are scrubbed. `job_last:<id>` is a background job's last run (jobs/job-status.ts, PD-112).
  */
-export const SCRUBBED_META_PREFIXES = ['revoked_attempt', 'revoked-attempts'] as const;
+export const SCRUBBED_META_PREFIXES = ['revoked_attempt', 'revoked-attempts', 'job_last:'] as const;
 
 /** Tables whose row counts go into the manifest (those that exist). */
 export const COUNTED_TABLES = ['devices', 'records', 'audit_events', 'change_feed'] as const;
