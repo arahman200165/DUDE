@@ -202,7 +202,8 @@ describe('scratchpad schema', () => {
     expect(materializeCollabDoc(a, 'scratchpad', payload)).toEqual(materializeCollabDoc(b, 'scratchpad', payload));
     expect(merged.map(s => s.id)).toEqual(['s1', 's2']);
     expect(merged[0]!.body).toContain('(late)');
-    expect(merged[0]!.body.startsWith('body one')).toBe(true);
+    // Both replicas converge; concurrent insertions at the same position are ordered by Yjs client id, so either order is valid.
+    expect(['body one (late)', 'body (late) one']).toContain(merged[0]!.body);
     expect(merged[1]!.sourceToolId).toBe('base64');
   });
 
