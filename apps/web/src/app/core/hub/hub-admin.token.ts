@@ -8,6 +8,7 @@ import { createHubWebAdmin } from './hub-web-admin.adapter';
 import { loadHubClient } from './hub-client-loader';
 import { createUnavailableHubAdmin } from './unavailable-hub-admin.adapter';
 import { HubWebPresence } from '../hub-web/hub-web-presence';
+import { HubWebNotificationEvents } from '../hub-web/hub-web-notification-events';
 
 /**
  * Hub administration for the current host: the main-process bridge on desktop, the Hub's own origin in the
@@ -25,7 +26,11 @@ export const HUB_ADMIN = new InjectionToken<HubAdminPort>('DUDE Hub administrati
       {
         const stepUp = inject(HubStepUpService);
         const presence = inject(HubWebPresence);
-        return createHubWebAdmin({ loadApiClient: loadHubClient, requestStepUp: (message) => stepUp.ask(message), onPresenceChanged: (callback) => presence.subscribe(callback) });
+        const notifications = inject(HubWebNotificationEvents);
+        return createHubWebAdmin({
+          loadApiClient: loadHubClient, requestStepUp: (message) => stepUp.ask(message),
+          onPresenceChanged: (callback) => presence.subscribe(callback), onNotification: (callback) => notifications.subscribe(callback),
+        });
       }
       default:
         return createUnavailableHubAdmin();

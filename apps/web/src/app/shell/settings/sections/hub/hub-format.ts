@@ -88,6 +88,20 @@ export function groupFingerprint(spki: string): string {
   return spki.match(/.{1,4}/g)?.join(' ') ?? spki;
 }
 
+/** When something is next due: `Not scheduled` for none, `Due now` for a past or imminent instant, else `in 5 min`, `in 2 h`, `in 3 d`. */
+export function relativeUntil(iso: string | null, now: number = Date.now()): string {
+  if (iso === null) return 'Not scheduled';
+  const then = Date.parse(iso);
+  if (Number.isNaN(then)) return 'Unknown';
+  const seconds = Math.round((then - now) / 1000);
+  if (seconds < 45) return 'Due now';
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `in ${minutes} min`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `in ${hours} h`;
+  return `in ${Math.round(hours / 24)} d`;
+}
+
 export function relativeTime(iso: string | null, now: number = Date.now()): string {
   if (iso === null) return 'Never';
   const then = Date.parse(iso);

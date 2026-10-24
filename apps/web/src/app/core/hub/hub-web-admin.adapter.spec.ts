@@ -281,6 +281,38 @@ describe('Hub web admin adapter', () => {
       expect(ask).toHaveBeenCalledTimes(1);
     });
 
+    it('reads jobs and notifications with the cookie session, sending the CSRF token only on the writes', async () => {
+      const { admin, calls } = setup((c) => {
+        if (c.url === '/api/v1/jobs') return { status: 200, body: { jobs: [] } };
+        if (c.url === '/api/v1/notifications') return { status: 200, body: { notifications: [], unread: 0 } };
+        return { status: 200, body: { ok: true } };
+      });
+      hubCsrf.set('csrf-1');
+      await expect(admin.listJobs()).resolves.toEqual({ jobs: [] });
+      await expect(admin.listNotifications()).resolves.toEqual({ notifications: [], unread: 0 });
+      await expect(admin.markNotificationsRead({ ids: ['n 1'] })).resolves.toEqual({ ok: true });
+      await expect(admin.markNotificationsRead({ all: true })).resolves.toEqual({ ok: true });
+      await expect(admin.dismissNotification('n 1')).resolves.toEqual({ ok: true });
+      expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+        'GET /api/v1/jobs', 'GET /api/v1/notifications', 'POST /api/v1/notifications/read', 'POST /api/v1/notifications/read', 'POST /api/v1/notifications/n%201/dismiss',
+      ]);
+      expect(calls.map((c) => c.body)).toEqual([undefined, undefined, { ids: ['n 1'] }, { all: true }, undefined]);
+      expect(calls.every((c) => c.credentials === 'same-origin')).toBe(true);
+      expect(calls[2]?.headers['X-DUDE-CSRF']).toBe('csrf-1');
+      expect(calls[4]?.headers['X-DUDE-CSRF']).toBe('csrf-1');
+    });
+
+    it('maps a notifications refusal to a HubAdminError code and exposes the page realtime hook only when wired', async () => {
+      const refused = setup(() => ({ status: 403, body: envelope('forbidden', 'Not allowed.') }));
+      await expect(refused.admin.listNotifications()).rejects.toMatchObject({ name: 'HubAdminError', code: 'forbidden' });
+      expect(refused.admin.onNotification).toBeUndefined();
+      const hook = vi.fn(() => () => undefined);
+      const wired = setup(() => ({ status: 200, body: {} }), { onNotification: hook });
+      const off = wired.admin.onNotification?.(() => undefined);
+      expect(hook).toHaveBeenCalledOnce();
+      expect(typeof off).toBe('function');
+    });
+
     it('adopts the CSRF token returned by a password change', async () => {
       const { admin } = setup(() => ({ status: 200, body: { ok: true, csrfToken: 'csrf-9' } }));
       await expect(admin.changePassword('a', 'b'.repeat(12))).resolves.toMatchObject({ ok: true });

@@ -1,9 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
+import { HubEventsFeed } from '../../../core/hub-events/hub-events.port';
+import { HUB_REFETCH_DEBOUNCE_MS } from '../../../core/hub-events/refetch-on-hub-change';
 import { HubWebSignOut } from '../../../core/hub-web/hub-web-sign-out.service';
 import { HubAdminError } from '../../../core/hub/hub-admin.port';
 import { PRESENCE_PORT } from '../../../core/presence/presence.port';
-import { FAKE_HUB_DEVICE_ID, FAKE_HUB_PAIRING_STRING, FAKE_SYNC_SUMMARY } from '../../../core/platform/testing/fake-hub';
+import { FAKE_HUB_DEVICE_ID, FAKE_HUB_JOBS, FAKE_HUB_PAIRING_STRING, FAKE_SYNC_SUMMARY } from '../../../core/platform/testing/fake-hub';
 import { EnvironmentSettings } from './environment-settings';
 import { ENROLLED_STATUS, STANDALONE_STATUS, buttonWithText, configureHubTest, createTestPort, settle, typeInto } from './hub/testing/hub-test-port';
 
@@ -373,6 +375,64 @@ describe('EnvironmentSettings (Hub web)', () => {
     const { el } = await mount(port, 'hub-web');
     expect(text(el, 'sync-summary-error')).toContain('No such route');
     expect(text(el, 'hub-version')).toBe('1.4.0');
+  });
+
+  it('lists every Hub job with a friendly name, last result, summary, finish time, next due and state, and offers no control to run one (PD-112)', async () => {
+    const { port } = hubWebPort();
+    const now = Date.now();
+    port.listJobs.mockResolvedValue({
+      jobs: [
+        { id: 'backup-schedule', intervalMs: 3_600_000, running: false, lastStartedAt: null, lastFinishedAt: new Date(now - 2 * 3_600_000).toISOString(), lastOutcome: 'failed', lastSummary: 'The backup folder is full.', nextDueAt: new Date(now + 30 * 60_000).toISOString() },
+        { id: 'sync-compaction', intervalMs: 600_000, running: true, lastStartedAt: new Date(now - 1000).toISOString(), lastFinishedAt: null, lastOutcome: null, lastSummary: null, nextDueAt: null },
+      ],
+    });
+    const { el } = await mount(port, 'hub-web');
+    const card = el.querySelector('[data-testid="hub-jobs-block"]')!;
+    expect(card.querySelector('h3')?.textContent).toContain('Hub jobs');
+    expect(card.querySelectorAll('tbody tr')).toHaveLength(6);
+    const backup = card.querySelector('[data-testid="job-backup-schedule"]')!;
+    expect(backup.textContent).toContain('Scheduled backup');
+    expect(backup.querySelector('[data-testid="job-outcome"]')?.textContent).toContain('Failed');
+    expect(backup.querySelector('[data-testid="job-summary"]')?.textContent).toBe('The backup folder is full.');
+    expect(backup.querySelector('[data-testid="job-finished"]')?.textContent).toBe('2 h ago');
+    expect(backup.querySelector('[data-testid="job-next"]')?.textContent).toBe('in 30 min');
+    expect(backup.querySelector('[data-testid="job-running"]')?.textContent?.trim()).toBe('Idle');
+    const compaction = card.querySelector('[data-testid="job-sync-compaction"]')!;
+    expect(compaction.querySelector('[data-testid="job-outcome"]')?.textContent).toContain('Not run yet');
+    expect(compaction.querySelector('[data-testid="job-running"]')?.textContent).toContain('Running');
+    expect(card.querySelector('[data-testid="job-audit-prune"]')?.textContent).toContain('The Hub did not report this job.');
+    expect(card.querySelectorAll('button, a, input, select, [role="button"]')).toHaveLength(0);
+  });
+
+  it('shows the Hub jobs only to a signed-in owner, on a connected desktop too, and an inline error when they cannot be read', async () => {
+    const signedOut = createTestPort({ status: async () => ENROLLED_STATUS, ownerStatus: async () => ({ signedIn: false, ownerDisplayName: null, expiresAt: null }) });
+    const first = await mount(signedOut.port);
+    expect(first.el.querySelector('[data-testid="hub-jobs-block"]')).toBeNull();
+    expect(signedOut.port.listJobs).not.toHaveBeenCalled();
+    TestBed.resetTestingModule();
+    const signedIn = createTestPort({ status: async () => ENROLLED_STATUS, ownerStatus: async () => ({ signedIn: true, ownerDisplayName: 'Alex', expiresAt: null }), listJobs: async () => ({ jobs: [...FAKE_HUB_JOBS] }) });
+    const second = await mount(signedIn.port);
+    expect(second.el.querySelector('[data-testid="hub-jobs-block"] table')).not.toBeNull();
+    TestBed.resetTestingModule();
+    const failing = createTestPort({ status: async () => ENROLLED_STATUS, ownerStatus: async () => ({ signedIn: true, ownerDisplayName: 'Alex', expiresAt: null }), listJobs: async () => { throw new HubAdminError('hub-internal', 'The Hub could not list its jobs.'); } });
+    const third = await mount(failing.port);
+    expect(text(third.el, 'jobs-error')).toContain('The Hub could not list its jobs.');
+  });
+
+  it('reloads the Hub jobs quietly when the Hub reports the jobs view changed, and not for other topics', async () => {
+    const { port } = hubWebPort();
+    port.listJobs.mockResolvedValue({ jobs: [...FAKE_HUB_JOBS] });
+    const { fixture } = await mount(port, 'hub-web');
+    expect(port.listJobs).toHaveBeenCalledTimes(1);
+    const feed = TestBed.inject(HubEventsFeed);
+    feed.notify('devices');
+    await new Promise<void>((resolve) => setTimeout(resolve, HUB_REFETCH_DEBOUNCE_MS + 50));
+    expect(port.listJobs).toHaveBeenCalledTimes(1);
+    feed.notify('jobs');
+    feed.notify('jobs');
+    await new Promise<void>((resolve) => setTimeout(resolve, HUB_REFETCH_DEBOUNCE_MS + 50));
+    await settle(fixture);
+    expect(port.listJobs).toHaveBeenCalledTimes(2);
   });
 
   it('signs out through the port, then wipes the origin and returns to the sign-in page', async () => {

@@ -5,10 +5,10 @@ import { Value } from 'typebox/value';
 import { HubApiError, HubProtocolError, createHubClient } from '@dude/api-client';
 import type { HubClient, HubTransport } from '@dude/api-client';
 import type { AgentHubAuthorityReason, AgentHubState, AgentHubStatus } from '@dude/contracts';
-import type { OwnerViewTopic, PresenceActivity } from '@dude/contracts/hub';
+import type { NotificationEventData, OwnerViewTopic, PresenceActivity } from '@dude/contracts/hub';
 import {
   DEVICE_TOKEN_TTL_MS, HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION, HUB_REALTIME_DEPTH_PROTOCOL, HUB_REALTIME_PATH, REALTIME_CLOSE_CODES, REALTIME_HEARTBEAT_INTERVAL_MS,
-  RealtimeServerMessage, deviceAuthMessage, isOwnerViewTopic, ownerRecoveryMessage,
+  NotificationEventData as NotificationEventSchema, RealtimeServerMessage, deviceAuthMessage, isOwnerViewTopic, ownerRecoveryMessage,
 } from '@dude/contracts/hub';
 import type { Db } from '@dude/sqlite-store';
 import { addProxyPin, clearEnrollment, getEnrollment, markRevoked, promoteNextPin, publicEnrollment, raiseAuthorityEpoch, setNextPin, setProxyPins, touchContact } from '../store/repos/hub-enrollment.repo.js';
@@ -75,6 +75,11 @@ export interface HubConnectionManager {
   /** The Hub announced that an owner admin view changed (`owner-view-changed`, protocol 3 and later; PD-113). The topic only, never content. */
   onOwnerViewChanged(listener: (topic: OwnerViewTopic) => void): () => void;
   /**
+   * The Hub created a notification this connection may read (`notification`, protocol 3 and later; PD-109/PD-110): sent to an owner socket and to a device
+   * socket of a desktop holding the notification-reader grant. Only a well-formed payload (id, kind, severity, title) is passed on, never a body.
+   */
+  onNotification(listener: (notification: NotificationEventData) => void): () => void;
+  /**
    * What this device is showing (PD-108), or null to clear it. The latest value is remembered and sent on the realtime socket after every
    * welcome of a Hub that speaks protocol 3 or later (an older Hub closes the socket on an unknown message, so it is never sent one). A dropped
    * socket sends nothing (the Hub clears a closed socket's presence itself); only going standalone forgets the value.
@@ -127,6 +132,7 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
   const listeners = new Set<(status: AgentHubStatus) => void>();
   const changeListeners = new Set<(revision: number) => void>();
   const viewListeners = new Set<(topic: OwnerViewTopic) => void>();
+  const notificationListeners = new Set<(notification: NotificationEventData) => void>();
   let welcomeProtocol: number | null = null;
   /** The latest activity the renderer asked to share (null: none). Survives reconnects; the Hub holds it only for the live socket. */
   let activity: PresenceActivity | null = null;
@@ -500,6 +506,13 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
         if (isOwnerViewTopic(topic)) for (const listener of [...viewListeners]) { try { listener(topic); } catch { /* a listener must not break the connection */ } }
         return;
       }
+      if (parsed.type === 'event' && parsed.event === 'notification') {
+        if (Value.Check(NotificationEventSchema, parsed.data)) {
+          const notification = parsed.data;
+          for (const listener of [...notificationListeners]) { try { listener(notification); } catch { /* a listener must not break the connection */ } }
+        }
+        return;
+      }
       if (parsed.type === 'event' && parsed.event === 'device-registry-changed') { refreshMeta(); return; }
       if (parsed.type === 'event' && parsed.event === 'tls-next-pin') {
         const announced = parsed.data['spkiSha256'];
@@ -580,6 +593,7 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
     hubProtocol: () => welcomeProtocol ?? getEnrollment(deps.db)?.protocolVersion ?? null,
     onChangesAvailable: (listener) => { changeListeners.add(listener); return () => { changeListeners.delete(listener); }; },
     onOwnerViewChanged: (listener) => { viewListeners.add(listener); return () => { viewListeners.delete(listener); }; },
+    onNotification: (listener) => { notificationListeners.add(listener); return () => { notificationListeners.delete(listener); }; },
     setActivity(next) {
       activity = next;
       sendActivity?.({ type: 'activity', activity: next });

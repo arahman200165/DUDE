@@ -1,5 +1,5 @@
 import { isAgentMethod } from '@dude/contracts';
-import { PresenceActivity, SYNC_WIRE_CATEGORY_IDS } from '@dude/contracts/hub';
+import { HUB_NOTIFICATION_MARK_MAX, MarkNotificationsReadRequest, PresenceActivity, SYNC_WIRE_CATEGORY_IDS } from '@dude/contracts/hub';
 import { Value } from 'typebox/value';
 import type { SyncCategory } from '@dude/contracts/hub';
 import type {
@@ -31,6 +31,7 @@ import { HUB_TRANSFERRED_CODE, HubApiError, HubProtocolError, isHubTransferredEr
 import type { HubClient } from '@dude/api-client';
 import { HubManagerError } from '../hub/errors.js';
 import type { HubRuntime } from '../hub/index.js';
+import { withNotificationsCredential } from '../hub/notifications-access.js';
 import { SyncRuntimeError } from '../sync/sync-runtime.js';
 import { convertToStandalone } from '../sync/standalone.js';
 import type { SyncRuntime } from '../sync/sync-runtime.js';
@@ -426,6 +427,19 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
     'hub.owner.recoveryCodesPreview': () => owner((api, t) => api.recoveryCodesPreview(t)),
     'hub.owner.regenerateRecoveryCodes': (p) => owner((api, t) => api.regenerateRecoveryCodes(t, str(p.confirmToken, 'confirmToken'))),
     'hub.owner.changePassword': (p) => owner((api, t) => api.changePassword(t, str(p.currentPassword, 'currentPassword'), str(p.newPassword, 'newPassword'))),
+    'hub.owner.jobs': () => owner((api, t) => api.listJobs(t)),
+    // Notifications (PD-109/PD-110): the owner bearer when the owner is signed in here, otherwise this device's token (works only with the Hub's grant).
+    'notifications.list': () => hubGuard(() => withNotificationsCredential(hubRuntime().manager, (api, t) => api.listNotifications(t))),
+    'notifications.markRead': (p) => {
+      if (!Value.Check(MarkNotificationsReadRequest, p)) throw invalid(`Give 1 to ${HUB_NOTIFICATION_MARK_MAX} notification ids, or all: true.`);
+      const target: MarkNotificationsReadRequest = 'ids' in p ? { ids: [...p.ids] } : { all: true };
+      return hubGuard(() => withNotificationsCredential(hubRuntime().manager, (api, t) => api.markNotificationsRead(t, target)));
+    },
+    'notifications.dismiss': (p) => {
+      const id = str(p.id, 'id');
+      if (id.length > 64) throw invalid('id must be at most 64 characters.');
+      return hubGuard(() => withNotificationsCredential(hubRuntime().manager, (api, t) => api.dismissNotification(t, id)));
+    },
     // The legacy userData import is implemented in M621; until then nothing is imported.
     'legacy.import': () => ({ status: 'none', imported: {}, warnings: [] }),
     'store.cleanExit': (p) => {

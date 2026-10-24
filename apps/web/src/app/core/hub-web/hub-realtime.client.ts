@@ -39,6 +39,8 @@ export interface HubRealtimeDeps {
   readonly onPresenceChanged?: (entry: PresenceEntry) => void;
   /** The Hub said an owner admin view changed (an `owner-view-changed` event on a protocol 3 hello; PD-113). Only a known topic is passed on. */
   readonly onOwnerViewChanged?: (topic: OwnerViewTopic) => void;
+  /** The Hub created a notification (a `notification` event on a protocol 3 hello; PD-109). The raw payload: the receiver validates it. */
+  readonly onNotification?: (data: unknown) => void;
 }
 
 export const BACKOFF_MIN_MS = 1000;
@@ -202,6 +204,9 @@ export class HubRealtimeClient {
         if (isOwnerViewTopic(topic)) this.deps.onOwnerViewChanged?.(topic);
         return;
       }
+      case 'notification':
+        this.deps.onNotification?.(message.data);
+        return;
       case 'session-revoked':
       case 'owner-recovered':
         this.expire();

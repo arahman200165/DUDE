@@ -123,6 +123,10 @@ const bridge: PlatformBridge = {
     recoveryCodesPreview: () => ipcRenderer.invoke('dude:hub:owner:recoveryCodesPreview'),
     regenerateRecoveryCodes: (a) => ipcRenderer.invoke('dude:hub:owner:regenerateRecoveryCodes', a),
     changePassword: (a, b) => ipcRenderer.invoke('dude:hub:owner:changePassword', a, b),
+    listJobs: () => ipcRenderer.invoke('dude:hub:owner:jobs'),
+    listNotifications: () => ipcRenderer.invoke('dude:hub:notifications:list'),
+    markNotificationsRead: (a) => ipcRenderer.invoke('dude:hub:notifications:markRead', a),
+    dismissNotification: (a) => ipcRenderer.invoke('dude:hub:notifications:dismiss', a),
     recoverOwner: (a) => ipcRenderer.invoke('dude:hub:recoverOwner', a),
     localHubInfo: () => ipcRenderer.invoke('dude:hub:localHubInfo'),
     setupLocalHub: (a) => ipcRenderer.invoke('dude:hub:setupLocalHub', a),
@@ -139,6 +143,11 @@ const bridge: PlatformBridge = {
       const listener = (_event: Electron.IpcRendererEvent, topic: Parameters<typeof callback>[0]) => callback(topic);
       ipcRenderer.on('dude:hub:viewChanged', listener);
       return () => ipcRenderer.removeListener('dude:hub:viewChanged', listener);
+    },
+    onNotification: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, notification: Parameters<typeof callback>[0]) => callback(notification);
+      ipcRenderer.on('dude:hub:notification', listener);
+      return () => ipcRenderer.removeListener('dude:hub:notification', listener);
     },
   },
   sync: {

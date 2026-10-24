@@ -1,6 +1,7 @@
 import type {
   AuditListResponse, BackupStatusResponse, SecurityAlertsResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary, HubDiagnosticsReport, ReachabilityEchoResponse, TlsCertificatesResponse,
   OwnerResetResponse, PairingCodeResponse, PresenceEntry, PresenceResponse, RecoveryCodesResponse, SessionListResponse, SignInResponse,
+  HubJobsResponse, HubNotificationsResponse, MarkNotificationsReadRequest, NotificationEventData,
 } from '@dude/contracts/hub';
 import type { AgentDiagnostics } from '@dude/contracts';
 import type {
@@ -75,11 +76,23 @@ export interface HubAdminPort {
   recoveryCodesPreview(): Promise<ConfirmPreview>;
   regenerateRecoveryCodes(confirmToken: string): Promise<RecoveryCodesResponse>;
   changePassword(currentPassword: string, newPassword: string): Promise<OkResponse>;
+  /** Owner only: the Hub's background jobs and their last outcome (PD-112). Read-only: there is no call that runs or changes a job. */
+  listJobs(): Promise<HubJobsResponse>;
+  /**
+   * The Hub's notifications, newest first (PD-109). Hub web: the owner's cookie session. Desktop: the Agent reads them with the owner session when the
+   * owner is signed in on this desktop, otherwise with this device's token, which the Hub accepts only after the owner granted this device notification
+   * access (PD-110); neither gives the code `notifications-unavailable`.
+   */
+  listNotifications(): Promise<HubNotificationsResponse>;
+  markNotificationsRead(target: MarkNotificationsReadRequest): Promise<OkResponse>;
+  dismissNotification(id: string): Promise<OkResponse>;
 
   /** Desktop only: pushed whenever the Device Agent's Hub connection state changes. Returns the unsubscribe function. */
   onStatusChanged?(callback: (status: DesktopHubStatus) => void): () => void;
   /** Hub-served web build only: the Hub's live `presence-changed` events, pushed over this page's realtime link. Returns the unsubscribe function. */
   onPresenceChanged?(callback: (entry: PresenceEntry) => void): () => void;
+  /** A notification arrived (the Hub's `notification` event: id, kind, severity, title). Hub-served web: this page's realtime link; desktop: the Agent's push. Returns the unsubscribe function. */
+  onNotification?(callback: (notification: NotificationEventData) => void): () => void;
   /** Desktop only: device-assisted owner recovery from a recovery-trusted desktop, after Windows confirms the user. */
   recoverOwner?(newPassword: string): Promise<{ readonly ok: true }>;
   /** Desktop only: the Hub on this PC (installed, running, set up, version, bundled update available). */

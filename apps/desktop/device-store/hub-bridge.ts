@@ -1,6 +1,6 @@
 import { ipcMain, type BrowserWindow } from 'electron';
 import { parseHubPublicUrl } from '@dude/contracts';
-import { isOwnerViewTopic } from '@dude/contracts/hub';
+import { HUB_NOTIFICATION_MARK_MAX, isOwnerViewTopic, parseNotificationEvent } from '@dude/contracts/hub';
 import type { AgentHubOwnerStatus, AgentHubStatus, AgentMethod, AgentMethodMap } from '@dude/contracts';
 import type { DesktopHubEnrollment, DesktopHubOwnerStatus, DesktopHubProbe, DesktopHubResult, DesktopHubStatus } from '@dude/contracts/shared/models/platform-bridge.model';
 import { isUuidShaped, validateDisplayName } from '@dude/persistence';
@@ -37,6 +37,8 @@ const fail = (code: string, message: string): DesktopHubResult<never> => ({ ok: 
 
 const isString = (v: unknown, min: number, max: number): v is string => typeof v === 'string' && v.length >= min && v.length <= max;
 const isPort = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 65535;
+const NOTIFICATION_ID_MAX = 64;
+const isNotificationId = (v: unknown): v is string => isString(v, 1, NOTIFICATION_ID_MAX);
 
 /** Keys that must never cross to the renderer, whatever the agent returns. `confirmToken` is deliberately not here: it is the single-use preview/confirm handle the UI must hold. */
 const SCRUBBED_KEYS = new Set(['accesstoken', 'refreshtoken', 'sessiontoken', 'token', 'privatekey', 'wrapped', 'wrappedkey', 'password', 'secret']);
@@ -202,6 +204,27 @@ export function registerHubHandlers(
   define({ channel: 'dude:hub:owner:syncSummary', method: 'hub.owner.syncSummary', parse: none });
   define({ channel: 'dude:hub:owner:presence', method: 'hub.owner.presence', parse: none });
   define({ channel: 'dude:hub:owner:diagnostics', method: 'hub.owner.diagnostics', parse: none });
+  define({ channel: 'dude:hub:owner:jobs', method: 'hub.owner.jobs', parse: none });
+
+  // Notifications (PD-109/PD-110): the agent picks the credential (owner session here, else this device's grant); main only validates the shapes.
+  define({ channel: 'dude:hub:notifications:list', method: 'notifications.list', parse: none });
+  define({
+    channel: 'dude:hub:notifications:markRead', method: 'notifications.markRead',
+    parse: (args) => {
+      if (args.length !== 1 || typeof args[0] !== 'object' || args[0] === null || Array.isArray(args[0])) return bad();
+      const target = args[0] as { ids?: unknown; all?: unknown };
+      const keys = Object.keys(target);
+      if (keys.length === 1 && keys[0] === 'all') return target.all === true ? { ok: true, params: { all: true } } : bad();
+      if (keys.length !== 1 || keys[0] !== 'ids' || !Array.isArray(target.ids)) return bad();
+      const ids = target.ids;
+      if (ids.length < 1 || ids.length > HUB_NOTIFICATION_MARK_MAX || !ids.every(isNotificationId) || new Set(ids).size !== ids.length) return bad('Invalid notification ids.');
+      return { ok: true, params: { ids: [...ids] as string[] } };
+    },
+  });
+  define({
+    channel: 'dude:hub:notifications:dismiss', method: 'notifications.dismiss',
+    parse: (args) => (args.length === 1 && isNotificationId(args[0]) ? { ok: true, params: { id: args[0] } } : bad()),
+  });
   define({ channel: 'dude:hub:agentDiagnostics', method: 'hub.diagnostics', parse: none });
 
   define({
@@ -336,6 +359,13 @@ export function registerHubHandlers(
       // Owner admin view changed (PD-113): only a topic from the closed list, never content, goes to this window.
       if (!isOwnerViewTopic(frame.topic) || window.isDestroyed() || window.webContents.isDestroyed()) return;
       window.webContents.send('dude:hub:viewChanged', frame.topic);
+      return;
+    }
+    if (frame.event === 'hub.notification') {
+      // A notification this desktop may read (PD-110): id, kind, severity and title only; a malformed payload is dropped.
+      const notification = parseNotificationEvent(frame.notification);
+      if (notification === null || window.isDestroyed() || window.webContents.isDestroyed()) return;
+      window.webContents.send('dude:hub:notification', notification);
       return;
     }
     if (frame.event !== 'hub.status') return;

@@ -12,7 +12,8 @@ export type HubManagerErrorCode =
   | 'invalid-url'
   | 'hub-unreachable'
   | 'not-trusted'
-  | 'owner-recovery-failed';
+  | 'owner-recovery-failed'
+  | 'notifications-unavailable';
 
 /** A typed, user-presentable failure of the Hub connection layer. The message never carries credentials. */
 export class HubManagerError extends Error {

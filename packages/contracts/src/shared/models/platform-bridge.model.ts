@@ -1,4 +1,4 @@
-import type { AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, OkResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SyncSummary, HubDiagnosticsReport, BackupStatusResponse, PresenceActivity, PresenceResponse, OwnerViewTopic } from "../../hub/index.js";
+import type { AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, OkResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SyncSummary, HubDiagnosticsReport, BackupStatusResponse, PresenceActivity, PresenceResponse, OwnerViewTopic, HubJobsResponse, HubNotificationsResponse, MarkNotificationsReadRequest, NotificationEventData } from "../../hub/index.js";
 import type { LlmChatRequest, LlmChatResult } from "./llm-chat.model.js";
 import type { SnapshotDiff, SnapshotHeader } from "../../fs/snapshot-diff.js";
 import type { ChangeEvent, FolderWatchSettings, FolderWatchState, TimelineQuery, WatchedFolder } from "../../fs/watch-types.js";
@@ -172,6 +172,18 @@ export interface DesktopHubBridge {
   recoveryCodesPreview(): Promise<DesktopHubResult<ConfirmPreview>>;
   regenerateRecoveryCodes(confirmToken: string): Promise<DesktopHubResult<RecoveryCodesResponse>>;
   changePassword(currentPassword: string, newPassword: string): Promise<DesktopHubResult<OkResponse>>;
+  /** Owner session required: the Hub's background jobs (PD-112; view-only, there is no way to run one). */
+  listJobs(): Promise<DesktopHubResult<HubJobsResponse>>;
+  /**
+   * The Hub's notifications (PD-109), newest first. The agent reads them with the owner's session when the owner is signed in on this desktop and
+   * otherwise with this device's token, which the Hub accepts only after the owner granted this device notification access (PD-110). Error codes:
+   * `notifications-unavailable` (neither), `not-enrolled`, `unavailable`, `hub-*`.
+   */
+  listNotifications(): Promise<DesktopHubResult<HubNotificationsResponse>>;
+  /** Marks the listed notifications (or all of them) read. Same credential and error codes as `listNotifications`. */
+  markNotificationsRead(target: MarkNotificationsReadRequest): Promise<DesktopHubResult<OkResponse>>;
+  /** Hides one notification. Same credential and error codes as `listNotifications`. */
+  dismissNotification(id: string): Promise<DesktopHubResult<OkResponse>>;
   /**
    * Device-assisted owner recovery (PD-029), from a recovery-trusted device only. Main runs the Windows Hello (CredUI
    * fallback) presence check first; error codes: `not-verified`, `unavailable`, `busy`, `not-trusted`,
@@ -202,6 +214,11 @@ export interface DesktopHubBridge {
    * shows. Fires only while the Agent holds a protocol-3 Hub connection. Returns the unsubscribe function.
    */
   onViewChanged(callback: (topic: OwnerViewTopic) => void): () => void;
+  /**
+   * Pushed by main when the Hub created a notification this desktop may read (owner signed in here, or this device holds the notification grant):
+   * id, kind, severity and title only. Returns the unsubscribe function.
+   */
+  onNotification(callback: (notification: NotificationEventData) => void): () => void;
 }
 
 /** Sync state and actions served by the Device Agent (Phase 31D). Same `{ ok, result | error }` envelope as the Hub bridge; main validates every argument. */

@@ -80,6 +80,9 @@
       <div data-setting class="flex flex-col gap-2" data-testid="sync-summary-block">
         <app-sync-summary-panel />
       </div>
+      <div data-setting class="flex flex-col gap-2" data-testid="hub-jobs-block">
+        <app-hub-jobs-panel />
+      </div>
     }
 
     <app-presence-sharing-panel />
@@ -154,6 +157,9 @@
       @if (session.signedIn()) {
         <div data-setting class="flex flex-col gap-2" data-testid="sync-summary-block">
           <app-sync-summary-panel />
+        </div>
+        <div data-setting class="flex flex-col gap-2" data-testid="hub-jobs-block">
+          <app-hub-jobs-panel />
         </div>
       }
       @if (status()?.recoveryTrusted === true) {

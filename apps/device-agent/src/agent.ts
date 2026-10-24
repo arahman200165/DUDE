@@ -101,6 +101,10 @@ export async function runAgent(options: RunAgentOptions): Promise<RunningAgent> 
       hub.manager.onOwnerViewChanged((topic) => {
         for (const connection of [...connections]) void connection.send({ type: 'event', event: 'hub.viewChanged', topic }).catch(() => undefined);
       });
+      // The Hub created a notification this connection may read (owner session here, or the device grant; PD-110): relay id/kind/severity/title only.
+      hub.manager.onNotification((notification) => {
+        for (const connection of [...connections]) void connection.send({ type: 'event', event: 'hub.notification', notification }).catch(() => undefined);
+      });
       sync.onStatus((status) => {
         for (const connection of [...connections]) void connection.send({ type: 'event', event: 'sync.status', status }).catch(() => undefined);
       });

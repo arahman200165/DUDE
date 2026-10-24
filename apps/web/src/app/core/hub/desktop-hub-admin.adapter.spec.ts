@@ -134,6 +134,30 @@ describe('desktop Hub admin adapter', () => {
     await expect(old.updateLocalHub!()).rejects.toMatchObject({ code: 'no-update' });
   });
 
+  it('passes jobs and notifications through the bridge, normalizes the no-grant code and forwards the notification push', async () => {
+    const hub = fakeHub();
+    const admin = createDesktopHubAdmin(() => hub);
+    await expect(admin.listJobs()).rejects.toMatchObject({ code: 'unauthorized' });
+    await admin.ownerSignIn('correct horse battery');
+    expect((await admin.listJobs()).jobs.map((job) => job.id)).toEqual(['backup-schedule', 'audit-prune']);
+    expect(await admin.listNotifications()).toMatchObject({ unread: 1, notifications: [expect.objectContaining({ id: 'n1' })] });
+    await admin.markNotificationsRead({ ids: ['n1'] });
+    expect(await admin.listNotifications()).toMatchObject({ unread: 0 });
+    await admin.dismissNotification('n1');
+    expect(await admin.listNotifications()).toMatchObject({ notifications: [] });
+
+    const denied = createDesktopHubAdmin(() => ({ ...hub, listNotifications: async () => ({ ok: false as const, error: { code: 'notifications-unavailable', message: 'Notifications are not available on this device.' } }) }));
+    await expect(denied.listNotifications()).rejects.toMatchObject({ code: 'notifications-unavailable' });
+
+    const off = vi.fn();
+    const onNotification = vi.fn(() => off);
+    const push = createDesktopHubAdmin(() => ({ ...hub, onNotification }));
+    expect(push.onNotification?.(() => undefined)).toBe(off);
+    expect(onNotification).toHaveBeenCalledOnce();
+    const absent = createDesktopHubAdmin(() => undefined);
+    expect(() => absent.onNotification?.(() => undefined)?.()).not.toThrow();
+  });
+
   it('keeps the hub-web-only methods unavailable', async () => {
     const hub = fakeHub();
     const admin = createDesktopHubAdmin(() => hub);

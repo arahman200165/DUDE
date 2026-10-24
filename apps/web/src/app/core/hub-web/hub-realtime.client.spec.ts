@@ -392,5 +392,19 @@ describe('HubRealtimeClient', () => {
       expect(seen).toEqual(['devices', 'jobs']);
       expect(rig.connection.state()).toBe('live');
     });
+
+    it('hands a notification event payload to the listener without breaking the link (PD-109)', async () => {
+      const seen: unknown[] = [];
+      client = new HubRealtimeClient({
+        engine: rig.engine, access: ALL_ON, cursor: 0, apply: () => undefined, snapshot: async () => ({ records: [], cursor: 0 }),
+        openSocket: () => { const s = new FakeSocket(); sockets.push(s); return s; }, socketUrl: () => 'wss://hub.test/api/v1/realtime',
+        goToSignIn: signIn, reload, isVisible: () => visible, onNotification: (data) => seen.push(data),
+      });
+      const socket = await connect(HUB_REALTIME_DEPTH_PROTOCOL);
+      const data = { id: 'n1', kind: 'backup-failed', severity: 'error', title: 'Backup failed' };
+      socket.event('notification', data);
+      expect(seen).toEqual([data]);
+      expect(rig.connection.state()).toBe('live');
+    });
   });
 });

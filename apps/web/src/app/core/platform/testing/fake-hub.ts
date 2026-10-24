@@ -1,5 +1,5 @@
 import type { DesktopHubBridge, DesktopHubOwnerStatus, DesktopLocalHubInfo } from '@dude/contracts/shared/models/platform-bridge.model';
-import type { BackupStatusResponse, DeviceInfo, HubDiagnosticsReport, ReachabilityEchoResponse, SessionInfo, SyncSummary } from '@dude/contracts/hub';
+import type { BackupStatusResponse, DeviceInfo, HubDiagnosticsReport, HubJobStatus, HubNotification, ReachabilityEchoResponse, SessionInfo, SyncSummary } from '@dude/contracts/hub';
 import type { AgentDiagnostics } from '@dude/contracts';
 
 export const FAKE_HUB_DEVICE_ID = '0190aaaa-0000-7000-8000-000000000001';
@@ -11,6 +11,12 @@ export const FAKE_SYNC_SUMMARY = (deviceId: string): SyncSummary => ({
   counts: { settings: 3, favorites: 1, pipelines: 0, projects: 2, workspaces: 0, home: 1, usage: 0, 'workspace-layout': 0, scratchpad: 0 },
   devices: [{ deviceId, kind: 'desktop' as const, paused: false, cursor: 42, lag: 0, lastPushAt: '2026-01-01T00:00:00.000Z', lastPullAt: '2026-01-01T00:05:00.000Z', quarantined: 0, conflicts: 0, pending: 0 }],
 });
+
+/** Two background jobs as the Hub reports them (one finished and one never run), for specs. */
+export const FAKE_HUB_JOBS: readonly HubJobStatus[] = [
+  { id: 'backup-schedule', intervalMs: 3_600_000, running: false, lastStartedAt: '2026-10-24T01:00:00.000Z', lastFinishedAt: '2026-10-24T01:00:05.000Z', lastOutcome: 'success', lastSummary: 'Backup written.', nextDueAt: '2026-10-24T02:00:00.000Z' },
+  { id: 'audit-prune', intervalMs: 0, running: false, lastStartedAt: null, lastFinishedAt: null, lastOutcome: null, lastSummary: null, nextDueAt: null },
+];
 
 /** A reachability echo the Hub could return: from a private address (nothing proven) or from a public one on a configured name (verified). */
 export const FAKE_REACHABILITY_PRIVATE: ReachabilityEchoResponse = {
@@ -97,6 +103,9 @@ export function fakeHub(options: { password?: string; localHub?: FakeLocalHubSce
       idleExpiresAt: '2099-01-01T00:00:00.000Z', absoluteExpiresAt: '2099-01-01T00:00:00.000Z', current: true, userAgent: null, ip: null, deviceId: FAKE_HUB_DEVICE_ID,
     }],
   ]);
+  const notifications = new Map<string, HubNotification>([
+    ['n1', { id: 'n1', createdAt: '2026-10-24T01:00:00.000Z', kind: 'backup-failed', severity: 'error', title: 'Backup failed', body: 'The scheduled backup could not be written.', readAt: null, dismissedAt: null }],
+  ]);
   const fail = (code: string, message: string) => ({ ok: false as const, error: { code, message } });
   const ok = <T>(result: T) => ({ ok: true as const, result });
   const needOwner = () => (signedIn ? null : fail('unauthorized', 'Sign in as the owner first.'));
@@ -111,6 +120,16 @@ export function fakeHub(options: { password?: string; localHub?: FakeLocalHubSce
     calls,
     onStatusChanged: () => () => undefined,
     onViewChanged: () => () => undefined,
+    onNotification: () => () => undefined,
+    listJobs: track('listJobs', async () => needOwner() ?? ok({ jobs: [...FAKE_HUB_JOBS] })),
+    listNotifications: track('listNotifications', async () => needOwner() ?? ok({ notifications: [...notifications.values()], unread: [...notifications.values()].filter((n) => n.readAt === null).length })),
+    markNotificationsRead: track('markNotificationsRead', async (target: { ids: string[] } | { all: true }) => {
+      const denied = needOwner();
+      if (denied) return denied;
+      for (const n of notifications.values()) if ('all' in target || target.ids.includes(n.id)) notifications.set(n.id, { ...n, readAt: n.readAt ?? '2026-10-24T02:00:00.000Z' });
+      return ok({ ok: true as const });
+    }),
+    dismissNotification: track('dismissNotification', async (id: string) => needOwner() ?? (notifications.delete(id) ? ok({ ok: true as const }) : fail('not-found', 'No such notification.'))),
     status: track('status', async () =>
       ok({
         enrollmentState: enrolled ? ('enrolled' as const) : ('standalone' as const),

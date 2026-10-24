@@ -1,4 +1,4 @@
-import type { TlsCertificatesResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, PairingCodeResponse, SessionListResponse, AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, RecoveryCodesResponse, SyncCategory, SyncSummary, HubDiagnosticsReport, BackupStatusResponse, PresenceActivity, PresenceResponse } from '../hub/index.js';
+import type { TlsCertificatesResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, PairingCodeResponse, SessionListResponse, AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, RecoveryCodesResponse, SyncCategory, SyncSummary, HubDiagnosticsReport, BackupStatusResponse, PresenceActivity, PresenceResponse, HubJobsResponse, HubNotificationsResponse, NotificationEventData } from '../hub/index.js';
 import { isOwnerViewTopic } from '../hub/owner-view-topics.js';
 import type { OwnerViewTopic } from '../hub/owner-view-topics.js';
 import type { EntityCommit, EntityCommitResult, KvMutation, ResetKind, StoreHealth, DeviceStoreBoot } from './device-store.model.js';
@@ -141,7 +141,12 @@ export interface AgentSyncStatusEvent { type: 'event'; event: 'sync.status'; sta
 export interface AgentSyncAppliedEvent { type: 'event'; event: 'sync.applied'; changes: AgentAppliedChange[] }
 /** Pushed when the Hub says an owner admin view changed (PD-113). Carries the topic only, never content; the renderer refetches what it shows. */
 export interface AgentHubViewChangedEvent { type: 'event'; event: 'hub.viewChanged'; topic: OwnerViewTopic }
-export type AgentEvent = AgentHubStatusEvent | AgentSyncStatusEvent | AgentSyncAppliedEvent | AgentHubViewChangedEvent;
+/**
+ * Pushed when the Hub created a notification this device may read (PD-109/PD-110: the owner is signed in here, or the Hub granted this device
+ * notification access). Carries what an OS notification needs (id, kind, severity, title), never the body; the renderer refetches the list.
+ */
+export interface AgentHubNotificationEvent { type: 'event'; event: 'hub.notification'; notification: NotificationEventData }
+export type AgentEvent = AgentHubStatusEvent | AgentSyncStatusEvent | AgentSyncAppliedEvent | AgentHubViewChangedEvent | AgentHubNotificationEvent;
 export type AgentEventName = AgentEvent['event'];
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 /** Shape check for a push frame; unknown events return null so clients ignore frames they do not know. */
@@ -150,6 +155,10 @@ export function parseAgentEvent(frame: unknown): AgentEvent | null {
   if ((frame['event'] === 'hub.status' || frame['event'] === 'sync.status') && isRecord(frame['status'])) return frame as unknown as AgentEvent;
   if (frame['event'] === 'sync.applied' && Array.isArray(frame['changes'])) return frame as unknown as AgentEvent;
   if (frame['event'] === 'hub.viewChanged' && isOwnerViewTopic(frame['topic'])) return frame as unknown as AgentEvent;
+  if (frame['event'] === 'hub.notification' && isRecord(frame['notification'])) {
+    const { id, kind, severity, title } = frame['notification'];
+    if (typeof id === 'string' && typeof kind === 'string' && typeof severity === 'string' && typeof title === 'string') return frame as unknown as AgentEvent;
+  }
   return null;
 }
 export interface LegacyImportResult { status: 'none' | 'done' | 'partial'; imported: Record<string, number>; warnings: string[] }
@@ -268,6 +277,16 @@ export interface AgentMethodMap {
   'hub.owner.recoveryCodesPreview': { params: Record<string, never>; result: ConfirmPreview };
   'hub.owner.regenerateRecoveryCodes': { params: { confirmToken: string }; result: RecoveryCodesResponse };
   'hub.owner.changePassword': { params: { currentPassword: string; newPassword: string }; result: { ok: true } };
+  /** Owner read of the Hub's background jobs (PD-112; view-only). Errors: `owner-not-signed-in`, `owner-session-expired`, `hub-*`. */
+  'hub.owner.jobs': { params: Record<string, never>; result: HubJobsResponse };
+  /**
+   * Hub notifications (PD-109/PD-110). The agent uses the owner bearer when the owner is signed in on this desktop, otherwise this device's token,
+   * which the Hub accepts only for a device holding the notification-reader grant. Errors: `notifications-unavailable` (no owner session here and
+   * no grant), `not-enrolled`, `hub-*`.
+   */
+  'notifications.list': { params: Record<string, never>; result: HubNotificationsResponse };
+  'notifications.markRead': { params: { ids: string[] } | { all: true }; result: { ok: true } };
+  'notifications.dismiss': { params: { id: string }; result: { ok: true } };
   /**
    * Device-assisted owner recovery (PD-029). The caller (desktop main) must have passed the user-presence gate first;
    * the new password is a parameter only. Errors: `not-trusted`, `owner-recovery-failed`, `hub-*`.
@@ -351,7 +370,7 @@ export const AGENT_METHODS = [
   'hub.status', 'hub.diagnostics', 'hub.probeLocal', 'hub.tlsCertificates', 'hub.reachabilityEcho', 'hub.enroll', 'hub.reconnect', 'hub.bootstrapLocal', 'hub.unenroll', 'hub.owner.signIn', 'hub.owner.signOut', 'hub.owner.status',
   'hub.owner.listDevices', 'hub.owner.syncSummary', 'hub.owner.presence', 'presence.setActivity', 'hub.owner.diagnostics', 'hub.owner.createPairingCode', 'hub.owner.backupStatus', 'hub.owner.renameDevice', 'hub.owner.revokeDevicePreview', 'hub.owner.revokeDevice',
   'hub.owner.setRecoveryTrust', 'hub.owner.listSessions', 'hub.owner.revokeSession', 'hub.owner.revokeAllPreview', 'hub.owner.revokeAll',
-  'hub.owner.listAudit', 'hub.owner.listSecurityAlerts', 'hub.owner.markSecurityAlertsSeen', 'hub.owner.recoveryCodesPreview', 'hub.owner.regenerateRecoveryCodes', 'hub.owner.changePassword', 'hub.recoverOwner',
+  'hub.owner.listAudit', 'hub.owner.listSecurityAlerts', 'hub.owner.markSecurityAlertsSeen', 'hub.owner.recoveryCodesPreview', 'hub.owner.regenerateRecoveryCodes', 'hub.owner.changePassword', 'hub.owner.jobs', 'notifications.list', 'notifications.markRead', 'notifications.dismiss', 'hub.recoverOwner',
   'sync.status', 'sync.setCategories', 'sync.setPaused', 'sync.now', 'sync.conflicts.list', 'sync.conflicts.resolve',
   'sync.quarantine.list', 'sync.quarantine.retry', 'sync.quarantine.discardPreview', 'sync.quarantine.discard', 'sync.quarantine.export',
   'sync.firstSync.preview', 'sync.firstSync.apply', 'sync.standalone.preview', 'sync.standalone.apply',

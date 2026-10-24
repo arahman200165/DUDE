@@ -35,7 +35,7 @@ type Handler = (event: { sender: unknown }, ...args: unknown[]) => Promise<any>;
 const call = (channel: string, sender: unknown, ...args: unknown[]) => (mock.handlers.get(channel) as Handler)({ sender }, ...args);
 
 // Every bridge method with a valid argument list; `satisfies` makes tsc fail when the type gains or loses a method.
-const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged' | 'onViewChanged'>, { channel: string; args: unknown[]; invalid: unknown[][] }> = {
+const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged' | 'onViewChanged' | 'onNotification'>, { channel: string; args: unknown[]; invalid: unknown[][] }> = {
   status: { channel: 'dude:hub:status', args: [], invalid: [[1]] },
   probeLocal: { channel: 'dude:hub:probeLocal', args: [47600], invalid: [['47600'], [0], [70000], [1.5], [1, 2]] },
   reachabilityEcho: { channel: 'dude:hub:reachabilityEcho', args: ['https://hub.example.com'], invalid: [[], [1], ['http://hub.example.com'], ['https://u:p@hub.example.com'], ['https://hub.example.com/path'], ['https://hub.example.com?x=1'], ['https://hub.example.com#f'], ['https://hub.example.com:0'], ['https://hub.example.com', 'x']] },
@@ -85,6 +85,14 @@ const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged' | 'onViewC
   rootCertificatePreview: { channel: 'dude:hub:rootCertificate:preview', args: [], invalid: [[1]] },
   installRootCertificate: { channel: 'dude:hub:rootCertificate:install', args: ['abcdefghijklmnop'], invalid: [[], [''], ['short'], ['a b c d e f g h i j k l'], [1], ['abcdefghijklmnop', 'x']] },
   changePassword: { channel: 'dude:hub:owner:changePassword', args: ['old', 'new'], invalid: [['old'], ['', 'new'], ['old', ''], [1, 2]] },
+  listJobs: { channel: 'dude:hub:owner:jobs', args: [], invalid: [[1]] },
+  listNotifications: { channel: 'dude:hub:notifications:list', args: [], invalid: [[1]] },
+  markNotificationsRead: {
+    channel: 'dude:hub:notifications:markRead', args: [{ all: true }],
+    invalid: [[], ['all'], [null], [[]], [{}], [{ all: false }], [{ all: 'true' }], [{ ids: [] }], [{ ids: 'n1' }], [{ ids: [1] }], [{ ids: [''] }], [{ ids: ['a'.repeat(65)] }], [{ ids: ['n1', 'n1'] }],
+      [{ ids: Array.from({ length: 101 }, (_, i) => `n${i}`) }], [{ all: true, ids: ['n1'] }], [{ ids: ['n1'], extra: 1 }], [{ all: true }, 1]],
+  },
+  dismissNotification: { channel: 'dude:hub:notifications:dismiss', args: ['n1'], invalid: [[], [''], [1], ['a'.repeat(65)], ['n1', 'n2'], [{ id: 'n1' }]] },
 };
 
 function fakeHost(handler: (method: string, params: unknown) => unknown = () => ({ ok: true })) {
@@ -311,6 +319,40 @@ describe('hub bridge', () => {
     expect(own.send).not.toHaveBeenCalled();
   });
 
+  it('maps the notification routes to the agent and accepts either mark-read form', async () => {
+    setup((method) => (method === 'notifications.list' ? { notifications: [], unread: 0 } : { ok: true }));
+    expect(await call('dude:hub:notifications:list', own)).toEqual({ ok: true, result: { notifications: [], unread: 0 } });
+    expect(await call('dude:hub:notifications:markRead', own, { ids: ['n1', 'n2'] })).toEqual({ ok: true, result: { ok: true } });
+    expect(await call('dude:hub:notifications:markRead', own, { all: true })).toEqual({ ok: true, result: { ok: true } });
+    expect(await call('dude:hub:notifications:dismiss', own, 'n1')).toEqual({ ok: true, result: { ok: true } });
+    expect(await call('dude:hub:owner:jobs', own)).toEqual({ ok: true, result: { ok: true } });
+    expect(ctx.calls).toEqual([
+      { method: 'notifications.list', params: {} },
+      { method: 'notifications.markRead', params: { ids: ['n1', 'n2'] } },
+      { method: 'notifications.markRead', params: { all: true } },
+      { method: 'notifications.dismiss', params: { id: 'n1' } },
+      { method: 'hub.owner.jobs', params: {} },
+    ]);
+  });
+
+  it('passes the agent notifications-unavailable code through as a result, not a throw', async () => {
+    setup(() => new DeviceStoreError('notifications-unavailable', 'Notifications are not available on this device.'));
+    expect(await call('dude:hub:notifications:list', own)).toEqual({ ok: false, error: { code: 'notifications-unavailable', message: 'Notifications are not available on this device.' } });
+  });
+
+  it('pushes a well-formed notification to this window only, rebuilt without extra fields, and drops malformed ones (PD-110)', () => {
+    own.send.mockClear();
+    ctx.pushFrame({ type: 'event', event: 'hub.notification', notification: { id: 'n1', kind: 'backup-failed', severity: 'error', title: 'Backup failed', body: 'secret body', extra: 1 } });
+    expect(own.send.mock.calls).toEqual([['dude:hub:notification', { id: 'n1', kind: 'backup-failed', severity: 'error', title: 'Backup failed' }]]);
+    own.send.mockClear();
+    ctx.pushFrame({ type: 'event', event: 'hub.notification', notification: { id: 'n1', kind: 'nope', severity: 'error', title: 'x' } });
+    ctx.pushFrame({ type: 'event', event: 'hub.notification', notification: { id: 'n1', kind: 'backup-failed', severity: 'fatal', title: 'x' } });
+    ctx.pushFrame({ type: 'event', event: 'hub.notification', notification: { id: '', kind: 'backup-failed', severity: 'error', title: 'x' } });
+    ctx.pushFrame({ type: 'event', event: 'hub.notification', notification: { id: 'n1', kind: 'backup-failed', severity: 'error', title: 'x'.repeat(121) } });
+    ctx.pushFrame({ type: 'event', event: 'hub.notification' });
+    expect(own.send).not.toHaveBeenCalled();
+  });
+
   it('never logs payloads', () => {
     const source = readFileSync(resolve(__dirname, 'hub-bridge.ts'), 'utf-8');
     expect(source).not.toMatch(/console\./);
@@ -323,11 +365,12 @@ describe('preload hub surface', () => {
 
   it('exposes exactly the DesktopHubBridge methods, each on its own channel, with no generic invoke', () => {
     const keys = [...block.matchAll(/^    (\w+): /gm)].map((m) => m[1]);
-    expect(keys.sort()).toEqual([...Object.keys(VALID), 'onStatusChanged', 'onViewChanged'].sort());
+    expect(keys.sort()).toEqual([...Object.keys(VALID), 'onStatusChanged', 'onViewChanged', 'onNotification'].sort());
     const channels = [...block.matchAll(/ipcRenderer\.invoke\('(dude:hub:[\w:]+)'/g)].map((m) => m[1]);
     expect(channels.sort()).toEqual(Object.values(VALID).map((v) => v.channel).sort());
     expect(block).toMatch(/ipcRenderer\.on\('dude:hub:statusChanged'/);
     expect(block).toMatch(/ipcRenderer\.on\('dude:hub:viewChanged'/);
+    expect(block).toMatch(/ipcRenderer\.on\('dude:hub:notification'/);
     expect(block).not.toMatch(/invoke:\s|ipcRenderer\.invoke\([a-z]/);
   });
 });
