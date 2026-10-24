@@ -1,5 +1,5 @@
 import { isAgentMethod } from '@dude/contracts';
-import { HUB_NOTIFICATION_MARK_MAX, MarkNotificationsReadRequest, PresenceActivity, SYNC_WIRE_CATEGORY_IDS } from '@dude/contracts/hub';
+import { COLLAB_DOCUMENT_TITLE_MAX, COLLAB_ROOM_NAME_MAX, HUB_NOTIFICATION_MARK_MAX, MarkNotificationsReadRequest, PresenceActivity, SYNC_WIRE_CATEGORY_IDS } from '@dude/contracts/hub';
 import { Value } from 'typebox/value';
 import type { SyncCategory } from '@dude/contracts/hub';
 import type {
@@ -72,6 +72,16 @@ const invalid = (message: string): RpcError => new RpcError('invalid-params', me
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 function str(v: unknown, name: string): string {
   if (typeof v !== 'string' || v.length === 0) throw invalid(`${name} must be a non-empty string.`);
+  return v;
+}
+function boundedStr(v: unknown, name: string, max: number): string {
+  const s = str(v, name);
+  if (s.length > max) throw invalid(`${name} must be at most ${max} characters.`);
+  return s;
+}
+/** A room or document id as the Hub writes them. */
+function idOf(v: unknown, name: string): string {
+  if (typeof v !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(v)) throw invalid(`${name} must be 1 to 64 letters, digits, "_" or "-".`);
   return v;
 }
 function engineOf(v: unknown): 'fs' | 'sys' {
@@ -177,6 +187,8 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
     }
   };
   const owner = <T>(fn: (api: HubClient, ownerToken: string) => Promise<T>): Promise<T> => hubGuard(() => hubRuntime().manager.owner.withOwner(fn));
+  const device = <T>(fn: (api: HubClient, deviceToken: string) => Promise<T>): Promise<T> =>
+    hubGuard(() => hubRuntime().manager.deviceCall(fn, { authRetryOn403: false }));
 
   /** The Hub clear a `deleteFromHub` preview prepared; kept here (not by the caller) so apply needs no confirmation id and cannot swap it. */
   let pendingHubClear: { digest: string; confirmationId: string } | null = null;
@@ -393,6 +405,22 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
     'collab.send': (p, caller) => {
       const holder = collabHolder(caller);
       return collabGuard(() => { collabRelay().send(holder, p); return { ok: true as const }; });
+    },
+    // Markdown Hub rooms and kept documents (PD-104): always this device's token. A 403 is the Hub's consent refusal, never a stale token.
+    'collab.rooms.list': () => device((api, t) => api.listCollabRooms(t)),
+    'collab.rooms.create': (p) => {
+      const name = boundedStr(p.name, 'name', COLLAB_ROOM_NAME_MAX);
+      return device((api, t) => api.createCollabRoom(t, name));
+    },
+    'collab.rooms.keep': (p) => {
+      const roomId = idOf(p.roomId, 'roomId');
+      const title = boundedStr(p.title, 'title', COLLAB_DOCUMENT_TITLE_MAX);
+      return device((api, t) => api.keepCollabRoom(t, roomId, title));
+    },
+    'collab.documents.list': () => device((api, t) => api.listCollabDocuments(t)),
+    'collab.documents.delete': (p) => {
+      const id = idOf(p.id, 'id');
+      return device((api, t) => api.deleteCollabDocument(t, id));
     },
     'collab.close': (_p, caller) => {
       if (caller.holder !== undefined) deps.hub?.collab.close(caller.holder);

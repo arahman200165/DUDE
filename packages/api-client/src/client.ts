@@ -2,7 +2,7 @@ import { Value } from 'typebox/value';
 import type { TSchema, Static } from 'typebox';
 import {
   HUB_API_PREFIX, HelloResponse, ErrorEnvelope, checkProtocolCompatibility,
-  BootstrapResponse, TlsCertificatesResponse, AuditListResponse, SecurityAlertsResponse, PresenceResponse, HUB_PRESENCE_PATH, HubJobsResponse, HUB_JOBS_PATH, HubNotificationsResponse, HUB_NOTIFICATIONS_PATH, CollabRoom, CollabRoomsResponse, HUB_COLLAB_ROOMS_PATH, KeepCollabRoomResponse, HubDiagnosticsReport, ReachabilityEchoResponse, BackupStatusResponse,
+  BootstrapResponse, TlsCertificatesResponse, AuditListResponse, SecurityAlertsResponse, PresenceResponse, HUB_PRESENCE_PATH, HubJobsResponse, HUB_JOBS_PATH, HubNotificationsResponse, HUB_NOTIFICATIONS_PATH, CollabRoom, CollabRoomsResponse, HUB_COLLAB_ROOMS_PATH, KeepCollabRoomResponse, CollabDocumentsResponse, HUB_COLLAB_DOCUMENTS_PATH, HubDiagnosticsReport, ReachabilityEchoResponse, BackupStatusResponse,
   EnrollResponse, DeviceChallengeResponse, DeviceRecoveryChallengeResponse, DeviceTokenResponse, DeviceInfo, DeviceListResponse, OwnerBearerResponse, PairingCodeResponse,
   OkResponse, ConfirmPreview, SessionListResponse, RecoveryCodesResponse,
   StepUpResponse, ChangePasswordResponse,
@@ -102,6 +102,10 @@ export interface HubClient {
   listCollabRooms(auth: Bearer): Promise<CollabRoomsResponse>;
   createCollabRoom(auth: Bearer, name: string): Promise<CollabRoom>;
   keepCollabRoom(auth: Bearer, roomId: string, title: string): Promise<KeepCollabRoomResponse>;
+  /** Kept Markdown documents (PD-104): owner session or a device token, both refused (403) unless the Markdown documents category is on for the caller. */
+  listCollabDocuments(auth: Bearer): Promise<CollabDocumentsResponse>;
+  /** Tombstones a kept document (404 when it does not exist or is already deleted); audited. */
+  deleteCollabDocument(auth: Bearer, id: string): Promise<OkResponse>;
   recoveryCodesPreview(auth: Bearer): Promise<ConfirmPreview>;
   regenerateRecoveryCodes(auth: Bearer, confirmToken: string): Promise<RecoveryCodesResponse>;
   changePassword(auth: Bearer, currentPassword: string, newPassword: string): Promise<ChangePasswordResponse>;
@@ -192,6 +196,8 @@ export function createHubClient(transport: HubTransport, opts: HubClientOptions)
     listCollabRooms: (auth) => call(CollabRoomsResponse, { method: 'GET', path: HUB_COLLAB_ROOMS_PATH }, auth),
     createCollabRoom: (auth, name) => call(CollabRoom, { method: 'POST', path: HUB_COLLAB_ROOMS_PATH, body: { name } }, auth),
     keepCollabRoom: (auth, roomId, title) => call(KeepCollabRoomResponse, { method: 'POST', path: `${HUB_COLLAB_ROOMS_PATH}/${seg(roomId)}/keep`, body: { title } }, auth),
+    listCollabDocuments: (auth) => call(CollabDocumentsResponse, { method: 'GET', path: HUB_COLLAB_DOCUMENTS_PATH }, auth),
+    deleteCollabDocument: (auth, id) => call(OkResponse, { method: 'DELETE', path: `${HUB_COLLAB_DOCUMENTS_PATH}/${seg(id)}` }, auth),
     listAudit: (auth, query) => {
       const qs: string[] = [];
       if (query?.beforeSeq !== undefined) qs.push(`beforeSeq=${query.beforeSeq}`);

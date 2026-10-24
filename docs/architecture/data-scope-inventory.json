@@ -8795,7 +8795,7 @@
     },
     {
       "source": "apps/web/src/app/tools/markdown-workspace/markdown-workspace.ts",
-      "line": 75,
+      "line": 76,
       "operation": "this.persistence.signal(\n    'markdown-workspace',\n    'showFrontMatterPanel',\n    'local',\n    true,\n  )",
       "namespace": "markdown-workspace",
       "key": "showFrontMatterPanel",
@@ -8809,7 +8809,7 @@
     },
     {
       "source": "apps/web/src/app/tools/markdown-workspace/markdown-workspace.ts",
-      "line": 117,
+      "line": 118,
       "operation": "this.persistence.signal('markdown-workspace', 'customCss', 'local', '')",
       "namespace": "markdown-workspace",
       "key": "customCss",
@@ -8823,7 +8823,7 @@
     },
     {
       "source": "apps/web/src/app/tools/markdown-workspace/markdown-workspace.ts",
-      "line": 73,
+      "line": 74,
       "operation": "this.persistence.signal('markdown-workspace', 'paneRatio', 'local', 0.5)",
       "namespace": "markdown-workspace",
       "key": "paneRatio",
@@ -8837,7 +8837,7 @@
     },
     {
       "source": "apps/web/src/app/tools/markdown-workspace/markdown-workspace.ts",
-      "line": 74,
+      "line": 75,
       "operation": "this.persistence.signal('markdown-workspace', 'showToc', 'local', true)",
       "namespace": "markdown-workspace",
       "key": "showToc",
@@ -8851,7 +8851,7 @@
     },
     {
       "source": "apps/web/src/app/tools/markdown-workspace/markdown-workspace.ts",
-      "line": 72,
+      "line": 73,
       "operation": "this.persistence.signal('markdown-workspace', 'source', 'session', DEFAULT_SOURCE)",
       "namespace": "markdown-workspace",
       "key": "source",
@@ -8865,7 +8865,7 @@
     },
     {
       "source": "apps/web/src/app/tools/markdown-workspace/markdown-workspace.ts",
-      "line": 81,
+      "line": 82,
       "operation": "this.persistence.signal('markdown-workspace', 'syncScroll', 'local', true)",
       "namespace": "markdown-workspace",
       "key": "syncScroll",
@@ -8879,7 +8879,7 @@
     },
     {
       "source": "apps/web/src/app/tools/markdown-workspace/markdown-workspace.ts",
-      "line": 163,
+      "line": 164,
       "operation": "this.persistence.signal(MARKDOWN_WORKSPACE_TOOL_ID, RELAY_URL_KEY, 'local', '')",
       "namespace": null,
       "key": null,
@@ -8893,7 +8893,7 @@
     },
     {
       "source": "apps/web/src/app/tools/markdown-workspace/markdown-workspace.ts",
-      "line": 116,
+      "line": 117,
       "operation": "this.persistence.signal<MarkdownStylePreset>('markdown-workspace', 'stylePreset', 'local', 'default')",
       "namespace": "markdown-workspace",
       "key": "stylePreset",
@@ -8907,7 +8907,7 @@
     },
     {
       "source": "apps/web/src/app/tools/markdown-workspace/markdown-workspace.ts",
-      "line": 121,
+      "line": 122,
       "operation": "this.persistence.signal<readonly MarkdownPluginManifest[]>('markdown-workspace', 'plugins', 'local', BUILT_IN_PLUGINS)",
       "namespace": "markdown-workspace",
       "key": "plugins",

@@ -1,4 +1,4 @@
-import type { TlsCertificatesResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, PairingCodeResponse, SessionListResponse, AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, RecoveryCodesResponse, SyncCategory, SyncSummary, HubDiagnosticsReport, BackupStatusResponse, PresenceActivity, PresenceResponse, HubJobsResponse, HubNotificationsResponse, NotificationEventData } from '../hub/index.js';
+import type { TlsCertificatesResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, PairingCodeResponse, SessionListResponse, AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, RecoveryCodesResponse, SyncCategory, SyncSummary, HubDiagnosticsReport, BackupStatusResponse, PresenceActivity, PresenceResponse, HubJobsResponse, HubNotificationsResponse, NotificationEventData, CollabRoom, CollabRoomsResponse, KeepCollabRoomResponse, CollabDocumentsResponse } from '../hub/index.js';
 import { COLLAB_MAX_CONTROL_BYTES, COLLAB_MAX_FRAME_BYTES } from '../hub/collab.schema.js';
 import { isOwnerViewTopic } from '../hub/owner-view-topics.js';
 import type { OwnerViewTopic } from '../hub/owner-view-topics.js';
@@ -384,6 +384,16 @@ export interface AgentMethodMap {
   'collab.open': { params: Record<string, never>; result: { ok: true } | { ok: false; reason: CollabRefusalReason; message: string } };
   'collab.send': { params: CollabRelayFrame; result: { ok: true } };
   'collab.close': { params: Record<string, never>; result: { ok: true } };
+  /**
+   * Markdown Workspace Hub rooms and kept documents (PD-104), always with this device's token (a device may host, join and keep rooms; it gains
+   * no owner right). Keeping, listing and deleting kept documents need the `collab-documents` category on for this device: a Hub refusal is
+   * `hub-forbidden`. Errors: `not-enrolled`, `invalid-params`, `hub-*`.
+   */
+  'collab.rooms.list': { params: Record<string, never>; result: CollabRoomsResponse };
+  'collab.rooms.create': { params: { name: string }; result: CollabRoom };
+  'collab.rooms.keep': { params: { roomId: string; title: string }; result: KeepCollabRoomResponse };
+  'collab.documents.list': { params: Record<string, never>; result: CollabDocumentsResponse };
+  'collab.documents.delete': { params: { id: string }; result: { ok: true } };
   'sync.status': { params: Record<string, never>; result: AgentSyncStatus };
   /** Enabling a category re-fetches it from the Hub (a snapshot rebase). */
   'sync.setCategories': { params: { categories: SyncCategoryFlags }; result: AgentSyncStatus };
@@ -454,7 +464,8 @@ export const AGENT_METHODS = [
   'secrets.status', 'secrets.list', 'secrets.set', 'secrets.remove', 'secrets.getCiphertext',
   'device.rename', 'reset.preview', 'reset.apply', 'hub.enrollment',
   'hub.status', 'hub.diagnostics', 'hub.probeLocal', 'hub.tlsCertificates', 'hub.reachabilityEcho', 'hub.enroll', 'hub.reconnect', 'hub.bootstrapLocal', 'hub.unenroll', 'hub.owner.signIn', 'hub.owner.signOut', 'hub.owner.status',
-  'hub.owner.listDevices', 'hub.owner.syncSummary', 'hub.owner.presence', 'presence.setActivity', 'collab.open', 'collab.send', 'collab.close', 'hub.owner.diagnostics', 'hub.owner.createPairingCode', 'hub.owner.backupStatus', 'hub.owner.renameDevice', 'hub.owner.revokeDevicePreview', 'hub.owner.revokeDevice',
+  'hub.owner.listDevices', 'hub.owner.syncSummary', 'hub.owner.presence', 'presence.setActivity', 'collab.open', 'collab.send', 'collab.close',
+  'collab.rooms.list', 'collab.rooms.create', 'collab.rooms.keep', 'collab.documents.list', 'collab.documents.delete', 'hub.owner.diagnostics', 'hub.owner.createPairingCode', 'hub.owner.backupStatus', 'hub.owner.renameDevice', 'hub.owner.revokeDevicePreview', 'hub.owner.revokeDevice',
   'hub.owner.setRecoveryTrust', 'hub.owner.setNotificationsAccess', 'hub.owner.listSessions', 'hub.owner.revokeSession', 'hub.owner.revokeAllPreview', 'hub.owner.revokeAll',
   'hub.owner.listAudit', 'hub.owner.listSecurityAlerts', 'hub.owner.markSecurityAlertsSeen', 'hub.owner.recoveryCodesPreview', 'hub.owner.regenerateRecoveryCodes', 'hub.owner.changePassword', 'hub.owner.jobs', 'notifications.list', 'notifications.markRead', 'notifications.dismiss', 'hub.recoverOwner',
   'sync.status', 'sync.setCategories', 'sync.setPaused', 'sync.now', 'sync.conflicts.list', 'sync.conflicts.resolve',

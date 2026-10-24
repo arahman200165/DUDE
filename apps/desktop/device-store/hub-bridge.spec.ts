@@ -94,6 +94,14 @@ const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged' | 'onViewC
       [{ ids: Array.from({ length: 101 }, (_, i) => `n${i}`) }], [{ all: true, ids: ['n1'] }], [{ ids: ['n1'], extra: 1 }], [{ all: true }, 1]],
   },
   dismissNotification: { channel: 'dude:hub:notifications:dismiss', args: ['n1'], invalid: [[], [''], [1], ['a'.repeat(65)], ['n1', 'n2'], [{ id: 'n1' }]] },
+  listCollabRooms: { channel: 'dude:hub:collab:rooms:list', args: [], invalid: [[1]] },
+  createCollabRoom: { channel: 'dude:hub:collab:rooms:create', args: ['Notes'], invalid: [[], [''], ['   '], [1], ['a'.repeat(81)], ['Notes', 'x'], [{ name: 'Notes' }]] },
+  keepCollabRoom: {
+    channel: 'dude:hub:collab:rooms:keep', args: ['room_1', 'Weekly notes'],
+    invalid: [[], ['room_1'], ['room/1', 'T'], ['', 'T'], ['a'.repeat(65), 'T'], ['room_1', ''], ['room_1', '  '], ['room_1', 'a'.repeat(201)], ['room_1', 5], ['room_1', 'T', 'x']],
+  },
+  listCollabDocuments: { channel: 'dude:hub:collab:documents:list', args: [], invalid: [[1]] },
+  deleteCollabDocument: { channel: 'dude:hub:collab:documents:delete', args: ['doc_1'], invalid: [[], [''], ['a b'], ['../x'], [1], ['a'.repeat(65)], ['doc_1', 'x']] },
 };
 
 function fakeHost(handler: (method: string, params: unknown) => unknown = () => ({ ok: true })) {
@@ -334,6 +342,24 @@ describe('hub bridge', () => {
       { method: 'notifications.dismiss', params: { id: 'n1' } },
       { method: 'hub.owner.jobs', params: {} },
     ]);
+  });
+
+  it('maps the Markdown room and kept-document routes to the agent (PD-104)', async () => {
+    setup((method) => (method === 'collab.rooms.keep' ? { entityId: 'doc_1' } : { ok: true }));
+    expect(await call('dude:hub:collab:rooms:list', own)).toMatchObject({ ok: true });
+    expect(await call('dude:hub:collab:rooms:create', own, 'Notes')).toMatchObject({ ok: true });
+    expect(await call('dude:hub:collab:rooms:keep', own, 'room_1', 'Weekly')).toEqual({ ok: true, result: { entityId: 'doc_1' } });
+    expect(await call('dude:hub:collab:documents:list', own)).toMatchObject({ ok: true });
+    expect(await call('dude:hub:collab:documents:delete', own, 'doc_1')).toMatchObject({ ok: true });
+    expect(ctx.calls).toEqual([
+      { method: 'collab.rooms.list', params: {} },
+      { method: 'collab.rooms.create', params: { name: 'Notes' } },
+      { method: 'collab.rooms.keep', params: { roomId: 'room_1', title: 'Weekly' } },
+      { method: 'collab.documents.list', params: {} },
+      { method: 'collab.documents.delete', params: { id: 'doc_1' } },
+    ]);
+    setup(() => new DeviceStoreError('hub-forbidden', 'Kept documents need the Markdown documents sync category enabled.'));
+    expect(await call('dude:hub:collab:documents:list', own)).toMatchObject({ ok: false, error: { code: 'hub-forbidden' } });
   });
 
   it('passes the agent notifications-unavailable code through as a result, not a throw', async () => {

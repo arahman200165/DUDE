@@ -1,7 +1,7 @@
 import type {
   AuditListResponse, BackupStatusResponse, SecurityAlertsResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary, HubDiagnosticsReport, ReachabilityEchoResponse, TlsCertificatesResponse,
   OwnerResetResponse, PairingCodeResponse, PresenceEntry, PresenceResponse, RecoveryCodesResponse, SessionListResponse, SignInResponse,
-  HubJobsResponse, HubNotificationsResponse, NotificationEventData,
+  HubJobsResponse, HubNotificationsResponse, NotificationEventData, CollabRoom, CollabRoomsResponse, KeepCollabRoomResponse, CollabDocumentsResponse,
 } from '@dude/contracts/hub';
 import type { HubClient } from '@dude/api-client';
 import { HUB_ADMIN_UNAVAILABLE, HubAdminError, HubAdminPort, HubEnrollment, HubOwnerStatus, HubProbe, HubStatus } from './hub-admin.port';
@@ -135,6 +135,11 @@ export function createHubWebAdmin(options: HubWebAdminOptions): HubAdminPort {
     listNotifications: (): Promise<HubNotificationsResponse> => viaClient((c) => c.listNotifications(undefined)),
     markNotificationsRead: (target): Promise<OkResponse> => viaClient((c) => c.markNotificationsRead(undefined, target)),
     dismissNotification: (id): Promise<OkResponse> => viaClient((c) => c.dismissNotification(undefined, id)),
+    listCollabRooms: (): Promise<CollabRoomsResponse> => viaClient((c) => c.listCollabRooms(undefined)),
+    createCollabRoom: (name): Promise<CollabRoom> => viaClient((c) => c.createCollabRoom(undefined, name)),
+    keepCollabRoom: (roomId, title): Promise<KeepCollabRoomResponse> => viaClient((c) => c.keepCollabRoom(undefined, roomId, title)),
+    listCollabDocuments: (): Promise<CollabDocumentsResponse> => viaClient((c) => c.listCollabDocuments(undefined)),
+    deleteCollabDocument: (id): Promise<OkResponse> => viaClient((c) => c.deleteCollabDocument(undefined, id)),
     diagnostics: (): Promise<HubDiagnosticsReport> => viaClient((c) => c.diagnostics(undefined)),
     reachabilityEcho: (): Promise<ReachabilityEchoResponse> => viaClient((c) => c.reachabilityEcho(undefined)),
     tlsCertificates: (): Promise<TlsCertificatesResponse> => viaClient((c) => c.tlsCertificates()),

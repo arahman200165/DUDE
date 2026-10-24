@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { MARKDOWN_TEXT } from '@dude/collab-doc';
-import { CollabRoom, CollabRoomsResponse, KeepCollabRoomResponse } from '@dude/contracts/hub';
+import { CollabDocumentsResponse, CollabRoom, CollabRoomsResponse, KeepCollabRoomResponse } from '@dude/contracts/hub';
 import Value from 'typebox/value';
 import { startAuthHub } from '../auth-test-helpers.js';
 import type { AuthHub, Signed } from '../auth-test-helpers.js';
@@ -196,5 +196,59 @@ describe('Markdown Hub rooms', () => {
     // Kept documents are ordinary records: nothing expires them, and the room closing does not remove them.
     await clearRooms();
     expect(getCanonicalRecord(db(), envId(), 'markdown-doc', entityId)?.deleted).toBe(false);
+  });
+
+  it('lists and deletes kept documents only while collab-documents is on; a delete tombstones, cascades and audits', async () => {
+    await setWebAccess('collab-documents', true);
+    const room = (await create('To keep')).json.id as string;
+    const a = await welcomed(ownerHeaders());
+    expect((await a.join(1, `room:${room}`)).type).toBe('subscribed');
+    a.channels.get(1)!.doc.getText(MARKDOWN_TEXT).insert(0, 'héllo');
+    expect(await waitUntil(() => h.hub.app.collabRooms.text(room) === 'héllo')).toBe(true);
+    const entityId = (await h.call('POST', `/collab/rooms/${room}/keep`, { ...asOwner(), body: { title: 'Kept one' } })).json.entityId as string;
+
+    const listed = await h.call('GET', '/collab/documents', asOwner());
+    expect(listed.status).toBe(200);
+    expect(Value.Check(CollabDocumentsResponse, listed.json)).toBe(true);
+    expect(listed.json.documents[0]).toMatchObject({ id: entityId, title: 'Kept one', bytes: 6 });
+    expect(JSON.stringify(listed.json)).not.toContain('héllo');
+
+    // Credentials and consent: none is 401; a device without the category and a cookie with web access off are 403.
+    expect((await h.call('GET', '/collab/documents')).status).toBe(401);
+    expect((await h.call('DELETE', `/collab/documents/${entityId}`)).status).toBe(401);
+    const off = await device();
+    expect((await h.call('GET', '/collab/documents', { bearer: off.token })).status).toBe(403);
+    expect((await h.call('DELETE', `/collab/documents/${entityId}`, { bearer: off.token })).status).toBe(403);
+    await setWebAccess('collab-documents', false);
+    expect((await h.call('GET', '/collab/documents', asOwner())).status).toBe(403);
+    expect((await h.call('DELETE', `/collab/documents/${entityId}`, asOwner())).status).toBe(403);
+    expect(listAudit(db()).find((r) => r.event === 'collab.document-deleted')).toMatchObject({ outcome: 'denied', detail: { reason: 'consent-required' } });
+    expect(getCanonicalRecord(db(), envId(), 'markdown-doc', entityId)?.deleted).toBe(false);
+    await setWebAccess('collab-documents', true);
+    // A cookie DELETE needs its CSRF token.
+    expect((await h.call('DELETE', `/collab/documents/${entityId}`, { cookie: owner.cookie })).status).toBe(403);
+    expect((await h.call('DELETE', '/collab/documents/bad.id', asOwner())).status).toBe(400);
+    expect((await h.call('DELETE', '/collab/documents/missing', asOwner())).status).toBe(404);
+
+    // A device with the category on may list and delete (a device may keep documents, so it may also remove them).
+    const on = await device({ flags: flags({ 'collab-documents': true }) });
+    expect((await h.call('GET', '/collab/documents', { bearer: on.token })).json.documents.map((d: { id: string }) => d.id)).toContain(entityId);
+    const reader = await welcomed(ownerHeaders());
+    expect((await reader.join(1, `markdown-doc:${entityId}`)).type).toBe('subscribed');
+    const deleted = await h.call('DELETE', `/collab/documents/${entityId}`, { bearer: on.token });
+    expect(deleted.status).toBe(200);
+    expect(deleted.json).toEqual({ ok: true });
+    const record = getCanonicalRecord(db(), envId(), 'markdown-doc', entityId);
+    expect(record?.deleted).toBe(true);
+    expect(record?.updatedByDeviceId).toBe(on.id);
+    // The tombstone ended the live document: its subscriber is told, and no collaborative state is left behind.
+    expect(await reader.next((m) => m.type === 'doc-error' && m.channel === 1)).toMatchObject({ type: 'doc-error' });
+    expect(db().prepare('SELECT COUNT(*) AS n FROM collab_docs WHERE doc_key = ?').get(`markdown-doc:${entityId}`)).toEqual({ n: 0 });
+    const audited = listAudit(db()).find((r) => r.event === 'collab.document-deleted' && r.outcome === 'success');
+    expect(audited).toMatchObject({ actorKind: 'device', actorId: on.id, detail: { entityId, deviceId: on.id } });
+    expect(JSON.stringify(audited)).not.toContain('Kept one');
+    expect((await h.call('GET', '/collab/documents', asOwner())).json.documents.map((d: { id: string }) => d.id)).not.toContain(entityId);
+    expect((await h.call('DELETE', `/collab/documents/${entityId}`, asOwner())).status).toBe(404);
+    await clearRooms();
   });
 });

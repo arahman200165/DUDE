@@ -55,6 +55,18 @@
         </button>
       }
       <app-desktop-only-control capability="collab-relay" label="Collaborate" />
+      @if (hub.available()) {
+        <button
+          type="button"
+          class="rounded-sm border border-border px-1.5 py-0.5 hover:bg-panel-elevated"
+          data-hub-room-toggle
+          [class.bg-panel-elevated]="showHubPanel()"
+          [attr.aria-expanded]="showHubPanel()"
+          (click)="toggleHubPanel()"
+        >
+          Hub room{{ hub.target() ? ' (' + hub.session.participants() + ')' : '' }}
+        </button>
+      }
       <app-open-text-file #open [text]="source()" (textLoaded)="onFileLoaded($event)" />
       <app-save-text-file [text]="source()" [source]="open" label="Save .md…" />
       <button type="button" class="rounded-sm border border-border px-1.5 py-0.5 hover:bg-panel-elevated" (click)="copyHtml()">Copy HTML</button>
@@ -298,6 +310,160 @@
       </div>
     }
 
+    @if (hub.available() && showHubPanel()) {
+      <div class="flex flex-col gap-2 rounded-sm border border-border bg-panel p-2 text-ui-xs" data-hub-room-panel>
+        @if (hub.target(); as target) {
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="flex items-center gap-1.5 text-text-muted" role="status" data-hub-room-status>
+              <span
+                class="size-1.5 rounded-full"
+                aria-hidden="true"
+                [class.bg-success]="hub.session.mode() === 'live' && hub.session.linkUp()"
+                [class.bg-warning]="hub.session.mode() !== 'live' || !hub.session.linkUp()"
+              ></span>
+              {{ target.kind === 'room' ? 'Room' : 'Kept document' }}
+              <span class="font-medium text-text">{{ target.name }}</span>
+              · {{ hub.statusLabel() }} · {{ hub.session.participants() }} participant{{ hub.session.participants() === 1 ? '' : 's' }}
+            </span>
+            @if (target.kind === 'room' && hub.session.mode() === 'live' && !hub.keepOpen()) {
+              <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-accent hover:bg-accent/10" data-hub-keep (click)="hub.openKeep()">Keep on Hub…</button>
+            }
+            <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" data-hub-leave (click)="hub.leave()">
+              {{ target.kind === 'room' ? 'Leave room' : 'Close document' }}
+            </button>
+          </div>
+          @if (target.kind === 'room') {
+            <p class="text-text-muted">A room lives only in your Hub's memory and closes 5 minutes after the last participant leaves, unless you keep it.</p>
+          }
+
+          @if (hub.keepOpen()) {
+            <div class="flex flex-col gap-1.5 rounded-sm border border-border bg-panel-elevated p-2" role="group" aria-label="Keep this room on your Hub" data-hub-keep-disclosure>
+              <p class="font-medium text-text">Keep this room on your Hub?</p>
+              <ul class="flex list-disc flex-col gap-0.5 pl-4 text-text-muted">
+                <li><span class="text-text">Where it is stored:</span> your Hub.</li>
+                <li><span class="text-text">Who can read it:</span> your signed-in devices and browsers.</li>
+                <li><span class="text-text">Retention:</span> kept until you delete it. It never expires on its own.</li>
+                <li><span class="text-text">Requires:</span> the "Markdown documents" sync category.</li>
+              </ul>
+              <label class="flex flex-wrap items-center gap-2 text-text-muted">
+                Title
+                <input
+                  type="text"
+                  class="w-64 rounded-sm border border-border bg-panel px-2 py-0.5 text-text focus:outline-none focus:ring-1 focus:ring-accent"
+                  data-hub-keep-title
+                  [attr.maxlength]="hub.titleMax"
+                  [value]="hub.keepTitle()"
+                  (input)="onHubKeepTitleInput($event)"
+                />
+              </label>
+              <div class="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  class="rounded-sm border border-accent px-2 py-0.5 text-accent hover:bg-accent/10 disabled:opacity-40"
+                  data-hub-keep-confirm
+                  [disabled]="hub.busy() || !hub.keepTitle().trim()"
+                  (click)="hub.keep()"
+                >
+                  Keep on Hub
+                </button>
+                <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel" (click)="hub.cancelKeep()">Cancel</button>
+              </div>
+            </div>
+          }
+
+          @if (hub.session.note(); as note) {
+            <p class="rounded-sm border border-info/40 bg-info/10 px-1.5 py-0.5 text-text" role="status">{{ note }}</p>
+          }
+          @if (hub.refusalMessage(); as message) {
+            <app-error-panel [message]="message" />
+          }
+        } @else {
+          <div class="flex flex-wrap items-center gap-2">
+            <input
+              type="text"
+              class="w-56 rounded-sm border border-border bg-panel px-2 py-0.5 text-text focus:outline-none focus:ring-1 focus:ring-accent"
+              placeholder="Room name"
+              aria-label="Room name"
+              data-hub-room-name
+              [attr.maxlength]="hub.nameMax"
+              [value]="hub.roomName()"
+              (input)="onHubRoomNameInput($event)"
+            />
+            <button
+              type="button"
+              class="rounded-sm border border-accent px-2 py-0.5 text-accent hover:bg-accent/10 disabled:opacity-40"
+              data-hub-room-start
+              [disabled]="hub.busy() || !hub.roomName().trim() || collabRole() !== null"
+              (click)="startHubRoom()"
+            >
+              Start room
+            </button>
+            <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" (click)="hub.refresh()">Refresh</button>
+          </div>
+          @if (collabRole() !== null) {
+            <p class="text-text-muted">Leave the LAN or relay session to use a Hub room.</p>
+          }
+          <p class="text-text-muted">Rooms on your Hub are shared with your own signed-in devices and browsers. A room starts with the text in the editor.</p>
+          @if (hub.rooms().length > 0) {
+            <ul class="flex flex-col gap-1" aria-label="Open rooms">
+              @for (room of hub.rooms(); track room.id) {
+                <li class="flex items-center justify-between gap-2 rounded-sm border border-border bg-panel-elevated px-2 py-1" data-hub-room>
+                  <span class="truncate text-text">{{ room.name }} <span class="text-text-muted">· {{ room.participants }} participant{{ room.participants === 1 ? '' : 's' }}</span></span>
+                  <button type="button" class="rounded-sm border border-border px-1.5 py-0.5 hover:bg-panel disabled:opacity-40" [disabled]="collabRole() !== null" (click)="hub.joinRoom(room)">Join</button>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="text-text-muted">No rooms are open on your Hub.</p>
+          }
+        }
+
+        <div class="flex flex-col gap-1 border-t border-border pt-2" data-hub-documents>
+          <span class="font-medium text-text">Kept documents</span>
+          @switch (hub.documentsState()) {
+            @case ('consent-required') {
+              <p class="text-text-muted" data-hub-documents-consent>Kept documents need the "Markdown documents" sync category. Turn it on in Settings › Sync to keep, open or delete them.</p>
+            }
+            @case ('error') {
+              <p class="text-text-muted">Kept documents could not be loaded.</p>
+            }
+            @case ('loading') {
+              <p class="text-text-muted">Loading…</p>
+            }
+            @default {
+              @if (hub.documents().length === 0) {
+                <p class="text-text-muted">No kept documents.</p>
+              } @else {
+                <ul class="flex flex-col gap-1" aria-label="Kept documents">
+                  @for (doc of hub.documents(); track doc.id) {
+                    <li class="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-border bg-panel-elevated px-2 py-1" data-hub-document>
+                      <span class="truncate text-text">{{ doc.title }}</span>
+                      @if (hub.confirmDeleteId() === doc.id) {
+                        <span class="flex flex-wrap items-center gap-1" role="group" aria-label="Confirm delete">
+                          <span class="text-text-muted">Delete from your Hub for every device?</span>
+                          <button type="button" class="rounded-sm border border-border px-1.5 py-0.5 text-error hover:bg-panel disabled:opacity-40" data-hub-delete-confirm [disabled]="hub.busy()" (click)="hub.confirmDelete()">Delete</button>
+                          <button type="button" class="rounded-sm border border-border px-1.5 py-0.5 hover:bg-panel" (click)="hub.cancelDelete()">Cancel</button>
+                        </span>
+                      } @else {
+                        <span class="flex items-center gap-1">
+                          <button type="button" class="rounded-sm border border-border px-1.5 py-0.5 hover:bg-panel disabled:opacity-40" data-hub-document-open [disabled]="collabRole() !== null" (click)="hub.openDocument(doc)">Open</button>
+                          <button type="button" class="rounded-sm border border-border px-1.5 py-0.5 text-error hover:bg-panel" data-hub-delete (click)="hub.requestDelete(doc.id)">Delete…</button>
+                        </span>
+                      }
+                    </li>
+                  }
+                </ul>
+              }
+            }
+          }
+        </div>
+
+        @if (hub.error()) {
+          <app-error-panel [message]="hub.error()" />
+        }
+      </div>
+    }
+
     @for (plugin of plugins(); track plugin.id) {
       <app-plugin-runtime-host [manifest]="plugin" />
     }
@@ -313,7 +479,8 @@
           placeholder="Type Markdown here…"
           [appTextFileDrop]="open"
           [value]="source()"
-          [binding]="collabBinding()"
+          [binding]="editorBinding()"
+          [readonly]="editorReadonly()"
           (valueChange)="onSourceChange($event)"
           (scrolled)="onSourceScroll($event)"
         />

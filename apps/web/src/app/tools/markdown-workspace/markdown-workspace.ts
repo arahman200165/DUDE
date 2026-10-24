@@ -1,5 +1,5 @@
 import { MarkdownWorkspace_formatFrontMatterValue } from "@dude/tool-engine/tools/markdown-workspace/markdown-workspace.embedded-engine";
-import { Component, ElementRef, OnDestroy, ViewEncapsulation, computed, effect, inject, signal, viewChild, viewChildren } from '@angular/core';
+import { Component, ElementRef, OnDestroy, ViewEncapsulation, computed, effect, inject, signal, untracked, viewChild, viewChildren } from '@angular/core';
 import { CodeEditor, type CodeEditorBinding } from '../../shared/components/code-editor/code-editor';
 import { DesktopOnlyControl } from '../../shared/components/desktop-only-control/desktop-only-control';
 import { DomSanitizer } from '@angular/platform-browser';
@@ -35,6 +35,7 @@ import { lintMarkdown } from "@dude/tool-engine/tools/markdown-workspace/markdow
 import { extractMarkdownLinks } from "@dude/tool-engine/tools/markdown-workspace/markdown-link-extract";
 import { LinkCheckOutcome, checkLinks } from "@dude/tool-engine/tools/markdown-workspace/markdown-link-check";
 import { PluginRuntimeHost } from './plugins/plugin-runtime-host';
+import { MarkdownHubRooms } from './markdown-hub-rooms';
 import { CollabConnectionStatus, MarkdownCollabClient } from "@dude/tool-engine/tools/markdown-workspace/collab/markdown-collab-client";
 import { MARKDOWN_WORKSPACE_TOOL_ID, RELAY_URL_KEY } from "@dude/tool-engine/tools/markdown-workspace/markdown-workspace-relay";
 
@@ -164,7 +165,23 @@ export class MarkdownWorkspace implements OnDestroy {
   protected readonly relay = resolvePreference(MARKDOWN_WORKSPACE_TOOL_ID, RELAY_URL_KEY, this.globalRelayUrl);
   protected readonly workspaceRelayDraft = signal('');
 
+  // Hub rooms (PD-104): a third mode next to LAN and relay, only where Hub collaboration exists (Hub web, an enrolled desktop).
+  protected readonly hub = new MarkdownHubRooms();
+  protected readonly showHubPanel = signal(false);
+  /** The editor's Yjs binding: a LAN/relay session wins; otherwise the Hub room or kept document while it is live. */
+  protected readonly editorBinding = computed<CodeEditorBinding | null>(() => this.collabBinding() ?? (this.hub.target() === null ? null : this.hub.session.binding()));
+  protected readonly editorReadonly = computed(() => this.collabBinding() === null && this.hub.target() !== null && this.hub.session.mode() === 'read-only');
+
   constructor() {
+    // While a Hub room or kept document is live, the plain source follows the shared text (preview, stats, Save .md).
+    effect(() => {
+      if (this.collabBinding() !== null || this.hub.target() === null || this.hub.session.binding() === null) return;
+      const text = this.hub.session.text();
+      untracked(() => {
+        if (this.source() !== text) this.source.set(text);
+      });
+    });
+
     effect((onCleanup) => {
       const source = this.source();
       if (source.length <= WORKER_THRESHOLD) {
@@ -188,13 +205,39 @@ export class MarkdownWorkspace implements OnDestroy {
    */
   protected onSourceChange(value: string): void {
     this.source.set(value);
-    if (!this.sourceEditor()?.bound()) this.collabClient?.applyLocalEdit(value);
+    if (!this.sourceEditor()?.bound()) this.applySharedEdit(value);
   }
 
   /** An opened/dropped file, Clear and plugin output are edits as far as collaborators are concerned, like typing. */
   protected onFileLoaded(value: string): void {
     this.source.set(value);
-    this.collabClient?.applyLocalEdit(value);
+    this.applySharedEdit(value);
+  }
+
+  /** A whole-text write that did not come from the bound editor reaches the LAN/relay session, or else the live Hub document. */
+  private applySharedEdit(value: string): void {
+    if (this.collabClient) this.collabClient.applyLocalEdit(value);
+    else if (this.hub.target() !== null) this.hub.session.setText(value);
+  }
+
+  protected toggleHubPanel(): void {
+    const open = !this.showHubPanel();
+    this.showHubPanel.set(open);
+    if (open) void this.hub.refresh();
+  }
+
+  protected onHubRoomNameInput(event: Event): void {
+    this.hub.roomName.set((event.target as HTMLInputElement).value);
+  }
+
+  protected onHubKeepTitleInput(event: Event): void {
+    this.hub.keepTitle.set((event.target as HTMLInputElement).value);
+  }
+
+  /** Starts a Hub room seeded with the current Markdown. Not while a LAN/relay session is running. */
+  protected startHubRoom(): void {
+    if (this.collabRole() !== null) return;
+    void this.hub.startRoom(this.source());
   }
 
   protected async startHostingCollabSession(): Promise<void> {
@@ -275,6 +318,8 @@ export class MarkdownWorkspace implements OnDestroy {
   }
 
   private connectCollabClient(url: string, sessionCode: string, initialText: string): void {
+    // One shared text at a time: a LAN/relay session lets go of any Hub room or kept document.
+    this.hub.leave();
     this.collabBinding.set(null);
     this.collabClient?.destroy();
     this.collabClient = new MarkdownCollabClient({

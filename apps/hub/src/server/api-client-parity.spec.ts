@@ -52,6 +52,8 @@ const ARGS: Record<string, readonly unknown[]> = {
   listCollabRooms: ['t'],
   createCollabRoom: ['t', 'Notes'],
   keepCollabRoom: ['t', ID, 'Title'],
+  listCollabDocuments: ['t'],
+  deleteCollabDocument: ['t', ID],
   recoveryCodesPreview: ['t'],
   regenerateRecoveryCodes: ['t', 'c'],
   changePassword: ['t', 'a', 'b'],

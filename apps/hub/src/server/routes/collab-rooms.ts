@@ -5,12 +5,12 @@ import { getRow } from '@dude/sqlite-store';
 import type { Db } from '@dude/sqlite-store';
 import {
   COLLAB_MAX_ROOMS, CollabRoom, CollabRoomParams, CollabRoomsResponse, CreateCollabRoomRequest, ErrorEnvelope, HUB_COLLAB_ROOMS_PATH,
-  KeepCollabRoomRequest, KeepCollabRoomResponse,
+  KeepCollabRoomRequest, KeepCollabRoomResponse, COLLAB_DOCUMENTS_LIST_MAX, CollabDocumentParams, CollabDocumentsResponse, HUB_COLLAB_DOCUMENTS_PATH, OkResponse,
 } from '@dude/contracts/hub';
 import type { OwnerContext } from '../../auth/owner-auth.js';
 import { principalConsents } from '../../collab/collab-consent.js';
 import type { CollabRooms } from '../../collab/rooms.js';
-import { DeviceInactiveError, commitCanonical } from '../../db/canonical-repository.js';
+import { DeviceInactiveError, commitCanonical, getCanonicalRecord, listCanonicalRecords } from '../../db/canonical-repository.js';
 import type { CommitActor } from '../../db/canonical-repository.js';
 import { boundBrowser } from '../../devices/browsers.js';
 import { DEVICE_TOKEN_PREFIX } from '../../devices/device-tokens.js';
@@ -50,7 +50,9 @@ interface Caller {
  * may host and join rooms, but a device credential gains no owner right anywhere else). A cookie POST carries the usual Origin
  * and CSRF checks (request guard). Rooms are ephemeral Hub memory: creating and listing are not audited; "keep" persists a room
  * as a `markdown-doc` record, only while `collab-documents` is on for the caller, and writes `collab.document-kept` (ids only,
- * never the title or body).
+ * never the title or body). The kept documents are listed (`GET /collab/documents`, not audited) and deleted (`DELETE
+ * /collab/documents/:id`, a tombstone audited `collab.document-deleted` with ids only) by the same credentials, both only while
+ * `collab-documents` is on for the caller.
  */
 export function registerCollabRoomRoutes(app: FastifyInstance, options: CollabRoomRouteOptions): void {
   const { db, now, rooms } = options;
@@ -144,6 +146,64 @@ export function registerCollabRoomRoutes(app: FastifyInstance, options: CollabRo
       });
       if (result.status === 'applied') options.hubEvents.emit('records-changed', { environmentId, revision: result.revision, originDeviceId: caller.rowId });
       return reply.code(200).send({ entityId });
+    },
+  );
+
+  const environmentIdOf = (): string | undefined =>
+    getRow<{ environment_id: string }>(db.prepare('SELECT environment_id FROM environment LIMIT 1'))?.environment_id;
+  const CONSENT_MESSAGE = 'Kept documents need the Markdown documents sync category enabled.';
+
+  // Kept documents (PD-104): the live markdown-doc records, newest first. Read-only: not audited.
+  typed.get(
+    HUB_COLLAB_DOCUMENTS_PATH,
+    { preHandler: requireCaller, schema: { response: { 200: CollabDocumentsResponse, 401: ErrorEnvelope, 403: ErrorEnvelope } } },
+    async (request, reply) => {
+      nostore(reply);
+      const caller = callers.get(request)!;
+      if (!principalConsents(db, caller, 'collab-documents')) return reply.code(403).send(envelope('forbidden', CONSENT_MESSAGE));
+      const environmentId = environmentIdOf();
+      const records = environmentId === undefined ? [] : listCanonicalRecords(db, environmentId, 'markdown-doc');
+      const documents = records
+        .map((r) => r.payload as { id: string; title: string; body: string; updatedAt: string })
+        .map((p) => ({ id: p.id, title: p.title, updatedAt: p.updatedAt, bytes: Buffer.byteLength(p.body, 'utf8') }))
+        .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : a.updatedAt > b.updatedAt ? -1 : a.id.localeCompare(b.id)))
+        .slice(0, COLLAB_DOCUMENTS_LIST_MAX);
+      return reply.code(200).send({ documents });
+    },
+  );
+
+  // Deleting a kept document tombstones the record; the commit removes its collaborative state and ends its subscribers.
+  typed.delete(
+    `${HUB_COLLAB_DOCUMENTS_PATH}/:id`,
+    { preHandler: requireCaller, schema: { params: CollabDocumentParams, response: { 200: OkResponse, 401: ErrorEnvelope, 403: ErrorEnvelope, 404: ErrorEnvelope } } },
+    async (request, reply) => {
+      nostore(reply);
+      const caller = callers.get(request)!;
+      const at = now();
+      const entityId = request.params.id;
+      if (!principalConsents(db, caller, 'collab-documents')) {
+        audit(db, { event: 'collab.document-deleted', outcome: 'denied', actorKind: caller.actorKind, actorId: caller.actorId, ip: ipOf(request), detail: { reason: 'consent-required' }, now: at });
+        return reply.code(403).send(envelope('forbidden', CONSENT_MESSAGE));
+      }
+      const environmentId = environmentIdOf();
+      const existing = environmentId === undefined ? undefined : getCanonicalRecord(db, environmentId, 'markdown-doc', entityId);
+      if (environmentId === undefined || existing === undefined || existing.deleted) return reply.code(404).send(envelope('not-found', 'No such document.'));
+      let result;
+      try {
+        result = commitCanonical(db, {
+          environmentId, entityType: 'markdown-doc', entityId, op: 'delete', now: new Date(at).toISOString(),
+          deviceId: caller.rowId, ...(caller.rowId === null ? {} : { actingDeviceId: caller.rowId }), ...(caller.actor ? { actor: caller.actor } : {}),
+        });
+      } catch (error) {
+        if (error instanceof DeviceInactiveError) return reply.code(401).send(envelope('unauthorized', 'Authentication is required.'));
+        throw error;
+      }
+      audit(db, {
+        event: 'collab.document-deleted', outcome: 'success', actorKind: caller.actorKind, actorId: caller.actorId, ip: ipOf(request),
+        detail: { entityId, ...(caller.rowId === null ? {} : { deviceId: caller.rowId }) }, now: at,
+      });
+      if (result.status === 'applied') options.hubEvents.emit('records-changed', { environmentId, revision: result.revision, originDeviceId: caller.rowId });
+      return reply.code(200).send({ ok: true });
     },
   );
 }

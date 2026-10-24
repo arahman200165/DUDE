@@ -18303,6 +18303,7 @@
       ],
       "tests": [
         "apps/web/src/app/tools/markdown-workspace/markdown-workspace-collab.spec.ts",
+        "apps/web/src/app/tools/markdown-workspace/markdown-workspace-hub-rooms.spec.ts",
         "apps/web/src/app/tools/markdown-workspace/markdown-workspace-relay.spec.ts",
         "apps/web/src/app/tools/markdown-workspace/markdown-workspace.property.spec.ts",
         "apps/web/src/app/tools/markdown-workspace/markdown-workspace.spec.ts",
@@ -34949,6 +34950,7 @@
         "packages/tool-engine/src/tools/markdown-workspace/plugins/plugin-sandbox-doc.ts"
       ],
       "adapters": [
+        "apps/web/src/app/tools/markdown-workspace/markdown-hub-rooms.ts",
         "apps/web/src/app/tools/markdown-workspace/markdown-workspace.settings.ts",
         "apps/web/src/app/tools/markdown-workspace/markdown-workspace.ts",
         "apps/web/src/app/tools/markdown-workspace/markdown-workspace.worker.ts",
@@ -34968,6 +34970,7 @@
         "packages/tool-engine/src/tools/markdown-workspace/plugins/builtin-plugins.spec.ts",
         "packages/tool-engine/src/tools/markdown-workspace/plugins/plugin-runtime.spec.ts",
         "apps/web/src/app/tools/markdown-workspace/markdown-workspace-collab.spec.ts",
+        "apps/web/src/app/tools/markdown-workspace/markdown-workspace-hub-rooms.spec.ts",
         "apps/web/src/app/tools/markdown-workspace/markdown-workspace-relay.spec.ts",
         "apps/web/src/app/tools/markdown-workspace/markdown-workspace.property.spec.ts",
         "apps/web/src/app/tools/markdown-workspace/markdown-workspace.spec.ts",

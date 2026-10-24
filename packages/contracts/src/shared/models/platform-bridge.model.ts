@@ -1,4 +1,4 @@
-import type { AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, OkResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SyncSummary, HubDiagnosticsReport, BackupStatusResponse, PresenceActivity, PresenceResponse, OwnerViewTopic, HubJobsResponse, HubNotificationsResponse, HubNotificationPreferences, MarkNotificationsReadRequest, NotificationEventData } from "../../hub/index.js";
+import type { AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, OkResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SyncSummary, HubDiagnosticsReport, BackupStatusResponse, PresenceActivity, PresenceResponse, OwnerViewTopic, HubJobsResponse, HubNotificationsResponse, HubNotificationPreferences, MarkNotificationsReadRequest, NotificationEventData, CollabRoom, CollabRoomsResponse, KeepCollabRoomResponse, CollabDocumentsResponse } from "../../hub/index.js";
 import type { LlmChatRequest, LlmChatResult } from "./llm-chat.model.js";
 import type { SnapshotDiff, SnapshotHeader } from "../../fs/snapshot-diff.js";
 import type { ChangeEvent, FolderWatchSettings, FolderWatchState, TimelineQuery, WatchedFolder } from "../../fs/watch-types.js";
@@ -188,6 +188,15 @@ export interface DesktopHubBridge {
   markNotificationsRead(target: MarkNotificationsReadRequest): Promise<DesktopHubResult<OkResponse>>;
   /** Hides one notification. Same credential and error codes as `listNotifications`. */
   dismissNotification(id: string): Promise<DesktopHubResult<OkResponse>>;
+  /**
+   * Markdown Workspace Hub rooms and kept documents (PD-104), always with this device's token. Keeping, listing and deleting kept documents
+   * need the Markdown documents sync category on for this device (`hub-forbidden` otherwise). Error codes: `not-enrolled`, `unavailable`, `hub-*`.
+   */
+  listCollabRooms(): Promise<DesktopHubResult<CollabRoomsResponse>>;
+  createCollabRoom(name: string): Promise<DesktopHubResult<CollabRoom>>;
+  keepCollabRoom(roomId: string, title: string): Promise<DesktopHubResult<KeepCollabRoomResponse>>;
+  listCollabDocuments(): Promise<DesktopHubResult<CollabDocumentsResponse>>;
+  deleteCollabDocument(id: string): Promise<DesktopHubResult<OkResponse>>;
   /**
    * Device-assisted owner recovery (PD-029), from a recovery-trusted device only. Main runs the Windows Hello (CredUI
    * fallback) presence check first; error codes: `not-verified`, `unavailable`, `busy`, `not-trusted`,

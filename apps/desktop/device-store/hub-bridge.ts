@@ -1,6 +1,6 @@
 import { ipcMain, type BrowserWindow } from 'electron';
 import { parseHubPublicUrl } from '@dude/contracts';
-import { HUB_NOTIFICATION_MARK_MAX, isOwnerViewTopic, parseNotificationEvent } from '@dude/contracts/hub';
+import { COLLAB_DOCUMENT_TITLE_MAX, COLLAB_ROOM_NAME_MAX, HUB_NOTIFICATION_MARK_MAX, isOwnerViewTopic, parseNotificationEvent } from '@dude/contracts/hub';
 import type { AgentHubOwnerStatus, AgentHubStatus, AgentMethod, AgentMethodMap } from '@dude/contracts';
 import type { DesktopHubEnrollment, DesktopHubOwnerStatus, DesktopHubProbe, DesktopHubResult, DesktopHubStatus } from '@dude/contracts/shared/models/platform-bridge.model';
 import { isUuidShaped, validateDisplayName } from '@dude/persistence';
@@ -39,6 +39,8 @@ const isString = (v: unknown, min: number, max: number): v is string => typeof v
 const isPort = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 65535;
 const NOTIFICATION_ID_MAX = 64;
 const isNotificationId = (v: unknown): v is string => isString(v, 1, NOTIFICATION_ID_MAX);
+/** A Hub room or kept-document id. */
+const isCollabId = (v: unknown): v is string => typeof v === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(v);
 
 /** Keys that must never cross to the renderer, whatever the agent returns. `confirmToken` is deliberately not here: it is the single-use preview/confirm handle the UI must hold. */
 const SCRUBBED_KEYS = new Set(['accesstoken', 'refreshtoken', 'sessiontoken', 'token', 'privatekey', 'wrapped', 'wrappedkey', 'password', 'secret']);
@@ -226,6 +228,23 @@ export function registerHubHandlers(
     parse: (args) => (args.length === 1 && isNotificationId(args[0]) ? { ok: true, params: { id: args[0] } } : bad()),
   });
   define({ channel: 'dude:hub:agentDiagnostics', method: 'hub.diagnostics', parse: none });
+
+  // Markdown Hub rooms and kept documents (PD-104): the agent always uses this device's token; main validates names, titles and ids.
+  define({ channel: 'dude:hub:collab:rooms:list', method: 'collab.rooms.list', parse: none });
+  define({
+    channel: 'dude:hub:collab:rooms:create', method: 'collab.rooms.create',
+    parse: (args) => (args.length === 1 && isString(args[0], 1, COLLAB_ROOM_NAME_MAX) && args[0].trim().length > 0 ? { ok: true, params: { name: args[0] } } : bad()),
+  });
+  define({
+    channel: 'dude:hub:collab:rooms:keep', method: 'collab.rooms.keep',
+    parse: (args) => (args.length === 2 && isCollabId(args[0]) && isString(args[1], 1, COLLAB_DOCUMENT_TITLE_MAX) && args[1].trim().length > 0
+      ? { ok: true, params: { roomId: args[0], title: args[1] } } : bad()),
+  });
+  define({ channel: 'dude:hub:collab:documents:list', method: 'collab.documents.list', parse: none });
+  define({
+    channel: 'dude:hub:collab:documents:delete', method: 'collab.documents.delete',
+    parse: (args) => (args.length === 1 && isCollabId(args[0]) ? { ok: true, params: { id: args[0] } } : bad()),
+  });
 
   define({
     channel: 'dude:hub:owner:createPairingCode', method: 'hub.owner.createPairingCode',

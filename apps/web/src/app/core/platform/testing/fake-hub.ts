@@ -1,5 +1,5 @@
 import type { DesktopHubBridge, DesktopHubOwnerStatus, DesktopLocalHubInfo } from '@dude/contracts/shared/models/platform-bridge.model';
-import type { BackupStatusResponse, DeviceInfo, HubDiagnosticsReport, HubJobStatus, HubNotification, ReachabilityEchoResponse, SessionInfo, SyncSummary } from '@dude/contracts/hub';
+import type { BackupStatusResponse, CollabDocumentSummary, CollabRoom, DeviceInfo, HubDiagnosticsReport, HubJobStatus, HubNotification, ReachabilityEchoResponse, SessionInfo, SyncSummary } from '@dude/contracts/hub';
 import type { AgentDiagnostics } from '@dude/contracts';
 
 export const FAKE_HUB_DEVICE_ID = '0190aaaa-0000-7000-8000-000000000001';
@@ -106,6 +106,8 @@ export function fakeHub(options: { password?: string; localHub?: FakeLocalHubSce
   const notifications = new Map<string, HubNotification>([
     ['n1', { id: 'n1', createdAt: '2026-10-24T01:00:00.000Z', kind: 'backup-failed', severity: 'error', title: 'Backup failed', body: 'The scheduled backup could not be written.', readAt: null, dismissedAt: null }],
   ]);
+  const rooms = new Map<string, CollabRoom>();
+  const keptDocs = new Map<string, CollabDocumentSummary>();
   const fail = (code: string, message: string) => ({ ok: false as const, error: { code, message } });
   const ok = <T>(result: T) => ({ ok: true as const, result });
   const needOwner = () => (signedIn ? null : fail('unauthorized', 'Sign in as the owner first.'));
@@ -131,6 +133,21 @@ export function fakeHub(options: { password?: string; localHub?: FakeLocalHubSce
       return ok({ ok: true as const });
     }),
     dismissNotification: track('dismissNotification', async (id: string) => needOwner() ?? (notifications.delete(id) ? ok({ ok: true as const }) : fail('not-found', 'No such notification.'))),
+    // Markdown Hub rooms and kept documents (PD-104): device-token calls, so no owner session is needed.
+    listCollabRooms: track('listCollabRooms', async () => ok({ rooms: [...rooms.values()] })),
+    createCollabRoom: track('createCollabRoom', async (name: string) => {
+      const room = { id: `room${++counter}`, name, participants: 0, createdAt: '2026-10-24T00:00:00.000Z' };
+      rooms.set(room.id, room);
+      return ok(room);
+    }),
+    keepCollabRoom: track('keepCollabRoom', async (roomId: string, title: string) => {
+      if (!rooms.has(roomId)) return fail('hub-not-found', 'No such room.');
+      const id = `doc${++counter}`;
+      keptDocs.set(id, { id, title, updatedAt: '2026-10-24T00:00:00.000Z', bytes: 0 });
+      return ok({ entityId: id });
+    }),
+    listCollabDocuments: track('listCollabDocuments', async () => ok({ documents: [...keptDocs.values()] })),
+    deleteCollabDocument: track('deleteCollabDocument', async (id: string) => (keptDocs.delete(id) ? ok({ ok: true as const }) : fail('hub-not-found', 'No such document.'))),
     status: track('status', async () =>
       ok({
         enrollmentState: enrolled ? ('enrolled' as const) : ('standalone' as const),

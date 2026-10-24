@@ -2,6 +2,7 @@ import type {
   AuditListResponse, BackupStatusResponse, SecurityAlertsResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary, HubDiagnosticsReport, ReachabilityEchoResponse, TlsCertificatesResponse,
   OwnerResetResponse, PairingCodeResponse, PresenceEntry, PresenceResponse, RecoveryCodesResponse, SessionListResponse, SignInResponse,
   HubJobsResponse, HubNotificationsResponse, MarkNotificationsReadRequest, NotificationEventData,
+  CollabRoom, CollabRoomsResponse, KeepCollabRoomResponse, CollabDocumentsResponse,
 } from '@dude/contracts/hub';
 import type { AgentDiagnostics } from '@dude/contracts';
 import type {
@@ -25,6 +26,11 @@ export class HubAdminError extends Error {
 }
 
 export const HUB_ADMIN_UNAVAILABLE = 'unavailable';
+
+/** True for the Hub's refusal of a kept-document call because the Markdown documents category is off for the caller (PD-103). */
+export function isCollabConsentRefusal(error: unknown): boolean {
+  return error instanceof HubAdminError && (error.code === 'forbidden' || error.code === 'hub-forbidden');
+}
 
 /**
  * Hub administration as the settings UI and the Hub web pages see it. The desktop host reaches the Hub through
@@ -92,6 +98,17 @@ export interface HubAdminPort {
   listNotifications(): Promise<HubNotificationsResponse>;
   markNotificationsRead(target: MarkNotificationsReadRequest): Promise<OkResponse>;
   dismissNotification(id: string): Promise<OkResponse>;
+  /**
+   * Markdown Workspace Hub rooms (PD-104): the rooms open in Hub memory, a new one, and "Keep on Hub", which persists a room as a kept
+   * `markdown-doc` record. Hub web: the owner's cookie session. Desktop: this device's token through the Agent (a device may host, join and
+   * keep rooms). Keeping, listing and deleting kept documents need the Markdown documents sync category on for the caller: the refusal is
+   * `forbidden` on Hub web and `hub-forbidden` on desktop (see `isCollabConsentRefusal`).
+   */
+  listCollabRooms(): Promise<CollabRoomsResponse>;
+  createCollabRoom(name: string): Promise<CollabRoom>;
+  keepCollabRoom(roomId: string, title: string): Promise<KeepCollabRoomResponse>;
+  listCollabDocuments(): Promise<CollabDocumentsResponse>;
+  deleteCollabDocument(id: string): Promise<OkResponse>;
 
   /** Desktop only: pushed whenever the Device Agent's Hub connection state changes. Returns the unsubscribe function. */
   onStatusChanged?(callback: (status: DesktopHubStatus) => void): () => void;

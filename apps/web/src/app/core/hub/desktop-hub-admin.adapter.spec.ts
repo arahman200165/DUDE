@@ -1,5 +1,5 @@
 import { createDesktopHubAdmin } from './desktop-hub-admin.adapter';
-import { HubAdminError } from './hub-admin.port';
+import { HubAdminError, isCollabConsentRefusal } from './hub-admin.port';
 import { fakeHub, FAKE_HUB_PAIRING_STRING, type FakeLocalHubScenario } from '../platform/testing/fake-hub';
 import { fakeElectronBridge } from '../platform/testing/fake-electron-bridge';
 
@@ -178,6 +178,22 @@ describe('desktop Hub admin adapter', () => {
     expect(onNotification).toHaveBeenCalledOnce();
     const absent = createDesktopHubAdmin(() => undefined);
     expect(() => absent.onNotification?.(() => undefined)?.()).not.toThrow();
+  });
+
+  it('drives Markdown rooms and kept documents through the bridge without an owner session (PD-104)', async () => {
+    const hub = fakeHub();
+    const admin = createDesktopHubAdmin(() => hub);
+    const room = await admin.createCollabRoom('Notes');
+    expect(await admin.listCollabRooms()).toEqual({ rooms: [room] });
+    const { entityId } = await admin.keepCollabRoom(room.id, 'Weekly');
+    expect(await admin.listCollabDocuments()).toMatchObject({ documents: [{ id: entityId, title: 'Weekly' }] });
+    await expect(admin.deleteCollabDocument(entityId)).resolves.toEqual({ ok: true });
+    await expect(admin.deleteCollabDocument(entityId)).rejects.toMatchObject({ code: 'hub-not-found' });
+    expect(hub.calls).toEqual(['createCollabRoom', 'listCollabRooms', 'keepCollabRoom', 'listCollabDocuments', 'deleteCollabDocument', 'deleteCollabDocument']);
+    const refused = createDesktopHubAdmin(() => ({ ...hub, listCollabDocuments: async () => ({ ok: false as const, error: { code: 'hub-forbidden', message: 'Kept documents need the Markdown documents sync category enabled.' } }) }));
+    const error = await refused.listCollabDocuments().catch((e: unknown) => e);
+    expect(isCollabConsentRefusal(error)).toBe(true);
+    await expect(createDesktopHubAdmin(() => undefined).listCollabRooms()).rejects.toMatchObject({ code: 'unavailable' });
   });
 
   it('keeps the hub-web-only methods unavailable', async () => {

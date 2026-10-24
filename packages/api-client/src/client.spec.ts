@@ -118,6 +118,8 @@ describe('createHubClient', () => {
     ['listCollabRooms', (c) => c.listCollabRooms('t'), 'GET', '/api/v1/collab/rooms'],
     ['createCollabRoom', (c) => c.createCollabRoom('t', 'Notes'), 'POST', '/api/v1/collab/rooms'],
     ['keepCollabRoom', (c) => c.keepCollabRoom('t', 'r 1', 'Title'), 'POST', '/api/v1/collab/rooms/r%201/keep'],
+    ['listCollabDocuments', (c) => c.listCollabDocuments('t'), 'GET', '/api/v1/collab/documents'],
+    ['deleteCollabDocument', (c) => c.deleteCollabDocument('t', 'd 1'), 'DELETE', '/api/v1/collab/documents/d%201'],
   ];
   it.each(table)('%s hits %s %s', async (_name, fn, method, path) => {
     const t = fake({ body: null });

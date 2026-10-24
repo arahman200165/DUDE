@@ -1,5 +1,6 @@
 import { createHubWebAdmin, type HubWebAdminOptions } from './hub-web-admin.adapter';
 import { hubCsrf } from './hub-csrf';
+import { isCollabConsentRefusal } from './hub-admin.port';
 
 interface Call {
   url: string;
@@ -345,6 +346,36 @@ describe('Hub web admin adapter', () => {
       const off = wired.admin.onNotification?.(() => undefined);
       expect(hook).toHaveBeenCalledOnce();
       expect(typeof off).toBe('function');
+    });
+
+    it('drives Markdown rooms and kept documents over the cookie session with CSRF on the writes (PD-104)', async () => {
+      const ROOM = { id: 'room_1', name: 'Notes', participants: 0, createdAt: '2026-10-24T00:00:00.000Z' };
+      const { admin, calls } = setup((c) => {
+        if (c.url === '/api/v1/collab/rooms') return c.method === 'GET' ? { status: 200, body: { rooms: [ROOM] } } : { status: 201, body: ROOM };
+        if (c.url.endsWith('/keep')) return { status: 200, body: { entityId: 'doc_1' } };
+        if (c.url === '/api/v1/collab/documents') return { status: 200, body: { documents: [{ id: 'doc_1', title: 'T', updatedAt: 'x', bytes: 3 }] } };
+        return { status: 200, body: { ok: true } };
+      });
+      hubCsrf.set('csrf-1');
+      await expect(admin.listCollabRooms()).resolves.toEqual({ rooms: [ROOM] });
+      await expect(admin.createCollabRoom('Notes')).resolves.toEqual(ROOM);
+      await expect(admin.keepCollabRoom('room_1', 'Weekly')).resolves.toEqual({ entityId: 'doc_1' });
+      await expect(admin.listCollabDocuments()).resolves.toMatchObject({ documents: [{ id: 'doc_1' }] });
+      await expect(admin.deleteCollabDocument('doc_1')).resolves.toEqual({ ok: true });
+      expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+        'GET /api/v1/collab/rooms', 'POST /api/v1/collab/rooms', 'POST /api/v1/collab/rooms/room_1/keep', 'GET /api/v1/collab/documents', 'DELETE /api/v1/collab/documents/doc_1',
+      ]);
+      expect(calls.map((c) => c.body)).toEqual([undefined, { name: 'Notes' }, { title: 'Weekly' }, undefined, undefined]);
+      expect([1, 2, 4].map((i) => calls[i]?.headers['X-DUDE-CSRF'])).toEqual(['csrf-1', 'csrf-1', 'csrf-1']);
+      expect(calls[0]?.headers['X-DUDE-CSRF']).toBeUndefined();
+    });
+
+    it('maps the kept-document consent refusal to a code isCollabConsentRefusal recognizes', async () => {
+      const refused = setup(() => ({ status: 403, body: envelope('forbidden', 'Kept documents need the Markdown documents sync category enabled.') }));
+      const error = await refused.admin.listCollabDocuments().catch((e: unknown) => e);
+      expect(error).toMatchObject({ name: 'HubAdminError', code: 'forbidden' });
+      expect(isCollabConsentRefusal(error)).toBe(true);
+      expect(isCollabConsentRefusal(new Error('x'))).toBe(false);
     });
 
     it('adopts the CSRF token returned by a password change', async () => {

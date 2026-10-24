@@ -107,6 +107,28 @@ export type KeepCollabRoomRequest = Static<typeof KeepCollabRoomRequest>;
 export const KeepCollabRoomResponse = Type.Object({ entityId: Type.String({ minLength: 1, maxLength: 64 }) }, { additionalProperties: false });
 export type KeepCollabRoomResponse = Static<typeof KeepCollabRoomResponse>;
 
+/**
+ * Kept Markdown documents (PD-104): the live `markdown-doc` records. Credential: owner cookie or bearer session, or a device token; both
+ * the list and the delete need the `collab-documents` category on for the caller (PD-103). A delete tombstones the record, which ends
+ * its collaborative document, and is audited `collab.document-deleted` (ids only).
+ */
+export const HUB_COLLAB_DOCUMENTS_PATH = '/api/v1/collab/documents';
+/** Most kept documents listed at once (newest first). */
+export const COLLAB_DOCUMENTS_LIST_MAX = 500;
+const DocumentId = Type.String({ pattern: '^[A-Za-z0-9_-]{1,64}$' });
+export const CollabDocumentSummary = Type.Object({
+  id: DocumentId,
+  title: Type.String({ minLength: 1, maxLength: COLLAB_DOCUMENT_TITLE_MAX }),
+  updatedAt: Instant,
+  /** UTF-8 size of the stored body. */
+  bytes: Type.Integer({ minimum: 0 }),
+}, { additionalProperties: false });
+export type CollabDocumentSummary = Static<typeof CollabDocumentSummary>;
+export const CollabDocumentsResponse = Type.Object({ documents: Type.Array(CollabDocumentSummary, { maxItems: COLLAB_DOCUMENTS_LIST_MAX }) }, { additionalProperties: false });
+export type CollabDocumentsResponse = Static<typeof CollabDocumentsResponse>;
+export const CollabDocumentParams = Type.Object({ id: DocumentId });
+export type CollabDocumentParams = Static<typeof CollabDocumentParams>;
+
 /** Document history (PD-105). Credential: owner cookie or bearer session. A restore is a forward edit and is audited. */
 export const HUB_COLLAB_HISTORY_PATH = '/api/v1/collab/history';
 const SnapshotId = Type.String({ minLength: 1, maxLength: 64 });

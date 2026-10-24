@@ -9,5 +9,6 @@ export function createUnavailableHubAdmin(reason = 'Hub administration is not av
     listSessions: reject, revokeSession: reject, revokeAllPreview: reject, revokeAll: reject, listAudit: reject, listSecurityAlerts: reject, markSecurityAlertsSeen: reject, recoveryCodesPreview: reject,
     regenerateRecoveryCodes: reject, changePassword: reject, listJobs: reject, listNotifications: reject, markNotificationsRead: reject, dismissNotification: reject, bootstrap: reject, signIn: reject, currentSession: reject, signOut: reject,
     recover: reject, ownerReset: reject,
+    listCollabRooms: reject, createCollabRoom: reject, keepCollabRoom: reject, listCollabDocuments: reject, deleteCollabDocument: reject,
   };
 }

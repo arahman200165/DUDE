@@ -6,7 +6,7 @@ import {
   COLLAB_ROOM_NAME_MAX, COLLAB_DOCUMENT_TITLE_MAX, COLLAB_MAX_CONTROL_BYTES, COLLAB_MAX_FRAME_BYTES, COLLAB_ROOM_IDLE_CLOSE_MS, COLLAB_SNAPSHOT_IDLE_MS,
   COLLAB_SNAPSHOT_MIN_INTERVAL_MS, COLLAB_HISTORY_RETENTION_DAYS, CollabClientControl, CollabHistoryQuery, CollabHistoryResponse, CollabRestoreResponse,
   CollabRoomsResponse, CollabServerControl, CollabSnapshotResponse, CreateCollabRoomRequest, HUB_COLLAB_HISTORY_PATH, HUB_COLLAB_PATH, HUB_COLLAB_ROOMS_PATH,
-  KeepCollabRoomRequest, KeepCollabRoomResponse,
+  KeepCollabRoomRequest, KeepCollabRoomResponse, HUB_COLLAB_DOCUMENTS_PATH, COLLAB_DOCUMENTS_LIST_MAX, CollabDocumentsResponse, CollabDocumentParams,
 } from './collab.schema.js';
 import { HUB_REALTIME_PATH } from './realtime.schema.js';
 
@@ -93,6 +93,16 @@ describe('Hub collaboration contract', () => {
     expect(Value.Check(CollabSnapshotResponse, { doc: 'scratchpad:default', takenAt: snapshot.takenAt, payload: null })).toBe(false);
     expect(Value.Check(CollabRestoreResponse, { ok: true })).toBe(true);
     expect(Value.Check(CollabRestoreResponse, { ok: false })).toBe(false);
+  });
+
+  it('validates the kept-document list (PD-104)', () => {
+    expect(HUB_COLLAB_DOCUMENTS_PATH).toBe('/api/v1/collab/documents');
+    const doc = { id: 'abc_123', title: 'Notes', updatedAt: '2026-10-24T10:00:00.000Z', bytes: 12 };
+    expect(Value.Check(CollabDocumentsResponse, { documents: [doc] })).toBe(true);
+    expect(Value.Check(CollabDocumentsResponse, { documents: [{ ...doc, title: '' }] })).toBe(false);
+    expect(Value.Check(CollabDocumentsResponse, { documents: [{ ...doc, body: 'x' }] })).toBe(false);
+    expect(Value.Check(CollabDocumentsResponse, { documents: Array.from({ length: COLLAB_DOCUMENTS_LIST_MAX + 1 }, () => doc) })).toBe(false);
+    expect(Value.Check(CollabDocumentParams, { id: 'a/b' })).toBe(false);
   });
 
   it('declares the collaboration audit events', () => {
