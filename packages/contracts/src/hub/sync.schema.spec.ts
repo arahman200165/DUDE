@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Value } from 'typebox/value';
 import {
-  SYNC_CURSOR_EXPIRED, SYNC_WIRE_CATEGORY_IDS, SyncChangesResponse, SyncClearPreview, SyncClearRequest, SyncClearResponse, SyncOp, SyncOpResult,
+  SYNC_CURSOR_EXPIRED, SYNC_WIRE_CATEGORY_IDS, wireCategoryFlags, SyncChangesResponse, SyncClearPreview, SyncClearRequest, SyncClearResponse, SyncOp, SyncOpResult,
   SyncPushRequest, SyncPushResponse, SyncRecord, SyncSnapshotResponse, SyncStateReport, SyncStateResponse, SyncSummary,
   SyncChangesQuery, SyncSnapshotQuery, SyncChangesQueryString, SyncSnapshotQueryString, parseSyncCategoriesQuery,
 } from './sync.schema.js';
@@ -59,6 +59,14 @@ describe('sync wire schemas', () => {
     expect(Value.Check(SyncPushRequest, { ops: [] })).toBe(false);
   });
 
+  it('lets a push declare that it understands merged results (PD-102)', () => {
+    expect(Value.Check(SyncPushRequest, { ops: [op], accept: ['merged'] })).toBe(true);
+    expect(Value.Check(SyncPushRequest, { ops: [op], accept: [] })).toBe(true);
+    expect(Value.Check(SyncPushRequest, { ops: [op], accept: ['merged', 'merged'] })).toBe(false);
+    expect(Value.Check(SyncPushRequest, { ops: [op], accept: ['conflict'] })).toBe(false);
+    expect(Value.Check(SyncPushRequest, { ops: [op], accept: 'merged' })).toBe(false);
+  });
+
   it('discriminates op results', () => {
     expect(Value.Check(SyncOpResult, { opId: 'a', status: 'applied', revision: 4 })).toBe(true);
     expect(Value.Check(SyncOpResult, { opId: 'a', status: 'duplicate', revision: 4 })).toBe(true);
@@ -67,7 +75,9 @@ describe('sync wire schemas', () => {
     expect(Value.Check(SyncOpResult, { opId: 'a', status: 'rejected', reason: 'nope' })).toBe(false);
     expect(Value.Check(SyncOpResult, { opId: 'a', status: 'conflict' })).toBe(false);
     expect(Value.Check(SyncOpResult, { opId: 'a', status: 'applied' })).toBe(false);
+    expect(Value.Check(SyncOpResult, { opId: 'a', status: 'merged', revision: 5, current: record })).toBe(true);
     expect(Value.Check(SyncOpResult, { opId: 'a', status: 'merged', revision: 1 })).toBe(false);
+    expect(Value.Check(SyncOpResult, { opId: 'a', status: 'merged', current: record })).toBe(false);
     expect(Value.Check(SyncPushResponse, { results: [{ opId: 'a', status: 'applied', revision: 4 }], headRevision: 4 })).toBe(true);
   });
 
@@ -79,8 +89,28 @@ describe('sync wire schemas', () => {
     const report = { cursor: 3, pending: 0, quarantined: 0, conflicts: 0, stranded: 0, categories: flags, lastSyncAt: null };
     expect(Value.Check(SyncStateReport, report)).toBe(true);
     expect(Value.Check(SyncStateReport, { ...report, categories: { settings: true } })).toBe(false);
+    // PD-103: a pre-31J client reports every category except `collab-documents`, which reads as off.
+    const { 'collab-documents': _omitted, ...legacyFlags } = flags;
+    expect(Value.Check(SyncStateReport, { ...report, categories: legacyFlags })).toBe(true);
+    expect(Value.Check(SyncStateReport, { ...report, categories: { ...legacyFlags, 'collab-documents': false } })).toBe(true);
+    expect(Value.Check(SyncStateReport, { ...report, categories: { ...legacyFlags, 'collab-documents': 'yes' } })).toBe(false);
+    expect(Value.Check(SyncStateReport, { ...report, categories: { ...legacyFlags, unknown: true } })).toBe(false);
+    const { settings: _settings, ...missingRequired } = flags;
+    expect(Value.Check(SyncStateReport, { ...report, categories: missingRequired })).toBe(false);
     expect(Value.Check(SyncStateResponse, { floor: 0, headRevision: 3, retentionDays: 90 })).toBe(true);
+    const { 'collab-documents': _noCount, ...legacyCounts } = counts;
+    expect(Value.Check(SyncSummary, { floor: 0, headRevision: 3, retentionDays: 90, counts: legacyCounts, devices: [] })).toBe(true);
     expect(Value.Check(SyncSummary, { floor: 0, headRevision: 3, retentionDays: 90, counts, devices: [{ deviceId: 'd', cursor: 1, lag: 2, lastPushAt: null, lastPullAt: null, quarantined: 0, conflicts: 0, pending: 0, kind: 'desktop', paused: false }] })).toBe(true);
+  });
+
+  it('reports optional categories only when they are on', () => {
+    const legacy = wireCategoryFlags({ ...flags, 'collab-documents': false });
+    expect(legacy).not.toHaveProperty('collab-documents');
+    expect(Object.keys(legacy).sort()).toEqual(SYNC_WIRE_CATEGORY_IDS.filter((id) => id !== 'collab-documents').sort());
+    expect(wireCategoryFlags({ ...flags, 'collab-documents': true })).toMatchObject({ 'collab-documents': true });
+    expect(wireCategoryFlags({})).toMatchObject({ settings: false, scratchpad: false });
+    const report = { cursor: 0, pending: 0, quarantined: 0, conflicts: 0, stranded: 0, lastSyncAt: null };
+    for (const on of [true, false]) expect(Value.Check(SyncStateReport, { ...report, categories: wireCategoryFlags({ ...flags, 'collab-documents': on }) })).toBe(true);
   });
 
   it('validates the clear two-step', () => {

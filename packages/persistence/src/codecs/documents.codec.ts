@@ -110,6 +110,37 @@ export const scratchpadCodec: EntityCodec<ScratchpadStore> = {
   encode: (store) => ({ ...store }),
 };
 
+/** A Markdown document kept on the Hub (Phase 31J). The Hub owns it; devices only mirror it after the `collab-documents` consent. */
+export interface MarkdownDocument {
+  id: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const MARKDOWN_DOC_TITLE_MAX = 200;
+/** The collaborative document id alphabet (`@dude/collab-doc`), so a record id is always a legal document key id. */
+const MARKDOWN_DOC_ID = /^[A-Za-z0-9_-]{1,64}$/;
+
+export const markdownDocCodec: EntityCodec<MarkdownDocument> = {
+  entityType: 'markdown-doc',
+  schemaVersion: 1,
+  scope: 'workspace',
+  sensitivity: 'sensitive',
+  journaled: false,
+  idOf: (doc) => doc.id,
+  decode(raw) {
+    if (!isRecord(raw)) return null;
+    const { id, title, body, createdAt, updatedAt } = raw;
+    if (typeof id !== 'string' || !MARKDOWN_DOC_ID.test(id)) return null;
+    if (typeof title !== 'string' || title.length > MARKDOWN_DOC_TITLE_MAX) return null;
+    if (typeof body !== 'string' || !isNonEmptyString(createdAt) || !isNonEmptyString(updatedAt)) return null;
+    return { id, title, body, createdAt, updatedAt };
+  },
+  encode: (doc) => ({ ...doc }),
+};
+
 function sanitizeRecent(raw: unknown): NativeRecentEntry | null {
   if (!isRecord(raw)) return null;
   const { path, name, extension, openedAt } = raw;

@@ -1,5 +1,5 @@
 import type { OwnerViewTopic, PresenceActivity, PresenceEntry, SyncRecord } from '@dude/contracts/hub';
-import { HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION, HUB_REALTIME_DEPTH_PROTOCOL, HUB_REALTIME_PATH, REALTIME_CLOSE_CODES, isOwnerViewTopic } from '@dude/contracts/hub';
+import { HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION, HUB_REALTIME_DEPTH_PROTOCOL, HUB_REALTIME_PATH, REALTIME_CLOSE_CODES, isOwnerViewTopic, wireCategoryFlags } from '@dude/contracts/hub';
 import { RecordBook, categoryOf, toAppliedChange, type AppliedChangeShape } from '@dude/sync';
 import type { HubWebEngine } from './hub-web-engine';
 import { classifyHubError, type HubWebAccess } from './hub-web.types';
@@ -434,7 +434,7 @@ export class HubRealtimeClient {
     }
     this.lastReport = now;
     void this.deps.engine.client
-      .webState({ cursor: this.cursor, pending: 0, quarantined: 0, conflicts: 0, stranded: 0, categories: { ...this.deps.access }, lastSyncAt: new Date(now).toISOString() })
+      .webState({ cursor: this.cursor, pending: 0, quarantined: 0, conflicts: 0, stranded: 0, categories: wireCategoryFlags(this.deps.access), lastSyncAt: new Date(now).toISOString() })
       .catch(() => undefined);
   }
 }

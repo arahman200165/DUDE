@@ -1,4 +1,5 @@
 import { HubApiError } from '@dude/api-client';
+import { wireCategoryFlags } from '@dude/contracts/hub';
 import type { SyncChangesResponse, SyncOp, SyncPushResponse, SyncRecord } from '@dude/contracts/hub';
 import { SYNC_CATEGORY_IDS, SYNC_LIMITS, categoryOf } from '@dude/sync';
 import { MobileHubRealtime } from '../hub/realtime';
@@ -203,7 +204,7 @@ export class MobileSyncDriver {
     const pending = await this.options.store.pending(context.id);
     const reported = await this.options.session.withToken((api, token) => api.syncReportState(token, {
       cursor: context.cursor, pending: pending.length, quarantined: pending.filter(op => op.rejected).length, conflicts: 0, stranded: 0,
-      categories: Object.fromEntries(SYNC_CATEGORY_IDS.map(category => [category, categories.includes(category as MobileCategory)])) as Record<typeof SYNC_CATEGORY_IDS[number], boolean>,
+      categories: wireCategoryFlags(Object.fromEntries(SYNC_CATEGORY_IDS.map(category => [category, categories.includes(category as MobileCategory)]))),
       lastSyncAt: new Date(this.options.now()).toISOString(), paused: false,
     }));
     this.assertActive(generation); this.checkHead(context, reported.headRevision, reported.authorityEpoch ?? context.epoch);

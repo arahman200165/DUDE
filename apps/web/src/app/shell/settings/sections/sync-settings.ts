@@ -16,6 +16,7 @@ const DEFAULT_OFF_RATIONALE: Partial<Record<SyncCategory, string>> = {
   usage: 'Off by default: usage counts describe how you work, so they only leave this device if you choose. Each device keeps its own record.',
   'workspace-layout': 'Off by default: each device usually has its own screen. A synced layout is offered on request or applied on the next launch, never mid-session.',
   scratchpad: 'Off by default: the scratchpad is free text and may contain sensitive content such as tokens or notes. It is sent to your Hub as written.',
+  'collab-documents': 'Off by default: Markdown documents you keep on your Hub are free text and may contain sensitive content. They are never kept unless you choose Keep on Hub.',
 };
 
 /**

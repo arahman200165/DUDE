@@ -5,7 +5,7 @@ import { sanitizeAppearance, DEFAULT_APPEARANCE } from '@dude/domain/core/appear
 import {
   ENTITY_CODECS, JOURNALED_ENTITY_TYPES, isKnownEntityType, favoriteCodec, favoritesToItems, itemsToFavorites,
   pipelineCodec, userScriptCodec, projectCodec, workspaceTemplateCodec, appearanceCodec, homeLayoutCodec, usageCodec,
-  workspaceLayoutCodec, scratchpadCodec, nativeRecentsCodec, historyEntryCodec, isNewerHomeLayoutDocument,
+  workspaceLayoutCodec, scratchpadCodec, markdownDocCodec, MARKDOWN_DOC_TITLE_MAX, nativeRecentsCodec, historyEntryCodec, isNewerHomeLayoutDocument,
   decodeHomeLayoutReadOnly, type EntityCodec, type HomeLayoutCodecContext,
 } from './index.js';
 
@@ -26,7 +26,7 @@ const GARBAGE: unknown[] = [null, undefined, 0, 'x', true, [], [1, 2], {}, { id:
 describe('registry', () => {
   it('knows every entity type and journals the planned set', () => {
     expect(Object.keys(ENTITY_CODECS).sort()).toEqual(
-      ['appearance', 'favorite', 'history-entry', 'home-layout', 'native-recents', 'pipeline', 'project', 'scratchpad', 'usage', 'user-script', 'workspace-layout', 'workspace-template'],
+      ['appearance', 'favorite', 'history-entry', 'home-layout', 'markdown-doc', 'native-recents', 'pipeline', 'project', 'scratchpad', 'usage', 'user-script', 'workspace-layout', 'workspace-template'],
     );
     expect([...JOURNALED_ENTITY_TYPES].sort()).toEqual(
       ['appearance', 'favorite', 'home-layout', 'pipeline', 'project', 'usage', 'user-script', 'workspace-template'],
@@ -182,6 +182,23 @@ describe('workspace layout, scratchpad, native recents, history', () => {
     expect(scratchpadCodec.decode({ ...store, drawerExpanded: 'yes' })!.drawerExpanded).toBe(false);
   });
 
+  it('markdown document is a sensitive workspace record with a bounded id and title', () => {
+    const doc = { id: '0199abcd-ef01-7abc-8def-0123456789ab', title: 'Notes', body: '# Hello\n', createdAt: T, updatedAt: T };
+    expect(markdownDocCodec.scope).toBe('workspace');
+    expect(markdownDocCodec.sensitivity).toBe('sensitive');
+    expect(markdownDocCodec.journaled).toBe(false);
+    expect(markdownDocCodec.idOf(doc)).toBe(doc.id);
+    expect(markdownDocCodec.decode(doc)).toEqual(doc);
+    expect(roundTrip(markdownDocCodec, doc, undefined)).toEqual(doc);
+    expect(markdownDocCodec.decode({ ...doc, junk: 1 })).not.toHaveProperty('junk');
+    expect(markdownDocCodec.decode({ ...doc, title: '', body: '' })).toMatchObject({ title: '', body: '' });
+    expect(markdownDocCodec.decode({ ...doc, title: 'x'.repeat(MARKDOWN_DOC_TITLE_MAX) })).not.toBeNull();
+    for (const bad of [
+      { ...doc, title: 'x'.repeat(MARKDOWN_DOC_TITLE_MAX + 1) }, { ...doc, id: '' }, { ...doc, id: 'a b' }, { ...doc, id: 'a'.repeat(65) }, { ...doc, id: 5 },
+      { ...doc, title: 4 }, { ...doc, body: null }, { ...doc, createdAt: '' }, { ...doc, updatedAt: 1 }, null, 'x',
+    ]) expect(markdownDocCodec.decode(bad)).toBeNull();
+  });
+
   it('native recents keeps valid entries, drops bad ones and caps the list', () => {
     const store = { schemaVersion: 1, entries: [{ path: 'C:\\a.json', name: 'a.json', extension: '.json', openedAt: T }] };
     expect(nativeRecentsCodec.decode(store)).toEqual(store);
@@ -256,6 +273,15 @@ describe('property: round trips and garbage', () => {
     fc.assert(fc.property(
       fc.record({ id: str, schemaVersion: fc.constant(1 as const), toolId: str, createdAt: date, summary: fc.string(), state: fc.dictionary(str, fc.jsonValue()) }),
       (h) => { expect(roundTrip(historyEntryCodec, h, undefined)).toEqual(JSON.parse(JSON.stringify(h))); },
+    ));
+  });
+
+  it('markdown documents round-trip for any legal id and title', () => {
+    fc.assert(fc.property(
+      fc.record({
+        id: fc.stringMatching(/^[A-Za-z0-9_-]{1,64}$/), title: fc.string({ maxLength: MARKDOWN_DOC_TITLE_MAX }), body: fc.string(), createdAt: date, updatedAt: date,
+      }),
+      (d) => { expect(roundTrip(markdownDocCodec, d, undefined)).toEqual(d); },
     ));
   });
 

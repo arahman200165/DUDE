@@ -6,7 +6,7 @@ import { HubWebFeedback } from '../hub-web-feedback';
 import type { HubWebAccess, HubWebClient } from '../hub-web.types';
 
 export const ALL_ON: HubWebAccess = {
-  settings: true, favorites: true, pipelines: true, projects: true, workspaces: true, home: true, usage: true, 'workspace-layout': true, scratchpad: true,
+  settings: true, favorites: true, pipelines: true, projects: true, workspaces: true, home: true, usage: true, 'workspace-layout': true, scratchpad: true, 'collab-documents': true,
 };
 
 export function apiError(status: number, code = 'error'): Error {

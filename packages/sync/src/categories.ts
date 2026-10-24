@@ -1,6 +1,7 @@
 /** User-facing sync categories. Each can be enabled or disabled per device. */
 export const SYNC_CATEGORY_IDS = [
   'settings', 'favorites', 'pipelines', 'projects', 'workspaces', 'home', 'usage', 'workspace-layout', 'scratchpad',
+  'collab-documents',
 ] as const;
 
 export type SyncCategory = (typeof SYNC_CATEGORY_IDS)[number];
@@ -23,6 +24,7 @@ export const SYNC_CATEGORIES: readonly SyncCategoryDefinition[] = [
   { id: 'usage', label: 'Usage insights', description: 'Per-device usage counts and recent activity.', defaultEnabled: false, sensitivity: 'non-sensitive' },
   { id: 'workspace-layout', label: 'Workspace layout', description: 'Open tabs and panes; applied on the next launch.', defaultEnabled: false, sensitivity: 'non-sensitive' },
   { id: 'scratchpad', label: 'Scratchpad', description: 'Free-form scratchpad text. May contain sensitive content.', defaultEnabled: false, sensitivity: 'sensitive' },
+  { id: 'collab-documents', label: 'Markdown documents', description: 'Markdown documents you keep on your Hub. May contain sensitive content.', defaultEnabled: false, sensitivity: 'sensitive' },
 ];
 
 export function defaultCategoryMap(): Record<SyncCategory, boolean> {

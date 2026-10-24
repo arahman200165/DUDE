@@ -89,7 +89,9 @@ export function applyPushResults(db: Db, sent: readonly SentOp[], results: reado
             db.prepare('UPDATE outbox SET based_on_revision = ? WHERE op_id = ?').run(result.revision, current.opId);
           }
         }
-      } else if (result.status === 'conflict') {
+      } else if (result.status === 'conflict' || result.status === 'merged') {
+        // `merged` (PD-102) is sent only to a client that declared `accept: ['merged']`, which the Agent does not yet; the Hub's
+        // current record is reconciled exactly like a conflict's.
         const outcome = reconcileRemote(db, result.current, ctx, true);
         if (outcome.change) out.applied.push(outcome.change);
         if (outcome.conflict) out.conflicts += 1;

@@ -3,7 +3,7 @@ import type { Db } from '@dude/sqlite-store';
 import { SYNC_CATEGORIES, categoryOf, defaultCategoryMap } from '@dude/sync';
 import type { SyncCategory } from '@dude/sync';
 
-/** Per-category Hub web access (PD-051). An absent row means the category default (usage, workspace layout and scratchpad off). */
+/** Per-category Hub web access (PD-051). An absent row means the category default (usage, workspace layout, scratchpad and collab-documents off). */
 export function getWebAccess(db: Db, environmentId: string): Record<SyncCategory, boolean> {
   const access = defaultCategoryMap();
   for (const row of allRows<{ category: string; enabled: number }>(db.prepare('SELECT category, enabled FROM web_access WHERE environment_id = ?'), environmentId)) {

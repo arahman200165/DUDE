@@ -13,7 +13,7 @@ describe('categories and policies', () => {
     expect(SYNC_CATEGORIES.map((c) => c.id)).toEqual([...SYNC_CATEGORY_IDS]);
     const defaults = defaultCategoryMap();
     expect(Object.keys(defaults).sort()).toEqual([...SYNC_CATEGORY_IDS].sort());
-    for (const id of ['usage', 'workspace-layout', 'scratchpad'] as const) expect(defaults[id]).toBe(false);
+    for (const id of ['usage', 'workspace-layout', 'scratchpad', 'collab-documents'] as const) expect(defaults[id]).toBe(false);
     for (const id of ['settings', 'favorites', 'pipelines', 'projects', 'workspaces', 'home'] as const) expect(defaults[id]).toBe(true);
   });
 

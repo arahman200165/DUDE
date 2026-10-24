@@ -7,6 +7,7 @@ import Type, { type Static } from 'typebox';
  */
 export const SYNC_WIRE_CATEGORY_IDS = [
   'settings', 'favorites', 'pipelines', 'projects', 'workspaces', 'home', 'usage', 'workspace-layout', 'scratchpad',
+  'collab-documents',
 ] as const;
 export type SyncCategory = (typeof SYNC_WIRE_CATEGORY_IDS)[number];
 export const SYNC_WIRE_MAX_PUSH_OPS = 100;
@@ -57,12 +58,36 @@ export function parseSyncCategoriesQuery(categories: string | undefined): readon
   assertSyncCategories(parsed);
   return parsed;
 }
+/**
+ * Categories added after protocol 2 shipped (PD-103). Strict clients built before them send and parse state without the
+ * key, so it is optional on the wire: a missing key reads as off (flags) or zero (counts).
+ */
+export const SYNC_OPTIONAL_WIRE_CATEGORY_IDS = ['collab-documents'] as const;
+type OptionalSyncCategory = (typeof SYNC_OPTIONAL_WIRE_CATEGORY_IDS)[number];
+type RequiredSyncCategory = Exclude<SyncCategory, OptionalSyncCategory>;
+const isOptionalCategory = (id: SyncCategory): boolean => (SYNC_OPTIONAL_WIRE_CATEGORY_IDS as readonly SyncCategory[]).includes(id);
+
 export const SyncCategoryFlags = Type.Object(
-  Object.fromEntries(SYNC_WIRE_CATEGORY_IDS.map((id) => [id, Type.Boolean()])) as Record<SyncCategory, ReturnType<typeof Type.Boolean>>,
+  Object.fromEntries(SYNC_WIRE_CATEGORY_IDS.map((id) => [id, isOptionalCategory(id) ? Type.Optional(Type.Boolean()) : Type.Boolean()])) as
+    Record<RequiredSyncCategory, ReturnType<typeof Type.Boolean>> & Record<OptionalSyncCategory, ReturnType<typeof Type.Optional<ReturnType<typeof Type.Boolean>>>>,
   { additionalProperties: false },
 );
+/**
+ * The flags a client reports to `PUT /sync/state` and `PUT /web/state`: an optional category is sent only when it is on, so a
+ * client newer than its Hub (which refuses unknown keys) still reports, and a Hub that predates the category reads it as off.
+ */
+export function wireCategoryFlags(flags: Readonly<Partial<Record<SyncCategory, boolean>>>): Static<typeof SyncCategoryFlags> {
+  const out: Partial<Record<SyncCategory, boolean>> = {};
+  for (const id of SYNC_WIRE_CATEGORY_IDS) {
+    const value = flags[id] === true;
+    if (!isOptionalCategory(id) || value) out[id] = value;
+  }
+  return out as Static<typeof SyncCategoryFlags>;
+}
+
 const CategoryCounts = Type.Object(
-  Object.fromEntries(SYNC_WIRE_CATEGORY_IDS.map((id) => [id, Count])) as Record<SyncCategory, typeof Count>,
+  Object.fromEntries(SYNC_WIRE_CATEGORY_IDS.map((id) => [id, isOptionalCategory(id) ? Type.Optional(Count) : Count])) as
+    Record<RequiredSyncCategory, typeof Count> & Record<OptionalSyncCategory, ReturnType<typeof Type.Optional<typeof Count>>>,
   { additionalProperties: false },
 );
 
@@ -101,11 +126,18 @@ export const SyncOpResult = Type.Union([
   Type.Object({ opId: OpId, status: Type.Literal('applied'), revision: Revision }),
   Type.Object({ opId: OpId, status: Type.Literal('duplicate'), revision: Revision }),
   Type.Object({ opId: OpId, status: Type.Literal('conflict'), current: SyncRecord }),
+  /** PD-102: the Hub merged a collaborative text edit into the live document. Only sent to a client that declared `accept: ['merged']`. */
+  Type.Object({ opId: OpId, status: Type.Literal('merged'), revision: Revision, current: SyncRecord }),
   Type.Object({ opId: OpId, status: Type.Literal('rejected'), reason: SyncRejectReasonSchema }),
 ]);
 export type SyncOpResult = Static<typeof SyncOpResult>;
 
-export const SyncPushRequest = Type.Object({ ops: Type.Array(SyncOp, { minItems: 1, maxItems: SYNC_WIRE_MAX_PUSH_OPS }) });
+/** Result statuses beyond protocol 2 that a client declares it understands; older clients receive `conflict` instead. */
+export const SyncPushAccept = Type.Array(Type.Literal('merged'), { maxItems: 1 });
+export const SyncPushRequest = Type.Object({
+  ops: Type.Array(SyncOp, { minItems: 1, maxItems: SYNC_WIRE_MAX_PUSH_OPS }),
+  accept: Type.Optional(SyncPushAccept),
+});
 export type SyncPushRequest = Static<typeof SyncPushRequest>;
 export const SyncPushResponse = Type.Object({ results: Type.Array(SyncOpResult), headRevision: Revision });
 export type SyncPushResponse = Static<typeof SyncPushResponse>;

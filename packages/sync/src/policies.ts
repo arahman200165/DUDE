@@ -2,7 +2,7 @@ import type { SyncCategory } from './categories.js';
 
 export const SYNC_ENTITY_TYPES = [
   'setting', 'favorite', 'pipeline', 'user-script', 'project', 'workspace-template', 'home-layout', 'usage',
-  'workspace-layout', 'scratchpad',
+  'workspace-layout', 'scratchpad', 'markdown-doc',
 ] as const;
 
 export type SyncEntityType = (typeof SYNC_ENTITY_TYPES)[number];
@@ -39,6 +39,7 @@ export const SYNC_POLICIES: Record<SyncEntityType, SyncPolicy> = {
   usage: { category: 'usage', conflict: 'per-device', apply: 'live' },
   'workspace-layout': { category: 'workspace-layout', conflict: 'lww', apply: 'next-launch' },
   scratchpad: { category: 'scratchpad', conflict: 'merge3', apply: 'live', fieldRules: { snippets: { keyedList: 'id', text: ['title', 'body'] } } },
+  'markdown-doc': { category: 'collab-documents', conflict: 'merge3', apply: 'live', fieldRules: { body: 'text', updatedAt: 'max-iso' } },
 };
 
 /**

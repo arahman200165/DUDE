@@ -178,6 +178,10 @@ export class HubWebEngine {
         return this.failure(commit, rejectText(result.reason));
       case 'conflict':
         return this.resolve(commit, base, result.current, round);
+      case 'merged':
+        // PD-102: only sent to a client that declared `accept: ['merged']`, which the browser does not yet; adopt the Hub's merge.
+        this.deps.book.noteRecord(result.current);
+        return { ok: true, outcome: 'merged', payload: result.current.deleted ? null : result.current.payload };
     }
   }
 

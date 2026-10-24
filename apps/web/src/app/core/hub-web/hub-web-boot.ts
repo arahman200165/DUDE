@@ -1,7 +1,7 @@
 import { hubCsrf } from '../hub/hub-csrf';
 import type { SyncRecord } from '@dude/contracts/hub';
 import { defaultDisplayName, kvSyncEntityOfStored, uuidv7 } from '@dude/persistence';
-import { RecordBook, categoryOf } from '@dude/sync';
+import { RecordBook, categoryOf, defaultCategoryMap } from '@dude/sync';
 import { TOOL_METADATA } from '@dude/tool-registry';
 import { INSTALLATION_STORAGE_KEY } from '../device/device-identity.service';
 import { createFetchHubTransport } from '../hub/fetch-hub-transport';
@@ -85,7 +85,7 @@ function unreachableClient(): HubWebClient {
 }
 
 const assumedAccess = (): HubWebAccess => ({
-  settings: true, favorites: true, pipelines: true, projects: true, workspaces: true, home: true, usage: true, 'workspace-layout': true, scratchpad: true,
+  settings: true, favorites: true, pipelines: true, projects: true, workspaces: true, home: true, usage: true, 'workspace-layout': true, scratchpad: true, 'collab-documents': false,
 });
 
 /** "Browser · Chrome on Windows" from `navigator.userAgentData` or the user-agent string. */
@@ -206,7 +206,9 @@ export async function bootHubWeb(deps: HubWebBootDeps = { connect: connectToHub 
 
     const installationId = readOrMintInstallationId();
     const label = describeBrowser();
-    const attach = await client.webAttach({ installationId, label });
+    const attachResponse = await client.webAttach({ installationId, label });
+    // A Hub that predates a category omits its flag: it reads as the category default (off for collab-documents).
+    const attach = { ...attachResponse, access: { ...defaultCategoryMap(), ...attachResponse.access } };
     const snapshot = await pageSnapshot(client);
 
     const book = new RecordBook();

@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { HubApiError, HubProtocolError } from '@dude/api-client';
 import type { AgentHubStatus, AgentStandalonePreview, AgentSyncStatus, FirstSyncChoice, FirstSyncPreview, QuarantinedOpExport, QuarantinedOpView, SyncConflictView } from '@dude/contracts';
-import { SYNC_CURSOR_EXPIRED, hubSupportsSync } from '@dude/contracts/hub';
+import { SYNC_CURSOR_EXPIRED, hubSupportsSync, wireCategoryFlags } from '@dude/contracts/hub';
 import type { ConfirmPreview, SyncChangesResponse, SyncPushResponse, SyncRecord, SyncSnapshotResponse } from '@dude/contracts/hub';
 import { SYNC_LIMITS, categoryOf } from '@dude/sync';
 import type { SyncCategory, SyncPhase } from '@dude/sync';
@@ -390,7 +390,7 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
     try {
       const response = await call<{ headRevision: number; authorityEpoch?: number }>((api, token) => api.syncReportState(token, {
         cursor: current.cursor, pending: current.pending, quarantined: current.quarantined, conflicts: current.conflicts, stranded: current.stranded,
-        categories: current.categories, lastSyncAt: current.lastSyncAt, paused,
+        categories: wireCategoryFlags(current.categories), lastSyncAt: current.lastSyncAt, paused,
       }));
       if (inspectHub(response.headRevision, response.authorityEpoch, current.cursor)) return;
       headRevision = response.headRevision;

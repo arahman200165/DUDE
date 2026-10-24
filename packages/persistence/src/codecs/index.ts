@@ -3,7 +3,7 @@ import { favoriteCodec } from './favorite.codec.js';
 import { pipelineCodec, userScriptCodec } from './pipeline.codec.js';
 import { projectCodec, workspaceTemplateCodec } from './project.codec.js';
 import {
-  appearanceCodec, usageCodec, workspaceLayoutCodec, scratchpadCodec, nativeRecentsCodec, historyEntryCodec,
+  appearanceCodec, usageCodec, workspaceLayoutCodec, scratchpadCodec, markdownDocCodec, nativeRecentsCodec, historyEntryCodec,
 } from './documents.codec.js';
 import { homeLayoutCodec } from './home-layout.codec.js';
 
@@ -13,8 +13,10 @@ export type { FavoriteItem, FavoriteKind } from './favorite.codec.js';
 export { pipelineCodec, userScriptCodec } from './pipeline.codec.js';
 export { projectCodec, workspaceTemplateCodec } from './project.codec.js';
 export {
-  DOCUMENT_ID, appearanceCodec, usageCodec, workspaceLayoutCodec, scratchpadCodec, nativeRecentsCodec, historyEntryCodec,
+  DOCUMENT_ID, MARKDOWN_DOC_TITLE_MAX, appearanceCodec, usageCodec, workspaceLayoutCodec, scratchpadCodec, markdownDocCodec, nativeRecentsCodec,
+  historyEntryCodec,
 } from './documents.codec.js';
+export type { MarkdownDocument } from './documents.codec.js';
 export { homeLayoutCodec, isNewerHomeLayoutDocument, decodeHomeLayoutReadOnly } from './home-layout.codec.js';
 export type { HomeLayoutCodecContext } from './home-layout.codec.js';
 export { settingCodec, settingEntityId, SETTING_ENTITY_TYPE } from './setting.codec.js';
@@ -32,6 +34,7 @@ export const ENTITY_CODECS: Readonly<Record<string, EntityCodec<any, any>>> = {
   [usageCodec.entityType]: usageCodec,
   [workspaceLayoutCodec.entityType]: workspaceLayoutCodec,
   [scratchpadCodec.entityType]: scratchpadCodec,
+  [markdownDocCodec.entityType]: markdownDocCodec,
   [nativeRecentsCodec.entityType]: nativeRecentsCodec,
   [historyEntryCodec.entityType]: historyEntryCodec,
 };

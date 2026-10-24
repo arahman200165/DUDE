@@ -578,6 +578,7 @@ Consent is per category and applies only to an enrolled environment, after the f
 | usage | `usage` | off |
 | workspace-layout | `workspace-layout` | off |
 | scratchpad | `scratchpad` | off |
+| collab-documents | `markdown-doc` (Markdown documents kept on the Hub; optional on the wire, so a pre-31J client reads as off) | off |
 
 ### Conflict policy by entity
 
@@ -592,6 +593,7 @@ Consent is per category and applies only to an enrolled environment, after the f
 | `usage` | `per-device` (entity id is the device id) | live | None; summed on read |
 | `workspace-layout` | `lww` | next launch | Hub order wins |
 | `scratchpad` | `merge3` | live | Field merge; otherwise inbox (no Keep both) |
+| `markdown-doc` | `merge3` (`body` merges as text, `updatedAt` takes the later ISO time) | live | Field merge; otherwise inbox |
 
 ### Outbox status machine
 
