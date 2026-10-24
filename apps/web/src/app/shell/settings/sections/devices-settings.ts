@@ -1,11 +1,12 @@
 import { Component, DestroyRef, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import type { ConfirmPreview, DeviceInfo, PairingCodeResponse, SyncDeviceSummary } from '@dude/contracts/hub';
+import type { ConfirmPreview, DeviceInfo, PairingCodeResponse, PresenceEntry, SyncDeviceSummary } from '@dude/contracts/hub';
 import { validateDisplayName } from '@dude/persistence';
 import { HUB_ADMIN } from '../../../core/hub/hub-admin.token';
+import { ToolRegistryService } from '../../../core/registry/tool-registry.service';
 import { StatusGlyph } from '../../../shared/components/status-glyph/status-glyph';
 import { DeviceSyncStats } from './hub/device-sync-stats';
-import { hubErrorText, relativeTime } from './hub/hub-format';
+import { activityText, hubErrorText, platformLabel, relativeTime } from './hub/hub-format';
 import { HubOwnerSession } from './hub/hub-owner-session.service';
 import { OwnerGate } from './hub/owner-gate';
 import { PairingCodePanel } from './hub/pairing-code-panel';
@@ -31,6 +32,7 @@ interface TrustFlow {
 })
 export class DevicesSettings {
   private readonly hub = inject(HUB_ADMIN);
+  private readonly registry = inject(ToolRegistryService);
   protected readonly session = inject(HubOwnerSession);
   /** Set by the Hub setup page, which sends a new owner here to pair their desktop. */
   protected readonly pairDesktopHint = inject(ActivatedRoute).snapshot.queryParamMap.get('hint') === 'pair-desktop';
@@ -38,6 +40,8 @@ export class DevicesSettings {
   protected readonly devices = signal<readonly DeviceInfo[]>([]);
   protected readonly syncStats = signal<ReadonlyMap<string, SyncDeviceSummary> | null>(null);
   protected readonly syncError = signal<string | null>(null);
+  /** Live presence by device id (PD-108): what each online device that opted in is showing. Best effort, like the sync stats. */
+  protected readonly presence = signal<ReadonlyMap<string, PresenceEntry>>(new Map());
   protected readonly loading = signal(false);
   protected readonly loadError = signal<string | null>(null);
   protected readonly message = signal<string | null>(null);
@@ -71,6 +75,9 @@ export class DevicesSettings {
       if (this.session.signedIn()) void this.load(true);
     });
     if (stop) inject(DestroyRef).onDestroy(stop);
+    // Hub web: the realtime link pushes presence changes, so the Online status and activity line follow without a refresh.
+    const stopPresence = this.hub.onPresenceChanged?.((entry) => this.applyPresence(entry));
+    if (stopPresence) inject(DestroyRef).onDestroy(stopPresence);
     effect(() => this.confirmButton()?.nativeElement.focus());
     effect(() => this.trustField()?.nativeElement.focus());
     effect(() => this.renameField()?.nativeElement.focus());
@@ -91,7 +98,22 @@ export class DevicesSettings {
     } finally {
       this.loading.set(false);
     }
-    await this.loadSyncStats();
+    await Promise.all([this.loadSyncStats(), this.loadPresence()]);
+  }
+
+  /** Presence is best effort: a Hub that predates it, or a failed call, never hides the device list (the activity line just stays empty). */
+  private async loadPresence(): Promise<void> {
+    try {
+      const { entries } = await this.hub.presence();
+      this.presence.set(new Map(entries.map((entry) => [entry.deviceId, entry])));
+    } catch {
+      // no activity lines
+    }
+  }
+
+  private applyPresence(entry: PresenceEntry): void {
+    this.presence.update((map) => new Map(map).set(entry.deviceId, entry));
+    this.devices.update((list) => list.map((d) => (d.deviceId === entry.deviceId && d.online !== entry.online ? { ...d, online: entry.online } : d)));
   }
 
   /** Sync stats are best effort: a Hub that predates sync, or a failed call, never hides the device list. */
@@ -105,6 +127,14 @@ export class DevicesSettings {
     }
   }
 
+  protected platform(device: DeviceInfo): string {
+    return platformLabel(device.platform);
+  }
+  /** What an online device is showing, when it shares that; null otherwise (offline, opted out, or presence unavailable). */
+  protected activity(device: DeviceInfo): string | null {
+    const activity = device.online ? this.presence().get(device.deviceId)?.activity : null;
+    return activity ? activityText(activity, (id) => this.registry.getById(id)?.title) : null;
+  }
   protected seen(device: DeviceInfo): string {
     return relativeTime(device.lastSeenAt, this.now());
   }

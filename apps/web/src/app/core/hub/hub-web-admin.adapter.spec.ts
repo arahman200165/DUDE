@@ -86,6 +86,19 @@ describe('Hub web admin adapter', () => {
     expect(calls[0]).toMatchObject({ url: '/api/v1/sync/summary', method: 'GET', credentials: 'same-origin' });
   });
 
+  it('reads presence through the owner route with the cookie session and exposes the realtime feed only when given one', async () => {
+    const response = { entries: [{ deviceId: 'd1', online: true, activity: { kind: 'tool', id: 'base64' } }, { deviceId: 'd2', online: false, activity: null }] };
+    const { admin, calls } = setup(() => ({ status: 200, body: response }));
+    await expect(admin.presence()).resolves.toEqual(response);
+    expect(calls[0]).toMatchObject({ url: '/api/v1/presence', method: 'GET', credentials: 'same-origin' });
+    expect(admin.onPresenceChanged).toBeUndefined();
+    const off = (): void => undefined;
+    const subscribe = vi.fn(() => off);
+    const { admin: live } = setup(() => ({ status: 200, body: response }), { onPresenceChanged: subscribe });
+    expect(live.onPresenceChanged?.(() => undefined)).toBe(off);
+    expect(subscribe).toHaveBeenCalledTimes(1);
+  });
+
   it('reads the endpoint diagnostics through the owner route', async () => {
     const { admin, calls } = setup(() => ({ status: 401, body: { error: { code: 'unauthorized', message: 'no' } } }));
     await expect(admin.diagnostics()).rejects.toMatchObject({ code: 'unauthorized' });

@@ -82,6 +82,8 @@
       </div>
     }
 
+    <app-presence-sharing-panel />
+
     <p data-setting class="text-ui text-text-muted" data-testid="network-exposure">
       Network exposure, the certificate and readiness checks are on the <a class="text-accent underline" routerLink="/settings/endpoint" data-testid="endpoint-link">Endpoint &amp; Exposure</a> page. Changing them needs elevated <code class="font-mono text-text">dude-hub</code> commands on the Hub machine.
     </p>
@@ -158,6 +160,7 @@
         <app-owner-recovery-panel (changed)="refresh()" />
       }
       <app-hub-web-actions-panel />
+      <app-presence-sharing-panel />
       <p data-setting class="text-ui text-text-muted" data-testid="network-exposure">
         Network exposure, the certificate and readiness checks are on the <a class="text-accent underline" routerLink="/settings/endpoint" data-testid="endpoint-link">Endpoint &amp; Exposure</a> page. Changing them needs elevated <code class="font-mono text-text">dude-hub</code> commands on the Hub machine.
       </p>

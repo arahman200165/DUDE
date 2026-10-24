@@ -15,6 +15,7 @@ import { LocalHubPanel } from './hub/local-hub-panel';
 import { OwnerGate } from './hub/owner-gate';
 import { SyncSummaryPanel } from './hub/sync-summary-panel';
 import { OwnerRecoveryPanel } from './hub/owner-recovery-panel';
+import { PresenceSharingPanel } from './hub/presence-sharing-panel';
 
 type DisconnectStep = 'idle' | 'confirm' | 'unreachable' | 'force-confirm';
 
@@ -41,7 +42,7 @@ function pairingProblemOf(raw: string): string | null {
  */
 @Component({
   selector: 'app-environment-settings',
-  imports: [CopyButton, Disclosure, HubStatusBadge, HubWebActionsPanel, LocalHubPanel, NgTemplateOutlet, OwnerGate, OwnerRecoveryPanel, RouterLink, SyncSummaryPanel],
+  imports: [CopyButton, Disclosure, HubStatusBadge, HubWebActionsPanel, LocalHubPanel, NgTemplateOutlet, OwnerGate, OwnerRecoveryPanel, PresenceSharingPanel, RouterLink, SyncSummaryPanel],
   templateUrl: './environment-settings.html',
 })
 export class EnvironmentSettings {

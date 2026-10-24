@@ -33,6 +33,7 @@ export function createDesktopHubAdmin(bridge: () => DesktopHubBridge | undefined
     ownerSignOut: () => run((h) => h.ownerSignOut()),
     listDevices: () => run((h) => h.listDevices()),
     syncSummary: () => run((h) => h.syncSummary()),
+    presence: () => run((h) => h.presence()),
     diagnostics: () => run((h) => h.diagnostics()),
     agentDiagnostics: () => run((h) => h.agentDiagnostics()),
     createPairingCode: (host, options) => run((h) => (options === undefined ? h.createPairingCode(host) : h.createPairingCode(host, options))),

@@ -16,6 +16,7 @@ import { DESKTOP_HANDOFF_COMMAND_SOURCE_PROVIDERS } from './core/deep-link/deskt
 import { HUB_WEB_COMMAND_SOURCE_PROVIDERS } from './core/hub/hub-web-command-source';
 import { AppearanceService } from './core/appearance/appearance.service';
 import { SyncStatusService } from './core/sync/sync-status.service';
+import { PresenceService } from './core/presence/presence.service';
 import { NAVIGATION_COMMAND_SOURCE_PROVIDERS } from './shell/navigation-command-source';
 
 export const appConfig: ApplicationConfig = {
@@ -29,6 +30,10 @@ export const appConfig: ApplicationConfig = {
     // open signals even when Settings > Sync is never opened.
     provideAppInitializer(() => {
       inject(SyncStatusService);
+    }),
+    // Desktop and Hub web only (inert elsewhere, and while the device-local opt-in is off): shares the current tool or destination with the Hub (PD-108).
+    provideAppInitializer(() => {
+      inject(PresenceService);
     }),
     ...TOOL_COMMAND_SOURCE_PROVIDERS,
     ...NAVIGATION_COMMAND_SOURCE_PROVIDERS,

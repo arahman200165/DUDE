@@ -1,3 +1,4 @@
+import type { PresenceActivity } from '@dude/contracts/hub';
 import { HubAdminError, type HubStatus } from '../../../../core/hub/hub-admin.port';
 import type { StatusGlyphKind } from '../../../../shared/components/status-glyph/status-glyph';
 
@@ -63,6 +64,21 @@ export function hubErrorText(error: unknown, fallback = 'That did not work. Try 
     return `${base}${retryText(error.retryAfterMs)}`;
   }
   return error instanceof Error && error.message !== '' ? error.message : fallback;
+}
+
+const PLATFORM_LABELS: Readonly<Record<string, string>> = { windows: 'Windows', macos: 'macOS', linux: 'Linux', web: 'Web', android: 'Android', ios: 'iOS', unknown: 'Unknown' };
+
+/** The platform column's text: a known platform id as its proper name, anything else as the id the Hub reported. */
+export const platformLabel = (platform: string): string => PLATFORM_LABELS[platform] ?? platform;
+
+const DESTINATION_LABELS: Readonly<Record<string, string>> = {
+  home: 'Home', tools: 'Browse Tools', 'smart-paste': 'Smart Paste', workspace: 'Workspace', history: 'History', 'quick-run': 'Quick Run',
+  projects: 'Projects', insights: 'Insights', pipelines: 'Pipelines', settings: 'Settings',
+};
+
+/** What a device that shares its activity is showing, for the Devices view; `toolName` resolves a tool id through the registry (an unknown id is shown as is). */
+export function activityText(activity: PresenceActivity, toolName: (id: string) => string | undefined): string {
+  return activity.kind === 'tool' ? `Using ${toolName(activity.id) ?? activity.id}` : `Viewing ${DESTINATION_LABELS[activity.id] ?? activity.id}`;
 }
 
 export const shortId = (id: string | null): string => (id === null ? '' : id.length > 8 ? id.slice(0, 8) : id);

@@ -10,6 +10,7 @@ import { PersistenceService } from '../persistence/persistence.service';
 import { RemoteChangesService } from '../sync/remote-changes.service';
 import { HubRealtimeClient } from './hub-realtime.client';
 import { HubWebConnectionService } from './hub-web-connection.service';
+import { HubWebPresence } from './hub-web-presence';
 import { HubWebFeedback } from './hub-web-feedback';
 import { startOfflineRetry } from './hub-web-retry';
 import { HubWebSyncInfo } from './hub-web-sync-info';
@@ -108,6 +109,7 @@ export function startHubWebRuntime(appRef: ApplicationRef, result: HubWebBootRes
   const persistence = injector.get(PersistenceService);
   const remote = injector.get(RemoteChangesService);
   const router = injector.get(Router);
+  const presence = injector.get(HubWebPresence);
 
   result.kv?.setAdopter((namespace, key, value) => persistence.adoptRemote(namespace, key, value));
 
@@ -133,9 +135,12 @@ export function startHubWebRuntime(appRef: ApplicationRef, result: HubWebBootRes
     reload: () => location.reload(),
     onPulling: (pulling) => result.sync.setPulling(pulling),
     onProgress: ({ cursor, head }) => result.sync.notePull(cursor, head),
+    onPresenceChanged: (entry) => presence.notify(entry),
   });
   result.sync.pullNow = () => realtime.pull();
   result.sync.onStop(() => realtime.stop());
+  // An activity the shell asked to share before the link existed goes out with the first welcome of a protocol 3 Hub.
+  result.sync.onStop(presence.bind((activity) => realtime.setActivity(activity)));
   realtime.start();
   return realtime;
 }

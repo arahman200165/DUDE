@@ -52,6 +52,7 @@ const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged'>, { channe
   ownerSignOut: { channel: 'dude:hub:owner:signOut', args: [], invalid: [[1]] },
   listDevices: { channel: 'dude:hub:owner:listDevices', args: [], invalid: [[1]] },
   syncSummary: { channel: 'dude:hub:owner:syncSummary', args: [], invalid: [[1]] },
+  presence: { channel: 'dude:hub:owner:presence', args: [], invalid: [[1]] },
   diagnostics: { channel: 'dude:hub:owner:diagnostics', args: [], invalid: [[1]] },
   agentDiagnostics: { channel: 'dude:hub:agentDiagnostics', args: [], invalid: [[1]] },
   createPairingCode: {

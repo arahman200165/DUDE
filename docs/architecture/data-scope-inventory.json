@@ -15,7 +15,7 @@
     "agent-table": 17,
     "hub-table": 25,
     "mobile-table": 8,
-    "setting-definition": 2,
+    "setting-definition": 3,
     "policy-rule": 778,
     "entity-codec": 10
   },
@@ -2462,6 +2462,20 @@
       "sensitivity": "non-sensitive",
       "classificationBasis": "policy-rule",
       "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
+    },
+    {
+      "source": "apps/web/src/app/core/presence/presence.service.ts",
+      "line": 27,
+      "operation": "inject(PersistenceService).signal('__device__', 'presenceShareActivity', 'local', false)",
+      "namespace": "__device__",
+      "key": "presenceShareActivity",
+      "storage": "PersistenceService",
+      "storageLocation": "Device Store kv (browser localStorage mirror): dude:v1:__device__:presenceShareActivity",
+      "retention": "local",
+      "scope": "local-only",
+      "sensitivity": "non-sensitive",
+      "classificationBasis": "setting-definition",
+      "syncConsent": "not granted"
     },
     {
       "source": "apps/web/src/app/core/project/project.service.ts",

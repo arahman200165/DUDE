@@ -74,11 +74,12 @@
                       }
                     }
                   </td>
-                  <td class="py-1 pr-3 text-text">{{ device.platform }}</td>
+                  <td class="py-1 pr-3 text-text" data-testid="device-platform">{{ platform(device) }}</td>
                   <td class="py-1 pr-3 text-text">{{ device.appVersion }}</td>
                   <td class="py-1 pr-3">
                     @if (device.online) {
                       <span class="inline-flex items-center gap-1 text-success"><app-status-glyph kind="success" />Online</span>
+                      @if (activity(device); as line) { <span class="block text-ui-sm text-text-muted" [attr.data-testid]="'device-activity-' + device.deviceId">{{ line }}</span> }
                     } @else {
                       <span class="inline-flex items-center gap-1 text-text-muted"><app-status-glyph kind="idle" />Offline</span>
                     }

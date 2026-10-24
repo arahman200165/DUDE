@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
-import { HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION, REALTIME_CLOSE_CODES } from '@dude/contracts/hub';
+import { HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION, HUB_REALTIME_DEPTH_PROTOCOL, REALTIME_CLOSE_CODES, type PresenceEntry } from '@dude/contracts/hub';
 import type { AppliedChangeShape } from '@dude/sync';
 import { BACKOFF_MAX_MS, BACKOFF_MIN_MS, HubRealtimeClient, POLL_MS, STATE_REPORT_MS, type HubSocketLike } from './hub-realtime.client';
 import { ALL_ON, apiError, makeRig, type Rig } from './testing/fake-hub';
@@ -14,7 +14,7 @@ class FakeSocket implements HubSocketLike {
   send(data: string): void { this.sent.push(JSON.parse(data)); }
   close(): void { this.closed = true; }
   open(): void { this.onopen?.(); }
-  welcome(): void { this.onmessage?.({ data: JSON.stringify({ type: 'welcome', protocolVersion: 1, sessionKind: 'owner-cookie', deviceId: 'me', heartbeatIntervalMs: 25_000, tls: {} }) }); }
+  welcome(protocolVersion = 1): void { this.onmessage?.({ data: JSON.stringify({ type: 'welcome', protocolVersion, sessionKind: 'owner-cookie', deviceId: 'me', heartbeatIntervalMs: 25_000, tls: {} }) }); }
   event(event: string, data: Record<string, unknown> = {}): void { this.onmessage?.({ data: JSON.stringify({ type: 'event', event, data }) }); }
   drop(code = 1006): void { this.onclose?.({ code }); }
 }
@@ -39,11 +39,11 @@ describe('HubRealtimeClient', () => {
     });
     return client;
   };
-  const connect = async (): Promise<FakeSocket> => {
+  const connect = async (protocolVersion = 1): Promise<FakeSocket> => {
     client.start();
     const socket = sockets.at(-1)!;
     socket.open();
-    socket.welcome();
+    socket.welcome(protocolVersion);
     await vi.advanceTimersByTimeAsync(0);
     return socket;
   };
@@ -310,5 +310,70 @@ describe('HubRealtimeClient', () => {
     socket.drop(1006);
     await vi.advanceTimersByTimeAsync(BACKOFF_MAX_MS * 2 + POLL_MS * 2);
     expect(sockets).toHaveLength(opened);
+  });
+
+  describe('presence (PD-108)', () => {
+    const tool = { kind: 'tool', id: 'base64' } as const;
+    const activitySent = (socket: FakeSocket): unknown[] => socket.sent.filter((m) => (m as { type: string }).type === 'activity');
+
+    it('sends activity only after a protocol 3 welcome, and never to an older Hub', async () => {
+      make();
+      client.setActivity(tool);
+      const old = await connect(HUB_REALTIME_DEPTH_PROTOCOL - 1);
+      expect(activitySent(old)).toEqual([]);
+      client.setActivity({ kind: 'destination', id: 'settings' });
+      client.setActivity(null);
+      expect(activitySent(old)).toEqual([]);
+    });
+
+    it('holds an activity asked for before the socket is up and sends it after the welcome', async () => {
+      make();
+      client.setActivity(tool);
+      client.start();
+      const socket = sockets.at(-1)!;
+      socket.open();
+      expect(activitySent(socket)).toEqual([]);
+      socket.welcome(HUB_REALTIME_DEPTH_PROTOCOL);
+      expect(activitySent(socket)).toEqual([{ type: 'activity', activity: tool }]);
+    });
+
+    it('sends every change while live, including clearing it with null', async () => {
+      make();
+      const socket = await connect(HUB_REALTIME_DEPTH_PROTOCOL);
+      expect(activitySent(socket)).toEqual([]);
+      client.setActivity(tool);
+      client.setActivity(null);
+      expect(activitySent(socket)).toEqual([{ type: 'activity', activity: tool }, { type: 'activity', activity: null }]);
+    });
+
+    it('sends the latest activity again after a reconnect welcome', async () => {
+      make();
+      const first = await connect(HUB_REALTIME_DEPTH_PROTOCOL);
+      client.setActivity(tool);
+      first.drop();
+      client.setActivity({ kind: 'destination', id: 'history' });
+      expect(activitySent(first)).toEqual([{ type: 'activity', activity: tool }]);
+      await vi.advanceTimersByTimeAsync(BACKOFF_MIN_MS);
+      const second = sockets.at(-1)!;
+      expect(second).not.toBe(first);
+      second.open();
+      expect(activitySent(second)).toEqual([]);
+      second.welcome(HUB_REALTIME_DEPTH_PROTOCOL);
+      expect(activitySent(second)).toEqual([{ type: 'activity', activity: { kind: 'destination', id: 'history' } }]);
+    });
+
+    it('hands presence-changed events to the listener and ignores malformed ones', async () => {
+      const seen: PresenceEntry[] = [];
+      client = new HubRealtimeClient({
+        engine: rig.engine, access: ALL_ON, cursor: 0, apply: () => undefined, snapshot: async () => ({ records: [], cursor: 0 }),
+        openSocket: () => { const s = new FakeSocket(); sockets.push(s); return s; }, socketUrl: () => 'wss://hub.test/api/v1/realtime',
+        goToSignIn: signIn, reload, isVisible: () => visible, onPresenceChanged: (entry) => seen.push(entry),
+      });
+      const socket = await connect(HUB_REALTIME_DEPTH_PROTOCOL);
+      socket.event('presence-changed', { deviceId: 'd1', online: true, activity: { kind: 'tool', id: 'base64' } });
+      socket.event('presence-changed', { deviceId: 5, online: true });
+      socket.event('presence-changed', {});
+      expect(seen).toEqual([{ deviceId: 'd1', online: true, activity: { kind: 'tool', id: 'base64' } }]);
+    });
   });
 });

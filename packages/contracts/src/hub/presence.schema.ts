@@ -1,11 +1,10 @@
 import Type, { type Static } from 'typebox';
+import { PRESENCE_DESTINATIONS, type PresenceDestination } from './presence-activity.js';
+
+export { PRESENCE_DESTINATIONS, type PresenceDestination };
 
 /** Owner read of who is online right now (PD-108). Credential: owner cookie or bearer session. */
 export const HUB_PRESENCE_PATH = '/api/v1/presence';
-
-/** Shell destinations a device may report as its activity; everything else is a registry tool id (validated by the Hub). */
-export const PRESENCE_DESTINATIONS = ['home', 'tools', 'smart-paste', 'workspace', 'history', 'quick-run', 'projects', 'insights', 'pipelines', 'settings'] as const;
-export type PresenceDestination = (typeof PRESENCE_DESTINATIONS)[number];
 
 /**
  * What a device is showing, shared only when that device opted in (`__device__:presenceShareActivity`). Held in Hub

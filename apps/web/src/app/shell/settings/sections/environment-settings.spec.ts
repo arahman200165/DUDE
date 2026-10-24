@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { HubWebSignOut } from '../../../core/hub-web/hub-web-sign-out.service';
 import { HubAdminError } from '../../../core/hub/hub-admin.port';
+import { PRESENCE_PORT } from '../../../core/presence/presence.port';
 import { FAKE_HUB_DEVICE_ID, FAKE_HUB_PAIRING_STRING, FAKE_SYNC_SUMMARY } from '../../../core/platform/testing/fake-hub';
 import { EnvironmentSettings } from './environment-settings';
 import { ENROLLED_STATUS, STANDALONE_STATUS, buttonWithText, configureHubTest, createTestPort, settle, typeInto } from './hub/testing/hub-test-port';
@@ -398,5 +399,41 @@ describe('EnvironmentSettings (Hub web)', () => {
     await settle(fixture);
     expect(completeSignOut).not.toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith('/hub/sign-in');
+  });
+});
+
+describe('EnvironmentSettings presence sharing (PD-108)', () => {
+  const toggle = (el: HTMLElement): HTMLInputElement | null => el.querySelector('[data-testid="presence-share-toggle"]');
+
+  beforeEach(() => localStorage.clear());
+
+  it('offers the opt-in on an enrolled desktop, off by default, and stores the choice device-locally', async () => {
+    const { port } = createTestPort({ status: async () => ENROLLED_STATUS });
+    TestBed.overrideProvider(PRESENCE_PORT, { useValue: { setActivity: () => undefined } });
+    const { fixture, el } = await mount(port);
+    const input = toggle(el);
+    expect(input).not.toBeNull();
+    expect(input!.checked).toBe(false);
+    expect(text(el, 'presence-share-hint')).toContain('never synced or audited');
+    input!.click();
+    await settle(fixture);
+    expect(toggle(el)!.checked).toBe(true);
+    expect(localStorage.getItem('dude:v1:__device__:presenceShareActivity')).toBe('true');
+  });
+
+  it('is not offered to a standalone desktop or where no presence port exists', async () => {
+    const standalone = createTestPort({ status: async () => STANDALONE_STATUS });
+    TestBed.overrideProvider(PRESENCE_PORT, { useValue: { setActivity: () => undefined } });
+    expect(toggle((await mount(standalone.port)).el)).toBeNull();
+    TestBed.resetTestingModule();
+    const enrolled = createTestPort({ status: async () => ENROLLED_STATUS });
+    TestBed.overrideProvider(PRESENCE_PORT, { useValue: null });
+    expect(toggle((await mount(enrolled.port)).el)).toBeNull();
+  });
+
+  it('is offered on the Hub-served web build', async () => {
+    const { port } = createTestPort({ status: async () => ({ ...ENROLLED_STATUS, hubVersion: '0.0.44' }) });
+    const { el } = await mount(port, 'hub-web');
+    expect(toggle(el)).not.toBeNull();
   });
 });

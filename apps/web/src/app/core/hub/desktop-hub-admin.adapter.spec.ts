@@ -18,6 +18,7 @@ describe('desktop Hub admin adapter', () => {
     await expect(admin.ownerSignIn('correct horse battery')).resolves.toMatchObject({ signedIn: true });
     expect(await admin.listDevices()).toHaveLength(1);
     expect(await admin.syncSummary()).toMatchObject({ headRevision: 42, retentionDays: 90 });
+    expect(await admin.presence()).toEqual({ entries: [expect.objectContaining({ online: expect.any(Boolean), activity: null })] });
     expect(await admin.status()).toMatchObject({ enrollmentState: 'standalone' });
     await expect(admin.enroll(FAKE_HUB_PAIRING_STRING)).resolves.toMatchObject({ hubInstanceId: 'fake-hub' });
     expect(await admin.status()).toMatchObject({ enrollmentState: 'enrolled', hubUrl: 'https://hub.local:47600' });

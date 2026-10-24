@@ -5,8 +5,9 @@ import { Value } from 'typebox/value';
 import { HubApiError, HubProtocolError, createHubClient } from '@dude/api-client';
 import type { HubClient, HubTransport } from '@dude/api-client';
 import type { AgentHubAuthorityReason, AgentHubState, AgentHubStatus } from '@dude/contracts';
+import type { PresenceActivity } from '@dude/contracts/hub';
 import {
-  DEVICE_TOKEN_TTL_MS, HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION, HUB_REALTIME_PATH, REALTIME_CLOSE_CODES, REALTIME_HEARTBEAT_INTERVAL_MS,
+  DEVICE_TOKEN_TTL_MS, HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION, HUB_REALTIME_DEPTH_PROTOCOL, HUB_REALTIME_PATH, REALTIME_CLOSE_CODES, REALTIME_HEARTBEAT_INTERVAL_MS,
   RealtimeServerMessage, deviceAuthMessage, ownerRecoveryMessage,
 } from '@dude/contracts/hub';
 import type { Db } from '@dude/sqlite-store';
@@ -71,6 +72,12 @@ export interface HubConnectionManager {
   hubProtocol(): number | null;
   /** The Hub announced new canonical changes (`changes-available`, device sockets only). */
   onChangesAvailable(listener: (revision: number) => void): () => void;
+  /**
+   * What this device is showing (PD-108), or null to clear it. The latest value is remembered and sent on the realtime socket after every
+   * welcome of a Hub that speaks protocol 3 or later (an older Hub closes the socket on an unknown message, so it is never sent one). A dropped
+   * socket sends nothing (the Hub clears a closed socket's presence itself); only going standalone forgets the value.
+   */
+  setActivity(activity: PresenceActivity | null): void;
   /** Pinned, credential-free call (hello, tls). */
   call<T>(fn: (api: HubClient) => Promise<T>): Promise<T>;
   /** Call with a valid device token; refreshes once on 401/403 and handles revocation. */
@@ -118,6 +125,10 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
   const listeners = new Set<(status: AgentHubStatus) => void>();
   const changeListeners = new Set<(revision: number) => void>();
   let welcomeProtocol: number | null = null;
+  /** The latest activity the renderer asked to share (null: none). Survives reconnects; the Hub holds it only for the live socket. */
+  let activity: PresenceActivity | null = null;
+  /** Sends a message on the live socket; set only after a welcome of a protocol-3 Hub, so activity is never sent to an older one. */
+  let sendActivity: ((message: unknown) => void) | null = null;
 
   let state: AgentHubState = 'standalone';
   let lastError: string | null = null;
@@ -317,6 +328,7 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
 
   function clearSocket(): void {
     if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+    sendActivity = null;
     const current = socket;
     socket = null;
     if (current) {
@@ -344,6 +356,7 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
 
   function resetToStandalone(): void {
     stopLoop();
+    activity = null;
     owner.clear();
     setState('standalone', null);
   }
@@ -454,6 +467,10 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
           send({ type: 'heartbeat' });
         }, interval);
         heartbeatTimer.unref();
+        if (parsed.protocolVersion >= HUB_REALTIME_DEPTH_PROTOCOL) {
+          sendActivity = send;
+          if (activity !== null) send({ type: 'activity', activity });
+        }
         if (parsed.tls.nextSpkiSha256 !== null) queueNextPin(parsed.tls.nextSpkiSha256, send);
         // Reverse-proxy leaf pins the Hub advertises (active plus staged next): accepted for later connections, and acknowledged
         // so the operator can activate a staged one (the Hub ignores acks for pins that are not staged).
@@ -554,6 +571,10 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
     onChange: (listener) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
     hubProtocol: () => welcomeProtocol ?? getEnrollment(deps.db)?.protocolVersion ?? null,
     onChangesAvailable: (listener) => { changeListeners.add(listener); return () => { changeListeners.delete(listener); }; },
+    setActivity(next) {
+      activity = next;
+      sendActivity?.({ type: 'activity', activity: next });
+    },
     call,
     deviceCall,
     start() {

@@ -1,6 +1,6 @@
 import type {
   AuditListResponse, BackupStatusResponse, SecurityAlertsResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary, HubDiagnosticsReport, ReachabilityEchoResponse, TlsCertificatesResponse,
-  OwnerResetResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SignInResponse,
+  OwnerResetResponse, PairingCodeResponse, PresenceEntry, PresenceResponse, RecoveryCodesResponse, SessionListResponse, SignInResponse,
 } from '@dude/contracts/hub';
 import type { AgentDiagnostics } from '@dude/contracts';
 import type {
@@ -46,6 +46,8 @@ export interface HubAdminPort {
   ownerSignOut(): Promise<OkResponse>;
   listDevices(): Promise<DeviceListResponse>;
   syncSummary(): Promise<SyncSummary>;
+  /** Owner only: who is online and what each device that opted in is showing (PD-108). Held in Hub memory only, so a device that shares nothing has `activity: null`. */
+  presence(): Promise<PresenceResponse>;
   /** Owner only: the Hub's endpoint diagnostics report (exposure, certificate, readiness checks). View-only. */
   diagnostics(): Promise<HubDiagnosticsReport>;
   /**
@@ -76,6 +78,8 @@ export interface HubAdminPort {
 
   /** Desktop only: pushed whenever the Device Agent's Hub connection state changes. Returns the unsubscribe function. */
   onStatusChanged?(callback: (status: DesktopHubStatus) => void): () => void;
+  /** Hub-served web build only: the Hub's live `presence-changed` events, pushed over this page's realtime link. Returns the unsubscribe function. */
+  onPresenceChanged?(callback: (entry: PresenceEntry) => void): () => void;
   /** Desktop only: device-assisted owner recovery from a recovery-trusted desktop, after Windows confirms the user. */
   recoverOwner?(newPassword: string): Promise<{ readonly ok: true }>;
   /** Desktop only: the Hub on this PC (installed, running, set up, version, bundled update available). */

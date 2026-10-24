@@ -1,4 +1,4 @@
-import type { TlsCertificatesResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, PairingCodeResponse, SessionListResponse, AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, RecoveryCodesResponse, SyncCategory, SyncSummary, HubDiagnosticsReport, BackupStatusResponse } from '../hub/index.js';
+import type { TlsCertificatesResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, PairingCodeResponse, SessionListResponse, AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, RecoveryCodesResponse, SyncCategory, SyncSummary, HubDiagnosticsReport, BackupStatusResponse, PresenceActivity, PresenceResponse } from '../hub/index.js';
 import type { EntityCommit, EntityCommitResult, KvMutation, ResetKind, StoreHealth, DeviceStoreBoot } from './device-store.model.js';
 
 /** Row shapes exchanged with the state service; payloads are opaque JSON. */
@@ -242,6 +242,8 @@ export interface AgentMethodMap {
   'hub.owner.status': { params: Record<string, never>; result: AgentHubOwnerStatus };
   'hub.owner.listDevices': { params: Record<string, never>; result: DeviceListResponse };
   'hub.owner.syncSummary': { params: Record<string, never>; result: SyncSummary };
+  /** Owner read of who is online and what each opted-in device is showing (PD-108). Held in Hub memory only. */
+  'hub.owner.presence': { params: Record<string, never>; result: PresenceResponse };
   'hub.owner.diagnostics': { params: Record<string, never>; result: HubDiagnosticsReport };
   /** `reattachDeviceId` binds the code to a restored device row that needs re-pairing (PD-072); step-up and error mapping are the route's. */
   'hub.owner.createPairingCode': { params: { host?: string; reattachDeviceId?: string }; result: PairingCodeResponse };
@@ -266,6 +268,12 @@ export interface AgentMethodMap {
    * the new password is a parameter only. Errors: `not-trusted`, `owner-recovery-failed`, `hub-*`.
    */
   'hub.recoverOwner': { params: { newPassword: string }; result: { ok: true } };
+  /**
+   * What this device is showing (a tool or shell destination), or null to clear it. The renderer sends it only while `__device__:presenceShareActivity` is on.
+   * The agent remembers the latest value and sends it on its realtime socket after every welcome of a Hub speaking protocol 3 or later; an older Hub is never sent it.
+   * Not enrolled: a no-op. Held in Hub memory only and never audited (PD-108).
+   */
+  'presence.setActivity': { params: { activity: PresenceActivity | null }; result: { ok: true } };
   'sync.status': { params: Record<string, never>; result: AgentSyncStatus };
   /** Enabling a category re-fetches it from the Hub (a snapshot rebase). */
   'sync.setCategories': { params: { categories: SyncCategoryFlags }; result: AgentSyncStatus };
@@ -336,7 +344,7 @@ export const AGENT_METHODS = [
   'secrets.status', 'secrets.list', 'secrets.set', 'secrets.remove', 'secrets.getCiphertext',
   'device.rename', 'reset.preview', 'reset.apply', 'hub.enrollment',
   'hub.status', 'hub.diagnostics', 'hub.probeLocal', 'hub.tlsCertificates', 'hub.reachabilityEcho', 'hub.enroll', 'hub.reconnect', 'hub.bootstrapLocal', 'hub.unenroll', 'hub.owner.signIn', 'hub.owner.signOut', 'hub.owner.status',
-  'hub.owner.listDevices', 'hub.owner.syncSummary', 'hub.owner.diagnostics', 'hub.owner.createPairingCode', 'hub.owner.backupStatus', 'hub.owner.renameDevice', 'hub.owner.revokeDevicePreview', 'hub.owner.revokeDevice',
+  'hub.owner.listDevices', 'hub.owner.syncSummary', 'hub.owner.presence', 'presence.setActivity', 'hub.owner.diagnostics', 'hub.owner.createPairingCode', 'hub.owner.backupStatus', 'hub.owner.renameDevice', 'hub.owner.revokeDevicePreview', 'hub.owner.revokeDevice',
   'hub.owner.setRecoveryTrust', 'hub.owner.listSessions', 'hub.owner.revokeSession', 'hub.owner.revokeAllPreview', 'hub.owner.revokeAll',
   'hub.owner.listAudit', 'hub.owner.listSecurityAlerts', 'hub.owner.markSecurityAlertsSeen', 'hub.owner.recoveryCodesPreview', 'hub.owner.regenerateRecoveryCodes', 'hub.owner.changePassword', 'hub.recoverOwner',
   'sync.status', 'sync.setCategories', 'sync.setPaused', 'sync.now', 'sync.conflicts.list', 'sync.conflicts.resolve',

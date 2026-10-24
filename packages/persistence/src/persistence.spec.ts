@@ -106,6 +106,8 @@ describe('settings definitions and secrets', () => {
     expect(findSettingDefinition('settings', 'appearance')?.journal).toBe(true);
     expect(findSettingDefinition('__device__', 'hubAuthority')).toMatchObject({ scope: 'local-only', journal: false, storage: 'kv' });
     expect(resolveKvScope('__device__', 'hubAuthority', 'local')).toBe('local-only');
+    expect(findSettingDefinition('__device__', 'presenceShareActivity')).toMatchObject({ scope: 'local-only', journal: false, storage: 'kv', defaultValue: false });
+    expect(resolveKvScope('__device__', 'presenceShareActivity', 'local')).toBe('local-only');
     expect(findSettingDefinition('nope', 'x')).toBeUndefined();
   });
   it('masks hints', () => {

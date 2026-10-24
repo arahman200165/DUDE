@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import type { PresenceEntry } from '@dude/contracts/hub';
 import { HubAdminError, type HubAdminPort } from '../../../core/hub/hub-admin.port';
 import { DevicesSettings } from './devices-settings';
 import { buttonWithText, configureHubTest, createTestPort, device, settle, typeInto } from './hub/testing/hub-test-port';
@@ -30,6 +31,12 @@ async function mount(overrides: Partial<HubAdminPort> = {}, host: 'desktop' | 'h
   return { ...test, fixture, el };
 }
 const row = (el: HTMLElement, index: number): HTMLElement => el.querySelectorAll('[data-testid="device-table"] tbody tr')[index] as HTMLElement;
+
+const PHONE_ID = '0190aaaa-0000-7000-8000-000000000006';
+const PRESENCE_LIST = [
+  ...LIST.slice(0, 2),
+  device(PHONE_ID, 'Pixel', { platform: 'android', online: true }),
+];
 
 describe('DevicesSettings', () => {
   it('is behind the owner gate and loads nothing until signed in', async () => {
@@ -319,6 +326,55 @@ describe('DevicesSettings', () => {
       expect(text(el, 'action-error')).toContain('incorrect');
       expect(el.querySelector('[data-testid="trust-prompt"]')).not.toBeNull();
       expect((el.querySelector('#trust-password') as HTMLInputElement).value).toBe('');
+    });
+  });
+
+  describe('presence (PD-108)', () => {
+    const entries: PresenceEntry[] = [
+      { deviceId: LIST[0]!.deviceId, online: true, activity: { kind: 'tool', id: 'base64' } },
+      { deviceId: PHONE_ID, online: true, activity: { kind: 'destination', id: 'settings' } },
+      { deviceId: LIST[1]!.deviceId, online: false, activity: { kind: 'tool', id: 'base64' } },
+    ];
+
+    it('labels an Android device as Android', async () => {
+      const { el } = await mount({ listDevices: async () => PRESENCE_LIST });
+      expect(row(el, 2).querySelector('[data-testid="device-platform"]')?.textContent?.trim()).toBe('Android');
+      expect(row(el, 0).querySelector('[data-testid="device-platform"]')?.textContent?.trim()).toBe('Windows');
+    });
+
+    it('shows what an online device is using, by registry name, and a destination label for shell pages', async () => {
+      const { el } = await mount({ listDevices: async () => PRESENCE_LIST, presence: async () => ({ entries }) });
+      expect(text(el, 'device-activity-' + LIST[0]!.deviceId)).toBe('Using Base64 Encoder / Decoder');
+      expect(text(el, 'device-activity-' + PHONE_ID)).toBe('Viewing Settings');
+    });
+
+    it('shows no activity line for an offline device even if the Hub still held one', async () => {
+      const { el } = await mount({ listDevices: async () => PRESENCE_LIST, presence: async () => ({ entries }) });
+      expect(el.querySelector('[data-testid="device-activity-' + LIST[1]!.deviceId + '"]')).toBeNull();
+    });
+
+    it('keeps the list when presence cannot be loaded', async () => {
+      const { el } = await mount({ presence: async () => { throw new HubAdminError('not-found', 'No such route.'); } });
+      expect(el.querySelectorAll('[data-testid="device-table"] tbody tr').length).toBe(5);
+      expect(el.querySelector('[data-testid^="device-activity-"]')).toBeNull();
+      expect(el.querySelector('[data-testid="load-error"]')).toBeNull();
+    });
+
+    it('applies a live presence change on the Hub web build without a refresh', async () => {
+      let push: ((entry: PresenceEntry) => void) | undefined;
+      const { fixture, el } = await mount({
+        listDevices: async () => PRESENCE_LIST,
+        presence: async () => ({ entries: [] }),
+        onPresenceChanged: (cb) => { push = cb; return () => undefined; },
+      }, 'hub-web');
+      expect(el.querySelector('[data-testid^="device-activity-"]')).toBeNull();
+      push!(entries[1]!);
+      await settle(fixture);
+      expect(text(el, 'device-activity-' + PHONE_ID)).toBe('Viewing Settings');
+      push!({ deviceId: PHONE_ID, online: false, activity: null });
+      await settle(fixture);
+      expect(el.querySelector('[data-testid="device-activity-' + PHONE_ID + '"]')).toBeNull();
+      expect(row(el, 2).textContent).toContain('Offline');
     });
   });
 });

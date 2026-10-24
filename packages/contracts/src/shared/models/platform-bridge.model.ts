@@ -1,4 +1,4 @@
-import type { AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, OkResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SyncSummary, HubDiagnosticsReport, BackupStatusResponse } from "../../hub/index.js";
+import type { AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, OkResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SyncSummary, HubDiagnosticsReport, BackupStatusResponse, PresenceActivity, PresenceResponse } from "../../hub/index.js";
 import type { LlmChatRequest, LlmChatResult } from "./llm-chat.model.js";
 import type { SnapshotDiff, SnapshotHeader } from "../../fs/snapshot-diff.js";
 import type { ChangeEvent, FolderWatchSettings, FolderWatchState, TimelineQuery, WatchedFolder } from "../../fs/watch-types.js";
@@ -140,6 +140,8 @@ export interface DesktopHubBridge {
   ownerSignOut(): Promise<DesktopHubResult<OkResponse>>;
   listDevices(): Promise<DesktopHubResult<DeviceListResponse>>;
   syncSummary(): Promise<DesktopHubResult<SyncSummary>>;
+  /** Owner session required: who is online and what each opted-in device is showing (PD-108; held in Hub memory only). */
+  presence(): Promise<DesktopHubResult<PresenceResponse>>;
   /** Owner session required (`owner-session-required`): the Hub's endpoint diagnostics report. View-only. */
   diagnostics(): Promise<DesktopHubResult<HubDiagnosticsReport>>;
   /** This device's own connection report (no owner session needed): state, pins, latency, clock skew, sync counts. */
@@ -221,11 +223,22 @@ export interface DesktopSyncBridge {
   onApplied(callback: (changes: readonly AgentAppliedChange[]) => void): () => void;
 }
 
+/**
+ * Presence (PD-108): tells the Device Agent what this window is showing so it can share it with the Hub. Main accepts only a
+ * valid `PresenceActivity` or null (clear), only from this window, and the renderer calls it only while
+ * `__device__:presenceShareActivity` is on. Codes: `bad-request`, `forbidden`, `unavailable`.
+ */
+export interface DesktopPresenceBridge {
+  setActivity(activity: PresenceActivity | null): Promise<DesktopHubResult<{ readonly ok: true }>>;
+}
+
 export interface PlatformBridge {
   /** Absent until the Electron main/preload implementation of Hub administration ships. */
   readonly hub?: DesktopHubBridge;
   /** Absent until the Electron main/preload implementation of sync ships. */
   readonly sync?: DesktopSyncBridge;
+  /** Absent on builds that predate presence. */
+  readonly presence?: DesktopPresenceBridge;
   readonly preferences: {
     get(): Promise<DesktopPreferences>;
     set(patch: Partial<DesktopPreferences>): Promise<{ readonly ok: true; readonly value: DesktopPreferences } | { readonly ok: false; readonly error: string }>;

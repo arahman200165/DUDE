@@ -153,6 +153,7 @@ export function fakeHub(options: { password?: string; localHub?: FakeLocalHubSce
     listDevices: track('listDevices', async () => needOwner() ?? ok([...devices.values()])),
     syncSummary: track('syncSummary', async () =>
       needOwner() ?? ok(FAKE_SYNC_SUMMARY(FAKE_HUB_DEVICE_ID))),
+    presence: track('presence', async () => needOwner() ?? ok({ entries: [...devices.values()].map((d) => ({ deviceId: d.deviceId, online: d.online, activity: null })) })),
     diagnostics: track('diagnostics', async () => needOwner() ?? ok(FAKE_HUB_DIAGNOSTICS)),
     reachabilityEcho: track('reachabilityEcho', async (_publicUrl: string) => ok({ ...FAKE_REACHABILITY_VERIFIED, rttMs: 42 })),
     agentDiagnostics: track('agentDiagnostics', async () => ok(FAKE_AGENT_DIAGNOSTICS)),

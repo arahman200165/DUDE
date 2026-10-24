@@ -1,6 +1,6 @@
 import type {
   AuditListResponse, BackupStatusResponse, SecurityAlertsResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary, HubDiagnosticsReport, ReachabilityEchoResponse, TlsCertificatesResponse,
-  OwnerResetResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SignInResponse,
+  OwnerResetResponse, PairingCodeResponse, PresenceEntry, PresenceResponse, RecoveryCodesResponse, SessionListResponse, SignInResponse,
 } from '@dude/contracts/hub';
 import type { HubClient } from '@dude/api-client';
 import { HUB_ADMIN_UNAVAILABLE, HubAdminError, HubAdminPort, HubEnrollment, HubOwnerStatus, HubProbe, HubStatus } from './hub-admin.port';
@@ -16,6 +16,8 @@ export interface HubWebAdminOptions {
   readonly origin?: () => string | null;
   /** Asks the owner for the password when a guarded call needs step-up; resolves null when cancelled. */
   readonly requestStepUp?: (message?: string) => Promise<string | null>;
+  /** The page's realtime link publishes the Hub's `presence-changed` events here; returns the unsubscribe function. */
+  readonly onPresenceChanged?: (callback: (entry: PresenceEntry) => void) => () => void;
 }
 
 const unavailable = (what: string): Promise<never> => Promise.reject(new HubAdminError(HUB_ADMIN_UNAVAILABLE, `${what} is only available in the desktop app.`));
@@ -123,6 +125,8 @@ export function createHubWebAdmin(options: HubWebAdminOptions): HubAdminPort {
     ownerSignOut: signOut,
     listDevices: (): Promise<DeviceListResponse> => viaClient((c) => c.listDevices(undefined)),
     syncSummary: (): Promise<SyncSummary> => viaClient((c) => c.syncSummary(undefined)),
+    presence: (): Promise<PresenceResponse> => viaClient((c) => c.presence(undefined)),
+    ...(options.onPresenceChanged ? { onPresenceChanged: options.onPresenceChanged } : {}),
     diagnostics: (): Promise<HubDiagnosticsReport> => viaClient((c) => c.diagnostics(undefined)),
     reachabilityEcho: (): Promise<ReachabilityEchoResponse> => viaClient((c) => c.reachabilityEcho(undefined)),
     tlsCertificates: (): Promise<TlsCertificatesResponse> => viaClient((c) => c.tlsCertificates()),

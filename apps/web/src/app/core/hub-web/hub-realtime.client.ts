@@ -1,5 +1,5 @@
-import type { SyncRecord } from '@dude/contracts/hub';
-import { HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION, HUB_REALTIME_PATH, REALTIME_CLOSE_CODES } from '@dude/contracts/hub';
+import type { PresenceActivity, PresenceEntry, SyncRecord } from '@dude/contracts/hub';
+import { HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION, HUB_REALTIME_DEPTH_PROTOCOL, HUB_REALTIME_PATH, REALTIME_CLOSE_CODES } from '@dude/contracts/hub';
 import { RecordBook, categoryOf, toAppliedChange, type AppliedChangeShape } from '@dude/sync';
 import type { HubWebEngine } from './hub-web-engine';
 import { classifyHubError, type HubWebAccess } from './hub-web.types';
@@ -35,6 +35,8 @@ export interface HubRealtimeDeps {
   readonly onPulling?: (pulling: boolean) => void;
   /** A pull completed: the browser's cursor and the Hub head it saw (feeds the Sync status). */
   readonly onProgress?: (progress: { cursor: number; head: number | null }) => void;
+  /** The Hub reported a device's presence (a `presence-changed` event; owner sockets on a protocol 3 hello only). */
+  readonly onPresenceChanged?: (entry: PresenceEntry) => void;
 }
 
 export const BACKOFF_MIN_MS = 1000;
@@ -60,6 +62,10 @@ export class HubRealtimeClient {
   private failures = 0;
   /** True between a `welcome` and the socket closing: the live link is up. */
   private welcomed = false;
+  /** True while the live socket's welcome came from a Hub that speaks protocol 3: only then may `activity` be sent (an older Hub closes the socket on it). */
+  private activityAllowed = false;
+  /** The latest activity asked for (PD-108); sent after every qualifying welcome, so a reconnect restores it. */
+  private activity: PresenceActivity | null = null;
   private pulling = false;
   private pullAgain = false;
   private stopped = false;
@@ -128,6 +134,7 @@ export class HubRealtimeClient {
   private closeSocket(): void {
     const socket = this.socket;
     this.socket = null;
+    this.activityAllowed = false;
     if (this.heartbeat !== null) clearInterval(this.heartbeat);
     this.heartbeat = null;
     if (socket) {
@@ -141,7 +148,7 @@ export class HubRealtimeClient {
   }
 
   private onMessage(socket: HubSocketLike, data: unknown): void {
-    let message: { type?: string; event?: string; data?: Record<string, unknown>; heartbeatIntervalMs?: number; code?: string };
+    let message: { type?: string; event?: string; data?: Record<string, unknown>; heartbeatIntervalMs?: number; code?: string; protocolVersion?: number };
     try {
       message = JSON.parse(String(data));
     } catch {
@@ -149,6 +156,8 @@ export class HubRealtimeClient {
     }
     if (message.type === 'welcome') {
       this.welcomed = true;
+      this.activityAllowed = typeof message.protocolVersion === 'number' && message.protocolVersion >= HUB_REALTIME_DEPTH_PROTOCOL;
+      if (this.activityAllowed && this.activity !== null) this.sendActivity(socket);
       this.backoff = BACKOFF_MIN_MS;
       this.failures = 0;
       this.stopPolling();
@@ -181,6 +190,11 @@ export class HubRealtimeClient {
       case 'web-access-changed':
         void this.checkAccess();
         return;
+      case 'presence-changed': {
+        const { deviceId, online } = message.data ?? {};
+        if (typeof deviceId === 'string' && typeof online === 'boolean') this.deps.onPresenceChanged?.(message.data as unknown as PresenceEntry);
+        return;
+      }
       case 'session-revoked':
       case 'owner-recovered':
         this.expire();
@@ -192,6 +206,7 @@ export class HubRealtimeClient {
 
   private onClose(code: number): void {
     this.welcomed = false;
+    this.activityAllowed = false;
     if (this.heartbeat !== null) clearInterval(this.heartbeat);
     this.heartbeat = null;
     if (code === REALTIME_CLOSE_CODES.unauthorized || code === REALTIME_CLOSE_CODES.revoked) {
@@ -259,6 +274,25 @@ export class HubRealtimeClient {
     if (this.stopped) return;
     this.deps.engine.connection.set('transferred');
     this.stop();
+  }
+
+  // --- presence -------------------------------------------------------------------------------------------------
+
+  /**
+   * Shares what this page is showing (null clears it). The latest value is kept and sent only on a socket whose welcome came from a Hub
+   * of protocol 3 or later, now if the link is up and again after every reconnect's welcome; before that, or to an older Hub, nothing is sent.
+   */
+  setActivity(activity: PresenceActivity | null): void {
+    this.activity = activity;
+    if (this.activityAllowed && this.socket !== null) this.sendActivity(this.socket);
+  }
+
+  private sendActivity(socket: HubSocketLike): void {
+    try {
+      socket.send(JSON.stringify({ type: 'activity', activity: this.activity }));
+    } catch {
+      // the close handler takes over; the next welcome sends it again
+    }
   }
 
   // --- pulling --------------------------------------------------------------------------------------------------

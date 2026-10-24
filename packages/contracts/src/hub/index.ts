@@ -7,6 +7,8 @@ export * from './bootstrap.schema.js';
 export * from './auth.schema.js';
 export * from './devices.schema.js';
 export * from './presence.schema.js';
+export { activityForUrl, sameActivity } from './presence-activity.js';
+export type { PresenceActivityValue } from './presence-activity.js';
 export * from './realtime.schema.js';
 export * from './tls-audit.schema.js';
 export * from './sync.schema.js';

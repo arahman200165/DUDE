@@ -1,5 +1,6 @@
 import { isAgentMethod } from '@dude/contracts';
-import { SYNC_WIRE_CATEGORY_IDS } from '@dude/contracts/hub';
+import { PresenceActivity, SYNC_WIRE_CATEGORY_IDS } from '@dude/contracts/hub';
+import { Value } from 'typebox/value';
 import type { SyncCategory } from '@dude/contracts/hub';
 import type {
   AgentJournalEntry, AgentMethod, FirstSyncChoice, AgentMethodMap, AgentResponse, AgentSecretStatus, DeviceStoreBoot, StoreHealth,
@@ -356,6 +357,12 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
     },
     'sync.standalone.preview': () => syncGuard(() => syncRuntime().standalonePreview()),
     'sync.standalone.apply': (p) => syncGuard(() => syncRuntime().standaloneApply({ confirmToken: str(p.confirmToken, 'confirmToken'), digest: str(p.digest, 'digest') })),
+    'presence.setActivity': (p) => {
+      if (p.activity !== null && !Value.Check(PresenceActivity, p.activity)) throw invalid('activity must be a tool or destination, or null.');
+      // Not enrolled (or no Hub support): nothing to share with, and nothing to report to the renderer.
+      deps.hub?.manager.setActivity(p.activity);
+      return { ok: true as const };
+    },
     'hub.enrollment': () => publicEnrollment(db()),
     'hub.status': () => hubRuntime().manager.status(),
     'hub.diagnostics': () => hubRuntime().diagnostics(deps.sync ? deps.sync.status() : null),
@@ -395,6 +402,7 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
     'hub.recoverOwner': (p) => hubGuard(async () => { await hubRuntime().manager.recoverOwner(str(p.newPassword, 'newPassword')); return { ok: true as const }; }),
     'hub.owner.listDevices': () => owner((api, t) => api.listDevices(t)),
     'hub.owner.syncSummary': () => owner((api, t) => api.syncSummary(t)),
+    'hub.owner.presence': () => owner((api, t) => api.presence(t)),
     'hub.owner.createPairingCode': (p) => owner((api, t) => api.createPairingCode(t, {
       ...(p.host === undefined ? {} : { host: str(p.host, 'host') }),
       ...(p.reattachDeviceId === undefined ? {} : { reattachDeviceId: str(p.reattachDeviceId, 'reattachDeviceId') }),

@@ -104,6 +104,7 @@ const bridge: PlatformBridge = {
     ownerSignOut: () => ipcRenderer.invoke('dude:hub:owner:signOut'),
     listDevices: () => ipcRenderer.invoke('dude:hub:owner:listDevices'),
     syncSummary: () => ipcRenderer.invoke('dude:hub:owner:syncSummary'),
+    presence: () => ipcRenderer.invoke('dude:hub:owner:presence'),
     diagnostics: () => ipcRenderer.invoke('dude:hub:owner:diagnostics'),
     agentDiagnostics: () => ipcRenderer.invoke('dude:hub:agentDiagnostics'),
     createPairingCode: (a, b) => ipcRenderer.invoke('dude:hub:owner:createPairingCode', ...(b === undefined ? [a] : [a, b])),
@@ -164,6 +165,9 @@ const bridge: PlatformBridge = {
   },
   appearance: {
     setNative: (mode, background) => ipcRenderer.invoke('dude:appearance:set', { mode, background }),
+  },
+  presence: {
+    setActivity: (activity) => ipcRenderer.invoke('dude:presence:setActivity', activity),
   },
   menu: {
     ready: () => ipcRenderer.send('dude:menu:ready'),
