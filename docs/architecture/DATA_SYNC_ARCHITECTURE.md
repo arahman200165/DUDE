@@ -1,6 +1,6 @@
 # Data, Persistence and Synchronization
 
-This specification separates canonical Hub state from local Device Stores, retained inputs and synchronization consent. Delivered local persistence remains supported; the canonical Hub skeleton and Hub enrollment are delivered (Phase 31C), while the synchronization protocol and the remaining distributed stores are planned.
+This specification separates canonical Hub state from local Device Stores, retained inputs and synchronization consent. Delivered local persistence remains supported; the canonical Hub and Hub enrollment (Phase 31C), desktop and Hub web synchronization (31D, 31E), backup and transfer (31G) and Android persistence (31H, 31I) are delivered, and Phase 31J (in progress) adds Hub-persisted collaborative documents for three selected surfaces ([As built in Phase 31J](#as-built-in-phase-31j-collaborative-documents-and-realtime-depth)).
 
 Workspace implementation and host ownership are documented in [Portable Core](PORTABLE_CORE.md#data-scope). Desktop/Hub synchronization is delivered. Android owns a separate durable adapter and driver under Phase 31H; its [remaining acceptance passes are carried into the Phase 31I gate](../delivery/PHASE31H_ACCEPTANCE.md).
 
@@ -57,6 +57,8 @@ Related: [DUDE System Architecture](SYSTEM_ARCHITECTURE.md) · [DUDE Security Ar
 - [Sync Protocol Minimum Acceptance Contract](#sync-protocol-minimum-acceptance-contract)
 - [As built in Phase 31D (synchronization)](#as-built-in-phase-31d-synchronization)
 - [As built in Phase 31E (Hub web shared state)](#as-built-in-phase-31e-hub-web-shared-state)
+- [As built in Phase 31G (backup, restore and transfer)](#as-built-in-phase-31g-backup-restore-and-transfer)
+- [As built in Phase 31J: collaborative documents and realtime depth](#as-built-in-phase-31j-collaborative-documents-and-realtime-depth)
 - [Migration from the delivered local stores](#migration-from-the-delivered-local-stores)
 - [Backup consistency, restore and authority transfer](#backup-consistency-restore-and-authority-transfer)
 
@@ -328,7 +330,7 @@ PostgreSQL should be an implementation option, not a mandatory dependency for pe
 
 ### As built in Phase 31C (Hub)
 
-The Hub's canonical database is `data/dude.db`, opened by the Hub process alone through `@dude/sqlite-store` (`node:sqlite`, WAL, `synchronous=FULL`, `quick_check`, checksummed numbered migrations). Under the service it lives in `%ProgramData%\DUDE\Hub`; before a migration step on an existing database the Hub writes a `VACUUM INTO` copy to `data/pre-migration/` (the `backups/` directory is the default folder for the Hub's own `.dudebackup` files and receives data moved aside by a restore, see [As built in Phase 31G](#as-built-in-phase-31g-backup-restore-and-transfer)). Opening a database whose `minReaderVersion` is newer than the running Hub is refused, so an older Hub cannot open a newer database. Eight migrations exist (`0001-initial` to `0008-device-repair`; 0003 is sync, 0006 and 0007 are the 31F flood and step-up tables, 0008 the 31G re-pair columns).
+The Hub's canonical database is `data/dude.db`, opened by the Hub process alone through `@dude/sqlite-store` (`node:sqlite`, WAL, `synchronous=FULL`, `quick_check`, checksummed numbered migrations). Under the service it lives in `%ProgramData%\DUDE\Hub`; before a migration step on an existing database the Hub writes a `VACUUM INTO` copy to `data/pre-migration/` (the `backups/` directory is the default folder for the Hub's own `.dudebackup` files and receives data moved aside by a restore, see [As built in Phase 31G](#as-built-in-phase-31g-backup-restore-and-transfer)). Opening a database whose `minReaderVersion` is newer than the running Hub is refused, so an older Hub cannot open a newer database. Ten migrations exist (`0001-initial` to `0010-collab`; 0003 is sync, 0006 and 0007 are the 31F flood and step-up tables, 0008 the 31G re-pair columns, 0009 the 31J notifications table and notification-reader grant column, and 0010 the 31J collaborative-document tables). 0010 is the first migration to raise `minReaderVersion` (to 10), so a pre-31J Hub refuses the database instead of writing records next to a Y.Doc it does not know.
 
 | Table group | Tables | Holds |
 |---|---|---|
@@ -340,6 +342,8 @@ The Hub's canonical database is `data/dude.db`, opened by the Hub process alone 
 | Hardening | `throttle`, `ip_blocks`, `audit_events` | Persisted failure throttles and temporary address blocks; the append-only audit log (closed event list, credential-free details, retained 365 days or 100,000 events) |
 | Canonical records | `records`, `change_feed`, `applied_ops` | Entity rows keyed by environment, type and ID with revision, tombstone and schema version; the global monotonic change feed; applied op IDs for duplicate suppression |
 | Sync (0003) | `device_sync_state`; `meta` keys `sync_floor` and `sync_retention_days`; a `records(environment_id, revision)` index | Per-device reported cursor, counts, consent and last push/pull times; the compaction floor and retention |
+| Notifications and jobs (31J; the table and column are migration 0009) | `notifications`; `devices.notifications_access`; `meta` keys `job_last:<id>` | Owner notifications deduplicated by source key, with read and dismiss times; the per-desktop notification-reader grant; each background job's last run. Notifications and `job_last:*` are scrubbed from backups |
+| Collaboration (0010, 31J) | `collab_docs`, `collab_updates`, `collab_snapshots`, `collab_bases` | Compacted Y.Doc state per document key, the update tail since the last compaction, history snapshots, and the materialized payload per record revision used as a merge base ([As built in Phase 31J](#as-built-in-phase-31j-collaborative-documents-and-realtime-depth)) |
 
 `commitCanonical` writes the record, its change-feed entry and the applied op ID in one transaction under one global revision. A duplicate op ID returns the recorded revision without writing, and a rejected commit rolls back completely. `commitCanonical` now enforces the per-entity [sync policy](#conflict-policy-by-entity) (revision checks, owner-device usage records, size and payload validation) and is reached only through the device-authenticated `/api/v1/sync` routes ([As built in Phase 31D](#as-built-in-phase-31d-synchronization)); the Hub is still the only writer and CLI commands never touch the file.
 
@@ -586,13 +590,14 @@ Consent is per category and applies only to an enrolled environment, after the f
 |---|---|---|---|
 | `setting` | `lww` | live | Hub order wins; no inbox |
 | `favorite` | `lww` | live | Hub order wins; no inbox |
-| `pipeline`, `user-script` | `merge3` | live | Field merge; otherwise inbox |
+| `pipeline` | `merge3` | live | Field merge; otherwise inbox |
+| `user-script` | `merge3` (from 31J `body` merges as text and `updatedAt` takes the later ISO time) | live | Field merge; otherwise inbox |
 | `project` | `merge3` (`lastActivatedAt` takes the later ISO time) | live | Field merge; otherwise inbox |
 | `workspace-template` | `merge3` | live | Field merge; otherwise inbox |
 | `home-layout` | `merge3` | live | Field merge; otherwise inbox (no Keep both) |
 | `usage` | `per-device` (entity id is the device id) | live | None; summed on read |
 | `workspace-layout` | `lww` | next launch | Hub order wins |
-| `scratchpad` | `merge3` | live | Field merge; otherwise inbox (no Keep both) |
+| `scratchpad` | `merge3` (from 31J `snippets` is a keyed list by `id`: additions and removals per side, a removal wins over a concurrent edit, `title` and `body` merge as text) | live | Field merge; otherwise inbox (no Keep both) |
 | `markdown-doc` | `merge3` (`body` merges as text, `updatedAt` takes the later ISO time) | live | Field merge; otherwise inbox |
 
 ### Outbox status machine
@@ -603,13 +608,13 @@ An operation is journaled atomically with its change and carries one stored stat
 
 All under `/api/v1`; device credential unless noted. Contract: `@dude/contracts/hub` `sync.schema.ts`.
 
-- `POST /sync/push`: `{ ops }` to per-operation `applied`, `duplicate`, `conflict` (with the current record) or `rejected` (with a reason).
+- `POST /sync/push`: `{ ops }` to per-operation `applied`, `duplicate`, `conflict` (with the current record) or `rejected` (with a reason). From 31J a client that sends `accept: ['merged']` may also receive `merged` (with the revision and the merged record) for a collaborative entity ([Merging non-Yjs writes](#as-built-in-phase-31j-collaborative-documents-and-realtime-depth)).
 - `GET /sync/changes?after&limit`: records changed after a revision, one entry per entity at its latest revision, tombstones included; `410 cursor-expired` below the floor.
 - `GET /sync/snapshot?afterType&afterId&limit`: paged live records and `asOfRevision`.
 - `PUT /sync/state`: the device reports cursor, counts and category consent; returns floor, head revision and retention days.
 - `GET /sync/summary` (owner): counts per category, head revision, floor, retention, and lag and counts for active devices.
 - `POST /sync/environment/clear/preview` and `POST /sync/environment/clear` (owner): the two-step Hub delete.
-- Realtime `changes-available { revision }`, sent only to device sockets; a poll backs it up. `HUB_PROTOCOL_VERSION` is 2 (minimum client 1) and a device reports `hub-outdated` against an older Hub.
+- Realtime `changes-available { revision }`, sent only to device sockets; a poll backs it up. 31D raised `HUB_PROTOCOL_VERSION` to 2 (minimum client 1) and a device reports `hub-outdated` against an older Hub; 31J raised it to 3 for the realtime-depth events and the collaboration socket, with the minimum client still 1.
 - Audit: a push is audited with counts only, a snapshot on its first page, owner summary and environment clear preview/apply by event; `changes` and `state` are not audited. Payloads are never audited.
 
 ### Retention and rebase algorithm
@@ -629,7 +634,7 @@ Revocation stops every Hub call. The device freezes: operations become `stranded
 
 Before anything is sent, a device with local records shows a preview and the user picks **Merge** (recommended for the default-on categories), **Use Hub** or **Keep local** (recommended for usage, workspace layout and scratchpad) per category. **Use Hub** runs behind a `VACUUM INTO` recovery snapshot and a single-use token and is resumable per category; the device re-keys to the Hub environment and every enrollment restarts the first sync. **Clear data** on an enrolled device keeps the enrollment and a rebase re-pulls; an optional **Also delete from Hub** is an owner-session, digest-bound two-step where a Hub failure wipes nothing. **Reset this device** unenrolls best-effort. Previews disclose unsent operations, and the high-consequence gate holds their confirmation-boundary specs.
 
-Remote changes apply live through `applyRemote` on the entity collections and the key/value backend; workspace layout is held for the next launch, the pipeline builder reloads silently, and a changed scratchpad shows a notice. Remote key/value deletes remove the cache entry but do not reset open signals until reload. The renderer surfaces state in Settings › Sync and the shell sync indicator ([UX](../product/UX_SPEC.md#environment-device-and-synchronization-navigation)).
+Remote changes apply live through `applyRemote` on the entity collections and the key/value backend; workspace layout is held for the next launch, the pipeline builder reloads silently, and a changed scratchpad shows a notice (Phase 31J replaced the silent reload with a merge into the open editor and, where a Hub collaboration transport exists, made the open scratchpad drawer live; see [As built in Phase 31J](#as-built-in-phase-31j-collaborative-documents-and-realtime-depth)). Remote key/value deletes remove the cache entry but do not reset open signals until reload. The renderer surfaces state in Settings › Sync and the shell sync indicator ([UX](../product/UX_SPEC.md#environment-device-and-synchronization-navigation)).
 
 ## As built in Phase 31E (Hub web shared state)
 
@@ -653,7 +658,7 @@ Remote changes apply live through `applyRemote` on the entity collections and th
 
 **Sync UI.** Hub web has a browser `SyncPort` behind the shell indicator and Settings › Sync: Live, Hub unreachable (changes paused), Session expired and Reload needed states, Sync now, environment-level web-access toggles (never desktop consent) and a per-device table from the summary (kind, cursor and lag, pending, conflicts, quarantined, paused, last push and pull). Desktop conflicts and quarantine hand off to DUDE Desktop; first-sync, pause, quarantine and standalone panels are desktop-only.
 
-**Not delivered.** A browser offline outbox, a server-side conflict inbox, collaboration persistence (31J) and end-to-end encrypted categories (Phase 82). Android shell/sync (31H, with its acceptance recorded in the 31I gate) and the executable Android tools (31I, [as built](#as-built-in-phase-31i-tool-state-on-android)) are delivered and described below.
+**Not delivered.** A browser offline outbox, a server-side conflict inbox and end-to-end encrypted categories (Phase 82). Hub collaboration persistence was added by Phase 31J ([as built](#as-built-in-phase-31j-collaborative-documents-and-realtime-depth)). Android shell/sync (31H, with its acceptance recorded in the 31I gate) and the executable Android tools (31I, [as built](#as-built-in-phase-31i-tool-state-on-android)) are delivered and described below.
 
 ## As built in Phase 31G (backup, restore and transfer)
 
@@ -670,6 +675,97 @@ Phase 31G (Milestones 700-719, decisions [PD-069-PD-074](../history/DECISION_LOG
 **Hub web.** The browser keeps only the local-only `__device__:hubAuthority` record; the boot gate and runtime lock are described in the 31E [Authority gate](#as-built-in-phase-31e-hub-web-shared-state) paragraph. A restored Hub's browser rows are not marked for re-pair: a browser signs in again and re-attaches.
 
 **Not delivered.** Automatic failover or election, multi-master, live replication to a standby Hub and any partial-restore. A same-instance rollback by file copy can still receive one push batch before detection (a restored Hub cannot, because its device keys are revoked).
+
+## As built in Phase 31J: collaborative documents and realtime depth
+
+Phase 31J (in progress; Milestones 787-812 so far, decisions PD-099 to PD-115 in the [Phase 31J plan](../delivery/PHASE31J_PLAN.md), deviations recorded there) added Yjs collaboration for three surfaces, Hub-persisted collaborative state, presence, notifications, read-only job status and live owner views. The Hub still has one owner and one environment (PD-027): "collaboration" means the owner's own desktops, browsers and phone. The two-desktop sync e2e and the close-out are still to come. Authentication, limits and audit are in [Security](SECURITY_ARCHITECTURE.md#as-built-in-phase-31j-collaboration-notifications-and-presence).
+
+### Collaborative surfaces and the Y.Doc mapping
+
+Yjs is used only for the PD-099 surfaces; every other entity keeps its record policy above. `@dude/collab-doc` (imported only by `apps/hub` and `apps/web`; forbidden on mobile, absent from the Device Agent) owns the closed list of document kinds, the `kind:id` keys and the record-to-Y.Doc schemas:
+
+| Document key | Y.Doc | Record and category |
+|---|---|---|
+| `scratchpad:default` | `Y.Map snippets` of per-snippet `Y.Map`s whose `title` and `body` are `Y.Text`, plus `Y.Array order` | `scratchpad` / `scratchpad` |
+| `user-script:<id>` | `Y.Text body`; every other script field stays single-writer in the record | `user-script` / `pipelines` |
+| `markdown-doc:<id>` | `Y.Text markdown` plus `Y.Map meta` holding the title | `markdown-doc` / `collab-documents` |
+| `room:<id>` | `Y.Text markdown` only (the same root name, so a room can be kept as a `markdown-doc`) | none: Hub memory only |
+
+Only the Hub seeds a document's initial content from its record. Materialization writes the collaborative fields back over the current record and keeps every other field. The package also holds the multi-hunk text apply (on `@dude/sync` `textHunks`), the binary frame codec (`[channel][kind: 0 sync | 1 awareness][y-protocols payload]`), the Hub awareness rewriter and the `CollabTransport` contract with the relay transport the desktop uses.
+
+`markdown-doc` is a new entity (codec in `@dude/persistence`, scope `workspace`, sensitivity `sensitive`, `journaled: false`). Devices mirror kept documents through ordinary sync once `collab-documents` is on, but never journal a local edit to one: changes reach the Hub only through the live document.
+
+### Hub persistence and materialization
+
+Migration 0010 adds four tables: `collab_docs` (one compacted Y.Doc state per persisted key, never a room), `collab_updates` (the update tail since the last compaction), `collab_snapshots` (history) and `collab_bases` (the plain payload the Hub materialized or seeded from at a record revision, the merge base for non-Yjs writes). The record stays the interchange form; these tables are the live truth only while a document is edited. The migration raises the reader floor to 10.
+
+An in-memory registry hands out document handles. It loads a document from its stored state plus tail (seeding it from the record once), folds the tail into the state after 200 updates, unloads a document 60 seconds after its last subscriber releases it, and refuses (`too-large`) an update whose materialized JSON would pass the 128 KiB record cap, using a trial apply on a clone when the update could reach it. A debounced materializer (2 seconds after the last edit, at most every 10 seconds) commits the plain record through `commitCanonical`, attributed to a verified recent editor (a desktop or a Hub web browser row), and records the new revision in `collab_bases`. The change feed, snapshots, consent filtering and every non-Yjs client (Android, an offline Agent outbox, older builds) therefore keep working unchanged. Tombstoning a record and clearing the environment delete the document's collaborative state.
+
+### Merging non-Yjs writes
+
+Before a push to a collaborative entity commits, the Hub opens the document and flushes its materializer synchronously, so a queued write never overwrites unflushed live edits; if the flush cannot write, the record is marked as behind the document and the write must merge or conflict. A write based on an older revision is merged three ways: the base is `collab_bases` at the writer's `basedOnRevision`, "theirs" is the live document (or the record when no collaborative state exists) and "ours" is the incoming payload, under the entity's field rules (`text` for the user-script and `markdown-doc` `body`, the keyed `snippets` list for the scratchpad, `max-iso` for `updatedAt`). A clean merge is committed and its difference applied to the Y.Doc as an ordinary forward edit attributed to the pusher, and the new revision is stored as a merge base; an applied write based on the current revision reaches the document the same way. An edit that arrived both as a Yjs frame and as an outbox write is therefore not duplicated.
+
+The push result `merged` (`{revision, current}`) is returned only to clients that send `accept: ['merged']` (the Agent and Hub web); older clients still receive `conflict`. Both adopt a merged result without an inbox entry or dialog, and a retried merged operation receives the same result.
+
+`mergeText3` in `@dude/sync` is dependency-free: code-point Myers diffs of each side against the base (beyond 600 edits the changed middle is one replacement), combined as concurrent collaborative edits combine. Deletions by either side are unioned, both sides' insertions at one position are kept with theirs first, and an identical insertion, or one contained in the other, is kept once. Because a diff can place the same insertion at different but equivalent gaps (`"X\n"` after a newline or `"\nX"` before it), each insertion first slides its movable part to the rightmost equivalent gap, so a twice-delivered edit next to unrelated edits in repetitive text is still kept once. The merge never fails and never adds markers; property tests cover idempotence and no loss. `merge3` gains the `text` and keyed-list rules, so devices and the Hub web conflict path merge the same way without Yjs.
+
+### Consent
+
+Collaboration on a document needs the same consent as syncing it (PD-103):
+
+| Principal | Consent |
+|---|---|
+| Desktop device token | The category is on in the map the device itself last reported, and that report carries a `lastSyncAt` (the Hub's evidence of a completed first sync); the row is an active desktop in this environment |
+| Owner bearer session (the Agent) | The consent of the device it is bound to; an unbound bearer has none |
+| Hub web owner cookie session | The environment's web-access toggle for the category |
+
+Rooms need no category. `collab-documents` is off by default for desktop consent and web access. It is optional in the strict state contracts, and `wireCategoryFlags` (`@dude/contracts/hub`) omits it unless it is on, so 31J clients and pre-31J Hubs keep accepting each other's state reports and a client that omits it reads as off. A change to web access or to a device's reported state rechecks every open subscription of the affected principals and ends those that lost consent with `consent-revoked`.
+
+### Rooms and kept documents
+
+Markdown Hub rooms are a third Markdown Workspace mode next to the unchanged LAN server and BYO relay. A room is a plain in-memory Y.Doc: at most 8 rooms of 8 participants, closed 5 minutes after its last participant leaves, never stored, materialized, snapshotted or backed up. Rooms are listed and created through `/api/v1/collab/rooms` (not audited). "Keep on Hub" (`POST /collab/rooms/:roomId/keep` with a title) is refused unless `collab-documents` is on for the caller; it creates a `markdown-doc` record through `commitCanonical` (audited `collab.document-kept`, ids only) and the client switches to the persisted document. Kept documents are listed (newest first, at most 500, not audited) and deleted through `/api/v1/collab/documents`; a delete is a tombstone through `commitCanonical` that ends the collaborative document and is audited `collab.document-deleted`. A kept document never expires on its own.
+
+### History and retention
+
+| Rule | Value |
+|---|---|
+| When | A persisted document that was edited is snapshotted 2 minutes after its last edit or when its last subscriber leaves, only when its collaborative content differs from the newest snapshot |
+| Rate | At most one snapshot every 10 minutes per document (a restore ignores this) |
+| Caps | 200 snapshots and 8 MiB per document; the oldest go first and the newest is always kept |
+| Age | 30 days, pruned by the `collab-history-prune` job (at start, then daily) |
+| Content | The materialized record payload, so a preview is the plain record shape |
+
+Rooms never have history. `GET /api/v1/collab/history?doc=`, `GET /collab/history/:snapshotId` and the restore route require the document's category consent. A restore snapshots the current state first, computes the edits to the snapshot's content on a clone, applies them as a forward edit by the caller (the CRDT is never rewound, so a concurrent edit still merges), writes the record at once and is audited `collab.history-restored` without content.
+
+The `collab-maintenance` job runs on the sync compaction cadence, just after it. It prunes `collab_bases` below the sync floor (a client based on such a revision gets `cursor-expired` anyway) and for documents whose record is gone, always keeping each document's newest base, and compacts the tail of stored documents that are not loaded. Manual and scheduled backups flush buffered updates and pending materializations immediately before the `VACUUM INTO` copy, so a restored Hub loads identical documents and records. The collaborative tables, history included, travel in backups and transfers; notifications and `job_last:*` are scrubbed, and rooms are never included.
+
+### Clients and fallback modes
+
+Hub collaboration is environment infrastructure behind the `HUB_COLLAB` port (PD-114), like sync: a desktop adapter over the Agent relay, a Hub web adapter (`core/hub-web/hub-collab.client.ts`) and an unavailable adapter for Pages and standalone builds. Tool manifests and the `collab-relay` capability are unchanged. `CollabDocService` shares one socket per page, ref-counts documents on channels 1-8, resyncs every open document over y-protocols after a reconnect, sends awareness with the Hub-assigned identity, replaces a document after a `too-large` refusal and maps refusals to a status (`connecting`, `live`, `reconnecting`, `offline`, `unavailable`, `refused`). The scratchpad drawer and `CollabTextSession` (the user-script body and Markdown documents and rooms) build on it.
+
+| Mode | When | Behavior |
+|---|---|---|
+| Live | A Hub collaboration transport exists and the Hub accepted the document | Edits are shared as typed; the status reads "Live" or, while a desktop's link is down, "Live, reconnecting" |
+| Read-only | Hub web while the Hub is unreachable | The shared text cannot be edited (shared writes on Hub web are online-only); editing resumes on reconnect |
+| Local fallback | A desktop whose link stayed down for the 10-second grace, a refusal, or no transport (Pages, standalone, not enrolled, consent off) | The scratchpad and script body are saved as ordinary records (journaled through the outbox on a desktop; Pages and standalone keep the pre-31J Save-and-Reload drawer); after a desktop's link returns and nothing is pending or unsaved, a fresh live document is loaded and the Hub merges the outbox write. A Markdown document or room has no local save path, so its text stays a local draft |
+
+### Desktop relay
+
+The Y.Doc and editor binding live in the renderer. The resident Device Agent opens the pinned `/api/v1/collab` socket with its device token only while its gate holds (enrolled, Hub online, first sync done, no reconcile flag, no authority-changed, untrusted, revoked or incompatible state), rechecks the gate on every reconnect and Hub or sync status change, and owns hello, heartbeats and reconnect backoff (1-60 seconds). It relays opaque frames to the holding window over `dude:collab-hub:*` (base64 on the pipe, validated and byte-capped at every hop); the renderer may send only `subscribe` and `unsubscribe` control frames plus binary frames. The Agent depends on neither Yjs nor `@dude/collab-doc`. Rooms, kept documents and history go through Agent RPCs that always use the device token, never the owner bearer.
+
+### Live views, open editors and presence
+
+`HUB_PROTOCOL_VERSION` is 3. The realtime events added in 31J (`presence-changed`, `owner-view-changed`, `notification`) go only to sockets whose hello declared protocol 3 or later, so shipped Android builds keep their connection, and `/api/v1/collab` itself refuses a protocol below 3. `/api/v1/realtime` stays JSON-only and never carries record content.
+
+- **Owner views.** Audit domains and registry and record changes map to the contentless `owner-view-changed {topic}` (`devices`, `sync`, `backup`, `alerts`, `diagnostics`, `jobs`, `notifications`), coalesced for 250 ms per topic and sent to owner sockets and protocol-3 device sockets (the `notifications` topic only to principals allowed to read notifications). Hub web and the desktop feed it to the `HUB_EVENTS` port, and the Devices, Sync, Backup, Security alerts, Endpoint, Hub jobs and notification views quietly refetch what they show. Job status has no event of its own: a job start or finish announces topic `jobs`.
+- **Open editors.** `mergeIntoOpenEditor` (`@dude/sync`: `merge3` with the entity's field rules, bookkeeping fields ignored) adopts or merges a remote change into the open pipeline builder, script editor (fields other than a live body, which belongs to the document), project rename and home-layout draft. A conflict or deletion shows a notice and Save takes the existing conflict path.
+- **Presence.** The Hub counts every principal as online, including Hub web browser rows through their owner cookie socket, serves `GET /api/v1/presence` to the owner and pushes `presence-changed` to protocol-3 owner sockets. Activity sharing is opt-in per device through the local-only `__device__:presenceShareActivity` (off; nothing is stored until the user chooses). `activityForUrl` in `@dude/contracts/hub/presence-activity` maps a route to a registry tool id or one of the closed shell destinations, and the value is sent through Hub web's realtime `activity` message or the Agent (`presence.setActivity`), only to protocol-3 Hubs and again after a reconnect. The Hub validates tool ids against the registry, keeps activity in memory only and never audits it. Per-document awareness (participants, cursors, selections) is ephemeral Hub memory, with each entry's identity rewritten by the Hub.
+
+### Notifications and job status data
+
+Notifications live in the Hub's `notifications` table, fed only by a closed producer list (backup failed, recovered and overdue; certificate renewed and renewal failed; sync compaction failure; address change; security alerts through the audit observer), deduplicated by source key, with read and dismiss state per notification. Dismissed notifications are kept 30 days, every notification at most 90 days, and at most 500. They carry no record content, are scrubbed from backups and cleared on restore. Each job's last run (start, finish, outcome, a short credential-free summary) is meta `job_last:<id>`, also scrubbed from backups.
+
+**Not delivered.** Named or read-only participants, guest permissions and richer collaborative surfaces (Phase 53); collaborative Home text panels, pipeline definitions, projects or settings (they keep their record policies); running a job on demand (Phase 88).
 
 ## Migration from the delivered local stores
 

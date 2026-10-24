@@ -222,7 +222,7 @@
     },
     {
       "source": "apps/web/src/app/core/collab/collab-text-session.ts",
-      "line": 166,
+      "line": 178,
       "namespace": null,
       "key": null,
       "heuristicScope": "local-only",
@@ -230,7 +230,7 @@
     },
     {
       "source": "apps/web/src/app/core/collab/collab-text-session.ts",
-      "line": 210,
+      "line": 222,
       "namespace": null,
       "key": null,
       "heuristicScope": "local-only",
@@ -2163,7 +2163,7 @@
     },
     {
       "source": "apps/web/src/app/core/collab/collab-text-session.ts",
-      "line": 166,
+      "line": 178,
       "operation": "this.session.set(key === null ? null : this.collab.open(key))",
       "namespace": null,
       "key": null,
@@ -2177,7 +2177,7 @@
     },
     {
       "source": "apps/web/src/app/core/collab/collab-text-session.ts",
-      "line": 210,
+      "line": 222,
       "operation": "this.session.set(this.openedKey === null ? null : this.collab.open(this.openedKey))",
       "namespace": null,
       "key": null,
