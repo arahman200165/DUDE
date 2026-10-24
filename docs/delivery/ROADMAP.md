@@ -32,15 +32,15 @@ Related: [DUDE — Product Requirements](../DUDE_PRD.md) · [Quality and Release
 | Horizon | Status |
 |---|---|
 | Phases 0–31 | Complete; Phase 31 closed at Milestone 614 |
-| Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A (Milestone 615) and 31B (Milestones 616–627) and 31C (Milestones 628–648) and 31D (Milestones 649–662) and 31E (Milestones 663–682) and 31F (Milestones 683–699) and 31G (Milestones 700–719) complete, 31H (Milestones 720–728) and 31I (Milestones 729–786) complete; DUDE 2.0 was declared at Milestone 786 on 2026-10-23, with 31H's carried passes recorded in the 31I gate (the missing-Keystore and corrupt/full-storage cases are automated-only under PD-098); 31J in progress from Milestone 787 ([decisions PD-099–PD-115](PHASE31J_PLAN.md)) |
-| Phase 32 | Core expansion begins only after every phase from 31A through 31J is complete |
+| Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A (Milestone 615) and 31B (Milestones 616–627) and 31C (Milestones 628–648) and 31D (Milestones 649–662) and 31E (Milestones 663–682) and 31F (Milestones 683–699) and 31G (Milestones 700–719) complete, 31H (Milestones 720–728) and 31I (Milestones 729–786) complete; DUDE 2.0 was declared at Milestone 786 on 2026-10-23, with 31H's carried passes recorded in the 31I gate (the missing-Keystore and corrupt/full-storage cases are automated-only under PD-098); 31J (Milestones 787–815) complete on 2026-10-24 ([decisions PD-099–PD-115](PHASE31J_PLAN.md), [acceptance](PHASE31J_ACCEPTANCE.md); its physical and installed passes are owed and do not gate Phase 32) |
+| Phase 32 | Core expansion may begin: every phase from 31A through 31J is complete |
 | Phases 33–100 | Retained long-horizon scope, subject to dependencies and product boundaries |
 
 ## Roadmap Direction
 
 The roadmap deliberately extends beyond what any single delivery phase covers.
 
-Phase 0 was the weekend commitment; it is complete. **Phases 1–31 are also complete.** Phase 8 established the Windows desktop track, Phase 21 established the cross-tool workflow foundations, and Phase 22 hardened the platform (distributed manifests, single-sourced metadata, structural validation, generated docs, dependency boundaries, chunk/cache budgets) for the next several hundred tools. Phase 30 (30A–30L) shipped the workbench shell, discovery, insights, appearance, and verification program. Phase 31 (Milestones 593–614) shipped the Windows process/system troubleshooting tools and the second local mutation engine. The next priority is to complete Phases 31A–31J strictly in order before beginning Phase 32 tool expansion. Existing Phase 32–100 identifiers and feature inventories are retained; delivered milestones remain 593–614 for Phase 31. Milestone 615 records the Phase 31A implementation; Phases 31A–31I are complete (31I's 40-tool Android set is delivered and DUDE 2.0 was declared at Milestone 786), and 31J is in progress from Milestone 787.
+Phase 0 was the weekend commitment; it is complete. **Phases 1–31 are also complete.** Phase 8 established the Windows desktop track, Phase 21 established the cross-tool workflow foundations, and Phase 22 hardened the platform (distributed manifests, single-sourced metadata, structural validation, generated docs, dependency boundaries, chunk/cache budgets) for the next several hundred tools. Phase 30 (30A–30L) shipped the workbench shell, discovery, insights, appearance, and verification program. Phase 31 (Milestones 593–614) shipped the Windows process/system troubleshooting tools and the second local mutation engine. Phases 31A–31J were completed strictly in order, so Phase 32 tool expansion is next. Existing Phase 32–100 identifiers and feature inventories are retained; delivered milestones remain 593–614 for Phase 31. Milestone 615 records the Phase 31A implementation; Phases 31A–31J are complete (31I's 40-tool Android set is delivered and DUDE 2.0 was declared at Milestone 786; 31J's Hub collaboration and realtime depth closed at Milestone 815).
 
 From Phase 22 onward, the roadmap deliberately stops treating raw tool count as the primary measure of progress. Platform trust, correctness, composition, native capability, local/offline strength, automation safety, discoverability, and reuse across surfaces matter more.
 
@@ -92,19 +92,19 @@ From Phase 22 onward, the roadmap deliberately stops treating raw tool count as 
 
 <a id="near-term-roadmap"></a>
 
-## Post-Phase-31 Priority — Self-Hosted Distributed Foundation (31A–31I Complete; 31J Planned)
+## Post-Phase-31 Priority — Self-Hosted Distributed Foundation (31A–31J Complete)
 
 **Decision:** complete the distributed foundation and collaboration depth in Phases **31A–31J**, strictly in order, before beginning Phase 32 tool expansion. These inserted IDs preserve all historical Phase 0–31 and future Phase 32–100 references. They are new planned phases, not additional completed Phase 31 milestones. Do not reuse shipped Milestones 593–614 or assign new milestone numbers until implementation planning does so.
 
-The required sequence is **31A → 31B → 31C → 31D → 31E → 31F → 31G → 31H → 31I → 31J → Phase 32**. Complete each phase and its exit gate before starting the next. 31A–31I are complete; 31H's physical, signing and accessibility passes were carried into the 31I final gate ([PD-084](PHASE31I_PLAN.md)) and recorded there, and DUDE 2.0 was declared at Milestone 786 (2026-10-23). The first distributed release gate closed at 31I; complete 31J's collaboration depth next, before starting Phase 32. There is no fixed calendar commitment.
+The required sequence is **31A → 31B → 31C → 31D → 31E → 31F → 31G → 31H → 31I → 31J → Phase 32**. Complete each phase and its exit gate before starting the next. 31A–31J are complete; 31H's physical, signing and accessibility passes were carried into the 31I final gate ([PD-084](PHASE31I_PLAN.md)) and recorded there, DUDE 2.0 was declared at Milestone 786 (2026-10-23), and 31J closed at Milestone 815 (2026-10-24; [acceptance](PHASE31J_ACCEPTANCE.md)). The first distributed release gate closed at 31I and the collaboration depth at 31J; Phase 32 may now begin. There is no fixed calendar commitment.
 
 Backup/transfer is deliberately moved ahead of mobile delivery, and security controls begin with the first authenticated Hub endpoint. The planning sequence listed backup late and placed collaboration differently in its two summaries; this sequence resolves that inconsistency by making durable recovery part of the first usable release and delivering richer collaboration afterward, before Phase 32. The WebSocket/realtime foundation remains required in 31C–31D.
 
 ### Strict phase progression
 
-- **During 31A–31J:** complete one phase at a time, including its full scope and exit gate, before moving to the next lettered phase. Maintenance, regression fixes and security fixes to shipped work remain permitted.
-- **Phase 32 entry gate:** every phase from 31A through 31J must be complete before any Phase 32 implementation begins. All REST Client and request-collection work stays in Phase 32.
-- **After 31J:** begin the retained Phase 32 backlog. Local listeners, raw protocols, mTLS, mutation-sensitive features and durable snippet sharing keep their own security/acceptance gates.
+- **During 31A–31J (all complete):** one phase at a time, including its full scope and exit gate, before moving to the next lettered phase. Maintenance, regression fixes and security fixes to shipped work remain permitted.
+- **Phase 32 entry gate (met 2026-10-24):** every phase from 31A through 31J is complete, so Phase 32 implementation may begin. All REST Client and request-collection work stays in Phase 32.
+- **After 31J (now):** begin the retained Phase 32 backlog. Local listeners, raw protocols, mTLS, mutation-sensitive features and durable snippet sharing keep their own security/acceptance gates.
 
 <a id="phase-31a"></a>
 
@@ -266,18 +266,18 @@ Backup/transfer is deliberately moved ahead of mobile delivery, and security con
 
 <a id="phase-31j"></a>
 
-### Phase 31J — Hub Collaboration and Realtime Depth (In Progress)
+### Phase 31J — Hub Collaboration and Realtime Depth (Complete)
 
 **Depends on:** 31D–31I for delivery; realtime transport foundation starts in 31C.
 
-**Implementation status:** in progress. Decisions PD-099–PD-115 were recorded at Milestone 787 in [Phase 31J decisions](PHASE31J_PLAN.md): Yjs only for scratchpad snippets, user-script bodies and Markdown Workspace Hub rooms, over a separate authenticated `/api/v1/collab` socket with Hub-persisted state materialized into the existing sync records; presence for every principal; a persisted Hub notification inbox with a shell bell; read-only job status; and live views. The foundation is the authenticated Hub realtime WebSocket (31C) and its Hub web client (31E).
+**Implementation status:** complete (Milestones 787–815, closed 2026-10-24; [acceptance](PHASE31J_ACCEPTANCE.md)). Decisions PD-099–PD-115 were recorded at Milestone 787 in [Phase 31J decisions](PHASE31J_PLAN.md): Yjs only for scratchpad snippets, user-script bodies and Markdown Workspace Hub rooms, over a separate authenticated `/api/v1/collab` socket with Hub-persisted state materialized into the existing sync records; presence for every principal; a persisted Hub notification inbox with a shell bell; read-only job status; and live views. The foundation is the authenticated Hub realtime WebSocket (31C) and its Hub web client (31E).
 
 - presence;
 - Yjs where appropriate;
 - realtime document updates;
 - notifications/job status.
 
-**Exit gate:** Presence, selected Yjs collaboration, realtime document updates and notifications/job-status contracts honor authorization, content consent and retention. Future privileged job execution remains deferred to Phase 88.
+**Exit gate:** Presence, selected Yjs collaboration, realtime document updates and notifications/job-status contracts honor authorization, content consent and retention. Future privileged job execution remains deferred to Phase 88. **Met at Milestone 815:** the Hub suites, the two-browser drill and the two-desktop sync drill passed ([acceptance](PHASE31J_ACCEPTANCE.md)); the physical and installed passes (two PCs over LAN and in public mode, the installed Hub and Docker image, a real backup-failure notification and toast, NVDA, cursor colors, a real offline edit, restore onto a second machine, a Hub memory watch and the phone shown as online) are owed and recorded there as a guided script. Named participants and guest permissions stay in Phase 53, and remote job execution in Phase 88.
 
 ### Deferred stage — Remote Device Execution (Phase 88)
 
@@ -339,7 +339,7 @@ These are relative engineering-effort estimates from planning, not elapsed-time 
 
 ### Phase 32 — Local API & Server Toolkit
 
-**Dependency and execution split:** implementation begins only after every phase from 31A through 31J is complete, including each exit gate. These are local Client/Agent tools; Hub hosting must not silently relocate REST requests, listening sockets, OAuth callbacks or other native execution onto the Hub. Collections and non-secret workspace definitions may synchronize only under declared scopes. Credentials, local endpoints, bind settings and executable paths retain explicit device/private handling. Snippet sharing may reuse authenticated Hub persistence later but remains a separately authorized durable-sharing feature with its original retention/access requirements.
+**Dependency and execution split:** implementation begins only after every phase from 31A through 31J is complete, including each exit gate (met 2026-10-24). These are local Client/Agent tools; Hub hosting must not silently relocate REST requests, listening sockets, OAuth callbacks or other native execution onto the Hub. Collections and non-secret workspace definitions may synchronize only under declared scopes. Credentials, local endpoints, bind settings and executable paths retain explicit device/private handling. Snippet sharing may reuse authenticated Hub persistence later but remains a separately authorized durable-sharing feature with its original retention/access requirements.
 
 Build a serious **local-first API development surface**: a lightweight Postman/webhook.site/WebSocket-client-style toolkit plus localhost servers/listeners that work without requiring a hosted DUDE account.
 

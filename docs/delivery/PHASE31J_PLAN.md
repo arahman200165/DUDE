@@ -1,6 +1,6 @@
 # Phase 31J implementation decisions
 
-Status: in progress. Decisions PD-099–PD-115 were recorded at Milestone 787 and govern the Hub collaboration and realtime-depth work through the close-out (planned as 814; as built, 814 is the documentation milestone and the close-out follows it, see [Milestone renumbering](#2026-10-24-milestone-renumbering)). The [ROADMAP 31J entry](ROADMAP.md#phase-31j) sets the scope (presence, selected Yjs collaboration, realtime document updates, notifications/job status) and the exit gate (authorization, content consent and retention; privileged job execution stays in Phase 88). The Hub keeps a single owner and a single environment (PD-027), so "collaboration" here means the owner's own desktops, browsers and phone. Named participants, read-only participants, guest permissions and richer collaborative surfaces remain Phase 53.
+Status: complete. Implementation landed in Milestones 787–814 and the acceptance close-out is Milestone 815 (2026-10-24); [Phase 31J acceptance](PHASE31J_ACCEPTANCE.md) records the automated exit gate, the owed physical and installed passes as a guided script, and the [close-out](PHASE31J_ACCEPTANCE.md#milestone-815-close-out). Decisions PD-099–PD-115 were recorded at Milestone 787 and govern the Hub collaboration and realtime-depth work through the close-out (planned as 814; as built, 814 is the documentation milestone and 815 the close-out, see [Milestone renumbering](#2026-10-24-milestone-renumbering)). The [ROADMAP 31J entry](ROADMAP.md#phase-31j) sets the scope (presence, selected Yjs collaboration, realtime document updates, notifications/job status) and the exit gate (authorization, content consent and retention; privileged job execution stays in Phase 88). The Hub keeps a single owner and a single environment (PD-027), so "collaboration" here means the owner's own desktops, browsers and phone. Named participants, read-only participants, guest permissions and richer collaborative surfaces remain Phase 53.
 
 - **PD-099 — Collaborative surfaces.** Yjs is used only for three surfaces: scratchpad snippets (each snippet's title and body), the `body` of a user script, and Markdown Workspace **Hub rooms**. Home text panels, pipeline definitions, projects, layouts, settings and favorites stay on the existing record policies (PD-041); Yjs never becomes a generic replication protocol. Every other synced entity keeps its current conflict policy.
 - **PD-100 — Collaboration transport and protocol 3.** Collaboration uses a separate WebSocket, `/api/v1/collab`. It authenticates with the same credential classes as `/api/v1/realtime` (owner cookie, owner bearer, device token) before the upgrade, negotiates the same hello/welcome, and reuses the realtime close codes. JSON control frames (hello, subscribe, unsubscribe, heartbeat; welcome, subscribed, doc-error) travel next to binary frames laid out as `[channel][kind: 0 sync | 1 awareness][y-protocols payload]`, each with its own size and rate limits. `/api/v1/realtime` stays JSON-only and nudge-only (PD-034, PD-039). Both routes share one `@fastify/websocket` registration, because the plugin attaches to the server's single `upgrade` listener. `HUB_PROTOCOL_VERSION` becomes 3, and events introduced in 31J are sent only to sockets whose hello negotiated protocol 3 or later. Shipped Android builds reject any event outside their contract, so they are protected by this gate.
@@ -22,7 +22,7 @@ Status: in progress. Decisions PD-099–PD-115 were recorded at Milestone 787 an
 
 ### Milestone map
 
-Planned at Milestone 787; the close-out rewrites it as built.
+As built (the plan at Milestone 787 numbered history and retention 809–810, the exit suites 811–812 and the documentation and close-out 813–814; see [Milestone renumbering](#2026-10-24-milestone-renumbering)).
 
 | Milestones | Work |
 |---|---|
@@ -33,12 +33,15 @@ Planned at Milestone 787; the close-out rewrites it as built.
 | 793 | Read-only job status |
 | 794–796 | Notifications store and producers, shell bell, desktop OS notifications and reader grant |
 | 797–799 | `mergeText3` and merge rules, `@dude/collab-doc`, collaboration contracts and the `collab-documents` category |
-| 800–802 | Hub collaborative persistence, `/api/v1/collab`, merging non-Yjs edits |
+| 800–802 | Hub collaborative persistence (800), `/api/v1/collab` with Markdown rooms (801), merging non-Yjs edits (802) |
 | 803–805 | CodeMirror editor, Hub web collaboration client, desktop relay |
 | 806–808 | Scratchpad, user-script and Markdown Hub room collaboration |
-| 809–810 | Version history and collaborative retention jobs |
-| 811–812 | Hub exit suites and two-browser e2e; two-desktop sync e2e |
-| 813–814 | Documentation and acceptance close-out |
+| 809a, 810 | Hub document history; the history drawer |
+| 811 | Collaborative retention job and backup consistency |
+| 812 | Hub exit suites and the two-browser e2e |
+| 813 | Two-desktop sync e2e through the Agent relay |
+| 814 | As-built documentation |
+| 815 | Acceptance evidence, owed-pass guided script and close-out ([acceptance](PHASE31J_ACCEPTANCE.md)) |
 
 ## Deviations and implementation notes
 
@@ -71,7 +74,7 @@ Implementation notes:
 
 ### 2026-10-24, Milestone renumbering
 
-The work kept the planned order but not the planned numbers. As built: 788 protocol 3 and the shared WebSocket host; 789-790 presence; 791-792 live owner views and open-editor merges; 793 job status; 794-796 notifications, the bell and desktop OS notifications; 797-799 `mergeText3`, `@dude/collab-doc` and the contracts; 800-802 Hub persistence, `/api/v1/collab` with Markdown rooms, and merging non-Yjs writes; 803-805 the editor, the web collaboration service and the desktop relay; 806-808 scratchpad, user-script and Markdown room collaboration; **809a** Hub document history (numbered 809a, not 809); 810 the history drawer; 811 the `collab-maintenance` job and backup consistency; 812 the Hub exit suites and `e2e/hub/60-collab.spec.ts`; 813 `e2e/sync/30-collab.spec.ts` (in progress when this was written); 814 this documentation; the acceptance close-out follows. Four unnumbered fix commits sit between them: insertion canonicalization for `mergeText3` (after 802), the restore spec accepting either Yjs ordering of concurrent end-of-text insertions (after 799), `writeDefault: false` for persisted signals (after 792) and the Hub jobs card counting its rows from `HUB_JOB_IDS` (after 811).
+The work kept the planned order but not the planned numbers. As built: 788 protocol 3 and the shared WebSocket host; 789-790 presence; 791-792 live owner views and open-editor merges; 793 job status; 794-796 notifications, the bell and desktop OS notifications; 797-799 `mergeText3`, `@dude/collab-doc` and the contracts; 800-802 Hub persistence, `/api/v1/collab` with Markdown rooms, and merging non-Yjs writes; 803-805 the editor, the web collaboration service and the desktop relay; 806-808 scratchpad, user-script and Markdown room collaboration; **809a** Hub document history (numbered 809a, not 809); 810 the history drawer; 811 the `collab-maintenance` job and backup consistency; 812 the Hub exit suites and `e2e/hub/60-collab.spec.ts`; 813 `e2e/sync/30-collab.spec.ts`; 814 the as-built documentation; 815 the acceptance close-out ([acceptance](PHASE31J_ACCEPTANCE.md)). Four unnumbered fix commits sit between them: insertion canonicalization for `mergeText3` (after 802), the restore spec accepting either Yjs ordering of concurrent end-of-text insertions (after 799), `writeDefault: false` for persisted signals (after 792) and the Hub jobs card counting its rows from `HUB_JOB_IDS` (after 811).
 
 ### 2026-10-24, Milestone 793: job status has no event of its own (PD-112, PD-113)
 

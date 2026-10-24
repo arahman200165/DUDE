@@ -449,14 +449,14 @@ As built, PD-090 and PD-091 resolve to a 2 MiB default because manifest `fileInp
 
 ### Phase 31J implementation decisions
 
-PD-099–PD-115 govern Hub collaboration and realtime depth beginning at Milestone 787. They are recorded in full in [Phase 31J decisions](../delivery/PHASE31J_PLAN.md), with the milestone map.
+PD-099–PD-115 govern Hub collaboration and realtime depth beginning at Milestone 787; the phase closed at Milestone 815 (2026-10-24). They are recorded in full in [Phase 31J decisions](../delivery/PHASE31J_PLAN.md), with the as-built milestone map and deviations; verified results, the owed physical and installed passes and the close-out are in [Phase 31J acceptance](../delivery/PHASE31J_ACCEPTANCE.md).
 
 | Decision | Scope |
 |---|---|
 | PD-099 | Yjs only for scratchpad snippets, user-script bodies and Markdown Workspace Hub rooms |
 | PD-100 | Separate authenticated `/api/v1/collab` socket with binary y-protocols frames; one WebSocket registration; protocol 3 gates new events |
 | PD-101 | Hub-persisted, compacted Y.Doc materialized into the existing sync record through `commitCanonical` |
-| PD-102 | Non-Yjs edits merged three ways against the stored base; opt-in `merged` push result; text and keyed-list merge3 rules |
+| PD-102 | Non-Yjs edits merged three ways against the stored base; opt-in `merged` push result; text and keyed-list merge3 rules. As built, `mergeText3` is dependency-free (a code-point Myers diff), not diff-match-patch |
 | PD-103 | Collaboration requires the same category consent as sync; new `collab-documents` category off by default; Hub-rewritten awareness identity |
 | PD-104 | Ephemeral Markdown Hub rooms (8 × 8, closed 5 minutes after empty); "Keep on Hub" documents never auto-expire; relay unchanged |
 | PD-105 | 30-day snapshot history, restore as a forward edit, compaction and backup inclusion |
@@ -464,12 +464,14 @@ PD-099–PD-115 govern Hub collaboration and realtime depth beginning at Milesto
 | PD-107 | CodeMirror 6 and `y-codemirror.next` on every host, lazily loaded and token-themed, in `apps/web` only |
 | PD-108 | Presence for every principal; ephemeral awareness; opt-in, memory-only active-tool presence |
 | PD-109 | Persisted Hub notifications from a closed producer list, deduplicated, with their own retention |
-| PD-110 | Per-device notification-reader grant; opt-in desktop OS notifications |
+| PD-110 | Per-device notification-reader grant; opt-in desktop OS notifications. As built, the grant does not open `GET /api/v1/jobs` (reading the job list needs the owner) |
 | PD-111 | Notification bell as shell exception #14 |
-| PD-112 | Read-only job status for the Hub's existing timers; job execution stays in Phase 88 |
+| PD-112 | Read-only job status for the Hub's existing timers; job execution stays in Phase 88. As built, there is no `job-status` event: a job run sends the contentless `owner-view-changed` topic `jobs` and views refetch |
 | PD-113 | Live merges in open editors and contentless `owner-view-changed` topics; no record content on `/api/v1/realtime` |
 | PD-114 | Hub collaboration is environment infrastructure behind `HUB_COLLAB`, not a platform capability |
 | PD-115 | Exit gate suites and drills, plus the owed physical and installed passes |
+
+As built (see the [deviations](../delivery/PHASE31J_PLAN.md#deviations-and-implementation-notes)): PD-112 has no `job-status` event (`owner-view-changed` topic `jobs` instead); PD-102's `mergeText3` is dependency-free rather than built on diff-match-patch; PD-110's notification-reader grant opens the notification routes, `notification` events and the `notifications` view topic but not `GET /api/v1/jobs`; and the `markdown-doc` codec is not journaled on devices, so a desktop keeps a Markdown document or room as a local draft after the 10-second grace (PD-106). The milestone numbers differ from the plan (history is 809a and 810, the exit suites 812 and 813, documentation 814 and the acceptance close-out 815). The collaboration limitations carried forward (the scratchpad `drawerExpanded` conflict dialog, the `audit:prod` advisories and the bundle budget warnings) and the nine owed passes are in the [acceptance close-out](../delivery/PHASE31J_ACCEPTANCE.md#milestone-815-close-out).
 
 ### Testing, accessibility, and performance evolution
 

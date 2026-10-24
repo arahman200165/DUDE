@@ -350,7 +350,7 @@ The historical V1 checklist above remains a delivered record. The following chec
 - [x] [Distributed release verification matrix](#distributed-release-verification-matrix) risk-based verification and documentation deliverables pass; implementation evidence is recorded per stage.
 - [x] Deferred remote execution, E2EE credential sync, automatic failover, multi-master, complete mobile tool parity and vendor-operated hosting are not implied by the release.
 
-**Release gate:** Phases 31A–31I and this checklist must pass before DUDE is represented as delivering the complete initial distributed desktop/web/mobile scope. A private desktop/Hub preview at 31G may be useful, but is not completion of the Android-inclusive release. Richer collaboration in 31J may follow; authenticated WebSocket/realtime foundation may not be omitted.
+**Release gate:** Phases 31A–31I and this checklist must pass before DUDE is represented as delivering the complete initial distributed desktop/web/mobile scope. A private desktop/Hub preview at 31G may be useful, but is not completion of the Android-inclusive release. Richer collaboration in 31J followed and closed at Milestone 815 ([acceptance](PHASE31J_ACCEPTANCE.md)); the authenticated WebSocket/realtime foundation may not be omitted.
 
 ## Tool Verification
 

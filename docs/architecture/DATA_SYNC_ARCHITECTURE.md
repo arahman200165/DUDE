@@ -1,6 +1,6 @@
 # Data, Persistence and Synchronization
 
-This specification separates canonical Hub state from local Device Stores, retained inputs and synchronization consent. Delivered local persistence remains supported; the canonical Hub and Hub enrollment (Phase 31C), desktop and Hub web synchronization (31D, 31E), backup and transfer (31G) and Android persistence (31H, 31I) are delivered, and Phase 31J (in progress) adds Hub-persisted collaborative documents for three selected surfaces ([As built in Phase 31J](#as-built-in-phase-31j-collaborative-documents-and-realtime-depth)).
+This specification separates canonical Hub state from local Device Stores, retained inputs and synchronization consent. Delivered local persistence remains supported; the canonical Hub and Hub enrollment (Phase 31C), desktop and Hub web synchronization (31D, 31E), backup and transfer (31G) and Android persistence (31H, 31I) are delivered, and Phase 31J (complete) adds Hub-persisted collaborative documents for three selected surfaces ([As built in Phase 31J](#as-built-in-phase-31j-collaborative-documents-and-realtime-depth)).
 
 Workspace implementation and host ownership are documented in [Portable Core](PORTABLE_CORE.md#data-scope). Desktop/Hub synchronization is delivered. Android owns a separate durable adapter and driver under Phase 31H; its [remaining acceptance passes are carried into the Phase 31I gate](../delivery/PHASE31H_ACCEPTANCE.md).
 
@@ -678,7 +678,7 @@ Phase 31G (Milestones 700-719, decisions [PD-069-PD-074](../history/DECISION_LOG
 
 ## As built in Phase 31J: collaborative documents and realtime depth
 
-Phase 31J (in progress; Milestones 787-812 so far, decisions PD-099 to PD-115 in the [Phase 31J plan](../delivery/PHASE31J_PLAN.md), deviations recorded there) added Yjs collaboration for three surfaces, Hub-persisted collaborative state, presence, notifications, read-only job status and live owner views. The Hub still has one owner and one environment (PD-027): "collaboration" means the owner's own desktops, browsers and phone. The two-desktop sync e2e and the close-out are still to come. Authentication, limits and audit are in [Security](SECURITY_ARCHITECTURE.md#as-built-in-phase-31j-collaboration-notifications-and-presence).
+Phase 31J (complete; Milestones 787-815, decisions PD-099 to PD-115 in the [Phase 31J plan](../delivery/PHASE31J_PLAN.md), deviations recorded there, acceptance in [Phase 31J acceptance](../delivery/PHASE31J_ACCEPTANCE.md)) added Yjs collaboration for three surfaces, Hub-persisted collaborative state, presence, notifications, read-only job status and live owner views. The Hub still has one owner and one environment (PD-027): "collaboration" means the owner's own desktops, browsers and phone. Its physical and installed passes are owed ([acceptance](../delivery/PHASE31J_ACCEPTANCE.md#guided-manual-acceptance-script)). Authentication, limits and audit are in [Security](SECURITY_ARCHITECTURE.md#as-built-in-phase-31j-collaboration-notifications-and-presence).
 
 ### Collaborative surfaces and the Y.Doc mapping
 

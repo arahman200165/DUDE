@@ -1,0 +1,220 @@
+# Phase 31J implementation and acceptance evidence
+
+**Status: complete (Milestone 815, 2026-10-24).** Implementation landed in Milestones 787–814 and the automated exit gate passed on HEAD `1f204601` (Milestone 814) on 2026-10-24. Every automated gate listed below passed except `npm run audit:prod`, whose three advisories do not come from 31J and are tracked separately. The physical and installed passes in the [guided manual script](#guided-manual-acceptance-script) are **owed**: none has been run, and none is claimed. Unlike Phase 31I, no version bump or release declaration depends on them (31J has no version-bump milestone; versions stay `2.0.<commit count>`), so they are carried forward as owed passes, not as a gate on Phase 32. The roadmap's [strict phase progression](ROADMAP.md#strict-phase-progression) is satisfied: every phase from 31A through 31J is complete, so Phase 32 may begin.
+
+## Implemented scope
+
+The map is as built; the planned map and the renumbering are in [the Phase 31J plan](PHASE31J_PLAN.md#milestone-map). The decisions are [PD-099–PD-115](PHASE31J_PLAN.md), the deviations are in [Deviations and implementation notes](PHASE31J_PLAN.md#deviations-and-implementation-notes), and the as-built contracts are the Phase 31J sections of [Data and synchronization](../architecture/DATA_SYNC_ARCHITECTURE.md#as-built-in-phase-31j-collaborative-documents-and-realtime-depth) and [Security](../architecture/SECURITY_ARCHITECTURE.md#as-built-in-phase-31j-collaboration-notifications-and-presence). The Hub still has one owner and one environment (PD-027): "collaboration" here is the owner's own desktops, browsers and phone.
+
+| Milestone | Implementation |
+|---|---|
+| 787 | Decisions PD-099 to PD-115 |
+| 788 | Hub protocol 3 (`HUB_PROTOCOL_VERSION` 3, minimum client still 1), the shared WebSocket host and upgrade authentication, typed realtime event data |
+| 789–790 | Hub presence for every principal (including browser sessions); client presence and the opt-in, memory-only active-tool presence |
+| 791–792 | Live owner pages from contentless `owner-view-changed` topics; live merges of clean remote changes in open editors |
+| 793 | Read-only Hub job status (`GET /api/v1/jobs`, closed `HUB_JOB_IDS`) |
+| 794–796 | Hub notifications (migration 0009) with the closed producer list and the per-device notification-reader grant; the shell bell (shell exception #14) and the read-only "Hub jobs" card; desktop OS notifications and the reader-grant UI |
+| 797–799 | `mergeText3` and the text and keyed-list merge rules; `@dude/collab-doc` (portable Yjs mapping); collaboration contracts, the `collab-documents` category and the `markdown-doc` codec |
+| 800–802 | Hub collaborative document store and materializer (migration 0010); the `/api/v1/collab` socket and Markdown Hub rooms; merging non-Yjs writes into live documents (`merged` push result) |
+| 803–805 | CodeMirror 6 editor for the three surfaces; the web collaboration service and Hub web transport; the desktop relay through the Device Agent |
+| 806–808 | Live scratchpad; live user-script bodies; Markdown Hub rooms and kept documents |
+| 809a | Hub collaborative document history (snapshots, preview, restore as a forward edit) |
+| 810 | Collaborative history drawer |
+| 811 | `collab-maintenance` retention job and backup consistency |
+| 812 | Hub exit-gate suites and the two-browser drill `e2e/hub/60-collab.spec.ts` |
+| 813 | Two-desktop collaboration e2e through the Agent relay, `e2e/sync/30-collab.spec.ts` |
+| 814 | As-built documentation |
+| 815 | Acceptance evidence, owed-pass script and close-out ([close-out](#milestone-815-close-out)) |
+
+Four unnumbered fix commits sit between milestones: restore-spec ordering of concurrent end-of-text insertions (after 799), insertion canonicalization for `mergeText3` (`b15bedd6`, after 802), `writeDefault: false` for persisted signals (after 792) and the Hub jobs card counting its rows from `HUB_JOB_IDS` (`b9b4817e`, after 811).
+
+### As-built deviations from the decisions
+
+These are recorded in the plan and repeated here because the exit gate was judged against what was built:
+
+- **No `job-status` event (PD-112).** A job start or finish sends the contentless `owner-view-changed {topic: 'jobs'}` and views refetch `GET /api/v1/jobs`.
+- **`mergeText3` is dependency-free (PD-102).** It uses a code-point Myers diff instead of diff-match-patch, so `@dude/sync` gained no dependency.
+- **The notification-reader grant does not open `GET /jobs` (PD-110).** It opens the three notification routes, `notification` events and the `notifications` view topic; reading the job list needs the owner.
+- **`markdown-doc` is not journaled on devices (Milestone 799).** A kept document changes only through the live document, so after the 10-second grace the desktop keeps a Markdown document or room as a plain local draft rather than saving it through the outbox (the scratchpad and the user-script body do save through the outbox).
+
+## Recorded verification
+
+### Final automated gate
+
+Run on HEAD `1f204601` (Milestone 814), 2026-10-24, on the Windows 11 development host.
+
+| Gate | Result |
+|---|---|
+| `npm test` | Packages: **702 files / 4,828 tests** passed. Angular: **801 files, 799 passed, 8,643 / 8,643 tests** passed. Two Angular files, `shell/deck/user-panels/user-content-panel.spec.ts` and `shell/settings/sections/home-layout-visual/home-layout-visual.spec.ts`, hit the known Vitest `EnvironmentTeardownError` full-suite flake and passed in isolation (**2 files, 9 tests**). This is a known flake, not a regression. |
+| `npm run lint` | Passed: eslint, boundaries (package and mobile), design tokens **0 violations**, theme contrast **144 combinations / 49,008 checks**, and the inventories (**2,687** resolved sources, **78** component extractions, **334** registrations; **940** storage sites classified, **61** review flags, **0** unreviewed). |
+| `npm run check:mobile` | Passed. |
+| `npm run test:mobile` | **41 node tests** and **44 Vitest files / 345 tests** passed. |
+| `npm run check:portable` | **1,334 ESM export modules**. |
+| `npm run test:electron` | **129 files / 1,419 tests** passed, **1 skipped**. |
+| `npm run test:high-consequence` | Passed (suites of 50 files / 187 tests, 6 / 52, 4 / 47, 8 / 46 and 1 / 6). |
+| `npm run test:hub` | **104 files** passed and 1 skipped; **1,008 tests** passed and 4 skipped. Includes the collaboration authorization, consent, retention, history-pruning, notification-retention, job-status and WebSocket contract-parity suites of PD-115. |
+| `npm run build:hub-web` | Passed. Prefetched app **444.5 kB of 800 kB**. |
+| Production web build | Passed. Main bundle **248.02 kB raw / 66.99 kB transfer**; prefetched app **453.8 kB of 800 kB**. The two large-chunk budget warnings pre-date 31J; the editor chunks are lazy and outside the prefetch budget. |
+| `npm run test:e2e:hub` | **382 passed** (4.5 min), including all **7** tests of `e2e/hub/60-collab.spec.ts` (setup; scratchpad co-edit with each browser seeing the other in that note; user script saved in A, opened in B and co-edited; Markdown Hub room started, joined, co-edited and kept on the Hub after the disclosure; history restore of the kept document; presence in Settings › Devices; the bell receiving a backup-failed notification without a reload, with dismiss). |
+| `npm run test:e2e:sync` | **19 passed, serial** (3.5 min), including the **3** tests of `e2e/sync/30-collab.spec.ts`: setup (one Hub with its web, a browser with web access, and a real Electron desktop enrolled through its own link); live co-editing of a script through the Agent relay; and an offline desktop edit that merged on reconnect **exactly once with no conflict-inbox entry**. The collaboration file also passed twice in isolation. |
+| `npm run audit:prod` | **Exits 1.** The accepted `node-forge` finding is allowed; the run fails on `electron` (GHSA-jr5w-w6x2-84p9), `undici` (GHSA-xjj6-f33q-929c) and `zod` (GHSA-mrhx-c7xc-m3w5). None of these comes from a 31J dependency (the 31J additions are the CodeMirror packages, `y-codemirror.next`, `yjs`, `y-protocols` and `lib0`); they are tracked separately from this phase. |
+
+### Bugs found by the exit drills and fixed
+
+| Found by | Defect | Fix |
+|---|---|---|
+| Two-browser drill (M812) | The shared `<app-code-editor>` ignored input changes (read-only flag, language, placeholder, ARIA labels) made while its lazy engine was still mounting, so an editor that mounted read-only while connecting stayed read-only after going live | The editor compares those inputs with what it mounted with and applies any that changed as soon as the handle exists (M812) |
+| Two-desktop drill (M813) | The script editor asked the Hub for the live document before the desktop outbox had delivered the saved script, so the Hub answered `not-found` | The editor retries once the outbox drains (M813, `d6ebba8a`) |
+| Property test / exit drills | A diff can place the same insertion at different but equivalent gaps (`"X\n"` after a newline or `"\nX"` before it), so an edit that reached the Hub both live and as a queued write could be kept twice | `mergeText3` slides each insertion to the rightmost equivalent gap before combining the sides (`b15bedd6`) |
+
+### Exit gate status
+
+The [roadmap exit gate](ROADMAP.md#phase-31j) is that presence, selected Yjs collaboration, realtime document updates and notification and job-status contracts honor authorization, content consent and retention, and that privileged job execution stays deferred to Phase 88.
+
+| Requirement | Evidence | Status |
+|---|---|---|
+| Presence | Hub presence suites in `npm run test:hub`; the presence step of `e2e/hub/60-collab.spec.ts`; opt-in activity sharing, memory-only and unaudited (PD-108) | Automated evidence recorded; phone online display owed (H9) |
+| Selected Yjs collaboration | `e2e/hub/60-collab.spec.ts` (scratchpad, script, Markdown room) and `e2e/sync/30-collab.spec.ts` (desktop through the Agent relay); `@dude/collab-doc` tests in `npm test` | Automated evidence recorded; two real machines owed (H1, H8) |
+| Realtime document updates | Live merges in open editors and `owner-view-changed` topics; the `/api/v1/realtime` WebSocket contract-parity suite (events carry no record content, and 31J events are withheld below protocol 3) | Automated evidence recorded |
+| Notifications and job status | Notification, reader-grant and job-status suites in `npm run test:hub`; the bell step of the Hub e2e | Automated evidence recorded; a real failure reaching the bell and a Windows toast owed (H4) |
+| Authorization | Only owner principals subscribe; a device credential gains no owner right; the Hub rewrites awareness identity; the reader grant is step-up, audited and checked at each delivery (PD-103, PD-110) | Automated evidence recorded |
+| Content consent | Collaboration requires the same category consent as sync; `collab-documents` is off by default and gates persisted Markdown documents; revoking consent ends the subscription (PD-103, PD-104) | Automated evidence recorded |
+| Retention | Snapshot idle, interval, count, size and 30-day rules; notification retention (30 days dismissed, 90 days, cap 500); `collab_bases` pruning; backups carry the collaborative tables and drop notifications and `job_last:*` (PD-105, PD-109) | Automated evidence recorded; restore onto a second machine owed (H7) |
+| No privileged job execution | `GET /api/v1/jobs` is read-only: no queue, no "Run now"; the reader grant does not open it (PD-112) | Evidence recorded as scope statement |
+
+### Still not recorded
+
+None of the owed passes below has been run: two PCs co-editing over a real LAN or in public mode, the installed SEA/WinSW Hub and the Docker image carrying 31J, a real scheduled-backup failure reaching the bell and a Windows toast while signed out, NVDA on the editor and bell, cursor colors across themes and contrast modes, a real offline desktop edit and reconnect, restoring collaborative documents onto a second machine, a multi-hour Hub memory watch, and the phone shown as online.
+
+Unrun by design: **no `measure:collab` exists or is required** (PD-115), so no collaboration latency, memory or document-size figures are recorded. The only collaboration limits that are enforced are the ones in the decisions (128 KiB record cap, 8 MiB per-document snapshot cap, 200 snapshots, 8 rooms of 8 participants).
+
+## Guided manual acceptance script
+
+For the owner. Run the groups in any order; each step is copy-pasteable where it is a command. Record the evidence fields in the **Result** block under each group and mark Pass or Fail. A Fail is a defect to fix and rerun, not a note; a skipped group stays **Pending** and carries forward. Use a throwaway environment you can wipe where a step touches the Hub or backups. Test-only `DUDE_HUB_TEST_*` knobs must not be set on any Hub used here: the release bundle ignores them and public mode refuses to start while one is set, so these passes exercise real timings (a 2-second materialization debounce, 2-minute idle snapshots, 10-minute minimum snapshot interval, 10-second disconnect grace).
+
+Common setup: a Hub on a machine you own with the owner signed in; at least two other desktops or browsers enrolled or signed in as the owner; Settings › Sync consent for **Scratchpad** and **Pipelines** (scripts) enabled on each desktop, Hub web access enabled for scratchpad, scripts and Markdown documents on each browser, and the **collab-documents** category enabled wherever a kept Markdown document is used.
+
+### H1. Two PCs co-editing over the LAN and in public mode
+
+1. With the Hub in LAN mode, enroll a second physical PC. On PC A open the scratchpad drawer and a snippet; on PC B open the same snippet. Type on both at once, including the same line, for a minute.
+2. Confirm both editors converge to identical text, each shows the other's caret and a name chip, and the status reads "Live". Repeat for a user script body (open in the script editor on both) and for a Markdown **Hub room** (start on A, join on B, then **Keep on Hub** after reading the disclosure).
+3. Switch the Hub to public mode (after the readiness gate, as in the [31F pass](PHASE31F_ACCEPTANCE.md#known-limitations-and-owed-manual-passes)) and repeat step 1 from a second machine through the public name, then from a phone browser on cellular.
+4. Close the Hub socket path (stop the Hub service) while both are typing, then start it again.
+
+**Pass criterion:** in every mode the two editors converge to byte-identical text with no lost keystroke, remote carets and selections are visible, a kept document appears on both machines and survives a Hub restart, and the Hub outage shows "Read-only" on Hub web and the 10-second-grace local fallback on the desktop (never silent data loss). Record: machines, modes, the Hub and app versions, convergence outcome per surface.
+
+**Result: Pending.**
+
+### H2. The installed Hub (SEA/WinSW) and the Docker image
+
+1. Install the Hub from the Windows installer produced by the current `master` build with the Hub component, create the owner, and run steps 1 and 2 of H1 against it. Confirm `GET /api/v1/jobs` (Settings › Environment & Hub › Hub jobs) lists every job in `HUB_JOB_IDS` with a last-run time.
+2. Run the Docker image from the same build (`npm run check:dockerfiles` first, then your usual `docker run` with a data volume) and repeat the same steps. Restart the container and confirm the kept Markdown document, a scratchpad snippet and the collaboration history are still there.
+3. Upgrade a 31I-era Hub data directory in place: confirm the migration to 0010 runs (a copy is written to `data/pre-migration` first) and that the previous version of the Hub then refuses the database rather than writing around the Y.Doc.
+
+**Pass criterion:** both installs serve `/api/v1/collab`, the jobs card and the bell, persisted collaborative state survives a restart, and the in-place upgrade keeps all existing records. Record: installer and image versions, Windows build, per-step outcome.
+
+**Result: Pending.**
+
+### H3. Windows toast and bell while signed out
+
+1. On a desktop, tick one kind under Settings › Environment & Hub › "OS notifications for Hub events" (all are off until chosen) and have the owner turn on "Can read Hub notifications" for that desktop on the Devices page (it needs step-up). Sign the owner out of the desktop, then close the window to the tray.
+2. Trigger a notification (H4) and confirm a Windows toast appears from the tray with the window closed.
+3. Open the bell, read the notification and dismiss it. Revoke the reader grant and trigger another; confirm no toast and the bell explains it needs the owner.
+
+**Pass criterion:** the toast appears with the window closed and the owner signed out, read and dismiss state persists on the Hub, and revoking the grant stops delivery immediately. Record: Windows build, notification type, outcomes.
+
+**Result: Pending.**
+
+### H4. A real scheduled-backup failure reaching the bell
+
+1. On the Hub host set a real backup schedule to a folder the service account cannot write to (for example an unplugged external drive) with `dude-hub backup schedule set` from an elevated shell, using your normal passphrase flow.
+2. Wait for the scheduled attempt (or the Hub's retry window, which is the smaller of the interval and 6 hours). Confirm a **backup failed** notification reaches the bell on Hub web and a signed-in desktop without a reload, and that the Hub jobs card shows the backup job's last outcome.
+3. Restore the folder; confirm a **recovered** notification follows and the failure notification is not duplicated by retries.
+
+**Pass criterion:** exactly one failed notification (deduplicated by source key), one recovered notification, correct job outcomes, and no credential or path secret in the notification text. Record: schedule interval, notification timestamps, audit entries seen.
+
+**Result: Pending.**
+
+### H5. NVDA on the editor and the bell
+
+With NVDA on Windows 11, in a desktop and in a Hub web browser:
+
+1. Tab through the shell: reach the notification bell, open its panel, read each item and dismiss one by keyboard only.
+2. Tab into a scratchpad note, a user-script body and a Markdown document editor. Confirm each editor has a spoken name, that **Tab leaves the editor** (it is never trapped) and that `Ctrl+F` opens the in-editor search panel.
+3. With a collaborator typing, confirm the status ("Live", "Read-only", "Reconnecting") is announced once per change and that remote typing is not read out character by character.
+
+**Pass criterion:** every control has a name and a logical focus order, an error or status is announced once, and nothing requires a pointer. Record: NVDA and browser versions, per-surface notes.
+
+**Result: Pending.**
+
+### H6. Cursor colors across themes and contrast modes
+
+Carets and selections of remote participants use category palette tokens (the name chip is neutral). With two participants of different color slots in one note:
+
+1. In Settings › Appearance cycle Dark, Light, System, then Normal and High contrast, and each category palette set, including the color-blind-safe status colors.
+2. For each combination read the remote caret, the remote selection fill and the chip against the editor surface.
+
+**Pass criterion:** in every combination the remote caret is visible against the background, the selected text stays readable, the chip is readable, and two participants remain distinguishable (a collision of one slot in eight is accepted). Record: combinations checked and any combination that failed.
+
+**Result: Pending.**
+
+### H7. A real offline desktop edit and reconnect, and restoring collaborative documents onto a second machine
+
+1. **Offline edit.** On an enrolled desktop open a user script that a browser also has open. Disconnect that desktop's network, keep editing past the 10-second grace (it shows the local-fallback state), edit a different region in the browser meanwhile, then reconnect.
+2. Confirm both edits are present once, nothing is duplicated, and Settings › Sync shows no conflict entry. Repeat with a Markdown document and note that it stays a local draft (it is not journaled, PD-106).
+3. **Restore.** Create a scratchpad snippet, a script and a kept Markdown document with several edits (let one history snapshot occur), take a backup (`dude-hub backup create`), and restore it on a second machine ([31G transfer drill](PHASE31G_ACCEPTANCE.md#transfer-drill-runbook), step 1 to 11). On the restored Hub confirm the three documents, their content and their history versions are present, restore one older version and confirm it applies as a new forward edit and is audited as `collab.history-restored`; confirm that no notifications or job history carried over.
+
+**Pass criterion:** offline and live edits merge exactly once without an inbox entry, and a restored Hub carries every collaborative document and snapshot but no notification. Record: machines, edit sequence, authority epoch before and after.
+
+**Result: Pending.**
+
+### H8. A multi-hour Hub memory watch
+
+1. On the Hub host start the Hub, keep two browsers and one desktop connected to the collaboration socket with two documents open and a person typing in one every few minutes. Record the Hub process working set after 30 minutes, then hourly.
+2. Close the documents and the Markdown room; wait past the 5-minute room close and the 2-minute idle snapshot; record the working set again.
+
+**Pass criterion (proposed here; adjust if the first run shows it is wrong):** after at least 4 hours the working set stays within 25 percent of the 30-minute reading while documents are open and returns near it after they are closed, snapshots are written only for edited documents, and no socket or document registry entry remains for closed documents. Record: hourly working set and open-socket counts.
+
+**Result: Pending.**
+
+### H9. The phone shown as online
+
+1. Pair the Android build to the Hub (31H pairing). Open Settings › Devices on a desktop or Hub web.
+2. Bring the app to the foreground and confirm the phone row shows **online** with a recent last-seen; force-stop the app and confirm it goes offline within the heartbeat window. Confirm the phone shows no activity (it has none to share) and that the app keeps working with no new code or error from the 31J events (a shipped Android build only receives events its hello's protocol allows).
+
+**Pass criterion:** the phone row is online while the app is connected and offline after it stops, the app shows no error from the Hub's protocol 3 events, and its sync is unaffected. Record: device model, app version, observed timings.
+
+**Result: Pending.**
+
+**Closing rule.** The owed passes do not gate Phase 32. A Fail is a defect against Phase 31J and is fixed as maintenance; a skipped pass stays Pending in this document, and results are recorded here in the commit that runs them.
+
+<a id="milestone-815-close-out"></a>
+
+## Milestone 815 close-out
+
+Closed 2026-10-24. Phase 31J's scope (presence, selected Yjs collaboration, realtime document updates, notifications and read-only job status) is implemented, the automated exit gate above passed, and the roadmap's strict phase progression is satisfied: every phase from 31A through 31J is complete, so Phase 32 may begin. This milestone changes documentation only; there is no version bump, because 31J has no version-bump milestone and every surface already releases as `2.0.<commit count>`.
+
+**Carried forward.**
+
+- The owed manual and physical passes H1 to H9 above, as Pending.
+- **Scratchpad `drawerExpanded` conflict dialog.** `drawerExpanded` is part of the synced `scratchpad` record, so two browsers opening the drawer at the same instant can raise the ordinary record-conflict dialog (Keep Hub / Keep mine / Keep both) although the snippets are live. Either choice is harmless; moving the drawer state out of the synced record is a later codec change.
+- **`npm run audit:prod`** reports advisories for `electron`, `undici` and `zod`, none from 31J, tracked separately.
+- **Bundle budget warnings.** The production build still shows two large-chunk budget warnings that pre-date 31J.
+- **Markdown documents are local drafts after the grace.** The `markdown-doc` codec is not journaled (see the deviations above).
+
+**Not delivered, by decision.** Named participants, read-only participants and guest permissions (Phase 53; the Hub keeps one owner); remote or privileged job execution, a job queue and "Run now" (Phase 88); a generic Yjs replication protocol (Yjs is only for the three PD-099 surfaces); a `job-status` event; and a `measure:collab` measurement. The ephemeral LAN server and BYO relay for Markdown Workspace are unchanged. Remote privileged execution stays deferred to Phase 88.
+
+**Next.** Phase 32 is the next planned phase. Nothing in it has started.
+
+## Commands
+
+Use Node 24/npm 11.19. These are the commands behind the evidence above; run them from the repository root.
+
+| Purpose | Command |
+|---|---|
+| Full regressions | `npm test`, `npm run lint`, `npm run test:electron`, `npm run test:high-consequence`, `npm run check:portable`, `npm run audit:prod` |
+| Hub | `npm run test:hub`, `npm run build:hub-web` |
+| Mobile gates | `npm run check:mobile`, `npm run test:mobile` |
+| Hub e2e | `npm run test:e2e:hub` (collaboration: `e2e/hub/60-collab.spec.ts`) |
+| Desktop sync e2e | `npm run test:e2e:sync` (collaboration: `e2e/sync/30-collab.spec.ts`; it builds the Electron app, the Hub web build and the test Hub first) |
+| Generated security doc | `node scripts/generate-security-doc.mjs` (must leave `SECURITY.md` unchanged) |
