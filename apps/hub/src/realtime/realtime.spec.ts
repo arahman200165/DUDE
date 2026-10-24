@@ -166,6 +166,48 @@ describe('realtime socket', () => {
     events.ws.close();
   });
 
+  it('counts browser rows, pushes presence-changed only to protocol-3 owner sockets and keeps opted-in activity in memory', async () => {
+    const V3 = { type: 'hello', protocolVersion: HUB_PROTOCOL_VERSION, minHubProtocol: 1 };
+    const watcher = track(await connect(h, ownerHeaders(h, owner)));
+    watcher.send(V3);
+    await watcher.next((m) => m.type === 'welcome');
+    const legacy = track((await welcomed(h, ownerHeaders(h, owner))).client);
+
+    // A second sign-in attaches a browser row; its owner cookie socket keeps that row online.
+    const browser = await h.signIn();
+    const row = (await h.call('POST', '/web/attach', { cookie: browser.cookie, csrf: browser.csrf, body: { installationId: 'install-presence-0001', label: 'Presence browser' } })).json.deviceId as string;
+    const tab = track(await connect(h, ownerHeaders(h, browser)));
+    tab.send(V3);
+    await tab.next((m) => m.type === 'welcome');
+    expect(await online(row)).toBe(true);
+    await watcher.next((m) => m.event === 'presence-changed' && m.data.deviceId === row && m.data.online === true && m.data.activity === null);
+
+    const { device, token } = await enrolled(h, owner);
+    const desk = track(await connect(h, { authorization: `Bearer ${token}` }));
+    desk.send(V3);
+    await desk.next((m) => m.type === 'welcome');
+    desk.send({ type: 'activity', activity: { kind: 'tool', id: 'base64' } });
+    await watcher.next((m) => m.event === 'presence-changed' && m.data.deviceId === device.deviceId && m.data.activity?.id === 'base64');
+    desk.send({ type: 'activity', activity: { kind: 'tool', id: 'not-a-registry-tool' } });
+    desk.send({ type: 'activity', activity: { kind: 'destination', id: 'settings' } });
+    await watcher.next((m) => m.event === 'presence-changed' && m.data.deviceId === device.deviceId && m.data.activity?.id === 'settings');
+    expect(watcher.messages.some((m) => m.data?.activity?.id === 'not-a-registry-tool')).toBe(false);
+
+    const read = (await h.call('GET', '/presence', { cookie: owner.cookie, csrf: owner.csrf })).json.entries as Msg[];
+    expect(read).toEqual(expect.arrayContaining([
+      { deviceId: row, online: true, activity: null },
+      { deviceId: device.deviceId, online: true, activity: { kind: 'destination', id: 'settings' } },
+    ]));
+    // Activity is never audited.
+    expect(listAudit(h.hub.hub.db, { limit: 200 }).some((e) => JSON.stringify(e).includes('activity'))).toBe(false);
+
+    desk.ws.close();
+    await desk.closed;
+    await watcher.next((m) => m.event === 'presence-changed' && m.data.deviceId === device.deviceId && m.data.online === false && m.data.activity === null);
+    expect(legacy.messages.some((m) => m.event === 'presence-changed')).toBe(false);
+    for (const c of [tab, watcher, legacy]) c.ws.close();
+  });
+
   it('accepts an owner bearer session', async () => {
     const { token } = await enrolled(h, owner);
     const bearer = (await h.call('POST', '/auth/owner/bearer', { bearer: token, body: { password: 'a very long password' } })).json.accessToken as string;
@@ -316,7 +358,7 @@ describe('realtime socket', () => {
       const call = async (method: string, params: unknown = {}): Promise<any> => methods[method]!(params);
 
       // every currently active device must ack before a safe activation
-      const active = h.hub.hub.db.prepare('SELECT device_id, display_name FROM devices WHERE revoked_at IS NULL AND unenrolled_at IS NULL').all() as Array<{ device_id: string; display_name: string }>;
+      const active = h.hub.hub.db.prepare("SELECT device_id, display_name FROM devices WHERE revoked_at IS NULL AND unenrolled_at IS NULL AND kind = 'desktop'").all() as Array<{ device_id: string; display_name: string }>;
       const a = await enrolled(h, owner);
       const b = await enrolled(h, owner);
       const connectedA = track((await welcomed(h, { authorization: `Bearer ${a.token}` })).client);

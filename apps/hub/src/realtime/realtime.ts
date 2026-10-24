@@ -6,7 +6,7 @@ import {
   HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION, HUB_REALTIME_PATH, REALTIME_CLOSE_CODES, REALTIME_HEARTBEAT_INTERVAL_MS, REALTIME_HELLO_TIMEOUT_MS,
   REALTIME_IDLE_TIMEOUT_MS, REALTIME_MAX_MESSAGE_BYTES, RealtimeClientMessage, checkProtocolCompatibility,
 } from '@dude/contracts/hub';
-import type { RealtimeEvent, RealtimeEventDataOf, RealtimeServerMessage } from '@dude/contracts/hub';
+import type { PresenceActivity, PresenceEntry, RealtimeEvent, RealtimeEventDataOf, RealtimeServerMessage } from '@dude/contracts/hub';
 import { realtimeEventAllowed } from '@dude/contracts/hub';
 import type { HubEventMap } from '../auth/hub-events.js';
 import { getAuthorityEpoch, getAuthorityState } from '../hub/authority.js';
@@ -15,7 +15,9 @@ import type { HostGuard } from '../security/host-guard.js';
 import { envelope } from '../server/errors.js';
 import { acknowledgeTlsPin } from '../tls/rotation.js';
 import { proxyPinSpkis } from '../tls/proxy-pins.js';
+import { TOOL_METADATA } from '@dude/tool-registry';
 import { authenticateUpgrade, type WsPrincipal } from './ws-auth.js';
+import { PresenceTracker } from './presence.js';
 
 export interface RealtimeTimings {
   helloTimeoutMs: number;
@@ -42,10 +44,15 @@ export interface RealtimeOptions {
   /** The current active pin (changes after a rotation). */
   activeSpki: () => string;
   timings?: Partial<RealtimeTimings>;
+  /** Registry tool ids accepted as presence activity (defaults to the generated registry). */
+  isKnownTool?: (toolId: string) => boolean;
 }
 
 export interface RealtimeHub {
+  /** True while a desktop, phone or browser row has a helloed socket (PD-108). */
   isDeviceOnline(deviceId: string): boolean;
+  /** Every online row with its opted-in activity. */
+  presence(): PresenceEntry[];
   /** Open sockets (all kinds). */
   connectionCount(): number;
   /** Open sockets by principal: owner (cookie or bearer) and device. */
@@ -64,6 +71,8 @@ interface Connection {
   helloed: boolean;
   /** The protocol the client declared in its hello; 31J events need 3 or later (PD-100). */
   protocol: number;
+  /** The registry row this socket keeps online: the device, or the browser row bound to an owner cookie session. */
+  presenceId: string | null;
   timers: Array<NodeJS.Timeout>;
   idle: NodeJS.Timeout | undefined;
   recent: number[];
@@ -76,11 +85,14 @@ export { sessionLive } from './ws-auth.js';
 export function registerRealtime(app: FastifyInstance, options: RealtimeOptions): RealtimeHub {
   const timings: RealtimeTimings = { ...DEFAULT_REALTIME_TIMINGS, ...options.timings };
   const connections = new Set<Connection>();
-  const presence = new Map<string, number>();
+  const presence = new PresenceTracker();
+  const knownTools = new Set(TOOL_METADATA.map((t) => t.id));
+  const isKnownTool = options.isKnownTool ?? ((id: string) => knownTools.has(id));
   const principals = new WeakMap<FastifyRequest, WsPrincipal>();
 
   const hub: RealtimeHub = {
-    isDeviceOnline: (deviceId) => (presence.get(deviceId) ?? 0) > 0,
+    isDeviceOnline: (deviceId) => presence.isOnline(deviceId),
+    presence: () => presence.entries(),
     connectionCount: () => connections.size,
     connectionCounts: () => {
       let device = 0;
@@ -155,12 +167,19 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
   app.hubEvents.on('device-unenrolled', onDeviceGone);
   app.hubEvents.on('tls-next-pin', onNextPin);
 
+  const broadcastPresence = (deviceId: string): void => {
+    const entry = presence.entry(deviceId);
+    for (const conn of where(isOwner)) sendEvent(conn, 'presence-changed', entry);
+  };
   const presenceChange = (deviceId: string, delta: 1 | -1): void => {
-    const before = presence.get(deviceId) ?? 0;
-    const after = Math.max(0, before + delta);
-    if (after === 0) presence.delete(deviceId);
-    else presence.set(deviceId, after);
-    if ((before === 0) !== (after === 0)) app.hubEvents.emit('device-registry-changed', { deviceId, change: 'presence' });
+    const flipped = delta === 1 ? presence.connect(deviceId) : presence.disconnect(deviceId);
+    if (!flipped) return;
+    app.hubEvents.emit('device-registry-changed', { deviceId, change: 'presence' });
+    broadcastPresence(deviceId);
+  };
+  const setActivity = (deviceId: string, activity: PresenceActivity | null): void => {
+    if (activity?.kind === 'tool' && !isKnownTool(activity.id)) return;
+    if (presence.setActivity(deviceId, activity)) broadcastPresence(deviceId);
   };
 
   app.addHook('preClose', async () => {
@@ -186,7 +205,7 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
   };
 
   function handleConnection(socket: WebSocket, principal: WsPrincipal): void {
-    const conn: Connection = { socket, principal, helloed: false, protocol: 0, timers: [], idle: undefined, recent: [] };
+    const conn: Connection = { socket, principal, helloed: false, protocol: 0, presenceId: null, timers: [], idle: undefined, recent: [] };
     connections.add(conn);
     let counted = false;
 
@@ -208,7 +227,7 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
       connections.delete(conn);
       for (const t of conn.timers) clearInterval(t);
       if (conn.idle) clearTimeout(conn.idle);
-      if (counted && principal.deviceId) presenceChange(principal.deviceId, -1);
+      if (counted && conn.presenceId) presenceChange(conn.presenceId, -1);
     });
     socket.on('error', () => { /* the close handler cleans up */ });
 
@@ -241,10 +260,11 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
         conn.helloed = true;
         conn.protocol = message.protocolVersion;
         armIdle(timings.idleTimeoutMs, REALTIME_CLOSE_CODES.heartbeatTimeout);
-        if (principal.deviceId) {
-          touchLastSeen(options.db, principal.deviceId, at);
+        conn.presenceId = principal.deviceId ?? (principal.kind === 'owner-cookie' ? browserOfSession(principal.sessionHash) : null);
+        if (conn.presenceId) {
+          touchLastSeen(options.db, conn.presenceId, at);
           counted = true;
-          presenceChange(principal.deviceId, 1);
+          presenceChange(conn.presenceId, 1);
         }
         const next = options.db.prepare("SELECT spki_sha256 FROM tls_pins WHERE state = 'next' LIMIT 1").get() as { spki_sha256: string } | undefined;
         send(conn, {
@@ -259,7 +279,10 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
       switch (message.type) {
         case 'hello': close(conn, REALTIME_CLOSE_CODES.protocolError, 'duplicate hello'); return;
         case 'heartbeat':
-          if (principal.deviceId) touchLastSeen(options.db, principal.deviceId, at);
+          if (conn.presenceId) touchLastSeen(options.db, conn.presenceId, at);
+          return;
+        case 'activity':
+          if (conn.presenceId) setActivity(conn.presenceId, message.activity);
           return;
         case 'tls-pin-ack':
           if (principal.deviceId) acknowledgeTlsPin(options.db, principal.deviceId, message.spkiSha256, at);

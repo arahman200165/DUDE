@@ -2,7 +2,7 @@ import { Value } from 'typebox/value';
 import type { TSchema, Static } from 'typebox';
 import {
   HUB_API_PREFIX, HelloResponse, ErrorEnvelope, checkProtocolCompatibility,
-  BootstrapResponse, TlsCertificatesResponse, AuditListResponse, SecurityAlertsResponse, HubDiagnosticsReport, ReachabilityEchoResponse, BackupStatusResponse,
+  BootstrapResponse, TlsCertificatesResponse, AuditListResponse, SecurityAlertsResponse, PresenceResponse, HUB_PRESENCE_PATH, HubDiagnosticsReport, ReachabilityEchoResponse, BackupStatusResponse,
   EnrollResponse, DeviceChallengeResponse, DeviceRecoveryChallengeResponse, DeviceTokenResponse, DeviceInfo, DeviceListResponse, OwnerBearerResponse, PairingCodeResponse,
   OkResponse, ConfirmPreview, SessionListResponse, RecoveryCodesResponse,
   StepUpResponse, ChangePasswordResponse,
@@ -73,6 +73,8 @@ export interface HubClient {
   /** Security-relevant audit events of the last 30 days with the unseen count (owner session). */
   listSecurityAlerts(auth: Bearer): Promise<SecurityAlertsResponse>;
   markSecurityAlertsSeen(auth: Bearer, upToSeq: number): Promise<OkResponse>;
+  /** Owner: every online registry row with its opted-in activity (PD-108). */
+  presence(auth: Bearer): Promise<PresenceResponse>;
   recoveryCodesPreview(auth: Bearer): Promise<ConfirmPreview>;
   regenerateRecoveryCodes(auth: Bearer, confirmToken: string): Promise<RecoveryCodesResponse>;
   changePassword(auth: Bearer, currentPassword: string, newPassword: string): Promise<ChangePasswordResponse>;
@@ -154,6 +156,7 @@ export function createHubClient(transport: HubTransport, opts: HubClientOptions)
     reachabilityEcho: (auth) => call(ReachabilityEchoResponse, { method: 'GET', path: `${P}/reachability/echo` }, auth),
     listSecurityAlerts: (auth) => call(SecurityAlertsResponse, { method: 'GET', path: `${P}/security/alerts` }, auth),
     markSecurityAlertsSeen: (auth, upToSeq) => call(OkResponse, { method: 'POST', path: `${P}/security/alerts/seen`, body: { upToSeq } }, auth),
+    presence: (auth) => call(PresenceResponse, { method: 'GET', path: HUB_PRESENCE_PATH }, auth),
     listAudit: (auth, query) => {
       const qs: string[] = [];
       if (query?.beforeSeq !== undefined) qs.push(`beforeSeq=${query.beforeSeq}`);

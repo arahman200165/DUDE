@@ -1,0 +1,32 @@
+import Type, { type Static } from 'typebox';
+
+/** Owner read of who is online right now (PD-108). Credential: owner cookie or bearer session. */
+export const HUB_PRESENCE_PATH = '/api/v1/presence';
+
+/** Shell destinations a device may report as its activity; everything else is a registry tool id (validated by the Hub). */
+export const PRESENCE_DESTINATIONS = ['home', 'tools', 'smart-paste', 'workspace', 'history', 'quick-run', 'projects', 'insights', 'pipelines', 'settings'] as const;
+export type PresenceDestination = (typeof PRESENCE_DESTINATIONS)[number];
+
+/**
+ * What a device is showing, shared only when that device opted in (`__device__:presenceShareActivity`). Held in Hub
+ * memory only and never audited.
+ */
+export const PresenceActivity = Type.Union([
+  Type.Object({ kind: Type.Literal('tool'), id: Type.String({ pattern: '^[a-z0-9][a-z0-9-]{0,63}$' }) }, { additionalProperties: false }),
+  Type.Object({
+    kind: Type.Literal('destination'),
+    id: Type.Unsafe<PresenceDestination>({ type: 'string', enum: [...PRESENCE_DESTINATIONS] }),
+  }, { additionalProperties: false }),
+]);
+export type PresenceActivity = Static<typeof PresenceActivity>;
+
+/** One registry row's live state: desktops and phones by their device socket, browsers by their owner cookie socket. */
+export const PresenceEntry = Type.Object({
+  deviceId: Type.String(),
+  online: Type.Boolean(),
+  activity: Type.Union([PresenceActivity, Type.Null()]),
+});
+export type PresenceEntry = Static<typeof PresenceEntry>;
+
+export const PresenceResponse = Type.Object({ entries: Type.Array(PresenceEntry) });
+export type PresenceResponse = Static<typeof PresenceResponse>;

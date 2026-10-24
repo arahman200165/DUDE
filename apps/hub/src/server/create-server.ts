@@ -12,6 +12,7 @@ import { registerSessionRoutes } from './routes/sessions.js';
 import { registerDeviceRoutes } from './routes/devices.js';
 import { registerTlsAuditRoutes } from './routes/tls-audit.js';
 import { registerSecurityAlertRoutes } from './routes/security-alerts.js';
+import { registerPresenceRoutes } from './routes/presence.js';
 import { registerDiagnosticsRoute } from './routes/diagnostics.js';
 import { registerReachabilityRoute } from './routes/reachability.js';
 import { registerBackupRoutes } from './routes/backup.js';
@@ -164,6 +165,7 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   registerSessionRoutes(app, authOptions);
   registerTlsAuditRoutes(app, { db: options.hub.db, tlsDir: options.paths.tlsDir, requireOwner: authOptions.requireOwner });
   registerSecurityAlertRoutes(app, { db: options.hub.db, now, requireOwner: authOptions.requireOwner });
+  registerPresenceRoutes(app, { realtime, requireOwner: authOptions.requireOwner });
   const startedAt = now();
   const hostFacts = options.diagnostics?.host ?? createHostFacts({ exec: options.diagnostics?.exec ?? defaultExec, ...(options.diagnostics?.platform ? { platform: options.diagnostics.platform } : {}), now });
   const resolveDns = options.diagnostics?.resolveDns ?? createCachedNameResolver({ now });
