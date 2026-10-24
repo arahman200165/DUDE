@@ -27,7 +27,7 @@
     "test:appearance": "npm run build && playwright test --config=e2e/appearance/playwright.appearance.config.ts",
     "test:electron": "vitest run --config vitest.electron.config.mts",
     "test:e2e:hub": "playwright test --config=e2e/hub/playwright.hub.config.ts",
-    "test:e2e:sync": "ng build --configuration production,electron && npm run electron:compile && npm run hub:compile && playwright test --config=e2e/sync/playwright.sync.config.ts",
+    "test:e2e:sync": "ng build --configuration production,electron && npm run build:hub-web && npm run electron:compile && npm run hub:compile && npm run hub:compile:test && playwright test --config=e2e/sync/playwright.sync.config.ts",
     "measure:hub": "node scripts/measure-hub.mjs",
     "measure:sync": "node scripts/measure-sync.mjs",
     "measure:hub-web": "node scripts/measure-hub-web.mjs",

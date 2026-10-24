@@ -1,10 +1,11 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { connect, createServer, type Server, type Socket } from 'node:net';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
 import { _electron, expect, type ElectronApplication, type Page } from '@playwright/test';
 import type { AgentSyncStatus, DesktopHubStatus, DeviceStoreBoot, EntityCommitResult, FirstSyncChoice, FirstSyncPreview } from '@dude/contracts';
-import type { SyncRecord } from '@dude/contracts/hub';
+import { formatPairingString, parsePairingString, type SyncRecord } from '@dude/contracts/hub';
 import { SimulatedDevice, hubClient, pinnedTransport, sharedHub, type HubTarget } from '../hub/hub-helpers';
 
 const root = path.resolve(__dirname, '../..');
@@ -353,6 +354,68 @@ export async function firstSyncMergeAll(d: Desktop): Promise<AgentSyncStatus> {
   const preview = await bridgeResult<FirstSyncPreview>(d, 'sync.firstSyncPreview');
   const choices = Object.fromEntries(preview.categories.map((c) => [c.category, 'merge' as FirstSyncChoice]));
   return bridgeResult<AgentSyncStatus>(d, 'sync.firstSyncApply', choices, preview.digest);
+}
+
+// --- One device's own link to a Hub (Phase 31J collaboration drill) ------------------------------------------------------------------------
+
+/**
+ * A plain TCP relay in front of a Hub that only one desktop uses, so that desktop's link can be cut and restored while the Hub and every
+ * other client stay up. It listens on IPv6 loopback (`[::1]`) at the Hub's own port and forwards to the Hub on `127.0.0.1`: TLS passes
+ * through untouched (the desktop still pins the Hub's key) and the desktop's Host header (`[::1]:<port>`) is a loopback name at the listen
+ * port, which the Hub's host guard accepts. A desktop enrolled with {@link viaLinkRelay} reaches the Hub only through it.
+ */
+export interface LinkRelay {
+  /** Connections accepted so far (a check that nothing else reaches the Hub through the relay). */
+  connections(): number;
+  /** Cuts the link: stops listening and drops every open connection (a cable pulled, nothing closed politely). */
+  down(): Promise<void>;
+  /** Restores the link at the same address. */
+  up(): Promise<void>;
+}
+
+export async function startLinkRelay(hubPort: number): Promise<LinkRelay> {
+  const sockets = new Set<Socket>();
+  let accepted = 0;
+  let server: Server | null = null;
+  const listen = (): Promise<void> => new Promise<void>((resolve, reject) => {
+    const next = createServer((client) => {
+      accepted += 1;
+      const upstream = connect({ host: '127.0.0.1', port: hubPort });
+      for (const socket of [client, upstream]) {
+        sockets.add(socket);
+        socket.on('close', () => sockets.delete(socket));
+        socket.on('error', () => { client.destroy(); upstream.destroy(); });
+      }
+      client.pipe(upstream);
+      upstream.pipe(client);
+    });
+    next.once('error', reject);
+    next.listen({ host: '::1', port: hubPort, ipv6Only: true }, () => {
+      server = next;
+      resolve();
+    });
+  });
+  await listen();
+  return {
+    connections: () => accepted,
+    down: async () => {
+      const current = server;
+      server = null;
+      for (const socket of sockets) socket.destroy();
+      sockets.clear();
+      if (current) await new Promise<void>((resolve) => current.close(() => resolve()));
+    },
+    up: async () => {
+      if (server === null) await listen();
+    },
+  };
+}
+
+/** The same pairing string, pointed at the {@link LinkRelay} (`[::1]` at the Hub's port) instead of the Hub's own address. */
+export function viaLinkRelay(pairingString: string): string {
+  const parts = parsePairingString(pairingString);
+  if (parts === null) throw new Error(`Unparseable pairing string: ${pairingString}`);
+  return formatPairingString({ ...parts, host: '[::1]' });
 }
 
 /** Recovery snapshots the Agent took (`<profile>/device-store/backups/<prefix>-*.db`), by file name. */

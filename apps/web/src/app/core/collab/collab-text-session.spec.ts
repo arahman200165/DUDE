@@ -61,6 +61,10 @@ function start(hub: FakeCollabHub, p: Peer): void {
   settle(hub);
 }
 
+/** Subscriptions to KEY the peer sent, over every connection it opened. */
+const subscribes = (p: Peer): number =>
+  p.transport.started.flatMap((c) => c.controls).filter((m) => m.type === 'subscribe' && m.doc === KEY).length;
+
 describe('CollabTextSession (PD-099, PD-106)', () => {
   afterEach(() => vi.useRealTimers());
 
@@ -100,6 +104,51 @@ describe('CollabTextSession (PD-099, PD-106)', () => {
     expect(a.session.mode()).toBe('local');
     expect(a.session.refusal()).toBe('consent-required');
     expect(a.session.binding()).toBeNull();
+  });
+
+  it('a desktop asks again for a document the Hub did not have yet, once its outbox has drained', () => {
+    const hub = new FakeCollabHub();
+    hub.refusals.set(KEY, 'not-found');
+    const a = peer(hub, ALICE, true);
+    a.pending.set({ pending: 1 });
+    start(hub, a);
+    expect(a.session.mode()).toBe('local');
+    expect(a.session.refusal()).toBe('not-found');
+
+    // The save reaches the Hub; the outbox drains and the document is asked for again.
+    hub.refusals.delete(KEY);
+    hub.room(KEY).doc.getText('body').insert(0, 'saved here');
+    a.pending.set({ pending: 0 });
+    start(hub, a);
+    expect(a.session.mode()).toBe('live');
+    expect(a.session.text()).toBe('saved here');
+  });
+
+  it('a desktop asks again at most once per sync report while the Hub keeps answering not-found', () => {
+    const hub = new FakeCollabHub();
+    hub.refusals.set(KEY, 'not-found');
+    const a = peer(hub, ALICE, true);
+    start(hub, a);
+    // The first answer came with the report already in hand: one more ask for it, then none until the next report.
+    start(hub, a);
+    start(hub, a);
+    expect(subscribes(a)).toBe(2);
+    expect(a.session.refusal()).toBe('not-found');
+    a.pending.set({ pending: 0 });
+    start(hub, a);
+    start(hub, a);
+    expect(subscribes(a)).toBe(3);
+  });
+
+  it('Hub web never asks again after not-found', () => {
+    const hub = new FakeCollabHub();
+    hub.refusals.set(KEY, 'not-found');
+    const a = peer(hub, ALICE);
+    start(hub, a);
+    a.pending.set({ pending: 0 });
+    start(hub, a);
+    expect(subscribes(a)).toBe(1);
+    expect(a.session.mode()).toBe('local');
   });
 
   it('Hub web is read-only while the Hub is unreachable and live again once it is back', () => {

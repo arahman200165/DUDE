@@ -23,8 +23,9 @@ function run(script: string): Promise<void> {
  */
 export default async function globalSetup(): Promise<() => Promise<void>> {
   if (!existsSync(HUB_BUNDLE)) await run('hub:compile');
-  for (const required of ['dist/electron/main.js', 'dist/electron/device-agent.js', 'dist/dude/browser/index.html']) {
-    if (!existsSync(path.join(root, required))) throw new Error(`${required} is missing; run: npm run test:e2e:sync (builds the desktop renderer and Electron).`);
+  // The collaboration drill (30) also needs the Hub web build and the TEST Hub bundle.
+  for (const required of ['dist/electron/main.js', 'dist/electron/device-agent.js', 'dist/dude/browser/index.html', 'dist/hub-web/browser/index.html', 'dist/hub-test/dude-hub.cjs']) {
+    if (!existsSync(path.join(root, required))) throw new Error(`${required} is missing; run: npm run test:e2e:sync (builds the desktop renderer, Electron, the Hub web and the Hub bundles).`);
   }
   const indexHtml = readFileSync(path.join(root, 'dist/dude/browser/index.html'), 'utf8');
   if (!indexHtml.includes('<base href="/">')) throw new Error('dist/dude/browser was not built for desktop; run: ng build --configuration production,electron');

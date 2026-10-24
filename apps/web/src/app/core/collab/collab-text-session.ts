@@ -110,6 +110,18 @@ export class CollabTextSession {
       const status = session.status();
       untracked(() => this.onStatus(status));
     });
+    // A desktop saves through its outbox, so a script saved here a moment ago can reach the Hub after the editor asked for its
+    // document: the Hub answers `not-found`. Ask again once the outbox has drained, at most once per sync status report.
+    let retriedFor: unknown = undefined;
+    effect(() => {
+      if (!this.editableDown) return;
+      const report = this.sync.status();
+      const session = this.session();
+      if (session === null || session.status() !== 'refused' || session.refusal() !== 'not-found') return;
+      if ((report?.pending ?? 0) > 0 || report === retriedFor) return;
+      retriedFor = report;
+      untracked(() => this.reopen());
+    });
     effect(() => {
       if (!this.localHold()) return;
       const ready = this.config.canPromote?.() ?? true;

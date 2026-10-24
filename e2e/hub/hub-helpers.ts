@@ -386,10 +386,13 @@ export function runHubCli(args: readonly string[], options: { env?: Record<strin
   });
 }
 
-/** A Chromium that trusts exactly one Hub's leaf key (`--ignore-certificate-errors-spki-list`, never a blanket override), in its own cookie jar. */
-export async function openHubBrowser(target: HubTarget): Promise<{ browser: Browser; context: BrowserContext; page: Page }> {
+/**
+ * A Chromium that trusts exactly one Hub's leaf key (`--ignore-certificate-errors-spki-list`, never a blanket override), in its own cookie jar.
+ * `args` adds Chromium switches (the sync collaboration drill pins `localhost` to IPv4).
+ */
+export async function openHubBrowser(target: HubTarget, options: { args?: readonly string[] } = {}): Promise<{ browser: Browser; context: BrowserContext; page: Page }> {
   const pin = Buffer.from(target.spki, 'base64url').toString('base64');
-  const browser = await chromium.launch({ args: [`--ignore-certificate-errors-spki-list=${pin}`] });
+  const browser = await chromium.launch({ args: [`--ignore-certificate-errors-spki-list=${pin}`, ...(options.args ?? [])] });
   const context = await browser.newContext({ baseURL: target.url });
   return { browser, context, page: await context.newPage() };
 }

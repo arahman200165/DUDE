@@ -5,8 +5,9 @@ import { defineConfig } from '@playwright/test';
  * instances (`dist/electron/main.js`, each with its own userData and therefore its own Device State Store and
  * resident Agent) driven through the real UI. Serial: the specs build on each other's state.
  *
- * Needs the desktop renderer build (`ng build --configuration production,electron`) and `npm run electron:compile`;
- * `npm run test:e2e:sync` does both. Windows only (the Agent pipe and the check-desktop harness are Windows-first).
+ * Needs the desktop renderer build (`ng build --configuration production,electron`) and `npm run electron:compile`; the
+ * collaboration drill (30, Phase 31J) also runs its own TEST Hub (`npm run hub:compile:test`) serving the Hub web build
+ * (`npm run build:hub-web`) to a Chromium browser. `npm run test:e2e:sync` builds all of them. Windows only (the Agent pipe and the check-desktop harness are Windows-first).
  */
 export default defineConfig({
   testDir: '.',
