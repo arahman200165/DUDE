@@ -31,6 +31,18 @@ describe('PersistenceService', () => {
     expect(reloaded()).toBe(4);
   });
 
+  it('writeDefault: false stores nothing until the value leaves its default, then stores every choice', async () => {
+    const optIn = service.signal('demoTool', 'optIn', 'local', false, { writeDefault: false });
+    await stable();
+    expect(localStorage.getItem('dude:v1:demoTool:optIn')).toBeNull();
+    optIn.set(true);
+    await stable();
+    expect(localStorage.getItem('dude:v1:demoTool:optIn')).toBe('true');
+    optIn.set(false);
+    await stable();
+    expect(localStorage.getItem('dude:v1:demoTool:optIn')).toBe('false');
+  });
+
   it('acceptance: a JWT-like payload set with policy "none" never reaches localStorage or sessionStorage', async () => {
     const token = service.signal('jwtTool', 'token', 'none', '');
     token.set('eyJhbGciOiJIUzI1NiJ9.fake.jwt-payload');

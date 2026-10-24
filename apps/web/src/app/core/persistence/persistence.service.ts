@@ -78,7 +78,12 @@ export class PersistenceService {
    * `setConsent`, after which future writes land in `local`.
    */
   signal<T>(toolId: string, key: string, policy: PersistencePolicy, initialValue: T,
-    options?: { readonly crossTab?: CrossTabSync; readonly decode?: (raw: unknown) => T | null },
+    options?: {
+      readonly crossTab?: CrossTabSync;
+      readonly decode?: (raw: unknown) => T | null;
+      /** False: nothing is stored while the value is still the untouched default (an opt-in that must leave no trace until chosen). */
+      readonly writeDefault?: boolean;
+    },
   ): WritableSignal<T> {
     if (policy === 'none') {
       return signal(initialValue);
@@ -107,11 +112,14 @@ export class PersistenceService {
 
     const backend = policy === 'local' ? this.local : this.session;
     const value = signal(this.readValue(backend, storageKey, initialValue, options?.decode));
+    const defaultJson = options?.writeDefault === false ? JSON.stringify(initialValue) : undefined;
     effect(
       () => {
         const json = JSON.stringify(value());
+        const stored = backend.get(storageKey);
+        if (stored === null && json === defaultJson) return;
         // Skipping an identical write keeps a value adopted from another tab from echoing back.
-        if (backend.get(storageKey) !== json) backend.set(storageKey, json, meta);
+        if (stored !== json) backend.set(storageKey, json, meta);
       },
       { injector: this.injector },
     );

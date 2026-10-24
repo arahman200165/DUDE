@@ -24,7 +24,7 @@ export class PresenceService {
 
   readonly available = this.port !== null;
   /** `__device__:presenceShareActivity`: device-local, never synced. */
-  readonly shareActivity = inject(PersistenceService).signal('__device__', 'presenceShareActivity', 'local', false);
+  readonly shareActivity = inject(PersistenceService).signal('__device__', 'presenceShareActivity', 'local', false, { writeDefault: false });
 
   private readonly current = signal<PresenceActivity | null>(null);
   /** The last value handed to the port (null: nothing is being shared). */
