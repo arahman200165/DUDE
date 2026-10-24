@@ -32,7 +32,7 @@ Related: [DUDE — Product Requirements](../DUDE_PRD.md) · [Quality and Release
 | Horizon | Status |
 |---|---|
 | Phases 0–31 | Complete; Phase 31 closed at Milestone 614 |
-| Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A (Milestone 615) and 31B (Milestones 616–627) and 31C (Milestones 628–648) and 31D (Milestones 649–662) and 31E (Milestones 663–682) and 31F (Milestones 683–699) and 31G (Milestones 700–719) complete, 31H (Milestones 720–728) and 31I (Milestones 729–786) complete; DUDE 2.0 was declared at Milestone 786 on 2026-10-23, with 31H's carried passes recorded in the 31I gate (the missing-Keystore and corrupt/full-storage cases are automated-only under PD-098); 31J planned and not started |
+| Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A (Milestone 615) and 31B (Milestones 616–627) and 31C (Milestones 628–648) and 31D (Milestones 649–662) and 31E (Milestones 663–682) and 31F (Milestones 683–699) and 31G (Milestones 700–719) complete, 31H (Milestones 720–728) and 31I (Milestones 729–786) complete; DUDE 2.0 was declared at Milestone 786 on 2026-10-23, with 31H's carried passes recorded in the 31I gate (the missing-Keystore and corrupt/full-storage cases are automated-only under PD-098); 31J in progress from Milestone 787 ([decisions PD-099–PD-115](PHASE31J_PLAN.md)) |
 | Phase 32 | Core expansion begins only after every phase from 31A through 31J is complete |
 | Phases 33–100 | Retained long-horizon scope, subject to dependencies and product boundaries |
 
@@ -40,7 +40,7 @@ Related: [DUDE — Product Requirements](../DUDE_PRD.md) · [Quality and Release
 
 The roadmap deliberately extends beyond what any single delivery phase covers.
 
-Phase 0 was the weekend commitment; it is complete. **Phases 1–31 are also complete.** Phase 8 established the Windows desktop track, Phase 21 established the cross-tool workflow foundations, and Phase 22 hardened the platform (distributed manifests, single-sourced metadata, structural validation, generated docs, dependency boundaries, chunk/cache budgets) for the next several hundred tools. Phase 30 (30A–30L) shipped the workbench shell, discovery, insights, appearance, and verification program. Phase 31 (Milestones 593–614) shipped the Windows process/system troubleshooting tools and the second local mutation engine. The next priority is to complete Phases 31A–31J strictly in order before beginning Phase 32 tool expansion. Existing Phase 32–100 identifiers and feature inventories are retained; delivered milestones remain 593–614 for Phase 31. Milestone 615 records the Phase 31A implementation; Phases 31A–31I are complete (31I's 40-tool Android set is delivered and DUDE 2.0 was declared at Milestone 786), and 31J has not started.
+Phase 0 was the weekend commitment; it is complete. **Phases 1–31 are also complete.** Phase 8 established the Windows desktop track, Phase 21 established the cross-tool workflow foundations, and Phase 22 hardened the platform (distributed manifests, single-sourced metadata, structural validation, generated docs, dependency boundaries, chunk/cache budgets) for the next several hundred tools. Phase 30 (30A–30L) shipped the workbench shell, discovery, insights, appearance, and verification program. Phase 31 (Milestones 593–614) shipped the Windows process/system troubleshooting tools and the second local mutation engine. The next priority is to complete Phases 31A–31J strictly in order before beginning Phase 32 tool expansion. Existing Phase 32–100 identifiers and feature inventories are retained; delivered milestones remain 593–614 for Phase 31. Milestone 615 records the Phase 31A implementation; Phases 31A–31I are complete (31I's 40-tool Android set is delivered and DUDE 2.0 was declared at Milestone 786), and 31J is in progress from Milestone 787.
 
 From Phase 22 onward, the roadmap deliberately stops treating raw tool count as the primary measure of progress. Platform trust, correctness, composition, native capability, local/offline strength, automation safety, discoverability, and reuse across surfaces matter more.
 
@@ -266,11 +266,11 @@ Backup/transfer is deliberately moved ahead of mobile delivery, and security con
 
 <a id="phase-31j"></a>
 
-### Phase 31J — Hub Collaboration and Realtime Depth (Planned)
+### Phase 31J — Hub Collaboration and Realtime Depth (In Progress)
 
 **Depends on:** 31D–31I for delivery; realtime transport foundation starts in 31C.
 
-**Implementation status:** not started. Only the foundation below exists: the authenticated Hub realtime WebSocket (31C) and its Hub web client (31E). No presence, Yjs, collaborative-document or notification/job-status milestone has landed, and 31J begins after 31I's exit gate and DUDE 2.0 are recorded.
+**Implementation status:** in progress. Decisions PD-099–PD-115 were recorded at Milestone 787 in [Phase 31J decisions](PHASE31J_PLAN.md): Yjs only for scratchpad snippets, user-script bodies and Markdown Workspace Hub rooms, over a separate authenticated `/api/v1/collab` socket with Hub-persisted state materialized into the existing sync records; presence for every principal; a persisted Hub notification inbox with a shell bell; read-only job status; and live views. The foundation is the authenticated Hub realtime WebSocket (31C) and its Hub web client (31E).
 
 - presence;
 - Yjs where appropriate;

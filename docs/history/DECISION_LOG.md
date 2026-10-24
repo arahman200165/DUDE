@@ -447,6 +447,30 @@ PD-084–PD-098 govern the initial Android tool set and the DUDE 2.0 gate beginn
 
 As built, PD-090 and PD-091 resolve to a 2 MiB default because manifest `fileInput` has no size field, PD-092's scan classification is new portable code rather than a move and desktop Device Info uses one new read-only IPC (`dude:deviceInfo:osFacts`), and no PD-085 reserve swap occurred. See the [deviations](../delivery/PHASE31I_PLAN.md#deviations-and-implementation-notes).
 
+### Phase 31J implementation decisions
+
+PD-099–PD-115 govern Hub collaboration and realtime depth beginning at Milestone 787. They are recorded in full in [Phase 31J decisions](../delivery/PHASE31J_PLAN.md), with the milestone map.
+
+| Decision | Scope |
+|---|---|
+| PD-099 | Yjs only for scratchpad snippets, user-script bodies and Markdown Workspace Hub rooms |
+| PD-100 | Separate authenticated `/api/v1/collab` socket with binary y-protocols frames; one WebSocket registration; protocol 3 gates new events |
+| PD-101 | Hub-persisted, compacted Y.Doc materialized into the existing sync record through `commitCanonical` |
+| PD-102 | Non-Yjs edits merged three ways against the stored base; opt-in `merged` push result; text and keyed-list merge3 rules |
+| PD-103 | Collaboration requires the same category consent as sync; new `collab-documents` category off by default; Hub-rewritten awareness identity |
+| PD-104 | Ephemeral Markdown Hub rooms (8 × 8, closed 5 minutes after empty); "Keep on Hub" documents never auto-expire; relay unchanged |
+| PD-105 | 30-day snapshot history, restore as a forward edit, compaction and backup inclusion |
+| PD-106 | Desktop renderer holds the Y.Doc; the Agent relays opaque frames behind its authority gate |
+| PD-107 | CodeMirror 6 and `y-codemirror.next` on every host, lazily loaded and token-themed, in `apps/web` only |
+| PD-108 | Presence for every principal; ephemeral awareness; opt-in, memory-only active-tool presence |
+| PD-109 | Persisted Hub notifications from a closed producer list, deduplicated, with their own retention |
+| PD-110 | Per-device notification-reader grant; opt-in desktop OS notifications |
+| PD-111 | Notification bell as shell exception #14 |
+| PD-112 | Read-only job status for the Hub's existing timers; job execution stays in Phase 88 |
+| PD-113 | Live merges in open editors and contentless `owner-view-changed` topics; no record content on `/api/v1/realtime` |
+| PD-114 | Hub collaboration is environment infrastructure behind `HUB_COLLAB`, not a platform capability |
+| PD-115 | Exit gate suites and drills, plus the owed physical and installed passes |
+
 ### Testing, accessibility, and performance evolution
 
 The original MVP deliberately rejected exhaustive coverage targets. The modern PRD keeps that pragmatic stance while replacing blanket exclusions with risk-based quality requirements:
