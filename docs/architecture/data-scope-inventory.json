@@ -11,7 +11,7 @@
   ],
   "classificationCounts": {
     "device-doc": 33,
-    "regex-heuristic (review flag)": 55,
+    "regex-heuristic (review flag)": 59,
     "agent-table": 17,
     "hub-table": 30,
     "mobile-table": 8,
@@ -405,6 +405,30 @@
       "reviewed": "sessionStorage one-shot notice flags for imported files; session-only, non-sensitive."
     },
     {
+      "source": "apps/web/src/app/core/workspace/scratchpad-collab.ts",
+      "line": 179,
+      "namespace": null,
+      "key": null,
+      "heuristicScope": "local-only",
+      "reviewed": "Angular signal writes holding the in-memory collaboration session (Phase 31J); the scratchpad itself persists only through ScratchpadService."
+    },
+    {
+      "source": "apps/web/src/app/core/workspace/scratchpad-collab.ts",
+      "line": 184,
+      "namespace": null,
+      "key": null,
+      "heuristicScope": "local-only",
+      "reviewed": "Angular signal writes holding the in-memory collaboration session (Phase 31J); the scratchpad itself persists only through ScratchpadService."
+    },
+    {
+      "source": "apps/web/src/app/core/workspace/scratchpad-collab.ts",
+      "line": 297,
+      "namespace": null,
+      "key": null,
+      "heuristicScope": "local-only",
+      "reviewed": "Angular signal writes holding the in-memory collaboration session (Phase 31J); the scratchpad itself persists only through ScratchpadService."
+    },
+    {
       "source": "apps/web/src/app/core/workspace/scratchpad.service.ts",
       "line": 34,
       "namespace": null,
@@ -422,7 +446,7 @@
     },
     {
       "source": "apps/web/src/app/core/workspace/scratchpad.service.ts",
-      "line": 46,
+      "line": 47,
       "namespace": null,
       "key": null,
       "heuristicScope": "local-only",
@@ -430,7 +454,15 @@
     },
     {
       "source": "apps/web/src/app/core/workspace/scratchpad.service.ts",
-      "line": 50,
+      "line": 51,
+      "namespace": null,
+      "key": null,
+      "heuristicScope": "local-only",
+      "reviewed": "Signal .set on scratchpad state; entity-codec classified at the signal declaration (workspace)."
+    },
+    {
+      "source": "apps/web/src/app/core/workspace/scratchpad.service.ts",
+      "line": 55,
       "namespace": null,
       "key": null,
       "heuristicScope": "local-only",
@@ -2667,6 +2699,48 @@
       "syncConsent": "per category after enrollment and first-sync confirmation (see entity inventory)"
     },
     {
+      "source": "apps/web/src/app/core/workspace/scratchpad-collab.ts",
+      "line": 184,
+      "operation": "this.session.set(null)",
+      "namespace": null,
+      "key": null,
+      "storage": "this.session",
+      "storageLocation": "this.session.set(null)",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "sensitive",
+      "classificationBasis": "regex-heuristic (review flag)",
+      "syncConsent": "not granted"
+    },
+    {
+      "source": "apps/web/src/app/core/workspace/scratchpad-collab.ts",
+      "line": 297,
+      "operation": "this.session.set(this.active() ? this.collab.open(SCRATCHPAD_DOC_KEY) : null)",
+      "namespace": null,
+      "key": null,
+      "storage": "this.session",
+      "storageLocation": "this.session.set(this.active() ? this.collab.open(SCRATCHPAD_DOC_KEY) : null)",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "sensitive",
+      "classificationBasis": "regex-heuristic (review flag)",
+      "syncConsent": "not granted"
+    },
+    {
+      "source": "apps/web/src/app/core/workspace/scratchpad-collab.ts",
+      "line": 179,
+      "operation": "this.session.set(this.collab.open(SCRATCHPAD_DOC_KEY))",
+      "namespace": null,
+      "key": null,
+      "storage": "this.session",
+      "storageLocation": "this.session.set(this.collab.open(SCRATCHPAD_DOC_KEY))",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "sensitive",
+      "classificationBasis": "regex-heuristic (review flag)",
+      "syncConsent": "not granted"
+    },
+    {
       "source": "apps/web/src/app/core/workspace/scratchpad.service.ts",
       "line": 21,
       "operation": "this.persistence.signal<ScratchpadStore>(\n    '__workspace__',\n    'scratchpad',\n    'local',\n    EMPTY_SCRATCHPAD_STORE,\n    { decode: (raw) => scratchpadCodec.decode(raw) },\n  )",
@@ -2697,12 +2771,26 @@
     },
     {
       "source": "apps/web/src/app/core/workspace/scratchpad.service.ts",
-      "line": 50,
+      "line": 55,
       "operation": "this.store.set({ ...this.store(), drawerExpanded: expanded })",
       "namespace": null,
       "key": null,
       "storage": "this.store",
       "storageLocation": "this.store.set({ ...this.store(), drawerExpanded: expanded })",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "sensitive",
+      "classificationBasis": "regex-heuristic (review flag)",
+      "syncConsent": "not granted"
+    },
+    {
+      "source": "apps/web/src/app/core/workspace/scratchpad.service.ts",
+      "line": 47,
+      "operation": "this.store.set({ ...this.store(), snippets: [...snippets] })",
+      "namespace": null,
+      "key": null,
+      "storage": "this.store",
+      "storageLocation": "this.store.set({ ...this.store(), snippets: [...snippets] })",
       "retention": "owned by the referenced backend; no policy change",
       "scope": "local-only",
       "sensitivity": "sensitive",
@@ -2725,7 +2813,7 @@
     },
     {
       "source": "apps/web/src/app/core/workspace/scratchpad.service.ts",
-      "line": 46,
+      "line": 51,
       "operation": "this.store.set({ ...this.store(), snippets: this.store().snippets.filter((snippet) => snippet.id !== id) })",
       "namespace": null,
       "key": null,

@@ -5096,9 +5096,9 @@
       "classification": "host-adapter",
       "hostDependencies": [
         "host import: @angular/core",
+        "host API: HTMLInputElement",
         "host API: navigator",
-        "host API: Event",
-        "host API: HTMLInputElement"
+        "host API: Event"
       ],
       "tests": [
         "apps/web/src/app/shell/workspace/scratchpad-drawer/scratchpad-drawer.spec.ts"

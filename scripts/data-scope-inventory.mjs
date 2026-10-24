@@ -10,6 +10,7 @@ const norm = f => f.replaceAll('\\', '/');
 
 // Heuristic sites that were reviewed by hand. Key: `<source>::<namespace>::<key>` or `<source>::*` (whole file).
 const REVIEWED_HEURISTICS = {
+  'apps/web/src/app/core/workspace/scratchpad-collab.ts::*': 'Angular signal writes holding the in-memory collaboration session (Phase 31J); the scratchpad itself persists only through ScratchpadService.',
   'apps/mobile/src/state/durable-backend.ts::*': 'Android local Recents under mobile.local with policy session / scope local-only; never journaled, queued or synced.',
   'apps/mobile/src/share/use-incoming-share.ts::*': 'Share-to-DUDE content held in the in-memory ShareStore and ToolInputStore prefill; never persisted or synced, wiped with tool inputs.',
   'apps/mobile/src/tools-host/use-tool-input.ts::*': 'In-memory tool input (ToolInputStore); never persisted or synced, wiped after 5 minutes in background.',

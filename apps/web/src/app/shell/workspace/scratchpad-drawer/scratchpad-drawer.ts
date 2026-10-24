@@ -1,10 +1,15 @@
-import { Component, effect, inject, signal, untracked } from '@angular/core';
+import { Component, DestroyRef, ElementRef, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { CodeEditor } from '../../../shared/components/code-editor/code-editor';
 import { RemoteChangesService } from '../../../core/sync/remote-changes.service';
+import { ScratchpadCollab, remapCaret } from '../../../core/workspace/scratchpad-collab';
 import { ScratchpadService } from '../../../core/workspace/scratchpad.service';
 import { WorkspaceSnippet } from "@dude/domain/core/workspace/scratchpad.model";
 
-/** Collapsible bottom drawer listing manually-saved scratchpad snippets (Milestone 292). */
+/**
+ * Collapsible bottom drawer listing manually-saved scratchpad snippets (Milestone 292). Since Phase 31J (Milestone 806) the notes are
+ * edited live when a Hub is reachable (`ScratchpadCollab`): no Save, other participants' cursors shown next to each note. Everywhere
+ * else, and whenever the Hub link is lost on a desktop, it edits the key/value scratchpad with an explicit Save, as before.
+ */
 @Component({
   selector: 'app-scratchpad-drawer',
   imports: [CodeEditor],
@@ -12,6 +17,7 @@ import { WorkspaceSnippet } from "@dude/domain/core/workspace/scratchpad.model";
 })
 export class ScratchpadDrawer {
   protected readonly scratchpad = inject(ScratchpadService);
+  protected readonly collab = inject(ScratchpadCollab);
 
   protected readonly editingId = signal<string | null>(null);
   protected readonly draftTitle = signal('');
@@ -22,6 +28,19 @@ export class ScratchpadDrawer {
   private seenRemoteAt = this.remoteChanges.changedAt('scratchpad', 'default');
   private editBase: { title: string; body: string } | null = null;
 
+  private readonly liveTitleInput = viewChild<ElementRef<HTMLInputElement>>('liveTitle');
+  private readonly liveEditor = viewChild<CodeEditor>('liveEditor');
+
+  /** The note being edited, as the shared document (live) or the saved list holds it. */
+  protected readonly editing = computed(() => {
+    const id = this.editingId();
+    return id === null ? undefined : this.collab.snippets().find((snippet) => snippet.id === id);
+  });
+  protected readonly bodyBinding = computed(() => {
+    const id = this.editingId();
+    return id === null ? null : this.collab.bodyBinding(id);
+  });
+
   constructor() {
     effect(() => {
       const at = this.remoteChanges.changedAt('scratchpad', 'default');
@@ -29,9 +48,62 @@ export class ScratchpadDrawer {
       this.seenRemoteAt = at;
       untracked(() => this.onRemoteChange());
     });
+
+    const expanded = this.scratchpad.drawerExpanded;
+    effect(() => {
+      const open = expanded();
+      untracked(() => this.collab.setActive(open));
+    });
+    effect(() => {
+      const open = this.editingId() !== null;
+      untracked(() => this.collab.setLocalDraftOpen(open));
+    });
+    inject(DestroyRef).onDestroy(() => this.collab.setActive(false));
+
+    // A note open for editing follows the mode: a lost Hub link reseeds the local draft from what was kept on this device, read-only closes it.
+    let previousMode = this.collab.mode();
+    effect(() => {
+      const mode = this.collab.mode();
+      const before = previousMode;
+      previousMode = mode;
+      if (mode === before) return;
+      untracked(() => {
+        if (this.editingId() === null) return;
+        if (mode === 'read-only') this.editingId.set(null);
+        else if (mode === 'local') this.reloadDraft();
+      });
+    });
+    // A note deleted elsewhere closes its live editor.
+    effect(() => {
+      const snippets = this.collab.snippets();
+      untracked(() => {
+        const id = this.editingId();
+        if (id !== null && this.collab.mode() === 'live' && !snippets.some((snippet) => snippet.id === id)) this.editingId.set(null);
+      });
+    });
+    // The live title input is not bound by value: a remote edit never moves the caret of an input being typed in.
+    effect(() => {
+      const input = this.liveTitleInput()?.nativeElement;
+      const title = this.editing()?.title ?? '';
+      if (input) untracked(() => this.showTitle(input, title));
+    });
+  }
+
+  private showTitle(input: HTMLInputElement, title: string): void {
+    const current = input.value;
+    if (current === title) return;
+    if (input.ownerDocument.activeElement !== input) {
+      input.value = title;
+      return;
+    }
+    const start = input.selectionStart ?? current.length;
+    const end = input.selectionEnd ?? start;
+    input.value = title;
+    input.setSelectionRange(remapCaret(current, title, start), remapCaret(current, title, end));
   }
 
   private onRemoteChange(): void {
+    if (this.collab.mode() !== 'local') return;
     const id = this.editingId();
     if (!id) return;
     const dirty = this.editBase !== null && (this.draftTitle() !== this.editBase.title || this.draftBody() !== this.editBase.body);
@@ -57,6 +129,11 @@ export class ScratchpadDrawer {
   }
 
   protected addBlank(): void {
+    if (this.collab.mode() === 'live') {
+      const id = this.collab.add('Untitled note', '');
+      if (id !== null) this.editingId.set(id);
+      return;
+    }
     const snippet = this.scratchpad.addSnippet('Untitled note', '');
     this.startEdit(snippet);
   }
@@ -82,7 +159,12 @@ export class ScratchpadDrawer {
 
   protected remove(id: string): void {
     if (this.editingId() === id) this.editingId.set(null);
-    this.scratchpad.removeSnippet(id);
+    if (this.collab.mode() === 'live') this.collab.remove(id);
+    else this.scratchpad.removeSnippet(id);
+  }
+
+  protected move(id: string, delta: number): void {
+    this.collab.move(id, delta);
   }
 
   protected copy(body: string): void {
@@ -91,5 +173,16 @@ export class ScratchpadDrawer {
 
   protected onTitleInput(event: Event): void {
     this.draftTitle.set((event.target as HTMLInputElement).value);
+  }
+
+  protected onLiveTitleInput(event: Event): void {
+    const id = this.editingId();
+    if (id) this.collab.setTitle(id, (event.target as HTMLInputElement).value);
+  }
+
+  /** A bound editor already wrote the shared text; the plain textarea fallback reports the edit and it is diffed in. */
+  protected onLiveBodyChange(value: string): void {
+    const id = this.editingId();
+    if (id && !this.liveEditor()?.bound()) this.collab.setBody(id, value);
   }
 }

@@ -42,6 +42,11 @@ export class ScratchpadService {
     });
   }
 
+  /** Replaces the whole list (Phase 31J: a collaborative session's content kept on this device when the Hub link is lost). */
+  replaceSnippets(snippets: readonly WorkspaceSnippet[]): void {
+    this.store.set({ ...this.store(), snippets: [...snippets] });
+  }
+
   removeSnippet(id: string): void {
     this.store.set({ ...this.store(), snippets: this.store().snippets.filter((snippet) => snippet.id !== id) });
   }

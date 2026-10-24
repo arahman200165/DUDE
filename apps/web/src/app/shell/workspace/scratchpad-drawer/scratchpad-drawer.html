@@ -5,26 +5,79 @@
     (click)="toggle()"
   >
     <span>{{ scratchpad.drawerExpanded() ? '▾' : '▸' }} Scratchpad</span>
-    <span class="text-ui-xs">{{ scratchpad.snippets().length }} snippet{{ scratchpad.snippets().length === 1 ? '' : 's' }}</span>
+    <span class="text-ui-xs">{{ collab.snippets().length }} snippet{{ collab.snippets().length === 1 ? '' : 's' }}</span>
   </button>
 
   @if (scratchpad.drawerExpanded()) {
     <div class="flex max-h-64 flex-col gap-2 overflow-y-auto border-t border-border p-2">
-      <button
-        type="button"
-        class="w-fit rounded-sm border border-accent px-2 py-0.5 text-ui-xs text-accent hover:bg-accent/10"
-        (click)="addBlank()"
-      >
-        + New note
-      </button>
+      @if (collab.mode() === 'live') {
+        <p class="flex items-center gap-1.5 px-1 text-ui-xs text-text-muted" role="status" data-scratchpad-live>
+          <span class="size-1.5 rounded-full" aria-hidden="true" [class.bg-success]="collab.linkUp()" [class.bg-warning]="!collab.linkUp()"></span>
+          <span>
+            {{ collab.linkUp() ? 'Live' : 'Live, reconnecting' }} · {{ collab.participants() }} participant{{ collab.participants() === 1 ? '' : 's' }}
+            · edits are shared as you type
+          </span>
+        </p>
+      }
+      @if (collab.note(); as note) {
+        <p class="rounded-sm border border-info/40 bg-info/10 px-1.5 py-0.5 text-ui-xs text-text" role="status" data-scratchpad-note>{{ note }}</p>
+      }
 
-      @if (scratchpad.snippets().length === 0) {
+      @if (collab.mode() !== 'read-only') {
+        <button
+          type="button"
+          class="w-fit rounded-sm border border-accent px-2 py-0.5 text-ui-xs text-accent hover:bg-accent/10"
+          (click)="addBlank()"
+        >
+          + New note
+        </button>
+      }
+
+      @if (collab.snippets().length === 0) {
         <p class="px-1 text-ui text-text-muted">Nothing saved yet — use "Send to scratchpad" on any tool.</p>
       }
 
-      @for (snippet of scratchpad.snippets(); track snippet.id) {
+      @for (snippet of collab.snippets(); track snippet.id; let first = $first; let last = $last) {
         <div class="rounded-sm border border-border bg-panel-elevated p-2">
-          @if (editingId() === snippet.id) {
+          @if (collab.mode() === 'live') {
+            @let people = collab.presenceIn(snippet.id);
+            @if (people.length > 0) {
+              <ul class="mb-1 flex flex-wrap gap-1" aria-label="Also in this note" data-scratchpad-presence>
+                @for (person of people; track person.clientId) {
+                  <li class="inline-flex items-center gap-1 rounded-sm border border-border bg-panel px-1 text-ui-xs text-text">
+                    <span class="size-1.5 rounded-full" aria-hidden="true" [style.background-color]="person.color"></span>
+                    {{ person.name }}
+                    <span class="text-text-muted">{{ person.field === 'title' ? 'in the title' : 'in the note' }}</span>
+                  </li>
+                }
+              </ul>
+            }
+          }
+          @if (editingId() === snippet.id && collab.mode() === 'live') {
+            <input
+              #liveTitle
+              type="text"
+              class="mb-1 w-full rounded-sm border border-border bg-panel px-1.5 py-0.5 text-ui-sm text-text focus:outline-none focus:ring-1 focus:ring-accent"
+              aria-label="Note title"
+              (input)="onLiveTitleInput($event)"
+            />
+            <app-code-editor
+              #liveEditor
+              class="mb-1 rounded-sm border border-border"
+              textSize="ui-xs"
+              ariaLabel="Note body"
+              minHeight="4.5rem"
+              maxHeight="10rem"
+              [value]="editing()?.body ?? ''"
+              [binding]="bodyBinding()"
+              (valueChange)="onLiveBodyChange($event)"
+            />
+            <div class="flex gap-2">
+              <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-ui-xs text-accent hover:bg-accent/10" (click)="cancelEdit()">
+                Done
+              </button>
+            </div>
+          } @else if (editingId() === snippet.id && collab.mode() === 'local') {
             @if (remoteConflict()) {
               <div class="mb-1 flex flex-wrap items-center gap-2 rounded-sm border border-info/40 bg-info/10 px-1.5 py-0.5 text-ui-xs text-text" role="status">
                 <span class="flex-1">Changed on another device</span>
@@ -66,12 +119,34 @@
                 <button type="button" class="rounded-sm px-1.5 py-0.5 text-ui-xs text-text-muted hover:bg-panel hover:text-text" (click)="copy(snippet.body)">
                   Copy
                 </button>
-                <button type="button" class="rounded-sm px-1.5 py-0.5 text-ui-xs text-text-muted hover:bg-panel hover:text-text" (click)="startEdit(snippet)">
-                  Edit
-                </button>
-                <button type="button" class="rounded-sm px-1.5 py-0.5 text-ui-xs text-text-muted hover:bg-panel hover:text-error" (click)="remove(snippet.id)">
-                  Delete
-                </button>
+                @if (collab.mode() === 'live') {
+                  <button
+                    type="button"
+                    class="rounded-sm px-1.5 py-0.5 text-ui-xs text-text-muted hover:bg-panel hover:text-text disabled:opacity-50"
+                    aria-label="Move note up"
+                    [disabled]="first"
+                    (click)="move(snippet.id, -1)"
+                  >
+                    Up
+                  </button>
+                  <button
+                    type="button"
+                    class="rounded-sm px-1.5 py-0.5 text-ui-xs text-text-muted hover:bg-panel hover:text-text disabled:opacity-50"
+                    aria-label="Move note down"
+                    [disabled]="last"
+                    (click)="move(snippet.id, 1)"
+                  >
+                    Down
+                  </button>
+                }
+                @if (collab.mode() !== 'read-only') {
+                  <button type="button" class="rounded-sm px-1.5 py-0.5 text-ui-xs text-text-muted hover:bg-panel hover:text-text" (click)="startEdit(snippet)">
+                    Edit
+                  </button>
+                  <button type="button" class="rounded-sm px-1.5 py-0.5 text-ui-xs text-text-muted hover:bg-panel hover:text-error" (click)="remove(snippet.id)">
+                    Delete
+                  </button>
+                }
               </div>
             </div>
           }
