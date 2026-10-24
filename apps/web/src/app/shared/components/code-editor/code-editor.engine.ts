@@ -182,9 +182,16 @@ function guardedAwareness(awareness: Awareness): Awareness {
 function collabExtensions(binding: CodeEditorBinding): Extension {
   const awareness = binding.awareness;
   if (awareness) {
+    // A collaboration session already stamped the Hub identity (`{ deviceId, name, colorSlot }`, the strict shape the Hub validates):
+    // keep its device id and, unless the caller passes its own, its name and slot.
+    const stamped = (awareness.getLocalState() as { user?: { deviceId?: unknown; name?: unknown; colorSlot?: unknown } } | null)?.user;
+    const deviceId = typeof stamped?.deviceId === 'string' ? stamped.deviceId : null;
+    const name = binding.user?.name ?? (deviceId !== null && typeof stamped?.name === 'string' ? stamped.name : 'Anonymous');
+    const colorSlot = binding.user?.colorSlot ?? (deviceId !== null ? stamped?.colorSlot : undefined) ?? awareness.clientID;
     awareness.setLocalStateField('user', {
-      name: (binding.user?.name ?? 'Anonymous').slice(0, MAX_NAME_LENGTH),
-      colorSlot: normalizeColorSlot(binding.user?.colorSlot ?? awareness.clientID),
+      ...(deviceId !== null ? { deviceId } : {}),
+      name: name.slice(0, MAX_NAME_LENGTH),
+      colorSlot: normalizeColorSlot(typeof colorSlot === 'number' ? colorSlot : awareness.clientID),
     });
   }
   const undoManager = binding.undoManager ?? new Y.UndoManager(binding.ytext);

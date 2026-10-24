@@ -4,4 +4,5 @@ export * from './doc-key.js';
 export { applyTextTo } from './text-apply.js';
 export * from './frames.js';
 export * from './awareness.js';
+export * from './transport.js';
 export * from './schemas/index.js';

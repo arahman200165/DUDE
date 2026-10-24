@@ -7,5 +7,6 @@ Private internal package. The portable, browser-safe Yjs mapping for DUDE's coll
 - `schemas/`: per kind `seed` (Hub only, first load), `materialize` (the plain record payload; non-collaborative fields stay from the current record), `restoreAsForwardEdit`, and `contentBytes` for the record size cap.
 - `frames`: the `[channel][kind][payload]` binary frame.
 - `awareness`: the awareness state shape, its strict validator, and the Hub's `rewriteAwarenessUpdate`.
+- `transport`: the `CollabTransport` contract (PD-114) between the web collaboration service and its Hub web, desktop relay or unavailable adapter: link events, subscription controls, down reasons.
 
 Only `apps/hub` and `apps/web` consume it. Android never collaborates and the Device Agent relays opaque bytes, so neither may depend on it.

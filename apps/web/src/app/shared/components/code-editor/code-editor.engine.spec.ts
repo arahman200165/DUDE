@@ -182,6 +182,14 @@ describe('CodeMirror editor engine', () => {
       expect(caret.textContent).toContain('Mallory');
     });
 
+    it('keeps the Hub-stamped identity a collaboration session set, including its device id', async () => {
+      const { ytext } = peers();
+      const awareness = new Awareness(ytext.doc!);
+      awareness.setLocalState({ user: { deviceId: 'dev-1', name: 'Alice', colorSlot: 4 }, cursor: null });
+      await mount({ binding: { ytext, awareness } });
+      expect(awareness.getLocalState()).toMatchObject({ user: { deviceId: 'dev-1', name: 'Alice', colorSlot: 4 } });
+    });
+
     it('switches back to the plain document with the fallback text and keeps the selection in range', async () => {
       const { ytext } = peers();
       const handle = await mount({ binding: { ytext, awareness: new Awareness(ytext.doc!) } });

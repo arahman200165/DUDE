@@ -1,13 +1,16 @@
-import { ApplicationRef, createComponent, type Provider } from '@angular/core';
+import { ApplicationRef, createComponent, inject, type Provider } from '@angular/core';
 import { createApplication } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import type { AgentAppliedChange } from '@dude/contracts';
 import { HUB_APP_ENTRY, hardNavigateEntry } from '../hub/hub-app-entry';
 import { onHubTransferred } from '../hub/hub-transferred-signal';
+import type { CollabTransport } from '@dude/collab-doc';
+import { HUB_COLLAB } from '../collab/hub-collab.token';
 import { HubAuthorityNotice } from '../../shell/hub/hub-authority-notice';
 import { createWindowStorageBackend } from '../persistence/window-storage-backend';
 import { PersistenceService } from '../persistence/persistence.service';
 import { RemoteChangesService } from '../sync/remote-changes.service';
+import { createHubCollabTransport } from './hub-collab.client';
 import { HubRealtimeClient } from './hub-realtime.client';
 import { HubWebConnectionService } from './hub-web-connection.service';
 import { HubEventsFeed } from '../hub-events/hub-events.port';
@@ -86,6 +89,17 @@ export function installTransferLock(appRef: ApplicationRef, result: Pick<HubWebB
   };
 }
 
+/** The Hub web collaboration adapter, built when the first document opens (it needs the router for the sign-in redirect). */
+function hubCollabFactory(result: HubWebBootResult): () => CollabTransport {
+  return () => {
+    const router = inject(Router);
+    return createHubCollabTransport({
+      connection: result.connection,
+      goToSignIn: () => void router.navigate(['/hub/sign-in'], { queryParams: { returnUrl: router.url } }),
+    });
+  };
+}
+
 /** DI values for the application: the boot result, the connection state and the feedback queue created before bootstrap. */
 export function hubWebProviders(result: HubWebBootResult): Provider[] {
   return [
@@ -93,6 +107,9 @@ export function hubWebProviders(result: HubWebBootResult): Provider[] {
     { provide: HubWebConnectionService, useValue: result.connection },
     { provide: HubWebFeedback, useValue: result.feedback },
     { provide: HubWebSyncInfo, useValue: result.sync },
+    // Hub collaboration (PD-114): the cookie-authenticated same-origin socket; its close codes lock writes through the shared
+    // connection state. Without a Hub session there is nothing to join, so the root default (unavailable) stays.
+    ...(result.boot ? [{ provide: HUB_COLLAB, useFactory: hubCollabFactory(result) }] : []),
     // Sign-in, setup and recovery end in a full page load so the boot code attaches this browser to the Hub.
     { provide: HUB_APP_ENTRY, useFactory: hardNavigateEntry },
   ];
