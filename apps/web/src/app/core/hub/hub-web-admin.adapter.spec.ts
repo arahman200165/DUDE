@@ -215,6 +215,40 @@ describe('Hub web admin adapter', () => {
     });
   });
 
+  describe('notification-reader grant (PD-110)', () => {
+    const ID = '0190aaaa-0000-7000-8000-000000000001';
+    const DEVICE = { deviceId: ID, displayName: 'd', platform: 'windows', appVersion: '1', protocolVersion: 1, capabilities: [], registeredAt: '2026-01-01T00:00:00.000Z', lastSeenAt: null, revokedAt: null, unenrolledAt: null, recoveryTrusted: false, notificationsAccess: true, online: false, current: false, kind: 'desktop' };
+
+    it('puts the switch to the device with the cookie session', async () => {
+      const { admin, calls } = setup(() => ({ status: 200, body: DEVICE }));
+      await expect(admin.setNotificationsAccess(ID, true)).resolves.toMatchObject({ notificationsAccess: true });
+      expect(calls[0]).toMatchObject({ method: 'PUT', url: `/api/v1/devices/${ID}/notifications-access`, body: { enabled: true }, credentials: 'same-origin' });
+    });
+
+    it('asks for the owner password once when the Hub requires step-up, then retries with the rotated CSRF token', async () => {
+      let stepped = false;
+      const ask = vi.fn(async (_message?: string) => 'pw' as string | null);
+      const { admin, calls } = setup((c) => {
+        if (c.url.endsWith('/auth/step-up')) { stepped = true; return { status: 200, body: { ok: true, csrfToken: 'csrf-2', steppedUpUntil: '2099-01-01T00:00:00.000Z' } }; }
+        return stepped ? { status: 200, body: DEVICE } : { status: 403, body: envelope('step-up-required', 'Confirm your password.') };
+      }, { requestStepUp: ask });
+      await expect(admin.setNotificationsAccess(ID, true)).resolves.toMatchObject({ notificationsAccess: true });
+      expect(ask).toHaveBeenCalledTimes(1);
+      expect(calls.map((c) => c.body)).toEqual([{ enabled: true }, { password: 'pw' }, { enabled: true }]);
+      expect(calls[2]!.headers['X-DUDE-CSRF']).toBe('csrf-2');
+    });
+
+    it('fails with step-up-required when the prompt is cancelled, and surfaces a browser-row or ended-device refusal', async () => {
+      const cancelled = setup(() => ({ status: 403, body: envelope('step-up-required', 'Confirm your password.') }), { requestStepUp: async () => null });
+      await expect(cancelled.admin.setNotificationsAccess(ID, false)).rejects.toMatchObject({ code: 'step-up-required' });
+      expect(cancelled.calls).toHaveLength(1);
+      const browser = setup(() => ({ status: 400, body: envelope('bad-request', 'Notification access can only be granted to a desktop device.') }));
+      await expect(browser.admin.setNotificationsAccess(ID, true)).rejects.toMatchObject({ code: 'bad-request' });
+      const ended = setup(() => ({ status: 409, body: envelope('conflict', 'That device is no longer enrolled.') }));
+      await expect(ended.admin.setNotificationsAccess(ID, true)).rejects.toMatchObject({ code: 'conflict' });
+    });
+  });
+
   describe('owner step-up', () => {
     const PREVIEW = { confirmToken: 't', expiresAt: 'x', summary: { action: 'a' } };
     const stepUpResponder = (accept: (pw: string) => boolean) => {

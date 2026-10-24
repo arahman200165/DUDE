@@ -34,6 +34,28 @@ describe('desktop Hub admin adapter', () => {
     expect(seen).toEqual([{ pairingString: FAKE_HUB_PAIRING_STRING, acknowledged: true }, { pairingString: FAKE_HUB_PAIRING_STRING, acknowledged: true }]);
   });
 
+  it('sets the notification grant through the owner bridge and normalizes a refusal', async () => {
+    const hub = fakeHub();
+    const admin = createDesktopHubAdmin(() => hub);
+    const [self] = await (async () => { await admin.ownerSignIn('correct horse battery'); return admin.listDevices(); })();
+    await expect(admin.setNotificationsAccess(self!.deviceId, true)).resolves.toMatchObject({ deviceId: self!.deviceId, notificationsAccess: true });
+    await expect(admin.setNotificationsAccess(self!.deviceId, false)).resolves.toMatchObject({ notificationsAccess: false });
+    await expect(admin.setNotificationsAccess('0190aaaa-0000-7000-8000-00000000ffff', true)).rejects.toMatchObject({ code: 'not-found' });
+    const refused = createDesktopHubAdmin(() => ({ ...hub, setNotificationsAccess: async () => ({ ok: false as const, error: { code: 'hub-bad-request', message: 'Notification access can only be granted to a desktop device.' } }) }));
+    await expect(refused.setNotificationsAccess(self!.deviceId, true)).rejects.toMatchObject({ code: 'hub-bad-request' });
+  });
+
+  it('subscribes to the open-notifications push only when the bridge has it', () => {
+    const hub = fakeHub();
+    const off = vi.fn();
+    const onOpenNotifications = vi.fn(() => off);
+    const admin = createDesktopHubAdmin(() => ({ ...hub, onOpenNotifications }));
+    const callback = vi.fn();
+    expect(admin.onOpenNotifications!(callback)).toBe(off);
+    expect(onOpenNotifications).toHaveBeenCalledExactlyOnceWith(callback);
+    expect(() => createDesktopHubAdmin(() => undefined).onOpenNotifications!(callback)()).not.toThrow();
+  });
+
   it('passes the backup status through the owner bridge and normalizes a transferred Hub to its distinct code', async () => {
     const hub = fakeHub();
     const admin = createDesktopHubAdmin(() => hub);

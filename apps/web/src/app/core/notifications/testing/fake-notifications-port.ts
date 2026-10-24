@@ -12,6 +12,7 @@ export const listing = (...items: HubNotification[]): HubNotificationsResponse =
 export function createFakeNotificationsPort(initial: HubNotificationsResponse = listing(), available = true) {
   const arrivals = new Set<(n: NotificationEventData) => void>();
   const availability = new Set<(available: boolean) => void>();
+  const openRequests = new Set<() => void>();
   const port = {
     isAvailable: vi.fn(async () => available),
     onAvailabilityChanged: vi.fn((cb: (available: boolean) => void) => { availability.add(cb); return () => { availability.delete(cb); }; }),
@@ -19,11 +20,13 @@ export function createFakeNotificationsPort(initial: HubNotificationsResponse = 
     markRead: vi.fn(async (_target: 'all' | readonly string[]) => undefined),
     dismiss: vi.fn(async (_id: string) => undefined),
     onNotification: vi.fn((cb: (n: NotificationEventData) => void) => { arrivals.add(cb); return () => { arrivals.delete(cb); }; }),
+    onOpenRequested: vi.fn((cb: () => void) => { openRequests.add(cb); return () => { openRequests.delete(cb); }; }),
   };
   return {
     port: port as unknown as HubNotificationsPort & typeof port,
     arrive: (n: NotificationEventData) => arrivals.forEach((cb) => cb(n)),
     setAvailable: (value: boolean) => availability.forEach((cb) => cb(value)),
+    requestOpen: () => openRequests.forEach((cb) => cb()),
     arrivalListeners: () => arrivals.size,
   };
 }

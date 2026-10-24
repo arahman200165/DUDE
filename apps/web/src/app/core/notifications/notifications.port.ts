@@ -22,6 +22,8 @@ export interface HubNotificationsPort {
   dismiss(id: string): Promise<void>;
   /** A notification was created (id, kind, severity, title: no body). Returns the unsubscribe function. */
   onNotification(callback: (notification: NotificationEventData) => void): () => void;
+  /** The user clicked an OS notification (desktop main raised it): the bell panel should open. Returns the unsubscribe function. */
+  onOpenRequested?(callback: () => void): () => void;
 }
 
 const noop = (): void => undefined;
@@ -63,6 +65,7 @@ export function createDesktopNotifications(admin: HubAdminPort): HubNotification
       await admin.dismissNotification(id);
     },
     onNotification: (callback) => admin.onNotification?.(callback) ?? noop,
+    onOpenRequested: (callback) => admin.onOpenNotifications?.(callback) ?? noop,
   };
 }
 

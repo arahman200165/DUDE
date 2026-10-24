@@ -1,4 +1,4 @@
-import { Component, ElementRef, Injector, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, Injector, afterNextRender, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import type { HubNotification } from '@dude/contracts/hub';
 import { NOTIFICATIONS_DENIED_MESSAGE, NotificationsService } from '../../core/notifications/notifications.service';
 import { StatusGlyph } from '../../shared/components/status-glyph/status-glyph';
@@ -31,6 +31,20 @@ export class NotificationsBell {
   protected readonly deniedMessage = NOTIFICATIONS_DENIED_MESSAGE;
   private readonly trigger = viewChild<ElementRef<HTMLButtonElement>>('trigger');
   private readonly panel = viewChild<ElementRef<HTMLElement>>('panel');
+
+  /** A host request to show the panel (a clicked OS notification). The count the bell started with is not a request. */
+  private seenOpenRequests = this.service.openRequests();
+
+  constructor() {
+    effect(() => {
+      const requests = this.service.openRequests();
+      if (requests === this.seenOpenRequests) return;
+      this.seenOpenRequests = requests;
+      untracked(() => {
+        if (this.service.available() && !this.open()) this.show();
+      });
+    });
+  }
 
   protected readonly badge = computed(() => {
     const unread = this.service.unread();

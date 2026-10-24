@@ -19,4 +19,5 @@ export * from './reachability.schema.js';
 export * from './backup.schema.js';
 export * from './jobs.schema.js';
 export * from './notifications.schema.js';
-export { parseNotificationEvent } from './notification-event.js';
+export { defaultHubNotificationPreferences, parseNotificationEvent, sanitizeHubNotificationPreferences } from './notification-event.js';
+export type { HubNotificationPreferences } from './notification-event.js';

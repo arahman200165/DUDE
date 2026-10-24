@@ -10,7 +10,7 @@ import { buttonWithText, configureHubTest, createTestPort, device, settle, typeI
 const PASSWORD = 'correct horse battery';
 const LIST = [
   device('0190aaaa-0000-7000-8000-000000000001', 'This PC', { current: true, lastSeenAt: new Date(Date.now() - 2 * 3_600_000).toISOString(), online: true, recoveryTrusted: true }),
-  device('0190aaaa-0000-7000-8000-000000000002', 'Phone browser', { platform: 'web', lastSeenAt: null }),
+  device('0190aaaa-0000-7000-8000-000000000002', 'Phone browser', { kind: 'browser', platform: 'web', lastSeenAt: null }),
   device('0190aaaa-0000-7000-8000-000000000003', 'Old laptop', { revokedAt: '2026-02-01T00:00:00.000Z' }),
   device('0190aaaa-0000-7000-8000-000000000004', 'Gone laptop', { unenrolledAt: '2026-02-01T00:00:00.000Z' }),
   device('0190aaaa-0000-7000-8000-000000000005', 'Work PC'),
@@ -328,6 +328,52 @@ describe('DevicesSettings', () => {
       expect(text(el, 'action-error')).toContain('incorrect');
       expect(el.querySelector('[data-testid="trust-prompt"]')).not.toBeNull();
       expect((el.querySelector('#trust-password') as HTMLInputElement).value).toBe('');
+    });
+  });
+
+  describe('notification-reader grant (PD-110)', () => {
+    const PHONE = '0190aaaa-0000-7000-8000-000000000006';
+    const GRANT_LIST = [...LIST, device(PHONE, 'Pixel', { platform: 'android' })];
+    const switchFor = (el: HTMLElement, id: string) => el.querySelector(`[data-testid="notifications-access-${id}"]`) as HTMLInputElement | null;
+
+    it('offers the switch on active desktop rows only, with the one-line explanation', async () => {
+      const { el } = await mount({ listDevices: async () => GRANT_LIST });
+      expect(switchFor(el, LIST[0]!.deviceId)).not.toBeNull();
+      expect(switchFor(el, LIST[4]!.deviceId)).not.toBeNull();
+      for (const hidden of [LIST[1]!, LIST[2]!, LIST[3]!]) expect(switchFor(el, hidden.deviceId), hidden.displayName).toBeNull();
+      expect(switchFor(el, PHONE)).toBeNull();
+      expect(text(el, 'notifications-access-note')).toContain('without signing in; it can only read and dismiss them');
+    });
+
+    it('shows the current grant and tags a reader', async () => {
+      const { el } = await mount({ listDevices: async () => [LIST[0]!, { ...LIST[4]!, notificationsAccess: true }] });
+      expect(switchFor(el, LIST[0]!.deviceId)!.checked).toBe(false);
+      expect(switchFor(el, LIST[4]!.deviceId)!.checked).toBe(true);
+      expect(row(el, 1).querySelector('[data-testid="notification-reader-tag"]')).not.toBeNull();
+      expect(row(el, 0).querySelector('[data-testid="notification-reader-tag"]')).toBeNull();
+    });
+
+    it('grants through the port and reflects the answer', async () => {
+      const { fixture, el, port } = await mount({ setNotificationsAccess: async (id, enabled) => ({ ...LIST[4]!, deviceId: id, notificationsAccess: enabled }) });
+      const box = switchFor(el, LIST[4]!.deviceId)!;
+      box.click();
+      await settle(fixture);
+      expect(port.setNotificationsAccess).toHaveBeenCalledExactlyOnceWith(LIST[4]!.deviceId, true);
+      expect(switchFor(el, LIST[4]!.deviceId)!.checked).toBe(true);
+      expect(text(el, 'message')).toContain('can now read Hub notifications');
+      switchFor(el, LIST[4]!.deviceId)!.click();
+      await settle(fixture);
+      expect(port.setNotificationsAccess).toHaveBeenLastCalledWith(LIST[4]!.deviceId, false);
+      expect(text(el, 'message')).toContain('can no longer read');
+    });
+
+    it('puts the switch back and says why when the step-up prompt is cancelled or the Hub refuses', async () => {
+      const { fixture, el, port } = await mount({ setNotificationsAccess: async () => { throw new HubAdminError('step-up-required', 'Password confirmation was cancelled.'); } });
+      switchFor(el, LIST[4]!.deviceId)!.click();
+      await settle(fixture);
+      expect(port.setNotificationsAccess).toHaveBeenCalledOnce();
+      expect(text(el, 'action-error')).toContain('Password confirmation was cancelled.');
+      expect(switchFor(el, LIST[4]!.deviceId)!.checked).toBe(false);
     });
   });
 

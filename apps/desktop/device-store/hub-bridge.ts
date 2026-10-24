@@ -273,6 +273,11 @@ export function registerHubHandlers(
       ? { ok: true, params: { deviceId: args[0], password: args[1], trusted: args[2] } } : bad()),
   });
 
+  define({
+    channel: 'dude:hub:owner:setNotificationsAccess', method: 'hub.owner.setNotificationsAccess',
+    parse: (args) => (args.length === 2 && uuidArg(args[0]) && typeof args[1] === 'boolean' ? { ok: true, params: { deviceId: args[0], enabled: args[1] } } : bad()),
+  });
+
   define({ channel: 'dude:hub:owner:listSessions', method: 'hub.owner.listSessions', parse: none });
 
   define({

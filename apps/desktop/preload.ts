@@ -113,6 +113,7 @@ const bridge: PlatformBridge = {
     revokeDevicePreview: (a) => ipcRenderer.invoke('dude:hub:owner:revokeDevicePreview', a),
     revokeDevice: (a, b) => ipcRenderer.invoke('dude:hub:owner:revokeDevice', a, b),
     setRecoveryTrust: (a, b, c) => ipcRenderer.invoke('dude:hub:owner:setRecoveryTrust', a, b, c),
+    setNotificationsAccess: (a, b) => ipcRenderer.invoke('dude:hub:owner:setNotificationsAccess', a, b),
     listSessions: () => ipcRenderer.invoke('dude:hub:owner:listSessions'),
     revokeSession: (a) => ipcRenderer.invoke('dude:hub:owner:revokeSession', a),
     revokeAllPreview: () => ipcRenderer.invoke('dude:hub:owner:revokeAllPreview'),
@@ -148,6 +149,11 @@ const bridge: PlatformBridge = {
       const listener = (_event: Electron.IpcRendererEvent, notification: Parameters<typeof callback>[0]) => callback(notification);
       ipcRenderer.on('dude:hub:notification', listener);
       return () => ipcRenderer.removeListener('dude:hub:notification', listener);
+    },
+    onOpenNotifications: (callback) => {
+      const listener = () => callback();
+      ipcRenderer.on('dude:hub:openNotifications', listener);
+      return () => ipcRenderer.removeListener('dude:hub:openNotifications', listener);
     },
   },
   sync: {

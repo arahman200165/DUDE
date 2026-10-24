@@ -33,6 +33,7 @@ export class NotificationsService {
   private readonly deniedState = signal(false);
   private readonly errorState = signal<string | null>(null);
   private readonly announcementState = signal('');
+  private readonly openRequestsState = signal(0);
 
   readonly items = this.itemsState.asReadonly();
   readonly unread = this.unreadState.asReadonly();
@@ -45,6 +46,8 @@ export class NotificationsService {
   readonly error = this.errorState.asReadonly();
   /** The latest arrival, worded for an `aria-live` region. */
   readonly announcement = this.announcementState.asReadonly();
+  /** Counts the host's requests to show the panel (desktop: the user clicked an OS notification); the bell opens whenever it changes. */
+  readonly openRequests = this.openRequestsState.asReadonly();
   readonly hasUnread = computed(() => this.unreadState() > 0);
 
   private loaded = false;
@@ -58,10 +61,12 @@ export class NotificationsService {
     const offTopic = this.events.subscribe(['notifications'], () => this.schedule());
     const offArrival = port.onNotification((notification) => this.arrived(notification));
     const offAvailability = port.onAvailabilityChanged?.((available) => this.setAvailable(available)) ?? (() => undefined);
+    const offOpen = port.onOpenRequested?.(() => this.openRequestsState.update((count) => count + 1)) ?? (() => undefined);
     inject(DestroyRef).onDestroy(() => {
       offTopic();
       offArrival();
       offAvailability();
+      offOpen();
       if (this.timer !== null) clearTimeout(this.timer);
       this.timer = null;
     });

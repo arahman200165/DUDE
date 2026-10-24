@@ -267,6 +267,8 @@ export interface AgentMethodMap {
   'hub.owner.revokeDevicePreview': { params: { deviceId: string }; result: ConfirmPreview };
   'hub.owner.revokeDevice': { params: { deviceId: string; confirmToken: string }; result: { ok: true } };
   'hub.owner.setRecoveryTrust': { params: { deviceId: string; password: string; trusted: boolean }; result: DeviceInfo };
+  /** Owner bearer (always stepped up): grants or revokes a desktop's notification-reader grant (PD-110). Errors: `owner-not-signed-in`, `hub-*` (400 browser row, 409 ended device). */
+  'hub.owner.setNotificationsAccess': { params: { deviceId: string; enabled: boolean }; result: DeviceInfo };
   'hub.owner.listSessions': { params: Record<string, never>; result: SessionListResponse };
   'hub.owner.revokeSession': { params: { sessionId: string }; result: { ok: true } };
   'hub.owner.revokeAllPreview': { params: Record<string, never>; result: ConfirmPreview };
@@ -369,7 +371,7 @@ export const AGENT_METHODS = [
   'device.rename', 'reset.preview', 'reset.apply', 'hub.enrollment',
   'hub.status', 'hub.diagnostics', 'hub.probeLocal', 'hub.tlsCertificates', 'hub.reachabilityEcho', 'hub.enroll', 'hub.reconnect', 'hub.bootstrapLocal', 'hub.unenroll', 'hub.owner.signIn', 'hub.owner.signOut', 'hub.owner.status',
   'hub.owner.listDevices', 'hub.owner.syncSummary', 'hub.owner.presence', 'presence.setActivity', 'hub.owner.diagnostics', 'hub.owner.createPairingCode', 'hub.owner.backupStatus', 'hub.owner.renameDevice', 'hub.owner.revokeDevicePreview', 'hub.owner.revokeDevice',
-  'hub.owner.setRecoveryTrust', 'hub.owner.listSessions', 'hub.owner.revokeSession', 'hub.owner.revokeAllPreview', 'hub.owner.revokeAll',
+  'hub.owner.setRecoveryTrust', 'hub.owner.setNotificationsAccess', 'hub.owner.listSessions', 'hub.owner.revokeSession', 'hub.owner.revokeAllPreview', 'hub.owner.revokeAll',
   'hub.owner.listAudit', 'hub.owner.listSecurityAlerts', 'hub.owner.markSecurityAlertsSeen', 'hub.owner.recoveryCodesPreview', 'hub.owner.regenerateRecoveryCodes', 'hub.owner.changePassword', 'hub.owner.jobs', 'notifications.list', 'notifications.markRead', 'notifications.dismiss', 'hub.recoverOwner',
   'sync.status', 'sync.setCategories', 'sync.setPaused', 'sync.now', 'sync.conflicts.list', 'sync.conflicts.resolve',
   'sync.quarantine.list', 'sync.quarantine.retry', 'sync.quarantine.discardPreview', 'sync.quarantine.discard', 'sync.quarantine.export',

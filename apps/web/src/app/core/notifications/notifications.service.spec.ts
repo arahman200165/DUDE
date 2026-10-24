@@ -207,4 +207,17 @@ describe('NotificationsService (PD-109, PD-111)', () => {
     await vi.advanceTimersByTimeAsync(HUB_REFETCH_DEBOUNCE_MS * 2);
     expect(fake.port.list).toHaveBeenCalledTimes(1);
   });
+
+  it('counts the host requests to show the panel and stops listening when destroyed', async () => {
+    const fake = createFakeNotificationsPort();
+    const { service } = configure(fake.port);
+    await flush();
+    expect(service.openRequests()).toBe(0);
+    fake.requestOpen();
+    fake.requestOpen();
+    expect(service.openRequests()).toBe(2);
+    TestBed.resetTestingModule();
+    fake.requestOpen();
+    expect(service.openRequests()).toBe(2);
+  });
 });

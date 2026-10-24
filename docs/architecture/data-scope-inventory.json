@@ -534,7 +534,7 @@
     },
     {
       "source": "apps/desktop/desktop-preferences.ts",
-      "line": 35,
+      "line": 39,
       "operation": "loadDoc<Record<string, unknown> | null>('desktop-preferences', decodeDesktopPreferencesDoc, null)",
       "namespace": null,
       "key": "desktop-preferences",
@@ -548,7 +548,7 @@
     },
     {
       "source": "apps/desktop/desktop-preferences.ts",
-      "line": 74,
+      "line": 79,
       "operation": "saveDoc('desktop-preferences', { ...preferences, lastInstallerRequest })",
       "namespace": null,
       "key": "desktop-preferences",

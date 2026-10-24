@@ -87,3 +87,25 @@ describe('hub.owner.jobs (PD-112)', () => {
     expect(deviceCall).not.toHaveBeenCalled();
   });
 });
+
+describe('hub.owner.setNotificationsAccess (PD-110)', () => {
+  const ID = '0190aaaa-0000-7000-8000-000000000001';
+
+  it('grants and revokes with the owner bearer, never the device token', async () => {
+    const setNotificationsAccess = vi.fn(async (_token: string, _id: string, enabled: boolean) => ({ deviceId: ID, notificationsAccess: enabled }));
+    const { call, withOwner, deviceCall } = server({ setNotificationsAccess }, { ownerSignedIn: true });
+    expect(await call('hub.owner.setNotificationsAccess', { deviceId: ID, enabled: true })).toMatchObject({ ok: true, result: { notificationsAccess: true } });
+    expect(await call('hub.owner.setNotificationsAccess', { deviceId: ID, enabled: false })).toMatchObject({ ok: true, result: { notificationsAccess: false } });
+    expect(setNotificationsAccess.mock.calls).toEqual([['owner-token', ID, true], ['owner-token', ID, false]]);
+    expect(withOwner).toHaveBeenCalledTimes(2);
+    expect(deviceCall).not.toHaveBeenCalled();
+  });
+
+  it('rejects a missing, non-string or non-boolean field before the Hub is called', async () => {
+    const setNotificationsAccess = vi.fn();
+    const { call } = server({ setNotificationsAccess }, { ownerSignedIn: true });
+    const bad: unknown[] = [{}, { deviceId: ID }, { enabled: true }, { deviceId: ID, enabled: 'true' }, { deviceId: ID, enabled: 1 }, { deviceId: 5, enabled: true }, { deviceId: '', enabled: true }];
+    for (const params of bad) expect(await call('hub.owner.setNotificationsAccess', params), JSON.stringify(params)).toMatchObject({ ok: false, error: { code: 'invalid-params' } });
+    expect(setNotificationsAccess).not.toHaveBeenCalled();
+  });
+});

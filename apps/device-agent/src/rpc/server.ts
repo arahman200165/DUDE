@@ -417,6 +417,11 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
       const trusted = p.trusted;
       return owner((api, t) => api.setRecoveryTrust(t, str(p.deviceId, 'deviceId'), str(p.password, 'password'), trusted));
     },
+    'hub.owner.setNotificationsAccess': (p) => {
+      if (typeof p.enabled !== 'boolean') throw invalid('enabled must be a boolean.');
+      const enabled = p.enabled;
+      return owner((api, t) => api.setNotificationsAccess(t, str(p.deviceId, 'deviceId'), enabled));
+    },
     'hub.owner.listSessions': () => owner((api, t) => api.listSessions(t)),
     'hub.owner.revokeSession': (p) => owner((api, t) => api.revokeSession(t, str(p.sessionId, 'sessionId'))),
     'hub.owner.revokeAllPreview': () => owner((api, t) => api.revokeAllPreview(t)),

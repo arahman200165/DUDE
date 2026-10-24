@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Value } from 'typebox/value';
 import { HUB_AUDIT_EVENTS } from './audit.js';
+import { defaultHubNotificationPreferences, sanitizeHubNotificationPreferences } from './notification-event.js';
 import { DeviceInfo } from './devices.schema.js';
 import {
   HUB_NOTIFICATIONS_PATH, HUB_NOTIFICATION_BODY_MAX, HUB_NOTIFICATION_KINDS, HUB_NOTIFICATION_MARK_MAX, HUB_NOTIFICATION_SEVERITIES, HubNotification, HubNotificationsQuery,
@@ -59,5 +60,19 @@ describe('Hub notifications contract', () => {
     expect(realtimeEventAllowed('notification', 3)).toBe(true);
     expect(Value.Check(RealtimeEventData.notification, { id: 'n1', kind: 'backup-failed', severity: 'error', title: 'A scheduled backup failed' })).toBe(true);
     expect(Value.Check(RealtimeEventData.notification, { id: 'n1', kind: 'nope', severity: 'error', title: 't' })).toBe(false);
+  });
+});
+
+describe('Hub notification preferences (PD-110)', () => {
+  it('defaults every closed kind to off', () => {
+    expect(Object.keys(defaultHubNotificationPreferences()).sort()).toEqual([...HUB_NOTIFICATION_KINDS].sort());
+    expect(Object.values(defaultHubNotificationPreferences()).every((on) => on === false)).toBe(true);
+  });
+
+  it('keeps a kind on only when it is exactly true and drops unknown keys and non-objects', () => {
+    const kind = HUB_NOTIFICATION_KINDS[0];
+    expect(sanitizeHubNotificationPreferences({ [kind]: true, bogus: true })).toEqual({ ...defaultHubNotificationPreferences(), [kind]: true });
+    expect(sanitizeHubNotificationPreferences({ [kind]: 'true' })).toEqual(defaultHubNotificationPreferences());
+    for (const value of [undefined, null, 'on', 1, [], [true]]) expect(sanitizeHubNotificationPreferences(value)).toEqual(defaultHubNotificationPreferences());
   });
 });

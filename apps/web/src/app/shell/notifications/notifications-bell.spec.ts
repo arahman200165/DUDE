@@ -204,4 +204,21 @@ describe('NotificationsBell (shell exception #14)', () => {
     expect(live.textContent?.trim()).toBe('Error notification: Backup failed');
     expect(q('notifications-badge')?.textContent?.trim()).toBe('1');
   });
+
+  it('opens the panel when the host asks (a clicked OS notification), once per request, and not at start', async () => {
+    const fake = createFakeNotificationsPort(listing(notification('n1')));
+    const { fixture, q } = await mount(fake.port);
+    expect(q('notifications-panel')).toBeNull();
+    fake.requestOpen();
+    fixture.detectChanges();
+    await tick(fixture);
+    expect(q('notifications-panel')).not.toBeNull();
+    // Closed by the user, it stays closed until the host asks again.
+    await click(fixture, q('notifications-bell'));
+    expect(q('notifications-panel')).toBeNull();
+    fake.requestOpen();
+    fixture.detectChanges();
+    await tick(fixture);
+    expect(q('notifications-panel')).not.toBeNull();
+  });
 });

@@ -2,6 +2,7 @@ import { inject as injectPlatformBridge } from '@angular/core';
 import { PLATFORM_BRIDGE } from './platform-bridge.adapter';
 import { Injectable, inject, signal } from '@angular/core';
 import { PlatformService } from './platform.service';
+import { defaultHubNotificationPreferences } from "@dude/contracts/hub";
 import type { DesktopPreferences } from "@dude/contracts/shared/models/platform-bridge.model";
 
 /** Mirrors `apps/desktop/desktop-preferences.ts`'s own defaults — used by Settings' "Reset to defaults". */
@@ -14,6 +15,7 @@ export const DESKTOP_PREFERENCE_DEFAULTS: DesktopPreferences = {
   updateMode: 'auto-download',
   notifyUpdates: true,
   notifyCollaboration: true,
+  hubNotifications: defaultHubNotificationPreferences(),
 };
 
 @Injectable({ providedIn: 'root' })

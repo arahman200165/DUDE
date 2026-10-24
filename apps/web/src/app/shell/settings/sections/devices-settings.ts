@@ -25,6 +25,8 @@ interface TrustFlow {
  * Settings > Devices. The environment's device registry behind the owner gate.
  * Destructive-Action Contract: Revoke previews first (the Hub returns a one-shot confirm token) and only the
  * explicit Confirm applies it; Cancel and Escape drop the preview. Recovery trust asks for the owner password every time.
+ * The notification-reader grant (PD-110) is a per-desktop switch: the port confirms the owner password first when the Hub asks for it
+ * (Hub web prompts once and retries; a desktop owner session is always stepped up), and a cancelled prompt leaves the switch where it was.
  */
 @Component({
   selector: 'app-devices-settings',
@@ -148,6 +150,24 @@ export class DevicesSettings {
   }
   protected canRevoke(device: DeviceInfo): boolean {
     return device.revokedAt === null;
+  }
+  /** Desktop rows only: a browser row has no device credential, and a phone's notifications are a later phase. */
+  protected canGrantNotifications(device: DeviceInfo): boolean {
+    return device.kind === 'desktop' && device.platform !== 'android' && device.platform !== 'web' && device.revokedAt === null && device.unenrolledAt === null;
+  }
+  protected readonly anyGrantable = computed(() => this.devices().some((device) => this.canGrantNotifications(device)));
+
+  /** Grants or revokes the notification-reader grant. The switch is put back when the Hub (or a cancelled password prompt) refuses. */
+  protected async toggleNotificationsAccess(device: DeviceInfo, event: Event): Promise<void> {
+    const box = event.target as HTMLInputElement;
+    const enabled = box.checked;
+    const updated = await this.act(() => this.hub.setNotificationsAccess(device.deviceId, enabled), 'The notification access could not be changed.');
+    if (!updated) {
+      box.checked = !enabled;
+      return;
+    }
+    this.devices.update((list) => list.map((d) => (d.deviceId === updated.deviceId ? updated : d)));
+    this.message.set(enabled ? `${updated.displayName} can now read Hub notifications.` : `${updated.displayName} can no longer read Hub notifications.`);
   }
 
   private async act<T>(work: () => Promise<T>, fallback: string): Promise<T | undefined> {

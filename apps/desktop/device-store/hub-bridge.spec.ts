@@ -35,7 +35,7 @@ type Handler = (event: { sender: unknown }, ...args: unknown[]) => Promise<any>;
 const call = (channel: string, sender: unknown, ...args: unknown[]) => (mock.handlers.get(channel) as Handler)({ sender }, ...args);
 
 // Every bridge method with a valid argument list; `satisfies` makes tsc fail when the type gains or loses a method.
-const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged' | 'onViewChanged' | 'onNotification'>, { channel: string; args: unknown[]; invalid: unknown[][] }> = {
+const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged' | 'onViewChanged' | 'onNotification' | 'onOpenNotifications'>, { channel: string; args: unknown[]; invalid: unknown[][] }> = {
   status: { channel: 'dude:hub:status', args: [], invalid: [[1]] },
   probeLocal: { channel: 'dude:hub:probeLocal', args: [47600], invalid: [['47600'], [0], [70000], [1.5], [1, 2]] },
   reachabilityEcho: { channel: 'dude:hub:reachabilityEcho', args: ['https://hub.example.com'], invalid: [[], [1], ['http://hub.example.com'], ['https://u:p@hub.example.com'], ['https://hub.example.com/path'], ['https://hub.example.com?x=1'], ['https://hub.example.com#f'], ['https://hub.example.com:0'], ['https://hub.example.com', 'x']] },
@@ -64,6 +64,7 @@ const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged' | 'onViewC
   revokeDevicePreview: { channel: 'dude:hub:owner:revokeDevicePreview', args: [UUID], invalid: [[], ['../x'], [1]] },
   revokeDevice: { channel: 'dude:hub:owner:revokeDevice', args: [UUID, TOKEN], invalid: [[UUID], [UUID, 'a b'], [UUID, 'a'.repeat(129)], ['x', TOKEN]] },
   setRecoveryTrust: { channel: 'dude:hub:owner:setRecoveryTrust', args: [UUID, 'pw', true], invalid: [[UUID, 'pw'], [UUID, 'pw', 'true'], [UUID, '', true], ['x', 'pw', true]] },
+  setNotificationsAccess: { channel: 'dude:hub:owner:setNotificationsAccess', args: [UUID, true], invalid: [[UUID], [UUID, 'true'], [UUID, 1], [UUID, true, 'x'], ['x', true], [5, true], [UUID, undefined]] },
   listSessions: { channel: 'dude:hub:owner:listSessions', args: [], invalid: [[1]] },
   revokeSession: { channel: 'dude:hub:owner:revokeSession', args: ['0123456789abcdef'], invalid: [[], ['ZZZZZZZZZZZZZZZZ'], ['abc'], [1]] },
   revokeAllPreview: { channel: 'dude:hub:owner:revokeAllPreview', args: [], invalid: [[1]] },
@@ -365,11 +366,12 @@ describe('preload hub surface', () => {
 
   it('exposes exactly the DesktopHubBridge methods, each on its own channel, with no generic invoke', () => {
     const keys = [...block.matchAll(/^    (\w+): /gm)].map((m) => m[1]);
-    expect(keys.sort()).toEqual([...Object.keys(VALID), 'onStatusChanged', 'onViewChanged', 'onNotification'].sort());
+    expect(keys.sort()).toEqual([...Object.keys(VALID), 'onStatusChanged', 'onViewChanged', 'onNotification', 'onOpenNotifications'].sort());
     const channels = [...block.matchAll(/ipcRenderer\.invoke\('(dude:hub:[\w:]+)'/g)].map((m) => m[1]);
     expect(channels.sort()).toEqual(Object.values(VALID).map((v) => v.channel).sort());
     expect(block).toMatch(/ipcRenderer\.on\('dude:hub:statusChanged'/);
     expect(block).toMatch(/ipcRenderer\.on\('dude:hub:viewChanged'/);
+    expect(block).toMatch(/ipcRenderer\.on\('dude:hub:openNotifications'/);
     expect(block).toMatch(/ipcRenderer\.on\('dude:hub:notification'/);
     expect(block).not.toMatch(/invoke:\s|ipcRenderer\.invoke\([a-z]/);
   });

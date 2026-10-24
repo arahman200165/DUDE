@@ -1,4 +1,4 @@
-import type { AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, OkResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SyncSummary, HubDiagnosticsReport, BackupStatusResponse, PresenceActivity, PresenceResponse, OwnerViewTopic, HubJobsResponse, HubNotificationsResponse, MarkNotificationsReadRequest, NotificationEventData } from "../../hub/index.js";
+import type { AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, OkResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SyncSummary, HubDiagnosticsReport, BackupStatusResponse, PresenceActivity, PresenceResponse, OwnerViewTopic, HubJobsResponse, HubNotificationsResponse, HubNotificationPreferences, MarkNotificationsReadRequest, NotificationEventData } from "../../hub/index.js";
 import type { LlmChatRequest, LlmChatResult } from "./llm-chat.model.js";
 import type { SnapshotDiff, SnapshotHeader } from "../../fs/snapshot-diff.js";
 import type { ChangeEvent, FolderWatchSettings, FolderWatchState, TimelineQuery, WatchedFolder } from "../../fs/watch-types.js";
@@ -32,6 +32,8 @@ export interface DesktopPreferences {
   updateMode: 'auto-download' | 'notify' | 'manual';
   notifyUpdates: boolean;
   notifyCollaboration: boolean;
+  /** Which Hub notification kinds raise an OS notification on this desktop (PD-110); device-local, every kind off by default. */
+  hubNotifications: HubNotificationPreferences;
 }
 
 export type DesktopOpenItem =
@@ -162,6 +164,8 @@ export interface DesktopHubBridge {
   revokeDevicePreview(deviceId: string): Promise<DesktopHubResult<ConfirmPreview>>;
   revokeDevice(deviceId: string, confirmToken: string): Promise<DesktopHubResult<OkResponse>>;
   setRecoveryTrust(deviceId: string, password: string, trusted: boolean): Promise<DesktopHubResult<DeviceInfo>>;
+  /** Owner session required: grants or revokes a desktop's notification-reader grant (PD-110). The Hub's 400 (browser row) and 409 (ended device) come back as `hub-*` codes. */
+  setNotificationsAccess(deviceId: string, enabled: boolean): Promise<DesktopHubResult<DeviceInfo>>;
   listSessions(): Promise<DesktopHubResult<SessionListResponse>>;
   revokeSession(sessionId: string): Promise<DesktopHubResult<OkResponse>>;
   revokeAllPreview(): Promise<DesktopHubResult<ConfirmPreview>>;
@@ -219,6 +223,8 @@ export interface DesktopHubBridge {
    * id, kind, severity and title only. Returns the unsubscribe function.
    */
   onNotification(callback: (notification: NotificationEventData) => void): () => void;
+  /** Pushed by main when the user clicks an OS notification it raised for a Hub notification (PD-110): the shell opens the bell panel. No payload. Returns the unsubscribe function. */
+  onOpenNotifications(callback: () => void): () => void;
 }
 
 /** Sync state and actions served by the Device Agent (Phase 31D). Same `{ ok, result | error }` envelope as the Hub bridge; main validates every argument. */

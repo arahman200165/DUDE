@@ -65,6 +65,12 @@ export interface HubAdminPort {
   revokeDevicePreview(deviceId: string): Promise<ConfirmPreview>;
   revokeDevice(deviceId: string, confirmToken: string): Promise<OkResponse>;
   setRecoveryTrust(deviceId: string, password: string, trusted: boolean): Promise<DeviceInfo>;
+  /**
+   * Owner only: grants or revokes a desktop's notification-reader grant (PD-110): that computer may then list, read and dismiss Hub notifications
+   * and receive them live without an owner session. Hub web: the cookie session; a `step-up-required` answer prompts for the owner password once and retries.
+   * Desktop: the Agent's owner bearer (always stepped up). The Hub answers 400 for a browser row and 409 for an ended device.
+   */
+  setNotificationsAccess(deviceId: string, enabled: boolean): Promise<DeviceInfo>;
   listSessions(): Promise<SessionListResponse>;
   revokeSession(sessionId: string): Promise<OkResponse>;
   revokeAllPreview(): Promise<ConfirmPreview>;
@@ -93,6 +99,8 @@ export interface HubAdminPort {
   onPresenceChanged?(callback: (entry: PresenceEntry) => void): () => void;
   /** A notification arrived (the Hub's `notification` event: id, kind, severity, title). Hub-served web: this page's realtime link; desktop: the Agent's push. Returns the unsubscribe function. */
   onNotification?(callback: (notification: NotificationEventData) => void): () => void;
+  /** Desktop only: the user clicked an OS notification raised by the main process; the shell opens the bell panel. Returns the unsubscribe function. */
+  onOpenNotifications?(callback: () => void): () => void;
   /** Desktop only: device-assisted owner recovery from a recovery-trusted desktop, after Windows confirms the user. */
   recoverOwner?(newPassword: string): Promise<{ readonly ok: true }>;
   /** Desktop only: the Hub on this PC (installed, running, set up, version, bundled update available). */

@@ -69,6 +69,12 @@
                     } @else {
                       <span class="text-text" data-testid="device-name">{{ device.displayName }}</span>
                       @if (device.current) { <span class="ml-1 rounded-sm border border-border px-1 text-ui-sm text-text-muted">This device</span> }
+                      @if (canGrantNotifications(device)) {
+                        <label class="mt-1 flex items-center gap-2 text-ui-sm text-text-muted">
+                          <input type="checkbox" role="switch" class="accent-accent" [attr.data-testid]="'notifications-access-' + device.deviceId" [attr.aria-label]="'Can read Hub notifications: ' + device.displayName" [checked]="device.notificationsAccess === true" [disabled]="busy()" (change)="toggleNotificationsAccess(device, $event)" />
+                          Can read Hub notifications
+                        </label>
+                      }
                       @if (needsRePair(device)) {
                         <p class="mt-1 max-w-sm text-ui-sm text-text-muted" [attr.data-testid]="'repair-note-' + device.deviceId">This device was paired before the Hub was restored. Create a one-time code, then enter it in that device's Settings &gt; Environment &amp; Hub &gt; Reconnect. Its local data and pending changes are kept.</p>
                       }
@@ -94,6 +100,7 @@
                       @if (device.revokedAt) { <span class="rounded-sm border border-error px-1 text-ui-sm text-error">Revoked</span> }
                       @if (device.unenrolledAt) { <span class="rounded-sm border border-border px-1 text-ui-sm text-text-muted">Unenrolled</span> }
                       @if (device.recoveryTrusted) { <span class="rounded-sm border border-border px-1 text-ui-sm text-text">Recovery-trusted</span> }
+                      @if (device.notificationsAccess && canGrantNotifications(device)) { <span class="rounded-sm border border-border px-1 text-ui-sm text-text" data-testid="notification-reader-tag">Notification reader</span> }
                     </span>
                   </td>
                   <td class="py-1">
@@ -117,6 +124,10 @@
         </div>
       } @else if (!loading() && !loadError()) {
         <p class="text-ui text-text-muted" data-testid="no-devices">No devices are registered yet. Use Pair a device to add one.</p>
+      }
+
+      @if (anyGrantable()) {
+        <p class="text-ui text-text-muted" data-testid="notifications-access-note">Can read Hub notifications lets that computer show Hub notifications without signing in; it can only read and dismiss them.</p>
       }
 
       @if (trust(); as t) {

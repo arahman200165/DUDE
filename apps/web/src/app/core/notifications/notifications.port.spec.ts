@@ -82,4 +82,15 @@ describe('notifications port adapters (PD-111)', () => {
       await expect(TestBed.inject(HUB_NOTIFICATIONS)?.isAvailable()).resolves.toBe(false);
     });
   });
+
+  it('a desktop forwards the clicked-OS-notification request and Hub web has none', () => {
+    const off = vi.fn();
+    const onOpenNotifications = vi.fn(() => off);
+    const desktop = createDesktopNotifications(asPort(admin({ onOpenNotifications })));
+    const listener = vi.fn();
+    expect(desktop.onOpenRequested!(listener)).toBe(off);
+    expect(onOpenNotifications).toHaveBeenCalledExactlyOnceWith(listener);
+    expect(() => createDesktopNotifications(asPort(admin())).onOpenRequested!(listener)()).not.toThrow();
+    expect(createHubWebNotifications(asPort(admin())).onOpenRequested).toBeUndefined();
+  });
 });

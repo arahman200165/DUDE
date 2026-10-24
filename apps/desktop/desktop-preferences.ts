@@ -1,6 +1,7 @@
 import { app, ipcMain, screen, type BrowserWindow } from 'electron';
 import { promises as fs } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { defaultHubNotificationPreferences, sanitizeHubNotificationPreferences, type HubNotificationPreferences } from '@dude/contracts/hub';
 import { loadDoc, saveDoc } from './device-store/device-docs';
 
 export type UpdateMode = 'auto-download' | 'notify' | 'manual';
@@ -13,6 +14,8 @@ export interface DesktopPreferences {
   updateMode: UpdateMode;
   notifyUpdates: boolean;
   notifyCollaboration: boolean;
+  /** Hub notification kinds that raise an OS notification (PD-110). Read by main, device-local, all off by default. */
+  hubNotifications: HubNotificationPreferences;
 }
 
 const DEFAULTS: DesktopPreferences = {
@@ -24,12 +27,13 @@ const DEFAULTS: DesktopPreferences = {
   updateMode: 'auto-download',
   notifyUpdates: true,
   notifyCollaboration: true,
+  hubNotifications: defaultHubNotificationPreferences(),
 };
 
 let preferences: DesktopPreferences = { ...DEFAULTS };
 let lastInstallerRequest = '';
 
-export function getDesktopPreferences(): DesktopPreferences { return { ...preferences }; }
+export function getDesktopPreferences(): DesktopPreferences { return { ...preferences, hubNotifications: { ...preferences.hubNotifications } }; }
 
 export async function loadDesktopPreferences(): Promise<void> {
   const stored = await loadDoc<Record<string, unknown> | null>('desktop-preferences', decodeDesktopPreferencesDoc, null);
@@ -67,6 +71,7 @@ function sanitize(input: Record<string, unknown>): DesktopPreferences {
     updateMode: input['updateMode'] === 'manual' || input['updateMode'] === 'notify' ? input['updateMode'] : 'auto-download',
     notifyUpdates: typeof input['notifyUpdates'] === 'boolean' ? input['notifyUpdates'] : DEFAULTS.notifyUpdates,
     notifyCollaboration: typeof input['notifyCollaboration'] === 'boolean' ? input['notifyCollaboration'] : DEFAULTS.notifyCollaboration,
+    hubNotifications: sanitizeHubNotificationPreferences(input['hubNotifications']),
   };
 }
 

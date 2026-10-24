@@ -155,6 +155,7 @@ export function createHubWebAdmin(options: HubWebAdminOptions): HubAdminPort {
     revokeDevicePreview: (id): Promise<ConfirmPreview> => viaClient((c) => c.revokeDevicePreview(undefined, id)),
     revokeDevice: (id, token): Promise<OkResponse> => viaClient((c) => c.revokeDevice(undefined, id, token)),
     setRecoveryTrust: (id, password, trusted) => viaClient((c) => c.setRecoveryTrust(undefined, id, password, trusted)),
+    setNotificationsAccess: (id, enabled): Promise<DeviceInfo> => viaClient((c) => c.setNotificationsAccess(undefined, id, enabled)),
     listSessions: (): Promise<SessionListResponse> => viaClient((c) => c.listSessions(undefined)),
     revokeSession: (id): Promise<OkResponse> => viaClient((c) => c.revokeSession(undefined, id)),
     revokeAllPreview: (): Promise<ConfirmPreview> => viaClient((c) => c.revokeAllPreview(undefined)),

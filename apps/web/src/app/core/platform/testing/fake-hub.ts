@@ -121,6 +121,7 @@ export function fakeHub(options: { password?: string; localHub?: FakeLocalHubSce
     onStatusChanged: () => () => undefined,
     onViewChanged: () => () => undefined,
     onNotification: () => () => undefined,
+    onOpenNotifications: () => () => undefined,
     listJobs: track('listJobs', async () => needOwner() ?? ok({ jobs: [...FAKE_HUB_JOBS] })),
     listNotifications: track('listNotifications', async () => needOwner() ?? ok({ notifications: [...notifications.values()], unread: [...notifications.values()].filter((n) => n.readAt === null).length })),
     markNotificationsRead: track('markNotificationsRead', async (target: { ids: string[] } | { all: true }) => {
@@ -203,6 +204,15 @@ export function fakeHub(options: { password?: string; localHub?: FakeLocalHubSce
       const found = devices.get(id);
       if (!found) return fail('not-found', 'No such device.');
       const updated = { ...found, recoveryTrusted: trusted };
+      devices.set(id, updated);
+      return ok(updated);
+    }),
+    setNotificationsAccess: track('setNotificationsAccess', async (id: string, enabled: boolean) => {
+      const denied = needOwner();
+      if (denied) return denied;
+      const found = devices.get(id);
+      if (!found) return fail('not-found', 'No such device.');
+      const updated = { ...found, notificationsAccess: enabled };
       devices.set(id, updated);
       return ok(updated);
     }),
