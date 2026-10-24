@@ -81,7 +81,30 @@ function diffText(base: readonly string[], other: readonly string[], maxCost: nu
     else if (op === '-') { deleted[i] = 1; i += 1; }
     else { inserted.set(i, (inserted.get(i) ?? '') + other[j]!); j += 1; }
   }
-  return { deleted, inserted };
+  return { deleted, inserted: slideInsertionsRight(base, deleted, inserted) };
+}
+
+/**
+ * The same insertion can be placed at several gaps ("X\n" after "a\n" equals "\nX" before its newline; "#a" before an
+ * "a" equals "#" before it and "a" after it), and the diff picks one depending on the rest of the text. Every part of an
+ * insertion that can move past the next base character moves right (the part from the first occurrence of that character
+ * on, rotated), so the two sides of a merge place an identical edit identically and it is kept once.
+ */
+function slideInsertionsRight(base: readonly string[], deleted: Uint8Array, inserted: Map<number, string>): Map<number, string> {
+  const out = new Map<number, string>();
+  for (const gap of [...inserted.keys()].sort((x, y) => y - x)) {
+    let g = gap;
+    let text = Array.from(inserted.get(gap)!);
+    while (text.length > 0 && g < base.length && deleted[g] === 0 && !out.has(g + 1)) {
+      const k = text.indexOf(base[g]!);
+      if (k < 0) break;
+      if (k > 0) out.set(g, text.slice(0, k).join(''));
+      text = [...text.slice(k + 1), base[g]!];
+      g += 1;
+    }
+    if (text.length > 0) out.set(g, (out.get(g) ?? '') + text.join(''));
+  }
+  return out;
 }
 
 function combineInsertions(theirs: string, ours: string): string {

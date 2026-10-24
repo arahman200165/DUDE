@@ -60,6 +60,21 @@ describe('mergeText3', () => {
     }));
   });
 
+  it('keeps an edit once even when the diff would place it at a different but equivalent gap on each side', () => {
+    expect(mergeText3('line1\nline2\n', 'line1\nline2\nX\n', 'Y\nline1\nline2\nX\n')).toBe('Y\nline1\nline2\nX\n');
+    expect(mergeText3('x\n\n', 'x\n\nq\n\n', 'z\nx\n\nq\n\n')).toBe('z\nx\n\nq\n\n');
+  });
+
+  it('property: an edit delivered twice, with an unrelated edit at the start of the live text, is kept once', () => {
+    const repetitive = fc.string({ unit: fc.constantFrom('a', '\n', ' '), maxLength: 30 });
+    fc.assert(fc.property(repetitive, repetitive, fc.nat(), (base, typed, pos) => {
+      const at = pos % (Array.from(base).length + 1);
+      const ours = insertAt(base, at, typed);
+      const theirs = `#${ours}`;
+      expect(mergeText3(base, ours, theirs)).toBe(theirs);
+    }), { numRuns: 500 });
+  });
+
   it('property: disjoint insertions on both sides both survive exactly once', () => {
     fc.assert(fc.property(fc.string({ unit: fc.constantFrom('a', 'b'), minLength: 2, maxLength: 30 }), fc.constantFrom('X', 'XY'), fc.constantFrom('Q', 'QR'), (base, mine, theirs) => {
       const ours = mine + base;
