@@ -13,8 +13,8 @@ function dirs() {
 }
 
 describe('migration 0009 notifications', () => {
-  it('is registered last, additive and readable by older readers', () => {
-    expect(HUB_MIGRATIONS[HUB_MIGRATIONS.length - 1]).toBe(migration0009);
+  it('is registered, additive and readable by older readers', () => {
+    expect(HUB_MIGRATIONS[8]).toBe(migration0009);
     expect(migration0009).toMatchObject({ version: 9, name: 'notifications', minReaderVersion: 1 });
   });
 
@@ -33,7 +33,7 @@ INSERT INTO devices(device_id, environment_id, display_name, platform, app_versi
 `);
     v8.hub.close();
 
-    const upgraded = openHubDb(options);
+    const upgraded = openHubDb({ ...options, migrations: HUB_MIGRATIONS.slice(0, 9) });
     if (upgraded.status !== 'ready') throw new Error('expected ready');
     const { db } = upgraded.hub;
     expect(getMeta(db, 'schema_version')).toBe('9');
@@ -47,7 +47,7 @@ INSERT INTO devices(device_id, environment_id, display_name, platform, app_versi
     expect(db.prepare('SELECT COUNT(*) AS n FROM schema_migrations WHERE version = 9').get()).toEqual({ n: 1 });
     upgraded.hub.close();
 
-    const again = openHubDb(options);
+    const again = openHubDb({ ...options, migrations: HUB_MIGRATIONS.slice(0, 9) });
     if (again.status !== 'ready') throw new Error('expected ready');
     expect(again.hub.db.prepare('SELECT COUNT(*) AS n FROM schema_migrations WHERE version = 9').get()).toEqual({ n: 1 });
     expect(again.hub.db.prepare('SELECT checksum FROM schema_migrations WHERE version = 9').get()).toEqual({ checksum: checksumOf(migration0009) });

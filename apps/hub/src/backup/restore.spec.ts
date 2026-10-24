@@ -207,6 +207,7 @@ describe('restore: round trip', () => {
     expect(count('ip_blocks')).toBe(1);
     expect(count('records')).toBe(1);
     expect(count('change_feed')).toBe(1);
+    for (const table of ['collab_docs', 'collab_updates', 'collab_snapshots', 'collab_bases']) expect([table, count(table)]).toEqual([table, 1]);
     expect(count('devices')).toBe(3);
     expect(db.prepare("SELECT hash FROM owner_credentials WHERE owner_id = 'owner-1'").get()).toEqual({ hash: new Uint8Array([3, 4]) });
 
@@ -268,7 +269,7 @@ describe('restore: round trip', () => {
     const opened = openHubDb({ dbFile: paths.dbFile, preMigrationDir: paths.preMigrationDir });
     if (opened.status !== 'ready') throw new Error(opened.message);
     hubs.push(opened.hub);
-    expect(getMeta(opened.hub.db, 'schema_version')).toBe('9');
+    expect(getMeta(opened.hub.db, 'schema_version')).toBe('10');
     expect(readdirSync(paths.preMigrationDir)).toEqual([]);
     expect(opened.hub.db.prepare('SELECT device_id, needs_re_pair FROM devices').all()).toEqual([{ device_id: 'dev-1', needs_re_pair: 1 }]);
     expect(opened.hub.db.prepare("SELECT COUNT(*) AS n FROM pragma_table_info('pairing_codes') WHERE name = 'reattach_device_id'").get()).toEqual({ n: 1 });

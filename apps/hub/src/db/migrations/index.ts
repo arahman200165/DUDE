@@ -8,8 +8,9 @@ import { migration0006 } from './0006-ip-blocks.js';
 import { migration0007 } from './0007-session-step-up.js';
 import { migration0008 } from './0008-device-repair.js';
 import { migration0009 } from './0009-notifications.js';
+import { migration0010 } from './0010-collab.js';
 
 export type { Migration };
 
 /** Append only; never edit a shipped migration. */
-export const HUB_MIGRATIONS: readonly Migration[] = [migration0001, migration0002, migration0003, migration0004, migration0005, migration0006, migration0007, migration0008, migration0009];
+export const HUB_MIGRATIONS: readonly Migration[] = [migration0001, migration0002, migration0003, migration0004, migration0005, migration0006, migration0007, migration0008, migration0009, migration0010];

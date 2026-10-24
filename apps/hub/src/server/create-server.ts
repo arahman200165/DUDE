@@ -32,6 +32,10 @@ import type { ExecFn } from '../service/common.js';
 import { registerDeviceAuthRoutes } from './routes/device-auth.js';
 import { registerSyncRoutes } from './routes/sync.js';
 import { registerWebRecordRoutes } from './routes/web-records.js';
+import { collabKindForEntity } from '@dude/collab-doc';
+import { createCollabRegistry } from '../collab/doc-registry.js';
+import type { CollabRegistry, CollabRegistryOptions } from '../collab/doc-registry.js';
+import { observeCanonicalCommits } from '../db/canonical-repository.js';
 import { SYNC_COMPACTION_INTERVAL_MS, registerSyncCompaction } from './sync-compaction.js';
 import type { SyncCompactionOptions } from './sync-compaction.js';
 import { registerDeviceRecoveryRoutes } from './routes/device-recovery.js';
@@ -62,7 +66,11 @@ import type { CsrfVerifier } from '../security/request-guard.js';
 export const HUB_BODY_LIMIT = 64 * 1024;
 
 declare module 'fastify' {
-  interface FastifyInstance { hubDiagnostics: (override?: DiagnosticsOverride) => Promise<HubDiagnosticsReport> }
+  interface FastifyInstance {
+    hubDiagnostics: (override?: DiagnosticsOverride) => Promise<HubDiagnosticsReport>;
+    /** The collaborative document registry (PD-101); the `/api/v1/collab` socket opens documents through it. */
+    collab: CollabRegistry;
+  }
 }
 
 export interface CreateHubServerOptions {
@@ -79,6 +87,8 @@ export interface CreateHubServerOptions {
   realtime?: Partial<RealtimeTimings>;
   /** Sync compaction timer and retention (tests inject short ones). */
   sync?: SyncCompactionOptions;
+  /** Collaborative document timings (tests inject short ones): idle unload, tail compaction, update flush and materialization. */
+  collab?: Pick<CollabRegistryOptions, 'idleUnloadMs' | 'compactAfterUpdates' | 'store' | 'materializer'>;
   /** Registers routes before the server is ready (the security hooks are already installed). */
   configure?: (app: FastifyInstance) => void;
   tls: { keyPem: string; certPem: string; spkiSha256: string };
@@ -237,6 +247,25 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   });
   registerWebRecordRoutes(app, { db: options.hub.db, now, requireCookieOwner: authOptions.requireCookieOwner });
   registerSyncCompaction(app, options.hub.db, now, options.sync, jobs.handle('sync-compaction'));
+
+  // Collaborative documents (PD-101): the registry owns the Y.Docs, their store and the materializer. A tombstoned record or a cleared
+  // environment ends the document (the delete commit already removed the rows; this unloads it and ends its subscribers).
+  const collab = createCollabRegistry({
+    db: options.hub.db, now, log: app.log, ...options.collab,
+    emitRecordsChanged: (event) => app.hubEvents.emit('records-changed', event),
+  });
+  app.decorate('collab', collab);
+  const stopObservingCommits = observeCanonicalCommits(options.hub.db, (event) => {
+    const kind = event.op === 'delete' ? collabKindForEntity(event.entityType) : null;
+    if (kind !== null) collab.evict(`${kind}:${event.entityId}`);
+  });
+  const onEnvironmentCleared = (): void => collab.evictAll();
+  app.hubEvents.on('environment-cleared', onEnvironmentCleared);
+  app.addHook('onClose', async () => {
+    stopObservingCommits();
+    app.hubEvents.off('environment-cleared', onEnvironmentCleared);
+    collab.dispose();
+  });
 
   const serveStatic = createStaticHandler({ root: options.config.webRoot ?? options.paths.webRoot });
   app.setNotFoundHandler(async (request, reply) => {

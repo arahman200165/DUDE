@@ -1,3 +1,4 @@
+import { collabKindForEntity, parseCollabDocKey } from '@dude/collab-doc';
 import type { SyncRecord, SyncRejectReason } from '@dude/contracts/hub';
 import { ENTITY_CODECS, isSyncableSettingKey, settingCodec } from '@dude/persistence';
 import type { CommitResult, EntityCodec, EntityCollectionRepository, SyncableToolInfo } from '@dude/persistence';
@@ -145,6 +146,12 @@ export function currentRevision(db: Db): number {
 export function commitCanonical(db: Db, input: CanonicalCommit & { enforcePolicy: true }): SyncCommitResult;
 export function commitCanonical(db: Db, input: CanonicalCommit): CanonicalCommitResult;
 export function commitCanonical(db: Db, input: CanonicalCommit): SyncCommitResult {
+  const result = commitGuarded(db, input);
+  if (result.status === 'applied') notifyObservers(db, input, result.revision);
+  return result;
+}
+
+function commitGuarded(db: Db, input: CanonicalCommit): SyncCommitResult {
   if (!input.enforcePolicy) return commitInTransaction(db, input);
   try {
     return commitInTransaction(db, input);
@@ -152,6 +159,40 @@ export function commitCanonical(db: Db, input: CanonicalCommit): SyncCommitResul
     const reason = error instanceof CanonicalRejection ? REJECT_REASONS[error.code] : undefined;
     if (reason) return { status: 'rejected', reason };
     throw error;
+  }
+}
+
+export interface CanonicalCommitEvent {
+  environmentId: string;
+  entityType: string;
+  entityId: string;
+  op: 'upsert' | 'delete';
+  revision: number;
+}
+
+const observers = new WeakMap<Db, Set<(event: CanonicalCommitEvent) => void>>();
+
+/**
+ * Observes every applied commit on `db` (not duplicates, conflicts or rejections), synchronously after it is written. It may run while an
+ * outer transaction (the environment clear) is still open, so an observer only does in-memory work or writes that may join that
+ * transaction. An observer's failure never reaches the committer. Returns the unsubscribe function.
+ */
+export function observeCanonicalCommits(db: Db, listener: (event: CanonicalCommitEvent) => void): () => void {
+  let set = observers.get(db);
+  if (!set) {
+    set = new Set();
+    observers.set(db, set);
+  }
+  set.add(listener);
+  return () => void set.delete(listener);
+}
+
+function notifyObservers(db: Db, input: CanonicalCommit, revision: number): void {
+  const set = observers.get(db);
+  if (!set || set.size === 0) return;
+  const event: CanonicalCommitEvent = { environmentId: input.environmentId, entityType: input.entityType, entityId: input.entityId, op: input.op, revision };
+  for (const listener of [...set]) {
+    try { listener(event); } catch { /* observers never fail a commit */ }
   }
 }
 
@@ -247,8 +288,24 @@ function commitInTransaction(db: Db, input: CanonicalCommit): SyncCommitResult {
     if (input.opId !== undefined) {
       db.prepare('INSERT INTO applied_ops(op_id, revision, device_id, applied_at) VALUES(?, ?, ?, ?)').run(input.opId, revision, deviceId, input.now);
     }
+    if (input.op === 'delete') deleteCollabState(db, input.entityType, input.entityId);
     return { status: 'applied', revision };
   });
+}
+
+/**
+ * A tombstone ends the record's collaborative document (PD-101): its Yjs state, tail, snapshots and merge bases go in the same
+ * transaction as the delete, so a crash can never leave a Y.Doc that outlives its record. Entity types that are not collaborative
+ * (and ids that are not legal document keys) have none.
+ */
+function deleteCollabState(db: Db, entityType: string, entityId: string): void {
+  const kind = collabKindForEntity(entityType);
+  const ref = kind === null ? null : parseCollabDocKey(`${kind}:${entityId}`);
+  if (!ref) return;
+  const docKey = `${ref.kind}:${ref.id}`;
+  for (const table of ['collab_updates', 'collab_snapshots', 'collab_bases', 'collab_docs']) {
+    db.prepare(`DELETE FROM ${table} WHERE doc_key = ?`).run(docKey);
+  }
 }
 
 export function getCanonicalRecord(db: Db, environmentId: string, entityType: string, entityId: string): CanonicalRecord | undefined {

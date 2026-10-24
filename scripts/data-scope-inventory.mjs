@@ -214,6 +214,10 @@ const hubTables = {
   change_feed: ['environment', 'canonical per-environment change feed'],
   applied_ops: ['environment', 'canonical idempotency ledger for applied operations'],
   notifications: ['local-only', 'Hub-private owner notifications (short titles and bodies, no record content or credentials); removed from backups and on restore'],
+  collab_docs: ['environment', 'compacted Yjs state of each collaborative document (scratchpad, user-script body, Markdown document); content, included in backups and transfers'],
+  collab_updates: ['environment', 'short tail of Yjs updates applied since the last compaction of a collaborative document; content, included in backups'],
+  collab_snapshots: ['environment', 'collaborative document history snapshots (plain record payloads, 30-day retention); content, included in backups'],
+  collab_bases: ['environment', 'materialized record payloads keyed by revision, the three-way merge base for non-Yjs writes; content, included in backups'],
 };
 const mobileTables = {
   metadata: ['device', 'Installation identity and opaque enrollment/pending receipt; no tokens, pairing codes, signing seeds or proof bodies.', 'sensitive'],

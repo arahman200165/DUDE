@@ -48,6 +48,7 @@ describe('createScrubbedDbSnapshot', () => {
       expect(count(copy, 'throttle')).toBe(1);
       expect(count(copy, 'ip_blocks')).toBe(1);
       expect(count(copy, 'records')).toBe(1);
+      for (const table of ['collab_docs', 'collab_updates', 'collab_snapshots', 'collab_bases']) expect([table, count(copy, table)]).toEqual([table, 1]);
       expect(getMeta(copy, 'hub_instance_id')).toBe(hub.hubInstanceId);
       expect(getMeta(copy, 'authority_epoch')).toBe('3');
       expect(copy.prepare('PRAGMA quick_check').get()).toEqual({ quick_check: 'ok' });

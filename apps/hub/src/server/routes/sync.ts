@@ -238,6 +238,7 @@ export function registerSyncRoutes(app: FastifyInstance, options: SyncRouteOptio
       });
       const headRevision = currentRevision(db);
       audit(db, { event: 'sync.environment-cleared', outcome: 'success', actorKind: 'owner', actorId: ctx.ownerId, ip: ipOf(request), detail: { deleted }, now: now() });
+      app.hubEvents.emit('environment-cleared', { environmentId });
       if (deleted > 0) app.hubEvents.emit('records-changed', { environmentId, revision: headRevision, originDeviceId: null });
       return reply.code(200).send({ deleted, headRevision });
     },

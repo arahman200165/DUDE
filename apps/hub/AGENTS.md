@@ -39,7 +39,7 @@ The self-hosted **DUDE Hub** (Phases 31C-31G, complete; 31D added synchronizatio
 - `src/tls/` self-signed and local-CA certificate generation (small DER writer, `local-ca`, `leaf-issuer`, `renewal`, `ca-key-protector`), configured names, certificate import, proxy pins, SPKI pins and dual-pin rotation.
 - `src/diagnostics/` the one endpoint diagnostics engine (readiness checks marked verified, claimed or not-checked) behind `GET /api/v1/diagnostics`, the admin `diagnostics` method and `dude-hub doctor`.
 - `src/backup/` encrypted backup creation, scrubbed snapshot, retention, the scheduled-backup derived key and the scheduler (31G); the admin methods are `src/admin/backup-methods.ts`.
-- `src/db/` canonical SQLite open and numbered migrations (`0001-initial` to `0009-notifications`) and the atomic commit repository.
+- `src/db/` canonical SQLite open and numbered migrations (`0001-initial` to `0010-collab`) and the atomic commit repository.
 - `src/admin/` the local admin named pipe or Unix socket and its client, so CLI commands never open `dude.db` while the service runs.
 - `src/service/` WinSW wrapper XML, install/lifecycle, LAN mode and firewall rule, `doctor` and `purge`.
 - `src/config/`, `src/util/`, `src/testing/` data-directory layout and strict config, ids, the crash-writer fixture.

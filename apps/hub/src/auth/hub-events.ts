@@ -20,6 +20,8 @@ export interface HubEventMap {
   'owner-recovered': [{ deviceId: string; at: string }];
   /** Canonical records changed (sync push or environment clear); device sockets get `changes-available`. */
   'records-changed': [{ environmentId: string; revision: number; originDeviceId: string | null }];
+  /** The environment clear deleted every record (PD-101): the collaboration registry drops all collaborative state. */
+  'environment-cleared': [{ environmentId: string }];
   /** A web access toggle changed (PD-051); owner cookie sockets get `web-access-changed` so open browsers re-fetch. */
   'web-access-changed': [{ environmentId: string }];
   /** A Hub notification was stored (PD-109); owner sockets and sockets of devices holding the reader grant get `notification`. */

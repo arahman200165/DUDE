@@ -66,6 +66,15 @@ INSERT INTO change_feed(revision, environment_id, entity_type, entity_id, op, at
   if (db.prepare("SELECT 1 AS x FROM sqlite_master WHERE type = 'table' AND name = 'notifications'").get() !== undefined) {
     db.exec(`INSERT INTO notifications(id, created_at, source_key, kind, severity, title, body) VALUES ('notif-1', '${at}', 'audit:1', 'security-alert', 'warning', 'Security alert', 'A device was revoked.');`);
   }
+  // Collaborative documents (31J, migration 0010) are content, not per-instance state: they ride along in a backup.
+  if (db.prepare("SELECT 1 AS x FROM sqlite_master WHERE type = 'table' AND name = 'collab_docs'").get() !== undefined) {
+    db.exec(`
+INSERT INTO collab_docs(doc_key, kind, entity_type, entity_id, state, bytes, materialized_revision, created_at, updated_at, last_opened_at)
+  VALUES ('scratchpad:default', 'scratchpad', 'scratchpad', 'default', x'0000', 2, 1, '${at}', '${at}', '${at}');
+INSERT INTO collab_updates(doc_key, update_blob, at) VALUES ('scratchpad:default', x'00', '${at}');
+INSERT INTO collab_snapshots(id, doc_key, taken_at, payload_json, bytes) VALUES ('snap-1', 'scratchpad:default', '${at}', '{}', 2);
+INSERT INTO collab_bases(doc_key, revision, payload_json, at) VALUES ('scratchpad:default', 1, '{}', '${at}');`);
+  }
   setMeta(db, 'csrf_key', `${SECRET_MARKER}-csrf`);
   setMeta(db, 'alerts_seen_seq', '5');
   setMeta(db, 'hub_addresses', `{"addresses":["${SECRET_MARKER}"]}`);
