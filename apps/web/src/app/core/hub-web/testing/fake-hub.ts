@@ -19,6 +19,10 @@ export class FakeHub implements HubWebClient {
   readonly records = new Map<string, SyncRecord>();
   readonly pushes: SyncOp[][] = [];
   readonly states: SyncStateReport[] = [];
+  /** The `accept` option of each push, in order. */
+  readonly accepts: Array<readonly 'merged'[] | undefined> = [];
+  /** When set, a stale write is merged by this function (undefined = no clean merge) for a client that accepts `merged`. */
+  serverMerge: ((op: SyncOp, current: SyncRecord) => unknown) | null = null;
   /** Throws this on every call while set (a down Hub, a 401). */
   failWith: Error | null = null;
   rejectReason: string | null = null;
@@ -58,9 +62,10 @@ export class FakeHub implements HubWebClient {
     return { changes: page, cursor: page.length === all.length ? Math.max(cursor, this.head) : cursor, hasMore: page.length < all.length, floor: 0, headRevision: this.head };
   };
 
-  webPush = async (ops: readonly SyncOp[]): Promise<{ results: SyncOpResult[]; headRevision: number }> => {
+  webPush = async (ops: readonly SyncOp[], options?: { accept?: readonly 'merged'[] }): Promise<{ results: SyncOpResult[]; headRevision: number }> => {
     this.guard();
     this.pushes.push([...ops]);
+    this.accepts.push(options?.accept);
     const results: SyncOpResult[] = [];
     for (const op of ops) {
       if (this.rejectReason) {
@@ -69,7 +74,15 @@ export class FakeHub implements HubWebClient {
       }
       const current = this.records.get(this.key(op.entityType, op.entityId));
       if ((current?.revision ?? null) !== op.basedOnRevision && current !== undefined) {
-        results.push({ opId: op.opId, status: 'conflict', current });
+        // PD-102: the Hub's own three-way merge, answered only to a client that declared `accept: ['merged']`.
+        const merged = this.serverMerge && options?.accept?.includes('merged') ? this.serverMerge(op, current) : undefined;
+        if (merged === undefined) {
+          results.push({ opId: op.opId, status: 'conflict', current });
+          continue;
+        }
+        const record: SyncRecord = { ...current, revision: ++this.head, payload: merged, updatedByDeviceId: 'me' };
+        this.records.set(this.key(op.entityType, op.entityId), record);
+        results.push({ opId: op.opId, status: 'merged', revision: record.revision, current: record });
         continue;
       }
       const record: SyncRecord = {

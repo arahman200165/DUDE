@@ -83,10 +83,50 @@ export interface CanonicalCommit {
   schemaVersion?: number;
   /** Test seam: tool manifests for the setting-key check (defaults to the generated registry). */
   tools?: readonly SyncableToolInfo[];
+  /**
+   * PD-102, sync and web pushes of a client that declared `accept: ['merged']`: given an upsert of a collaborative record based on an
+   * older revision, returns the merged payload (or undefined for "no clean merge", which stays a conflict). The repository itself knows
+   * nothing about Yjs; the callback is supplied by `collab/record-merge.ts`. It runs INSIDE the commit transaction, so it must only read
+   * and compute; whatever must happen to the live document is registered through `defer`.
+   */
+  collabMerge?: CollabMerge;
+  /**
+   * PD-102: the live document of this collaborative record could not be written into the record before this write was evaluated, so the
+   * record is behind it. An upsert is then never applied over it, even when it is based on the current revision: it merges (when
+   * `collabMerge` is supplied) or conflicts.
+   */
+  collabDiverged?: boolean;
+  /** Called once, after the transaction, when an upsert was applied: the live document takes the committed payload (PD-102). Never throws into the commit. */
+  collabApplied?: (revision: number) => void;
 }
 
+/** What a merge callback is asked: the writer's edit, the record it was based on and the record as it stands. */
+export interface CollabMergeRequest {
+  entityType: string;
+  entityId: string;
+  basedOnRevision: number;
+  /** The incoming payload as the codec stores it. */
+  incoming: unknown;
+  /** The live record (never a tombstone). */
+  current: { revision: number; payload: unknown };
+  deviceId: string | null;
+  /** Largest merged payload the commit will accept, in UTF-8 bytes. */
+  maxBytes: number;
+}
+
+/**
+ * Registers `fn` to run once, after the transaction ended: with the new revision when the merged payload was committed, with null when it
+ * was not (no merge, a rejected merge, a thrown error). Used to apply the merge to the live document and to release what the callback opened.
+ */
+export type CollabMergeDefer = (fn: (committedRevision: number | null) => void) => void;
+export type CollabMerge = (request: CollabMergeRequest, defer: CollabMergeDefer) => unknown | undefined;
+
 export type CanonicalCommitResult = { status: 'applied'; revision: number } | { status: 'duplicate'; revision: number };
-export type SyncCommitResult = CanonicalCommitResult | { status: 'conflict'; current: SyncRecord } | { status: 'rejected'; reason: SyncRejectReason };
+export type SyncCommitResult =
+  | CanonicalCommitResult
+  | { status: 'conflict'; current: SyncRecord }
+  | { status: 'merged'; revision: number; current: SyncRecord }
+  | { status: 'rejected'; reason: SyncRejectReason };
 
 export interface CanonicalRecord {
   environmentId: string;
@@ -146,15 +186,32 @@ export function currentRevision(db: Db): number {
 export function commitCanonical(db: Db, input: CanonicalCommit & { enforcePolicy: true }): SyncCommitResult;
 export function commitCanonical(db: Db, input: CanonicalCommit): CanonicalCommitResult;
 export function commitCanonical(db: Db, input: CanonicalCommit): SyncCommitResult {
-  const result = commitGuarded(db, input);
-  if (result.status === 'applied') notifyObservers(db, input, result.revision);
+  const deferred: Array<(committedRevision: number | null) => void> = [];
+  const runDeferred = (revision: number | null): void => {
+    for (const fn of deferred.splice(0)) {
+      try { fn(revision); } catch { /* applying a merge to the live document never fails a commit that already landed */ }
+    }
+  };
+  let result: SyncCommitResult;
+  try {
+    result = commitGuarded(db, input, deferred);
+  } catch (error) {
+    runDeferred(null);
+    throw error;
+  }
+  // After the commit: the live document learns the merged text only once the record holds it.
+  runDeferred(result.status === 'merged' ? result.revision : null);
+  if (result.status === 'applied' && input.op === 'upsert' && input.collabApplied) {
+    try { input.collabApplied(result.revision); } catch { /* the record is committed; the live document is caught up by the next push or edit */ }
+  }
+  if (result.status === 'applied' || result.status === 'merged') notifyObservers(db, input, result.revision);
   return result;
 }
 
-function commitGuarded(db: Db, input: CanonicalCommit): SyncCommitResult {
-  if (!input.enforcePolicy) return commitInTransaction(db, input);
+function commitGuarded(db: Db, input: CanonicalCommit, deferred: Array<(committedRevision: number | null) => void>): SyncCommitResult {
+  if (!input.enforcePolicy) return commitInTransaction(db, input, deferred);
   try {
-    return commitInTransaction(db, input);
+    return commitInTransaction(db, input, deferred);
   } catch (error) {
     const reason = error instanceof CanonicalRejection ? REJECT_REASONS[error.code] : undefined;
     if (reason) return { status: 'rejected', reason };
@@ -196,12 +253,12 @@ function notifyObservers(db: Db, input: CanonicalCommit, revision: number): void
   }
 }
 
-function commitInTransaction(db: Db, input: CanonicalCommit): SyncCommitResult {
+function commitInTransaction(db: Db, input: CanonicalCommit, deferred: Array<(committedRevision: number | null) => void>): SyncCommitResult {
   return transaction(db, (): SyncCommitResult => {
     if (input.actor) assertActorActive(db, input.actor);
     if (input.opId !== undefined) {
       const seen = getRow<{ revision: number }>(db.prepare('SELECT revision FROM applied_ops WHERE op_id = ?'), input.opId);
-      if (seen) return { status: 'duplicate', revision: seen.revision };
+      if (seen) return answerDuplicate(db, input, seen.revision);
     }
 
     const codecs = input.codecs ?? HUB_CODECS;
@@ -254,11 +311,19 @@ function commitInTransaction(db: Db, input: CanonicalCommit): SyncCommitResult {
       }
     }
 
+    let merged = false;
     if (policy?.conflict === 'merge3') {
       const existing = getRow<RecordRow>(
         db.prepare('SELECT * FROM records WHERE environment_id = ? AND entity_type = ? AND entity_id = ?'),
         input.environmentId, input.entityType, input.entityId);
-      if (existing && (input.basedOnRevision ?? null) !== existing.revision) return { status: 'conflict', current: toSyncRecord(existing) };
+      if (existing && ((input.basedOnRevision ?? null) !== existing.revision
+        || (input.collabDiverged === true && input.op === 'upsert' && existing.deleted === 0))) {
+        // PD-102: a write to a collaborative record based on an older revision is merged three ways when the client can take the answer.
+        const mergedJson = payloadJson === null ? undefined : mergeCollabEdit(input, existing, payloadJson, codec, deferred);
+        if (mergedJson === undefined) return { status: 'conflict', current: toSyncRecord(existing) };
+        payloadJson = mergedJson;
+        merged = true;
+      }
       if (!existing && input.op === 'upsert' && input.basedOnRevision !== null && input.basedOnRevision !== undefined) {
         // The device knew a revision of a record that no longer exists: its tombstone was compacted. Report it as the deletion it
         // was, so a stale edit never resurrects a deleted record.
@@ -289,8 +354,61 @@ function commitInTransaction(db: Db, input: CanonicalCommit): SyncCommitResult {
       db.prepare('INSERT INTO applied_ops(op_id, revision, device_id, applied_at) VALUES(?, ?, ?, ?)').run(input.opId, revision, deviceId, input.now);
     }
     if (input.op === 'delete') deleteCollabState(db, input.entityType, input.entityId);
+    if (merged) {
+      const row = getRow<RecordRow>(
+        db.prepare('SELECT * FROM records WHERE environment_id = ? AND entity_type = ? AND entity_id = ?'),
+        input.environmentId, input.entityType, input.entityId) as RecordRow;
+      return { status: 'merged', revision, current: toSyncRecord(row) };
+    }
     return { status: 'applied', revision };
   });
+}
+
+/**
+ * Runs the merge callback for a collaborative record edited from an older revision. Returns the codec-encoded merged payload as JSON,
+ * or undefined when there is nothing to merge with (no callback, not an upsert, a tombstone, no base, a field that does not merge, a
+ * result over the size cap or one the codec refuses): the caller then reports the ordinary conflict.
+ */
+function mergeCollabEdit(
+  input: CanonicalCommit, existing: RecordRow, incomingJson: string, codec: EntityCodec<any, any>,
+  deferred: Array<(committedRevision: number | null) => void>,
+): string | undefined {
+  const basedOn = input.basedOnRevision;
+  if (!input.collabMerge || input.op !== 'upsert' || existing.deleted === 1 || existing.payload_json === null) return undefined;
+  if (typeof basedOn !== 'number' || basedOn > existing.revision || collabKindForEntity(input.entityType) === null) return undefined;
+  const mergedPayload = input.collabMerge({
+    entityType: input.entityType, entityId: input.entityId, basedOnRevision: basedOn, incoming: JSON.parse(incomingJson),
+    current: { revision: existing.revision, payload: JSON.parse(existing.payload_json) }, deviceId: input.deviceId ?? null,
+    maxBytes: SYNC_LIMITS.maxRecordBytes,
+  }, (fn) => void deferred.push(fn));
+  if (mergedPayload === undefined) return undefined;
+  const decoded: unknown = codec.decode(mergedPayload, input.codecCtx);
+  if (decoded === null || decoded === undefined || codec.idOf(decoded) !== input.entityId) return undefined;
+  const json = JSON.stringify(codec.encode(decoded));
+  return Buffer.byteLength(json, 'utf8') > SYNC_LIMITS.maxRecordBytes ? undefined : json;
+}
+
+/**
+ * A repeated op id is answered `duplicate` with the recorded revision. The one exception keeps a retried merged push consistent for a
+ * client that can take `merged`: the original answer carried the merged record, which the client may never have received. When the
+ * record is still at the op's revision (nothing newer has landed) and differs from the payload the retry carries, that op was merged,
+ * so the record is returned again.
+ */
+function answerDuplicate(db: Db, input: CanonicalCommit, revision: number): SyncCommitResult {
+  if (!input.collabMerge || input.op !== 'upsert' || collabKindForEntity(input.entityType) === null) return { status: 'duplicate', revision };
+  const row = getRow<RecordRow>(
+    db.prepare('SELECT * FROM records WHERE environment_id = ? AND entity_type = ? AND entity_id = ?'),
+    input.environmentId, input.entityType, input.entityId);
+  if (!row || row.revision !== revision || row.deleted === 1 || row.payload_json === null) return { status: 'duplicate', revision };
+  const codec = (input.codecs ?? HUB_CODECS)[input.entityType];
+  let sent: string | undefined;
+  try {
+    const decoded: unknown = codec?.decode(input.payload, input.codecCtx);
+    sent = decoded === null || decoded === undefined ? undefined : JSON.stringify(codec?.encode(decoded));
+  } catch {
+    sent = undefined;
+  }
+  return sent === undefined || sent === row.payload_json ? { status: 'duplicate', revision } : { status: 'merged', revision, current: toSyncRecord(row) };
 }
 
 /**

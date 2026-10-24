@@ -129,7 +129,7 @@ export class HubWebEngine {
   /** Sends ops; maps transport failures onto the connection state. */
   private async push(ops: readonly SyncOp[], retried = false): Promise<{ ok: true; results: readonly SyncOpResult[] } | { ok: false; error: string }> {
     try {
-      const response = await this.deps.client.webPush(ops);
+      const response = await this.deps.client.webPush(ops, { accept: ['merged'] });
       this.deps.connection.set('live');
       this.deps.onPushed?.();
       return { ok: true, results: response.results };
@@ -179,7 +179,8 @@ export class HubWebEngine {
       case 'conflict':
         return this.resolve(commit, base, result.current, round);
       case 'merged':
-        // PD-102: only sent to a client that declared `accept: ['merged']`, which the browser does not yet; adopt the Hub's merge.
+        // PD-102: the Hub merged the edit into the live collaborative document and committed the result (sent because the browser declares
+        // `accept: ['merged']`); adopt it like an acknowledged write. No conflict dialog.
         this.deps.book.noteRecord(result.current);
         return { ok: true, outcome: 'merged', payload: result.current.deleted ? null : result.current.payload };
     }

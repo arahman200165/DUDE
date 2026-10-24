@@ -25,6 +25,14 @@ export interface HubClientOptions {
 /** A bearer token (device `ddt_` or owner `dob_`), sent as the Authorization header. */
 export type Bearer = string | undefined;
 
+/** PD-102: a client that handles the `merged` push result declares it; one that omits `accept` is answered `conflict` as before. */
+export interface SyncPushOptions {
+  accept?: readonly 'merged'[];
+}
+
+const pushBody = (ops: readonly SyncOp[], options: SyncPushOptions | undefined): { ops: readonly SyncOp[]; accept?: readonly 'merged'[] } =>
+  options?.accept && options.accept.length > 0 ? { ops, accept: options.accept } : { ops };
+
 export interface HubClient {
   hello(): Promise<HelloResponse>;
   compatibility(hello: Pick<HelloResponse, 'protocolVersion' | 'minClientProtocol'>): ProtocolCompatibility;
@@ -100,7 +108,7 @@ export interface HubClient {
   stepUp(auth: Bearer, password: string): Promise<StepUpResponse>;
 
   // Synchronization (Phase 31D). Device token required, except summary and the environment clear (owner).
-  syncPush(auth: Bearer, ops: readonly SyncOp[]): Promise<SyncPushResponse>;
+  syncPush(auth: Bearer, ops: readonly SyncOp[], options?: SyncPushOptions): Promise<SyncPushResponse>;
   /** A cursor older than the Hub's retained history rejects with `HubApiError` status 410, code `cursor-expired`. */
   syncChanges(auth: Bearer, after: number, limit?: number, categories?: readonly SyncCategory[]): Promise<SyncChangesResponse>;
   /** Omit categories for legacy unfiltered reads; an explicit filter must be unique and nonempty. Re-enabled categories need a fresh snapshot. */
@@ -115,7 +123,7 @@ export interface HubClient {
   webSnapshot(page?: { afterType?: string; afterId?: string; limit?: number }): Promise<SyncSnapshotResponse>;
   /** A cursor older than the retained history rejects with `HubApiError` status 410, code `cursor-expired`; no attached browser rejects 409 `not-attached`. */
   webChanges(after: number, limit?: number): Promise<SyncChangesResponse>;
-  webPush(ops: readonly SyncOp[]): Promise<SyncPushResponse>;
+  webPush(ops: readonly SyncOp[], options?: SyncPushOptions): Promise<SyncPushResponse>;
   webState(report: SyncStateReport): Promise<SyncStateResponse>;
   webAccessGet(): Promise<WebAccessResponse>;
   webAccessSet(category: SyncCategory, enabled: boolean): Promise<WebAccessResponse>;
@@ -195,7 +203,7 @@ export function createHubClient(transport: HubTransport, opts: HubClientOptions)
     changePassword: (auth, currentPassword, newPassword) => call(ChangePasswordResponse, { method: 'POST', path: `${P}/owner/password`, body: { currentPassword, newPassword } }, auth),
     stepUp: (auth, password) => call(StepUpResponse, { method: 'POST', path: `${P}/auth/step-up`, body: { password } }, auth),
 
-    syncPush: (auth, ops) => call(SyncPushResponse, { method: 'POST', path: `${P}${SYNC_PATHS.push}`, body: { ops } }, auth),
+    syncPush: (auth, ops, options) => call(SyncPushResponse, { method: 'POST', path: `${P}${SYNC_PATHS.push}`, body: pushBody(ops, options) }, auth),
     syncChanges: async (auth, after, limit, categories) => {
       const qs = new URLSearchParams({ after: String(after), ...(limit !== undefined ? { limit: String(limit) } : {}) });
       if (categories !== undefined) { assertSyncCategories(categories); qs.set('categories', categories.join(',')); }
@@ -228,7 +236,7 @@ export function createHubClient(transport: HubTransport, opts: HubClientOptions)
       const qs = new URLSearchParams({ after: String(after), ...(limit !== undefined ? { limit: String(limit) } : {}) });
       return call(SyncChangesResponse, { method: 'GET', path: `${P}${WEB_PATHS.changes}?${qs.toString()}` });
     },
-    webPush: (ops) => call(SyncPushResponse, { method: 'POST', path: `${P}${WEB_PATHS.push}`, body: { ops } }),
+    webPush: (ops, options) => call(SyncPushResponse, { method: 'POST', path: `${P}${WEB_PATHS.push}`, body: pushBody(ops, options) }),
     webState: (report) => call(SyncStateResponse, { method: 'PUT', path: `${P}${WEB_PATHS.state}`, body: report }),
     webAccessGet: () => call(WebAccessResponse, { method: 'GET', path: `${P}${WEB_PATHS.access}` }),
     webAccessSet: (category, enabled) => call(WebAccessResponse, { method: 'PUT', path: `${P}${WEB_PATHS.access}`, body: { category, enabled } }),

@@ -261,7 +261,7 @@ export function createSyncRuntime(deps: SyncRuntimeDeps): SyncRuntime {
         if (batch.quarantined > 0) { emitStatus(); continue; }
         return;
       }
-      const response = await call<SyncPushResponse>((api, token) => api.syncPush(token, batch.ops));
+      const response = await call<SyncPushResponse>((api, token) => api.syncPush(token, batch.ops, { accept: ['merged'] }));
       if (inspectHub(response.headRevision, undefined, state.cursor)) throw new ReconcileRequiredSignal();
       headRevision = response.headRevision;
       const outcome = applyPushResults(db, batch.sent, response.results, ctx);

@@ -9,6 +9,7 @@ import {
 import type { SyncOpResult } from '@dude/contracts/hub';
 import { SYNC_LIMITS } from '@dude/sync';
 import type { OwnerContext } from '../../auth/owner-auth.js';
+import { collabCommitOptions } from '../../collab/record-merge.js';
 import { DeviceInactiveError, commitCanonical, currentRevision } from '../../db/canonical-repository.js';
 import type { SyncCommitResult } from '../../db/canonical-repository.js';
 import { changesAfter, getRetentionDays, getSyncFloor, recordDeviceSyncState, snapshotPage } from '../../db/sync-repository.js';
@@ -149,8 +150,12 @@ export function registerWebRecordRoutes(app: FastifyInstance, options: WebRecord
       const access = getWebAccess(db, browser.environmentId);
       const at = iso();
       const counts = { applied: 0, duplicate: 0, conflict: 0, rejected: 0 };
+      let merged = 0;
       const results: SyncOpResult[] = [];
       let lastRevision = 0;
+      // PD-102: `merged` is answered only to a browser that declared it understands it; the rest keep `conflict`.
+      const acceptMerged = request.body.accept?.includes('merged') === true;
+      const collabDeps = { db, registry: app.collab, log: app.log };
       for (const op of request.body.ops) {
         if (categoryDisabled(access, op.entityType)) {
           counts.rejected += 1;
@@ -163,23 +168,25 @@ export function registerWebRecordRoutes(app: FastifyInstance, options: WebRecord
             environmentId: browser.environmentId, entityType: op.entityType, entityId: op.entityId, op: op.opKind, payload: op.payload, opId: op.opId,
             deviceId: browser.deviceId, now: at, enforcePolicy: true, basedOnRevision: op.basedOnRevision, actingDeviceId: browser.deviceId, schemaVersion: op.schemaVersion,
             actor: { kind: 'browser', deviceId: browser.deviceId, sessionHash: ctx.sessionHash },
+            ...collabCommitOptions(collabDeps, { deviceId: browser.deviceId }, acceptMerged, op.entityType, op.entityId),
           });
         } catch (error) {
           if (error instanceof DeviceInactiveError) return reply.code(401).send(envelope('unauthorized', 'Authentication is required.'));
           throw error;
         }
-        counts[r.status] += 1;
-        if (r.status === 'applied') lastRevision = r.revision;
+        if (r.status === 'merged') merged += 1; else counts[r.status] += 1;
+        if (r.status === 'applied' || r.status === 'merged') lastRevision = Math.max(lastRevision, r.revision);
         results.push(r.status === 'conflict' ? { opId: op.opId, status: 'conflict', current: r.current }
           : r.status === 'rejected' ? { opId: op.opId, status: 'rejected', reason: r.reason }
-            : { opId: op.opId, status: r.status, revision: r.revision });
+            : r.status === 'merged' ? { opId: op.opId, status: 'merged', revision: r.revision, current: r.current }
+              : { opId: op.opId, status: r.status, revision: r.revision });
       }
       recordDeviceSyncState(db, browser.deviceId, null, at, { push: true });
       audit(db, {
         event: 'sync.pushed', outcome: 'success', actorKind: 'owner', actorId: ctx.ownerId, ip: ipOf(request),
-        detail: { ...counts, deviceId: browser.deviceId }, now: now(),
+        detail: { ...counts, ...(merged > 0 ? { merged } : {}), deviceId: browser.deviceId }, now: now(),
       });
-      if (counts.applied > 0) app.hubEvents.emit('records-changed', { environmentId: browser.environmentId, revision: lastRevision, originDeviceId: browser.deviceId });
+      if (counts.applied + merged > 0) app.hubEvents.emit('records-changed', { environmentId: browser.environmentId, revision: lastRevision, originDeviceId: browser.deviceId });
       return reply.code(200).send({ results, headRevision: currentRevision(db) });
     },
   );

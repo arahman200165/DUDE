@@ -89,9 +89,19 @@ export function applyPushResults(db: Db, sent: readonly SentOp[], results: reado
             db.prepare('UPDATE outbox SET based_on_revision = ? WHERE op_id = ?').run(result.revision, current.opId);
           }
         }
-      } else if (result.status === 'conflict' || result.status === 'merged') {
-        // `merged` (PD-102) is sent only to a client that declared `accept: ['merged']`, which the Agent does not yet; the Hub's
-        // current record is reconciled exactly like a conflict's.
+      } else if (result.status === 'merged') {
+        // PD-102: the Hub merged this write into the live collaborative document and committed the result (sent because the Agent declares
+        // `accept: ['merged']`). It is acknowledged, not a conflict: an op that was not edited since the send is removed and the merged
+        // record becomes the local value and base (no inbox entry); an op edited since is merged with it by the ordinary pull rule.
+        deleteIfUnchanged(db, op.opId, op.updatedAt);
+        const outcome = reconcileRemote(db, result.current, ctx, true);
+        if (outcome.deferred) {
+          // Written by a newer schema than this build reads: keep what was sent as the acknowledged base, like a plain acknowledgement.
+          setBase(db, op.entityType, op.entityId, result.revision, op.payload);
+        }
+        if (outcome.change) out.applied.push(outcome.change);
+        if (outcome.conflict) out.conflicts += 1;
+      } else if (result.status === 'conflict') {
         const outcome = reconcileRemote(db, result.current, ctx, true);
         if (outcome.change) out.applied.push(outcome.change);
         if (outcome.conflict) out.conflicts += 1;

@@ -57,7 +57,7 @@ function setup(options: { protocol?: number; hubState?: AgentHubStatus['state'];
   const hubListeners = new Set<(s: AgentHubStatus) => void>();
   const nudges = new Set<(rev: number) => void>();
   const api = {
-    syncPush: vi.fn(async (_t: string, ops: readonly { opId: string }[]): Promise<{ results: SyncOpResult[]; headRevision: number }> => ({ results: ops.map((o, i) => ({ opId: o.opId, status: 'applied' as const, revision: i + 1 })), headRevision: 9 })),
+    syncPush: vi.fn(async (_t: string, ops: readonly { opId: string }[], _options?: { accept?: readonly 'merged'[] }): Promise<{ results: SyncOpResult[]; headRevision: number }> => ({ results: ops.map((o, i) => ({ opId: o.opId, status: 'applied' as const, revision: i + 1 })), headRevision: 9 })),
     // An idle Hub echoes the caller's cursor back (its head is never behind what the caller already consumed).
     syncChanges: vi.fn(async (_t: string, after: number, _limit?: number): Promise<ReturnType<typeof changes>> => changes([], after)),
     syncSnapshot: vi.fn(async (_t: string, _page?: unknown): Promise<SyncSnapshotResponse> => ({ records: [], asOfRevision: 0, next: null, floor: 0 })),
@@ -109,6 +109,13 @@ describe('gating', () => {
     expect(t.api.syncChanges).not.toHaveBeenCalled();
     t.runtime.markFirstSyncDone();
     await waitFor('push after first sync', () => t.api.syncPush.mock.calls.length > 0);
+  });
+
+  it('declares that it understands the merged push result (PD-102)', async () => {
+    const t = setup();
+    t.commitFavorite('a');
+    await waitFor('first push', () => t.api.syncPush.mock.calls.length > 0);
+    expect(t.api.syncPush.mock.calls[0]![2]).toEqual({ accept: ['merged'] });
   });
 
   it('needs-reconcile blocks every cycle, keeps all data and takes one recovery snapshot per changed authority', async () => {

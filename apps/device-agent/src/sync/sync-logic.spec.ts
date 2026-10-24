@@ -233,6 +233,42 @@ describe('push', () => {
     expect(listConflicts(s.store.db)).toHaveLength(1);
   });
 
+  describe('a merged result (PD-102)', () => {
+    const script = (over: Record<string, unknown> = {}) => ({
+      id: 'u1', name: 'S', body: 'a\nb', accepts: [], produces: [], timeoutMs: 3000,
+      createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', ...over,
+    });
+
+    it('is adopted like an acknowledged write: the merged record becomes the local value and base, with no inbox entry', () => {
+      const s = setup();
+      applyRemoteChanges(s.store.db, [rec('user-script', 'u1', 1, script())], s.ctx);
+      commitEntity(s.store.db, s.commit, upsert('user-script', 'u1', script({ body: 'a\nb\nc' })));
+      const batch = buildPushBatch(s.store.db, allOn, true);
+      const current = rec('user-script', 'u1', 4, script({ body: 'live\na\nb\nc' }), { updatedByDeviceId: 'me' });
+      const r = applyPushResults(s.store.db, batch.sent, [{ opId: batch.ops[0].opId, status: 'merged', revision: 4, current }], s.ctx);
+      expect(r).toEqual({ applied: [{ entityType: 'user-script', entityId: 'u1', deleted: false, payload: current.payload }], conflicts: 0, quarantined: 0 });
+      expect(listOutbox(s.store.db, 10)).toHaveLength(0);
+      expect(listConflicts(s.store.db)).toHaveLength(0);
+      expect(listRecords(s.store.db, 'user-script')[0].payload).toEqual(current.payload);
+      expect(readLocal(s.store.db, 'user-script', 'u1')).toMatchObject({ hubRevision: 4, base: current.payload });
+    });
+
+    it('keeps a newer local edit made after the send, merged with the Hub record and rebased on it', () => {
+      const s = setup();
+      applyRemoteChanges(s.store.db, [rec('user-script', 'u1', 1, script())], s.ctx);
+      commitEntity(s.store.db, s.commit, upsert('user-script', 'u1', script({ body: 'a\nb\nc' })));
+      const batch = buildPushBatch(s.store.db, allOn, true);
+      commitEntity(s.store.db, s.commit, upsert('user-script', 'u1', script({ body: 'a\nb\nc\nd' })));
+      const current = rec('user-script', 'u1', 4, script({ body: 'live\na\nb\nc' }), { updatedByDeviceId: 'me' });
+      const r = applyPushResults(s.store.db, batch.sent, [{ opId: batch.ops[0].opId, status: 'merged', revision: 4, current }], s.ctx);
+      expect(r.conflicts).toBe(0);
+      expect(listConflicts(s.store.db)).toHaveLength(0);
+      const [op] = listOutbox(s.store.db, 10);
+      expect(op).toMatchObject({ basedOnRevision: 4, payload: script({ body: 'live\na\nb\nc\nd' }) });
+      expect(readLocal(s.store.db, 'user-script', 'u1')).toMatchObject({ hubRevision: 4, base: current.payload });
+    });
+  });
+
   it('rejected quarantines with the reason; retry and discard work', () => {
     const { store, ctx, commit } = setup();
     commitEntity(store.db, commit, upsert('favorite', 'tool:a', fav('a')));

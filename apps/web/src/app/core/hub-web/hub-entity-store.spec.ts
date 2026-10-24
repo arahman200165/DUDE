@@ -112,6 +112,32 @@ describe('createHubEntityCollection', () => {
     expect(rig.book.get('pipeline', 'a').revision).toBe(3);
   });
 
+  it('declares it accepts a merged answer, and adopts the Hub-merged record without a conflict dialog (PD-102)', async () => {
+    const { rig, collection } = setup([pipeline('a', 'A', { description: 'd' })]);
+    // Revision 2, unseen by the browser, differs in the very field the browser edits: a conflict without the Hub's merge.
+    rig.hub.external('pipeline', 'a', pipelineCodec.encode(pipeline('a', 'Hub name', { description: 'd' })));
+    rig.hub.serverMerge = () => pipelineCodec.encode(pipeline('a', 'Hub name and mine', { description: 'd' }));
+    const result = await collection.upsert(pipeline('a', 'My name', { description: 'd' }));
+    expect(result).toEqual({ ok: true });
+    expect(rig.hub.accepts[0]).toEqual(['merged']);
+    expect(rig.hub.pushes).toHaveLength(1);
+    expect(rig.feedback.conflicts()).toHaveLength(0);
+    expect(rig.feedback.toasts()).toHaveLength(0);
+    expect(collection.get('a')?.name).toBe('Hub name and mine');
+    expect(rig.book.get('pipeline', 'a').revision).toBe(3);
+  });
+
+  it('keeps the dialog path when the Hub does not merge (a plain conflict)', async () => {
+    const { rig, collection } = setup([pipeline('a', 'A')]);
+    rig.hub.external('pipeline', 'a', pipelineCodec.encode(pipeline('a', 'Hub name')));
+    rig.hub.serverMerge = () => undefined;
+    const pending = collection.upsert(pipeline('a', 'My name'));
+    await flush();
+    expect(rig.feedback.conflicts()).toHaveLength(1);
+    rig.feedback.conflicts()[0]!.resolve('hub');
+    await pending;
+  });
+
   it('re-commits mine on the new revision for an lww entity', async () => {
     const rig = makeRig();
     rig.book.noteRecord(rig.hub.external('favorite', 'tool:x', favoriteCodec.encode(fav('x', 0))));

@@ -11,6 +11,7 @@ import {
 import type { SyncOpResult } from '@dude/contracts/hub';
 import { SYNC_LIMITS } from '@dude/sync';
 import type { OwnerContext } from '../../auth/owner-auth.js';
+import { collabCommitOptions } from '../../collab/record-merge.js';
 import { DeviceInactiveError, commitCanonical, currentRevision } from '../../db/canonical-repository.js';
 import type { SyncCommitResult } from '../../db/canonical-repository.js';
 import {
@@ -73,8 +74,12 @@ export function registerSyncRoutes(app: FastifyInstance, options: SyncRouteOptio
       if (!environmentId) return unauthorized(reply);
       const at = iso();
       const counts = { applied: 0, duplicate: 0, conflict: 0, rejected: 0 };
+      let merged = 0;
       const results: SyncOpResult[] = [];
       let lastRevision = 0;
+      // PD-102: only a client that declared it understands `merged` gets the Hub's three-way merge of a collaborative edit; the rest keep `conflict`.
+      const acceptMerged = request.body.accept?.includes('merged') === true;
+      const collabDeps = { db, registry: app.collab, log: app.log };
       // Each op commits in its own transaction: a rejected or conflicting op never rolls back the others.
       for (const op of request.body.ops) {
         let r: SyncCommitResult;
@@ -83,22 +88,24 @@ export function registerSyncRoutes(app: FastifyInstance, options: SyncRouteOptio
             environmentId, entityType: op.entityType, entityId: op.entityId, op: op.opKind, payload: op.payload, opId: op.opId, deviceId,
             now: at, enforcePolicy: true, basedOnRevision: op.basedOnRevision, actingDeviceId: deviceId, schemaVersion: op.schemaVersion,
             actor: { kind: 'device', deviceId, keyId: request.device!.keyId },
+            ...collabCommitOptions(collabDeps, { deviceId }, acceptMerged, op.entityType, op.entityId),
           });
         } catch (error) {
           // Revoked between authentication and this commit: nothing of this op was written; the response matches any revoked credential.
           if (error instanceof DeviceInactiveError) return unauthorized(reply);
           throw error;
         }
-        counts[r.status] += 1;
-        if (r.status === 'applied') lastRevision = r.revision;
+        if (r.status === 'merged') merged += 1; else counts[r.status] += 1;
+        if (r.status === 'applied' || r.status === 'merged') lastRevision = Math.max(lastRevision, r.revision);
         results.push(r.status === 'conflict' ? { opId: op.opId, status: 'conflict', current: r.current }
           : r.status === 'rejected' ? { opId: op.opId, status: 'rejected', reason: r.reason }
-            : { opId: op.opId, status: r.status, revision: r.revision });
+            : r.status === 'merged' ? { opId: op.opId, status: 'merged', revision: r.revision, current: r.current }
+              : { opId: op.opId, status: r.status, revision: r.revision });
       }
       recordDeviceSyncState(db, deviceId, null, at, { push: true });
-      audit(db, { event: 'sync.pushed', outcome: 'success', actorKind: 'device', actorId: deviceId, ip: ipOf(request), detail: { ...counts }, now: now() });
+      audit(db, { event: 'sync.pushed', outcome: 'success', actorKind: 'device', actorId: deviceId, ip: ipOf(request), detail: { ...counts, ...(merged > 0 ? { merged } : {}) }, now: now() });
       const headRevision = currentRevision(db);
-      if (counts.applied > 0) app.hubEvents.emit('records-changed', { environmentId, revision: lastRevision, originDeviceId: deviceId });
+      if (counts.applied + merged > 0) app.hubEvents.emit('records-changed', { environmentId, revision: lastRevision, originDeviceId: deviceId });
       return reply.code(200).send({ results, headRevision });
     },
   );
