@@ -38,7 +38,7 @@ const SUMMARIES: Record<string, string> = {
   'network.address-changed': "This Hub's network addresses changed.",
 };
 
-function summarize(event: string, detail: unknown, deviceName: string | null = null): string {
+export function summarize(event: string, detail: unknown, deviceName: string | null = null): string {
   if (event === 'device.revoked-attempt') return deviceName === null ? SUMMARIES[event]! : `${SUMMARIES[event]} (${deviceName})`;
   if (event === 'throttle.locked') {
     const d = (detail ?? {}) as { kind?: unknown; scope?: unknown };
@@ -54,7 +54,7 @@ function summarize(event: string, detail: unknown, deviceName: string | null = n
 }
 
 /** Display name only (never a credential); null once the device is gone from the registry. */
-function deviceName(db: Db, deviceId: string | null): string | null {
+export function deviceName(db: Db, deviceId: string | null): string | null {
   if (deviceId === null) return null;
   const row = db.prepare('SELECT display_name FROM devices WHERE device_id = ?').get(deviceId) as { display_name: string } | undefined;
   return row?.display_name ?? null;

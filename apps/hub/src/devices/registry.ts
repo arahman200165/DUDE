@@ -12,10 +12,10 @@ export const LAST_SEEN_MIN_INTERVAL_MS = 60_000;
 interface DeviceRow {
   device_id: string; environment_id: string; display_name: string; platform: string; app_version: string; capabilities_json: string;
   protocol_version: number; registered_at: string; last_seen_at: string | null; revoked_at: string | null; unenrolled_at: string | null;
-  recovery_trusted: number; kind: 'desktop' | 'browser'; needs_re_pair: number;
+  recovery_trusted: number; kind: 'desktop' | 'browser'; needs_re_pair: number; notifications_access: number;
 }
 
-const COLUMNS = 'device_id, environment_id, display_name, platform, app_version, capabilities_json, protocol_version, registered_at, last_seen_at, revoked_at, unenrolled_at, recovery_trusted, kind, needs_re_pair';
+const COLUMNS = 'device_id, environment_id, display_name, platform, app_version, capabilities_json, protocol_version, registered_at, last_seen_at, revoked_at, unenrolled_at, recovery_trusted, kind, needs_re_pair, notifications_access';
 const iso = (ms: number): string => new Date(ms).toISOString();
 
 function toInfo(row: DeviceRow, currentDeviceId: string | null): DeviceInfo {
@@ -24,7 +24,7 @@ function toInfo(row: DeviceRow, currentDeviceId: string | null): DeviceInfo {
     deviceId: row.device_id, kind: row.kind, displayName: row.display_name, platform: row.platform as DeviceRegistryPlatform, appVersion: row.app_version,
     protocolVersion: row.protocol_version, capabilities: stored.filter((c): c is DeviceCapability => (DEVICE_CAPABILITIES as readonly string[]).includes(c)),
     registeredAt: row.registered_at, lastSeenAt: row.last_seen_at, revokedAt: row.revoked_at, unenrolledAt: row.unenrolled_at,
-    recoveryTrusted: row.recovery_trusted === 1, needsRePair: row.needs_re_pair === 1, online: false, current: row.device_id === currentDeviceId,
+    recoveryTrusted: row.recovery_trusted === 1, needsRePair: row.needs_re_pair === 1, notificationsAccess: row.notifications_access === 1, online: false, current: row.device_id === currentDeviceId,
   };
 }
 
@@ -47,6 +47,17 @@ export function isDeviceActive(db: Db, deviceId: string): boolean {
   const row = rowOf(db, deviceId);
   // A browser row has no key and is never a device credential (PD-050): every device-credential path goes through here.
   return row !== undefined && row.kind === 'desktop' && isActiveRow(row);
+}
+
+/** True when the row is an active desktop holding the owner's notification-reader grant (PD-110). Browser rows never qualify. */
+export function hasNotificationsAccess(db: Db, deviceId: string): boolean {
+  const row = rowOf(db, deviceId);
+  return row !== undefined && row.kind === 'desktop' && isActiveRow(row) && row.notifications_access === 1;
+}
+
+/** Sets the grant on an active desktop row; false for anything else. */
+export function setNotificationsAccess(db: Db, deviceId: string, enabled: boolean): boolean {
+  return Number(db.prepare("UPDATE devices SET notifications_access = ? WHERE device_id = ? AND kind = 'desktop' AND revoked_at IS NULL AND unenrolled_at IS NULL").run(enabled ? 1 : 0, deviceId).changes) === 1;
 }
 
 /** Key ids of the device that are not revoked, sorted (for the revoke confirmation digest). */

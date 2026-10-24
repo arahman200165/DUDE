@@ -25,6 +25,7 @@ export const AUDIT_EVENT_LABELS: Readonly<Record<string, string>> = {
   'pairing.created': 'Pairing code created',
   'device.enrolled': 'Device enrolled',
   'device.renamed': 'Device renamed',
+  'device.notifications-access-changed': 'Notification access changed',
   'device.revoked': 'Device revoked',
   'device.revoked-attempt': 'Revoked device tried to connect',
   'device.unenrolled': 'Device unenrolled',

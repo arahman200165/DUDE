@@ -10,7 +10,7 @@ import type { OwnerViewTopic, PresenceActivity, PresenceEntry, RealtimeEvent, Re
 import { realtimeEventAllowed } from '@dude/contracts/hub';
 import type { HubEventMap } from '../auth/hub-events.js';
 import { getAuthorityEpoch, getAuthorityState } from '../hub/authority.js';
-import { touchLastSeen } from '../devices/registry.js';
+import { hasNotificationsAccess, touchLastSeen } from '../devices/registry.js';
 import type { HostGuard } from '../security/host-guard.js';
 import { envelope } from '../server/errors.js';
 import { acknowledgeTlsPin } from '../tls/rotation.js';
@@ -125,6 +125,9 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
   };
   const where = (predicate: (conn: Connection) => boolean): Connection[] => [...connections].filter((c) => c.helloed && predicate(c));
   const isOwner = (c: Connection): boolean => c.principal.kind !== 'device';
+  /** Owner sockets, and device sockets whose desktop row holds the notification-reader grant RIGHT NOW (PD-110); a revoked grant stops delivery at once. */
+  const mayReadNotifications = (c: Connection): boolean =>
+    isOwner(c) || (c.principal.deviceId !== null && hasNotificationsAccess(options.db, c.principal.deviceId));
 
   const onRegistryChanged = (data: HubEventMap['device-registry-changed'][0]): void => {
     for (const conn of where(isOwner)) sendEvent(conn, 'device-registry-changed', { deviceId: data.deviceId, change: data.change });
@@ -163,6 +166,9 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
   const browserOfSession = (sessionHash: string | null): string | null =>
     sessionHash === null ? null
       : (options.db.prepare('SELECT browser_device_id FROM sessions WHERE session_hash = ?').get(sessionHash) as { browser_device_id: string | null } | undefined)?.browser_device_id ?? null;
+  const onNotificationCreated = (data: HubEventMap['notification-created'][0]): void => {
+    for (const conn of where(mayReadNotifications)) sendEvent(conn, 'notification', { id: data.id, kind: data.kind, severity: data.severity, title: data.title });
+  };
   const onWebAccessChanged = (): void => {
     for (const conn of where((c) => c.principal.kind === 'owner-cookie')) sendEvent(conn, 'web-access-changed', {});
   };
@@ -173,7 +179,7 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
     if (pendingViews.has(topic)) return;
     const timer = setTimeout(() => {
       pendingViews.delete(topic);
-      for (const conn of where(() => true)) sendEvent(conn, 'owner-view-changed', { topic });
+      for (const conn of where((c) => topic !== 'notifications' || mayReadNotifications(c))) sendEvent(conn, 'owner-view-changed', { topic });
     }, timings.ownerViewDelayMs);
     timer.unref();
     pendingViews.set(topic, timer);
@@ -185,6 +191,7 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
   app.hubEvents.on('records-changed', onViewRecordsChanged);
   app.hubEvents.on('records-changed', onRecordsChanged);
   app.hubEvents.on('web-access-changed', onWebAccessChanged);
+  app.hubEvents.on('notification-created', onNotificationCreated);
   app.hubEvents.on('device-registry-changed', onRegistryChanged);
   app.hubEvents.on('owner-recovered', onOwnerRecovered);
   app.hubEvents.on('session-revoked', onSessionRevoked);
@@ -219,6 +226,7 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
     app.hubEvents.off('records-changed', onViewRecordsChanged);
     app.hubEvents.off('records-changed', onRecordsChanged);
     app.hubEvents.off('web-access-changed', onWebAccessChanged);
+    app.hubEvents.off('notification-created', onNotificationCreated);
     app.hubEvents.off('device-registry-changed', onRegistryChanged);
     app.hubEvents.off('owner-recovered', onOwnerRecovered);
     app.hubEvents.off('session-revoked', onSessionRevoked);

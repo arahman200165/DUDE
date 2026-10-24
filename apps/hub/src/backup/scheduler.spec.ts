@@ -236,4 +236,21 @@ describe('backup scheduler', () => {
     await vi.waitFor(() => expect(jobs2.list().find((j) => j.id === 'backup-schedule')).toMatchObject({ lastOutcome: 'success', lastSummary: 'A scheduled backup was created and verified.' }));
     expect(configured.names()).toHaveLength(1);
   });
+
+  it('calls onCheck with the interval after each check that found a schedule, and a throwing observer changes nothing', async () => {
+    const none = await fixture({ schedule: false });
+    const seenNone: number[] = [];
+    expect(await none.make({ onCheck: ({ intervalHours }) => void seenNone.push(intervalHours) }).runNow()).toBe('not-configured');
+    expect(seenNone).toEqual([]);
+
+    const f = await fixture({ intervalHours: 6 });
+    const seen: number[] = [];
+    const watched = f.make({ onCheck: ({ intervalHours }) => void seen.push(intervalHours) });
+    expect(await watched.runNow()).toBe('created');
+    expect(await watched.runNow()).toBe('not-due');
+    expect(seen).toEqual([6, 6]);
+    const throwing = f.make({ onCheck: () => { throw new Error('observer'); } });
+    f.advance(7 * HOUR);
+    expect(await throwing.runNow()).toBe('created');
+  });
 });

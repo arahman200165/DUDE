@@ -213,6 +213,7 @@ const hubTables = {
   records: ['environment', 'canonical synchronized records with revision and tombstone'],
   change_feed: ['environment', 'canonical per-environment change feed'],
   applied_ops: ['environment', 'canonical idempotency ledger for applied operations'],
+  notifications: ['local-only', 'Hub-private owner notifications (short titles and bodies, no record content or credentials); removed from backups and on restore'],
 };
 const mobileTables = {
   metadata: ['device', 'Installation identity and opaque enrollment/pending receipt; no tokens, pairing codes, signing seeds or proof bodies.', 'sensitive'],

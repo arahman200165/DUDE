@@ -25,7 +25,11 @@ export interface JobRegistry {
   list(): HubJobStatus[];
   /** Called after every state change (start and finish); never throws into a job. */
   onChange: (() => void) | undefined;
+  /** Called once per finished run with its outcome (notifications, PD-109); never throws into a job. */
+  onFinish: ((run: JobFinish) => void) | undefined;
 }
+
+export interface JobFinish { id: HubJobId; outcome: HubJobOutcome; summary: string; finishedAt: string }
 
 export interface JobRegistryOptions { db: Db; now?: () => number; onChange?: () => void }
 
@@ -87,6 +91,7 @@ export function createJobRegistry(options: JobRegistryOptions): JobRegistry {
     persist(id, { startedAt: running.get(id) ?? finishedAt, finishedAt, outcome, summary: clip(summary) });
     running.delete(id);
     changed();
+    try { registry.onFinish?.({ id, outcome, summary: clip(summary), finishedAt }); } catch { /* an observer failure never touches a job */ }
   };
   const finishWith = (id: HubJobId, result: unknown, classify: ((result: never) => JobRunReport) | undefined): void => {
     let report: JobRunReport = { outcome: 'success', summary: 'Completed.' };
@@ -98,6 +103,7 @@ export function createJobRegistry(options: JobRegistryOptions): JobRegistry {
 
   const registry: JobRegistry = {
     onChange: options.onChange,
+    onFinish: undefined,
     register(id, intervalMs) {
       intervals.set(id, Math.max(0, Math.trunc(intervalMs)));
     },

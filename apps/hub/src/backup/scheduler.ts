@@ -37,6 +37,8 @@ export interface BackupSchedulerOptions {
   audit?: BackupAuditFn;
   /** Reports each timer check to the job status registry (PD-112); optional and observation-only. */
   job?: JobHandle;
+  /** Called after each check that found a schedule, with its interval (the overdue notification, PD-109); optional and observation-only. */
+  onCheck?: (schedule: { intervalHours: number }) => void;
 }
 
 export type BackupRunOutcome = 'not-configured' | 'not-due' | 'busy' | 'created' | 'failed';
@@ -129,7 +131,12 @@ export function createBackupScheduler(options: BackupSchedulerOptions): BackupSc
     if (running) return 'busy';
     running = true;
     try {
-      return await runOnce();
+      const outcome = await runOnce();
+      try {
+        const schedule = outcome === 'not-configured' ? undefined : options.readConfig().backup?.schedule;
+        if (schedule !== undefined) options.onCheck?.({ intervalHours: schedule.intervalHours });
+      } catch { /* observation only */ }
+      return outcome;
     } catch {
       return 'failed';
     } finally {

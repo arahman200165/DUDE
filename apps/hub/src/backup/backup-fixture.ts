@@ -62,6 +62,10 @@ INSERT INTO records(environment_id, entity_type, entity_id, scope, schema_versio
   VALUES ('env-1', 'note', 'n1', 'environment', 1, 1, '{"t":"hello"}', '${at}');
 INSERT INTO change_feed(revision, environment_id, entity_type, entity_id, op, at) VALUES (1, 'env-1', 'note', 'n1', 'upsert', '${at}');
 `);
+  // Older-schema fixtures (migration specs) predate the notifications table.
+  if (db.prepare("SELECT 1 AS x FROM sqlite_master WHERE type = 'table' AND name = 'notifications'").get() !== undefined) {
+    db.exec(`INSERT INTO notifications(id, created_at, source_key, kind, severity, title, body) VALUES ('notif-1', '${at}', 'audit:1', 'security-alert', 'warning', 'Security alert', 'A device was revoked.');`);
+  }
   setMeta(db, 'csrf_key', `${SECRET_MARKER}-csrf`);
   setMeta(db, 'alerts_seen_seq', '5');
   setMeta(db, 'hub_addresses', `{"addresses":["${SECRET_MARKER}"]}`);

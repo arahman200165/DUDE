@@ -110,6 +110,11 @@ describe('createHubClient', () => {
     ['recover', (c) => c.recover('ABCDE-FGHJK', 'pw'), 'POST', '/api/v1/auth/recover'],
     ['ownerReset', (c) => c.ownerReset('t', 'pw'), 'POST', '/api/v1/owner/reset'],
     ['signOut (cookie)', (c) => c.signOut(), 'POST', '/api/v1/auth/sign-out'],
+    ['listNotifications', (c) => c.listNotifications('t'), 'GET', '/api/v1/notifications'],
+    ['listNotifications (dismissed)', (c) => c.listNotifications('t', { includeDismissed: true }), 'GET', '/api/v1/notifications?includeDismissed=true'],
+    ['markNotificationsRead', (c) => c.markNotificationsRead('t', { all: true }), 'POST', '/api/v1/notifications/read'],
+    ['dismissNotification', (c) => c.dismissNotification('t', 'n 1'), 'POST', '/api/v1/notifications/n%201/dismiss'],
+    ['setNotificationsAccess', (c) => c.setNotificationsAccess('t', 'd1', true), 'PUT', '/api/v1/devices/d1/notifications-access'],
   ];
   it.each(table)('%s hits %s %s', async (_name, fn, method, path) => {
     const t = fake({ body: null });

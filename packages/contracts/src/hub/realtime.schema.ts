@@ -1,6 +1,7 @@
 import Type, { type Static } from 'typebox';
 import { HUB_REALTIME_DEPTH_PROTOCOL } from './protocol.js';
 import { PresenceActivity, PresenceEntry } from './presence.schema.js';
+import { NotificationEventData } from './notifications.schema.js';
 import { OWNER_VIEW_TOPICS } from './owner-view-topics.js';
 import type { OwnerViewTopic } from './owner-view-topics.js';
 
@@ -35,7 +36,7 @@ export const RealtimeClientMessage = Type.Union([
 export type RealtimeClientMessage = Static<typeof RealtimeClientMessage>;
 
 export const REALTIME_SESSION_KINDS = ['owner-cookie', 'owner-bearer', 'device'] as const;
-export const REALTIME_EVENTS = ['device-registry-changed', 'session-revoked', 'device-revoked', 'tls-next-pin', 'owner-recovered', 'changes-available', 'web-access-changed', 'presence-changed', 'owner-view-changed'] as const;
+export const REALTIME_EVENTS = ['device-registry-changed', 'session-revoked', 'device-revoked', 'tls-next-pin', 'owner-recovered', 'changes-available', 'web-access-changed', 'presence-changed', 'owner-view-changed', 'notification'] as const;
 
 export const RealtimeServerMessage = Type.Union([
   Type.Object({
@@ -50,7 +51,7 @@ export const RealtimeServerMessage = Type.Union([
   }),
   Type.Object({
     type: Type.Literal('event'),
-    event: Type.Union([Type.Literal('device-registry-changed'), Type.Literal('session-revoked'), Type.Literal('device-revoked'), Type.Literal('tls-next-pin'), Type.Literal('owner-recovered'), Type.Literal('changes-available'), Type.Literal('web-access-changed'), Type.Literal('presence-changed'), Type.Literal('owner-view-changed')]),
+    event: Type.Union([Type.Literal('device-registry-changed'), Type.Literal('session-revoked'), Type.Literal('device-revoked'), Type.Literal('tls-next-pin'), Type.Literal('owner-recovered'), Type.Literal('changes-available'), Type.Literal('web-access-changed'), Type.Literal('presence-changed'), Type.Literal('owner-view-changed'), Type.Literal('notification')]),
     data: Type.Record(Type.String(), Type.Unknown()),
   }),
   Type.Object({ type: Type.Literal('error'), code: Type.String() }),
@@ -83,6 +84,8 @@ export const RealtimeEventData = {
   'web-access-changed': Type.Object({}),
   'presence-changed': PresenceEntry,
   'owner-view-changed': Type.Object({ topic: Type.Unsafe<OwnerViewTopic>({ type: 'string', enum: [...OWNER_VIEW_TOPICS] }) }),
+  /** A Hub notification was created (PD-109); sent to owner sockets and to device sockets holding the notification-reader grant (PD-110). */
+  'notification': NotificationEventData,
 } satisfies Record<RealtimeEvent, unknown>;
 export type RealtimeEventDataOf<E extends RealtimeEvent> = Static<(typeof RealtimeEventData)[E]>;
 
@@ -90,7 +93,7 @@ export type RealtimeEventDataOf<E extends RealtimeEvent> = Static<(typeof Realti
  * Events introduced in 31J. They reach only sockets whose hello declared protocol 3 or later, because shipped clients
  * validate every event against the contract they were built with and would drop the connection (PD-100).
  */
-export const REALTIME_DEPTH_EVENTS: readonly RealtimeEvent[] = ['presence-changed', 'owner-view-changed'];
+export const REALTIME_DEPTH_EVENTS: readonly RealtimeEvent[] = ['presence-changed', 'owner-view-changed', 'notification'];
 
 export function realtimeEventAllowed(event: RealtimeEvent, clientProtocol: number, depthEvents: readonly RealtimeEvent[] = REALTIME_DEPTH_EVENTS): boolean {
   return clientProtocol >= HUB_REALTIME_DEPTH_PROTOCOL || !depthEvents.includes(event);

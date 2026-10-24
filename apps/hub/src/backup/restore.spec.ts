@@ -191,7 +191,7 @@ describe('restore: round trip', () => {
     expect(getAuthorityState(db)).toBe('active');
 
     const count = (table: string): number => Number((db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n);
-    for (const table of ['sessions', 'device_tokens', 'challenges', 'pairing_codes', 'setup_state', 'device_sync_state', 'tls_pins', 'tls_pin_acks', 'tls_proxy_pins', 'tls_proxy_pin_acks']) {
+    for (const table of ['sessions', 'device_tokens', 'challenges', 'pairing_codes', 'setup_state', 'notifications', 'device_sync_state', 'tls_pins', 'tls_pin_acks', 'tls_proxy_pins', 'tls_proxy_pin_acks']) {
       expect([table, count(table)]).toEqual([table, 0]);
     }
     for (const key of ['csrf_key', 'alerts_seen_seq', 'hub_addresses', 'reachability_last', 'acme_last_attempt', 'backup_last', 'revoked_attempt:token:dev-1', 'revoked-attempts:legacy', 'job_last:audit-prune']) {
@@ -268,7 +268,7 @@ describe('restore: round trip', () => {
     const opened = openHubDb({ dbFile: paths.dbFile, preMigrationDir: paths.preMigrationDir });
     if (opened.status !== 'ready') throw new Error(opened.message);
     hubs.push(opened.hub);
-    expect(getMeta(opened.hub.db, 'schema_version')).toBe('8');
+    expect(getMeta(opened.hub.db, 'schema_version')).toBe('9');
     expect(readdirSync(paths.preMigrationDir)).toEqual([]);
     expect(opened.hub.db.prepare('SELECT device_id, needs_re_pair FROM devices').all()).toEqual([{ device_id: 'dev-1', needs_re_pair: 1 }]);
     expect(opened.hub.db.prepare("SELECT COUNT(*) AS n FROM pragma_table_info('pairing_codes') WHERE name = 'reattach_device_id'").get()).toEqual({ n: 1 });

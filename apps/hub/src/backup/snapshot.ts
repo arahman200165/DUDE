@@ -5,8 +5,12 @@ import path from 'node:path';
 import { getMeta, transaction } from '@dude/sqlite-store';
 import type { Db } from '@dude/sqlite-store';
 
-/** Tables holding transient credentials and sessions; emptied in the snapshot copy (PD-070). `throttle` and `ip_blocks` are kept. */
-export const SCRUBBED_TABLES = ['sessions', 'device_tokens', 'challenges', 'pairing_codes', 'setup_state'] as const;
+/**
+ * Tables holding transient credentials and sessions, plus per-instance notifications (PD-109); emptied in the snapshot copy (PD-070) and
+ * on restore. `throttle` and `ip_blocks` are kept. `devices.notifications_access` stays: it is a per-device grant, and every desktop
+ * must re-pair after a restore anyway.
+ */
+export const SCRUBBED_TABLES = ['sessions', 'device_tokens', 'challenges', 'pairing_codes', 'setup_state', 'notifications'] as const;
 
 /** Exact meta keys removed from the snapshot copy. */
 export const SCRUBBED_META_KEYS = ['csrf_key', 'alerts_seen_seq', 'hub_addresses', 'reachability_last', 'acme_last_attempt'] as const;

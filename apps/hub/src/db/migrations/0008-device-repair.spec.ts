@@ -13,8 +13,8 @@ function dirs() {
 }
 
 describe('migration 0008 device-repair', () => {
-  it('is registered last, additive and readable by older readers', () => {
-    expect(HUB_MIGRATIONS[HUB_MIGRATIONS.length - 1]).toBe(migration0008);
+  it('is registered at its position, additive and readable by older readers', () => {
+    expect(HUB_MIGRATIONS[7]).toBe(migration0008);
     expect(migration0008).toMatchObject({ version: 8, name: 'device-repair', minReaderVersion: 1 });
   });
 
@@ -34,7 +34,7 @@ INSERT INTO pairing_codes(code_hash, created_by_session_hash, created_at, expire
 `);
     v7.hub.close();
 
-    const upgraded = openHubDb(options);
+    const upgraded = openHubDb({ ...options, migrations: HUB_MIGRATIONS.slice(0, 8) });
     if (upgraded.status !== 'ready') throw new Error('expected ready');
     const { db } = upgraded.hub;
     expect(getMeta(db, 'schema_version')).toBe('8');
@@ -45,7 +45,7 @@ INSERT INTO pairing_codes(code_hash, created_by_session_hash, created_at, expire
     expect(db.prepare('SELECT COUNT(*) AS n FROM schema_migrations WHERE version = 8').get()).toEqual({ n: 1 });
     upgraded.hub.close();
 
-    const again = openHubDb(options);
+    const again = openHubDb({ ...options, migrations: HUB_MIGRATIONS.slice(0, 8) });
     if (again.status !== 'ready') throw new Error('expected ready');
     expect(again.hub.db.prepare('SELECT COUNT(*) AS n FROM schema_migrations WHERE version = 8').get()).toEqual({ n: 1 });
     expect(again.hub.db.prepare('SELECT checksum FROM schema_migrations WHERE version = 8').get()).toEqual({ checksum: checksumOf(migration0008) });

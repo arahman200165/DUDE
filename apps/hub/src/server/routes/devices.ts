@@ -4,7 +4,7 @@ import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import type { Db } from '@dude/sqlite-store';
 import {
   ConfirmApply, ConfirmPreview, DeviceIdParams, DeviceInfo, DeviceListResponse, DeviceRenameRequest, DeviceSelfUpdate, ErrorEnvelope, HUB_API_PREFIX,
-  OkResponse, OwnerBearerRequest, OwnerBearerResponse, PairingCodeRequest, PairingCodeResponse, RecoveryTrustRequest, displayPairingCode, formatPairingString,
+  NotificationsAccessRequest, OkResponse, OwnerBearerRequest, OwnerBearerResponse, PairingCodeRequest, PairingCodeResponse, RecoveryTrustRequest, displayPairingCode, formatPairingString,
 } from '@dude/contracts/hub';
 import { emitRevoked } from '../../auth/hub-events.js';
 import { getOwner } from '../../auth/owner.js';
@@ -14,7 +14,7 @@ import { createRequireStepUp } from '../../auth/step-up.js';
 import { createSession } from '../../auth/sessions.js';
 import { createPairingCode } from '../../devices/pairing.js';
 import {
-  activeKeyIds, deactivateDevice, getDevice, isDeviceActive, listDevices, renameDevice, setRecoveryTrust, updateSelf,
+  activeKeyIds, deactivateDevice, getDevice, isDeviceActive, listDevices, renameDevice, setNotificationsAccess, setRecoveryTrust, updateSelf,
 } from '../../devices/registry.js';
 import { audit } from '../../security/audit.js';
 import { ConfirmationStore } from '../../security/confirmation-store.js';
@@ -209,6 +209,33 @@ export function registerDeviceRoutes(app: FastifyInstance, options: DeviceRouteO
         detail: { deviceId, trusted: request.body.trusted }, now: now(),
       });
       changed(deviceId, 'recovery-trust');
+      return reply.code(200).send(getDevice(db, deviceId, ctx.deviceId) as DeviceInfo);
+    },
+  );
+
+  // The notification-reader grant (PD-110): owner with step-up, desktop rows only. It lets the device list, read and dismiss notifications
+  // and receive notification events, and nothing else; revoking or unenrolling the device ends it.
+  typed.put(
+    `${P}/:deviceId/notifications-access`,
+    {
+      preHandler: [options.requireOwner, requireStepUp],
+      schema: { params: DeviceIdParams, body: NotificationsAccessRequest, response: { 200: DeviceInfo, 400: ErrorEnvelope, 401: ErrorEnvelope, 403: ErrorEnvelope, 404: ErrorEnvelope, 409: ErrorEnvelope } },
+    },
+    async (request, reply) => {
+      nostore(reply);
+      const ctx = request.owner as OwnerContext;
+      const { deviceId } = request.params;
+      const target = getDevice(db, deviceId);
+      if (!target) return reply.code(404).send(envelope('not-found', 'No such device.'));
+      if (target.kind !== 'desktop') return reply.code(400).send(envelope('bad-request', 'Notification access can only be granted to a desktop device.'));
+      if (target.revokedAt !== null || target.unenrolledAt !== null || !setNotificationsAccess(db, deviceId, request.body.enabled)) {
+        return reply.code(409).send(envelope('conflict', 'That device is no longer enrolled.'));
+      }
+      audit(db, {
+        event: 'device.notifications-access-changed', outcome: 'success', actorKind: 'owner', actorId: ctx.ownerId, ip: ipOf(request),
+        detail: { deviceId, enabled: request.body.enabled }, now: now(),
+      });
+      changed(deviceId, 'updated');
       return reply.code(200).send(getDevice(db, deviceId, ctx.deviceId) as DeviceInfo);
     },
   );

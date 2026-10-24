@@ -2,7 +2,7 @@ import { Value } from 'typebox/value';
 import type { TSchema, Static } from 'typebox';
 import {
   HUB_API_PREFIX, HelloResponse, ErrorEnvelope, checkProtocolCompatibility,
-  BootstrapResponse, TlsCertificatesResponse, AuditListResponse, SecurityAlertsResponse, PresenceResponse, HUB_PRESENCE_PATH, HubJobsResponse, HUB_JOBS_PATH, HubDiagnosticsReport, ReachabilityEchoResponse, BackupStatusResponse,
+  BootstrapResponse, TlsCertificatesResponse, AuditListResponse, SecurityAlertsResponse, PresenceResponse, HUB_PRESENCE_PATH, HubJobsResponse, HUB_JOBS_PATH, HubNotificationsResponse, HUB_NOTIFICATIONS_PATH, HubDiagnosticsReport, ReachabilityEchoResponse, BackupStatusResponse,
   EnrollResponse, DeviceChallengeResponse, DeviceRecoveryChallengeResponse, DeviceTokenResponse, DeviceInfo, DeviceListResponse, OwnerBearerResponse, PairingCodeResponse,
   OkResponse, ConfirmPreview, SessionListResponse, RecoveryCodesResponse,
   StepUpResponse, ChangePasswordResponse,
@@ -12,7 +12,7 @@ import {
   assertSyncCategories,
 } from '@dude/contracts/hub';
 import type {
-  ProtocolCompatibility, BootstrapRequest, EnrollRequest, DeviceSelfUpdate, PairingCodeRequest, SyncOp, SyncStateReport, SyncCategory, WebAttachRequest,
+  ProtocolCompatibility, MarkNotificationsReadRequest, BootstrapRequest, EnrollRequest, DeviceSelfUpdate, PairingCodeRequest, SyncOp, SyncStateReport, SyncCategory, WebAttachRequest,
 } from '@dude/contracts/hub';
 import type { HubRequest, HubTransport } from './transport.js';
 import { HubApiError, HubProtocolError } from './errors.js';
@@ -77,6 +77,15 @@ export interface HubClient {
   presence(auth: Bearer): Promise<PresenceResponse>;
   /** Owner: read-only status of the Hub's background jobs (PD-112). */
   listJobs(auth: Bearer): Promise<HubJobsResponse>;
+  /**
+   * Notifications (PD-109): owner session, or a device token whose desktop holds the notification-reader grant (PD-110; any other device token is 403).
+   * Dismissed ones are listed only with `includeDismissed`. Marking read and dismissing are not audited.
+   */
+  listNotifications(auth: Bearer, options?: { includeDismissed?: boolean }): Promise<HubNotificationsResponse>;
+  markNotificationsRead(auth: Bearer, target: MarkNotificationsReadRequest): Promise<OkResponse>;
+  dismissNotification(auth: Bearer, id: string): Promise<OkResponse>;
+  /** Owner with step-up: grants or revokes a desktop's notification-reader grant (400 for a browser row, 409 for an ended device). */
+  setNotificationsAccess(auth: Bearer, deviceId: string, enabled: boolean): Promise<DeviceInfo>;
   recoveryCodesPreview(auth: Bearer): Promise<ConfirmPreview>;
   regenerateRecoveryCodes(auth: Bearer, confirmToken: string): Promise<RecoveryCodesResponse>;
   changePassword(auth: Bearer, currentPassword: string, newPassword: string): Promise<ChangePasswordResponse>;
@@ -160,6 +169,10 @@ export function createHubClient(transport: HubTransport, opts: HubClientOptions)
     markSecurityAlertsSeen: (auth, upToSeq) => call(OkResponse, { method: 'POST', path: `${P}/security/alerts/seen`, body: { upToSeq } }, auth),
     presence: (auth) => call(PresenceResponse, { method: 'GET', path: HUB_PRESENCE_PATH }, auth),
     listJobs: (auth) => call(HubJobsResponse, { method: 'GET', path: HUB_JOBS_PATH }, auth),
+    listNotifications: (auth, options) => call(HubNotificationsResponse, { method: 'GET', path: `${HUB_NOTIFICATIONS_PATH}${options?.includeDismissed === true ? '?includeDismissed=true' : ''}` }, auth),
+    markNotificationsRead: (auth, target) => call(OkResponse, { method: 'POST', path: `${HUB_NOTIFICATIONS_PATH}/read`, body: target }, auth),
+    dismissNotification: (auth, id) => call(OkResponse, { method: 'POST', path: `${HUB_NOTIFICATIONS_PATH}/${seg(id)}/dismiss` }, auth),
+    setNotificationsAccess: (auth, id, enabled) => call(DeviceInfo, { method: 'PUT', path: `${P}/devices/${seg(id)}/notifications-access`, body: { enabled } }, auth),
     listAudit: (auth, query) => {
       const qs: string[] = [];
       if (query?.beforeSeq !== undefined) qs.push(`beforeSeq=${query.beforeSeq}`);

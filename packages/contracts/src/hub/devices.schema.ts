@@ -219,6 +219,8 @@ export const DeviceInfo = Type.Object({
   recoveryTrusted: Type.Boolean(),
   /** True after a Hub restore revoked this device's key (PD-072): it must be re-paired. Absent (false) on older Hubs. */
   needsRePair: Type.Optional(Type.Boolean()),
+  /** True while the owner has granted this desktop the notification-reader grant (PD-110). Absent (false) on older Hubs. */
+  notificationsAccess: Type.Optional(Type.Boolean()),
   /** True while the row has a helloed realtime socket: its device socket, or for a browser row an owner cookie socket of its bound session (PD-108). */
   online: Type.Boolean(),
   /** True for the device bound to the caller's bearer session (or the calling device itself). */

@@ -126,6 +126,23 @@ describe('job registry', () => {
     expect(registry.track('audit-prune', () => 6)).toBe(6);
   });
 
+  it('reports each finished run to onFinish (sync, async and thrown) and never lets an observer failure reach the job', async () => {
+    const { registry, clock } = setup();
+    const finished: Array<[string, string, string, string]> = [];
+    registry.onFinish = ({ id, outcome, summary, finishedAt }) => void finished.push([id, outcome, summary, finishedAt]);
+    registry.track('audit-prune', () => 1, () => ({ outcome: 'success', summary: 'Done.' }));
+    await registry.track('sync-compaction', async () => 2);
+    expect(() => registry.track('leaf-renewal', () => { throw Object.assign(new Error('secret'), { code: 'EACCES' }); })).toThrow('secret');
+    registry.report('backup-schedule', 'skipped', 'Not due.');
+    const at = new Date(clock.t).toISOString();
+    expect(finished).toEqual([
+      ['audit-prune', 'success', 'Done.', at], ['sync-compaction', 'success', 'Completed.', at],
+      ['leaf-renewal', 'failed', 'The run failed (EACCES).', at], ['backup-schedule', 'skipped', 'Not due.', at],
+    ]);
+    registry.onFinish = () => { throw new Error('observer'); };
+    expect(registry.track('audit-prune', () => 7)).toBe(7);
+  });
+
   it('handle(id) tracks that job', () => {
     const { registry } = setup();
     expect(registry.handle('address-watch').track(() => 'x', () => ({ outcome: 'skipped', summary: 'None.' }))).toBe('x');

@@ -14,6 +14,9 @@ import { registerTlsAuditRoutes } from './routes/tls-audit.js';
 import { registerSecurityAlertRoutes } from './routes/security-alerts.js';
 import { registerPresenceRoutes } from './routes/presence.js';
 import { registerJobsRoute } from './routes/jobs.js';
+import { registerNotificationRoutes } from './routes/notifications.js';
+import { startNotificationProducers } from '../notifications/producers.js';
+import { startNotificationRetention } from '../notifications/retention.js';
 import { createJobRegistry } from '../jobs/job-status.js';
 import { registerDiagnosticsRoute } from './routes/diagnostics.js';
 import { registerReachabilityRoute } from './routes/reachability.js';
@@ -175,6 +178,18 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   registerPresenceRoutes(app, { realtime, requireOwner: authOptions.requireOwner });
   jobs.onChange = () => realtime.notifyOwnerView('jobs');
   registerJobsRoute(app, { jobs, requireOwner: authOptions.requireOwner });
+  // Notifications (PD-109, PD-110): the closed producer list feeds the table; a new row reaches owner sockets and reader-granted device sockets.
+  const producers = startNotificationProducers({
+    db: options.hub.db, now, jobs,
+    emit: (n) => {
+      app.hubEvents.emit('notification-created', { id: n.id, kind: n.kind, severity: n.severity, title: n.title });
+      realtime.notifyOwnerView('notifications');
+    },
+  });
+  app.decorate('hubNotifications', producers);
+  const stopRetention = startNotificationRetention(options.hub.db, now, () => realtime.notifyOwnerView('notifications'));
+  app.addHook('onClose', async () => { producers.stop(); stopRetention(); });
+  registerNotificationRoutes(app, { db: options.hub.db, now, requireOwner: authOptions.requireOwner, requireDevice, changed: () => realtime.notifyOwnerView('notifications') });
   const startedAt = now();
   const hostFacts = options.diagnostics?.host ?? createHostFacts({ exec: options.diagnostics?.exec ?? defaultExec, ...(options.diagnostics?.platform ? { platform: options.diagnostics.platform } : {}), now });
   const resolveDns = options.diagnostics?.resolveDns ?? createCachedNameResolver({ now });

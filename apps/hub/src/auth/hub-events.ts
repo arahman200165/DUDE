@@ -1,5 +1,6 @@
 import { EventEmitter } from 'node:events';
 import type { FastifyInstance } from 'fastify';
+import type { HubNotificationKind, HubNotificationSeverity } from '@dude/contracts/hub';
 import type { RevokedSession } from './sessions.js';
 import type { HostGuard } from '../security/host-guard.js';
 
@@ -21,6 +22,8 @@ export interface HubEventMap {
   'records-changed': [{ environmentId: string; revision: number; originDeviceId: string | null }];
   /** A web access toggle changed (PD-051); owner cookie sockets get `web-access-changed` so open browsers re-fetch. */
   'web-access-changed': [{ environmentId: string }];
+  /** A Hub notification was stored (PD-109); owner sockets and sockets of devices holding the reader grant get `notification`. */
+  'notification-created': [{ id: string; kind: HubNotificationKind; severity: HubNotificationSeverity; title: string }];
 }
 
 /** Internal in-process events (consumed by the realtime milestone). Never carries credentials. */

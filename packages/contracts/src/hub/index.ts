@@ -18,3 +18,4 @@ export * from './security-alerts.schema.js';
 export * from './reachability.schema.js';
 export * from './backup.schema.js';
 export * from './jobs.schema.js';
+export * from './notifications.schema.js';

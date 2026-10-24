@@ -311,6 +311,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     db: hub.db, paths, hubVersion: hubVersion(), hubInstanceId: hub.hubInstanceId,
     readConfig: () => loadOrCreateHubConfig(paths.configFile), protector: scheduleKeyProtector, deps: nodeBackupDeps(),
     job: server.hubJobs.handle('backup-schedule'),
+    onCheck: ({ intervalHours }) => server.hubNotifications.checkBackupOverdue(intervalHours),
   });
   server.hubJobs.register('backup-schedule', BACKUP_SCHEDULER_CHECK_MS);
   backupScheduler.start();
