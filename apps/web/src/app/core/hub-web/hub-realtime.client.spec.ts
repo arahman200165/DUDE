@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
-import { REALTIME_CLOSE_CODES } from '@dude/contracts/hub';
+import { HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION, REALTIME_CLOSE_CODES } from '@dude/contracts/hub';
 import type { AppliedChangeShape } from '@dude/sync';
 import { BACKOFF_MAX_MS, BACKOFF_MIN_MS, HubRealtimeClient, POLL_MS, STATE_REPORT_MS, type HubSocketLike } from './hub-realtime.client';
 import { ALL_ON, apiError, makeRig, type Rig } from './testing/fake-hub';
@@ -66,7 +66,7 @@ describe('HubRealtimeClient', () => {
     rig.hub.external('pipeline', 'p1', { id: 'p1' });
     make();
     const socket = await connect();
-    expect(socket.sent[0]).toEqual({ type: 'hello', protocolVersion: 1, minHubProtocol: 1 });
+    expect(socket.sent[0]).toEqual({ type: 'hello', protocolVersion: HUB_PROTOCOL_VERSION, minHubProtocol: HUB_MIN_CLIENT_PROTOCOL });
     expect(rig.connection.state()).toBe('live');
     expect(applied).toHaveLength(1);
     expect(applied[0]![0]).toMatchObject({ entityType: 'pipeline', entityId: 'p1', deleted: false });

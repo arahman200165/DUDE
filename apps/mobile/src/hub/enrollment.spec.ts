@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { HubRequest, HubResponse } from '@dude/api-client';
+import { HUB_PROTOCOL_VERSION } from '@dude/contracts/hub';
 import { MobileEnrollmentService } from './enrollment';
 import { MobileDeviceSession } from './session';
 import { MobileHubRealtime } from './realtime';
@@ -181,7 +182,7 @@ describe('authenticated realtime pin updates', () => {
     const realtime = new MobileHubRealtime(new MobileDeviceSession(f.deps, enrollment), port, { onEvent: () => undefined, onFailure: error => failures.push(error), now: () => now });
     try {
       await realtime.start(device);
-      await vi.waitFor(() => expect(sent).toContainEqual({ type: 'hello', protocolVersion: 2, minHubProtocol: 2 }));
+      await vi.waitFor(() => expect(sent).toContainEqual({ type: 'hello', protocolVersion: HUB_PROTOCOL_VERSION, minHubProtocol: 2 }));
       emit!({ id: device, kind: 'message', text: JSON.stringify({ type: 'welcome', protocolVersion: 2, sessionKind: 'device', deviceId: device, heartbeatIntervalMs: 25000, tls: f.hello['tls'], authorityEpoch: 1 }) });
       await vi.waitFor(() => expect(sent).toContainEqual({ type: 'tls-pin-ack', spkiSha256: proxy }));
       expect(f.steps).toEqual(['save', 'hello', 'save', 'ack', 'ack']);

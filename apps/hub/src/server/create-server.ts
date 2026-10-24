@@ -38,6 +38,7 @@ import type { PasswordParams } from '../auth/password.js';
 import { createStaticHandler } from './static.js';
 import { ensureActiveTlsPin } from './tls-pins.js';
 import { registerRealtime } from '../realtime/realtime.js';
+import { registerWsHost } from '../realtime/ws-host.js';
 import type { RealtimeTimings } from '../realtime/realtime.js';
 import type { HubLoggerOptions } from './logger.js';
 import { startAuditPruning } from '../security/audit.js';
@@ -141,6 +142,7 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
     const row = options.hub.db.prepare("SELECT spki_sha256 FROM tls_pins WHERE state = 'active' LIMIT 1").get() as { spki_sha256: string } | undefined;
     return row?.spki_sha256 ?? options.tls.spkiSha256;
   };
+  registerWsHost(app);
   const realtime = registerRealtime(app, {
     db: options.hub.db, now, hostGuard, activeSpki, ...(options.realtime ? { timings: options.realtime } : {}),
   });

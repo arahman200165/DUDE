@@ -3,7 +3,7 @@ import type { Db } from '@dude/sqlite-store';
 import { audit } from '../security/audit.js';
 import { hashDeviceToken } from './device-tokens.js';
 
-export type RevokedAttemptVia = 'token' | 'challenge' | 'redeem' | 'realtime';
+export type RevokedAttemptVia = 'token' | 'challenge' | 'redeem' | 'realtime' | 'collab';
 
 /** At most one `device.revoked-attempt` row per (device, via) per hour. */
 export const REVOKED_ATTEMPT_INTERVAL_MS = 3600_000;

@@ -1,5 +1,4 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import websocket from '@fastify/websocket';
 import Value from 'typebox/value';
 import type { WebSocket } from 'ws';
 import type { Db } from '@dude/sqlite-store';
@@ -7,19 +6,16 @@ import {
   HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION, HUB_REALTIME_PATH, REALTIME_CLOSE_CODES, REALTIME_HEARTBEAT_INTERVAL_MS, REALTIME_HELLO_TIMEOUT_MS,
   REALTIME_IDLE_TIMEOUT_MS, REALTIME_MAX_MESSAGE_BYTES, RealtimeClientMessage, checkProtocolCompatibility,
 } from '@dude/contracts/hub';
-import type { RealtimeServerMessage } from '@dude/contracts/hub';
+import type { RealtimeEvent, RealtimeEventDataOf, RealtimeServerMessage } from '@dude/contracts/hub';
+import { realtimeEventAllowed } from '@dude/contracts/hub';
 import type { HubEventMap } from '../auth/hub-events.js';
-import { resolveOwner } from '../auth/owner-auth.js';
-import { DEVICE_TOKEN_PREFIX, resolveDeviceToken } from '../devices/device-tokens.js';
-import { noteRevokedToken } from '../devices/revoked-attempts.js';
 import { getAuthorityEpoch, getAuthorityState } from '../hub/authority.js';
 import { touchLastSeen } from '../devices/registry.js';
-import { OWNER_BEARER_PREFIX } from '../auth/sessions.js';
-import { classifyCredential } from '../security/request-guard.js';
 import type { HostGuard } from '../security/host-guard.js';
 import { envelope } from '../server/errors.js';
 import { acknowledgeTlsPin } from '../tls/rotation.js';
 import { proxyPinSpkis } from '../tls/proxy-pins.js';
+import { authenticateUpgrade, type WsPrincipal } from './ws-auth.js';
 
 export interface RealtimeTimings {
   helloTimeoutMs: number;
@@ -62,87 +58,26 @@ declare module 'fastify' {
   interface FastifyInstance { realtime: RealtimeHub }
 }
 
-type Kind = 'owner-cookie' | 'owner-bearer' | 'device';
-
-interface Principal {
-  kind: Kind;
-  deviceId: string | null;
-  /** Owner-bearer sessions may be bound to a device. */
-  boundDeviceId: string | null;
-  sessionHash: string | null;
-  /** Non-sliding liveness check. */
-  stillValid(now: number): boolean;
-}
-
 interface Connection {
   socket: WebSocket;
-  principal: Principal;
+  principal: WsPrincipal;
   helloed: boolean;
+  /** The protocol the client declared in its hello; 31J events need 3 or later (PD-100). */
+  protocol: number;
   timers: Array<NodeJS.Timeout>;
   idle: NodeJS.Timeout | undefined;
   recent: number[];
 }
 
-/**
- * A session is live while unrevoked and unexpired. A rotated session (`rotated_to`) is live while its successor is live
- * (followed up to 5 hops), so an open socket survives a rotation but ends when the successor is revoked or expires.
- */
-export const sessionLive = (db: Db, sessionHash: string, now: number): boolean => {
-  const at = new Date(now).toISOString();
-  const query = db.prepare('SELECT revoked_at, idle_expires_at, absolute_expires_at, rotated_to FROM sessions WHERE session_hash = ?');
-  let hash: string | null = sessionHash;
-  for (let hop = 0; hop <= 5 && hash !== null; hop += 1) {
-    const row = query.get(hash) as { revoked_at: string | null; idle_expires_at: string; absolute_expires_at: string; rotated_to: string | null } | undefined;
-    if (row === undefined || row.revoked_at !== null) return false;
-    if (row.rotated_to === null) return row.idle_expires_at > at && row.absolute_expires_at > at;
-    hash = row.rotated_to;
-  }
-  return false;
-};
+/** Kept for callers that predate the shared WebSocket authentication module. */
+export { sessionLive } from './ws-auth.js';
 
-/**
- * Credential types: owner cookie session (Origin must match the allowed Host), owner bearer, device token. The
- * credential is checked before the HTTP upgrade; anything else is a plain 401 and never becomes a WebSocket.
- */
-function authenticate(request: FastifyRequest, options: RealtimeOptions): Principal | null {
-  const credential = classifyCredential(request);
-  if (credential.conflict || credential.duplicateSession) return null;
-  const { db, now } = options;
-  if (credential.kind === 'cookie') {
-    const origin = request.headers.origin;
-    if (typeof origin !== 'string' || !options.hostGuard.isRequestAllowed(request) || !options.hostGuard.originMatches(request, origin)) return null;
-    const site = request.headers['sec-fetch-site'];
-    if (site !== undefined && site !== 'same-origin') return null;
-    const result = resolveOwner(request, { db, now, kinds: ['cookie'] });
-    if (!result.ok) return null;
-    const hash = result.owner.sessionHash;
-    return { kind: 'owner-cookie', deviceId: null, boundDeviceId: null, sessionHash: hash, stillValid: (at) => sessionLive(db, hash, at) };
-  }
-  const token = credential.bearerToken;
-  if (credential.kind !== 'bearer' || token === undefined) return null;
-  if (token.startsWith(DEVICE_TOKEN_PREFIX)) {
-    const device = resolveDeviceToken(db, token, now());
-    if (!device) {
-      noteRevokedToken(db, token, 'realtime', request.ip || undefined, now());
-      return null;
-    }
-    return { kind: 'device', deviceId: device.deviceId, boundDeviceId: null, sessionHash: null, stillValid: (at) => resolveDeviceToken(db, token, at) !== null };
-  }
-  if (token.startsWith(OWNER_BEARER_PREFIX)) {
-    const result = resolveOwner(request, { db, now, kinds: ['bearer'] });
-    if (!result.ok) return null;
-    const hash = result.owner.sessionHash;
-    return { kind: 'owner-bearer', deviceId: null, boundDeviceId: result.owner.deviceId, sessionHash: hash, stillValid: (at) => sessionLive(db, hash, at) };
-  }
-  return null;
-}
-
-/** Registers the authenticated WebSocket and its presence/broadcast machinery (PD-034). No synchronization rides on it. */
+/** Registers the authenticated WebSocket and its presence/broadcast machinery (PD-034). No synchronization rides on it. Needs `registerWsHost` first. */
 export function registerRealtime(app: FastifyInstance, options: RealtimeOptions): RealtimeHub {
   const timings: RealtimeTimings = { ...DEFAULT_REALTIME_TIMINGS, ...options.timings };
   const connections = new Set<Connection>();
   const presence = new Map<string, number>();
-  const principals = new WeakMap<FastifyRequest, Principal>();
+  const principals = new WeakMap<FastifyRequest, WsPrincipal>();
 
   const hub: RealtimeHub = {
     isDeviceOnline: (deviceId) => (presence.get(deviceId) ?? 0) > 0,
@@ -161,8 +96,10 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
   const send = (conn: Connection, message: RealtimeServerMessage): void => {
     if (conn.socket.readyState === conn.socket.OPEN) conn.socket.send(JSON.stringify(message));
   };
-  const sendEvent = (conn: Connection, event: Extract<RealtimeServerMessage, { type: 'event' }>['event'], data: Record<string, unknown>): void =>
-    send(conn, { type: 'event', event, data });
+  /** Events introduced in 31J are withheld from sockets that negotiated an older protocol (shipped Android builds reject them). */
+  const sendEvent = <E extends RealtimeEvent>(conn: Connection, event: E, data: RealtimeEventDataOf<E>): void => {
+    if (realtimeEventAllowed(event, conn.protocol)) send(conn, { type: 'event', event, data: data as Record<string, unknown> });
+  };
   const close = (conn: Connection, code: number, reason = ''): void => {
     if (conn.socket.readyState === conn.socket.OPEN || conn.socket.readyState === conn.socket.CONNECTING) conn.socket.close(code, reason);
   };
@@ -242,14 +179,14 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
   });
 
   const authHook = async (request: FastifyRequest, reply: FastifyReply): Promise<FastifyReply | undefined> => {
-    const principal = authenticate(request, options);
+    const principal = authenticateUpgrade(request, options, 'realtime');
     if (!principal) return reply.code(401).type('application/json').header('Cache-Control', 'no-store').send(envelope('unauthorized', 'Authentication is required.'));
     principals.set(request, principal);
     return undefined;
   };
 
-  function handleConnection(socket: WebSocket, principal: Principal): void {
-    const conn: Connection = { socket, principal, helloed: false, timers: [], idle: undefined, recent: [] };
+  function handleConnection(socket: WebSocket, principal: WsPrincipal): void {
+    const conn: Connection = { socket, principal, helloed: false, protocol: 0, timers: [], idle: undefined, recent: [] };
     connections.add(conn);
     let counted = false;
 
@@ -302,6 +239,7 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
           return;
         }
         conn.helloed = true;
+        conn.protocol = message.protocolVersion;
         armIdle(timings.idleTimeoutMs, REALTIME_CLOSE_CODES.heartbeatTimeout);
         if (principal.deviceId) {
           touchLastSeen(options.db, principal.deviceId, at);
@@ -330,8 +268,8 @@ export function registerRealtime(app: FastifyInstance, options: RealtimeOptions)
     });
   }
 
+  // `@fastify/websocket` is registered once by the WebSocket host (ws-host.ts) before this scope loads.
   app.register(async (scope) => {
-    await scope.register(websocket, { options: { maxPayload: REALTIME_MAX_MESSAGE_BYTES * 4 } });
     scope.get(HUB_REALTIME_PATH, { websocket: true, preValidation: authHook }, (socket, request) => {
       const principal = principals.get(request);
       if (!principal) { socket.close(REALTIME_CLOSE_CODES.unauthorized, 'unauthorized'); return; }

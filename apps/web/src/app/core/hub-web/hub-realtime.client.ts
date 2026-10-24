@@ -1,5 +1,5 @@
 import type { SyncRecord } from '@dude/contracts/hub';
-import { HUB_REALTIME_PATH, REALTIME_CLOSE_CODES } from '@dude/contracts/hub';
+import { HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION, HUB_REALTIME_PATH, REALTIME_CLOSE_CODES } from '@dude/contracts/hub';
 import { RecordBook, categoryOf, toAppliedChange, type AppliedChangeShape } from '@dude/sync';
 import type { HubWebEngine } from './hub-web-engine';
 import { classifyHubError, type HubWebAccess } from './hub-web.types';
@@ -115,7 +115,7 @@ export class HubRealtimeClient {
       return;
     }
     this.socket = socket;
-    socket.onopen = () => socket.send(JSON.stringify({ type: 'hello', protocolVersion: 1, minHubProtocol: 1 }));
+    socket.onopen = () => socket.send(JSON.stringify({ type: 'hello', protocolVersion: HUB_PROTOCOL_VERSION, minHubProtocol: HUB_MIN_CLIENT_PROTOCOL }));
     socket.onmessage = (event) => this.onMessage(socket, event.data);
     socket.onerror = () => undefined;
     socket.onclose = (event) => {

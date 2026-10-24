@@ -1,4 +1,5 @@
 import Type, { type Static } from 'typebox';
+import { HUB_REALTIME_DEPTH_PROTOCOL } from './protocol.js';
 
 /** The authenticated Hub WebSocket (PD-034). No synchronization rides on it in 31C. */
 export const HUB_REALTIME_PATH = '/api/v1/realtime';
@@ -54,3 +55,33 @@ export type RealtimeServerMessage = Static<typeof RealtimeServerMessage>;
 /** Payload of the changes-available event (device sockets and owner cookie sockets, PD-054): the environment head revision. */
 export const ChangesAvailableData = Type.Object({ revision: Type.Integer({ minimum: 0 }) });
 export type ChangesAvailableData = Static<typeof ChangesAvailableData>;
+
+export type RealtimeEvent = (typeof REALTIME_EVENTS)[number];
+
+/**
+ * The payload of each realtime event. The wire schema keeps `data` an open record so a client tolerates fields added
+ * later; the Hub sends exactly these shapes.
+ */
+export const RealtimeEventData = {
+  'device-registry-changed': Type.Object({
+    deviceId: Type.String(),
+    change: Type.Union([Type.Literal('enrolled'), Type.Literal('renamed'), Type.Literal('revoked'), Type.Literal('unenrolled'), Type.Literal('recovery-trust'), Type.Literal('updated'), Type.Literal('presence')]),
+  }),
+  'session-revoked': Type.Object({ sessionId: Type.String() }),
+  'device-revoked': Type.Object({ deviceId: Type.String() }),
+  'tls-next-pin': Type.Object({ spkiSha256: SpkiSha256, kind: Type.Optional(Type.Literal('proxy')) }),
+  'owner-recovered': Type.Object({ deviceId: Type.String(), at: Type.String() }),
+  'changes-available': ChangesAvailableData,
+  'web-access-changed': Type.Object({}),
+} satisfies Record<RealtimeEvent, unknown>;
+export type RealtimeEventDataOf<E extends RealtimeEvent> = Static<(typeof RealtimeEventData)[E]>;
+
+/**
+ * Events introduced in 31J. They reach only sockets whose hello declared protocol 3 or later, because shipped clients
+ * validate every event against the contract they were built with and would drop the connection (PD-100).
+ */
+export const REALTIME_DEPTH_EVENTS: readonly RealtimeEvent[] = [];
+
+export function realtimeEventAllowed(event: RealtimeEvent, clientProtocol: number, depthEvents: readonly RealtimeEvent[] = REALTIME_DEPTH_EVENTS): boolean {
+  return clientProtocol >= HUB_REALTIME_DEPTH_PROTOCOL || !depthEvents.includes(event);
+}

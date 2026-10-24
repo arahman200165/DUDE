@@ -90,9 +90,9 @@ describe('sync wire schemas', () => {
     expect(Value.Check(SyncClearResponse, { deleted: 5, headRevision: 9 })).toBe(true);
   });
 
-  it('exposes protocol 2, the cursor-expired code, audit events and the realtime event', () => {
+  it('exposes protocol 3, the cursor-expired code, audit events and the realtime event', () => {
     expect(SYNC_CURSOR_EXPIRED).toBe('cursor-expired');
-    expect(HUB_PROTOCOL_VERSION).toBe(2);
+    expect(HUB_PROTOCOL_VERSION).toBe(3);
     expect(hubSupportsSync(1)).toBe(false);
     expect(hubSupportsSync(2)).toBe(true);
     for (const e of ['sync.pushed', 'sync.snapshot', 'sync.state-reported', 'sync.compacted', 'sync.environment-clear-previewed', 'sync.environment-cleared']) expect(isHubAuditEvent(e)).toBe(true);
