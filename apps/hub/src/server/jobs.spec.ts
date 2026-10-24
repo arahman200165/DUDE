@@ -30,6 +30,13 @@ describe('GET /jobs', () => {
     expect(res.json.jobs.find((j: { id: string }) => j.id === 'leaf-renewal')).toMatchObject({ intervalMs: 0, lastOutcome: null, nextDueAt: null });
   });
 
+  it('runs the collaboration maintenance at startup right after the sync compaction, on the same cadence', async () => {
+    const res = await h.call('GET', '/jobs', { cookie: owner.cookie });
+    const find = (id: string) => res.json.jobs.find((j: { id: string }) => j.id === id);
+    expect(find('collab-maintenance')).toMatchObject({ running: false, lastOutcome: 'success', lastSummary: 'Nothing needed pruning or compaction.', intervalMs: find('sync-compaction').intervalMs });
+    expect(Date.parse(find('collab-maintenance').lastStartedAt)).toBeGreaterThanOrEqual(Date.parse(find('sync-compaction').lastFinishedAt));
+  });
+
   it('refreshes live: a recorded run pushes a contentless jobs view change', async () => {
     const notify = vi.spyOn(h.hub.app.realtime, 'notifyOwnerView');
     h.hub.app.hubJobs.register('address-watch', 300_000);

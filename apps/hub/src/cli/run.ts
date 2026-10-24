@@ -281,6 +281,8 @@ export async function runCli(argv: readonly string[]): Promise<number> {
           server.collabSockets.closeAll(REALTIME_CLOSE_CODES.transferred, 'hub transferred');
           server.collabRooms.closeAll();
         },
+        // A backup snapshot must include buffered Yjs updates and pending materializations (PD-105); rooms are never part of a backup.
+        flushCollab: () => server.collab.flushAll(),
       }),
     });
   } catch (error) {
@@ -316,6 +318,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     readConfig: () => loadOrCreateHubConfig(paths.configFile), protector: scheduleKeyProtector, deps: nodeBackupDeps(),
     job: server.hubJobs.handle('backup-schedule'),
     onCheck: ({ intervalHours }) => server.hubNotifications.checkBackupOverdue(intervalHours),
+    beforeSnapshot: () => server.collab.flushAll(),
   });
   server.hubJobs.register('backup-schedule', BACKUP_SCHEDULER_CHECK_MS);
   backupScheduler.start();

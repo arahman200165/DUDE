@@ -39,6 +39,8 @@ export interface BackupSchedulerOptions {
   job?: JobHandle;
   /** Called after each check that found a schedule, with its interval (the overdue notification, PD-109); optional and observation-only. */
   onCheck?: (schedule: { intervalHours: number }) => void;
+  /** Writes in-memory collaborative state before the snapshot (`createBackupFile` `beforeSnapshot`, PD-105). */
+  beforeSnapshot?: () => void;
 }
 
 export type BackupRunOutcome = 'not-configured' | 'not-due' | 'busy' | 'created' | 'failed';
@@ -111,6 +113,7 @@ export function createBackupScheduler(options: BackupSchedulerOptions): BackupSc
         db: options.db, paths: options.paths, hubVersion: options.hubVersion, hubInstanceId: options.hubInstanceId,
         authorityEpoch: getAuthorityEpoch(options.db), forTransfer: false, targetDir: schedule.folder,
         credential: { derived }, deps: options.deps, workDir: path.join(options.paths.backupsDir, '.tmp'),
+        ...(options.beforeSnapshot ? { beforeSnapshot: options.beforeSnapshot } : {}),
       });
       const file = path.basename(created.file);
       record({ at: new Date(now()).toISOString(), ok: true, file, size: created.size });

@@ -68,6 +68,11 @@ export interface CollabRegistry {
   evictAll(): void;
   /** Materializes, compacts and unloads every document and flushes the update tail; the registry stays usable (manual transfer). */
   closeAll(): void;
+  /**
+   * Writes every pending materialization and every buffered update now, without unloading anything, so a database copy taken
+   * right after (a backup's `VACUUM INTO`) holds each loaded document's current content and a record that matches it.
+   */
+  flushAll(): void;
   /** `closeAll`, then stops the store and materializer for good (server shutdown). */
   dispose(): void;
   /** Currently loaded document keys (diagnostics and tests). */
@@ -341,6 +346,17 @@ export function createCollabRegistry(options: CollabRegistryOptions): CollabRegi
     },
 
     closeAll,
+
+    flushAll() {
+      for (const entry of entries.values()) {
+        try {
+          if (materializer.pending(entry.docKey)) materializer.flush(entry.docKey);
+        } catch (error) {
+          options.log?.warn({ event: 'collab.persist-failed', doc: entry.docKey, code: (error as { code?: unknown }).code }, 'A collaborative document could not be persisted.');
+        }
+      }
+      store.flush();
+    },
 
     dispose() {
       try {

@@ -15,6 +15,7 @@ export const HUB_JOB_NAMES: Readonly<Record<HubJobId, string>> = {
   'address-watch': 'Address watch',
   'audit-prune': 'Audit log pruning',
   'collab-history-prune': 'Document history pruning',
+  'collab-maintenance': 'Document storage maintenance',
 };
 
 interface OutcomeView {

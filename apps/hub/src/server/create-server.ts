@@ -35,6 +35,7 @@ import { registerWebRecordRoutes } from './routes/web-records.js';
 import { registerCollabRoomRoutes } from './routes/collab-rooms.js';
 import { registerCollabHistoryRoutes } from './routes/collab-history.js';
 import { COLLAB_HISTORY_PRUNE_INTERVAL_MS, startCollabHistoryPruning } from '../collab/history.js';
+import { startCollabMaintenance } from '../collab/maintenance.js';
 import { collabKindForEntity } from '@dude/collab-doc';
 import { createCollabRegistry } from '../collab/doc-registry.js';
 import type { CollabRegistry, CollabRegistryOptions } from '../collab/doc-registry.js';
@@ -278,6 +279,13 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   // History retention (PD-105): snapshots past 30 days are removed once a day.
   jobs.register('collab-history-prune', COLLAB_HISTORY_PRUNE_INTERVAL_MS);
   const stopHistoryPruning = startCollabHistoryPruning(options.hub.db, now, COLLAB_HISTORY_PRUNE_INTERVAL_MS, jobs.handle('collab-history-prune'));
+  // Base pruning below the sync floor and tail compaction of stored documents (PD-105): the sync compaction cadence, first run right after it.
+  const collabMaintenanceMs = options.sync?.compactionIntervalMs ?? SYNC_COMPACTION_INTERVAL_MS;
+  jobs.register('collab-maintenance', collabMaintenanceMs);
+  let stopCollabMaintenance = (): void => undefined;
+  app.addHook('onReady', async () => {
+    stopCollabMaintenance = startCollabMaintenance({ db: options.hub.db, registry: collab, log: app.log, intervalMs: collabMaintenanceMs, job: jobs.handle('collab-maintenance') });
+  });
   const stopObservingCommits = observeCanonicalCommits(options.hub.db, (event) => {
     const kind = event.op === 'delete' ? collabKindForEntity(event.entityType) : null;
     if (kind !== null) collab.evict(`${kind}:${event.entityId}`);
@@ -287,6 +295,7 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   app.addHook('onClose', async () => {
     stopObservingCommits();
     stopHistoryPruning();
+    stopCollabMaintenance();
     app.hubEvents.off('environment-cleared', onEnvironmentCleared);
     collab.dispose();
   });

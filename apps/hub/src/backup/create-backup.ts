@@ -30,6 +30,11 @@ export interface CreateBackupOptions {
   deps: BackupDeps;
   /** Scratch folder for the snapshot copies (removed after use). */
   workDir: string;
+  /**
+   * Runs synchronously right before the `VACUUM INTO` copy, so in-memory state is in the database first. The running Hub passes the
+   * collaboration registry's `flushAll` (PD-105): buffered Yjs updates and pending materializations would otherwise be missing.
+   */
+  beforeSnapshot?: () => void;
 }
 
 export interface CreatedBackup {
@@ -68,6 +73,7 @@ export async function createBackupFile(options: CreateBackupOptions): Promise<Cr
     throw new Error(`The backup file ${name} already exists in ${targetDir}; nothing was overwritten.`);
   }
 
+  options.beforeSnapshot?.();
   const snapshot = await createScrubbedDbSnapshot(options.db, options.workDir);
   const configBytes = existsSync(options.paths.configFile) ? new Uint8Array(readFileSync(options.paths.configFile)) : new TextEncoder().encode('{}');
   const expected = new Map<string, string>([

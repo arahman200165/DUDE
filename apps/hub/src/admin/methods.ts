@@ -86,6 +86,8 @@ export interface AdminMethodContext {
   scheduleKeyProtector?: CaKeyProtector;
   /** Called once after `backup create --for-transfer` retired the Hub (31G): the server closes every realtime socket with code 4004. */
   onTransferred?: () => void;
+  /** Writes in-memory collaborative state (buffered Yjs updates, pending materializations) before a backup snapshot (PD-105). */
+  flushCollab?: () => void;
 }
 
 /** Validates the Windows host facts the elevated CLI sends with `network.mode.set`; anything malformed is ignored (treated as not inspected). */

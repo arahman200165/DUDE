@@ -168,6 +168,7 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
         const created = await createBackupFile({
           db: context.db, paths: p, hubVersion: context.hubVersion, hubInstanceId: context.hubInstanceId, authorityEpoch: getAuthorityEpoch(context.db),
           forTransfer, targetDir: folder, credential: { passphrase }, deps: backupDeps(), workDir: path.join(p.backupsDir, '.tmp'),
+          ...(context.flushCollab ? { beforeSnapshot: context.flushCollab } : {}),
         });
         const name = path.basename(created.file);
         writeBackupLast(context.db, { at: new Date(now()).toISOString(), ok: true, file: name, size: created.size });
