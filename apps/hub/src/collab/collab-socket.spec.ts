@@ -3,7 +3,7 @@ import * as encoding from 'lib0/encoding';
 import Value from 'typebox/value';
 import { WebSocket } from 'ws';
 import { COLLAB_FRAME_AWARENESS, COLLAB_FRAME_SYNC, addSnippet, readSnippet } from '@dude/collab-doc';
-import { COLLAB_MAX_FRAME_BYTES, CollabServerControl, HUB_REALTIME_PATH, REALTIME_CLOSE_CODES } from '@dude/contracts/hub';
+import { COLLAB_DOC_ERROR_CODES, COLLAB_MAX_FRAME_BYTES, CollabServerControl, HUB_REALTIME_PATH, REALTIME_CLOSE_CODES } from '@dude/contracts/hub';
 import { connect, everySeen, refused, sleep, waitUntil, withClose } from './collab-test-helpers.js';
 import type { Msg, Peer } from './collab-test-helpers.js';
 import { startAuthHub } from '../server/auth-test-helpers.js';
@@ -205,6 +205,21 @@ describe('collaboration socket (/api/v1/collab)', () => {
     expect(await peer.join(1, 'user-script:u1')).toMatchObject({ type: 'doc-error', code: 'limit' });
   });
 
+  it('refuses a consented device whose row belongs to another environment with forbidden', async () => {
+    const d = await device();
+    const home = envId();
+    db().prepare("INSERT INTO environment (environment_id, display_name, created_at) VALUES ('env-elsewhere', 'Elsewhere', '2026-03-01T00:00:00.000Z')").run();
+    db().prepare("UPDATE devices SET environment_id = 'env-elsewhere' WHERE device_id = ?").run(d.id);
+    try {
+      const { peer } = await welcomed(bearerHeaders(d.token));
+      expect(await peer.join(1, 'scratchpad:default')).toMatchObject({ type: 'doc-error', channel: 1, code: 'forbidden' });
+      expect(h.hub.app.collabSockets.subscriberCount('scratchpad:default')).toBe(0);
+    } finally {
+      db().prepare('UPDATE devices SET environment_id = ? WHERE device_id = ?').run(home, d.id);
+      db().prepare("DELETE FROM environment WHERE environment_id = 'env-elsewhere'").run();
+    }
+  });
+
   it('web consent: the owner cookie needs the environment web-access toggle; an owner bearer follows its bound device', async () => {
     await setWebAccess('scratchpad', false);
     const cookie = (await welcomed(ownerHeaders())).peer;
@@ -371,7 +386,7 @@ describe('collaboration socket (/api/v1/collab)', () => {
     const types = new Set(everySeen.map((m) => m.type));
     for (const type of ['welcome', 'subscribed', 'doc-error', 'error']) expect(types.has(type), type).toBe(true);
     const codes = new Set(everySeen.filter((m) => m.type === 'doc-error').map((m) => m.code));
-    for (const code of ['consent-required', 'not-found', 'too-large', 'limit', 'unavailable', 'consent-revoked']) expect(codes.has(code), code).toBe(true);
+    for (const code of COLLAB_DOC_ERROR_CODES) expect(codes.has(code), code).toBe(true);
     for (const message of everySeen) expect(Value.Check(CollabServerControl, message), JSON.stringify(message)).toBe(true);
   });
 });

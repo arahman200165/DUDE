@@ -235,6 +235,8 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     process.stdout.write(`${JSON.stringify({ event: 'tls-names-stale', missing: staleNames, hint: 'Run "dude-hub tls rotate" to stage a certificate that covers them, then "dude-hub tls activate".' })}\n`);
   }
   const logStream = createLogStream(path.join(paths.logsDir, 'hub.log'), { stdout: true });
+  // TEST-ONLY (PD-068): empty in a release bundle. The backup check period goes to the scheduler below, the rest to the server.
+  const { backupCheckMs: testBackupCheckMs, ...testServerOverrides } = readHubTestOverrides();
   const server: FastifyInstance = createHubServer({
     paths,
     config,
@@ -243,7 +245,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     hubVersion: hubVersion(),
     backup: { scheduleKeyPresent: () => scheduleKeyExists(paths.configDir) },
     logger: hubLoggerOptions(logStream),
-    ...readHubTestOverrides(),
+    ...testServerOverrides,
   });
 
   try {
@@ -319,8 +321,9 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     job: server.hubJobs.handle('backup-schedule'),
     onCheck: ({ intervalHours }) => server.hubNotifications.checkBackupOverdue(intervalHours),
     beforeSnapshot: () => server.collab.flushAll(),
+    ...(testBackupCheckMs !== undefined ? { checkMs: testBackupCheckMs } : {}),
   });
-  server.hubJobs.register('backup-schedule', BACKUP_SCHEDULER_CHECK_MS);
+  server.hubJobs.register('backup-schedule', testBackupCheckMs ?? BACKUP_SCHEDULER_CHECK_MS);
   backupScheduler.start();
   // Detection only (PD-064): records this machine's addresses and audits a change; DNS is never updated and no DNS credential is stored.
   const addressWatch = createAddressWatch({

@@ -120,6 +120,28 @@ describe('CodeEditor', () => {
     expect(handle.setAria).toHaveBeenLastCalledWith('Body', 'heading');
   });
 
+  it('applies inputs that changed while the editor was mounting (a read-only editor that went live stays editable)', async () => {
+    const { handle } = fakeEngine();
+    let finishMount!: () => void;
+    const engine: CodeEditorEngine = { mountCodeEditor: vi.fn(() => new Promise<CodeEditorHandle>((resolve) => (finishMount = () => resolve(handle)))) };
+    const fixture = create(async () => engine, { readonly: true, placeholder: 'Connecting', ariaLabel: 'Body' });
+    await vi.waitFor(() => expect(engine.mountCodeEditor).toHaveBeenCalled());
+    expect(vi.mocked(engine.mountCodeEditor).mock.calls[0]![0]).toMatchObject({ readonly: true, placeholder: 'Connecting' });
+
+    fixture.componentRef.setInput('readonly', false);
+    fixture.componentRef.setInput('placeholder', 'Write');
+    fixture.componentRef.setInput('language', 'javascript');
+    fixture.detectChanges();
+    expect(handle.setReadonly).not.toHaveBeenCalled();
+
+    finishMount();
+    await ready(fixture);
+    expect(handle.setReadonly).toHaveBeenCalledWith(false);
+    expect(handle.setPlaceholder).toHaveBeenCalledWith('Write');
+    expect(handle.setLanguage).toHaveBeenCalledWith('javascript');
+    expect(handle.setAria).not.toHaveBeenCalled();
+  });
+
   it('forwards edits and scrolling reported by the editor', async () => {
     const { engine, options } = fakeEngine();
     const fixture = create(async () => engine);

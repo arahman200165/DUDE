@@ -159,17 +159,15 @@ export class CodeEditor {
 
   private async load(): Promise<void> {
     let handle: CodeEditorHandle;
+    let mounted: { language: CodeEditorLanguage; placeholder: string; readonly: boolean; ariaLabel: string | null; ariaLabelledby: string | null };
     try {
       const engine = await this.loader();
       if (this.destroyed) return;
+      mounted = { language: this.language(), placeholder: this.placeholder(), readonly: this.readonly(), ariaLabel: this.ariaLabel(), ariaLabelledby: this.ariaLabelledby() };
       handle = await engine.mountCodeEditor({
         parent: this.mount().nativeElement,
         doc: this.getText(),
-        language: this.language(),
-        placeholder: this.placeholder(),
-        readonly: this.readonly(),
-        ariaLabel: this.ariaLabel(),
-        ariaLabelledby: this.ariaLabelledby(),
+        ...mounted,
         binding: this.binding(),
         onChange: (text) => this.valueChange.emit(text),
         onScroll: (scroller) => this.scrolled.emit(scroller),
@@ -188,6 +186,12 @@ export class CodeEditor {
     const selection = textarea ? { start: textarea.selectionStart, end: textarea.selectionEnd } : null;
 
     this.handle = handle;
+    // Inputs that changed while the editor was mounting reached no handle: apply them now (a collaborative editor that mounted read-only
+    // while connecting and went live meanwhile would otherwise stay read-only).
+    if (this.readonly() !== mounted.readonly) handle.setReadonly(this.readonly());
+    if (this.language() !== mounted.language) void handle.setLanguage(this.language());
+    if (this.placeholder() !== mounted.placeholder) handle.setPlaceholder(this.placeholder());
+    if (this.ariaLabel() !== mounted.ariaLabel || this.ariaLabelledby() !== mounted.ariaLabelledby) handle.setAria(this.ariaLabel(), this.ariaLabelledby());
     const binding = this.binding();
     const value = this.value();
     handle.setBinding(binding, value);

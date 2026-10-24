@@ -311,14 +311,15 @@ export interface ExtraHub {
 /**
  * Starts one more Hub from the compiled TEST bundle on `dataDir` (a fresh directory or a restored one) and an OS-chosen port.
  * It never touches the shared Hub of the other specs. Its certificate is read from the data directory once it listens, so
- * Node clients pin it (`ca`) and Chromium trusts exactly its leaf key (`openHubBrowser`).
+ * Node clients pin it (`ca`) and Chromium trusts exactly its leaf key (`openHubBrowser`). `env` adds TEST-ONLY knobs
+ * (`apps/hub/src/cli/test-overrides.ts`) for this Hub alone.
  */
-export async function spawnExtraHub(dataDir: string): Promise<ExtraHub> {
+export async function spawnExtraHub(dataDir: string, env: Record<string, string> = {}): Promise<ExtraHub> {
   if (!existsSync(HUB_BUNDLE)) throw new Error(`The test bundle is missing: ${HUB_BUNDLE}`);
   const child: ChildProcess = spawn(process.execPath, [HUB_BUNDLE, 'run', '--data-dir', dataDir, '--port', '0', '--web-root', WEB_ROOT], {
     cwd: REPO_ROOT,
     stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env, DUDE_HUB_TEST_RELAX_RATE_LIMITS: '1' },
+    env: { ...process.env, DUDE_HUB_TEST_RELAX_RATE_LIMITS: '1', ...env },
   });
   let stderr = '';
   child.stderr?.on('data', (chunk: Buffer) => (stderr += chunk.toString()));
