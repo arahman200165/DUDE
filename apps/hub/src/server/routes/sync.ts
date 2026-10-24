@@ -161,6 +161,7 @@ export function registerSyncRoutes(app: FastifyInstance, options: SyncRouteOptio
       nostore(reply);
       const deviceId = request.device!.deviceId;
       recordDeviceSyncState(db, deviceId, request.body, iso());
+      app.hubEvents.emit('device-sync-state-changed', { deviceId });
       return reply.code(200).send({ floor: getSyncFloor(db), headRevision: currentRevision(db), retentionDays: getRetentionDays(db), authorityEpoch: getAuthorityEpoch(db) });
     },
   );

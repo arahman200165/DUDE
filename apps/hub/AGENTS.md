@@ -35,7 +35,8 @@ The self-hosted **DUDE Hub** (Phases 31C-31G, complete; 31D added synchronizatio
 - `src/security/` headers and CSP, Host guard, request (Origin, Fetch-Metadata, CSRF) guard, cookies, rate limit, persisted throttle, audit log and the single-use ConfirmationStore.
 - `src/auth/` owner password (Argon2id), recovery codes, setup token, cookie and bearer sessions, device-token resolution, the `requireOwner` resolver, hub events.
 - `src/devices/` pairing codes, Ed25519 keys, device tokens, the registry.
-- `src/realtime/` the authenticated WebSocket at `/api/v1/realtime`.
+- `src/realtime/` the authenticated WebSocket at `/api/v1/realtime` and the shared WebSocket host and upgrade authentication (`ws-host.ts`, `ws-auth.ts`); `@fastify/websocket` is registered once there for every socket route.
+- `src/collab/` Phase 31J collaboration: the `/api/v1/collab` socket (consent per PD-103, Hub-rewritten awareness), the persistent document store/registry/materializer for the PD-099 surfaces and the in-memory Markdown rooms. Rooms are never persisted except through an explicit, audited keep.
 - `src/tls/` self-signed and local-CA certificate generation (small DER writer, `local-ca`, `leaf-issuer`, `renewal`, `ca-key-protector`), configured names, certificate import, proxy pins, SPKI pins and dual-pin rotation.
 - `src/diagnostics/` the one endpoint diagnostics engine (readiness checks marked verified, claimed or not-checked) behind `GET /api/v1/diagnostics`, the admin `diagnostics` method and `dude-hub doctor`.
 - `src/backup/` encrypted backup creation, scrubbed snapshot, retention, the scheduled-backup derived key and the scheduler (31G); the admin methods are `src/admin/backup-methods.ts`.

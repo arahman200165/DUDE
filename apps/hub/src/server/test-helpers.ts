@@ -16,6 +16,7 @@ import type { RateLimiterOptions } from '../security/rate-limit.js';
 import type { CsrfVerifier } from '../security/request-guard.js';
 import type { PasswordParams } from '../auth/password.js';
 import { createHubServer } from './create-server.js';
+import type { CreateHubServerOptions } from './create-server.js';
 import type { RealtimeTimings } from '../realtime/realtime.js';
 import type { SyncCompactionOptions } from './sync-compaction.js';
 
@@ -53,6 +54,10 @@ export interface TestHubOptions {
   passwordParams?: PasswordParams;
   realtime?: Partial<RealtimeTimings>;
   sync?: SyncCompactionOptions;
+  /** Collaboration document timings, socket timers and room limits (short ones for specs). */
+  collab?: CreateHubServerOptions['collab'];
+  collabSocket?: CreateHubServerOptions['collabSocket'];
+  collabRooms?: CreateHubServerOptions['collabRooms'];
   backup?: { scheduleKeyPresent?: () => boolean };
   /** Serve an existing data root (for example a restored Hub) instead of a fresh temporary one. */
   dataRoot?: string;

@@ -24,6 +24,8 @@ export interface HubEventMap {
   'environment-cleared': [{ environmentId: string }];
   /** A web access toggle changed (PD-051); owner cookie sockets get `web-access-changed` so open browsers re-fetch. */
   'web-access-changed': [{ environmentId: string }];
+  /** A device reported its sync state (`PUT /sync/state`); collaboration re-checks the consent of that device's subscriptions (PD-103). */
+  'device-sync-state-changed': [{ deviceId: string }];
   /** A Hub notification was stored (PD-109); owner sockets and sockets of devices holding the reader grant get `notification`. */
   'notification-created': [{ id: string; kind: HubNotificationKind; severity: HubNotificationSeverity; title: string }];
 }

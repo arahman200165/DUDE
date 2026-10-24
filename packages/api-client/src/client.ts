@@ -2,7 +2,7 @@ import { Value } from 'typebox/value';
 import type { TSchema, Static } from 'typebox';
 import {
   HUB_API_PREFIX, HelloResponse, ErrorEnvelope, checkProtocolCompatibility,
-  BootstrapResponse, TlsCertificatesResponse, AuditListResponse, SecurityAlertsResponse, PresenceResponse, HUB_PRESENCE_PATH, HubJobsResponse, HUB_JOBS_PATH, HubNotificationsResponse, HUB_NOTIFICATIONS_PATH, HubDiagnosticsReport, ReachabilityEchoResponse, BackupStatusResponse,
+  BootstrapResponse, TlsCertificatesResponse, AuditListResponse, SecurityAlertsResponse, PresenceResponse, HUB_PRESENCE_PATH, HubJobsResponse, HUB_JOBS_PATH, HubNotificationsResponse, HUB_NOTIFICATIONS_PATH, CollabRoom, CollabRoomsResponse, HUB_COLLAB_ROOMS_PATH, KeepCollabRoomResponse, HubDiagnosticsReport, ReachabilityEchoResponse, BackupStatusResponse,
   EnrollResponse, DeviceChallengeResponse, DeviceRecoveryChallengeResponse, DeviceTokenResponse, DeviceInfo, DeviceListResponse, OwnerBearerResponse, PairingCodeResponse,
   OkResponse, ConfirmPreview, SessionListResponse, RecoveryCodesResponse,
   StepUpResponse, ChangePasswordResponse,
@@ -86,6 +86,14 @@ export interface HubClient {
   dismissNotification(auth: Bearer, id: string): Promise<OkResponse>;
   /** Owner with step-up: grants or revokes a desktop's notification-reader grant (400 for a browser row, 409 for an ended device). */
   setNotificationsAccess(auth: Bearer, deviceId: string, enabled: boolean): Promise<DeviceInfo>;
+  /**
+   * Markdown Workspace rooms on the Hub (PD-104): owner session or a device token (a device may host and join rooms). Rooms live in Hub
+   * memory only; at most 8 at once (creating a ninth is HTTP 409). `keepCollabRoom` persists a room as a `markdown-doc` record and is
+   * refused (403) unless the Markdown documents category is on for the caller.
+   */
+  listCollabRooms(auth: Bearer): Promise<CollabRoomsResponse>;
+  createCollabRoom(auth: Bearer, name: string): Promise<CollabRoom>;
+  keepCollabRoom(auth: Bearer, roomId: string, title: string): Promise<KeepCollabRoomResponse>;
   recoveryCodesPreview(auth: Bearer): Promise<ConfirmPreview>;
   regenerateRecoveryCodes(auth: Bearer, confirmToken: string): Promise<RecoveryCodesResponse>;
   changePassword(auth: Bearer, currentPassword: string, newPassword: string): Promise<ChangePasswordResponse>;
@@ -173,6 +181,9 @@ export function createHubClient(transport: HubTransport, opts: HubClientOptions)
     markNotificationsRead: (auth, target) => call(OkResponse, { method: 'POST', path: `${HUB_NOTIFICATIONS_PATH}/read`, body: target }, auth),
     dismissNotification: (auth, id) => call(OkResponse, { method: 'POST', path: `${HUB_NOTIFICATIONS_PATH}/${seg(id)}/dismiss` }, auth),
     setNotificationsAccess: (auth, id, enabled) => call(DeviceInfo, { method: 'PUT', path: `${P}/devices/${seg(id)}/notifications-access`, body: { enabled } }, auth),
+    listCollabRooms: (auth) => call(CollabRoomsResponse, { method: 'GET', path: HUB_COLLAB_ROOMS_PATH }, auth),
+    createCollabRoom: (auth, name) => call(CollabRoom, { method: 'POST', path: HUB_COLLAB_ROOMS_PATH, body: { name } }, auth),
+    keepCollabRoom: (auth, roomId, title) => call(KeepCollabRoomResponse, { method: 'POST', path: `${HUB_COLLAB_ROOMS_PATH}/${seg(roomId)}/keep`, body: { title } }, auth),
     listAudit: (auth, query) => {
       const qs: string[] = [];
       if (query?.beforeSeq !== undefined) qs.push(`beforeSeq=${query.beforeSeq}`);

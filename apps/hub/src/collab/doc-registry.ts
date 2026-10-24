@@ -14,8 +14,11 @@ import type { MaterializeSource, Materializer, MaterializerOptions } from './mat
 export const COLLAB_IDLE_UNLOAD_MS = 60_000;
 /** The update tail is folded into the stored state once it reaches this many updates while a document stays open. */
 export const COLLAB_COMPACT_AFTER_UPDATES = 200;
-/** Above this share of the record cap an update is trial-applied to a clone before it is accepted. */
-const TRIAL_THRESHOLD = 0.75;
+/**
+ * Materialized JSON grows by at most this many bytes per update byte (a control character escapes to six bytes), so an
+ * update that cannot reach the cap even at this bound skips the trial apply on a clone.
+ */
+const MAX_JSON_GROWTH_PER_UPDATE_BYTE = 6;
 const RECENT_EDITORS = 16;
 
 /** Who opens or edits a document: the authenticated device (desktop or Hub web browser row), or null for an owner session without a row. */
@@ -139,7 +142,7 @@ export function createCollabRegistry(options: CollabRegistryOptions): CollabRegi
 
   function trialExceedsCap(entry: Entry, update: Uint8Array): boolean {
     const current = bytesOf(entry);
-    if (current <= SYNC_LIMITS.maxRecordBytes * TRIAL_THRESHOLD) return false;
+    if (current + update.byteLength * MAX_JSON_GROWTH_PER_UPDATE_BYTE <= SYNC_LIMITS.maxRecordBytes) return false;
     const clone = new Y.Doc();
     try {
       Y.applyUpdate(clone, Y.encodeStateAsUpdate(entry.doc));

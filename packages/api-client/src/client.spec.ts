@@ -115,6 +115,9 @@ describe('createHubClient', () => {
     ['markNotificationsRead', (c) => c.markNotificationsRead('t', { all: true }), 'POST', '/api/v1/notifications/read'],
     ['dismissNotification', (c) => c.dismissNotification('t', 'n 1'), 'POST', '/api/v1/notifications/n%201/dismiss'],
     ['setNotificationsAccess', (c) => c.setNotificationsAccess('t', 'd1', true), 'PUT', '/api/v1/devices/d1/notifications-access'],
+    ['listCollabRooms', (c) => c.listCollabRooms('t'), 'GET', '/api/v1/collab/rooms'],
+    ['createCollabRoom', (c) => c.createCollabRoom('t', 'Notes'), 'POST', '/api/v1/collab/rooms'],
+    ['keepCollabRoom', (c) => c.keepCollabRoom('t', 'r 1', 'Title'), 'POST', '/api/v1/collab/rooms/r%201/keep'],
   ];
   it.each(table)('%s hits %s %s', async (_name, fn, method, path) => {
     const t = fake({ body: null });

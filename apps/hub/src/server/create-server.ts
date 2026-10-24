@@ -32,9 +32,14 @@ import type { ExecFn } from '../service/common.js';
 import { registerDeviceAuthRoutes } from './routes/device-auth.js';
 import { registerSyncRoutes } from './routes/sync.js';
 import { registerWebRecordRoutes } from './routes/web-records.js';
+import { registerCollabRoomRoutes } from './routes/collab-rooms.js';
 import { collabKindForEntity } from '@dude/collab-doc';
 import { createCollabRegistry } from '../collab/doc-registry.js';
 import type { CollabRegistry, CollabRegistryOptions } from '../collab/doc-registry.js';
+import { registerCollabSocket } from '../collab/collab-socket.js';
+import type { CollabSocketTimings } from '../collab/collab-socket.js';
+import { createCollabRooms } from '../collab/rooms.js';
+import type { CollabRooms, CollabRoomsOptions } from '../collab/rooms.js';
 import { observeCanonicalCommits } from '../db/canonical-repository.js';
 import { SYNC_COMPACTION_INTERVAL_MS, registerSyncCompaction } from './sync-compaction.js';
 import type { SyncCompactionOptions } from './sync-compaction.js';
@@ -70,6 +75,8 @@ declare module 'fastify' {
     hubDiagnostics: (override?: DiagnosticsOverride) => Promise<HubDiagnosticsReport>;
     /** The collaborative document registry (PD-101); the `/api/v1/collab` socket opens documents through it. */
     collab: CollabRegistry;
+    /** Markdown Workspace rooms (PD-104): ephemeral, in Hub memory only. */
+    collabRooms: CollabRooms;
   }
 }
 
@@ -89,6 +96,10 @@ export interface CreateHubServerOptions {
   sync?: SyncCompactionOptions;
   /** Collaborative document timings (tests inject short ones): idle unload, tail compaction, update flush and materialization. */
   collab?: Pick<CollabRegistryOptions, 'idleUnloadMs' | 'compactAfterUpdates' | 'store' | 'materializer'>;
+  /** Collaboration socket timers and limits (tests inject short ones). */
+  collabSocket?: Partial<CollabSocketTimings>;
+  /** Markdown room limits and idle close (tests inject short ones). */
+  collabRooms?: Pick<CollabRoomsOptions, 'idleCloseMs' | 'maxRooms' | 'maxParticipants'>;
   /** Registers routes before the server is ready (the security hooks are already installed). */
   configure?: (app: FastifyInstance) => void;
   tls: { keyPem: string; certPem: string; spkiSha256: string };
@@ -255,6 +266,12 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
     emitRecordsChanged: (event) => app.hubEvents.emit('records-changed', event),
   });
   app.decorate('collab', collab);
+  const collabRooms = createCollabRooms({ now, ...options.collabRooms });
+  app.decorate('collabRooms', collabRooms);
+  registerCollabSocket(app, {
+    db: options.hub.db, now, hostGuard, registry: collab, rooms: collabRooms, ...(options.collabSocket ? { timings: options.collabSocket } : {}),
+  });
+  registerCollabRoomRoutes(app, { db: options.hub.db, now, rooms: collabRooms, hubEvents: app.hubEvents, requireOwner: authOptions.requireOwner, requireDevice });
   const stopObservingCommits = observeCanonicalCommits(options.hub.db, (event) => {
     const kind = event.op === 'delete' ? collabKindForEntity(event.entityType) : null;
     if (kind !== null) collab.evict(`${kind}:${event.entityId}`);

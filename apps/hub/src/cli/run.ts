@@ -275,8 +275,12 @@ export async function runCli(argv: readonly string[]): Promise<number> {
         diagnostics: (override) => server.hubDiagnostics(override),
         proxyPins: createProxyPins({ db: hub.db, announceNext: (spkiSha256) => server.hubEvents.emit('tls-next-pin', { spkiSha256, kind: 'proxy' }) }),
         onSessionsRevoked: (sessions) => emitRevoked(server, sessions, 'owner-reset'),
-        // 31G transfer: after the Hub retired itself, every realtime socket closes with 4004 (the HTTP fence already refuses new work).
-        onTransferred: () => server.realtime.closeAll(REALTIME_CLOSE_CODES.transferred, 'hub transferred'),
+        // 31G transfer: after the Hub retired itself, every realtime and collaboration socket closes with 4004 (the HTTP fence already refuses new work).
+        onTransferred: () => {
+          server.realtime.closeAll(REALTIME_CLOSE_CODES.transferred, 'hub transferred');
+          server.collabSockets.closeAll(REALTIME_CLOSE_CODES.transferred, 'hub transferred');
+          server.collabRooms.closeAll();
+        },
       }),
     });
   } catch (error) {

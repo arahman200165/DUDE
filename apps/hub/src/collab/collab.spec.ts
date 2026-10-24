@@ -218,6 +218,18 @@ describe('collab doc registry', () => {
     second.release();
   });
 
+  it('refuses one large update that would take a small document over the record cap', () => {
+    const db = freshDb();
+    putMarkdown(db, 'small');
+    const { registry } = makeRegistry(db);
+    const handle = registry.open(KEY, { deviceId: 'dev-1' });
+    const c = client(handle, 'dev-1');
+    c.text.insert(0, 'z'.repeat(200_000));
+    expect(c.replies).toEqual(['too-large']);
+    expect(textOf(handle.doc)).toBe('small');
+    handle.release();
+  });
+
   it('refuses an update that would push the document over the record cap, and still allows small and shrinking edits', () => {
     const db = freshDb();
     putMarkdown(db, 'a'.repeat(100_000));

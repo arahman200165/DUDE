@@ -82,7 +82,7 @@ export const CollabServerControl = Type.Union([
 ]);
 export type CollabServerControl = Static<typeof CollabServerControl>;
 
-/** Markdown Workspace rooms. Credential: owner cookie or bearer session. */
+/** Markdown Workspace rooms. Credential: owner cookie or bearer session, or a device token (a device may host and join rooms; it gains no other owner right). */
 export const HUB_COLLAB_ROOMS_PATH = '/api/v1/collab/rooms';
 const RoomId = Type.String({ pattern: '^[A-Za-z0-9_-]{1,64}$' });
 const Instant = Type.String({ minLength: 1, maxLength: 40 });
