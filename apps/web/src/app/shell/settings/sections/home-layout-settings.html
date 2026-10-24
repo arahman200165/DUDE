@@ -4,6 +4,8 @@
     switching window width never loses either. Nothing changes until you press Save. Everything here stays on this device.
   </p>
 
+  <app-remote-change-notice [kind]="remote.notice()" (useOther)="remote.useRemote()" (keepEditing)="remote.dismiss()" />
+
   <div data-setting class="flex flex-wrap items-center gap-2" role="tablist" aria-label="Layout width">
     <button
       type="button"

@@ -4,6 +4,8 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { ProjectService } from '../../../core/project/project.service';
 import { WorkspaceLayoutService } from '../../../core/workspace/workspace-layout.service';
+import { OpenEditorMerge } from '../../../core/sync/open-editor-merge';
+import { RemoteChangeNotice } from '../../../shared/components/remote-change-notice/remote-change-notice';
 import { Project } from "@dude/domain/core/project/project.model";
 
 /**
@@ -15,7 +17,7 @@ import { Project } from "@dude/domain/core/project/project.model";
  */
 @Component({
   selector: 'app-project-list',
-  imports: [DatePipe, OpenInDesktop],
+  imports: [DatePipe, OpenInDesktop, RemoteChangeNotice],
   templateUrl: './project-list.html',
 })
 export class ProjectList {
@@ -27,6 +29,27 @@ export class ProjectList {
   protected readonly draftName = signal('');
   protected readonly renamingId = signal<string | null>(null);
   protected readonly renameDraft = signal('');
+  /** The project as it was when the rename started: the base the inline draft is merged against. */
+  private renameBase: Project | undefined;
+
+  /**
+   * The inline rename is the only draft/save form a project has (the panel tree, tabs and overrides are edited by the
+   * live workspace and captured with Update layout, never in a form). Another device's change to the project being
+   * renamed merges into the draft; a different name on both sides shows the notice (PD-113).
+   */
+  protected readonly remote = new OpenEditorMerge<Project>({
+    entityType: 'project',
+    entityId: () => this.renamingId(),
+    stored: () => {
+      const id = this.renamingId();
+      return id ? this.projectStore.getById(id) : undefined;
+    },
+    draft: () => ({ ...(this.renameBase as Project), name: this.renameDraft() }),
+    setDraft: (project) => {
+      this.renameBase = project;
+      this.renameDraft.set(project.name);
+    },
+  });
 
   private readonly hasOpenLayout = computed(() => this.workspaceLayout.panelTree() !== null);
 
@@ -55,8 +78,10 @@ export class ProjectList {
   }
 
   protected startRename(project: Project): void {
+    this.renameBase = project;
     this.renamingId.set(project.id);
     this.renameDraft.set(project.name);
+    this.remote.markSaved(project);
   }
 
   protected onRenameDraftInput(event: Event): void {
@@ -68,10 +93,12 @@ export class ProjectList {
     const name = this.renameDraft().trim();
     if (id && name) this.projectStore.rename(id, name);
     this.renamingId.set(null);
+    this.remote.markSaved(null);
   }
 
   protected cancelRename(): void {
     this.renamingId.set(null);
+    this.remote.markSaved(null);
   }
 
   protected remove(project: Project): void {

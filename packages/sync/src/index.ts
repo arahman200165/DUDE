@@ -11,6 +11,8 @@ export {
 export type { SyncEntityType, ConflictPolicy, ApplyMode, FieldRule, SyncPolicy } from './policies.js';
 export { merge3, deepEqual } from './merge3.js';
 export type { Merge3Result } from './merge3.js';
+export { mergeIntoOpenEditor } from './open-editor-merge.js';
+export type { OpenEditorMerge, OpenEditorMergeOptions } from './open-editor-merge.js';
 export { SYNC_LIMITS } from './limits.js';
 export type { SyncPhase, SyncStatus } from './status.js';
 export { stripNonSyncable } from './strip-non-syncable.js';

@@ -7,6 +7,8 @@ import { ErrorPanel } from '../../../shared/components/error-panel/error-panel';
 import { DudeDataType } from "@dude/shared-types/shared/models/tool-io.model";
 import { PipelineValue, PipelineStepResult } from "@dude/contracts/shared/models/pipeline-step.model";
 import { UserScriptStoreService } from '../../../core/pipeline/user-script-store.service';
+import { OpenEditorMerge } from '../../../core/sync/open-editor-merge';
+import { RemoteChangeNotice } from '../../../shared/components/remote-change-notice/remote-change-notice';
 import { runUserScriptStep } from "@dude/tool-engine/core/pipeline/user-script-step";
 import { UserScriptDefinition, createUserScript } from "@dude/domain/core/pipeline/pipeline.model";
 
@@ -14,7 +16,7 @@ const ALL_TYPES: readonly DudeDataType[] = ['text', 'json', 'bytes', 'file', 'ta
 
 @Component({
   selector: 'app-script-editor',
-  imports: [ErrorPanel, RouterLink, CodeSandboxHost],
+  imports: [ErrorPanel, RouterLink, CodeSandboxHost, RemoteChangeNotice],
   templateUrl: './script-editor.html',
 })
 export class ScriptEditor {
@@ -30,6 +32,19 @@ export class ScriptEditor {
   });
 
   protected readonly script = signal<UserScriptDefinition>(this.initScript());
+
+  /**
+   * Another device's changes to this script apply live to the open form (PD-113). `body` is the field a later milestone
+   * makes collaborative, so it is only ever replaced while the local body is unchanged: a body edited on both sides is
+   * a conflict (notice, local draft untouched), never an overwrite.
+   */
+  protected readonly remote = new OpenEditorMerge<UserScriptDefinition>({
+    entityType: 'user-script',
+    entityId: () => this.script().id,
+    stored: () => this.store.getById(this.script().id),
+    draft: () => this.script(),
+    setDraft: (value) => this.script.set(value),
+  });
 
   protected readonly testInput = signal('');
   protected readonly testRunning = signal(false);
@@ -58,7 +73,10 @@ export class ScriptEditor {
   }
 
   protected save(): void {
-    this.store.save(this.script());
+    const saved = this.script();
+    void this.store.save(saved).then((result) => {
+      if (result.ok) this.remote.markSaved(saved);
+    });
     if (this.scriptId() !== this.script().id) {
       void this.router.navigate(['/pipelines/scripts', this.script().id], { replaceUrl: true });
     }
@@ -68,7 +86,10 @@ export class ScriptEditor {
   protected markReviewed(): void {
     this.store.markReviewed(this.script().id);
     const reviewed = this.store.getById(this.script().id);
-    if (reviewed) this.script.set(reviewed);
+    if (reviewed) {
+      this.script.set(reviewed);
+      this.remote.markSaved(reviewed);
+    }
   }
 
   private buildTestValue(): PipelineValue {

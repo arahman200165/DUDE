@@ -1,0 +1,21 @@
+<div role="status" aria-live="polite">
+  @if (kind(); as k) {
+    <div class="mb-2 flex flex-wrap items-center gap-2 rounded-sm border border-info/40 bg-info/10 px-2 py-1 text-ui-sm text-text">
+      <span class="flex-1">
+        @if (k === 'deleted') {
+          Deleted on another device. Your copy is still open; saving puts it back.
+        } @else {
+          Changed on another device. Your edits and theirs overlap, so yours are untouched for now.
+        }
+      </span>
+      @if (k === 'conflict') {
+        <button type="button" class="rounded-sm border border-info/40 px-2 py-0.5 text-ui-xs hover:bg-info/20" (click)="useOther.emit()">
+          Use the other version
+        </button>
+      }
+      <button type="button" class="rounded-sm border border-info/40 px-2 py-0.5 text-ui-xs hover:bg-info/20" (click)="keepEditing.emit()">
+        {{ k === 'deleted' ? 'Dismiss' : 'Keep editing' }}
+      </button>
+    </div>
+  }
+</div>

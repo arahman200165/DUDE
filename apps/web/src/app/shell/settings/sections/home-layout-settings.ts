@@ -18,6 +18,8 @@ import {
 import { Placement, readingOrder } from "@dude/domain/core/home-layout/grid-engine";
 import type { HomeLayoutDraft, LayoutWidth } from "@dude/domain/core/home-layout/home-layout.model";
 import { HomeLayoutService } from '../../../core/home-layout/home-layout.service';
+import { OpenEditorMerge } from '../../../core/sync/open-editor-merge';
+import { RemoteChangeNotice } from '../../../shared/components/remote-change-notice/remote-change-notice';
 import { panelAvailability } from "@dude/tool-engine/core/home-layout/panel-availability";
 import { emptyUserContent, UserContent } from "@dude/domain/core/home-layout/user-content.model";
 import { PlatformService } from '../../../core/platform/platform.service';
@@ -61,7 +63,7 @@ const UNSAVED_KEY = 'home-layout';
  */
 @Component({
   selector: 'app-home-layout-settings',
-  imports: [UserContentEditor, HomeLayoutVisual],
+  imports: [UserContentEditor, HomeLayoutVisual, RemoteChangeNotice],
   templateUrl: './home-layout-settings.html',
 })
 export class HomeLayoutSettings {
@@ -79,6 +81,20 @@ export class HomeLayoutSettings {
   protected readonly openId = signal<string | null>(null);
   protected readonly confirmingReset = signal(false);
   protected readonly visual = signal(false);
+
+  /**
+   * Another device's save of the layout merges into the open draft (PD-113): the draft is compared as its top-level
+   * fields (instances, placements, content), a merge that no longer validates counts as a conflict, and a conflict keeps
+   * the draft with a notice. Saves, imports and resets from this device go through the `saved` effect below.
+   */
+  protected readonly remote = new OpenEditorMerge<HomeLayoutDraft>({
+    entityType: 'home-layout',
+    entityId: () => 'default',
+    stored: () => this.saved(),
+    draft: () => this.draft(),
+    setDraft: (value) => this.draft.set(value),
+    accept: (merged) => draftIssues(merged, this.kinds).length === 0,
+  });
 
   protected readonly dirty = computed(() => draftSignature(this.draft()) !== draftSignature(this.saved()));
   protected readonly customized = this.service.customized;
@@ -158,7 +174,9 @@ export class HomeLayoutSettings {
     effect(() => {
       const saved = this.saved();
       untracked(() => {
-        if (!this.dirty()) this.draft.set(saved);
+        if (this.dirty()) return;
+        this.draft.set(saved);
+        this.remote.markSaved(saved);
       });
     });
   }
@@ -250,6 +268,8 @@ export class HomeLayoutSettings {
     if (result.ok) {
       this.issues.set([]);
       this.message.set({ text: 'Home layout saved.', ok: true });
+      // The base is the draft as saved (not the store's normalized copy), so saving never reads as an unsaved edit.
+      this.remote.markSaved(this.draft());
       this.syncDirty();
     } else {
       this.issues.set(result.issues.map((i) => i.message));
@@ -259,6 +279,7 @@ export class HomeLayoutSettings {
 
   protected discard(): void {
     this.draft.set(this.saved());
+    this.remote.markSaved(this.saved());
     this.openId.set(null);
     this.issues.set([]);
     this.message.set({ text: 'Changes discarded.', ok: true });
@@ -277,6 +298,7 @@ export class HomeLayoutSettings {
   protected confirmReset(): void {
     this.service.resetToDefault();
     this.draft.set(this.saved());
+    this.remote.markSaved(this.saved());
     this.confirmingReset.set(false);
     this.openId.set(null);
     this.issues.set([]);

@@ -10,7 +10,8 @@ import { DudeDataType } from "@dude/shared-types/shared/models/tool-io.model";
 import { PipelineStep, PipelineValue } from "@dude/contracts/shared/models/pipeline-step.model";
 import { ToolRegistryService } from '../../../core/registry/tool-registry.service';
 import { searchTools } from "@dude/tool-engine/core/registry/tool-search";
-import { RemoteChangesService } from '../../../core/sync/remote-changes.service';
+import { OpenEditorMerge } from '../../../core/sync/open-editor-merge';
+import { RemoteChangeNotice } from '../../../shared/components/remote-change-notice/remote-change-notice';
 import { PipelineStoreService } from '../../../core/pipeline/pipeline-store.service';
 import { PipelineStepRegistryService } from '../../../core/pipeline/pipeline-step-registry.service';
 import { UserScriptStoreService } from '../../../core/pipeline/user-script-store.service';
@@ -37,7 +38,7 @@ const INITIAL_INPUT_TYPE = 'text' as const;
 
 @Component({
   selector: 'app-pipeline-builder',
-  imports: [ErrorPanel, NgTemplateOutlet, DecimalPipe, RouterLink, CodeSandboxHost, OpenInDesktop],
+  imports: [ErrorPanel, NgTemplateOutlet, DecimalPipe, RouterLink, CodeSandboxHost, OpenInDesktop, RemoteChangeNotice],
   templateUrl: './pipeline-builder.html',
 })
 export class PipelineBuilder {
@@ -50,8 +51,6 @@ export class PipelineBuilder {
   private readonly runner = inject(PipelineRunnerService);
   private readonly stepGate = inject(PipelineStepGateService);
   private readonly confirmation = inject(PipelineConfirmationService);
-  private readonly remoteChanges = inject(RemoteChangesService);
-  private seenRemoteAt = 0;
   private deepLinkRunPrompted = false;
   private readonly suggestionHandoff = inject(PipelineSuggestionHandoffService);
   private readonly sandboxHost = viewChild.required(CodeSandboxHost);
@@ -61,6 +60,15 @@ export class PipelineBuilder {
   });
 
   protected readonly pipeline = signal<Pipeline>(this.initPipeline());
+
+  /** Changes another device makes to this pipeline apply live; an overlapping unsaved edit gets a notice instead (PD-113). */
+  protected readonly remote = new OpenEditorMerge<Pipeline>({
+    entityType: 'pipeline',
+    entityId: () => this.pipeline().id,
+    stored: () => this.store.getById(this.pipeline().id),
+    draft: () => this.pipeline(),
+    setDraft: (value) => this.pipeline.set(value),
+  });
   protected readonly resolvedSteps = signal<Readonly<Record<string, PipelineStep | undefined>>>({});
   protected readonly registryReady = signal(false);
 
@@ -134,17 +142,6 @@ export class PipelineBuilder {
   };
 
   constructor() {
-    // Every edit here persists at once, so there is never an unsaved local edit: a change made on another device
-    // reloads silently. It only replaces the definition; nothing runs.
-    this.seenRemoteAt = this.remoteChanges.changedAt('pipeline', this.pipeline().id);
-    effect(() => {
-      const at = this.remoteChanges.changedAt('pipeline', this.pipeline().id);
-      if (at <= this.seenRemoteAt) return;
-      this.seenRemoteAt = at;
-      const latest = untracked(() => this.store.getById(this.pipeline().id));
-      if (latest) untracked(() => this.pipeline.set(latest));
-    });
-
     effect(() => {
       const steps = this.pipeline().steps;
       const scriptsLoaded = this.scriptStore.scripts(); // read for reactivity: re-resolve when the script library changes
@@ -207,7 +204,11 @@ export class PipelineBuilder {
 
   private persist(next: Pipeline): void {
     this.pipeline.set(next);
-    this.store.save(next);
+    // Every edit persists at once, so the draft only differs from the saved base while a commit is pending or failed.
+    // A remote change replaces the definition (or merges into it); nothing runs.
+    void this.store.save(next).then((result) => {
+      if (result.ok) this.remote.markSaved(next);
+    });
     if (this.pipelineId() !== next.id) {
       void this.router.navigate(['/pipelines', next.id], { replaceUrl: true });
     }
