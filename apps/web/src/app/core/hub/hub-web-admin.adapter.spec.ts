@@ -378,6 +378,26 @@ describe('Hub web admin adapter', () => {
       expect(isCollabConsentRefusal(new Error('x'))).toBe(false);
     });
 
+    it('lists, previews and restores document history over the cookie session with CSRF on the restore (PD-105)', async () => {
+      const SNAP = { id: 'snap_1', takenAt: '2026-10-24T01:00:00.000Z', bytes: 9 };
+      const { admin, calls } = setup((c) => {
+        if (c.url.startsWith('/api/v1/collab/history?')) return { status: 200, body: { snapshots: [SNAP] } };
+        if (c.url === '/api/v1/collab/history/snap_1') return { status: 200, body: { doc: 'user-script:s1', takenAt: SNAP.takenAt, payload: { body: 'x' } } };
+        return { status: 200, body: { ok: true } };
+      });
+      hubCsrf.set('csrf-1');
+      await expect(admin.listCollabHistory('user-script:s1')).resolves.toEqual({ snapshots: [SNAP] });
+      await expect(admin.getCollabSnapshot('snap_1')).resolves.toEqual({ doc: 'user-script:s1', takenAt: SNAP.takenAt, payload: { body: 'x' } });
+      await expect(admin.restoreCollabSnapshot('snap_1')).resolves.toEqual({ ok: true });
+      expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+        'GET /api/v1/collab/history?doc=user-script%3As1', 'GET /api/v1/collab/history/snap_1', 'POST /api/v1/collab/history/snap_1/restore',
+      ]);
+      expect(calls[2]?.headers['X-DUDE-CSRF']).toBe('csrf-1');
+      expect(calls[0]?.headers['X-DUDE-CSRF']).toBeUndefined();
+      const refused = setup(() => ({ status: 403, body: envelope('forbidden', 'Document history needs the document\'s sync category enabled.') }));
+      expect(isCollabConsentRefusal(await refused.admin.listCollabHistory('scratchpad:default').catch((e: unknown) => e))).toBe(true);
+    });
+
     it('adopts the CSRF token returned by a password change', async () => {
       const { admin } = setup(() => ({ status: 200, body: { ok: true, csrfToken: 'csrf-9' } }));
       await expect(admin.changePassword('a', 'b'.repeat(12))).resolves.toMatchObject({ ok: true });

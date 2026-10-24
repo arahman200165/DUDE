@@ -1,6 +1,7 @@
 import { MarkdownWorkspace_formatFrontMatterValue } from "@dude/tool-engine/tools/markdown-workspace/markdown-workspace.embedded-engine";
 import { Component, ElementRef, OnDestroy, ViewEncapsulation, computed, effect, inject, signal, untracked, viewChild, viewChildren } from '@angular/core';
 import { CodeEditor, type CodeEditorBinding } from '../../shared/components/code-editor/code-editor';
+import { CollabHistoryDrawer, collabTextPreview } from '../../shared/components/collab-history-drawer/collab-history-drawer';
 import { DesktopOnlyControl } from '../../shared/components/desktop-only-control/desktop-only-control';
 import { DomSanitizer } from '@angular/platform-browser';
 import DOMPurify from 'dompurify';
@@ -47,7 +48,7 @@ const DEFAULT_SOURCE =
 
 @Component({
   selector: 'app-markdown-workspace',
-  imports: [ToolShell, SplitPane, BusyIndicator, SandboxedMarkdownPreview, ErrorPanel, PluginRuntimeHost, OpenTextFile, TextFileDrop, SaveTextFile, DesktopOnlyControl, CodeEditor],
+  imports: [ToolShell, SplitPane, BusyIndicator, SandboxedMarkdownPreview, ErrorPanel, PluginRuntimeHost, OpenTextFile, TextFileDrop, SaveTextFile, DesktopOnlyControl, CodeEditor, CollabHistoryDrawer],
   templateUrl: './markdown-workspace.html',
   // Emulated encapsulation adds a scoping attribute to elements the Angular
   // template compiler renders, but never to content injected via
@@ -168,6 +169,8 @@ export class MarkdownWorkspace implements OnDestroy {
   // Hub rooms (PD-104): a third mode next to LAN and relay, only where Hub collaboration exists (Hub web, an enrolled desktop).
   protected readonly hub = new MarkdownHubRooms();
   protected readonly showHubPanel = signal(false);
+  /** A kept document's history previews its Markdown body (PD-105). */
+  protected readonly historyPreview = collabTextPreview('body');
   /** The editor's Yjs binding: a LAN/relay session wins; otherwise the Hub room or kept document while it is live. */
   protected readonly editorBinding = computed<CodeEditorBinding | null>(() => this.collabBinding() ?? (this.hub.target() === null ? null : this.hub.session.binding()));
   protected readonly editorReadonly = computed(() => this.collabBinding() === null && this.hub.target() !== null && this.hub.session.mode() === 'read-only');

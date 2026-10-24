@@ -7,6 +7,7 @@ import {
   COLLAB_SNAPSHOT_MIN_INTERVAL_MS, COLLAB_HISTORY_RETENTION_DAYS, CollabClientControl, CollabHistoryQuery, CollabHistoryResponse, CollabRestoreResponse, CollabSnapshotParams,
   CollabRoomsResponse, CollabServerControl, CollabSnapshotResponse, CreateCollabRoomRequest, HUB_COLLAB_HISTORY_PATH, HUB_COLLAB_PATH, HUB_COLLAB_ROOMS_PATH,
   KeepCollabRoomRequest, KeepCollabRoomResponse, HUB_COLLAB_DOCUMENTS_PATH, COLLAB_DOCUMENTS_LIST_MAX, CollabDocumentsResponse, CollabDocumentParams,
+  isCollabHistoryDocKey, isCollabSnapshotId,
 } from './collab.schema.js';
 import { HUB_REALTIME_PATH } from './realtime.schema.js';
 
@@ -98,6 +99,15 @@ describe('Hub collaboration contract', () => {
     expect(Value.Check(CollabSnapshotResponse, { doc: 'room:abc', takenAt: snapshot.takenAt, payload: {} })).toBe(false);
     expect(Value.Check(CollabRestoreResponse, { ok: true })).toBe(true);
     expect(Value.Check(CollabRestoreResponse, { ok: false })).toBe(false);
+  });
+
+  it('pre-validates history keys and snapshot ids exactly like the route schemas', () => {
+    for (const doc of ['scratchpad:default', 'user-script:a_1', 'markdown-doc:abc', 'room:abc', 'nope', 'markdown-doc:a/b', `markdown-doc:${'a'.repeat(65)}`, 5, null]) {
+      expect(isCollabHistoryDocKey(doc)).toBe(Value.Check(CollabHistoryQuery, { doc }));
+    }
+    for (const snapshotId of ['abc_DEF-1', 'a/b', '', 'a'.repeat(65), 7]) {
+      expect(isCollabSnapshotId(snapshotId)).toBe(Value.Check(CollabSnapshotParams, { snapshotId }));
+    }
   });
 
   it('validates the kept-document list (PD-104)', () => {

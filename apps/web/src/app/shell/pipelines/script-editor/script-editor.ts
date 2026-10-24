@@ -3,6 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { CodeEditor } from '../../../shared/components/code-editor/code-editor';
+import { CollabHistoryDrawer, collabTextPreview } from '../../../shared/components/collab-history-drawer/collab-history-drawer';
 import { CodeSandboxHost } from '../../../shared/code-sandbox/code-sandbox-host';
 import { ErrorPanel } from '../../../shared/components/error-panel/error-panel';
 import { DudeDataType } from "@dude/shared-types/shared/models/tool-io.model";
@@ -18,7 +19,7 @@ const ALL_TYPES: readonly DudeDataType[] = ['text', 'json', 'bytes', 'file', 'ta
 
 @Component({
   selector: 'app-script-editor',
-  imports: [ErrorPanel, RouterLink, CodeSandboxHost, RemoteChangeNotice, CodeEditor],
+  imports: [ErrorPanel, RouterLink, CodeSandboxHost, RemoteChangeNotice, CodeEditor, CollabHistoryDrawer],
   templateUrl: './script-editor.html',
 })
 export class ScriptEditor {
@@ -41,10 +42,7 @@ export class ScriptEditor {
    * plain body and Save; a desktop that loses its Hub keeps editing locally and returns to the live body once that is saved.
    */
   protected readonly collab = new CollabTextSession({
-    docKey: () => {
-      const id = this.script().id;
-      return this.saved() && /^[A-Za-z0-9_-]{1,64}$/.test(id) ? `user-script:${id}` : null;
-    },
+    docKey: () => this.liveDocKey(),
     textName: 'body',
     keepLocally: (text) => this.updateField('body', text),
     canPromote: () => (this.store.getById(this.script().id)?.body ?? '') === this.script().body,
@@ -64,6 +62,12 @@ export class ScriptEditor {
     ignore: () => (this.collab.mode() === 'local' ? ['updatedAt'] : ['updatedAt', 'body']),
   });
 
+  /** Version history of the live body (PD-105), offered only while the body is live. */
+  protected readonly historyOpen = signal(false);
+  protected readonly historyStatus = signal('');
+  protected readonly historyDoc = computed(() => (this.collab.mode() === 'live' ? this.liveDocKey() : null));
+  protected readonly historyPreview = collabTextPreview('body');
+
   protected readonly testInput = signal('');
   protected readonly testRunning = signal(false);
   protected readonly testResult = signal<PipelineStepResult | null>(null);
@@ -71,6 +75,10 @@ export class ScriptEditor {
   protected readonly canSave = computed(() => this.script().name.trim() !== '' && this.script().produces.length > 0);
 
   constructor() {
+    // History belongs to the live body: leaving live mode closes it.
+    effect(() => {
+      if (this.historyDoc() === null) untracked(() => this.historyOpen.set(false));
+    });
     // The form's body follows the shared text, so Save and Test always use what everyone sees.
     effect(() => {
       if (this.collab.mode() === 'local') return;
@@ -79,6 +87,23 @@ export class ScriptEditor {
         if (this.collab.binding() !== null && this.script().body !== text) this.script.update((current) => ({ ...current, body: text }));
       });
     });
+  }
+
+  /** The shared document of a saved script's body, or null for an unsaved one. */
+  private liveDocKey(): string | null {
+    const id = this.script().id;
+    return this.saved() && /^[A-Za-z0-9_-]{1,64}$/.test(id) ? `user-script:${id}` : null;
+  }
+
+  protected openHistory(): void {
+    this.historyStatus.set('');
+    this.historyOpen.set(true);
+  }
+
+  /** The Hub applied the restore as a new edit; the live body receives it through the shared document by itself. */
+  protected onHistoryRestored(): void {
+    this.historyOpen.set(false);
+    this.historyStatus.set('Restored an earlier version of the body. Everyone with this script open sees it now.');
   }
 
   /** The script exists in the store (a new one becomes collaborative after its first save). */

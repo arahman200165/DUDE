@@ -2,7 +2,7 @@ import type {
   AuditListResponse, BackupStatusResponse, SecurityAlertsResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary, HubDiagnosticsReport, ReachabilityEchoResponse, TlsCertificatesResponse,
   OwnerResetResponse, PairingCodeResponse, PresenceEntry, PresenceResponse, RecoveryCodesResponse, SessionListResponse, SignInResponse,
   HubJobsResponse, HubNotificationsResponse, MarkNotificationsReadRequest, NotificationEventData,
-  CollabRoom, CollabRoomsResponse, KeepCollabRoomResponse, CollabDocumentsResponse,
+  CollabRoom, CollabRoomsResponse, KeepCollabRoomResponse, CollabDocumentsResponse, CollabHistoryResponse, CollabSnapshotResponse, CollabRestoreResponse,
 } from '@dude/contracts/hub';
 import type { AgentDiagnostics } from '@dude/contracts';
 import type {
@@ -109,6 +109,15 @@ export interface HubAdminPort {
   keepCollabRoom(roomId: string, title: string): Promise<KeepCollabRoomResponse>;
   listCollabDocuments(): Promise<CollabDocumentsResponse>;
   deleteCollabDocument(id: string): Promise<OkResponse>;
+  /**
+   * Document history (PD-105) of a persisted collaborative document (`scratchpad:…`, `user-script:…`, `markdown-doc:…`; never a room):
+   * the snapshots newest first, one snapshot's record payload (the preview), and a restore, which the Hub applies as a forward edit after
+   * snapshotting the current state (live sessions receive it through the collaboration socket). Hub web: the owner's cookie session (CSRF on
+   * the restore). Desktop: this device's token through the Agent. Each needs the document's sync category on for the caller (`isCollabConsentRefusal`).
+   */
+  listCollabHistory(doc: string): Promise<CollabHistoryResponse>;
+  getCollabSnapshot(snapshotId: string): Promise<CollabSnapshotResponse>;
+  restoreCollabSnapshot(snapshotId: string): Promise<CollabRestoreResponse>;
 
   /** Desktop only: pushed whenever the Device Agent's Hub connection state changes. Returns the unsubscribe function. */
   onStatusChanged?(callback: (status: DesktopHubStatus) => void): () => void;

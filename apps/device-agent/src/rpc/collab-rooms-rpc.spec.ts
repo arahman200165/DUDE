@@ -67,3 +67,41 @@ describe('collab.rooms.* and collab.documents.* (PD-104)', () => {
     expect(deviceCall).not.toHaveBeenCalled();
   });
 });
+
+describe('collab.history.* (PD-105)', () => {
+  const SNAP = { id: 'snap_1', takenAt: NOW.toISOString(), bytes: 12 };
+
+  it('lists, previews and restores with the device token and no 403 retry', async () => {
+    const api = {
+      listCollabHistory: vi.fn(async () => ({ snapshots: [SNAP] })),
+      getCollabSnapshot: vi.fn(async () => ({ doc: 'user-script:s1', takenAt: SNAP.takenAt, payload: { body: 'x' } })),
+      restoreCollabSnapshot: vi.fn(async () => ({ ok: true as const })),
+    };
+    const { call, withOwner, deviceCall } = server(api);
+    expect(await call('collab.history.list', { doc: 'user-script:s1' })).toMatchObject({ ok: true, result: { snapshots: [SNAP] } });
+    expect(await call('collab.history.get', { snapshotId: 'snap_1' })).toMatchObject({ ok: true, result: { payload: { body: 'x' } } });
+    expect(await call('collab.history.restore', { snapshotId: 'snap_1' })).toMatchObject({ ok: true, result: { ok: true } });
+    expect(api.listCollabHistory).toHaveBeenCalledExactlyOnceWith('device-token', 'user-script:s1');
+    expect(api.getCollabSnapshot).toHaveBeenCalledExactlyOnceWith('device-token', 'snap_1');
+    expect(api.restoreCollabSnapshot).toHaveBeenCalledExactlyOnceWith('device-token', 'snap_1');
+    expect(withOwner).not.toHaveBeenCalled();
+    for (const [, opts] of deviceCall.mock.calls) expect(opts).toEqual({ authRetryOn403: false });
+  });
+
+  it('maps a consent refusal to hub-forbidden', async () => {
+    const { call } = server({ restoreCollabSnapshot: vi.fn() }, { deviceStatus: 403 });
+    expect(await call('collab.history.restore', { snapshotId: 'snap_1' })).toMatchObject({ ok: false, error: { code: 'hub-forbidden' } });
+  });
+
+  it('rejects a room key, a malformed key or snapshot id before the Hub is called', async () => {
+    const { call, deviceCall } = server({ listCollabHistory: vi.fn(), getCollabSnapshot: vi.fn(), restoreCollabSnapshot: vi.fn() });
+    const bad: Array<[string, unknown]> = [
+      ['collab.history.list', {}], ['collab.history.list', { doc: 'room:abc' }], ['collab.history.list', { doc: 'scratchpad' }], ['collab.history.list', { doc: 'notes:a' }],
+      ['collab.history.list', { doc: 'scratchpad:a/b' }], ['collab.history.list', { doc: `markdown-doc:${'a'.repeat(65)}` }], ['collab.history.list', { doc: 5 }],
+      ['collab.history.get', {}], ['collab.history.get', { snapshotId: '' }], ['collab.history.get', { snapshotId: 'a/b' }], ['collab.history.get', { snapshotId: 'x'.repeat(65) }],
+      ['collab.history.restore', {}], ['collab.history.restore', { snapshotId: '../x' }], ['collab.history.restore', { snapshotId: 3 }],
+    ];
+    for (const [method, params] of bad) expect(await call(method, params), `${method} ${JSON.stringify(params).slice(0, 40)}`).toMatchObject({ ok: false, error: { code: 'invalid-params' } });
+    expect(deviceCall).not.toHaveBeenCalled();
+  });
+});

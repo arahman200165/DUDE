@@ -1,0 +1,140 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-bg/70">
+  <section
+    cdkTrapFocus
+    cdkTrapFocusAutoCapture
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="collab-history-title"
+    aria-describedby="collab-history-body"
+    class="flex max-h-[80vh] w-160 max-w-[90vw] flex-col rounded-sm border border-border bg-panel text-text shadow-lg"
+    data-collab-history
+    (keydown.escape)="$event.stopPropagation(); close()"
+  >
+    <header class="flex items-start justify-between gap-2 border-b border-border px-3 py-2">
+      <div class="min-w-0">
+        <h2 id="collab-history-title" class="text-sm font-semibold">Version history</h2>
+        <p id="collab-history-body" class="text-ui-xs text-text-muted">
+          Versions of this {{ label() }} your Hub saved while it was edited, kept for 30 days. Pick one to preview it.
+        </p>
+      </div>
+      <button type="button" class="rounded-sm border border-border px-2 py-0.5 text-ui-xs hover:bg-panel-elevated" data-collab-history-close (click)="close()">
+        Close
+      </button>
+    </header>
+
+    <div class="flex min-h-0 flex-1 gap-2 p-2">
+      <div class="flex w-56 shrink-0 flex-col gap-1 overflow-y-auto">
+        @switch (listState()) {
+          @case ('loading') {
+            <p class="px-1 text-ui-xs text-text-muted" role="status">Loading versions…</p>
+          }
+          @case ('error') {
+            <p class="rounded-sm border border-error/40 bg-error/10 px-1.5 py-0.5 text-ui-xs text-text" role="alert" data-collab-history-error>{{ listError() }}</p>
+          }
+          @default {
+            @if (snapshots().length === 0) {
+              <p class="px-1 text-ui-xs text-text-muted" data-collab-history-empty>No saved versions yet. Your Hub saves one after a few idle minutes of editing.</p>
+            } @else {
+              <ul class="flex flex-col gap-1" aria-label="Saved versions, newest first">
+                @for (snapshot of snapshots(); track snapshot.id; let first = $first) {
+                  <li>
+                    <button
+                      type="button"
+                      class="flex w-full flex-col items-start rounded-sm border px-2 py-1 text-left text-ui-xs hover:bg-panel-elevated"
+                      [class.border-accent]="selectedId() === snapshot.id"
+                      [class.border-border]="selectedId() !== snapshot.id"
+                      [attr.aria-pressed]="selectedId() === snapshot.id"
+                      [attr.title]="exact(snapshot.takenAt)"
+                      data-collab-history-item
+                      (click)="select(snapshot.id)"
+                    >
+                      <span class="text-text">{{ when(snapshot.takenAt) }}@if (first) { <span class="text-text-muted"> · newest</span> }</span>
+                      <span class="text-text-muted">{{ size(snapshot.bytes) }}</span>
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+          }
+        }
+      </div>
+
+      <div class="flex min-w-0 flex-1 flex-col gap-2">
+        @if (selected(); as snapshot) {
+          <div class="min-h-0 flex-1 overflow-auto rounded-sm border border-border bg-panel-elevated p-2" aria-label="Preview of the selected version" role="region" data-collab-history-preview>
+            @switch (previewState()) {
+              @case ('loading') {
+                <p class="text-ui-xs text-text-muted" role="status">Loading preview…</p>
+              }
+              @case ('error') {
+                <p class="rounded-sm border border-error/40 bg-error/10 px-1.5 py-0.5 text-ui-xs text-text" role="alert" data-collab-history-preview-error>{{ previewError() }}</p>
+              }
+              @default {
+                @if (kind() === 'snippets') {
+                  @if (previewSnippets(); as notes) {
+                    @if (notes.length === 0) {
+                      <p class="text-ui-xs text-text-muted">This version has no notes.</p>
+                    } @else {
+                      <ul class="flex flex-col gap-2" aria-label="Notes in this version">
+                        @for (note of notes; track $index) {
+                          <li class="rounded-sm border border-border bg-panel p-2" data-collab-history-note>
+                            <p class="text-ui-sm font-semibold text-text">{{ note.title || 'Untitled note' }}</p>
+                            <pre class="whitespace-pre-wrap break-words font-mono text-ui-xs text-text-muted">{{ note.body }}</pre>
+                          </li>
+                        }
+                      </ul>
+                    }
+                  }
+                } @else {
+                  @if (previewText() === '') {
+                    <p class="text-ui-xs text-text-muted">This version is empty.</p>
+                  } @else {
+                    <pre class="whitespace-pre-wrap break-words font-mono text-ui-xs text-text" data-collab-history-text>{{ previewText() }}</pre>
+                  }
+                }
+              }
+            }
+          </div>
+
+          @if (confirming()) {
+            <div class="flex flex-col gap-1.5 rounded-sm border border-warning/40 bg-warning/10 p-2 text-ui-xs text-text" role="group" aria-label="Confirm restore" data-collab-history-confirm>
+              <p>
+                Restore the version from {{ when(snapshot.takenAt) }}? It becomes a new edit that everyone with this {{ label() }} open sees right away.
+                Nothing is lost: the current version is saved to history first.
+              </p>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  class="rounded-sm border border-accent bg-accent px-2 py-0.5 text-on-accent disabled:opacity-50"
+                  data-collab-history-restore-confirm
+                  [disabled]="restoring()"
+                  (click)="confirmRestore()"
+                >
+                  {{ restoring() ? 'Restoring…' : 'Restore' }}
+                </button>
+                <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel" [disabled]="restoring()" (click)="cancelRestore()">Cancel</button>
+              </div>
+              @if (revertError()) {
+                <p class="rounded-sm border border-error/40 bg-error/10 px-1.5 py-0.5 text-text" role="alert" data-collab-history-restore-error>{{ revertError() }}</p>
+              }
+            </div>
+          } @else {
+            <div class="flex justify-end">
+              <button
+                type="button"
+                class="rounded-sm border border-accent px-2 py-0.5 text-ui-xs text-accent hover:bg-accent/10 disabled:opacity-50"
+                data-collab-history-restore
+                [disabled]="previewState() !== 'ready'"
+                (click)="askRestore()"
+              >
+                Restore this version…
+              </button>
+            </div>
+          }
+        } @else if (listState() === 'ready' && snapshots().length > 0) {
+          <p class="text-ui-xs text-text-muted">Select a version to preview it.</p>
+        }
+      </div>
+    </div>
+  </section>
+</div>

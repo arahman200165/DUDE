@@ -32,6 +32,8 @@ describe('ScratchpadDrawer note editor', () => {
     expect((root.querySelector('input[type="text"]') as HTMLInputElement).getAttribute('aria-label')).toBe('Note title');
     // jsdom never loads CodeMirror, so the editor shows its textarea fallback (the editor's test hook).
     expect((root.querySelector('app-code-editor textarea[data-code-editor-fallback]') as HTMLTextAreaElement).value).toBe('milk\neggs');
+    // Not collaborative here (no Hub), so there is no version history to offer (PD-105).
+    expect(root.querySelector('[data-scratchpad-history]')).toBeNull();
   });
 
   it('saves what was typed into the editor', () => {

@@ -58,6 +58,15 @@ export class MarkdownHubRooms {
   readonly nameMax = COLLAB_ROOM_NAME_MAX;
   readonly titleMax = COLLAB_DOCUMENT_TITLE_MAX;
 
+  /** Version history (PD-105) of the open kept document; a room has none. */
+  readonly historyOpen = signal(false);
+  readonly historyStatus = signal('');
+  /** The document whose history can be shown: only a live kept `markdown-doc`, never an ephemeral room. */
+  readonly historyDoc = computed(() => {
+    const target = this.target();
+    return target?.kind === 'doc' && this.session.mode() === 'live' ? docKeyOf(target) : null;
+  });
+
   /** The text a room this page just started is seeded with, once its (empty) shared text is live. */
   private readonly pendingSeed = signal<string | null>(null);
 
@@ -86,6 +95,9 @@ export class MarkdownHubRooms {
 
   constructor() {
     effect(() => {
+      if (this.historyDoc() === null) untracked(() => this.historyOpen.set(false));
+    });
+    effect(() => {
       const seed = this.pendingSeed();
       const binding = this.session.binding();
       if (seed === null || binding === null) return;
@@ -95,6 +107,22 @@ export class MarkdownHubRooms {
         this.pendingSeed.set(null);
       });
     });
+  }
+
+  openHistory(): void {
+    if (this.historyDoc() === null) return;
+    this.historyStatus.set('');
+    this.historyOpen.set(true);
+  }
+
+  closeHistory(): void {
+    this.historyOpen.set(false);
+  }
+
+  /** The Hub applied the restore as a new edit; the editor receives it through the live document by itself. */
+  onHistoryRestored(): void {
+    this.historyOpen.set(false);
+    this.historyStatus.set('Restored an earlier version. Everyone with this document open sees it now.');
   }
 
   /** Re-reads the open rooms and the kept documents. */
@@ -147,6 +175,7 @@ export class MarkdownHubRooms {
   leave(): void {
     this.pendingSeed.set(null);
     this.keepOpen.set(false);
+    this.historyStatus.set('');
     this.target.set(null);
   }
 
@@ -211,6 +240,7 @@ export class MarkdownHubRooms {
 
   private open(target: HubRoomTarget): void {
     this.keepOpen.set(false);
+    this.historyStatus.set('');
     this.error.set('');
     this.target.set(target);
   }

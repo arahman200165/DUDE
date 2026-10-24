@@ -193,4 +193,44 @@ describe('MarkdownWorkspace Hub rooms (PD-104)', () => {
     expect(t.workspace['hub'].refusalMessage()).toBe(HUB_ROOM_CONSENT_MESSAGE);
     expect(t.editor().binding()).toBeNull();
   });
+
+  it('offers History only for a live kept document, never a room, and closes it after a restore (PD-105)', async () => {
+    const snapshot = { id: 'snap_1', takenAt: '2026-10-24T01:00:00.000Z', bytes: 5 };
+    const history = {
+      listCollabHistory: vi.fn(async () => ({ snapshots: [snapshot] })),
+      getCollabSnapshot: vi.fn(async () => ({ doc: 'markdown-doc:x', takenAt: snapshot.takenAt, payload: { title: 'Plan', body: '# Old' } })),
+      restoreCollabSnapshot: vi.fn(async () => ({ ok: true as const })),
+    };
+    const t = create({ admin: history });
+
+    // A live room is ephemeral: no history.
+    await t.click('[data-hub-room-toggle]');
+    t.type('[data-hub-room-name]', 'Notes');
+    await t.click('[data-hub-room-start]');
+    expect(t.workspace['hub'].session.mode()).toBe('live');
+    expect(t.root.querySelector('[data-hub-history]')).toBeNull();
+    await t.click('[data-hub-leave]');
+
+    // A kept document the Hub refuses is not live: no history either.
+    t.collabHub.refusals.set('markdown-doc:gone', 'consent-required');
+    t.workspace['hub'].openDocument({ id: 'gone', title: 'Gone', updatedAt: 'x', bytes: 0 });
+    await t.settle();
+    expect(t.root.querySelector('[data-hub-history]')).toBeNull();
+
+    // A live kept document offers it.
+    const room = (await t.bridge.createCollabRoom('R')) as { ok: true; result: { id: string } };
+    const kept = (await t.bridge.keepCollabRoom(room.result.id, 'Plan')) as { ok: true; result: { entityId: string } };
+    t.workspace['hub'].openDocument({ id: kept.result.entityId, title: 'Plan', updatedAt: 'x', bytes: 0 });
+    await t.settle();
+    expect(t.workspace['hub'].session.mode()).toBe('live');
+    await t.click('[data-hub-history]');
+    expect(history.listCollabHistory).toHaveBeenCalledExactlyOnceWith(`markdown-doc:${kept.result.entityId}`);
+    expect(t.root.querySelector('[data-collab-history-text]')?.textContent).toBe('# Old');
+
+    await t.click('[data-collab-history-restore]');
+    await t.click('[data-collab-history-restore-confirm]');
+    expect(history.restoreCollabSnapshot).toHaveBeenCalledExactlyOnceWith('snap_1');
+    expect(t.root.querySelector('[data-collab-history]')).toBeNull();
+    expect(t.root.querySelector('[data-hub-history-status]')?.textContent).toContain('Restored an earlier version');
+  });
 });

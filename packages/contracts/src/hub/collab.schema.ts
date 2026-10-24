@@ -161,3 +161,14 @@ export const CollabSnapshotResponse = Type.Object({
 export type CollabSnapshotResponse = Static<typeof CollabSnapshotResponse>;
 export const CollabRestoreResponse = Type.Object({ ok: Type.Literal(true) }, { additionalProperties: false });
 export type CollabRestoreResponse = Static<typeof CollabRestoreResponse>;
+
+const HISTORY_DOC_KEY_RE = new RegExp(`^(${COLLAB_WIRE_DOC_KINDS.filter((k) => k !== 'room').join('|')}):[A-Za-z0-9_-]{1,64}$`);
+const SNAPSHOT_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+/** Whether `v` is a persisted document key that can have history (`CollabHistoryQuery.doc`): never a room. For pre-validation on a hop. */
+export function isCollabHistoryDocKey(v: unknown): v is string {
+  return typeof v === 'string' && v.length <= 80 && HISTORY_DOC_KEY_RE.test(v);
+}
+/** Whether `v` is a well-formed history snapshot id (`CollabSnapshotParams.snapshotId`). */
+export function isCollabSnapshotId(v: unknown): v is string {
+  return typeof v === 'string' && SNAPSHOT_ID_RE.test(v);
+}

@@ -1,6 +1,6 @@
 import { ipcMain, type BrowserWindow } from 'electron';
 import { parseHubPublicUrl } from '@dude/contracts';
-import { COLLAB_DOCUMENT_TITLE_MAX, COLLAB_ROOM_NAME_MAX, HUB_NOTIFICATION_MARK_MAX, isOwnerViewTopic, parseNotificationEvent } from '@dude/contracts/hub';
+import { COLLAB_DOCUMENT_TITLE_MAX, COLLAB_ROOM_NAME_MAX, HUB_NOTIFICATION_MARK_MAX, isCollabHistoryDocKey, isCollabSnapshotId, isOwnerViewTopic, parseNotificationEvent } from '@dude/contracts/hub';
 import type { AgentHubOwnerStatus, AgentHubStatus, AgentMethod, AgentMethodMap } from '@dude/contracts';
 import type { DesktopHubEnrollment, DesktopHubOwnerStatus, DesktopHubProbe, DesktopHubResult, DesktopHubStatus } from '@dude/contracts/shared/models/platform-bridge.model';
 import { isUuidShaped, validateDisplayName } from '@dude/persistence';
@@ -244,6 +244,19 @@ export function registerHubHandlers(
   define({
     channel: 'dude:hub:collab:documents:delete', method: 'collab.documents.delete',
     parse: (args) => (args.length === 1 && isCollabId(args[0]) ? { ok: true, params: { id: args[0] } } : bad()),
+  });
+  // Document history (PD-105): the agent uses this device's token; main validates the persisted document key (never a room) and the snapshot id.
+  define({
+    channel: 'dude:hub:collab:history:list', method: 'collab.history.list',
+    parse: (args) => (args.length === 1 && isCollabHistoryDocKey(args[0]) ? { ok: true, params: { doc: args[0] } } : bad()),
+  });
+  define({
+    channel: 'dude:hub:collab:history:get', method: 'collab.history.get',
+    parse: (args) => (args.length === 1 && isCollabSnapshotId(args[0]) ? { ok: true, params: { snapshotId: args[0] } } : bad()),
+  });
+  define({
+    channel: 'dude:hub:collab:history:restore', method: 'collab.history.restore',
+    parse: (args) => (args.length === 1 && isCollabSnapshotId(args[0]) ? { ok: true, params: { snapshotId: args[0] } } : bad()),
   });
 
   define({

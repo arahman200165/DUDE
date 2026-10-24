@@ -1,5 +1,5 @@
 import { isAgentMethod } from '@dude/contracts';
-import { COLLAB_DOCUMENT_TITLE_MAX, COLLAB_ROOM_NAME_MAX, HUB_NOTIFICATION_MARK_MAX, MarkNotificationsReadRequest, PresenceActivity, SYNC_WIRE_CATEGORY_IDS } from '@dude/contracts/hub';
+import { COLLAB_DOCUMENT_TITLE_MAX, COLLAB_ROOM_NAME_MAX, HUB_NOTIFICATION_MARK_MAX, isCollabHistoryDocKey, MarkNotificationsReadRequest, PresenceActivity, SYNC_WIRE_CATEGORY_IDS } from '@dude/contracts/hub';
 import { Value } from 'typebox/value';
 import type { SyncCategory } from '@dude/contracts/hub';
 import type {
@@ -421,6 +421,20 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
     'collab.documents.delete': (p) => {
       const id = idOf(p.id, 'id');
       return device((api, t) => api.deleteCollabDocument(t, id));
+    },
+    // Document history (PD-105): this device's token; a 403 is the document's category consent refusal. A room has no history.
+    'collab.history.list': (p) => {
+      if (!isCollabHistoryDocKey(p.doc)) throw invalid('doc must be a persisted document key (scratchpad, user-script or markdown-doc).');
+      const doc = p.doc;
+      return device((api, t) => api.listCollabHistory(t, doc));
+    },
+    'collab.history.get': (p) => {
+      const snapshotId = idOf(p.snapshotId, 'snapshotId');
+      return device((api, t) => api.getCollabSnapshot(t, snapshotId));
+    },
+    'collab.history.restore': (p) => {
+      const snapshotId = idOf(p.snapshotId, 'snapshotId');
+      return device((api, t) => api.restoreCollabSnapshot(t, snapshotId));
     },
     'collab.close': (_p, caller) => {
       if (caller.holder !== undefined) deps.hub?.collab.close(caller.holder);

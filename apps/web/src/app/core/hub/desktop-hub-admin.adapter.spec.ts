@@ -1,6 +1,6 @@
 import { createDesktopHubAdmin } from './desktop-hub-admin.adapter';
 import { HubAdminError, isCollabConsentRefusal } from './hub-admin.port';
-import { fakeHub, FAKE_HUB_PAIRING_STRING, type FakeLocalHubScenario } from '../platform/testing/fake-hub';
+import { fakeHub, FAKE_HUB_PAIRING_STRING, FAKE_HUB_SNAPSHOT, type FakeLocalHubScenario } from '../platform/testing/fake-hub';
 import { fakeElectronBridge } from '../platform/testing/fake-electron-bridge';
 
 describe('desktop Hub admin adapter', () => {
@@ -194,6 +194,17 @@ describe('desktop Hub admin adapter', () => {
     const error = await refused.listCollabDocuments().catch((e: unknown) => e);
     expect(isCollabConsentRefusal(error)).toBe(true);
     await expect(createDesktopHubAdmin(() => undefined).listCollabRooms()).rejects.toMatchObject({ code: 'unavailable' });
+  });
+
+  it('lists, previews and restores document history through the bridge without an owner session (PD-105)', async () => {
+    const hub = fakeHub();
+    const admin = createDesktopHubAdmin(() => hub);
+    await expect(admin.listCollabHistory(FAKE_HUB_SNAPSHOT.doc)).resolves.toEqual({ snapshots: [{ id: FAKE_HUB_SNAPSHOT.id, takenAt: FAKE_HUB_SNAPSHOT.takenAt, bytes: 42 }] });
+    await expect(admin.getCollabSnapshot(FAKE_HUB_SNAPSHOT.id)).resolves.toMatchObject({ doc: FAKE_HUB_SNAPSHOT.doc, payload: FAKE_HUB_SNAPSHOT.payload });
+    await expect(admin.restoreCollabSnapshot(FAKE_HUB_SNAPSHOT.id)).resolves.toEqual({ ok: true });
+    await expect(admin.restoreCollabSnapshot('nope')).rejects.toMatchObject({ code: 'hub-not-found' });
+    expect(hub.calls).toEqual(['listCollabHistory', 'getCollabSnapshot', 'restoreCollabSnapshot', 'restoreCollabSnapshot']);
+    await expect(createDesktopHubAdmin(() => undefined).listCollabHistory('scratchpad:default')).rejects.toMatchObject({ code: 'unavailable' });
   });
 
   it('keeps the hub-web-only methods unavailable', async () => {

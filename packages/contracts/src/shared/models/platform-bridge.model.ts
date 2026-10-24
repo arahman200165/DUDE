@@ -1,4 +1,4 @@
-import type { AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, OkResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SyncSummary, HubDiagnosticsReport, BackupStatusResponse, PresenceActivity, PresenceResponse, OwnerViewTopic, HubJobsResponse, HubNotificationsResponse, HubNotificationPreferences, MarkNotificationsReadRequest, NotificationEventData, CollabRoom, CollabRoomsResponse, KeepCollabRoomResponse, CollabDocumentsResponse } from "../../hub/index.js";
+import type { AuditListResponse, SecurityAlertsResponse, ReachabilityEchoResponse, ConfirmPreview, DeviceInfo, DeviceListResponse, OkResponse, PairingCodeResponse, RecoveryCodesResponse, SessionListResponse, SyncSummary, HubDiagnosticsReport, BackupStatusResponse, PresenceActivity, PresenceResponse, OwnerViewTopic, HubJobsResponse, HubNotificationsResponse, HubNotificationPreferences, MarkNotificationsReadRequest, NotificationEventData, CollabRoom, CollabRoomsResponse, KeepCollabRoomResponse, CollabDocumentsResponse, CollabHistoryResponse, CollabSnapshotResponse, CollabRestoreResponse } from "../../hub/index.js";
 import type { LlmChatRequest, LlmChatResult } from "./llm-chat.model.js";
 import type { SnapshotDiff, SnapshotHeader } from "../../fs/snapshot-diff.js";
 import type { ChangeEvent, FolderWatchSettings, FolderWatchState, TimelineQuery, WatchedFolder } from "../../fs/watch-types.js";
@@ -197,6 +197,14 @@ export interface DesktopHubBridge {
   keepCollabRoom(roomId: string, title: string): Promise<DesktopHubResult<KeepCollabRoomResponse>>;
   listCollabDocuments(): Promise<DesktopHubResult<CollabDocumentsResponse>>;
   deleteCollabDocument(id: string): Promise<DesktopHubResult<OkResponse>>;
+  /**
+   * Document history (PD-105) of a persisted collaborative document (`kind:id`, never a room), always with this device's token: the snapshots newest first,
+   * one snapshot's record payload, and a restore (a forward edit; the Hub snapshots the current state first). Each needs the document's sync category on for
+   * this device (`hub-forbidden` otherwise). Error codes: `not-enrolled`, `unavailable`, `hub-*`.
+   */
+  listCollabHistory(doc: string): Promise<DesktopHubResult<CollabHistoryResponse>>;
+  getCollabSnapshot(snapshotId: string): Promise<DesktopHubResult<CollabSnapshotResponse>>;
+  restoreCollabSnapshot(snapshotId: string): Promise<DesktopHubResult<CollabRestoreResponse>>;
   /**
    * Device-assisted owner recovery (PD-029), from a recovery-trusted device only. Main runs the Windows Hello (CredUI
    * fallback) presence check first; error codes: `not-verified`, `unavailable`, `busy`, `not-trusted`,

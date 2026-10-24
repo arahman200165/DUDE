@@ -3,6 +3,11 @@ import type { BackupStatusResponse, CollabDocumentSummary, CollabRoom, DeviceInf
 import type { AgentDiagnostics } from '@dude/contracts';
 
 export const FAKE_HUB_DEVICE_ID = '0190aaaa-0000-7000-8000-000000000001';
+/** The one history snapshot the fake Hub holds (PD-105). */
+export const FAKE_HUB_SNAPSHOT = {
+  id: 'snap_1', doc: 'scratchpad:default', takenAt: '2026-10-24T01:00:00.000Z',
+  payload: { snippets: [{ id: 's1', title: 'Old', body: 'old body', createdAt: '2026-10-24T00:00:00.000Z' }] },
+} as const;
 export const FAKE_HUB_PAIRING_STRING = 'dude-pair:v1:hub.local:47600:ABCD2345:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 
 /** A synced Hub with one caught-up device, for specs. */
@@ -148,6 +153,12 @@ export function fakeHub(options: { password?: string; localHub?: FakeLocalHubSce
     }),
     listCollabDocuments: track('listCollabDocuments', async () => ok({ documents: [...keptDocs.values()] })),
     deleteCollabDocument: track('deleteCollabDocument', async (id: string) => (keptDocs.delete(id) ? ok({ ok: true as const }) : fail('hub-not-found', 'No such document.'))),
+    // Document history (PD-105): one snapshot of the default scratchpad.
+    listCollabHistory: track('listCollabHistory', async (doc: string) =>
+      ok({ snapshots: doc === FAKE_HUB_SNAPSHOT.doc ? [{ id: FAKE_HUB_SNAPSHOT.id, takenAt: FAKE_HUB_SNAPSHOT.takenAt, bytes: 42 }] : [] })),
+    getCollabSnapshot: track('getCollabSnapshot', async (snapshotId: string) => (snapshotId === FAKE_HUB_SNAPSHOT.id
+      ? ok({ doc: FAKE_HUB_SNAPSHOT.doc, takenAt: FAKE_HUB_SNAPSHOT.takenAt, payload: FAKE_HUB_SNAPSHOT.payload }) : fail('hub-not-found', 'No such snapshot.'))),
+    restoreCollabSnapshot: track('restoreCollabSnapshot', async (snapshotId: string) => (snapshotId === FAKE_HUB_SNAPSHOT.id ? ok({ ok: true as const }) : fail('hub-not-found', 'No such snapshot.'))),
     status: track('status', async () =>
       ok({
         enrollmentState: enrolled ? ('enrolled' as const) : ('standalone' as const),

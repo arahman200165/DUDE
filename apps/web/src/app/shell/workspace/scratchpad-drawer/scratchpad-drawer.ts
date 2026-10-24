@@ -1,7 +1,8 @@
 import { Component, DestroyRef, ElementRef, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { CodeEditor } from '../../../shared/components/code-editor/code-editor';
+import { CollabHistoryDrawer, collabSnippetsPreview } from '../../../shared/components/collab-history-drawer/collab-history-drawer';
 import { RemoteChangesService } from '../../../core/sync/remote-changes.service';
-import { ScratchpadCollab, remapCaret } from '../../../core/workspace/scratchpad-collab';
+import { SCRATCHPAD_DOC_KEY, ScratchpadCollab, remapCaret } from '../../../core/workspace/scratchpad-collab';
 import { ScratchpadService } from '../../../core/workspace/scratchpad.service';
 import { WorkspaceSnippet } from "@dude/domain/core/workspace/scratchpad.model";
 
@@ -12,7 +13,7 @@ import { WorkspaceSnippet } from "@dude/domain/core/workspace/scratchpad.model";
  */
 @Component({
   selector: 'app-scratchpad-drawer',
-  imports: [CodeEditor],
+  imports: [CodeEditor, CollabHistoryDrawer],
   templateUrl: './scratchpad-drawer.html',
 })
 export class ScratchpadDrawer {
@@ -24,6 +25,11 @@ export class ScratchpadDrawer {
   protected readonly draftBody = signal('');
   /** The scratchpad changed on another device while this draft has unsaved edits. */
   protected readonly remoteConflict = signal(false);
+  /** Version history (PD-105), offered only while the notes are live. */
+  protected readonly historyOpen = signal(false);
+  protected readonly historyStatus = signal('');
+  protected readonly historyDoc = SCRATCHPAD_DOC_KEY;
+  protected readonly historyPreview = collabSnippetsPreview;
   private readonly remoteChanges = inject(RemoteChangesService);
   private seenRemoteAt = this.remoteChanges.changedAt('scratchpad', 'default');
   private editBase: { title: string; body: string } | null = null;
@@ -71,6 +77,13 @@ export class ScratchpadDrawer {
         if (this.editingId() === null) return;
         if (mode === 'read-only') this.editingId.set(null);
         else if (mode === 'local') this.reloadDraft();
+      });
+    });
+    // History belongs to the live document: leaving live mode (or closing the drawer) closes it.
+    effect(() => {
+      const live = this.collab.mode() === 'live' && this.scratchpad.drawerExpanded();
+      untracked(() => {
+        if (!live) this.historyOpen.set(false);
       });
     });
     // A note deleted elsewhere closes its live editor.
@@ -122,6 +135,17 @@ export class ScratchpadDrawer {
 
   protected keepEditing(): void {
     this.remoteConflict.set(false);
+  }
+
+  protected openHistory(): void {
+    this.historyStatus.set('');
+    this.historyOpen.set(true);
+  }
+
+  /** The Hub applied the restore as a new edit; it reaches the notes through the live document by itself. */
+  protected onHistoryRestored(): void {
+    this.historyOpen.set(false);
+    this.historyStatus.set('Restored an earlier version. Everyone with the scratchpad open sees it now.');
   }
 
   protected toggle(): void {

@@ -40,6 +40,7 @@ export function fakeHubAdmin(): HubAdminPort & Mocked {
     dismissNotification: vi.fn(async () => ({ ok: true as const })),
     listCollabRooms: vi.fn(async () => ({ rooms: [] })), createCollabRoom: vi.fn(), keepCollabRoom: vi.fn(),
     listCollabDocuments: vi.fn(async () => ({ documents: [] })), deleteCollabDocument: vi.fn(async () => ({ ok: true as const })),
+    listCollabHistory: vi.fn(async () => ({ snapshots: [] })), getCollabSnapshot: vi.fn(), restoreCollabSnapshot: vi.fn(async () => ({ ok: true as const })),
     bootstrap: vi.fn(async () => ({ environmentId: 'e', ownerId: 'o', recoveryCodes: CODES })),
     signIn: vi.fn(async () => signInResponse()), currentSession: vi.fn(async () => signInResponse(7)), signOut: vi.fn(async () => ({ ok: true })),
     recover: vi.fn(async () => signInResponse(5)), ownerReset: vi.fn(async () => ({ recoveryCodes: CODES })),

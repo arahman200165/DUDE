@@ -102,6 +102,12 @@ const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged' | 'onViewC
   },
   listCollabDocuments: { channel: 'dude:hub:collab:documents:list', args: [], invalid: [[1]] },
   deleteCollabDocument: { channel: 'dude:hub:collab:documents:delete', args: ['doc_1'], invalid: [[], [''], ['a b'], ['../x'], [1], ['a'.repeat(65)], ['doc_1', 'x']] },
+  listCollabHistory: {
+    channel: 'dude:hub:collab:history:list', args: ['scratchpad:default'],
+    invalid: [[], [''], ['room:abc'], ['scratchpad'], ['scratchpad:a/b'], ['notes:abc'], [`markdown-doc:${'a'.repeat(65)}`], [5], ['scratchpad:default', 'x'], [{ doc: 'scratchpad:default' }]],
+  },
+  getCollabSnapshot: { channel: 'dude:hub:collab:history:get', args: ['snap_1'], invalid: [[], [''], ['a/b'], ['a b'], ['a'.repeat(65)], [1], ['snap_1', 'x']] },
+  restoreCollabSnapshot: { channel: 'dude:hub:collab:history:restore', args: ['snap_1'], invalid: [[], [''], ['../x'], ['a'.repeat(65)], [true], ['snap_1', 'x']] },
 };
 
 function fakeHost(handler: (method: string, params: unknown) => unknown = () => ({ ok: true })) {
@@ -360,6 +366,22 @@ describe('hub bridge', () => {
     ]);
     setup(() => new DeviceStoreError('hub-forbidden', 'Kept documents need the Markdown documents sync category enabled.'));
     expect(await call('dude:hub:collab:documents:list', own)).toMatchObject({ ok: false, error: { code: 'hub-forbidden' } });
+  });
+
+  it('maps the document history routes to the agent (PD-105)', async () => {
+    const payload = { snippets: [] };
+    setup((method) => (method === 'collab.history.list' ? { snapshots: [{ id: 'snap_1', takenAt: 't', bytes: 3 }] }
+      : method === 'collab.history.get' ? { doc: 'scratchpad:default', takenAt: 't', payload } : { ok: true }));
+    expect(await call('dude:hub:collab:history:list', own, 'scratchpad:default')).toEqual({ ok: true, result: { snapshots: [{ id: 'snap_1', takenAt: 't', bytes: 3 }] } });
+    expect(await call('dude:hub:collab:history:get', own, 'snap_1')).toEqual({ ok: true, result: { doc: 'scratchpad:default', takenAt: 't', payload } });
+    expect(await call('dude:hub:collab:history:restore', own, 'snap_1')).toEqual({ ok: true, result: { ok: true } });
+    expect(ctx.calls).toEqual([
+      { method: 'collab.history.list', params: { doc: 'scratchpad:default' } },
+      { method: 'collab.history.get', params: { snapshotId: 'snap_1' } },
+      { method: 'collab.history.restore', params: { snapshotId: 'snap_1' } },
+    ]);
+    setup(() => new DeviceStoreError('hub-forbidden', 'Document history needs the document\'s sync category enabled.'));
+    expect(await call('dude:hub:collab:history:restore', own, 'snap_1')).toMatchObject({ ok: false, error: { code: 'hub-forbidden' } });
   });
 
   it('passes the agent notifications-unavailable code through as a result, not a throw', async () => {

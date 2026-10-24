@@ -11,13 +11,37 @@
   @if (scratchpad.drawerExpanded()) {
     <div class="flex max-h-64 flex-col gap-2 overflow-y-auto border-t border-border p-2">
       @if (collab.mode() === 'live') {
-        <p class="flex items-center gap-1.5 px-1 text-ui-xs text-text-muted" role="status" data-scratchpad-live>
-          <span class="size-1.5 rounded-full" aria-hidden="true" [class.bg-success]="collab.linkUp()" [class.bg-warning]="!collab.linkUp()"></span>
-          <span>
-            {{ collab.linkUp() ? 'Live' : 'Live, reconnecting' }} · {{ collab.participants() }} participant{{ collab.participants() === 1 ? '' : 's' }}
-            · edits are shared as you type
-          </span>
-        </p>
+        <div class="flex items-center gap-2 px-1">
+          <p class="flex items-center gap-1.5 text-ui-xs text-text-muted" role="status" data-scratchpad-live>
+            <span class="size-1.5 rounded-full" aria-hidden="true" [class.bg-success]="collab.linkUp()" [class.bg-warning]="!collab.linkUp()"></span>
+            <span>
+              {{ collab.linkUp() ? 'Live' : 'Live, reconnecting' }} · {{ collab.participants() }} participant{{ collab.participants() === 1 ? '' : 's' }}
+              · edits are shared as you type
+            </span>
+          </p>
+          <button
+            type="button"
+            class="ml-auto rounded-sm border border-border px-1.5 py-0.5 text-ui-xs text-text-muted hover:bg-panel-elevated hover:text-text"
+            aria-haspopup="dialog"
+            data-scratchpad-history
+            (click)="openHistory()"
+          >
+            History
+          </button>
+        </div>
+      }
+      @if (historyStatus()) {
+        <p class="px-1 text-ui-xs text-text-muted" role="status" data-scratchpad-history-status>{{ historyStatus() }}</p>
+      }
+      @if (historyOpen()) {
+        <app-collab-history-drawer
+          kind="snippets"
+          label="scratchpad"
+          [doc]="historyDoc"
+          [preview]="historyPreview"
+          (closed)="historyOpen.set(false)"
+          (restored)="onHistoryRestored()"
+        />
       }
       @if (collab.note(); as note) {
         <p class="rounded-sm border border-info/40 bg-info/10 px-1.5 py-0.5 text-ui-xs text-text" role="status" data-scratchpad-note>{{ note }}</p>

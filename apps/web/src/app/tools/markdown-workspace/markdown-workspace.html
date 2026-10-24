@@ -328,10 +328,28 @@
             @if (target.kind === 'room' && hub.session.mode() === 'live' && !hub.keepOpen()) {
               <button type="button" class="rounded-sm border border-accent px-2 py-0.5 text-accent hover:bg-accent/10" data-hub-keep (click)="hub.openKeep()">Keep on Hub…</button>
             }
+            @if (hub.historyDoc()) {
+              <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" aria-haspopup="dialog" data-hub-history (click)="hub.openHistory()">
+                History
+              </button>
+            }
             <button type="button" class="rounded-sm border border-border px-2 py-0.5 hover:bg-panel-elevated" data-hub-leave (click)="hub.leave()">
               {{ target.kind === 'room' ? 'Leave room' : 'Close document' }}
             </button>
           </div>
+          @if (hub.historyStatus()) {
+            <p class="text-text-muted" role="status" data-hub-history-status>{{ hub.historyStatus() }}</p>
+          }
+          @if (hub.historyOpen() && hub.historyDoc(); as doc) {
+            <app-collab-history-drawer
+              kind="text"
+              label="document"
+              [doc]="doc"
+              [preview]="historyPreview"
+              (closed)="hub.closeHistory()"
+              (restored)="hub.onHistoryRestored()"
+            />
+          }
           @if (target.kind === 'room') {
             <p class="text-text-muted">A room lives only in your Hub's memory and closes 5 minutes after the last participant leaves, unless you keep it.</p>
           }
