@@ -104,3 +104,47 @@ export function mergeText3(base: string, ours: string, theirs: string, maxCost =
   }
   return out;
 }
+
+/** One contiguous replacement of `deleteCount` UTF-16 units at `at` by `insert`. */
+export interface TextHunk {
+  /** UTF-16 index into the original text. */
+  at: number;
+  /** UTF-16 units removed from the original text. */
+  deleteCount: number;
+  /** Text inserted at `at` after the deletion. */
+  insert: string;
+}
+
+/**
+ * The minimal multi-hunk edit that turns `a` into `b`, diffed at code-point level so a surrogate pair is never split.
+ * Hunks are returned in descending `at` order (right to left, every `at` indexes the original `a`), so applying them in
+ * array order with ordinary splice/`Y.Text` edits never shifts a hunk that has yet to be applied. Past `maxCost` edits
+ * the changed middle becomes one replacement hunk.
+ */
+export function textHunks(a: string, b: string, maxCost = TEXT_DIFF_MAX_COST): TextHunk[] {
+  if (a === b) return [];
+  const ca = codePoints(a);
+  const cb = codePoints(b);
+  let start = 0;
+  let offset = 0;
+  while (start < ca.length && start < cb.length && ca[start] === cb[start]) { offset += ca[start]!.length; start += 1; }
+  let endA = ca.length;
+  let endB = cb.length;
+  while (endA > start && endB > start && ca[endA - 1] === cb[endB - 1]) { endA -= 1; endB -= 1; }
+  const ma = ca.slice(start, endA);
+  const mb = cb.slice(start, endB);
+  const ops = shortestEdit(ma, mb, maxCost) ?? [...ma.map(() => '-' as const), ...mb.map(() => '+' as const)];
+  const hunks: TextHunk[] = [];
+  let pending: TextHunk | null = null;
+  let i = 0;
+  let j = 0;
+  const flush = (): void => { if (pending) { hunks.push(pending); pending = null; } };
+  for (const op of ops) {
+    if (op === '=') { flush(); offset += ma[i]!.length; i += 1; j += 1; continue; }
+    pending ??= { at: offset, deleteCount: 0, insert: '' };
+    if (op === '-') { pending.deleteCount += ma[i]!.length; offset += ma[i]!.length; i += 1; }
+    else { pending.insert += mb[j]!; j += 1; }
+  }
+  flush();
+  return hunks.reverse();
+}

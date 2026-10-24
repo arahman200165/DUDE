@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
-import { mergeText3 } from './text-merge.js';
+import { mergeText3, textHunks } from './text-merge.js';
 import { merge3 } from './merge3.js';
 import { SYNC_POLICIES } from './policies.js';
 
@@ -110,5 +110,51 @@ describe('merge3 field rules (PD-102)', () => {
     const rules = SYNC_POLICIES.scratchpad.fieldRules;
     const result = merge3({ snippets: [] }, { snippets: [{ id: 'n', title: 'a', body: 'x' }] }, { snippets: [{ id: 'n', title: 'b', body: 'y' }] }, rules);
     expect(result).toEqual({ kind: 'conflict', fields: ['snippets'] });
+  });
+});
+
+describe('textHunks', () => {
+  const apply = (a: string, hunks: ReturnType<typeof textHunks>): string => {
+    let out = a;
+    for (const h of hunks) out = out.slice(0, h.at) + h.insert + out.slice(h.at + h.deleteCount);
+    return out;
+  };
+
+  it('is empty for equal text and a single hunk for a localized edit', () => {
+    expect(textHunks('same', 'same')).toEqual([]);
+    expect(textHunks('hello world', 'hello brave world')).toEqual([{ at: 6, deleteCount: 0, insert: 'brave ' }]);
+  });
+
+  it('returns separate right-to-left hunks for edits in different places', () => {
+    const hunks = textHunks('alpha beta gamma', 'ALPHA beta GAMMA');
+    expect(hunks.length).toBe(2);
+    expect(hunks[0]!.at).toBeGreaterThan(hunks[1]!.at);
+    expect(apply('alpha beta gamma', hunks)).toBe('ALPHA beta GAMMA');
+  });
+
+  it('never splits a surrogate pair', () => {
+    for (const [a, b] of [['a😀b', 'a😁b'], ['😀😀', '😀'], ['x', '😀x😀']] as const) {
+      for (const h of textHunks(a, b)) {
+        for (const index of [h.at, h.at + h.deleteCount]) {
+          const code = a.charCodeAt(index);
+          const prev = a.charCodeAt(index - 1);
+          expect(code >= 0xdc00 && code <= 0xdfff && prev >= 0xd800 && prev <= 0xdbff).toBe(false);
+        }
+      }
+    }
+  });
+
+  it('applying the hunks to a gives b', () => {
+    fc.assert(fc.property(words, words, (a, b) => {
+      expect(apply(a, textHunks(a, b))).toBe(b);
+    }));
+  });
+
+  it('falls back to one replacement past the cost cap', () => {
+    const a = 'abcdefghij'.repeat(5);
+    const b = 'jihgfedcba'.repeat(5);
+    const hunks = textHunks(a, b, 3);
+    expect(hunks.length).toBe(1);
+    expect(apply(a, hunks)).toBe(b);
   });
 });

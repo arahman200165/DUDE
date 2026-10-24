@@ -6,7 +6,7 @@ import ts from 'typescript';
 import { imports } from './phase31a-inventory.mjs';
 
 const nodeModules = new Set(builtinModules.map(name => name.replace(/^node:/, '')));
-const hostWorkspaces = new Set(['web', 'desktop', 'hub', 'device-agent', 'sqlite-store', 'agent-pipe', 'collab-relay', 'collab-protocol']);
+const hostWorkspaces = new Set(['web', 'desktop', 'hub', 'device-agent', 'sqlite-store', 'agent-pipe', 'collab-relay', 'collab-protocol', 'collab-doc']);
 const hostGlobals = new Set(['window', 'document', 'localStorage', 'sessionStorage', 'indexedDB', 'DOMParser', 'HTMLElement', 'HTMLCanvasElement', 'OffscreenCanvas', 'FileReader', 'XMLSerializer', 'Worker', 'process', 'Buffer', '__dirname', '__filename']);
 const searchExport = '@dude/tool-engine/core/registry/tool-search';
 const pasteExport = '@dude/tool-engine/core/paste-detect/paste-detect';

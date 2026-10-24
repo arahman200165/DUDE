@@ -3,7 +3,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const FORBIDDEN_DEPENDENCIES = /\/node_modules\/(?:@angular\/|electron(?:\/|-)|ws\/|better-sqlite3\/)/;
-const FORBIDDEN_WORKSPACES = /\/(?:apps|packages)\/(?:web|desktop|hub|device-agent|collab-relay|collab-protocol|sqlite-store|agent-pipe)\//;
+const FORBIDDEN_WORKSPACES = /\/(?:apps|packages)\/(?:web|desktop|hub|device-agent|collab-relay|collab-protocol|collab-doc|sqlite-store|agent-pipe)\//;
 // The measurement harness (apps/mobile/src/tools/_measure) is compiled in only when EXPO_PUBLIC_DUDE_MEASURE=1 was set at build time.
 const MEASUREMENT_MODULE = /\/apps\/mobile\/src\/tools\/_measure\//;
 const FORBIDDEN_PERSISTENCE = /\/packages\/persistence\/(?:src|dist)\/.*(?:browser|indexeddb|local-storage)/i;

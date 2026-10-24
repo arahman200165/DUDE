@@ -21,6 +21,7 @@ for(const app of ['web','desktop','collab-relay','device-agent','hub']){
    if((app==='web'||app==='device-agent'||app==='desktop')&&name==='@dude/hub')failures.push(`${file}: ${app} must not import @dude/hub`);
    if(app==='web'&&(imp.text.startsWith('@dude/sqlite-store')||imp.text.startsWith('@dude/agent-pipe')))failures.push(`${file}: web must not import ${imp.text}`);
    if(app==='web'&&(imp.text.startsWith('@dude/device-agent')))failures.push(`${file}: web must not import ${imp.text}`);
+   if(name==='@dude/collab-doc'&&app!=='hub'&&app!=='web')failures.push(`${file}: only hub and web may import @dude/collab-doc (${imp.text})`);
   }
  }
 }
@@ -38,6 +39,7 @@ for(const pkg of readdirSync('packages',{withFileTypes:true}).filter(entry=>entr
    if(s.startsWith('@dude/hub'))failures.push(`${file}: portable package imports @dude/hub`);
    if(pkg!=='sqlite-store'&&s.startsWith('@dude/sqlite-store'))failures.push(`${file}: portable package imports Node-only ${s}`);
    if(pkg!=='agent-pipe'&&s.startsWith('@dude/agent-pipe'))failures.push(`${file}: portable package imports Node-only ${s}`);
+   if(pkg!=='collab-doc'&&s.startsWith('@dude/collab-doc'))failures.push(`${file}: package imports app-only ${s}`);
    if(pkg==='tool-registry'&&/^@dude\/(tool-engine|collab-protocol|sqlite-store|agent-pipe|web|desktop)/.test(s))failures.push(`${file}: registry imports implementation ${s}`);
   }
   if(!isTest&&!nodeOnly.has(pkg))for(const reason of hostReasons(sf))failures.push(`${file}: ${reason}`);

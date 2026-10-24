@@ -28,3 +28,7 @@ export { SETTING_ENTITY, settingEntityKey, splitSettingId, settingPayload, setti
 export type { OpInput, AppliedChangeShape } from './web/ops.js';
 export { resolveBrowserConflict, canKeepBoth, forkPayload, KEEP_BOTH_SUFFIX } from './web/conflict.js';
 export type { BrowserConflictInput, BrowserConflictResolution } from './web/conflict.js';
+
+// Text merge and hunk diff (Phase 31J): the collaborative-document package turns a plain-text edit into Y.Text edits.
+export { mergeText3, textHunks, TEXT_DIFF_MAX_COST } from './text-merge.js';
+export type { TextHunk } from './text-merge.js';

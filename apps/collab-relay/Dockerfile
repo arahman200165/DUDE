@@ -20,6 +20,7 @@ COPY apps/mobile/package.json ./apps/mobile/package.json
 COPY apps/web/package.json ./apps/web/package.json
 COPY packages/agent-pipe/package.json ./packages/agent-pipe/package.json
 COPY packages/api-client/package.json ./packages/api-client/package.json
+COPY packages/collab-doc/package.json ./packages/collab-doc/package.json
 COPY packages/collab-protocol/package.json ./packages/collab-protocol/package.json
 COPY packages/contracts/package.json ./packages/contracts/package.json
 COPY packages/crypto/package.json ./packages/crypto/package.json
