@@ -72,12 +72,19 @@ describe('DNS wire client', () => {
         socket.end(Buffer.concat([length, answer]));
       });
     });
-    // TCP and UDP must share one port. An ephemeral TCP port can sit in a UDP range Windows has excluded
-    // (Hyper-V/WinNAT reservations), where the UDP bind fails with EACCES, so try fresh ports until one fits.
+    // TCP and UDP must share one port. Windows reserves contiguous blocks of hundreds of ports per protocol (Hyper-V/WinNAT
+    // exclusions) and hands out ephemeral ports in sequence, so retrying the next ephemeral port can stay inside a block a
+    // whole run long. Random candidates escape any block; each one must bind for both protocols.
     let port = 0;
     for (let attempt = 0; port === 0; attempt += 1) {
-      await new Promise<void>((resolve) => tcp.listen(0, '127.0.0.1', resolve));
-      const candidate = (tcp.address() as AddressInfo).port;
+      if (attempt >= 50) throw new Error('No port free for both TCP and UDP');
+      const candidate = 20_000 + Math.floor(Math.random() * 40_000);
+      const listening = await new Promise<boolean>((resolve) => {
+        tcp.once('error', () => resolve(false));
+        tcp.listen(candidate, '127.0.0.1', () => resolve(true));
+      });
+      tcp.removeAllListeners('error');
+      if (!listening) continue;
       const udp = createSocket('udp4');
       udp.on('message', (query, sender) => udp.send(respond(query, [], 0x8380), sender.port, sender.address));
       const bound = await new Promise<boolean>((resolve) => {
@@ -90,7 +97,6 @@ describe('DNS wire client', () => {
       } else {
         udp.close();
         await new Promise<void>((resolve) => tcp.close(() => resolve()));
-        if (attempt >= 20) throw new Error('No port free for both TCP and UDP');
       }
     }
     closers.push(() => tcp.close());
