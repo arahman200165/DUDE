@@ -62,8 +62,25 @@ const output = path.resolve(root, process.env.DUDE_E2E_OUTPUT_DIR ?? path.join('
 mkdirSync(output, { recursive: true });
 console.log(`Maestro flows (${flows.length}) on ${device}: ${flows.map(flowId).join(', ')}`);
 const previousScale = setting(['get', 'system', 'font_scale']);
+const previousHideErrorDialogs = setting(['get', 'global', 'hide_error_dialogs']);
+// A freshly booted API 36 CI emulator can hang System UI, and its "System UI isn't responding" dialog then covers every flow (and
+// every re-run). For the run the framework handles an ANR without a dialog (it restarts the hung app), and a dialog that was
+// already up is closed with its "Close app" button before each Maestro session.
+function closeAnrDialog() {
+  const dumpPath = '/sdcard/dude-e2e-window.xml';
+  if (spawnSync(adb, ['-s', device, 'shell', 'uiautomator', 'dump', dumpPath], { encoding: 'utf8' }).status !== 0) return;
+  const xml = spawnSync(adb, ['-s', device, 'shell', 'cat', dumpPath], { encoding: 'utf8' }).stdout ?? '';
+  if (!/isn(?:'|&apos;|’)t responding/.test(xml)) return;
+  const bounds = /text="Close app"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/.exec(xml);
+  if (!bounds) return;
+  const [left, top, right, bottom] = bounds.slice(1).map(Number);
+  console.warn('Closing an Android "isn\'t responding" dialog before the flows.');
+  spawnSync(adb, ['-s', device, 'shell', 'input', 'tap', String(Math.round((left + right) / 2)), String(Math.round((top + bottom) / 2))]);
+  spawnSync(adb, ['-s', device, 'shell', 'sleep', '3']);
+}
 // Explicit file list: Maestro does not recurse into subdirectories (tools/) of a flow directory.
 function runMaestroOnce(files, dir) {
+  closeAnrDialog();
   mkdirSync(dir, { recursive: true });
   return spawnSync(maestro, ['--device', device, 'test', '--format', 'junit', '--output', path.join(dir, 'maestro.xml'), '--debug-output', dir, '--test-output-dir', dir, ...files], {
     cwd: root, stdio: 'inherit', env: { ...process.env, MAESTRO_CLI_NO_ANALYTICS: '1' }, shell: process.platform === 'win32',
@@ -143,6 +160,7 @@ function runGroup(files, dir, prepare) {
 }
 let result;
 try {
+  setting(['put', 'global', 'hide_error_dialogs', '1']);
   setting(['put', 'system', 'font_scale', fontScale]);
   const shareFlows = flows.filter(file => flowId(file) === SHARE_FLOW);
   const plain = flows.filter(file => flowId(file) !== SHARE_FLOW);
@@ -153,5 +171,6 @@ try {
   }
 } finally {
   setting(previousScale === 'null' ? ['delete', 'system', 'font_scale'] : ['put', 'system', 'font_scale', previousScale]);
+  setting(previousHideErrorDialogs === 'null' ? ['delete', 'global', 'hide_error_dialogs'] : ['put', 'global', 'hide_error_dialogs', previousHideErrorDialogs]);
 }
 if (result.error || result.status !== 0) throw new Error('Maestro Android acceptance failed. Install a bundled DUDE Preview build and configure MAESTRO_PATH/JDK 17.');
