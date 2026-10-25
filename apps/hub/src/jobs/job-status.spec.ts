@@ -22,7 +22,7 @@ describe('job registry', () => {
     const { registry } = setup();
     const jobs = registry.list();
     expect(jobs.map((j) => j.id)).toEqual([...HUB_JOB_IDS]);
-    for (const job of jobs) expect(job).toEqual({ id: job.id, intervalMs: 0, running: false, lastStartedAt: null, lastFinishedAt: null, lastOutcome: null, lastSummary: null, nextDueAt: null });
+    for (const job of jobs) expect(job).toEqual({ id: job.id, intervalMs: 0, running: false, lastStartedAt: null, lastFinishedAt: null, lastOutcome: null, lastSummary: null, nextDueAt: null, lastAttempt: null });
     expect(Value.Check(HubJobsResponse, { jobs })).toBe(true);
   });
 
@@ -37,9 +37,10 @@ describe('job registry', () => {
     expect(job).toEqual({
       id: 'audit-prune', intervalMs: 60_000, running: false, lastStartedAt: '2026-10-24T10:00:00.000Z', lastFinishedAt: '2026-10-24T10:00:01.500Z',
       lastOutcome: 'success', lastSummary: 'Completed.', nextDueAt: '2026-10-24T10:01:01.500Z',
+      lastAttempt: { finishedAt: '2026-10-24T10:00:01.500Z', outcome: 'success', summary: 'Completed.' },
     });
     expect(onChange).toHaveBeenCalledTimes(2);
-    expect(JSON.parse(getMeta(db, `${JOB_LAST_META_PREFIX}audit-prune`)!)).toEqual({ startedAt: '2026-10-24T10:00:00.000Z', finishedAt: '2026-10-24T10:00:01.500Z', outcome: 'success', summary: 'Completed.' });
+    expect(JSON.parse(getMeta(db, `${JOB_LAST_META_PREFIX}audit-prune`)!)).toEqual({ startedAt: '2026-10-24T10:00:00.000Z', finishedAt: '2026-10-24T10:00:01.500Z', outcome: 'success', summary: 'Completed.', attempt: { finishedAt: '2026-10-24T10:00:01.500Z', outcome: 'success', summary: 'Completed.' } });
   });
 
   it('uses the classifier for the outcome and summary, and a classifier that throws is a plain success', () => {
@@ -103,9 +104,58 @@ describe('job registry', () => {
     expect(find(next.list(), 'sync-compaction')).toEqual({
       id: 'sync-compaction', intervalMs: 0, running: false, lastStartedAt: '2026-10-24T10:00:01.000Z', lastFinishedAt: '2026-10-24T10:00:01.000Z',
       lastOutcome: 'success', lastSummary: 'Compacted 3 change entries.', nextDueAt: null,
+      lastAttempt: { finishedAt: '2026-10-24T10:00:01.000Z', outcome: 'success', summary: 'Compacted 3 change entries.' },
     });
     next.register('sync-compaction', 21_600_000);
     expect(find(next.list(), 'sync-compaction').nextDueAt).toBe('2026-10-24T16:00:01.000Z');
+  });
+
+  it('keeps the last real attempt across later skipped checks, and a newer real attempt replaces it', () => {
+    const { registry, clock } = setup();
+    expect(() => registry.track('backup-schedule', () => { throw Object.assign(new Error('x'), { code: 'ENOSPC' }); })).toThrow('x');
+    const failed = { finishedAt: '2026-10-24T10:00:00.000Z', outcome: 'failed', summary: 'The run failed (ENOSPC).' };
+    expect(find(registry.list(), 'backup-schedule').lastAttempt).toEqual(failed);
+    clock.t += 600_000;
+    registry.report('backup-schedule', 'skipped', 'Not due yet.');
+    clock.t += 600_000;
+    registry.report('backup-schedule', 'skipped', 'Not due yet.');
+    expect(find(registry.list(), 'backup-schedule')).toMatchObject({ lastOutcome: 'skipped', lastSummary: 'Not due yet.', lastFinishedAt: '2026-10-24T10:20:00.000Z', lastAttempt: failed });
+    clock.t += 600_000;
+    registry.report('backup-schedule', 'success', 'Backup written.');
+    expect(find(registry.list(), 'backup-schedule')).toMatchObject({ lastOutcome: 'success', lastAttempt: { finishedAt: '2026-10-24T10:30:00.000Z', outcome: 'success', summary: 'Backup written.' } });
+    clock.t += 600_000;
+    registry.report('backup-schedule', 'skipped', 'Not due yet.');
+    expect(find(registry.list(), 'backup-schedule').lastAttempt).toEqual({ finishedAt: '2026-10-24T10:30:00.000Z', outcome: 'success', summary: 'Backup written.' });
+  });
+
+  it('has a null lastAttempt while every run was skipped', () => {
+    const { registry } = setup();
+    registry.report('backup-schedule', 'skipped', 'Not due yet.');
+    expect(find(registry.list(), 'backup-schedule')).toMatchObject({ lastOutcome: 'skipped', lastAttempt: null });
+    expect(Value.Check(HubJobsResponse, { jobs: registry.list() })).toBe(true);
+  });
+
+  it('derives the attempt for a legacy record without one, and keeps it through a skipped check', () => {
+    const { registry, db, clock } = setup();
+    const put = (id: string, record: unknown): void => void db.prepare('INSERT OR REPLACE INTO meta(key, value) VALUES (?, ?)').run(`${JOB_LAST_META_PREFIX}${id}`, JSON.stringify(record));
+    const legacy = { startedAt: '2026-10-24T09:00:00.000Z', finishedAt: '2026-10-24T09:00:01.000Z', outcome: 'failed', summary: 'The run failed.' };
+    put('backup-schedule', legacy);
+    put('audit-prune', { ...legacy, outcome: 'skipped', summary: 'Nothing to do.' });
+    put('leaf-renewal', { ...legacy, outcome: 'success', summary: 'Renewed.', attempt: { finishedAt: 5, outcome: 'skipped', summary: 1 } });
+    expect(find(registry.list(), 'backup-schedule').lastAttempt).toEqual({ finishedAt: '2026-10-24T09:00:01.000Z', outcome: 'failed', summary: 'The run failed.' });
+    expect(find(registry.list(), 'audit-prune').lastAttempt).toBeNull();
+    expect(find(registry.list(), 'leaf-renewal').lastAttempt).toEqual({ finishedAt: '2026-10-24T09:00:01.000Z', outcome: 'success', summary: 'Renewed.' });
+    clock.t += 1000;
+    registry.report('backup-schedule', 'skipped', 'Not due yet.');
+    expect(find(registry.list(), 'backup-schedule')).toMatchObject({ lastOutcome: 'skipped', lastAttempt: { finishedAt: '2026-10-24T09:00:01.000Z', outcome: 'failed' } });
+  });
+
+  it('persists the attempt across a new registry on the same database', () => {
+    const { registry, again, clock } = setup();
+    registry.report('backup-schedule', 'failed', 'The run failed.');
+    clock.t += 600_000;
+    registry.report('backup-schedule', 'skipped', 'Not due yet.');
+    expect(find(again().list(), 'backup-schedule')).toMatchObject({ lastOutcome: 'skipped', lastAttempt: { finishedAt: '2026-10-24T10:00:00.000Z', outcome: 'failed', summary: 'The run failed.' } });
   });
 
   it('clips an over-long summary to one short line and ignores a corrupt stored record', () => {

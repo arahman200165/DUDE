@@ -73,6 +73,9 @@ interface JobRow {
                       @if (job.lastSummary) {
                         <span class="block text-text-muted" data-testid="job-summary">{{ job.lastSummary }}</span>
                       }
+                      @if (attempt(job); as a) {
+                        <span class="block text-text-muted" data-testid="job-attempt">Last attempt: <span class="inline-flex items-center gap-1" [class]="a.view.tone"><app-status-glyph [kind]="a.view.glyph" />{{ a.view.label }}</span> {{ a.when }}@if (a.summary) { - {{ a.summary }}}</span>
+                      }
                     } @else {
                       <span class="text-text-muted" data-testid="job-outcome">Not run yet</span>
                     }
@@ -109,6 +112,12 @@ export class HubJobsPanel {
 
   protected outcome(job: HubJobStatus): OutcomeView | null {
     return job.lastOutcome === null ? null : OUTCOME[job.lastOutcome];
+  }
+  /** A skipped last run hides the last real attempt (a failed backup, say); show it, and why it failed. Absent from an older Hub. */
+  protected attempt(job: HubJobStatus): { view: OutcomeView; when: string; summary: string | null } | null {
+    const a = job.lastAttempt;
+    if (job.lastOutcome !== 'skipped' || a === undefined || a === null) return null;
+    return { view: OUTCOME[a.outcome], when: relativeTime(a.finishedAt), summary: a.outcome === 'failed' && a.summary !== '' ? a.summary : null };
   }
   protected relative(iso: string | null): string { return relativeTime(iso); }
   protected until(iso: string | null): string { return relativeUntil(iso); }

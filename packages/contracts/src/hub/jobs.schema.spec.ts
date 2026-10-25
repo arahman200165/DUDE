@@ -16,6 +16,18 @@ describe('HubJobsResponse', () => {
     expect(Value.Check(HubJobsResponse, { jobs: [] })).toBe(true);
   });
 
+  it('accepts lastAttempt present, null or absent, and rejects a skipped attempt, a missing field and an over-long summary', () => {
+    const attempt = { finishedAt: '2026-10-24T09:00:00.000Z', outcome: 'failed', summary: 'The run failed (ENOSPC).' };
+    expect(Value.Check(HubJobStatus, { ...ran, lastAttempt: attempt })).toBe(true);
+    expect(Value.Check(HubJobStatus, { ...ran, lastAttempt: { ...attempt, outcome: 'success' } })).toBe(true);
+    expect(Value.Check(HubJobStatus, { ...ran, lastAttempt: null })).toBe(true);
+    expect(Value.Check(HubJobStatus, ran)).toBe(true);
+    expect(Value.Check(HubJobStatus, { ...ran, lastAttempt: { ...attempt, outcome: 'skipped' } })).toBe(false);
+    expect(Value.Check(HubJobStatus, { ...ran, lastAttempt: { finishedAt: attempt.finishedAt, outcome: 'failed' } })).toBe(false);
+    expect(Value.Check(HubJobStatus, { ...ran, lastAttempt: { ...attempt, finishedAt: null } })).toBe(false);
+    expect(Value.Check(HubJobStatus, { ...ran, lastAttempt: { ...attempt, summary: 'x'.repeat(HUB_JOB_SUMMARY_MAX + 1) } })).toBe(false);
+  });
+
   it('rejects an unknown job id, an unknown outcome, a missing field, a bad interval and an over-long summary', () => {
     expect(Value.Check(HubJobStatus, { ...never, id: 'run-anything' })).toBe(false);
     expect(Value.Check(HubJobStatus, { ...ran, lastOutcome: 'ok' })).toBe(false);

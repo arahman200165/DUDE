@@ -132,7 +132,7 @@ Timing: the scheduler checks every 10 minutes. A new schedule is due at the firs
 1. On the Hub host, from an elevated shell, create a test folder and set the schedule to it with your normal passphrase flow:
    `mkdir C:\DudeBackupTest` then `dude-hub backup schedule set --folder C:\DudeBackupTest --every-hours 1 --keep 2`.
 2. Deny the service account write access: `icacls C:\DudeBackupTest /deny "NT SERVICE\DudeHub:(OI)(CI)W"` (or schedule to an external drive and unplug it after the set).
-3. Wait for the next attempt. Confirm a **backup failed** notification ("A backup failed") reaches the bell on Hub web and on a signed-in desktop without a reload, and that `dude-hub backup schedule status` reports the failed run. The Hub jobs card shows the failed outcome only until the next 10-minute check, which records a skipped "not due yet" run over it.
+3. Wait for the next attempt. Confirm a **backup failed** notification ("A backup failed") reaches the bell on Hub web and on a signed-in desktop without a reload, and that `dude-hub backup schedule status` reports the failed run. The Hub jobs card shows the failed run; after the next 10-minute check records a skipped "not due yet" run it shows **Skipped** with a "Last attempt: Failed" line and the error code underneath (Milestone 821).
 4. Leave it failing through one more attempt (about an hour later) and confirm that attempt adds a second failed notification: each failed attempt is its own audit row and so its own notification (PD-109 deduplicates by source key, which is the audit row).
 5. Restore access: `icacls C:\DudeBackupTest /remove:d "NT SERVICE\DudeHub"`. At the next attempt confirm a **recovered** notification ("Backups are working again") follows. Then `dude-hub backup schedule off` and delete the folder.
 
@@ -229,6 +229,7 @@ Maintenance on the items the close-out left open, recorded here so the evidence 
 | 818 | `apps/desktop/network-dns.spec.ts` no longer times out when its shared TCP/UDP port falls in a Windows-excluded UDP range. |
 | 819 | `npm run audit:prod` passes: `electron` 44.9.3, `undici` 7.30.1, every `@angular/*` package to 22.2.3/22.2.4 (the CLI pinned the vulnerable `zod`), and `@expo/cli`'s dev-only `zod` 3.x accepted ([rationale](PHASE31A_ACCEPTANCE.md#dependency-audit)). |
 | 820 | Production budget warnings resolved by setting each warning just above today's size, keeping the error ceilings: initial 1.35 MB (1.29 MB; error 1.5 MB), component style 6.5 kB (the editor-only gridstack stylesheet, 6.1 kB; error 8 kB), any script 2.75 MB (error 3 MB). The scripts over the old 500 kB are lazy, single-tool libraries outside the initial and prefetched sets: `node-sql-parser` (2.6 MB), the Unicode Table's `unicode-name` data in its worker (2.3 MB) and on the main thread (1.6 MB), `bwip-js` (0.9 MB), `mathjs`, TipTap and `svgo` (0.6 MB each). |
+| 821 | The Hub jobs card no longer loses a failed scheduled backup to the next "not due yet" check: `HubJobStatus` gains an optional `lastAttempt` (the most recent run that was not skipped), kept in the same `job_last:<id>` record so backups still scrub it, and the card shows it under a skipped result. |
 
 ## Commands
 

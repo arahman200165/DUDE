@@ -17,8 +17,14 @@ export type HubJobOutcome = (typeof HUB_JOB_OUTCOMES)[number];
 /** Longest `lastSummary`: a short human sentence, never a secret, path or error stack. */
 export const HUB_JOB_SUMMARY_MAX = 200;
 
+/** The outcomes of a real attempt: a `skipped` check is never one. */
+export const HUB_JOB_ATTEMPT_OUTCOMES = ['success', 'failed'] as const;
+export type HubJobAttemptOutcome = (typeof HUB_JOB_ATTEMPT_OUTCOMES)[number];
+
+const InstantString = Type.String({ minLength: 1, maxLength: 40 });
+
 /** An ISO-8601 instant (UTC). */
-const Instant = Type.Union([Type.String({ minLength: 1, maxLength: 40 }), Type.Null()]);
+const Instant = Type.Union([InstantString, Type.Null()]);
 
 /** One job's state. Read-only: there is no way to start, stop or queue a job through the API. */
 export const HubJobStatus = Type.Object({
@@ -31,6 +37,18 @@ export const HubJobStatus = Type.Object({
   lastOutcome: Type.Union([Type.Unsafe<HubJobOutcome>({ type: 'string', enum: [...HUB_JOB_OUTCOMES] }), Type.Null()]),
   lastSummary: Type.Union([Type.String({ maxLength: HUB_JOB_SUMMARY_MAX }), Type.Null()]),
   nextDueAt: Instant,
+  /**
+   * The most recent run whose outcome was not `skipped` (for a timer that reports checks, like the backup schedule, the last real
+   * attempt); null when there has been none. Optional so a client still reads a Hub from before this field.
+   */
+  lastAttempt: Type.Optional(Type.Union([
+    Type.Object({
+      finishedAt: InstantString,
+      outcome: Type.Unsafe<HubJobAttemptOutcome>({ type: 'string', enum: [...HUB_JOB_ATTEMPT_OUTCOMES] }),
+      summary: Type.String({ maxLength: HUB_JOB_SUMMARY_MAX }),
+    }),
+    Type.Null(),
+  ])),
 });
 export type HubJobStatus = Static<typeof HubJobStatus>;
 

@@ -25,9 +25,10 @@ describe('GET /jobs', () => {
     const prune = res.json.jobs.find((j: { id: string }) => j.id === 'audit-prune');
     expect(prune).toMatchObject({ running: false, lastOutcome: 'success', intervalMs: 24 * 3600_000 });
     expect(typeof prune.lastSummary).toBe('string');
+    expect(prune.lastAttempt).toEqual({ finishedAt: prune.lastFinishedAt, outcome: 'success', summary: prune.lastSummary });
     expect(Date.parse(prune.nextDueAt) - Date.parse(prune.lastFinishedAt)).toBe(24 * 3600_000);
     // The timers `run` starts are not registered in a test Hub and never ran.
-    expect(res.json.jobs.find((j: { id: string }) => j.id === 'leaf-renewal')).toMatchObject({ intervalMs: 0, lastOutcome: null, nextDueAt: null });
+    expect(res.json.jobs.find((j: { id: string }) => j.id === 'leaf-renewal')).toMatchObject({ intervalMs: 0, lastOutcome: null, nextDueAt: null, lastAttempt: null });
   });
 
   it('runs the collaboration maintenance at startup right after the sync compaction, on the same cadence', async () => {
@@ -45,6 +46,14 @@ describe('GET /jobs', () => {
     const res = await h.call('GET', '/jobs', { cookie: owner.cookie });
     expect(res.json.jobs.find((j: { id: string }) => j.id === 'address-watch')).toMatchObject({ lastOutcome: 'success', lastSummary: 'No address change.' });
     notify.mockRestore();
+  });
+
+  it('keeps the last real attempt visible after later skipped checks', async () => {
+    h.hub.app.hubJobs.report('backup-schedule', 'failed', 'The run failed (ENOSPC).');
+    h.hub.app.hubJobs.report('backup-schedule', 'skipped', 'Not due yet.');
+    const res = await h.call('GET', '/jobs', { cookie: owner.cookie });
+    expect(Value.Check(HubJobsResponse, res.json)).toBe(true);
+    expect(res.json.jobs.find((j: { id: string }) => j.id === 'backup-schedule')).toMatchObject({ lastOutcome: 'skipped', lastSummary: 'Not due yet.', lastAttempt: { outcome: 'failed', summary: 'The run failed (ENOSPC).' } });
   });
 
   it('is owner-only: anonymous is 401, a device token is refused, a bearer owner session works', async () => {

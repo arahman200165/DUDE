@@ -405,6 +405,29 @@ describe('EnvironmentSettings (Hub web)', () => {
     expect(card.querySelectorAll('button, a, input, select, [role="button"]')).toHaveLength(0);
   });
 
+  it('shows the last real attempt under a skipped last run, and nothing extra for a non-skipped run or an older Hub (PD-112)', async () => {
+    const { port } = hubWebPort();
+    const now = Date.now();
+    const base = { intervalMs: 600_000, running: false, lastStartedAt: null, lastFinishedAt: new Date(now - 60_000).toISOString(), nextDueAt: null } as const;
+    port.listJobs.mockResolvedValue({
+      jobs: [
+        { ...base, id: 'backup-schedule', lastOutcome: 'skipped', lastSummary: 'Not due yet.', lastAttempt: { finishedAt: new Date(now - 3 * 3_600_000).toISOString(), outcome: 'failed', summary: 'The run failed (ENOSPC).' } },
+        { ...base, id: 'leaf-renewal', lastOutcome: 'skipped', lastSummary: 'Not due yet.', lastAttempt: { finishedAt: new Date(now - 2 * 3_600_000).toISOString(), outcome: 'success', summary: 'Renewed.' } },
+        { ...base, id: 'acme-renewal', lastOutcome: 'skipped', lastSummary: 'Not configured.', lastAttempt: null },
+        { ...base, id: 'address-watch', lastOutcome: 'skipped', lastSummary: 'No change.' },
+        { ...base, id: 'audit-prune', lastOutcome: 'failed', lastSummary: 'The run failed.', lastAttempt: { finishedAt: new Date(now - 60_000).toISOString(), outcome: 'failed', summary: 'The run failed.' } },
+      ],
+    });
+    const { el } = await mount(port, 'hub-web');
+    const attempt = (id: string) => el.querySelector(`[data-testid="job-${id}"] [data-testid="job-attempt"]`);
+    expect(attempt('backup-schedule')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('Last attempt: Failed 3 h ago - The run failed (ENOSPC).');
+    expect(el.querySelector('[data-testid="job-backup-schedule"] [data-testid="job-outcome"]')?.textContent).toContain('Skipped');
+    expect(attempt('leaf-renewal')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('Last attempt: Succeeded 2 h ago');
+    expect(attempt('acme-renewal')).toBeNull();
+    expect(attempt('address-watch')).toBeNull();
+    expect(attempt('audit-prune')).toBeNull();
+  });
+
   it('shows the Hub jobs only to a signed-in owner, on a connected desktop too, and an inline error when they cannot be read', async () => {
     const signedOut = createTestPort({ status: async () => ENROLLED_STATUS, ownerStatus: async () => ({ signedIn: false, ownerDisplayName: null, expiresAt: null }) });
     const first = await mount(signedOut.port);
