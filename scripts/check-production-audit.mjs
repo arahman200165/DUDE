@@ -21,6 +21,11 @@ const ACCEPTED = new Map([
   // which globs the developer's own project at build time, never untrusted input or shipped code.
   // Accepted 2026-10-07.
   ['braces', new Set(['https://github.com/advisories/GHSA-vfj7-8cjw-p6xm'])],
+  // Memory exhaustion validating oversized constrained collections; fixed only in zod 4.6.6, and @expo/cli
+  // pins zod ^3.25.76 (3.25.76 is the last 3.x). Expo's CLI validates its own dev-tools plugin schemas
+  // during `expo start`, never untrusted input or shipped code. The root zod (via @angular/forms) is on a
+  // patched 4.x. Accepted 2026-10-25.
+  ['zod', new Set(['https://github.com/advisories/GHSA-mrhx-c7xc-m3w5'])],
 ]);
 
 // `npm audit` reports `fixAvailable` as a semver-major object for a package whose only "fix" is
