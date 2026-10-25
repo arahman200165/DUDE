@@ -3,14 +3,12 @@
  * via `node-sql-parser` into a normalized `{ columnName: { dataType, length,
  * nullable } }` object, then reuses Advanced Diff's `diffTrees()` (built on
  * `fast-json-patch`) for the structural comparison rather than a bespoke
- * column-list diff algorithm.
+ * column-list diff algorithm. The caller passes the parser loaded for `dialect` (`loadSqlParser`).
  */
-import esm_node_sql_parser from 'node-sql-parser';
-const { Parser } = esm_node_sql_parser;
-type Parser = InstanceType<typeof Parser>;
+import type { SqlDialect, SqlParser } from '../../shared/sql/sql-parser.js';
 import { diffTrees, type TreeDiffResult } from "../advanced-diff/object-tree-diff.js";
 
-export type SchemaDiffDialect = 'mysql' | 'mariadb' | 'postgresql' | 'sqlite' | 'transactsql';
+export type SchemaDiffDialect = SqlDialect;
 
 export const SCHEMA_DIFF_DIALECTS: readonly { readonly id: SchemaDiffDialect; readonly label: string }[] = [
   { id: 'postgresql', label: 'PostgreSQL' },
@@ -44,10 +42,9 @@ interface CreateTableAst {
 
 type NormalizeResult = { readonly ok: true; readonly tableName: string; readonly columns: NormalizedSchema } | { readonly ok: false; readonly error: string };
 
-function normalizeCreateTable(sql: string, dialect: SchemaDiffDialect): NormalizeResult {
+function normalizeCreateTable(parser: SqlParser, sql: string, dialect: SchemaDiffDialect): NormalizeResult {
   if (sql.trim() === '') return { ok: false, error: 'Enter a CREATE TABLE statement.' };
 
-  const parser = new Parser();
   let ast: unknown;
   try {
     ast = parser.astify(sql, { database: dialect });
@@ -78,11 +75,11 @@ function normalizeCreateTable(sql: string, dialect: SchemaDiffDialect): Normaliz
 
 export type SchemaDiffResult = { readonly ok: true; readonly diff: TreeDiffResult } | { readonly ok: false; readonly error: string };
 
-export function diffSchemas(sqlBefore: string, sqlAfter: string, dialect: SchemaDiffDialect): SchemaDiffResult {
-  const before = normalizeCreateTable(sqlBefore, dialect);
+export function diffSchemas(parser: SqlParser, sqlBefore: string, sqlAfter: string, dialect: SchemaDiffDialect): SchemaDiffResult {
+  const before = normalizeCreateTable(parser, sqlBefore, dialect);
   if (!before.ok) return { ok: false, error: `Before: ${before.error}` };
 
-  const after = normalizeCreateTable(sqlAfter, dialect);
+  const after = normalizeCreateTable(parser, sqlAfter, dialect);
   if (!after.ok) return { ok: false, error: `After: ${after.error}` };
 
   return { ok: true, diff: diffTrees(before.columns, after.columns, { ignoreCase: false }) };

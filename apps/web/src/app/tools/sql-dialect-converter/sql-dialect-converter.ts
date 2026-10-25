@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, resource } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
 import { CopyButton } from '../../shared/components/copy-button/copy-button';
@@ -6,6 +6,7 @@ import { OpenTextFile } from '../../shared/components/open-text-file/open-text-f
 import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
 import { SaveTextFile } from '../../shared/components/save-text-file/save-text-file';
 import { PersistenceService } from '../../core/persistence/persistence.service';
+import { loadSqlParser } from "@dude/tool-engine/shared/sql/sql-parser";
 import { convertSqlDialect, SQL_CONVERTER_DIALECTS, type SqlConverterDialect } from "@dude/tool-engine/tools/sql-dialect-converter/sql-dialect-converter-logic";
 
 @Component({
@@ -22,7 +23,15 @@ export class SqlDialectConverter {
   protected readonly from = this.persistence.signal<SqlConverterDialect>('sql-dialect-converter', 'from', 'local', 'mysql');
   protected readonly to = this.persistence.signal<SqlConverterDialect>('sql-dialect-converter', 'to', 'local', 'postgresql');
 
-  protected readonly result = computed(() => convertSqlDialect(this.input(), this.from(), this.to()));
+  private readonly parser = resource({ params: () => this.from(), loader: ({ params }) => loadSqlParser(params) });
+  private readonly loadedParser = computed(() => (this.parser.hasValue() ? this.parser.value() : undefined));
+  protected readonly parserLabel = computed(() => this.dialects.find((item) => item.id === this.from())?.label ?? this.from());
+  protected readonly parserFailed = computed(() => this.parser.error() !== undefined);
+
+  protected readonly result = computed(() => {
+    const parser = this.loadedParser();
+    return parser ? convertSqlDialect(parser, this.input(), this.from(), this.to()) : null;
+  });
 
   protected onInput(event: Event): void {
     this.input.set((event.target as HTMLTextAreaElement).value);

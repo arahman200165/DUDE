@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, resource } from '@angular/core';
 import { JsonPipe } from '@angular/common';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
@@ -7,6 +7,7 @@ import { OpenTextFile } from '../../shared/components/open-text-file/open-text-f
 import { TextFileDrop } from '../../shared/components/open-text-file/text-file-drop.directive';
 import { SaveTextFile } from '../../shared/components/save-text-file/save-text-file';
 import { PersistenceService } from '../../core/persistence/persistence.service';
+import { loadSqlParser } from "@dude/tool-engine/shared/sql/sql-parser";
 import {
   parameterizeSql,
   SQL_PARAMETERIZER_DIALECTS,
@@ -30,7 +31,15 @@ export class SqlParameterizer {
   protected readonly dialect = this.persistence.signal<SqlParameterizerDialect>('sql-parameterizer', 'dialect', 'local', 'postgresql');
   protected readonly style = this.persistence.signal<SqlParamStyle>('sql-parameterizer', 'style', 'local', 'question');
 
-  protected readonly result = computed(() => parameterizeSql(this.input(), this.dialect(), this.style()));
+  private readonly parser = resource({ params: () => this.dialect(), loader: ({ params }) => loadSqlParser(params) });
+  private readonly loadedParser = computed(() => (this.parser.hasValue() ? this.parser.value() : undefined));
+  protected readonly parserLabel = computed(() => this.dialects.find((item) => item.id === this.dialect())?.label ?? this.dialect());
+  protected readonly parserFailed = computed(() => this.parser.error() !== undefined);
+
+  protected readonly result = computed(() => {
+    const parser = this.loadedParser();
+    return parser ? parameterizeSql(parser, this.input(), this.dialect(), this.style()) : null;
+  });
 
   protected onInput(event: Event): void {
     this.input.set((event.target as HTMLTextAreaElement).value);

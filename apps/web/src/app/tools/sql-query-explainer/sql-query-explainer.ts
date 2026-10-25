@@ -1,7 +1,8 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, resource } from '@angular/core';
 import { ToolShell } from '../../shared/components/tool-shell/tool-shell';
 import { ErrorPanel } from '../../shared/components/error-panel/error-panel';
 import { PersistenceService } from '../../core/persistence/persistence.service';
+import { loadSqlParser } from "@dude/tool-engine/shared/sql/sql-parser";
 import { explainSqlQuery, SQL_EXPLAINER_DIALECTS, type SqlExplainerDialect } from "@dude/tool-engine/tools/sql-query-explainer/sql-query-explainer-logic";
 
 @Component({
@@ -22,7 +23,15 @@ export class SqlQueryExplainer {
   );
   protected readonly dialect = this.persistence.signal<SqlExplainerDialect>('sql-query-explainer', 'dialect', 'local', 'postgresql');
 
-  protected readonly result = computed(() => explainSqlQuery(this.input(), this.dialect()));
+  private readonly parser = resource({ params: () => this.dialect(), loader: ({ params }) => loadSqlParser(params) });
+  private readonly loadedParser = computed(() => (this.parser.hasValue() ? this.parser.value() : undefined));
+  protected readonly parserLabel = computed(() => this.dialects.find((item) => item.id === this.dialect())?.label ?? this.dialect());
+  protected readonly parserFailed = computed(() => this.parser.error() !== undefined);
+
+  protected readonly result = computed(() => {
+    const parser = this.loadedParser();
+    return parser ? explainSqlQuery(parser, this.input(), this.dialect()) : null;
+  });
 
   protected onInput(event: Event): void {
     this.input.set((event.target as HTMLTextAreaElement).value);

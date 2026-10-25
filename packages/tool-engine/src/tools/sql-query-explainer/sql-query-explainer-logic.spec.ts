@@ -1,9 +1,15 @@
 import fc from 'fast-check';
 import { explainSqlQuery, SQL_EXPLAINER_DIALECTS } from "./sql-query-explainer-logic.js";
+import { loadSqlParser, type SqlDialect, type SqlParser } from "../../shared/sql/sql-parser.js";
+
+const parsers = {} as Record<SqlDialect, SqlParser>;
+beforeAll(async () => {
+  for (const id of ['postgresql', 'mysql', 'mariadb', 'sqlite', 'transactsql'] as const) parsers[id] = await loadSqlParser(id);
+});
 
 describe('explainSqlQuery', () => {
   it('explains a simple SELECT with a WHERE clause', () => {
-    const result = explainSqlQuery('SELECT a, b FROM t WHERE x = 1', 'postgresql');
+    const result = explainSqlQuery(parsers.postgresql, 'SELECT a, b FROM t WHERE x = 1', 'postgresql');
     expect(result).toEqual({
       ok: true,
       lines: ['Selects: a, b.', 'From: t.', 'Filters rows where: x = 1.'],
@@ -11,13 +17,13 @@ describe('explainSqlQuery', () => {
   });
 
   it('explains SELECT *', () => {
-    const result = explainSqlQuery('SELECT * FROM t', 'postgresql');
+    const result = explainSqlQuery(parsers.postgresql, 'SELECT * FROM t', 'postgresql');
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.lines[0]).toBe('Selects all columns (*).');
   });
 
   it('explains a full query with JOIN, GROUP BY, HAVING, ORDER BY, and LIMIT', () => {
-    const result = explainSqlQuery(
+    const result = explainSqlQuery(parsers.postgresql, 
       'SELECT a, COUNT(b) AS cnt FROM t1 JOIN t2 ON t1.id = t2.t1_id WHERE t1.x > 5 GROUP BY a HAVING COUNT(b) > 1 ORDER BY a DESC LIMIT 10',
       'postgresql',
     );
@@ -36,16 +42,16 @@ describe('explainSqlQuery', () => {
   });
 
   it('rejects a non-SELECT statement', () => {
-    const result = explainSqlQuery('DELETE FROM t WHERE x = 1', 'postgresql');
+    const result = explainSqlQuery(parsers.postgresql, 'DELETE FROM t WHERE x = 1', 'postgresql');
     expect(result.ok).toBe(false);
   });
 
   it('rejects empty input', () => {
-    expect(explainSqlQuery('', 'postgresql').ok).toBe(false);
+    expect(explainSqlQuery(parsers.postgresql, '', 'postgresql').ok).toBe(false);
   });
 
   it('rejects invalid SQL', () => {
-    expect(explainSqlQuery('SELECT FROM WHERE', 'postgresql').ok).toBe(false);
+    expect(explainSqlQuery(parsers.postgresql, 'SELECT FROM WHERE', 'postgresql').ok).toBe(false);
   });
 });
 
@@ -53,7 +59,7 @@ describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
   it('never throws for arbitrary text input, in any dialect', () => {
     fc.assert(
       fc.property(fc.string(), fc.constantFrom(...SQL_EXPLAINER_DIALECTS.map((d) => d.id)), (sql, dialect) => {
-        expect(() => explainSqlQuery(sql, dialect)).not.toThrow();
+        expect(() => explainSqlQuery(parsers[dialect], sql, dialect)).not.toThrow();
       }),
     );
   });
@@ -80,7 +86,7 @@ describe('fuzzing (DUDE_PRD.md §21 Phase 23 Item 5)', () => {
         fc.constantFrom(...VALID_SELECT_CORPUS),
         fc.constantFrom(...SQL_EXPLAINER_DIALECTS.map((d) => d.id)),
         (sql, dialect) => {
-          expect(() => explainSqlQuery(sql, dialect)).not.toThrow();
+          expect(() => explainSqlQuery(parsers[dialect], sql, dialect)).not.toThrow();
         },
       ),
     );

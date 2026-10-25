@@ -1,13 +1,12 @@
 /**
  * Pure, framework-free static, pattern-based SQL query explanation — walks the
  * `node-sql-parser` AST of a SELECT statement and describes each clause in
- * plain English. Explicitly not a live `EXPLAIN` against a running database.
+ * plain English. Explicitly not a live `EXPLAIN` against a running database. The caller passes
+ * the parser loaded for `dialect` (`loadSqlParser`).
  */
-import esm_node_sql_parser from 'node-sql-parser';
-const { Parser } = esm_node_sql_parser;
-type Parser = InstanceType<typeof Parser>;
+import type { SqlDialect, SqlParser } from '../../shared/sql/sql-parser.js';
 
-export type SqlExplainerDialect = 'mysql' | 'mariadb' | 'postgresql' | 'sqlite' | 'transactsql';
+export type SqlExplainerDialect = SqlDialect;
 
 export const SQL_EXPLAINER_DIALECTS: readonly { readonly id: SqlExplainerDialect; readonly label: string }[] = [
   { id: 'postgresql', label: 'PostgreSQL' },
@@ -54,10 +53,9 @@ function tableName(table: FromTable): string {
   return table.as ? `${qualified} (as ${table.as})` : qualified;
 }
 
-export function explainSqlQuery(sql: string, dialect: SqlExplainerDialect): SqlExplainResult {
+export function explainSqlQuery(parser: SqlParser, sql: string, dialect: SqlExplainerDialect): SqlExplainResult {
   if (sql.trim() === '') return { ok: false, error: 'Enter some SQL.' };
 
-  const parser = new Parser();
   let ast: unknown;
   try {
     ast = parser.astify(sql, { database: dialect });

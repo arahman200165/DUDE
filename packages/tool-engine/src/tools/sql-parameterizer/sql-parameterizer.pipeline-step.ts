@@ -1,5 +1,6 @@
 import { PipelineStep, PipelineStepResult, PipelineValue } from "@dude/contracts/shared/models/pipeline-step.model";
 import { parameterizeSql } from "./sql-parameterizer-logic.js";
+import { loadSqlParser } from "../../shared/sql/sql-parser.js";
 
 /**
  * Pipeline-step adapter for the SQL Parameterizer tool. Always parameterizes
@@ -18,7 +19,8 @@ export const pipelineStep: PipelineStep = {
     }
 
     try {
-      const result = parameterizeSql(input.value, 'postgresql', 'question');
+      const parser = await loadSqlParser('postgresql');
+      const result = parameterizeSql(parser, input.value, 'postgresql', 'question');
       return result.ok
         ? { ok: true, output: { type: 'json', value: { sql: result.sql, values: result.values } } }
         : { ok: false, error: { message: result.error, kind: 'invalid-input' } };

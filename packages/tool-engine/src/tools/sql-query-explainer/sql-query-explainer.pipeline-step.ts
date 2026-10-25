@@ -1,5 +1,6 @@
 import { PipelineStep, PipelineStepResult, PipelineValue } from "@dude/contracts/shared/models/pipeline-step.model";
 import { explainSqlQuery } from "./sql-query-explainer-logic.js";
+import { loadSqlParser } from "../../shared/sql/sql-parser.js";
 
 /**
  * Pipeline-step adapter for the SQL Query Explainer tool. Always explains against the
@@ -14,7 +15,13 @@ export const pipelineStep: PipelineStep = {
       return { ok: false, error: { message: 'SQL Query Explainer expects text input.', kind: 'invalid-input' } };
     }
 
-    const result = explainSqlQuery(input.value, 'postgresql');
+    let parser;
+    try {
+      parser = await loadSqlParser('postgresql');
+    } catch (error) {
+      return { ok: false, error: { message: error instanceof Error ? error.message : 'Failed to load the SQL parser.', kind: 'execution-error' } };
+    }
+    const result = explainSqlQuery(parser, input.value, 'postgresql');
     return result.ok
       ? { ok: true, output: { type: 'text', value: result.lines.join('\n') } }
       : { ok: false, error: { message: result.error, kind: 'invalid-input' } };

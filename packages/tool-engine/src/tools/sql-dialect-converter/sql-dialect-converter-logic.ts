@@ -3,13 +3,12 @@
  * to an AST via `node-sql-parser`, then regenerates it under a target dialect.
  * Best-effort — mainly identifier-quoting and clause-syntax differences the
  * library itself understands, not a full semantic translation of every dialect
- * quirk (e.g. MySQL's LIMIT isn't rewritten to SQL Server's TOP).
+ * quirk (e.g. MySQL's LIMIT isn't rewritten to SQL Server's TOP). The caller passes the
+ * parser loaded for the `from` dialect (`loadSqlParser`); it also regenerates any target.
  */
-import esm_node_sql_parser from 'node-sql-parser';
-const { Parser } = esm_node_sql_parser;
-type Parser = InstanceType<typeof Parser>;
+import type { SqlDialect, SqlParser } from '../../shared/sql/sql-parser.js';
 
-export type SqlConverterDialect = 'mysql' | 'mariadb' | 'postgresql' | 'sqlite' | 'transactsql';
+export type SqlConverterDialect = SqlDialect;
 
 export const SQL_CONVERTER_DIALECTS: readonly { readonly id: SqlConverterDialect; readonly label: string }[] = [
   { id: 'postgresql', label: 'PostgreSQL' },
@@ -21,10 +20,9 @@ export const SQL_CONVERTER_DIALECTS: readonly { readonly id: SqlConverterDialect
 
 export type SqlDialectConvertResult = { readonly ok: true; readonly output: string } | { readonly ok: false; readonly error: string };
 
-export function convertSqlDialect(sql: string, from: SqlConverterDialect, to: SqlConverterDialect): SqlDialectConvertResult {
+export function convertSqlDialect(parser: SqlParser, sql: string, from: SqlConverterDialect, to: SqlConverterDialect): SqlDialectConvertResult {
   if (sql.trim() === '') return { ok: false, error: 'Enter some SQL.' };
 
-  const parser = new Parser();
   try {
     const ast = parser.astify(sql, { database: from });
     return { ok: true, output: parser.sqlify(ast, { database: to }) };

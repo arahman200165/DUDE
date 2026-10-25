@@ -1,9 +1,7 @@
-/** Pure, framework-free SQL syntax checking, built on `node-sql-parser`'s AST-producing parser. */
-import esm_node_sql_parser from 'node-sql-parser';
-const { Parser } = esm_node_sql_parser;
-type Parser = InstanceType<typeof Parser>;
+/** Pure, framework-free SQL syntax checking, built on `node-sql-parser`'s AST-producing parser (passed in, loaded via `loadSqlParser`). */
+import type { SqlDialect, SqlParser } from '../../shared/sql/sql-parser.js';
 
-export type SqlCheckerDialect = 'mysql' | 'mariadb' | 'postgresql' | 'sqlite' | 'transactsql';
+export type SqlCheckerDialect = SqlDialect;
 
 export const SQL_CHECKER_DIALECTS: readonly { readonly id: SqlCheckerDialect; readonly label: string }[] = [
   { id: 'postgresql', label: 'PostgreSQL' },
@@ -31,10 +29,9 @@ function isParserSyntaxError(error: unknown): error is ParserSyntaxError {
   return typeof error === 'object' && error !== null && 'message' in error;
 }
 
-export function checkSqlSyntax(sql: string, dialect: SqlCheckerDialect): SqlSyntaxCheckResult {
+export function checkSqlSyntax(parser: SqlParser, sql: string, dialect: SqlCheckerDialect): SqlSyntaxCheckResult {
   if (sql.trim() === '') return { ok: false, message: 'Enter some SQL.' };
 
-  const parser = new Parser();
   try {
     parser.astify(sql, { database: dialect });
     return { ok: true };

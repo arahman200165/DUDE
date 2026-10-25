@@ -1,5 +1,6 @@
 import { PipelineStep, PipelineStepResult, PipelineValue } from "@dude/contracts/shared/models/pipeline-step.model";
 import { convertSqlDialect } from "./sql-dialect-converter-logic.js";
+import { loadSqlParser } from "../../shared/sql/sql-parser.js";
 
 /**
  * Pipeline-step adapter for the SQL Dialect Converter tool. Always converts
@@ -15,7 +16,8 @@ export const pipelineStep: PipelineStep = {
     }
 
     try {
-      const result = convertSqlDialect(input.value, 'postgresql', 'mysql');
+      const parser = await loadSqlParser('postgresql');
+      const result = convertSqlDialect(parser, input.value, 'postgresql', 'mysql');
       return result.ok
         ? { ok: true, output: { type: 'text', value: result.output } }
         : { ok: false, error: { message: result.error, kind: 'invalid-input' } };

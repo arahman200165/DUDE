@@ -1,5 +1,6 @@
 import { PipelineStep, PipelineStepResult, PipelineValue } from "@dude/contracts/shared/models/pipeline-step.model";
 import { checkSqlSyntax } from "./sql-syntax-checker-logic.js";
+import { loadSqlParser } from "../../shared/sql/sql-parser.js";
 
 /**
  * Pipeline-step adapter for the SQL Syntax Checker tool. Always checks against
@@ -17,7 +18,8 @@ export const pipelineStep: PipelineStep = {
     }
 
     try {
-      const result = checkSqlSyntax(input.value, 'postgresql');
+      const parser = await loadSqlParser('postgresql');
+      const result = checkSqlSyntax(parser, input.value, 'postgresql');
       const value = result.ok
         ? 'Valid SQL.'
         : `Syntax error: ${result.message}${result.location ? ` (line ${result.location.line}, column ${result.location.column})` : ''}`;

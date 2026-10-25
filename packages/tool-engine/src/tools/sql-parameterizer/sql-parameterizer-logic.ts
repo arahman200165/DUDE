@@ -3,13 +3,12 @@
  * `node-sql-parser`, replaces literal-value nodes with placeholder ("param")
  * nodes, and regenerates SQL from the transformed AST — rather than
  * regex-substituting literals in the raw text, which can't reliably tell a
- * literal apart from an identifier or a string containing SQL-like text.
+ * literal apart from an identifier or a string containing SQL-like text. The caller passes the
+ * parser loaded for `dialect` (`loadSqlParser`).
  */
-import esm_node_sql_parser from 'node-sql-parser';
-const { Parser } = esm_node_sql_parser;
-type Parser = InstanceType<typeof Parser>;
+import type { SqlDialect, SqlParser } from '../../shared/sql/sql-parser.js';
 
-export type SqlParameterizerDialect = 'mysql' | 'mariadb' | 'postgresql' | 'sqlite' | 'transactsql';
+export type SqlParameterizerDialect = SqlDialect;
 
 export const SQL_PARAMETERIZER_DIALECTS: readonly { readonly id: SqlParameterizerDialect; readonly label: string }[] = [
   { id: 'postgresql', label: 'PostgreSQL' },
@@ -59,10 +58,9 @@ export type SqlParameterizeResult =
   | { readonly ok: true; readonly sql: string; readonly values: readonly unknown[] }
   | { readonly ok: false; readonly error: string };
 
-export function parameterizeSql(sql: string, dialect: SqlParameterizerDialect, style: SqlParamStyle): SqlParameterizeResult {
+export function parameterizeSql(parser: SqlParser, sql: string, dialect: SqlParameterizerDialect, style: SqlParamStyle): SqlParameterizeResult {
   if (sql.trim() === '') return { ok: false, error: 'Enter some SQL.' };
 
-  const parser = new Parser();
   let ast: unknown;
   try {
     ast = parser.astify(sql, { database: dialect });
@@ -74,7 +72,7 @@ export function parameterizeSql(sql: string, dialect: SqlParameterizerDialect, s
   const transformed = walk(ast, values, style);
 
   try {
-    return { ok: true, sql: parser.sqlify(transformed as Parameters<Parser['sqlify']>[0], { database: dialect }), values };
+    return { ok: true, sql: parser.sqlify(transformed as Parameters<SqlParser['sqlify']>[0], { database: dialect }), values };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : 'Failed to regenerate SQL from the parameterized AST.' };
   }

@@ -11259,7 +11259,7 @@
     },
     {
       "source": "apps/web/src/app/tools/schema-diff/schema-diff.ts",
-      "line": 21,
+      "line": 22,
       "operation": "this.persistence.signal(\n    'schema-diff',\n    'after',\n    'session',\n    'CREATE TABLE users (id INT NOT NULL, name VARCHAR(255), email VARCHAR(255))',\n  )",
       "namespace": "schema-diff",
       "key": "after",
@@ -11273,7 +11273,7 @@
     },
     {
       "source": "apps/web/src/app/tools/schema-diff/schema-diff.ts",
-      "line": 20,
+      "line": 21,
       "operation": "this.persistence.signal('schema-diff', 'before', 'session', 'CREATE TABLE users (id INT NOT NULL, name VARCHAR(255))')",
       "namespace": "schema-diff",
       "key": "before",
@@ -11287,7 +11287,7 @@
     },
     {
       "source": "apps/web/src/app/tools/schema-diff/schema-diff.ts",
-      "line": 27,
+      "line": 28,
       "operation": "this.persistence.signal<SchemaDiffDialect>('schema-diff', 'dialect', 'local', 'postgresql')",
       "namespace": "schema-diff",
       "key": "dialect",
@@ -11693,7 +11693,7 @@
     },
     {
       "source": "apps/web/src/app/tools/sql-dialect-converter/sql-dialect-converter.ts",
-      "line": 21,
+      "line": 22,
       "operation": "this.persistence.signal('sql-dialect-converter', 'input', 'session', 'SELECT a, b FROM t WHERE x = 1 LIMIT 10')",
       "namespace": "sql-dialect-converter",
       "key": "input",
@@ -11707,7 +11707,7 @@
     },
     {
       "source": "apps/web/src/app/tools/sql-dialect-converter/sql-dialect-converter.ts",
-      "line": 22,
+      "line": 23,
       "operation": "this.persistence.signal<SqlConverterDialect>('sql-dialect-converter', 'from', 'local', 'mysql')",
       "namespace": "sql-dialect-converter",
       "key": "from",
@@ -11721,7 +11721,7 @@
     },
     {
       "source": "apps/web/src/app/tools/sql-dialect-converter/sql-dialect-converter.ts",
-      "line": 23,
+      "line": 24,
       "operation": "this.persistence.signal<SqlConverterDialect>('sql-dialect-converter', 'to', 'local', 'postgresql')",
       "namespace": "sql-dialect-converter",
       "key": "to",
@@ -11777,7 +11777,7 @@
     },
     {
       "source": "apps/web/src/app/tools/sql-parameterizer/sql-parameterizer.ts",
-      "line": 29,
+      "line": 30,
       "operation": "this.persistence.signal('sql-parameterizer', 'input', 'session', \"SELECT * FROM t WHERE x = 1 AND y = 'hello'\")",
       "namespace": "sql-parameterizer",
       "key": "input",
@@ -11791,7 +11791,7 @@
     },
     {
       "source": "apps/web/src/app/tools/sql-parameterizer/sql-parameterizer.ts",
-      "line": 30,
+      "line": 31,
       "operation": "this.persistence.signal<SqlParameterizerDialect>('sql-parameterizer', 'dialect', 'local', 'postgresql')",
       "namespace": "sql-parameterizer",
       "key": "dialect",
@@ -11805,7 +11805,7 @@
     },
     {
       "source": "apps/web/src/app/tools/sql-parameterizer/sql-parameterizer.ts",
-      "line": 31,
+      "line": 32,
       "operation": "this.persistence.signal<SqlParamStyle>('sql-parameterizer', 'style', 'local', 'question')",
       "namespace": "sql-parameterizer",
       "key": "style",
@@ -11819,7 +11819,7 @@
     },
     {
       "source": "apps/web/src/app/tools/sql-query-explainer/sql-query-explainer.ts",
-      "line": 17,
+      "line": 18,
       "operation": "this.persistence.signal(\n    'sql-query-explainer',\n    'input',\n    'session',\n    'SELECT a, COUNT(b) AS cnt FROM t1 JOIN t2 ON t1.id = t2.t1_id WHERE t1.x > 5 GROUP BY a HAVING COUNT(b) > 1 ORDER BY a DESC LIMIT 10',\n  )",
       "namespace": "sql-query-explainer",
       "key": "input",
@@ -11833,7 +11833,7 @@
     },
     {
       "source": "apps/web/src/app/tools/sql-query-explainer/sql-query-explainer.ts",
-      "line": 23,
+      "line": 24,
       "operation": "this.persistence.signal<SqlExplainerDialect>('sql-query-explainer', 'dialect', 'local', 'postgresql')",
       "namespace": "sql-query-explainer",
       "key": "dialect",
@@ -11847,7 +11847,7 @@
     },
     {
       "source": "apps/web/src/app/tools/sql-syntax-checker/sql-syntax-checker.ts",
-      "line": 18,
+      "line": 19,
       "operation": "this.persistence.signal('sql-syntax-checker', 'input', 'session', 'SELECT a, b FROM t WHERE x = 1')",
       "namespace": "sql-syntax-checker",
       "key": "input",
@@ -11861,7 +11861,7 @@
     },
     {
       "source": "apps/web/src/app/tools/sql-syntax-checker/sql-syntax-checker.ts",
-      "line": 19,
+      "line": 20,
       "operation": "this.persistence.signal<SqlCheckerDialect>('sql-syntax-checker', 'dialect', 'local', 'postgresql')",
       "namespace": "sql-syntax-checker",
       "key": "dialect",

@@ -57,6 +57,7 @@
               "node-forge",
               "railroad-diagrams",
               "async-lock",
+              "big-integer",
               "cbor-x",
               "clean-git-ref",
               "crc-32",
@@ -101,7 +102,7 @@
                 },
                 {
                   "type": "anyScript",
-                  "maximumWarning": "2.75MB",
+                  "maximumWarning": "2.4MB",
                   "maximumError": "3MB"
                 }
               ],

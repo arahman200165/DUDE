@@ -59,6 +59,10 @@
       } @else {
         <app-error-panel [message]="current.error" />
       }
+    } @else if (parserFailed()) {
+      <div role="alert"><app-error-panel message="The SQL parser could not be loaded." /></div>
+    } @else {
+      <p class="text-ui text-text-muted">Loading the {{ parserLabel() }} parser…</p>
     }
   </div>
 </app-tool-shell>
