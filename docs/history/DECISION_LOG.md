@@ -577,7 +577,7 @@ Every numbered section of the planning document has a home below. Requirements a
 | 33 | Deployment and Packaging | [Deployment and Packaging](../delivery/QUALITY_AND_RELEASE.md#deployment-and-packaging) |
 | 34 | Security Boundaries | [Trust Boundaries](../architecture/SECURITY_ARCHITECTURE.md#trust-boundaries) |
 | 35 | Non-Goals for the First Distributed Release | [Non-Goals for the First Distributed Release](../DUDE_PRD.md#non-goals-for-the-first-distributed-release) |
-| 36 | DUDE 2.0 Release Scope — Planned, Not Delivered | [DUDE 2.0 Release Scope — Planned, Not Delivered](../DUDE_PRD.md#dude-20-release-scope--planned-not-delivered) |
+| 36 | DUDE 2.0 Release Scope — Planned, Not Delivered | [DUDE 2.0 Release Scope — Delivered (Milestone 786)](../DUDE_PRD.md#dude-20-release-scope--delivered-milestone-786) |
 | 37 | Suggested Implementation Sequence | [Roadmap Direction](../delivery/ROADMAP.md#roadmap-direction) / Phases 31A–31J and 88 |
 | 38 | Relative Effort | [Roadmap Direction](../delivery/ROADMAP.md#roadmap-direction) / Relative effort |
 | 39 | Architectural Invariants | [Architectural Invariants](../DUDE_PRD.md#architectural-invariants) |

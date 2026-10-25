@@ -118,7 +118,7 @@ Common setup: a Hub on a machine you own with the owner signed in; at least two 
 ### H3. Windows toast and bell while signed out
 
 1. On a desktop, tick one kind under Settings › Environment & Hub › "OS notifications for Hub events" (all are off until chosen) and have the owner turn on "Can read Hub notifications" for that desktop on the Devices page (it needs step-up). Sign the owner out of the desktop, then close the window to the tray.
-2. Trigger a notification (H4) and confirm a Windows toast appears from the tray with the window closed.
+2. Trigger a notification and confirm a Windows toast appears from the tray with the window closed. The quickest trigger is a security alert, which is immediate: tick **A security alert was raised** in step 1, then enroll or revoke a spare device from Hub web. A backup failure (H4, **A scheduled backup failed**) also works but waits for the scheduler.
 3. Open the bell, read the notification and dismiss it. Revoke the reader grant and trigger another; confirm no toast and the bell explains it needs the owner.
 
 **Pass criterion:** the toast appears with the window closed and the owner signed out, read and dismiss state persists on the Hub, and revoking the grant stops delivery immediately. Record: Windows build, notification type, outcomes.
@@ -127,11 +127,16 @@ Common setup: a Hub on a machine you own with the owner signed in; at least two 
 
 ### H4. A real scheduled-backup failure reaching the bell
 
-1. On the Hub host set a real backup schedule to a folder the service account cannot write to (for example an unplugged external drive) with `dude-hub backup schedule set` from an elevated shell, using your normal passphrase flow.
-2. Wait for the scheduled attempt (or the Hub's retry window, which is the smaller of the interval and 6 hours). Confirm a **backup failed** notification reaches the bell on Hub web and a signed-in desktop without a reload, and that the Hub jobs card shows the backup job's last outcome.
-3. Restore the folder; confirm a **recovered** notification follows and the failure notification is not duplicated by retries.
+Timing: the scheduler checks every 10 minutes. A new schedule is due at the first check unless the Hub's last recorded backup run is newer than the interval; after a failure the next attempt waits the smaller of the interval and 6 hours, so `--every-hours 1` gives an attempt about every hour. `backup schedule set` creates the folder when it is set, so make the folder unwritable afterwards rather than pointing the schedule at a drive that is already missing.
 
-**Pass criterion:** exactly one failed notification (deduplicated by source key), one recovered notification, correct job outcomes, and no credential or path secret in the notification text. Record: schedule interval, notification timestamps, audit entries seen.
+1. On the Hub host, from an elevated shell, create a test folder and set the schedule to it with your normal passphrase flow:
+   `mkdir C:\DudeBackupTest` then `dude-hub backup schedule set --folder C:\DudeBackupTest --every-hours 1 --keep 2`.
+2. Deny the service account write access: `icacls C:\DudeBackupTest /deny "NT SERVICE\DudeHub:(OI)(CI)W"` (or schedule to an external drive and unplug it after the set).
+3. Wait for the next attempt. Confirm a **backup failed** notification ("A backup failed") reaches the bell on Hub web and on a signed-in desktop without a reload, and that `dude-hub backup schedule status` reports the failed run. The Hub jobs card shows the failed outcome only until the next 10-minute check, which records a skipped "not due yet" run over it.
+4. Leave it failing through one more attempt (about an hour later) and confirm that attempt adds a second failed notification: each failed attempt is its own audit row and so its own notification (PD-109 deduplicates by source key, which is the audit row).
+5. Restore access: `icacls C:\DudeBackupTest /remove:d "NT SERVICE\DudeHub"`. At the next attempt confirm a **recovered** notification ("Backups are working again") follows. Then `dude-hub backup schedule off` and delete the folder.
+
+**Pass criterion:** one failed notification per failed attempt and none for a skipped check, exactly one recovered notification after the first successful attempt, `backup schedule status` and the audit log agree with the attempts, and no credential or path in any notification text (a short error code such as `EPERM` or `EACCES` is allowed). Record: schedule interval, the attempt and notification timestamps, audit entries seen.
 
 **Result: Pending.**
 
@@ -170,10 +175,15 @@ Carets and selections of remote participants use category palette tokens (the na
 
 ### H8. A multi-hour Hub memory watch
 
-1. On the Hub host start the Hub, keep two browsers and one desktop connected to the collaboration socket with two documents open and a person typing in one every few minutes. Record the Hub process working set after 30 minutes, then hourly.
-2. Close the documents and the Markdown room; wait past the 5-minute room close and the 2-minute idle snapshot; record the working set again.
+Measure private bytes, not the working set: Windows trims working sets on its own, so they move without any change in the Hub. On an installed Hub the process is `dude-hub.exe` (`DudeHub.exe` is the WinSW wrapper and is not measured). Each reading is one PowerShell line:
 
-**Pass criterion (proposed here; adjust if the first run shows it is wrong):** after at least 4 hours the working set stays within 25 percent of the 30-minute reading while documents are open and returns near it after they are closed, snapshots are written only for edited documents, and no socket or document registry entry remains for closed documents. Record: hourly working set and open-socket counts.
+`$p = Get-Process dude-hub; '{0:u}  private {1} MB  sockets {2}' -f (Get-Date), [math]::Round($p.PrivateMemorySize64 / 1MB), @(Get-NetTCPConnection -OwningProcess $p.Id -State Established -ErrorAction SilentlyContinue).Count`
+
+1. On the Hub host start the Hub, keep two browsers and one desktop connected with a scratchpad note and a user script open in each (Live), and a Markdown Hub room joined from two of them. Type in the scratchpad note and the room every few minutes and leave the user script unedited. Take a reading at 30 minutes and then every hour, for at least 4 hours.
+2. Close the documents and leave the room on every client, keeping the clients open. Wait 10 minutes (past the 5-minute room close, the 2-minute idle snapshot and the 1-minute idle unload), then take a reading.
+3. Open the history drawer of the scratchpad note and of the unedited user script.
+
+**Pass criterion:** taking the 1-hour reading as the baseline (the first 30 minutes include start-up and JIT growth), private bytes do not climb steadily: no three consecutive hourly readings each rise over the one before, and no reading exceeds the baseline by more than 64 MB. After step 2 the reading is at or below the last reading with documents open. The established socket count does not grow over the watch while the same clients stay connected, and after step 2 it is lower: a Hub web browser closes its collaboration socket with its last document but keeps its realtime socket, so the count does not reach zero. History shows snapshots only for edited documents and none written during the watch for the unedited one. Record: every reading with its time, and the edit pattern.
 
 **Result: Pending.**
 
