@@ -33,6 +33,17 @@ export class HubWebSignOut {
   private readonly info = inject(HubWebSyncInfo);
   private readonly connection = inject(HubWebConnectionService);
 
+  /** Sends the sign-out request with the session-expiry redirect held back; a failed request releases it. */
+  async request<T>(signOut: () => Promise<T>): Promise<T> {
+    this.info.signingOut = true;
+    try {
+      return await signOut();
+    } catch (error) {
+      this.info.signingOut = false;
+      throw error;
+    }
+  }
+
   async completeSignOut(): Promise<void> {
     this.info.stopAll();
     this.connection.set('session-expired');

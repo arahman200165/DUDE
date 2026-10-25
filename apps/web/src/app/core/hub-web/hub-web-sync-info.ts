@@ -13,6 +13,11 @@ export class HubWebSyncInfo {
   lastPullAt: string | null = null;
   lastPushAt: string | null = null;
   pulling = false;
+  /**
+   * True while this page's own sign-out request is out. The Hub closes the page's sockets as it revokes the session, and
+   * the session-expiry redirect holds back so the sign-out can wipe and reload instead of racing it to the sign-in page.
+   */
+  signingOut = false;
   /** Reads the change feed now; set by the runtime once the realtime link exists. */
   pullNow: () => Promise<void> = () => Promise.resolve();
   private readonly listeners = new Set<() => void>();

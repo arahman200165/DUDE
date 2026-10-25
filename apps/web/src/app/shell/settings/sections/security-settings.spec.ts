@@ -12,7 +12,7 @@ async function setup(hostKind: 'desktop' | 'hub-web' = 'hub-web', prepare?: (adm
   prepare?.(admin);
   const completeSignOut = vi.fn(async () => undefined);
   TestBed.configureTestingModule({
-    providers: [provideRouter([]), { provide: HUB_ADMIN, useValue: admin }, { provide: PlatformService, useValue: { hostKind } }, { provide: HubWebSignOut, useValue: { completeSignOut } }],
+    providers: [provideRouter([]), { provide: HUB_ADMIN, useValue: admin }, { provide: PlatformService, useValue: { hostKind } }, { provide: HubWebSignOut, useValue: { completeSignOut, request: <T>(signOut: () => Promise<T>) => signOut() } }],
   });
   const navigateByUrl = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
   const fixture = TestBed.createComponent(SecuritySettings);

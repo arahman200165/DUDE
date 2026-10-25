@@ -57,7 +57,7 @@ export class HubOwnerSession {
     this.busy.set(true);
     let signedOut = false;
     try {
-      if (this.platform.hostKind === 'hub-web') await this.hub.signOut();
+      if (this.platform.hostKind === 'hub-web') await this.webSignOut.request(() => this.hub.signOut());
       else await this.hub.ownerSignOut();
       signedOut = true;
     } catch (error) {

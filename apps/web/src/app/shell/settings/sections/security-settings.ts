@@ -225,11 +225,12 @@ export class SecuritySettings {
     this.sessionsError.set('');
     try {
       if (session.current) {
-        await this.admin.ownerSignOut();
         if (this.platform.hostKind === 'hub-web') {
+          await this.webSignOut.request(() => this.admin.ownerSignOut());
           await this.webSignOut.completeSignOut();
           return;
         }
+        await this.admin.ownerSignOut();
         this.ownerSession.markSignedOut();
         this.sessionNotice.set('Signed out.');
       } else {

@@ -89,15 +89,16 @@ export function installTransferLock(appRef: ApplicationRef, result: Pick<HubWebB
   };
 }
 
+/** The session-expiry redirect to sign-in, skipped while this page signs itself out (that ends in its own wipe and reload). */
+function expiryRedirect(router: Router, sync: HubWebSyncInfo): () => void {
+  return () => {
+    if (!sync.signingOut) void router.navigate(['/hub/sign-in'], { queryParams: { returnUrl: router.url } });
+  };
+}
+
 /** The Hub web collaboration adapter, built when the first document opens (it needs the router for the sign-in redirect). */
 function hubCollabFactory(result: HubWebBootResult): () => CollabTransport {
-  return () => {
-    const router = inject(Router);
-    return createHubCollabTransport({
-      connection: result.connection,
-      goToSignIn: () => void router.navigate(['/hub/sign-in'], { queryParams: { returnUrl: router.url } }),
-    });
-  };
+  return () => createHubCollabTransport({ connection: result.connection, goToSignIn: expiryRedirect(inject(Router), result.sync) });
 }
 
 /** DI values for the application: the boot result, the connection state and the feedback queue created before bootstrap. */
@@ -152,7 +153,7 @@ export function startHubWebRuntime(appRef: ApplicationRef, result: HubWebBootRes
     cursor: boot.cursor,
     apply: (changes) => remote.apply(changes as AgentAppliedChange[]),
     snapshot: () => pageSnapshot(boot.engine.client),
-    goToSignIn: () => void router.navigate(['/hub/sign-in'], { queryParams: { returnUrl: router.url } }),
+    goToSignIn: expiryRedirect(router, result.sync),
     reload: () => location.reload(),
     onPulling: (pulling) => result.sync.setPulling(pulling),
     onProgress: ({ cursor, head }) => result.sync.notePull(cursor, head),
