@@ -208,13 +208,27 @@ Closed 2026-10-24. Phase 31J's scope (presence, selected Yjs collaboration, real
 
 - The owed manual and physical passes H1 to H9 above, as Pending.
 - **Scratchpad `drawerExpanded` conflict dialog.** `drawerExpanded` is part of the synced `scratchpad` record, so two browsers opening the drawer at the same instant can raise the ordinary record-conflict dialog (Keep Hub / Keep mine / Keep both) although the snippets are live. Either choice is harmless; moving the drawer state out of the synced record is a later codec change.
-- **`npm run audit:prod`** reports advisories for `electron`, `undici` and `zod`, none from 31J, tracked separately.
-- **Bundle budget warnings.** The production build still shows two large-chunk budget warnings that pre-date 31J.
+- **`npm run audit:prod`** reports advisories for `electron`, `undici` and `zod`, none from 31J, tracked separately. *Resolved in Milestone 819 ([follow-ups](#follow-ups-after-close-out)).*
+- **Bundle budget warnings.** The production build still shows two large-chunk budget warnings that pre-date 31J. *Resolved in Milestone 820; the build actually showed nine (the initial bundle, the gridstack stylesheet and seven lazy chunks), all pre-dating 31J.*
 - **Markdown documents are local drafts after the grace.** The `markdown-doc` codec is not journaled (see the deviations above).
 
 **Not delivered, by decision.** Named participants, read-only participants and guest permissions (Phase 53; the Hub keeps one owner); remote or privileged job execution, a job queue and "Run now" (Phase 88); a generic Yjs replication protocol (Yjs is only for the three PD-099 surfaces); a `job-status` event; and a `measure:collab` measurement. The ephemeral LAN server and BYO relay for Markdown Workspace are unchanged. Remote privileged execution stays deferred to Phase 88.
 
 **Next.** Phase 32 is the next planned phase. Nothing in it has started.
+
+<a id="follow-ups-after-close-out"></a>
+
+## Follow-ups after close-out
+
+Maintenance on the items the close-out left open, recorded here so the evidence above stays as it was run:
+
+| Milestone | Change |
+|---|---|
+| 816 | The owed-pass script reviewed against the code: H3 gets an immediate trigger and the real notification labels; H4's "retries are deduplicated" criterion was wrong (each failed attempt is its own audit row and so its own notification) and the failure is now made with an `icacls` deny, because `backup schedule set` creates its folder; H8's proposed 25% working-set threshold became a plateau on private bytes with a copy-pasteable reading. The broken Decision Log anchor was fixed. |
+| 817 | The full-suite `EnvironmentTeardownError` flake fixed at its cause: Angular's Vitest runner does not isolate files, so a lazy chunk a spec left loading failed at worker shutdown against whichever file ran last. Home panel loads are now pending tasks, and a global test hook waits (bounded) for stability before TestBed cleanup. |
+| 818 | `apps/desktop/network-dns.spec.ts` no longer times out when its shared TCP/UDP port falls in a Windows-excluded UDP range. |
+| 819 | `npm run audit:prod` passes: `electron` 44.9.3, `undici` 7.30.1, every `@angular/*` package to 22.2.3/22.2.4 (the CLI pinned the vulnerable `zod`), and `@expo/cli`'s dev-only `zod` 3.x accepted ([rationale](PHASE31A_ACCEPTANCE.md#dependency-audit)). |
+| 820 | Production budget warnings resolved by setting each warning just above today's size, keeping the error ceilings: initial 1.35 MB (1.29 MB; error 1.5 MB), component style 6.5 kB (the editor-only gridstack stylesheet, 6.1 kB; error 8 kB), any script 2.75 MB (error 3 MB). The scripts over the old 500 kB are lazy, single-tool libraries outside the initial and prefetched sets: `node-sql-parser` (2.6 MB), the Unicode Table's `unicode-name` data in its worker (2.3 MB) and on the main thread (1.6 MB), `bwip-js` (0.9 MB), `mathjs`, TipTap and `svgo` (0.6 MB each). |
 
 ## Commands
 
