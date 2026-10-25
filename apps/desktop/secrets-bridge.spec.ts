@@ -2,6 +2,7 @@ const mock = vi.hoisted(() => ({
   handlers: new Map<string, (...args: any[]) => unknown>(),
   ready: true,
   encryption: true,
+  reEncrypt: false,
   rows: new Map<string, { ciphertext: Uint8Array; needsReentry: boolean }>(),
   calls: [] as string[],
 }));
@@ -9,12 +10,12 @@ const mock = vi.hoisted(() => ({
 vi.mock('electron', () => ({
   ipcMain: { handle: (channel: string, handler: (...args: any[]) => unknown) => mock.handlers.set(channel, handler) },
   safeStorage: {
-    isEncryptionAvailable: () => mock.encryption,
+    isAsyncEncryptionAvailable: async () => mock.encryption,
     // Reversible stand-in: the "ciphertext" is the reversed UTF-8 bytes behind a marker.
-    encryptString: (value: string) => Buffer.concat([Buffer.from('enc:'), Buffer.from(value, 'utf8').reverse()]),
-    decryptString: (buffer: Buffer) => {
+    encryptStringAsync: async (value: string) => Buffer.concat([Buffer.from('enc:'), Buffer.from(value, 'utf8').reverse()]),
+    decryptStringAsync: async (buffer: Buffer) => {
       if (!buffer.subarray(0, 4).equals(Buffer.from('enc:'))) throw new Error('cannot decrypt');
-      return Buffer.from(buffer.subarray(4)).reverse().toString('utf8');
+      return { result: Buffer.from(buffer.subarray(4)).reverse().toString('utf8'), shouldReEncrypt: mock.reEncrypt };
     },
   },
 }));
@@ -50,6 +51,7 @@ describe('secrets bridge', () => {
     mock.calls = [];
     mock.ready = true;
     mock.encryption = true;
+    mock.reEncrypt = false;
     registerSecretsHandlers(window as never);
   });
 
@@ -109,6 +111,16 @@ describe('secrets bridge', () => {
     expect(await getSecretValue(PURPOSE)).toBe('other-secret-value');
     expect(await removeSecret(PURPOSE)).toEqual({ ok: true });
     expect(await getSecretValue(PURPOSE)).toBeNull();
+  });
+
+  it('re-encrypts in place when the OS asks for it after a key rotation, still returning the value', async () => {
+    await setSecretValue(PURPOSE, KEY);
+    mock.calls = [];
+    mock.reEncrypt = true;
+    expect(await getSecretValue(PURPOSE)).toBe(KEY);
+    expect(mock.calls).toEqual(['secrets.getCiphertext', 'secrets.set']);
+    mock.reEncrypt = false;
+    expect(await getSecretValue(PURPOSE)).toBe(KEY);
   });
 
   it('status carries a masked hint that never contains the value', async () => {

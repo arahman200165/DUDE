@@ -12,9 +12,9 @@ const electron = vi.hoisted(() => ({
   powerMonitor: { on: vi.fn() },
   safeStorage: {
     available: true,
-    isEncryptionAvailable() { return this.available; },
+    async isAsyncEncryptionAvailable() { return this.available; },
     // Reversible stand-in for the OS keychain: "ciphertext" is the reversed UTF-8 bytes behind a marker.
-    decryptString(buffer: Buffer) { return Buffer.from(buffer.subarray(4)).reverse().toString('utf8'); },
+    async decryptStringAsync(buffer: Buffer) { return { result: Buffer.from(buffer.subarray(4)).reverse().toString('utf8'), shouldReEncrypt: false }; },
   },
 }));
 vi.mock('electron', () => electron);

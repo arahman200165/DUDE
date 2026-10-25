@@ -20,17 +20,26 @@ export async function getSecretValue(purpose: SecretPurpose): Promise<string | n
   try {
     const { ciphertext } = await storeCall('secrets.getCiphertext', { purpose });
     if (!ciphertext) return null;
-    return safeStorage.decryptString(Buffer.from(ciphertext));
+    const { result, shouldReEncrypt } = await safeStorage.decryptStringAsync(Buffer.from(ciphertext));
+    if (shouldReEncrypt) await reEncrypt(purpose, result);
+    return result;
   } catch {
     return null;
   }
 }
 
+/** The OS key rotated or a stronger one became available: store fresh ciphertext. Best effort, the old ciphertext still decrypts. */
+async function reEncrypt(purpose: SecretPurpose, value: string): Promise<void> {
+  try {
+    await storeCall('secrets.set', { purpose, ciphertext: new Uint8Array(await safeStorage.encryptStringAsync(value)) });
+  } catch { /* keep the old ciphertext */ }
+}
+
 export async function setSecretValue(purpose: SecretPurpose, value: string): Promise<SecretWriteResult> {
   if (!isDeviceStoreReady()) return { ok: false, error: 'store-unavailable' };
-  if (!safeStorage.isEncryptionAvailable()) return { ok: false, error: 'encryption-unavailable' };
+  if (!(await safeStorage.isAsyncEncryptionAvailable())) return { ok: false, error: 'encryption-unavailable' };
   try {
-    await storeCall('secrets.set', { purpose, ciphertext: new Uint8Array(safeStorage.encryptString(value)) });
+    await storeCall('secrets.set', { purpose, ciphertext: new Uint8Array(await safeStorage.encryptStringAsync(value)) });
     return { ok: true };
   } catch {
     return { ok: false, error: 'store-unavailable' };

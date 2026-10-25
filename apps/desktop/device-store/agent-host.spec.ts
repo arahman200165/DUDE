@@ -1,6 +1,6 @@
 vi.mock('electron', () => ({
   app: { getVersion: () => '1.0.0' },
-  safeStorage: { isEncryptionAvailable: () => true },
+  safeStorage: { isAsyncEncryptionAvailable: async () => true },
 }));
 
 import { startDeviceAgent, DeviceStoreError } from './agent-host';

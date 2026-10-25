@@ -1,6 +1,6 @@
 vi.mock('electron', () => ({
   app: { getVersion: () => '1.0.0', isPackaged: false },
-  safeStorage: { isEncryptionAvailable: () => true },
+  safeStorage: { isAsyncEncryptionAvailable: async () => true },
   ipcMain: { handle: vi.fn(), on: vi.fn(), removeListener: vi.fn() },
 }));
 

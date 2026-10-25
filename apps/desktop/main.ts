@@ -175,7 +175,7 @@ async function startDeviceStore(): Promise<void> {
     const host = await startDeviceAgent({
       userDataDir: app.getPath('userData'),
       appInfo: currentAppInfo(),
-      capabilities: deviceCapabilities(),
+      capabilities: await deviceCapabilities(),
     });
     setDeviceStoreHost(host);
   } catch {

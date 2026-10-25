@@ -129,8 +129,8 @@
     "@noble/hashes": "^2.4.0",
     "@paralleldrive/cuid2": "^3.3.0",
     "@sindresorhus/slugify": "^3.0.1",
-    "@tiptap/core": "^3.31.3",
-    "@tiptap/starter-kit": "^3.31.3",
+    "@tiptap/core": "^3.32.0",
+    "@tiptap/starter-kit": "^3.32.0",
     "@zxing/library": "^0.23.0",
     "ajv": "^8.20.0",
     "base-x": "^5.0.1",
@@ -209,7 +209,7 @@
     "y-codemirror.next": "0.3.6",
     "y-protocols": "^1.0.7",
     "yaml": "^2.9.1",
-    "yjs": "^13.6.32"
+    "yjs": "^13.6.33"
   },
   "devDependencies": {
     "@angular/build": "^22.2.4",
@@ -233,12 +233,12 @@
     "@types/semver": "^7.8.0",
     "@types/sql.js": "^1.4.11",
     "@types/ws": "^8.18.1",
-    "@typescript-eslint/eslint-plugin": "^8.70.1",
-    "@typescript-eslint/parser": "^8.70.1",
+    "@typescript-eslint/eslint-plugin": "^8.71.0",
+    "@typescript-eslint/parser": "^8.71.0",
     "avsc": "^5.7.9",
     "concurrently": "^10.0.5",
     "cross-env": "^10.1.0",
-    "electron": "^44.0.0",
+    "electron": "^45.0.0",
     "electron-builder": "^26.15.3",
     "esbuild": "^0.28.2",
     "eslint": "^10.11.0",
@@ -254,7 +254,6 @@
     "wait-on": "^9.1.0"
   },
   "allowScripts": {
-    "electron@44.9.3": true,
     "esbuild@0.28.2": true,
     "esbuild@0.24.2": true,
     "@parcel/watcher@2.6.0": true,

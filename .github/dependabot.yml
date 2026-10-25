@@ -4,8 +4,19 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # Packages that only work at one shared version: a lone bump leaves two copies in the lockfile and breaks the build.
+    groups:
+      tiptap:
+        patterns: ['@tiptap/*']
+      typescript-eslint:
+        patterns: ['@typescript-eslint/*', 'typescript-eslint']
+      angular:
+        patterns: ['@angular/*', '@angular-devkit/*']
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    groups:
+      artifact-actions:
+        patterns: ['actions/upload-artifact', 'actions/download-artifact']

@@ -34,9 +34,9 @@ async function readStore(path: string): Promise<Record<string, string> | null> {
   return store;
 }
 
-function decrypt(encoded: string | undefined): string | null {
+async function decrypt(encoded: string | undefined): Promise<string | null> {
   if (!encoded) return null;
-  try { return safeStorage.decryptString(Buffer.from(encoded, 'base64')); } catch { return null; }
+  try { return (await safeStorage.decryptStringAsync(Buffer.from(encoded, 'base64'))).result; } catch { return null; }
 }
 
 async function moveToRecovery(userData: string): Promise<void> {
@@ -70,9 +70,9 @@ export async function importLegacySecureStore(userData: string): Promise<void> {
 
       const hasProviderFields = store[KEY_BASE_URL] !== undefined || store[KEY_MODEL] !== undefined;
       if (hasProviderFields && (await storeCall('docs.get', { name: AI_PROVIDER_DOC })) === null) {
-        if (safeStorage.isEncryptionAvailable()) {
-          const baseUrl = decrypt(store[KEY_BASE_URL]);
-          const model = decrypt(store[KEY_MODEL]);
+        if (await safeStorage.isAsyncEncryptionAvailable()) {
+          const baseUrl = await decrypt(store[KEY_BASE_URL]);
+          const model = await decrypt(store[KEY_MODEL]);
           const doc = decodeAiProvider({ baseUrl: validBaseUrl(baseUrl) ? baseUrl : '', model: validModel(model) ? model : '' });
           if (doc && (doc.baseUrl || doc.model)) await storeCall('docs.set', { name: AI_PROVIDER_DOC, value: doc });
         } else {

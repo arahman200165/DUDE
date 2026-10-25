@@ -87,9 +87,9 @@ function productionTransport(opts: StartOptions): AgentTransport {
   });
 }
 
-export function deviceCapabilities(): DeviceCapabilities {
+export async function deviceCapabilities(): Promise<DeviceCapabilities> {
   let secureStorage = false;
-  try { secureStorage = safeStorage.isEncryptionAvailable(); } catch { /* not available before ready on some hosts */ }
+  try { secureStorage = await safeStorage.isAsyncEncryptionAvailable(); } catch { /* not available before ready on some hosts */ }
   return { desktop: true, filesystem: true, processes: process.platform === 'win32', secureStorage };
 }
 
