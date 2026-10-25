@@ -52,7 +52,7 @@
     "xxhash-wasm": "^1.1.0",
     "y-codemirror.next": "0.3.6",
     "y-protocols": "^1.0.7",
-    "yjs": "^13.6.32"
+    "yjs": "^13.6.33"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.6.0",
