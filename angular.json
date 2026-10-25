@@ -132,7 +132,8 @@
           "builder": "@angular/build:unit-test",
           "options": {
             "setupFiles": [
-              "apps/web/src/testing/fast-check.setup.ts"
+              "apps/web/src/testing/fast-check.setup.ts",
+              "apps/web/src/testing/settle-before-teardown.setup.ts"
             ],
             "runnerConfig": "vitest.angular.config.mts"
           }

@@ -1,4 +1,4 @@
-import { Component, Injector, OnInit, Type, computed, inject, input, signal } from '@angular/core';
+import { Component, Injector, OnInit, PendingTasks, Type, computed, inject, input, signal } from '@angular/core';
 import { NgComponentOutlet } from '@angular/common';
 import { PanelInstance } from "@dude/domain/core/home-layout/home-layout.model";
 import { PanelRegistryService } from '../../../core/registry/panel-registry.service';
@@ -25,6 +25,7 @@ import type { PanelDefinition } from "@dude/domain/shared/models/panel-definitio
 export class PanelSlot implements OnInit {
   private readonly registry = inject(PanelRegistryService);
   private readonly parent = inject(Injector);
+  private readonly pendingTasks = inject(PendingTasks);
 
   readonly def = input.required<PanelDefinition>();
   readonly instance = input.required<PanelInstance>();
@@ -37,6 +38,7 @@ export class PanelSlot implements OnInit {
       parent: this.parent,
       providers: [{ provide: PANEL_CONTEXT, useValue: { instanceId: this.instance().id, config: computed(() => this.instance().config) } }],
     });
-    void this.registry.loadComponent(this.def()).then((c) => this.component.set(c));
+    // A pending task, like an `@defer` load: the app is not stable until the panel's chunk has loaded.
+    void this.pendingTasks.run(() => this.registry.loadComponent(this.def()).then((c) => this.component.set(c)));
   }
 }
