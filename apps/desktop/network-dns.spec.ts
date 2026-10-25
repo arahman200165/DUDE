@@ -72,13 +72,28 @@ describe('DNS wire client', () => {
         socket.end(Buffer.concat([length, answer]));
       });
     });
-    await new Promise<void>((resolve) => tcp.listen(0, '127.0.0.1', resolve));
+    // TCP and UDP must share one port. An ephemeral TCP port can sit in a UDP range Windows has excluded
+    // (Hyper-V/WinNAT reservations), where the UDP bind fails with EACCES, so try fresh ports until one fits.
+    let port = 0;
+    for (let attempt = 0; port === 0; attempt += 1) {
+      await new Promise<void>((resolve) => tcp.listen(0, '127.0.0.1', resolve));
+      const candidate = (tcp.address() as AddressInfo).port;
+      const udp = createSocket('udp4');
+      udp.on('message', (query, sender) => udp.send(respond(query, [], 0x8380), sender.port, sender.address));
+      const bound = await new Promise<boolean>((resolve) => {
+        udp.once('error', () => resolve(false));
+        udp.bind(candidate, '127.0.0.1', () => resolve(true));
+      });
+      if (bound) {
+        port = candidate;
+        closers.push(() => udp.close());
+      } else {
+        udp.close();
+        await new Promise<void>((resolve) => tcp.close(() => resolve()));
+        if (attempt >= 20) throw new Error('No port free for both TCP and UDP');
+      }
+    }
     closers.push(() => tcp.close());
-    const port = (tcp.address() as AddressInfo).port;
-    const udp = createSocket('udp4');
-    udp.on('message', (query, sender) => udp.send(respond(query, [], 0x8380), sender.port, sender.address));
-    await new Promise<void>((resolve) => udp.bind(port, '127.0.0.1', resolve));
-    closers.push(() => udp.close());
     const result = await queryDns({ kind: 'dns-lookup', target: 'big.test', recordType: 'TXT', resolver: `127.0.0.1:${port}` }, new AbortController().signal);
     expect(result.diagnostics.retriedOverTcp).toBe(true);
     expect(result.answers[0].value).toBe('hello');
