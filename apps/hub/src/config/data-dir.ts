@@ -18,6 +18,10 @@ export interface HubPaths {
   /** Its pre-upgrade copies; a subdirectory so the Hub database's pre-migration pruning never counts them. */
   saveSpherePreMigrationDir: string;
   storageDir: string;
+  /** Content-addressed blobs (32-SS1, Milestone 833): `storage/blobs/<aa>/<bb>/<sha256>`; created lazily by the BlobStore, never by `ensureLayout`. */
+  blobsDir: string;
+  /** Where a blob `put` stages its `.part` file; the same volume as `blobsDir` so the final link is atomic. */
+  stagingDir: string;
   backupsDir: string;
   configDir: string;
   tlsDir: string;
@@ -48,6 +52,8 @@ export function hubPaths(root: string): HubPaths {
     saveSphereDbPath: path.join(root, 'data', 'savesphere.db'),
     saveSpherePreMigrationDir: path.join(root, 'data', 'pre-migration', 'savesphere'),
     storageDir: path.join(root, 'storage'),
+    blobsDir: path.join(root, 'storage', 'blobs'),
+    stagingDir: path.join(root, 'storage', 'staging'),
     backupsDir: path.join(root, 'backups'),
     configDir: path.join(root, 'config'),
     tlsDir: path.join(root, 'config', 'tls'),

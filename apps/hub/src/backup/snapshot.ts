@@ -30,8 +30,12 @@ export const HUB_KEPT_TABLES = [
  */
 export const SAVESPHERE_SCRUBBED_TABLES = ['audit_outbox'] as const;
 
-/** `savesphere.db` tables kept as is. Each content table added by a later milestone is classified here or above, never silently. */
-export const SAVESPHERE_KEPT_TABLES = ['meta', 'schema_migrations'] as const;
+/**
+ * `savesphere.db` tables kept as is. Each content table added by a later milestone is classified here or above, never silently.
+ * `blobs` and `blob_refs` (Milestone 833) are kept content metadata; the blob bytes and the transient `meta` `blob_lease:*` keys are the
+ * backup engine's concern (Milestone 847).
+ */
+export const SAVESPHERE_KEPT_TABLES = ['meta', 'schema_migrations', 'blobs', 'blob_refs'] as const;
 
 /** Exact meta keys removed from the snapshot copy. */
 export const SCRUBBED_META_KEYS = ['csrf_key', 'alerts_seen_seq', 'hub_addresses', 'reachability_last', 'acme_last_attempt'] as const;

@@ -17,7 +17,7 @@ const v2: Migration = { version: 2, name: 'later', minReaderVersion: 2, sql: 'CR
 
 describe('savesphere.db migration 0001 platform', () => {
   it('is registered and floors the reader at its own version', () => {
-    expect(SAVESPHERE_MIGRATIONS).toEqual([saveSphereMigration0001]);
+    expect(SAVESPHERE_MIGRATIONS[0]).toBe(saveSphereMigration0001);
     expect(saveSphereMigration0001).toMatchObject({ version: 1, name: 'platform', minReaderVersion: 1 });
   });
 
@@ -25,10 +25,10 @@ describe('savesphere.db migration 0001 platform', () => {
     expect(checksumOf(saveSphereMigration0001)).toBe('4e43a6221dc62d20014b2237ef1425916d5b85707a86eabdd18690cf0c9e652f');
   });
 
-  it('creates only meta, schema_migrations and audit_outbox in data/savesphere.db, WAL and foreign keys on', () => {
+  it('creates only meta, schema_migrations and audit_outbox (as its own sequence) in data/savesphere.db, WAL and foreign keys on', () => {
     const p = paths();
     expect(p.saveSphereDbPath).toBe(path.join(p.dataDir, 'savesphere.db'));
-    const opened = openSaveSphereDb(p);
+    const opened = openSaveSphereDb(p, { migrations: [saveSphereMigration0001] });
     if (opened.status !== 'ready') throw new Error('expected ready');
     const { db } = opened.store;
     expect(existsSync(p.saveSphereDbPath)).toBe(true);
@@ -47,17 +47,17 @@ describe('savesphere.db migration 0001 platform', () => {
 
   it('is a no-op on reopen and takes a pre-migration copy of a populated store when upgrading', () => {
     const p = paths();
-    const first = openSaveSphereDb(p);
+    const first = openSaveSphereDb(p, { migrations: [saveSphereMigration0001] });
     if (first.status !== 'ready') throw new Error('expected ready');
     first.store.close();
 
-    const again = openSaveSphereDb(p);
+    const again = openSaveSphereDb(p, { migrations: [saveSphereMigration0001] });
     if (again.status !== 'ready') throw new Error('expected ready');
     expect(again.store.db.prepare('SELECT COUNT(*) AS n FROM schema_migrations WHERE version = 1').get()).toEqual({ n: 1 });
     expect(existsSync(p.saveSpherePreMigrationDir)).toBe(false);
     again.store.close();
 
-    const upgraded = openSaveSphereDb(p, { migrations: [...SAVESPHERE_MIGRATIONS, v2] });
+    const upgraded = openSaveSphereDb(p, { migrations: [saveSphereMigration0001, v2] });
     if (upgraded.status !== 'ready') throw new Error('expected ready');
     expect(getMeta(upgraded.store.db, 'schema_version')).toBe('2');
     upgraded.store.close();
@@ -68,21 +68,21 @@ describe('savesphere.db migration 0001 platform', () => {
 
   it('makes a Hub that predates a raised reader floor refuse the store', () => {
     const p = paths();
-    const newer = openSaveSphereDb(p, { migrations: [...SAVESPHERE_MIGRATIONS, v2] });
+    const newer = openSaveSphereDb(p, { migrations: [saveSphereMigration0001, v2] });
     if (newer.status !== 'ready') throw new Error('expected ready');
     expect(getMeta(newer.store.db, 'min_reader_version')).toBe('2');
     newer.store.close();
-    expect(latestVersion(SAVESPHERE_MIGRATIONS)).toBe(1);
-    const refused = openSaveSphereDb(p);
+    expect(latestVersion([saveSphereMigration0001])).toBe(1);
+    const refused = openSaveSphereDb(p, { migrations: [saveSphereMigration0001] });
     expect(refused).toMatchObject({ status: 'incompatible', path: p.saveSphereDbPath });
   });
 
   it('refuses a store whose applied migration was edited (checksum mismatch)', () => {
     const p = paths();
-    const first = openSaveSphereDb(p);
+    const first = openSaveSphereDb(p, { migrations: [saveSphereMigration0001] });
     if (first.status !== 'ready') throw new Error('expected ready');
     first.store.db.exec("UPDATE schema_migrations SET checksum = 'tampered' WHERE version = 1");
     first.store.close();
-    expect(openSaveSphereDb(p)).toMatchObject({ status: 'corrupt' });
+    expect(openSaveSphereDb(p, { migrations: [saveSphereMigration0001] })).toMatchObject({ status: 'corrupt' });
   });
 });

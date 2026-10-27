@@ -22,6 +22,7 @@ export const HUB_AUDIT_EVENTS = [
   'backup.create-previewed', 'backup.created', 'backup.failed', 'backup.transferred', 'backup.reactivated',
   'backup.restore-previewed', 'backup.restored', 'backup.scheduled', 'backup.pruned',
   'collab.history-restored', 'collab.document-kept', 'collab.document-deleted',
+  'blobs.verify-failed', 'blobs.gc-applied',
 ] as const;
 export type HubAuditEvent = (typeof HUB_AUDIT_EVENTS)[number];
 
