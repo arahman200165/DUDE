@@ -4,7 +4,7 @@ import { startTestHub } from '../server/test-helpers.js';
 import type { TestHub } from '../server/test-helpers.js';
 import { ANONYMOUS_SESSION_ALLOWLIST, INGEST_ALLOWLIST_PROBE_PATH, findGatingException } from './route-gating-allowlist.js';
 
-/** The fixture Milestone 844's enumerate-and-probe gating spec consumes (PD-122, PD-144). */
+/** The fixture the enumerate-and-probe gating spec (`server/route-gating.spec.ts`, Milestone 844) consumes (PD-122, PD-144). */
 describe('anonymous-session allowlist fixture', () => {
   const registered = new Set<string>();
   let hub: TestHub;
@@ -15,11 +15,13 @@ describe('anonymous-session allowlist fixture', () => {
 
   it('lists exactly the documented exceptions so far, each with a reason and a declared credential type from the closed list', () => {
     expect(ANONYMOUS_SESSION_ALLOWLIST.map((e) => `${e.method} ${e.path}`)).toEqual([
-      'GET /api/v1/hello', 'POST /api/v1/auth/sign-in', 'POST /api/v1/auth/recover', 'POST /api/v1/owner/reset',
-      'GET /api/v1/auth/oidc/status', 'POST /api/v1/auth/oidc/start', 'GET /api/v1/auth/oidc/callback', '* /api/v1/ingest/',
+      'GET /api/v1/hello', 'GET /api/v1/tls/certificates', 'POST /api/v1/bootstrap', 'POST /api/v1/auth/sign-in', 'POST /api/v1/auth/recover', 'POST /api/v1/owner/reset',
+      'GET /api/v1/auth/oidc/status', 'POST /api/v1/auth/oidc/start', 'GET /api/v1/auth/oidc/callback',
+      'POST /api/v1/devices/enroll', 'POST /api/v1/auth/device/challenge', 'POST /api/v1/auth/device/token', '* /api/v1/ingest/',
     ]);
     for (const entry of ANONYMOUS_SESSION_ALLOWLIST) {
       expect(entry.reason.length).toBeGreaterThan(20);
+      expect(entry.category.length).toBeGreaterThan(0);
       expect(entry.credentials.length).toBeGreaterThan(0);
       for (const credential of entry.credentials) expect(HUB_CREDENTIAL_TYPES).toContain(credential);
     }

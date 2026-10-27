@@ -9,6 +9,7 @@ Web-companion offline machinery (DUDE_PRD.md §21 Phase 26 Items 1–5 and 10). 
 ## Rules
 
 - **Stock `@angular/service-worker` only.** No custom service worker, and no writing to ngsw's caches except deleting entries, which ngsw tolerates by re-fetching lazily. Caching is always "fetch it and let ngsw store it".
+  - The one exception is the Hub build's `hub-worker.js` (`apps/hub/web-static`, Milestone 844): the stock worker unchanged plus a wrapper that answers a page navigation with the pre-cached `/offline.html` while the Hub is unreachable. It reads caches and never writes one, is registered only when `BUILD_HOST === 'hub'`, and GitHub Pages keeps `ngsw-worker.js`.
 - **Never touch user data.** localStorage, sessionStorage, and IndexedDB are out of bounds here. "Clear all local data" lives in Data & Privacy (`core/workspace/clear-all-data.ts`).
 - **Destructive actions are two-step.** `plan*()` is pure. `execute(plan)` is the only mutator and is only called from an explicit Confirm. `cache-inspector.confirmation-boundary.spec.ts` guards this, so keep it green and extend it when adding an action.
 - **Inert off the web.** On desktop (no service worker, runtimes shipped locally) and in dev builds, `enabled` is false and readiness is `'unknown'`, which every caller treats as available.

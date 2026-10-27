@@ -35,7 +35,7 @@ const CONTENT_TYPES: Readonly<Record<string, string>> = {
 const COMPRESSIBLE = new Set(['.js', '.mjs', '.css', '.html', '.json', '.svg', '.wasm', '.txt', '.map', '.webmanifest']);
 
 /** Service worker files must always revalidate, even when a name happens to look content-hashed. */
-const NO_CACHE_NAMES = new Set(['ngsw-worker.js', 'ngsw.json', 'safety-worker.js', 'worker-basic.min.js']);
+const NO_CACHE_NAMES = new Set(['ngsw-worker.js', 'ngsw.json', 'safety-worker.js', 'worker-basic.min.js', 'hub-worker.js', 'hub-offline-logic.js']);
 
 type Encoding = 'br' | 'gzip';
 const VARIANTS: ReadonlyArray<{ encoding: Encoding; ext: string; suffix: string }> = [

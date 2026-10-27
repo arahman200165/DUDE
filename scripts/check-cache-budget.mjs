@@ -62,7 +62,10 @@ console.log(`\nPrefetched ("${PREFETCH_GROUP_NAME}") total: ${formatBytes(prefet
 // Group coverage (Phase 26 Items 1-3 verification): every deployed file must belong to some asset
 // group, or it silently breaks offline. template-renderer's ejs.min.js did exactly that until
 // Milestone 483. Only the service worker's own files and the GitHub Pages SPA fallback are exempt.
-const UNCACHED_ALLOWLIST = new Set(['404.html', 'ngsw.json', 'ngsw-worker.js', 'safety-worker.js', 'worker-basic.min.js']);
+const UNCACHED_ALLOWLIST = new Set(['404.html', 'ngsw.json', 'ngsw-worker.js', 'safety-worker.js', 'worker-basic.min.js',
+  // The Hub build's own worker wrapper and its pure logic (apps/hub/web-static, Milestone 844): the browser fetches them itself, never through ngsw.
+  'hub-worker.js', 'hub-offline-logic.js',
+]);
 const cachedUrls = new Set(
   (ngsw.assetGroups ?? []).flatMap((group) =>
     group.urls.map((url) => (url.startsWith(basePrefix) ? url.slice(basePrefix.length) : url.replace(/^\//, ''))),

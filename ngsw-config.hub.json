@@ -12,6 +12,7 @@
           "/index.html",
           "/manifest.webmanifest",
           "/offline-map.json",
+          "/offline.html",
           "/*.css",
           "/main-*.js"
         ]

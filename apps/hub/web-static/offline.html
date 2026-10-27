@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>DUDE Hub is offline</title>
+<!--
+  The Hub-offline page (32-SS1, Milestone 844, PD-123, PD-144). A static, public, dependency-free asset: the Angular service worker pre-caches it and
+  the Hub worker (hub-worker.js) serves it when the Hub cannot be reached after this browser has loaded DUDE here before.
+
+  Why no design tokens: it is served from the service worker cache with no application CSS, theme store or JavaScript bundle, so it uses a tiny inline
+  stylesheet with the browser's own system colors. `color-scheme: light dark` makes those colors follow `prefers-color-scheme`.
+
+  It holds no application data and reads none: the only thing it shows about the Hub is the address bar's own host name.
+-->
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; background: Canvas; color: CanvasText; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { width: 100%; max-width: 34rem; padding: 24px; border: 1px solid GrayText; border-radius: 6px; }
+  h1 { margin: 0 0 12px; font-size: 1.375rem; line-height: 1.25; }
+  p { margin: 0 0 12px; }
+  .address { padding: 8px 12px; border: 1px solid GrayText; border-radius: 4px; font: 0.9375rem ui-monospace, SFMono-Regular, Consolas, monospace; overflow-wrap: anywhere; }
+  .muted { color: GrayText; }
+  button { margin: 4px 0 16px; padding: 8px 16px; font: inherit; color: ButtonText; background: ButtonFace; border: 1px solid ButtonText; border-radius: 4px; cursor: pointer; }
+  button:focus-visible { outline: 2px solid Highlight; outline-offset: 2px; }
+  button[disabled] { cursor: progress; }
+  [role="status"] { min-height: 1.5em; }
+  @media (prefers-color-scheme: dark) { main { border-color: GrayText; } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none; animation: none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Your DUDE Hub is offline</h1>
+  <p>Your browser could not reach the Hub. It lives on your own computer, so it is unavailable while that computer is off, asleep or restarting.</p>
+  <p class="muted">Hub address</p>
+  <p class="address" id="address">This site</p>
+  <button type="button" id="retry">Retry</button>
+  <p role="status" aria-live="polite" id="status"></p>
+  <p class="muted">DUDE on your desktop and the DUDE Android app keep working from their local copies. Anything you capture meanwhile is queued on the device and waits until the Hub is back.</p>
+  <p class="muted">Nothing from your DUDE data is stored on this page.</p>
+</main>
+<script>
+(function () {
+  var address = document.getElementById('address');
+  var retry = document.getElementById('retry');
+  var status = document.getElementById('status');
+  if (address) address.textContent = location.host;
+  function reload() { location.reload(); }
+  if (retry) retry.addEventListener('click', function () {
+    retry.disabled = true;
+    status.textContent = 'Checking the Hub...';
+    var controller = typeof AbortController === 'function' ? new AbortController() : null;
+    var timer = setTimeout(function () { if (controller) controller.abort(); }, 5000);
+    fetch('/api/v1/hello', { cache: 'no-store', credentials: 'omit', signal: controller ? controller.signal : undefined }).then(function (response) {
+      clearTimeout(timer);
+      if (response.status < 500) { reload(); return; }
+      throw new Error('unreachable');
+    }).catch(function () {
+      clearTimeout(timer);
+      status.textContent = 'The Hub is still unreachable. Try again in a moment.';
+      retry.disabled = false;
+    });
+  });
+  window.addEventListener('online', reload);
+})();
+</script>
+</body>
+</html>

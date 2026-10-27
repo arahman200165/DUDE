@@ -47,8 +47,9 @@ export const appConfig: ApplicationConfig = {
     ...DESKTOP_HANDOFF_COMMAND_SOURCE_PROVIDERS,
     ...HUB_WEB_COMMAND_SOURCE_PROVIDERS,
     provideRouter(routes),
-    provideServiceWorker('ngsw-worker.js', {
-      // Pages and Hub web both register it; the hub config (ngsw-config.hub.json) caches public static files only, never /api or /sandbox (PD-053).
+    // Pages and Hub web both register a worker; the hub config (ngsw-config.hub.json) caches public static files only, never /api or /sandbox (PD-053).
+    // The Hub build registers `hub-worker.js` (the stock worker plus the Hub-offline navigation fallback, Milestone 844); Pages keeps the stock worker.
+    provideServiceWorker(BUILD_HOST === 'hub' ? 'hub-worker.js' : 'ngsw-worker.js', {
       enabled: !isDevMode() && !isElectronRuntime() && (BUILD_HOST === 'web' || BUILD_HOST === 'hub'),
       registrationStrategy: 'registerWhenStable:30000',
     }),
