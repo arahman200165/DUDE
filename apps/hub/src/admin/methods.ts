@@ -3,6 +3,8 @@ import type { HubBindMode } from '../config/hub-config.js';
 import type { HubPaths } from '../config/data-dir.js';
 import type { BackupDeps } from '@dude/hub-backup';
 import { buildBackupMethods } from './backup-methods.js';
+import { buildProvisioningMethods } from './provisioning-methods.js';
+import type { ProvisioningOptions } from '../provisioning/index.js';
 import { AdminError } from './admin-endpoint.js';
 import type { AdminMethod } from './admin-endpoint.js';
 import { X509Certificate, createHash } from 'node:crypto';
@@ -88,6 +90,12 @@ export interface AdminMethodContext {
   onTransferred?: () => void;
   /** Writes in-memory collaborative state (buffered Yjs updates, pending materializations) before a backup snapshot (PD-105). */
   flushCollab?: () => void;
+  /** Whether this Hub process runs the queue runner (32-SS1, Milestone 835): a run that creates the store in a Hub that started without one reports `restartRequired`. */
+  queueRunning?: () => boolean;
+  /** Called after a `provision.run`, so the status route's cached report is dropped. */
+  onProvisioned?: () => void;
+  /** TEST-ONLY: replaces the provisioning probes and platform, so a spec never spawns a worker or loads a library. */
+  provisioningTest?: Pick<ProvisioningOptions, 'probes' | 'platform'>;
 }
 
 /** Validates the Windows host facts the elevated CLI sends with `network.mode.set`; anything malformed is ignored (treated as not inspected). */
@@ -171,6 +179,7 @@ export function buildAdminMethods(context: AdminMethodContext): Record<string, A
   return {
     /** Backup create (two-step), list, verify and schedule (31G, PD-074). Passphrases are never logged or audited. */
     ...buildBackupMethods(context, { now, confirmations }),
+    ...buildProvisioningMethods(context, { now }),
     /** Automatic address blocks (31F): the elevated recovery path for an owner whose own address was blocked. */
     'security.blocks.list': () => ({ blocks: listBlocks(context.db, now()) }),
     'security.blocks.clear': (params) => {

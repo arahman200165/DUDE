@@ -19,6 +19,7 @@ export type ParsedCommand =
   | { command: 'network'; action: 'lan-on' | 'lan-off' | 'status' | 'proxy-on' | 'proxy-off' | 'proxy-status' | 'mode-private' | 'mode-public'; trusted?: string[]; publicOrigin?: string; acceptUnverifiedReachability?: boolean; type?: string; dataDir?: string; installDir?: string }
   | { command: 'network-firewall'; target: 'public' | 'acme'; action: 'on' | 'off' | 'status'; force?: boolean; dataDir?: string; installDir?: string }
   | { command: 'doctor'; json?: boolean; dataDir?: string; installDir?: string }
+  | { command: 'provision'; action: 'run' | 'status'; json?: boolean; dataDir?: string; installDir?: string }
   | { command: 'purge'; dataDir?: string; includeBackups?: boolean; confirm?: string; type?: string }
   | { command: 'backup'; action: 'create' | 'list' | 'verify' | 'schedule-set' | 'schedule-off' | 'schedule-status' | 'reactivate'; folder?: string; file?: string; confirm?: string; forTransfer?: boolean; everyHours?: number; keep?: number; dataDir?: string; installDir?: string }
   | { command: 'backup-restore'; file: string; confirm?: string; replace?: string; oldHubGone?: string; dataDir?: string; installDir?: string }
@@ -68,6 +69,8 @@ Usage:
   dude-hub network mode private [--data-dir <dir>] [--install-dir <dir>]
   dude-hub network mode public [--accept-unverified-reachability] [--type "EXPOSE HUB TO THE INTERNET"] [--data-dir <dir>] [--install-dir <dir>]   (elevated; the running Hub must pass the readiness gate; without --type only the readiness report is printed)
   dude-hub doctor [--json] [--data-dir <dir>] [--install-dir <dir>]   (readiness checklist; --json prints the endpoint diagnostics report)
+  dude-hub provision [--json] [--data-dir <dir>] [--install-dir <dir>]   (creates and checks the SaveSphere storage components; additive and safe to re-run; elevated, Hub running; exit 0 = ready or degraded, 1 = needs attention or provisioning, 2 = usage or Hub not running)
+  dude-hub provision status [--json] [--data-dir <dir>] [--install-dir <dir>]   (read-only per-component status)
   dude-hub purge --data-dir <dir> [--include-backups] [--confirm <token> --type "DELETE HUB DATA"]
   dude-hub backup create [--for-transfer] [--folder <abs dir>] [--data-dir <dir>] [--install-dir <dir>] [--confirm <token>]   (two steps: the preview prints a one-time token, --confirm asks for the passphrase and writes the encrypted backup; --for-transfer then RETIRES this Hub until "backup reactivate"; elevated, Hub running)
   dude-hub backup reactivate [--data-dir <dir>] [--install-dir <dir>] [--confirm <token>]   (two steps: returns a retired (transferred) Hub to service with a new authority epoch; elevated, Hub running)
@@ -410,6 +413,13 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
     throw new UsageError('Usage: dude-hub network lan on|off|status | firewall public|acme on|off|status | proxy on|off|status | mode private|public. Run "dude-hub help".');
   }
   if (command === 'backup') return parseBackup(rest);
+  if (command === 'provision') {
+    const [first, ...tail] = rest;
+    const action = first === 'status' ? 'status' : 'run';
+    const flags = first === 'status' ? tail : rest;
+    const values = parseFlags(flags, ['--install-dir', '--data-dir', '--json'], ['--json']);
+    return { command: 'provision', action, ...(values['--json'] !== undefined ? { json: true } : {}), ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir') };
+  }
   if (command === 'doctor') {
     const values = parseFlags(rest, ['--install-dir', '--data-dir', '--json'], ['--json']);
     return { command: 'doctor', ...(values['--json'] !== undefined ? { json: true } : {}), ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir') };

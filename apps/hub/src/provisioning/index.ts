@@ -1,0 +1,10 @@
+export { checkProvisioning, provision } from './engine.js';
+export type { ProvisioningOptions, ProvisioningRun } from './engine.js';
+export { listProvisioningComponents, registerProvisioningComponent } from './registry.js';
+export { createProvisioningService, PROVISIONING_STATUS_TTL_MS } from './service.js';
+export type { ProvisioningService } from './service.js';
+export { PROVISIONING_LAST_RUN_META, deriveOverall, readLastRun } from './state.js';
+export { DEFAULT_CACHE_MAX_BYTES, sweepCache } from './cache.js';
+export { EXPECTED_SECRETS_META, readExpectedSecrets, setSecretExpected } from './components/secrets.js';
+export { PROVISIONING_COMMANDS } from './types.js';
+export type { ComponentOutcome, ProvisioningComponent, ProvisioningContext, ProvisioningProbes, SecretPresence, StoreHandle } from './types.js';

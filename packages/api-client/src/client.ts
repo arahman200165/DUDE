@@ -2,7 +2,7 @@ import { Value } from 'typebox/value';
 import type { TSchema, Static } from 'typebox';
 import {
   HUB_API_PREFIX, HelloResponse, ErrorEnvelope, checkProtocolCompatibility,
-  BootstrapResponse, TlsCertificatesResponse, AuditListResponse, SecurityAlertsResponse, PresenceResponse, HUB_PRESENCE_PATH, HubJobsResponse, HUB_JOBS_PATH, HubQueueStatusResponse, HUB_QUEUE_PATH, HubNotificationsResponse, HUB_NOTIFICATIONS_PATH, CollabRoom, CollabRoomsResponse, HUB_COLLAB_ROOMS_PATH, KeepCollabRoomResponse, CollabDocumentsResponse, HUB_COLLAB_DOCUMENTS_PATH, CollabHistoryResponse, CollabSnapshotResponse, CollabRestoreResponse, HUB_COLLAB_HISTORY_PATH, HubDiagnosticsReport, ReachabilityEchoResponse, BackupStatusResponse,
+  BootstrapResponse, TlsCertificatesResponse, AuditListResponse, SecurityAlertsResponse, PresenceResponse, HUB_PRESENCE_PATH, HubJobsResponse, HUB_JOBS_PATH, HubQueueStatusResponse, HUB_QUEUE_PATH, HubProvisioningResponse, HUB_PROVISIONING_PATH, HubNotificationsResponse, HUB_NOTIFICATIONS_PATH, CollabRoom, CollabRoomsResponse, HUB_COLLAB_ROOMS_PATH, KeepCollabRoomResponse, CollabDocumentsResponse, HUB_COLLAB_DOCUMENTS_PATH, CollabHistoryResponse, CollabSnapshotResponse, CollabRestoreResponse, HUB_COLLAB_HISTORY_PATH, HubDiagnosticsReport, ReachabilityEchoResponse, BackupStatusResponse,
   EnrollResponse, DeviceChallengeResponse, DeviceRecoveryChallengeResponse, DeviceTokenResponse, DeviceInfo, DeviceListResponse, OwnerBearerResponse, PairingCodeResponse,
   OkResponse, ConfirmPreview, SessionListResponse, RecoveryCodesResponse,
   StepUpResponse, ChangePasswordResponse,
@@ -87,6 +87,8 @@ export interface HubClient {
   listJobs(auth: Bearer): Promise<HubJobsResponse>;
   /** Owner: read-only counts of the durable job queue and its recent failures (PD-147); no payloads, no way to enqueue or run work. */
   queueStatus(auth: Bearer): Promise<HubQueueStatusResponse>;
+  /** Owner: read-only per-component SaveSphere provisioning status with copyable commands (PD-153); provisioning itself is the elevated `dude-hub provision` command, never a route. */
+  provisioningStatus(auth: Bearer): Promise<HubProvisioningResponse>;
   /**
    * Notifications (PD-109): owner session, or a device token whose desktop holds the notification-reader grant (PD-110; any other device token is 403).
    * Dismissed ones are listed only with `includeDismissed`. Marking read and dismissing are not audited.
@@ -200,6 +202,7 @@ export function createHubClient(transport: HubTransport, opts: HubClientOptions)
     presence: (auth) => call(PresenceResponse, { method: 'GET', path: HUB_PRESENCE_PATH }, auth),
     listJobs: (auth) => call(HubJobsResponse, { method: 'GET', path: HUB_JOBS_PATH }, auth),
     queueStatus: (auth) => call(HubQueueStatusResponse, { method: 'GET', path: HUB_QUEUE_PATH }, auth),
+    provisioningStatus: (auth) => call(HubProvisioningResponse, { method: 'GET', path: HUB_PROVISIONING_PATH }, auth),
     listNotifications: (auth, options) => call(HubNotificationsResponse, { method: 'GET', path: `${HUB_NOTIFICATIONS_PATH}${options?.includeDismissed === true ? '?includeDismissed=true' : ''}` }, auth),
     markNotificationsRead: (auth, target) => call(OkResponse, { method: 'POST', path: `${HUB_NOTIFICATIONS_PATH}/read`, body: target }, auth),
     dismissNotification: (auth, id) => call(OkResponse, { method: 'POST', path: `${HUB_NOTIFICATIONS_PATH}/${seg(id)}/dismiss` }, auth),

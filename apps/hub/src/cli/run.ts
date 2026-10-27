@@ -46,6 +46,8 @@ import { createHstsPolicy } from '../security/hsts.js';
 import { runDoctor } from '../service/doctor.js';
 import { runPurge } from '../service/purge.js';
 import { runBackup } from '../service/backup.js';
+import { runProvision } from '../service/provision.js';
+import { createProvisioningService } from '../provisioning/service.js';
 import { runRestore } from '../service/restore.js';
 import { HELP_TEXT, UsageError, parseArgs } from './args.js';
 
@@ -168,6 +170,13 @@ export async function runCli(argv: readonly string[]): Promise<number> {
       ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}),
     });
   }
+  if (parsed.command === 'provision') {
+    return runProvision({
+      action: parsed.action,
+      ...(parsed.json ? { json: true } : {}),
+      ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}),
+    });
+  }
   if (parsed.command === 'backup-restore') {
     return runRestore({
       file: parsed.file,
@@ -219,6 +228,8 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   try { drainAuditOutboxAtStart(paths, hub.db, (input) => audit(hub.db, input)); } catch { /* retried by the next drain */ }
   // 32-SS1: the durable queue exists only once SaveSphere storage does (a store that cannot open never blocks start).
   const queueRuntime = createQueueRuntime({ paths, hubDb: hub.db, auditWriter: (input) => audit(hub.db, input) });
+  // 32-SS1 provisioning read model: checks only, never creates anything; the elevated `dude-hub provision` is the one writer.
+  const provisioning = createProvisioningService(paths, { hubInstanceId: hub.hubInstanceId, queueRunning: queueRuntime !== undefined });
   ensureSetupToken(hub.db, paths.configDir, Date.now());
   const wantedNames = computeSubjectAltNames(config);
   const hadIdentity = existsSync(path.join(paths.tlsDir, 'cert.pem')) && existsSync(path.join(paths.tlsDir, 'key.pem'));
@@ -251,6 +262,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     hubVersion: hubVersion(),
     backup: { scheduleKeyPresent: () => scheduleKeyExists(paths.configDir) },
     ...(queueRuntime ? { queue: { status: () => queueRuntime.status() } } : {}),
+    provisioning: { status: () => provisioning.status() },
     logger: hubLoggerOptions(logStream),
     ...testServerOverrides,
   });
@@ -277,6 +289,8 @@ export async function runCli(argv: readonly string[]): Promise<number> {
         onNamesChanged: (names) => server.hostGuard.setNames(names),
         hsts: createHstsPolicy({ db: hub.db, tlsDir: paths.tlsDir, proxy: config.exposure.proxy !== undefined }),
         caProtector, acmeProtector, paths, scheduleKeyProtector,
+        queueRunning: () => queueRuntime !== undefined,
+        onProvisioned: () => provisioning.invalidate(),
         tls: createTlsRotation({
           db: hub.db, tlsDir: paths.tlsDir, hubInstanceId: hub.hubInstanceId, caProtector,
           applySecureContext: (context) => (server.server as unknown as TlsServer).setSecureContext(context),
@@ -350,6 +364,9 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   addressWatch.start();
   // Recovers jobs a crash left leased, then runs queued work and the scheduled blob verify and staging sweep.
   try { await queueRuntime?.start(server.hubJobs); } catch { /* the queue is optional; the Hub keeps serving */ }
+  // A cheap, read-only provisioning check once SaveSphere storage exists; it logs the overall state and counts, never a detail.
+  if (existsSync(paths.saveSphereDbPath)) void provisioning.checkAtStart((event, detail) => void process.stdout.write(`${JSON.stringify({ event, ...detail })}
+`));
   audit(hub.db, { event: 'hub.started', outcome: 'success', actorKind: 'system', detail: { version: hubVersion(), port, bind: config.bind }, now: Date.now() });
   process.stdout.write(`${JSON.stringify({ event: 'listening', url: `https://127.0.0.1:${port}`, spkiSha256: tls.spkiSha256 })}\n`);
 

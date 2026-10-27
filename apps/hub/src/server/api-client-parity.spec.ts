@@ -46,6 +46,7 @@ const ARGS: Record<string, readonly unknown[]> = {
   presence: ['t'],
   listJobs: ['t'],
   queueStatus: ['t'],
+  provisioningStatus: ['t'],
   listNotifications: ['t', { includeDismissed: true }],
   markNotificationsRead: ['t', { all: true }],
   dismissNotification: ['t', ID],

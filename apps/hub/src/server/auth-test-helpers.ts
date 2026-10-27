@@ -34,7 +34,7 @@ export interface Signed { cookie: string; csrf: string; body: any; setCookie: st
 
 export const cookieValueOf = (setCookie: string | undefined): string => /__Host-dude_session=([^;]*)/.exec(setCookie ?? '')?.[1] ?? '';
 
-export async function startAuthHub({ config, rateLimit, bootstrapped, ...extra }: Pick<TestHubOptions, 'realtime' | 'sync' | 'rateLimit' | 'backup' | 'queue' | 'dataRoot' | 'collab' | 'collabSocket' | 'collabRooms'> & { config?: Partial<HubConfig>; bootstrapped?: boolean } = {}): Promise<AuthHub> {
+export async function startAuthHub({ config, rateLimit, bootstrapped, ...extra }: Pick<TestHubOptions, 'realtime' | 'sync' | 'rateLimit' | 'backup' | 'queue' | 'provisioning' | 'dataRoot' | 'collab' | 'collabSocket' | 'collabRooms'> & { config?: Partial<HubConfig>; bootstrapped?: boolean } = {}): Promise<AuthHub> {
   const clock = { t: START };
   const hub = await startTestHub(config ?? {}, {
     now: () => clock.t,

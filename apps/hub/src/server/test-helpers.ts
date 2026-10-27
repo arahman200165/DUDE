@@ -61,6 +61,8 @@ export interface TestHubOptions {
   backup?: { scheduleKeyPresent?: () => boolean };
   /** Durable queue read model (`GET /api/v1/queue`); absent means the queue is unavailable. */
   queue?: CreateHubServerOptions['queue'];
+  /** SaveSphere provisioning read model (`GET /api/v1/provisioning`); absent means not provisioned. */
+  provisioning?: CreateHubServerOptions['provisioning'];
   /** Serve an existing data root (for example a restored Hub) instead of a fresh temporary one. */
   dataRoot?: string;
 }

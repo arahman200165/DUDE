@@ -32,6 +32,31 @@ async function check(name: string, body: () => Promise<string | undefined> | str
   }
 }
 
+/** Proves FTS5 with the porter tokenizer in a throwaway in-memory database; throws when it is missing. Also the provisioning `fts` probe. */
+export async function probeFts5(): Promise<string> {
+  const { DatabaseSync } = await import('node:sqlite');
+  const db = new DatabaseSync(':memory:');
+  try {
+    db.exec("CREATE VIRTUAL TABLE docs USING fts5(title, body, tokenize = 'porter unicode61')");
+    db.exec("INSERT INTO docs (title, body) VALUES ('first', 'The quick brown foxes jump'), ('second', 'Nothing relevant')");
+    const hits = db.prepare('SELECT title FROM docs WHERE docs MATCH ? ORDER BY rank').all('fox') as Array<{ title: string }>;
+    if (hits.length !== 1 || hits[0].title !== 'first') throw new Error(`MATCH returned ${JSON.stringify(hits)}`);
+    return 'fts5 MATCH with the porter tokenizer';
+  } finally {
+    db.close();
+  }
+}
+
+/** Re-spawns the Hub in worker mode and exchanges one message; throws when the spawn contract does not hold. Also the provisioning `workers` probe. */
+export async function probeWorkerRespawn(): Promise<string> {
+  const nonce = randomBytes(8).toString('hex');
+  const reply = await exchangeWithInternalWorker('ping', { type: 'ping', nonce });
+  if (reply['type'] !== 'pong' || reply['nonce'] !== nonce) throw new Error(`unexpected reply ${JSON.stringify(reply)}`);
+  if (reply['sea'] !== isSea()) throw new Error('worker disagrees about single-executable mode');
+  if (reply['pid'] === process.pid) throw new Error('worker ran in the parent process');
+  return `${isSea() ? 'executable re-spawn' : 'node re-spawn'}, one message exchanged`;
+}
+
 /** Optional capability: loads the pinned sqlite-vec library when present; its absence is reported, not failed (PD-141, PD-147). */
 function sqliteVecCheck(): SelfTestCheck {
   const state = probeSqliteVec();
@@ -101,33 +126,10 @@ export async function runSelfTest(options: { capabilities?: boolean } = {}): Pro
       return undefined;
     }),
   );
-  checks.push(
-    await check('sqlite-fts5', async () => {
-      const { DatabaseSync } = await import('node:sqlite');
-      const db = new DatabaseSync(':memory:');
-      try {
-        db.exec("CREATE VIRTUAL TABLE docs USING fts5(title, body, tokenize = 'porter unicode61')");
-        db.exec("INSERT INTO docs (title, body) VALUES ('first', 'The quick brown foxes jump'), ('second', 'Nothing relevant')");
-        const hits = db.prepare('SELECT title FROM docs WHERE docs MATCH ? ORDER BY rank').all('fox') as Array<{ title: string }>;
-        if (hits.length !== 1 || hits[0].title !== 'first') throw new Error(`MATCH returned ${JSON.stringify(hits)}`);
-        return 'fts5 MATCH with the porter tokenizer';
-      } finally {
-        db.close();
-      }
-    }),
-  );
+  checks.push(await check('sqlite-fts5', probeFts5));
   if (options.capabilities !== false) {
     checks.push(sqliteVecCheck());
-    checks.push(
-      await check('worker-respawn', async () => {
-        const nonce = randomBytes(8).toString('hex');
-        const reply = await exchangeWithInternalWorker('ping', { type: 'ping', nonce });
-        if (reply['type'] !== 'pong' || reply['nonce'] !== nonce) throw new Error(`unexpected reply ${JSON.stringify(reply)}`);
-        if (reply['sea'] !== isSea()) throw new Error('worker disagrees about single-executable mode');
-        if (reply['pid'] === process.pid) throw new Error('worker ran in the parent process');
-        return `${isSea() ? 'executable re-spawn' : 'node re-spawn'}, one message exchanged`;
-      }),
-    );
+    checks.push(await check('worker-respawn', probeWorkerRespawn));
   }
   return { ok: checks.every((c) => c.ok), checks };
 }

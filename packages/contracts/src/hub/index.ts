@@ -19,6 +19,7 @@ export * from './reachability.schema.js';
 export * from './backup.schema.js';
 export * from './jobs.schema.js';
 export * from './queue.schema.js';
+export * from './provisioning.schema.js';
 export * from './notifications.schema.js';
 export * from './collab.schema.js';
 export { defaultHubNotificationPreferences, parseNotificationEvent, sanitizeHubNotificationPreferences } from './notification-event.js';
