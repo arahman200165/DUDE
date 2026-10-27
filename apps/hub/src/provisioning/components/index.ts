@@ -4,6 +4,7 @@ import { cacheComponent } from './cache.js';
 import { contentStoreComponent } from './content-store.js';
 import { ftsComponent, vectorComponent } from './fts-vector.js';
 import { queueComponent, workersComponent } from './queue-workers.js';
+import { oidcComponent } from './oidc.js';
 import { secretsComponent } from './secrets.js';
 import { tunnelComponent } from './tunnel.js';
 
@@ -12,5 +13,5 @@ import { tunnelComponent } from './tunnel.js';
  * a `ProvisioningComponent` from its own module and adding one line here; the engine, the admin methods, the route and the CLI
  * never change. A component that is not built yet is simply absent.
  */
-const BUILT_IN = [contentStoreComponent, ftsComponent, vectorComponent, blobStoreComponent, cacheComponent, queueComponent, workersComponent, secretsComponent, tunnelComponent] as const;
+const BUILT_IN = [contentStoreComponent, ftsComponent, vectorComponent, blobStoreComponent, cacheComponent, queueComponent, workersComponent, secretsComponent, tunnelComponent, oidcComponent] as const;
 for (const component of BUILT_IN) registerProvisioningComponent(component);

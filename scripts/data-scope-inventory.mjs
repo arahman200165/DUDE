@@ -219,6 +219,8 @@ const hubTables = {
   change_feed: ['environment', 'canonical per-environment change feed'],
   applied_ops: ['environment', 'canonical idempotency ledger for applied operations'],
   notifications: ['local-only', 'Hub-private owner notifications (short titles and bodies, no record content or credentials); removed from backups and on restore'],
+  linked_identities: ['local-only', 'the linked Google accounts of the owner by provider subject (the address is display text); removed from backups and on restore, so a restored Hub is signed into by password or recovery code and links Google again'],
+  oidc_flows: ['local-only', 'transient in-flight Google sign-in attempts (hashed state and nonce, the PKCE verifier until the flow is consumed, minutes of lifetime); removed from backups and on restore'],
   collab_docs: ['environment', 'compacted Yjs state of each collaborative document (scratchpad, user-script body, Markdown document); content, included in backups and transfers'],
   collab_updates: ['environment', 'short tail of Yjs updates applied since the last compaction of a collaborative document; content, included in backups'],
   collab_snapshots: ['environment', 'collaborative document history snapshots (plain record payloads, 30-day retention); content, included in backups'],

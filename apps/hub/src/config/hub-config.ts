@@ -74,6 +74,22 @@ export interface HubBackupConfig {
   schedule?: HubBackupScheduleConfig;
 }
 
+/**
+ * Google (or another OIDC provider) sign-in (32-SS1, Milestone 841, PD-121, PD-145). The owner brings their own OAuth client: the id
+ * and redirect origin live here, the client secret only in the machine-bound secret store (purpose `oidc.clientSecret`, never in
+ * `hub.json`, a backup or a log). Absent block means the feature is off and the password is the only sign-in.
+ */
+export interface HubOidcConfig {
+  /** The provider's issuer identifier, exactly as its ID tokens carry it in `iss`; `https` only, no query or trailing slash. */
+  issuer: string;
+  /** The owner's OAuth client id (public). */
+  clientId: string;
+  /** The origin the provider redirects the browser back to: `https://<host>[:port]` (plain `http` only for a loopback host). */
+  redirectOrigin: string;
+}
+
+export const DEFAULT_OIDC_ISSUER = 'https://accounts.google.com';
+
 export interface HubConfig {
   port: number;
   bind: HubBindMode;
@@ -81,6 +97,8 @@ export interface HubConfig {
   exposure: HubExposureConfig;
   /** Backup settings (31G). Absent by default. */
   backup?: HubBackupConfig;
+  /** OIDC sign-in (32-SS1). Absent means off; never restored from a backup (the restored Hub is a new instance, PD-145). */
+  oidc?: HubOidcConfig;
 }
 
 export const BACKUP_INTERVAL_HOURS_MAX = 8760;
@@ -89,7 +107,8 @@ export const BACKUP_RETENTION_MAX = 1000;
 export const MAX_EXPOSURE_NAMES = 32;
 const BIND_MODES: readonly HubBindMode[] = ['loopback', 'lan', 'container'];
 const EXPOSURE_MODES: readonly HubExposureMode[] = ['private', 'public'];
-const KNOWN_KEYS = new Set(['port', 'bind', 'webRoot', 'exposure', 'backup']);
+const KNOWN_KEYS = new Set(['port', 'bind', 'webRoot', 'exposure', 'backup', 'oidc']);
+const OIDC_KEYS = new Set(['issuer', 'clientId', 'redirectOrigin']);
 const BACKUP_KEYS = new Set(['schedule']);
 const BACKUP_SCHEDULE_KEYS = new Set(['folder', 'intervalHours', 'retention']);
 const EXPOSURE_KEYS = new Set(['mode', 'names', 'canonicalOrigin', 'proxy', 'acme', 'tunnel']);
@@ -300,6 +319,43 @@ function parseExposure(raw: unknown): HubExposureConfig {
   return exposure;
 }
 
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+/** Strict `oidc` block validation (see `HubOidcConfig`). Throws a clear message on anything else. */
+export function parseOidcConfig(raw: unknown): HubOidcConfig {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) throw new Error('Hub config "oidc" must be an object.');
+  const record = raw as Record<string, unknown>;
+  for (const key of Object.keys(record)) if (!OIDC_KEYS.has(key)) throw new Error(`Hub config "oidc" has an unknown key "${key}".`);
+
+  const issuerRaw = record['issuer'] ?? DEFAULT_OIDC_ISSUER;
+  if (typeof issuerRaw !== 'string' || issuerRaw.length === 0 || issuerRaw.length > 256) throw new Error('Hub config "oidc.issuer" must be an https URL of at most 256 characters.');
+  let issuerUrl: URL;
+  try { issuerUrl = new URL(issuerRaw); } catch { throw new Error('Hub config "oidc.issuer" must be an https URL.'); }
+  if (issuerUrl.protocol !== 'https:' || issuerUrl.username !== '' || issuerUrl.password !== '' || issuerUrl.search !== '' || issuerUrl.hash !== '' || issuerUrl.port !== '') {
+    throw new Error('Hub config "oidc.issuer" must be an https URL with no credentials, port, query or fragment.');
+  }
+  if (isIPv4(issuerUrl.hostname) || issuerUrl.hostname.startsWith('[') || issuerUrl.hostname === 'localhost' || !issuerUrl.hostname.includes('.')) {
+    throw new Error('Hub config "oidc.issuer" must name a public DNS host, not an IP address or a local name.');
+  }
+  const issuer = issuerUrl.origin + (issuerUrl.pathname === '/' ? '' : issuerUrl.pathname);
+  if (issuer !== issuerRaw) throw new Error(`Hub config "oidc.issuer" must be written exactly as "${issuer}" (no trailing slash, lower-case host).`);
+
+  const clientId = record['clientId'];
+  if (typeof clientId !== 'string' || clientId.length === 0 || clientId.length > 256 || /[\s\u0000-\u001f\u007f]/.test(clientId)) {
+    throw new Error('Hub config "oidc.clientId" must be a non-empty string of at most 256 characters without spaces.');
+  }
+
+  const redirectRaw = record['redirectOrigin'];
+  if (typeof redirectRaw !== 'string' || redirectRaw.length === 0 || redirectRaw.length > 256) throw new Error('Hub config "oidc.redirectOrigin" must be an origin such as https://hub.example.com.');
+  let redirectUrl: URL;
+  try { redirectUrl = new URL(redirectRaw); } catch { throw new Error('Hub config "oidc.redirectOrigin" must be an origin such as https://hub.example.com.'); }
+  if (redirectUrl.origin !== redirectRaw) throw new Error(`Hub config "oidc.redirectOrigin" must be an origin only, written exactly as "${redirectUrl.origin}".`);
+  if (redirectUrl.protocol !== 'https:' && !(redirectUrl.protocol === 'http:' && LOOPBACK_HOSTS.has(redirectUrl.hostname))) {
+    throw new Error('Hub config "oidc.redirectOrigin" must use https (plain http only for localhost, 127.0.0.1 or [::1]).');
+  }
+  return { issuer, clientId, redirectOrigin: redirectRaw };
+}
+
 function parseBackupSchedule(raw: unknown): HubBackupScheduleConfig {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) throw new Error('Hub config "backup.schedule" must be an object.');
   const record = raw as Record<string, unknown>;
@@ -379,6 +435,7 @@ export function parseHubConfig(raw: unknown): HubConfig {
     const backup = parseBackup(record['backup']);
     if (backup.schedule !== undefined) config.backup = backup;
   }
+  if (record['oidc'] !== undefined) config.oidc = parseOidcConfig(record['oidc']);
   return config;
 }
 

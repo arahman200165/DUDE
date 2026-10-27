@@ -2,6 +2,7 @@ import type { HubProvisioningComponentId, HubProvisioningComponentState, HubTunn
 import type { Db } from '@dude/sqlite-store';
 import type { HubPaths } from '../config/data-dir.js';
 import type { SqliteVecState } from '../db/sqlite-vec.js';
+import type { OidcStatus } from '../auth/oidc/client.js';
 
 /** Longest `detail` and `nextAction` the engine will keep (the contract limits are 240 and 200). */
 export const DETAIL_MAX = 200;
@@ -55,6 +56,8 @@ export interface ProvisioningContext {
   queueRunning?: boolean;
   /** The running Hub's tunnel read model (Milestone 837); undefined when the caller has no tunnel runtime (the CLI engine, specs). */
   tunnel?: () => HubTunnelStatusResponse;
+  /** The running Hub's OIDC client status (Milestone 841): offline facts and the last known provider reachability; undefined when the caller has none. */
+  oidc?: () => OidcStatus;
   probes: ProvisioningProbes;
 }
 

@@ -29,7 +29,7 @@ describe('GET /provisioning', () => {
     expect(res.status).toBe(200);
     expect(res.raw.headers['cache-control']).toBe('no-store');
     expect(Value.Check(HubProvisioningResponse, res.json)).toBe(true);
-    expect(res.json.components.map((c: { id: string }) => c.id)).toEqual(['content-store', 'fts', 'vector', 'blob-store', 'cache', 'queue', 'workers', 'secrets', 'tunnel']);
+    expect(res.json.components.map((c: { id: string }) => c.id)).toEqual(['content-store', 'fts', 'vector', 'blob-store', 'cache', 'queue', 'workers', 'secrets', 'tunnel', 'oidc']);
     expect(res.json.commands).toEqual(['dude-hub provision', 'dude-hub provision status']);
     expect(res.json.secrets.find((s: { purpose: string }) => s.purpose === 'tunnel.connectorToken')).toEqual({ purpose: 'tunnel.connectorToken', present: true, needsReentry: false });
     expect(res.raw.body).not.toContain(SECRET);

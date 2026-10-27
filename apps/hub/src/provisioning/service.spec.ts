@@ -38,7 +38,7 @@ describe('createProvisioningService', () => {
     const service = createProvisioningService(paths, engineOptions());
     await service.checkAtStart((event, detail) => lines.push({ event, detail }));
     expect(existsSync(paths.saveSphereDbPath)).toBe(false);
-    expect(lines).toEqual([{ event: 'provisioning.checked', detail: { overall: 'not-provisioned', components: { 'not-configured': 5, ready: 2, unavailable: 2 } } }]);
+    expect(lines).toEqual([{ event: 'provisioning.checked', detail: { overall: 'not-provisioned', components: { 'not-configured': 6, ready: 2, unavailable: 2 } } }]);
     expect(JSON.stringify(lines)).not.toContain(paths.root);
   });
 

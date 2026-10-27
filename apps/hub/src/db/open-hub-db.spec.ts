@@ -11,7 +11,7 @@ const EXPECTED_TABLES = [
   'meta', 'schema_migrations', 'environment', 'owner', 'owner_credentials', 'recovery_codes', 'sessions', 'devices', 'device_keys',
   'device_tokens', 'challenges', 'pairing_codes', 'setup_state', 'throttle', 'audit_events', 'tls_pins', 'tls_pin_acks', 'records',
   'change_feed', 'applied_ops', 'device_sync_state', 'tls_proxy_pins', 'tls_proxy_pin_acks', 'web_access', 'notifications',
-  'collab_docs', 'collab_updates', 'collab_snapshots', 'collab_bases',
+  'collab_docs', 'collab_updates', 'collab_snapshots', 'collab_bases', 'linked_identities', 'oidc_flows',
 ];
 
 function dirs() {
@@ -33,7 +33,7 @@ describe('openHubDb', () => {
     expect(Object.values(db.prepare('PRAGMA foreign_keys').get() as object)[0]).toBe(1);
     expect(hubInstanceId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-/);
     expect(getMeta(db, 'created_at')).toBeTruthy();
-    expect(getMeta(db, 'schema_version')).toBe('10');
+    expect(getMeta(db, 'schema_version')).toBe('11');
     first.hub.close();
     expect(readdirSync(options.preMigrationDir.replace(/pre-migration$/, '')).includes('pre-migration')).toBe(false);
 
@@ -52,7 +52,7 @@ describe('openHubDb', () => {
     const upgraded = openHubDb(options);
     if (upgraded.status !== 'ready') throw new Error('expected ready');
     const { db } = upgraded.hub;
-    expect(getMeta(db, 'schema_version')).toBe('10');
+    expect(getMeta(db, 'schema_version')).toBe('11');
     expect(getMeta(db, 'min_reader_version')).toBe('10');
     expect(getMeta(db, 'sync_floor')).toBe('0');
     expect(getMeta(db, 'sync_retention_days')).toBe('90');
@@ -122,10 +122,10 @@ describe('openHubDb', () => {
     first.hub.close();
     expect(() => readdirSync(options.preMigrationDir)).toThrow();
 
-    const v2: Migration = { version: 11, name: 'extra', minReaderVersion: 1, sql: 'CREATE TABLE extra (id TEXT PRIMARY KEY) STRICT;' };
+    const v2: Migration = { version: HUB_MIGRATIONS.length + 1, name: 'extra', minReaderVersion: 1, sql: 'CREATE TABLE extra (id TEXT PRIMARY KEY) STRICT;' };
     const upgraded = openHubDb({ ...options, migrations: [...HUB_MIGRATIONS, v2] });
     if (upgraded.status !== 'ready') throw new Error('expected ready');
-    expect(readdirSync(options.preMigrationDir).filter((f) => /^pre-v10-.*\.db$/.test(f))).toHaveLength(1);
+    expect(readdirSync(options.preMigrationDir).filter((f) => new RegExp(`^pre-v${String(HUB_MIGRATIONS.length)}-.*[.]db$`).test(f))).toHaveLength(1);
     upgraded.hub.close();
   });
 });

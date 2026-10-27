@@ -76,6 +76,17 @@ describe('runMigrations', () => {
     db.close();
   });
 
+  it('keeps the highest reader floor when a later migration in the same run has a lower one', () => {
+    const dir = tempDir();
+    const db = new DatabaseSync(path.join(dir, 's.db'));
+    const raises: Migration = { version: 2, name: 'raises', minReaderVersion: 7, sql: 'CREATE TABLE r (a INTEGER) STRICT;' };
+    const additive: Migration = { version: 3, name: 'additive', minReaderVersion: 1, sql: 'CREATE TABLE s (a INTEGER) STRICT;' };
+    runMigrations(db, [...MIGRATIONS, raises, additive], opts(dir));
+    expect(getMeta(db, 'min_reader_version')).toBe('7');
+    expect(version(db)).toBe('3');
+    db.close();
+  });
+
   it('refuses a store whose minReaderVersion is newer and does not touch it', () => {
     const dir = tempDir();
     const db = new DatabaseSync(path.join(dir, 's.db'));

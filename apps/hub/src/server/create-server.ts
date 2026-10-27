@@ -89,7 +89,7 @@ declare module 'fastify' {
 
 export interface CreateHubServerOptions {
   paths: HubPaths;
-  config: Pick<HubConfig, 'webRoot'> & Partial<Pick<HubConfig, 'bind' | 'exposure'>>;
+  config: Pick<HubConfig, 'webRoot'> & Partial<Pick<HubConfig, 'bind' | 'exposure' | 'oidc'>>;
   /** Injected clock for rate limiting and audit pruning (tests). */
   now?: () => number;
   /** Overrides how the CSRF header is verified against the session cookie (default: the session store). */
@@ -166,7 +166,7 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   app.decorate('hostGuard', hostGuard);
   registerHostGuard(app, hostGuard);
   const csrfVerifier: CsrfVerifier = options.csrfVerifier ?? ((cookie, header) => verifyCsrf(options.hub.db, cookie, header, now()));
-  registerRequestGuard(app, { hostGuard, csrfVerifier });
+  registerRequestGuard(app, { hostGuard, csrfVerifier, oidcEnabled: () => options.config.oidc !== undefined });
   // Read-only job status (PD-112). `run` registers the timers it starts; the two below belong to this server. `onChange` is wired once realtime exists.
   const jobs = createJobRegistry({ db: options.hub.db, now });
   app.decorate('hubJobs', jobs);

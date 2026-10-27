@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import { transaction } from '@dude/sqlite-store';
 import type { Db } from '@dude/sqlite-store';
 import type { HubProvisioningComponent, HubProvisioningResponse, HubTunnelStatusResponse } from '@dude/contracts/hub';
+import type { OidcStatus } from '../auth/oidc/client.js';
 import { ensureLayout } from '../config/data-dir.js';
 import type { HubPaths } from '../config/data-dir.js';
 import { redactJobError } from '../queue/redact.js';
@@ -23,6 +24,8 @@ export interface ProvisioningOptions {
   queueRunning?: boolean;
   /** The tunnel read model of the running Hub (Milestone 837). */
   tunnel?: () => HubTunnelStatusResponse;
+  /** The OIDC client status of the running Hub (Milestone 841). */
+  oidc?: () => OidcStatus;
   now?: () => number;
   platform?: NodeJS.Platform;
   /** Replaces the registry (specs). */
@@ -54,6 +57,7 @@ function buildContext(paths: HubPaths, mode: ProvisioningContext['mode'], store:
     ...(options.hubInstanceId !== undefined ? { hubInstanceId: options.hubInstanceId } : {}),
     ...(options.queueRunning !== undefined ? { queueRunning: options.queueRunning } : {}),
     ...(options.tunnel !== undefined ? { tunnel: options.tunnel } : {}),
+    ...(options.oidc !== undefined ? { oidc: options.oidc } : {}),
   };
 }
 

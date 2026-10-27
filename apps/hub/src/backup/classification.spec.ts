@@ -46,6 +46,13 @@ describe('backup scrub classification covers every table of both databases', () 
     expect(SAVESPHERE_SCRUBBED_TABLES).toContain('audit_outbox');
   });
 
+  it('scrubs the in-flight OIDC flows and the linked identities (a restored Hub re-links Google after a password or recovery sign-in, PD-145)', () => {
+    expect(SCRUBBED_TABLES).toContain('oidc_flows');
+    expect(SCRUBBED_TABLES).toContain('linked_identities');
+    expect(HUB_KEPT_TABLES).not.toContain('oidc_flows');
+    expect(HUB_KEPT_TABLES).not.toContain('linked_identities');
+  });
+
   it('treats the job queue as transient (scrubbed)', () => {
     expect(SAVESPHERE_SCRUBBED_TABLES).toContain('jobs');
   });

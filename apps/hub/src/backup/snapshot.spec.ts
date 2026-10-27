@@ -37,7 +37,7 @@ describe('createScrubbedDbSnapshot', () => {
     const snapshot = await createScrubbedDbSnapshot(hub.db, work);
     const copy = openBytes(root, snapshot.bytes);
     try {
-      for (const table of ['sessions', 'device_tokens', 'challenges', 'pairing_codes', 'setup_state', 'notifications']) expect(count(copy, table)).toBe(0);
+      for (const table of ['sessions', 'device_tokens', 'challenges', 'pairing_codes', 'setup_state', 'notifications', 'oidc_flows', 'linked_identities']) expect(count(copy, table)).toBe(0);
       for (const key of ['csrf_key', 'alerts_seen_seq', 'hub_addresses', 'reachability_last', 'acme_last_attempt', 'revoked_attempt:token:dev-1', 'revoked-attempts:legacy', 'job_last:audit-prune']) {
         expect(getMeta(copy, key)).toBeUndefined();
       }
@@ -76,6 +76,8 @@ describe('createScrubbedDbSnapshot', () => {
     expect(n('pairing_codes')).toBe(1);
     expect(n('setup_state')).toBe(1);
     expect(n('notifications')).toBe(1);
+    expect(n('oidc_flows')).toBe(1);
+    expect(n('linked_identities')).toBe(1);
     expect(getMeta(hub.db, 'csrf_key')).toBe(`${SECRET_MARKER}-csrf`);
     expect(getMeta(hub.db, 'revoked_attempt:token:dev-1')).toBe('123');
   });

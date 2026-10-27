@@ -15,8 +15,8 @@ function dirs() {
 }
 
 describe('migration 0010 collab', () => {
-  it('is registered last and raises the reader floor to its own version', () => {
-    expect(HUB_MIGRATIONS[HUB_MIGRATIONS.length - 1]).toBe(migration0010);
+  it('is registered tenth and raises the reader floor to its own version', () => {
+    expect(HUB_MIGRATIONS[9]).toBe(migration0010);
     expect(migration0010).toMatchObject({ version: 10, name: 'collab', minReaderVersion: 10 });
   });
 
@@ -35,7 +35,7 @@ describe('migration 0010 collab', () => {
     const upgraded = openHubDb(options);
     if (upgraded.status !== 'ready') throw new Error('expected ready');
     const { db } = upgraded.hub;
-    expect(getMeta(db, 'schema_version')).toBe('10');
+    expect(getMeta(db, 'schema_version')).toBe('11');
     expect(getMeta(db, 'min_reader_version')).toBe('10');
     const tables = (db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'collab_%'").all() as Array<{ name: string }>).map((r) => r.name).sort();
     expect(tables).toEqual(['collab_bases', 'collab_docs', 'collab_snapshots', 'collab_updates']);

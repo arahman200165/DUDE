@@ -3,6 +3,7 @@ import { HUB_API_PREFIX } from '@dude/contracts/hub';
 import type { HubErrorCode } from '@dude/contracts/hub';
 import { envelope } from '../server/errors.js';
 import { SESSION_COOKIE, parseCookies } from './cookies.js';
+import { evaluateCrossSiteGet } from './cross-site-get.js';
 import { effectiveHost } from './host-guard.js';
 import type { HostGuard } from './host-guard.js';
 
@@ -50,6 +51,8 @@ const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 export interface RequestGuardOptions {
   hostGuard: HostGuard;
   csrfVerifier?: CsrfVerifier;
+  /** Whether OIDC sign-in is configured; the one cross-site GET exemption (`security/cross-site-get.ts`) applies only while it is. Default: off. */
+  oidcEnabled?: () => boolean;
 }
 
 interface Rejection { status: number; code: HubErrorCode; message: string }
@@ -135,5 +138,17 @@ export function registerRequestGuard(app: FastifyInstance, options: RequestGuard
     const rejection = await evaluate(request, options, request.routeOptions.config?.credentialless === true);
     if (rejection === null) return;
     return reply.code(rejection.status).type('application/json').header('Cache-Control', 'no-store').send(envelope(rejection.code, rejection.message));
+  });
+  // Cross-site top-level navigations to the API (GET/HEAD): refused except the exact allowlist (the OIDC callback, session-less).
+  app.addHook('onRequest', async (request, reply) => {
+    const decision = evaluateCrossSiteGet({ method: request.method, url: request.url, headers: request.headers, features: { oidc: options.oidcEnabled?.() === true } });
+    if (decision.action === 'pass') return;
+    if (decision.action === 'allow-credentialless') {
+      // The callback never takes a session as authority: whatever the browser sent, no handler can see it.
+      delete request.headers.cookie;
+      delete request.headers.authorization;
+      return;
+    }
+    return reply.code(decision.status).type('application/json').header('Cache-Control', 'no-store').send(envelope(decision.status === 400 ? 'bad-request' : 'forbidden', decision.message));
   });
 }

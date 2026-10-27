@@ -75,6 +75,12 @@ INSERT INTO collab_updates(doc_key, update_blob, at) VALUES ('scratchpad:default
 INSERT INTO collab_snapshots(id, doc_key, taken_at, payload_json, bytes) VALUES ('snap-1', 'scratchpad:default', '${at}', '{}', 2);
 INSERT INTO collab_bases(doc_key, revision, payload_json, at) VALUES ('scratchpad:default', 1, '{}', '${at}');`);
   }
+  // OIDC (32-SS1, migration 0011): both tables are scrubbed from a backup (PD-145); the verifier carries the secret marker.
+  if (db.prepare("SELECT 1 AS x FROM sqlite_master WHERE type = 'table' AND name = 'oidc_flows'").get() !== undefined) {
+    db.exec(`
+INSERT INTO linked_identities(id, owner_id, provider, sub, email, issuer, linked_at) VALUES ('li-1', 'owner-1', 'google', '${SECRET_MARKER}-sub', 'owner@example.com', 'https://accounts.google.com', '${at}');
+INSERT INTO oidc_flows(state_hash, nonce_hash, code_verifier, purpose, return_to, created_at, expires_at) VALUES ('${SECRET_MARKER}-state', 'n', '${SECRET_MARKER}-verifier', 'signin', '/', '${at}', '${later}');`);
+  }
   setMeta(db, 'csrf_key', `${SECRET_MARKER}-csrf`);
   setMeta(db, 'alerts_seen_seq', '5');
   setMeta(db, 'hub_addresses', `{"addresses":["${SECRET_MARKER}"]}`);

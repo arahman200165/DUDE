@@ -67,14 +67,17 @@ export function runMigrations(db: Db, migrations: readonly Migration[], options:
     pruneBackups(options.backupDir, keep);
   }
 
+  // The floor only ever rises: a later migration with a lower floor must not undo what an earlier one in this same run raised.
+  let floor = minReader;
   for (const m of pending) {
+    floor = Math.max(m.minReaderVersion, floor);
     transaction(db, () => {
       db.exec(m.sql);
       db.prepare('INSERT INTO schema_migrations(version, name, checksum, applied_at) VALUES(?, ?, ?, ?)')
         .run(m.version, m.name, checksumOf(m), options.now().toISOString());
       const upsert = db.prepare('INSERT INTO meta(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value');
       upsert.run('schema_version', String(m.version));
-      upsert.run('min_reader_version', String(Math.max(m.minReaderVersion, minReader)));
+      upsert.run('min_reader_version', String(floor));
     });
   }
   return { status: 'ready', from: current, to: sorted[sorted.length - 1].version, ...(backupPath ? { backupPath } : {}) };
