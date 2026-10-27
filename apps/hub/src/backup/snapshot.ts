@@ -32,8 +32,10 @@ export const HUB_KEPT_TABLES = [
  * the durable queue) is operational state with leases and attempt counts that mean nothing on another machine: a restored Hub
  * starts with an empty queue and re-derives pending work from content state. `ingest_tokens` (Milestone 843, PD-149) holds capture
  * credentials (hashes, never secrets): scrubbed, so a restored Hub never carries one from before the restore and the owner mints new ones.
+ * `uploads` and `upload_chunks` (Milestone 845, PD-148) are resumable-upload sessions: transient, because the chunk files they describe live under
+ * `storage/uploads` and are never backed up (the expiry job releases an `upload` blob reference whose session is gone, which is the restore case).
  */
-export const SAVESPHERE_SCRUBBED_TABLES = ['audit_outbox', 'jobs', 'ingest_tokens'] as const;
+export const SAVESPHERE_SCRUBBED_TABLES = ['audit_outbox', 'jobs', 'ingest_tokens', 'uploads', 'upload_chunks'] as const;
 
 /**
  * `savesphere.db` tables kept as is. Each content table added by a later milestone is classified here or above, never silently.

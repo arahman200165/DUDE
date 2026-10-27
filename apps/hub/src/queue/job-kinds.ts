@@ -7,7 +7,7 @@ import type { HubJobId } from '@dude/contracts/hub';
  * process runs). A kind with no handler fails permanently at claim time instead of looping, and `enqueue` refuses an unknown kind.
  * The queue runs Hub-internal work only: no route enqueues, and nothing here dispatches to a device.
  */
-export const JOB_KINDS = ['noop.echo', 'blobs.verify', 'blobs.staging-sweep'] as const;
+export const JOB_KINDS = ['noop.echo', 'blobs.verify', 'blobs.staging-sweep', 'uploads.expire'] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
 
 export type JobIsolation = 'inline' | 'worker';

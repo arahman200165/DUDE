@@ -291,6 +291,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     backup: { scheduleKeyPresent: () => scheduleKeyExists(paths.configDir) },
     ...(queueRuntime ? { queue: { status: () => queueRuntime.status() } } : {}),
     ...(queueRuntime ? { ingest: { db: queueRuntime.db } } : {}),
+    ...(queueRuntime ? { uploads: { service: queueRuntime.uploads } } : {}),
     provisioning: { status: () => provisioning.status() },
     tunnel: { status: () => tunnelRuntime.status(), facts: (candidate) => tunnelRuntime.facts(candidate) },
     oidc: { readClientSecret: createClientSecretReader(oidcSecret), clientSecretPresent: () => oidcSecret.present() },

@@ -303,6 +303,22 @@ describe('the blob jobs', () => {
     expect(existsSync(fresh)).toBe(true);
   });
 
+  it('uploads.expire runs the upload service expiry and reports a short summary (and is a harmless no-op without a service)', async () => {
+    const blobs = openBlobFixture();
+    open.push(blobs);
+    const { createUploadService } = await import('../uploads/upload-service.js');
+    const { createDiskGuard } = await import('../uploads/disk-guard.js');
+    const uploads = createUploadService({ db: blobs.db, paths: blobs.paths, blobs: blobs.store, now: blobs.now, limits: { ttlMs: 1000 }, guard: createDiskGuard({ probe: () => null }) });
+    expect(uploads.create({ kind: 'owner', id: 'o1' }, { size: 10 }).ok).toBe(true);
+    blobs.advance(5000);
+    const handlers = createDefaultJobHandlers({ db: blobs.db, blobs: blobs.store, now: blobs.now, uploads });
+    const result = await (handlers['uploads.expire'] as { run: (c: never) => Promise<{ summary: string; data?: Record<string, unknown> }> }).run({} as never);
+    expect(result.summary).toBe('Expired 1 upload, released 0 blob references, removed 0 chunk folders.');
+    expect(result.data).toMatchObject({ expired: 1 });
+    const none = await (createDefaultJobHandlers({ db: blobs.db, blobs: blobs.store })['uploads.expire'] as { run: (c: never) => Promise<{ summary: string }> }).run({} as never);
+    expect(none.summary).toBe('No uploads to expire.');
+  });
+
   it('declares every kind of the production list but no worker handler without an implementation', async () => {
     const blobs = openBlobFixture();
     open.push(blobs);

@@ -7,6 +7,8 @@ export const HUB_ERROR_CODES = [
   'hub-transferred',
   /** HTTP 503: Google sign-in cannot serve this request (provider unreachable, secret missing, not configured); the password still works (PD-121). */
   'oidc-unavailable',
+  /** HTTP 507: the Hub's free-disk guard refused an upload (the volume is too full to take it safely). Nothing was written; retry after freeing space. */
+  'storage-full',
 ] as const;
 export type HubErrorCode = (typeof HUB_ERROR_CODES)[number];
 

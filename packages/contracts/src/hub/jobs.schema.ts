@@ -8,10 +8,10 @@ export const HUB_JOBS_PATH = '/api/v1/jobs';
  * (`collab-history-prune`: the daily removal of history snapshots past retention, PD-105; `collab-maintenance`: the six-hourly
  * pruning of merge bases below the sync floor and compaction of stored update tails, PD-105). The 32-SS1 durable queue adds
  * `queue-runner` (lease recovery, retention and the scheduled enqueues, reported only when something happened), `blobs-verify`
- * (the scheduled re-hash batch) and `blobs-staging-sweep` (the removal of abandoned `.part` files); they are registered only on a
+ * (the scheduled re-hash batch) `blobs-staging-sweep` (the removal of abandoned `.part` files) and `uploads-expire` (the removal of expired resumable-upload sessions, their chunk files and the blob references they held); they are registered only on a
  * Hub whose `savesphere.db` exists and otherwise show as never run with no timer.
  */
-export const HUB_JOB_IDS = ['leaf-renewal', 'acme-renewal', 'backup-schedule', 'sync-compaction', 'address-watch', 'audit-prune', 'collab-history-prune', 'collab-maintenance', 'queue-runner', 'blobs-verify', 'blobs-staging-sweep'] as const;
+export const HUB_JOB_IDS = ['leaf-renewal', 'acme-renewal', 'backup-schedule', 'sync-compaction', 'address-watch', 'audit-prune', 'collab-history-prune', 'collab-maintenance', 'queue-runner', 'blobs-verify', 'blobs-staging-sweep', 'uploads-expire'] as const;
 export type HubJobId = (typeof HUB_JOB_IDS)[number];
 
 export const HUB_JOB_OUTCOMES = ['success', 'skipped', 'failed'] as const;

@@ -54,6 +54,7 @@ export function androidHubTransport(target: MobileHubTarget): HubTransport {
     // The trust is selected from the STORED target here, and a public-CA origin that is not exactly the stored domain is refused before any native call.
     const publicCaDomain = publicCaDomainOf(target);
     try {
+      if (req.rawBody !== undefined) throw new Error('Binary request bodies are not supported by the mobile Hub bridge yet (resumable uploads arrive with 32-SS3 capture).');
       const response = await native().request(target.hubUrl, target.pins, req.method, req.path, req.headers ?? {}, req.body === undefined ? null : JSON.stringify(req.body), publicCaDomain);
       return { ...response, body: JSON.parse(response.body) as unknown };
     } catch (error) {

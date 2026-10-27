@@ -185,9 +185,9 @@ export function createPinnedTransport(target: PinnedTarget, timeoutMs = target.t
   return {
     request: (req: HubRequest): Promise<HubResponse> =>
       new Promise<HubResponse>((resolve, reject) => {
-        const payload = req.body === undefined ? undefined : Buffer.from(JSON.stringify(req.body), 'utf8');
+        const payload = req.rawBody !== undefined ? Buffer.from(req.rawBody.buffer, req.rawBody.byteOffset, req.rawBody.byteLength) : req.body === undefined ? undefined : Buffer.from(JSON.stringify(req.body), 'utf8');
         const headers: Record<string, string> = { accept: 'application/json', ...req.headers };
-        if (payload) { headers['content-type'] = 'application/json'; headers['content-length'] = String(payload.length); }
+        if (payload) { if (req.rawBody === undefined) headers['content-type'] = 'application/json'; headers['content-length'] = String(payload.length); }
         const request = https.request(
           { host, port: target.port, method: req.method, path: req.path, headers, ...conn },
           (res) => {

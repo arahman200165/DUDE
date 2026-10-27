@@ -21,7 +21,7 @@ export function createFetchHubTransport(options: FetchHubTransportOptions): Fetc
     lastRetryAfterMs: () => retryAfterMs,
     async request(req: HubRequest): Promise<HubResponse> {
       const headers: Record<string, string> = { accept: 'application/json', ...req.headers };
-      if (req.body !== undefined) headers['content-type'] = 'application/json';
+      if (req.body !== undefined && req.rawBody === undefined) headers['content-type'] = 'application/json';
       const csrf = options.csrfToken();
       if (req.method !== 'GET' && csrf !== undefined) headers[HUB_CSRF_HEADER] = csrf;
       const doFetch = options.fetch ?? globalThis.fetch.bind(globalThis);
@@ -29,7 +29,7 @@ export function createFetchHubTransport(options: FetchHubTransportOptions): Fetc
         method: req.method,
         credentials: 'same-origin',
         headers,
-        body: req.body === undefined ? undefined : JSON.stringify(req.body),
+        body: req.rawBody !== undefined ? (req.rawBody as BodyInit) : req.body === undefined ? undefined : JSON.stringify(req.body),
       });
       const responseHeaders: Record<string, string> = {};
       res.headers.forEach((value, name) => {

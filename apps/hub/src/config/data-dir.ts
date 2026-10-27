@@ -24,6 +24,8 @@ export interface HubPaths {
   stagingDir: string;
   /** Per-job scratch directories of the isolated workers (32-SS1, Milestone 834); emptied when the worker pool starts and never backed up. */
   workersDir: string;
+  /** Partial resumable uploads (32-SS1, Milestone 845): `storage/uploads/<uploadId>/<index>.part`; created lazily by the upload service, expired by the `uploads.expire` job, never backed up. */
+  uploadsDir: string;
   /** Bounded, disposable cache (previews, thumbnails, scratch; 32-SS1, Milestone 835): `storage/cache`, so `purge` already removes it and a backup never holds it; created by provisioning, never by `ensureLayout`. */
   cacheDir: string;
   backupsDir: string;
@@ -59,6 +61,7 @@ export function hubPaths(root: string): HubPaths {
     blobsDir: path.join(root, 'storage', 'blobs'),
     stagingDir: path.join(root, 'storage', 'staging'),
     workersDir: path.join(root, 'storage', 'workers'),
+    uploadsDir: path.join(root, 'storage', 'uploads'),
     cacheDir: path.join(root, 'storage', 'cache'),
     backupsDir: path.join(root, 'backups'),
     configDir: path.join(root, 'config'),

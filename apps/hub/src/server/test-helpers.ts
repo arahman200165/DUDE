@@ -63,6 +63,8 @@ export interface TestHubOptions {
   queue?: CreateHubServerOptions['queue'];
   /** The open savesphere.db for the token-only ingest scaffold; absent means SaveSphere storage is not set up. */
   ingest?: CreateHubServerOptions['ingest'];
+  /** The resumable upload service (Milestone 845); absent means the upload routes answer 409. */
+  uploads?: CreateHubServerOptions['uploads'];
   /** SaveSphere provisioning read model (`GET /api/v1/provisioning`); absent means not provisioned. */
   provisioning?: CreateHubServerOptions['provisioning'];
   /** Managed tunnel read model and diagnostics facts (`GET /api/v1/tunnel`); absent means not configured. */

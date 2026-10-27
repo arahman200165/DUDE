@@ -1,6 +1,8 @@
 import { Value } from 'typebox/value';
+import Type from 'typebox';
 import type { TSchema, Static } from 'typebox';
 import {
+  HUB_UPLOADS_PATH, uploadPath, uploadChunkPath, uploadCompletePath, UPLOAD_CHUNK_HASH_HEADER, UPLOAD_CONTENT_TYPE, UploadSession, UploadChunkResponse, UploadCompleteResponse,
   HUB_API_PREFIX, HUB_OIDC_PATHS, HUB_INGEST_PATHS, ingestRevokePath, ingestRevokePreviewPath, IngestTokenListResponse, IngestTokenCreateResponse, IngestTokenRevokePreview, IngestPingResponse, OidcStatusResponse, OidcStartResponse, OidcLinkCompleteResponse, OidcAccountsResponse, OidcUnlinkPreview, HelloResponse, ErrorEnvelope, checkProtocolCompatibility,
   BootstrapResponse, TlsCertificatesResponse, AuditListResponse, SecurityAlertsResponse, PresenceResponse, HUB_PRESENCE_PATH, HubJobsResponse, HUB_JOBS_PATH, HubQueueStatusResponse, HUB_QUEUE_PATH, HubProvisioningResponse, HUB_PROVISIONING_PATH, HubTunnelStatusResponse, HUB_TUNNEL_PATH, HubNotificationsResponse, HUB_NOTIFICATIONS_PATH, CollabRoom, CollabRoomsResponse, HUB_COLLAB_ROOMS_PATH, KeepCollabRoomResponse, CollabDocumentsResponse, HUB_COLLAB_DOCUMENTS_PATH, CollabHistoryResponse, CollabSnapshotResponse, CollabRestoreResponse, HUB_COLLAB_HISTORY_PATH, HubDiagnosticsReport, ReachabilityEchoResponse, BackupStatusResponse,
   EnrollResponse, DeviceChallengeResponse, DeviceRecoveryChallengeResponse, DeviceTokenResponse, DeviceInfo, DeviceListResponse, OwnerBearerResponse, PairingCodeResponse,
@@ -12,7 +14,7 @@ import {
   assertSyncCategories,
 } from '@dude/contracts/hub';
 import type {
-  IngestTokenCreateRequest, ProtocolCompatibility, MarkNotificationsReadRequest, BootstrapRequest, EnrollRequest, DeviceSelfUpdate, PairingCodeRequest, SyncOp, SyncStateReport, SyncCategory, WebAttachRequest,
+  IngestTokenCreateRequest, UploadCreateRequest, ProtocolCompatibility, MarkNotificationsReadRequest, BootstrapRequest, EnrollRequest, DeviceSelfUpdate, PairingCodeRequest, SyncOp, SyncStateReport, SyncCategory, WebAttachRequest,
 } from '@dude/contracts/hub';
 import type { HubRequest, HubTransport } from './transport.js';
 import { HubApiError, HubProtocolError } from './errors.js';
@@ -154,6 +156,21 @@ export interface HubClient {
   revokeIngestToken(auth: Bearer, id: string, confirmToken: string): Promise<OkResponse>;
   ingestPing(token: string): Promise<IngestPingResponse>;
 
+  /**
+   * Resumable chunked uploads into the Hub's blob store (32-SS1, Milestone 845, PD-118, PD-148). Owner credential only (cookie: omit `auth`; or an owner
+   * bearer; a device token is 403, an ingest token 401). `createUpload` negotiates the chunk size (8 MiB by default) and returns the session;
+   * `putUploadChunk` sends ONE chunk as raw bytes (`bytes` must be exactly the session's chunk size, or the remainder for the last chunk; it is idempotent by
+   * index, so retry freely; `sha256` is the lower-case hex hash of `bytes`, which the Hub verifies); `uploadStatus` is the resume point;
+   * `completeUpload` assembles and answers the blob identity (state `complete`), or the session (state `completing`) when a long assembly is still running:
+   * call it again or poll the status. `abortUpload` is a single audited step that only removes the session's own staged bytes. Most callers want
+   * `uploadFileResumable` (`./upload-file.ts`), which does all of this. A `HubTransport` must support `HubRequest.rawBody`; the mobile bridge does not yet.
+   */
+  createUpload(auth: Bearer, body: UploadCreateRequest): Promise<UploadSession>;
+  uploadStatus(auth: Bearer, uploadId: string): Promise<UploadSession>;
+  putUploadChunk(auth: Bearer, uploadId: string, index: number, bytes: Uint8Array, options?: { sha256?: string }): Promise<UploadChunkResponse>;
+  completeUpload(auth: Bearer, uploadId: string): Promise<UploadCompleteResponse | UploadSession>;
+  abortUpload(auth: Bearer, uploadId: string): Promise<OkResponse>;
+
   // Synchronization (Phase 31D). Device token required, except summary and the environment clear (owner).
   syncPush(auth: Bearer, ops: readonly SyncOp[], options?: SyncPushOptions): Promise<SyncPushResponse>;
   /** A cursor older than the Hub's retained history rejects with `HubApiError` status 410, code `cursor-expired`. */
@@ -271,6 +288,16 @@ export function createHubClient(transport: HubTransport, opts: HubClientOptions)
     revokeIngestTokenPreview: (auth, id) => call(IngestTokenRevokePreview, { method: 'POST', path: ingestRevokePreviewPath(id) }, auth),
     revokeIngestToken: (auth, id, confirmToken) => call(OkResponse, { method: 'POST', path: ingestRevokePath(id), body: { confirmToken } }, auth),
     ingestPing: (token) => call(IngestPingResponse, { method: 'GET', path: HUB_INGEST_PATHS.ping }, token),
+
+    createUpload: (auth, body) => call(UploadSession, { method: 'POST', path: HUB_UPLOADS_PATH, body }, auth),
+    uploadStatus: (auth, id) => call(UploadSession, { method: 'GET', path: uploadPath(id) }, auth),
+    putUploadChunk: (auth, id, index, bytes, options) =>
+      call(UploadChunkResponse, {
+        method: 'PUT', path: uploadChunkPath(id, index), rawBody: bytes,
+        headers: { 'content-type': UPLOAD_CONTENT_TYPE, ...(options?.sha256 === undefined ? {} : { [UPLOAD_CHUNK_HASH_HEADER]: options.sha256 }) },
+      }, auth),
+    completeUpload: (auth, id) => call(Type.Union([UploadCompleteResponse, UploadSession]), { method: 'POST', path: uploadCompletePath(id) }, auth),
+    abortUpload: (auth, id) => call(OkResponse, { method: 'DELETE', path: uploadPath(id) }, auth),
 
     syncPush: (auth, ops, options) => call(SyncPushResponse, { method: 'POST', path: `${P}${SYNC_PATHS.push}`, body: pushBody(ops, options) }, auth),
     syncChanges: async (auth, after, limit, categories) => {

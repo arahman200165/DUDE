@@ -47,6 +47,10 @@ export const rejectingCsrfVerifier: CsrfVerifier = () => false;
 export const CSRF_HEADER = 'x-dude-csrf';
 const BROWSER_FETCH_HEADERS = ['sec-fetch-site', 'sec-fetch-mode', 'sec-fetch-dest', 'sec-fetch-user'] as const;
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+/** The one route that takes a non-JSON body (32-SS1, Milestone 845): `PUT /api/v1/uploads/:id/chunks/:index` with `application/octet-stream`. Every other body must be JSON. */
+const UPLOAD_CHUNK_PATH = /^\/api\/v1\/uploads\/[^/]+\/chunks\/[0-9]+$/;
+const isUploadChunk = (request: FastifyRequest, contentType: string | undefined): boolean =>
+  request.method === 'PUT' && contentType !== undefined && /^application\/octet-stream\s*(;|$)/i.test(contentType) && UPLOAD_CHUNK_PATH.test((request.url.split('?')[0] ?? ''));
 
 export interface RequestGuardOptions {
   hostGuard: HostGuard;
@@ -83,7 +87,7 @@ async function evaluate(request: FastifyRequest, options: RequestGuardOptions, c
   if (credential.duplicateSession) return { status: 400, code: 'bad-request', message: 'The request is not valid.' };
 
   const contentType = header(request, 'content-type');
-  if (hasBody(request) && !(contentType !== undefined && /^application\/json\s*(;|$)/i.test(contentType))) {
+  if (hasBody(request) && !(contentType !== undefined && /^application\/json\s*(;|$)/i.test(contentType)) && !isUploadChunk(request, contentType)) {
     return { status: 415, code: 'bad-request', message: 'Content-Type must be application/json.' };
   }
 

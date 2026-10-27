@@ -69,6 +69,11 @@ export const AUDIT_EVENT_LABELS: Readonly<Record<string, string>> = {
   'ingest.token-created': 'Ingest token created',
   'ingest.token-revoked': 'Ingest token revoked',
   'ingest.auth-failed': 'Ingest token refused',
+  'upload.created': 'Upload started',
+  'upload.completed': 'Upload completed',
+  'upload.aborted': 'Upload cancelled',
+  'upload.failed': 'Upload failed verification',
+  'upload.expired': 'Upload expired',
 };
 
 export function auditEventLabel(event: string): string {

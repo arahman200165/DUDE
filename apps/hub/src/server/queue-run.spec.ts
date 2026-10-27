@@ -60,16 +60,16 @@ describe('dude-hub bundle with SaveSphere storage', () => {
         return JSON.parse(res.body) as unknown;
       };
 
-      // The echo job plus the two scheduled blob jobs all finish.
+      // The echo job plus the three scheduled maintenance jobs (blob verify, staging sweep, upload expiry) all finish.
       let queue: HubQueueStatusResponse | undefined;
       for (let i = 0; i < 100; i += 1) {
         queue = (await get('/queue')) as HubQueueStatusResponse;
-        if (queue.counts.succeeded >= 3) break;
+        if (queue.counts.succeeded >= 4) break;
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
       expect(Value.Check(HubQueueStatusResponse, queue)).toBe(true);
-      expect(queue).toMatchObject({ available: true, counts: { queued: 0, running: 0, succeeded: 3, failed: 0, dead: 0 } });
-      expect(queue!.kinds.map((k) => k.kind)).toEqual(['blobs.staging-sweep', 'blobs.verify', 'noop.echo']);
+      expect(queue).toMatchObject({ available: true, counts: { queued: 0, running: 0, succeeded: 4, failed: 0, dead: 0 } });
+      expect(queue!.kinds.map((k) => k.kind)).toEqual(['blobs.staging-sweep', 'blobs.verify', 'noop.echo', 'uploads.expire']);
 
       const jobs = (await get('/jobs')) as HubJobsResponse;
       expect(Value.Check(HubJobsResponse, jobs)).toBe(true);
@@ -77,6 +77,7 @@ describe('dude-hub bundle with SaveSphere storage', () => {
       expect(byId('queue-runner')).toMatchObject({ intervalMs: 60_000, lastOutcome: 'success' });
       expect(byId('blobs-verify')).toMatchObject({ intervalMs: 6 * 3600_000, lastOutcome: 'success', lastSummary: 'Checked 0 attachments; all intact.' });
       expect(byId('blobs-staging-sweep')).toMatchObject({ intervalMs: 24 * 3600_000, lastOutcome: 'success', lastSummary: 'No abandoned upload files.' });
+      expect(byId('uploads-expire')).toMatchObject({ intervalMs: 15 * 60_000, lastOutcome: 'success', lastSummary: 'No expired uploads.' });
     } finally {
       child.kill();
     }

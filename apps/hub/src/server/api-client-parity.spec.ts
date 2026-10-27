@@ -76,6 +76,11 @@ const ARGS: Record<string, readonly unknown[]> = {
   revokeIngestTokenPreview: ['t', ID],
   revokeIngestToken: ['t', ID, 'c'],
   ingestPing: ['dit_x'],
+  createUpload: ['t', { size: 1 }],
+  uploadStatus: ['t', ID],
+  putUploadChunk: ['t', ID, 0, new Uint8Array(1), { sha256: 'a'.repeat(64) }],
+  completeUpload: ['t', ID],
+  abortUpload: ['t', ID],
   syncPush: ['t', []],
   syncChanges: ['t', 0, 10],
   syncSnapshot: ['t', { afterType: 'a', afterId: 'b', limit: 1 }],
@@ -95,7 +100,7 @@ const NOT_REQUESTS = new Set(['compatibility']);
 
 const normaliseTemplate = (url: string): string => url.replace(/:[^/]+/g, ':p').replace(/\/+$/, '');
 const normaliseClientPath = (path: string): string =>
-  (path.split('?')[0] ?? '').split('/').map((s) => (s === ID ? ':p' : s)).join('/').replace(/\/+$/, '');
+  (path.split('?')[0] ?? '').split('/').map((s, i, all) => (s === ID || (all[i - 1] === 'chunks' && /^[0-9]+$/.test(s)) ? ':p' : s)).join('/').replace(/\/+$/, '');
 
 describe('api-client / Hub route parity', () => {
   let hub: TestHub;

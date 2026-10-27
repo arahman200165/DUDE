@@ -21,6 +21,8 @@ import { registerJobsRoute } from './routes/jobs.js';
 import { registerQueueRoute } from './routes/queue.js';
 import { registerProvisioningRoute } from './routes/provisioning.js';
 import { registerIngestRoutes } from './routes/ingest.js';
+import { registerUploadRoutes } from './routes/uploads.js';
+import type { UploadService } from '../uploads/upload-service.js';
 import { createIngestTokenStore } from '../ingest/ingest-tokens.js';
 import { registerNotificationRoutes } from './routes/notifications.js';
 import { startNotificationProducers } from '../notifications/producers.js';
@@ -131,6 +133,11 @@ export interface CreateHubServerOptions {
    * `ingest_tokens` there; without it the owner's token routes answer 409 and every ingest token is unknown (`/api/v1/ingest/*` stays 401).
    */
   ingest?: { db: Db };
+  /**
+   * The resumable upload service (32-SS1, Milestone 845): `run` supplies it from the queue runtime once `savesphere.db` is open; without it the
+   * upload routes answer 409. The chunk route has its own raw-stream parser; `HUB_BODY_LIMIT` is untouched everywhere else.
+   */
+  uploads?: { service: UploadService };
   /** SaveSphere provisioning read model (32-SS1, Milestone 835): `run` supplies it; without it `GET /api/v1/provisioning` reports not provisioned. */
   provisioning?: { status: () => Promise<HubProvisioningResponse> };
   /**
@@ -257,6 +264,7 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   // The token-only ingest scaffold (Milestone 843, PD-119, PD-149): `/api/v1/ingest/ping` takes an ingest token and nothing else; the owner manages tokens under `/api/v1/admin/ingest-tokens`.
   const ingestStore = options.ingest ? createIngestTokenStore({ db: options.ingest.db, hubDb: options.hub.db, auditWriter: (input) => audit(options.hub.db, input), now }) : undefined;
   registerIngestRoutes(app, { store: () => ingestStore, hubDb: options.hub.db, limiter, now, confirmations, requireOwner: authOptions.requireOwner });
+  registerUploadRoutes(app, { requireOwner: authOptions.requireOwner, service: () => options.uploads?.service });
   registerTunnelRoute(app, { requireOwner: authOptions.requireOwner, status: options.tunnel?.status });
   // Notifications (PD-109, PD-110): the closed producer list feeds the table; a new row reaches owner sockets and reader-granted device sockets.
   const producers = startNotificationProducers({

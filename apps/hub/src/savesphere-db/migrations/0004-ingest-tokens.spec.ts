@@ -24,7 +24,7 @@ describe('savesphere.db migration 0004 ingest tokens', () => {
     if (before.status !== 'ready') throw new Error('expected ready');
     expect(getMeta(before.store.db, 'schema_version')).toBe('3');
     before.store.close();
-    const after = openSaveSphereDb(paths);
+    const after = openSaveSphereDb(paths, { migrations: SAVESPHERE_MIGRATIONS.slice(0, 4) });
     if (after.status !== 'ready') throw new Error('expected ready');
     expect(getMeta(after.store.db, 'schema_version')).toBe('4');
     expect(getMeta(after.store.db, 'min_reader_version')).toBe('4');

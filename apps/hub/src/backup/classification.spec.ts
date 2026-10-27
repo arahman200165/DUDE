@@ -62,6 +62,12 @@ describe('backup scrub classification covers every table of both databases', () 
     expect(SAVESPHERE_KEPT_TABLES).not.toContain('ingest_tokens');
   });
 
+  it('treats resumable-upload sessions as transient (scrubbed): the chunk files they describe are never backed up (PD-148)', () => {
+    expect(SAVESPHERE_SCRUBBED_TABLES).toContain('uploads');
+    expect(SAVESPHERE_SCRUBBED_TABLES).toContain('upload_chunks');
+    expect(SAVESPHERE_KEPT_TABLES).not.toContain('uploads');
+  });
+
   it('the checker itself flags an unclassified table', () => {
     expect(unclassified([...saveSphereTables, 'brand_new'], SAVESPHERE_SCRUBBED_TABLES, SAVESPHERE_KEPT_TABLES)).toEqual(['brand_new']);
   });

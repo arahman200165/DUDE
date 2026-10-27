@@ -9,7 +9,7 @@ import { createJobQueue } from './job-queue.js';
 import type { JobQueueOptions } from './job-queue.js';
 
 export const TEST_KINDS = [
-  'noop.echo', 'blobs.verify', 'blobs.staging-sweep',
+  'noop.echo', 'blobs.verify', 'blobs.staging-sweep', 'uploads.expire',
   'test.echo', 'test.sleep', 'test.fail', 'test.permanent', 'test.crash', 'test.oom', 'test.flaky', 'test.env', 'test.scratch',
   'inline.ok', 'inline.fail', 'inline.slow', 'inline.permanent', 'inline.attention',
 ];

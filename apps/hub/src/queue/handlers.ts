@@ -3,6 +3,7 @@ import { verifyBlobBatch } from '../blobs/verify.js';
 import type { LocalBlobStore } from '../blobs/local-blob-store.js';
 import { PermanentJobError } from './job-error.js';
 import type { JobHandlers } from './job-kinds.js';
+import type { UploadService } from '../uploads/upload-service.js';
 
 export interface DefaultJobHandlerDeps {
   /** The `savesphere.db` connection (the blob catalogue). */
@@ -11,6 +12,8 @@ export interface DefaultJobHandlerDeps {
   now?: () => number;
   /** Drains audit outbox rows a blob job wrote into `dude.db` (called after a run that wrote some). */
   drainAudit?: () => void;
+  /** The resumable upload service (Milestone 845); without it `uploads.expire` is a no-op that reports nothing to expire. */
+  uploads?: UploadService;
 }
 
 const HOUR_MS = 3600_000;
@@ -69,6 +72,19 @@ export function createDefaultJobHandlers(deps: DefaultJobHandlerDeps): JobHandle
         if (maxAgeMs < MIN_STAGING_MAX_AGE_MS) throw new PermanentJobError('The staging sweep keeps files for at least one hour.');
         const removed = await deps.blobs.sweepStaging(maxAgeMs, now());
         return { summary: removed === 0 ? 'No abandoned upload files.' : `Removed ${removed} abandoned upload file${removed === 1 ? '' : 's'}.`, data: { removed } };
+      },
+    },
+    'uploads.expire': {
+      isolation: 'inline',
+      timeoutMs: 5 * 60_000,
+      hubJobId: 'uploads-expire',
+      run: async () => {
+        if (deps.uploads === undefined) return { summary: 'No uploads to expire.', data: { expired: 0, releasedRefs: 0, removedDirs: 0, pruned: 0 } };
+        const result = await deps.uploads.expire();
+        const summary = result.expired + result.releasedRefs + result.removedDirs === 0
+          ? 'No expired uploads.'
+          : `Expired ${result.expired} upload${result.expired === 1 ? '' : 's'}, released ${result.releasedRefs} blob reference${result.releasedRefs === 1 ? '' : 's'}, removed ${result.removedDirs} chunk folder${result.removedDirs === 1 ? '' : 's'}.`;
+        return { summary, data: { ...result } };
       },
     },
   };
