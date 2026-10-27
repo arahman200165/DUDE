@@ -363,17 +363,17 @@ Nothing in this section is implemented. It records the security contract that th
 - **Session.** A Google sign-in produces the same `__Host-` owner cookie session as a password sign-in, so CSRF, Origin, rotation and expiry are unchanged.
 - **Step-up and fallback.** Step-up accepts either a fresh Google re-authentication (`max_age`/`prompt=login`) or the password. The Argon2id password, recovery codes, the setup-token bootstrap and every recovery path from 31C remain, so the Hub stays fully operable with Google unreachable or the client removed. That is the requirement under [Authentication and Identity](#authentication-and-identity).
 
-**Whole-domain sign-in (32-SS1, PD-122).** On the owner's domain every page and API requires a session, the developer tools included. The only exceptions are sign-in, recovery, static public assets, the ingest path (token-only) and public share links (32-SS6). Hub web caching rules are unchanged: the service worker stores no authenticated response.
+**Whole-domain sign-in (32-SS1, PD-122, [PD-144](../delivery/PHASE32SS1_PLAN.md)).** On the owner's domain every page and API requires a session, the developer tools included. Static assets stay public so the sign-in page, service worker, offline shell and Hub-offline page can load; every API, websocket and admin route is gated except a documented allowlist (sign-in, recovery, the OIDC callback, `hello`, the token-only ingest path and, from 32-SS6, public share links), enforced by an enumerate-and-probe spec, and the SPA `hubSessionGuard` keeps tool pages behind sign-in. Hub web caching rules are unchanged: the service worker stores no authenticated response.
 
 **Managed Cloudflare Tunnel (32-SS1, PD-120).**
-- **Process.** The Hub supervises `cloudflared` as a child process with a loopback-only origin connection. The tunnel token is a Hub secret, and the binary is version-pinned and hash-verified.
-- **Mode.** The Hub runs in reverse-proxy mode, trusting only the loopback hop. Public exposure through the tunnel still passes the elevated readiness gate and its typed confirmation, and the reachability echo works through it as for any proxy. Two parts of the as-built gate don't fit a tunnel yet, and 32-SS1 planning must resolve both:
-  - the `public-firewall-rule` blocker applies even in proxy mode, but a tunnel needs no inbound port, so it needs a tunnel-aware check;
-  - Cloudflare manages and rotates its edge certificate, which affects how devices keep proxy-pin verification.
+- **Process.** The Hub supervises `cloudflared` as a child process with a loopback-only origin connection. The tunnel is remotely managed: the owner pastes its connector token, which is a Hub secret (DPAPI, passed to the process in its environment, never on a command line), and ingress and `originRequest` settings live in the Cloudflare dashboard. The binary is version-pinned and hash-verified and runs with `--no-autoupdate` ([PD-142](../delivery/PHASE32SS1_PLAN.md)).
+- **Mode.** The Hub runs in reverse-proxy mode, trusting only the loopback hop. Public exposure through the tunnel still passes the elevated readiness gate and its typed confirmation, and the reachability echo works through it as for any proxy. Two parts of the as-built gate don't fit a tunnel, and 32-SS1 resolves both ([PD-143](../delivery/PHASE32SS1_PLAN.md)):
+  - the `public-firewall-rule` blocker applies even in proxy mode, but a tunnel needs no inbound port, so a tunnel-aware check set (the tunnel connected and healthy) replaces it and `inbound-bind` in tunnel mode;
+  - Cloudflare manages and rotates its edge certificate, so DUDE does not pin it: devices (the Agent, the desktop and the Android client) verify the tunnel domain against the public CA chain, and only the loopback hop is pinned.
 
   See the [as-built constraints](../delivery/PHASE32SS_PLAN.md#as-built-constraints-the-phases-must-resolve).
 - **Disclosure.** Cloudflare terminates TLS at its edge and can read traffic between clients and the Hub. Setup and Settings › Endpoint & Exposure state this, and direct Public mode is offered as the no-third-party alternative.
-- **Unchanged limits.** No Agent port and no native service is ever published through the tunnel. The Hub still stores no DNS-provider credential (PD-064); tunnel DNS routing is done through the tunnel's own authorization.
+- **Unchanged limits.** No Agent port and no native service is ever published through the tunnel. The Hub still stores no DNS-provider credential and no Cloudflare API token (PD-064); the connector token cannot edit DNS, and the tunnel hostname's DNS routing is the owner's dashboard action.
 
 **Ingest tokens and capture paths (32-SS1, 32-SS3, PD-119, PD-131).**
 - **Token.** `/api/v1/ingest/…` accepts only scoped ingest tokens: random, hashed at rest, shown once, named, optionally expiring, with a last-used time, revocable, and minted with step-up. Cookies, bearer sessions and device tokens are refused there, and an ingest token is refused everywhere else.
@@ -414,7 +414,8 @@ Nothing in this section is implemented. It records the security contract that th
 
 **Backup v2 (32-SS1, PD-124).**
 - **Format.** Streaming, chunked backups replace the 512 MiB whole-buffer ceiling, include the blob store and stay passphrase-encrypted under the 31G format rules.
-- **Destinations.** Credentials for offsite destinations (S3-compatible, Google Drive, OneDrive) are Hub secrets. A standby DUDE device receives backups over the authenticated device channel.
+- **Destinations.** Credentials for offsite destinations (S3-compatible, Google Drive, OneDrive) are Hub secrets. A standby DUDE device pulls encrypted backup chunks over a device-token streaming route that only a device holding an owner-set, step-up, audited per-device grant can use ([PD-151](../delivery/PHASE32SS1_PLAN.md)).
+- **Retention and verification.** Backups are verified when written; retention defaults to 7 daily, 4 weekly and 6 monthly, pruned only by a two-step confirm; a restore drill runs monthly and a backup is overdue at twice its interval ([PD-150](../delivery/PHASE32SS1_PLAN.md)). Creating and scheduling a backup stay on the elevated admin pipe; the Hub-web backup UI stays view-only.
 - **Unchanged rules.** Restores keep the 31G trust model (new instance id, epoch + 1, devices re-pair).
 
 **Audit additions (planned).** OIDC link, unlink, refused sign-in; tunnel configured or removed; ingest token minted or revoked; vault unlocked or locked; AI provider configured; mirror grant changed; guest grant and public link created or revoked; backup destination changed. Each event carries ids and outcomes only.

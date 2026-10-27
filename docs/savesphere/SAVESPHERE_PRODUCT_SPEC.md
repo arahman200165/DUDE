@@ -64,7 +64,7 @@ All surfaces follow the [DUDE UX Specification](../product/UX_SPEC.md): token-on
 
 ### Sign-in and reachability
 
-- Every path on the owner's domain requires an owner session, or from 32-SS6 a guest session. The only unauthenticated paths are sign-in, recovery, static assets (including the cached offline shell), the token-only ingest path and public share links ([PD-122](../delivery/PHASE32SS_PLAN.md)).
+- Every path on the owner's domain requires an owner session, or from 32-SS6 a guest session. Static assets (including the cached offline shell) are public so the sign-in page can load, and every API, websocket and admin route is gated except sign-in, recovery, the token-only ingest path and public share links ([PD-122](../delivery/PHASE32SS_PLAN.md), [PD-144](../delivery/PHASE32SS1_PLAN.md)).
 - The owner signs in with Google; the password and recovery codes remain as the fallback, and the Hub works with Google unreachable ([PD-121](../delivery/PHASE32SS_PLAN.md), 32-SS1).
 - The reference Hub is the owner's Windows PC. When it is off, asleep or rebooting, SaveSphere is reachable only from local replicas, caches and capture queues. A browser or installed PWA that has loaded the site before shows a "Hub offline" state from its cached shell; a first-time visitor sees the ingress provider's error page, because nothing the owner runs is online to serve anything else ([PD-123](../delivery/PHASE32SS_PLAN.md), 32-SS1).
 

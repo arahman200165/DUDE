@@ -34,7 +34,7 @@ Related: [DUDE — Product Requirements](../DUDE_PRD.md) · [Quality and Release
 |---|---|
 | Phases 0–31 | Complete; Phase 31 closed at Milestone 614 |
 | Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A (Milestone 615) and 31B (Milestones 616–627) and 31C (Milestones 628–648) and 31D (Milestones 649–662) and 31E (Milestones 663–682) and 31F (Milestones 683–699) and 31G (Milestones 700–719) complete, 31H (Milestones 720–728) and 31I (Milestones 729–786) complete; DUDE 2.0 was declared at Milestone 786 on 2026-10-23, with 31H's carried passes recorded in the 31I gate (the missing-Keystore and corrupt/full-storage cases are automated-only under PD-098); 31J (Milestones 787–815) complete on 2026-10-24 ([decisions PD-099–PD-115](PHASE31J_PLAN.md), [acceptance](PHASE31J_ACCEPTANCE.md); its physical and installed passes are owed and do not gate Phase 32) |
-| Phases 32-SS1 to 32-SS6 | Next: the SaveSphere program, planned 2026-10-25 ([decisions PD-116–PD-140](PHASE32SS_PLAN.md), [entries](#savesphere-program)); the first SaveSphere release gate closes at the end of 32-SS5 |
+| Phases 32-SS1 to 32-SS6 | Next: the SaveSphere program, planned 2026-10-25 ([decisions PD-116–PD-140](PHASE32SS_PLAN.md), [entries](#savesphere-program)); 32-SS1 is in progress from Milestone 829 ([plan](PHASE32SS1_PLAN.md)); the first SaveSphere release gate closes at the end of 32-SS5 |
 | Phase 32 | Begins after 32-SS6; every phase from 31A through 31J is complete |
 | Phases 33–100 | Retained long-horizon scope, subject to dependencies and product boundaries |
 
@@ -346,18 +346,20 @@ The required sequence is **31J → 32-SS1 → 32-SS2 → 32-SS3 → 32-SS4 → 3
 
 <a id="phase-32-ss1"></a>
 
-### Phase 32-SS1 — Hub Platform for SaveSphere (Planned)
+### Phase 32-SS1 — Hub Platform for SaveSphere (In progress)
+
+**Status:** in progress, started 2026-10-27. Milestones **829–857**, with decisions PD-141–PD-154 and the milestone map in the [Phase 32-SS1 plan](PHASE32SS1_PLAN.md). The scope additions (public-CA trust mode for the Agent, desktop and Android, the standby pull grant, the power-policy change, ingest-token scrub and reissue, the Hub-offline page and the Hub-internal job queue) are the [dated PD-140 entry of 2026-10-27](PHASE32SS_PLAN.md#dated-scope-entries-pd-140). Google Drive and OneDrive destinations (Milestones 856–857) may slip to a named follow-up without blocking the gate ([PD-150](PHASE32SS1_PLAN.md)).
 
 **Depends on:** 31C–31J (Hub, sync, web, Internet readiness, backup, collaboration).
 
 - provisioning wizard run when a machine is designated Hub: embedded SQLite content store, FTS5, vector index, content-addressed blob store behind a pluggable `BlobStore`, cache and a durable job queue with isolated workers; re-runnable with per-component status ([PD-118](PHASE32SS_PLAN.md));
 - the owner's bare domain with path routing, a `www` redirect and the token-only ingest path ([PD-119](PHASE32SS_PLAN.md));
-- DUDE-managed Cloudflare Tunnel (supervised `cloudflared`) as the default ingress and direct Public mode as the alternative, both through the readiness gate, with the edge-TLS disclosure ([PD-120](PHASE32SS_PLAN.md));
+- DUDE-managed, remotely managed Cloudflare Tunnel (supervised `cloudflared`, owner-pasted connector token) as the default ingress and direct Public mode as the alternative, both through the readiness gate with tunnel-aware blockers, public-CA trust for the tunnel domain on the Agent, desktop and Android, and the edge-TLS disclosure ([PD-120](PHASE32SS_PLAN.md), [PD-142](PHASE32SS1_PLAN.md), [PD-143](PHASE32SS1_PLAN.md));
 - Google OIDC owner sign-in with linked accounts and the password/recovery fallback ([PD-121](PHASE32SS_PLAN.md));
-- sign-in for every route on the domain; the Pages companion unchanged ([PD-122](PHASE32SS_PLAN.md));
-- power-policy check, the cached Hub-offline state and warm-standby promotion guidance ([PD-123](PHASE32SS_PLAN.md));
+- sign-in for every page and API on the domain (static assets public, the allowlist enforced by a probe spec); the Pages companion unchanged ([PD-122](PHASE32SS_PLAN.md), [PD-144](PHASE32SS1_PLAN.md));
+- power-policy check with a two-step elevated change, the cached Hub-offline page and warm-standby (pull) promotion guidance ([PD-123](PHASE32SS_PLAN.md), [PD-151](PHASE32SS1_PLAN.md), [PD-152](PHASE32SS1_PLAN.md));
 - resumable chunked uploads into the blob store;
-- streaming, chunked backup v2 without the 512 MiB ceiling, covering the blob store, to local, S3-compatible, standby-device and Google Drive/OneDrive destinations ([PD-124](PHASE32SS_PLAN.md)).
+- streaming, chunked backup v2 without the 512 MiB ceiling, covering the blob store, with 7/4/6 retention, verify-on-write and a monthly restore drill, to local, S3-compatible, standby-device and Google Drive/OneDrive destinations ([PD-124](PHASE32SS_PLAN.md), [PD-150](PHASE32SS1_PLAN.md)).
 
 **Exit gate:** a fresh Windows install designated as Hub completes the wizard, and the owner's domain serves the full DUDE web behind Google sign-in through the tunnel and, separately, through direct Public mode. The Hub stays usable with Google unreachable. A backup larger than 512 MiB, including blobs, verifies and restores on a second machine under the 31G authority rules. New routes keep contract-first parity, closed-list audit events and the confirmation-boundary specs.
 

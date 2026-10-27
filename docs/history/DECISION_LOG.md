@@ -367,7 +367,7 @@ These decisions were taken while planning Phase 31F (recorded 2026-10-04); the p
 
 *Amendment (2026-10-04):* the http-01 listener binds only for the duration of an issuance or renewal order (never idle, in any mode), because public mode requires a trusted certificate to exist first. TLS-ALPN-01 and DNS-01 are not implemented.
 
-**PD-064 — Dynamic addresses are detected and explained, never updated by the Hub.** *Decision:* the Hub detects public-address, interface and certificate-name drift and reports it in diagnostics; setup documentation explains dynamic DNS and router configuration. The Hub stores no DNS provider credential and runs no DDNS updater. *Alternatives considered:* a built-in DDNS updater; a webhook updater. *Consequences:* the user's router or DDNS client owns address publication.
+**PD-064 — Dynamic addresses are detected and explained, never updated by the Hub.** *Decision:* the Hub detects public-address, interface and certificate-name drift and reports it in diagnostics; setup documentation explains dynamic DNS and router configuration. The Hub stores no DNS provider credential and runs no DDNS updater. *Alternatives considered:* a built-in DDNS updater; a webhook updater. *Consequences:* the user's router or DDNS client owns address publication. *Clarified 2026-10-27 (Milestone 829):* PD-064 still stands for the SaveSphere tunnel. The Hub stores no Cloudflare API token; the only Cloudflare credential it holds is the owner-pasted tunnel connector token, which runs `cloudflared` and cannot edit DNS ([PD-142](../delivery/PHASE32SS1_PLAN.md)).
 
 **PD-065 — External reachability is verified by an off-LAN enrolled client.** *Decision:* an enrolled desktop or browser that is outside the Hub's LAN probes the public URL and reports the result to the Hub; the diagnostics check is `verified` only for an off-LAN probe and `claimed` otherwise. No third-party probe service is used. *Alternatives considered:* an optional external checker (sends the hostname off-machine); a Hub self-check (hairpin NAT false results). *Consequences:* the readiness gate can require a verified probe or an explicit acknowledgement. *Amendment (31F implementation):* the Hub itself observes the request source instead of trusting a client report: a client outside the network calls `GET /api/v1/reachability/echo` through the public name, and the Hub records a verification only when the observed source is a public address and the Host is a configured name (or the proxy public origin host). The check is `pass` (verified) for 7 days after that.
 
@@ -490,11 +490,11 @@ The decision is planned, not delivered. It is recorded at Milestone 828 as PD-11
 | PD-117 | Phases 32-SS1 to 32-SS6 inserted after 31J; first SaveSphere release gate at the end of 32-SS5; Phase 32 after 32-SS6 |
 | PD-118 | Hub provisioning: embedded SQLite, FTS5, vector index, content-addressed blob store behind a pluggable `BlobStore`, cache, durable job queue; no Docker or PostgreSQL |
 | PD-119 | One host on the owner's bare domain with path routes; `www` redirect; ingest API as a token-only path; `save@<domain>` |
-| PD-120 | DUDE-managed Cloudflare Tunnel by default (supervised `cloudflared`), direct Public mode as the alternative; same readiness gate; edge-TLS disclosure |
+| PD-120 | DUDE-managed, remotely managed Cloudflare Tunnel by default (supervised `cloudflared`, owner-pasted connector token, no API token), direct Public mode as the alternative; same readiness gate with tunnel-aware blockers; devices use public-CA trust for the tunnel domain and only the loopback hop is pinned; edge-TLS disclosure (amended 2026-10-27) |
 | PD-121 | Google OIDC primary owner sign-in with linked accounts; password and recovery codes as fallback; amends PD-027 |
-| PD-122 | The whole domain behind sign-in; GitHub Pages companion stays anonymous |
-| PD-123 | Hub on the owner's PC; downtime accepted and mitigated; manual warm standby; failover stays Phase 96 |
-| PD-124 | Backup v2: streaming and chunked, no 512 MiB cap, covers the blob store, four destination kinds, passphrase key model |
+| PD-122 | Every page and API behind sign-in; static assets public, API, websocket and admin routes gated by an allowlist, SPA guard for tool pages; GitHub Pages companion stays anonymous (reworded 2026-10-27) |
+| PD-123 | Hub on the owner's PC; downtime accepted and mitigated (two-step power policy change, precached Hub-offline page); manual warm standby pulling backups; failover stays Phase 96 (reworded 2026-10-27) |
+| PD-124 | Backup v2: streaming and chunked, no 512 MiB cap, covers the blob store, four destination kinds, passphrase key model; 7/4/6 retention, verify-on-write, monthly drill, overdue at 2x, standby pull, Drive and OneDrive cut line (amended 2026-10-27) |
 | PD-125 | SaveSphere is shell exception #15 at `/savesphere`; `/` stays DUDE Home with SaveSphere panels; no new category |
 | PD-126 | Full replicas on desktop and Android with outbox and Yjs; PWA capture queue and read cache |
 | PD-127 | Electron Windows, Android Expo with Kotlin modules, Linux via PWA until Phase 39; office PC web-first with opt-in employer Graph |
@@ -511,6 +511,27 @@ The decision is planned, not delivered. It is recorded at Milestone 828 as PD-11
 | PD-138 | Server-side encrypted vault with its own key and step-up unlock; not an autofill password manager |
 | PD-139 | 32-SS6 guests and public read-only links; owner stays sole admin |
 | PD-140 | Scope grows only by dated decision; explicit out-of-scope list |
+
+### Phase 32-SS1 implementation decisions
+
+PD-141–PD-154 govern the Hub platform work for SaveSphere beginning at Milestone 829 (2026-10-27); the phase is in progress. They are recorded in full in [Phase 32-SS1 decisions](../delivery/PHASE32SS1_PLAN.md) with the milestone map (829–857) and deviations. This is also the dated PD-140 scope entry for the additions listed in the [program decisions](../delivery/PHASE32SS_PLAN.md#dated-scope-entries-pd-140): public-CA trust mode for the Agent, desktop and Android, the standby pull grant, the power policy change, ingest-token scrub and reissue, the Hub-offline page and the Hub-internal job queue. PD-064, PD-120, PD-122, PD-123 and PD-124 were clarified or reworded in place at the same milestone.
+
+| Decision | Scope |
+|---|---|
+| PD-141 | Windows first; Docker keeps storage, queue, uploads and backup v2, and documents tunnel, power policy and vector search as Windows-only; no new workspace packages |
+| PD-142 | Tunnel credential is an owner-pasted connector token in a new DPAPI Hub secrets module; `cloudflared` hash-pinned, token in env only; ingress lives in the Cloudflare dashboard; no API token (PD-064 intact) |
+| PD-143 | Public-CA trust for the tunnel domain on Agent, desktop and Android; only the loopback hop pinned; tunnel-aware readiness; elevated `network tunnel on\|off`; `www` redirect |
+| PD-144 | Gating rule: static assets public, API, websocket and admin gated by a documented allowlist, SPA guard for tool pages, enumerate-and-probe spec, narrow OIDC callback exemption, precached Hub-offline page |
+| PD-145 | Google OIDC on `jose` with PKCE, bound by `sub`, multi-account link with step-up; password sign-in can never be disabled |
+| PD-146 | Separate `savesphere.db` with its own migrations, no `ATTACH`, `audit_outbox`, every table classified scrubbed or kept |
+| PD-147 | Hub-internal durable queue with isolated workers (exe re-spawn); privileged execution stays Phase 88; vector slot and `sqlite-vec` load proof, otherwise "vector unavailable" |
+| PD-148 | Content-addressed blob store with two-step GC; resumable 8 MiB uploads with no fixed cap; S3 blob tier deferred |
+| PD-149 | Ingest scaffold only (token class, bucket, audit, `ping`); ingest tokens scrubbed on restore and reissued |
+| PD-150 | Backup v2 format and engine; destination order; 7/4/6 retention, verify-on-write, monthly drill, overdue at 2x; Drive and OneDrive may slip |
+| PD-151 | Warm standby pulls encrypted chunks over a device-token route behind a per-device, step-up, audited grant; promotion with `--old-hub-gone` |
+| PD-152 | Power policy detected with `powercfg`; two-step elevated change with revert; re-checked on start |
+| PD-153 | Idempotent `dude-hub provision`, desktop wizard over stdin, read-only Hub-web status; backup creation and scheduling stay on the elevated pipe |
+| PD-154 | Automated exit gate plus a guided owner script; SS1 complete with owed live passes; Android in SS1 |
 
 ### Testing, accessibility, and performance evolution
 

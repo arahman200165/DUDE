@@ -246,7 +246,7 @@ The web companion remains strategically important because a URL is the lowest-fr
 
 Basic local developer utilities must never be paywalled behind the desktop app, an account, or a paid tier. They are the product's on-ramp, not an upsell surface.
 
-From Phase 32-SS1, everything a Hub serves on the owner's domain, the developer tools included, requires the owner's sign-in ([PD-122](delivery/PHASE32SS_PLAN.md)). That is access control on a private deployment, not a paywall: the anonymous GitHub Pages companion keeps every browser-safe tool available with no account.
+From Phase 32-SS1, every page and API a Hub serves on the owner's domain, the developer tools included, requires the owner's sign-in; only the static files that let the sign-in page load stay public ([PD-122](delivery/PHASE32SS_PLAN.md), [PD-144](delivery/PHASE32SS1_PLAN.md)). That is access control on a private deployment, not a paywall: the anonymous GitHub Pages companion keeps every browser-safe tool available with no account.
 
 ## Product Boundaries
 
