@@ -41,6 +41,7 @@ import { createProxyPins } from '../tls/proxy-pins.js';
 import { runServiceInstall } from '../service/install.js';
 import { runServiceControl, runServiceStatus, runServiceUninstall, runServiceUpdate } from '../service/lifecycle.js';
 import { runNetwork } from '../service/network.js';
+import { runTunnel } from '../service/tunnel.js';
 import { runFirewall } from '../service/firewall.js';
 import { createHstsPolicy } from '../security/hsts.js';
 import { runDoctor } from '../service/doctor.js';
@@ -48,6 +49,7 @@ import { runPurge } from '../service/purge.js';
 import { runBackup } from '../service/backup.js';
 import { runProvision } from '../service/provision.js';
 import { createProvisioningService } from '../provisioning/service.js';
+import { createTunnelRuntime } from '../tunnel/tunnel-runtime.js';
 import { runRestore } from '../service/restore.js';
 import { HELP_TEXT, UsageError, parseArgs } from './args.js';
 
@@ -150,6 +152,14 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   if (parsed.command === 'network') {
     return runNetwork({ action: parsed.action, ...(parsed.trusted !== undefined ? { trusted: parsed.trusted } : {}), ...(parsed.publicOrigin !== undefined ? { publicOrigin: parsed.publicOrigin } : {}), ...(parsed.acceptUnverifiedReachability ? { acceptUnverifiedReachability: true } : {}), ...(parsed.type !== undefined ? { type: parsed.type } : {}), ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}) });
   }
+  if (parsed.command === 'network-tunnel') {
+    return runTunnel({
+      action: parsed.action,
+      ...(parsed.hostname !== undefined ? { hostname: parsed.hostname } : {}), ...(parsed.confirm !== undefined ? { confirm: parsed.confirm } : {}), ...(parsed.type !== undefined ? { type: parsed.type } : {}),
+      ...(parsed.tokenStdin ? { tokenStdin: true } : {}), ...(parsed.acceptUnverifiedReachability ? { acceptUnverifiedReachability: true } : {}), ...(parsed.forgetToken ? { forgetToken: true } : {}),
+      ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}),
+    });
+  }
   if (parsed.command === 'doctor') {
     return runDoctor({ hubVersion: hubVersion(), ...(parsed.json ? { json: true } : {}), ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}) });
   }
@@ -228,8 +238,16 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   try { drainAuditOutboxAtStart(paths, hub.db, (input) => audit(hub.db, input)); } catch { /* retried by the next drain */ }
   // 32-SS1: the durable queue exists only once SaveSphere storage does (a store that cannot open never blocks start).
   const queueRuntime = createQueueRuntime({ paths, hubDb: hub.db, auditWriter: (input) => audit(hub.db, input) });
+  // 32-SS1 managed tunnel (Milestone 837): the supervised cloudflared and its connector token. Created always (cheap, nothing runs), started
+  // below only when `exposure.tunnel.enabled`; the elevated `network tunnel on` also drives it through the admin pipe.
+  let listeningPort = config.port;
+  const tunnelRuntime = createTunnelRuntime({
+    paths, getPort: () => listeningPort,
+    readConfig: () => { try { return loadOrCreateHubConfig(paths.configFile).exposure.tunnel; } catch { return undefined; } },
+    auditDegraded: (detail) => audit(hub.db, { event: 'tunnel.degraded', outcome: 'failure', actorKind: 'system', detail: { ...detail }, now: Date.now() }),
+  });
   // 32-SS1 provisioning read model: checks only, never creates anything; the elevated `dude-hub provision` is the one writer.
-  const provisioning = createProvisioningService(paths, { hubInstanceId: hub.hubInstanceId, queueRunning: queueRuntime !== undefined });
+  const provisioning = createProvisioningService(paths, { hubInstanceId: hub.hubInstanceId, queueRunning: queueRuntime !== undefined, tunnel: () => tunnelRuntime.status() });
   ensureSetupToken(hub.db, paths.configDir, Date.now());
   const wantedNames = computeSubjectAltNames(config);
   const hadIdentity = existsSync(path.join(paths.tlsDir, 'cert.pem')) && existsSync(path.join(paths.tlsDir, 'key.pem'));
@@ -263,6 +281,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     backup: { scheduleKeyPresent: () => scheduleKeyExists(paths.configDir) },
     ...(queueRuntime ? { queue: { status: () => queueRuntime.status() } } : {}),
     provisioning: { status: () => provisioning.status() },
+    tunnel: { status: () => tunnelRuntime.status(), facts: (candidate) => tunnelRuntime.facts(candidate) },
     logger: hubLoggerOptions(logStream),
     ...testServerOverrides,
   });
@@ -278,6 +297,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   }
   const address = server.server.address();
   const port = typeof address === 'object' && address ? address.port : config.port;
+  listeningPort = port;
   const startedAt = Date.now();
   let admin: Awaited<ReturnType<typeof startAdminEndpoint>>;
   try {
@@ -290,6 +310,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
         hsts: createHstsPolicy({ db: hub.db, tlsDir: paths.tlsDir, proxy: config.exposure.proxy !== undefined }),
         caProtector, acmeProtector, paths, scheduleKeyProtector,
         queueRunning: () => queueRuntime !== undefined,
+        tunnel: tunnelRuntime,
         onProvisioned: () => provisioning.invalidate(),
         tls: createTlsRotation({
           db: hub.db, tlsDir: paths.tlsDir, hubInstanceId: hub.hubInstanceId, caProtector,
@@ -367,6 +388,14 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   // A cheap, read-only provisioning check once SaveSphere storage exists; it logs the overall state and counts, never a detail.
   if (existsSync(paths.saveSphereDbPath)) void provisioning.checkAtStart((event, detail) => void process.stdout.write(`${JSON.stringify({ event, ...detail })}
 `));
+  // Tunnel mode (Milestone 837): the connector is supervised for the life of the Hub. A refused start (no token, a binary that is not the
+  // pinned one, not Windows) is already audited as `tunnel.degraded` by the runtime and never stops the Hub from serving locally.
+  process.on('exit', () => tunnelRuntime.killNow());
+  if (config.exposure.tunnel?.enabled === true) {
+    tunnelRuntime.start().catch((error: unknown) => {
+      process.stdout.write(`${JSON.stringify({ event: 'tunnel-start-refused', code: (error as { code?: unknown }).code ?? 'start-failed' })}\n`);
+    });
+  }
   audit(hub.db, { event: 'hub.started', outcome: 'success', actorKind: 'system', detail: { version: hubVersion(), port, bind: config.bind }, now: Date.now() });
   process.stdout.write(`${JSON.stringify({ event: 'listening', url: `https://127.0.0.1:${port}`, spkiSha256: tls.spkiSha256 })}\n`);
 
@@ -377,6 +406,8 @@ export async function runCli(argv: readonly string[]): Promise<number> {
       stopping = true;
       void (async () => {
         let code = EXIT_OK;
+        try { await tunnelRuntime.stop(); } catch { /* best effort: the next start sweeps an orphan */ }
+        tunnelRuntime.dispose();
         renewal.stop();
         acmeRenewal.stop();
         backupScheduler.stop();

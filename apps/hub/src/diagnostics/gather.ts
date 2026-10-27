@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { Db } from '@dude/sqlite-store';
+import type { HubDiagnosticsTunnel } from '@dude/contracts/hub';
 import { bindAddress, defaultHubConfig, loadOrCreateHubConfig } from '../config/hub-config.js';
 import type { HubConfig } from '../config/hub-config.js';
 import { describeCertificateSource, localCaStatus } from '../tls/ca-public.js';
@@ -129,6 +130,8 @@ export interface RunningHubSource {
   /** Cached DNS resolution (the route shares one 60 s cache); defaults to an uncached system resolver. */
   resolveDns?: (names: readonly string[]) => Promise<NameResolution[]>;
   interfaces?: () => InterfaceMap;
+  /** Managed-tunnel facts for the live configuration (32-SS1, Milestone 837); `run` supplies the tunnel runtime's. Presence only, never the token. */
+  tunnel?: () => HubDiagnosticsTunnel;
 }
 
 /** Facts from a running Hub: database, TLS files, on-disk configuration, realtime. */
@@ -157,6 +160,7 @@ export async function gatherRunningHubDeps(source: RunningHubSource): Promise<Di
     host: () => Promise.resolve(host),
     storedAddresses: readAddressRecord(source.db)?.addresses ?? null,
     reachability: readReachability(source.db, now),
+    ...(source.tunnel ? { tunnel: wanted.exposure.tunnel === undefined ? null : source.tunnel() } : {}),
     ...(source.resolveDns ? { resolveDns: source.resolveDns } : {}),
     ...(source.interfaces ? { interfaces: source.interfaces } : {}),
   };

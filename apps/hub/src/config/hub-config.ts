@@ -19,7 +19,23 @@ export interface HubExposureConfig {
   proxy?: HubProxyConfig;
   /** ACME (RFC 8555) certificate source (31F). Absent means not configured. */
   acme?: HubAcmeConfig;
+  /**
+   * Managed Cloudflare Tunnel (32-SS1, Milestone 837, PD-143). Tunnel mode IS reverse-proxy mode with exactly one trusted hop, the
+   * loopback `cloudflared` connector: `proxy.trusted` is `127.0.0.1`/`::1` only and `proxy.publicOrigin` is `https://<hostname>`.
+   * It is written only by the elevated `network tunnel on|off` admin method, together with that proxy block.
+   */
+  tunnel?: HubTunnelConfig;
 }
+
+export interface HubTunnelConfig {
+  /** The connector is started with the Hub. `off` removes the block altogether, so this is true whenever the block exists today. */
+  enabled: boolean;
+  /** The owner's bare public domain (no port, no `www.`); also `proxy.publicOrigin`'s host. */
+  hostname: string;
+}
+
+/** The only peers a tunnel Hub trusts to supply forwarded headers: the local connector. Never a network, never a CIDR. */
+export const TUNNEL_TRUSTED_PEERS = ['127.0.0.1', '::1'] as const;
 
 export interface HubAcmeConfig {
   /** `https://` ACME directory (plain http only for a loopback test CA). */
@@ -76,7 +92,10 @@ const EXPOSURE_MODES: readonly HubExposureMode[] = ['private', 'public'];
 const KNOWN_KEYS = new Set(['port', 'bind', 'webRoot', 'exposure', 'backup']);
 const BACKUP_KEYS = new Set(['schedule']);
 const BACKUP_SCHEDULE_KEYS = new Set(['folder', 'intervalHours', 'retention']);
-const EXPOSURE_KEYS = new Set(['mode', 'names', 'canonicalOrigin', 'proxy', 'acme']);
+const EXPOSURE_KEYS = new Set(['mode', 'names', 'canonicalOrigin', 'proxy', 'acme', 'tunnel']);
+const TUNNEL_KEYS = new Set(['enabled', 'hostname']);
+/** Suffixes that can never be a public tunnel domain (no public CA or Cloudflare zone can hold them). */
+const NON_PUBLIC_SUFFIX = /.(local|localhost|lan|internal|home|corp|test|invalid|example)$/;
 const ACME_KEYS = new Set(['directoryUrl', 'email', 'httpPort', 'termsAgreedAt']);
 const PROXY_KEYS = new Set(['trusted', 'publicOrigin']);
 export const MAX_TRUSTED_PROXIES = 16;
@@ -183,6 +202,38 @@ function parseProxy(raw: unknown, names: readonly string[]): HubProxyConfig {
   return { trusted: normalized, publicOrigin };
 }
 
+/**
+ * A tunnel hostname: a lowercase public-looking DNS name with at least two labels, no port, no IP literal and not `www.` (the bare
+ * domain is canonical; `www` redirects to it). Returns the normalized name.
+ */
+export function normalizeTunnelHostname(raw: unknown, key = 'exposure.tunnel.hostname'): string {
+  if (typeof raw !== 'string') throw new Error(`Hub config "${key}" must be a string.`);
+  let name: HubName;
+  try { name = normalizeHubName(raw); } catch (error) { throw new Error(`Hub config "${key}": ${(error as Error).message}`); }
+  if (name.port !== undefined) throw new Error(`Hub config "${key}" must not include a port.`);
+  const host = name.host;
+  if (isIPv4(host) || isIPv6(host)) throw new Error(`Hub config "${key}" must be a DNS name, not an IP address.`);
+  if (!host.includes('.') || NON_PUBLIC_SUFFIX.test(host) || host === 'localhost') throw new Error(`Hub config "${key}" must be a public DNS name such as notes.example.com.`);
+  if (host.startsWith('www.')) throw new Error(`Hub config "${key}" must be the bare domain; www.<domain> redirects to it.`);
+  return host;
+}
+
+function parseTunnel(raw: unknown, exposure: HubExposureConfig): HubTunnelConfig {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) throw new Error('Hub config "exposure.tunnel" must be an object.');
+  const record = raw as Record<string, unknown>;
+  for (const key of Object.keys(record)) if (!TUNNEL_KEYS.has(key)) throw new Error(`Hub config "exposure.tunnel" has an unknown key "${key}".`);
+  if (typeof record['enabled'] !== 'boolean') throw new Error('Hub config "exposure.tunnel.enabled" must be true or false.');
+  const hostname = normalizeTunnelHostname(record['hostname']);
+  const proxy = exposure.proxy;
+  if (proxy === undefined) throw new Error('Hub config "exposure.tunnel" requires "exposure.proxy" (tunnel mode is reverse-proxy mode with the loopback connector as the only trusted hop).');
+  const loopback = new Set<string>(TUNNEL_TRUSTED_PEERS);
+  if (proxy.trusted.length === 0 || !proxy.trusted.every((entry) => loopback.has(entry))) {
+    throw new Error('Hub config "exposure.proxy.trusted" must be only 127.0.0.1 and ::1 in tunnel mode.');
+  }
+  if (new URL(proxy.publicOrigin).origin !== `https://${hostname}`) throw new Error('Hub config "exposure.proxy.publicOrigin" must be https://<exposure.tunnel.hostname> in tunnel mode.');
+  return { enabled: record['enabled'], hostname };
+}
+
 /** Validates an ACME directory URL: https, or http only on a loopback host (a local test CA). Returns the normalized URL. */
 export function normalizeAcmeDirectoryUrl(raw: string, key = 'exposure.acme.directoryUrl'): string {
   let url: URL;
@@ -245,6 +296,7 @@ function parseExposure(raw: unknown): HubExposureConfig {
   }
   if (record['proxy'] !== undefined) exposure.proxy = parseProxy(record['proxy'], exposure.names);
   if (record['acme'] !== undefined) exposure.acme = normalizeAcmeConfig(record['acme']);
+  if (record['tunnel'] !== undefined) exposure.tunnel = parseTunnel(record['tunnel'], exposure);
   return exposure;
 }
 
@@ -335,7 +387,7 @@ export function writeHubConfig(file: string, config: HubConfig): void {
   mkdirSync(path.dirname(file), { recursive: true });
   const tmp = `${file}.${randomBytes(4).toString('hex')}.tmp`;
   const { exposure, ...rest } = config;
-  const isDefault = exposure.mode === 'private' && exposure.names.length === 0 && exposure.canonicalOrigin === undefined && exposure.proxy === undefined && exposure.acme === undefined;
+  const isDefault = exposure.mode === 'private' && exposure.names.length === 0 && exposure.canonicalOrigin === undefined && exposure.proxy === undefined && exposure.acme === undefined && exposure.tunnel === undefined;
   writeFileSync(tmp, JSON.stringify(isDefault ? rest : { ...rest, exposure }, null, 2) + '\n');
   renameSync(tmp, file);
 }
@@ -375,6 +427,28 @@ export function applyProxyChange(config: HubConfig, change: { trusted: readonly 
   const names = exposure.names.some((n) => normalizeHubName(n).host === host) ? exposure.names : [...exposure.names, host];
   const bind = config.bind === 'container' ? 'container' : 'loopback';
   return parseHubConfig({ ...config, bind, exposure: { ...exposure, names, proxy: { trusted: [...change.trusted], publicOrigin: change.publicOrigin } } });
+}
+
+/**
+ * Returns a validated copy of `config` with tunnel mode on for `hostname` (its name joins `exposure.names`, the proxy block becomes
+ * the loopback-only tunnel hop, the bind stays loopback) or off (`null`: the tunnel block and its proxy block are removed; a public
+ * exposure mode that could no longer accept traffic returns to private). Refuses to replace an operator's own reverse proxy.
+ */
+export function applyTunnelChange(config: HubConfig, change: { hostname: string } | null): HubConfig {
+  const { tunnel: previous, proxy: _proxy, ...exposure } = config.exposure;
+  if (change === null) {
+    if (previous === undefined) return config; // no tunnel: an operator's own proxy block is not ours to remove
+    const mode: HubExposureMode = exposure.mode === 'public' && config.bind === 'loopback' ? 'private' : exposure.mode;
+    return parseHubConfig({ ...config, exposure: { ...exposure, mode } });
+  }
+  if (previous === undefined && config.exposure.proxy !== undefined) throw new Error('A reverse proxy is already configured; turn it off first ("dude-hub network proxy off").');
+  const hostname = normalizeTunnelHostname(change.hostname, 'hostname');
+  const names = exposure.names.some((n) => normalizeHubName(n).host === hostname) ? exposure.names : [...exposure.names, hostname];
+  const bind = config.bind === 'container' ? 'container' : 'loopback';
+  return parseHubConfig({
+    ...config, bind,
+    exposure: { ...exposure, names, proxy: { trusted: [...TUNNEL_TRUSTED_PEERS], publicOrigin: `https://${hostname}` }, tunnel: { enabled: true, hostname } },
+  });
 }
 
 /** The exposure read model reported by `status` and `network status` (and consumed by diagnostics). Never secrets. */

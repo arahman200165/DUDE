@@ -10,8 +10,13 @@
 //   STUB_NEVER_READY       always answer 503 on /ready
 //   STUB_PRINT_TOKEN       echo TUNNEL_TOKEN on stdout and stderr (to prove the supervisor scrubs it); `split` writes it in two chunks
 //   STUB_SPAM_LINES       write this many lines to stdout (to prove the log buffer is bounded)
+//   STUB_FORWARD_LISTEN   (Milestone 837) also listen on this loopback port as the "edge": every request is forwarded over HTTPS to the Hub at
+//   STUB_FORWARD_TO       this loopback port, like the real connector does, appending the client address to X-Forwarded-For and setting
+//                         X-Forwarded-Proto (as the Cloudflare edge does) and passing every other client header through untouched, so a spec can
+//                         prove what the Hub does with forged forwarding headers that arrive through its one trusted hop
 import { appendFileSync, writeFileSync } from 'node:fs';
 import http from 'node:http';
+import https from 'node:https';
 
 const env = process.env;
 const argv = process.argv.slice(2);
@@ -59,5 +64,27 @@ const server = http.createServer((request, response) => {
   response.end();
 });
 server.listen(Number(port), host);
+
+if (env.STUB_FORWARD_LISTEN && env.STUB_FORWARD_TO) {
+  const edge = http.createServer((request, response) => {
+    const headers = { ...request.headers };
+    const client = request.socket.remoteAddress ?? '';
+    headers['x-forwarded-for'] = headers['x-forwarded-for'] ? `${headers['x-forwarded-for']}, ${client}` : client;
+    headers['x-forwarded-proto'] = 'https';
+    const upstream = https.request(
+      { host: '127.0.0.1', port: Number(env.STUB_FORWARD_TO), path: request.url, method: request.method, headers, rejectUnauthorized: false, servername: 'localhost' },
+      (reply) => {
+        response.writeHead(reply.statusCode ?? 502, reply.headers);
+        reply.pipe(response);
+      },
+    );
+    upstream.on('error', () => {
+      response.writeHead(502);
+      response.end();
+    });
+    request.pipe(upstream);
+  });
+  edge.listen(Number(env.STUB_FORWARD_LISTEN), '127.0.0.1');
+}
 
 if (env.STUB_CRASH_AFTER_MS !== undefined) setTimeout(() => process.exit(3), Number(env.STUB_CRASH_AFTER_MS));

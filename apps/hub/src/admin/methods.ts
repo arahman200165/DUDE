@@ -4,6 +4,8 @@ import type { HubPaths } from '../config/data-dir.js';
 import type { BackupDeps } from '@dude/hub-backup';
 import { buildBackupMethods } from './backup-methods.js';
 import { buildProvisioningMethods } from './provisioning-methods.js';
+import { buildTunnelMethods } from './tunnel-methods.js';
+import type { TunnelRuntime } from '../tunnel/tunnel-runtime.js';
 import type { ProvisioningOptions } from '../provisioning/index.js';
 import { AdminError } from './admin-endpoint.js';
 import type { AdminMethod } from './admin-endpoint.js';
@@ -96,10 +98,14 @@ export interface AdminMethodContext {
   onProvisioned?: () => void;
   /** TEST-ONLY: replaces the provisioning probes and platform, so a spec never spawns a worker or loads a library. */
   provisioningTest?: Pick<ProvisioningOptions, 'probes' | 'platform'>;
+  /** The managed tunnel runtime (32-SS1, Milestone 837); enables the `network.tunnel.*` methods. */
+  tunnel?: TunnelRuntime;
+  /** TEST-ONLY: how long `network.tunnel.apply` waits for the connector to report ready (default 45 s). */
+  tunnelReadyTimeoutMs?: number;
 }
 
 /** Validates the Windows host facts the elevated CLI sends with `network.mode.set`; anything malformed is ignored (treated as not inspected). */
-function parseReadinessHostFacts(raw: unknown): Pick<DiagnosticsHostFacts, 'publicFirewall' | 'nativeListeners'> | null {
+export function parseReadinessHostFacts(raw: unknown): Pick<DiagnosticsHostFacts, 'publicFirewall' | 'nativeListeners'> | null {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return null;
   const input = raw as { publicFirewall?: unknown; nativeListeners?: unknown };
   const facts: Pick<DiagnosticsHostFacts, 'publicFirewall' | 'nativeListeners'> = {};
@@ -180,6 +186,7 @@ export function buildAdminMethods(context: AdminMethodContext): Record<string, A
     /** Backup create (two-step), list, verify and schedule (31G, PD-074). Passphrases are never logged or audited. */
     ...buildBackupMethods(context, { now, confirmations }),
     ...buildProvisioningMethods(context, { now }),
+    ...buildTunnelMethods(context, { now, confirmations, parseHostFacts: parseReadinessHostFacts }),
     /** Automatic address blocks (31F): the elevated recovery path for an owner whose own address was blocked. */
     'security.blocks.list': () => ({ blocks: listBlocks(context.db, now()) }),
     'security.blocks.clear': (params) => {

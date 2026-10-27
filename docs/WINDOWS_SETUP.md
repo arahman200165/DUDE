@@ -45,6 +45,8 @@ Run these from an elevated prompt (the Hub CLI is `"%ProgramFiles%\DUDE Hub\dude
 | `dude-hub network lan on` / `off` / `status` | Turn LAN mode (and its firewall rule) on or off. |
 | `dude-hub network status` | Show the bind, exposure mode, configured names, reverse-proxy summary (trusted count, public origin) and whether HSTS is sent. |
 | `dude-hub network proxy on --trusted <cidr>[,<cidr>...] --public-origin https://<name>[:<port>]` | Reverse-proxy mode: trust only those proxy addresses for `X-Forwarded-*`, serve the public origin, listen on loopback only, remove the LAN firewall rule and restart. |
+| `dude-hub network tunnel on --hostname <domain> [--accept-unverified-reachability] [--confirm <token> --type "EXPOSE HUB THROUGH CLOUDFLARE" --token-stdin]` | Managed Cloudflare Tunnel (see "Through a Cloudflare Tunnel"): two steps, elevated, running Hub; the connector token is read from standard input. |
+| `dude-hub network tunnel off [--forget-token] [--confirm <token>]` / `network tunnel status` | Stop the connector and remove the tunnel configuration (two steps), or show its state. |
 | `dude-hub network proxy off` / `status` | Leave reverse-proxy mode (the Hub keeps listening on loopback; run `network lan on` to re-expose it) or show the proxy settings. |
 | `dude-hub network mode private` | Return to private mode (unrestricted). |
 | `dude-hub network mode public [--accept-unverified-reachability] --type "EXPOSE HUB TO THE INTERNET"` | Expose the Hub to the Internet. The running Hub checks readiness (see "Exposing the Hub to the Internet"); without `--type` it prints the readiness report and changes nothing. Needs an elevated prompt and a running Hub. |
@@ -116,6 +118,15 @@ A reverse proxy (Caddy, nginx, IIS ARR) can publish the Hub under a name and cer
    Caddy sets `X-Forwarded-For`, `-Host` and `-Proto` itself and overwrites any client-supplied values. Do not use `tls_insecure_skip_verify`.
 3. Devices connect through the proxy, so they must pin the proxy's certificate: `dude-hub tls proxy-pin add <caddy-leaf.pem>`.
 4. Wait until enrolled devices acknowledge the staged pin (`dude-hub tls proxy-pin list`), then `dude-hub tls proxy-pin activate` (preview, then `--confirm <token>`).
+
+### Through a Cloudflare Tunnel (Windows service only)
+
+Instead of opening a port, the Hub can run a pinned `cloudflared` connector that dials out to Cloudflare, so your own domain reaches the Hub with no inbound port and no firewall rule. **Cloudflare terminates TLS at its edge and can read the traffic between your devices and the Hub**, and Cloudflare's own terms and limits apply (including its limits on large non-HTML content; DUDE uploads are 8 MiB chunks). If that is not acceptable, use direct Public mode above. You need a Cloudflare account with the domain, a remotely managed tunnel and its connector token.
+
+1. In the Cloudflare dashboard (Zero Trust, Networks, Tunnels), create a tunnel and copy its connector token. Add a public hostname for your bare domain (for example `notes.example.com`) with service type **HTTPS** and URL `https://127.0.0.1:47600` (your Hub port); under TLS turn **No TLS Verify** on (the hop never leaves this computer), and leave **HTTP Host Header** empty. `dude-hub network tunnel on` prints these values again.
+2. Preview from an elevated prompt with the Hub running: `dude-hub network tunnel on --hostname notes.example.com --accept-unverified-reachability`. Nothing is changed; it prints the effect, the dashboard values and the disclosure, and a confirmation token valid for 60 seconds. (The first run needs the flag because the Hub cannot be reached through the name before the tunnel exists; verify it afterwards from a phone on cellular data.)
+3. Apply it, pasting the connector token when asked (it is read from standard input or a hidden prompt, never from the command line): `dude-hub network tunnel on --hostname notes.example.com --accept-unverified-reachability --confirm <token> --type "EXPOSE HUB THROUGH CLOUDFLARE" --token-stdin`. The Hub starts the connector, waits for it to connect, checks readiness again and only then writes the configuration and restarts the service. `www.notes.example.com` redirects to the bare domain.
+4. `dude-hub network tunnel status` shows the state, the restarts and a short redacted log. `dude-hub network tunnel off` (also two steps) stops the connector and removes the tunnel and proxy configuration; add `--forget-token` to delete the stored token, and delete the public hostname in the dashboard so the name stops routing here. A restored Hub needs the token entered again.
 
 ### Dynamic addresses and DNS
 

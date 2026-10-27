@@ -100,3 +100,15 @@ export async function readPassphrase(options: ReadPassphraseOptions): Promise<st
   }
   return first;
 }
+
+/**
+ * A secret that is not a passphrase (the Cloudflare tunnel connector token), never from a command-line flag or the environment and
+ * never echoed: the first line of standard input when it is not a terminal (so it can be piped), else a no-echo prompt. Surrounding
+ * whitespace is dropped. Throws a value-free error when nothing was entered.
+ */
+export async function readSecretLine(options: Omit<ReadPassphraseOptions, 'env' | 'confirm'>, what: string): Promise<string> {
+  const line = options.stdin.isTTY !== true ? await readFirstLine(options.stdin) : await readTerminalLine(options.stdin, options.stderr, options.prompt);
+  const value = line.trim();
+  if (value.length === 0) throw new Error(`The ${what} is empty.`);
+  return value;
+}

@@ -22,12 +22,14 @@ import { startNotificationRetention } from '../notifications/retention.js';
 import { createJobRegistry } from '../jobs/job-status.js';
 import { registerDiagnosticsRoute } from './routes/diagnostics.js';
 import { registerReachabilityRoute } from './routes/reachability.js';
+import { registerTunnelRoute } from './routes/tunnel.js';
 import { registerBackupRoutes } from './routes/backup.js';
 import { createHostFacts, currentConfig, gatherRunningHubDeps } from '../diagnostics/gather.js';
 import { collectDiagnostics } from '../diagnostics/engine.js';
 import { createCachedNameResolver } from '../diagnostics/addresses.js';
 import type { InterfaceMap, NameResolution } from '../diagnostics/addresses.js';
-import type { HubDiagnosticsReport, HubProvisioningResponse, HubQueueStatusResponse } from '@dude/contracts/hub';
+import type { HubDiagnosticsReport, HubDiagnosticsTunnel, HubProvisioningResponse, HubQueueStatusResponse, HubTunnelStatusResponse } from '@dude/contracts/hub';
+import { TUNNEL_TRUSTED_PEERS } from '../config/hub-config.js';
 import type { DiagnosticsHostFacts, DiagnosticsOverride } from '../diagnostics/engine.js';
 import { defaultExec } from '../service/common.js';
 import type { ExecFn } from '../service/common.js';
@@ -118,6 +120,11 @@ export interface CreateHubServerOptions {
   queue?: { status: () => HubQueueStatusResponse };
   /** SaveSphere provisioning read model (32-SS1, Milestone 835): `run` supplies it; without it `GET /api/v1/provisioning` reports not provisioned. */
   provisioning?: { status: () => Promise<HubProvisioningResponse> };
+  /**
+   * Managed tunnel read model and diagnostics facts (32-SS1, Milestone 837): `run` supplies them from the tunnel runtime. `facts(candidate)`
+   * reports the connector for the live configuration, or for the configuration the `network tunnel on` gate is evaluating.
+   */
+  tunnel?: { status: () => HubTunnelStatusResponse; facts: (candidate?: { enabled: boolean; hostname: string }) => HubDiagnosticsTunnel };
   logger?: boolean | HubLoggerOptions;
   /** Cheaper Argon2 settings for specs only. */
   passwordParams?: PasswordParams;
@@ -151,7 +158,11 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   registerTransferFence(app, options.hub.db);
   registerIpBlock(app, options.hub.db, now);
   registerRateLimit(app, limiter, undefined, { onFlood: (ip) => noteFloodHit(options.hub.db, ip, now()) });
-  const hostGuard = createHostGuard({ bind: options.config.bind ?? 'loopback', names: options.config.exposure?.names ?? [], ...(proxy ? { proxy } : {}), ...(options.extraHosts ? { extraHosts: options.extraHosts } : {}) }, getPort);
+  const tunnelConfig = options.config.exposure?.tunnel;
+  const hostGuard = createHostGuard({
+    bind: options.config.bind ?? 'loopback', names: options.config.exposure?.names ?? [], ...(proxy ? { proxy } : {}),
+    ...(proxy && tunnelConfig?.enabled ? { tunnel: { hostname: tunnelConfig.hostname } } : {}), ...(options.extraHosts ? { extraHosts: options.extraHosts } : {}),
+  }, getPort);
   app.decorate('hostGuard', hostGuard);
   registerHostGuard(app, hostGuard);
   const csrfVerifier: CsrfVerifier = options.csrfVerifier ?? ((cookie, header) => verifyCsrf(options.hub.db, cookie, header, now()));
@@ -210,6 +221,7 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   registerJobsRoute(app, { jobs, requireOwner: authOptions.requireOwner });
   registerQueueRoute(app, { requireOwner: authOptions.requireOwner, status: options.queue?.status });
   registerProvisioningRoute(app, { requireOwner: authOptions.requireOwner, status: options.provisioning?.status });
+  registerTunnelRoute(app, { requireOwner: authOptions.requireOwner, status: options.tunnel?.status });
   // Notifications (PD-109, PD-110): the closed producer list feeds the table; a new row reaches owner sockets and reader-granted device sockets.
   const producers = startNotificationProducers({
     db: options.hub.db, now, jobs,
@@ -228,13 +240,26 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   const collectHubDiagnostics = async (override?: DiagnosticsOverride): Promise<HubDiagnosticsReport> => {
     const deps = await gatherRunningHubDeps({
       db: options.hub.db, tlsDir: options.paths.tlsDir, configFile: options.paths.configFile, config: { port: 0, ...(options.config.bind ? { bind: options.config.bind } : {}), ...(options.config.exposure ? { exposure: options.config.exposure } : {}) },
-      hubVersion: options.hubVersion, startedAt, now, getPort, hsts: hstsPolicy, realtime, host: hostFacts, resolveDns, ...(options.diagnostics?.interfaces ? { interfaces: options.diagnostics.interfaces } : {}), ...(options.diagnostics?.platform ? { platform: options.diagnostics.platform } : {}),
+      hubVersion: options.hubVersion, startedAt, now, getPort, hsts: hstsPolicy, realtime, host: hostFacts, resolveDns, ...(options.tunnel ? { tunnel: () => options.tunnel!.facts() } : {}), ...(options.diagnostics?.interfaces ? { interfaces: options.diagnostics.interfaces } : {}), ...(options.diagnostics?.platform ? { platform: options.diagnostics.platform } : {}),
     });
     if (override !== undefined) {
       // The readiness gate: the configured (not yet running) bind and the supplied host facts, evaluated as public mode.
       const wanted = currentConfig(options.paths.configFile, { port: 0, ...(options.config.bind ? { bind: options.config.bind } : {}), ...(options.config.exposure ? { exposure: options.config.exposure } : {}) });
       const baseHost = deps.host;
       deps.config = { ...deps.config, bind: wanted.bind, bindAddress: bindAddress({ bind: wanted.bind, exposure: wanted.exposure }), exposure: { ...deps.config.exposure, mode: override.mode } };
+      if (override.tunnel !== undefined) {
+        // The `network tunnel on` gate: as if the change were already written (loopback bind, the loopback connector as the only trusted hop).
+        const hostname = override.tunnel.hostname;
+        const bind = wanted.bind === 'container' ? 'container' : 'loopback';
+        const exposure = {
+          ...deps.config.exposure,
+          names: deps.config.exposure.names.includes(hostname) ? deps.config.exposure.names : [...deps.config.exposure.names, hostname],
+          proxy: { trusted: [...TUNNEL_TRUSTED_PEERS], publicOrigin: `https://${hostname}` },
+          tunnel: { enabled: true, hostname },
+        };
+        deps.config = { ...deps.config, bind, bindAddress: bindAddress({ bind, exposure: { proxy: exposure.proxy } }), exposure };
+        deps.tunnel = options.tunnel?.facts({ enabled: true, hostname }) ?? null;
+      }
       deps.host = async () => ({ ...(await baseHost()), ...override.host });
     }
     return collectDiagnostics(deps);

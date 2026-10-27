@@ -220,14 +220,14 @@ describe('secret store import boundary', () => {
   const outside = (pattern: RegExp): string[] =>
     sources().filter((s) => !s.rel.startsWith('secrets/') && pattern.test(s.text)).map((s) => s.rel).sort();
 
-  it('only the provisioning secrets component and the tunnel supervisor import the store so far; each later importer is added here deliberately (never a request handler)', () => {
-    const allowedImporters: string[] = ['provisioning/components/secrets.ts', 'tunnel/cloudflared.ts'];
+  it('only the provisioning secrets component, the tunnel supervisor and the tunnel runtime import the store so far; each later importer is added here deliberately (never a request handler)', () => {
+    const allowedImporters: string[] = ['provisioning/components/secrets.ts', 'tunnel/cloudflared.ts', 'tunnel/tunnel-runtime.ts'];
     expect(outside(/from '(?:\.\.?\/)+secrets\//)).toEqual(allowedImporters);
     for (const rel of allowedImporters) expect(rel).not.toMatch(/^(server|auth|devices|realtime|security|sync)\//);
   });
 
   it('the secrets directory path is resolved only by the layout; nothing else (backup, diagnostics) names it', () => {
-    expect(outside(/secretsDir/)).toEqual(['config/data-dir.ts', 'provisioning/components/secrets.ts']);
+    expect(outside(/secretsDir/)).toEqual(['config/data-dir.ts', 'provisioning/components/secrets.ts', 'tunnel/tunnel-runtime.ts']);
   });
 
   it('only the existing key protectors and the secret store use the DPAPI primitive', () => {

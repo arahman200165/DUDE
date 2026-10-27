@@ -1,6 +1,6 @@
 import { X509Certificate } from 'node:crypto';
 import { HUB_PROTOCOL_VERSION } from '@dude/contracts/hub';
-import type { DiagnosticCheck, HubDiagnosticsCertificate, HubDiagnosticsReport } from '@dude/contracts/hub';
+import type { DiagnosticCheck, HubDiagnosticsCertificate, HubDiagnosticsReport, HubDiagnosticsTunnel } from '@dude/contracts/hub';
 import { canonicalSanName, certificateSubjectAltNames, missingSubjectAltNames, operatorCertificateNames } from '../tls/names.js';
 import { spkiSha256 } from '../tls/self-signed.js';
 import type { TlsCertificateSource } from '../tls/ca-public.js';
@@ -45,6 +45,11 @@ export interface DiagnosticsHostFacts {
 export interface DiagnosticsOverride {
   mode: 'public';
   host?: Pick<DiagnosticsHostFacts, 'publicFirewall' | 'nativeListeners'>;
+  /**
+   * 32-SS1 (Milestone 837): evaluate as if tunnel mode were configured for this hostname, with the proxy block and loopback bind
+   * the change would write (the `network tunnel on` gate runs before anything is written). The connector facts are the live ones.
+   */
+  tunnel?: { hostname: string };
 }
 
 export interface DiagnosticsDeps {
@@ -61,8 +66,10 @@ export interface DiagnosticsDeps {
     port: number;
     bind: HubDiagnosticsReport['exposure']['bind'];
     bindAddress: string;
-    exposure: { mode: 'private' | 'public'; names: readonly string[]; canonicalOrigin?: string; proxy?: { trusted: readonly string[]; publicOrigin: string } };
+    exposure: { mode: 'private' | 'public'; names: readonly string[]; canonicalOrigin?: string; proxy?: { trusted: readonly string[]; publicOrigin: string }; tunnel?: { enabled: boolean; hostname: string } };
   };
+  /** Managed-tunnel facts (32-SS1, Milestone 837): connector state and token presence, never the token. Absent when unknown (an offline `doctor`). */
+  tunnel?: HubDiagnosticsTunnel | null;
   /** The certificate names the configuration calls for (built-ins, operator names, interface addresses). */
   wantedNames: readonly string[];
   certificate: DiagnosticsCertificateFacts | null;
@@ -135,9 +142,10 @@ export const NOT_CHECKED_HERE = 'Run `dude-hub doctor` as administrator on the H
 const where = (l: Pick<NativeListener, 'address' | 'port'>): string => (l.address.includes(':') ? `[${l.address}]:${l.port}` : `${l.address}:${l.port}`);
 
 /** `public-firewall-rule`: the validated Public-profile inbound rule that public mode needs (PD-068). */
-export function publicFirewallCheck(input: { platform: NodeJS.Platform; bind: string; mode: 'private' | 'public'; fact: DiagnosticsHostFacts['publicFirewall'] }): DiagnosticCheck {
+export function publicFirewallCheck(input: { platform: NodeJS.Platform; bind: string; mode: 'private' | 'public'; fact: DiagnosticsHostFacts['publicFirewall']; tunnel?: boolean }): DiagnosticCheck {
   const label = 'Firewall allows public access';
   const id = 'public-firewall-rule';
+  if (input.tunnel === true) return check(id, label, 'info', 'verified', 'Not applicable: tunnel mode opens no inbound port. The Hub listens on loopback only and the Cloudflare connector dials out.');
   if (input.platform !== 'win32' || input.bind === 'container') return check(id, label, 'info', 'not-checked', 'Windows Firewall rules apply only to a Hub on Windows; on other hosts open the port in your own firewall.');
   const fact = input.fact;
   if (input.mode !== 'public') {
@@ -169,6 +177,48 @@ export function nativePortsCheck(input: { platform: NodeJS.Platform; fact: Diagn
   return check(id, label, 'pass', 'verified', 'No Device Agent TCP listener and no desktop-app network listener was found.');
 }
 
+/** The loopback peers a tunnel Hub may trust (kept here so the engine does not import the configuration module). */
+const TUNNEL_LOOPBACK_PEERS: ReadonlySet<string> = new Set(['127.0.0.1', '::1']);
+
+const CONNECTOR_FIX = 'dude-hub network tunnel status';
+
+/**
+ * `tunnel-connector-ready`, `tunnel-hostname-matches-config` and `tunnel-trusted-hop-loopback-only` (Milestone 837). Pure facts in, three
+ * checks out: the supervised connector is running and answering `/ready`, the tunnel hostname is the configured public origin and a
+ * configured name, and the only trusted hop is loopback with a loopback bind. Nothing here names a path or a secret.
+ */
+export function tunnelChecks(input: { config: DiagnosticsDeps['config']['exposure']; bind: string; tunnel: HubDiagnosticsTunnel | null; platform: NodeJS.Platform }): DiagnosticCheck[] {
+  const out: DiagnosticCheck[] = [];
+  const { config, tunnel } = input;
+  const proxy = config.proxy;
+  // tunnel-connector-ready
+  const label = 'Tunnel connector is connected';
+  const connector = tunnel?.connector ?? null;
+  if (tunnel !== null && !tunnel.supported) out.push(check('tunnel-connector-ready', label, 'warn', 'verified', 'The tunnel connector runs only in the Windows Hub; this deployment cannot run it.', 'Run the Hub as the Windows service, or use direct Public mode.'));
+  else if (connector !== null && connector.state === 'running' && connector.ready) out.push(check('tunnel-connector-ready', label, 'pass', 'verified', 'cloudflared is running and reports a connection to the Cloudflare edge.'));
+  else if (tunnel !== null && !tunnel.tokenPresent) out.push(check('tunnel-connector-ready', label, 'warn', 'verified', 'No tunnel connector token is stored on this machine, so the connector cannot connect.', 'dude-hub network tunnel on --token-stdin  (paste the connector token from the Cloudflare dashboard)'));
+  else if (connector === null || connector.state === 'stopped') out.push(check('tunnel-connector-ready', label, 'warn', 'verified', 'The tunnel connector is not running.', CONNECTOR_FIX));
+  else if (connector.state === 'failed') out.push(check('tunnel-connector-ready', label, 'warn', 'verified', `The tunnel connector could not stay up (${connector.lastError ?? 'unknown'}).`, CONNECTOR_FIX));
+  else out.push(check('tunnel-connector-ready', label, 'warn', 'verified', connector.state === 'running' ? 'The tunnel connector is running but not answering as connected.' : 'The tunnel connector is still connecting.', CONNECTOR_FIX));
+
+  // tunnel-hostname-matches-config
+  const hostLabel = 'Tunnel hostname matches the Hub configuration';
+  let originHost: string | null = null;
+  try { originHost = proxy ? new URL(proxy.publicOrigin).hostname : null; } catch { originHost = null; }
+  const hostname = config.tunnel?.hostname ?? tunnel?.hostname ?? null;
+  const named = hostname !== null && config.names.some((n) => n.split(':')[0] === hostname);
+  if (hostname !== null && originHost === hostname && named) out.push(check('tunnel-hostname-matches-config', hostLabel, 'pass', 'verified', `${hostname} is the configured public origin and a configured name.`));
+  else out.push(check('tunnel-hostname-matches-config', hostLabel, 'fail', 'verified', hostname === null ? 'No tunnel hostname is configured.' : "The tunnel hostname is not the Hub's configured public origin and a configured name.", 'dude-hub network tunnel on --hostname <your-domain>'));
+
+  // tunnel-trusted-hop-loopback-only
+  const hopLabel = 'Only the local connector is trusted';
+  const trusted = proxy?.trusted ?? [];
+  const loopbackOnly = proxy !== undefined && trusted.length > 0 && trusted.every((entry) => TUNNEL_LOOPBACK_PEERS.has(entry)) && input.bind === 'loopback';
+  if (loopbackOnly) out.push(check('tunnel-trusted-hop-loopback-only', hopLabel, 'pass', 'verified', 'Forwarded headers are trusted from 127.0.0.1 and ::1 only, and the Hub listens on loopback.'));
+  else out.push(check('tunnel-trusted-hop-loopback-only', hopLabel, 'fail', 'verified', 'Tunnel mode must trust only the loopback connector and listen on loopback only.', 'dude-hub network tunnel on --hostname <your-domain>'));
+  return out;
+}
+
 /** Builds the report. Pure given `deps` except for the (cached, injectable) `deps.host()` call. */
 export async function collectDiagnostics(deps: DiagnosticsDeps): Promise<HubDiagnosticsReport> {
   const host = await deps.host().catch((): DiagnosticsHostFacts => ({ firewallPresent: null }));
@@ -180,6 +230,7 @@ export async function collectDiagnostics(deps: DiagnosticsDeps): Promise<HubDiag
   const win = deps.platform === 'win32';
   const firewallApplicable = win && config.bind === 'lan';
   const proxy = config.exposure.proxy ?? null;
+  const tunnelOn = config.exposure.tunnel?.enabled === true;
 
   const checks: DiagnosticCheck[] = [];
 
@@ -240,7 +291,7 @@ export async function collectDiagnostics(deps: DiagnosticsDeps): Promise<HubDiag
   else checks.push(check('firewall-rule', 'Firewall allows the LAN port', 'info', 'claimed', `Bound to ${config.bindAddress}; the host firewall is outside this Hub's view, so confirm that port ${config.port} is allowed.`));
 
   // public-firewall-rule and native-ports-exposed (PD-068); host facts come only from the elevated doctor
-  checks.push(publicFirewallCheck({ platform: deps.platform, bind: config.bind, mode: config.exposure.mode, fact: host.publicFirewall }));
+  checks.push(publicFirewallCheck({ platform: deps.platform, bind: config.bind, mode: config.exposure.mode, fact: host.publicFirewall, tunnel: tunnelOn }));
   checks.push(nativePortsCheck({ platform: deps.platform, fact: host.nativeListeners }));
 
   // exposure-mode
@@ -249,9 +300,14 @@ export async function collectDiagnostics(deps: DiagnosticsDeps): Promise<HubDiag
 
   // proxy-trust
   if (proxy === null) checks.push(check('proxy-trust', 'Reverse-proxy trust', 'info', 'verified', 'No reverse proxy is configured.'));
-  else if (deps.proxyPins.active === null) {
+  else if (tunnelOn) {
+    checks.push(check('proxy-trust', 'Reverse-proxy trust', 'info', 'verified', `Tunnel mode: the only trusted hop is the local connector (${proxy.trusted.join(', ')}) for ${proxy.publicOrigin}. Cloudflare's edge certificate is not pinned; devices verify the domain against the public CA chain.`));
+  } else if (deps.proxyPins.active === null) {
     checks.push(check('proxy-trust', 'Reverse-proxy trust', 'warn', 'claimed', `Proxy mode trusts ${proxy.trusted.length} peer(s) for ${proxy.publicOrigin}, but no proxy certificate pin is active.`, 'dude-hub tls proxy-pin add <pem-or-spki>'));
   } else checks.push(check('proxy-trust', 'Reverse-proxy trust', 'pass', 'claimed', `Proxy mode trusts ${proxy.trusted.length} peer(s) for ${proxy.publicOrigin}; a proxy pin is active.`));
+
+  // tunnel-* (32-SS1, Milestone 837): the checks the tunnel-aware readiness gate reads in place of the firewall and certificate ones.
+  if (tunnelOn) checks.push(...tunnelChecks({ config: config.exposure, bind: config.bind, tunnel: deps.tunnel ?? null, platform: deps.platform }));
 
   // container-host-allowlist
   if (config.bind === 'container' && config.exposure.names.length === 0) {
@@ -264,7 +320,7 @@ export async function collectDiagnostics(deps: DiagnosticsDeps): Promise<HubDiag
   const listing = addresses.length === 0 ? 'none' : addresses.map((a) => `${a.address} (${a.scope})`).join(', ');
   const drift = deps.storedAddresses ? deps.storedAddresses.join('|') !== stable.join('|') : false;
   const hasPublic = addresses.some((a) => a.scope === 'public');
-  if (config.exposure.mode === 'public' && !hasPublic) {
+  if (config.exposure.mode === 'public' && !hasPublic && !tunnelOn) {
     checks.push(check('address-stability', 'Address stability', 'warn', 'verified', `Addresses on this machine: ${listing}. None is a public address: inbound Internet connections need a router port-forward to this machine or a public IPv6 address, and carrier-grade NAT (100.64.0.0/10) cannot accept inbound connections at all.`, 'Forward the port on the router, use a public IPv6 address, or put the Hub behind a reverse proxy or tunnel you control.'));
   } else if (drift) {
     checks.push(check('address-stability', 'Address stability', 'warn', 'verified', `The address set changed since it was last recorded. Now: ${listing}.`, 'If DNS names point at this machine, update them (router DDNS client or your DNS provider); then run "dude-hub tls names add <name>" and "dude-hub tls acme issue" if the names changed.'));
@@ -307,6 +363,7 @@ export async function collectDiagnostics(deps: DiagnosticsDeps): Promise<HubDiag
     firewall: { applicable: firewallApplicable, ruleName: firewallApplicable ? FIREWALL_RULE_LABEL : null, present: firewallApplicable ? host.firewallPresent : null, profile: firewallApplicable && host.firewallPresent ? 'private' : null },
     realtime: { available: deps.realtime.available, connections: { owner: deps.realtime.owner, device: deps.realtime.device } },
     checks,
+    ...(deps.tunnel !== undefined ? { tunnel: deps.tunnel } : {}),
   };
 }
 

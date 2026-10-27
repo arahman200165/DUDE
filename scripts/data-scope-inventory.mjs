@@ -11,6 +11,7 @@ const norm = f => f.replaceAll('\\', '/');
 // Heuristic sites that were reviewed by hand. Key: `<source>::<namespace>::<key>` or `<source>::*` (whole file).
 const REVIEWED_HEURISTICS = {
   'apps/hub/src/blobs/blob-fixture.ts::*': 'Test fixture writing bytes to a throwaway BlobStore under a temp directory; not app state.',
+  'apps/hub/src/tunnel/tunnel-runtime.ts::*': 'Stores the owner-pasted Cloudflare tunnel connector token in the Hub secret store (DPAPI LocalMachine, per-purpose entropy); machine-bound, never synced, backed up or reported.',
   'apps/hub/src/provisioning/components/blob-store.ts::*': 'Provisioning probe round-trips random bytes through a scratch BlobStore it deletes afterwards; not app state.',
   'apps/web/src/app/core/collab/collab-text-session.ts::*': 'Angular signal writes holding the in-memory collaboration session (Phase 31J); the edited entity persists only through its own store.',
   'apps/web/src/app/core/workspace/scratchpad-collab.ts::*': 'Angular signal writes holding the in-memory collaboration session (Phase 31J); the scratchpad itself persists only through ScratchpadService.',

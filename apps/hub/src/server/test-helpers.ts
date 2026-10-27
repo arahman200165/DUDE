@@ -63,6 +63,8 @@ export interface TestHubOptions {
   queue?: CreateHubServerOptions['queue'];
   /** SaveSphere provisioning read model (`GET /api/v1/provisioning`); absent means not provisioned. */
   provisioning?: CreateHubServerOptions['provisioning'];
+  /** Managed tunnel read model and diagnostics facts (`GET /api/v1/tunnel`); absent means not configured. */
+  tunnel?: CreateHubServerOptions['tunnel'];
   /** Serve an existing data root (for example a restored Hub) instead of a fresh temporary one. */
   dataRoot?: string;
 }

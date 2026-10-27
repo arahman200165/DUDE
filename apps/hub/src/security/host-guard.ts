@@ -13,6 +13,12 @@ export interface HostGuardConfig {
   extraHosts?: readonly string[];
   /** Reverse-proxy mode: forwarded host/protocol are honoured only from `trusted` peers. */
   proxy?: { trusted: readonly string[]; publicOrigin: string };
+  /**
+   * Managed tunnel mode (32-SS1, Milestone 837, PD-119, PD-143): through the trusted loopback connector the only external hosts are
+   * exactly `hostname` and `www.<hostname>` (other configured names, the OS host name and interface addresses are not served
+   * there), and `www.<hostname>` is redirected to the bare domain before any other handling. Requires `proxy`.
+   */
+  tunnel?: { hostname: string };
 }
 
 type RequestLike = Pick<FastifyRequest, 'host' | 'socket'>;
@@ -76,11 +82,19 @@ export interface HostGuard {
   originMatches(request: RequestLike, origin: string | undefined): boolean;
   /** The immediate peer is a configured trusted proxy. */
   isTrustedPeer(request: Pick<FastifyRequest, 'socket'>): boolean;
+  /**
+   * The bare-domain URL a `www.<domain>` request is redirected to (308, same path and query), or null when this request is not one:
+   * tunnel mode only, only from the trusted connector, only for exactly `www.<domain>`. The target is built from the configured
+   * public origin, never from a request header.
+   */
+  wwwRedirectTarget(request: RequestLike & Pick<FastifyRequest, 'raw'>): string | null;
   /** Replaces the configured names (a running service picks up `tls names add|remove` without a restart). */
   setNames(names: readonly string[]): void;
 }
 
 const LOOPBACK_NAMES = ['127.0.0.1', 'localhost', '[::1]'];
+/** A request target that starts with one `/` and holds only printable ASCII: safe to append to the public origin. */
+const ORIGIN_FORM = /^\/[\x21-\x7e]*$/;
 
 /** `getPort` is read lazily so tests can listen on port 0. The interface sets are cached for 30 s. */
 export function createHostGuard(initial: HostGuardConfig, getPort: () => number): HostGuard {
@@ -90,6 +104,10 @@ export function createHostGuard(initial: HostGuardConfig, getPort: () => number)
   const publicUrl = proxy ? new URL(proxy.publicOrigin) : null;
   const publicPort = publicUrl ? (publicUrl.port === '' ? 443 : Number(publicUrl.port)) : 0;
   const publicOrigin = proxy ? proxy.publicOrigin.toLowerCase() : '';
+  const tunnelHost = initial.tunnel !== undefined && proxy !== undefined ? initial.tunnel.hostname.toLowerCase() : undefined;
+  /** The names the connector may use: the bare domain and www, with and without the default HTTPS port. */
+  const tunnelHosts = new Set<string>(tunnelHost === undefined ? [] : [tunnelHost, `${tunnelHost}:443`, `www.${tunnelHost}`, `www.${tunnelHost}:443`]);
+  const loopbackAt = (host: string, port: number): boolean => LOOPBACK_NAMES.some((name) => host === `${name}:${port}`);
   const sets = new Map<number, Set<string>>();
   let cachedAt = 0;
   const setFor = (port: number): Set<string> => {
@@ -103,6 +121,7 @@ export function createHostGuard(initial: HostGuardConfig, getPort: () => number)
   const trustedPeer = (request: Pick<FastifyRequest, 'socket'>): boolean => proxy !== undefined && trusts(request.socket?.remoteAddress);
   return {
     isAllowed(host) {
+      if (tunnelHost !== undefined) return host !== undefined && (tunnelHosts.has(host.toLowerCase()) || loopbackAt(host.toLowerCase(), getPort()));
       return allowedAt(host, getPort()) || (proxy !== undefined && allowedAt(host, publicPort));
     },
     isTrustedPeer: trustedPeer,
@@ -111,6 +130,11 @@ export function createHostGuard(initial: HostGuardConfig, getPort: () => number)
       if (host === undefined) return false;
       const port = getPort();
       if (proxy === undefined) return allowedAt(host, port);
+      if (tunnelHost !== undefined) {
+        const lowerHost = host.toLowerCase();
+        // Tunnel mode serves exactly the public domain and www (via the connector) and loopback names (the local desktop and admin).
+        return loopbackAt(lowerHost, port) || (trustedPeer(request) && tunnelHosts.has(lowerHost));
+      }
       if (trustedPeer(request)) return allowedAt(host, port) || allowedAt(host, publicPort);
       // A direct connection in proxy mode is the local admin/desktop: loopback names only.
       const lower = host.toLowerCase();
@@ -123,6 +147,14 @@ export function createHostGuard(initial: HostGuardConfig, getPort: () => number)
       if (proxy !== undefined && trustedPeer(request) && lower === publicOrigin) return true;
       return lower === `https://${host.toLowerCase()}`;
     },
+    wwwRedirectTarget(request) {
+      if (tunnelHost === undefined || !trustedPeer(request)) return null;
+      const host = effectiveHost(request)?.toLowerCase();
+      if (host !== `www.${tunnelHost}` && host !== `www.${tunnelHost}:443`) return null;
+      const url = request.raw.url ?? '/';
+      // Only an origin-form target is appended; anything else (absolute-form, authority, control or non-ASCII bytes) goes to the root.
+      return `${publicOrigin}${ORIGIN_FORM.test(url) ? url : '/'}`;
+    },
     setNames(names) {
       config = { ...config, names: [...names] };
       sets.clear();
@@ -132,6 +164,8 @@ export function createHostGuard(initial: HostGuardConfig, getPort: () => number)
 
 export function registerHostGuard(app: FastifyInstance, guard: HostGuard): void {
   app.addHook('onRequest', async (request, reply) => {
+    const redirect = guard.wwwRedirectTarget(request);
+    if (redirect !== null) return reply.code(308).header('Location', redirect).header('Cache-Control', 'no-store').send();
     if (guard.isRequestAllowed(request)) return;
     return reply.code(421).type('application/json').header('Cache-Control', 'no-store').send(envelope('bad-request', 'Misdirected request.'));
   });

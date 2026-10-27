@@ -43,8 +43,8 @@ describe('checkProvisioning on a Hub that never provisioned', () => {
 
   it('reports only the components that are built (a component that does not exist is absent, never faked)', async () => {
     const report = await checkProvisioning(tempPaths(), engineOptions());
-    expect(report.components.map((c) => c.id)).toEqual(['content-store', 'fts', 'vector', 'blob-store', 'cache', 'queue', 'workers', 'secrets']);
-    for (const absent of ['tunnel', 'oidc', 'power', 'backup']) expect(report.components.some((c) => c.id === absent)).toBe(false);
+    expect(report.components.map((c) => c.id)).toEqual(['content-store', 'fts', 'vector', 'blob-store', 'cache', 'queue', 'workers', 'secrets', 'tunnel']);
+    for (const absent of ['oidc', 'power', 'backup']) expect(report.components.some((c) => c.id === absent)).toBe(false);
   });
 });
 
@@ -58,7 +58,7 @@ describe('provision', () => {
     expect(Value.Check(HubProvisioningResponse, run.report)).toBe(true);
     expect(run.report.lastRun).toEqual({ at: '2026-10-27T12:00:00.000Z', outcome: 'ok' });
     expect(run.report.components.map((c) => [c.id, c.state])).toEqual([
-      ['content-store', 'ready'], ['fts', 'ready'], ['vector', 'unavailable'], ['blob-store', 'ready'], ['cache', 'ready'], ['queue', 'ready'], ['workers', 'ready'], ['secrets', 'not-configured'],
+      ['content-store', 'ready'], ['fts', 'ready'], ['vector', 'unavailable'], ['blob-store', 'ready'], ['cache', 'ready'], ['queue', 'ready'], ['workers', 'ready'], ['secrets', 'not-configured'], ['tunnel', 'unavailable'],
     ]);
     expect(existsSync(paths.saveSphereDbPath) && existsSync(paths.blobsDir) && existsSync(paths.cacheDir)).toBe(true);
   });

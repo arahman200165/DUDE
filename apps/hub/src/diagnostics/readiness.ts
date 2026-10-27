@@ -1,4 +1,5 @@
-import type { HubDiagnosticsReport } from '@dude/contracts/hub';
+import { HUB_TUNNEL_DISCLOSURE } from '@dude/contracts/hub';
+import type { DiagnosticCheck, HubDiagnosticsReport } from '@dude/contracts/hub';
 import { AcmeIssueError, validateAcmeNames } from '../tls/acme/acme-issue.js';
 
 /**
@@ -34,7 +35,50 @@ export function isPublicDnsName(name: string): boolean {
 /** Certificates this close to expiry block readiness, so a public exposure never starts with an expiring certificate. */
 export const READINESS_MIN_DAYS_LEFT = 7;
 
+/**
+ * Tunnel-aware readiness (32-SS1, PD-143, Milestone 837). A tunnel Hub listens on loopback only and dials OUT to Cloudflare, so the
+ * firewall rule, the inbound bind and the certificate blockers of direct Public mode do not apply (Cloudflare presents the public
+ * certificate; the loopback hop is the Hub's own and is not browser-facing). They are replaced by: the connector connected and
+ * healthy, the hostname equal to the configured public origin, only the loopback connector trusted, an owner, and external
+ * reachability observed by the Hub through the public name. A listener of the Device Agent still blocks (the Agent never listens).
+ */
+export function evaluateTunnelReadiness(report: HubDiagnosticsReport, options: ReadinessOptions = {}): ReadinessResult {
+  const blockers: Blocker[] = [];
+  const warnings: Blocker[] = [];
+  const checks = new Map(report.checks.map((c) => [c.id, c]));
+  const fromCheck = (id: string, missing: Blocker): void => {
+    const found: DiagnosticCheck | undefined = checks.get(id);
+    if (found === undefined) blockers.push(missing);
+    else if (found.status !== 'pass') blockers.push({ id, reason: found.detail, fix: found.fix ?? missing.fix });
+  };
+  fromCheck('tunnel-connector-ready', { id: 'tunnel-connector-ready', reason: 'The tunnel connector state is unknown.', fix: 'dude-hub network tunnel status' });
+  fromCheck('tunnel-hostname-matches-config', { id: 'tunnel-hostname-matches-config', reason: 'The tunnel hostname could not be checked.', fix: 'dude-hub network tunnel on --hostname <your-domain>' });
+  fromCheck('tunnel-trusted-hop-loopback-only', { id: 'tunnel-trusted-hop-loopback-only', reason: 'The trusted hop could not be checked.', fix: 'dude-hub network tunnel on --hostname <your-domain>' });
+
+  const auth = checks.get('authentication-active');
+  if (auth !== undefined && auth.status !== 'pass') {
+    blockers.push({ id: 'authentication-active', reason: auth.status === 'warn' ? 'No owner has been set up. An Internet-reachable Hub must not wait for first-run setup.' : 'Owner authentication could not be confirmed.', fix: auth.fix ?? 'dude-hub setup-token' });
+  }
+  const native = checks.get('native-ports-exposed');
+  if (native !== undefined && native.status === 'fail') blockers.push({ id: 'native-ports-exposed', reason: native.detail, fix: native.fix ?? 'Stop the Agent and report this build.' });
+
+  const reach = checks.get('external-reachability');
+  if (reach === undefined || reach.status !== 'pass') {
+    const entry: Blocker = {
+      id: 'external-reachability',
+      reason: `${reach?.detail ?? 'The Hub has not been reached from outside.'} A fresh verification (no older than 7 days) is required, made through the public name.`,
+      fix: 'Turn the tunnel on with --accept-unverified-reachability, then open the Hub web Settings > Endpoint from a device on cellular data and use "Verify".',
+    };
+    if (options.acceptUnverifiedReachability === true) warnings.push({ ...entry, reason: `${entry.reason} Accepted by the operator.` });
+    else blockers.push(entry);
+  }
+
+  warnings.push({ id: 'tunnel-edge-tls', reason: HUB_TUNNEL_DISCLOSURE[0], fix: 'Direct Public mode ("dude-hub network mode public") involves no third party.' });
+  return { ready: blockers.length === 0, blockers, warnings };
+}
+
 export function evaluatePublicReadiness(report: HubDiagnosticsReport, options: ReadinessOptions = {}): ReadinessResult {
+  if (report.tunnel?.enabled === true) return evaluateTunnelReadiness(report, options);
   const blockers: Blocker[] = [];
   const warnings: Blocker[] = [];
   const checks = new Map(report.checks.map((c) => [c.id, c]));

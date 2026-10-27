@@ -17,6 +17,7 @@ export type ParsedCommand =
   | { command: 'tls-names'; action: 'list' | 'add' | 'remove'; name?: string; dataDir?: string; installDir?: string }
   | { command: 'service'; action: 'install' | 'uninstall' | 'start' | 'stop' | 'restart' | 'status' | 'update'; dataDir?: string; installDir?: string; port?: number; lan?: boolean; source?: string; keepData?: boolean }
   | { command: 'network'; action: 'lan-on' | 'lan-off' | 'status' | 'proxy-on' | 'proxy-off' | 'proxy-status' | 'mode-private' | 'mode-public'; trusted?: string[]; publicOrigin?: string; acceptUnverifiedReachability?: boolean; type?: string; dataDir?: string; installDir?: string }
+  | { command: 'network-tunnel'; action: 'on' | 'off' | 'status'; hostname?: string; confirm?: string; type?: string; tokenStdin?: boolean; acceptUnverifiedReachability?: boolean; forgetToken?: boolean; dataDir?: string; installDir?: string }
   | { command: 'network-firewall'; target: 'public' | 'acme'; action: 'on' | 'off' | 'status'; force?: boolean; dataDir?: string; installDir?: string }
   | { command: 'doctor'; json?: boolean; dataDir?: string; installDir?: string }
   | { command: 'provision'; action: 'run' | 'status'; json?: boolean; dataDir?: string; installDir?: string }
@@ -64,6 +65,9 @@ Usage:
   dude-hub network status [--data-dir <dir>] [--install-dir <dir>]   (bind, exposure mode, names, proxy, HSTS)
   dude-hub network firewall public on|off|status [--force] [--data-dir <dir>] [--install-dir <dir>]   (the "DUDE Hub (Public)" inbound rule for public mode, every profile; on needs public mode or --force; elevated)
   dude-hub network firewall acme on|off|status [--data-dir <dir>] [--install-dir <dir>]   (the temporary "DUDE Hub (ACME http-01)" rule; normally managed by tls acme issue --open-firewall)
+  dude-hub network tunnel on [--hostname <your-domain>] [--accept-unverified-reachability] [--confirm <token> --type "EXPOSE HUB THROUGH CLOUDFLARE" [--token-stdin]] [--data-dir <dir>] [--install-dir <dir>]   (managed Cloudflare Tunnel; elevated, Hub running; without --confirm it only previews and issues a 60-second token; the connector token is read from standard input, never an argument)
+  dude-hub network tunnel off [--forget-token] [--confirm <token>] [--data-dir <dir>] [--install-dir <dir>]   (stops the connector and removes the tunnel and its proxy configuration)
+  dude-hub network tunnel status [--data-dir <dir>] [--install-dir <dir>]
   dude-hub network proxy on --trusted <cidr>[,<cidr>...] --public-origin https://<name>[:<port>] [--data-dir <dir>] [--install-dir <dir>]
   dude-hub network proxy off|status [--data-dir <dir>] [--install-dir <dir>]
   dude-hub network mode private [--data-dir <dir>] [--install-dir <dir>]
@@ -390,6 +394,21 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
       const values = parseFlags(rest2, mode === 'public' && action === 'on' ? ['--force', '--install-dir', '--data-dir'] : ['--install-dir', '--data-dir'], mode === 'public' && action === 'on' ? ['--force'] : []);
       return { command: 'network-firewall', target: mode, action, ...(values['--force'] !== undefined ? { force: true } : {}), ...dirs(values) };
     }
+    if (group === 'tunnel' && (mode === 'on' || mode === 'off' || mode === 'status')) {
+      const allowed = mode === 'on'
+        ? ['--hostname', '--confirm', '--type', '--token-stdin', '--accept-unverified-reachability', '--install-dir', '--data-dir']
+        : mode === 'off' ? ['--forget-token', '--confirm', '--install-dir', '--data-dir'] : ['--install-dir', '--data-dir'];
+      const booleans = ['--token-stdin', '--accept-unverified-reachability', '--forget-token'];
+      const values = parseFlags(flags, allowed, booleans.filter((flag) => allowed.includes(flag)));
+      return {
+        command: 'network-tunnel', action: mode,
+        ...optional(values, '--hostname', 'hostname'), ...optional(values, '--confirm', 'confirm'), ...optional(values, '--type', 'type'),
+        ...(values['--token-stdin'] !== undefined ? { tokenStdin: true } : {}),
+        ...(values['--accept-unverified-reachability'] !== undefined ? { acceptUnverifiedReachability: true } : {}),
+        ...(values['--forget-token'] !== undefined ? { forgetToken: true } : {}),
+        ...dirs(values),
+      };
+    }
     if (group === 'proxy' && (mode === 'on' || mode === 'off' || mode === 'status')) {
       if (mode !== 'on') return { command: 'network', action: mode === 'off' ? 'proxy-off' : 'proxy-status', ...dirs(parseFlags(flags, ['--install-dir', '--data-dir'], [])) };
       const values = parseFlags(flags, ['--trusted', '--public-origin', '--install-dir', '--data-dir'], []);
@@ -410,7 +429,7 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
         ...dirs(values),
       };
     }
-    throw new UsageError('Usage: dude-hub network lan on|off|status | firewall public|acme on|off|status | proxy on|off|status | mode private|public. Run "dude-hub help".');
+    throw new UsageError('Usage: dude-hub network lan on|off|status | firewall public|acme on|off|status | proxy on|off|status | tunnel on|off|status | mode private|public. Run "dude-hub help".');
   }
   if (command === 'backup') return parseBackup(rest);
   if (command === 'provision') {

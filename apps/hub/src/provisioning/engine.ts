@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { transaction } from '@dude/sqlite-store';
 import type { Db } from '@dude/sqlite-store';
-import type { HubProvisioningComponent, HubProvisioningResponse } from '@dude/contracts/hub';
+import type { HubProvisioningComponent, HubProvisioningResponse, HubTunnelStatusResponse } from '@dude/contracts/hub';
 import { ensureLayout } from '../config/data-dir.js';
 import type { HubPaths } from '../config/data-dir.js';
 import { redactJobError } from '../queue/redact.js';
@@ -21,6 +21,8 @@ export interface ProvisioningOptions {
   hubInstanceId?: string;
   /** Whether this process runs the queue runner (only the Hub process knows). */
   queueRunning?: boolean;
+  /** The tunnel read model of the running Hub (Milestone 837). */
+  tunnel?: () => HubTunnelStatusResponse;
   now?: () => number;
   platform?: NodeJS.Platform;
   /** Replaces the registry (specs). */
@@ -51,6 +53,7 @@ function buildContext(paths: HubPaths, mode: ProvisioningContext['mode'], store:
     probes: defaultProbes(options.probes),
     ...(options.hubInstanceId !== undefined ? { hubInstanceId: options.hubInstanceId } : {}),
     ...(options.queueRunning !== undefined ? { queueRunning: options.queueRunning } : {}),
+    ...(options.tunnel !== undefined ? { tunnel: options.tunnel } : {}),
   };
 }
 

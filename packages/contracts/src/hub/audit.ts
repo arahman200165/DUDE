@@ -24,6 +24,7 @@ export const HUB_AUDIT_EVENTS = [
   'collab.history-restored', 'collab.document-kept', 'collab.document-deleted',
   'blobs.verify-failed', 'blobs.gc-applied',
   'provisioning.run',
+  'tunnel.enabled', 'tunnel.disabled', 'tunnel.token-set', 'tunnel.degraded',
 ] as const;
 export type HubAuditEvent = (typeof HUB_AUDIT_EVENTS)[number];
 

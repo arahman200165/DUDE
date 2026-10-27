@@ -1,4 +1,4 @@
-import type { HubProvisioningComponentId, HubProvisioningComponentState } from '@dude/contracts/hub';
+import type { HubProvisioningComponentId, HubProvisioningComponentState, HubTunnelStatusResponse } from '@dude/contracts/hub';
 import type { Db } from '@dude/sqlite-store';
 import type { HubPaths } from '../config/data-dir.js';
 import type { SqliteVecState } from '../db/sqlite-vec.js';
@@ -53,6 +53,8 @@ export interface ProvisioningContext {
   hubInstanceId?: string;
   /** Whether this process runs the queue runner; undefined when the caller cannot know (the CLI engine, specs). */
   queueRunning?: boolean;
+  /** The running Hub's tunnel read model (Milestone 837); undefined when the caller has no tunnel runtime (the CLI engine, specs). */
+  tunnel?: () => HubTunnelStatusResponse;
   probes: ProvisioningProbes;
 }
 

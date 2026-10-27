@@ -46,6 +46,26 @@ export const HubDiagnosticsCertificate = Type.Object({
 });
 export type HubDiagnosticsCertificate = Static<typeof HubDiagnosticsCertificate>;
 
+/**
+ * Managed-tunnel facts (32-SS1, Milestone 837). Presence and state only: never the connector token, a path or an environment
+ * variable. `enabled` is the configuration (or, in the readiness gate, the configuration the change would write).
+ */
+export const HubDiagnosticsTunnel = Type.Object({
+  enabled: Type.Boolean(),
+  hostname: Nullable(Type.String()),
+  tokenPresent: Type.Boolean(),
+  /** The Hub is on a platform where the connector can run. */
+  supported: Type.Boolean(),
+  /** Null when no connector has been created in this Hub process (for example an offline `doctor`). */
+  connector: Nullable(Type.Object({
+    state: Type.Union([Type.Literal('stopped'), Type.Literal('starting'), Type.Literal('running'), Type.Literal('restarting'), Type.Literal('failed')]),
+    ready: Type.Boolean(),
+    restarts: Type.Number(),
+    lastError: Nullable(Type.String()),
+  })),
+});
+export type HubDiagnosticsTunnel = Static<typeof HubDiagnosticsTunnel>;
+
 export const HubDiagnosticsReport = Type.Object({
   generatedAt: Type.String(),
   hubVersion: Type.String(),
@@ -79,5 +99,7 @@ export const HubDiagnosticsReport = Type.Object({
     connections: Type.Object({ owner: Type.Number(), device: Type.Number() }),
   }),
   checks: Type.Array(DiagnosticCheck),
+  /** Present from 32-SS1 (Milestone 837); null when no tunnel is configured. */
+  tunnel: Type.Optional(Nullable(HubDiagnosticsTunnel)),
 });
 export type HubDiagnosticsReport = Static<typeof HubDiagnosticsReport>;

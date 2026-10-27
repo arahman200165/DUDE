@@ -11,7 +11,7 @@
   ],
   "classificationCounts": {
     "device-doc": 33,
-    "regex-heuristic (review flag)": 63,
+    "regex-heuristic (review flag)": 64,
     "agent-table": 17,
     "hub-table": 30,
     "mobile-table": 8,
@@ -163,6 +163,14 @@
       "key": null,
       "heuristicScope": "local-only",
       "reviewed": "Provisioning probe round-trips random bytes through a scratch BlobStore it deletes afterwards; not app state."
+    },
+    {
+      "source": "apps/hub/src/tunnel/tunnel-runtime.ts",
+      "line": 115,
+      "namespace": null,
+      "key": null,
+      "heuristicScope": "local-only",
+      "reviewed": "Stores the owner-pasted Cloudflare tunnel connector token in the Hub secret store (DPAPI LocalMachine, per-purpose entropy); machine-bound, never synced, backed up or reported."
     },
     {
       "source": "apps/mobile/src/share/use-incoming-share.ts",
@@ -1942,6 +1950,20 @@
       "retention": "owned by the referenced backend; no policy change",
       "scope": "local-only",
       "sensitivity": "sensitive",
+      "classificationBasis": "regex-heuristic (review flag)",
+      "syncConsent": "not granted"
+    },
+    {
+      "source": "apps/hub/src/tunnel/tunnel-runtime.ts",
+      "line": 115,
+      "operation": "secrets.put(TUNNEL_SECRET_PURPOSE, token)",
+      "namespace": null,
+      "key": null,
+      "storage": "secrets",
+      "storageLocation": "secrets.put(TUNNEL_SECRET_PURPOSE, token)",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "secret",
       "classificationBasis": "regex-heuristic (review flag)",
       "syncConsent": "not granted"
     },
