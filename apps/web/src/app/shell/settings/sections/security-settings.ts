@@ -66,6 +66,9 @@ export const AUDIT_EVENT_LABELS: Readonly<Record<string, string>> = {
   'oidc.link': 'Google account linked',
   'oidc.unlink': 'Google account unlinked',
   'oidc.unreachable': 'Google could not be reached',
+  'ingest.token-created': 'Ingest token created',
+  'ingest.token-revoked': 'Ingest token revoked',
+  'ingest.auth-failed': 'Ingest token refused',
 };
 
 export function auditEventLabel(event: string): string {

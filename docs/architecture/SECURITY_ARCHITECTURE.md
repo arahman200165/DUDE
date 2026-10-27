@@ -414,7 +414,7 @@ Nothing in this section is implemented. It records the security contract that th
 **Ingest tokens and capture paths (32-SS1, 32-SS3, PD-119, PD-131).**
 - **Token.** `/api/v1/ingest/…` accepts only scoped ingest tokens: random, hashed at rest, shown once, named, optionally expiring, with a last-used time, revocable, and minted with step-up. Cookies, bearer sessions and device tokens are refused there, and an ingest token is refused everywhere else.
 - **Rights.** A capture-only token can create captures and nothing else. It can never read content, reach the vault or satisfy step-up.
-- **Limits.** Ingest has its own rate limits and size caps.
+- **Limits.** Ingest has its own rate limits and size caps. As built at Milestone 843 (the token-only scaffold, no capture route yet): a per-token bucket and a per-address failure bucket checked before any token is evaluated, failures counted toward the automatic IP block like failed logins, no cookie read or set and no CORS on the path, owner management under `/api/v1/admin/ingest-tokens` (step-up; revoke is two-step), the table scrubbed on restore so the owner reissues (PD-149). See [As built in 32-SS1 Milestone 843](../delivery/PHASE32SS1_PLAN.md).
 - **Email.** Mail to `save@<domain>` is accepted only from allowlisted senders whose SPF/DKIM checks pass; rejected mail is counted, not stored.
 - **Uploads.** Uploads are resumable and size-capped. Their type is detected from content (magic bytes), not from the name, and previews and parsers run in an isolated worker with time and memory limits.
 

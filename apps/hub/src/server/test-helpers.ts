@@ -61,6 +61,8 @@ export interface TestHubOptions {
   backup?: { scheduleKeyPresent?: () => boolean };
   /** Durable queue read model (`GET /api/v1/queue`); absent means the queue is unavailable. */
   queue?: CreateHubServerOptions['queue'];
+  /** The open savesphere.db for the token-only ingest scaffold; absent means SaveSphere storage is not set up. */
+  ingest?: CreateHubServerOptions['ingest'];
   /** SaveSphere provisioning read model (`GET /api/v1/provisioning`); absent means not provisioned. */
   provisioning?: CreateHubServerOptions['provisioning'];
   /** Managed tunnel read model and diagnostics facts (`GET /api/v1/tunnel`); absent means not configured. */

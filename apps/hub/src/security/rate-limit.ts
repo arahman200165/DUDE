@@ -21,6 +21,15 @@ export const READ_POLICY: BucketPolicy = { perMinute: 600, burst: 120 };
 /** Per client address for ALL API traffic: a generous flood guard that runs before any credential is checked. */
 export const FLOOD_POLICY: BucketPolicy = { perMinute: 1200, burst: 240 };
 
+/**
+ * `/api/v1/ingest/*` (32-SS1, Milestone 843, PD-119): its own buckets, separate from every owner and device limit. A VALID token is metered
+ * per token id (a capture client is a script, so the allowance is modest); a refused attempt (unknown, expired, revoked, wrong credential
+ * family) takes from a per-address failure bucket that is checked BEFORE any token is evaluated, so guessing is capped per address whatever
+ * the owner routes allow. Failures also count toward the automatic IP block like failed logins (`ip-block.ts`).
+ */
+export const INGEST_TOKEN_POLICY: BucketPolicy = { perMinute: 60, burst: 20 };
+export const INGEST_FAILURE_POLICY: BucketPolicy = { perMinute: 10, burst: 10 };
+
 interface Bucket { tokens: number; at: number }
 
 class TokenBuckets {
@@ -41,6 +50,15 @@ class TokenBuckets {
     return Math.max(1, Math.ceil((1 - bucket.tokens) / ratePerMs / 1000));
   }
 
+  /** Seconds to wait when the bucket is empty, else 0, WITHOUT taking a token. */
+  peek(key: string, now: number): number {
+    const bucket = this.buckets.get(key);
+    if (bucket === undefined) return 0;
+    const ratePerMs = this.policy.perMinute / 60_000;
+    const tokens = Math.min(this.policy.burst, bucket.tokens + Math.max(0, now - bucket.at) * ratePerMs);
+    return tokens >= 1 ? 0 : Math.max(1, Math.ceil((1 - tokens) / ratePerMs / 1000));
+  }
+
   /** Drops keys that have refilled completely (they carry no state). */
   sweep(now: number): void {
     const fullMs = (this.policy.burst / this.policy.perMinute) * 60_000;
@@ -55,6 +73,12 @@ export interface RateLimiter {
   checkAddress(ip: string, kind: { authLimited: boolean; anonymous: boolean }): number;
   /** After authentication, per principal key (`owner:<session>` or `device:<id>`). Seconds to wait, or 0. */
   checkPrincipal(key: string, read: boolean): number;
+  /** Ingest, before any token is evaluated: seconds to wait while this address has used up its failure allowance (takes nothing). */
+  checkIngestAddress(ip: string): number;
+  /** Ingest: a refused attempt from this address (takes one token from its failure bucket). */
+  noteIngestFailure(ip: string): void;
+  /** Ingest, after a token resolved: its own bucket, keyed by the token id. Seconds to wait, or 0. */
+  checkIngestToken(tokenId: string): number;
   /** True when the most recent `checkAddress` rejection came from the per-address flood bucket. */
   readonly lastRejectionWasFlood: boolean;
   sweep(): void;
@@ -68,6 +92,8 @@ export interface RateLimiterOptions {
   auth?: BucketPolicy;
   read?: BucketPolicy;
   flood?: BucketPolicy;
+  ingestToken?: BucketPolicy;
+  ingestFailure?: BucketPolicy;
 }
 
 export function createRateLimiter(options: RateLimiterOptions = {}): RateLimiter {
@@ -77,6 +103,8 @@ export function createRateLimiter(options: RateLimiterOptions = {}): RateLimiter
   const auth = new TokenBuckets(options.auth ?? AUTH_POLICY);
   const principal = new TokenBuckets(options.global ?? GLOBAL_POLICY);
   const read = new TokenBuckets(options.read ?? READ_POLICY);
+  const ingestToken = new TokenBuckets(options.ingestToken ?? INGEST_TOKEN_POLICY);
+  const ingestFailure = new TokenBuckets(options.ingestFailure ?? INGEST_FAILURE_POLICY);
   let lastFlood = false;
   return {
     get lastRejectionWasFlood() { return lastFlood; },
@@ -90,18 +118,21 @@ export function createRateLimiter(options: RateLimiterOptions = {}): RateLimiter
       if (global > 0) return global;
       return kind.authLimited ? auth.take(ip, t) : 0;
     },
+    checkIngestAddress: (ip) => ingestFailure.peek(ip, now()),
+    noteIngestFailure(ip) { ingestFailure.take(ip, now()); },
+    checkIngestToken: (tokenId) => ingestToken.take(tokenId, now()),
     checkPrincipal(key, isRead) {
       return (isRead ? read : principal).take(key, now());
     },
     sweep() {
       const t = now();
-      for (const buckets of [flood, anonymous, auth, principal, read]) buckets.sweep(t);
+      for (const buckets of [flood, anonymous, auth, principal, read, ingestToken, ingestFailure]) buckets.sweep(t);
     },
-    get size() { return flood.size + anonymous.size + auth.size + principal.size + read.size; },
+    get size() { return flood.size + anonymous.size + auth.size + principal.size + read.size + ingestToken.size + ingestFailure.size; },
   };
 }
 
-function tooMany(reply: FastifyReply, wait: number): FastifyReply {
+export function tooMany(reply: FastifyReply, wait: number): FastifyReply {
   return reply
     .code(429)
     .type('application/json')

@@ -1,7 +1,7 @@
 import { Value } from 'typebox/value';
 import type { TSchema, Static } from 'typebox';
 import {
-  HUB_API_PREFIX, HUB_OIDC_PATHS, OidcStatusResponse, OidcStartResponse, OidcLinkCompleteResponse, OidcAccountsResponse, OidcUnlinkPreview, HelloResponse, ErrorEnvelope, checkProtocolCompatibility,
+  HUB_API_PREFIX, HUB_OIDC_PATHS, HUB_INGEST_PATHS, ingestRevokePath, ingestRevokePreviewPath, IngestTokenListResponse, IngestTokenCreateResponse, IngestTokenRevokePreview, IngestPingResponse, OidcStatusResponse, OidcStartResponse, OidcLinkCompleteResponse, OidcAccountsResponse, OidcUnlinkPreview, HelloResponse, ErrorEnvelope, checkProtocolCompatibility,
   BootstrapResponse, TlsCertificatesResponse, AuditListResponse, SecurityAlertsResponse, PresenceResponse, HUB_PRESENCE_PATH, HubJobsResponse, HUB_JOBS_PATH, HubQueueStatusResponse, HUB_QUEUE_PATH, HubProvisioningResponse, HUB_PROVISIONING_PATH, HubTunnelStatusResponse, HUB_TUNNEL_PATH, HubNotificationsResponse, HUB_NOTIFICATIONS_PATH, CollabRoom, CollabRoomsResponse, HUB_COLLAB_ROOMS_PATH, KeepCollabRoomResponse, CollabDocumentsResponse, HUB_COLLAB_DOCUMENTS_PATH, CollabHistoryResponse, CollabSnapshotResponse, CollabRestoreResponse, HUB_COLLAB_HISTORY_PATH, HubDiagnosticsReport, ReachabilityEchoResponse, BackupStatusResponse,
   EnrollResponse, DeviceChallengeResponse, DeviceRecoveryChallengeResponse, DeviceTokenResponse, DeviceInfo, DeviceListResponse, OwnerBearerResponse, PairingCodeResponse,
   OkResponse, ConfirmPreview, SessionListResponse, RecoveryCodesResponse,
@@ -12,7 +12,7 @@ import {
   assertSyncCategories,
 } from '@dude/contracts/hub';
 import type {
-  ProtocolCompatibility, MarkNotificationsReadRequest, BootstrapRequest, EnrollRequest, DeviceSelfUpdate, PairingCodeRequest, SyncOp, SyncStateReport, SyncCategory, WebAttachRequest,
+  IngestTokenCreateRequest, ProtocolCompatibility, MarkNotificationsReadRequest, BootstrapRequest, EnrollRequest, DeviceSelfUpdate, PairingCodeRequest, SyncOp, SyncStateReport, SyncCategory, WebAttachRequest,
 } from '@dude/contracts/hub';
 import type { HubRequest, HubTransport } from './transport.js';
 import { HubApiError, HubProtocolError } from './errors.js';
@@ -142,6 +142,18 @@ export interface HubClient {
   unlinkOidcPreview(auth: Bearer, accountId: string): Promise<OidcUnlinkPreview>;
   unlinkOidc(auth: Bearer, accountId: string, confirmToken: string): Promise<OkResponse>;
 
+  /**
+   * Ingest tokens (32-SS1, Milestone 843, PD-119, PD-149). The management methods are the OWNER (cookie: omit `auth`; or an owner bearer) and the
+   * create and revoke steps need step-up; `createIngestToken` returns the secret exactly once (store it at once, it cannot be read again), and a
+   * revoke is two-step like every destructive Hub action. `ingestPing` is the one token-only call: `token` is the `dit_` secret, sent as the bearer,
+   * and no other credential is accepted on `/api/v1/ingest/*` (an owner or device credential there is HTTP 401; so is an ingest token anywhere else).
+   */
+  listIngestTokens(auth: Bearer): Promise<IngestTokenListResponse>;
+  createIngestToken(auth: Bearer, body: IngestTokenCreateRequest): Promise<IngestTokenCreateResponse>;
+  revokeIngestTokenPreview(auth: Bearer, id: string): Promise<IngestTokenRevokePreview>;
+  revokeIngestToken(auth: Bearer, id: string, confirmToken: string): Promise<OkResponse>;
+  ingestPing(token: string): Promise<IngestPingResponse>;
+
   // Synchronization (Phase 31D). Device token required, except summary and the environment clear (owner).
   syncPush(auth: Bearer, ops: readonly SyncOp[], options?: SyncPushOptions): Promise<SyncPushResponse>;
   /** A cursor older than the Hub's retained history rejects with `HubApiError` status 410, code `cursor-expired`. */
@@ -253,6 +265,12 @@ export function createHubClient(transport: HubTransport, opts: HubClientOptions)
     listOidcAccounts: (auth) => call(OidcAccountsResponse, { method: 'GET', path: HUB_OIDC_PATHS.accounts }, auth),
     unlinkOidcPreview: (auth, accountId) => call(OidcUnlinkPreview, { method: 'POST', path: HUB_OIDC_PATHS.unlinkPreview, body: { accountId } }, auth),
     unlinkOidc: (auth, accountId, confirmToken) => call(OkResponse, { method: 'POST', path: HUB_OIDC_PATHS.unlink, body: { accountId, confirmToken } }, auth),
+
+    listIngestTokens: (auth) => call(IngestTokenListResponse, { method: 'GET', path: HUB_INGEST_PATHS.tokens }, auth),
+    createIngestToken: (auth, body) => call(IngestTokenCreateResponse, { method: 'POST', path: HUB_INGEST_PATHS.tokens, body }, auth),
+    revokeIngestTokenPreview: (auth, id) => call(IngestTokenRevokePreview, { method: 'POST', path: ingestRevokePreviewPath(id) }, auth),
+    revokeIngestToken: (auth, id, confirmToken) => call(OkResponse, { method: 'POST', path: ingestRevokePath(id), body: { confirmToken } }, auth),
+    ingestPing: (token) => call(IngestPingResponse, { method: 'GET', path: HUB_INGEST_PATHS.ping }, token),
 
     syncPush: (auth, ops, options) => call(SyncPushResponse, { method: 'POST', path: `${P}${SYNC_PATHS.push}`, body: pushBody(ops, options) }, auth),
     syncChanges: async (auth, after, limit, categories) => {

@@ -57,6 +57,11 @@ describe('backup scrub classification covers every table of both databases', () 
     expect(SAVESPHERE_SCRUBBED_TABLES).toContain('jobs');
   });
 
+  it('scrubs the ingest tokens: a restored Hub never carries a capture credential from before the restore, the owner reissues (PD-149)', () => {
+    expect(SAVESPHERE_SCRUBBED_TABLES).toContain('ingest_tokens');
+    expect(SAVESPHERE_KEPT_TABLES).not.toContain('ingest_tokens');
+  });
+
   it('the checker itself flags an unclassified table', () => {
     expect(unclassified([...saveSphereTables, 'brand_new'], SAVESPHERE_SCRUBBED_TABLES, SAVESPHERE_KEPT_TABLES)).toEqual(['brand_new']);
   });

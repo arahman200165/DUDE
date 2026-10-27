@@ -19,7 +19,7 @@ describe('savesphere.db migration 0003 queue', () => {
   });
 
   it('creates jobs with its constraints and a unique key among active jobs only', () => {
-    const opened = openSaveSphereDb(hubPaths(mkdtempSync(path.join(os.tmpdir(), 'ss-0003-'))));
+    const opened = openSaveSphereDb(hubPaths(mkdtempSync(path.join(os.tmpdir(), 'ss-0003-'))), { migrations: SAVESPHERE_MIGRATIONS.slice(0, 3) });
     if (opened.status !== 'ready') throw new Error('expected ready');
     const { db } = opened.store;
     expect(getMeta(db, 'schema_version')).toBe('3');

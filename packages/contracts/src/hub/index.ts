@@ -23,6 +23,8 @@ export * from './queue.schema.js';
 export * from './provisioning.schema.js';
 export * from './tunnel.schema.js';
 export * from './oidc.schema.js';
+export * from './ingest.schema.js';
+export * from './credentials.js';
 export * from './notifications.schema.js';
 export * from './collab.schema.js';
 export { defaultHubNotificationPreferences, parseNotificationEvent, sanitizeHubNotificationPreferences } from './notification-event.js';

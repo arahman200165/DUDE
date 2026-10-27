@@ -30,9 +30,10 @@ export const HUB_KEPT_TABLES = [
  * to `dude.db`'s audit log and a restored store must not replay them. The backup engine integrates `savesphere.db` at
  * Milestone 847; until then these lists are only exported and enforced by `backup/classification.spec.ts`. `jobs` (Milestone 834,
  * the durable queue) is operational state with leases and attempt counts that mean nothing on another machine: a restored Hub
- * starts with an empty queue and re-derives pending work from content state.
+ * starts with an empty queue and re-derives pending work from content state. `ingest_tokens` (Milestone 843, PD-149) holds capture
+ * credentials (hashes, never secrets): scrubbed, so a restored Hub never carries one from before the restore and the owner mints new ones.
  */
-export const SAVESPHERE_SCRUBBED_TABLES = ['audit_outbox', 'jobs'] as const;
+export const SAVESPHERE_SCRUBBED_TABLES = ['audit_outbox', 'jobs', 'ingest_tokens'] as const;
 
 /**
  * `savesphere.db` tables kept as is. Each content table added by a later milestone is classified here or above, never silently.

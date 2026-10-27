@@ -20,6 +20,8 @@ import { registerPresenceRoutes } from './routes/presence.js';
 import { registerJobsRoute } from './routes/jobs.js';
 import { registerQueueRoute } from './routes/queue.js';
 import { registerProvisioningRoute } from './routes/provisioning.js';
+import { registerIngestRoutes } from './routes/ingest.js';
+import { createIngestTokenStore } from '../ingest/ingest-tokens.js';
 import { registerNotificationRoutes } from './routes/notifications.js';
 import { startNotificationProducers } from '../notifications/producers.js';
 import { startNotificationRetention } from '../notifications/retention.js';
@@ -67,7 +69,7 @@ import { registerRealtime } from '../realtime/realtime.js';
 import { registerWsHost } from '../realtime/ws-host.js';
 import type { RealtimeTimings } from '../realtime/realtime.js';
 import type { HubLoggerOptions } from './logger.js';
-import { AUDIT_PRUNE_INTERVAL_MS, startAuditPruning } from '../security/audit.js';
+import { AUDIT_PRUNE_INTERVAL_MS, audit, startAuditPruning } from '../security/audit.js';
 import { registerSecurityHeaders } from '../security/headers.js';
 import { createHostGuard, registerHostGuard } from '../security/host-guard.js';
 import { createRateLimiter, registerRateLimit, withPrincipalLimit } from '../security/rate-limit.js';
@@ -124,6 +126,11 @@ export interface CreateHubServerOptions {
   backup?: { scheduleKeyPresent?: () => boolean };
   /** Durable queue read model (32-SS1): `run` supplies it once `savesphere.db` is open; without it `GET /api/v1/queue` reports the queue as unavailable. */
   queue?: { status: () => HubQueueStatusResponse };
+  /**
+   * The open `savesphere.db` (32-SS1, Milestone 843): `run` supplies it once SaveSphere storage exists. The token-only ingest scaffold keeps its
+   * `ingest_tokens` there; without it the owner's token routes answer 409 and every ingest token is unknown (`/api/v1/ingest/*` stays 401).
+   */
+  ingest?: { db: Db };
   /** SaveSphere provisioning read model (32-SS1, Milestone 835): `run` supplies it; without it `GET /api/v1/provisioning` reports not provisioned. */
   provisioning?: { status: () => Promise<HubProvisioningResponse> };
   /**
@@ -247,6 +254,9 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   registerJobsRoute(app, { jobs, requireOwner: authOptions.requireOwner });
   registerQueueRoute(app, { requireOwner: authOptions.requireOwner, status: options.queue?.status });
   registerProvisioningRoute(app, { requireOwner: authOptions.requireOwner, status: options.provisioning?.status });
+  // The token-only ingest scaffold (Milestone 843, PD-119, PD-149): `/api/v1/ingest/ping` takes an ingest token and nothing else; the owner manages tokens under `/api/v1/admin/ingest-tokens`.
+  const ingestStore = options.ingest ? createIngestTokenStore({ db: options.ingest.db, hubDb: options.hub.db, auditWriter: (input) => audit(options.hub.db, input), now }) : undefined;
+  registerIngestRoutes(app, { store: () => ingestStore, hubDb: options.hub.db, limiter, now, confirmations, requireOwner: authOptions.requireOwner });
   registerTunnelRoute(app, { requireOwner: authOptions.requireOwner, status: options.tunnel?.status });
   // Notifications (PD-109, PD-110): the closed producer list feeds the table; a new row reaches owner sockets and reader-granted device sockets.
   const producers = startNotificationProducers({

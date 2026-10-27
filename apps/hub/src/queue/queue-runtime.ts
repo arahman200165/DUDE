@@ -35,6 +35,8 @@ export interface QueueRuntimeOptions {
 export interface QueueRuntime {
   /** The read model behind `GET /api/v1/queue`. */
   status(): HubQueueStatusResponse;
+  /** The one open `savesphere.db` connection (the ingest token scaffold, Milestone 843, shares it); closed by `stop`. */
+  readonly db: Db;
   /** Starts the runner (recovers interrupted jobs first) and reports into the job registry. */
   start(registry: RunnerJobRegistry): Promise<void>;
   /** Stops the runner and its workers, then closes `savesphere.db`. */
@@ -65,6 +67,7 @@ export function createQueueRuntime(options: QueueRuntimeOptions): QueueRuntime |
   let runner: QueueRunner | undefined;
   return {
     status: () => queue.status(),
+    db: store.db,
     async start(registry) {
       await workers.start();
       runner = createQueueRunner({ queue, handlers, workers, registry, db: store.db, schedules: DEFAULT_QUEUE_SCHEDULES, ...(options.log ? { log: options.log } : {}) });

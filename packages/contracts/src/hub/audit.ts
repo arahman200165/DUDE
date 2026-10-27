@@ -26,6 +26,7 @@ export const HUB_AUDIT_EVENTS = [
   'provisioning.run',
   'tunnel.enabled', 'tunnel.disabled', 'tunnel.token-set', 'tunnel.degraded',
   'oidc.signin', 'oidc.signin-failed', 'oidc.refused-account', 'oidc.link-started', 'oidc.link', 'oidc.unlink', 'oidc.unreachable',
+  'ingest.token-created', 'ingest.token-revoked', 'ingest.auth-failed',
 ] as const;
 export type HubAuditEvent = (typeof HUB_AUDIT_EVENTS)[number];
 
