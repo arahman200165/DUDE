@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- The instrumentation APK only (never merged into the app or a release): it trusts the user CA store so the tunnel-domain acceptance can use a
+       throwaway CA that the harness installs on the emulator (Milestone 840). tests/mobile-native-privacy.test.mjs asserts that nothing under main or
+       the generated app trusts user CAs. -->
+  <application android:networkSecurityConfig="@xml/dude_test_network_security_config" />
+</manifest>

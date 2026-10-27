@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { Value } from 'typebox/value';
-import { HUB_TUNNEL_DISCLOSURE, HUB_TUNNEL_PHRASE, HubDiagnosticsReport } from '@dude/contracts/hub';
+import { HUB_TUNNEL_DISCLOSURE, HUB_TUNNEL_PHRASE, HubDiagnosticsReport, hubTunnelDashboard } from '@dude/contracts/hub';
 import { applyTunnelChange, loadOrCreateHubConfig, normalizeTunnelHostname, writeHubConfig } from '../config/hub-config.js';
 import type { DiagnosticsHostFacts } from '../diagnostics/engine.js';
 import { evaluatePublicReadiness } from '../diagnostics/readiness.js';
@@ -128,7 +128,7 @@ export function buildTunnelMethods(context: AdminMethodContext, shared: { now: (
         summary: {
           action: 'on', hostname, port: context.getPort(), widensExposure: true, tokenStored: tunnel.tokenPresent(), needsConnectorToken: !tunnel.tokenPresent(),
           startsConnector: true, writesProxyConfiguration: true, restartRequired: true,
-          dashboard: { hostname, service: `https://127.0.0.1:${String(context.getPort())}`, noTlsVerify: true, httpHostHeader: null },
+          dashboard: hubTunnelDashboard(hostname, context.getPort()),
           disclosure: [...HUB_TUNNEL_DISCLOSURE],
         },
       };

@@ -1,4 +1,4 @@
-import { HUB_TUNNEL_DISCLOSURE, HUB_TUNNEL_LOG_LINES_MAX, HUB_TUNNEL_LOG_LINE_MAX } from '@dude/contracts/hub';
+import { HUB_TUNNEL_DISCLOSURE, HUB_TUNNEL_LOG_LINES_MAX, HUB_TUNNEL_LOG_LINE_MAX, hubTunnelDashboard } from '@dude/contracts/hub';
 import type { HubDiagnosticsTunnel, HubTunnelState, HubTunnelStatusResponse } from '@dude/contracts/hub';
 import type { HubPaths } from '../config/data-dir.js';
 import { createSecretStore } from '../secrets/secret-store.js';
@@ -145,7 +145,7 @@ export function createTunnelRuntime(options: TunnelRuntimeOptions): TunnelRuntim
         lastError: status.lastError,
         startedAt: status.startedAt === null ? null : iso(status.startedAt),
         lastReadyAt: lastReadyAt === null ? null : iso(lastReadyAt),
-        dashboard: config === undefined ? null : { hostname: config.hostname, service: `https://127.0.0.1:${String(options.getPort())}`, noTlsVerify: true, httpHostHeader: null },
+        dashboard: config === undefined ? null : hubTunnelDashboard(config.hostname, options.getPort()),
         disclosure: [...HUB_TUNNEL_DISCLOSURE],
         logTail,
       };

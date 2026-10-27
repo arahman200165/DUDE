@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 const { applyPrivacy, backupRules, extractionRules, blockedPermissions, allowedPermissions } = createRequire(import.meta.url)('../apps/mobile/plugins/with-android-privacy.cjs');
 
 test('Android manifest disables cleartext and binds both backup exclusion formats', () => {
@@ -77,4 +79,30 @@ test('the dude-share module is a local autolinked Expo module that never logs co
   assert.ok(!/\bLog\.|println\(|Timber/.test(kotlin));
   assert.ok(kotlin.includes('isAllowedScheme'));
   assert.ok(!readFileSync(new URL('android/src/main/AndroidManifest.xml', root), 'utf8').includes('uses-permission'));
+});
+
+// Public-CA trust for the tunnel domain (32-SS1, Milestone 840): the release app trusts the platform defaults (system roots, no user-installed CA, cleartext off).
+// The emulator acceptance installs a throwaway CA into the USER store, and only the :dude-hub instrumentation APK (src/androidTest) is configured to trust it.
+const mobileRoot = new URL('../apps/mobile/', import.meta.url);
+const sourceFiles = dir => readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+  if (['node_modules', 'build', '.gradle', '.cxx', '.expo', 'dist'].includes(entry.name)) return [];
+  const full = path.join(dir, entry.name);
+  return entry.isDirectory() ? sourceFiles(full) : [full];
+});
+const mobilePath = file => path.relative(fileURLToPath(mobileRoot), file).split(path.sep).join('/');
+
+test('no release configuration trusts user-installed CAs or sets a network security config', () => {
+  const files = sourceFiles(fileURLToPath(mobileRoot)).filter(file => /\.(xml|kt|java|cjs|ts|tsx|json|gradle|properties)$/.test(file)).map(mobilePath);
+  assert.ok(files.includes('app.config.ts') && files.includes('plugins/with-android-privacy.cjs'));
+  const text = file => readFileSync(new URL(file, mobileRoot), 'utf8');
+  // The one place a user store is trusted: the instrumentation APK's own configuration, referenced only by its own manifest.
+  const testConfig = 'modules/dude-hub/android/src/androidTest/res/xml/dude_test_network_security_config.xml';
+  const withUserTrust = files.filter(file => /src\s*=\s*["']user["']/.test(text(file)));
+  assert.deepEqual(withUserTrust, [testConfig]);
+  const referencing = files.filter(file => /networkSecurityConfig|network_security_config/.test(text(file)));
+  assert.deepEqual(referencing, ['modules/dude-hub/android/src/androidTest/AndroidManifest.xml']);
+  // The generated app (when prebuild has run) and every module's main source set carry no configuration at all.
+  for (const file of files.filter(item => /(^|\/)src\/main\//.test(item) || item.startsWith('android/app/'))) assert.ok(!/networkSecurityConfig|network_security_config|<certificates|src="user"/.test(text(file)), file);
+  assert.ok(!/networkSecurityConfig|network_security_config/.test(text('app.config.ts') + text('plugins/with-android-privacy.cjs')));
+  assert.ok(text('plugins/with-android-privacy.cjs').includes("'android:usesCleartextTraffic': 'false'"));
 });

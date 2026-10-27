@@ -50,6 +50,31 @@ export const HubTunnelDashboard = Type.Object({
 });
 export type HubTunnelDashboard = Static<typeof HubTunnelDashboard>;
 
+/**
+ * The single source of the Cloudflare dashboard guidance (Milestone 840). The Hub status route, the `dude-hub network tunnel on` preview, the
+ * desktop provisioning wizard and the Hub-web status all show these values; none of them may restate them. The strings are plain text.
+ */
+export const HUB_TUNNEL_DASHBOARD_LOCATION = 'Zero Trust > Networks > Tunnels > your tunnel > Public Hostname';
+/** Service type of the public hostname's origin. The origin is the Hub's own loopback HTTPS listener. */
+export const HUB_TUNNEL_DASHBOARD_SERVICE_TYPE = 'HTTPS';
+export const HUB_TUNNEL_NO_TLS_VERIFY_NOTE = "this hop never leaves the machine and the Hub's certificate is private";
+export const HUB_TUNNEL_HOST_HEADER_NOTE = 'leave empty (the Hub needs the public host name)';
+
+/** The values for a tunnel host name and the Hub's listening port: `https://127.0.0.1:<port>`, "No TLS Verify" on, no Host header override. */
+export function hubTunnelDashboard(hostname: string, port: number): HubTunnelDashboard {
+  return { hostname, service: `https://127.0.0.1:${String(port)}`, noTlsVerify: true, httpHostHeader: null };
+}
+
+/** The dashboard settings as owner-readable lines, in the order the dashboard asks for them (Public hostname, service, TLS, Host header). */
+export function hubTunnelDashboardLines(dashboard: HubTunnelDashboard): readonly string[] {
+  return [
+    `Public hostname: ${dashboard.hostname} (your domain exactly, no path)`,
+    `Service: ${HUB_TUNNEL_DASHBOARD_SERVICE_TYPE}, ${dashboard.service}`,
+    dashboard.noTlsVerify ? `TLS: No TLS Verify = on (${HUB_TUNNEL_NO_TLS_VERIFY_NOTE})` : 'TLS: No TLS Verify = off',
+    `HTTP Host Header: ${dashboard.httpHostHeader === null ? HUB_TUNNEL_HOST_HEADER_NOTE : dashboard.httpHostHeader}`,
+  ];
+}
+
 export const HubTunnelStatusResponse = Type.Object({
   /** `exposure.tunnel` exists in `hub.json`. */
   configured: Type.Boolean(),

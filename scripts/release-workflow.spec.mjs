@@ -170,6 +170,16 @@ test('only the Android build and journeys can be skipped by path, and only throu
   for (const event of ['push', 'pull_request']) assert.deepEqual(workflow.on[event]['paths-ignore'], markdown);
 });
 
+test('the tunnel-domain Android acceptance rides the existing shard-1 instrumentation step and its edge spec runs in the checks job', () => {
+  const nativeJob = workflow.jobs['mobile-native'];
+  assert.deepEqual(nativeJob.strategy.matrix.shard, [1, 2, 3, 4], 'no new shard: the scenario joins the instrumentation that already runs once per API level');
+  const emulator = nativeJob.steps.find(step => step.uses?.startsWith('reactivecircus/android-emulator-runner@'));
+  assert.ok(emulator.with.script.split(/\r?\n/).includes('[ "${{ matrix.shard }}" != 1 ] || node scripts/mobile-instrument.mjs dist/android-acceptance/dude-hub-debug-androidTest.apk --tunnel-edge'));
+  // The throwaway CA is for the instrumentation APK only: the release APK is installed, never given a test trust configuration, and no step installs a CA by hand.
+  assert.ok(!/cacerts|update-ca-certificates|certutil/.test(JSON.stringify(workflow)), 'CA installation is owned by scripts/mobile-instrument.mjs');
+  assert.ok(workflow.jobs.checks.steps.some(step => step.run === 'node --test scripts/mobile-tunnel-edge.spec.mjs'));
+});
+
 test('packaging hands publish every asset through one artifact, verified before upload', () => {
   const upload = steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
   const download = publishJob.steps.find(step => step.uses?.startsWith('actions/download-artifact@'));

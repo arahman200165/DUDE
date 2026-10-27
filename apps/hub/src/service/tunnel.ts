@@ -1,5 +1,7 @@
 import path from 'node:path';
-import { HUB_TUNNEL_DISCLOSURE, HUB_TUNNEL_PHRASE } from '@dude/contracts/hub';
+import {
+  HUB_TUNNEL_DASHBOARD_LOCATION, HUB_TUNNEL_DASHBOARD_SERVICE_TYPE, HUB_TUNNEL_DISCLOSURE, HUB_TUNNEL_HOST_HEADER_NOTE, HUB_TUNNEL_NO_TLS_VERIFY_NOTE, HUB_TUNNEL_PHRASE,
+} from '@dude/contracts/hub';
 import { AdminCallError, HUB_NOT_RUNNING } from '../admin/admin-client.js';
 import { readSecretLine } from '../cli/passphrase.js';
 import type { ReadPassphraseOptions } from '../cli/passphrase.js';
@@ -60,10 +62,10 @@ function onPreviewLines(preview: PreviewResult): string {
     `  Domain:       ${text(s['hostname'])} (www.${text(s['hostname'])} redirects to it)`,
     `  Effect:       publishes this Hub on that domain through Cloudflare; the Hub keeps listening on loopback only, no inbound port or firewall rule is opened`,
     `  Writes:       the proxy trust (loopback connector only) and the tunnel setting in hub.json; stores the connector token (${s['tokenStored'] === true ? 'one is already stored' : 'you will supply it with --token-stdin'}); starts the supervised cloudflared; removes the LAN firewall rule (the Hub listens on loopback only)`,
-    '  In the Cloudflare dashboard (Zero Trust > Networks > Tunnels > your tunnel > Public Hostname), the hostname must point at:',
-    `    Service:      HTTPS, ${text(dashboard['service'])}`,
-    `    TLS:          No TLS Verify = on (this hop never leaves the machine and the Hub's certificate is private)`,
-    '    HTTP Host Header: leave empty (the Hub needs the public host name)',
+    `  In the Cloudflare dashboard (${HUB_TUNNEL_DASHBOARD_LOCATION}), the hostname must point at:`,
+    `    Service:      ${HUB_TUNNEL_DASHBOARD_SERVICE_TYPE}, ${text(dashboard['service'])}`,
+    `    TLS:          No TLS Verify = on (${HUB_TUNNEL_NO_TLS_VERIFY_NOTE})`,
+    `    HTTP Host Header: ${HUB_TUNNEL_HOST_HEADER_NOTE}`,
   ];
   for (const line of HUB_TUNNEL_DISCLOSURE) lines.push(`  Disclosure:   ${line}`);
   const warnings = preview.readiness?.warnings ?? [];

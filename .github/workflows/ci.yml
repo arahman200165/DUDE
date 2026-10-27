@@ -105,6 +105,9 @@ jobs:
       - name: Verify CI change detection
         run: node --test scripts/ci-changes.spec.mjs
 
+      - name: Verify the Android tunnel-domain acceptance edge
+        run: node --test scripts/mobile-tunnel-edge.spec.mjs
+
   # `npm run test:high-consequence` is not repeated here: it re-runs test:packages and filtered subsets of
   # ng test, test:electron and test:hub, all of which CI runs in full.
   unit:
@@ -433,7 +436,9 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      # Each script line runs as its own `sh -c`; the native instrumentation runs once per API level, on shard 1.
+      # Each script line runs as its own `sh -c`; the native instrumentation runs once per API level, on shard 1. `--tunnel-edge` also runs the tunnel-domain
+      # (public-CA) acceptance there: a throwaway CA in the emulator's user trust store (adb root; the default image is rootable) and a stub TLS edge on the
+      # runner (scripts/mobile-tunnel-edge.mjs, needs openssl, which the runner has). Only the instrumentation APK trusts user CAs, never app-release.apk.
       - name: API29/API36 native, shell and tool-journey acceptance
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -445,7 +450,7 @@ jobs:
           heap-size: 576M
           disable-animations: true
           script: |
-            [ "${{ matrix.shard }}" != 1 ] || node scripts/mobile-instrument.mjs dist/android-acceptance/dude-hub-debug-androidTest.apk
+            [ "${{ matrix.shard }}" != 1 ] || node scripts/mobile-instrument.mjs dist/android-acceptance/dude-hub-debug-androidTest.apk --tunnel-edge
             adb install -r dist/android-acceptance/app-release.apk
             MAESTRO_PATH="$PWD/tmp/mobile-toolchain/maestro/maestro/bin/maestro" node scripts/mobile-e2e.mjs --shard ${{ matrix.shard }}/4
       - uses: actions/upload-artifact@v7

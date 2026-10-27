@@ -65,11 +65,14 @@ internal sealed class HubTrust {
 }
 
 /**
- * TEST SEAM ONLY (Milestone 839): the roots a `public-ca` client trusts, and where it dials, so JVM tests can use a throwaway CA and loopback while the TLS
- * host name and SNI stay the trusted domain. It is a constructor parameter of [PinnedHubTransport] that nothing in `main` supplies: the Expo module, the
+ * TEST SEAM ONLY (Milestone 839): the roots a `public-ca` client trusts (JVM tests; none keeps the platform default), and where it dials, so tests can use a
+ * throwaway CA and loopback or the emulator's host alias while the TLS host name and SNI stay the trusted domain. It is a constructor parameter of [PinnedHubTransport] that nothing in `main` supplies: the Expo module, the
  * JS bridge and every Hub-provided value cannot reach it (`public-ca-trust-seam.spec.ts` scans for that).
  */
-internal class PublicCaTestSeam(val sslSocketFactory: SSLSocketFactory, val trustManager: X509TrustManager, val dialAddress: InetAddress? = null)
+internal class PublicCaTestSeam(val sslSocketFactory: SSLSocketFactory? = null, val trustManager: X509TrustManager? = null, val dialAddress: InetAddress? = null) {
+  // Roots are both or neither. Neither keeps the platform trust path, which is what the emulator acceptance (Milestone 840) exercises with a CA in the user store.
+  init { require((sslSocketFactory == null) == (trustManager == null)) }
+}
 
 internal class PinnedHubTransport(private val publicCaTestSeam: PublicCaTestSeam? = null, private val emit: (Map<String, Any>) -> Unit) {
   companion object {
@@ -91,7 +94,7 @@ internal class PinnedHubTransport(private val publicCaTestSeam: PublicCaTestSeam
         // checks the certificate against the request host. `requestBuilder` has already pinned that host to the stored domain.
         is HubTrust.PublicCa -> {
           if (seam != null) {
-            builder.sslSocketFactory(seam.sslSocketFactory, seam.trustManager)
+            if (seam.sslSocketFactory != null && seam.trustManager != null) builder.sslSocketFactory(seam.sslSocketFactory, seam.trustManager)
             seam.dialAddress?.let { address -> builder.dns(object : Dns { override fun lookup(hostname: String): List<InetAddress> = listOf(address) }) }
           }
           builder.build()
