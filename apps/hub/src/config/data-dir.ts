@@ -17,6 +17,8 @@ export interface HubPaths {
   backupsDir: string;
   configDir: string;
   tlsDir: string;
+  /** Machine-bound secrets (`secrets/`); never backed up, never in a diagnostics report. */
+  secretsDir: string;
   configFile: string;
   logsDir: string;
   webRoot: string;
@@ -43,6 +45,7 @@ export function hubPaths(root: string): HubPaths {
     backupsDir: path.join(root, 'backups'),
     configDir: path.join(root, 'config'),
     tlsDir: path.join(root, 'config', 'tls'),
+    secretsDir: path.join(root, 'config', 'secrets'),
     configFile: path.join(root, 'config', 'hub.json'),
     logsDir: path.join(root, 'logs'),
     webRoot: path.join(root, 'service', 'web'),

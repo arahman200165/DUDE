@@ -86,3 +86,13 @@ Limitations and decisions recorded rather than worked around:
 - `dude-hub run` keeps its fail-fast self-test but skips the vector and worker probes (`runSelfTest({ capabilities: false })`) so a start never spawns a child or reads the DLL; `dude-hub self-test` runs them all.
 - FTS5 and worker re-spawn are hard requirements of the self-test (failure fails it); vector search is the only optional capability.
 - The queue, the worker host and any non-`ping` worker kind are Milestone 834.
+
+### 2026-10-27, Milestone 831: Hub secrets module
+
+`apps/hub/src/secrets/` adds the `SecretStore` (closed `HUB_SECRET_PURPOSES`, one DPAPI entropy and one file per purpose under `<configDir>/secrets/`, `status()` presence only). Notes:
+
+- It reuses `createDpapiProtector` and `createFileProtector` from `tls/ca-key-protector.ts` unchanged instead of extracting a `secrets/dpapi.ts`, so the CA, ACME and backup-schedule protectors and their specs are untouched.
+- Limitation: the Linux/Docker fallback is a mode-0600 file in a mode-0700 directory (file-permission protection only), as for the CA and ACME keys.
+- `HubPaths.secretsDir` was added; `ensureLayout` does not create it (the store creates it on first `put`). Backups hold only `dude.db` and `hub.json`, so the directory is never included (asserted in `secrets.spec.ts`); after a restore onto another machine DPAPI blobs are unreadable and every purpose needs re-entry. `status({ expected })` reports `needsReentry`; which purposes are expected comes from the provisioning config, which arrives at Milestone 835.
+- The importer allowlist in `secrets.spec.ts` is empty until the first consumer (Milestone 832 onwards) adds itself.
+
