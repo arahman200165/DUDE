@@ -1,9 +1,9 @@
 # DUDE — Product Requirements
 
 **Project:** DUDE — Developer Utility Dashboard Engine  
-**Product:** local-first developer workbench evolving into a personally owned distributed developer environment  
+**Product:** local-first developer workbench evolving into a personally owned distributed developer environment and, through SaveSphere, the owner's personal knowledge system  
 **Baseline:** V1 and Phases 0–31 delivered; distributed Phases 31A–31J delivered, with **DUDE 2.0 declared at Milestone 786** (2026-10-23) and **31J (Hub collaboration and realtime depth) closed at Milestone 815** (2026-10-24; [decisions PD-099–PD-115](delivery/PHASE31J_PLAN.md), [acceptance](delivery/PHASE31J_ACCEPTANCE.md))
-**Next priority:** begin Phase 32 (the retained backlog); 31J's physical and installed passes are owed and tracked in its acceptance document
+**Next priority:** the SaveSphere program, Phases 32-SS1 to 32-SS6 ([decisions PD-116–PD-140](delivery/PHASE32SS_PLAN.md), [SaveSphere documentation](savesphere/README.md)), starting with 32-SS1 (Hub platform); the retained Phase 32 backlog follows 32-SS6. 31J's physical and installed passes are owed and tracked in its acceptance document
 
 Phase 31A (portable core and workspace extraction, Milestone 615) and Phase 31B (device identity, scoped local state and recoverable migration, Milestones 616–627) are complete; [31A](delivery/PHASE31A_ACCEPTANCE.md) and [31B](delivery/PHASE31B_ACCEPTANCE.md) acceptance evidence record the verified results, and 31B lists one owed installed-build manual pass. Phase 31C (self-hosted Hub, owner identity, device registry and resident Device Agent, Milestones 628–648) is complete with its decisions recorded in the [decision log](history/DECISION_LOG.md#phase-31c-implementation-decisions); [31C acceptance evidence](delivery/PHASE31C_ACCEPTANCE.md) records the verified results and the owed manual passes. Phase 31D (scoped synchronization, offline replay, conflict handling and the first-sync preview between desktops through the Hub, Milestones 649–662) is complete with its decisions in the [decision log](history/DECISION_LOG.md#phase-31d-implementation-decisions); [31D acceptance evidence](delivery/PHASE31D_ACCEPTANCE.md) records the verified results and the owed two-machine manual pass. Phase 31E (the Hub-served authenticated Angular web with shared state, private-mode access with a built-in local CA, trusted-certificate sources, reverse-proxy mode, endpoint diagnostics and the gated public mode, Milestones 663–682) is complete with its decisions in the [decision log](history/DECISION_LOG.md#phase-31e-implementation-decisions); [31E acceptance evidence](delivery/PHASE31E_ACCEPTANCE.md) records the verified results and the owed manual passes. Later distributed capabilities remain planned.
 
@@ -28,6 +28,8 @@ This is the authoritative entry point for product direction and architectural in
 ## Product Summary
 
 DUDE is a dense, colorful, local-first **developer workbench evolving into a personally owned distributed developer environment**. The delivered Phase 31 baseline is Angular/Electron desktop plus a highly capable static web/PWA companion generated from the shared core. The distributed foundation adds a self-hosted authoritative Hub, Hub-served Angular web access, synchronized installed devices and a React Native Android client. The Hub, Hub web, desktop sync and the Android client with its 40 executable tools are delivered (Phase 31H and Phase 31I; DUDE 2.0 was declared at Milestone 786). The Windows desktop application is now the canonical product surface because DUDE has already shipped capabilities that a browser sandbox cannot reproduce: native filesystem access, OS-level secret storage, local backend processes, system integration, collaboration infrastructure, and live networking, filesystem and Windows process/system tooling, with database tooling still ahead. The GitHub Pages build remains a permanent zero-install companion for every capability that can run safely in-browser.
+
+**SaveSphere (planned, Phases 32-SS1 to 32-SS6).** The owner's Hub will also host **SaveSphere**: a personal knowledge system for capturing, preserving, organizing and retrieving anything the owner considers important, from any source or format. It will also become the owner's everyday note-taking app, covering rich text, S Pen and Windows-pen handwriting, PDF annotation and infinite canvases. The Hub serves the full DUDE suite and SaveSphere from the owner's own domain, behind Google sign-in. SaveSphere is a shell destination built on the existing Hub, identity, synchronization, backup, desktop and Android foundations, not a separate product stack. Its decisions are [PD-116–PD-140](delivery/PHASE32SS_PLAN.md), and its specifications are in [SaveSphere documentation](savesphere/README.md).
 
 Visually, DUDE is dark-first, but not monochrome or subdued. The default UI uses a dark base and a bright, bold, highly saturated accent-color system functionally — for categories, status, and structure — rather than decoratively. Since Phase 30K (Milestones 577–585), that dark theme is the default of a controlled set of first-party appearance options: Dark / Light / System themes, high contrast, accent and category palettes, color-blind-safe status colors, density presets, UI and data font preferences, and reduced motion, all generated from one shared token source. See [Appearance System](product/UX_SPEC.md#appearance-system) for the full visual direction.
 
@@ -72,7 +74,7 @@ The target architecture is deliberately **self-hosted and personally owned end t
 
 DUDE's backend/control plane must be capable of running on hardware owned and controlled by the user. A user's own desktop, workstation, home server, or other machine may host the authoritative DUDE backend without requiring Azure, AWS, Google Cloud, DigitalOcean, Render, Supabase, Firebase, a managed database, or any other external VM/application-hosting provider.
 
-External infrastructure may be used optionally for commodity Internet functions such as DNS registration or public TLS certificate issuance, but **DUDE must not require third-party application hosting to operate**.
+External infrastructure may be used optionally for commodity Internet functions such as DNS registration, public TLS certificate issuance, an owner-chosen ingress relay (the DUDE-managed Cloudflare Tunnel planned in [Phase 32-SS1](delivery/ROADMAP.md#phase-32-ss1), [PD-120](delivery/PHASE32SS_PLAN.md)) or an owner-chosen offsite backup destination, but **DUDE must not require third-party application hosting to operate**. Each such service carries a disclosed trust and data path, and each has a no-third-party alternative: direct Public mode for ingress, and a local or standby-device destination for backups.
 
 The recommended product terminology is therefore:
 
@@ -105,11 +107,14 @@ The user's Hub supplies:
 - durable shared state;
 - web access;
 - collaboration;
-- device discovery.
+- device discovery;
+- SaveSphere's preserved knowledge store, search and Copilot (planned, Phases 32-SS1 to 32-SS6).
 
 The Angular client supplies zero-install browser access.
 
 The React Native client supplies a mobile-native pocket workbench.
+
+With SaveSphere (planned, Phases 32-SS1 to 32-SS6), the same owned environment also becomes the owner's personal knowledge system. Every surface can capture into it, and every surface can search it.
 
 The shared DUDE Core prevents the project from becoming separate desktop, web, and mobile implementations.
 
@@ -153,6 +158,17 @@ The expected use pattern is short and frequent:
 6. switch tools or leave.
 
 The application should optimize for repeated daily use rather than onboarding first-time nontechnical users.
+
+### Personal knowledge owner (SaveSphere, planned)
+
+The same owner keeps a personal archive: handwritten and typed notes, documents, PDFs, saved links and videos, messages to themselves, and email threads. That material is currently spread across several apps and devices. The SaveSphere usage pattern is:
+
+1. capture something in seconds from wherever it appears (phone share sheet, desktop quick capture, email forward, a watched folder);
+2. let SaveSphere preserve the original and organize it, overriding its choices when needed;
+3. write and draw everyday notes in SaveSphere itself;
+4. later, find or ask about anything without remembering where it was saved.
+
+The audience is still the owner. SaveSphere does not open DUDE to other users, except the invited guests and public read-only links planned for [Phase 32-SS6](delivery/ROADMAP.md#phase-32-ss6), with the owner as sole administrator ([PD-139](delivery/PHASE32SS_PLAN.md)).
 
 ## Product Principles
 
@@ -230,6 +246,8 @@ The web companion remains strategically important because a URL is the lowest-fr
 
 Basic local developer utilities must never be paywalled behind the desktop app, an account, or a paid tier. They are the product's on-ramp, not an upsell surface.
 
+From Phase 32-SS1, everything a Hub serves on the owner's domain, the developer tools included, requires the owner's sign-in ([PD-122](delivery/PHASE32SS_PLAN.md)). That is access control on a private deployment, not a paywall: the anonymous GitHub Pages companion keeps every browser-safe tool available with no account.
+
 ## Product Boundaries
 
 ### Durable Product Boundaries
@@ -246,6 +264,13 @@ These constraints survive roadmap growth unless the owner makes an explicit futu
 6. **No private credentials compiled into distributions.** Service credentials are user-supplied, locally generated, retrieved from approved local secret stores, or configured by the operator of a self-hosted deployment.
 7. **Basic local developer utilities never become paywalled.** A future commercial model may charge for optional services or advanced organizational capabilities, but must not remove or artificially cripple formerly-local utility functionality to manufacture a paid tier.
 8. **DUDE does not become a conventional VS Code clone or source-code-IDE-first product.** Later editor, LSP, terminal, Git, project, and code-intelligence surfaces are allowed only in service of the broader developer-workbench model. The product identity remains “give this development problem/artifact/system to DUDE,” not “rebuild VS Code feature-for-feature.”
+
+**SaveSphere scope ceiling (2026-10-25).** SaveSphere widens DUDE's identity to include the owner's personal knowledge system. It does not relax any of the eight boundaries above:
+
+- **Boundary 1.** Explicitly saving or capturing content into SaveSphere is the disclosed action that sends it to the owner's own Hub, and every AI task discloses what it sends and where.
+- **Boundaries 2 and 3.** Cloud AI, Google sign-in, the Cloudflare Tunnel and offsite backup destinations are optional integrations the owner configures, never DUDE-operated services.
+
+SaveSphere is a personal system for one owner, with optional invited guests. It is not a team wiki, a hosted notes service, a browser-autofill password manager or a social-media client. New SaveSphere capabilities enter scope only through a dated decision, and [PD-140](delivery/PHASE32SS_PLAN.md) lists what stays out of scope.
 
 ### Non-Goals for the First Distributed Release
 
@@ -300,7 +325,8 @@ The Hub hosts the authoritative shared services and data:
 - collaboration;
 - durable shared data;
 - backup coordination;
-- future remote-execution coordination.
+- future remote-execution coordination;
+- SaveSphere's provisioned storage and services: content store, full-text and vector indexes, blob store, job queue and AI processing (planned from Phase 32-SS1, [PD-118](delivery/PHASE32SS_PLAN.md)).
 
 Every installed desktop runs:
 
@@ -394,6 +420,8 @@ DUDE must not turn into a system where every:
 
 is automatically transmitted to the Hub.
 
+SaveSphere does not change this. Its content reaches the Hub only through an explicit capture: saving a note, sharing to DUDE, forwarding an email, or choosing a watched folder or an import. That action is the disclosed consent for that content ([PD-131](delivery/PHASE32SS_PLAN.md)). Tool inputs, outputs, clipboard history and other utility data are never captured automatically.
+
 #### Offline desktop usability
 
 A DUDE desktop/laptop must remain useful when:
@@ -438,7 +466,7 @@ The following should be treated as non-negotiable unless a subsequent explicit p
 6. **Canonical synchronized state belongs to the Hub.**
 7. **Device databases are caches/replicas plus device/private/offline state.**
 8. **Data and settings have explicit scopes.**
-9. **Sensitive utility inputs remain local by default.**
+9. **Sensitive utility inputs remain local by default.** Content the owner explicitly captures into SaveSphere is the consented exception.
 10. **The Hub never directly exposes unrestricted native machine capabilities.**
 11. **Installed devices continue to provide useful local functionality while the Hub is offline.**
 12. **Sync is hub-and-spoke, not device-to-device peer sync.**
@@ -529,13 +557,15 @@ DEFERRED: mandatory externally hosted infrastructure
 
 **Authority is not execution location:** the Hub owns canonical synchronized records. It does not become the automatic execution host for local tools, the native-service owner for every machine, or the owner of device-private inputs.
 
+**Planned next: SaveSphere.** On 2026-10-25 the owner widened the product scope with SaveSphere, and the program is scheduled as Phases 32-SS1 to 32-SS6 ahead of Phase 32 ([decisions PD-116–PD-140](delivery/PHASE32SS_PLAN.md), [SaveSphere documentation](savesphere/README.md)). Nothing in it is implemented yet. Statements in this PRD about the delivered baseline describe the Hub as built: one owner signing in with a password and recovery codes, Internet exposure only through direct Public mode or an owner-operated reverse proxy, and backups capped at 512 MiB. Statements marked as planned SaveSphere scope describe the target.
+
 Phase 31 closed at Milestone 614. The delivered product includes the reusable tool framework, native desktop services, pipelines, Smart Paste, workspaces, projects, history, controlled appearance, networking, filesystem and Windows troubleshooting tools. [Delivery History](history/DELIVERY_HISTORY.md#delivered-baseline-through-phase-31) retains the complete baseline statement and per-phase implementation evidence.
 
 The local Device State Store, device identity and scoped settings shipped in Phase 31B. Phase 31C added a self-hosted Hub service (pinned self-signed HTTPS on loopback by default, optional LAN mode) with a single owner identity, a device registry with pairing and Ed25519 device credentials, an authenticated realtime WebSocket foundation, a canonical SQLite database (identity tables plus an atomic record/change-feed commit repository), a Hub-served admin web (setup, sign-in, recovery, Environment & Hub, Devices, Security & Sessions), a resident per-user Device Agent that holds the device key and Hub connection, and an optional Hub installer component. Phase 31D then synchronized settings, favorites, pipelines, projects, workspace templates, Home, usage, workspace layout and scratchpad (the last three off by default) between enrolled desktops through revision-checked Hub routes, with a first-sync preview, a durable offline outbox, three-way merge, a permanent conflict inbox, retention with snapshot rebase and Settings › Sync. Phase 31E then made the Hub web the full authenticated shared-state Angular app (a browser device row, in-browser three-way merge with an inline conflict dialog, online-only shared writes, a public-asset-only service worker, a sign-out wipe, Sync and Endpoint & Exposure settings), added a built-in local CA (default for new Hubs), configured names, certificate import and reverse-proxy mode with proxy pins, pin-only device TLS verification, per-principal rate limits and an endpoint diagnostics engine. Phase 31F (Milestones 683–699) then released Public (Internet) mode behind an elevated readiness gate and added built-in ACME, dynamic-address detection, public firewall rules and a native-listener audit, Hub-observed external reachability verification, sync-time revoked-device verification, owner step-up re-authentication with session rotation, a persisted flood guard with automatic IP blocks, owner security alerts and release builds that ignore the test knobs ([acceptance](delivery/PHASE31F_ACCEPTANCE.md)). Phase 31G (Milestones 700–719) then added passphrase-encrypted Hub backups (one `.dudebackup` file, scheduled or manual, verified before it counts), an offline staged restore that gives the restored Hub a new identity and a higher authority epoch, manual Hub transfer with a fence that retires the old Hub (and a reactivate rollback), re-attach pairing codes, a device reconnect flow that keeps local data and pending edits and ends in the first-sync preview, a rebase that never deletes an acknowledged edit the Hub regressed past, a Hub web authority gate and a view-only Settings › Backup & Transfer ([acceptance](delivery/PHASE31G_ACCEPTANCE.md)); the real second-machine transfer pass is recorded in 31I acceptance (G5). There is no automatic failover. Phase 31H implemented the Android shell, native identity and favorites/settings sync; its signed-install and physical acceptance were carried into the single 31I final gate and are recorded there ([evidence](delivery/PHASE31H_ACCEPTANCE.md), [decisions](delivery/PHASE31I_PLAN.md)). Phase 31I (Milestones 729–786) added the initial 40 executable Android tools and declared DUDE 2.0. A Phase 31G desktop/Hub preview does not satisfy the Android-inclusive DUDE 2.0 gate. The detailed [release definition](delivery/QUALITY_AND_RELEASE.md#dude-20-distributed-release-definition-of-done--all-planned) governs completion.
 
 ## Immediate Delivery Sequence
 
-The required sequence is **31A → 31B → 31C → 31D → 31E → 31F → 31G → 31H → 31I → 31J → Phase 32**. Complete each phase and its exit gate before starting the next, with one recorded exception: 31H's owed physical, signing and accessibility passes are merged into the 31I final gate ([PD-084](delivery/PHASE31I_PLAN.md)). The initial distributed release gate closed at 31I and 31J's collaboration depth at Milestone 815, so all of 31A–31J are complete and Phase 32 may begin. There is no fixed calendar commitment.
+The required sequence is **31A → 31B → 31C → 31D → 31E → 31F → 31G → 31H → 31I → 31J → 32-SS1 → 32-SS2 → 32-SS3 → 32-SS4 → 32-SS5 → 32-SS6 → Phase 32**. Each phase and its exit gate must be complete before the next starts. There is one recorded exception: 31H's owed physical, signing and accessibility passes were merged into the 31I final gate ([PD-084](delivery/PHASE31I_PLAN.md)). The initial distributed release gate closed at 31I and 31J's collaboration depth at Milestone 815, so all of 31A–31J are complete. The SaveSphere program (32-SS1 to 32-SS6, [PD-117](delivery/PHASE32SS_PLAN.md)) comes next, its first release gate closes at the end of 32-SS5, and Phase 32 follows 32-SS6. There is no fixed calendar commitment.
 
 | Phase | Next deliverable |
 |---|---|
@@ -548,9 +578,15 @@ The required sequence is **31A → 31B → 31C → 31D → 31E → 31F → 31G �
 | 31G (complete) | Encrypted backup, restore and sole-authority Hub transfer |
 | 31H (complete; passes recorded in the 31I gate) | React Native Android shell and sync; [acceptance](delivery/PHASE31H_ACCEPTANCE.md) |
 | 31I (complete; Milestones 729–786, DUDE 2.0 declared) | Initial compatible mobile tools and complete DUDE 2.0 gate; [decisions](delivery/PHASE31I_PLAN.md), [acceptance](delivery/PHASE31I_ACCEPTANCE.md) |
-| 31J (complete; Milestones 787–815) | Deeper authorized Hub collaboration and realtime behavior; [decisions](delivery/PHASE31J_PLAN.md), [acceptance](delivery/PHASE31J_ACCEPTANCE.md). Delivered: protocol 3, presence with opt-in activity, live owner views and open-editor merges, read-only job status, Hub notifications with the shell bell and desktop OS notifications, Hub-persisted Yjs collaboration for the scratchpad, user-script bodies and Markdown Hub rooms, history and retention, and the Hub and two-desktop exit drills. Its physical and installed passes are owed. Named participants and guest permissions remain Phase 53; remote job execution remains Phase 88 |
+| 31J (complete; Milestones 787–815) | Deeper authorized Hub collaboration and realtime behavior; [decisions](delivery/PHASE31J_PLAN.md), [acceptance](delivery/PHASE31J_ACCEPTANCE.md). Delivered: protocol 3, presence with opt-in activity, live owner views and open-editor merges, read-only job status, Hub notifications with the shell bell and desktop OS notifications, Hub-persisted Yjs collaboration for the scratchpad, user-script bodies and Markdown Hub rooms, history and retention, and the Hub and two-desktop exit drills. Its physical and installed passes are owed. Named participants and guest permissions remain Phase 53 (for SaveSphere content they arrive in 32-SS6); remote job execution remains Phase 88 |
+| 32-SS1 (planned) | Hub platform: provisioning wizard with embedded storage and services, Google sign-in with linked accounts, the owner's bare domain, managed Cloudflare Tunnel or direct Public mode, durable job queue, streaming backup v2 ([roadmap](delivery/ROADMAP.md#phase-32-ss1)) |
+| 32-SS2 (planned) | SaveSphere Notes Core: item model, rich-text editor, history, search, vault, desktop and Android replicas ([roadmap](delivery/ROADMAP.md#phase-32-ss2)) |
+| 32-SS3 (planned) | Capture and Inbox: every capture channel, importers, inbox triage, watched folders, Markdown mirror ([roadmap](delivery/ROADMAP.md#phase-32-ss3)) |
+| 32-SS4 (planned) | Ink and PDF: S Pen and Windows-pen ink, PDF annotation, canvas, handwriting recognition ([roadmap](delivery/ROADMAP.md#phase-32-ss4)) |
+| 32-SS5 (planned) | Structure and Copilot: types and database views, tasks, graph, journal, flashcards, AI organization and Copilot; first SaveSphere release gate ([roadmap](delivery/ROADMAP.md#phase-32-ss5)) |
+| 32-SS6 (planned) | Sharing: invited guests and public read-only links ([roadmap](delivery/ROADMAP.md#phase-32-ss6)) |
 
-Phase 32 implementation may begin: every phase from 31A through 31J is complete, as specified in [Strict Phase Progression](delivery/ROADMAP.md#strict-phase-progression). Remote privileged execution remains deferred to Phase 88.
+All of 31A–31J is complete. The SaveSphere program begins with 32-SS1, and Phase 32 implementation follows 32-SS6, as specified in [Strict Phase Progression](delivery/ROADMAP.md#strict-phase-progression). Remote privileged execution remains deferred to Phase 88.
 
 ## Supporting Specifications
 
@@ -565,6 +601,10 @@ Phase 32 implementation may begin: every phase from 31A through 31J is complete,
 | [Roadmap](delivery/ROADMAP.md) | Phase identifiers, dependencies and sequencing | Delivery priorities change |
 | [Delivery History](history/DELIVERY_HISTORY.md) | Shipped inventories, milestones and measured evidence | Work ships |
 | [Decision Log](history/DECISION_LOG.md) | Decisions, supersession and source reconciliation | Major decisions change |
+| [SaveSphere program decisions](delivery/PHASE32SS_PLAN.md) | SaveSphere decisions PD-116–PD-140, phase map and open items | A SaveSphere decision is added or amended |
+| [SaveSphere documentation](savesphere/README.md) | SaveSphere product behavior, capture and import catalog, and SaveSphere architecture | SaveSphere behavior or design changes |
+
+The SaveSphere specifications sit at the product and architecture level, beneath this PRD. The shared Hub, identity, synchronization, security and backup contracts stay owned by the architecture specifications above, and SaveSphere-specific behavior is owned by the SaveSphere documents.
 
 ### Authority Order
 

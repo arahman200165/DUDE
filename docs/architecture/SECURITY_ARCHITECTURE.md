@@ -294,7 +294,7 @@ Phase 31E (Milestones 663-682) delivered private-mode access, trusted-certificat
 
 **Revocation at sync time (31F).** Every device-authenticated request re-resolves its `ddt_` token against the database (token, device not revoked or unenrolled, key not revoked), so a revocation is effective on the very next request even though tokens live 15 minutes; open realtime sockets close with 4003. Pushes also re-verify the acting device (or, for the browser, its live session and browser row) inside the commit transaction, so no write by a revoked actor can land even when revocation commits between authentication and commit; the response is the same 401 as for any bad credential. A revoked device that keeps trying (token, challenge, token redemption or realtime upgrade) is audited as `device.revoked-attempt` (denied, device id, address, route kind only, at most once per hour per device and kind) and listed in the security alerts, while every response stays identical to the unknown-credential case so the endpoint does not reveal which ids exist. Revocation still cannot erase data already cached on an offline lost device.
 
-**Still not delivered.** Passkeys/TOTP and external OAuth remain unscheduled (encrypted backup was delivered by 31G, see [As built in Phase 31G](#as-built-in-phase-31g-backup-restore-and-transfer)).
+**Still not delivered.** Passkeys/TOTP remain Phase 81. External OAuth, as Google OIDC owner sign-in, is planned for Phase 32-SS1; see [Planned for SaveSphere](#planned-for-savesphere-phases-32-ss1-to-32-ss6). Encrypted backup was delivered by 31G; see [As built in Phase 31G](#as-built-in-phase-31g-backup-restore-and-transfer).
 
 ### As built in Phase 31F (Internet readiness)
 
@@ -352,6 +352,73 @@ Phase 31J (complete; Milestones 787-815, decisions PD-099 to PD-115 in the [Phas
 
 **New audit events.** `device.notifications-access-changed`, `collab.document-kept`, `collab.document-deleted` and `collab.history-restored`, all with ids and outcomes only.
 
+### Planned for SaveSphere (Phases 32-SS1 to 32-SS6)
+
+Nothing in this section is implemented. It records the security contract that the SaveSphere program ([decisions PD-116–PD-140](../delivery/PHASE32SS_PLAN.md), [SaveSphere architecture](../savesphere/SAVESPHERE_ARCHITECTURE.md)) must meet. Until each item ships, the as-built sections above describe the Hub. Every rule above still applies: contract-first routes with a declared credential type, the closed audit list, step-up for owner-impacting changes, the readiness gate and the Destructive-Action Contract.
+
+**Owner identity: Google OIDC primary, password fallback (32-SS1, PD-121).**
+- **Flow.** The Hub runs the OIDC authorization-code flow with PKCE, a `state` and a `nonce`, against Google's discovery document, using an OAuth client the owner registers and supplies. The client secret is a Hub secret, never logged or backed up in plaintext. The ID token is verified for issuer, audience, expiry, nonce and signature against Google's published keys.
+- **Binding.** A Google identity becomes an owner credential only after a signed-in owner completes a linking round-trip. It is bound by the stable subject (`sub`), never by email address alone.
+- **Linked accounts.** Several of the owner's Google accounts may be linked. Linking and unlinking need step-up, the last linked account cannot be unlinked, and every sign-in attempt from an unlinked Google account is refused and audited (with the email hashed or truncated, never the raw token).
+- **Session.** A Google sign-in produces the same `__Host-` owner cookie session as a password sign-in, so CSRF, Origin, rotation and expiry are unchanged.
+- **Step-up and fallback.** Step-up accepts either a fresh Google re-authentication (`max_age`/`prompt=login`) or the password. The Argon2id password, recovery codes, the setup-token bootstrap and every recovery path from 31C remain, so the Hub stays fully operable with Google unreachable or the client removed. That is the requirement under [Authentication and Identity](#authentication-and-identity).
+
+**Whole-domain sign-in (32-SS1, PD-122).** On the owner's domain every page and API requires a session, the developer tools included. The only exceptions are sign-in, recovery, static public assets, the ingest path (token-only) and public share links (32-SS6). Hub web caching rules are unchanged: the service worker stores no authenticated response.
+
+**Managed Cloudflare Tunnel (32-SS1, PD-120).**
+- **Process.** The Hub supervises `cloudflared` as a child process with a loopback-only origin connection. The tunnel token is a Hub secret, and the binary is version-pinned and hash-verified.
+- **Mode.** The Hub runs in reverse-proxy mode, trusting only the loopback hop. Public exposure through the tunnel still passes the elevated readiness gate and its typed confirmation, and the reachability echo works through it as for any proxy. Two parts of the as-built gate don't fit a tunnel yet, and 32-SS1 planning must resolve both:
+  - the `public-firewall-rule` blocker applies even in proxy mode, but a tunnel needs no inbound port, so it needs a tunnel-aware check;
+  - Cloudflare manages and rotates its edge certificate, which affects how devices keep proxy-pin verification.
+
+  See the [as-built constraints](../delivery/PHASE32SS_PLAN.md#as-built-constraints-the-phases-must-resolve).
+- **Disclosure.** Cloudflare terminates TLS at its edge and can read traffic between clients and the Hub. Setup and Settings › Endpoint & Exposure state this, and direct Public mode is offered as the no-third-party alternative.
+- **Unchanged limits.** No Agent port and no native service is ever published through the tunnel. The Hub still stores no DNS-provider credential (PD-064); tunnel DNS routing is done through the tunnel's own authorization.
+
+**Ingest tokens and capture paths (32-SS1, 32-SS3, PD-119, PD-131).**
+- **Token.** `/api/v1/ingest/…` accepts only scoped ingest tokens: random, hashed at rest, shown once, named, optionally expiring, with a last-used time, revocable, and minted with step-up. Cookies, bearer sessions and device tokens are refused there, and an ingest token is refused everywhere else.
+- **Rights.** A capture-only token can create captures and nothing else. It can never read content, reach the vault or satisfy step-up.
+- **Limits.** Ingest has its own rate limits and size caps.
+- **Email.** Mail to `save@<domain>` is accepted only from allowlisted senders whose SPF/DKIM checks pass; rejected mail is counted, not stored.
+- **Uploads.** Uploads are resumable and size-capped. Their type is detected from content (magic bytes), not from the name, and previews and parsers run in an isolated worker with time and memory limits.
+
+**SSRF-safe fetching (32-SS3).** Link previews, metadata and "Archive original" fetches run on the Hub through one fetcher that:
+- blocks loopback, private, link-local, CGNAT, unique-local, multicast and cloud-metadata addresses, including IPv6 and IPv4-mapped forms;
+- pins the resolved address against DNS rebinding;
+- re-checks every redirect;
+- enforces size, time and content-type limits;
+- never sends owner credentials or cookies.
+
+**AI boundary (32-SS5, PD-134–PD-136).**
+- **Disclosure.** Every AI task records and discloses which provider receives which content, and owner-configured spend caps apply.
+- **Content as data.** Captured content reaches models only as delimited data, never as instructions. The Copilot and the organizer have no tools that fetch URLs, send messages, write outside their own proposal and revision path, or read the vault.
+- **Limited writes.** AI writes are revisions authored by "AI" that the owner can undo. AI never deletes, merges or rewrites owner text, and it never changes a field the owner pinned.
+- **Citations.** Citations are checked against the retrieved sources before they are shown.
+- **Testing.** Prompt-injection tests are part of the gate.
+
+**Vault (32-SS2, PD-138).**
+- **Keys.** Vault content is encrypted at rest with its own data key, separate from the canonical database and the backup passphrase. Unlocking needs step-up, the unlock window is short, and the vault re-locks when idle.
+- **Exclusions.** Vault items are excluded from full-text and vector indexes, AI, the Markdown mirror, ingest, sharing and export unless the owner explicitly includes an item.
+- **Backups.** Backups carry vault content only as ciphertext.
+- **What it is not.** It is not end-to-end encrypted (that remains Phase 82) and not a browser-autofill password manager.
+
+**Guests and public links (32-SS6, PD-139).**
+- **Guests.** A guest is a new principal kind: a Google identity the owner invites to specific notebooks or items with view, comment or edit access. Guests get their own cookie sessions and are authorized per grant on every route. They never reach the vault, AI settings, devices, sync, tools state, admin routes or the realtime owner topics, and they cannot invite anyone.
+- **Public links.** Read-only, expiring, revocable, unguessable tokens scoped to one item or notebook, served without a session and rate-limited.
+- **Audit.** Every grant, revocation, link and guest access is audited, and the owner stays the sole administrator.
+
+**Markdown mirror and external editors (32-SS3, PD-133).**
+- **Authorization.** Mirror writes are filesystem mutations under a standing authorization the owner grants per folder. They are made by the desktop's Phase 29 filesystem services in Electron main; the Device Agent performs no file operations, and moving the mirror there would need its own decision. The grant is previewed, revocable and carries a consequence class, as required by the [Destructive-Action Contract](#destructive-action-contract).
+- **Writes.** The mirror writes only inside its folder, never follows links out of it, moves deletions to SaveSphere's trash rather than erasing files, and creates conflict copies instead of overwriting.
+- **External editors.** Round-trip edits create new versions and never replace an original.
+
+**Backup v2 (32-SS1, PD-124).**
+- **Format.** Streaming, chunked backups replace the 512 MiB whole-buffer ceiling, include the blob store and stay passphrase-encrypted under the 31G format rules.
+- **Destinations.** Credentials for offsite destinations (S3-compatible, Google Drive, OneDrive) are Hub secrets. A standby DUDE device receives backups over the authenticated device channel.
+- **Unchanged rules.** Restores keep the 31G trust model (new instance id, epoch + 1, devices re-pair).
+
+**Audit additions (planned).** OIDC link, unlink, refused sign-in; tunnel configured or removed; ingest token minted or revoked; vault unlocked or locked; AI provider configured; mirror grant changed; guest grant and public link created or revoked; backup destination changed. Each event carries ids and outcomes only.
+
 ### Authentication and Identity
 
 Authentication is essential for the self-hosted environment because the Hub may be reachable remotely. This identity is owned by the Hub and does not require a vendor account.
@@ -372,7 +439,7 @@ Authentication options may include:
 - recovery codes;
 - optional external OAuth in environments where the user chooses to enable it.
 
-The core self-hosted system must not require Google/GitHub OAuth in order to function.
+The core self-hosted system must not require Google/GitHub OAuth in order to function. From Phase 32-SS1, Google OIDC becomes the owner's primary sign-in ([PD-121](../delivery/PHASE32SS_PLAN.md)). The requirement still holds, because the password, recovery codes and setup-token bootstrap remain a complete path with Google unavailable.
 
 #### Device registration is foundational
 
@@ -435,11 +502,11 @@ A compromised web session must not automatically imply arbitrary:
 
 ### Authentication, exposure and execution gates
 
-The first Hub implementation requires a self-contained owner bootstrap/authentication/recovery flow. Passkeys/WebAuthn, local credentials, recovery codes and optional external OAuth are candidate mechanisms; the initial combination, delivered in 31C, is an Argon2id password plus single-use recovery codes, a one-time setup-token bootstrap and no external OAuth ([PD-027](../history/DECISION_LOG.md#phase-31c-implementation-decisions), [PD-028](../history/DECISION_LOG.md#phase-31c-implementation-decisions), [PD-029](../history/DECISION_LOG.md#phase-31c-implementation-decisions)); passkeys/TOTP are deferred. The security baseline applies from the first endpoint ([PD-033](../history/DECISION_LOG.md#phase-31c-implementation-decisions)). Avoid unprotected public bootstrap, default reusable credentials and dependence on a third-party OAuth provider.
+The first Hub implementation requires a self-contained owner bootstrap/authentication/recovery flow. Passkeys/WebAuthn, local credentials, recovery codes and optional external OAuth are candidate mechanisms; the initial combination, delivered in 31C, is an Argon2id password plus single-use recovery codes, a one-time setup-token bootstrap and no external OAuth ([PD-027](../history/DECISION_LOG.md#phase-31c-implementation-decisions), [PD-028](../history/DECISION_LOG.md#phase-31c-implementation-decisions), [PD-029](../history/DECISION_LOG.md#phase-31c-implementation-decisions)); passkeys/TOTP are deferred. The security baseline applies from the first endpoint ([PD-033](../history/DECISION_LOG.md#phase-31c-implementation-decisions)). Avoid unprotected public bootstrap, default reusable credentials and dependence on a third-party OAuth provider. The planned Google OIDC sign-in ([PD-121](../delivery/PHASE32SS_PLAN.md)) is an added primary method layered on this flow, not a replacement, so the Hub still never depends on Google.
 
 Private exposure is the default, but a LAN or VPN is not a substitute for application authentication. Use secure session handling, origin validation, CSRF defenses where cookie authentication applies, session expiry, brute-force protection, rate limits, payload validation and audit from the first enabled endpoints; 31F verified readiness rather than retrofitting an unprotected Internet service.
 
-A public Hub endpoint exposes only intended web/API/realtime services. Canonical SQLite, raw native IPC, Electron debugging interfaces, arbitrary shell endpoints and Device Agent ports remain private. An optional relay/tunnel requires explicit configuration and disclosure of its trust/data path; it is not needed for the direct user-owned deployment.
+A public Hub endpoint exposes only intended web/API/realtime services. Canonical SQLite, raw native IPC, Electron debugging interfaces, arbitrary shell endpoints and Device Agent ports remain private. An optional relay/tunnel requires explicit configuration and disclosure of its trust/data path; it is not needed for the direct user-owned deployment. Phase 32-SS1 plans a DUDE-managed Cloudflare Tunnel as the default ingress the setup wizard offers, with that disclosure, and keeps direct Public mode as the alternative ([PD-120](../delivery/PHASE32SS_PLAN.md), [Planned for SaveSphere](#planned-for-savesphere-phases-32-ss1-to-32-ss6)).
 
 Audit enrollment/revocation, authentication/security failures, significant shared-state administration, backup/restore/transfer and future authorized jobs without logging credentials or tool payloads. Retention and operator inspection controls must be documented.
 
@@ -482,7 +549,7 @@ If the user is behind CGNAT, choices include:
 2. use properly secured public IPv6;
 3. optionally use a relay/tunnel service.
 
-Option 3 is **not** part of the strict no-external-hosting architecture and should remain optional.
+Option 3 is **not** part of the strict no-external-hosting architecture and should remain optional. The tunnel relays traffic but does not host the application or its data. Phase 32-SS1 makes a DUDE-managed Cloudflare Tunnel the wizard's default because it also avoids port forwarding and CGNAT problems. It remains an owner choice with a disclosed trust path (Cloudflare can read traffic at its edge), and direct self-hosting stays fully supported ([PD-120](../delivery/PHASE32SS_PLAN.md)).
 
 #### DNS is not application hosting
 

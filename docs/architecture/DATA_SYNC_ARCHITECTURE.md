@@ -59,6 +59,7 @@ Related: [DUDE System Architecture](SYSTEM_ARCHITECTURE.md) · [DUDE Security Ar
 - [As built in Phase 31E (Hub web shared state)](#as-built-in-phase-31e-hub-web-shared-state)
 - [As built in Phase 31G (backup, restore and transfer)](#as-built-in-phase-31g-backup-restore-and-transfer)
 - [As built in Phase 31J: collaborative documents and realtime depth](#as-built-in-phase-31j-collaborative-documents-and-realtime-depth)
+- [Planned for SaveSphere (Phases 32-SS1 to 32-SS6)](#planned-for-savesphere-phases-32-ss1-to-32-ss6)
 - [Migration from the delivered local stores](#migration-from-the-delivered-local-stores)
 - [Backup consistency, restore and authority transfer](#backup-consistency-restore-and-authority-transfer)
 
@@ -206,6 +207,8 @@ The product principle is:
 
 > **DUDE synchronizes the workbench, not automatically the data passing through the workbench.**
 
+SaveSphere (planned) keeps this principle. Its content is data the owner has explicitly decided to keep: saving a note, sharing to DUDE, forwarding an email or choosing a watched folder or import is the explicit save. Nothing passing through a tool becomes SaveSphere content without such an action. See [Planned for SaveSphere](#planned-for-savesphere-phases-32-ss1-to-32-ss6).
+
 ## Settings Must Be Scope-Aware
 
 DUDE should not synchronize one monolithic settings JSON file.
@@ -326,7 +329,7 @@ Repository/data-access abstractions should allow the canonical storage implement
 - significantly more concurrent devices;
 - higher write concurrency.
 
-PostgreSQL should be an implementation option, not a mandatory dependency for personal DUDE.
+PostgreSQL should be an implementation option, not a mandatory dependency for personal DUDE. SaveSphere keeps this: its content store, full-text and vector indexes and blob store are embedded in the Hub ([PD-118](../delivery/PHASE32SS_PLAN.md)), and PostgreSQL is not a requirement ([PD-140](../delivery/PHASE32SS_PLAN.md)).
 
 ### As built in Phase 31C (Hub)
 
@@ -502,6 +505,8 @@ The backup should cover appropriate:
 
 Secrets require separate handling according to the credential model.
 
+With SaveSphere, a backup must also cover the SaveSphere content store, the blob store (originals, attachments and derived files) and the encrypted vault. Phase 32-SS1's backup v2 ([PD-124](../delivery/PHASE32SS_PLAN.md)) makes backups streaming and incremental and removes the 31G size ceiling for this reason.
+
 ### Hub transfer
 
 If Main Desktop fails or is replaced:
@@ -538,6 +543,8 @@ Automatic leader election would introduce:
 
 That is not necessary for the personal DUDE target.
 
+Phase 32-SS1 plans the first step toward this: another DUDE device as a backup destination (warm standby), still promoted manually through the 31G restore and transfer ([PD-123](../delivery/PHASE32SS_PLAN.md), [PD-124](../delivery/PHASE32SS_PLAN.md)). Automatic failover remains out of scope (Phase 96).
+
 ## Persistence policy, scope and consent are separate dimensions
 
 `none` / `session` / `local` / `user-choice` and secure-local credential storage govern **whether and how** content is retained. Environment/workspace/device/local-private scope governs **who owns it and whether it may synchronize**. Making a record durable locally does not make it eligible for synchronization.
@@ -559,7 +566,7 @@ These requirements make the planning model implementable without committing to a
 5. Explicitly model deletes/tombstones and cursor retention. A client older than retained history must receive a controlled snapshot/rebase flow that preserves its pending outbox and prevents deleted-record resurrection. Schema migrations and cursor invalidation must have a documented recovery path.
 6. Limit payload sizes, batches and stored outbox growth; expose backpressure/repair state instead of silently dropping edits. Limits are measured and recorded during implementation; this PRD does not invent unvalidated numeric capacity targets.
 7. Keep simple preference/favorite conflict policies documented by entity. Permit last-write behavior only when loss is acceptable; preserve competing pipeline/workspace/project changes as inspectable versions for explicit resolution. Never silently discard an offline pipeline edit.
-8. Use Yjs only for approved collaborative editing surfaces, not as the generic database replication protocol. Collaborative content persistence, permissions and retention require separate opt-in and lifecycle rules.
+8. Use Yjs only for approved collaborative editing surfaces, not as the generic database replication protocol. Collaborative content persistence, permissions and retention require separate opt-in and lifecycle rules. The approved surfaces are the three from 31J (PD-099). SaveSphere rich documents (32-SS2) and canvases (32-SS4) are the planned additions, with their own consent category, permissions and retention ([PD-126](../delivery/PHASE32SS_PLAN.md), [PD-130](../delivery/PHASE32SS_PLAN.md)).
 9. Revocation stops subsequent Hub operations. Revoked or expired credentials must never be treated as permission to create a new authority or bypass authentication. Retained offline data remains subject to local access policy.
 10. Device sync never executes a pipeline, script, request, shell command or mutation as a side effect of applying a definition. Restoring a workspace restores data/UI intent, not a privileged action.
 
@@ -765,7 +772,49 @@ The Y.Doc and editor binding live in the renderer. The resident Device Agent ope
 
 Notifications live in the Hub's `notifications` table, fed only by a closed producer list (backup failed, recovered and overdue; certificate renewed and renewal failed; sync compaction failure; address change; security alerts through the audit observer), deduplicated by source key, with read and dismiss state per notification. Dismissed notifications are kept 30 days, every notification at most 90 days, and at most 500. They carry no record content, are scrubbed from backups and cleared on restore. Each job's last run (start, finish, outcome, a short credential-free summary) is meta `job_last:<id>`, also scrubbed from backups; the record also keeps the most recent non-skipped attempt (`lastAttempt`), so a failed scheduled backup stays visible after later "not due yet" checks.
 
-**Not delivered.** Named or read-only participants, guest permissions and richer collaborative surfaces (Phase 53); collaborative Home text panels, pipeline definitions, projects or settings (they keep their record policies); running a job on demand (Phase 88).
+**Not delivered.** Named or read-only participants, guest permissions and richer collaborative surfaces (Phase 53; for SaveSphere content, 32-SS6); collaborative Home text panels, pipeline definitions, projects or settings (they keep their record policies); running a job on demand (Phase 88).
+
+## Planned for SaveSphere (Phases 32-SS1 to 32-SS6)
+
+Nothing in this section is implemented. It is the data contract that the SaveSphere program ([decisions PD-116–PD-140](../delivery/PHASE32SS_PLAN.md)) must meet; the detailed design is in [SaveSphere architecture](../savesphere/SAVESPHERE_ARCHITECTURE.md). The as-built sections above remain the contract for every existing entity.
+
+**Storage on the Hub (32-SS1, PD-118).** Hub provisioning adds embedded storage next to the canonical database: a SaveSphere content store (SQLite, WAL), FTS5 full-text indexes, a vector index, a content-addressed blob store behind a pluggable `BlobStore` interface (local disk first; an S3-compatible tier or mirror later), a bounded cache and a durable job queue. The Hub is still the only writer to all of it, and devices reach it only through authenticated APIs and sockets. The previously unused `storage/` directory of the Hub data directory is the natural home for blobs; the exact layout is fixed at 32-SS1 planning.
+
+**Scope and consent.**
+- **Scope.** SaveSphere items, their documents, attachments, links, tags, notebooks, tasks, journal entries and flashcards are `environment`-scoped canonical data.
+- **Device-scoped.** Per-device capture settings, watched-folder and mirror paths, and attachment-cache budgets are `device`-scoped.
+- **Capture queues.** Pending captures are durable `device` data until the Hub acknowledges them.
+- **Consent.** A device holds and synchronizes SaveSphere content only after the owner enables a SaveSphere sync category, named when 32-SS2 is planned. The first-sync preview and the per-category consent rules of 31D apply.
+- **Inventory.** The data-scope inventory gains the SaveSphere entities when their source files exist.
+
+**Channels: records, documents and blobs (32-SS2).** SaveSphere content is too large and too rich for the 31D record limits, so it moves on three channels:
+- **Records.** Item metadata, properties, tags, links and membership use revision-checked record sync with the 31D outbox, idempotency and quarantine guarantees, within `SYNC_LIMITS`.
+- **Documents.** Rich documents and canvases are Yjs documents on the Hub collaboration path (the 31J pattern: compacted state, update tail, snapshots), not squeezed through the 128 KiB record cap. A plain-text projection is materialized for search, the mirror and non-Yjs readers.
+- **Blobs.** Originals, attachments and derived files move by content hash: resumable, verified by SHA-256 and deduplicated, outside `SYNC_LIMITS`.
+
+**Offline tiers (PD-126).** The desktop (through the Device Agent store) and the Android app keep full replicas of records and documents, plus attachments within a configurable budget, fetching the rest on demand. Edits made offline are journaled and replayed, and Yjs merges concurrent document edits. Ink strokes merge additively. A conflict that cannot merge produces a linked conflict copy flagged in the inbox; an edit is never silently lost. The web PWA keeps only a durable capture queue and a read cache of recent and pinned items. Captures are acknowledged locally at once on every surface and never fail because the Hub is unreachable.
+
+**Vault (32-SS2, PD-138).** Vault content is encrypted on the Hub with its own key and unlocked by step-up. Because the Hub holds that key, vault content is readable only while the Hub is reachable and the vault is unlocked. Device replicas hold no decryptable vault content, and offline vault access is not planned. The vault is excluded from indexes, AI, the mirror, ingest and sharing.
+
+**History, trash and deletion (PD-130).**
+- **Versions.** Every saved version is kept for 90 days, then thinned to daily and then monthly snapshots, with owner-configurable tiers.
+- **Originals.** Captured originals and imported archives are never thinned.
+- **Restore.** A restore is a forward edit.
+- **Deletion.** Deleted items stay in the trash for 30 days, and permanent purge is a previewed step-up action.
+- **31J documents unchanged.** The 31J 30-day snapshot history (PD-105) continues to govern the scratchpad, user scripts and Markdown documents; tiered history applies to SaveSphere content only.
+- **Sync rules still apply.** Tombstones and cursor-retention rules (the [minimum contract](#sync-protocol-minimum-acceptance-contract), items 5 and 7) apply unchanged.
+
+**Markdown mirror (32-SS3, PD-133).** A desktop mirror maps items to Markdown files (front matter for properties, an attachments folder, notebooks as folders, with the exact mapping fixed at 32-SS3 planning). It runs two-way:
+- **External edits.** An edit made in the folder becomes a new version through the normal write path.
+- **Conflicts.** A concurrent edit produces a conflict copy rather than an overwrite.
+- **Deletes.** A file deleted in the folder moves the item to the trash.
+- **Echo.** The mirror's own writes are suppressed so they don't loop back.
+
+The mirror is device-scoped configuration and never mirrors the vault.
+
+**Backup v2 (32-SS1, PD-124).** Backups stream the canonical database, the SaveSphere store and the blob store in chunks, with blobs deduplicated across backups, under the existing passphrase model and the 31G restore and authority-epoch rules. The 512 MiB plaintext ceiling and 32-file limit of the 31G format are removed. Destinations are a local or second drive, an S3-compatible bucket, another DUDE device (warm standby) and Google Drive or OneDrive. A backup counts only after verification.
+
+**Guests (32-SS6, PD-139).** Guest principals read and write only through grants on specific notebooks or items. They never sync records, hold a device replica or reach the change feed.
 
 ## Migration from the delivered local stores
 

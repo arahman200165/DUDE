@@ -1,6 +1,6 @@
 # AGENTS.md — DUDE
 
-DUDE is a dark-first, themeable, dense developer workbench built with Angular 22 (standalone components, signals, Tailwind v4) bundling client-side developer micro-tools, shared between a canonical Windows Electron desktop app and a zero-install, offline-capable GitHub Pages/PWA web companion. Read `README.md` for architecture/tech stack and [docs/DUDE_PRD.md](docs/DUDE_PRD.md) for product direction, then the linked specification for the affected domain before making non-trivial changes.
+DUDE is a dark-first, themeable, dense developer workbench built with Angular 22 (standalone components, signals, Tailwind v4) bundling client-side developer micro-tools, shared between a canonical Windows Electron desktop app and a zero-install, offline-capable GitHub Pages/PWA web companion, with a self-hosted Hub, desktop sync and an Android app. The next program is **SaveSphere** (Phases 32-SS1 to 32-SS6, planned): a personal knowledge system built on the Hub as a shell destination, not as registry tools. Read `README.md` for architecture/tech stack and [docs/DUDE_PRD.md](docs/DUDE_PRD.md) for product direction, then the linked specification for the affected domain before making non-trivial changes.
 
 Nested `AGENTS.md` files exist under `apps/web/src/app/` (`core/`, `shell/`, `shared/`, `tools/`) with directory-specific rules — read the one for whatever directory you're editing. `apps/hub/AGENTS.md` (the self-hosted Hub), `apps/desktop/AGENTS.md`, `apps/device-agent/AGENTS.md` and `packages/AGENTS.md` do the same for their workspaces.
 
@@ -29,5 +29,6 @@ Adding or changing a tool must never require editing `apps/web/src/app/shell/`, 
 - `README.md` — architecture, tech stack, PWA/offline model, deployment.
 - [docs/DUDE_PRD.md](docs/DUDE_PRD.md) — authoritative product direction and supporting specifications.
 - [Roadmap](docs/delivery/ROADMAP.md) — future sequencing and inventories; [Delivery History](docs/history/DELIVERY_HISTORY.md) preserves shipped details.
+- [SaveSphere](docs/savesphere/README.md) and its [program decisions PD-116–PD-140](docs/delivery/PHASE32SS_PLAN.md) — the planned 32-SS phases. Read the decisions, including their "As-built constraints the phases must resolve" table, before any SaveSphere work. New SaveSphere scope needs a dated decision (PD-140).
 - `ADDING_A_TOOL.md` — the canonical add-a-tool recipe. Read it first for any tool work.
 - `SECURITY.md` — generated high-consequence tool matrix and network/native capability disclosure (`scripts/generate-security-doc.mjs`); never hand-edit its tables.

@@ -42,6 +42,10 @@ Acceptance for new native features is primarily against the Windows desktop prod
 - Online and offline operation where applicable.
 - Every shared capability that can run safely within browser constraints should remain available here rather than being made desktop-only without a technical reason.
 
+### Hub web on the owner's domain (planned, Phase 32-SS1)
+
+From Phase 32-SS1, a Hub designated with a domain serves the full DUDE web application and SaveSphere from the owner's bare domain (the reference deployment is `abdulssavesphere.com`). Every route requires sign-in, with Google as the primary method ([PD-119](../delivery/PHASE32SS_PLAN.md), [PD-121](../delivery/PHASE32SS_PLAN.md), [PD-122](../delivery/PHASE32SS_PLAN.md)). The GitHub Pages companion above remains the anonymous, Hub-less surface. The SaveSphere product contract is in the [SaveSphere product specification](../savesphere/SAVESPHERE_PRODUCT_SPEC.md).
+
 ### Not Currently Required / Future Roadmap
 
 The application should not intentionally break elsewhere, but the shipped Phase 31 acceptance baseline does not require the following (the new Android release has separate acceptance in [DUDE 2.0 Distributed Release Definition of Done — All Planned](../delivery/QUALITY_AND_RELEASE.md#dude-20-distributed-release-definition-of-done--all-planned)):
@@ -225,7 +229,12 @@ The Hub provides:
 - collaboration;
 - canonical persistence;
 - backup coordination;
-- future remote-job coordination.
+- future remote-job coordination;
+- SaveSphere storage, search, capture ingest and AI services (planned, Phases 32-SS1 to 32-SS6).
+
+### SaveSphere
+
+The owner's personal knowledge system, planned as Phases 32-SS1 to 32-SS6. It is a Hub-backed shell destination (`/savesphere`) for capturing, preserving, organizing and retrieving notes, files, handwriting, PDFs, links, messages and email from every surface. It is not a registry tool. See [SaveSphere documentation](../savesphere/README.md).
 
 ### DUDE Desktop Client
 
@@ -298,6 +307,16 @@ This distinction is foundational.
 | Revoke a lost device | Deny future authenticated access and sync; disclose that revocation cannot erase data already cached on an offline lost device. **Phase 31C delivers** two-step revocation that permanently denies the device key and closes its realtime session; **Phase 31D delivers** revoked-device sync semantics (the device freezes, keeps its data and may Continue standalone); **Phase 31F delivers** sync-time verification: every request re-resolves the token, pushes re-check the actor inside the commit transaction, and a revoked device that keeps trying is audited and alerted (`device.revoked-attempt`) |
 
 Device setup must keep authentication failure, unreachable endpoint, incompatible version, untrusted TLS, revoked identity, pending migration and local-only operation distinguishable.
+
+**SaveSphere journeys (planned).** These journeys are specified in the [SaveSphere product specification](../savesphere/SAVESPHERE_PRODUCT_SPEC.md):
+- designating a Hub and putting it on the owner's domain with Google sign-in (32-SS1);
+- capturing from the phone share sheet, desktop quick capture, email forwarding or a watched folder (32-SS3);
+- importing Samsung Notes, Evernote, OneNote, WhatsApp, Teams, Instagram, TikTok and email history (32-SS3, 32-SS4);
+- taking everyday typed, handwritten and PDF notes (32-SS2, 32-SS4);
+- finding or asking about anything through search and the Copilot (32-SS5);
+- sharing selected notebooks (32-SS6).
+
+The capture-specific failure states are in [SaveSphere capture and import](../savesphere/CAPTURE_AND_IMPORT.md). A capture made offline is queued and acknowledged locally. A duplicate retry never creates a second item. An import is previewed before it commits.
 ## Functional Capability Model
 
 Tool availability follows declared platform capabilities, supported runtimes, permissions and installed dependencies. Discoverability is separate from authorization. See [Platform Capability Model](../architecture/SYSTEM_ARCHITECTURE.md#platform-capability-model) and [Portable Registry and UI Bindings](../architecture/SYSTEM_ARCHITECTURE.md#one-portable-registry-separate-ui-bindings).
@@ -431,6 +450,15 @@ For **24/7 Internet availability**, at least one Hub-capable machine SHALL remai
 
 That is the literal consequence of personal ownership.
 
+SaveSphere keeps this tradeoff ([PD-123](../delivery/PHASE32SS_PLAN.md)). The reference Hub stays on the owner's Windows PC, and the domain is unreachable while that PC is off. The mitigations:
+- the setup wizard checks the PC's power and sleep policy;
+- desktop and Android SaveSphere replicas keep working offline;
+- the PWA keeps its capture queue and read cache;
+- a previously loaded browser shows a "Hub offline" state;
+- a warm-standby DUDE device can receive backups and be promoted by hand.
+
+Automatic failover remains out of scope.
+
 ### Offline support matrix and reconnection rules
 
 | Capability | Desktop with Hub unavailable | Hub web during outage | Android during outage |
@@ -441,6 +469,10 @@ That is the literal consequence of personal ownership.
 | Shared edits | Durable local outbox and explicit pending state | Online-only (31E): edits are refused with a visible Hub unreachable notice and rolled back; no browser outbox | Queue only for implemented sync entities |
 | Hub collaboration or cross-device synchronization | Unavailable until reconnect | Unavailable | Unavailable |
 | New remote load of the Hub website | Not applicable | Unavailable when endpoint is down; a previously visited browser may start from the service worker cache read-only for shared state | Not applicable |
+
+SaveSphere (planned) refines two columns of this matrix for its own content only ([PD-126](../delivery/PHASE32SS_PLAN.md)):
+- **Desktop and Android** keep full SaveSphere replicas with an outbox.
+- **Hub web** gains a durable capture queue and a read cache of recent and pinned items, both held in session-owned origin storage and wiped at sign-out. SaveSphere editing on the web stays online-only, as shared edits are here.
 
 Local Docker/database tools mentioned in the target outage examples operate offline **once those tools are delivered** and their local dependencies are running; the examples do not reclassify Phase 33/34 as complete. Authentication expiry may pause network replay without deleting pending local changes. OS/native capability failures remain independent of Hub availability. A standalone Pages companion may still load from GitHub Pages during a personal Hub outage; it does not supply the unavailable private environment.
 ## Large Inputs
@@ -474,7 +506,8 @@ The original exclusions are preserved here so none of their rationale disappears
 - **Collaborative editing** — already partially reopened and shipped through same-machine/LAN collaboration plus a BYO relay in Phase 8. Phase 53 expands self-hosted/accountless collaboration; Phase 84's DUDE-hosted service is conditional and blocked while the current hosted-cloud boundary stands.
 - **DUDE-operated hosted snippet service** — a user-operated/self-hosted snippet-sharing service is in Phase 32; a DUDE-hosted service is not part of the current direction.
 - **Extension marketplace / plugin installation from remote sources** — Phase 56 introduces a Local Plugin SDK; Phase 57 proposes signed, permission-declared extensions. Remote extension code must never become arbitrary native-code execution. A DUDE-hosted marketplace backend remains conditional; local/self-hosted catalogs are compatible with the current boundary.
-- **Third-party authentication** — optional external OAuth may be enabled by a Hub owner, but a self-contained owner authentication and recovery path is required. Enterprise/source-hosting integrations remain later scope; no external OAuth provider is mandatory.
+- **Third-party authentication** — optional external OAuth may be enabled by a Hub owner, but a self-contained owner authentication and recovery path is required. Phase 32-SS1 plans Google OIDC as the owner's primary sign-in, with linked accounts. The Argon2id password and recovery codes remain a complete fallback, so no external OAuth provider is mandatory ([PD-121](../delivery/PHASE32SS_PLAN.md)). Enterprise SSO and source-hosting integrations remain later scope (Phase 86).
+- **Personal notes and knowledge management** — not part of the weekend scope, and until 2026-10-25 present only as developer-knowledge items (Phase 68). Now planned as SaveSphere, Phases 32-SS1 to 32-SS6 ([PD-116–PD-140](../delivery/PHASE32SS_PLAN.md)), under the scope ceiling in [Durable Product Boundaries](../DUDE_PRD.md#durable-product-boundaries).
 - **Mobile-first layout** — desktop is not redesigned around a phone. A separate React Native mobile-native client with approximately 30–50 compatible tools moves to Phases 31H–31I; Phase 91 becomes mobile depth and continuity.
 - **Firefox-specific / Safari-specific optimization** — moved to distant Phase 92 Universal Web Platform rather than being permanently excluded.
 - **Monaco-style full IDE workspace** — the literal permanent exclusion is retired, but replaced by the stronger identity boundary in [Durable Product Boundaries](../DUDE_PRD.md#durable-product-boundaries): Phase 77–80 may add editor/LSP/terminal/project surfaces without turning DUDE into a conventional IDE clone.
@@ -521,7 +554,7 @@ The planning direction is sufficiently defined to begin 31A. The following imple
 | Device State Store process/service lifecycle | 31B (decided) | A utility-process state service supervised by Electron main with backoff, a degraded in-memory mode and a coordinated quit; distinct from Hub and from the privileged Device Agent. See PD-014; the process model was superseded in 31C by the resident Agent (PD-026) |
 | Device Agent background/service lifecycle | 31C (resolved, implemented) | The state-service process became a resident per-user Device Agent that outlives the interactive window; it still never executes tools and grants no remote execution. Amended: the sign-in start falls back to the HKCU Run key for standard users, and the pipe name derives from a hash of the store directory. See [PD-026](../history/DECISION_LOG.md#phase-31c-implementation-decisions) |
 | Hub framework/runtime and Windows service wrapper | 31C (resolved, implemented) | Fastify REST, Node single-executable, WinSW Windows service, Docker and foreground modes; independently managed user-owned service. Amended: Update Hub runs the bundled Hub installer in `/UPDATE` mode and is offered only from a per-machine install. See [PD-023](../history/DECISION_LOG.md#phase-31c-implementation-decisions), [PD-024](../history/DECISION_LOG.md#phase-31c-implementation-decisions), [PD-025](../history/DECISION_LOG.md#phase-31c-implementation-decisions) |
-| Initial owner authentication/recovery mechanism | 31C (resolved, implemented) | Argon2id password plus recovery codes, one-time setup-token bootstrap, no external OAuth dependency; passkeys/TOTP deferred. See [PD-027](../history/DECISION_LOG.md#phase-31c-implementation-decisions), [PD-028](../history/DECISION_LOG.md#phase-31c-implementation-decisions), [PD-029](../history/DECISION_LOG.md#phase-31c-implementation-decisions) |
+| Initial owner authentication/recovery mechanism | 31C (resolved, implemented) | Argon2id password plus recovery codes, one-time setup-token bootstrap, no external OAuth dependency; passkeys/TOTP deferred. See [PD-027](../history/DECISION_LOG.md#phase-31c-implementation-decisions), [PD-028](../history/DECISION_LOG.md#phase-31c-implementation-decisions), [PD-029](../history/DECISION_LOG.md#phase-31c-implementation-decisions). Amended for 32-SS1: Google OIDC becomes the primary sign-in on top of this path, which remains the fallback ([PD-121](../delivery/PHASE32SS_PLAN.md)) |
 | Browser and device credentials, device enrollment | 31C (resolved, implemented) | Cookie sessions for browsers, a device-bound bearer session for the Agent, Ed25519 devices enrolled by pairing code; browsers are sessions, not devices. See [PD-030](../history/DECISION_LOG.md#phase-31c-implementation-decisions), [PD-031](../history/DECISION_LOG.md#phase-31c-implementation-decisions) |
 | Transport trust, baseline controls, realtime and Hub web scope | 31C (resolved, implemented) | Pinned self-signed HTTPS on loopback by default, baseline security controls from the first endpoint, a minimal authenticated WebSocket, and an admin-surface Hub web (the Hub web scope was widened to shared state in 31E, PD-050 to PD-054). See [PD-032](../history/DECISION_LOG.md#phase-31c-implementation-decisions) to [PD-035](../history/DECISION_LOG.md#phase-31c-implementation-decisions) |
 | Canonical identity and protocol versioning | 31C (resolved, implemented) | The Hub mints the environment ID; the canonical database holds synchronized records since 31D; one release train with negotiated protocol versions. See [PD-036](../history/DECISION_LOG.md#phase-31c-implementation-decisions), [PD-037](../history/DECISION_LOG.md#phase-31c-implementation-decisions) |
@@ -533,7 +566,8 @@ The planning direction is sufficiently defined to begin 31A. The following imple
 | Android framework tooling, SQLite/secure-storage adapters and supported OS baseline | 31H (resolved, implemented) | React Native; audited runtime compatibility and permission handling |
 | Exact initial 30–50 mobile tools and input budgets | 31I | Resolved by [PD-085](../delivery/PHASE31I_PLAN.md) (40 tools with a reserve and swap rule, none used) plus the [measured input budgets](../delivery/PHASE31I_PLAN.md#measured-input-budgets) of Milestone 783, taken on API 29 and API 36 emulators (hash 128 KiB, csv-viewer 384 KiB, JS-thread tools 128 KiB by default). Those are emulator-fixture figures, not hardware guarantees; physical-phone timings are still owed to the physical pass. Usable native UI and core parity are verified on-device |
 | Hub collaboration persistence and retention | 31J (resolved, implemented) | Compacted Y.Doc state and an update tail on the Hub, materialized into ordinary sync records; Markdown Hub rooms are memory-only until an audited, disclosed "Keep on Hub"; history snapshots kept 30 days (200 and 8 MiB per document), restored as forward edits; collaborative tables travel in backups. Separate from the unchanged ephemeral LAN server and BYO relay. See [PD-101, PD-104 and PD-105](../delivery/PHASE31J_PLAN.md) |
-| End-to-end encrypted data/secret synchronization | Phase 82 or separately approved scope | Not claimed by initial TLS-protected Hub-readable sync |
-| Standby backup/replication and manual promotion UX | Later, under Phase 96 scope | No automatic multi-master/election requirement |
+| End-to-end encrypted data/secret synchronization | Phase 82 or separately approved scope | Not claimed by initial TLS-protected Hub-readable sync. The SaveSphere vault (32-SS2) is encrypted at rest on the Hub with its own key, not end to end ([PD-138](../delivery/PHASE32SS_PLAN.md)) |
+| Standby backup/replication and manual promotion UX | Later, under Phase 96 scope | No automatic multi-master/election requirement. 32-SS1 adds another DUDE device as a backup destination, promoted manually ([PD-124](../delivery/PHASE32SS_PLAN.md)) |
+| SaveSphere open choices: AI providers, local versus cloud processing, OCR/ASR engines, vector index, canvas engine, push transport, outbound email, history tiers | The 32-SS phase that needs each one | Listed in [SaveSphere open items](../delivery/PHASE32SS_PLAN.md#open-items-decided-when-each-phase-is-planned); each is recorded as a dated decision, and none is presented as decided earlier |
 
 Resolve each choice with an architecture decision record and acceptance evidence. Changes to product invariants require an explicit PRD decision; routine library/framework choices do not reopen the agreed product direction.

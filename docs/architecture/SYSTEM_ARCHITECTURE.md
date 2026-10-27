@@ -94,6 +94,11 @@ Hash routing is explicitly not the chosen approach.
 
 Hub builds must support deep links and refresh, an explicit deployment base URL, correct asset URLs and authenticated WebSocket endpoints. Static Pages deployment must not embed a private Hub URL, credentials or environment data. Connecting the standalone Pages origin directly to a Hub is not required for the initial release; using Hub-served same-origin web avoids inventing a second cross-origin credential path.
 
+**Owner's domain (planned, Phase 32-SS1).**
+- **One origin.** The Hub-served web runs on the owner's bare domain, with path routes for Home (`/`), SaveSphere (`/savesphere/…`), tools (`/tools/<id>`), search, AI, settings and admin. `www` redirects to the bare domain, and the capture API is the token-only `/api/v1/ingest/…` path on the same origin ([PD-119](../delivery/PHASE32SS_PLAN.md)).
+- **Sign-in everywhere.** Every route, tools included, needs a session ([PD-122](../delivery/PHASE32SS_PLAN.md)). The Pages companion row of the table above is unchanged.
+- **SaveSphere offline data.** SaveSphere's capture queue and read cache ([PD-126](../delivery/PHASE32SS_PLAN.md)) are origin storage (IndexedDB) owned by the signed-in session, not service-worker caches, so the sign-out wipe below covers them. Pending captures are flushed or explicitly discarded before sign-out completes.
+
 Private API/auth/sync responses and secrets must not be put into the public static-asset service-worker cache. Browser logout and environment switching must clear or lock authenticated state according to the documented session/cache policy. Local browser storage remains subject to the browser's security boundary; durable browser credential vault parity is not implied.
 
 ## Tool Architecture
@@ -356,6 +361,16 @@ A dependency is acceptable when:
 
 Do not spend time rewriting mature libraries to reduce dependency count.
 
+**SaveSphere dependencies.** Some SaveSphere dependencies are already decided: Tiptap/ProseMirror with Yjs for rich text and `androidx.ink` for Android ink ([PD-129](../delivery/PHASE32SS_PLAN.md)). Others are candidates, chosen under this rule when their phase is planned:
+- the vector-index library;
+- PDF rendering;
+- OCR and transcription engines;
+- the canvas engine;
+- the `cloudflared` binary;
+- the Android push transport.
+
+Each must run where its capability is declared, and none may make a hosted service mandatory.
+
 ## API Integration Architecture
 
 Network integrations are allowed when they are integral to a tool or workflow, but local execution remains the default whenever practical.
@@ -368,6 +383,7 @@ User-supplied API keys are the default credential model for external services. D
 - No DUDE-operated cloud proxy is part of the current architecture/product direction.
 - A **local bundled proxy/backend** is allowed and already shipped where browser restrictions or credential isolation make it necessary (for example Phase 8 Stage 4's LLM proxy, which Phase 31B replaced with a sender-checked main-process IPC call).
 - User-owned/self-hosted relays, servers, and remote runners are allowed when the user explicitly configures them.
+- **Hub-side AI (planned, Phase 32-SS5).** SaveSphere's organizer and Copilot run on the Hub through a pluggable provider interface with separate chat, embedding, vision/OCR, handwriting and transcription slots ([PD-135](../delivery/PHASE32SS_PLAN.md)). Provider credentials are owner-supplied Hub secrets, and every task discloses what it sends and to which provider. The choice of providers, and of local versus cloud processing, is deferred to 32-SS5 planning. The desktop LLM IPC bridge stays for developer tools, and Phase 36 may reuse the Hub interface.
 - Network activity, persistence behavior, platform/native capabilities, and external-data boundaries must be represented in canonical tool/capability metadata and remain consumable by shell-level disclosure UI rather than being buried only inside individual tool implementations.
 
 Each API-backed tool should declare:
@@ -410,6 +426,8 @@ packages/agent-pipe/     Node-only authenticated named-pipe protocol between the
 packages/collab-protocol/ Existing Node-only Yjs rooms (not portable core)
 infrastructure/          Documented deployment/database/networking/packaging reservations
 ```
+
+SaveSphere (Phases 32-SS1 to 32-SS6) adds no new application. It adds Hub modules, Device Agent modules (replica and mirror), Android Kotlin Expo modules (ink, scanner, PDF, larger share capture), a shell destination in `apps/web`, and portable contracts and domain code. The planned names follow existing workspace rules and are listed in [SaveSphere architecture](../savesphere/SAVESPHERE_ARCHITECTURE.md); none exist yet.
 
 
 The original V1 architectural shape — `core/`, `shell/`, `shared/`, and `tools/` under Angular — remains valid and is preserved by this expansion. Not every tool needs every file. Avoid ceremony for small utilities.
@@ -471,6 +489,12 @@ The Hub is the user-owned control plane. It does not introduce a vendor-hosted "
 | Backup Service | Export, restore and transfer |
 | Audit/Security Events | Security-relevant records |
 | Future Remote Job Coordinator | Deferred capability-scoped device jobs |
+| Provisioning (planned, 32-SS1) | Creates and reports the SaveSphere storage tiers and services when a machine is designated Hub ([PD-118](../delivery/PHASE32SS_PLAN.md)) |
+| Blob Store (planned, 32-SS1) | Content-addressed originals, attachments and derived files behind a pluggable `BlobStore` interface |
+| Job Queue and Workers (planned, 32-SS1) | Durable, leased, retried background work for extraction, OCR, transcription, embedding, import, mirror and backup jobs in isolated workers. Hub-internal work only: owner- or device-initiated privileged execution stays Phase 88 |
+| Ingress Supervisor (planned, 32-SS1) | Supervises the managed Cloudflare Tunnel (`cloudflared`) as the Hub's first child process ([PD-120](../delivery/PHASE32SS_PLAN.md)) |
+| Identity Providers (planned, 32-SS1) | Google OIDC sign-in and linked owner accounts next to the password path ([PD-121](../delivery/PHASE32SS_PLAN.md)) |
+| SaveSphere Services (planned, 32-SS2 to 32-SS6) | Content store, full-text and vector search, ingest API, AI provider interface and Copilot, reminders, vault, guests and public links ([SaveSphere architecture](../savesphere/SAVESPHERE_ARCHITECTURE.md)) |
 
 #### Hub should be independent of the Electron window
 
@@ -513,6 +537,17 @@ Typical secondary machine:
 [x] Device Agent
 [ ] DUDE Hub
 ```
+
+**Designation and provisioning (planned, Phase 32-SS1).** Today a machine becomes the Hub by installing the Hub component and running its setup (owner bootstrap through the setup token). From 32-SS1, designation also runs a provisioning wizard ([PD-118](../delivery/PHASE32SS_PLAN.md)–[PD-124](../delivery/PHASE32SS_PLAN.md)). It covers:
+
+- creating the embedded storage tiers and services;
+- binding the owner's bare domain;
+- choosing ingress (the managed Cloudflare Tunnel or direct Public mode, both through the existing readiness gate);
+- linking Google sign-in;
+- choosing a backup destination;
+- checking the power policy.
+
+The wizard is re-runnable and reports each component's state. It installs nothing that needs Docker, PostgreSQL or another separately administered server.
 
 ### Desktop Application Architecture
 

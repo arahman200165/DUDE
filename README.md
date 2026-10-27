@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-3b82f6.svg)](LICENSE)
 [![Security Policy](https://img.shields.io/badge/security-policy-informational)](docs/SECURITY.md)
 
-A dense, dark-first, themeable developer workbench for JSON, regex, JWT, hashing, diffing, and hundreds of other utilities. The Windows desktop app is the canonical experience; an installable, offline-capable web companion works without a download.
+A dense, dark-first, themeable developer workbench for JSON, regex, JWT, hashing, diffing, and hundreds of other utilities. The Windows desktop app is the canonical experience; an installable, offline-capable web companion works without a download. Planned next is **SaveSphere**: a personal knowledge system on your own self-hosted Hub, for capturing, preserving, organizing and searching everything you save ([plan](docs/savesphere/README.md)).
 
 **[→ Open the live app](https://arahman200165.github.io/DUDE/)**
 
@@ -21,7 +21,7 @@ Workspace implementation and host ownership are documented in [Portable Core](do
 
 DUDE is not a race to ship the most tools. It's a framework built to make adding **tool 36, 37, or 45** routine instead of architectural work — a new simple utility with existing transformation logic can be added in **under 30 minutes**, without touching navigation, routing, search, the command palette, persistence, or the PWA layer. Milestone 10's timed proof (see [`ADDING_A_TOOL.md`](ADDING_A_TOOL.md)) added a full tool, tests included, in **2 minutes 50 seconds** — a claim then validated at scale across Milestone 11's 8-tool batch, Milestone 12's structured-data batch, and Milestone 13's web/API batch, which added two new shared UI primitives (`app-copy-button`, `app-key-value-editor`) without touching the shell.
 
-Most transforms run locally in the browser or desktop renderer. Native desktop features use a bundled local backend; network-enabled tools disclose when they contact external services. DUDE has no account or telemetry service.
+Most transforms run locally in the browser or desktop renderer. Native desktop features use a bundled local backend; network-enabled tools disclose when they contact external services. DUDE has no telemetry and no DUDE-operated account service. The only sign-in is to your own optional self-hosted Hub, and the planned SaveSphere program adds Google sign-in to that Hub, with a password fallback.
 
 - **Local-first** — browser-safe tools work offline once their code and optional runtimes are cached; network-dependent modes and desktop-only features are clearly marked.
 - **Dense, not decorative** — bold, functional color-coding by category and status, built for daily use, not for demos.
@@ -605,6 +605,16 @@ Testing follows a "protect the framework, not chase coverage" posture: pure tran
 
 Phase 31C added an optional, self-hosted **DUDE Hub** that you run on a machine you own. It is a separate service with its own installer (`DUDE-Hub-Setup.exe`), a Docker image and a foreground mode, and it runs without the desktop app. Today it provides a single owner identity (password, recovery codes, device-assisted recovery), a device registry with pairing codes and Ed25519 device credentials, HTTPS on loopback (LAN mode is opt-in; new Hubs issue their certificate from a built-in local CA, devices pin the leaf, and certificates can be imported or the Hub run behind a reverse proxy), an authenticated realtime socket, a canonical SQLite database, and a Hub-served Angular web (`npm run build:hub-web`). Phase 31D added **synchronization between enrolled desktops**: settings, favorites, pipelines, projects, workspace templates and Home sync by default, and usage, workspace layout and scratchpad are opt-in per category. Enrollment is followed by a first-sync preview (Merge, Use Hub or Keep local); edits made offline are kept durably and replayed, concurrent edits merge by field or wait in a conflict inbox in Settings › Sync, and remote changes apply live. Phase 31E made the Hub-served web the authenticated shared-state app (browser edits and desktop edits converge live, with an in-browser merge dialog; shared writes are online-only, the service worker caches public assets only and sign-out wipes the browser origin), added trusted certificates through the local CA, configured names, import and reverse-proxy mode, and an endpoint diagnostics report in Settings › Endpoint & Exposure; this is private mode. Internet (public) mode is released behind an elevated readiness gate (Phase 31F, Milestones 683–699): `dude-hub network mode public` refuses until the Hub has a browser-trusted certificate, a public DNS name, the firewall rule and verified outside reachability. Phase 31G (Milestones 700–719) added encrypted Hub backup and manual transfer to a new machine: `dude-hub backup create` writes one passphrase-encrypted `.dudebackup` file (optionally on a schedule), `dude-hub backup restore` restores it offline onto a new Hub identity, `backup create --for-transfer` retires the old Hub, each device then reconnects with a re-pair code and keeps its local data and pending edits, and Settings › Backup & Transfer shows the status ([acceptance](docs/delivery/PHASE31G_ACCEPTANCE.md)); there is no automatic failover, and Android shell/favorites/settings sync implementation is implemented in Phase 31H, with its remaining acceptance carried into the Phase 31I gate ([evidence](docs/delivery/PHASE31H_ACCEPTANCE.md)). Nothing is sent to a Hub unless you enroll a device and confirm the first sync. Install, update, LAN mode, the background Device Agent and unsigned-binary prompts are described in [Windows setup](docs/WINDOWS_SETUP.md#the-dude-hub-optional); the Hub's rules are in [`apps/hub/AGENTS.md`](apps/hub/AGENTS.md).
 
+**Planned: SaveSphere (Phases 32-SS1 to 32-SS6).** None of this is implemented yet. The next program turns a designated Hub into the home of SaveSphere, the owner's personal knowledge system:
+- the Hub provisions its own embedded storage (SQLite, full-text and vector indexes, a content-addressed file store, a job queue);
+- it serves the full DUDE web and SaveSphere from the owner's own domain behind Google sign-in, through a managed Cloudflare Tunnel or direct Public mode;
+- backups stream with no size cap;
+- capture comes in from the phone's share sheet, email, watched folders and imports (Samsung Notes, Evernote, OneNote, WhatsApp, Teams, Instagram, TikTok, email);
+- handwriting, PDFs and canvases join typed notes;
+- an AI Copilot answers from the owner's own sources with citations.
+
+See [SaveSphere documentation](docs/savesphere/README.md) and the [decisions](docs/delivery/PHASE32SS_PLAN.md).
+
 Hub and agent scripts: `npm run hub:compile` (esbuild bundle), `hub:sea` (single executable), `hub:stage` (executable plus WinSW and the precompressed Hub web, built on demand; `DUDE_SKIP_HUB_WEB=1` makes a missing build fail), `hub:installer` (makensis installer), `build:hub-web` (Angular `production,hub` build), `agent:sea` (`dude-agent.exe`), `test:hub` (Hub specs), `test:e2e:hub` (browser end-to-end against a real Hub: flow, CSP sweep, shared state and a sweep of every route), `check:hub-service` (Windows service lifecycle), `check:dockerfiles`, `measure:hub`, `measure:hub-web` and `measure:backup` (backup, verify and restore cost on a release bundle). Sync scripts: `test:sync` (two real Agent stores against one real Hub), `test:e2e:sync` (two Electron desktops, local Windows gate) and `measure:sync`.
 
 ## Android preview
@@ -661,6 +671,7 @@ Start with [the master PRD](docs/DUDE_PRD.md) for product direction, invariants,
 - [Product behavior](docs/product/PRODUCT_SPEC.md) and [UX](docs/product/UX_SPEC.md).
 - [System architecture](docs/architecture/SYSTEM_ARCHITECTURE.md), [data and sync](docs/architecture/DATA_SYNC_ARCHITECTURE.md), and [security architecture](docs/architecture/SECURITY_ARCHITECTURE.md).
 - [Roadmap](docs/delivery/ROADMAP.md) and [quality/release acceptance](docs/delivery/QUALITY_AND_RELEASE.md).
+- [SaveSphere](docs/savesphere/README.md) (planned personal knowledge system) and its [program decisions](docs/delivery/PHASE32SS_PLAN.md).
 - [Delivery history](docs/history/DELIVERY_HISTORY.md) and [decision provenance](docs/history/DECISION_LOG.md).
 
 The [root PRD index](DUDE_PRD.md) preserves former section references.

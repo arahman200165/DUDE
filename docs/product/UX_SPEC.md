@@ -52,6 +52,14 @@ ResultCard
 - **Catalog.** Tools and Search list runnable tools first. Desktop/web-only tools sit behind a "Show desktop/web-only tools" switch, and synced favorites of tools Android cannot run stay visible with the reason. Home shows local-only Recents. Web and desktop tool pages carry an "Also on Android" badge generated from the binding IDs.
 - **Share.** Sharing to DUDE opens a route with Smart Paste suggestions for runnable tools above a searchable picker; nothing runs until the user opens a tool and acts.
 
+**Planned for SaveSphere (Phases 32-SS2 to 32-SS5).**
+- **SaveSphere area.** The Android app gains a SaveSphere area with the inbox, notebooks, search and the editor, plus ink on S Pen devices.
+- **Share target.** It gains a "Save to SaveSphere" choice next to the tool route. This is an explicit capture that is queued offline and acknowledged at once, while a shared payload sent to a tool keeps today's never-persisted rule.
+- **Quick capture.** A home-screen widget and a Quick Settings tile open quick capture.
+- **Reminders.** Reminders and resurfaced items arrive as Android notifications.
+
+The mobile interaction contract is in the [SaveSphere product specification](../savesphere/SAVESPHERE_PRODUCT_SPEC.md).
+
 ## Appearance System
 
 ### Theme
@@ -178,6 +186,13 @@ The selected model is a hybrid. Since Phase 30 (verified by the Phase 30L gate) 
 | **Sidebar** | Persistent destination and category navigation | Yes. A category index with counts; an expanded category shows a capped list plus an "All N" link into Browse Tools |
 | **Command Palette** (`Ctrl+K`) | Universal expert launcher across tools, commands, projects, pipelines, recents and preferences ([Command Palette Requirements](#command-palette-requirements)) | Ranked results |
 | **Dedicated routes** (`/tools/<route>`) | Stable, bookmarkable tool destinations ([Dedicated tool routes](#dedicated-tool-routes)) | n/a |
+
+**Planned SaveSphere destination (Phase 32-SS2).** SaveSphere is a primary shell destination at `/savesphere` and becomes shell exception #15 when it ships ([PD-125](../delivery/PHASE32SS_PLAN.md)). Its sub-routes cover the inbox, notebooks and collections, an item, search and the vault. It does not join the registry, Browse Tools or the eight categories, so none of the five surfaces above changes its job:
+- Home (`/`) stays the workbench dashboard and gains bounded SaveSphere panels.
+- The sidebar gains one destination entry.
+- The command palette gains quick-capture and SaveSphere-search commands through the existing `COMMAND_SOURCE` contract.
+
+On the owner's domain the same routes sit under the bare domain behind sign-in ([PD-119](../delivery/PHASE32SS_PLAN.md)). The SaveSphere interaction contract (editor, ink, inbox, Copilot, vault) is in the [SaveSphere product specification](../savesphere/SAVESPHERE_PRODUCT_SPEC.md) and must meet this specification's appearance, token and accessibility rules.
 
 ### Home / Workbench Dashboard
 
@@ -365,6 +380,15 @@ Required:
 - a configurable Home layout (Phase 30I);
 - content bounded independently of registry size. Verified with a synthetic 500- and 1,000-tool registry (Phase 30L.6);
 - no eager loading of tool implementation chunks (Phase 30L.1).
+
+**Planned SaveSphere panels (Phases 32-SS2 to 32-SS5).** `/` stays this workbench Home. SaveSphere contributes first-party Home panels through the existing panel-manifest contract ([PD-125](../delivery/PHASE32SS_PLAN.md)):
+- quick capture;
+- inbox count;
+- recent and pinned items;
+- a resurfaced item;
+- due reminders.
+
+Each panel is bounded and lazily loaded, like every other panel, and the owner places them from Settings › Home layout. The resurfaced-item and reminder panels have content only once 32-SS5 delivers resurfacing and tasks.
 
 Under Phase 30A/30D, the complete registered tool inventory belongs to Browse Tools, not to Home's default content. Home may show bounded category/tool previews and user-selected discovery panels. Direct tool routes remain stable.
 

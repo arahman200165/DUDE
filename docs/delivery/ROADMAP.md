@@ -12,7 +12,8 @@ Related: [DUDE — Product Requirements](../DUDE_PRD.md) · [Quality and Release
 - [Current Position](#current-position)
 - [Roadmap Direction](#roadmap-direction)
 - [Completed Phases](#completed-phases)
-- [Post-Phase-31 Priority — Self-Hosted Distributed Foundation (Planned)](#near-term-roadmap)
+- [Post-Phase-31 Priority — Self-Hosted Distributed Foundation (Complete)](#near-term-roadmap)
+- [SaveSphere Program — Phases 32-SS1 to 32-SS6 (Planned)](#savesphere-program)
 - [Core Expansion Roadmap](#core-expansion-roadmap)
 - [Utility Catalog Backlog (Unscheduled)](#utility-catalog-backlog)
 - [Long-Horizon Roadmap](#long-horizon-roadmap)
@@ -33,14 +34,15 @@ Related: [DUDE — Product Requirements](../DUDE_PRD.md) · [Quality and Release
 |---|---|
 | Phases 0–31 | Complete; Phase 31 closed at Milestone 614 |
 | Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A (Milestone 615) and 31B (Milestones 616–627) and 31C (Milestones 628–648) and 31D (Milestones 649–662) and 31E (Milestones 663–682) and 31F (Milestones 683–699) and 31G (Milestones 700–719) complete, 31H (Milestones 720–728) and 31I (Milestones 729–786) complete; DUDE 2.0 was declared at Milestone 786 on 2026-10-23, with 31H's carried passes recorded in the 31I gate (the missing-Keystore and corrupt/full-storage cases are automated-only under PD-098); 31J (Milestones 787–815) complete on 2026-10-24 ([decisions PD-099–PD-115](PHASE31J_PLAN.md), [acceptance](PHASE31J_ACCEPTANCE.md); its physical and installed passes are owed and do not gate Phase 32) |
-| Phase 32 | Core expansion may begin: every phase from 31A through 31J is complete |
+| Phases 32-SS1 to 32-SS6 | Next: the SaveSphere program, planned 2026-10-25 ([decisions PD-116–PD-140](PHASE32SS_PLAN.md), [entries](#savesphere-program)); the first SaveSphere release gate closes at the end of 32-SS5 |
+| Phase 32 | Begins after 32-SS6; every phase from 31A through 31J is complete |
 | Phases 33–100 | Retained long-horizon scope, subject to dependencies and product boundaries |
 
 ## Roadmap Direction
 
 The roadmap deliberately extends beyond what any single delivery phase covers.
 
-Phase 0 was the weekend commitment; it is complete. **Phases 1–31 are also complete.** Phase 8 established the Windows desktop track, Phase 21 established the cross-tool workflow foundations, and Phase 22 hardened the platform (distributed manifests, single-sourced metadata, structural validation, generated docs, dependency boundaries, chunk/cache budgets) for the next several hundred tools. Phase 30 (30A–30L) shipped the workbench shell, discovery, insights, appearance, and verification program. Phase 31 (Milestones 593–614) shipped the Windows process/system troubleshooting tools and the second local mutation engine. Phases 31A–31J were completed strictly in order, so Phase 32 tool expansion is next. Existing Phase 32–100 identifiers and feature inventories are retained; delivered milestones remain 593–614 for Phase 31. Milestone 615 records the Phase 31A implementation; Phases 31A–31J are complete (31I's 40-tool Android set is delivered and DUDE 2.0 was declared at Milestone 786; 31J's Hub collaboration and realtime depth closed at Milestone 815).
+Phase 0 was the weekend commitment; it is complete. **Phases 1–31 are also complete.** Phase 8 established the Windows desktop track, Phase 21 established the cross-tool workflow foundations, and Phase 22 hardened the platform (distributed manifests, single-sourced metadata, structural validation, generated docs, dependency boundaries, chunk/cache budgets) for the next several hundred tools. Phase 30 (30A–30L) shipped the workbench shell, discovery, insights, appearance, and verification program. Phase 31 (Milestones 593–614) shipped the Windows process/system troubleshooting tools and the second local mutation engine. Phases 31A–31J were completed strictly in order. On 2026-10-25 the owner inserted the SaveSphere program, Phases 32-SS1 to 32-SS6, ahead of Phase 32 tool expansion ([SaveSphere Program](#savesphere-program)). Existing Phase 32–100 identifiers and feature inventories are retained; delivered milestones remain 593–614 for Phase 31. Milestone 615 records the Phase 31A implementation; Phases 31A–31J are complete (31I's 40-tool Android set is delivered and DUDE 2.0 was declared at Milestone 786; 31J's Hub collaboration and realtime depth closed at Milestone 815).
 
 From Phase 22 onward, the roadmap deliberately stops treating raw tool count as the primary measure of progress. Platform trust, correctness, composition, native capability, local/offline strength, automation safety, discoverability, and reuse across surfaces matter more.
 
@@ -89,6 +91,7 @@ From Phase 22 onward, the roadmap deliberately stops treating raw tool count as 
 | Phase 31G | ✅ Complete | Encrypted `.dudebackup` backup, offline restore, authority epoch and fence, manual Hub transfer and device reconnect (Milestones 700–719). | [Phase 31G acceptance](PHASE31G_ACCEPTANCE.md) |
 | Phase 31H | ✅ Complete | React Native Android shell with QR/paste enrollment, pinned transport, synchronized favorites/settings and local APK/AAB packaging (Milestones 720–728); its physical/signing/accessibility passes were carried into and recorded in 31I. | [Phase 31H acceptance](PHASE31H_ACCEPTANCE.md) |
 | Phase 31I | ✅ Complete | 40 executable Android tools, Share-to-DUDE, camera scanning, on-device journeys and the DUDE 2.0 declaration (Milestones 729–786). | [Phase 31I acceptance](PHASE31I_ACCEPTANCE.md) |
+| Phase 31J | ✅ Complete | Hub collaboration and realtime depth: protocol 3, presence, live views, read-only job status, Hub notifications with the shell bell and desktop OS notifications, and Hub-persisted Yjs collaboration with history (Milestones 787–815). | [Phase 31J acceptance](PHASE31J_ACCEPTANCE.md) |
 
 <a id="near-term-roadmap"></a>
 
@@ -96,15 +99,15 @@ From Phase 22 onward, the roadmap deliberately stops treating raw tool count as 
 
 **Decision:** complete the distributed foundation and collaboration depth in Phases **31A–31J**, strictly in order, before beginning Phase 32 tool expansion. These inserted IDs preserve all historical Phase 0–31 and future Phase 32–100 references. They are new planned phases, not additional completed Phase 31 milestones. Do not reuse shipped Milestones 593–614 or assign new milestone numbers until implementation planning does so.
 
-The required sequence is **31A → 31B → 31C → 31D → 31E → 31F → 31G → 31H → 31I → 31J → Phase 32**. Complete each phase and its exit gate before starting the next. 31A–31J are complete; 31H's physical, signing and accessibility passes were carried into the 31I final gate ([PD-084](PHASE31I_PLAN.md)) and recorded there, DUDE 2.0 was declared at Milestone 786 (2026-10-23), and 31J closed at Milestone 815 (2026-10-24; [acceptance](PHASE31J_ACCEPTANCE.md)). The first distributed release gate closed at 31I and the collaboration depth at 31J; Phase 32 may now begin. There is no fixed calendar commitment.
+The required sequence is **31A → 31B → 31C → 31D → 31E → 31F → 31G → 31H → 31I → 31J → Phase 32**. Complete each phase and its exit gate before starting the next. 31A–31J are complete; 31H's physical, signing and accessibility passes were carried into the 31I final gate ([PD-084](PHASE31I_PLAN.md)) and recorded there, DUDE 2.0 was declared at Milestone 786 (2026-10-23), and 31J closed at Milestone 815 (2026-10-24; [acceptance](PHASE31J_ACCEPTANCE.md)). The first distributed release gate closed at 31I and the collaboration depth at 31J. The SaveSphere program (32-SS1 to 32-SS6) is next, then Phase 32 ([SaveSphere Program](#savesphere-program)). There is no fixed calendar commitment.
 
 Backup/transfer is deliberately moved ahead of mobile delivery, and security controls begin with the first authenticated Hub endpoint. The planning sequence listed backup late and placed collaboration differently in its two summaries; this sequence resolves that inconsistency by making durable recovery part of the first usable release and delivering richer collaboration afterward, before Phase 32. The WebSocket/realtime foundation remains required in 31C–31D.
 
 ### Strict phase progression
 
 - **During 31A–31J (all complete):** one phase at a time, including its full scope and exit gate, before moving to the next lettered phase. Maintenance, regression fixes and security fixes to shipped work remain permitted.
-- **Phase 32 entry gate (met 2026-10-24):** every phase from 31A through 31J is complete, so Phase 32 implementation may begin. All REST Client and request-collection work stays in Phase 32.
-- **After 31J (now):** begin the retained Phase 32 backlog. Local listeners, raw protocols, mTLS, mutation-sensitive features and durable snippet sharing keep their own security/acceptance gates.
+- **Phase 32 entry gate:** every phase from 31A through 31J is complete (met 2026-10-24) **and** 32-SS1 to 32-SS6 are complete (added 2026-10-25, [PD-117](PHASE32SS_PLAN.md)). All REST Client and request-collection work stays in Phase 32.
+- **After 31J (now):** begin the [SaveSphere program](#savesphere-program) with 32-SS1, one phase at a time, each with its exit gate. Then begin the retained Phase 32 backlog. Local listeners, raw protocols, mTLS, mutation-sensitive features and durable snippet sharing keep their own security/acceptance gates.
 
 <a id="phase-31a"></a>
 
@@ -333,6 +336,107 @@ The full vision remains more like building a small distributed platform than mer
 
 These are relative engineering-effort estimates from planning, not elapsed-time promises or evidence of completion. Re-estimate each stage after inspecting its affected code and dependencies; mobile UI and sync/conflict correctness are major workstreams even with AI assistance.
 
+<a id="savesphere-program"></a>
+
+## SaveSphere Program — Phases 32-SS1 to 32-SS6 (Planned)
+
+**Decision (2026-10-25):** SaveSphere, the owner's personal knowledge system, is built inside DUDE as six inserted phases, **32-SS1 to 32-SS6**. They run strictly in order after 31J and before Phase 32 ([PD-117](PHASE32SS_PLAN.md)). As with 31A–31J, the inserted identifiers keep every historical Phase 0–31J reference and every retained Phase 32–100 identifier. The decisions are [PD-116–PD-140](PHASE32SS_PLAN.md), the product and design are in [SaveSphere documentation](../savesphere/README.md), and the release checklist is the [SaveSphere First Release Definition of Done](QUALITY_AND_RELEASE.md#savesphere-first-release-definition-of-done--all-planned). Nothing here is implemented. Each phase gets its milestone numbers, a decisions section and an acceptance document when it is planned. Any further capability enters scope only by a dated decision ([PD-140](PHASE32SS_PLAN.md)).
+
+The required sequence is **31J → 32-SS1 → 32-SS2 → 32-SS3 → 32-SS4 → 32-SS5 → 32-SS6 → Phase 32**. The first SaveSphere release gate closes at the end of 32-SS5. Maintenance, regression and security fixes to shipped work remain permitted throughout. The 31J owed passes do not gate 32-SS1.
+
+<a id="phase-32-ss1"></a>
+
+### Phase 32-SS1 — Hub Platform for SaveSphere (Planned)
+
+**Depends on:** 31C–31J (Hub, sync, web, Internet readiness, backup, collaboration).
+
+- provisioning wizard run when a machine is designated Hub: embedded SQLite content store, FTS5, vector index, content-addressed blob store behind a pluggable `BlobStore`, cache and a durable job queue with isolated workers; re-runnable with per-component status ([PD-118](PHASE32SS_PLAN.md));
+- the owner's bare domain with path routing, a `www` redirect and the token-only ingest path ([PD-119](PHASE32SS_PLAN.md));
+- DUDE-managed Cloudflare Tunnel (supervised `cloudflared`) as the default ingress and direct Public mode as the alternative, both through the readiness gate, with the edge-TLS disclosure ([PD-120](PHASE32SS_PLAN.md));
+- Google OIDC owner sign-in with linked accounts and the password/recovery fallback ([PD-121](PHASE32SS_PLAN.md));
+- sign-in for every route on the domain; the Pages companion unchanged ([PD-122](PHASE32SS_PLAN.md));
+- power-policy check, the cached Hub-offline state and warm-standby promotion guidance ([PD-123](PHASE32SS_PLAN.md));
+- resumable chunked uploads into the blob store;
+- streaming, chunked backup v2 without the 512 MiB ceiling, covering the blob store, to local, S3-compatible, standby-device and Google Drive/OneDrive destinations ([PD-124](PHASE32SS_PLAN.md)).
+
+**Exit gate:** a fresh Windows install designated as Hub completes the wizard, and the owner's domain serves the full DUDE web behind Google sign-in through the tunnel and, separately, through direct Public mode. The Hub stays usable with Google unreachable. A backup larger than 512 MiB, including blobs, verifies and restores on a second machine under the 31G authority rules. New routes keep contract-first parity, closed-list audit events and the confirmation-boundary specs.
+
+<a id="phase-32-ss2"></a>
+
+### Phase 32-SS2 — SaveSphere Notes Core (Planned)
+
+**Depends on:** 32-SS1.
+
+- the item model, notebooks and collections by reference, tags, typed links, `[[wikilinks]]`, backlinks and stable block IDs ([PD-128](PHASE32SS_PLAN.md));
+- the Tiptap/ProseMirror editor bound to Yjs, with autosave and visible save state ([PD-129](PHASE32SS_PLAN.md));
+- attachments and originals in the blob store;
+- tiered version history, restore as a forward edit, a 30-day trash and step-up purge ([PD-130](PHASE32SS_PLAN.md));
+- full-text search;
+- the vault ([PD-138](PHASE32SS_PLAN.md));
+- full desktop and Android replicas with an outbox and Yjs merge, plus the web read cache ([PD-126](PHASE32SS_PLAN.md));
+- full open-format export ([PD-133](PHASE32SS_PLAN.md));
+- the `/savesphere` shell destination (exception #15), SaveSphere Home panels and palette commands ([PD-125](PHASE32SS_PLAN.md)).
+
+**Exit gate:** typed notes are created, edited offline on a desktop and on Android, and merged without loss. History thins without touching originals. The vault stays out of indexes and replicas. Export round-trips. The as-built constraints recorded for 32-SS2 in [PHASE32SS_PLAN](PHASE32SS_PLAN.md#as-built-constraints-the-phases-must-resolve) are resolved by recorded decisions.
+
+<a id="phase-32-ss3"></a>
+
+### Phase 32-SS3 — SaveSphere Capture and Inbox (Planned)
+
+**Depends on:** 32-SS2.
+
+- quick capture, the Android share target with widget and tile, the PWA share target and capture queue, drag-and-drop, the ingest API with scoped tokens, `save@<domain>`, Gmail, Outlook/Microsoft 365, IMAP and per-device watched folders ([PD-131](PHASE32SS_PLAN.md));
+- the import framework and the importers for Samsung Notes PDFs, Evernote, OneNote, WhatsApp, Teams, Instagram, TikTok, email archives, folders and bookmarks, through official channels only ([PD-132](PHASE32SS_PLAN.md));
+- inbox triage, exact dedupe and idempotent capture;
+- the SSRF-safe link/metadata fetcher and the per-item "Archive original" for video;
+- the two-way Markdown mirror and the external-editor round-trip on Windows desktops ([PD-133](PHASE32SS_PLAN.md));
+- the office-PC modes ([PD-127](PHASE32SS_PLAN.md)).
+
+**Exit gate:** each channel captures while offline and replays without duplicates. Each importer runs against a real export of the owner's own data, with preview, idempotent re-run and a report. The mirror round-trips both ways under the Destructive-Action Contract. The SSRF and ingest-token suites pass.
+
+<a id="phase-32-ss4"></a>
+
+### Phase 32-SS4 — SaveSphere Ink and PDF (Planned)
+
+**Depends on:** 32-SS2 (32-SS3 for the Samsung Notes fidelity pass).
+
+- `androidx.ink` vector ink on the Galaxy S25 Ultra and Samsung S Pen tablets, and Windows-pen ink on the desktop, view-only elsewhere ([PD-129](PHASE32SS_PLAN.md));
+- hybrid ink and typed notes;
+- the PDF viewer and separate annotation layer, with "export annotated copy";
+- the Android document scanner;
+- infinite canvases with live item cards (engine chosen at planning);
+- handwriting recognition for search;
+- the Samsung Notes PDF fidelity pass ([PD-132](PHASE32SS_PLAN.md)).
+
+**Exit gate:** physical passes on the S25 Ultra, an S Pen tablet and a Windows pen. Ink merges additively offline. Originals stay untouched by annotation. Handwriting is found by search.
+
+<a id="phase-32-ss5"></a>
+
+### Phase 32-SS5 — SaveSphere Structure and Copilot (Planned; first SaveSphere release gate)
+
+**Depends on:** 32-SS2–32-SS4.
+
+- owner-defined types and properties, database views, saved searches and smart collections ([PD-128](PHASE32SS_PLAN.md));
+- tasks with reminders and recurrence, the daily/weekly journal, flashcards (FSRS, Anki), and the graph view;
+- the Hub AI provider interface and processing pipeline (extraction, OCR, transcription, embeddings), with providers and local-versus-cloud processing chosen at planning ([PD-135](PHASE32SS_PLAN.md));
+- confidence-gated organization ([PD-134](PHASE32SS_PLAN.md));
+- the Copilot: hybrid search, cited answers, summaries, related items and resurfacing ([PD-136](PHASE32SS_PLAN.md));
+- reminder and resurfacing delivery through Home and the bell, Android push, an email digest and desktop notifications ([PD-137](PHASE32SS_PLAN.md)).
+
+**Exit gate:** the full [SaveSphere First Release Definition of Done](QUALITY_AND_RELEASE.md#savesphere-first-release-definition-of-done--all-planned) is recorded. This is the largest phase, and it may be split at planning under PD-117.
+
+<a id="phase-32-ss6"></a>
+
+### Phase 32-SS6 — SaveSphere Sharing (Planned)
+
+**Depends on:** 32-SS5.
+
+- guest principals (named Google accounts) with view, comment or edit grants on selected notebooks or items;
+- public read-only, expiring, revocable links;
+- the owner remains the sole administrator; the vault, admin, devices and AI settings are never shared ([PD-139](PHASE32SS_PLAN.md)).
+
+**Exit gate:** guest isolation (no vault, admin, device, sync or tools-state access), link expiry and revocation, and audit coverage pass. SaveSphere-content participants are delivered here; Phase 53 keeps general workbench participants.
+
 ## Core Expansion Roadmap
 
 <a id="phase-32"></a>
@@ -547,6 +651,8 @@ Non-AI deterministic/heuristic alternatives remain valuable and should coexist w
 
 AI actions must be user-initiated or explicitly configured, must respect the no-silent-transmission boundary, and must never silently replace a deterministic implementation that can provide an exact answer.
 
+**SaveSphere overlap (2026-10-25).** Phase 32-SS5 adds a Hub-side AI provider interface with per-task disclosure and spend caps for SaveSphere's organizer and Copilot ([PD-135](PHASE32SS_PLAN.md)). This phase may run its assistants through that interface or keep the desktop LLM bridge. It does not inherit SaveSphere's confidence-gated auto-apply: AI-assisted utilities stay user-initiated.
+
 **Goal:** apply AI where it meaningfully reduces interpretation/debugging effort without turning every deterministic utility into an LLM wrapper.
 
 <a id="phase-37"></a>
@@ -593,6 +699,7 @@ Ship a browser extension for quick DUDE actions directly in browser workflows wi
 8. **Saved pipeline quick actions**
 9. **Explicit permissions model**
 10. **Minimal-permission defaults**
+11. **Save to SaveSphere** — clip the current URL, a selection or a page into SaveSphere through the token-only ingest API delivered in 32-SS3 (added 2026-10-25; [PD-131](PHASE32SS_PLAN.md))
 
 <a id="notes-7"></a>
 
@@ -625,6 +732,8 @@ The Windows-first decision should establish the product, not permanently limit i
 13. Linux packaging: AppImage/deb/rpm where practical
 14. Cross-platform native CI
 
+**SaveSphere overlap (2026-10-25).** Until this phase delivers a Linux desktop, a Linux machine uses SaveSphere through the PWA, without the Markdown mirror or watched folders ([PD-127](PHASE32SS_PLAN.md)). The Linux build should bring the SaveSphere replica, mirror and watched folders with it.
+
 Goal: make “desktop-first” mean desktop generally while retaining Windows as the initial reference platform.
 
 <a id="phase-40"></a>
@@ -645,6 +754,8 @@ Goal: make “desktop-first” mean desktop generally while retaining Windows as
 12. Per-rule permissions
 
 **Phase 29 foundation and remaining scope:** Phase 29 shipped remembered-folder grants, recursive watching, event coalescing, root-level exclusions, a timeline, notifications and a previewed mutation engine. The 12 items above remain the Phase 40 roadmap for rule-driven behavior: rules still need their own triggers, debounce and ignore settings, conflict handling, dry-run review, history, notification settings and permissions. A watch event by itself does not authorize a write; Phase 40 must define how automatic actions meet [Destructive-Action Contract](../architecture/SECURITY_ARCHITECTURE.md#destructive-action-contract) or an explicitly specified standing authorization contract without silently overwriting work.
+
+**SaveSphere overlap (2026-10-25).** Phase 32-SS3 builds two SaveSphere-specific uses on the Phase 29 watcher: read-only capture from per-device watched folders, and the two-way Markdown mirror under a standing per-folder authorization ([PD-131](PHASE32SS_PLAN.md), [PD-133](PHASE32SS_PLAN.md)). General rule-driven automation, auto-format, auto-run pipelines and output-to-file actions stay here.
 
 Goal: turn the file-watch infrastructure into useful automation without surprising users or overwriting work silently.
 
@@ -1250,6 +1361,8 @@ Goal: consolidate DUDE's scattered certificate utilities into a coherent PKI tro
 11. Optional end-to-end encrypted session payloads
 12. Explicitly separate user-hosted relay from any later DUDE-operated service.
 
+**SaveSphere overlap (2026-10-25).** Named guests and read-only public links for SaveSphere content are delivered earlier, in Phase 32-SS6 ([PD-139](PHASE32SS_PLAN.md)). This phase keeps named participants, permissions and read-only participants for the rest of the workbench (pipelines, scratchpads, structured-data inspection and relay sessions), and should reuse the 32-SS6 guest principal rather than invent a second one.
+
 Goal: generalize the successful Markdown collaboration foundation into workbench-level collaboration.
 
 <a id="phase-54"></a>
@@ -1536,6 +1649,8 @@ Goal: make hundreds of capabilities and accumulated local context discoverable t
 9. Optional Git-backed storage
 10. No proprietary lock-in
 
+**SaveSphere overlap (2026-10-25).** SaveSphere (32-SS2 to 32-SS5) delivers the general knowledge base: items 1, 7, 8 and 10 for all of the owner's content, with a two-way Markdown mirror (an alternative to item 9's Git-backed storage). This phase keeps the developer-specific layer on top of SaveSphere: snippets, command cookbook, saved explanations, architecture notes, links to projects and tools, and optional Git-backed storage. It must use SaveSphere items rather than a second notes store.
+
 Goal: capture the durable knowledge produced while debugging, not just the transient transformations.
 
 <a id="phase-69"></a>
@@ -1554,6 +1669,8 @@ Reduce dependence on external LLM providers.
 8. Embeddings for local search
 9. Local semantic retrieval
 10. Clear model/storage/resource controls
+
+**SaveSphere overlap (2026-10-25).** Items 8 and 9 overlap SaveSphere's semantic search. Whether SaveSphere's embeddings, OCR and transcription run locally on the Hub or with a cloud provider is decided at 32-SS5 planning ([PD-135](PHASE32SS_PLAN.md)). This phase remains the home for device-local model management.
 
 Goal: let privacy-sensitive AI workflows remain entirely on-device where hardware makes that practical.
 
@@ -1770,7 +1887,7 @@ Only **DUDE-operated vendor-hosted variants** in this horizon are conditional an
 
 **Remaining scope:** identity and recovery maturity beyond Phase 31C. Optional vendor-hosted account infrastructure is still blocked; basic local tools require no login.
 
-Owner identity/device registration first arrive in Phase 31C. This phase deepens that foundation; the historical list below remains the continuing acceptance contract, not a second identity implementation.
+Owner identity/device registration first arrive in Phase 31C. This phase deepens that foundation; the historical list below remains the continuing acceptance contract, not a second identity implementation. Google OIDC owner sign-in with linked accounts arrives earlier, in Phase 32-SS1 ([PD-121](PHASE32SS_PLAN.md)), and SaveSphere guests in 32-SS6. Passkeys/WebAuthn and TOTP remain here.
 
 1. DUDE remains fully usable locally without login.
 2. Account creation is optional.
@@ -1786,7 +1903,7 @@ Goal: create the minimum identity layer needed for optional cross-device service
 
 ### Phase 82 — End-to-End Encrypted Sync
 
-**Remaining scope:** client-side/end-to-end encryption, extended data categories and controls. Phase 31D already supplies scoped revision-based Hub sync. TLS transport encryption in that foundation must not be called end-to-end encrypted storage; secret sync remains separate and deferred.
+**Remaining scope:** client-side/end-to-end encryption, extended data categories and controls. Phase 31D already supplies scoped revision-based Hub sync. TLS transport encryption in that foundation must not be called end-to-end encrypted storage; secret sync remains separate and deferred. SaveSphere notes sync through the Hub from 32-SS2 without end-to-end encryption. Its vault is encrypted at rest on the Hub with a separate key ([PD-138](PHASE32SS_PLAN.md)), which is also not end-to-end, so item 6 ("Notes") here means end-to-end encryption for them.
 
 1. Preferences
 2. Themes
@@ -1875,6 +1992,8 @@ Goal: support groups that want DUDE as shared developer infrastructure.
 10. Offline/air-gapped mode
 11. Signed deployment artifacts
 12. Administrative update rings
+
+Item 1 means organizational SSO. The owner's personal Google OIDC sign-in is delivered in Phase 32-SS1 ([PD-121](PHASE32SS_PLAN.md)).
 
 Goal: make organizational adoption possible without weakening the standalone local product.
 
@@ -1967,6 +2086,8 @@ Not a mobile-first redesign of every tool.
 7. Scan QR/barcodes into a desktop workspace
 8. Secure device handoff
 
+Item 1 is delivered for SaveSphere in Phases 32-SS2 to 32-SS4: a full Android SaveSphere replica with editing and ink, beyond "view" ([PD-126](PHASE32SS_PLAN.md)). Android push for SaveSphere reminders arrives in 32-SS5 ([PD-137](PHASE32SS_PLAN.md)).
+
 Goal: make mobile useful as a companion without pretending a phone is the ideal interface for the full DUDE workstation.
 
 <a id="phase-92"></a>
@@ -2058,6 +2179,8 @@ Goal: fund long-term development without damaging the local-first product.
 8. Offline extension bundles
 9. Administrative policies
 10. Backup/restore
+
+Phase 32-SS1 adds personal backup destinations, including another DUDE device as a warm standby promoted by hand ([PD-124](PHASE32SS_PLAN.md)). Automatic standby and failover remain here.
 
 Goal: let organizations operate the complete DUDE platform under their own infrastructure.
 
@@ -2182,7 +2305,7 @@ The GitHub Pages build remains important throughout this roadmap, but from Phase
 
 The progression is deliberate. Phases 22–26 slow raw feature accumulation to decompose registry/metadata debt, strengthen correctness and release confidence, improve discovery, mature the desktop shell, and harden the web companion before DUDE adds significantly more native power.
 
-Phases 27–31 delivered the native/workbench expansion. The inserted Phases 31A–31J establish the distributed architecture and collaboration depth strictly in order, completing every phase and its exit gate before Phase 32 begins. Phases 32–38 then resume the core expansion. Their authoritative text is intentionally self-contained: each phase states the static/browser-safe capabilities it complements, the live/native boundary it crosses, the relevant safety rules, and the full feature scope. No phase in this range depends on an obsolete numbering scheme or an archived roadmap definition to explain what it means.
+Phases 27–31 delivered the native/workbench expansion. The inserted Phases 31A–31J established the distributed architecture and collaboration depth strictly in order. The inserted Phases 32-SS1 to 32-SS6 then build SaveSphere, the owner's personal knowledge system, on that foundation ([SaveSphere Program](#savesphere-program)). Phases 32–38 then resume the core expansion. Their authoritative text is intentionally self-contained: each phase states the static/browser-safe capabilities it complements, the live/native boundary it crosses, the relevant safety rules, and the full feature scope. No phase in this range depends on an obsolete numbering scheme or an archived roadmap definition to explain what it means.
 
 The longer progression remains: 39–55 deepen the interconnected workbench; 56–68 turn DUDE into an extensible automation platform; 69–80 move into AI/project/IDE-adjacent territory under the workbench-identity gate; 81–96 retain advanced identity/encryption/continuity, team, enterprise, mobile and commercial depth, with only vendor-hosted variants blocked behind the explicit product boundary; and 97–100 describe DUDE as a platform/ecosystem.
 
@@ -2225,5 +2348,7 @@ The registry taxonomy remains closed at eight categories. Roadmap domains do not
 | Web | URLs, HTTP and browser-safe web utilities |
 | Developer | Code, native networking, filesystem and Windows troubleshooting |
 | Documents | Markdown, rich text, markup previews and image/document workflows |
+
+SaveSphere (Phases 32-SS1 to 32-SS6) is a shell destination, not registry tools, so it adds no category and needs no entry in this map ([PD-125](PHASE32SS_PLAN.md)).
 
 [Tool Categories](../architecture/SYSTEM_ARCHITECTURE.md#tool-categories) defines registry behavior. Phase inventories above and in Delivery History retain individual tool requirements.

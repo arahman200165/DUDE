@@ -14,6 +14,7 @@ Related: [DUDE System Architecture](../architecture/SYSTEM_ARCHITECTURE.md) · [
 - [Build and Deployment](#build-and-deployment)
 - [Documentation Deliverables](#documentation-deliverables)
 - [DUDE 2.0 Distributed Release Definition of Done — All Planned](#dude-20-distributed-release-definition-of-done--all-planned)
+- [SaveSphere First Release Definition of Done — All Planned](#savesphere-first-release-definition-of-done--all-planned)
 - [Tool Verification](#tool-verification)
 - [Versioning and Upgrade Evidence](#versioning-and-upgrade-evidence)
 
@@ -351,6 +352,42 @@ The historical V1 checklist above remains a delivered record. The following chec
 - [x] Deferred remote execution, E2EE credential sync, automatic failover, multi-master, complete mobile tool parity and vendor-operated hosting are not implied by the release.
 
 **Release gate:** Phases 31A–31I and this checklist must pass before DUDE is represented as delivering the complete initial distributed desktop/web/mobile scope. A private desktop/Hub preview at 31G may be useful, but is not completion of the Android-inclusive release. Richer collaboration in 31J followed and closed at Milestone 815 ([acceptance](PHASE31J_ACCEPTANCE.md)); the authenticated WebSocket/realtime foundation may not be omitted.
+
+## SaveSphere First Release Definition of Done — All Planned
+
+SaveSphere is planned as Phases 32-SS1 to 32-SS6 ([decisions PD-116–PD-140](PHASE32SS_PLAN.md), [SaveSphere documentation](../savesphere/README.md)). Its first release gate closes at the end of 32-SS5 ([PD-117](PHASE32SS_PLAN.md)). Every item below starts unchecked and is checked only when its evidence is recorded in a phase acceptance document. Each 32-SS phase also has its own exit gate in the [Roadmap](ROADMAP.md#savesphere-program). The testing posture is unchanged: protect against data loss and broken trust rather than chase coverage.
+
+**Platform (32-SS1)**
+- [ ] A fresh Windows install designated as Hub runs the provisioning wizard to completion: storage tiers and services are created and reported, the owner's bare domain is reachable through the managed Cloudflare Tunnel (and, separately, through direct Public mode), and both pass the readiness gate.
+- [ ] Google sign-in binds only after a signed-in round-trip, several owner accounts can be linked, an unlinked Google account is refused and audited, and the Hub stays fully usable with Google unreachable through the password and recovery-code fallback.
+- [ ] Every route on the domain requires a session except the documented exceptions; the GitHub Pages companion still works anonymously.
+- [ ] Backup v2 streams a Hub larger than 512 MiB, including the blob store, to each destination kind. The backup verifies and restores on a second machine with the 31G authority rules, and a warm-standby device can be promoted by hand.
+
+**Preservation and synchronization (32-SS2, 32-SS3)**
+- [ ] No captured or edited content is lost:
+  - offline captures and edits on desktop, Android and the PWA capture queue survive restart and replay idempotently;
+  - concurrent edits merge, or produce a linked conflict copy, never silent loss;
+  - interrupted uploads resume;
+  - a capture retried after a timeout never creates a duplicate.
+- [ ] Originals are byte-identical after capture, import, sync, backup and restore (SHA-256 verified). Derived text never replaces an original, and tiered history thins versions without ever thinning an original.
+- [ ] Each owner source imports from a real export of the owner's own data, with preview, idempotent re-run and a report: Samsung Notes PDFs, Evernote ENEX, OneNote, WhatsApp, Teams, Instagram, TikTok and email archives. Every conversion gap found is either fixed or recorded as a known limitation.
+- [ ] The export round-trips. The Markdown mirror round-trips both ways with conflict copies and no deletion outside its folder, under the Destructive-Action Contract.
+
+**Editing (32-SS2, 32-SS4)**
+- [ ] Rich text, hybrid ink and text, PDF annotation (original untouched) and canvases work on the declared surfaces. Ink works on the Galaxy S25 Ultra, a Samsung S Pen tablet and a Windows pen, and is view-only elsewhere. Physical-device passes are recorded.
+
+**Organization, search and Copilot (32-SS5)**
+- [ ] Search finds typed text, OCR text, recognized handwriting, transcripts and PDF annotations on a corpus of at least 50,000 items within measured, recorded budgets.
+- [ ] Confidence-gated organization applies only above its threshold, records undoable "AI" revisions, never touches a pinned field, and never deletes, merges or rewrites owner text.
+- [ ] Copilot answers cite only sources that were actually retrieved, and an unverifiable citation is dropped. Prompt-injection fixtures in captured content cannot trigger writes, fetches or vault access. Every AI task's disclosure and the spend cap are enforced, and SaveSphere stays usable with no AI provider configured.
+- [ ] Reminders and resurfaced items arrive on each configured channel with content-free payloads.
+
+**Security (all phases)**
+- [ ] The vault never leaks: it is absent from indexes, AI requests, the mirror, ingest and sharing, appears in backups only as ciphertext, and re-locks when idle.
+- [ ] Ingest tokens are scoped, hashed, revocable and refused outside the ingest path. The SSRF suite (private, metadata and IPv6 forms, redirects, DNS rebinding) passes. Mail from senders outside the allowlist, or failing SPF/DKIM, is rejected.
+- [ ] New routes are contract-first with `@dude/api-client` parity and closed-list audit events, and no credential or content is logged.
+
+**Release gate:** 32-SS1 to 32-SS5 and this checklist must pass before SaveSphere is represented as released. 32-SS6 sharing has its own exit gate (guest isolation, link expiry and revocation, audit) and is not part of the first release.
 
 ## Tool Verification
 

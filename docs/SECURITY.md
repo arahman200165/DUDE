@@ -1,12 +1,12 @@
 # Security
 
-DUDE is a local-first, client-side app: by default, everything you paste, upload, or generate stays in your browser tab (or, on desktop, on your machine) and is never sent anywhere. This document is the concrete, current-state accounting of the handful of places that isn't strictly true, what gets stored and where, the sandbox execution model's guarantees and limits, the Electron desktop app's process/IPC boundaries, and how to report a vulnerability.
+DUDE is a local-first, client-side app: by default, everything you paste, upload, or generate stays in your browser tab (or, on desktop, on your machine) and is never sent anywhere. The one deliberate, larger exception is the optional self-hosted Hub: once you enroll a device and confirm its first sync, the categories you chose synchronize to your own Hub (see [Self-hosted Hub](#self-hosted-hub-and-planned-savesphere)). This document is the concrete, current-state accounting of the handful of places that isn't strictly true, what gets stored and where, the sandbox execution model's guarantees and limits, the Electron desktop app's process/IPC boundaries, and how to report a vulnerability.
 
 See [`README.md`](../README.md) for the product overview and the master [PRD](DUDE_PRD.md), plus [Large Inputs](product/PRODUCT_SPEC.md#large-inputs), [Sensitive Inputs](architecture/SECURITY_ARCHITECTURE.md#sensitive-inputs) and [Security Boundaries](architecture/SECURITY_ARCHITECTURE.md#security-boundaries) for the underlying product requirements (Large Inputs, Sensitive Inputs, Security Boundaries) this document reports the current implementation of.
 
 ## What leaves the device
 
-Nothing, by default. The four tools below and the desktop-only network diagnostics are the only exceptions. Each requires an explicit user action per use; none of them calls out automatically or in the background:
+Nothing, by default. The four tools below and the desktop-only network diagnostics are the only tool exceptions; synchronization to your own Hub, after enrollment and consent, is covered [below](#self-hosted-hub-and-planned-savesphere). Each requires an explicit user action per use; none of them calls out automatically or in the background:
 
 - **JWT Signature Verifier** (`/tools/jwt-verify`) — in JWKS mode, fetches the JWKS URL you supply (`jose`'s `createRemoteJWKSet`), or, if you pick a named preset (Auth0, Okta, Azure AD, Google), first fetches that provider's `.well-known/openid-configuration` discovery document to find its `jwks_uri`. In every case, the only thing that leaves your browser is a GET request to a URL you provided or explicitly selected — never the JWT itself, never its payload.
 - **Text Inspector** (`/tools/text-inspector`) — its grammar-check mode sends the text you're checking to the public LanguageTool API (`https://api.languagetool.org/v2/check`) via a manual "Check" button, not live-as-you-type. This is the one tool where pasted content itself is transmitted; don't use it on text you don't want a third-party service to see.
@@ -35,7 +35,20 @@ Every tool declares a persistence policy per piece of state (`ToolPersistencePol
 
 Desktop network diagnostics keep results in memory for the session. A result is written to disk only when you click **Save to History**: saved runs go to IndexedDB (`dude:v1:network-history`), without request headers, request bodies, downloaded HTTP bodies, or `Authorization`/`Proxy-Authorization`/`Set-Cookie` response headers. They are capped at 100 runs, 30 days, and 50 MB, and deleted by the tool's Delete and Clear controls or by clearing all data. Restoring a saved run never reruns it.
 
-Nothing here is ever synced, uploaded, or visible to anyone but you on your own device/browser profile. There is no account system and no server-side storage of any kind.
+Nothing here is ever uploaded to a third party or visible to anyone but you. Tool inputs and outputs are never synchronized. The only server-side storage is your own optional self-hosted Hub, which holds only the categories you consented to sync (settings, favorites, pipelines and similar workbench definitions) and its owner, device and audit records. DUDE operates no account system or server of its own.
+
+## Self-hosted Hub and planned SaveSphere
+
+The optional DUDE Hub runs on a machine you own. It authenticates you as its single owner (password and recovery codes), pairs your devices, and synchronizes only the categories you enable after a first-sync preview. It is private (loopback or LAN) unless you deliberately pass its elevated public-mode readiness gate. Its trust model, credentials, exposure modes, backups and audit are specified in [Security Architecture](architecture/SECURITY_ARCHITECTURE.md).
+
+**Planned, not implemented: SaveSphere (Phases 32-SS1 to 32-SS6).** SaveSphere will make the Hub the home of your personal knowledge system ([plan](savesphere/README.md)):
+- **Storage.** Content you explicitly capture (notes, files, emails, links, imports) is stored on your Hub.
+- **Sign-in.** Google sign-in is added, with the password as fallback.
+- **Ingress.** Your domain can be served through a Cloudflare Tunnel, which lets Cloudflare see traffic at its edge, or through direct Public mode, which does not.
+- **AI.** AI features send content to the provider you configure, disclosed per task.
+- **Vault.** An encrypted vault for sensitive items is kept out of AI and search.
+
+This document will describe each of these as it ships. Until then, the planned contract is in [Security Architecture — Planned for SaveSphere](architecture/SECURITY_ARCHITECTURE.md#planned-for-savesphere-phases-32-ss1-to-32-ss6).
 
 ## Sandboxed code execution
 

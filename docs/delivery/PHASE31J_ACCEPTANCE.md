@@ -214,7 +214,7 @@ Closed 2026-10-24. Phase 31J's scope (presence, selected Yjs collaboration, real
 
 **Not delivered, by decision.** Named participants, read-only participants and guest permissions (Phase 53; the Hub keeps one owner); remote or privileged job execution, a job queue and "Run now" (Phase 88); a generic Yjs replication protocol (Yjs is only for the three PD-099 surfaces); a `job-status` event; and a `measure:collab` measurement. The ephemeral LAN server and BYO relay for Markdown Workspace are unchanged. Remote privileged execution stays deferred to Phase 88.
 
-**Next.** Phase 32 is the next planned phase. Nothing in it has started.
+**Next.** Phase 32 is the next planned phase. Nothing in it has started. *Superseded 2026-10-25:* the SaveSphere program, Phases 32-SS1 to 32-SS6, was inserted ahead of Phase 32 ([decisions](PHASE32SS_PLAN.md), [roadmap](ROADMAP.md#savesphere-program)). The owed passes above still do not gate it.
 
 <a id="follow-ups-after-close-out"></a>
 
