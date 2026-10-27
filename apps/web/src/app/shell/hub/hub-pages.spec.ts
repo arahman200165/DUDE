@@ -6,6 +6,7 @@ import { CODES, SETUP_TOKEN_VALUE, buttonWithText, fakeHubAdmin, settle, signInR
 import { HubRecoverPage } from './hub-recover-page';
 import { HubSetupPage } from './hub-setup-page';
 import { HubSignInPage } from './hub-sign-in-page';
+import { HUB_NAVIGATE_EXTERNAL } from './hub-utils';
 
 function configure(admin: ReturnType<typeof fakeHubAdmin>, returnUrl?: string) {
   TestBed.configureTestingModule({
@@ -172,6 +173,81 @@ describe('HubSignInPage', () => {
     const res = await signIn(undefined, admin);
     expect(text(res.el, 'error')).toContain('12 s');
     expect(submitButton(res.el).disabled).toBe(true);
+  });
+
+  describe('Google sign-in (Milestone 842)', () => {
+    const withGoogle = async (options: { query?: Record<string, string>; enabled?: boolean; prepare?: (admin: ReturnType<typeof fakeHubAdmin>) => void } = {}) => {
+      const admin = fakeHubAdmin();
+      admin.oidcStatus.mockResolvedValue({ configured: true, enabled: options.enabled ?? true });
+      options.prepare?.(admin);
+      const navigateExternal = vi.fn(() => true);
+      TestBed.configureTestingModule({
+        providers: [
+          provideRouter([]), { provide: HUB_ADMIN, useValue: admin }, { provide: HUB_NAVIGATE_EXTERNAL, useValue: navigateExternal },
+          { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap(options.query ?? {}) } } },
+        ],
+      });
+      vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+      const fixture = TestBed.createComponent(HubSignInPage);
+      await settle(fixture);
+      return { fixture, el: fixture.nativeElement as HTMLElement, admin, navigateExternal };
+    };
+    const google = (el: HTMLElement) => el.querySelector('[data-testid="google-continue"]') as HTMLButtonElement | null;
+
+    it('keeps the password form as the only way in when Google is off (and on the Pages companion, where the port has no Google at all)', async () => {
+      const off = await withGoogle({ enabled: false });
+      expect(google(off.el)).toBeNull();
+      expect(off.el.querySelector('input[name="password"]')).not.toBeNull();
+    });
+
+    it('offers Google first, with the password and recovery under "Other ways to sign in"', async () => {
+      const { fixture, el } = await withGoogle();
+      expect(google(el)?.textContent?.trim()).toBe('Continue with Google');
+      expect(el.querySelector('input[name="password"]')).toBeNull(); // collapsed
+      const toggle = Array.from(el.querySelectorAll('button')).find((b) => b.textContent?.includes('Other ways to sign in')) as HTMLButtonElement;
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+      toggle.click();
+      fixture.detectChanges();
+      expect(el.querySelector('input[name="password"]')).not.toBeNull();
+      expect(el.querySelector('a[href="/hub/recover"]')).not.toBeNull();
+    });
+
+    it('Continue with Google asks the Hub for the URL with the safe return path and leaves for it', async () => {
+      const { fixture, el, admin, navigateExternal } = await withGoogle({ query: { returnUrl: '/settings/security' } });
+      admin.oidcSignInStart.mockResolvedValue({ authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth?x=1', expiresAt: 'x' });
+      google(el)!.click();
+      await settle(fixture);
+      expect(admin.oidcSignInStart).toHaveBeenCalledWith('/settings/security');
+      expect(navigateExternal).toHaveBeenCalledWith('https://accounts.google.com/o/oauth2/v2/auth?x=1');
+    });
+
+    it('an unreachable Google explains itself, opens the password form and keeps the page usable', async () => {
+      const { fixture, el, admin, navigateExternal } = await withGoogle();
+      admin.oidcSignInStart.mockRejectedValue(new HubAdminError('oidc-unavailable', 'x'));
+      google(el)!.click();
+      await settle(fixture);
+      expect(navigateExternal).not.toHaveBeenCalled();
+      expect(text(el, 'google-notice')).toContain('password');
+      expect(el.querySelector('input[name="password"]')).not.toBeNull();
+      expect(google(el)!.disabled).toBe(false);
+    });
+
+    it.each([['failed', 'did not complete'], ['unavailable', 'not available'], ['locked', 'Too many']])('shows the %s outcome of a returned Google attempt and opens the password form', async (value, expected) => {
+      const { el } = await withGoogle({ query: { oidc: value } });
+      expect(text(el, 'google-notice')).toContain(expected);
+      expect(el.querySelector('input[name="password"]')).not.toBeNull();
+    });
+
+    it('ignores any other ?oidc= value (nothing from the address bar is rendered)', async () => {
+      const { el } = await withGoogle({ query: { oidc: '<img src=x onerror=alert(1)>' } });
+      expect(el.querySelector('[data-testid="google-notice"]')).toBeNull();
+    });
+
+    it('still shows the outcome when Google has become unavailable (the password form is the only form)', async () => {
+      const { el } = await withGoogle({ enabled: false, query: { oidc: 'unavailable' } });
+      expect(text(el, 'google-notice')).toContain('not available');
+      expect(el.querySelector('input[name="password"]')).not.toBeNull();
+    });
   });
 
   it('redirects to setup when the Hub is not bootstrapped', async () => {

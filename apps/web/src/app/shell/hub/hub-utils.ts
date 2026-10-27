@@ -1,5 +1,18 @@
-import { DestroyRef, inject, signal } from '@angular/core';
+import { DestroyRef, InjectionToken, inject, signal } from '@angular/core';
 import { HubAdminError } from '../../core/hub/hub-admin.port';
+
+/**
+ * Sends the whole browser window to another site (the Google authorization URL). A token so specs never navigate for real; the factory is
+ * the only place that touches `location`. Only an absolute `https:` URL is ever followed; it returns whether it navigated.
+ */
+export const HUB_NAVIGATE_EXTERNAL = new InjectionToken<(url: string) => boolean>('Navigate to an external https URL', {
+  providedIn: 'root',
+  factory: () => (url) => {
+    if (!/^https:\/\//i.test(url)) return false;
+    globalThis.location.assign(url);
+    return true;
+  },
+});
 
 export const MIN_PASSWORD_LENGTH = 12;
 export const PASSWORD_HINT = `At least ${MIN_PASSWORD_LENGTH} characters. A few unrelated words make a strong, memorable password.`;

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { OIDC_FLOW_RETAIN_MS, OIDC_FLOW_TTL_MS, OIDC_MAX_ACTIVE_FLOWS } from './constants.js';
+import { OIDC_FLOW_RETAIN_MS, OIDC_FLOW_TTL_MS, OIDC_LINK_TTL_MS, OIDC_MAX_ACTIVE_FLOWS } from './constants.js';
 import { createOidcFlows, sanitizeReturnTo } from './flows.js';
 import { OWNER_ID, T0, cleanOidcFixtures, openTestHubDb } from './oidc-fixture.js';
 import { codeChallengeS256, sha256Hex } from './pkce.js';
@@ -184,5 +184,64 @@ describe('return_to', () => {
     const started = flows.start({ purpose: 'signin', returnTo: 'https://evil.example/phish' });
     if (started.status !== 'ok') throw new Error('expected ok');
     expect(row(db, started.flow.state)).toMatchObject({ return_to: '/' });
+  });
+});
+
+describe('the verified link (Milestone 842)', () => {
+  const identity = { sub: 'google-sub-1', email: 'a@example.com', issuer: 'https://accounts.google.com' };
+  const linkFlow = (flows: ReturnType<typeof createOidcFlows>, returnTo = '/settings/security') => {
+    const started = flows.start({ purpose: 'link', ownerId: OWNER_ID, sessionHash: 'session-1', returnTo });
+    if (started.status !== 'ok') throw new Error('expected ok');
+    return started.flow.state;
+  };
+  const anySession = { ownerId: OWNER_ID, sessionAllowed: (hash: string) => hash === 'session-1' };
+
+  it('records the verified subject only on a consumed link flow, once, and stores only the hash of the token', () => {
+    const { db, flows } = setup();
+    const state = linkFlow(flows);
+    expect(flows.recordVerified(state, identity)).toBeUndefined(); // not consumed yet
+    flows.consume(state);
+    const recorded = flows.recordVerified(state, identity)!;
+    expect(recorded.linkToken).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(flows.recordVerified(state, identity)).toBeUndefined(); // once
+    expect(JSON.stringify(db.prepare('SELECT * FROM oidc_flows').all())).not.toContain(recorded.linkToken);
+    expect(row(db, state)).toMatchObject({ link_token_hash: sha256Hex(recorded.linkToken), verified_sub: 'google-sub-1' });
+
+    const signin = flows.start({ purpose: 'signin' });
+    if (signin.status !== 'ok') throw new Error('expected ok');
+    flows.consume(signin.flow.state);
+    expect(flows.recordVerified(signin.flow.state, identity)).toBeUndefined(); // a sign-in flow never carries a link
+  });
+
+  it('is claimed once, by the owner and the session that started it, within the token lifetime', () => {
+    const { clock, flows } = setup();
+    const state = linkFlow(flows);
+    flows.consume(state);
+    const { linkToken } = flows.recordVerified(state, identity)!;
+    expect(flows.claimVerified(linkToken, { ownerId: 'someone-else', sessionAllowed: () => true })).toEqual({ status: 'refused', reason: 'wrong-owner' });
+    expect(flows.claimVerified(linkToken, { ownerId: OWNER_ID, sessionAllowed: () => false })).toEqual({ status: 'refused', reason: 'wrong-session' });
+    expect(flows.claimVerified(linkToken, anySession)).toEqual({ status: 'ok', identity, returnTo: '/settings/security' });
+    expect(flows.claimVerified(linkToken, anySession)).toEqual({ status: 'refused', reason: 'completed' });
+  });
+
+  it('refuses a malformed, unknown or expired token', () => {
+    const { clock, flows } = setup();
+    const state = linkFlow(flows);
+    flows.consume(state);
+    const { linkToken } = flows.recordVerified(state, identity)!;
+    expect(flows.claimVerified('short', anySession)).toEqual({ status: 'refused', reason: 'malformed' });
+    expect(flows.claimVerified('A'.repeat(43), anySession)).toEqual({ status: 'refused', reason: 'unknown' });
+    clock.now += OIDC_LINK_TTL_MS;
+    expect(flows.claimVerified(linkToken, anySession)).toEqual({ status: 'refused', reason: 'expired' });
+  });
+
+  it('a pending verified link survives the sweep for its whole lifetime', () => {
+    const { clock, flows } = setup();
+    const state = linkFlow(flows);
+    flows.consume(state);
+    const { linkToken } = flows.recordVerified(state, identity)!;
+    clock.now += OIDC_LINK_TTL_MS - 1000;
+    flows.sweep();
+    expect(flows.claimVerified(linkToken, anySession).status).toBe('ok');
   });
 });

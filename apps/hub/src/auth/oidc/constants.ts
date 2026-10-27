@@ -14,8 +14,10 @@ export const OIDC_SCOPE = 'openid email';
 
 /** A flow is valid this long from the authorization request (the owner may need to pick an account and approve). */
 export const OIDC_FLOW_TTL_MS = 10 * 60_000;
-/** A consumed or expired flow row is kept this long so a replay is told apart from an unknown state, then swept. */
-export const OIDC_FLOW_RETAIN_MS = 10 * 60_000;
+/** The verified link's one-time completion token is valid this long after the callback (the owner may need to re-confirm the password). */
+export const OIDC_LINK_TTL_MS = 10 * 60_000;
+/** A consumed or expired flow row is kept this long so a replay is told apart from an unknown state, then swept (and so a verified link outlives its completion token). */
+export const OIDC_FLOW_RETAIN_MS = 20 * 60_000;
 /** At most this many unexpired, unconsumed flows exist at once; `signin` starts are unauthenticated, so the table is bounded. */
 export const OIDC_MAX_ACTIVE_FLOWS = 200;
 

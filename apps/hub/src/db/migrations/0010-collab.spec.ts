@@ -35,7 +35,7 @@ describe('migration 0010 collab', () => {
     const upgraded = openHubDb(options);
     if (upgraded.status !== 'ready') throw new Error('expected ready');
     const { db } = upgraded.hub;
-    expect(getMeta(db, 'schema_version')).toBe('11');
+    expect(getMeta(db, 'schema_version')).toBe('12');
     expect(getMeta(db, 'min_reader_version')).toBe('10');
     const tables = (db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'collab_%'").all() as Array<{ name: string }>).map((r) => r.name).sort();
     expect(tables).toEqual(['collab_bases', 'collab_docs', 'collab_snapshots', 'collab_updates']);

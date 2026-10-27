@@ -1,7 +1,7 @@
 import { Value } from 'typebox/value';
 import type { TSchema, Static } from 'typebox';
 import {
-  HUB_API_PREFIX, HelloResponse, ErrorEnvelope, checkProtocolCompatibility,
+  HUB_API_PREFIX, HUB_OIDC_PATHS, OidcStatusResponse, OidcStartResponse, OidcLinkCompleteResponse, OidcAccountsResponse, OidcUnlinkPreview, HelloResponse, ErrorEnvelope, checkProtocolCompatibility,
   BootstrapResponse, TlsCertificatesResponse, AuditListResponse, SecurityAlertsResponse, PresenceResponse, HUB_PRESENCE_PATH, HubJobsResponse, HUB_JOBS_PATH, HubQueueStatusResponse, HUB_QUEUE_PATH, HubProvisioningResponse, HUB_PROVISIONING_PATH, HubTunnelStatusResponse, HUB_TUNNEL_PATH, HubNotificationsResponse, HUB_NOTIFICATIONS_PATH, CollabRoom, CollabRoomsResponse, HUB_COLLAB_ROOMS_PATH, KeepCollabRoomResponse, CollabDocumentsResponse, HUB_COLLAB_DOCUMENTS_PATH, CollabHistoryResponse, CollabSnapshotResponse, CollabRestoreResponse, HUB_COLLAB_HISTORY_PATH, HubDiagnosticsReport, ReachabilityEchoResponse, BackupStatusResponse,
   EnrollResponse, DeviceChallengeResponse, DeviceRecoveryChallengeResponse, DeviceTokenResponse, DeviceInfo, DeviceListResponse, OwnerBearerResponse, PairingCodeResponse,
   OkResponse, ConfirmPreview, SessionListResponse, RecoveryCodesResponse,
@@ -125,6 +125,23 @@ export interface HubClient {
   changePassword(auth: Bearer, currentPassword: string, newPassword: string): Promise<ChangePasswordResponse>;
   stepUp(auth: Bearer, password: string): Promise<StepUpResponse>;
 
+  /**
+   * Google sign-in (32-SS1, Milestone 842, PD-121, PD-145). `oidcStatus` and `oidcStart` need no credential: the status says whether to offer
+   * Google, the start returns the authorization URL a browser navigates to (a failure is HTTP 503 code `oidc-unavailable`, and the password
+   * still works). The provider's redirect back is a browser navigation to the Hub's callback route, never a client call.
+   */
+  oidcStatus(): Promise<OidcStatusResponse>;
+  oidcStart(returnTo?: string): Promise<OidcStartResponse>;
+  /** Owner COOKIE session plus step-up (the browser): leg one of linking another Google account; returns the authorization URL. */
+  oidcLinkStart(returnTo?: string): Promise<OidcStartResponse>;
+  /** Owner COOKIE session plus step-up: leg two, with the one-time `linkToken` the callback put in the return URL; binds the verified `sub`. 409 when already linked. */
+  oidcLinkComplete(linkToken: string): Promise<OidcLinkCompleteResponse>;
+  /** Owner (cookie: omit `auth`; or bearer): the linked Google accounts (display address and times; never the subject). */
+  listOidcAccounts(auth: Bearer): Promise<OidcAccountsResponse>;
+  /** Owner plus step-up: step one of an unlink; changes nothing, returns the single-use token and the consequence class. 409 for the last account. */
+  unlinkOidcPreview(auth: Bearer, accountId: string): Promise<OidcUnlinkPreview>;
+  unlinkOidc(auth: Bearer, accountId: string, confirmToken: string): Promise<OkResponse>;
+
   // Synchronization (Phase 31D). Device token required, except summary and the environment clear (owner).
   syncPush(auth: Bearer, ops: readonly SyncOp[], options?: SyncPushOptions): Promise<SyncPushResponse>;
   /** A cursor older than the Hub's retained history rejects with `HubApiError` status 410, code `cursor-expired`. */
@@ -228,6 +245,14 @@ export function createHubClient(transport: HubTransport, opts: HubClientOptions)
     regenerateRecoveryCodes: (auth, confirmToken) => call(RecoveryCodesResponse, { method: 'POST', path: `${P}/owner/recovery-codes`, body: { confirmToken } }, auth),
     changePassword: (auth, currentPassword, newPassword) => call(ChangePasswordResponse, { method: 'POST', path: `${P}/owner/password`, body: { currentPassword, newPassword } }, auth),
     stepUp: (auth, password) => call(StepUpResponse, { method: 'POST', path: `${P}/auth/step-up`, body: { password } }, auth),
+
+    oidcStatus: () => call(OidcStatusResponse, { method: 'GET', path: HUB_OIDC_PATHS.status }),
+    oidcStart: (returnTo) => call(OidcStartResponse, { method: 'POST', path: HUB_OIDC_PATHS.start, body: returnTo === undefined ? {} : { returnTo } }),
+    oidcLinkStart: (returnTo) => call(OidcStartResponse, { method: 'POST', path: HUB_OIDC_PATHS.linkStart, body: returnTo === undefined ? {} : { returnTo } }),
+    oidcLinkComplete: (linkToken) => call(OidcLinkCompleteResponse, { method: 'POST', path: HUB_OIDC_PATHS.linkComplete, body: { linkToken } }),
+    listOidcAccounts: (auth) => call(OidcAccountsResponse, { method: 'GET', path: HUB_OIDC_PATHS.accounts }, auth),
+    unlinkOidcPreview: (auth, accountId) => call(OidcUnlinkPreview, { method: 'POST', path: HUB_OIDC_PATHS.unlinkPreview, body: { accountId } }, auth),
+    unlinkOidc: (auth, accountId, confirmToken) => call(OkResponse, { method: 'POST', path: HUB_OIDC_PATHS.unlink, body: { accountId, confirmToken } }, auth),
 
     syncPush: (auth, ops, options) => call(SyncPushResponse, { method: 'POST', path: `${P}${SYNC_PATHS.push}`, body: pushBody(ops, options) }, auth),
     syncChanges: async (auth, after, limit, categories) => {

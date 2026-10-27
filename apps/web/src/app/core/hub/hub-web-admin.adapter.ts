@@ -2,7 +2,7 @@ import type {
   AuditListResponse, BackupStatusResponse, SecurityAlertsResponse, BootstrapRequest, BootstrapResponse, ConfirmPreview, CurrentSessionResponse, DeviceInfo, DeviceListResponse, OkResponse, SyncSummary, HubDiagnosticsReport, ReachabilityEchoResponse, TlsCertificatesResponse,
   OwnerResetResponse, PairingCodeResponse, PresenceEntry, PresenceResponse, RecoveryCodesResponse, SessionListResponse, SignInResponse,
   HubJobsResponse, HubNotificationsResponse, NotificationEventData, CollabRoom, CollabRoomsResponse, KeepCollabRoomResponse, CollabDocumentsResponse,
-  CollabHistoryResponse, CollabSnapshotResponse, CollabRestoreResponse,
+  CollabHistoryResponse, CollabSnapshotResponse, CollabRestoreResponse, OidcStatusResponse, OidcStartResponse, OidcLinkCompleteResponse, OidcAccountsResponse, OidcUnlinkPreview,
 } from '@dude/contracts/hub';
 import type { HubClient } from '@dude/api-client';
 import { HUB_ADMIN_UNAVAILABLE, HubAdminError, HubAdminPort, HubEnrollment, HubOwnerStatus, HubProbe, HubStatus } from './hub-admin.port';
@@ -179,6 +179,14 @@ export function createHubWebAdmin(options: HubWebAdminOptions): HubAdminPort {
       if (response.csrfToken !== null) hubCsrf.set(response.csrfToken);
       return response;
     },
+
+    oidcStatus: (): Promise<OidcStatusResponse> => viaClient((c) => c.oidcStatus()),
+    oidcSignInStart: (returnTo): Promise<OidcStartResponse> => viaClient((c) => c.oidcStart(returnTo)),
+    listOidcAccounts: (): Promise<OidcAccountsResponse> => viaClient((c) => c.listOidcAccounts(undefined)),
+    oidcLinkStart: (returnTo): Promise<OidcStartResponse> => viaClient((c) => c.oidcLinkStart(returnTo)),
+    oidcLinkComplete: (linkToken): Promise<OidcLinkCompleteResponse> => viaClient((c) => c.oidcLinkComplete(linkToken)),
+    unlinkOidcPreview: (accountId): Promise<OidcUnlinkPreview> => viaClient((c) => c.unlinkOidcPreview(undefined, accountId)),
+    unlinkOidc: (accountId, token): Promise<OkResponse> => viaClient((c) => c.unlinkOidc(undefined, accountId, token)),
 
     bootstrap: (request: BootstrapRequest): Promise<BootstrapResponse> => viaClient((c) => c.bootstrap(request)),
     signIn,

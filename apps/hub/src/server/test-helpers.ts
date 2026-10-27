@@ -65,6 +65,8 @@ export interface TestHubOptions {
   provisioning?: CreateHubServerOptions['provisioning'];
   /** Managed tunnel read model and diagnostics facts (`GET /api/v1/tunnel`); absent means not configured. */
   tunnel?: CreateHubServerOptions['tunnel'];
+  /** Google (OIDC) sign-in wiring (the client secret reader and the fake provider's `fetch`); pair with `config.oidc`. */
+  oidc?: CreateHubServerOptions['oidc'];
   /** Serve an existing data root (for example a restored Hub) instead of a fresh temporary one. */
   dataRoot?: string;
 }

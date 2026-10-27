@@ -25,6 +25,7 @@ export const HUB_AUDIT_EVENTS = [
   'blobs.verify-failed', 'blobs.gc-applied',
   'provisioning.run',
   'tunnel.enabled', 'tunnel.disabled', 'tunnel.token-set', 'tunnel.degraded',
+  'oidc.signin', 'oidc.signin-failed', 'oidc.refused-account', 'oidc.link-started', 'oidc.link', 'oidc.unlink', 'oidc.unreachable',
 ] as const;
 export type HubAuditEvent = (typeof HUB_AUDIT_EVENTS)[number];
 

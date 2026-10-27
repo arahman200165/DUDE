@@ -8,6 +8,10 @@ import { envelope, hubErrorHandler } from './errors.js';
 import { registerHelloRoute } from './routes/hello.js';
 import { registerBootstrapRoute } from './routes/bootstrap.js';
 import { registerAuthRoutes } from './routes/auth.js';
+import { OIDC_SWEEP_INTERVAL_MS, registerOidcRoutes, startOidcFlowSweep } from './routes/oidc.js';
+import { createOidcClient } from '../auth/oidc/client.js';
+import type { OidcClient, OidcClientOptions } from '../auth/oidc/client.js';
+import type { FetchLike } from '../auth/oidc/egress.js';
 import { registerSessionRoutes } from './routes/sessions.js';
 import { registerDeviceRoutes } from './routes/devices.js';
 import { registerTlsAuditRoutes } from './routes/tls-audit.js';
@@ -84,6 +88,8 @@ declare module 'fastify' {
     collab: CollabRegistry;
     /** Markdown Workspace rooms (PD-104): ephemeral, in Hub memory only. */
     collabRooms: CollabRooms;
+    /** The Google sign-in relying party (always present; `enabled` is false without an `oidc` block). */
+    oidc: OidcClient;
   }
 }
 
@@ -125,6 +131,12 @@ export interface CreateHubServerOptions {
    * reports the connector for the live configuration, or for the configuration the `network tunnel on` gate is evaluating.
    */
   tunnel?: { status: () => HubTunnelStatusResponse; facts: (candidate?: { enabled: boolean; hostname: string }) => HubDiagnosticsTunnel };
+  /**
+   * Google (OIDC) sign-in (32-SS1, Milestone 842). The Hub always registers the routes; `config.oidc` decides whether they can serve. `run`
+   * supplies the client secret reader and the cheap presence check (request handlers never import the secret store); specs inject the
+   * fake provider's `fetch`, a short flow lifetime and a secret.
+   */
+  oidc?: { readClientSecret?: OidcClientOptions['readClientSecret']; clientSecretPresent?: () => boolean; fetch?: FetchLike; flowTtlMs?: number; timeoutMs?: number };
   logger?: boolean | HubLoggerOptions;
   /** Cheaper Argon2 settings for specs only. */
   passwordParams?: PasswordParams;
@@ -214,6 +226,19 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
     ...(options.passwordParams ? { passwordParams: options.passwordParams } : {}),
   };
   registerAuthRoutes(app, authOptions);
+  // Google sign-in, link and unlink (Milestone 842). The client never throws into a request path; with no `oidc` block it answers `off`.
+  const oidc = createOidcClient({
+    config: options.config.oidc, db: options.hub.db, now,
+    readClientSecret: options.oidc?.readClientSecret ?? (() => ({ status: 'missing' })),
+    ...(options.oidc?.clientSecretPresent ? { clientSecretPresent: options.oidc.clientSecretPresent } : {}),
+    ...(options.oidc?.fetch ? { fetch: options.oidc.fetch } : {}),
+    ...(options.oidc?.flowTtlMs !== undefined ? { flowTtlMs: options.oidc.flowTtlMs } : {}),
+    ...(options.oidc?.timeoutMs !== undefined ? { timeoutMs: options.oidc.timeoutMs } : {}),
+  });
+  app.decorate('oidc', oidc);
+  const stopOidcSweep = startOidcFlowSweep(oidc, OIDC_SWEEP_INTERVAL_MS);
+  app.addHook('onClose', async () => { stopOidcSweep(); });
+  registerOidcRoutes(app, { ...authOptions, oidc });
   registerSessionRoutes(app, authOptions);
   registerTlsAuditRoutes(app, { db: options.hub.db, tlsDir: options.paths.tlsDir, requireOwner: authOptions.requireOwner });
   registerSecurityAlertRoutes(app, { db: options.hub.db, now, requireOwner: authOptions.requireOwner });

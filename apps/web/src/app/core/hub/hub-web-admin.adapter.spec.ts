@@ -398,6 +398,33 @@ describe('Hub web admin adapter', () => {
       expect(isCollabConsentRefusal(await refused.admin.listCollabHistory('scratchpad:default').catch((e: unknown) => e))).toBe(true);
     });
 
+    it('drives Google sign-in, linking and unlinking over the cookie session (Milestone 842)', async () => {
+      const ACCOUNT = { id: 'acc_1', provider: 'google', email: 'a@example.com', linkedAt: '2026-10-27T00:00:00.000Z', lastUsedAt: null };
+      let stepped = false;
+      const { admin, calls } = setup((c) => {
+        if (c.url.endsWith('/auth/step-up')) { stepped = true; return { status: 200, body: { ok: true, csrfToken: 'csrf-2', steppedUpUntil: '2099-01-01T00:00:00.000Z' } }; }
+        if (c.url === '/api/v1/auth/oidc/status') return { status: 200, body: { configured: true, enabled: true } };
+        if (c.url === '/api/v1/auth/oidc/start') return c.body !== undefined && (c.body as { returnTo?: string }).returnTo === '/x' ? { status: 200, body: { authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth?x=1', expiresAt: 'x' } } : { status: 503, body: envelope('oidc-unavailable', 'Use your password instead.') };
+        if (c.url === '/api/v1/auth/oidc/link/start') return stepped ? { status: 200, body: { authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth?y=1', expiresAt: 'x' } } : { status: 403, body: envelope('step-up-required', 'Confirm your password.') };
+        if (c.url === '/api/v1/auth/oidc/link/complete') return { status: 200, body: { account: ACCOUNT } };
+        if (c.url === '/api/v1/auth/oidc/accounts') return { status: 200, body: { accounts: [ACCOUNT] } };
+        if (c.url === '/api/v1/auth/oidc/unlink/preview') return { status: 200, body: { confirmToken: 't', expiresAt: 'x', consequenceClass: ['secret-management'], summary: { action: 'oidc.unlink', accountId: 'acc_1', email: 'a@example.com', remainingAccounts: 1 } } };
+        if (c.url === '/api/v1/auth/oidc/unlink') return { status: 200, body: { ok: true } };
+        return { status: 404, body: envelope('not-found', 'no') };
+      }, { requestStepUp: async () => 'pw' });
+      hubCsrf.set('csrf-1');
+      await expect(admin.oidcStatus?.()).resolves.toEqual({ configured: true, enabled: true });
+      await expect(admin.oidcSignInStart?.('/x')).resolves.toMatchObject({ authorizationUrl: expect.stringContaining('accounts.google.com') });
+      await expect(admin.oidcSignInStart?.()).rejects.toMatchObject({ name: 'HubAdminError', code: 'oidc-unavailable' });
+      await expect(admin.oidcLinkStart?.('/x')).resolves.toMatchObject({ authorizationUrl: expect.stringContaining('y=1') }); // asked for the password, then retried
+      await expect(admin.oidcLinkComplete?.('T'.repeat(43))).resolves.toEqual({ account: ACCOUNT });
+      await expect(admin.listOidcAccounts?.()).resolves.toEqual({ accounts: [ACCOUNT] });
+      await expect(admin.unlinkOidcPreview?.('acc_1')).resolves.toMatchObject({ confirmToken: 't' });
+      await expect(admin.unlinkOidc?.('acc_1', 't')).resolves.toEqual({ ok: true });
+      expect(calls.find((c) => c.url === '/api/v1/auth/oidc/status')?.headers['X-DUDE-CSRF']).toBeUndefined();
+      expect(calls.filter((c) => c.url === '/api/v1/auth/oidc/unlink' || c.url === '/api/v1/auth/oidc/link/complete').map((c) => c.body)).toEqual([{ linkToken: 'T'.repeat(43) }, { accountId: 'acc_1', confirmToken: 't' }]);
+    });
+
     it('adopts the CSRF token returned by a password change', async () => {
       const { admin } = setup(() => ({ status: 200, body: { ok: true, csrfToken: 'csrf-9' } }));
       await expect(admin.changePassword('a', 'b'.repeat(12))).resolves.toMatchObject({ ok: true });

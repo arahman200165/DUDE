@@ -10,8 +10,9 @@ import { migration0008 } from './0008-device-repair.js';
 import { migration0009 } from './0009-notifications.js';
 import { migration0010 } from './0010-collab.js';
 import { migration0011 } from './0011-oidc.js';
+import { migration0012 } from './0012-oidc-link.js';
 
 export type { Migration };
 
 /** Append only; never edit a shipped migration. */
-export const HUB_MIGRATIONS: readonly Migration[] = [migration0001, migration0002, migration0003, migration0004, migration0005, migration0006, migration0007, migration0008, migration0009, migration0010, migration0011];
+export const HUB_MIGRATIONS: readonly Migration[] = [migration0001, migration0002, migration0003, migration0004, migration0005, migration0006, migration0007, migration0008, migration0009, migration0010, migration0011, migration0012];

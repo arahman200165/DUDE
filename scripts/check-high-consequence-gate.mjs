@@ -14,6 +14,7 @@ run('node_modules/@angular/cli/bin/ng.js',['test',...ids.map(id=>`--include=apps
 const coreBoundarySpecs=[
   'apps/web/src/app/shell/settings/sections/this-device-settings.confirmation-boundary.spec.ts',
   'apps/web/src/app/shell/settings/sections/security-settings.confirmation-boundary.spec.ts',
+  'apps/web/src/app/shell/settings/sections/hub/google-accounts-panel.confirmation-boundary.spec.ts',
   'apps/web/src/app/shell/settings/sections/environment-local-hub.confirmation-boundary.spec.ts',
   'apps/web/src/app/shell/settings/sections/environment-settings.confirmation-boundary.spec.ts',
   'apps/web/src/app/shell/settings/sections/environment-hub-web.confirmation-boundary.spec.ts',

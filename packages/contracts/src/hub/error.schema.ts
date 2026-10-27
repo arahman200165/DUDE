@@ -5,6 +5,8 @@ export const HUB_ERROR_CODES = [
   'rate-limited', 'locked', 'step-up-required', 'unsupported-protocol', 'payload-too-large', 'internal',
   /** HTTP 503: the Hub was transferred to another machine and is read-only (PD-071). */
   'hub-transferred',
+  /** HTTP 503: Google sign-in cannot serve this request (provider unreachable, secret missing, not configured); the password still works (PD-121). */
+  'oidc-unavailable',
 ] as const;
 export type HubErrorCode = (typeof HUB_ERROR_CODES)[number];
 

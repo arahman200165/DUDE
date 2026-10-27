@@ -7,6 +7,7 @@ import { HubWebSignOut } from '../../../core/hub-web/hub-web-sign-out.service';
 import { PlatformService } from '../../../core/platform/platform.service';
 import { MIN_PASSWORD_LENGTH, RetryCountdown, describeHubError } from '../../hub/hub-utils';
 import { RecoveryCodesDisplay } from '../../hub/recovery-codes-display';
+import { GoogleAccountsPanel } from './hub/google-accounts-panel';
 import { HubOwnerSession } from './hub/hub-owner-session.service';
 
 /** Human names for the closed `HUB_AUDIT_EVENTS` list; an unknown (newer) event falls back to its raw name. */
@@ -58,6 +59,13 @@ export const AUDIT_EVENT_LABELS: Readonly<Record<string, string>> = {
   'security.audit-ips-changed': 'Audit address recording changed',
   'owner.step-up': 'Owner confirmed with password',
   'session.rotated': 'Session renewed',
+  'oidc.signin': 'Signed in with Google',
+  'oidc.signin-failed': 'Google sign-in failed',
+  'oidc.refused-account': 'Unlinked Google account refused',
+  'oidc.link-started': 'Google link started',
+  'oidc.link': 'Google account linked',
+  'oidc.unlink': 'Google account unlinked',
+  'oidc.unreachable': 'Google could not be reached',
 };
 
 export function auditEventLabel(event: string): string {
@@ -107,7 +115,7 @@ type CodesState =
  */
 @Component({
   selector: 'app-security-settings',
-  imports: [RecoveryCodesDisplay],
+  imports: [RecoveryCodesDisplay, GoogleAccountsPanel],
   templateUrl: './security-settings.html',
 })
 export class SecuritySettings {

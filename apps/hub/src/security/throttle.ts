@@ -8,7 +8,7 @@ export const THROTTLE_FREE_FAILURES = 5;
 export const THROTTLE_WINDOW_MS = 15 * 60_000;
 export const THROTTLE_MAX_DELAY_MS = 15 * 60_000;
 
-export const THROTTLE_KINDS = ['password', 'recovery-code', 'pairing', 'setup-token', 'device-challenge'] as const;
+export const THROTTLE_KINDS = ['password', 'recovery-code', 'pairing', 'setup-token', 'device-challenge', 'oidc'] as const;
 export type ThrottleKind = (typeof THROTTLE_KINDS)[number];
 
 export interface ThrottleKeys {
@@ -21,9 +21,10 @@ export interface ThrottleKeys {
 /**
  * Kinds without a global key. Device challenges are Ed25519 signatures (not guessable) and every pairing code
  * already dies after five wrong attempts, so a shared counter would only let a failure flood from anywhere lock
- * every device out of token refresh or enrollment.
+ * every device out of token refresh or enrollment. Failed Google callbacks (32-SS1, Milestone 842) are per address for the same reason: a global
+ * lock would let anyone stop the owner using Google sign-in, and the password path must never depend on this counter.
  */
-const PER_IP_ONLY: ReadonlySet<ThrottleKind> = new Set(['device-challenge', 'pairing']);
+const PER_IP_ONLY: ReadonlySet<ThrottleKind> = new Set(['device-challenge', 'pairing', 'oidc']);
 
 export const throttleKeys: Record<ThrottleKind, (ip: string) => ThrottleKeys> = Object.fromEntries(
   THROTTLE_KINDS.map((kind) => [kind, (ip: string): ThrottleKeys => ({ ip: `${kind}:ip:${ip}`, global: PER_IP_ONLY.has(kind) ? null : `${kind}:global`, address: ip })]),

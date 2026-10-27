@@ -1,6 +1,6 @@
 import { transaction } from '@dude/sqlite-store';
 import type { Db } from '@dude/sqlite-store';
-import { OIDC_DEFAULT_RETURN_TO, OIDC_FLOW_RETAIN_MS, OIDC_FLOW_TTL_MS, OIDC_MAX_ACTIVE_FLOWS, OIDC_RETURN_TO_MAX } from './constants.js';
+import { OIDC_DEFAULT_RETURN_TO, OIDC_FLOW_RETAIN_MS, OIDC_FLOW_TTL_MS, OIDC_LINK_TTL_MS, OIDC_MAX_ACTIVE_FLOWS, OIDC_RETURN_TO_MAX } from './constants.js';
 import { codeChallengeS256, generateCodeVerifier, generateNonce, generateState, isWellFormedToken, sha256Hex } from './pkce.js';
 
 /**
@@ -42,7 +42,23 @@ export interface ConsumedFlow {
 export type FlowRefusal = 'malformed' | 'unknown' | 'expired' | 'consumed';
 export type ConsumeResult = { status: 'ok'; flow: ConsumedFlow } | { status: 'refused'; reason: FlowRefusal };
 
+export interface VerifiedLinkIdentity { sub: string; email: string | undefined; issuer: string }
+export type LinkClaimRefusal = 'malformed' | 'unknown' | 'expired' | 'completed' | 'wrong-owner' | 'wrong-session';
+export type LinkClaimResult = { status: 'ok'; identity: VerifiedLinkIdentity; returnTo: string } | { status: 'refused'; reason: LinkClaimRefusal };
+
 export interface OidcFlows {
+  /**
+   * Link leg one (Milestone 842): the callback of a `link` flow is cross-site and credential-less, so it can only record the VERIFIED
+   * provider subject on the flow it just consumed and mint a one-time completion token (returned raw, stored hashed). Returns
+   * `undefined` unless `state` names a consumed `link` flow with nothing recorded yet.
+   */
+  recordVerified(state: string, identity: VerifiedLinkIdentity): { linkToken: string; expiresAt: string } | undefined;
+  /**
+   * Link leg two: spends the completion token for the signed-in owner. The flow must belong to that owner and to the session that
+   * started it (or one rotated from it: `sessionAllowed`); anything else is refused WITHOUT spending the token, so a stray request
+   * cannot burn it, while a refused expiry or replay stays refused.
+   */
+  claimVerified(linkToken: unknown, caller: { ownerId: string; sessionAllowed: (startedSessionHash: string) => boolean }): LinkClaimResult;
   start(input: FlowStartInput): StartResult;
   /** Atomically spends the flow named by `state`. Every failure is the same shape to the caller; `reason` is for the audit trail only. */
   consume(state: unknown): ConsumeResult;
@@ -95,6 +111,34 @@ export function createOidcFlows(options: OidcFlowsOptions): OidcFlows {
   return {
     sweep,
     activeCount,
+    recordVerified(state, identity) {
+      if (!isWellFormedToken(state, 32, 128)) return undefined;
+      const linkToken = generateState();
+      const at = now();
+      const recorded = db.prepare(
+        `UPDATE oidc_flows SET verified_sub = ?, verified_email = ?, verified_issuer = ?, link_token_hash = ?, link_expires_at = ?
+         WHERE state_hash = ? AND purpose = 'link' AND consumed_at IS NOT NULL AND verified_sub IS NULL`,
+      ).run(identity.sub, identity.email ?? null, identity.issuer, sha256Hex(linkToken), iso(at + OIDC_LINK_TTL_MS), sha256Hex(state));
+      return Number(recorded.changes) === 1 ? { linkToken, expiresAt: iso(at + OIDC_LINK_TTL_MS) } : undefined;
+    },
+    claimVerified(linkToken, caller) {
+      if (!isWellFormedToken(linkToken, 32, 128)) return { status: 'refused', reason: 'malformed' };
+      const tokenHash = sha256Hex(linkToken);
+      const at = now();
+      return transaction(db, (): LinkClaimResult => {
+        const row = db.prepare(
+          'SELECT owner_id, session_hash, return_to, verified_sub, verified_email, verified_issuer, link_expires_at, link_completed_at FROM oidc_flows WHERE link_token_hash = ?',
+        ).get(tokenHash) as { owner_id: string | null; session_hash: string | null; return_to: string; verified_sub: string | null; verified_email: string | null; verified_issuer: string | null; link_expires_at: string | null; link_completed_at: string | null } | undefined;
+        if (row === undefined || row.verified_sub === null || row.verified_issuer === null || row.owner_id === null || row.session_hash === null) return { status: 'refused', reason: 'unknown' };
+        if (row.link_completed_at !== null) return { status: 'refused', reason: 'completed' };
+        if (row.link_expires_at === null || row.link_expires_at <= iso(at)) return { status: 'refused', reason: 'expired' };
+        if (row.owner_id !== caller.ownerId) return { status: 'refused', reason: 'wrong-owner' };
+        if (!caller.sessionAllowed(row.session_hash)) return { status: 'refused', reason: 'wrong-session' };
+        const spent = db.prepare('UPDATE oidc_flows SET link_completed_at = ? WHERE link_token_hash = ? AND link_completed_at IS NULL AND link_expires_at > ?').run(iso(at), tokenHash, iso(at));
+        if (Number(spent.changes) !== 1) return { status: 'refused', reason: 'completed' };
+        return { status: 'ok', identity: { sub: row.verified_sub, email: row.verified_email ?? undefined, issuer: row.verified_issuer }, returnTo: row.return_to };
+      });
+    },
     start(input) {
       sweep();
       if (activeCount() >= OIDC_MAX_ACTIVE_FLOWS) return { status: 'busy' };

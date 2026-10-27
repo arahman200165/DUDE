@@ -269,7 +269,7 @@ describe('restore: round trip', () => {
     const opened = openHubDb({ dbFile: paths.dbFile, preMigrationDir: paths.preMigrationDir });
     if (opened.status !== 'ready') throw new Error(opened.message);
     hubs.push(opened.hub);
-    expect(getMeta(opened.hub.db, 'schema_version')).toBe('11');
+    expect(getMeta(opened.hub.db, 'schema_version')).toBe('12');
     expect(readdirSync(paths.preMigrationDir)).toEqual([]);
     expect(opened.hub.db.prepare('SELECT device_id, needs_re_pair FROM devices').all()).toEqual([{ device_id: 'dev-1', needs_re_pair: 1 }]);
     expect(opened.hub.db.prepare("SELECT COUNT(*) AS n FROM pragma_table_info('pairing_codes') WHERE name = 'reattach_device_id'").get()).toEqual({ n: 1 });

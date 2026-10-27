@@ -3,6 +3,7 @@ import type {
   OwnerResetResponse, PairingCodeResponse, PresenceEntry, PresenceResponse, RecoveryCodesResponse, SessionListResponse, SignInResponse,
   HubJobsResponse, HubNotificationsResponse, MarkNotificationsReadRequest, NotificationEventData,
   CollabRoom, CollabRoomsResponse, KeepCollabRoomResponse, CollabDocumentsResponse, CollabHistoryResponse, CollabSnapshotResponse, CollabRestoreResponse,
+  OidcStatusResponse, OidcStartResponse, OidcLinkCompleteResponse, OidcAccountsResponse, OidcUnlinkPreview,
 } from '@dude/contracts/hub';
 import type { AgentDiagnostics } from '@dude/contracts';
 import type {
@@ -155,6 +156,23 @@ export interface HubAdminPort {
   serverDate?(): Promise<string | null>;
   /** Hub-served web build only: the Hub's TLS public-key pin (and the pending next pin during rotation). */
   tlsFingerprint?(): Promise<{ readonly spkiSha256: string; readonly nextSpkiSha256: string | null }>;
+
+  /**
+   * Google sign-in (32-SS1, Milestone 842, PD-121, PD-145), Hub-served web build only (absent on desktop and the standalone web build, where the
+   * Security panel and the sign-in button simply do not render). `oidcStatus` and `oidcSignInStart` need no session. `oidcSignInStart` returns the
+   * Google authorization URL to navigate to and rejects `oidc-unavailable` when Google, the client secret or the configuration cannot serve a
+   * sign-in (the password still works). The link calls need the owner session and step-up (the adapter prompts for the password and retries,
+   * like every guarded call): `oidcLinkStart` returns the URL for linking ANOTHER Google account, and `oidcLinkComplete` is the second leg
+   * with the one-time token Google's redirect put in the page address (`conflict` when that account is already linked, `forbidden` when the
+   * request expired or belongs to another session). Unlinking is two-step: the preview changes nothing; `conflict` means the last account.
+   */
+  oidcStatus?(): Promise<OidcStatusResponse>;
+  oidcSignInStart?(returnTo?: string): Promise<OidcStartResponse>;
+  listOidcAccounts?(): Promise<OidcAccountsResponse>;
+  oidcLinkStart?(returnTo?: string): Promise<OidcStartResponse>;
+  oidcLinkComplete?(linkToken: string): Promise<OidcLinkCompleteResponse>;
+  unlinkOidcPreview?(accountId: string): Promise<OidcUnlinkPreview>;
+  unlinkOidc?(accountId: string, confirmToken: string): Promise<OkResponse>;
 
   // Hub-served web build only (rejects `unavailable` elsewhere).
   bootstrap(request: BootstrapRequest): Promise<BootstrapResponse>;

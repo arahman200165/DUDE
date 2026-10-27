@@ -88,6 +88,7 @@ describe('evaluateCrossSiteGet', () => {
 
 describe('the request guard with OIDC configured', () => {
   let hub: TestHub;
+  const seen: Array<{ cookie: string | string[] | null; authorization: string | string[] | null; url: string }> = [];
   const get = (path: string, headers: Record<string, string> = {}, method = 'GET', body?: string) =>
     request(hub.port, hub.tls.certPem, path, { method, headers, ...(body !== undefined ? { body } : {}) });
 
@@ -97,7 +98,8 @@ describe('the request guard with OIDC configured', () => {
       {
         configure: (app: FastifyInstance) => {
           const echo = (req: { headers: Record<string, string | string[] | undefined>; url: string }) => ({ cookie: req.headers['cookie'] ?? null, authorization: req.headers['authorization'] ?? null, url: req.url });
-          app.get(CALLBACK, async (req) => echo(req));
+          // The callback is the real Milestone 842 route now; this hook (added after the guard's own) records what a handler could see of it.
+          app.addHook('onRequest', async (req) => { if (req.url.startsWith(CALLBACK)) seen.push(echo(req)); });
           app.get('/api/v1/test/other', async (req) => echo(req));
         },
         rateLimit: { global: { perMinute: 6000, burst: 1000 } },
@@ -108,14 +110,14 @@ describe('the request guard with OIDC configured', () => {
 
   it('lets the provider\'s cross-site redirect reach the callback, with no cookie and no authorization header visible to the handler', async () => {
     const res = await get(`${CALLBACK}${QUERY}`, { ...CROSS_NAV, cookie: '__Host-dude_session=a-valid-looking-session', authorization: 'Bearer dob_stolen' });
-    expect(res.status).toBe(200);
-    expect(JSON.parse(res.body)).toEqual({ cookie: null, authorization: null, url: `${CALLBACK}${QUERY}` });
+    expect(res.status).toBe(302); // the real handler answers a redirect to the password page for a state it does not know
+    expect(seen.at(-1)).toEqual({ cookie: null, authorization: null, url: `${CALLBACK}${QUERY}` });
   });
 
   it('strips credentials for a same-site or direct visit to the callback too (a session is never its authority)', async () => {
     for (const site of ['same-origin', 'same-site', 'none']) {
       const res = await get(`${CALLBACK}${QUERY}`, { 'sec-fetch-site': site, cookie: '__Host-dude_session=s' });
-      expect([site, res.status, JSON.parse(res.body).cookie]).toEqual([site, 200, null]);
+      expect([site, res.status, seen.at(-1)?.cookie]).toEqual([site, 302, null]);
     }
   });
 
@@ -157,9 +159,10 @@ describe('the request guard with OIDC configured', () => {
 
 describe('the request guard without OIDC configured', () => {
   let hub: TestHub;
+  const seen: Array<string | string[] | null> = [];
   beforeAll(async () => {
     hub = await startTestHub({ webRoot: makeWebRoot() }, {
-      configure: (app: FastifyInstance) => { app.get(CALLBACK, async (req) => ({ cookie: req.headers['cookie'] ?? null })); },
+      configure: (app: FastifyInstance) => { app.addHook('onRequest', async (req) => { if (req.url.startsWith(CALLBACK)) seen.push(req.headers['cookie'] ?? null); }); },
       rateLimit: { global: { perMinute: 6000, burst: 1000 } },
     });
   });
@@ -169,7 +172,7 @@ describe('the request guard without OIDC configured', () => {
     const cross = await request(hub.port, hub.tls.certPem, `${CALLBACK}${QUERY}`, { headers: CROSS_NAV });
     expect(cross.status).toBe(403);
     const same = await request(hub.port, hub.tls.certPem, `${CALLBACK}${QUERY}`, { headers: { 'sec-fetch-site': 'same-origin', cookie: 'a=b' } });
-    expect(same.status).toBe(200);
-    expect(JSON.parse(same.body).cookie).toBe('a=b');
+    expect(same.status).toBe(302); // the route itself answers (to the password page: Google sign-in is not configured)
+    expect(seen.at(-1)).toBe('a=b');
   });
 });

@@ -110,6 +110,11 @@ export interface CreateSessionInput {
   userAgent?: string | undefined;
   ip?: string | undefined;
   now: number;
+  /**
+   * Whether a cookie session starts password-confirmed (default true: sign-in, recovery). A Google sign-in passes `false`: Google is
+   * never a step-up factor, so the owner confirms the password (or a recovery code) before any step-up-gated action (PD-121).
+   */
+  steppedUp?: boolean;
 }
 
 export interface CreatedSession {
@@ -132,7 +137,7 @@ export function createSession(db: Db, input: CreateSessionInput): CreatedSession
     sessionHash, ownerId: input.ownerId, kind: input.kind, deviceId: input.kind === 'bearer' ? input.deviceId ?? null : null, createdAt: at,
     lastActiveAt: at, idleExpiresAt: iso(input.now + policy.idleMs), absoluteExpiresAt: iso(input.now + policy.absoluteMs),
     userAgent: input.userAgent ? input.userAgent.slice(0, USER_AGENT_MAX) : null, ip: maskAddress(db, input.ip) ?? null,
-    steppedUpAt: input.kind === 'cookie' ? at : null,
+    steppedUpAt: input.kind === 'cookie' && input.steppedUp !== false ? at : null,
   };
   db.prepare(`INSERT INTO sessions(${COLUMNS}) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)`).run(
     record.sessionHash, record.ownerId, record.kind, record.deviceId, csrfToken === null ? null : sha256Hex(csrfToken), record.createdAt,
@@ -171,6 +176,21 @@ export function rotateSession(db: Db, sessionHash: string, now: number, opts: { 
     };
     return { token, csrfToken, record };
   });
+}
+
+/**
+ * Whether `currentHash` is `ancestorHash` itself or a session rotated from it (a step-up or password change replaces the cookie; the
+ * old row keeps `rotated_to`). Used by the Google link flow, which starts on one session and completes after a possible step-up.
+ */
+export function sessionDescendsFrom(db: Db, ancestorHash: string, currentHash: string): boolean {
+  let at = ancestorHash;
+  for (let hop = 0; hop < 8; hop += 1) {
+    if (at === currentHash) return true;
+    const row = db.prepare('SELECT rotated_to FROM sessions WHERE session_hash = ?').get(at) as { rotated_to: string | null } | undefined;
+    if (row === undefined || row.rotated_to === null) return false;
+    at = row.rotated_to;
+  }
+  return false;
 }
 
 function liveRow(db: Db, sessionHash: string, now: number): SessionRow | undefined {

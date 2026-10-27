@@ -50,6 +50,9 @@ import { runBackup } from '../service/backup.js';
 import { runProvision } from '../service/provision.js';
 import { createProvisioningService } from '../provisioning/service.js';
 import { createTunnelRuntime } from '../tunnel/tunnel-runtime.js';
+import { createOidcSecretSource } from '../secrets/oidc-source.js';
+import { createClientSecretReader } from '../auth/oidc/client-secret.js';
+import type { OidcStatus } from '../auth/oidc/client.js';
 import { runRestore } from '../service/restore.js';
 import { HELP_TEXT, UsageError, parseArgs } from './args.js';
 
@@ -247,7 +250,14 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     auditDegraded: (detail) => audit(hub.db, { event: 'tunnel.degraded', outcome: 'failure', actorKind: 'system', detail: { ...detail }, now: Date.now() }),
   });
   // 32-SS1 provisioning read model: checks only, never creates anything; the elevated `dude-hub provision` is the one writer.
-  const provisioning = createProvisioningService(paths, { hubInstanceId: hub.hubInstanceId, queueRunning: queueRuntime !== undefined, tunnel: () => tunnelRuntime.status() });
+  // 32-SS1 Google sign-in (Milestone 842): the client secret lives only in the machine-bound store; the client is built inside the server, and the
+  // provisioning component reads its last known reachability through this late-bound getter.
+  const oidcSecret = createOidcSecretSource(paths);
+  let oidcStatus: (() => OidcStatus) | undefined;
+  const provisioning = createProvisioningService(paths, {
+    hubInstanceId: hub.hubInstanceId, queueRunning: queueRuntime !== undefined, tunnel: () => tunnelRuntime.status(),
+    oidc: () => oidcStatus?.() ?? { state: 'off', detail: 'Google sign-in is not configured.' },
+  });
   ensureSetupToken(hub.db, paths.configDir, Date.now());
   const wantedNames = computeSubjectAltNames(config);
   const hadIdentity = existsSync(path.join(paths.tlsDir, 'cert.pem')) && existsSync(path.join(paths.tlsDir, 'key.pem'));
@@ -282,10 +292,12 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     ...(queueRuntime ? { queue: { status: () => queueRuntime.status() } } : {}),
     provisioning: { status: () => provisioning.status() },
     tunnel: { status: () => tunnelRuntime.status(), facts: (candidate) => tunnelRuntime.facts(candidate) },
+    oidc: { readClientSecret: createClientSecretReader(oidcSecret), clientSecretPresent: () => oidcSecret.present() },
     logger: hubLoggerOptions(logStream),
     ...testServerOverrides,
   });
 
+  oidcStatus = () => server.oidc.status();
   try {
     await server.listen({ port: config.port, host: bindAddress(config) });
   } catch (error) {

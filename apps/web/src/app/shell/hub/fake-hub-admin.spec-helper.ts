@@ -17,7 +17,7 @@ export function signInResponse(remaining = 10): SignInResponse {
   return { csrfToken: 'csrf', session: session({ current: true }), owner: { ownerId: 'o1', displayName: 'Owner', remainingRecoveryCodes: remaining } };
 }
 
-type Mocked = { [K in keyof HubAdminPort]: ReturnType<typeof vi.fn> };
+type Mocked = { [K in keyof HubAdminPort as K extends 'oidcStatus' | 'oidcSignInStart' | 'listOidcAccounts' | 'oidcLinkStart' | 'oidcLinkComplete' | 'unlinkOidcPreview' | 'unlinkOidc' ? never : K]: ReturnType<typeof vi.fn> } & { [K in 'oidcStatus' | 'oidcSignInStart' | 'listOidcAccounts' | 'oidcLinkStart' | 'oidcLinkComplete' | 'unlinkOidcPreview' | 'unlinkOidc']-?: ReturnType<typeof vi.fn> };
 
 /** A HubAdminPort whose every method is a vi.fn with a benign default; override per test with `mockRejectedValueOnce` etc. */
 export function fakeHubAdmin(): HubAdminPort & Mocked {
@@ -41,6 +41,8 @@ export function fakeHubAdmin(): HubAdminPort & Mocked {
     listCollabRooms: vi.fn(async () => ({ rooms: [] })), createCollabRoom: vi.fn(), keepCollabRoom: vi.fn(),
     listCollabDocuments: vi.fn(async () => ({ documents: [] })), deleteCollabDocument: vi.fn(async () => ({ ok: true as const })),
     listCollabHistory: vi.fn(async () => ({ snapshots: [] })), getCollabSnapshot: vi.fn(), restoreCollabSnapshot: vi.fn(async () => ({ ok: true as const })),
+    oidcStatus: vi.fn(async () => ({ configured: false, enabled: false })), oidcSignInStart: vi.fn(), listOidcAccounts: vi.fn(async () => ({ accounts: [] })), oidcLinkStart: vi.fn(), oidcLinkComplete: vi.fn(),
+    unlinkOidcPreview: vi.fn(), unlinkOidc: vi.fn(async () => ({ ok: true as const })),
     bootstrap: vi.fn(async () => ({ environmentId: 'e', ownerId: 'o', recoveryCodes: CODES })),
     signIn: vi.fn(async () => signInResponse()), currentSession: vi.fn(async () => signInResponse(7)), signOut: vi.fn(async () => ({ ok: true })),
     recover: vi.fn(async () => signInResponse(5)), ownerReset: vi.fn(async () => ({ recoveryCodes: CODES })),

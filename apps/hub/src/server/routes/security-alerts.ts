@@ -18,6 +18,7 @@ export const SECURITY_ALERT_EVENTS = [
   'owner.sign-in', 'throttle.locked', 'security.ip-blocked', 'owner.password-changed', 'owner.recovery-code-used',
   'owner.recovery-codes-regenerated', 'owner.reset-local', 'owner.recovery-device', 'session.revoked-all', 'device.revoked',
   'device.revoked-attempt', 'device.enrolled', 'network.mode-changed', 'network.exposure-mode-changed', 'network.address-changed', 'tls.rotation-activated',
+  'oidc.refused-account', 'oidc.link', 'oidc.unlink',
 ] as const;
 
 const SUMMARIES: Record<string, string> = {
@@ -35,6 +36,9 @@ const SUMMARIES: Record<string, string> = {
   'network.mode-changed': 'The network mode was changed.',
   'network.exposure-mode-changed': 'The exposure mode was changed.',
   'tls.rotation-activated': 'The Hub certificate was rotated.',
+  'oidc.refused-account': 'A Google account that is not linked to this Hub tried to sign in and was refused.',
+  'oidc.link': 'A Google account was linked for sign-in.',
+  'oidc.unlink': 'A Google account was unlinked.',
   'network.address-changed': "This Hub's network addresses changed.",
 };
 

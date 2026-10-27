@@ -83,6 +83,8 @@
     @if (codesError()) { <p class="text-ui text-error" role="alert" data-testid="codes-error">{{ codesError() }}</p> }
   </section>
 
+  <app-google-accounts-panel />
+
   <section data-setting class="flex flex-col gap-2" data-testid="password" aria-labelledby="password-h">
     <h3 id="password-h" class="text-ui-sm font-semibold text-text">Change password</h3>
     <form class="flex max-w-sm flex-col gap-2" (submit)="$event.preventDefault(); changePassword()">
