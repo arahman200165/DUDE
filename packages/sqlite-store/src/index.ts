@@ -5,4 +5,4 @@ export { checksumOf, latestVersion } from './migrations.js';
 export type { MigrationResult, MigrationOptions } from './migration-runner.js';
 export { runMigrations, MigrationChecksumError } from './migration-runner.js';
 export type { OpenSqliteOptions } from './open.js';
-export { openSqliteDatabase, quickCheck } from './open.js';
+export { openSqliteDatabase, lockExtensionLoading, quickCheck } from './open.js';

@@ -3,11 +3,16 @@ import { DatabaseSync } from 'node:sqlite';
 export interface OpenSqliteOptions {
   /** Milliseconds SQLite waits on a locked database. Default 5000. */
   busyTimeoutMs?: number;
+  /**
+   * Allow `loadExtension` on this connection (default false). Only the 32-SS1 vector slot sets it: the caller loads its
+   * one hash-verified library and then calls `lockExtensionLoading`.
+   */
+  allowExtension?: boolean;
 }
 
 /** Open a database and apply the durability pragmas (WAL, synchronous=FULL, foreign keys, busy timeout). */
 export function openSqliteDatabase(path: string, options: OpenSqliteOptions = {}): DatabaseSync {
-  const db = new DatabaseSync(path);
+  const db = new DatabaseSync(path, { allowExtension: options.allowExtension === true });
   try {
     db.exec('PRAGMA journal_mode = WAL');
     db.exec('PRAGMA synchronous = FULL');
@@ -18,6 +23,11 @@ export function openSqliteDatabase(path: string, options: OpenSqliteOptions = {}
     throw error;
   }
   return db;
+}
+
+/** Turns extension loading off again after the one verified library is loaded; no later `loadExtension` can succeed. */
+export function lockExtensionLoading(db: DatabaseSync): void {
+  db.enableLoadExtension(false);
 }
 
 /** True when `PRAGMA quick_check` reports a healthy database. */

@@ -70,3 +70,19 @@ This milestone changes documentation only. The program decisions were reworded i
 - The [Hub scope ceilings](../../apps/hub/AGENTS.md) that said "no job queue", "no streaming backups", "no standby replication" and "no UI that creates or schedules a backup" are reworded to the 32-SS1 allowance and its boundaries: the queue runs Hub-internal work only, the standby is a device pull behind a grant, backup v2 streams, and the Hub-web backup UI stays view-only with creation and scheduling on the elevated admin pipe.
 
 Planner judgment calls made at this milestone and reversible only by a dated amendment here: tunnel mode skips Cloudflare edge-certificate pins (PD-143); `savesphere.db` is separate with no `ATTACH` and an outbox (PD-146); an S3 blob tier is deferred (PD-148); the OIDC callback is a narrow GET exemption (PD-144); no new workspace packages (PD-141).
+
+### 2026-10-27, Milestone 830: feasibility go/no-go (GO on all three)
+
+Evidence from `npm run check:hub-capabilities` (`scripts/check-hub-sea-capabilities.mjs`) against the real single-executable Hub built with `npm run hub:compile` and `npm run hub:sea` (Node 24.21.0, SQLite 3.53.4, Windows 11 x64), and again against the CJS bundle under `node`:
+
+- **FTS5: GO.** The `node:sqlite` build inside the SEA creates an `fts5` virtual table with the `porter unicode61` tokenizer and answers `MATCH` with `rank` ordering.
+- **sqlite-vec: GO on Windows x64.** `scripts/fetch-sqlite-vec.mjs` (`npm run hub:sqlite-vec`) downloads sqlite-vec 0.1.9 `loadable-windows-x86_64` from the official release, pins the archive (`51581189...8165983`, equal to the release's own `checksums.txt`) and the extracted `vec0.dll` (`fcf98662...76476e6`) and writes it atomically to `build/vendor/sqlite-vec/` (untracked). The SEA verifies the DLL against the same pin (constants kept equal by `db/sqlite-vec.spec.ts`), opens an in-memory database with the new `allowExtension` option of `@dude/sqlite-store`, calls `loadExtension`, locks extension loading again (`lockExtensionLoading`) and reads `vec_version()` (`v0.1.9`). The default entry point works for `vec0.dll`. Extension loading stays off for every other connection.
+- **Worker re-spawn: GO.** `apps/hub/src/workers/worker-mode.ts` re-spawns `process.execPath` with `--internal-worker <kind>` in the SEA and `node <bundle> --internal-worker <kind>` otherwise (`sea.isSea()` picks), one JSON line each way over stdio; `main.ts` runs the worker hook before the CLI. The SEA exchanged a message with a child process of itself.
+
+Limitations and decisions recorded rather than worked around:
+
+- The Hub only loads `vec0.dll` found beside the executable (SEA) or in `build/vendor/sqlite-vec/` (Node process), never from `PATH` or an unverified location. A missing, mismatching or unloadable library, a non-Windows or non-x64 host and the Alpine (musl) Docker image report `sqlite-vec` as **unavailable** (`state: 'unavailable'` with a reason, `ok` stays true) in `self-test`; the capability script fails on that only with `--require-vector`. `hub:stage` and the installer do not ship `vec0.dll` yet (a later milestone adds it to the copy list with provisioning status); until then a staged Hub reports vector search unavailable.
+- The load is hash-check then `loadExtension` on the same path (no copy), so a local attacker who can write to the Hub's install directory could race it; that directory is already the trust root for the executable itself.
+- `dude-hub run` keeps its fail-fast self-test but skips the vector and worker probes (`runSelfTest({ capabilities: false })`) so a start never spawns a child or reads the DLL; `dude-hub self-test` runs them all.
+- FTS5 and worker re-spawn are hard requirements of the self-test (failure fails it); vector search is the only optional capability.
+- The queue, the worker host and any non-`ping` worker kind are Milestone 834.

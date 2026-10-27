@@ -1,10 +1,15 @@
 import { generateKeyPairSync, randomBytes, sign, verify } from 'node:crypto';
 import * as nodeCrypto from 'node:crypto';
+import { isSea } from 'node:sea';
+import { probeSqliteVec } from '../db/sqlite-vec.js';
+import { exchangeWithInternalWorker } from '../workers/worker-mode.js';
 
 export interface SelfTestCheck {
   name: string;
   ok: boolean;
   detail?: string;
+  /** Set only by optional capabilities: `unavailable` is a graceful degradation, never a failure (ok stays true). */
+  state?: 'available' | 'unavailable';
 }
 
 export interface SelfTestResult {
@@ -27,8 +32,20 @@ async function check(name: string, body: () => Promise<string | undefined> | str
   }
 }
 
-/** Verifies in-process that the runtime provides everything the Hub needs, before any state is touched. */
-export async function runSelfTest(): Promise<SelfTestResult> {
+/** Optional capability: loads the pinned sqlite-vec library when present; its absence is reported, not failed (PD-141, PD-147). */
+function sqliteVecCheck(): SelfTestCheck {
+  const state = probeSqliteVec();
+  return state.available
+    ? { name: 'sqlite-vec', ok: true, state: 'available', detail: `sqlite-vec ${state.version}` }
+    : { name: 'sqlite-vec', ok: true, state: 'unavailable', detail: state.reason };
+}
+
+/**
+ * Verifies in-process that the runtime provides everything the Hub needs, before any state is touched. `capabilities`
+ * (default true) adds the 32-SS1 probes that touch the file system or spawn a process (the worker re-spawn); `run`
+ * leaves them to `dude-hub self-test` and the capability script.
+ */
+export async function runSelfTest(options: { capabilities?: boolean } = {}): Promise<SelfTestResult> {
   const checks: SelfTestCheck[] = [];
   checks.push(
     await check('node-version', () => {
@@ -84,6 +101,34 @@ export async function runSelfTest(): Promise<SelfTestResult> {
       return undefined;
     }),
   );
+  checks.push(
+    await check('sqlite-fts5', async () => {
+      const { DatabaseSync } = await import('node:sqlite');
+      const db = new DatabaseSync(':memory:');
+      try {
+        db.exec("CREATE VIRTUAL TABLE docs USING fts5(title, body, tokenize = 'porter unicode61')");
+        db.exec("INSERT INTO docs (title, body) VALUES ('first', 'The quick brown foxes jump'), ('second', 'Nothing relevant')");
+        const hits = db.prepare('SELECT title FROM docs WHERE docs MATCH ? ORDER BY rank').all('fox') as Array<{ title: string }>;
+        if (hits.length !== 1 || hits[0].title !== 'first') throw new Error(`MATCH returned ${JSON.stringify(hits)}`);
+        return 'fts5 MATCH with the porter tokenizer';
+      } finally {
+        db.close();
+      }
+    }),
+  );
+  if (options.capabilities !== false) {
+    checks.push(sqliteVecCheck());
+    checks.push(
+      await check('worker-respawn', async () => {
+        const nonce = randomBytes(8).toString('hex');
+        const reply = await exchangeWithInternalWorker('ping', { type: 'ping', nonce });
+        if (reply['type'] !== 'pong' || reply['nonce'] !== nonce) throw new Error(`unexpected reply ${JSON.stringify(reply)}`);
+        if (reply['sea'] !== isSea()) throw new Error('worker disagrees about single-executable mode');
+        if (reply['pid'] === process.pid) throw new Error('worker ran in the parent process');
+        return `${isSea() ? 'executable re-spawn' : 'node re-spawn'}, one message exchanged`;
+      }),
+    );
+  }
   return { ok: checks.every((c) => c.ok), checks };
 }
 

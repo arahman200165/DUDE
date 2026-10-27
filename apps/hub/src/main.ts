@@ -1,11 +1,15 @@
 import { runCli } from './cli/run.js';
 import { runSelfTest, runSelfTestCommand } from './cli/self-test.js';
+import { runInternalWorkerIfRequested } from './workers/worker-mode.js';
 
 // Self-test hook: the `self-test` command, and a fail-fast runtime check before `run` opens anything.
 async function main(argv: string[]): Promise<number> {
+  // A re-spawned internal worker (32-SS1) answers on stdio and exits; it never reaches the CLI.
+  const workerExit = await runInternalWorkerIfRequested(argv);
+  if (workerExit !== undefined) return workerExit;
   if (argv[0] === 'self-test') return runSelfTestCommand();
   if (argv[0] === 'run') {
-    const result = await runSelfTest();
+    const result = await runSelfTest({ capabilities: false });
     if (!result.ok) {
       const failed = result.checks.filter((c) => !c.ok).map((c) => `  ${c.name}: ${c.detail ?? 'failed'}`);
       process.stderr.write(`Runtime self-test failed:\n${failed.join('\n')}\n`);
