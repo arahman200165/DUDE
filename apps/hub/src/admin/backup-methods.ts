@@ -9,8 +9,8 @@ import { BACKUP_LAST_META, backupFailureCode, readBackupLast, writeBackupLast } 
 import { BACKUP_CONSEQUENCE_CLASS, BACKUP_REACTIVATE_CONSEQUENCE_CLASS, BACKUP_TRANSFER_CONSEQUENCE_CLASS } from '../backup/create-backup.js';
 import { createBackupExportFile, fileByteSource } from '../backup/create-export.js';
 import { destinationLockKey, tryLockDestination } from '../backup/destination-lock.js';
-import { DestinationError, MANIFEST_PREFIX, assertSafeLocalFolder, backupIdOfManifest, isInsideFolder, openBackupDestination } from '../backup/destinations/index.js';
-import type { BackupDestination } from '../backup/destinations/index.js';
+import { DestinationError, MANIFEST_PREFIX, assertSafeLocalFolder, backupIdOfManifest, defaultS3CredentialStore, isInsideFolder, isS3Definition, openBackupDestination, validateS3Credentials } from '../backup/destinations/index.js';
+import type { BackupDestination, S3BackupDestination, S3CredentialStore } from '../backup/destinations/index.js';
 import { nodeBackupDeps, validateBackupPassphrase } from '../backup/kdf.js';
 import { defaultMasterKeyStore } from '../backup/master-key.js';
 import type { MasterKeyStore } from '../backup/master-key.js';
@@ -21,9 +21,9 @@ import type { RunBackupV2Result } from '../backup/run-backup-v2.js';
 import { clearScheduleKey, scheduleKeyExists } from '../backup/schedule-key.js';
 import { COUNTED_TABLES } from '../backup/snapshot.js';
 import {
-  BACKUP_DESTINATIONS_MAX, BACKUP_INTERVAL_HOURS_MAX, BACKUP_RETENTION_MAX, applyBackupConfigChange, loadOrCreateHubConfig, writeHubConfig,
+  BACKUP_DESTINATIONS_MAX, BACKUP_INTERVAL_HOURS_MAX, BACKUP_RETENTION_MAX, applyBackupConfigChange, loadOrCreateHubConfig, parseS3Endpoint, parseS3Prefix, writeHubConfig,
 } from '../config/hub-config.js';
-import type { HubBackupDestinationConfig } from '../config/hub-config.js';
+import type { HubBackupDestinationConfig, HubBackupS3Destination } from '../config/hub-config.js';
 import { getAuthorityEpoch, getAuthorityState, setAuthority } from '../hub/authority.js';
 import { clearDestinationState, readDestinationState, updateDestinationState } from '../hub/backup-destination-state.js';
 import { setSecretExpected } from '../provisioning/index.js';
@@ -43,6 +43,8 @@ export const BACKUP_DESTINATION_REMOVE_ACTION = 'backup.destination.remove';
 export const BACKUP_REWRAP_ACTION = 'backup.rewrap';
 export { BACKUP_PRUNE_ACTION };
 export const BACKUP_DESTINATION_REMOVE_CONSEQUENCE_CLASS = ['system-config'] as const;
+/** Removing an S3 destination also deletes its stored credentials (Milestone 848). */
+export const BACKUP_DESTINATION_REMOVE_S3_CONSEQUENCE_CLASS = ['system-config', 'secret-management'] as const;
 /** Removing the last destination also deletes the master key from the secret store. */
 export const BACKUP_DESTINATION_REMOVE_LAST_CONSEQUENCE_CLASS = ['system-config', 'secret-management'] as const;
 export const BACKUP_REWRAP_CONSEQUENCE_CLASS = ['secret-management', 'filesystem-write'] as const;
@@ -52,6 +54,7 @@ const REACTIVATE_WARNING = 'If the backup was already restored elsewhere, there 
 const PASSPHRASE_WARNING = 'Losing the passphrase makes the backup unrecoverable.';
 const SAME_MACHINE_WARNING = 'A backup stored on the Hub\'s own machine does not protect against losing that machine. Keep a copy elsewhere.';
 const KEPT_OBJECTS_NOTE = 'Backups already written to this destination are NOT deleted; delete the folder yourself if you no longer need them.';
+const KEPT_S3_OBJECTS_NOTE = 'Backups already written to this bucket are NOT deleted; delete the objects under the prefix yourself if you no longer need them. The stored S3 credentials are deleted.';
 
 /** The facts about a v1 backup that are safe to show: no keys, no credentials, no paths. */
 export function summarizeManifest(manifest: BackupManifest): Record<string, unknown> {
@@ -99,14 +102,19 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
   const masterKeys = (): MasterKeyStore => (masterKeyStore ??= defaultMasterKeyStore(paths()));
   const config = () => loadOrCreateHubConfig(paths().configFile);
   const destinationsOf = (): HubBackupDestinationConfig[] => config().backup?.destinations ?? [];
+  let s3Store: S3CredentialStore | undefined = context.s3CredentialStore;
+  const s3Credentials = (): S3CredentialStore => (s3Store ??= defaultS3CredentialStore(paths()));
   const openDestination = (definition: HubBackupDestinationConfig): BackupDestination => {
     try {
-      return (context.openBackupDestination ?? ((d) => openBackupDestination(d, paths(), platform)))(definition);
+      return (context.openBackupDestination ?? ((d) => openBackupDestination(d, paths(), platform, { s3Credentials: s3Credentials(), ...(context.s3Test !== undefined ? { s3: context.s3Test } : {}) })))(definition);
     } catch (error) {
-      if (error instanceof DestinationError) throw new AdminError('bad-request', error.message);
+      if (error instanceof DestinationError) throw new AdminError(error.code === 'unavailable' ? 'unavailable' : 'bad-request', error.message);
       throw error;
     }
   };
+  /** Where a destination lives, comparable across definitions (a folder, or endpoint, bucket and prefix). */
+  const locationOf = (definition: HubBackupDestinationConfig): string =>
+    isS3Definition(definition) ? `s3:${definition.endpoint}|${definition.bucket}|${definition.prefix ?? ''}` : comparable(definition.folder, platform);
   const record = (params: unknown): Record<string, unknown> => (typeof params === 'object' && params !== null && !Array.isArray(params) ? (params as Record<string, unknown>) : {});
   const saveSphere = (): Db | undefined => context.saveSphereDb?.();
   const lockKey = (id: string): string => destinationLockKey(paths().root, id);
@@ -162,9 +170,9 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
   const reactivateDigest = (): string =>
     createHash('sha256').update(JSON.stringify({ epoch: getAuthorityEpoch(context.db), hubInstanceId: context.hubInstanceId })).digest('hex');
   const removeDigest = (definition: HubBackupDestinationConfig): string =>
-    createHash('sha256').update(JSON.stringify({ v: 1, id: definition.id, kind: definition.kind, folder: comparable(definition.folder, platform) })).digest('hex');
+    createHash('sha256').update(JSON.stringify({ v: 1, id: definition.id, kind: definition.kind, folder: locationOf(definition) })).digest('hex');
   const rewrapDigest = (definitions: HubBackupDestinationConfig[]): string =>
-    createHash('sha256').update(JSON.stringify({ v: 1, destinations: definitions.map((d) => [d.id, comparable(d.folder, platform)]).sort() })).digest('hex');
+    createHash('sha256').update(JSON.stringify({ v: 1, destinations: definitions.map((d) => [d.id, locationOf(d)]).sort() })).digest('hex');
   /** `forTransfer` is absent (false) or a boolean; a Hub that already was transferred cannot start another transfer. */
   const forTransferOf = (params: Record<string, unknown>): boolean => {
     const value = params['forTransfer'];
@@ -197,96 +205,184 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
   const auditCli = (event: Parameters<typeof audit>[1]['event'], outcome: 'success' | 'failure', detail: Record<string, unknown>): void =>
     audit(context.db, { event, outcome, actorKind: 'cli', detail, now: now() });
 
-  /**
-   * Adds a `local-folder` destination (or returns the one already configured for that folder). A folder that already holds a
-   * repository is ADOPTED when the passphrase opens it and its master key is the Hub's (or the Hub has none yet: after a restore
-   * onto a new machine, re-adding the old folder continues its chain); otherwise a repository is created wrapping the Hub's master
-   * key (created on the first destination) under the passphrase. The passphrase must open the existing destinations too, so every
-   * repository of one Hub answers to one passphrase.
-   */
-  const addLocalDestination = async (folderRaw: unknown, labelRaw: unknown, passphraseOrNull: string | null): Promise<{ definition: HubBackupDestinationConfig; added: boolean; adopted: boolean }> => {
-    const folder = resolveTargetFolder(folderRaw);
+  const validLabel = (labelRaw: unknown): void => {
     if (labelRaw !== undefined && (typeof labelRaw !== 'string' || labelRaw.trim().length === 0 || labelRaw.length > 64 || /[\u0000-\u001f\u007f]/.test(labelRaw))) {
       throw new AdminError('bad-request', 'label must be 1 to 64 printable characters.');
     }
+  };
+
+  /** What a destination kind contributes to the shared add flow: its definition and, for S3, the credentials to store. */
+  interface PreparedDestination {
+    definition: HubBackupDestinationConfig;
+    /** The already configured destination at the same location, if any. */
+    same: HubBackupDestinationConfig | undefined;
+    /** Called once the add proceeds (a local folder is created). */
+    beforeOpen?: () => void;
+    credentials?: { accessKeyId: string; secretAccessKey: string; sessionToken?: string };
+    failureNoun: string;
+  }
+
+  const prepareLocal = (folderRaw: unknown, labelRaw: unknown): PreparedDestination => {
+    const folder = resolveTargetFolder(folderRaw);
+    validLabel(labelRaw);
     const existing = destinationsOf();
-    const same = existing.find((d) => comparable(d.folder, platform) === comparable(folder, platform));
-    if (same !== undefined) return { definition: same, added: false, adopted: false };
-    if (existing.some((d) => isInsideFolder(folder, d.folder, platform) || isInsideFolder(d.folder, folder, platform))) {
+    const same = existing.find((d) => !isS3Definition(d) && comparable(d.folder, platform) === comparable(folder, platform));
+    if (same === undefined && existing.some((d) => !isS3Definition(d) && (isInsideFolder(folder, d.folder, platform) || isInsideFolder(d.folder, folder, platform)))) {
       throw new AdminError('conflict', 'The folder is inside (or contains) another backup destination.');
     }
+    const id = `d-${randomBytes(4).toString('hex')}`;
+    return {
+      definition: { id, kind: 'local-folder', label: typeof labelRaw === 'string' ? labelRaw.trim() : `Local folder ${path.basename(folder) || folder}`, folder },
+      same,
+      beforeOpen: () => { try { mkdirSync(folder, { recursive: true }); } catch { throw new AdminError('bad-request', 'The backup folder could not be created.'); } },
+      failureNoun: 'folder',
+    };
+  };
+
+  /** True when two key prefixes in one bucket can hold the other's objects (equal, or one is a path ancestor of the other). */
+  const prefixesOverlap = (a: string | undefined, b: string | undefined): boolean => {
+    const x = a === undefined ? '' : `${a}/`;
+    const y = b === undefined ? '' : `${b}/`;
+    return x.startsWith(y) || y.startsWith(x);
+  };
+
+  const prepareS3 = (input: Record<string, unknown>): PreparedDestination => {
+    validLabel(input['label']);
+    const flag = (name: 'forcePathStyle' | 'allowPrivateNetwork'): boolean | undefined => {
+      const value = input[name];
+      if (value === undefined) return undefined;
+      if (typeof value !== 'boolean') throw new AdminError('bad-request', `${name} must be true or false.`);
+      return value;
+    };
+    const forcePathStyle = flag('forcePathStyle');
+    const allowPrivateNetwork = flag('allowPrivateNetwork');
+    const endpoint = parseS3Endpoint(input['endpoint'], allowPrivateNetwork === true);
+    if ('error' in endpoint) throw new AdminError('bad-request', `endpoint ${endpoint.error}.`);
+    const region = input['region'];
+    if (typeof region !== 'string' || !/^[a-z0-9][a-z0-9-]{0,31}$/.test(region)) throw new AdminError('bad-request', 'region must be 1 to 32 lower-case letters, digits or hyphens.');
+    const bucket = input['bucket'];
+    if (typeof bucket !== 'string' || !/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/.test(bucket)) throw new AdminError('bad-request', 'bucket must be 3 to 63 lower-case letters, digits, dots or hyphens.');
+    const prefix = parseS3Prefix(input['prefix']);
+    if ('error' in prefix) throw new AdminError('bad-request', `prefix ${prefix.error}.`);
+    const credentials = validateS3Credentials(input['credentials']);
+    if (typeof credentials === 'string') throw new AdminError('bad-request', `${credentials}.`);
+    const existing = destinationsOf();
+    const same = existing.find((d): d is HubBackupS3Destination => isS3Definition(d) && d.endpoint === endpoint.origin && d.bucket === bucket && (d.prefix ?? '') === (prefix.prefix ?? ''));
+    if (same === undefined && existing.some((d) => isS3Definition(d) && d.endpoint === endpoint.origin && d.bucket === bucket && prefixesOverlap(d.prefix, prefix.prefix))) {
+      throw new AdminError('conflict', 'The bucket prefix overlaps another backup destination.');
+    }
+    const id = `d-${randomBytes(4).toString('hex')}`;
+    const label = typeof input['label'] === 'string' ? input['label'].trim() : `S3 ${bucket}${prefix.prefix !== undefined ? `/${prefix.prefix}` : ''}`;
+    const definition: HubBackupS3Destination = {
+      id, kind: 's3', label, endpoint: endpoint.origin, region, bucket,
+      ...(prefix.prefix !== undefined ? { prefix: prefix.prefix } : {}), ...(forcePathStyle !== undefined ? { forcePathStyle } : {}), ...(allowPrivateNetwork === true ? { allowPrivateNetwork: true } : {}),
+    };
+    return { definition, same, credentials, failureNoun: 'bucket' };
+  };
+
+  /**
+   * Adds a destination (or returns the one already configured at the same location). A location that already holds a
+   * repository is ADOPTED when the passphrase opens it and its master key is the Hub's (or the Hub has none yet: after a restore
+   * onto a new machine, re-adding the old folder or bucket continues its chain); otherwise a repository is created wrapping the
+   * Hub's master key (created on the first destination) under the passphrase. The passphrase must open the existing destinations
+   * too, so every repository of one Hub answers to one passphrase. An S3 destination's credentials are stored in the secret store
+   * for the duration of the add and removed again when it fails; they are never in `hub.json`, the audit log or an answer.
+   */
+  const addDestination = async (prepared: PreparedDestination, passphraseOrNull: string | null): Promise<{ definition: HubBackupDestinationConfig; added: boolean; adopted: boolean }> => {
+    const existing = destinationsOf();
+    if (prepared.same !== undefined) return { definition: prepared.same, added: false, adopted: false };
     if (existing.length >= BACKUP_DESTINATIONS_MAX) throw new AdminError('conflict', `At most ${BACKUP_DESTINATIONS_MAX} backup destinations can be configured.`);
     if (passphraseOrNull === null) throw new AdminError('bad-request', 'passphrase is required to add a backup destination.');
     const passphrase = passphraseOrNull;
-    try { mkdirSync(folder, { recursive: true }); } catch { throw new AdminError('bad-request', 'The backup folder could not be created.'); }
-    const id = `d-${randomBytes(4).toString('hex')}`;
-    const definition: HubBackupDestinationConfig = { id, kind: 'local-folder', label: typeof labelRaw === 'string' ? labelRaw.trim() : `Local folder ${path.basename(folder) || folder}`, folder };
-    const destination = openDestination(definition);
-    const probe = await destination.probe();
-    if (!probe.ok) throw new AdminError('unavailable', `The backup folder cannot be written (${probe.reason}).`);
-
-    let stored: Uint8Array | null;
-    try { stored = masterKeys().load(); } catch { throw new AdminError('unavailable', 'The stored backup master key is unreadable.'); }
-    let master: Uint8Array | null = null;
-    let adopted = false;
-    let repoId: string;
+    const { definition } = prepared;
+    const id = definition.id;
+    prepared.beforeOpen?.();
+    let credentialsStored = false;
+    if (prepared.credentials !== undefined) {
+      try { s3Credentials().put(id, prepared.credentials); credentialsStored = true; } catch { throw new AdminError('unavailable', 'The S3 credentials could not be stored (key protection failed).'); }
+    }
+    let added = false;
     try {
-      if ((await destination.stat(REPO_OBJECT_NAME)) !== null) {
-        const repository = await openRepositoryAt(destination, { passphrase });
-        try {
-          master = repository.exportMasterKey();
-          repoId = repository.repoId;
-        } finally {
-          repository.close();
-        }
-        if (stored !== null && !equalBytes(stored, master)) throw new AdminError('conflict', 'This folder holds a backup repository made with another key; it cannot be added to this Hub.');
-        adopted = true;
-      } else {
-        if (stored !== null) {
-          // One passphrase for every repository of this Hub: it must open an existing destination's repository.
-          const other = existing[0];
-          if (other !== undefined) {
-            const repository = await openRepositoryAt(openDestination(other), { passphrase }).catch((error: unknown) => {
-              if (error instanceof AdminError && error.code === 'wrong-passphrase-or-corrupt') throw new AdminError('wrong-passphrase-or-corrupt', 'The passphrase does not open the existing backup destinations. Use the same passphrase, or change it everywhere with "dude-hub backup rewrap".');
-              throw error;
-            });
-            const matches = equalBytes(repository.exportMasterKey(), stored);
+      const destination = openDestination(definition);
+      const probe = await destination.probe();
+      if (!probe.ok) throw new AdminError('unavailable', `The backup ${prepared.failureNoun} cannot be written (${probe.reason}).`);
+
+      let stored: Uint8Array | null;
+      try { stored = masterKeys().load(); } catch { throw new AdminError('unavailable', 'The stored backup master key is unreadable.'); }
+      let master: Uint8Array | null = null;
+      let adopted = false;
+      let repoId: string;
+      try {
+        if ((await destination.stat(REPO_OBJECT_NAME)) !== null) {
+          const repository = await openRepositoryAt(destination, { passphrase });
+          try {
+            master = repository.exportMasterKey();
+            repoId = repository.repoId;
+          } finally {
             repository.close();
-            if (!matches) throw new AdminError('conflict', 'The existing destinations use another key.');
+          }
+          if (stored !== null && !equalBytes(stored, master)) throw new AdminError('conflict', `This ${prepared.failureNoun} holds a backup repository made with another key; it cannot be added to this Hub.`);
+          adopted = true;
+        } else {
+          if (stored !== null) {
+            // One passphrase for every repository of this Hub: it must open an existing destination's repository.
+            const other = existing[0];
+            if (other !== undefined) {
+              const repository = await openRepositoryAt(openDestination(other), { passphrase }).catch((error: unknown) => {
+                if (error instanceof AdminError && error.code === 'wrong-passphrase-or-corrupt') throw new AdminError('wrong-passphrase-or-corrupt', 'The passphrase does not open the existing backup destinations. Use the same passphrase, or change it everywhere with "dude-hub backup rewrap".');
+                throw error;
+              });
+              const matches = equalBytes(repository.exportMasterKey(), stored);
+              repository.close();
+              if (!matches) throw new AdminError('conflict', 'The existing destinations use another key.');
+            }
+          }
+          master = stored !== null ? stored.slice() : backupDeps().randomBytes(32).slice();
+          const { repository, object } = await createRepository(passphrase, backupDeps(), DEFAULT_KDF_PARAMS, { masterKey: master });
+          repoId = repository.repoId;
+          repository.close();
+          const out = await destination.sink().create(REPO_OBJECT_NAME);
+          try {
+            await out.write(object);
+            await out.commit();
+          } catch (error) {
+            await out.abort();
+            throw error;
           }
         }
-        master = stored !== null ? stored.slice() : backupDeps().randomBytes(32).slice();
-        const { repository, object } = await createRepository(passphrase, backupDeps(), DEFAULT_KDF_PARAMS, { masterKey: master });
-        repoId = repository.repoId;
-        repository.close();
-        const out = await destination.sink().create(REPO_OBJECT_NAME);
-        try {
-          await out.write(object);
-          await out.commit();
-        } catch (error) {
-          await out.abort();
-          throw error;
+        if (stored === null) {
+          try { masterKeys().save(master); } catch { throw new AdminError('unavailable', 'The backup master key could not be stored (key protection failed).'); }
+          const sdb = saveSphere();
+          if (sdb !== undefined) { try { setSecretExpected(sdb, 'backup.masterKey'); } catch { /* provisioning status only */ } }
         }
+      } finally {
+        master?.fill(0);
+        stored?.fill(0);
       }
-      if (stored === null) {
-        try { masterKeys().save(master); } catch { throw new AdminError('unavailable', 'The backup master key could not be stored (key protection failed).'); }
+      const before = config();
+      writeHubConfig(paths().configFile, applyBackupConfigChange(before, { destinations: [...(before.backup?.destinations ?? []), definition] }));
+      added = true;
+      if (credentialsStored) {
         const sdb = saveSphere();
-        if (sdb !== undefined) { try { setSecretExpected(sdb, 'backup.masterKey'); } catch { /* provisioning status only */ } }
+        if (sdb !== undefined) { try { setSecretExpected(sdb, 'backup.s3.credentials'); } catch { /* provisioning status only */ } }
       }
+      updateDestinationState(context.db, id, { repoId });
+      auditCli('backup.destination-added', 'success', { destination: id, kind: definition.kind, adopted });
+      return { definition, added: true, adopted };
     } finally {
-      master?.fill(0);
-      stored?.fill(0);
+      if (credentialsStored && !added) { try { s3Credentials().delete(id); } catch { /* nothing more to clean */ } }
     }
-    const before = config();
-    writeHubConfig(paths().configFile, applyBackupConfigChange(before, { destinations: [...(before.backup?.destinations ?? []), definition] }));
-    updateDestinationState(context.db, id, { repoId });
-    auditCli('backup.destination-added', 'success', { destination: id, kind: definition.kind, adopted });
-    return { definition, added: true, adopted };
   };
 
-  const describeDestination = (definition: HubBackupDestinationConfig): Record<string, unknown> => ({
-    id: definition.id, kind: definition.kind, label: definition.label, folder: definition.folder, state: readDestinationState(context.db, definition.id),
-  });
+  const credentialsStored = (id: string): boolean => { try { return s3Credentials().has(id); } catch { return false; } };
+  /** Non-secret facts about a destination; an S3 destination reports whether its credentials are stored, never the credentials. */
+  const describeDestination = (definition: HubBackupDestinationConfig): Record<string, unknown> => isS3Definition(definition)
+    ? {
+      id: definition.id, kind: definition.kind, label: definition.label, endpoint: definition.endpoint, region: definition.region, bucket: definition.bucket,
+      ...(definition.prefix !== undefined ? { prefix: definition.prefix } : {}), ...(definition.forcePathStyle !== undefined ? { forcePathStyle: definition.forcePathStyle } : {}),
+      allowPrivateNetwork: definition.allowPrivateNetwork === true, credentialsStored: credentialsStored(definition.id), state: readDestinationState(context.db, definition.id),
+    }
+    : { id: definition.id, kind: definition.kind, label: definition.label, folder: definition.folder, state: readDestinationState(context.db, definition.id) };
 
   const runDestinations = async (definitions: HubBackupDestinationConfig[]): Promise<Array<Record<string, unknown>>> => {
     const masterKey = loadMasterKey();
@@ -430,7 +526,8 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
     /** Backup files (`.dudebackup`) in a folder (default: the first local destination, else `<root>/backups`). */
     'backup.list': (params) => {
       const raw = record(params)['folder'];
-      const folderRaw = raw === undefined ? destinationsOf().find((d) => d.kind === 'local-folder')?.folder ?? paths().backupsDir : raw;
+      const firstLocal = destinationsOf().find((d) => !isS3Definition(d));
+      const folderRaw = raw === undefined ? (firstLocal !== undefined && !isS3Definition(firstLocal) ? firstLocal.folder : paths().backupsDir) : raw;
       if (typeof folderRaw !== 'string' || folderRaw.length === 0 || !path.isAbsolute(folderRaw)) throw new AdminError('bad-request', 'The backup folder must be an absolute path.');
       const folder = path.resolve(folderRaw);
       let backups;
@@ -494,7 +591,7 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
       let destinationAdded: string | null = null;
       if (input['folder'] !== undefined) {
         const folder = resolveTargetFolder(input['folder']);
-        const added = await addLocalDestination(folder, undefined, passphrase);
+        const added = await addDestination(prepareLocal(folder, undefined), passphrase);
         if (added.added) destinationAdded = added.definition.id;
       } else if (destinationsOf().length === 0) {
         throw new AdminError('bad-request', 'Add a backup destination first ("dude-hub backup destination add --folder <abs dir>"), or pass folder.');
@@ -536,10 +633,10 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
     'backup.destination.add': async (params) => {
       const input = record(params);
       const kind = input['kind'] ?? 'local-folder';
-      if (kind !== 'local-folder') throw new AdminError('bad-request', 'kind must be "local-folder".');
+      if (kind !== 'local-folder' && kind !== 's3') throw new AdminError('bad-request', 'kind must be "local-folder" or "s3".');
       const passphrase = passphraseOf(input);
-      const added = await addLocalDestination(input['folder'], input['label'], passphrase);
-      if (!added.added) throw new AdminError('conflict', 'That folder is already a backup destination.', { id: added.definition.id });
+      const added = await addDestination(kind === 's3' ? prepareS3(input) : prepareLocal(input['folder'], input['label']), passphrase);
+      if (!added.added) throw new AdminError('conflict', kind === 's3' ? 'That bucket location is already a backup destination.' : 'That folder is already a backup destination.', { id: added.definition.id });
       return { added: true, adopted: added.adopted, destination: describeDestination(added.definition) };
     },
     'backup.destination.list': () => ({ destinations: destinationsOf().map(describeDestination), retention: { ...DEFAULT_RETENTION } }),
@@ -552,6 +649,19 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
         backups: manifests.map((m) => backupIdOfManifest(m.name)).filter((id): id is string => id !== null)
           .map((backupId) => ({ backupId, at: new Date(backupIdTime(backupId)).toISOString() })),
       };
+    },
+    /**
+     * Tests a destination end to end (Milestone 848): for S3 a tiny object is written, read back, overwritten conditionally and
+     * deleted, a tiny multipart upload is completed, and the report says whether conditional writes are enforced, ignored or
+     * unsupported, the addressing style, the latency and the clock skew. Writes nothing that stays. Read-only in effect, so no
+     * confirmation token; elevated like the rest of the destination commands.
+     */
+    'backup.destination.probe': async (params) => {
+      const definition = destinationById(record(params)['id']);
+      const destination = openDestination(definition);
+      if (destination.kind === 's3') return { id: definition.id, kind: 's3', ...(await (destination as S3BackupDestination).probeDetailed()) };
+      const result = await destination.probe();
+      return { id: definition.id, kind: destination.kind, ok: result.ok, ...(result.ok ? {} : { reason: result.reason }) };
     },
     /** Full verification of one backup (default: the newest) at a destination with the held key; records `lastVerifiedAt`. */
     'backup.destination.verify': async (params) => {
@@ -592,13 +702,17 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
       const last = destinationsOf().length === 1;
       const at = now();
       const confirmToken = confirmations.issue({ action: BACKUP_DESTINATION_REMOVE_ACTION, digest: removeDigest(definition), bindingId: ADMIN_BINDING, now: at });
+      const s3 = isS3Definition(definition);
       return {
         confirmToken,
         expiresAt: ConfirmationStore.expiresAt(at),
-        consequenceClass: [...(last ? BACKUP_DESTINATION_REMOVE_LAST_CONSEQUENCE_CLASS : BACKUP_DESTINATION_REMOVE_CONSEQUENCE_CLASS)],
+        consequenceClass: [...(last ? BACKUP_DESTINATION_REMOVE_LAST_CONSEQUENCE_CLASS : s3 ? BACKUP_DESTINATION_REMOVE_S3_CONSEQUENCE_CLASS : BACKUP_DESTINATION_REMOVE_CONSEQUENCE_CLASS)],
         summary: {
-          id: definition.id, kind: definition.kind, label: definition.label, folder: definition.folder, last,
-          removesMasterKey: last, turnsOffSchedule: last && config().backup?.schedule !== undefined, note: KEPT_OBJECTS_NOTE,
+          id: definition.id, kind: definition.kind, label: definition.label,
+          ...(isS3Definition(definition)
+            ? { endpoint: definition.endpoint, bucket: definition.bucket, ...(definition.prefix !== undefined ? { prefix: definition.prefix } : {}), removesCredentials: true }
+            : { folder: definition.folder }),
+          last, removesMasterKey: last, turnsOffSchedule: last && config().backup?.schedule !== undefined, note: s3 ? KEPT_S3_OBJECTS_NOTE : KEPT_OBJECTS_NOTE,
         },
       };
     },
@@ -621,8 +735,10 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
         context.db.prepare('DELETE FROM meta WHERE key = ?').run(`${BACKUP_JOURNAL_PREFIX}${definition.id}`);
         let keyRemoved = false;
         if (last) { try { keyRemoved = masterKeys().clear(); } catch { /* reported as not removed */ } }
-        auditCli('backup.destination-removed', 'success', { destination: definition.id, kind: definition.kind, last, unattendedCleared: keyRemoved });
-        return { removed: true, id: definition.id, last, keyRemoved, scheduleOff: last && before.backup?.schedule !== undefined };
+        let credentialsRemoved = false;
+        if (isS3Definition(definition)) { try { credentialsRemoved = s3Credentials().delete(definition.id); } catch { /* reported as not removed */ } }
+        auditCli('backup.destination-removed', 'success', { destination: definition.id, kind: definition.kind, last, unattendedCleared: keyRemoved, ...(isS3Definition(definition) ? { credentialsCleared: credentialsRemoved } : {}) });
+        return { removed: true, id: definition.id, last, keyRemoved, ...(isS3Definition(definition) ? { credentialsRemoved } : {}), scheduleOff: last && before.backup?.schedule !== undefined };
       } finally {
         lock.release();
       }

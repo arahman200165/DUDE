@@ -85,7 +85,31 @@ export interface HubBackupLocalFolderDestination {
   folder: string;
 }
 
-export type HubBackupDestinationConfig = HubBackupLocalFolderDestination;
+/**
+ * An S3-compatible backup destination's non-secret definition (Milestone 848: AWS S3, Cloudflare R2, Backblaze B2 S3 API, MinIO).
+ * The access key id, secret access key and optional session token are NEVER here: they live in the secret store (purpose
+ * `backup.s3.credentials`, a JSON map keyed by destination id).
+ */
+export interface HubBackupS3Destination {
+  /** `^[a-z0-9][a-z0-9-]{0,31}$`, assigned by the Hub. */
+  id: string;
+  kind: 's3';
+  /** Display text, 1 to 64 characters. */
+  label: string;
+  /** `https://host[:port]` with no path, credentials, query or fragment; plain `http` only for a loopback host with `allowPrivateNetwork`. */
+  endpoint: string;
+  /** The SigV4 region (`us-east-1`, `auto` for R2, `eu-central-003` for B2). */
+  region: string;
+  bucket: string;
+  /** Key prefix isolating this repository inside the bucket (no leading or trailing slash); absent means the bucket root. */
+  prefix?: string;
+  /** Path-style addressing (`host/bucket/key`); absent means virtual-hosted for `*.amazonaws.com` and path-style for every other endpoint. */
+  forcePathStyle?: boolean;
+  /** The owner explicitly allows an endpoint that resolves to a loopback or private (LAN) address, such as MinIO on the LAN. Never lifts the link-local and metadata refusal. */
+  allowPrivateNetwork?: boolean;
+}
+
+export type HubBackupDestinationConfig = HubBackupLocalFolderDestination | HubBackupS3Destination;
 
 export interface HubBackupConfig {
   /** Absent means no scheduled backups. */
@@ -133,7 +157,12 @@ const EXPOSURE_MODES: readonly HubExposureMode[] = ['private', 'public'];
 const KNOWN_KEYS = new Set(['port', 'bind', 'webRoot', 'exposure', 'backup', 'oidc']);
 const OIDC_KEYS = new Set(['issuer', 'clientId', 'redirectOrigin']);
 const BACKUP_KEYS = new Set(['schedule', 'destinations']);
-const BACKUP_DESTINATION_KEYS = new Set(['id', 'kind', 'label', 'folder']);
+const BACKUP_DESTINATION_KEYS = new Set(['id', 'kind', 'label', 'folder', 'endpoint', 'region', 'bucket', 'prefix', 'forcePathStyle', 'allowPrivateNetwork']);
+const S3_ONLY_KEYS = ['endpoint', 'region', 'bucket', 'prefix', 'forcePathStyle', 'allowPrivateNetwork'] as const;
+const S3_REGION_PATTERN = /^[a-z0-9][a-z0-9-]{0,31}$/;
+const S3_BUCKET_PATTERN = /^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/;
+const S3_PREFIX_SEGMENT = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
+export const S3_PREFIX_MAX = 200;
 const BACKUP_SCHEDULE_KEYS = new Set(['folder', 'intervalHours', 'retention']);
 const EXPOSURE_KEYS = new Set(['mode', 'names', 'canonicalOrigin', 'proxy', 'acme', 'tunnel']);
 const TUNNEL_KEYS = new Set(['enabled', 'hostname']);
@@ -404,6 +433,53 @@ function parseBackupSchedule(raw: unknown): HubBackupScheduleConfig {
   return schedule;
 }
 
+/** True for `localhost`, an IPv4 loopback literal or `[::1]` (the only hosts plain `http` may name). */
+export function isLoopbackHostname(hostname: string): boolean {
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  return host === 'localhost' || host === '::1' || /^127(?:\.\d{1,3}){3}$/.test(host);
+}
+
+/** The endpoint as `origin` (no trailing slash), or a message naming what is wrong. Never echoes the value. */
+export function parseS3Endpoint(raw: unknown, allowPrivateNetwork: boolean): { origin: string } | { error: string } {
+  if (typeof raw !== 'string' || raw.length === 0 || raw.length > 253) return { error: 'must be a URL of at most 253 characters' };
+  let url: URL;
+  try { url = new URL(raw); } catch { return { error: 'must be an absolute URL' }; }
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') return { error: 'must be an https URL' };
+  if (url.username !== '' || url.password !== '' || url.search !== '' || url.hash !== '' || (url.pathname !== '/' && url.pathname !== '')) return { error: 'must be only a scheme, host and optional port' };
+  if (url.hostname.length === 0) return { error: 'must name a host' };
+  if (url.protocol === 'http:' && !(isLoopbackHostname(url.hostname) && allowPrivateNetwork)) return { error: 'must use https (plain http is accepted only for a loopback host with allowPrivateNetwork)' };
+  return { origin: url.origin };
+}
+
+/** A normalized S3 key prefix (`a/b`, no leading or trailing slash, safe segments) or an error. An empty prefix is the bucket root. */
+export function parseS3Prefix(raw: unknown): { prefix: string | undefined } | { error: string } {
+  if (raw === undefined || raw === '') return { prefix: undefined };
+  if (typeof raw !== 'string' || raw.length > S3_PREFIX_MAX) return { error: `must be at most ${S3_PREFIX_MAX} characters` };
+  const trimmed = raw.replace(/^\/+|\/+$/g, '');
+  if (trimmed.length === 0) return { prefix: undefined };
+  const segments = trimmed.split('/');
+  if (!segments.every((segment) => S3_PREFIX_SEGMENT.test(segment))) return { error: 'must be slash-separated segments of letters, digits, dot, underscore and hyphen' };
+  return { prefix: segments.join('/') };
+}
+
+function parseS3Destination(record: Record<string, unknown>, at: string, base: { id: string; label: string }): HubBackupS3Destination {
+  const { endpoint, region, bucket, prefix, forcePathStyle, allowPrivateNetwork } = record;
+  if (record['folder'] !== undefined) throw new Error(`${at}.folder is not allowed on an s3 destination.`);
+  if (forcePathStyle !== undefined && typeof forcePathStyle !== 'boolean') throw new Error(`${at}.forcePathStyle must be true or false.`);
+  if (allowPrivateNetwork !== undefined && typeof allowPrivateNetwork !== 'boolean') throw new Error(`${at}.allowPrivateNetwork must be true or false.`);
+  const parsedEndpoint = parseS3Endpoint(endpoint, allowPrivateNetwork === true);
+  if ('error' in parsedEndpoint) throw new Error(`${at}.endpoint ${parsedEndpoint.error}.`);
+  if (typeof region !== 'string' || !S3_REGION_PATTERN.test(region)) throw new Error(`${at}.region must be 1 to 32 lower-case letters, digits or hyphens.`);
+  if (typeof bucket !== 'string' || !S3_BUCKET_PATTERN.test(bucket)) throw new Error(`${at}.bucket must be 3 to 63 lower-case letters, digits, dots or hyphens.`);
+  const parsedPrefix = parseS3Prefix(prefix);
+  if ('error' in parsedPrefix) throw new Error(`${at}.prefix ${parsedPrefix.error}.`);
+  const out: HubBackupS3Destination = { id: base.id, kind: 's3', label: base.label, endpoint: parsedEndpoint.origin, region, bucket };
+  if (parsedPrefix.prefix !== undefined) out.prefix = parsedPrefix.prefix;
+  if (forcePathStyle !== undefined) out.forcePathStyle = forcePathStyle;
+  if (allowPrivateNetwork === true) out.allowPrivateNetwork = true;
+  return out;
+}
+
 function parseBackupDestination(raw: unknown, index: number): HubBackupDestinationConfig {
   const at = `Hub config "backup.destinations[${index}]"`;
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) throw new Error(`${at} must be an object.`);
@@ -411,8 +487,10 @@ function parseBackupDestination(raw: unknown, index: number): HubBackupDestinati
   for (const key of Object.keys(record)) if (!BACKUP_DESTINATION_KEYS.has(key)) throw new Error(`${at} has an unknown key "${key}".`);
   const { id, kind, label, folder } = record;
   if (typeof id !== 'string' || !BACKUP_DESTINATION_ID_PATTERN.test(id)) throw new Error(`${at}.id must be 1 to 32 lower-case letters, digits or hyphens.`);
-  if (kind !== 'local-folder') throw new Error(`${at}.kind must be "local-folder".`);
+  if (kind !== 'local-folder' && kind !== 's3') throw new Error(`${at}.kind must be "local-folder" or "s3".`);
   if (typeof label !== 'string' || label.trim().length === 0 || label.length > 64 || /[\u0000-\u001f\u007f]/.test(label)) throw new Error(`${at}.label must be 1 to 64 printable characters.`);
+  if (kind === 's3') return parseS3Destination(record, at, { id, label });
+  for (const key of S3_ONLY_KEYS) if (record[key] !== undefined) throw new Error(`${at}.${key} is not allowed on a local-folder destination.`);
   if (typeof folder !== 'string' || folder.length === 0 || !path.isAbsolute(folder)) throw new Error(`${at}.folder must be a non-empty absolute path.`);
   return { id, kind, label, folder };
 }

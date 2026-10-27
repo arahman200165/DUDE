@@ -183,6 +183,10 @@ export async function runCli(argv: readonly string[]): Promise<number> {
       ...(parsed.everyHours !== undefined ? { everyHours: parsed.everyHours } : {}), ...(parsed.keep !== undefined ? { keep: parsed.keep } : {}),
       ...(parsed.destination !== undefined ? { destination: parsed.destination } : {}), ...(parsed.label !== undefined ? { label: parsed.label } : {}),
       ...(parsed.backupId !== undefined ? { backupId: parsed.backupId } : {}),
+      ...(parsed.kind !== undefined ? { kind: parsed.kind } : {}), ...(parsed.endpoint !== undefined ? { endpoint: parsed.endpoint } : {}), ...(parsed.region !== undefined ? { region: parsed.region } : {}),
+      ...(parsed.bucket !== undefined ? { bucket: parsed.bucket } : {}), ...(parsed.prefix !== undefined ? { prefix: parsed.prefix } : {}),
+      ...(parsed.forcePathStyle !== undefined ? { forcePathStyle: parsed.forcePathStyle } : {}), ...(parsed.allowPrivateNetwork ? { allowPrivateNetwork: true } : {}),
+      ...(parsed.credentialsStdin ? { credentialsStdin: true } : {}),
       ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}),
     });
   }

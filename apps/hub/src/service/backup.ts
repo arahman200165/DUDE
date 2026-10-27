@@ -1,6 +1,6 @@
 import { AdminCallError, HUB_NOT_RUNNING } from '../admin/admin-client.js';
 import { validateBackupPassphrase } from '../backup/kdf.js';
-import { readPassphrase } from '../cli/passphrase.js';
+import { BACKUP_PASSPHRASE_ENV, readPassphrase, readStdinDocument } from '../cli/passphrase.js';
 import type { ReadPassphraseOptions } from '../cli/passphrase.js';
 import type { BackupCliAction } from '../cli/args.js';
 import { EXIT_FAILURE, EXIT_OK, EXIT_USAGE, json, requireElevated, resolveDeps, serviceDataDir, serviceState, tryAdminStatus } from './common.js';
@@ -22,6 +22,16 @@ export interface BackupCommandOptions {
   destination?: string;
   label?: string;
   backupId?: string;
+  /** `destination add`: `local-folder` (default) or `s3`. */
+  kind?: 'local-folder' | 's3';
+  endpoint?: string;
+  region?: string;
+  bucket?: string;
+  prefix?: string;
+  forcePathStyle?: boolean;
+  allowPrivateNetwork?: boolean;
+  /** `destination add --kind s3`: read the credentials JSON from standard input. */
+  credentialsStdin?: boolean;
   dataDir?: string;
   installDir?: string;
 }
@@ -29,6 +39,8 @@ export interface BackupCommandOptions {
 export interface BackupCommandDeps extends ServiceDeps {
   /** Standard input for the passphrase (default: the process's). */
   stdin?: ReadPassphraseOptions['stdin'];
+  /** Replaces reading the S3 credentials document from standard input (tests); returns the raw JSON text. */
+  readCredentialsDocument?: () => Promise<string>;
   /** Replaces the whole passphrase source (tests). */
   readPassphrase?: (options: { prompt: string; confirm: boolean }) => Promise<string>;
 }
@@ -51,9 +63,10 @@ const WHAT: Record<BackupAction, string> = {
   'destination-list': 'Listing backup destinations',
   'destination-remove': 'Removing a backup destination',
   'destination-verify': 'Verifying a backup',
+  'destination-probe': 'Testing a backup destination',
 };
 /** Everything that writes, reads a secret or changes the schedule needs the elevated terminal; the lists and the status only read. */
-const ELEVATED: ReadonlySet<BackupAction> = new Set(['create', 'verify', 'schedule-set', 'schedule-off', 'reactivate', 'run', 'prune', 'rewrap', 'destination-add', 'destination-remove', 'destination-verify']);
+const ELEVATED: ReadonlySet<BackupAction> = new Set(['create', 'verify', 'schedule-set', 'schedule-off', 'reactivate', 'run', 'prune', 'rewrap', 'destination-add', 'destination-remove', 'destination-verify', 'destination-probe']);
 const TWO_STEP: Partial<Record<BackupAction, string>> = { prune: 'backup prune', rewrap: 'backup rewrap', 'destination-remove': 'backup destination remove', reactivate: 'backup reactivate' };
 const RETIRE_WARNING = 'This Hub will be RETIRED after the backup is written and verified: it will refuse sign-in, sync and pairing until you run "dude-hub backup reactivate". Restore the backup on the new machine before you retire anything you need.';
 const RETIRED_NOTICE = 'This Hub is now retired (transferred).';
@@ -272,6 +285,48 @@ export async function runBackup(options: BackupCommandOptions, deps: BackupComma
         d.out(json(await d.call(dataRoot, 'backup.schedule.status', {})));
         return EXIT_OK;
       case 'destination-add': {
+        if (options.kind === 's3') {
+          if (options.endpoint === undefined || options.region === undefined || options.bucket === undefined) {
+            d.err('Usage: dude-hub backup destination add --kind s3 --endpoint <https url> --region <region> --bucket <bucket> [--prefix <key prefix>] --credentials-stdin.\n');
+            return EXIT_USAGE;
+          }
+          if (options.credentialsStdin !== true) {
+            d.err('S3 credentials are read from standard input (never an argument): pass --credentials-stdin and pipe {"accessKeyId","secretAccessKey","sessionToken"?,"passphrase"?}.\n');
+            return EXIT_USAGE;
+          }
+          let document: Record<string, unknown>;
+          try {
+            const raw = deps.readCredentialsDocument !== undefined
+              ? await deps.readCredentialsDocument()
+              : await readStdinDocument({ stdin: deps.stdin ?? process.stdin }, 16 * 1024, 'S3 credentials document');
+            const parsed: unknown = JSON.parse(raw);
+            if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) throw new Error('not an object');
+            document = parsed as Record<string, unknown>;
+          } catch (error) {
+            d.err(error instanceof Error && !(error instanceof SyntaxError) && error.message !== 'not an object' ? `${error.message}\n` : 'The S3 credentials document must be a JSON object: {"accessKeyId","secretAccessKey","sessionToken"?,"passphrase"?}.\n');
+            return EXIT_USAGE;
+          }
+          const { passphrase: documentPassphrase, ...credentials } = document;
+          d.err(`${PASSPHRASE_WARNING}\n${MASTER_KEY_NOTE}\nIf the bucket prefix already holds this Hub's backups, give the passphrase they were made with.\nThe S3 credentials are stored protected on this computer, never in hub.json, a backup or a log.\n`);
+          let passphrase: string | null = null;
+          if (typeof documentPassphrase === 'string' && documentPassphrase.length > 0) passphrase = documentPassphrase;
+          else if ((d.env[BACKUP_PASSPHRASE_ENV] ?? '').length > 0) passphrase = d.env[BACKUP_PASSPHRASE_ENV] as string;
+          else if (deps.readPassphrase !== undefined) passphrase = await passphraseFor('Backup passphrase (min 12 characters): ', true, true);
+          else d.err(`The passphrase is needed too: set ${BACKUP_PASSPHRASE_ENV} or add a "passphrase" field to the credentials document (standard input is used up by it).\n`);
+          if (passphrase === null) return EXIT_FAILURE;
+          const problem = validateBackupPassphrase(passphrase);
+          if (problem !== null) {
+            d.err(`${problem}\n`);
+            return EXIT_FAILURE;
+          }
+          d.out(json(await callAdminLong('backup.destination.add', {
+            kind: 's3', endpoint: options.endpoint, region: options.region, bucket: options.bucket,
+            ...(options.prefix !== undefined ? { prefix: options.prefix } : {}), ...(options.label !== undefined ? { label: options.label } : {}),
+            ...(options.forcePathStyle !== undefined ? { forcePathStyle: options.forcePathStyle } : {}), ...(options.allowPrivateNetwork === true ? { allowPrivateNetwork: true } : {}),
+            credentials, passphrase,
+          })));
+          return EXIT_OK;
+        }
         if (options.folder === undefined) {
           d.err('Usage: dude-hub backup destination add --folder <abs dir> [--label <text>].\n');
           return EXIT_USAGE;
@@ -285,6 +340,11 @@ export async function runBackup(options: BackupCommandOptions, deps: BackupComma
       case 'destination-list':
         d.out(json(await d.call(dataRoot, 'backup.destination.list', {})));
         return EXIT_OK;
+      case 'destination-probe': {
+        const report = (await callAdminLong('backup.destination.probe', { id: options.destination })) as { ok?: unknown };
+        d.out(json(report));
+        return report.ok === true ? EXIT_OK : EXIT_FAILURE;
+      }
       case 'destination-verify':
         d.out(json(await callAdminLong('backup.destination.verify', { id: options.destination, ...(options.backupId !== undefined ? { backupId: options.backupId } : {}) })));
         return EXIT_OK;

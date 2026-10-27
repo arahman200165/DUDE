@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { describe, expect, it } from 'vitest';
-import { BACKUP_PASSPHRASE_ENV, readPassphrase } from './passphrase.js';
+import { BACKUP_PASSPHRASE_ENV, readPassphrase, readStdinDocument } from './passphrase.js';
 import type { ReadPassphraseOptions } from './passphrase.js';
 
 type Stdin = ReadPassphraseOptions['stdin'];
@@ -127,5 +127,42 @@ describe('readPassphrase', () => {
     const terminal = new FakeTerminal([['should not be read', '\r']]);
     expect(await readPassphrase(terminalOptions(terminal, sink(), { env: { [BACKUP_PASSPHRASE_ENV]: 'env wins 123456' } }))).toBe('env wins 123456');
     expect(terminal.rawModes).toEqual([]);
+  });
+});
+
+describe('readStdinDocument (Milestone 848)', () => {
+  const json = '{"accessKeyId":"AKIAEXAMPLE","secretAccessKey":"abc/def+ghi"}';
+
+  it('reads a whole piped document to end of input, in several chunks and with multi-byte characters intact', async () => {
+    const stdin = new PassThrough();
+    const pending = readStdinDocument({ stdin: stdin as unknown as Stdin }, 1024, 'credentials document');
+    const text = `${json}\n{"note":"café €"}\n`;
+    const bytes = Buffer.from(text, 'utf8');
+    stdin.write(bytes.subarray(0, 5));
+    stdin.write(bytes.subarray(5, bytes.length - 3)); // splits the euro sign
+    stdin.end(bytes.subarray(bytes.length - 3));
+    expect(await pending).toBe(text);
+    expect(stdin.listenerCount('data')).toBe(0);
+    expect(stdin.listenerCount('end')).toBe(0);
+    expect(stdin.listenerCount('error')).toBe(0);
+  });
+
+  it('refuses a terminal, an empty document and one over the size limit, with value-free messages', async () => {
+    const tty = Object.assign(new PassThrough(), { isTTY: true });
+    await expect(readStdinDocument({ stdin: tty as unknown as Stdin }, 1024, 'credentials document')).rejects.toThrow('The credentials document must be piped on standard input.');
+    await expect(readStdinDocument({ stdin: piped('') as unknown as Stdin }, 1024, 'credentials document')).rejects.toThrow('The credentials document is empty.');
+    await expect(readStdinDocument({ stdin: piped(' \r\n\t ') as unknown as Stdin }, 1024, 'credentials document')).rejects.toThrow(/empty/);
+    const secretish = `{"secretAccessKey":"${'s'.repeat(2000)}"}`;
+    const error = await readStdinDocument({ stdin: piped(secretish) as unknown as Stdin }, 1024, 'credentials document').then(() => null, (e: unknown) => e as Error);
+    expect(error?.message).toBe('The credentials document is too large.');
+    expect(error?.message).not.toContain('sssss');
+  });
+
+  it('reports a read error without the stream error text and stops listening', async () => {
+    const stdin = new PassThrough();
+    const pending = readStdinDocument({ stdin: stdin as unknown as Stdin }, 1024, 'credentials document');
+    stdin.emit('error', new Error('secret-bearing detail'));
+    await expect(pending).rejects.toThrow('The credentials document could not be read.');
+    expect(stdin.listenerCount('data')).toBe(0);
   });
 });

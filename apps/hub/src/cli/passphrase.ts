@@ -102,6 +102,30 @@ export async function readPassphrase(options: ReadPassphraseOptions): Promise<st
 }
 
 /**
+ * A whole document piped on standard input (the S3 credentials JSON, Milestone 848), read to end of input, at most `maxBytes`. Refuses
+ * a terminal: a document is never typed, and never an argument or an environment variable. Throws a value-free error.
+ */
+export async function readStdinDocument(options: Pick<ReadPassphraseOptions, 'stdin'>, maxBytes: number, what: string): Promise<string> {
+  const { stdin } = options;
+  if (stdin.isTTY === true) throw new Error(`The ${what} must be piped on standard input.`);
+  return new Promise<string>((resolve, reject) => {
+    let buffer = '';
+    const cleanup = (): void => { stdin.removeListener('data', onData); stdin.removeListener('end', onEnd); stdin.removeListener('error', onError); stdin.pause(); };
+    const onData = (chunk: string | Buffer): void => {
+      buffer += typeof chunk === 'string' ? chunk : chunk.toString('utf8');
+      if (buffer.length > maxBytes) { cleanup(); reject(new Error(`The ${what} is too large.`)); }
+    };
+    const onEnd = (): void => { cleanup(); if (buffer.trim().length === 0) reject(new Error(`The ${what} is empty.`)); else resolve(buffer); };
+    const onError = (): void => { cleanup(); reject(new Error(`The ${what} could not be read.`)); };
+    stdin.setEncoding('utf8');
+    stdin.on('data', onData);
+    stdin.on('end', onEnd);
+    stdin.on('error', onError);
+    stdin.resume();
+  });
+}
+
+/**
  * A secret that is not a passphrase (the Cloudflare tunnel connector token), never from a command-line flag or the environment and
  * never echoed: the first line of standard input when it is not a terminal (so it can be piped), else a no-echo prompt. Surrounding
  * whitespace is dropped. Throws a value-free error when nothing was entered.

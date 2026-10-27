@@ -22,14 +22,14 @@ export type ParsedCommand =
   | { command: 'doctor'; json?: boolean; dataDir?: string; installDir?: string }
   | { command: 'provision'; action: 'run' | 'status'; json?: boolean; dataDir?: string; installDir?: string }
   | { command: 'purge'; dataDir?: string; includeBackups?: boolean; confirm?: string; type?: string }
-  | { command: 'backup'; action: BackupCliAction; folder?: string; file?: string; confirm?: string; forTransfer?: boolean; everyHours?: number; keep?: number; destination?: string; label?: string; backupId?: string; dataDir?: string; installDir?: string }
+  | { command: 'backup'; action: BackupCliAction; folder?: string; file?: string; confirm?: string; forTransfer?: boolean; everyHours?: number; keep?: number; destination?: string; label?: string; backupId?: string; kind?: 'local-folder' | 's3'; endpoint?: string; region?: string; bucket?: string; prefix?: string; forcePathStyle?: boolean; allowPrivateNetwork?: boolean; credentialsStdin?: boolean; dataDir?: string; installDir?: string }
   | { command: 'backup-restore'; file?: string; folder?: string; backupId?: string; confirm?: string; replace?: string; oldHubGone?: string; dataDir?: string; installDir?: string }
   | { command: 'version' }
   | { command: 'help' };
 
 export type BackupCliAction =
   | 'create' | 'list' | 'verify' | 'schedule-set' | 'schedule-off' | 'schedule-status' | 'reactivate'
-  | 'run' | 'prune' | 'rewrap' | 'destination-add' | 'destination-list' | 'destination-remove' | 'destination-verify';
+  | 'run' | 'prune' | 'rewrap' | 'destination-add' | 'destination-list' | 'destination-remove' | 'destination-verify' | 'destination-probe';
 
 const BIND_MODES: readonly string[] = ['loopback', 'lan', 'container'];
 
@@ -86,6 +86,8 @@ Usage:
   dude-hub backup list [--folder <abs dir>] [--data-dir <dir>] [--install-dir <dir>]
   dude-hub backup verify --file <abs path> [--data-dir <dir>] [--install-dir <dir>]   (decrypts a .dudebackup file with its passphrase, checks it end to end and prints what it contains; elevated)
   dude-hub backup destination add --folder <abs dir> [--label <text>] [--data-dir <dir>] [--install-dir <dir>]   (a backup v2 repository folder; asks for the passphrase; the Hub keeps a protected master key, never the passphrase; elevated)
+  dude-hub backup destination add --kind s3 --endpoint <https url> --region <region> --bucket <bucket> [--prefix <key prefix>] [--force-path-style | --virtual-hosted] [--allow-private-network] [--label <text>] --credentials-stdin   (an S3-compatible bucket: AWS S3, Cloudflare R2, Backblaze B2, MinIO; the credentials are a JSON document on standard input, {"accessKeyId","secretAccessKey","sessionToken"?,"passphrase"?}, never an argument; the passphrase comes from DUDE_HUB_BACKUP_PASSPHRASE or that document; elevated)
+  dude-hub backup destination probe --id <id>   (writes, reads, overwrites conditionally and deletes a tiny object and a tiny multipart upload at the destination and reports what the provider supports; elevated)
   dude-hub backup destination list [--data-dir <dir>] [--install-dir <dir>]
   dude-hub backup destination remove --id <id> [--confirm <token>] [--data-dir <dir>] [--install-dir <dir>]   (two steps; forgets the destination, never deletes its backups; elevated)
   dude-hub backup destination verify --id <id> [--backup <backup id>] [--data-dir <dir>] [--install-dir <dir>]   (decrypts and checks a whole backup at the destination; elevated)
@@ -158,7 +160,7 @@ function parseBackup(rest: readonly string[]): ParsedCommand {
   } else if (sub === 'destination') {
     sub = flags[0];
     flags = flags.slice(1);
-    if (sub !== 'add' && sub !== 'list' && sub !== 'remove' && sub !== 'verify') throw new UsageError('Usage: dude-hub backup destination add --folder <abs dir> [--label <text>] | list | remove --id <id> | verify --id <id> [--backup <id>].');
+    if (sub !== 'add' && sub !== 'list' && sub !== 'remove' && sub !== 'verify' && sub !== 'probe') throw new UsageError('Usage: dude-hub backup destination add --folder <abs dir> [--label <text>] | add --kind s3 ... --credentials-stdin | list | remove --id <id> | verify --id <id> [--backup <id>] | probe --id <id>.');
     action = `destination-${sub}`;
   } else if (sub === 'create' || sub === 'list' || sub === 'verify' || sub === 'reactivate' || sub === 'run' || sub === 'prune' || sub === 'rewrap') {
     action = sub;
@@ -181,12 +183,13 @@ function parseBackup(rest: readonly string[]): ParsedCommand {
     run: ['--destination'],
     prune: ['--destination', '--confirm'],
     rewrap: ['--confirm'],
-    'destination-add': ['--folder', '--label'],
+    'destination-add': ['--folder', '--label', '--kind', '--endpoint', '--region', '--bucket', '--prefix', '--force-path-style', '--virtual-hosted', '--allow-private-network', '--credentials-stdin'],
     'destination-list': [],
     'destination-remove': ['--id', '--confirm'],
     'destination-verify': ['--id', '--backup'],
+    'destination-probe': ['--id'],
   };
-  const values = parseFlags(flags, [...allowed[action], '--data-dir', '--install-dir'], ['--for-transfer']);
+  const values = parseFlags(flags, [...allowed[action], '--data-dir', '--install-dir'], ['--for-transfer', '--force-path-style', '--virtual-hosted', '--allow-private-network', '--credentials-stdin']);
   const folder = absolutePath(values, '--folder');
   const file = absolutePath(values, '--file');
   const forTransfer = values['--for-transfer'] !== undefined;
@@ -197,8 +200,27 @@ function parseBackup(rest: readonly string[]): ParsedCommand {
     const keep = values['--keep'] === undefined ? undefined : checkedInteger(values['--keep'], '--keep', BACKUP_RETENTION_MAX);
     return { command: 'backup', action, everyHours, ...(folder !== undefined ? { folder } : {}), ...(keep !== undefined ? { keep } : {}), ...common };
   }
-  if (action === 'destination-add' && folder === undefined) throw new UsageError('Usage: dude-hub backup destination add --folder <abs dir> [--label <text>].');
-  if ((action === 'destination-remove' || action === 'destination-verify') && values['--id'] === undefined) throw new UsageError(`Usage: dude-hub backup destination ${action.slice('destination-'.length)} --id <id>.`);
+  if (action === 'destination-add') {
+    const kind = values['--kind'] ?? 'local-folder';
+    if (kind !== 'local-folder' && kind !== 's3') throw new UsageError('Flag --kind must be local-folder or s3.');
+    if (kind === 's3') {
+      const s3Usage = 'Usage: dude-hub backup destination add --kind s3 --endpoint <https url> --region <region> --bucket <bucket> [--prefix <key prefix>] [--force-path-style | --virtual-hosted] [--allow-private-network] [--label <text>] --credentials-stdin.';
+      if (values['--endpoint'] === undefined || values['--region'] === undefined || values['--bucket'] === undefined || values['--credentials-stdin'] === undefined) throw new UsageError(s3Usage);
+      if (folder !== undefined) throw new UsageError('Flag --folder belongs to a local-folder destination, not --kind s3.');
+      if (values['--force-path-style'] !== undefined && values['--virtual-hosted'] !== undefined) throw new UsageError('Use only one of --force-path-style and --virtual-hosted.');
+      return {
+        command: 'backup', action, kind: 's3', endpoint: values['--endpoint'], region: values['--region'], bucket: values['--bucket'], credentialsStdin: true,
+        ...optional(values, '--prefix', 'prefix'), ...optional(values, '--label', 'label'),
+        ...(values['--force-path-style'] !== undefined ? { forcePathStyle: true } : {}), ...(values['--virtual-hosted'] !== undefined ? { forcePathStyle: false } : {}),
+        ...(values['--allow-private-network'] !== undefined ? { allowPrivateNetwork: true } : {}), ...common,
+      };
+    }
+    for (const flag of ['--endpoint', '--region', '--bucket', '--prefix', '--force-path-style', '--virtual-hosted', '--allow-private-network', '--credentials-stdin']) {
+      if (values[flag] !== undefined) throw new UsageError(`Flag ${flag} belongs to --kind s3.`);
+    }
+    if (folder === undefined) throw new UsageError('Usage: dude-hub backup destination add --folder <abs dir> [--label <text>].');
+  }
+  if ((action === 'destination-remove' || action === 'destination-verify' || action === 'destination-probe') && values['--id'] === undefined) throw new UsageError(`Usage: dude-hub backup destination ${action.slice('destination-'.length)} --id <id>.`);
   if (action === 'prune' && values['--destination'] === undefined) throw new UsageError('Usage: dude-hub backup prune --destination <id> [--confirm <token>].');
   return {
     command: 'backup', action,

@@ -119,6 +119,53 @@ describe('backup CLI parsing', () => {
     expect(() => parseArgs(['backup', 'destination', 'add', '--folder', FOLDER, '--passphrase', 'x'])).toThrow(/never accepted as a flag/);
   });
 
+  it('parses backup destination add --kind s3 (Milestone 848) with the credentials only from standard input', () => {
+    const base = ['backup', 'destination', 'add', '--kind', 's3', '--endpoint', 'https://s3.example.com', '--region', 'us-east-1', '--bucket', 'my-backups', '--credentials-stdin'];
+    expect(parseArgs(base)).toEqual({
+      command: 'backup', action: 'destination-add', kind: 's3', endpoint: 'https://s3.example.com', region: 'us-east-1', bucket: 'my-backups', credentialsStdin: true,
+    });
+    expect(parseArgs([...base, '--prefix', 'hub/one', '--label', 'Cloud', '--force-path-style', '--allow-private-network', '--data-dir', 'd'])).toEqual({
+      command: 'backup', action: 'destination-add', kind: 's3', endpoint: 'https://s3.example.com', region: 'us-east-1', bucket: 'my-backups', credentialsStdin: true,
+      prefix: 'hub/one', label: 'Cloud', forcePathStyle: true, allowPrivateNetwork: true, dataDir: 'd',
+    });
+    expect(parseArgs([...base, '--virtual-hosted'])).toMatchObject({ forcePathStyle: false });
+    expect(parseArgs([...base, '--endpoint=https://other.example.com'])).toMatchObject({ endpoint: 'https://other.example.com' });
+    expect(parseArgs(base)).not.toHaveProperty('forcePathStyle');
+    expect(parseArgs(base)).not.toHaveProperty('allowPrivateNetwork');
+    expect(parseArgs(['backup', 'destination', 'add', '--kind', 'local-folder', '--folder', FOLDER])).toEqual({ command: 'backup', action: 'destination-add', folder: FOLDER });
+  });
+
+  it('refuses incomplete or mixed S3 destination flags and any S3 secret as an argument', () => {
+    const base = ['backup', 'destination', 'add', '--kind', 's3', '--endpoint', 'https://s3.example.com', '--region', 'us-east-1', '--bucket', 'my-backups', '--credentials-stdin'];
+    const without = (flag: string): string[] => { const i = base.indexOf(flag); return base.filter((_, j) => j !== i && (flag === '--credentials-stdin' || j !== i + 1)); };
+    for (const flag of ['--endpoint', '--region', '--bucket', '--credentials-stdin']) expect(() => parseArgs(without(flag)), flag).toThrow(/Usage: dude-hub backup destination add --kind s3/);
+    expect(() => parseArgs([...base, '--folder', FOLDER])).toThrow(/--folder belongs to a local-folder/);
+    expect(() => parseArgs([...base, '--force-path-style', '--virtual-hosted'])).toThrow(/only one of/);
+    expect(() => parseArgs(['backup', 'destination', 'add', '--kind', 'azure', '--folder', FOLDER])).toThrow(/--kind must be local-folder or s3/);
+    for (const flag of ['--endpoint', '--region', '--bucket', '--prefix']) expect(() => parseArgs(['backup', 'destination', 'add', '--folder', FOLDER, flag, 'x']), flag).toThrow(/belongs to --kind s3/);
+    for (const flag of ['--force-path-style', '--virtual-hosted', '--allow-private-network', '--credentials-stdin']) expect(() => parseArgs(['backup', 'destination', 'add', '--folder', FOLDER, flag]), flag).toThrow(/belongs to --kind s3/);
+    expect(() => parseArgs([...base, '--credentials-stdin=yes'])).toThrow(/takes no value/);
+    for (const secret of ['--access-key-id', '--secret-access-key', '--session-token', '--credentials', '--secret', '--passphrase']) {
+      expect(() => parseArgs([...base, secret, 'AKIAHUNTER2HUNTER2']), secret).toThrow(/Unknown flag|never accepted as a flag/);
+      expect(() => parseArgs([...base, `${secret}=AKIAHUNTER2HUNTER2`]), secret).toThrow(/Unknown flag|never accepted as a flag/);
+    }
+    for (const flag of ['--endpoint', '--region', '--bucket', '--prefix']) expect(() => parseArgs([...base, flag]), flag).toThrow(/needs a value/);
+    expect(() => parseArgs(['backup', 'run', '--endpoint', 'https://s3.example.com'])).toThrow(/Unknown flag/);
+    expect(() => parseArgs(['backup', 'destination', 'verify', '--id', 'd-1', '--credentials-stdin'])).toThrow(/Unknown flag/);
+  });
+
+  it('parses backup destination probe --id and lists the S3 commands in the help text', () => {
+    expect(parseArgs(['backup', 'destination', 'probe', '--id', 'd-1'])).toEqual({ command: 'backup', action: 'destination-probe', destination: 'd-1' });
+    expect(parseArgs(['backup', 'destination', 'probe', '--id=d-1', '--data-dir', 'd', '--install-dir', 'i'])).toEqual({ command: 'backup', action: 'destination-probe', destination: 'd-1', dataDir: 'd', installDir: 'i' });
+    expect(() => parseArgs(['backup', 'destination', 'probe'])).toThrow(/Usage: dude-hub backup destination probe --id <id>/);
+    expect(() => parseArgs(['backup', 'destination', 'probe', '--id', 'd-1', '--folder', FOLDER])).toThrow(/Unknown flag/);
+    expect(() => parseArgs(['backup', 'destination', 'probe', '--id', 'd-1', '--passphrase', 'x'])).toThrow(/never accepted as a flag/);
+    expect(() => parseArgs(['backup', 'destination', 'nope'])).toThrow(/probe --id <id>/);
+    expect(HELP_TEXT).toContain('backup destination add --kind s3');
+    expect(HELP_TEXT).toContain('--credentials-stdin');
+    expect(HELP_TEXT).toContain('backup destination probe --id <id>');
+  });
+
   it('requires absolute paths', () => {
     expect(() => parseArgs(['backup', 'create', '--folder', 'relative\\dir'])).toThrow(/absolute path/);
     expect(() => parseArgs(['backup', 'list', '--folder', 'backups'])).toThrow(/absolute path/);

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getMeta, setMeta } from '@dude/sqlite-store';
 import { applyBackupConfigChange, defaultHubConfig, writeHubConfig } from '../config/hub-config.js';
-import type { HubBackupDestinationConfig, HubConfig } from '../config/hub-config.js';
+import type { HubBackupLocalFolderDestination, HubConfig } from '../config/hub-config.js';
 import type { HubDb } from '../db/open-hub-db.js';
 import { readDestinationState } from '../hub/backup-destination-state.js';
 import { createJobRegistry } from '../jobs/job-status.js';
@@ -33,7 +33,7 @@ async function fixture(options: Options = {}) {
   const deps = randomCheapDeps(() => new Date(clock));
   const keys = memoryMasterKeys();
   const master = new Uint8Array(32).fill(9);
-  const definitions: HubBackupDestinationConfig[] = [];
+  const definitions: HubBackupLocalFolderDestination[] = [];
   for (let i = 0; i < (options.destinations ?? 2); i += 1) {
     const folder = path.join(root, `dest-${i}`);
     if (options.brokenSecond === true && i === 1) mkdirSync(folder, { recursive: true }); // no repository

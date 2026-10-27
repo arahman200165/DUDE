@@ -14,10 +14,10 @@ const FILE = path.join(FOLDER, 'dude-hub-20260101T000000Z.dudebackup');
 interface Call { method: string; params: Record<string, unknown>; timeoutMs: number | undefined }
 
 /** A Hub that answers `status` and the backup methods with canned results (or throws what `fail` returns). */
-function harness(initial: Parameters<typeof fixture>[0] = {}, extra: Partial<BackupCommandDeps> & { fail?: (method: string) => Error | undefined; env?: Record<string, string | undefined> } = {}) {
+function harness(initial: Parameters<typeof fixture>[0] = {}, extra: Partial<BackupCommandDeps> & { fail?: (method: string) => Error | undefined; env?: Record<string, string | undefined>; probe?: Record<string, unknown> } = {}) {
   const f = fixture(initial);
   const calls: Call[] = [];
-  const { fail, env, ...rest } = extra;
+  const { fail, env, probe, ...rest } = extra;
   const deps: BackupCommandDeps = {
     ...f.deps,
     ...(env !== undefined ? { env: { ...f.deps.env, ...env } } : {}),
@@ -42,6 +42,8 @@ function harness(initial: Parameters<typeof fixture>[0] = {}, extra: Partial<Bac
         case 'backup.verify': return { ok: true, manifest: { formatVersion: 1, counts: { devices: 2 } } };
         case 'backup.schedule.set': return { configured: true, folder: FOLDER, intervalHours: 24, retention: 7, replaced: false };
         case 'backup.schedule.off': return { configured: false, wasConfigured: true };
+        case 'backup.destination.add': return { added: true, adopted: false, destination: { id: 'd-1', kind: (params as { kind?: string }).kind } };
+        case 'backup.destination.probe': return probe ?? { id: 'd-1', kind: 's3', ok: true, conditionalWrites: 'enforced' };
         case 'backup.schedule.status': return { configured: true, folder: FOLDER, intervalHours: 24, retention: 7, last: null, keyPresent: true };
         default: throw new Error(`unexpected ${method}`);
       }
@@ -335,5 +337,121 @@ describe('backup list, verify and schedule', () => {
     const h = harness({}, { fail: (method) => (method === 'backup.list' ? new AdminCallError('unavailable', 'The backup folder could not be read.') : undefined) });
     expect(await h.run({ action: 'list', folder: FOLDER })).toBe(1);
     expect(h.f.err.join('')).toContain('The backup folder could not be read.');
+  });
+});
+
+describe('backup destination add --kind s3 and probe (Milestone 848)', () => {
+  const ACCESS = 'AKIAEXAMPLEKEY123456';
+  const SECRET = 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY';
+  const S3 = { action: 'destination-add', kind: 's3', endpoint: 'https://s3.example.com', region: 'us-east-1', bucket: 'my-backups', credentialsStdin: true } as const;
+  const document = (extra: Record<string, unknown> = {}): string => JSON.stringify({ accessKeyId: ACCESS, secretAccessKey: SECRET, ...extra });
+
+  it('reads the credentials document from standard input, takes the passphrase from the environment and sends credentials and passphrase only in the admin call', async () => {
+    const h = harness({}, { ...withEnv, readCredentialsDocument: async () => document({ sessionToken: 'TOKEN123' }) });
+    expect(await h.run({ ...S3, prefix: 'hub/one', label: 'Cloud', forcePathStyle: true, allowPrivateNetwork: true })).toBe(0);
+    expect(h.backupCalls()).toEqual([{
+      method: 'backup.destination.add', timeoutMs: 10 * 60 * 1000,
+      params: {
+        kind: 's3', endpoint: 'https://s3.example.com', region: 'us-east-1', bucket: 'my-backups', prefix: 'hub/one', label: 'Cloud', forcePathStyle: true, allowPrivateNetwork: true,
+        credentials: { accessKeyId: ACCESS, secretAccessKey: SECRET, sessionToken: 'TOKEN123' }, passphrase: PASSPHRASE,
+      },
+    }]);
+    const err = h.f.err.join('');
+    expect(err).toContain('Losing the passphrase makes the backup unrecoverable.');
+    expect(err).toContain('stored protected on this computer');
+    expect(JSON.parse(h.f.out.join(''))).toEqual({ added: true, adopted: false, destination: { id: 'd-1', kind: 's3' } });
+    for (const secret of [ACCESS, SECRET, 'TOKEN123', PASSPHRASE]) expect(h.output(), secret).not.toContain(secret);
+  });
+
+  it('omits the optional flags when they were not given and keeps virtual-hosted as an explicit false', async () => {
+    const h = harness({}, { ...withEnv, readCredentialsDocument: async () => document() });
+    expect(await h.run({ ...S3 })).toBe(0);
+    expect(h.backupCalls()[0]!.params).toEqual({ kind: 's3', endpoint: 'https://s3.example.com', region: 'us-east-1', bucket: 'my-backups', credentials: { accessKeyId: ACCESS, secretAccessKey: SECRET }, passphrase: PASSPHRASE });
+    expect(await h.run({ ...S3, forcePathStyle: false })).toBe(0);
+    expect(h.backupCalls()[1]!.params).toMatchObject({ forcePathStyle: false });
+  });
+
+  it('takes the passphrase from the document (and strips it from the credentials), preferring it to the environment', async () => {
+    const h = harness({}, { env: { [BACKUP_PASSPHRASE_ENV]: 'a different environment passphrase' }, readCredentialsDocument: async () => document({ passphrase: PASSPHRASE }) });
+    expect(await h.run({ ...S3 })).toBe(0);
+    const params = h.backupCalls()[0]!.params as { credentials: Record<string, unknown>; passphrase: string };
+    expect(params.passphrase).toBe(PASSPHRASE);
+    expect(params.credentials).toEqual({ accessKeyId: ACCESS, secretAccessKey: SECRET });
+    expect(h.output()).not.toContain(PASSPHRASE);
+  });
+
+  it('reads a real piped stdin and then needs the passphrase from elsewhere, because stdin is used up', async () => {
+    const stdin = new PassThrough();
+    stdin.end(document());
+    const missing = harness({}, { stdin: stdin as unknown as BackupCommandDeps['stdin'] });
+    expect(await missing.run({ ...S3 })).toBe(1);
+    expect(missing.f.err.join('')).toContain(BACKUP_PASSPHRASE_ENV);
+    expect(missing.backupCalls()).toEqual([]);
+
+    const piped = new PassThrough();
+    piped.end(document());
+    const h = harness({}, { ...withEnv, stdin: piped as unknown as BackupCommandDeps['stdin'] });
+    expect(await h.run({ ...S3 })).toBe(0);
+    expect(h.backupCalls()[0]!.params).toMatchObject({ credentials: { accessKeyId: ACCESS, secretAccessKey: SECRET }, passphrase: PASSPHRASE });
+    expect(h.output()).not.toContain(SECRET);
+  });
+
+  it('asks interactively only when a prompt is available and applies the passphrase rules', async () => {
+    const asked: string[] = [];
+    const h = harness({}, { readCredentialsDocument: async () => document(), readPassphrase: async (o) => { asked.push(o.prompt); return PASSPHRASE; } });
+    expect(await h.run({ ...S3 })).toBe(0);
+    expect(asked).toEqual(['Backup passphrase (min 12 characters): ']);
+    const short = harness({}, { env: { [BACKUP_PASSPHRASE_ENV]: 'short' }, readCredentialsDocument: async () => document() });
+    expect(await short.run({ ...S3 })).toBe(1);
+    expect(short.backupCalls()).toEqual([]);
+    expect(short.f.err.join('')).toMatch(/at least 12/);
+  });
+
+  it('refuses bad documents and missing flags with a usage exit and never echoes the document', async () => {
+    const bad = async (read: () => Promise<string>): Promise<string> => {
+      const h = harness({}, { ...withEnv, readCredentialsDocument: read });
+      expect(await h.run({ ...S3 })).toBe(2);
+      expect(h.backupCalls()).toEqual([]);
+      expect(h.output()).not.toContain(SECRET);
+      return h.f.err.join('');
+    };
+    expect(await bad(async () => `{ not json ${SECRET}`)).toContain('must be a JSON object');
+    expect(await bad(async () => `["${SECRET}"]`)).toContain('must be a JSON object');
+    expect(await bad(async () => `"${SECRET}"`)).toContain('must be a JSON object');
+    expect(await bad(async () => { throw new Error('The S3 credentials document is empty.'); })).toContain('is empty');
+    const flagless = harness({}, { ...withEnv, readCredentialsDocument: async () => document() });
+    expect(await flagless.run({ action: 'destination-add', kind: 's3', endpoint: 'https://s3.example.com', credentialsStdin: true })).toBe(2);
+    expect(await flagless.run({ action: 'destination-add', kind: 's3', endpoint: 'https://s3.example.com', region: 'us-east-1', bucket: 'b' })).toBe(2);
+    expect(flagless.f.err.join('')).toContain('--credentials-stdin');
+    expect(flagless.backupCalls()).toEqual([]);
+  });
+
+  it('passes an admin refusal through without the secret and exits non-zero', async () => {
+    const h = harness({}, { ...withEnv, readCredentialsDocument: async () => document(), fail: (m) => (m === 'backup.destination.add' ? new AdminCallError('bad-request', 'endpoint must be an https URL.') : undefined) });
+    expect(await h.run({ ...S3 })).toBe(1);
+    expect(h.f.err.join('')).toContain('endpoint must be an https URL.');
+    expect(h.output()).not.toContain(SECRET);
+  });
+
+  it('stays elevated-only like the other destination commands', async () => {
+    const h = harness({ state: 'running', elevated: false }, { ...withEnv, readCredentialsDocument: async () => document() });
+    expect(await h.run({ ...S3 })).not.toBe(0);
+    expect(h.backupCalls()).toEqual([]);
+    const probe = harness({ state: 'running', elevated: false });
+    expect(await probe.run({ action: 'destination-probe', destination: 'd-1' })).not.toBe(0);
+    expect(probe.backupCalls()).toEqual([]);
+  });
+
+  it('probe prints the report and exits 0 when it is ok, 1 when a step failed, with a long timeout', async () => {
+    const ok = harness();
+    expect(await ok.run({ action: 'destination-probe', destination: 'd-1' })).toBe(0);
+    expect(ok.backupCalls()).toEqual([{ method: 'backup.destination.probe', params: { id: 'd-1' }, timeoutMs: 10 * 60 * 1000 }]);
+    expect(JSON.parse(ok.f.out.join(''))).toEqual({ id: 'd-1', kind: 's3', ok: true, conditionalWrites: 'enforced' });
+    const failed = harness({}, { probe: { id: 'd-1', kind: 's3', ok: false, failedStep: 'multipart', reason: 'server', write: true } });
+    expect(await failed.run({ action: 'destination-probe', destination: 'd-1' })).toBe(1);
+    expect(JSON.parse(failed.f.out.join(''))).toMatchObject({ ok: false, failedStep: 'multipart', reason: 'server' });
+    const refused = harness({}, { fail: (m) => (m === 'backup.destination.probe' ? new AdminCallError('not-found', 'Unknown backup destination.') : undefined) });
+    expect(await refused.run({ action: 'destination-probe', destination: 'nope' })).toBe(1);
+    expect(refused.f.err.join('')).toContain('Unknown backup destination.');
   });
 });

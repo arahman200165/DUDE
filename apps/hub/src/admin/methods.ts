@@ -2,7 +2,7 @@ import type { Db } from '@dude/sqlite-store';
 import type { HubBindMode } from '../config/hub-config.js';
 import type { HubPaths } from '../config/data-dir.js';
 import type { BackupDeps } from '@dude/hub-backup';
-import type { BackupDestination } from '../backup/destinations/index.js';
+import type { BackupDestination, OpenBackupDestinationDeps, S3CredentialStore } from '../backup/destinations/index.js';
 import type { MasterKeyStore } from '../backup/master-key.js';
 import type { RunBackupV2Options } from '../backup/run-backup-v2.js';
 import type { HubBackupDestinationConfig } from '../config/hub-config.js';
@@ -99,6 +99,10 @@ export interface AdminMethodContext {
   masterKeyStore?: MasterKeyStore;
   /** The Hub's live `savesphere.db` connection when it has one (backups take its blob lease and snapshot it). */
   saveSphereDb?: () => Db | undefined;
+  /** Where `s3` destination credentials live (default: the secret store under `paths`, purpose `backup.s3.credentials`). TEST seam. */
+  s3CredentialStore?: S3CredentialStore;
+  /** TEST-ONLY: S3 client transport/clock/part-size seams used by the default opener. */
+  s3Test?: NonNullable<OpenBackupDestinationDeps['s3']>;
   /** TEST-ONLY: replaces how a destination definition is opened. */
   openBackupDestination?: (definition: HubBackupDestinationConfig) => BackupDestination;
   /** TEST-ONLY: small chunks and packs, hooks or a fake blob store for `backup.run`. */

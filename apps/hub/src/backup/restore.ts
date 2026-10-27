@@ -20,6 +20,7 @@ import { newId as defaultNewId } from '../util/ids.js';
 import { BACKUP_CONFIG_FILE, BACKUP_DB_FILE } from './create-backup.js';
 import { fileByteSource } from './create-export.js';
 import { MANIFEST_PREFIX, backupIdOfManifest } from './destinations/destination.js';
+import type { BackupDestination } from './destinations/destination.js';
 import { createLocalFolderDestination } from './destinations/local-folder.js';
 import { BACKUP_V2_SAVESPHERE_FILE } from './run-backup-v2.js';
 import { SAVESPHERE_SCRUBBED_META_PREFIXES, SAVESPHERE_SCRUBBED_TABLES, SCRUBBED_META_KEYS, SCRUBBED_META_PREFIXES, SCRUBBED_TABLES } from './snapshot.js';
@@ -89,10 +90,14 @@ export interface RestoreSummary {
   blobBytes?: number;
 }
 
-/** Where the backup is read from: one of `file`, or `folder` (a v2 repository) with an optional `backupId` (default: the newest). */
+/**
+ * Where the backup is read from: one of `file`, `folder` (a v2 repository) or `destination` (any opened backup destination, for
+ * example an S3 bucket; library use, Milestone 848), with an optional `backupId` (default: the newest) for the last two.
+ */
 export interface RestoreSourceOptions {
   file?: string;
   folder?: string;
+  destination?: BackupDestination;
   backupId?: string;
 }
 
@@ -193,8 +198,9 @@ function parseConfigBytes(bytes: Uint8Array): HubConfig {
 function checkSource(options: RestoreSourceOptions): void {
   const hasFile = typeof options.file === 'string' && options.file.length > 0;
   const hasFolder = typeof options.folder === 'string' && options.folder.length > 0;
-  if (hasFile === hasFolder) throw new RestoreError('invalid-backup', 'Give exactly one backup source: a file or a repository folder.');
-  if (options.backupId !== undefined && !hasFolder) throw new RestoreError('invalid-backup', 'A backup id selects a backup in a repository folder only.');
+  const hasDestination = options.destination !== undefined;
+  if (Number(hasFile) + Number(hasFolder) + Number(hasDestination) !== 1) throw new RestoreError('invalid-backup', 'Give exactly one backup source: a file or a repository folder.');
+  if (options.backupId !== undefined && hasFile) throw new RestoreError('invalid-backup', 'A backup id selects a backup in a repository folder only.');
 }
 
 /** Opens and validates the backup. Throws BackupError (wrong passphrase, corrupt backup) or RestoreError. */
@@ -216,9 +222,15 @@ async function readAndValidate(options: RestoreSourceOptions & { passphrase: str
     reader = opened.reader;
     sourceTag = `file:${size}`;
   } else {
-    const folder = path.resolve(options.folder as string);
-    if (!existsSync(path.join(folder, REPO_OBJECT_NAME))) throw new RestoreError('invalid-backup', 'The folder holds no backup repository.');
-    const destination = createLocalFolderDestination({ id: 'restore', label: 'restore', folder });
+    let destination: BackupDestination;
+    if (options.destination !== undefined) {
+      destination = options.destination;
+      if ((await destination.stat(REPO_OBJECT_NAME)) === null) throw new RestoreError('invalid-backup', 'The destination holds no backup repository.');
+    } else {
+      const folder = path.resolve(options.folder as string);
+      if (!existsSync(path.join(folder, REPO_OBJECT_NAME))) throw new RestoreError('invalid-backup', 'The folder holds no backup repository.');
+      destination = createLocalFolderDestination({ id: 'restore', label: 'restore', folder });
+    }
     let backupId = options.backupId;
     if (backupId === undefined) {
       const newest = (await destination.list(MANIFEST_PREFIX)).map((m) => backupIdOfManifest(m.name)).filter((id): id is string => id !== null).pop();
@@ -227,7 +239,7 @@ async function readAndValidate(options: RestoreSourceOptions & { passphrase: str
     }
     if ((await destination.stat(`${MANIFEST_PREFIX}${backupId}`)) === null) throw new RestoreError('invalid-backup', 'The repository has no backup with that id.');
     reader = await openBackupV2(destination.source(), backupId, { passphrase: options.passphrase }, options.deps);
-    sourceTag = 'folder';
+    sourceTag = options.destination !== undefined ? 'destination' : 'folder';
   }
   try {
     return await validateV2(reader, sourceTag);
