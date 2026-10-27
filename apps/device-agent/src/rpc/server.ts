@@ -1,5 +1,5 @@
 import { isAgentMethod } from '@dude/contracts';
-import { COLLAB_DOCUMENT_TITLE_MAX, COLLAB_ROOM_NAME_MAX, HUB_NOTIFICATION_MARK_MAX, isCollabHistoryDocKey, MarkNotificationsReadRequest, PresenceActivity, SYNC_WIRE_CATEGORY_IDS } from '@dude/contracts/hub';
+import { COLLAB_DOCUMENT_TITLE_MAX, COLLAB_ROOM_NAME_MAX, HUB_NOTIFICATION_MARK_MAX, HubTrustChange, isCollabHistoryDocKey, MarkNotificationsReadRequest, PresenceActivity, SYNC_WIRE_CATEGORY_IDS } from '@dude/contracts/hub';
 import { Value } from 'typebox/value';
 import type { SyncCategory } from '@dude/contracts/hub';
 import type {
@@ -70,6 +70,11 @@ type Handlers = { [M in keyof AgentMethodMap]: (params: AgentMethodMap[M]['param
 
 const invalid = (message: string): RpcError => new RpcError('invalid-params', message);
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+function parseTrustChange(v: unknown): HubTrustChange {
+  if (!Value.Check(HubTrustChange, v)) throw invalid('trustChange must be { mode: "pinned" | "public-ca", domain: <public domain> | null } and nothing else.');
+  return v;
+}
+
 function str(v: unknown, name: string): string {
   if (typeof v !== 'string' || v.length === 0) throw invalid(`${name} must be a non-empty string.`);
   return v;
@@ -459,8 +464,10 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
       // The acknowledgement is part of the request, so nothing can trigger a re-pairing incidentally.
       if (p.acknowledged !== true) throw invalid('acknowledged must be true: reconnecting re-keys this device and needs the owner to confirm.');
       const pairingString = str(p.pairingString, 'pairingString');
+      // The trust-change confirmation is optional but exact when present: `{ mode, domain }` only; the agent compares it with the pairing string's trust.
+      const trustChange = p.trustChange === undefined ? undefined : parseTrustChange(p.trustChange);
       return hubGuard(async () => {
-        const status = await hubRuntime().reconnect(pairingString);
+        const status = await hubRuntime().reconnect(pairingString, trustChange);
         // The previous Hub's in-memory sync state (head revision, cached first-sync preview, tokens) no longer applies.
         deps.sync?.afterReset();
         return status;

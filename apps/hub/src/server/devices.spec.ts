@@ -80,7 +80,7 @@ describe('device registry', () => {
   it('round-trips the pairing string from the API response', async () => {
     const created = await createPairingCode(h, owner);
     const parts = parsePairingString(created.json.pairingString)!;
-    expect(parts).toEqual({ host: 'localhost', port: h.hub.port, code: created.json.pairingCode.replace('-', ''), spkiSha256: h.hub.tls.spkiSha256 });
+    expect(parts).toEqual({ trustMode: 'pinned', host: 'localhost', port: h.hub.port, code: created.json.pairingCode.replace('-', ''), spkiSha256: h.hub.tls.spkiSha256 });
     // the compact code form from the string is accepted by enroll
     const device = newDevice();
     expect((await enroll(h, device, { code: parts.code })).status).toBe(200);

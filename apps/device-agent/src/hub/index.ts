@@ -11,10 +11,11 @@ import { buildAgentDiagnostics } from './agent-diagnostics.js';
 import { getEnrollment } from '../store/repos/hub-enrollment.repo.js';
 import { getReconcileRequired, getSyncState } from '../store/repos/sync-state.repo.js';
 import { COLLAB_MAX_FRAME_BYTES, HUB_COLLAB_PATH } from '@dude/contracts/hub';
+import type { HubTrustChange } from '@dude/contracts/hub';
 import { createCollabRelay, evaluateCollabGate } from './collab-socket.js';
 import type { CollabRelay, CollabRelayTimings } from './collab-socket.js';
 
-export interface HubRuntimeDeps extends Pick<HubManagerDeps, 'now' | 'device' | 'timings' | 'random' | 'createTransport'> {
+export interface HubRuntimeDeps extends Pick<HubManagerDeps, 'now' | 'device' | 'timings' | 'random' | 'createTransport' | 'publicCaTestSeam'> {
   db: Db;
   dpapi: DpapiPort;
   /** Test seam: where the hand-off file lives (default `%LOCALAPPDATA%`). */
@@ -32,7 +33,7 @@ export interface HubRuntime {
   collab: CollabRelay;
   enroll(pairingString: string): Promise<AgentHubStatus>;
   /** Re-pairs an enrolled device whose Hub changed, keeping its data and outbox (PD-073). The caller has already collected the acknowledgement. */
-  reconnect(pairingString: string): Promise<AgentHubStatus>;
+  reconnect(pairingString: string, trustChange?: HubTrustChange): Promise<AgentHubStatus>;
   probeLocal(port?: number): Promise<AgentHubProbe>;
   bootstrapLocal(params: BootstrapLocalParams): Promise<AgentHubBootstrapResult>;
   /** Device-side report: one pinned public hello plus tracked enrollment and sync state. */
@@ -54,9 +55,9 @@ export function createHubRuntime(deps: HubRuntimeDeps): HubRuntime {
   });
   manager.onChange(() => collab.recheck());
   const enroll = (pairingString: string): Promise<AgentHubStatus> =>
-    enrollDevice(pairingString, { db: deps.db, dpapi: deps.dpapi, now: deps.now, device: deps.device, manager, createTransport: deps.createTransport });
-  const reconnect = (pairingString: string): Promise<AgentHubStatus> =>
-    reconnectDevice(pairingString, { db: deps.db, dpapi: deps.dpapi, now: deps.now, device: deps.device, manager, createTransport: deps.createTransport, backupDir: deps.backupDir });
+    enrollDevice(pairingString, { db: deps.db, dpapi: deps.dpapi, now: deps.now, device: deps.device, manager, createTransport: deps.createTransport, publicCaTestSeam: deps.publicCaTestSeam });
+  const reconnect = (pairingString: string, trustChange?: HubTrustChange): Promise<AgentHubStatus> =>
+    reconnectDevice(pairingString, { db: deps.db, dpapi: deps.dpapi, now: deps.now, device: deps.device, manager, createTransport: deps.createTransport, backupDir: deps.backupDir, publicCaTestSeam: deps.publicCaTestSeam }, trustChange);
   return {
     manager,
     collab,

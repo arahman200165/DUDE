@@ -1,4 +1,5 @@
 import type { Db } from '@dude/sqlite-store';
+import type { HubTrust, HubTrustMode } from '@dude/contracts/hub';
 
 /** Internal row, including the DPAPI-wrapped device key. Never leaves the agent process. */
 export interface HubEnrollmentRow {
@@ -15,6 +16,13 @@ export interface HubEnrollmentRow {
   proxySpkis: string[];
   /** Highest Hub authority epoch seen (PD-071); only ever raised. */
   authorityEpoch: number;
+  /**
+   * How this device verifies the Hub (Milestone 838): `pinned` (the SPKI pins above) or `public-ca` (public CA chain and host name for `trustDomain`,
+   * no pin). Written only by `saveEnrollment`, which only enrollment and the confirmed reconnect call: nothing a Hub says changes it.
+   */
+  trustMode: HubTrustMode;
+  /** The one public domain trusted through the CA chain; non-null exactly when `trustMode` is `public-ca`. */
+  trustDomain: string | null;
   keyId: string;
   publicKey: Uint8Array;
   wrappedPrivateKey: Uint8Array;
@@ -37,15 +45,21 @@ export interface PublicHubEnrollment {
   lastContactAt: string | null;
   revokedAt: string | null;
   authorityEpoch: number;
+  trustMode: HubTrustMode;
+  trustDomain: string | null;
 }
 
-export type NewHubEnrollment = Omit<HubEnrollmentRow, 'state' | 'spkiNext' | 'certNextPem' | 'proxySpkis' | 'lastContactAt' | 'revokedAt' | 'updatedAt' | 'authorityEpoch'> & { authorityEpoch?: number };
+export type NewHubEnrollment = Omit<HubEnrollmentRow, 'state' | 'spkiNext' | 'certNextPem' | 'proxySpkis' | 'lastContactAt' | 'revokedAt' | 'updatedAt' | 'authorityEpoch' | 'trustMode' | 'trustDomain'>
+  & { authorityEpoch?: number; trustMode?: HubTrustMode; trustDomain?: string | null };
+
+/** The trust of a row, as the comparable value the confirmation checks use. */
+export const trustOf = (e: Pick<HubEnrollmentRow, 'trustMode' | 'trustDomain'>): HubTrust => ({ mode: e.trustMode, domain: e.trustMode === 'public-ca' ? e.trustDomain : null });
 
 interface RawRow {
   state: 'enrolled' | 'revoked'; hub_instance_id: string; environment_id: string; hub_url: string; protocol_version: number;
   spki_active: string; cert_active_pem: string; spki_next: string | null; cert_next_pem: string | null; key_id: string;
   public_key: Uint8Array; wrapped_private_key: Uint8Array; enrolled_at: string; last_contact_at: string | null;
-  revoked_at: string | null; updated_at: string; proxy_spkis: string; authority_epoch: number;
+  revoked_at: string | null; updated_at: string; proxy_spkis: string; authority_epoch: number; trust_mode: string; trust_domain: string | null;
 }
 
 const SPKI_PIN = /^[A-Za-z0-9_-]{43}$/;
@@ -66,6 +80,10 @@ export function getEnrollment(db: Db): HubEnrollmentRow | null {
     publicKey: r.public_key, wrappedPrivateKey: r.wrapped_private_key, enrolledAt: r.enrolled_at, lastContactAt: r.last_contact_at,
     revokedAt: r.revoked_at, updatedAt: r.updated_at, proxySpkis: parsePins(r.proxy_spkis),
     authorityEpoch: Number(r.authority_epoch) >= 1 ? Number(r.authority_epoch) : 1,
+    // Anything but an exact `public-ca` with a domain reads as the default pinned mode (a damaged value never widens trust).
+    ...(r.trust_mode === 'public-ca' && typeof r.trust_domain === 'string' && r.trust_domain.length > 0
+      ? { trustMode: 'public-ca' as const, trustDomain: r.trust_domain }
+      : { trustMode: 'pinned' as const, trustDomain: null }),
   };
 }
 
@@ -75,18 +93,24 @@ export function publicEnrollment(db: Db): PublicHubEnrollment | null {
   return {
     state: e.state, hubInstanceId: e.hubInstanceId, environmentId: e.environmentId, hubUrl: e.hubUrl, protocolVersion: e.protocolVersion,
     spkiActive: e.spkiActive, spkiNext: e.spkiNext, enrolledAt: e.enrolledAt, lastContactAt: e.lastContactAt, revokedAt: e.revokedAt,
-    authorityEpoch: e.authorityEpoch,
+    authorityEpoch: e.authorityEpoch, trustMode: e.trustMode, trustDomain: e.trustDomain,
   };
 }
 
 /** Replaces any existing enrollment with a fresh 'enrolled' one. */
 export function saveEnrollment(db: Db, e: NewHubEnrollment, now: Date): void {
   const iso = now.toISOString();
+  // A `public-ca` enrollment must name its domain; anything else is stored as the default pinned mode.
+  const publicCa = e.trustMode === 'public-ca' && typeof e.trustDomain === 'string' && e.trustDomain.length > 0;
+  if (e.trustMode === 'public-ca' && !publicCa) throw new Error('A public-CA enrollment needs its domain.');
   db.prepare(
     `INSERT OR REPLACE INTO hub_enrollment (id, state, hub_instance_id, environment_id, hub_url, protocol_version, spki_active, cert_active_pem,
-       spki_next, cert_next_pem, key_id, public_key, wrapped_private_key, enrolled_at, last_contact_at, revoked_at, updated_at, authority_epoch)
-     VALUES (1, 'enrolled', ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?, NULL, NULL, ?, ?)`,
-  ).run(e.hubInstanceId, e.environmentId, e.hubUrl, e.protocolVersion, e.spkiActive, e.certActivePem, e.keyId, e.publicKey, e.wrappedPrivateKey, e.enrolledAt, iso, Math.max(1, Math.trunc(e.authorityEpoch ?? 1)));
+       spki_next, cert_next_pem, key_id, public_key, wrapped_private_key, enrolled_at, last_contact_at, revoked_at, updated_at, authority_epoch, trust_mode, trust_domain)
+     VALUES (1, 'enrolled', ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?)`,
+  ).run(
+    e.hubInstanceId, e.environmentId, e.hubUrl, e.protocolVersion, e.spkiActive, e.certActivePem, e.keyId, e.publicKey, e.wrappedPrivateKey, e.enrolledAt, iso,
+    Math.max(1, Math.trunc(e.authorityEpoch ?? 1)), publicCa ? 'public-ca' : 'pinned', publicCa ? e.trustDomain! : null,
+  );
 }
 
 /** Keeps the row (so the UI can say "revoked, re-pair") but marks it unusable. */

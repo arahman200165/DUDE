@@ -11,18 +11,19 @@ import {
   NotificationEventData as NotificationEventSchema, RealtimeServerMessage, deviceAuthMessage, isOwnerViewTopic, ownerRecoveryMessage,
 } from '@dude/contracts/hub';
 import type { Db } from '@dude/sqlite-store';
-import { addProxyPin, clearEnrollment, getEnrollment, markRevoked, promoteNextPin, publicEnrollment, raiseAuthorityEpoch, setNextPin, setProxyPins, touchContact } from '../store/repos/hub-enrollment.repo.js';
+import { addProxyPin, clearEnrollment, getEnrollment, markRevoked, promoteNextPin, publicEnrollment, raiseAuthorityEpoch, setNextPin, setProxyPins, touchContact, trustOf } from '../store/repos/hub-enrollment.repo.js';
 import type { HubEnrollmentRow } from '../store/repos/hub-enrollment.repo.js';
 import { unsentOpCounts } from '../store/repos/outbox.repo.js';
 import { loadDeviceKey } from '../native/device-key.js';
 import type { DpapiPort } from '../native/windows-sys-client.js';
 import { evaluateAuthority } from './authority-check.js';
+import { resolveTrustTarget, trustOfferFor } from './trust.js';
 import type { SeenAuthority } from './authority-check.js';
 import { HubManagerError } from './errors.js';
 import { createOwnerSession } from './owner-session.js';
 import type { OwnerSession } from './owner-session.js';
-import { PIN_MISMATCH_CODE, createPinnedTransport, pinnedConnectOptions, spkiSha256Of } from './pinned-transport.js';
-import type { PinnedTarget } from './pinned-transport.js';
+import { PIN_MISMATCH_CODE, TRUST_ORIGIN_REFUSED_CODE, createPinnedTransport, pinnedConnectOptions, spkiSha256Of } from './pinned-transport.js';
+import type { PinnedTarget, PublicCaTestSeam } from './pinned-transport.js';
 import { reachabilityEchoViaPublicUrl } from './public-echo.js';
 import type { ReachabilityEchoResult } from './public-echo.js';
 
@@ -58,6 +59,8 @@ export interface HubManagerDeps {
   random?: () => number;
   /** Test seam; defaults to the pinned node:https transport. */
   createTransport?: (target: PinnedTarget) => HubTransport;
+  /** TEST SEAM ONLY: roots for `public-ca` enrollments (see `PinnedTarget.publicCaTestSeam`). Production never sets it. */
+  publicCaTestSeam?: PublicCaTestSeam;
 }
 
 export interface HubConnectionManager {
@@ -118,7 +121,7 @@ type ConfirmResult = 'revoked' | 'active' | 'unknown';
 const TLS_ERROR_CODES = /^(ERR_TLS_|ERR_SSL_|CERT_|DEPTH_ZERO|SELF_SIGNED|UNABLE_TO_|HOSTNAME_MISMATCH|ERR_OSSL|EPROTO)/;
 export const isTlsError = (error: unknown): boolean => {
   const code = (error as { code?: unknown } | null)?.code;
-  return code === PIN_MISMATCH_CODE || (typeof code === 'string' && TLS_ERROR_CODES.test(code));
+  return code === PIN_MISMATCH_CODE || code === TRUST_ORIGIN_REFUSED_CODE || (typeof code === 'string' && TLS_ERROR_CODES.test(code));
 };
 const throttled = (error: unknown): boolean => error instanceof HubApiError && (error.status === 429 || error.status === 423);
 const AUTHORITY_MESSAGES: Readonly<Record<AgentHubAuthorityReason, string>> = {
@@ -126,6 +129,10 @@ const AUTHORITY_MESSAGES: Readonly<Record<AgentHubAuthorityReason, string>> = {
   'instance-changed': 'This is a different Hub than the one this device was paired with (it may have been restored). Reconnect this device to continue; nothing on this device was changed.',
   'epoch-lower': 'This Hub reports an older state than one this device has already seen. Reconnect this device to continue; nothing on this device was changed.',
 };
+const tlsMessage = (enrollment: Pick<HubEnrollmentRow, 'trustMode' | 'trustDomain'> | null): string =>
+  enrollment?.trustMode === 'public-ca'
+    ? `The Hub certificate for ${enrollment.trustDomain ?? 'its domain'} could not be verified through the public certificate authorities. Check this device's clock, then reconnect it.`
+    : 'The Hub certificate no longer matches the pinned key. Pair this device again.';
 const isAuthRejected = (error: unknown): boolean => error instanceof HubApiError && (error.status === 401 || error.status === 403);
 
 /**
@@ -163,10 +170,18 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
   let recoveryTrusted: boolean | null = null;
   let metaFlight: Promise<void> | null = null;
   let authority: AgentHubStatus['authority'] = null;
+  /** What the last hello advertised when it differs from this device's trust: shown to the owner, never applied (Milestone 838). */
+  let trustOffer: AgentHubStatus['trustOffer'] = null;
 
   const status = (): AgentHubStatus => {
     const enrollment = publicEnrollment(deps.db);
-    return { state, lastError, lastContactAt: enrollment?.lastContactAt ?? null, ownerSignedIn: owner.status().signedIn, enrollment, hubVersion, recoveryTrusted, pendingOps: unsentOpCounts(deps.db).total, authority };
+    return { state, lastError, lastContactAt: enrollment?.lastContactAt ?? null, ownerSignedIn: owner.status().signedIn, enrollment, hubVersion, recoveryTrusted, pendingOps: unsentOpCounts(deps.db).total, authority, trustOffer };
+  };
+  /** Records the hello's trust advertisement as an offer. It never writes the enrollment. */
+  const noteHelloTrust = (hello: { trustMode?: 'pinned' | 'public-ca'; trustDomain?: string }): void => {
+    const enrollment = getEnrollment(deps.db);
+    const next = enrollment ? trustOfferFor(trustOf(enrollment), hello) ?? null : null;
+    if (JSON.stringify(next) !== JSON.stringify(trustOffer)) { trustOffer = next; emit(); }
   };
   const emit = (): void => {
     const snapshot = status();
@@ -182,14 +197,18 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
     emit();
   };
 
+  /**
+   * The verified target for the enrollment, chosen from its stored trust mode only (`resolveTrustTarget`). A `public-ca` enrollment whose stored origin is not
+   * allowed ends the loop as `untrusted-tls` before any socket opens.
+   */
   const targetOf = (enrollment: HubEnrollmentRow, onPeerSpki?: (spki: string) => void): PinnedTarget & { url: URL } => {
-    const url = new URL(enrollment.hubUrl);
-    return {
-      url, host: url.hostname, port: Number(url.port || 443),
-      ca: enrollment.certNextPem ? [enrollment.certActivePem, enrollment.certNextPem] : [enrollment.certActivePem],
-      pins: [enrollment.spkiActive, ...(enrollment.spkiNext ? [enrollment.spkiNext] : []), ...enrollment.proxySpkis],
-      ...(onPeerSpki ? { onPeerSpki } : {}),
-    };
+    try {
+      const target = resolveTrustTarget(enrollment, onPeerSpki);
+      return enrollment.trustMode === 'public-ca' && deps.publicCaTestSeam ? { ...target, publicCaTestSeam: deps.publicCaTestSeam } : target;
+    } catch (error) {
+      if (error instanceof HubManagerError && error.code === 'trust-origin-refused' && running) { setState('untrusted-tls', error.message); stopLoop(); }
+      throw error;
+    }
   };
 
   /** Promotes the staged pin once a connection has been verified against it (the Hub activated the next certificate). */
@@ -222,8 +241,8 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
     } catch (error) {
       if (error instanceof HubApiError || error instanceof HubProtocolError || error instanceof HubManagerError) throw error;
       if (isTlsError(error)) {
-        if (running) { setState('untrusted-tls', 'The Hub certificate no longer matches the pinned key. Pair this device again.'); stopLoop(); }
-        throw new HubManagerError('tls-untrusted', 'The Hub certificate does not match the pinned key.');
+        if (running) { setState('untrusted-tls', tlsMessage(enrollment)); stopLoop(); }
+        throw new HubManagerError('tls-untrusted', enrollment.trustMode === 'public-ca' ? 'The Hub certificate is not a valid public certificate for its domain.' : 'The Hub certificate does not match the pinned key.');
       }
       throw new HubManagerError('hub-unreachable', error instanceof Error ? error.message : 'The Hub could not be reached.');
     }
@@ -310,6 +329,7 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
   async function helloHolds(): Promise<boolean> {
     let hello: Awaited<ReturnType<HubClient['hello']>>;
     try { hello = await call((api) => api.hello()); } catch { return state !== 'authority-changed'; }
+    noteHelloTrust(hello);
     return authorityHolds({ hubInstanceId: hello.hubInstanceId, authorityEpoch: hello.authorityEpoch, authorityState: hello.authorityState });
   }
 
@@ -361,6 +381,7 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
       let changed = false;
       try {
         const hello = await call((api) => api.hello());
+        noteHelloTrust(hello);
         if (gen !== generation || !authorityHolds({ hubInstanceId: hello.hubInstanceId, authorityEpoch: hello.authorityEpoch, authorityState: hello.authorityState })) return;
         if (hello.hubVersion !== hubVersion) { hubVersion = hello.hubVersion; changed = true; }
         const info = await deviceCall((api, value) => api.deviceSelf(value));
@@ -402,7 +423,7 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
   async function onFailure(error: unknown, gen: number): Promise<void> {
     if (gen !== generation || !running) return;
     if (isTlsError(error) || (error instanceof HubManagerError && error.code === 'tls-untrusted')) {
-      setState('untrusted-tls', 'The Hub certificate no longer matches the pinned key. Pair this device again.');
+      setState('untrusted-tls', tlsMessage(getEnrollment(deps.db)));
       stopLoop();
       return;
     }
@@ -471,8 +492,7 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
         welcomed = true;
         welcomeProtocol = parsed.protocolVersion;
         attempt = 0;
-        maybePromote(peer);
-        maybePromote(parsed.tls.spkiSha256);
+        if (enrollment.trustMode === 'pinned') { maybePromote(peer); maybePromote(parsed.tls.spkiSha256); }
         touchContact(deps.db, deps.now());
         setState('online', null);
         const interval = Math.max(1, Math.min(parsed.heartbeatIntervalMs, timings.heartbeatIntervalMs));
@@ -487,10 +507,12 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
           sendActivity = send;
           if (activity !== null) send({ type: 'activity', activity });
         }
-        if (parsed.tls.nextSpkiSha256 !== null) queueNextPin(parsed.tls.nextSpkiSha256, send);
+        // A public-CA enrollment has no pins: the Hub's announced pins are never stored, staged or acknowledged by it (Milestone 838).
+        const pinned = enrollment.trustMode === 'pinned';
+        if (pinned && parsed.tls.nextSpkiSha256 !== null) queueNextPin(parsed.tls.nextSpkiSha256, send);
         // Reverse-proxy leaf pins the Hub advertises (active plus staged next): accepted for later connections, and acknowledged
         // so the operator can activate a staged one (the Hub ignores acks for pins that are not staged).
-        if (parsed.tls.proxySpkiSha256 !== undefined) {
+        if (pinned && parsed.tls.proxySpkiSha256 !== undefined) {
           setProxyPins(deps.db, parsed.tls.proxySpkiSha256, deps.now());
           for (const spki of parsed.tls.proxySpkiSha256) send({ type: 'tls-pin-ack', spkiSha256: spki });
         }
@@ -521,7 +543,7 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
         return;
       }
       if (parsed.type === 'event' && parsed.event === 'device-registry-changed') { refreshMeta(); return; }
-      if (parsed.type === 'event' && parsed.event === 'tls-next-pin') {
+      if (parsed.type === 'event' && parsed.event === 'tls-next-pin' && enrollment.trustMode === 'pinned') {
         const announced = parsed.data['spkiSha256'];
         if (typeof announced === 'string' && parsed.data['kind'] === 'proxy') {
           // A staged reverse-proxy leaf pin: no certificate to fetch (the proxy's certificate is not the Hub's); record and ack.
@@ -572,7 +594,7 @@ export function createHubConnectionManager(deps: HubManagerDeps): HubConnectionM
       value = await getToken(options.refreshToken === true);
     } catch (error) {
       if (error instanceof HubManagerError || error instanceof HubApiError || error instanceof HubProtocolError) throw error;
-      if (isTlsError(error)) throw new HubManagerError('tls-untrusted', 'The Hub certificate does not match the pinned key.');
+      if (isTlsError(error)) throw new HubManagerError('tls-untrusted', 'The Hub certificate does not match the pinned key or the trusted public certificate.');
       throw new HubManagerError('hub-unreachable', error instanceof Error ? error.message : 'The Hub could not be reached.');
     }
     // The enrollment is read again: the hello above may have recorded a higher epoch, and a pin can have moved.

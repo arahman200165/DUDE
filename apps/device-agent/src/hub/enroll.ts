@@ -3,17 +3,18 @@ import { HubApiError, HubProtocolError, createHubClient } from '@dude/api-client
 import type { HubTransport } from '@dude/api-client';
 import type { AgentHubEnrollError, AgentHubStatus } from '@dude/contracts';
 import { DEVICE_CAPABILITIES, HUB_MIN_CLIENT_PROTOCOL, HUB_PROTOCOL_VERSION, enrollMessage, parsePairingString } from '@dude/contracts/hub';
-import type { DeviceCapability, DeviceRegistryPlatform } from '@dude/contracts/hub';
+import type { DeviceCapability, DeviceRegistryPlatform, HubTrust, HubTrustChange } from '@dude/contracts/hub';
 import type { Db } from '@dude/sqlite-store';
 import { transaction } from '@dude/sqlite-store';
-import { getEnrollment, saveEnrollment } from '../store/repos/hub-enrollment.repo.js';
+import { getEnrollment, saveEnrollment, trustOf } from '../store/repos/hub-enrollment.repo.js';
 import { createDeviceKey, loadDeviceKey } from '../native/device-key.js';
 import type { DpapiPort } from '../native/windows-sys-client.js';
 import { HubManagerError } from './errors.js';
 import type { HubConnectionManager, ManagedDevice } from './hub-client.js';
 import { PIN_MISMATCH_CODE, createPinnedTransport } from './pinned-transport.js';
-import type { PinnedTarget } from './pinned-transport.js';
+import type { PinnedTarget, PublicCaTestSeam } from './pinned-transport.js';
 import { probePin } from './probe.js';
+import { advertisedTrust, assertTrustChangeConfirmed } from './trust.js';
 import type { PinProbe } from './probe.js';
 import { getReconcileRequired, resetHubBookkeeping } from '../store/repos/sync-state.repo.js';
 import { takeRecoverySnapshot } from '../sync/first-sync.js';
@@ -41,6 +42,8 @@ export interface EnrollDeps {
   /** Test seams. */
   probe?: (host: string, port: number, spki: string) => Promise<PinProbe>;
   createTransport?: (target: PinnedTarget) => HubTransport;
+  /** TEST SEAM ONLY: roots for `public-ca` pairing (see `PinnedTarget.publicCaTestSeam`). Production never sets it. */
+  publicCaTestSeam?: PublicCaTestSeam;
 }
 
 export interface ReconnectDeps extends EnrollDeps {
@@ -65,7 +68,8 @@ function parseOrFail(pairingString: string): ParsedPairing {
 /** Everything the pairing steps produce before anything is sent that consumes the code or written locally. */
 interface PreparedPairing {
   parsed: ParsedPairing;
-  probe: PinProbe;
+  /** The pin probe of a `pinned` pairing; null for `public-ca`, which has no pin and validates the chain instead. */
+  probe: PinProbe | null;
   api: ReturnType<typeof createHubClient>;
   hello: Awaited<ReturnType<ReturnType<typeof createHubClient>['hello']>>;
   device: ManagedDevice;
@@ -75,21 +79,32 @@ interface PreparedPairing {
 
 /** Shared by enrolling and reconnecting: pin probe, protocol compatibility, a fresh device key and the signed enrollment proof. Nothing local changes. */
 async function preparePairing(parsed: ParsedPairing, deps: EnrollDeps): Promise<PreparedPairing> {
-  // 1. Pin check on a raw socket that carries no application bytes.
-  let probe: PinProbe;
-  try {
-    probe = await (deps.probe ?? probePin)(parsed.host, parsed.port, parsed.spkiSha256);
-  } catch (error) {
-    throw fail('hub-unreachable', error instanceof Error ? error.message : 'The Hub could not be reached.');
+  let probe: PinProbe | null = null;
+  let target: PinnedTarget;
+  if (parsed.trustMode === 'public-ca') {
+    // 1. Public-CA origin (the tunnel domain): there is no pin to probe. The chain and host name are validated by the TLS stack on the first (credential-free)
+    //    call below, and `parsed.host` is the one trusted domain.
+    target = { host: parsed.host, port: parsed.port, pins: [], trust: 'public-ca', trustedDomain: parsed.host, ...(deps.publicCaTestSeam ? { publicCaTestSeam: deps.publicCaTestSeam } : {}) };
+  } else {
+    // 1. Pin check on a raw socket that carries no application bytes.
+    try {
+      probe = await (deps.probe ?? probePin)(parsed.host, parsed.port, parsed.spkiSha256);
+    } catch (error) {
+      throw fail('hub-unreachable', error instanceof Error ? error.message : 'The Hub could not be reached.');
+    }
+    if (!probe.matches) throw fail('tls-pin-mismatch', 'The Hub presented a different certificate than the pairing string pins. Nothing was sent.');
+    target = { host: parsed.host, port: parsed.port, ca: [probe.certPem], pins: [parsed.spkiSha256] };
   }
-  if (!probe.matches) throw fail('tls-pin-mismatch', 'The Hub presented a different certificate than the pairing string pins. Nothing was sent.');
 
-  // 2. Pinned channel: protocol compatibility.
-  const target: PinnedTarget = { host: parsed.host, port: parsed.port, ca: [probe.certPem], pins: [parsed.spkiSha256] };
+  // 2. Verified channel: protocol compatibility.
   const api = createHubClient((deps.createTransport ?? ((t) => createPinnedTransport(t)))(target), { clientProtocol: HUB_PROTOCOL_VERSION, minHubProtocol: HUB_MIN_CLIENT_PROTOCOL });
   const hello = await guarded(() => api.hello());
   if (api.compatibility(hello) !== 'compatible') throw fail('incompatible', 'This Hub and this DUDE build speak incompatible protocol versions.');
-  if (hello.tls.spkiSha256 !== parsed.spkiSha256) throw fail('tls-pin-mismatch', 'The Hub reports a different key than the pairing string pins.');
+  if (parsed.trustMode === 'public-ca') {
+    // The Hub must itself say it is the tunnel Hub for this domain; a hello that does not is some other service answering with a valid certificate.
+    const advertised = advertisedTrust(hello);
+    if (advertised.mode !== 'public-ca' || advertised.domain !== parsed.host) throw fail('incompatible', 'That address does not belong to a Hub that offers public-certificate pairing for this domain.');
+  } else if (hello.tls.spkiSha256 !== parsed.spkiSha256) throw fail('tls-pin-mismatch', 'The Hub reports a different key than the pairing string pins.');
 
   // 3. Fresh device key, DPAPI-wrapped; sign the enrollment proof.
   const device = deps.device();
@@ -136,8 +151,10 @@ function commitPairing(prepared: PreparedPairing, response: EnrollResponse, deps
       environmentId: response.environmentId,
       hubUrl: `https://${parsed.host}:${parsed.port}`,
       protocolVersion: HUB_PROTOCOL_VERSION,
-      spkiActive: parsed.spkiSha256,
-      certActivePem: probe.certPem,
+      // A public-CA enrollment has no pin: the Hub's loopback pin from its hello is kept as information, and no certificate is stored.
+      spkiActive: parsed.spkiSha256 ?? hello.tls.spkiSha256,
+      certActivePem: probe?.certPem ?? '',
+      ...(parsed.trustMode === 'public-ca' ? { trustMode: 'public-ca' as const, trustDomain: parsed.host } : {}),
       keyId: response.keyId,
       publicKey: key.publicKeyRaw,
       wrappedPrivateKey: key.wrappedPrivateKey,
@@ -174,13 +191,16 @@ const RECONNECTABLE_STATES: ReadonlySet<AgentHubStatus['state']> = new Set(['aut
  * reset the Hub bookkeeping in one transaction. A failure after the loop stopped restarts it so the device returns to its
  * previous (blocked) state, with nothing local changed.
  */
-export async function reconnectDevice(pairingString: string, deps: ReconnectDeps): Promise<AgentHubStatus> {
+export async function reconnectDevice(pairingString: string, deps: ReconnectDeps, trustChange?: HubTrustChange): Promise<AgentHubStatus> {
   const parsed = parseOrFail(pairingString);
   const enrollment = getEnrollment(deps.db);
   if (enrollment === null) throw fail('not-enrolled', 'This device is not enrolled with a Hub, so there is nothing to reconnect. Pair it instead.');
   if (!RECONNECTABLE_STATES.has(deps.manager.status().state) && enrollment.state !== 'revoked' && getReconcileRequired(deps.db) === null) {
     throw fail('not-reconnectable', 'This device is connected to its Hub as expected, so there is nothing to reconnect.');
   }
+  // Downgrade protection: moving between pinned and public-CA trust (or to another public domain) needs the owner's explicit, exact confirmation.
+  const next: HubTrust = parsed.trustMode === 'public-ca' ? { mode: 'public-ca', domain: parsed.host } : { mode: 'pinned', domain: null };
+  assertTrustChangeConfirmed(trustOf(enrollment), next, trustChange);
   const prepared = await preparePairing(parsed, deps);
 
   deps.manager.stop();
@@ -213,7 +233,7 @@ async function guarded<T>(fn: () => Promise<T>, enrolling = false): Promise<T> {
       throw fail('hub-unreachable', error.message);
     }
     if (error instanceof HubProtocolError) throw fail('incompatible', 'The server did not answer like a DUDE Hub.');
-    if (isTls(error)) throw fail('tls-pin-mismatch', 'The Hub certificate does not match the pairing string.');
+    if (isTls(error)) throw fail('tls-pin-mismatch', 'The Hub certificate does not match the pairing string, or is not a valid public certificate for its domain.');
     throw fail('hub-unreachable', error instanceof Error ? error.message : 'The Hub could not be reached.');
   }
 }

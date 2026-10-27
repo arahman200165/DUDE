@@ -44,6 +44,8 @@ const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged' | 'onViewC
     channel: 'dude:hub:reconnect', args: [{ pairingString: PAIRING, acknowledged: true }],
     invalid: [[], [PAIRING], [{}], [{ pairingString: PAIRING }], [{ pairingString: PAIRING, acknowledged: false }], [{ pairingString: PAIRING, acknowledged: 'true' }], [{ pairingString: PAIRING, acknowledged: 1 }],
       [{ pairingString: 'https://evil', acknowledged: true }], [{ pairingString: 'dude-pair:v1:' + 'a'.repeat(512), acknowledged: true }], [{ pairingString: PAIRING, acknowledged: true, extra: 1 }],
+      [{ pairingString: PAIRING, acknowledged: true, trustChange: 'public-ca' }], [{ pairingString: PAIRING, acknowledged: true, trustChange: { mode: 'public-ca', domain: 'localhost' } }],
+      [{ pairingString: PAIRING, acknowledged: true, trustChange: { mode: 'public-ca', domain: 'hub.example.com', extra: 1 } }], [{ pairingString: PAIRING, acknowledged: true, trustChange: undefined, extra: 1 }],
       [[PAIRING, true]], [{ pairingString: PAIRING, acknowledged: true }, 1]],
   },
   unenroll: { channel: 'dude:hub:unenroll', args: [true], invalid: [['yes'], [1], [true, true]] },
@@ -239,6 +241,14 @@ describe('hub bridge', () => {
     expect(ctx.calls).toEqual([]);
   });
 
+  it('reconnect forwards an exact trust-change confirmation and the public-CA pairing form (Milestone 838)', async () => {
+    setup((method) => (method === 'hub.reconnect' ? ENROLLED : method === 'store.hydrate' ? { device: { deviceId: UUID } } : { ok: true }));
+    const v2 = 'dude-pair:v2:hub.example.com:443:ABCD2345:public-ca';
+    const trustChange = { mode: 'public-ca', domain: 'hub.example.com' };
+    expect(await call('dude:hub:reconnect', own, { pairingString: v2, acknowledged: true, trustChange })).toMatchObject({ ok: true });
+    expect(ctx.calls[0]).toEqual({ method: 'hub.reconnect', params: { pairingString: v2, acknowledged: true, trustChange } });
+  });
+
   it('reconnect passes the agent error code through', async () => {
     setup(() => new DeviceStoreError('not-reconnectable', 'This device is connected to its Hub as expected.'));
     expect(await call('dude:hub:reconnect', own, { pairingString: PAIRING, acknowledged: true })).toEqual({ ok: false, error: { code: 'not-reconnectable', message: 'This device is connected to its Hub as expected.' } });
@@ -284,10 +294,12 @@ describe('hub bridge', () => {
 
   it('maps agent results to the renderer shapes', async () => {
     setup((m) => (m === 'hub.status' ? ENROLLED : { signedIn: true, displayName: 'Owner', expiresAt: 'e' }));
-    expect(await call('dude:hub:status', own)).toEqual({ ok: true, result: { enrollmentState: 'enrolled', hubUrl: 'https://hub.local:47600', environmentId: 'env-1', hubInstanceId: 'hub-1', hubVersion: '0.1.0', recoveryTrusted: true, reachable: true, connection: 'online', lastError: null, lastContactAt: null } });
+    expect(await call('dude:hub:status', own)).toEqual({ ok: true, result: { enrollmentState: 'enrolled', hubUrl: 'https://hub.local:47600', environmentId: 'env-1', hubInstanceId: 'hub-1', hubVersion: '0.1.0', recoveryTrusted: true, reachable: true, connection: 'online', trustMode: 'pinned', trustDomain: null, lastError: null, lastContactAt: null } });
     expect(await call('dude:hub:owner:status', own)).toEqual({ ok: true, result: { signedIn: true, ownerDisplayName: 'Owner', expiresAt: 'e' } });
     expect(toDesktopStatus({ ...ENROLLED, enrollment: null, state: 'standalone' })).toMatchObject({ enrollmentState: 'standalone', reachable: null });
     expect(toDesktopStatus({ ...ENROLLED, state: 'offline' }).reachable).toBe(false);
+    expect(toDesktopStatus({ ...ENROLLED, enrollment: { ...ENROLLED.enrollment!, trustMode: 'public-ca', trustDomain: 'hub.example.com' }, trustOffer: { mode: 'pinned', domain: null } }))
+      .toMatchObject({ trustMode: 'public-ca', trustDomain: 'hub.example.com', trustOffer: { mode: 'pinned', domain: null } });
   });
 
   it('maps agent errors without stack traces and hides unknown failures', async () => {

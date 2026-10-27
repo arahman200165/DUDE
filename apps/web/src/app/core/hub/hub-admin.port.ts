@@ -46,7 +46,7 @@ export interface HubAdminPort {
    * data and pending changes (a recovery snapshot is taken first). `acknowledged` must be `true`. Hub-served web: rejects `unavailable`.
    * Codes: `not-enrolled`, `not-reconnectable`, `snapshot-failed`, `pairing-rejected`, `tls-pin-mismatch`, `hub-unreachable`, `incompatible`, ...
    */
-  reconnect(request: { readonly pairingString: string; readonly acknowledged: true }): Promise<DesktopHubEnrollment>;
+  reconnect(request: { readonly pairingString: string; readonly acknowledged: true; readonly trustChange?: { readonly mode: 'pinned' | 'public-ca'; readonly domain: string | null } }): Promise<DesktopHubEnrollment>;
   unenroll(force?: boolean): Promise<{ readonly unenrolled: boolean; readonly hubNotified: boolean }>;
   ownerStatus(): Promise<DesktopHubOwnerStatus>;
   ownerSignIn(password: string): Promise<DesktopHubOwnerStatus>;

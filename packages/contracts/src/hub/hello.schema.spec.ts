@@ -24,6 +24,13 @@ describe('HelloResponse', () => {
     ['non-base64url spki', { ...valid, tls: { spkiSha256: '+'.repeat(43), nextSpkiSha256: null } }],
     ['non-boolean bootstrapped', { ...valid, bootstrapped: 'yes' }],
   ])('rejects %s', (_n, v) => expect(Value.Check(HelloResponse, v)).toBe(false));
+  it('accepts the optional trust advertisement and refuses anything else (Milestone 838)', () => {
+    expect(Value.Check(HelloResponse, { ...valid, trustMode: 'public-ca', trustDomain: 'hub.example.com' })).toBe(true);
+    expect(Value.Check(HelloResponse, { ...valid, trustMode: 'pinned' })).toBe(true);
+    expect(Value.Check(HelloResponse, { ...valid, trustMode: 'anything' })).toBe(false);
+    expect(Value.Check(HelloResponse, { ...valid, trustMode: 'public-ca', trustDomain: 'localhost' })).toBe(false);
+    expect(Value.Check(HelloResponse, { ...valid, trustMode: 'public-ca', trustDomain: '127.0.0.1' })).toBe(false);
+  });
   it('rejects non-objects', () => expect(Value.Check(HelloResponse, null)).toBe(false));
 });
 

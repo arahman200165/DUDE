@@ -23,6 +23,16 @@
           <dt class="text-text-muted">Hub URL</dt>
           <dd class="flex items-center gap-2"><code class="font-mono text-text" data-testid="hub-url">{{ s.hubUrl }}</code></dd>
         }
+        @if (s.hubUrl && !isHubWeb) {
+          <dt class="text-text-muted">Certificate trust</dt>
+          <dd class="text-text" data-testid="trust-mode">{{ trustLabel(s.trustMode) }}</dd>
+        }
+        @if (s.trustOffer; as offer) {
+          <dt class="text-text-muted">Hub offers</dt>
+          <dd class="text-text-muted" data-testid="trust-offer">
+            {{ trustLabel(offer.mode) }}@if (offer.domain) { for {{ offer.domain }} }. This device keeps its current trust until you disconnect and pair again with a matching pairing string.
+          </dd>
+        }
         @if (s.environmentId) {
           <dt class="text-text-muted">Environment ID</dt>
           <dd class="flex items-center gap-2">
@@ -131,6 +141,19 @@
         }
         @if (reconnectParsed(); as p) {
           <p class="text-ui text-text">Hub: <code class="font-mono" data-testid="reconnect-host">{{ p.host }}:{{ p.port }}</code></p>
+          <p class="text-ui text-text-muted" data-testid="reconnect-trust">Certificate trust for this address: {{ trustLabel(p.trustMode) }}</p>
+        }
+        @if (reconnectTrustChange(); as change) {
+          <label class="flex items-start gap-2 rounded-sm border border-warning/40 p-2 text-ui text-text" data-testid="trust-change">
+            <input type="checkbox" class="mt-0.5" data-testid="trust-change-ack" [checked]="trustChangeAcknowledged()" [disabled]="reconnecting()" (change)="onTrustChangeAcknowledge($event)" />
+            <span>
+              @if (change.mode === 'public-ca') {
+                Trust the public certificate authority system for <code class="font-mono">{{ change.domain }}</code> instead of a pinned Hub certificate. Cloudflare terminates TLS there and can read the traffic.
+              } @else {
+                Pin the Hub certificate instead of trusting a public certificate authority.
+              }
+            </span>
+          </label>
         }
         <label class="flex items-start gap-2 text-ui text-text">
           <input type="checkbox" class="mt-0.5" data-testid="reconnect-ack" [checked]="reconnectAcknowledged()" [disabled]="reconnecting()" (change)="onReconnectAcknowledge($event)" />
@@ -197,6 +220,7 @@
         @if (parsed(); as p) {
           <div class="flex flex-col gap-2 rounded-sm border border-border p-3" data-testid="connect-disclosure">
             <p class="text-ui text-text">Hub: <code class="font-mono" data-testid="parsed-host">{{ p.host }}:{{ p.port }}</code></p>
+            <p class="text-ui text-text-muted" data-testid="parsed-trust">Certificate trust: {{ trustLabel(p.trustMode) }}</p>
             <p class="text-ui text-text-muted">
               The Hub at {{ p.host }}:{{ p.port }} will learn this device's name, platform and app version. Nothing else is uploaded now.
             </p>

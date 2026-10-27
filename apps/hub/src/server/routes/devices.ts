@@ -4,7 +4,7 @@ import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import type { Db } from '@dude/sqlite-store';
 import {
   ConfirmApply, ConfirmPreview, DeviceIdParams, DeviceInfo, DeviceListResponse, DeviceRenameRequest, DeviceSelfUpdate, ErrorEnvelope, HUB_API_PREFIX,
-  NotificationsAccessRequest, OkResponse, OwnerBearerRequest, OwnerBearerResponse, PairingCodeRequest, PairingCodeResponse, RecoveryTrustRequest, displayPairingCode, formatPairingString,
+  NotificationsAccessRequest, OkResponse, OwnerBearerRequest, OwnerBearerResponse, PairingCodeRequest, PairingCodeResponse, RecoveryTrustRequest, displayPairingCode, formatPairingString, isPublicCaDomain,
 } from '@dude/contracts/hub';
 import { emitRevoked } from '../../auth/hub-events.js';
 import { getOwner } from '../../auth/owner.js';
@@ -36,6 +36,11 @@ export interface DeviceRouteOptions {
   isDeviceOnline?: (deviceId: string) => boolean;
   /** `exposure.canonicalOrigin`: the origin pairing hands out instead of the request Host. */
   canonicalOrigin?: string;
+  /**
+   * The managed tunnel's host name while tunnel mode is on (Milestone 838). A pairing code issued for exactly this host gets the pin-free `public-ca`
+   * pairing string (`dude-pair:v2:...`), because the Cloudflare edge's certificate is CA-issued and not pinnable; every other host keeps the pinned form.
+   */
+  tunnelHostname?: string;
 }
 
 export const REVOKE_DEVICE_ACTION = 'devices.revoke';
@@ -102,13 +107,18 @@ export function registerDeviceRoutes(app: FastifyInstance, options: DeviceRouteO
         event: 'pairing.created', outcome: 'success', actorKind: 'owner', actorId: ctx.ownerId, ip: ipOf(request),
         detail: { host, expiresAt: created.expiresAt, ...(reattachDeviceId !== undefined ? { reattach: true } : {}) }, now: now(),
       });
+      const tunnelDomain = options.tunnelHostname?.toLowerCase();
+      const publicCa = tunnelDomain !== undefined && isPublicCaDomain(tunnelDomain) && host.toLowerCase() === tunnelDomain;
       return reply.code(200).send({
         reattachDeviceId: reattachDeviceId ?? null,
         pairingCode: displayPairingCode(created.code),
-        pairingString: formatPairingString({ host, port, code: created.code, spkiSha256: options.spkiSha256() }),
+        pairingString: publicCa
+          ? formatPairingString({ trustMode: 'public-ca', host: tunnelDomain, port, code: created.code })
+          : formatPairingString({ host, port, code: created.code, spkiSha256: options.spkiSha256() }),
         expiresAt: created.expiresAt,
         hubUrl: `https://${host}${port === 443 ? '' : `:${port}`}`,
         spkiSha256: options.spkiSha256(),
+        ...(publicCa ? { trustMode: 'public-ca' as const, trustDomain: tunnelDomain } : {}),
       });
     },
   );

@@ -1,15 +1,18 @@
 import { createHash, X509Certificate } from 'node:crypto';
 import https from 'node:https';
 import { isIP } from 'node:net';
-import { connect as tlsConnect } from 'node:tls';
+import { checkServerIdentity, connect as tlsConnect } from 'node:tls';
 import type { Duplex } from 'node:stream';
 import type { TLSSocket } from 'node:tls';
 import type { HubRequest, HubResponse, HubTransport } from '@dude/api-client';
+import { isPublicCaDomain } from '@dude/contracts/hub';
 
 export const HUB_REQUEST_TIMEOUT_MS = 15_000;
 export const HUB_MAX_RESPONSE_BYTES = 1024 * 1024;
 /** Error `code` set when the presented certificate's SPKI is not one of the pins. */
 export const PIN_MISMATCH_CODE = 'DUDE_PIN_MISMATCH';
+/** Error `code` set when a public-CA connection is refused BEFORE any socket opens (host is not the one trusted domain, not a public DNS name). */
+export const TRUST_ORIGIN_REFUSED_CODE = 'DUDE_TRUST_ORIGIN_REFUSED';
 
 /** base64url SHA-256 of the DER SubjectPublicKeyInfo of a certificate (DER bytes or PEM text). */
 export function spkiSha256Of(cert: Uint8Array | string): string {
@@ -17,6 +20,8 @@ export function spkiSha256Of(cert: Uint8Array | string): string {
   const der = x509.publicKey.export({ type: 'spki', format: 'der' });
   return createHash('sha256').update(der).digest('base64url');
 }
+
+export interface PublicCaTestSeam { readonly roots: readonly string[]; readonly dialAddress?: string }
 
 export interface PinnedTarget {
   host: string;
@@ -33,6 +38,21 @@ export interface PinnedTarget {
    * a peer that is neither pinned nor system-trusted is refused with `PIN_MISMATCH_CODE`. `onPeerSpki` fires only for pin matches.
    */
   allowSystemTrust?: boolean;
+  /**
+   * How the peer is verified (Milestone 838). `pinned` (default, the only mode before 838): SPKI pin only. `public-ca`: ordinary chain validation against
+   * the public root store AND host name match for `trustedDomain` (which must equal `host`); `pins`, `ca` and `allowSystemTrust` are IGNORED, so nothing the
+   * Hub sends (pins, certificates) can widen what is accepted.
+   */
+  trust?: 'pinned' | 'public-ca';
+  /** `public-ca` only: the single domain whose CA-validated certificate is accepted; the connection host must equal it exactly. */
+  trustedDomain?: string;
+  /**
+   * TEST SEAM ONLY. `roots` (PEM) replace the default root store for a `public-ca` target, so a spec can run a real TLS server whose chain ends in a
+   * throwaway CA; `dialAddress` connects to that IP while SNI and the host name check still use the trusted domain. Verification is never disabled by it.
+   * Production code never sets it and no value from the Hub or the store is ever copied into it (`trust.ts` builds targets without it;
+   * `public-ca-trust.spec.ts` scans the sources for any other user).
+   */
+  publicCaTestSeam?: PublicCaTestSeam;
   /** Overrides the default request timeout (`createPinnedTransport`'s explicit argument still wins). */
   timeoutMs?: number;
   /** Overrides `HUB_MAX_RESPONSE_BYTES` for `createPinnedTransport`. */
@@ -55,6 +75,7 @@ export class HubTransportError extends Error {
  * that passes, so no application byte can reach an unverified peer.
  */
 export function connectPinned(target: PinnedTarget, timeoutMs = HUB_REQUEST_TIMEOUT_MS): Promise<TLSSocket> {
+  if (target.trust === 'public-ca') return connectPublicCa(target, timeoutMs);
   return new Promise<TLSSocket>((resolve, reject) => {
     const host = unbracketHost(target.host);
     let settled = false;
@@ -91,6 +112,48 @@ export function connectPinned(target: PinnedTarget, timeoutMs = HUB_REQUEST_TIME
         if (pinned) target.onPeerSpki?.(spki);
       } catch (error) {
         finish(socket, error instanceof Error ? error : new Error(String(error)));
+        return;
+      }
+      finish(socket);
+    });
+  });
+}
+
+/**
+ * `public-ca` trust (Milestone 838, PD-143): the Hub is reached through a public name (the Cloudflare edge) whose certificate DUDE does not control, so
+ * there is no pin. Node's own validation decides: `rejectUnauthorized: true` against the default public root store (or the test seam's roots), SNI and the
+ * default `checkServerIdentity` host check for the one trusted domain. Self-signed, expired, wrong-host and unknown-issuer certificates are refused by Node
+ * before `secureConnect`; the post-handshake re-check below is defense in depth. The host must equal `trustedDomain` BEFORE a socket opens, so a redirect
+ * target, an IP literal or an origin from stored data cannot be dialled in this mode. No application byte is written before the socket is handed back.
+ */
+function connectPublicCa(target: PinnedTarget, timeoutMs: number): Promise<TLSSocket> {
+  return new Promise<TLSSocket>((resolve, reject) => {
+    const host = unbracketHost(target.host).toLowerCase();
+    const domain = target.trustedDomain;
+    if (domain === undefined || !isPublicCaDomain(domain) || host !== domain) {
+      reject(Object.assign(new Error('The public-certificate connection is only allowed to the one trusted domain.'), { code: TRUST_ORIGIN_REFUSED_CODE }));
+      return;
+    }
+    let settled = false;
+    const finish = (socket: TLSSocket | null, error?: Error): void => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (error) { socket?.destroy(); reject(error); } else if (socket) { socket.setTimeout(0); resolve(socket); }
+    };
+    const socket = tlsConnect({
+      host: target.publicCaTestSeam?.dialAddress ?? host, port: target.port, servername: host,
+      rejectUnauthorized: true,
+      ALPNProtocols: ['http/1.1'],
+      ...(target.publicCaTestSeam !== undefined ? { ca: [...target.publicCaTestSeam.roots] } : {}),
+    });
+    const timer = setTimeout(() => finish(socket, new HubTransportError('timeout', 'The Hub did not answer in time.')), timeoutMs);
+    socket.once('error', (error) => finish(socket, error));
+    socket.once('secureConnect', () => {
+      const cert = socket.getPeerCertificate();
+      const mismatch = socket.authorized !== true || checkServerIdentity(host, cert) !== undefined;
+      if (mismatch) {
+        finish(socket, Object.assign(new Error('The Hub certificate is not a valid public certificate for the trusted domain.'), { code: PIN_MISMATCH_CODE }));
         return;
       }
       finish(socket);

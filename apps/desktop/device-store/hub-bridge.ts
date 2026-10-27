@@ -1,6 +1,6 @@
 import { ipcMain, type BrowserWindow } from 'electron';
 import { parseHubPublicUrl } from '@dude/contracts';
-import { COLLAB_DOCUMENT_TITLE_MAX, COLLAB_ROOM_NAME_MAX, HUB_NOTIFICATION_MARK_MAX, isCollabHistoryDocKey, isCollabSnapshotId, isOwnerViewTopic, parseNotificationEvent } from '@dude/contracts/hub';
+import { COLLAB_DOCUMENT_TITLE_MAX, COLLAB_ROOM_NAME_MAX, HUB_NOTIFICATION_MARK_MAX, isCollabHistoryDocKey, isPublicCaDomain, isCollabSnapshotId, isOwnerViewTopic, parseNotificationEvent } from '@dude/contracts/hub';
 import type { AgentHubOwnerStatus, AgentHubStatus, AgentMethod, AgentMethodMap } from '@dude/contracts';
 import type { DesktopHubEnrollment, DesktopHubOwnerStatus, DesktopHubProbe, DesktopHubResult, DesktopHubStatus } from '@dude/contracts/shared/models/platform-bridge.model';
 import { isUuidShaped, validateDisplayName } from '@dude/persistence';
@@ -24,7 +24,7 @@ import type { UserConsent } from './user-consent';
  */
 
 const FORBIDDEN = 'forbidden';
-const PAIRING_PREFIX = 'dude-pair:v1:';
+const isPairingString = (value: string): boolean => value.startsWith('dude-pair:v1:') || value.startsWith('dude-pair:v2:');
 const BASE64URL = /^[A-Za-z0-9_-]{1,128}$/;
 const SESSION_ID = /^[0-9a-f]{16}$/;
 const HOST = /^[A-Za-z0-9.:_\-[\]]{1,255}$/;
@@ -69,6 +69,8 @@ export function toDesktopStatus(status: AgentHubStatus): DesktopHubStatus {
     reachable: enrollment ? (status.state === 'online' ? true : status.state === 'offline' ? false : null) : null,
     ...(enrollment && status.state !== 'standalone' && status.state !== 'revoked' ? { connection: status.state } : {}),
     ...(status.authority ? { authority: status.authority } : {}),
+    ...(enrollment ? { trustMode: enrollment.trustMode ?? 'pinned', trustDomain: enrollment.trustDomain ?? null } : {}),
+    ...(status.trustOffer ? { trustOffer: status.trustOffer } : {}),
     lastError: status.lastError,
     lastContactAt: status.lastContactAt,
   };
@@ -158,14 +160,15 @@ export function registerHubHandlers(
     parse: (args) => {
       if (args.length !== 1) return bad();
       const [pairing] = args;
-      if (!isString(pairing, 1, 512) || !pairing.startsWith(PAIRING_PREFIX)) return bad('That is not a DUDE pairing string.');
+      if (!isString(pairing, 1, 512) || !isPairingString(pairing)) return bad('That is not a DUDE pairing string.');
       return { ok: true, params: { pairingString: pairing } };
     },
     map: enrollmentSummary,
   });
 
   // Reconnect (PD-073): a re-pairing of an already enrolled device, so the acknowledgement travels with the request and is
-  // re-checked here and again in the agent. Exactly one plain object `{ pairingString, acknowledged: true }`, nothing else.
+  // re-checked here and again in the agent. Exactly one plain object `{ pairingString, acknowledged: true }` plus, only when the pairing
+  // string moves the device between trust modes or public domains (Milestone 838), `trustChange: { mode, domain }`; nothing else.
   define({
     channel: 'dude:hub:reconnect', method: 'hub.reconnect',
     parse: (args) => {
@@ -173,11 +176,17 @@ export function registerHubHandlers(
       const [request] = args;
       if (typeof request !== 'object' || request === null || Array.isArray(request)) return bad();
       const keys = Object.keys(request);
-      const { pairingString, acknowledged } = request as { pairingString?: unknown; acknowledged?: unknown };
-      if (keys.length !== 2 || !keys.includes('pairingString') || !keys.includes('acknowledged')) return bad();
+      const { pairingString, acknowledged, trustChange } = request as { pairingString?: unknown; acknowledged?: unknown; trustChange?: unknown };
+      const hasTrustChange = keys.includes('trustChange');
+      if (keys.length !== (hasTrustChange ? 3 : 2) || !keys.includes('pairingString') || !keys.includes('acknowledged')) return bad();
       if (acknowledged !== true) return bad('Confirm that you want to reconnect this device.');
-      if (!isString(pairingString, 1, 512) || !pairingString.startsWith(PAIRING_PREFIX)) return bad('That is not a DUDE pairing string.');
-      return { ok: true, params: { pairingString, acknowledged: true } };
+      if (!isString(pairingString, 1, 512) || !isPairingString(pairingString)) return bad('That is not a DUDE pairing string.');
+      if (!hasTrustChange) return { ok: true, params: { pairingString, acknowledged: true } };
+      const change = trustChange as { mode?: unknown; domain?: unknown } | null;
+      const validChange = typeof change === 'object' && change !== null && !Array.isArray(change) && Object.keys(change).length === 2
+        && ((change.mode === 'pinned' && change.domain === null) || (change.mode === 'public-ca' && typeof change.domain === 'string' && isPublicCaDomain(change.domain)));
+      if (!validChange) return bad('The trust change confirmation is malformed.');
+      return { ok: true, params: { pairingString, acknowledged: true, trustChange: { mode: change.mode as 'pinned' | 'public-ca', domain: change.domain as string | null } } };
     },
     map: enrollmentSummary,
   });

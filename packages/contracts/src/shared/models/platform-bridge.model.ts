@@ -64,6 +64,11 @@ export interface DesktopHubStatus {
   readonly lastContactAt?: string | null;
   /** Whether the Hub trusts this device for owner recovery; null/absent until known. */
   readonly recoveryTrusted?: boolean | null;
+  /** How this device verifies the Hub: `pinned` (leaf key pin, the default; absent from older hosts) or `public-ca` (public CA chain for `trustDomain`; Cloudflare Tunnel, Milestone 838). */
+  readonly trustMode?: 'pinned' | 'public-ca';
+  readonly trustDomain?: string | null;
+  /** What the Hub's last hello offered when it differs from this device's trust; information only, never applied without `reconnect` + `trustChange`. */
+  readonly trustOffer?: { readonly mode: 'pinned' | 'public-ca'; readonly domain: string | null } | null;
 }
 /** Preview of installing the Hub's local-CA root into the current user's Trusted Root store (Windows only). Nothing changes until `installRootCertificate(confirmToken)`. */
 export type DesktopRootCertificatePreview =
@@ -135,7 +140,11 @@ export interface DesktopHubBridge {
    * Error codes: `bad-request`, `not-enrolled`, `not-reconnectable` (healthy connection), `snapshot-failed`, enrollment codes (`pairing-rejected`,
    * `tls-pin-mismatch`, `hub-unreachable`, `incompatible`, ...).
    */
-  reconnect(request: { readonly pairingString: string; readonly acknowledged: true }): Promise<DesktopHubResult<DesktopHubEnrollment>>;
+  reconnect(request: {
+    readonly pairingString: string; readonly acknowledged: true;
+    /** Required when the pairing string moves the device between trust modes or public domains (Milestone 838): exactly the string's `{ mode, domain }`. Error code `trust-change-unconfirmed` otherwise. */
+    readonly trustChange?: { readonly mode: 'pinned' | 'public-ca'; readonly domain: string | null };
+  }): Promise<DesktopHubResult<DesktopHubEnrollment>>;
   unenroll(force?: boolean): Promise<DesktopHubResult<{ readonly unenrolled: boolean; readonly hubNotified: boolean }>>;
   ownerStatus(): Promise<DesktopHubResult<DesktopHubOwnerStatus>>;
   ownerSignIn(password: string): Promise<DesktopHubResult<DesktopHubOwnerStatus>>;

@@ -311,7 +311,7 @@ describe('hub.reconnect RPC', () => {
     const reconnect = vi.fn<HubRuntime['reconnect']>(async () => status);
     const { rpc, afterReset } = server(reconnect);
     expect(await call(rpc, { pairingString: PAIRING, acknowledged: true })).toMatchObject({ ok: true, result: { state: 'connecting' } });
-    expect(reconnect).toHaveBeenCalledExactlyOnceWith(PAIRING);
+    expect(reconnect).toHaveBeenCalledExactlyOnceWith(PAIRING, undefined);
     expect(afterReset).toHaveBeenCalledOnce();
 
     reconnect.mockRejectedValueOnce(new HubManagerError('not-reconnectable', 'nothing to reconnect'));

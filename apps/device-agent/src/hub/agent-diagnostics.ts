@@ -6,6 +6,7 @@ import type { HubEnrollmentRow } from '../store/repos/hub-enrollment.repo.js';
 import { isTlsError } from './hub-client.js';
 import { createPinnedTransport } from './pinned-transport.js';
 import type { PinnedTarget } from './pinned-transport.js';
+import { resolveTrustTarget } from './trust.js';
 
 export type ProbeOutcome =
   | { kind: 'ok'; latencyMs: number; hubProtocol: number; hubVersion: string; compatibility: 'compatible' | 'client-too-old' | 'hub-too-old'; dateHeader: string | null }
@@ -83,12 +84,15 @@ export async function buildAgentDiagnostics(deps: AgentDiagnosticsDeps): Promise
   const clock = deps.clock ?? (() => performance.now());
   let probe: ProbeOutcome | null = null;
   if (enrollment && enrollment.state === 'enrolled') {
-    const url = new URL(enrollment.hubUrl);
-    const target: PinnedTarget = {
-      host: url.hostname, port: Number(url.port || 443),
-      pins: [enrollment.spkiActive, ...(enrollment.spkiNext ? [enrollment.spkiNext] : []), ...enrollment.proxySpkis],
-    };
-    probe = await probeHello((deps.createTransport ?? ((t) => createPinnedTransport(t)))(target), clock);
+    let target: PinnedTarget | null = null;
+    try {
+      // The same trust selection as the connection manager (a public-CA enrollment verifies the chain and domain, never a pin).
+      const { url: _url, ...resolved } = resolveTrustTarget(enrollment);
+      target = resolved;
+    } catch (error) {
+      probe = { kind: 'tls', message: error instanceof Error ? error.message : 'The Hub address is not allowed.' };
+    }
+    if (target !== null) probe = await probeHello((deps.createTransport ?? ((t) => createPinnedTransport(t)))(target), clock);
   }
   const ok = probe?.kind === 'ok' ? probe : null;
   return {

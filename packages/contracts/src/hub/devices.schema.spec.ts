@@ -12,7 +12,7 @@ describe('pairing string', () => {
     for (const host of ['hub.example.com', '192.168.1.20', 'localhost', '[::1]', '[fe80::1]']) {
       const text = formatPairingString({ host, port: 8443, code: 'ABCD-EFGH', spkiSha256: spki });
       expect(text).toBe(`dude-pair:v1:${host}:8443:ABCDEFGH:${spki}`);
-      expect(parsePairingString(text)).toEqual({ host, port: 8443, code: 'ABCDEFGH', spkiSha256: spki });
+      expect(parsePairingString(text)).toEqual({ trustMode: 'pinned', host, port: 8443, code: 'ABCDEFGH', spkiSha256: spki });
     }
   });
 
@@ -36,6 +36,34 @@ describe('pairing string', () => {
     ['host with slash', `dude-pair:v1:h/x:1:ABCDEFGH:${spki}`],
   ])('rejects %s', (_name, text) => {
     expect(parsePairingString(text)).toBeNull();
+  });
+});
+
+describe('public-ca pairing string (Milestone 838)', () => {
+  it('round-trips a public domain without any pin', () => {
+    const text = formatPairingString({ trustMode: 'public-ca', host: 'Hub.Example.COM', port: 443, code: 'abcd-efgh' });
+    expect(text).toBe('dude-pair:v2:hub.example.com:443:ABCDEFGH:public-ca');
+    expect(parsePairingString(text)).toEqual({ trustMode: 'public-ca', host: 'hub.example.com', port: 443, code: 'ABCDEFGH', spkiSha256: null });
+  });
+
+  it.each([
+    ['an IPv4 literal', 'dude-pair:v2:192.168.1.20:443:ABCDEFGH:public-ca'],
+    ['a bracketed IPv6 literal', 'dude-pair:v2:[::1]:443:ABCDEFGH:public-ca'],
+    ['a single label', 'dude-pair:v2:localhost:443:ABCDEFGH:public-ca'],
+    ['a private suffix', 'dude-pair:v2:hub.local:443:ABCDEFGH:public-ca'],
+    ['a pin instead of the marker', `dude-pair:v2:hub.example.com:443:ABCDEFGH:${spki}`],
+    ['port zero', 'dude-pair:v2:hub.example.com:0:ABCDEFGH:public-ca'],
+    ['a trailing field', 'dude-pair:v2:hub.example.com:443:ABCDEFGH:public-ca:x'],
+  ])('rejects %s', (_name, text) => {
+    expect(parsePairingString(text)).toBeNull();
+  });
+
+  it('accepts an older Hub response without a trust mode and a newer one with it', () => {
+    const base = { pairingCode: 'ABCD-EFGH', pairingString: 'x', expiresAt: 'now', hubUrl: 'https://h', spkiSha256: spki };
+    expect(Value.Check(PairingCodeResponse, base)).toBe(true);
+    expect(Value.Check(PairingCodeResponse, { ...base, trustMode: 'public-ca', trustDomain: 'hub.example.com' })).toBe(true);
+    expect(Value.Check(PairingCodeResponse, { ...base, trustMode: 'public-ca', trustDomain: '10.0.0.1' })).toBe(false);
+    expect(Value.Check(PairingCodeResponse, { ...base, trustMode: 'trust-me' })).toBe(false);
   });
 });
 

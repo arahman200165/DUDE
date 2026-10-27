@@ -28,6 +28,11 @@ const RECONNECT_AUTHORITY_COPY: Readonly<Record<'transferred' | 'instance-change
   unknown: 'This is not the Hub this device was paired with.',
 };
 
+/** Owner-facing names of the two ways a device verifies its Hub (Milestone 838). The public-CA label states who can read the traffic. */
+export const TRUST_LABEL_PINNED = 'Pinned certificate';
+export const TRUST_LABEL_PUBLIC_CA = 'Public certificate authority (via Cloudflare — Cloudflare can read traffic)';
+export const trustLabelOf = (mode: 'pinned' | 'public-ca' | undefined): string => (mode === 'public-ca' ? TRUST_LABEL_PUBLIC_CA : TRUST_LABEL_PINNED);
+
 function pairingProblemOf(raw: string): string | null {
   const text = raw.trim();
   if (text === '' || parsePairingString(raw) !== null) return null;
@@ -114,10 +119,26 @@ export class EnvironmentSettings {
   protected readonly reconnectParsed = computed(() => parsePairingString(this.reconnectText()));
   protected readonly reconnectProblem = computed(() => pairingProblemOf(this.reconnectText()));
   protected readonly reconnectAcknowledged = signal(false);
+  protected readonly trustLabel = trustLabelOf;
+  /** The device's current trust (pinned for an older host that does not say). */
+  protected readonly currentTrust = computed(() => ({ mode: this.status()?.trustMode ?? 'pinned', domain: this.status()?.trustDomain ?? null }));
+  /**
+   * The explicit confirmation a reconnect needs when its pairing string would move this device between pinned and public-CA trust, or to another public
+   * domain (Milestone 838). Null when the string keeps the current trust. The agent re-checks it and refuses without it (`trust-change-unconfirmed`).
+   */
+  protected readonly reconnectTrustChange = computed<{ mode: 'pinned' | 'public-ca'; domain: string | null } | null>(() => {
+    const parsed = this.reconnectParsed();
+    if (parsed === null || this.status()?.enrollmentState === 'standalone') return null;
+    const next = parsed.trustMode === 'public-ca' ? { mode: 'public-ca' as const, domain: parsed.host } : { mode: 'pinned' as const, domain: null };
+    const current = this.currentTrust();
+    return current.mode === next.mode && current.domain === next.domain ? null : next;
+  });
+  protected readonly trustChangeAcknowledged = signal(false);
   protected readonly reconnecting = signal(false);
   protected readonly reconnectError = signal<string | null>(null);
   protected readonly reconnectDone = signal<string | null>(null);
-  protected readonly canReconnect = computed(() => this.reconnectText().trim() !== '' && this.reconnectAcknowledged() && !this.reconnecting());
+  protected readonly canReconnect = computed(() => this.reconnectText().trim() !== '' && this.reconnectAcknowledged() && !this.reconnecting()
+    && (this.reconnectTrustChange() === null || this.trustChangeAcknowledged()));
 
   // Disconnect
   protected readonly step = signal<DisconnectStep>('idle');
@@ -175,8 +196,13 @@ export class EnvironmentSettings {
 
   protected onReconnectInput(event: Event): void {
     this.reconnectText.set((event.target as HTMLInputElement).value);
+    this.trustChangeAcknowledged.set(false);
     this.reconnectError.set(null);
     this.reconnectDone.set(null);
+  }
+
+  protected onTrustChangeAcknowledge(event: Event): void {
+    this.trustChangeAcknowledged.set((event.target as HTMLInputElement).checked);
   }
 
   protected onReconnectAcknowledge(event: Event): void {
@@ -190,9 +216,11 @@ export class EnvironmentSettings {
     this.reconnectError.set(null);
     this.reconnectDone.set(null);
     try {
-      await this.hub.reconnect({ pairingString: this.reconnectText().trim(), acknowledged: true });
+      const trustChange = this.reconnectTrustChange();
+      await this.hub.reconnect({ pairingString: this.reconnectText().trim(), acknowledged: true, ...(trustChange ? { trustChange } : {}) });
       this.reconnectText.set('');
       this.reconnectAcknowledged.set(false);
+      this.trustChangeAcknowledged.set(false);
       this.reconnectDone.set('Reconnected. Nothing was shared yet: choose Merge, Use Hub or Keep local when sync asks.');
       await this.refresh();
     } catch (error) {

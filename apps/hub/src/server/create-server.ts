@@ -181,6 +181,7 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
     hubInstanceId: options.hub.hubInstanceId,
     hubVersion: options.hubVersion,
     spkiSha256: options.tls.spkiSha256,
+    ...(tunnelConfig?.enabled && proxy ? { tunnelHostname: tunnelConfig.hostname } : {}),
   });
 
   registerBootstrapRoute(app, {
@@ -286,6 +287,7 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   registerDeviceRoutes(app, {
     db: options.hub.db, now, confirmations, requireOwner: authOptions.requireOwner, requireDevice,
     hostGuard, spkiSha256: activeSpki, isDeviceOnline: realtime.isDeviceOnline,
+    ...(proxy && tunnelConfig?.enabled ? { tunnelHostname: tunnelConfig.hostname } : {}),
     ...(proxy ? { canonicalOrigin: proxy.publicOrigin } : options.config.exposure?.canonicalOrigin ? { canonicalOrigin: options.config.exposure.canonicalOrigin } : {}),
   });
 

@@ -521,3 +521,61 @@ describe('EnvironmentSettings presence sharing (PD-108)', () => {
     expect(toggle(el)).not.toBeNull();
   });
 });
+
+describe('EnvironmentSettings certificate trust (Milestone 838)', () => {
+  const V2 = 'dude-pair:v2:hub.example.com:443:ABCD2345:public-ca';
+  const UNTRUSTED = { ...ENROLLED_STATUS, connection: 'untrusted-tls' as const, reachable: null };
+  const input = (el: HTMLElement): HTMLInputElement => el.querySelector('#reconnect-pairing-string') as HTMLInputElement;
+  const click = (el: HTMLElement, id: string): void => (el.querySelector(`[data-testid="${id}"]`) as HTMLElement).click();
+
+  it('labels a pinned device, also when the host says nothing about trust', async () => {
+    const { el } = await mount(createTestPort({ status: async () => ENROLLED_STATUS }).port);
+    expect(text(el, 'trust-mode')).toBe('Pinned certificate');
+  });
+
+  it('labels a public-CA device and names who can read the traffic', async () => {
+    const { el } = await mount(createTestPort({ status: async () => ({ ...ENROLLED_STATUS, hubUrl: 'https://hub.example.com', trustMode: 'public-ca' as const, trustDomain: 'hub.example.com' }) }).port);
+    expect(text(el, 'trust-mode')).toBe('Public certificate authority (via Cloudflare — Cloudflare can read traffic)');
+  });
+
+  it('shows what the Hub offers without applying it', async () => {
+    const { port } = createTestPort({ status: async () => ({ ...ENROLLED_STATUS, trustOffer: { mode: 'public-ca' as const, domain: 'hub.example.com' } }) });
+    const { el } = await mount(port);
+    expect(text(el, 'trust-offer')).toContain('Public certificate authority');
+    expect(text(el, 'trust-offer')).toContain('hub.example.com');
+    expect(text(el, 'trust-mode')).toBe('Pinned certificate');
+  });
+
+  it('a reconnect that moves a pinned device to public-CA trust needs its own confirmation and sends exactly that change', async () => {
+    const { port } = createTestPort({
+      status: async () => UNTRUSTED,
+      reconnect: async () => ({ deviceId: 'd', environmentId: 'e', hubInstanceId: 'h', hubUrl: 'https://hub.example.com' }),
+    });
+    const { fixture, el } = await mount(port);
+    typeInto(input(el), V2);
+    click(el, 'reconnect-ack');
+    await settle(fixture);
+    expect(text(el, 'reconnect-trust')).toContain('Public certificate authority');
+    expect(el.querySelector('[data-testid="trust-change"]')?.textContent).toContain('hub.example.com');
+    const button = el.querySelector('[data-testid="reconnect-button"]') as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    click(el, 'trust-change-ack');
+    await settle(fixture);
+    expect(button.disabled).toBe(false);
+    button.click();
+    await settle(fixture);
+    expect(port.reconnect).toHaveBeenCalledExactlyOnceWith({ pairingString: V2, acknowledged: true, trustChange: { mode: 'public-ca', domain: 'hub.example.com' } });
+  });
+
+  it('a reconnect that keeps the trust (pinned to pinned) asks for no trust confirmation and sends none', async () => {
+    const { port } = createTestPort({ status: async () => UNTRUSTED, reconnect: async () => ({ deviceId: 'd', environmentId: 'e', hubInstanceId: 'h', hubUrl: 'https://hub.local:47600' }) });
+    const { fixture, el } = await mount(port);
+    typeInto(input(el), FAKE_HUB_PAIRING_STRING);
+    click(el, 'reconnect-ack');
+    await settle(fixture);
+    expect(el.querySelector('[data-testid="trust-change"]')).toBeNull();
+    (el.querySelector('[data-testid="reconnect-button"]') as HTMLButtonElement).click();
+    await settle(fixture);
+    expect(port.reconnect).toHaveBeenCalledExactlyOnceWith({ pairingString: FAKE_HUB_PAIRING_STRING, acknowledged: true });
+  });
+});

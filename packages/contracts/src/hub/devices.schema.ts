@@ -1,4 +1,6 @@
 import Type, { type Static } from 'typebox';
+import { HubTrustModeSchema, PublicCaDomain, isPublicCaDomain } from './trust.schema.js';
+import type { HubTrustMode } from './trust.schema.js';
 
 /**
  * Device registry contracts (Phase 31C, PD-030 to PD-033). Everything here is portable: no Node APIs, so the Desktop
@@ -75,36 +77,74 @@ export const PairingCodeResponse = Type.Object({
   spkiSha256: Type.String({ pattern: '^[A-Za-z0-9_-]{43}$' }),
   /** The device the code is bound to (a re-attach code), else null. Absent on Hubs that predate re-attach codes. */
   reattachDeviceId: Type.Optional(Type.Union([Uuid, Type.Null()])),
+  /**
+   * How the paired device must verify this Hub (32-SS1, Milestone 838): `public-ca` when the code was issued for the managed tunnel's public
+   * domain (the pairing string then has the `v2` form without a pin and `spkiSha256` is the Hub's loopback pin, informational only); absent on
+   * older Hubs means `pinned`.
+   */
+  trustMode: Type.Optional(HubTrustModeSchema),
+  /** The domain the device must trust through the public CA chain; set exactly when `trustMode` is `public-ca`. */
+  trustDomain: Type.Optional(PublicCaDomain),
 });
 export type PairingCodeResponse = Static<typeof PairingCodeResponse>;
 
-export interface PairingStringParts {
-  /** A DNS name, an IPv4 literal or a bracketed IPv6 literal (`[::1]`). */
-  host: string;
-  port: number;
-  /** Normalized, without the dash. */
-  code: string;
-  spkiSha256: string;
-}
+/** What `parsePairingString` returns: `pinned` strings carry the Hub's SPKI pin, `public-ca` strings carry none (the host is the trusted domain). */
+export type PairingStringParts =
+  | {
+    trustMode: 'pinned';
+    /** A DNS name, an IPv4 literal or a bracketed IPv6 literal (`[::1]`). */
+    host: string;
+    port: number;
+    /** Normalized, without the dash. */
+    code: string;
+    spkiSha256: string;
+  }
+  | {
+    trustMode: 'public-ca';
+    /** The public domain to verify through the CA chain (lower case DNS name; never an IP literal). */
+    host: string;
+    port: number;
+    code: string;
+    spkiSha256: null;
+  };
+
+/** What `formatPairingString` accepts: a pin for the default `pinned` form, none for `public-ca`. */
+export type PairingStringInput =
+  | { trustMode?: 'pinned'; host: string; port: number; code: string; spkiSha256: string }
+  | { trustMode: 'public-ca'; host: string; port: number; code: string };
 
 export const PAIRING_STRING_PREFIX = 'dude-pair:v1:';
+/** The public-CA form (Milestone 838): `dude-pair:v2:<domain>:<port>:<CODE>:public-ca`. Clients that predate it refuse it as malformed (they fail closed). */
+export const PAIRING_STRING_PREFIX_V2 = 'dude-pair:v2:';
 const PAIRING_STRING = /^dude-pair:v1:(\[[0-9A-Fa-f:.]+\]|[A-Za-z0-9.-]+):(\d{1,5}):([0-9A-HJKMNP-TV-Z]{8}):([A-Za-z0-9_-]{43})$/;
+const PAIRING_STRING_V2 = /^dude-pair:v2:([A-Za-z0-9.-]+):(\d{1,5}):([0-9A-HJKMNP-TV-Z]{8}):public-ca$/;
 
-/** `dude-pair:v1:<host>:<port>:<CODE-WITHOUT-DASH>:<spkiSha256>`. A bare IPv6 literal gets its brackets. */
-export function formatPairingString(parts: PairingStringParts): string {
-  const host = parts.host.includes(':') && !parts.host.startsWith('[') ? `[${parts.host}]` : parts.host;
+/** `dude-pair:v1:<host>:<port>:<CODE-WITHOUT-DASH>:<spkiSha256>`, or for `public-ca` `dude-pair:v2:<domain>:<port>:<CODE>:public-ca`. A bare IPv6 literal gets its brackets. */
+export function formatPairingString(parts: PairingStringInput): string {
   const code = normalizePairingCode(parts.code);
+  if (parts.trustMode === 'public-ca') return `${PAIRING_STRING_PREFIX_V2}${parts.host.toLowerCase()}:${parts.port}:${code}:public-ca`;
+  const host = parts.host.includes(':') && !parts.host.startsWith('[') ? `[${parts.host}]` : parts.host;
   return `${PAIRING_STRING_PREFIX}${host}:${parts.port}:${code}:${parts.spkiSha256}`;
 }
 
-/** Returns null for anything malformed (bad prefix/version, port out of range, bad code or pin). */
+/** Returns null for anything malformed (bad prefix/version, port out of range, bad code or pin, a `public-ca` host that is not a public DNS name). */
 export function parsePairingString(input: string): PairingStringParts | null {
-  const match = PAIRING_STRING.exec(input.trim());
+  const text = input.trim();
+  const v2 = PAIRING_STRING_V2.exec(text);
+  if (v2 !== null) {
+    const port = Number(v2[2]);
+    const domain = v2[1]!.toLowerCase();
+    if (!Number.isInteger(port) || port < 1 || port > 65535 || !isPublicCaDomain(domain)) return null;
+    return { trustMode: 'public-ca', host: domain, port, code: v2[3]!, spkiSha256: null };
+  }
+  const match = PAIRING_STRING.exec(text);
   if (match === null) return null;
   const port = Number(match[2]);
   if (!Number.isInteger(port) || port < 1 || port > 65535) return null;
-  return { host: match[1]!, port, code: match[3]!, spkiSha256: match[4]! };
+  return { trustMode: 'pinned', host: match[1]!, port, code: match[3]!, spkiSha256: match[4]! };
 }
+
+export type { HubTrustMode };
 
 // --- Enrollment -------------------------------------------------------------------------------------------------
 

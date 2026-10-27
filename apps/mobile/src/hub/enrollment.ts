@@ -9,6 +9,8 @@ export function reviewMobilePairing(pairingString: string, displayName: string):
   const parsed = parsePairingString(pairingString);
   const name = displayName.trim();
   if (!parsed || !name || name.length > 64) throw new MobileHubError('invalid-pairing', 'Enter a valid pairing string and a device name of 1–64 characters.');
+  // Public-CA (tunnel domain) pairing needs the Android trust mode of Milestone 839; until then this client fails closed rather than pinning nothing.
+  if (parsed.trustMode !== 'pinned') throw new MobileHubError('invalid-pairing', 'This pairing string is for a public-domain Hub, which this version of DUDE for Android cannot pair with yet. Update the app.');
   return { hubUrl: `https://${parsed.host}:${parsed.port}`, pin: parsed.spkiSha256, displayName: name };
 }
 export interface MobileEnrollmentDependencies extends MobileHubPorts {
@@ -31,6 +33,7 @@ export class MobileEnrollmentService {
     if (input.acknowledged !== true) throw new MobileHubError('invalid-pairing', 'Review the Hub endpoint and certificate pin before connecting.');
     const reviewed = reviewMobilePairing(input.pairingString, input.displayName);
     const parsed = parsePairingString(input.pairingString)!;
+    if (parsed.trustMode !== 'pinned') throw new MobileHubError('invalid-pairing', 'Public-domain pairing is not supported on Android yet.');
     const previous = await this.deps.persistence.readEnrollment();
     if (await this.deps.persistence.readPendingAttempt()) throw new MobileHubError('pending-attempt', 'Recover the pending registration before starting another attempt.');
     if (mode === 'enroll' && previous) throw new MobileHubError('already-enrolled', 'Use the explicit reconnect flow for an enrolled device.');

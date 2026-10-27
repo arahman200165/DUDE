@@ -35,6 +35,12 @@ export interface AgentHubEnrollment {
   spkiActive: string; spkiNext: string | null; enrolledAt: string; lastContactAt: string | null; revokedAt: string | null;
   /** The highest Hub authority epoch this device has seen (PD-071); 1 for an enrollment that never reported one. */
   authorityEpoch: number;
+  /**
+   * How this device verifies the Hub (Milestone 838): `pinned` (the leaf SPKI pin, the default) or `public-ca` (the public CA chain and host name for
+   * `trustDomain`, used for the managed Cloudflare Tunnel). Absent from older agents, meaning `pinned`. `trustDomain` is set exactly when `public-ca`.
+   */
+  trustMode?: 'pinned' | 'public-ca';
+  trustDomain?: string | null;
 }
 /** Hub connection state machine (PD-034). `standalone` means no enrollment. `authority-changed`: the Hub is no longer the one this device enrolled with (PD-073). */
 export type AgentHubState = 'standalone' | 'connecting' | 'online' | 'offline' | 'revoked' | 'incompatible' | 'untrusted-tls' | 'authority-changed';
@@ -50,12 +56,21 @@ export interface AgentHubStatus {
   pendingOps: number;
   /** Set only in the `authority-changed` state: what the Hub reported (null fields when it did not say). */
   authority: { reason: AgentHubAuthorityReason; hubInstanceId: string | null; epoch: number | null } | null;
+  /**
+   * What the Hub's last hello ADVERTISED when it differs from this device's trust (for example a pinned device whose Hub now offers `public-ca`
+   * for a tunnel domain). Information only: the device never applies it; moving between modes is the explicit `hub.reconnect` with `trustChange`.
+   */
+  trustOffer?: { mode: 'pinned' | 'public-ca'; domain: string | null } | null;
 }
 /** Typed enrollment failures (the RPC error `code`). */
 export type AgentHubEnrollError =
   | 'invalid-pairing-string' | 'already-enrolled' | 'tls-pin-mismatch' | 'hub-unreachable' | 'incompatible' | 'pairing-rejected' | 'dpapi-unavailable' | 'conflict'
   /** `hub.reconnect` only: no enrollment to reconnect, a healthy connection (nothing to repair), or the recovery snapshot taken first failed. */
-  | 'not-enrolled' | 'not-reconnectable' | 'snapshot-failed';
+  | 'not-enrolled' | 'not-reconnectable' | 'snapshot-failed'
+  /** Milestone 838: the pairing string would change how the device verifies its Hub (pinned <-> public CA, or another public domain) and no matching `trustChange` came with the request. */
+  | 'trust-change-unconfirmed'
+  /** Milestone 838: a public-CA origin was refused before any connection (not https, not the enrolled domain, an IP literal or a name no public CA issues for). */
+  | 'trust-origin-refused';
 /** Typed failures of `hub.bootstrapLocal` (besides the enrollment ones and `hub-*` codes). */
 export type AgentHubBootstrapError = 'handoff-missing' | 'handoff-expired' | 'already-bootstrapped';
 export interface AgentHubBootstrapResult {
@@ -314,7 +329,14 @@ export interface AgentMethodMap {
    * reset so the first-sync preview runs again. `acknowledged` must be exactly `true` (no incidental triggering); a recovery
    * snapshot is taken first. Errors: enrollment codes plus `not-enrolled`, `not-reconnectable`, `snapshot-failed`, `invalid-params`.
    */
-  'hub.reconnect': { params: { pairingString: string; acknowledged: true }; result: AgentHubStatus };
+  'hub.reconnect': {
+    params: {
+      pairingString: string; acknowledged: true;
+      /** Required when the pairing string's trust differs from the enrollment's (mode or public domain); must equal the string's trust exactly (`{ mode: 'public-ca', domain }` or `{ mode: 'pinned', domain: null }`). */
+      trustChange?: { mode: 'pinned' | 'public-ca'; domain: string | null };
+    };
+    result: AgentHubStatus;
+  };
   /**
    * First-run local Hub setup: reads and deletes `%LOCALAPPDATA%\DUDE\hub-handoff-<nonce>.json` (written by the elevated
    * `dude-hub setup-token --deliver-to`), bootstraps the Hub, self-enrolls through the normal pairing path and signs the
