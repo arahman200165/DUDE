@@ -13,6 +13,10 @@ export interface HubPaths {
   dataDir: string;
   dbFile: string;
   preMigrationDir: string;
+  /** SaveSphere content store (32-SS1, Milestone 832); created only by `openSaveSphereDb`, never by `ensureLayout`. */
+  saveSphereDbPath: string;
+  /** Its pre-upgrade copies; a subdirectory so the Hub database's pre-migration pruning never counts them. */
+  saveSpherePreMigrationDir: string;
   storageDir: string;
   backupsDir: string;
   configDir: string;
@@ -41,6 +45,8 @@ export function hubPaths(root: string): HubPaths {
     dataDir: path.join(root, 'data'),
     dbFile: path.join(root, 'data', 'dude.db'),
     preMigrationDir: path.join(root, 'data', 'pre-migration'),
+    saveSphereDbPath: path.join(root, 'data', 'savesphere.db'),
+    saveSpherePreMigrationDir: path.join(root, 'data', 'pre-migration', 'savesphere'),
     storageDir: path.join(root, 'storage'),
     backupsDir: path.join(root, 'backups'),
     configDir: path.join(root, 'config'),

@@ -12,6 +12,27 @@ import type { Db } from '@dude/sqlite-store';
  */
 export const SCRUBBED_TABLES = ['sessions', 'device_tokens', 'challenges', 'pairing_codes', 'setup_state', 'notifications'] as const;
 
+/**
+ * Every other `dude.db` table: kept in a backup as is (`meta` and `audit_events` are kept too; `meta` is scrubbed per key below).
+ * Together with `SCRUBBED_TABLES` this must name EVERY table of the Hub database; `backup/classification.spec.ts` fails on a new table
+ * nobody classified, so each new migration decides its backup behaviour explicitly.
+ */
+export const HUB_KEPT_TABLES = [
+  'meta', 'schema_migrations', 'environment', 'owner', 'owner_credentials', 'recovery_codes', 'devices', 'device_keys', 'throttle', 'audit_events',
+  'tls_pins', 'tls_pin_acks', 'records', 'change_feed', 'applied_ops', 'device_sync_state', 'tls_proxy_pins', 'tls_proxy_pin_acks', 'web_access', 'ip_blocks',
+  'collab_docs', 'collab_updates', 'collab_snapshots', 'collab_bases',
+] as const;
+
+/**
+ * `savesphere.db` tables emptied in its snapshot copy (32-SS1, Milestone 832). `audit_outbox` is transient: it only carries events
+ * to `dude.db`'s audit log and a restored store must not replay them. The backup engine integrates `savesphere.db` at
+ * Milestone 847; until then these lists are only exported and enforced by `backup/classification.spec.ts`.
+ */
+export const SAVESPHERE_SCRUBBED_TABLES = ['audit_outbox'] as const;
+
+/** `savesphere.db` tables kept as is. Each content table added by a later milestone is classified here or above, never silently. */
+export const SAVESPHERE_KEPT_TABLES = ['meta', 'schema_migrations'] as const;
+
 /** Exact meta keys removed from the snapshot copy. */
 export const SCRUBBED_META_KEYS = ['csrf_key', 'alerts_seen_seq', 'hub_addresses', 'reachability_last', 'acme_last_attempt'] as const;
 

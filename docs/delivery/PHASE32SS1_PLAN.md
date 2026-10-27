@@ -96,3 +96,13 @@ Limitations and decisions recorded rather than worked around:
 - `HubPaths.secretsDir` was added; `ensureLayout` does not create it (the store creates it on first `put`). Backups hold only `dude.db` and `hub.json`, so the directory is never included (asserted in `secrets.spec.ts`); after a restore onto another machine DPAPI blobs are unreadable and every purpose needs re-entry. `status({ expected })` reports `needsReentry`; which purposes are expected comes from the provisioning config, which arrives at Milestone 835.
 - The importer allowlist in `secrets.spec.ts` is empty until the first consumer (Milestone 832 onwards) adds itself.
 
+
+### 2026-10-27, Milestone 832: `savesphere.db` content store foundation
+
+`apps/hub/src/savesphere-db/` adds `openSaveSphereDb(paths, options?)`, its own migration sequence (`SAVESPHERE_MIGRATIONS`, `0001-platform`: `meta`, `schema_migrations`, `audit_outbox` only) and `audit-outbox.ts` (`appendAuditOutbox`, `drainAuditOutbox`, `drainAuditOutboxAtStart`). Notes:
+
+- `HubPaths` gains `saveSphereDbPath` (`data/savesphere.db`) and `saveSpherePreMigrationDir` (`data/pre-migration/savesphere`, a subdirectory because the runner's backup pruning keeps the newest three `pre-v*.db` files of a directory and would otherwise count both databases together). `ensureLayout` does not create either; only `openSaveSphereDb` does, and nothing calls it yet except the start-up drain (provisioning is Milestone 835).
+- The start-up drain in `cli/run.ts` runs only when `savesphere.db` already exists, opens it, drains and closes it, and swallows errors, so a Hub that never provisioned SaveSphere gets no file and an unreadable store never blocks start. The audit writer is the existing `audit()`; `HUB_AUDIT_EVENTS` is not widened (no first producer yet), so the specs use an existing event.
+- Idempotence: the drain writes the row's `dedupe_key` into the audit detail as `outboxRef` and looks for it before writing, so a crash between the audit write and `drained_at` never duplicates the event. `appendAuditOutbox` refuses to run outside a transaction (`db.isTransaction`) and validates the event and detail (the Hub audit sanitizer) at append time so a bad event rolls the content back. Drained rows are pruned after 30 days.
+- `backup/snapshot.ts` exports `HUB_KEPT_TABLES`, `SAVESPHERE_SCRUBBED_TABLES` (`audit_outbox`) and `SAVESPHERE_KEPT_TABLES`; `backup/classification.spec.ts` opens both real databases and fails on any unclassified table. Backup v1 behaviour is unchanged; the engine integrates `savesphere.db` at Milestone 847.
+- `allowExtension` stays off unless the vector component asks; `SaveSphereDb.lockExtensions()` re-locks it.

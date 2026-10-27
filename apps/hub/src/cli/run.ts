@@ -4,6 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import { ensureLayout, resolveDataDir } from '../config/data-dir.js';
 import { bindAddress, exposureRefusal, loadOrCreateHubConfig } from '../config/hub-config.js';
 import { openHubDb } from '../db/open-hub-db.js';
+import { drainAuditOutboxAtStart } from '../savesphere-db/audit-outbox.js';
 import { presentTestKnobs, readHubTestOverrides } from './test-overrides.js';
 import { createHubServer } from '../server/create-server.js';
 import { createLogStream, hubLoggerOptions } from '../server/logger.js';
@@ -213,6 +214,8 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     return EXIT_DATABASE;
   }
   const hub = opened.hub;
+  // 32-SS1: hand over audit events a crash left in savesphere.db's outbox (only when that store exists; never fatal).
+  try { drainAuditOutboxAtStart(paths, hub.db, (input) => audit(hub.db, input)); } catch { /* retried by the next drain */ }
   ensureSetupToken(hub.db, paths.configDir, Date.now());
   const wantedNames = computeSubjectAltNames(config);
   const hadIdentity = existsSync(path.join(paths.tlsDir, 'cert.pem')) && existsSync(path.join(paths.tlsDir, 'key.pem'));
