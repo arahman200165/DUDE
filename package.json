@@ -66,6 +66,8 @@
     "build:packages": "node scripts/build-packages.mjs",
     "watch:packages": "node scripts/build-packages.mjs --watch",
     "test:packages": "vitest run --config vitest.packages.config.mts",
+    "pretest:backup-scale": "npm run build:packages",
+    "test:backup-scale": "node scripts/test-backup-v2-scale.mjs",
     "check:boundaries": "node scripts/check-package-boundaries.mjs && node scripts/check-mobile-boundaries.mjs",
     "preelectron:compile": "npm run generate:registry && npm run build:packages",
     "prerelay:compile": "npm run build:packages",
