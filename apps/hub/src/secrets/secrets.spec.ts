@@ -220,8 +220,8 @@ describe('secret store import boundary', () => {
   const outside = (pattern: RegExp): string[] =>
     sources().filter((s) => !s.rel.startsWith('secrets/') && pattern.test(s.text)).map((s) => s.rel).sort();
 
-  it('only the provisioning secrets component imports the store so far; each later importer is added here deliberately (never a request handler)', () => {
-    const allowedImporters: string[] = ['provisioning/components/secrets.ts'];
+  it('only the provisioning secrets component and the tunnel supervisor import the store so far; each later importer is added here deliberately (never a request handler)', () => {
+    const allowedImporters: string[] = ['provisioning/components/secrets.ts', 'tunnel/cloudflared.ts'];
     expect(outside(/from '(?:\.\.?\/)+secrets\//)).toEqual(allowedImporters);
     for (const rel of allowedImporters) expect(rel).not.toMatch(/^(server|auth|devices|realtime|security|sync)\//);
   });

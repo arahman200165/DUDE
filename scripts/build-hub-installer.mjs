@@ -20,8 +20,8 @@ export async function resolveMakensis() {
 
 export async function buildHubInstaller() {
   const stage = path.join(root, 'dist', 'hub-stage');
-  if (!existsSync(path.join(stage, 'dude-hub.exe')) || !existsSync(path.join(stage, 'DudeHub.exe'))) {
-    throw new Error('Missing dist/hub-stage (dude-hub.exe, DudeHub.exe). Run "npm run hub:stage" first.');
+  if (!['dude-hub.exe', 'DudeHub.exe', 'cloudflared.exe'].every((name) => existsSync(path.join(stage, name)))) {
+    throw new Error('Missing dist/hub-stage (dude-hub.exe, DudeHub.exe, cloudflared.exe). Run "npm run hub:stage" first.');
   }
   const makensis = await resolveMakensis();
   const version = String(JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8')).version).replace(/[-+].*$/, '');

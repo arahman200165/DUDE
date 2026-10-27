@@ -24,8 +24,8 @@ if (process.platform !== 'win32' || !elevated()) {
 }
 
 const stage = path.join(root, 'dist', 'hub-stage');
-if (!existsSync(path.join(stage, 'dude-hub.exe')) || !existsSync(path.join(stage, 'DudeHub.exe'))) {
-  console.error('dist/hub-stage is missing. Run "npm run hub:stage" first.');
+if (!['dude-hub.exe', 'DudeHub.exe', 'cloudflared.exe'].every((name) => existsSync(path.join(stage, name)))) {
+  console.error('dist/hub-stage is missing or incomplete (dude-hub.exe, DudeHub.exe, cloudflared.exe). Run "npm run hub:stage" first.');
   process.exit(1);
 }
 
@@ -135,6 +135,8 @@ async function main() {
   const before = json(run(cli, ['status', '--data-dir', dataDir]));
   const update = json(run(cli, ['service', 'update', '--source', stage, ...common]));
   assert(update.updated === true && update.oldHubVersion === OLD_VERSION && update.newHubVersion === currentVersion, `hubVersion changed ${OLD_VERSION} -> ${currentVersion}`);
+  const sha256File = (file) => createHash('sha256').update(readFileSync(file)).digest('hex');
+  assert(existsSync(path.join(installDir, 'cloudflared.exe')) && sha256File(path.join(installDir, 'cloudflared.exe')) === sha256File(path.join(stage, 'cloudflared.exe')), 'the update installed the staged cloudflared.exe beside dude-hub.exe');
   const afterUpdate = await hello(dataDir, port);
   assert(afterUpdate.hubVersion === currentVersion && afterUpdate.bootstrapped === true && afterUpdate.environmentId === environmentId, 'no data loss across the update');
   const after = json(run(cli, ['status', '--data-dir', dataDir]));

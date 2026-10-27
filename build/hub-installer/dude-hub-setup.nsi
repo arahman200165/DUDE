@@ -360,6 +360,7 @@ Section "Uninstall"
   ; The CLI removes its own binaries; clear anything it left (the running executable cannot delete itself).
   Delete "$INSTDIR\dude-hub.exe"
   Delete "$INSTDIR\DudeHub.exe"
+  Delete "$INSTDIR\cloudflared.exe"
   Delete "$INSTDIR\DudeHub.xml"
   Delete "$INSTDIR\DudeHub.wrapper.log"
   RMDir /r "$INSTDIR\service"

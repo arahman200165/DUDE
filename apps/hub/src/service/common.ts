@@ -17,6 +17,8 @@ export const FIREWALL_RULE_NAME = 'DUDE Hub (LAN)';
 export const WRAPPER_EXE = 'DudeHub.exe';
 export const WRAPPER_XML = 'DudeHub.xml';
 export const HUB_EXE = 'dude-hub.exe';
+/** The hash-pinned tunnel connector staged beside the Hub (32-SS1, Milestone 836). Optional in a source directory, so an older stage still installs. */
+export const CLOUDFLARED_EXE = 'cloudflared.exe';
 
 export const EXIT_OK = 0;
 export const EXIT_FAILURE = 1;

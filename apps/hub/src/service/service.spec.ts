@@ -87,6 +87,7 @@ describe('service install', () => {
     ]);
 
     expect(existsSync(path.join(f.installDir, 'dude-hub.exe'))).toBe(true);
+    expect(readFileSync(path.join(f.installDir, 'cloudflared.exe'), 'utf8')).toBe('cloudflared-binary'); // the pinned tunnel connector lands beside the Hub (Milestone 836)
     expect(existsSync(path.join(f.installDir, 'service', 'web', 'index.html'))).toBe(true);
     expect(readFileSync(path.join(f.installDir, 'DudeHub.xml'), 'utf8')).toContain(`run --data-dir`);
     const paths = hubPaths(f.dataDir);
@@ -160,6 +161,7 @@ describe('service lifecycle', () => {
     expect(f.system.calls).toContain('netsh advfirewall firewall delete rule name=DUDE Hub (LAN)');
     expect(f.system.firewallRule).toBe(false);
     expect(existsSync(path.join(f.installDir, 'dude-hub.exe'))).toBe(false);
+    expect(existsSync(path.join(f.installDir, 'cloudflared.exe'))).toBe(false);
     expect(existsSync(hubPaths(f.dataDir).configFile)).toBe(true);
     expect(JSON.parse(f.out.join(''))).toMatchObject({ uninstalled: true, dataKept: true, dataDir: f.dataDir, registeredDevices: 3 });
     expect(f.err.join('')).toMatch(/3 registered devices/);
