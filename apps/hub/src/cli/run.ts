@@ -5,6 +5,7 @@ import { ensureLayout, resolveDataDir } from '../config/data-dir.js';
 import { bindAddress, exposureRefusal, loadOrCreateHubConfig } from '../config/hub-config.js';
 import { openHubDb } from '../db/open-hub-db.js';
 import { drainAuditOutboxAtStart } from '../savesphere-db/audit-outbox.js';
+import { createQueueRuntime } from '../queue/queue-runtime.js';
 import { presentTestKnobs, readHubTestOverrides } from './test-overrides.js';
 import { createHubServer } from '../server/create-server.js';
 import { createLogStream, hubLoggerOptions } from '../server/logger.js';
@@ -216,6 +217,8 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   const hub = opened.hub;
   // 32-SS1: hand over audit events a crash left in savesphere.db's outbox (only when that store exists; never fatal).
   try { drainAuditOutboxAtStart(paths, hub.db, (input) => audit(hub.db, input)); } catch { /* retried by the next drain */ }
+  // 32-SS1: the durable queue exists only once SaveSphere storage does (a store that cannot open never blocks start).
+  const queueRuntime = createQueueRuntime({ paths, hubDb: hub.db, auditWriter: (input) => audit(hub.db, input) });
   ensureSetupToken(hub.db, paths.configDir, Date.now());
   const wantedNames = computeSubjectAltNames(config);
   const hadIdentity = existsSync(path.join(paths.tlsDir, 'cert.pem')) && existsSync(path.join(paths.tlsDir, 'key.pem'));
@@ -247,6 +250,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     hub: { db: hub.db, hubInstanceId: hub.hubInstanceId },
     hubVersion: hubVersion(),
     backup: { scheduleKeyPresent: () => scheduleKeyExists(paths.configDir) },
+    ...(queueRuntime ? { queue: { status: () => queueRuntime.status() } } : {}),
     logger: hubLoggerOptions(logStream),
     ...testServerOverrides,
   });
@@ -255,6 +259,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     await server.listen({ port: config.port, host: bindAddress(config) });
   } catch (error) {
     process.stderr.write(`The Hub could not listen on ${bindAddress(config)}:${config.port}: ${(error as Error).message}\n`);
+    await queueRuntime?.stop();
     hub.close();
     logStream.close();
     return EXIT_FAILURE;
@@ -293,6 +298,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   } catch (error) {
     process.stderr.write(`The admin endpoint could not start: ${(error as Error).message}\n`);
     await server.close();
+    await queueRuntime?.stop();
     hub.close();
     logStream.close();
     return EXIT_FAILURE;
@@ -342,6 +348,8 @@ export async function runCli(argv: readonly string[]): Promise<number> {
 `);
   } catch { /* detection is best effort */ }
   addressWatch.start();
+  // Recovers jobs a crash left leased, then runs queued work and the scheduled blob verify and staging sweep.
+  try { await queueRuntime?.start(server.hubJobs); } catch { /* the queue is optional; the Hub keeps serving */ }
   audit(hub.db, { event: 'hub.started', outcome: 'success', actorKind: 'system', detail: { version: hubVersion(), port, bind: config.bind }, now: Date.now() });
   process.stdout.write(`${JSON.stringify({ event: 'listening', url: `https://127.0.0.1:${port}`, spkiSha256: tls.spkiSha256 })}\n`);
 
@@ -356,6 +364,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
         acmeRenewal.stop();
         backupScheduler.stop();
         addressWatch.stop();
+        try { await queueRuntime?.stop(); } catch { /* best effort */ }
         try { await admin.close(); } catch { /* best effort */ }
         try { await server.close(); } catch { code = EXIT_FAILURE; }
         try { hub.db.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch { /* best effort */ }

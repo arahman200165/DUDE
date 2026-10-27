@@ -14,6 +14,7 @@ import { registerTlsAuditRoutes } from './routes/tls-audit.js';
 import { registerSecurityAlertRoutes } from './routes/security-alerts.js';
 import { registerPresenceRoutes } from './routes/presence.js';
 import { registerJobsRoute } from './routes/jobs.js';
+import { registerQueueRoute } from './routes/queue.js';
 import { registerNotificationRoutes } from './routes/notifications.js';
 import { startNotificationProducers } from '../notifications/producers.js';
 import { startNotificationRetention } from '../notifications/retention.js';
@@ -25,7 +26,7 @@ import { createHostFacts, currentConfig, gatherRunningHubDeps } from '../diagnos
 import { collectDiagnostics } from '../diagnostics/engine.js';
 import { createCachedNameResolver } from '../diagnostics/addresses.js';
 import type { InterfaceMap, NameResolution } from '../diagnostics/addresses.js';
-import type { HubDiagnosticsReport } from '@dude/contracts/hub';
+import type { HubDiagnosticsReport, HubQueueStatusResponse } from '@dude/contracts/hub';
 import type { DiagnosticsHostFacts, DiagnosticsOverride } from '../diagnostics/engine.js';
 import { defaultExec } from '../service/common.js';
 import type { ExecFn } from '../service/common.js';
@@ -112,6 +113,8 @@ export interface CreateHubServerOptions {
   diagnostics?: { exec?: ExecFn; platform?: NodeJS.Platform; host?: () => Promise<DiagnosticsHostFacts>; resolveDns?: (names: readonly string[]) => Promise<NameResolution[]>; interfaces?: () => InterfaceMap };
   /** Backup status read model: `run` supplies the schedule-key presence check (request handlers never import the schedule-key module). */
   backup?: { scheduleKeyPresent?: () => boolean };
+  /** Durable queue read model (32-SS1): `run` supplies it once `savesphere.db` is open; without it `GET /api/v1/queue` reports the queue as unavailable. */
+  queue?: { status: () => HubQueueStatusResponse };
   logger?: boolean | HubLoggerOptions;
   /** Cheaper Argon2 settings for specs only. */
   passwordParams?: PasswordParams;
@@ -202,6 +205,7 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   registerPresenceRoutes(app, { realtime, requireOwner: authOptions.requireOwner });
   jobs.onChange = () => realtime.notifyOwnerView('jobs');
   registerJobsRoute(app, { jobs, requireOwner: authOptions.requireOwner });
+  registerQueueRoute(app, { requireOwner: authOptions.requireOwner, status: options.queue?.status });
   // Notifications (PD-109, PD-110): the closed producer list feeds the table; a new row reaches owner sockets and reader-granted device sockets.
   const producers = startNotificationProducers({
     db: options.hub.db, now, jobs,

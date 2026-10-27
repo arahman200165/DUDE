@@ -78,7 +78,12 @@ describe('dude-hub bundle', () => {
       expect(Value.Check(HubJobsResponse, parsed)).toBe(true);
       const list = (parsed as HubJobsResponse).jobs;
       expect(list.map((j) => j.id)).toEqual([...HUB_JOB_IDS]);
-      for (const job of list) expect(job.intervalMs, `${job.id} has no registered timer`).toBeGreaterThan(0);
+      // The queue's jobs register only on a Hub whose savesphere.db exists (32-SS1); this one never provisioned SaveSphere.
+      const queueJobs = ['queue-runner', 'blobs-verify', 'blobs-staging-sweep'];
+      for (const job of list) {
+        if (queueJobs.includes(job.id)) expect(job.intervalMs).toBe(0);
+        else expect(job.intervalMs, `${job.id} has no registered timer`).toBeGreaterThan(0);
+      }
       expect(list.find((j) => j.id === 'backup-schedule')?.intervalMs).toBe(BACKUP_SCHEDULER_CHECK_MS);
     } finally {
       // On Windows kill() terminates without running the graceful handler; elsewhere it sends SIGTERM.

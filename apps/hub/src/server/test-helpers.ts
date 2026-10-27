@@ -59,6 +59,8 @@ export interface TestHubOptions {
   collabSocket?: CreateHubServerOptions['collabSocket'];
   collabRooms?: CreateHubServerOptions['collabRooms'];
   backup?: { scheduleKeyPresent?: () => boolean };
+  /** Durable queue read model (`GET /api/v1/queue`); absent means the queue is unavailable. */
+  queue?: CreateHubServerOptions['queue'];
   /** Serve an existing data root (for example a restored Hub) instead of a fresh temporary one. */
   dataRoot?: string;
 }

@@ -26,9 +26,11 @@ export const HUB_KEPT_TABLES = [
 /**
  * `savesphere.db` tables emptied in its snapshot copy (32-SS1, Milestone 832). `audit_outbox` is transient: it only carries events
  * to `dude.db`'s audit log and a restored store must not replay them. The backup engine integrates `savesphere.db` at
- * Milestone 847; until then these lists are only exported and enforced by `backup/classification.spec.ts`.
+ * Milestone 847; until then these lists are only exported and enforced by `backup/classification.spec.ts`. `jobs` (Milestone 834,
+ * the durable queue) is operational state with leases and attempt counts that mean nothing on another machine: a restored Hub
+ * starts with an empty queue and re-derives pending work from content state.
  */
-export const SAVESPHERE_SCRUBBED_TABLES = ['audit_outbox'] as const;
+export const SAVESPHERE_SCRUBBED_TABLES = ['audit_outbox', 'jobs'] as const;
 
 /**
  * `savesphere.db` tables kept as is. Each content table added by a later milestone is classified here or above, never silently.

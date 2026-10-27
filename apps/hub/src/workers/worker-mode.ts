@@ -1,11 +1,15 @@
 import { spawn } from 'node:child_process';
 import { isSea } from 'node:sea';
+import { runJobWorkerHost } from './job-worker-host.js';
+import type { WorkerJobImplementations } from './job-worker-host.js';
+import { PRODUCTION_WORKER_JOB_HANDLERS } from './worker-job-handlers.js';
 
 // Internal worker mode (32-SS1, PD-147). The single-executable Hub cannot run a worker from a path, so a worker is the
 // Hub executable itself re-spawned with INTERNAL_WORKER_ARG and a worker kind; a Node-process Hub (Docker, foreground,
 // the dist bundle) re-spawns `node <bundle>` the same way. `main.ts` calls runInternalWorkerIfRequested before anything
-// else, so a worker process never reaches the CLI. Messages are one JSON object per line over the child's stdio. The
-// queue and the real worker host arrive in Milestone 834; this module is the spawn contract they build on.
+// else, so a worker process never reaches the CLI. Messages are one JSON object per line over the child's stdio. Two worker
+// kinds exist: `ping` (the one-shot spawn proof used by `self-test`) and `job` (Milestone 834: the long-lived-per-job protocol
+// of `job-protocol.ts`, run by `job-worker-host.ts` and driven by `worker-pool.ts`).
 
 export const INTERNAL_WORKER_ARG = '--internal-worker';
 
@@ -55,9 +59,16 @@ async function runWorker(handler: WorkerHandler): Promise<number> {
   return 2;
 }
 
-/** Runs the worker and returns its exit code when argv requests worker mode; undefined for every other invocation. */
-export async function runInternalWorkerIfRequested(argv: string[]): Promise<number | undefined> {
+/** The worker kind that runs queue jobs (`job-worker-host.ts`). */
+export const JOB_WORKER_KIND_NAME = 'job';
+
+/**
+ * Runs the worker and returns its exit code when argv requests worker mode; undefined for every other invocation.
+ * `jobHandlers` replaces the production job implementations (specs and the test worker entry only).
+ */
+export async function runInternalWorkerIfRequested(argv: string[], options: { jobHandlers?: WorkerJobImplementations } = {}): Promise<number | undefined> {
   if (argv[0] !== INTERNAL_WORKER_ARG) return undefined;
+  if (argv[1] === JOB_WORKER_KIND_NAME) return runJobWorkerHost(options.jobHandlers ?? PRODUCTION_WORKER_JOB_HANDLERS);
   const handler = WORKER_KINDS[argv[1] ?? ''];
   return handler ? runWorker(handler) : 2;
 }

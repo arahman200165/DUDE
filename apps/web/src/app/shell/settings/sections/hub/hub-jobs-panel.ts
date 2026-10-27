@@ -16,6 +16,9 @@ export const HUB_JOB_NAMES: Readonly<Record<HubJobId, string>> = {
   'audit-prune': 'Audit log pruning',
   'collab-history-prune': 'Document history pruning',
   'collab-maintenance': 'Document storage maintenance',
+  'queue-runner': 'Background work queue',
+  'blobs-verify': 'Attachment integrity check',
+  'blobs-staging-sweep': 'Abandoned upload cleanup',
 };
 
 interface OutcomeView {

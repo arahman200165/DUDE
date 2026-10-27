@@ -21,7 +21,7 @@ describe('savesphere.db migration 0002 blobs', () => {
   });
 
   it('creates blobs and blob_refs and enforces their constraints', () => {
-    const opened = openSaveSphereDb(hubPaths(mkdtempSync(path.join(os.tmpdir(), 'ss-0002-'))));
+    const opened = openSaveSphereDb(hubPaths(mkdtempSync(path.join(os.tmpdir(), 'ss-0002-'))), { migrations: SAVESPHERE_MIGRATIONS.slice(0, 2) });
     if (opened.status !== 'ready') throw new Error('expected ready');
     const { db } = opened.store;
     expect(getMeta(db, 'schema_version')).toBe('2');

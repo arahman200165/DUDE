@@ -46,6 +46,10 @@ describe('backup scrub classification covers every table of both databases', () 
     expect(SAVESPHERE_SCRUBBED_TABLES).toContain('audit_outbox');
   });
 
+  it('treats the job queue as transient (scrubbed)', () => {
+    expect(SAVESPHERE_SCRUBBED_TABLES).toContain('jobs');
+  });
+
   it('the checker itself flags an unclassified table', () => {
     expect(unclassified([...saveSphereTables, 'brand_new'], SAVESPHERE_SCRUBBED_TABLES, SAVESPHERE_KEPT_TABLES)).toEqual(['brand_new']);
   });
