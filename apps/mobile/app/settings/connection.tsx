@@ -4,6 +4,7 @@ import { ActionButton, Button, Field, Label, Screen, Section } from '../../src/u
 import { ConnectionStatus } from '../../src/ui/connection-status';
 import { PairingScanner } from '../../src/ui/pairing-scanner';
 import { reviewMobilePairing } from '../../src/hub/enrollment';
+import { trustLabelOf } from '../../src/hub/trust';
 import { useWorkbench } from '../../src/state/workbench-provider';
 import { GuardedAction } from '../../src/ui/guarded-action';
 
@@ -15,10 +16,15 @@ export default function ConnectionScreen() {
   const [scanning, setScanning] = useState(false);
   const [review, setReview] = useState<ReturnType<typeof reviewMobilePairing>>();
   const [error, setError] = useState<string>();
+  const [trustConfirmed, setTrustConfirmed] = useState(false);
   const { actions, snapshot } = useWorkbench();
   const contextId = typeof params.contextId === 'string' ? params.contextId : undefined;
   const rePair = !!contextId || snapshot.connection.kind !== 'standalone';
-  const setPairing = (text: string) => { setPairingString(text); setReview(undefined); setError(undefined); };
+  const setPairing = (text: string) => { setPairingString(text); setReview(undefined); setError(undefined); setTrustConfirmed(false); };
+  // Re-pairing that would move this device between pinned and public-CA trust (or to another public domain) needs the owner's explicit, exact confirmation.
+  const currentTrust = { mode: snapshot.connection.trustMode ?? 'pinned', domain: snapshot.connection.trustDomain ?? null };
+  const trustChange = review && snapshot.connection.kind !== 'standalone' && (review.trustMode !== currentTrust.mode || review.trustDomain !== currentTrust.domain)
+    ? { mode: review.trustMode, domain: review.trustDomain } : undefined;
   return <Screen>
     <Section title="Current connection"><ConnectionStatus />
       <Button title="Synchronization and category consent" onPress={() => router.push('/settings/sync')} />
@@ -38,12 +44,15 @@ export default function ConnectionScreen() {
       {review && <Section title="Review before connecting">
         <Label>Hub endpoint: {review.hubUrl}</Label>
         <Label>Device display name: {review.displayName}</Label>
-        <Label mono>Certificate pin: {review.pin}</Label>
-        <Label>Compare this pin with the Hub pairing screen. {rePair ? 'Re-pairing replaces the native credential after preserving a durable recovery copy.' : 'Connecting registers this Android device with your Hub.'}</Label>
+        <Label>Certificate trust: {trustLabelOf(review.trustMode)}</Label>
+        {review.pin === null ? <Label mono>Trusted domain: {review.trustDomain}</Label> : <Label mono>Certificate pin: {review.pin}</Label>}
+        {trustChange && <Label accessibilityRole="alert">This changes how this device verifies its Hub. Confirm the change below, or nothing is sent.</Label>}
+        {trustChange && <Button title={trustConfirmed ? 'Trust change confirmed' : 'Confirm trust change'} selected={trustConfirmed} onPress={() => setTrustConfirmed(value => !value)} />}
+        <Label>{review.pin === null ? 'This Hub is reached through a public name. The device checks the ordinary certificate authority chain and that exact domain; there is no pin.' : 'Compare this pin with the Hub pairing screen.'} {rePair ? 'Re-pairing replaces the native credential after preserving a durable recovery copy.' : 'Connecting registers this Android device with your Hub.'}</Label>
         <Label>Enrollment shares this device’s ID, display name, public key, Android platform and secure-storage capability. Favorites and settings stay local until you approve category consent. Your own Hub can read the plaintext records you approve for synchronization.</Label>
         <Label muted>Scanning and opening a link only review or navigate; they never enroll a device, import recovery data or execute a tool. An older incompatible Hub must be upgraded before syncing.</Label>
         <ActionButton title={rePair ? 'Confirm and re-pair' : 'Confirm and connect'} disabled={!snapshot.capabilities.connect || !!snapshot.recovery?.pendingAttempt} onPress={async () => {
-          const input = { pairingString, displayName: review.displayName, acknowledged: true as const };
+          const input = { pairingString, displayName: review.displayName, acknowledged: true as const, ...(trustChange && trustConfirmed ? { trustChange } : {}) };
           const result = await (rePair ? actions.rePair(input, contextId) : actions.connect(input));
           if (result.ok) { setPairingString(''); setReview(undefined); router.push('/settings/sync'); }
           return result;

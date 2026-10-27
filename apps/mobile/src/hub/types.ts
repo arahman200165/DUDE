@@ -1,4 +1,5 @@
 import type { HubClient, HubTransport } from '@dude/api-client';
+import type { HubTrustMode } from '@dude/contracts/hub';
 
 /** Only opaque references cross the native identity boundary. */
 export interface MobileSigner {
@@ -9,7 +10,13 @@ export interface MobileSigner {
   deleteKey(keyRef: string): Promise<void>;
   randomBytes(length: number): Promise<string>;
 }
-export interface MobileHubTarget { readonly hubUrl: string; readonly pins: readonly string[] }
+/**
+ * How this device verifies its Hub (32-SS1, Milestone 839, PD-143). Stored with the enrollment, chosen only by an explicit pairing or an explicitly
+ * confirmed re-pairing, and never changed by anything a Hub says. Absent (every record written before Milestone 839) means `pinned`.
+ * A `public-ca` target has `pins: []` and verifies the system CA chain and the host name against `trustDomain` only.
+ */
+export interface MobileHubTrustFields { readonly trustMode?: HubTrustMode; readonly trustDomain?: string | null }
+export interface MobileHubTarget extends MobileHubTrustFields { readonly hubUrl: string; readonly pins: readonly string[] }
 export interface MobileHubEnrollment extends MobileHubTarget {
   readonly deviceId: string;
   readonly environmentId: string;
@@ -57,7 +64,7 @@ export interface MobileHubPorts {
 }
 export type MobileApiFactory = (target: MobileHubTarget) => HubClient;
 export class MobileHubError extends Error {
-  constructor(readonly code: 'invalid-pairing' | 'incompatible' | 'authority-changed' | 'pin-mismatch' | 'revoked' | 'key-unavailable' | 'key-rejected' | 'pairing-input-required' | 'pending-attempt' | 'already-enrolled' | 'not-enrolled', message: string) {
+  constructor(readonly code: 'invalid-pairing' | 'incompatible' | 'authority-changed' | 'pin-mismatch' | 'tls-untrusted' | 'trust-origin-refused' | 'trust-change-unconfirmed' | 'revoked' | 'key-unavailable' | 'key-rejected' | 'pairing-input-required' | 'pending-attempt' | 'already-enrolled' | 'not-enrolled', message: string) {
     super(message); this.name = 'MobileHubError';
   }
 }

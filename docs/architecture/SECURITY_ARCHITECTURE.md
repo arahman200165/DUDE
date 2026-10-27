@@ -375,6 +375,7 @@ Devices verify the Hub in one of two modes, recorded per enrollment (`hub_enroll
 - **Enrollment.** A `public-ca` pairing skips the pin probe, validates the chain on the first credential-free `hello`, requires that hello to advertise `public-ca` for exactly that domain, and only then presents the pairing code.
 - **Test seam.** The one way a spec trusts a throwaway CA is `PinnedTarget.publicCaTestSeam` (`roots`, optional `dialAddress`), plumbed through `HubManagerDeps`/`EnrollDeps`; a spec scans the agent sources so only the wiring files mention it and none reads it from a hello, pairing payload or enrollment row. Production never sets it and verification is never disabled.
 - **Limit.** The root store is Node's default (plus `NODE_EXTRA_CA_CERTS`, an operator setting), not the Windows certificate store.
+- **Android (Milestone 839).** The Kotlin Hub client has the same two modes, selected from the stored enrollment only: `public-ca` uses the platform trust manager (system roots; no extra CA, no pins, no global trust-all) and OkHttp's host name verifier with the origin host forced equal to the stored domain, refuses http, other hosts, credentials and IP literals before a socket opens, ignores announced pins, and needs the owner's exact `trustChange` to move between modes or domains. Enforced by `PublicCaTrustTest.kt` (JVM) and `apps/mobile/src/hub/public-ca-trust.spec.ts`; the test seam is a constructor parameter nothing in `main` supplies.
 
 ### Planned for SaveSphere (Phases 32-SS1 to 32-SS6)
 

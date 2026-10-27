@@ -1,6 +1,6 @@
 import { createHubClient, HubApiError, type HubClient } from '@dude/api-client';
 import { DEVICE_TOKEN_TTL_MS, HUB_PROTOCOL_VERSION, HUB_SYNC_MIN_PROTOCOL } from '@dude/contracts/hub';
-import { checkHello, verifyHelloPins, type VerifiedPins } from './trust';
+import { checkHello, verifyTrustPins, type VerifiedPins } from './trust';
 import { MobileHubError, type MobileEnrollmentAttempt, type MobileHubEnrollment, type MobileHubPorts } from './types';
 
 const authRejected = (error: unknown): error is HubApiError => error instanceof HubApiError && (error.status === 401 || error.status === 403);
@@ -11,7 +11,7 @@ export async function authenticateMobileDevice(ports: MobileHubPorts, enrollment
   const api = mobileApi(ports, enrollment);
   const hello = await api.hello();
   const epoch = checkHello(hello, enrollment);
-  const pins = await verifyHelloPins(api, hello, ports.certificatePin);
+  const pins = await verifyTrustPins(api, hello, ports.certificatePin, enrollment);
   const now = (ports.now ?? Date.now)();
   let token: Awaited<ReturnType<HubClient['deviceToken']>> | undefined;
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -50,7 +50,7 @@ export class MobileDeviceSession {
     const api = mobileApi(this.ports, this.enrollment);
     const hello = await api.hello();
     const authorityEpoch = checkHello(hello, this.enrollment);
-    const pins = await verifyHelloPins(api, hello, this.ports.certificatePin);
+    const pins = await verifyTrustPins(api, hello, this.ports.certificatePin, this.enrollment);
     if (generation !== this.generation) throw new Error('Device session changed.');
     const updated = { ...this.enrollment, ...pins, authorityEpoch };
     await this.ports.persistence.saveEnrollment(updated);

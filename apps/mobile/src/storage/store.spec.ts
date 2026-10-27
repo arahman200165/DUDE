@@ -120,6 +120,28 @@ describe('durable Android store', () => {
     await store.commitEnrollment(enrollment); expect(await store.readPendingAttempt()).toBeNull(); expect((await store.readEnrollment())?.keyId).toBeNull();
     expect(JSON.stringify(await store.exportRecovery((await store.activeContext()).id))).not.toMatch(/opaque-key|public-key|keyRef|keyId|PRIVATE/);
   });
+  it('persists the public-CA trust mode additively: a pinned record is unchanged and a public-CA record keeps its domain with no pins', async () => {
+    const { db, store } = await fixture();
+    await store.savePendingAttempt(attempt); await store.commitEnrollment(enrollment);
+    const pinned = JSON.parse((await db.first<{ value: string }>('SELECT value FROM metadata WHERE key=?', 'enrollment'))!.value) as Record<string, unknown>;
+    expect(pinned).not.toHaveProperty('trustMode'); expect(pinned).not.toHaveProperty('trustDomain');
+    expect(await store.readEnrollment()).toMatchObject({ pins: ['pin'] });
+    const publicCa: MobileHubEnrollment = { ...enrollment, hubUrl: 'https://hub.example.com:443', pins: [], trustMode: 'public-ca', trustDomain: 'hub.example.com' };
+    await store.saveEnrollment(publicCa);
+    expect(await store.readEnrollment()).toMatchObject({ trustMode: 'public-ca', trustDomain: 'hub.example.com', pins: [], hubUrl: 'https://hub.example.com:443' });
+  });
+  it.each([
+    ['another host than its domain', { hubUrl: 'https://evil.example.com:443' }],
+    ['plain http', { hubUrl: 'http://hub.example.com:443' }],
+    ['no domain', { trustDomain: null }],
+    ['an IP literal domain', { hubUrl: 'https://127.0.0.1:443', trustDomain: '127.0.0.1' }],
+    ['an unknown mode', { trustMode: 'trust-all' as never }],
+  ])('refuses to persist a public-CA enrollment with %s', async (_name, over) => {
+    const { store } = await fixture();
+    const bad = { ...attempt, hubUrl: 'https://hub.example.com:443', pins: [], trustMode: 'public-ca' as const, trustDomain: 'hub.example.com', ...over };
+    await expect(store.savePendingAttempt(bad as MobileEnrollmentAttempt)).rejects.toThrow();
+    expect(await store.readPendingAttempt()).toBeNull();
+  });
   it('keeps raw unsupported appearance choices while enforcing shared setting scopes', async () => {
     const { store, context } = await fixture(); const kv = store.kvRepository(context.id); const raw = { theme: 'dark', uiFont: 'future-font', futureAxis: { choice: true } };
     await kv.set('settings', 'appearance', raw, { policy: 'local', scope: 'environment' }); expect(await kv.get('settings', 'appearance')).toEqual(raw);

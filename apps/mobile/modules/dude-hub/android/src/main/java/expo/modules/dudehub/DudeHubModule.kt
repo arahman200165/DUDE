@@ -24,8 +24,8 @@ class DudeHubModule : Module() {
     AsyncFunction("randomBytes") { length: Int -> identity.randomBytes(length) }
     Function("randomBytesSync") { length: Int -> identity.randomBytes(length) }
     AsyncFunction("certificatePin") { pem: String -> PinnedHubTransport.pemPin(pem) }
-    AsyncFunction("request") { origin: String, pins: List<String>, method: String, path: String, headers: Map<String, String>, body: String? -> transport.request(origin, pins, method, path, headers, body) }
-    AsyncFunction("openSocket") { id: String, origin: String, pins: List<String>, token: String -> transport.open(id, origin, pins, token) }
+    AsyncFunction("request") { origin: String, pins: List<String>, method: String, path: String, headers: Map<String, String>, body: String?, publicCaDomain: String? -> transport.request(origin, pins, method, path, headers, body, publicCaDomain) }
+    AsyncFunction("openSocket") { id: String, origin: String, pins: List<String>, token: String, publicCaDomain: String? -> transport.open(id, origin, pins, token, publicCaDomain) }
     AsyncFunction("sendSocket") { id: String, text: String -> transport.send(id, text) }
     AsyncFunction("closeSocket") { id: String -> transport.close(id) }
     OnDestroy { transport.closeAll() }

@@ -3,6 +3,7 @@ import { Value } from 'typebox/value';
 import type { MobileRealtimePort, MobileRealtimeSocket, NativeSocketEvent } from './native';
 import { MobileDeviceSession } from './session';
 import { MobileHubError } from './types';
+import { PUBLIC_CA_UNTRUSTED, publicCaDomainOf, publicCaUntrustedMessage } from './trust';
 
 /** Realtime invalidates caches/signals only. Record synchronization remains the sync adapter's responsibility. */
 export class MobileHubRealtime {
@@ -68,6 +69,8 @@ export class MobileHubRealtime {
         await this.session.token(true);
         await this.session.withToken((api, token) => api.deviceSelf(token));
       }
+      const publicCaDomain = publicCaDomainOf(this.session.getEnrollment());
+      if (publicCaDomain !== null && event.error === PUBLIC_CA_UNTRUSTED) throw new MobileHubError('tls-untrusted', publicCaUntrustedMessage(publicCaDomain));
       throw new Error(event.error ?? 'The Hub realtime connection closed.');
     }
     if (!event.text) throw new Error('Missing realtime JSON.');
@@ -79,16 +82,18 @@ export class MobileHubRealtime {
       if (this.welcome || message.sessionKind !== 'device' || message.deviceId !== this.session.getEnrollment().deviceId || message.protocolVersion < HUB_SYNC_MIN_PROTOCOL) throw new Error('Unexpected realtime welcome.');
       const enrollment = await this.session.refreshTrust();
       if ((message.authorityEpoch ?? enrollment.authorityEpoch) !== enrollment.authorityEpoch) throw new MobileHubError('authority-changed', 'The realtime authority changed.');
-      if (message.tls.spkiSha256 !== enrollment.spkiActive || message.tls.nextSpkiSha256 !== enrollment.spkiNext || (message.tls.proxySpkiSha256 ?? []).some(pin => !enrollment.proxySpkis.includes(pin))) throw new MobileHubError('pin-mismatch', 'Realtime pin announcements disagree with the checked hello.');
+      // A public-CA device has no pins: the Hub's announced pins are never compared, stored, staged or acknowledged by it (Milestone 839).
+      const pinned = publicCaDomainOf(enrollment) === null;
+      if (pinned && (message.tls.spkiSha256 !== enrollment.spkiActive || message.tls.nextSpkiSha256 !== enrollment.spkiNext || (message.tls.proxySpkiSha256 ?? []).some(pin => !enrollment.proxySpkis.includes(pin)))) throw new MobileHubError('pin-mismatch', 'Realtime pin announcements disagree with the checked hello.');
       // refreshTrust durably saves every verified pin BEFORE this acknowledgement.
-      if (enrollment.spkiNext) await this.send({ type: 'tls-pin-ack', spkiSha256: enrollment.spkiNext });
-      for (const pin of enrollment.proxySpkis) await this.send({ type: 'tls-pin-ack', spkiSha256: pin });
+      if (pinned && enrollment.spkiNext) await this.send({ type: 'tls-pin-ack', spkiSha256: enrollment.spkiNext });
+      if (pinned) for (const pin of enrollment.proxySpkis) await this.send({ type: 'tls-pin-ack', spkiSha256: pin });
       this.welcome = true;
       this.events.onWelcome?.();
       return;
     }
     if (!this.welcome) throw new Error('Realtime event arrived before welcome.');
-    if (message.event === 'tls-next-pin') {
+    if (message.event === 'tls-next-pin' && publicCaDomainOf(this.session.getEnrollment()) === null) {
       const enrollment = await this.session.refreshTrust();
       const announced = message.data['spkiSha256'];
       if (typeof announced !== 'string' || (announced !== enrollment.spkiNext && !enrollment.proxySpkis.includes(announced))) throw new MobileHubError('pin-mismatch', 'The announced pin was not verified and persisted.');

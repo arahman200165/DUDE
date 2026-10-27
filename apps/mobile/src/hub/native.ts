@@ -1,6 +1,7 @@
 import { requireNativeModule } from 'expo-modules-core';
 import type { HubRequest, HubTransport } from '@dude/api-client';
 import { MobileHubError, type MobileHubTarget, type MobileSigner } from './types';
+import { PUBLIC_CA_UNTRUSTED, publicCaDomainOf, publicCaUntrustedMessage } from './trust';
 
 export type NativeSocketEvent = { readonly id: string; readonly kind: 'open' | 'message' | 'close' | 'failure'; readonly text?: string; readonly code?: number; readonly error?: string };
 interface NativeHubModule {
@@ -12,8 +13,8 @@ interface NativeHubModule {
   randomBytes(length: number): Promise<string>;
   randomBytesSync(length: number): string;
   certificatePin(pem: string): Promise<string>;
-  request(origin: string, pins: readonly string[], method: string, path: string, headers: Record<string, string>, body: string | null): Promise<{ status: number; headers: Record<string, string>; body: string }>;
-  openSocket(id: string, origin: string, pins: readonly string[], token: string): Promise<void>;
+  request(origin: string, pins: readonly string[], method: string, path: string, headers: Record<string, string>, body: string | null, publicCaDomain: string | null): Promise<{ status: number; headers: Record<string, string>; body: string }>;
+  openSocket(id: string, origin: string, pins: readonly string[], token: string, publicCaDomain: string | null): Promise<void>;
   sendSocket(id: string, text: string): Promise<boolean>;
   closeSocket(id: string): Promise<void>;
   addListener(name: 'socket', listener: (event: NativeSocketEvent) => void): { remove(): void };
@@ -50,12 +51,15 @@ export function androidRandomBytes(length: number): Uint8Array {
 }
 export function androidHubTransport(target: MobileHubTarget): HubTransport {
   return { request: async (req: HubRequest) => {
+    // The trust is selected from the STORED target here, and a public-CA origin that is not exactly the stored domain is refused before any native call.
+    const publicCaDomain = publicCaDomainOf(target);
     try {
-      const response = await native().request(target.hubUrl, target.pins, req.method, req.path, req.headers ?? {}, req.body === undefined ? null : JSON.stringify(req.body));
+      const response = await native().request(target.hubUrl, target.pins, req.method, req.path, req.headers ?? {}, req.body === undefined ? null : JSON.stringify(req.body), publicCaDomain);
       return { ...response, body: JSON.parse(response.body) as unknown };
     } catch (error) {
       if (error instanceof Error && error.message.includes('tls-pin-mismatch')) throw new MobileHubError('pin-mismatch', 'The Hub certificate does not match its pinned identity.');
-      throw new Error('The pinned Hub request could not be completed.');
+      if (publicCaDomain !== null && error instanceof Error && error.message.includes(PUBLIC_CA_UNTRUSTED)) throw new MobileHubError('tls-untrusted', publicCaUntrustedMessage(publicCaDomain));
+      throw new Error(publicCaDomain === null ? 'The pinned Hub request could not be completed.' : 'The Hub request could not be completed.');
     }
   } };
 }
@@ -65,9 +69,10 @@ export interface MobileRealtimePort {
 }
 export const androidRealtime: MobileRealtimePort = {
   open: async (id, target, token, listener) => {
+    const publicCaDomain = publicCaDomainOf(target);
     const bridge = native();
     const subscription = bridge.addListener('socket', event => { if (event.id === id) listener(event); });
-    try { await bridge.openSocket(id, target.hubUrl, target.pins, token); }
+    try { await bridge.openSocket(id, target.hubUrl, target.pins, token, publicCaDomain); }
     catch (error) { subscription.remove(); throw error; }
     return { send: text => bridge.sendSocket(id, text), close: async () => { subscription.remove(); await bridge.closeSocket(id); } };
   },

@@ -103,10 +103,10 @@ export class MobileSyncDriver {
   private fail(error: unknown): void {
     if (error instanceof MobileHubError || error instanceof ReconcileRequired) {
       const code = error instanceof MobileHubError ? error.code : 'authority-changed';
-      if (['authority-changed', 'pin-mismatch', 'revoked', 'incompatible', 'key-unavailable', 'key-rejected'].includes(code)) {
+      if (['authority-changed', 'pin-mismatch', 'tls-untrusted', 'trust-origin-refused', 'revoked', 'incompatible', 'key-unavailable', 'key-rejected'].includes(code)) {
         this.blocked = true; this.clearRetry(); void this.realtime?.stop(); this.socketRunning = false;
         this.publish({ phase: code === 'revoked' ? 'revoked' : code === 'incompatible' ? 'incompatible' : 'error',
-          detail: error.message, failure: code === 'revoked' ? 'revoked' : code === 'pin-mismatch' ? 'pin' : code.startsWith('key-') ? 'key' : 'authority' });
+          detail: error.message, failure: code === 'revoked' ? 'revoked' : code === 'pin-mismatch' || code === 'tls-untrusted' || code === 'trust-origin-refused' ? 'pin' : code.startsWith('key-') ? 'key' : 'authority' });
         return;
       }
     }

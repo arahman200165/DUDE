@@ -2,6 +2,7 @@ import { DEFAULT_APPEARANCE } from '@dude/domain/core/appearance/appearance.mode
 import type { MobileHubPorts } from '../hub/types';
 import { MobileHubError } from '../hub/types';
 import { MobileEnrollmentService } from '../hub/enrollment';
+import { trustOf } from '../hub/trust';
 import { MobileDeviceSession } from '../hub/session';
 import type { MobileRealtimePort } from '../hub/native';
 import { MobileSyncDriver, type SyncDriverState } from '../sync/driver';
@@ -184,7 +185,8 @@ export class DurableWorkbench implements WorkbenchBackend {
     const copies = (await Promise.all(contexts.map(async item => (await this.store.recoveryCopies(item.id)).map(copy => ({ ...copy, contextId: item.id }))))).flat();
     this.publish({ appearance: object(rawAppearance) ? rawAppearance : { ...DEFAULT_APPEARANCE }, favorites, durability: 'durable',
       connection: { kind, detail: belongs ? state?.detail ?? 'This Android device is registered. Select categories and review synchronization.'
-        : context.kind === 'standalone' ? 'Favorites and appearance are stored privately on this device.' : 'Read-only cached environment. Export it or review a pairing before editing.', environmentName: belongs ? context.environmentId : undefined },
+        : context.kind === 'standalone' ? 'Favorites and appearance are stored privately on this device.' : 'Read-only cached environment. Export it or review a pairing before editing.', environmentName: belongs ? context.environmentId : undefined,
+        ...(belongs && trustOf(enrollment).mode === 'public-ca' ? { trustMode: 'public-ca' as const, trustDomain: trustOf(enrollment).domain ?? undefined } : belongs ? { trustMode: 'pinned' as const } : {}) },
       sync: { phase: context.kind === 'standalone' ? 'local-only' : state?.phase ?? (context.consent ? 'paused' : 'needs-consent'),
         detail: state?.detail ?? (attempt ? 'A registration receipt is pending. Recover it before creating another identity.' : 'Choose the categories to synchronize.'),
         pending: pending.length, conflicts: pending.filter(op => op.rejected).length,
@@ -251,7 +253,7 @@ export class DurableWorkbench implements WorkbenchBackend {
     try { await this.enrollment.connect(input); await this.changed(); }
     catch (error) {
       if (error instanceof MobileHubError) this.driverState = { phase: error.code === 'incompatible' ? 'incompatible' : 'error', detail: error.message,
-        failure: error.code === 'pin-mismatch' ? 'pin' : error.code === 'authority-changed' ? 'authority' : undefined };
+        failure: error.code === 'pin-mismatch' || error.code === 'tls-untrusted' || error.code === 'trust-origin-refused' ? 'pin' : error.code === 'authority-changed' ? 'authority' : undefined };
       else this.driverState = { phase: 'offline', detail: 'Registration could not be confirmed. Recover the saved receipt if one was written.' };
       throw error;
     }

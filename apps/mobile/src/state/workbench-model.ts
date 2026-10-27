@@ -1,5 +1,6 @@
 import { DEFAULT_APPEARANCE, type AppearancePrefs } from '@dude/domain/core/appearance/appearance.model';
 import { favoriteItemId, type FavoriteItem } from '@dude/persistence/codecs/favorite.codec';
+import type { HubTrustChange } from '@dude/contracts/hub';
 import type { ConsequenceClass } from '@dude/domain/shared/models/tool-metadata.model';
 import type { LocalStatePort } from '../tools-host/recents';
 import type { ToolSettingsPort } from '../kit/tool-preference-store';
@@ -7,7 +8,8 @@ import type { ToolSettingsPort } from '../kit/tool-preference-store';
 export type ActionResult<T = undefined> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly reason: string };
 export type SyncCategory = 'favorites' | 'settings';
 export type SyncChoice = 'merge' | 'hub' | 'local';
-export interface ConnectionInput { readonly pairingString: string; readonly displayName: string; readonly acknowledged: true }
+/** `trustChange` is the owner's confirmation of a change of trust mode or public domain on a re-pairing; it is never implied. */
+export interface ConnectionInput { readonly pairingString: string; readonly displayName: string; readonly acknowledged: true; readonly trustChange?: HubTrustChange }
 export interface DestructivePreview {
   readonly token: string; readonly pending: number; readonly records?: number; readonly contextId?: string;
   readonly expiresInSeconds?: number; readonly consequences?: readonly ConsequenceClass[];
@@ -33,6 +35,9 @@ export interface WorkbenchSnapshot {
     readonly detail: string;
     readonly environmentName?: string;
     readonly deviceName?: string;
+    /** How this device verifies its Hub (Milestone 839); `trustDomain` is set exactly when `trustMode` is `public-ca`. Absent when no Hub is connected. */
+    readonly trustMode?: 'pinned' | 'public-ca';
+    readonly trustDomain?: string;
   };
   readonly sync: {
     readonly phase: 'local-only' | 'needs-consent' | 'paused' | 'syncing' | 'live' | 'offline' | 'conflict' | 'revoked' | 'incompatible' | 'error';

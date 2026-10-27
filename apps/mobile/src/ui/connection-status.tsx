@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 import { useWorkbench } from '../state/workbench-provider';
 import { Label } from './primitives';
+import { trustLabelOf } from '../hub/trust';
 
 export function ConnectionStatus() {
   const { snapshot, theme } = useWorkbench();
@@ -12,6 +13,7 @@ export function ConnectionStatus() {
     </Label>
     {snapshot.connection.environmentName && <Label>Environment: {snapshot.connection.environmentName}</Label>}
     {snapshot.connection.deviceName && <Label>Device: {snapshot.connection.deviceName}</Label>}
+    {snapshot.connection.trustMode && <Label>Certificate trust: {trustLabelOf(snapshot.connection.trustMode)}{snapshot.connection.trustDomain ? ` · ${snapshot.connection.trustDomain}` : ''}</Label>}
     <Label muted>{snapshot.connection.detail}</Label>
     <Label>{snapshot.sync.phase.replaceAll('-', ' ')} · {snapshot.sync.pending} pending · {snapshot.sync.conflicts} conflicts</Label>
     <Label muted>{snapshot.sync.detail}</Label>

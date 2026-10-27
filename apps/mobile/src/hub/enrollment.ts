@@ -1,18 +1,29 @@
 import { createHubClient, HubApiError } from '@dude/api-client';
-import { EnrollDevice, EnrollRequest, HUB_PROTOCOL_VERSION, HUB_SYNC_MIN_PROTOCOL, parsePairingString } from '@dude/contracts/hub';
+import { EnrollDevice, EnrollRequest, HUB_PROTOCOL_VERSION, HUB_SYNC_MIN_PROTOCOL, parsePairingString, type HubTrust, type HubTrustChange } from '@dude/contracts/hub';
 import { Value } from 'typebox/value';
 import { MobileHubError, type MobileEnrollmentAttempt, type MobileHubEnrollment, type MobileHubPorts } from './types';
 import { authenticateMobileDevice } from './session';
-import { checkHello, verifyHelloPins } from './trust';
+import { advertisedTrust, assertTrustChangeConfirmed, checkHello, trustOf, verifyTrustPins } from './trust';
 
-export function reviewMobilePairing(pairingString: string, displayName: string): { hubUrl: string; pin: string; displayName: string } {
+export interface MobilePairingReview {
+  readonly hubUrl: string;
+  /** The Hub's certificate pin; null for a public-CA (tunnel domain) pairing, which has none. */
+  readonly pin: string | null;
+  readonly trustMode: 'pinned' | 'public-ca';
+  /** The one public domain verified through the system CA chain; null when pinned. */
+  readonly trustDomain: string | null;
+  readonly displayName: string;
+}
+export function reviewMobilePairing(pairingString: string, displayName: string): MobilePairingReview {
   const parsed = parsePairingString(pairingString);
   const name = displayName.trim();
   if (!parsed || !name || name.length > 64) throw new MobileHubError('invalid-pairing', 'Enter a valid pairing string and a device name of 1–64 characters.');
-  // Public-CA (tunnel domain) pairing needs the Android trust mode of Milestone 839; until then this client fails closed rather than pinning nothing.
-  if (parsed.trustMode !== 'pinned') throw new MobileHubError('invalid-pairing', 'This pairing string is for a public-domain Hub, which this version of DUDE for Android cannot pair with yet. Update the app.');
-  return { hubUrl: `https://${parsed.host}:${parsed.port}`, pin: parsed.spkiSha256, displayName: name };
+  const hubUrl = `https://${parsed.host}:${parsed.port}`;
+  return parsed.trustMode === 'public-ca'
+    ? { hubUrl, pin: null, trustMode: 'public-ca', trustDomain: parsed.host, displayName: name }
+    : { hubUrl, pin: parsed.spkiSha256, trustMode: 'pinned', trustDomain: null, displayName: name };
 }
+const trustOfReview = (review: MobilePairingReview): HubTrust => ({ mode: review.trustMode, domain: review.trustDomain });
 export interface MobileEnrollmentDependencies extends MobileHubPorts {
   readonly installId: string;
   readonly deviceId: string;
@@ -21,30 +32,40 @@ export interface MobileEnrollmentDependencies extends MobileHubPorts {
   readonly beforeReconnect?: (previous: MobileHubEnrollment) => Promise<void>;
   readonly onReconnected?: (previous: MobileHubEnrollment, next: MobileHubEnrollment) => Promise<void>;
 }
+/** `trustChange` is the owner's explicit confirmation of a change of trust mode or public domain (reconnect only); without an exact match the change is refused. */
+export interface MobileConnectInput { pairingString: string; displayName: string; acknowledged: true; trustChange?: HubTrustChange }
 export class MobileEnrollmentService {
   private busy = false;
   constructor(private readonly deps: MobileEnrollmentDependencies) {}
-  async connect(input: { pairingString: string; displayName: string; acknowledged: true }, mode: 'enroll' | 'reconnect' = 'enroll'): Promise<MobileHubEnrollment> {
+  async connect(input: MobileConnectInput, mode: 'enroll' | 'reconnect' = 'enroll'): Promise<MobileHubEnrollment> {
     if (this.busy) throw new MobileHubError('pending-attempt', 'A connection attempt is already running.');
     this.busy = true;
     try { return await this.connectOnce(input, mode); } finally { this.busy = false; }
   }
-  private async connectOnce(input: { pairingString: string; displayName: string; acknowledged: true }, mode: 'enroll' | 'reconnect'): Promise<MobileHubEnrollment> {
+  private async connectOnce(input: MobileConnectInput, mode: 'enroll' | 'reconnect'): Promise<MobileHubEnrollment> {
     if (input.acknowledged !== true) throw new MobileHubError('invalid-pairing', 'Review the Hub endpoint and certificate pin before connecting.');
     const reviewed = reviewMobilePairing(input.pairingString, input.displayName);
     const parsed = parsePairingString(input.pairingString)!;
-    if (parsed.trustMode !== 'pinned') throw new MobileHubError('invalid-pairing', 'Public-domain pairing is not supported on Android yet.');
     const previous = await this.deps.persistence.readEnrollment();
     if (await this.deps.persistence.readPendingAttempt()) throw new MobileHubError('pending-attempt', 'Recover the pending registration before starting another attempt.');
     if (mode === 'enroll' && previous) throw new MobileHubError('already-enrolled', 'Use the explicit reconnect flow for an enrolled device.');
     if (mode === 'reconnect' && !previous) throw new MobileHubError('not-enrolled', 'There is no existing enrollment to reconnect.');
     if (previous && previous.deviceId !== this.deps.deviceId) throw new MobileHubError('invalid-pairing', 'Reconnect must preserve the existing device identity.');
-    const target = { hubUrl: reviewed.hubUrl, pins: [reviewed.pin] };
+    // Downgrade protection: a device never changes trust mode (or public domain) unless the owner confirmed exactly that change. Nothing is sent before this.
+    if (previous) assertTrustChangeConfirmed(trustOf(previous), trustOfReview(reviewed), input.trustChange);
+    const target = reviewed.pin === null
+      ? { hubUrl: reviewed.hubUrl, pins: [] as string[], trustMode: 'public-ca' as const, trustDomain: reviewed.trustDomain }
+      : { hubUrl: reviewed.hubUrl, pins: [reviewed.pin] };
     const api = createHubClient(this.deps.transport(target), { clientProtocol: HUB_PROTOCOL_VERSION, minHubProtocol: HUB_SYNC_MIN_PROTOCOL });
     const hello = await api.hello();
     const authorityEpoch = checkHello(hello);
-    if (![hello.tls.spkiSha256, hello.tls.nextSpkiSha256, ...(hello.tls.proxySpkiSha256 ?? [])].includes(reviewed.pin)) throw new MobileHubError('pin-mismatch', 'The pairing pin disagrees with the pinned Hub hello.');
-    const pins = await verifyHelloPins(api, hello, this.deps.certificatePin);
+    if (reviewed.pin === null) {
+      // No pin exists: the chain and host name were validated by the TLS stack on the credential-free hello above. The Hub must itself say it is the tunnel Hub for this
+      // domain; a hello that does not is some other service answering with a valid certificate.
+      const advertised = advertisedTrust(hello);
+      if (advertised.mode !== 'public-ca' || advertised.domain !== reviewed.trustDomain) throw new MobileHubError('incompatible', 'That address does not belong to a Hub that offers public-certificate pairing for this domain.');
+    } else if (![hello.tls.spkiSha256, hello.tls.nextSpkiSha256, ...(hello.tls.proxySpkiSha256 ?? [])].includes(reviewed.pin)) throw new MobileHubError('pin-mismatch', 'The pairing pin disagrees with the pinned Hub hello.');
+    const pins = await verifyTrustPins(api, hello, this.deps.certificatePin, target);
     const device = { deviceId: this.deps.deviceId, displayName: reviewed.displayName, platform: 'android' as const, appVersion: this.deps.appVersion, protocolVersion: HUB_PROTOCOL_VERSION, capabilities: ['secure-storage' as const] };
     if (!Value.Check(EnrollDevice, device)) throw new MobileHubError('invalid-pairing', 'The local device identity does not satisfy the Hub enrollment contract.');
     if (previous) {

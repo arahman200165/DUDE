@@ -10,6 +10,7 @@ import { OUTBOX_MAX_ROWS, type OutboxOp } from '@dude/sync/outbox/outbox-op.mode
 import { categoryOf } from '@dude/sync/policies';
 import { SYNC_LIMITS } from '@dude/sync/limits';
 import type { SyncRecord } from '@dude/contracts/hub';
+import { publicCaDomainOf } from '../hub/trust';
 import type { MobileEnrollmentAttempt, MobileHubEnrollment, MobileHubPersistence } from '../hub/types';
 import { migrateMobileDatabase } from './migrations';
 import type { SqlConnection, SqlDatabase } from './sql';
@@ -37,8 +38,11 @@ function receipt<T extends MobileEnrollmentAttempt | MobileHubEnrollment>(value:
   const common = { deviceId: value.deviceId, environmentId: value.environmentId, hubInstanceId: value.hubInstanceId, authorityEpoch: value.authorityEpoch,
     hubUrl: value.hubUrl, pins: [...value.pins], keyRef: value.keyRef, publicKey: value.publicKey, spkiActive: value.spkiActive, spkiNext: value.spkiNext, proxySpkis: [...value.proxySpkis] };
   if (!common.deviceId || !common.environmentId || !common.hubInstanceId || !common.keyRef || !Number.isSafeInteger(common.authorityEpoch) || common.authorityEpoch < 1 || !common.hubUrl.startsWith('https://')) throw new Error('Invalid enrollment identity.');
+  // Trust mode (Milestone 839): stored only for `public-ca`, so a pinned record is byte-identical to every record written before and absent means pinned. An invalid
+  // public-CA record (no public domain, origin not exactly that domain, unknown mode) is refused here rather than persisted.
+  const trust = publicCaDomainOf(value) === null ? {} : { trustMode: 'public-ca' as const, trustDomain: value.trustDomain };
   const attempt = value as MobileEnrollmentAttempt; const enrollment = value as MobileHubEnrollment;
-  return (pending ? { ...common, mode: attempt.mode, displayName: attempt.displayName, createdAt: attempt.createdAt } : { ...common, keyId: enrollment.keyId, registeredAt: enrollment.registeredAt }) as unknown as T;
+  return (pending ? { ...common, ...trust, mode: attempt.mode, displayName: attempt.displayName, createdAt: attempt.createdAt } : { ...common, ...trust, keyId: enrollment.keyId, registeredAt: enrollment.registeredAt }) as unknown as T;
 }
 
 /** Durable state owner. No network or credential bytes enter this database. */
