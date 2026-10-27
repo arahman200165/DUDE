@@ -124,7 +124,7 @@ export interface CreateHubServerOptions {
   hubVersion: string;
   /** Endpoint diagnostics: injectable host facts (service state, firewall rule; cached 60 s) so tests never touch Windows. */
   diagnostics?: { exec?: ExecFn; platform?: NodeJS.Platform; host?: () => Promise<DiagnosticsHostFacts>; resolveDns?: (names: readonly string[]) => Promise<NameResolution[]>; interfaces?: () => InterfaceMap };
-  /** Backup status read model: `run` supplies the schedule-key presence check (request handlers never import the schedule-key module). */
+  /** Backup status read model: `run` supplies the unattended-key (backup v2 master key) presence check (request handlers never import the key modules). */
   backup?: { scheduleKeyPresent?: () => boolean };
   /** Durable queue read model (32-SS1): `run` supplies it once `savesphere.db` is open; without it `GET /api/v1/queue` reports the queue as unavailable. */
   queue?: { status: () => HubQueueStatusResponse };
@@ -312,7 +312,7 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   registerDiagnosticsRoute(app, { db: options.hub.db, now, requireOwner: authOptions.requireOwner, collect: collectHubDiagnostics });
   registerBackupRoutes(app, {
     db: options.hub.db, requireOwner: authOptions.requireOwner, defaultFolder: options.paths.backupsDir,
-    schedule: () => currentConfig(options.paths.configFile, { port: 0 }).backup?.schedule,
+    backupConfig: () => currentConfig(options.paths.configFile, { port: 0 }).backup,
     ...(options.backup?.scheduleKeyPresent ? { scheduleKeyPresent: options.backup.scheduleKeyPresent } : {}),
   });
   registerReachabilityRoute(app, {

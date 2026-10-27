@@ -267,6 +267,24 @@ describe('backup v2 round trip', () => {
 });
 
 describe('backup v2 keys, dedupe and rewrap', () => {
+  it('reuses a given master key across repositories while every subkey and dedupe identity still differs', async () => {
+    const deps = makeDeps();
+    const master = new Uint8Array(32).fill(7);
+    const { repository: a, object: objectA } = await createRepository(PASSPHRASE, deps, undefined, { masterKey: master });
+    const { repository: b } = await createRepository(PASSPHRASE, deps, undefined, { masterKey: master });
+    expect(a.exportMasterKey()).toEqual(master);
+    expect(b.exportMasterKey()).toEqual(master);
+    expect(a.repoId).not.toBe(b.repoId);
+    const plain = toHex(sha256(BLOBS[2]));
+    expect(a.dedupeId(plain)).not.toBe(b.dedupeId(plain));
+    const reopened = await openRepository(objectA, { masterKey: master }, deps);
+    expect(reopened.repoId).toBe(a.repoId);
+    master.fill(0);
+    expect(a.exportMasterKey()).toEqual(new Uint8Array(32).fill(7));
+    await expect(createRepository(PASSPHRASE, deps, undefined, { masterKey: new Uint8Array(16) })).rejects.toThrow(BackupError);
+    for (const r of [a, b, reopened]) r.close();
+  });
+
   it('derives a keyed dedupe identity that is not the plain SHA-256', async () => {
     const deps = makeDeps();
     const { repository: a } = await createRepository(PASSPHRASE, deps);

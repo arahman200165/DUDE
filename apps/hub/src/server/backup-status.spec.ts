@@ -3,7 +3,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { BackupStatusResponse } from '@dude/contracts/hub';
 import { Value } from 'typebox/value';
 import { writeBackupLast } from '../backup/backup-state.js';
-import { applyBackupScheduleChange, loadOrCreateHubConfig, writeHubConfig } from '../config/hub-config.js';
+import { applyBackupConfigChange, applyBackupScheduleChange, loadOrCreateHubConfig, writeHubConfig } from '../config/hub-config.js';
+import { updateDestinationState } from '../hub/backup-destination-state.js';
 import { getAuthorityEpoch, setAuthority } from '../hub/authority.js';
 import { PASSWORD, startAuthHub } from './auth-test-helpers.js';
 import type { AuthHub, Signed } from './auth-test-helpers.js';
@@ -38,6 +39,9 @@ describe('GET /backup/status', () => {
       schedule: { configured: false, keyPresent: false },
       defaultFolder: h.hub.paths.backupsDir,
       devicesNeedingRePair: 0,
+      destinations: [],
+      retention: { daily: 7, weekly: 4, monthly: 6 },
+      nextScheduledAt: null,
     });
     expect(Value.Check(BackupStatusResponse, res.json)).toBe(true);
   });
@@ -82,6 +86,27 @@ describe('GET /backup/status', () => {
     for (const secret of [h.hub.paths.configDir, h.hub.paths.tlsDir, h.hub.paths.dbFile]) expect(res.raw.body).not.toContain(JSON.stringify(secret).slice(1, -1));
     writeHubConfig(configFile, applyBackupScheduleChange(loadOrCreateHubConfig(configFile), null));
     expect((await status()).json.schedule).toEqual({ configured: false, keyPresent: false });
+  });
+
+  it('reports each backup v2 destination (label, kind, last success, last error code, verification, size, next due) and never its folder', async () => {
+    const folder = path.join(tempDir('hub-dest-'), 'usb-disk-folder');
+    const configFile = h.hub.paths.configFile;
+    const base = loadOrCreateHubConfig(configFile);
+    writeHubConfig(configFile, applyBackupConfigChange(base, { schedule: { intervalHours: 24 }, destinations: [{ id: 'd-1', kind: 'local-folder', label: 'USB disk', folder }, { id: 'd-2', kind: 'local-folder', label: 'NAS', folder: `${folder}-2` }] }));
+    const lastAttempt = new Date(Date.now() - 3_600_000).toISOString();
+    updateDestinationState(db(), 'd-1', { lastAttemptAt: lastAttempt, lastOutcome: 'success', lastSuccessAt: lastAttempt, lastBackupId: `20260301T000000Z-${'a'.repeat(32)}`, lastVerifiedAt: lastAttempt, repoBytes: 4096 });
+    updateDestinationState(db(), 'd-2', { lastAttemptAt: lastAttempt, lastOutcome: 'failure', lastErrorAt: lastAttempt, lastError: 'repository-missing' });
+    const res = await status();
+    expect(Value.Check(BackupStatusResponse, res.json)).toBe(true);
+    expect(res.json.destinations).toEqual([
+      { id: 'd-1', kind: 'local-folder', label: 'USB disk', lastSuccessAt: lastAttempt, lastBackupId: `20260301T000000Z-${'a'.repeat(32)}`, lastError: null, lastErrorAt: null, lastVerifiedAt: lastAttempt, repoBytes: 4096, nextDueAt: new Date(Date.parse(lastAttempt) + 24 * 3_600_000).toISOString() },
+      { id: 'd-2', kind: 'local-folder', label: 'NAS', lastSuccessAt: null, lastBackupId: null, lastError: 'repository-missing', lastErrorAt: lastAttempt, lastVerifiedAt: null, repoBytes: null, nextDueAt: new Date(Date.parse(lastAttempt) + 6 * 3_600_000).toISOString() },
+    ]);
+    expect(res.json.nextScheduledAt).toBe(new Date(Date.parse(lastAttempt) + 6 * 3_600_000).toISOString());
+    expect(res.json.schedule).toMatchObject({ configured: true, intervalHours: 24 });
+    expect(res.raw.body).not.toContain('usb-disk-folder');
+    writeHubConfig(configFile, base);
+    db().prepare("DELETE FROM meta WHERE key LIKE 'backup_dest_state:%'").run();
   });
 
   it('reflects the authority epoch and counts only active desktop devices awaiting re-pair', async () => {

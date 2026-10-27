@@ -1,11 +1,35 @@
 import Type, { type Static } from 'typebox';
 
 /**
- * Owner read model of the Hub's backup state (Phase 31G). It never carries a passphrase, a schedule key or any path beyond
- * the configured schedule folder and the default backups folder; `lastBackup.file` is a file NAME only.
+ * Owner read model of the Hub's backup state (Phase 31G, extended for backup v2 at 32-SS1 Milestone 847). It never carries a
+ * passphrase, a key, a credential or any path beyond the configured schedule folder and the default backups folder;
+ * `lastBackup.file` and `destinations[].lastBackupId` are names only. Read-only: no route creates, schedules, prunes or restores a
+ * backup (the Hub web stays view-only; those are elevated admin-pipe and offline commands).
  */
 export const BACKUP_AUTHORITY_STATES = ['active', 'transferred'] as const;
 export type BackupAuthorityState = (typeof BACKUP_AUTHORITY_STATES)[number];
+
+/** The backup v2 retention policy (PD-150): grandfather-father-son per destination, pruned only by the two-step `backup prune`. */
+export const BACKUP_V2_RETENTION_DEFAULT = Object.freeze({ daily: 7, weekly: 4, monthly: 6 });
+
+const NullableString = Type.Union([Type.String(), Type.Null()]);
+
+export const BackupDestinationStatus = Type.Object({
+  id: Type.String(),
+  kind: Type.String(),
+  label: Type.String(),
+  lastSuccessAt: NullableString,
+  lastBackupId: NullableString,
+  /** A short failure code of the last failed run, never a message. */
+  lastError: NullableString,
+  lastErrorAt: NullableString,
+  lastVerifiedAt: NullableString,
+  /** Bytes the destination holds after the last successful run. */
+  repoBytes: Type.Union([Type.Integer({ minimum: 0 }), Type.Null()]),
+  /** When the schedule next runs for this destination (null without a schedule). */
+  nextDueAt: NullableString,
+});
+export type BackupDestinationStatus = Static<typeof BackupDestinationStatus>;
 
 export const BackupStatusResponse = Type.Object({
   authority: Type.Object({
@@ -27,12 +51,20 @@ export const BackupStatusResponse = Type.Object({
     configured: Type.Boolean(),
     folder: Type.Optional(Type.String()),
     intervalHours: Type.Optional(Type.Integer({ minimum: 1 })),
+    /** 31G only: the old count retention of a schedule that was not set again since the upgrade. */
     retention: Type.Optional(Type.Integer({ minimum: 1 })),
+    /** Whether the unattended key (the backup v2 master key in the secret store) is present; never the key. */
     keyPresent: Type.Optional(Type.Boolean()),
   }),
   /** The Hub's default backups folder (`<root>/backups`). */
   defaultFolder: Type.String(),
   /** Active desktop devices a restore marked for re-pairing. */
   devicesNeedingRePair: Type.Integer({ minimum: 0 }),
+  /** Backup v2 destinations (Milestone 847); absent on a Hub that reports none. */
+  destinations: Type.Optional(Type.Array(BackupDestinationStatus, { maxItems: 16 })),
+  /** The retention policy every destination is pruned to. */
+  retention: Type.Optional(Type.Object({ daily: Type.Integer({ minimum: 0 }), weekly: Type.Integer({ minimum: 0 }), monthly: Type.Integer({ minimum: 0 }) })),
+  /** The earliest time the schedule next runs for any destination, or null without a schedule or destination. */
+  nextScheduledAt: Type.Optional(NullableString),
 });
 export type BackupStatusResponse = Static<typeof BackupStatusResponse>;

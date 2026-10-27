@@ -104,7 +104,7 @@ describe('secrets component', () => {
     const paths = tempPaths();
     const run = await provision(paths, engineOptions());
     expect(run.report.components.find((c) => c.id === 'secrets')?.state).toBe('not-configured');
-    expect(run.report.secrets.map((s) => s.purpose)).toEqual(['tunnel.connectorToken', 'oidc.clientSecret', 'backup.s3.credentials', 'backup.drive.refreshToken', 'backup.onedrive.refreshToken']);
+    expect(run.report.secrets.map((s) => s.purpose)).toEqual(['tunnel.connectorToken', 'oidc.clientSecret', 'backup.s3.credentials', 'backup.drive.refreshToken', 'backup.onedrive.refreshToken', 'backup.masterKey']);
     expect(run.report.secrets.every((s) => !s.present && !s.needsReentry)).toBe(true);
     expect(run.report.overall).toBe('ready');
   });

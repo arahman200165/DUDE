@@ -42,7 +42,7 @@ const linuxStore = (secretsDir: string) => createSecretStore({ secretsDir, platf
 
 describe('secret purposes', () => {
   it('are a closed list with a distinct DPAPI entropy each, none shared with the CA, ACME or backup-schedule keys', () => {
-    expect(HUB_SECRET_PURPOSES).toEqual(['tunnel.connectorToken', 'oidc.clientSecret', 'backup.s3.credentials', 'backup.drive.refreshToken', 'backup.onedrive.refreshToken']);
+    expect(HUB_SECRET_PURPOSES).toEqual(['tunnel.connectorToken', 'oidc.clientSecret', 'backup.s3.credentials', 'backup.drive.refreshToken', 'backup.onedrive.refreshToken', 'backup.masterKey']);
     const entropies = [...HUB_SECRET_PURPOSES.map(secretEntropy), DPAPI_ENTROPY, ACME_DPAPI_ENTROPY, BACKUP_SCHEDULE_DPAPI_ENTROPY];
     expect(new Set(entropies).size).toBe(entropies.length);
     for (const entropy of entropies) expect(entropy).not.toMatch(/'/);
@@ -220,14 +220,17 @@ describe('secret store import boundary', () => {
   const outside = (pattern: RegExp): string[] =>
     sources().filter((s) => !s.rel.startsWith('secrets/') && pattern.test(s.text)).map((s) => s.rel).sort();
 
-  it('only `run` (for the OIDC client secret source), the provisioning secrets and oidc components, the tunnel supervisor and the tunnel runtime import the store so far; each later importer is added here deliberately (never a request handler)', () => {
-    const allowedImporters: string[] = ['cli/run.ts', 'provisioning/components/oidc.ts', 'provisioning/components/secrets.ts', 'tunnel/cloudflared.ts', 'tunnel/tunnel-runtime.ts'];
+  it('only `run` (for the OIDC client secret source), the backup master-key module (Milestone 847), the provisioning secrets and oidc components, the tunnel supervisor and the tunnel runtime import the store so far; each later importer is added here deliberately (never a request handler)', () => {
+    const allowedImporters: string[] = ['backup/master-key.ts', 'cli/run.ts', 'provisioning/components/oidc.ts', 'provisioning/components/secrets.ts', 'tunnel/cloudflared.ts', 'tunnel/tunnel-runtime.ts'];
     expect(outside(/from '(?:\.\.?\/)+secrets\//)).toEqual(allowedImporters);
     for (const rel of allowedImporters) expect(rel).not.toMatch(/^(server|auth|devices|realtime|security|sync)\//);
   });
 
-  it('the secrets directory path is resolved only by the layout; nothing else (backup, diagnostics) names it', () => {
-    expect(outside(/secretsDir/)).toEqual(['config/data-dir.ts', 'provisioning/components/oidc.ts', 'provisioning/components/secrets.ts', 'tunnel/tunnel-runtime.ts']);
+  it('the secrets directory path is resolved only by the layout; backup names it only to refuse it as a target, move it aside on restore (never read) and build the master-key store', () => {
+    expect(outside(/secretsDir/)).toEqual([
+      'backup/destinations/index.ts', 'backup/destinations/local-folder.ts', 'backup/master-key.ts', 'backup/restore.ts',
+      'config/data-dir.ts', 'provisioning/components/oidc.ts', 'provisioning/components/secrets.ts', 'tunnel/tunnel-runtime.ts',
+    ]);
   });
 
   it('only the existing key protectors and the secret store use the DPAPI primitive', () => {

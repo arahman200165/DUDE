@@ -59,20 +59,43 @@ export interface HubProxyConfig {
   publicOrigin: string;
 }
 
-/** A scheduled backup (31G, PD-074): the folder, interval and retention only; the derived key lives in a DPAPI-protected file, never here. */
+/**
+ * A scheduled backup. From 32-SS1 (Milestone 847) it is only the interval: each run goes to every configured destination with the
+ * backup v2 engine, the key is the master key in the secret store (never here) and retention is the 7/4/6 policy pruned by the
+ * two-step `backup prune`. `folder` and `retention` are the 31G fields: still accepted so an older `hub.json` keeps parsing, never
+ * written again and never used by a run (the owner sets the schedule again once, with the passphrase, to move to v2).
+ */
 export interface HubBackupScheduleConfig {
-  /** Absolute folder the scheduled backups are written to. */
-  folder: string;
   /** Hours between backups, 1 to 8760. */
   intervalHours: number;
-  /** How many backups to keep, 1 to 1000. */
-  retention: number;
+  /** 31G only (read, never written): the folder the v1 schedule wrote to. */
+  folder?: string;
+  /** 31G only (read, never written): how many v1 files the old schedule kept. */
+  retention?: number;
 }
+
+/** A backup v2 destination's non-secret definition (Milestone 847). Credentials of later kinds live only in the secret store. */
+export interface HubBackupLocalFolderDestination {
+  /** `^[a-z0-9][a-z0-9-]{0,31}$`, assigned by the Hub. */
+  id: string;
+  kind: 'local-folder';
+  /** Display text, 1 to 64 characters. */
+  label: string;
+  /** Absolute folder holding the repository. */
+  folder: string;
+}
+
+export type HubBackupDestinationConfig = HubBackupLocalFolderDestination;
 
 export interface HubBackupConfig {
   /** Absent means no scheduled backups. */
   schedule?: HubBackupScheduleConfig;
+  /** Backup v2 destinations (at most `BACKUP_DESTINATIONS_MAX`); written only by the elevated `backup destination` commands. */
+  destinations?: HubBackupDestinationConfig[];
 }
+
+export const BACKUP_DESTINATIONS_MAX = 8;
+export const BACKUP_DESTINATION_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,31}$/;
 
 /**
  * Google (or another OIDC provider) sign-in (32-SS1, Milestone 841, PD-121, PD-145). The owner brings their own OAuth client: the id
@@ -109,7 +132,8 @@ const BIND_MODES: readonly HubBindMode[] = ['loopback', 'lan', 'container'];
 const EXPOSURE_MODES: readonly HubExposureMode[] = ['private', 'public'];
 const KNOWN_KEYS = new Set(['port', 'bind', 'webRoot', 'exposure', 'backup', 'oidc']);
 const OIDC_KEYS = new Set(['issuer', 'clientId', 'redirectOrigin']);
-const BACKUP_KEYS = new Set(['schedule']);
+const BACKUP_KEYS = new Set(['schedule', 'destinations']);
+const BACKUP_DESTINATION_KEYS = new Set(['id', 'kind', 'label', 'folder']);
 const BACKUP_SCHEDULE_KEYS = new Set(['folder', 'intervalHours', 'retention']);
 const EXPOSURE_KEYS = new Set(['mode', 'names', 'canonicalOrigin', 'proxy', 'acme', 'tunnel']);
 const TUNNEL_KEYS = new Set(['enabled', 'hostname']);
@@ -360,17 +384,37 @@ function parseBackupSchedule(raw: unknown): HubBackupScheduleConfig {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) throw new Error('Hub config "backup.schedule" must be an object.');
   const record = raw as Record<string, unknown>;
   for (const key of Object.keys(record)) if (!BACKUP_SCHEDULE_KEYS.has(key)) throw new Error(`Hub config "backup.schedule" has an unknown key "${key}".`);
-  const folder = record['folder'];
-  if (typeof folder !== 'string' || folder.length === 0 || !path.isAbsolute(folder)) throw new Error('Hub config "backup.schedule.folder" must be a non-empty absolute path.');
   const hours = record['intervalHours'];
   if (typeof hours !== 'number' || !Number.isInteger(hours) || hours < 1 || hours > BACKUP_INTERVAL_HOURS_MAX) {
     throw new Error(`Hub config "backup.schedule.intervalHours" must be an integer from 1 to ${BACKUP_INTERVAL_HOURS_MAX}.`);
   }
-  const retention = record['retention'];
-  if (typeof retention !== 'number' || !Number.isInteger(retention) || retention < 1 || retention > BACKUP_RETENTION_MAX) {
-    throw new Error(`Hub config "backup.schedule.retention" must be an integer from 1 to ${BACKUP_RETENTION_MAX}.`);
+  const schedule: HubBackupScheduleConfig = { intervalHours: hours };
+  const folder = record['folder'];
+  if (folder !== undefined) {
+    if (typeof folder !== 'string' || folder.length === 0 || !path.isAbsolute(folder)) throw new Error('Hub config "backup.schedule.folder" must be a non-empty absolute path.');
+    schedule.folder = folder;
   }
-  return { folder, intervalHours: hours, retention };
+  const retention = record['retention'];
+  if (retention !== undefined) {
+    if (typeof retention !== 'number' || !Number.isInteger(retention) || retention < 1 || retention > BACKUP_RETENTION_MAX) {
+      throw new Error(`Hub config "backup.schedule.retention" must be an integer from 1 to ${BACKUP_RETENTION_MAX}.`);
+    }
+    schedule.retention = retention;
+  }
+  return schedule;
+}
+
+function parseBackupDestination(raw: unknown, index: number): HubBackupDestinationConfig {
+  const at = `Hub config "backup.destinations[${index}]"`;
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) throw new Error(`${at} must be an object.`);
+  const record = raw as Record<string, unknown>;
+  for (const key of Object.keys(record)) if (!BACKUP_DESTINATION_KEYS.has(key)) throw new Error(`${at} has an unknown key "${key}".`);
+  const { id, kind, label, folder } = record;
+  if (typeof id !== 'string' || !BACKUP_DESTINATION_ID_PATTERN.test(id)) throw new Error(`${at}.id must be 1 to 32 lower-case letters, digits or hyphens.`);
+  if (kind !== 'local-folder') throw new Error(`${at}.kind must be "local-folder".`);
+  if (typeof label !== 'string' || label.trim().length === 0 || label.length > 64 || /[\u0000-\u001f\u007f]/.test(label)) throw new Error(`${at}.label must be 1 to 64 printable characters.`);
+  if (typeof folder !== 'string' || folder.length === 0 || !path.isAbsolute(folder)) throw new Error(`${at}.folder must be a non-empty absolute path.`);
+  return { id, kind, label, folder };
 }
 
 function parseBackup(raw: unknown): HubBackupConfig {
@@ -379,14 +423,33 @@ function parseBackup(raw: unknown): HubBackupConfig {
   for (const key of Object.keys(record)) if (!BACKUP_KEYS.has(key)) throw new Error(`Hub config "backup" has an unknown key "${key}".`);
   const backup: HubBackupConfig = {};
   if (record['schedule'] !== undefined) backup.schedule = parseBackupSchedule(record['schedule']);
+  if (record['destinations'] !== undefined) {
+    const list = record['destinations'];
+    if (!Array.isArray(list) || list.length > BACKUP_DESTINATIONS_MAX) throw new Error(`Hub config "backup.destinations" must be an array of at most ${BACKUP_DESTINATIONS_MAX} destinations.`);
+    const destinations = list.map((entry, index) => parseBackupDestination(entry, index));
+    if (new Set(destinations.map((d) => d.id)).size !== destinations.length) throw new Error('Hub config "backup.destinations" has a repeated id.');
+    if (destinations.length > 0) backup.destinations = destinations;
+  }
   return backup;
 }
 
-/** Returns a validated copy of `config` with the backup schedule set, or removed (`null`; the empty `backup` block goes with it). */
+/** Returns a validated copy of `config` with the backup schedule set, or removed (`null`); destinations are kept. */
 export function applyBackupScheduleChange(config: HubConfig, schedule: HubBackupScheduleConfig | null): HubConfig {
-  const { backup: _previous, ...rest } = config;
-  if (schedule === null) return parseHubConfig(rest);
-  return parseHubConfig({ ...rest, backup: { schedule } });
+  return applyBackupConfigChange(config, { ...(config.backup ?? {}), schedule });
+}
+
+/**
+ * Returns a validated copy of `config` with the backup block replaced: `schedule: null` removes the schedule, `destinations: []`
+ * removes every destination, an omitted field is kept. An empty block is dropped.
+ */
+export function applyBackupConfigChange(config: HubConfig, change: { schedule?: HubBackupScheduleConfig | null; destinations?: HubBackupDestinationConfig[] }): HubConfig {
+  const { backup: previous, ...rest } = config;
+  const schedule = change.schedule === undefined ? previous?.schedule : change.schedule ?? undefined;
+  const destinations = change.destinations === undefined ? previous?.destinations : change.destinations;
+  const backup: Record<string, unknown> = {};
+  if (schedule !== undefined) backup['schedule'] = schedule;
+  if (destinations !== undefined && destinations.length > 0) backup['destinations'] = destinations;
+  return parseHubConfig(Object.keys(backup).length === 0 ? rest : { ...rest, backup });
 }
 
 /**
@@ -433,7 +496,7 @@ export function parseHubConfig(raw: unknown): HubConfig {
   if (record['exposure'] !== undefined) config.exposure = parseExposure(record['exposure']);
   if (record['backup'] !== undefined) {
     const backup = parseBackup(record['backup']);
-    if (backup.schedule !== undefined) config.backup = backup;
+    if (backup.schedule !== undefined || backup.destinations !== undefined) config.backup = backup;
   }
   if (record['oidc'] !== undefined) config.oidc = parseOidcConfig(record['oidc']);
   return config;

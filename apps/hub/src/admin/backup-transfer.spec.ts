@@ -1,7 +1,8 @@
 import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { openBackup } from '@dude/hub-backup';
+import { openBackupFile } from '@dude/hub-backup';
+import { fileByteSource } from '../backup/create-export.js';
 import { getMeta } from '@dude/sqlite-store';
 import { cheapDeps, openFixtureHub, seedHubDb, tempRoot } from '../backup/backup-fixture.js';
 import { BACKUP_TRANSFER_CONSEQUENCE_CLASS } from '../backup/create-backup.js';
@@ -75,9 +76,12 @@ describe('backup create --for-transfer', () => {
     expect(applied.manifest.forTransfer).toBe(true);
     expect(applied.manifest.source.authorityEpoch).toBe(3);
     // The file is complete and opens before the state flipped: the manifest records the ACTIVE source epoch.
-    const opened = await openBackup(new Uint8Array(readFileSync(applied.file)), { passphrase: PASSPHRASE }, cheapDeps());
-    expect(opened.manifest.forTransfer).toBe(true);
-    expect(opened.files.has('dude.db')).toBe(true);
+    const opened = await openBackupFile(fileByteSource(applied.file, readFileSync(applied.file).length), { passphrase: PASSPHRASE }, cheapDeps());
+    if (opened.formatVersion !== 2) throw new Error('expected a v2 file');
+    expect(opened.reader.head.forTransfer).toBe(true);
+    expect(opened.reader.head.source.authorityEpoch).toBe(3);
+    await opened.reader.verify();
+    opened.reader.close();
     expect(readdirSync(f.out)).toEqual([applied.name]);
 
     expect(getAuthorityState(f.db)).toBe('transferred');

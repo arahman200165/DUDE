@@ -2,6 +2,10 @@ import type { Db } from '@dude/sqlite-store';
 import type { HubBindMode } from '../config/hub-config.js';
 import type { HubPaths } from '../config/data-dir.js';
 import type { BackupDeps } from '@dude/hub-backup';
+import type { BackupDestination } from '../backup/destinations/index.js';
+import type { MasterKeyStore } from '../backup/master-key.js';
+import type { RunBackupV2Options } from '../backup/run-backup-v2.js';
+import type { HubBackupDestinationConfig } from '../config/hub-config.js';
 import { buildBackupMethods } from './backup-methods.js';
 import { buildProvisioningMethods } from './provisioning-methods.js';
 import { buildTunnelMethods } from './tunnel-methods.js';
@@ -86,8 +90,19 @@ export interface AdminMethodContext {
   paths?: HubPaths;
   /** Key derivation, randomness and clock for backups (default: Node's Argon2id). TEST-ONLY override for cheap specs. */
   backupDeps?: BackupDeps;
-  /** Protects the derived key behind scheduled backups (default: DPAPI on Windows, a 0600 file elsewhere). Key use: the schedule commands and the scheduler only. */
+  /**
+   * 31G only: the protector of the old derived schedule key. Backup v2 (Milestone 847) no longer reads or writes that key (the
+   * schedule commands only remove the file); kept so callers that pass it keep compiling.
+   */
   scheduleKeyProtector?: CaKeyProtector;
+  /** The backup v2 master key store (default: the secret store under `paths`, purpose `backup.masterKey`). TEST seam. */
+  masterKeyStore?: MasterKeyStore;
+  /** The Hub's live `savesphere.db` connection when it has one (backups take its blob lease and snapshot it). */
+  saveSphereDb?: () => Db | undefined;
+  /** TEST-ONLY: replaces how a destination definition is opened. */
+  openBackupDestination?: (definition: HubBackupDestinationConfig) => BackupDestination;
+  /** TEST-ONLY: small chunks and packs, hooks or a fake blob store for `backup.run`. */
+  backupRunTest?: Partial<Pick<RunBackupV2Options, 'chunkSize' | 'packBytes' | 'hooks' | 'blobStore'>>;
   /** Called once after `backup create --for-transfer` retired the Hub (31G): the server closes every realtime socket with code 4004. */
   onTransferred?: () => void;
   /** Writes in-memory collaborative state (buffered Yjs updates, pending materializations) before a backup snapshot (PD-105). */

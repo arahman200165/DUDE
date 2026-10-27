@@ -1,26 +1,41 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, rmdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, rmdirSync, statSync, writeFileSync } from 'node:fs';
+import { open } from 'node:fs/promises';
 import path from 'node:path';
-import { openBackup } from '@dude/hub-backup';
-import type { BackupDeps, BackupManifest, OpenedBackup } from '@dude/hub-backup';
+import { DatabaseSync } from 'node:sqlite';
+import { REPO_OBJECT_NAME, openBackupFile, openBackupV2 } from '@dude/hub-backup';
+import type { BackupDeps, BackupManifest, BackupV2FileEntry, BackupV2Head, BackupV2Reader, OpenedBackup } from '@dude/hub-backup';
 import { latestVersion, setMeta, transaction } from '@dude/sqlite-store';
 import type { Db } from '@dude/sqlite-store';
 import { defaultHubConfig, parseHubConfig, writeHubConfig } from '../config/hub-config.js';
 import type { HubConfig } from '../config/hub-config.js';
 import { ensureLayout, hubPaths } from '../config/data-dir.js';
+import { createLocalBlobStore } from '../blobs/local-blob-store.js';
 import { openHubDb } from '../db/open-hub-db.js';
 import { HUB_MIGRATIONS } from '../db/migrations/index.js';
 import { setAuthority } from '../hub/authority.js';
+import { openSaveSphereDb } from '../savesphere-db/open.js';
 import { audit } from '../security/audit.js';
 import { newId as defaultNewId } from '../util/ids.js';
 import { BACKUP_CONFIG_FILE, BACKUP_DB_FILE } from './create-backup.js';
-import { SCRUBBED_META_KEYS, SCRUBBED_META_PREFIXES, SCRUBBED_TABLES } from './snapshot.js';
+import { fileByteSource } from './create-export.js';
+import { MANIFEST_PREFIX, backupIdOfManifest } from './destinations/destination.js';
+import { createLocalFolderDestination } from './destinations/local-folder.js';
+import { BACKUP_V2_SAVESPHERE_FILE } from './run-backup-v2.js';
+import { SAVESPHERE_SCRUBBED_META_PREFIXES, SAVESPHERE_SCRUBBED_TABLES, SCRUBBED_META_KEYS, SCRUBBED_META_PREFIXES, SCRUBBED_TABLES } from './snapshot.js';
 
 /**
- * Hub restore (31G, PD-070 to PD-072). Offline only: the caller (the elevated `dude-hub backup restore` command) must have
- * established that no Hub is running on `dataRoot`; this module follows the purge staged-confirmation pattern (a hashed,
- * single-use, 60-second token bound to a digest of the file, its manifest and the target state) and never opens a live database.
- * The passphrase is used only to open the file and is never logged, audited, stored or put in an error message.
+ * Hub restore (31G, PD-070 to PD-072; backup v2 from 32-SS1 Milestone 847, PD-150). Offline only: the caller (the elevated
+ * `dude-hub backup restore` command) must have established that no Hub is running on `dataRoot`; this module follows the purge
+ * staged-confirmation pattern (a hashed, single-use, 60-second token bound to a digest of the backup and the target state) and never
+ * opens a live database. The passphrase is used only to open the backup and is never logged, audited, stored or put in a message.
+ *
+ * Sources: a `.dudebackup` file (v1, read whole within its 512 MiB ceiling, or a v2 single-file export, streamed) or a v2 repository
+ * folder (a `local-folder` destination) and a backup id (default: the newest manifest). A v2 restore brings back `dude.db`,
+ * `savesphere.db` and EVERY blob the manifest lists into `storage/blobs` (each streamed through a SHA-256 check into a staged store),
+ * all built under `data/.restore-tmp` and swapped in only after every entry checked out; a manifest that does not verify (structure,
+ * counts, end record, authentication) is refused before anything is staged. The 31G rules hold for both versions: new instance id,
+ * epoch + 1, desktop devices `needs_re_pair`, transient tables cleared, `hub.json` reduced to port and names, the two typed phrases.
  */
 
 /** Consequence classes of a restore: it writes files, replaces the database and handles secrets (PD-074). */
@@ -31,6 +46,8 @@ export const RESTORE_PHRASE_REPLACE = 'REPLACE HUB DATA';
 export const RESTORE_PHRASE_OLD_HUB_GONE = 'THE OLD HUB IS GONE';
 export const RESTORE_TTL_MS = 60_000;
 export const restoreConfirmFile = (root: string): string => path.join(root, 'run', 'restore-confirm.json');
+/** `hub.json` in a backup is small; anything larger is not a Hub configuration. */
+const MAX_CONFIG_BYTES = 1024 * 1024;
 
 export type RestoreErrorCode =
   | 'backup-too-new'
@@ -64,10 +81,22 @@ export interface RestoreSummary {
   /** True when the operator must type RESTORE_PHRASE_REPLACE (the target already holds a Hub database). */
   requiresReplacePhrase: boolean;
   consequenceClass: typeof RESTORE_CONSEQUENCE_CLASS;
+  /** 1 or 2. */
+  formatVersion?: number;
+  /** v2: the backup id and how many blobs (and their bytes) it restores. */
+  backupId?: string;
+  blobs?: number;
+  blobBytes?: number;
 }
 
-export interface PreviewRestoreOptions {
-  file: string;
+/** Where the backup is read from: one of `file`, or `folder` (a v2 repository) with an optional `backupId` (default: the newest). */
+export interface RestoreSourceOptions {
+  file?: string;
+  folder?: string;
+  backupId?: string;
+}
+
+export interface PreviewRestoreOptions extends RestoreSourceOptions {
   /** Never logged, returned or persisted. */
   passphrase: string;
   dataRoot: string;
@@ -85,8 +114,7 @@ export interface RestorePreview {
   summary: RestoreSummary;
 }
 
-export interface ApplyRestoreOptions {
-  file: string;
+export interface ApplyRestoreOptions extends RestoreSourceOptions {
   /** Never logged, returned or persisted. */
   passphrase: string;
   dataRoot: string;
@@ -109,6 +137,8 @@ export interface RestoreResult {
   devices: number;
   /** Absolute folder the replaced database, configuration and TLS directory were moved to, or null for an empty target. */
   replacedDir: string | null;
+  /** v2 only: blobs restored into `storage/blobs`. */
+  blobs?: number;
 }
 
 const SQLITE_MAGIC = 'SQLite format 3\u0000';
@@ -122,23 +152,92 @@ const supportedSchemaVersion = (): number => latestVersion(HUB_MIGRATIONS);
 const tmpDirOf = (dataDir: string): string => path.join(dataDir, '.restore-tmp');
 const stamp = (ms: number): string => new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
 
-interface ValidatedBackup {
-  opened: OpenedBackup;
-  fileSha256: string;
-  dbBytes: Uint8Array;
-  config: HubConfig;
+/** What the summary and the confirmation digest need, whatever the version. */
+interface BackupFacts {
+  createdAt: string;
+  hubVersion: string;
+  source: BackupManifest['source'];
+  forTransfer: boolean;
+  counts: Record<string, number>;
+  files: Array<{ name: string; size: number }>;
 }
 
-/** Opens and validates the file. Throws BackupError (wrong passphrase, corrupt file) or RestoreError. */
-async function readAndValidate(file: string, passphrase: string, deps: BackupDeps): Promise<ValidatedBackup> {
-  let bytes: Buffer;
+type Validated =
+  | { version: 1; facts: BackupFacts; digestBase: string; dbBytes: Uint8Array; config: HubConfig; opened: OpenedBackup; close(): void }
+  | {
+      version: 2; facts: BackupFacts; digestBase: string; config: HubConfig; reader: BackupV2Reader; head: BackupV2Head;
+      dbEntry: BackupV2FileEntry; saveSphereEntry: BackupV2FileEntry | null; blobs: number; blobBytes: number; close(): void;
+    };
+
+async function streamHash(source: AsyncIterable<Uint8Array>): Promise<string> {
+  const hash = createHash('sha256');
+  for await (const piece of source) hash.update(piece);
+  return hash.digest('hex');
+}
+
+async function readSmall(reader: BackupV2Reader, entry: BackupV2FileEntry): Promise<Uint8Array> {
+  if (entry.size > MAX_CONFIG_BYTES) throw new RestoreError('invalid-backup', `The ${entry.name} in the backup is too large to be a Hub configuration.`);
+  const parts: Uint8Array[] = [];
+  for await (const piece of reader.readEntry(entry)) parts.push(piece);
+  return new Uint8Array(Buffer.concat(parts));
+}
+
+function parseConfigBytes(bytes: Uint8Array): HubConfig {
   try {
-    bytes = readFileSync(file);
+    return parseHubConfig(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)));
   } catch {
-    throw new RestoreError('invalid-backup', 'The backup file could not be read.');
+    throw new RestoreError('invalid-backup', 'The configuration in the backup is not a valid Hub configuration.');
   }
-  const fileSha256 = sha256Hex(bytes);
-  const opened = await openBackup(new Uint8Array(bytes), { passphrase }, deps);
+}
+
+function checkSource(options: RestoreSourceOptions): void {
+  const hasFile = typeof options.file === 'string' && options.file.length > 0;
+  const hasFolder = typeof options.folder === 'string' && options.folder.length > 0;
+  if (hasFile === hasFolder) throw new RestoreError('invalid-backup', 'Give exactly one backup source: a file or a repository folder.');
+  if (options.backupId !== undefined && !hasFolder) throw new RestoreError('invalid-backup', 'A backup id selects a backup in a repository folder only.');
+}
+
+/** Opens and validates the backup. Throws BackupError (wrong passphrase, corrupt backup) or RestoreError. */
+async function readAndValidate(options: RestoreSourceOptions & { passphrase: string; deps: BackupDeps }): Promise<Validated> {
+  checkSource(options);
+  let reader: BackupV2Reader;
+  let sourceTag: string;
+  if (options.file !== undefined) {
+    let size: number;
+    try {
+      const info = statSync(options.file);
+      if (!info.isFile()) throw new Error('not a file');
+      size = info.size;
+    } catch {
+      throw new RestoreError('invalid-backup', 'The backup file could not be read.');
+    }
+    const opened = await openBackupFile(fileByteSource(options.file, size), { passphrase: options.passphrase }, options.deps);
+    if (opened.formatVersion === 1) return validateV1(options.file, opened.backup);
+    reader = opened.reader;
+    sourceTag = `file:${size}`;
+  } else {
+    const folder = path.resolve(options.folder as string);
+    if (!existsSync(path.join(folder, REPO_OBJECT_NAME))) throw new RestoreError('invalid-backup', 'The folder holds no backup repository.');
+    const destination = createLocalFolderDestination({ id: 'restore', label: 'restore', folder });
+    let backupId = options.backupId;
+    if (backupId === undefined) {
+      const newest = (await destination.list(MANIFEST_PREFIX)).map((m) => backupIdOfManifest(m.name)).filter((id): id is string => id !== null).pop();
+      if (newest === undefined) throw new RestoreError('invalid-backup', 'The repository holds no backup.');
+      backupId = newest;
+    }
+    if ((await destination.stat(`${MANIFEST_PREFIX}${backupId}`)) === null) throw new RestoreError('invalid-backup', 'The repository has no backup with that id.');
+    reader = await openBackupV2(destination.source(), backupId, { passphrase: options.passphrase }, options.deps);
+    sourceTag = 'folder';
+  }
+  try {
+    return await validateV2(reader, sourceTag);
+  } catch (error) {
+    reader.close();
+    throw error;
+  }
+}
+
+function validateV1(file: string, opened: OpenedBackup): Validated {
   const dbBytes = opened.files.get(BACKUP_DB_FILE);
   const configBytes = opened.files.get(BACKUP_CONFIG_FILE);
   if (dbBytes === undefined || configBytes === undefined) throw new RestoreError('invalid-backup', `The backup does not contain ${BACKUP_DB_FILE} and ${BACKUP_CONFIG_FILE}.`);
@@ -148,76 +247,90 @@ async function readAndValidate(file: string, passphrase: string, deps: BackupDep
   if (Buffer.from(dbBytes.subarray(0, SQLITE_MAGIC.length)).toString('latin1') !== SQLITE_MAGIC) {
     throw new RestoreError('invalid-backup', 'The database in the backup is not a SQLite database.');
   }
-  let config: HubConfig;
-  try {
-    config = parseHubConfig(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(configBytes)));
-  } catch {
-    throw new RestoreError('invalid-backup', 'The configuration in the backup is not a valid Hub configuration.');
+  const config = parseConfigBytes(configBytes);
+  const manifest = opened.manifest;
+  const facts: BackupFacts = { createdAt: manifest.createdAt, hubVersion: manifest.hubVersion, source: manifest.source, forTransfer: manifest.forTransfer, counts: manifest.counts, files: manifest.files.map((f) => ({ name: f.name, size: f.size })) };
+  // The 31G digest: the file hash and the manifest (unchanged, so a v1 preview token keeps its meaning).
+  const digestBase = JSON.stringify({ fileSha256: sha256Hex(readFileSync(file)), createdAt: manifest.createdAt, hubVersion: manifest.hubVersion, source: manifest.source, forTransfer: manifest.forTransfer, files: manifest.files, counts: manifest.counts });
+  return { version: 1, facts, digestBase, dbBytes, config, opened, close: () => undefined };
+}
+
+async function validateV2(reader: BackupV2Reader, sourceTag: string): Promise<Validated> {
+  const head = reader.head;
+  if (head.source.dbMinReaderVersion > supportedSchemaVersion()) throw new RestoreError('backup-too-new', 'This backup was made by a newer DUDE Hub; update this Hub before restoring it.');
+  // Walks the whole manifest: authenticated records, order, counts and the end record. A manifest that does not verify is refused here.
+  let dbEntry: BackupV2FileEntry | null = null;
+  let configEntry: BackupV2FileEntry | null = null;
+  let saveSphereEntry: BackupV2FileEntry | null = null;
+  const files: Array<{ name: string; size: number }> = [];
+  let blobs = 0;
+  let blobBytes = 0;
+  for await (const entry of reader.listEntries()) {
+    if (entry.kind === 'blob') { blobs += 1; blobBytes += entry.size; continue; }
+    files.push({ name: entry.name, size: entry.size });
+    if (entry.name === BACKUP_DB_FILE) dbEntry = entry;
+    else if (entry.name === BACKUP_CONFIG_FILE) configEntry = entry;
+    else if (entry.name === BACKUP_V2_SAVESPHERE_FILE) saveSphereEntry = entry;
   }
-  return { opened, fileSha256, dbBytes, config };
+  if (dbEntry === null || configEntry === null) throw new RestoreError('invalid-backup', `The backup does not contain ${BACKUP_DB_FILE} and ${BACKUP_CONFIG_FILE}.`);
+  const config = parseConfigBytes(await readSmall(reader, configEntry));
+  const objects = `${await streamHash(reader.source.read(REPO_OBJECT_NAME))}:${await streamHash(reader.source.read(reader.manifestName))}`;
+  const facts: BackupFacts = { createdAt: head.createdAt, hubVersion: head.hubVersion, source: head.source, forTransfer: head.forTransfer, counts: head.counts, files };
+  const digestBase = JSON.stringify({ v: 2, sourceTag, objects, backupId: head.backupId, repoId: head.repoId, ...facts, blobs, blobBytes });
+  return { version: 2, facts, digestBase, config, reader, head, dbEntry, saveSphereEntry, blobs, blobBytes, close: () => reader.close() };
 }
 
 function targetStateOf(dbFile: string): RestoreTargetState {
   return existsSync(dbFile) ? 'existing' : 'empty';
 }
 
-function digestOf(fileSha256: string, manifest: BackupManifest, targetState: RestoreTargetState): string {
-  return sha256Hex(
-    JSON.stringify({
-      fileSha256,
-      createdAt: manifest.createdAt,
-      hubVersion: manifest.hubVersion,
-      source: manifest.source,
-      forTransfer: manifest.forTransfer,
-      files: manifest.files,
-      counts: manifest.counts,
-      targetState,
-    }),
-  );
-}
+const digestOf = (validated: Validated, targetState: RestoreTargetState): string =>
+  validated.version === 1
+    ? sha256Hex(JSON.stringify({ ...(JSON.parse(validated.digestBase) as object), targetState }))
+    : sha256Hex(`${validated.digestBase}\n${targetState}`);
 
-function summaryOf(manifest: BackupManifest, targetState: RestoreTargetState): RestoreSummary {
+function summaryOf(validated: Validated, targetState: RestoreTargetState): RestoreSummary {
+  const facts = validated.facts;
   return {
-    source: {
-      hubInstanceId: manifest.source.hubInstanceId,
-      authorityEpoch: manifest.source.authorityEpoch,
-      schemaVersion: manifest.source.schemaVersion,
-      hubVersion: manifest.hubVersion,
-      createdAt: manifest.createdAt,
-    },
-    newEpoch: manifest.source.authorityEpoch + 1,
-    forTransfer: manifest.forTransfer,
-    counts: { ...manifest.counts },
+    source: { hubInstanceId: facts.source.hubInstanceId, authorityEpoch: facts.source.authorityEpoch, schemaVersion: facts.source.schemaVersion, hubVersion: facts.hubVersion, createdAt: facts.createdAt },
+    newEpoch: facts.source.authorityEpoch + 1,
+    forTransfer: facts.forTransfer,
+    counts: { ...facts.counts },
     targetState,
-    requiresOldHubGonePhrase: !manifest.forTransfer,
+    requiresOldHubGonePhrase: !facts.forTransfer,
     requiresReplacePhrase: targetState === 'existing',
     consequenceClass: RESTORE_CONSEQUENCE_CLASS,
+    formatVersion: validated.version,
+    ...(validated.version === 2 ? { backupId: validated.head.backupId, blobs: validated.blobs, blobBytes: validated.blobBytes } : {}),
   };
 }
 
 /**
- * Decrypts and validates the backup and stages a hashed, single-use, 60-second confirmation token. Writes nothing in the target
+ * Opens and validates the backup and stages a hashed, single-use, 60-second confirmation token. Writes nothing in the target
  * data directory except the staged confirmation file (`<dataRoot>/run/restore-confirm.json`).
  */
 export async function previewRestore(options: PreviewRestoreOptions): Promise<RestorePreview> {
   const root = path.resolve(options.dataRoot);
   const paths = hubPaths(root);
-  const validated = await readAndValidate(options.file, options.passphrase, options.deps);
-  const manifest = validated.opened.manifest;
-  const targetState = targetStateOf(paths.dbFile);
-  const token = options.newToken ? options.newToken() : randomBytes(32).toString('base64url');
-  const at = options.now();
-  const expiresAt = at + RESTORE_TTL_MS;
-  const confirmFile = restoreConfirmFile(root);
-  mkdirSync(path.dirname(confirmFile), { recursive: true });
-  const temp = `${confirmFile}.tmp`;
-  writeFileSync(
-    temp,
-    `${JSON.stringify({ v: 1, tokenHash: sha256Text(token).toString('hex'), digest: digestOf(validated.fileSha256, manifest, targetState), expiresAt, previewedAt: at })}\n`,
-    { mode: 0o600 },
-  );
-  renameSync(temp, confirmFile);
-  return { confirmToken: token, expiresAt: new Date(expiresAt).toISOString(), summary: summaryOf(manifest, targetState) };
+  const validated = await readAndValidate(options);
+  try {
+    const targetState = targetStateOf(paths.dbFile);
+    const token = options.newToken ? options.newToken() : randomBytes(32).toString('base64url');
+    const at = options.now();
+    const expiresAt = at + RESTORE_TTL_MS;
+    const confirmFile = restoreConfirmFile(root);
+    mkdirSync(path.dirname(confirmFile), { recursive: true });
+    const temp = `${confirmFile}.tmp`;
+    writeFileSync(
+      temp,
+      `${JSON.stringify({ v: 1, tokenHash: sha256Text(token).toString('hex'), digest: digestOf(validated, targetState), expiresAt, previewedAt: at })}\n`,
+      { mode: 0o600 },
+    );
+    renameSync(temp, confirmFile);
+    return { confirmToken: token, expiresAt: new Date(expiresAt).toISOString(), summary: summaryOf(validated, targetState) };
+  } finally {
+    validated.close();
+  }
 }
 
 interface StoredConfirm { tokenHash?: unknown; digest?: unknown; expiresAt?: unknown; previewedAt?: unknown }
@@ -231,28 +344,26 @@ function readStored(file: string): StoredConfirm | null {
   }
 }
 
-/** The configuration a restored Hub starts with: port and names kept, loopback-only, private, no proxy, ACME or backup schedule. */
+/** The configuration a restored Hub starts with: port and names kept, loopback-only, private, no proxy, ACME, backup schedule or destination. */
 export function sanitizeRestoredConfig(config: HubConfig): HubConfig {
   const defaults = defaultHubConfig();
   return parseHubConfig({ port: config.port, bind: defaults.bind, exposure: { mode: 'private', names: [...config.exposure.names] } });
 }
 
 interface RestoredDatabase { hubInstanceId: string; devices: number }
+interface RestoreMeta { sourceEpoch: number; forTransfer: boolean; previewedAt: number; replaced: boolean; blobs?: number }
 
-/** Migrates the backup's database up, clears transient state, marks devices for re-pairing and assigns the new identity. */
-function buildRestoredDatabase(tmpDir: string, dbBytes: Uint8Array, manifest: BackupManifest, previewedAt: number, replaced: boolean, ctx: { now: () => number; newId: () => string }): RestoredDatabase {
-  const dbFile = path.join(tmpDir, BACKUP_DB_FILE);
-  writeFileSync(dbFile, dbBytes, { mode: 0o600 });
+/** Migrates the staged database (already at `dbFile`) up, clears transient state, marks devices for re-pairing and assigns the new identity. */
+function buildRestoredDatabase(dbFile: string, tmpDir: string, meta: RestoreMeta, ctx: { now: () => number; newId: () => string }): RestoredDatabase {
   const opened = openHubDb({ dbFile, preMigrationDir: path.join(tmpDir, 'pre-migration'), now: () => new Date(ctx.now()) });
   if (opened.status === 'incompatible') throw new RestoreError('backup-too-new', 'This backup was made by a newer DUDE Hub; update this Hub before restoring it.');
   if (opened.status === 'corrupt') throw new RestoreError('invalid-backup', 'The database in the backup could not be opened.');
   const { db } = opened.hub;
   try {
     const at = new Date(ctx.now()).toISOString();
-    const sourceEpoch = manifest.source.authorityEpoch;
-    const newEpoch = sourceEpoch + 1;
+    const newEpoch = meta.sourceEpoch + 1;
     const hubInstanceId = ctx.newId();
-    const devices = transaction(db, () => clearAndMark(db, at, { sourceEpoch, newEpoch, hubInstanceId, previewedAt, now: ctx.now(), forTransfer: manifest.forTransfer, replaced }));
+    const devices = transaction(db, () => clearAndMark(db, at, { ...meta, newEpoch, hubInstanceId, now: ctx.now() }));
     const integrity = db.prepare('PRAGMA integrity_check').all() as Array<Record<string, unknown>>;
     if (integrity.length !== 1 || Object.values(integrity[0]!)[0] !== 'ok') throw new RestoreError('integrity-failed', 'The restored database failed its integrity check.');
     db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
@@ -263,11 +374,7 @@ function buildRestoredDatabase(tmpDir: string, dbBytes: Uint8Array, manifest: Ba
   }
 }
 
-function clearAndMark(
-  db: Db,
-  at: string,
-  info: { sourceEpoch: number; newEpoch: number; hubInstanceId: string; previewedAt: number; now: number; forTransfer: boolean; replaced: boolean },
-): number {
+function clearAndMark(db: Db, at: string, info: RestoreMeta & { newEpoch: number; hubInstanceId: string; now: number }): number {
   // // The transient set the backup scrub already removes (so the lists cannot drift), then per-device sync cursors and the TLS trust root.
   for (const table of [...SCRUBBED_TABLES, 'device_sync_state', 'tls_pin_acks', 'tls_pins', 'tls_proxy_pin_acks', 'tls_proxy_pins']) {
     db.exec(`DELETE FROM ${table}`);
@@ -286,16 +393,87 @@ function clearAndMark(
   setAuthority(db, { epoch: info.newEpoch, state: 'active' });
 
   // Only counts and booleans: no ids, paths or secrets. The preview ran before the restored database existed, so its row is written here.
-  const detail = { sourceEpoch: info.sourceEpoch, newEpoch: info.newEpoch, devices, forTransfer: info.forTransfer, replaced: info.replaced };
+  const detail = { sourceEpoch: info.sourceEpoch, newEpoch: info.newEpoch, devices, forTransfer: info.forTransfer, replaced: info.replaced, ...(info.blobs !== undefined ? { blobs: info.blobs } : {}) };
   audit(db, { event: 'backup.restore-previewed', outcome: 'success', actorKind: 'cli', detail, now: info.previewedAt });
   audit(db, { event: 'backup.restored', outcome: 'success', actorKind: 'cli', detail, now: info.now });
   return devices;
 }
 
+/** Streams an entry to a new file (fsynced); the entry's size and SHA-256 are checked by the reader at the end of the stream. */
+async function stageEntry(reader: BackupV2Reader, entry: BackupV2FileEntry, file: string): Promise<void> {
+  const handle = await open(file, 'wx', 0o600);
+  try {
+    for await (const piece of reader.readEntry(entry)) {
+      let at = 0;
+      while (at < piece.length) at += (await handle.write(piece, at, piece.length - at)).bytesWritten;
+    }
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+}
+
+/**
+ * Prepares a staged `savesphere.db` and the staged blob store: migrates the database up, clears the transient tables and leases
+ * (defence in depth: the backup already scrubbed them), streams every blob of the manifest into the staged store through its
+ * SHA-256, and marks a catalogued blob whose bytes the backup does not carry (it was missing or corrupt when the backup ran) as
+ * `missing`, so the verify job and the collector see the truth.
+ */
+async function stageSaveSphere(reader: BackupV2Reader, entry: BackupV2FileEntry | null, tmpDir: string, now: () => number): Promise<{ file: string | null; blobsDir: string; blobs: number }> {
+  const blobsDir = path.join(tmpDir, 'blobs');
+  const store = createLocalBlobStore({ blobsDir, stagingDir: path.join(tmpDir, 'blob-staging') });
+  let blobs = 0;
+  for await (const item of reader.listEntries()) {
+    if (item.kind !== 'blob') continue;
+    await store.put(reader.readEntry(item), { expectedSha256: item.sha256 });
+    blobs += 1;
+  }
+  rmSync(path.join(tmpDir, 'blob-staging'), { recursive: true, force: true });
+  if (entry === null) return { file: null, blobsDir, blobs };
+
+  const file = path.join(tmpDir, BACKUP_V2_SAVESPHERE_FILE);
+  await stageEntry(reader, entry, file);
+  const opened = openSaveSphereDb({ saveSphereDbPath: file, saveSpherePreMigrationDir: path.join(tmpDir, 'pre-migration-savesphere') }, { now: () => new Date(now()) });
+  if (opened.status === 'incompatible') throw new RestoreError('backup-too-new', 'This backup was made by a newer DUDE Hub; update this Hub before restoring it.');
+  if (opened.status === 'corrupt') throw new RestoreError('invalid-backup', 'The SaveSphere database in the backup could not be opened.');
+  const db = opened.store.db;
+  try {
+    const tableExists = (name: string): boolean => db.prepare("SELECT 1 AS x FROM sqlite_master WHERE type = 'table' AND name = ?").get(name) !== undefined;
+    transaction(db, () => {
+      for (const table of SAVESPHERE_SCRUBBED_TABLES) if (tableExists(table)) db.exec(`DELETE FROM ${table}`);
+      for (const prefix of SAVESPHERE_SCRUBBED_META_PREFIXES) db.prepare("DELETE FROM meta WHERE substr(key, 1, ?) = ?").run(prefix.length, prefix);
+    });
+    if (tableExists('blobs')) {
+      const missing: string[] = [];
+      const check = new DatabaseSync(file, { readOnly: true });
+      try {
+        for (const raw of check.prepare("SELECT sha256 FROM blobs WHERE state != 'missing' ORDER BY sha256").iterate()) {
+          const sha256 = (raw as { sha256: string }).sha256;
+          if (!(await store.has(sha256))) missing.push(sha256);
+          if (missing.length >= 10_000) break;
+        }
+      } finally {
+        check.close();
+      }
+      if (missing.length > 0) {
+        const at = new Date(now()).toISOString();
+        transaction(db, () => { for (const sha256 of missing) db.prepare("UPDATE blobs SET state = 'missing', verified_at = ? WHERE sha256 = ?").run(at, sha256); });
+      }
+    }
+    const integrity = db.prepare('PRAGMA integrity_check').all() as Array<Record<string, unknown>>;
+    if (integrity.length !== 1 || Object.values(integrity[0]!)[0] !== 'ok') throw new RestoreError('integrity-failed', 'The restored SaveSphere database failed its integrity check.');
+    db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+    db.exec('PRAGMA journal_mode = DELETE');
+  } finally {
+    opened.store.close();
+  }
+  return { file, blobsDir, blobs };
+}
+
 /**
  * Restores the backup into `dataRoot`. Everything is built in `<dataRoot>/data/.restore-tmp` first; the target is touched only by
- * the final renames, which are rolled back if any of them fails. An existing database, `hub.json` and TLS directory are moved to
- * `<dataRoot>/backups/replaced-<UTC stamp>/`, never deleted.
+ * the final renames, which are rolled back if any of them fails. An existing database, `savesphere.db`, `hub.json`, the TLS and
+ * secrets directories and the blob store are moved to `<dataRoot>/backups/replaced-<UTC stamp>/`, never deleted.
  */
 export async function applyRestore(options: ApplyRestoreOptions): Promise<RestoreResult> {
   const root = path.resolve(options.dataRoot);
@@ -317,68 +495,98 @@ export async function applyRestore(options: ApplyRestoreOptions): Promise<Restor
     throw new RestoreError('confirmation-required', 'The confirmation token is not valid. Run the preview again; nothing was changed.');
   }
 
-  const validated = await readAndValidate(options.file, options.passphrase, options.deps);
-  const manifest = validated.opened.manifest;
-  const targetState = targetStateOf(paths.dbFile);
-  if (typeof stored.digest !== 'string' || stored.digest !== digestOf(validated.fileSha256, manifest, targetState)) {
-    consume();
-    throw new RestoreError('conflict', 'The backup file or the target changed since the preview. Run the preview again; nothing was changed.');
-  }
-  if (targetState === 'existing' && options.replaceExisting !== true) {
-    throw new RestoreError('target-not-empty', `The target already holds a Hub database; confirm with the phrase "${RESTORE_PHRASE_REPLACE}". Nothing was changed.`);
-  }
-  if (!manifest.forTransfer && options.oldHubGoneConfirmed !== true) {
-    throw new RestoreError('old-hub-gone-required', `This backup was not made for a transfer; confirm with the phrase "${RESTORE_PHRASE_OLD_HUB_GONE}". Nothing was changed.`);
-  }
-  consume(); // single use: every path below either restores or fails without a retry on this token
-
-  const tmpDir = tmpDirOf(paths.dataDir);
-  const previewedAt = typeof stored.previewedAt === 'number' ? stored.previewedAt : now();
+  const validated = await readAndValidate(options);
   try {
-    rmSync(tmpDir, { recursive: true, force: true });
-    mkdirSync(tmpDir, { recursive: true, mode: 0o700 });
-    const aside = [
-      [paths.dbFile, BACKUP_DB_FILE],
-      [`${paths.dbFile}-wal`, `${BACKUP_DB_FILE}-wal`],
-      [`${paths.dbFile}-shm`, `${BACKUP_DB_FILE}-shm`],
-      [paths.configFile, BACKUP_CONFIG_FILE],
-      [paths.tlsDir, 'tls'],
-    ].filter(([from]) => existsSync(from!)) as Array<[string, string]>;
-    let replacedDir: string | null = null;
-    if (aside.length > 0) {
-      const base = path.join(paths.backupsDir, `replaced-${stamp(now())}`);
-      replacedDir = base;
-      for (let n = 2; existsSync(replacedDir); n += 1) replacedDir = `${base}-${n}`;
+    const facts = validated.facts;
+    const targetState = targetStateOf(paths.dbFile);
+    if (typeof stored.digest !== 'string' || stored.digest !== digestOf(validated, targetState)) {
+      consume();
+      throw new RestoreError('conflict', 'The backup or the target changed since the preview. Run the preview again; nothing was changed.');
     }
-    const built = buildRestoredDatabase(tmpDir, validated.dbBytes, manifest, previewedAt, replacedDir !== null, { now, newId });
-    const stagedDb = path.join(tmpDir, BACKUP_DB_FILE);
-    const stagedConfig = path.join(tmpDir, BACKUP_CONFIG_FILE);
-    writeHubConfig(stagedConfig, sanitizeRestoredConfig(validated.config));
+    if (targetState === 'existing' && options.replaceExisting !== true) {
+      throw new RestoreError('target-not-empty', `The target already holds a Hub database; confirm with the phrase "${RESTORE_PHRASE_REPLACE}". Nothing was changed.`);
+    }
+    if (!facts.forTransfer && options.oldHubGoneConfirmed !== true) {
+      throw new RestoreError('old-hub-gone-required', `This backup was not made for a transfer; confirm with the phrase "${RESTORE_PHRASE_OLD_HUB_GONE}". Nothing was changed.`);
+    }
+    consume(); // single use: every path below either restores or fails without a retry on this token
 
-    const done: Array<{ from: string; to: string }> = [];
-    const move = (from: string, to: string): void => {
-      rename(from, to);
-      done.push({ from, to });
-    };
+    const tmpDir = tmpDirOf(paths.dataDir);
+    const previewedAt = typeof stored.previewedAt === 'number' ? stored.previewedAt : now();
     try {
-      if (replacedDir !== null) {
-        mkdirSync(replacedDir, { recursive: true });
-        for (const [from, name] of aside) move(from, path.join(replacedDir, name));
+      rmSync(tmpDir, { recursive: true, force: true });
+      mkdirSync(tmpDir, { recursive: true, mode: 0o700 });
+      const aside = [
+        [paths.dbFile, BACKUP_DB_FILE],
+        [`${paths.dbFile}-wal`, `${BACKUP_DB_FILE}-wal`],
+        [`${paths.dbFile}-shm`, `${BACKUP_DB_FILE}-shm`],
+        [paths.saveSphereDbPath, BACKUP_V2_SAVESPHERE_FILE],
+        [`${paths.saveSphereDbPath}-wal`, `${BACKUP_V2_SAVESPHERE_FILE}-wal`],
+        [`${paths.saveSphereDbPath}-shm`, `${BACKUP_V2_SAVESPHERE_FILE}-shm`],
+        [paths.configFile, BACKUP_CONFIG_FILE],
+        [paths.tlsDir, 'tls'],
+        // The machine-bound secrets belong to the old instance (a tunnel token, the backup master key): the restored Hub re-enters them.
+        [paths.secretsDir, 'secrets'],
+        [paths.blobsDir, 'blobs'],
+      ].filter(([from]) => existsSync(from!)) as Array<[string, string]>;
+      let replacedDir: string | null = null;
+      if (aside.length > 0) {
+        const base = path.join(paths.backupsDir, `replaced-${stamp(now())}`);
+        replacedDir = base;
+        for (let n = 2; existsSync(replacedDir); n += 1) replacedDir = `${base}-${n}`;
       }
-      mkdirSync(paths.dataDir, { recursive: true });
-      move(stagedDb, paths.dbFile);
-      mkdirSync(paths.configDir, { recursive: true });
-      move(stagedConfig, paths.configFile);
-    } catch (error) {
-      for (const { from, to } of done.reverse()) {
-        try { renameSync(to, from); } catch { /* best effort: the replaced copy stays under backups/replaced-* */ }
+
+      const stagedDb = path.join(tmpDir, BACKUP_DB_FILE);
+      let staged: { file: string | null; blobsDir: string; blobs: number } | null = null;
+      if (validated.version === 1) {
+        writeFileSync(stagedDb, validated.dbBytes, { mode: 0o600 });
+      } else {
+        await stageEntry(validated.reader, validated.dbEntry, stagedDb);
+        staged = await stageSaveSphere(validated.reader, validated.saveSphereEntry, tmpDir, now);
       }
-      if (replacedDir !== null) { try { rmdirSync(replacedDir); } catch { /* not empty or absent */ } }
-      throw error;
+      const built = buildRestoredDatabase(stagedDb, tmpDir, {
+        sourceEpoch: facts.source.authorityEpoch, forTransfer: facts.forTransfer, previewedAt, replaced: replacedDir !== null,
+        ...(staged !== null ? { blobs: staged.blobs } : {}),
+      }, { now, newId });
+      const stagedConfig = path.join(tmpDir, BACKUP_CONFIG_FILE);
+      writeHubConfig(stagedConfig, sanitizeRestoredConfig(validated.config));
+
+      const done: Array<{ from: string; to: string }> = [];
+      const move = (from: string, to: string): void => {
+        rename(from, to);
+        done.push({ from, to });
+      };
+      try {
+        if (replacedDir !== null) {
+          mkdirSync(replacedDir, { recursive: true });
+          for (const [from, name] of aside) move(from, path.join(replacedDir, name));
+        }
+        mkdirSync(paths.dataDir, { recursive: true });
+        move(stagedDb, paths.dbFile);
+        if (staged?.file) move(staged.file, paths.saveSphereDbPath);
+        if (staged !== null && existsSync(staged.blobsDir)) {
+          mkdirSync(paths.storageDir, { recursive: true });
+          move(staged.blobsDir, paths.blobsDir);
+        }
+        mkdirSync(paths.configDir, { recursive: true });
+        move(stagedConfig, paths.configFile);
+      } catch (error) {
+        for (const { from, to } of done.reverse()) {
+          try { renameSync(to, from); } catch { /* best effort: the replaced copy stays under backups/replaced-* */ }
+        }
+        if (replacedDir !== null) { try { rmdirSync(replacedDir); } catch { /* not empty or absent */ } }
+        throw error;
+      }
+      ensureLayout(root);
+      return {
+        hubInstanceId: built.hubInstanceId, authorityEpoch: facts.source.authorityEpoch + 1, devices: built.devices, replacedDir,
+        ...(staged !== null ? { blobs: staged.blobs } : {}),
+      };
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
     }
-    ensureLayout(root);
-    return { hubInstanceId: built.hubInstanceId, authorityEpoch: manifest.source.authorityEpoch + 1, devices: built.devices, replacedDir };
   } finally {
-    rmSync(tmpDir, { recursive: true, force: true });
+    validated.close();
   }
 }
+

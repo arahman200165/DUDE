@@ -124,8 +124,9 @@ export function startNotificationProducers(options: NotificationProducerOptions)
     notify,
     checkBackupOverdue(intervalHours) {
       try {
-        // The last success is the newest created backup; a schedule that has never produced one is measured from when it was set.
-        const row = db.prepare("SELECT at FROM audit_events WHERE event IN ('backup.created', 'backup.scheduled') ORDER BY at DESC LIMIT 1").get() as { at: string } | undefined;
+        // The last success is the newest created backup (a v2 destination run counts, Milestone 847); a schedule that has never produced
+        // one is measured from when it was set. Per-destination overdue and v2 failure notifications are Milestone 850.
+        const row = db.prepare("SELECT at FROM audit_events WHERE event IN ('backup.created', 'backup.v2-created', 'backup.scheduled') ORDER BY at DESC LIMIT 1").get() as { at: string } | undefined;
         if (row === undefined) return;
         const at = now();
         const age = at - Date.parse(row.at);

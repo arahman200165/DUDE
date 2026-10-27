@@ -11,7 +11,7 @@
   ],
   "classificationCounts": {
     "device-doc": 33,
-    "regex-heuristic (review flag)": 64,
+    "regex-heuristic (review flag)": 67,
     "agent-table": 17,
     "hub-table": 32,
     "mobile-table": 8,
@@ -147,6 +147,30 @@
       "key": null,
       "heuristicScope": "local-only",
       "reviewed": "System snapshot files; local-only, unredacted system values."
+    },
+    {
+      "source": "apps/hub/src/backup/backup-fixture.ts",
+      "line": 83,
+      "namespace": null,
+      "key": null,
+      "heuristicScope": "local-only",
+      "reviewed": "Backup spec fixture writing bytes to a throwaway BlobStore under a temp directory; not app state."
+    },
+    {
+      "source": "apps/hub/src/backup/master-key.ts",
+      "line": 56,
+      "namespace": null,
+      "key": null,
+      "heuristicScope": "local-only",
+      "reviewed": "Stores the backup v2 master key in the Hub secret store (purpose backup.masterKey, DPAPI LocalMachine or a 0600 file on Linux); machine-bound, never synced, backed up or reported (Milestone 847)."
+    },
+    {
+      "source": "apps/hub/src/backup/restore.ts",
+      "line": 428,
+      "namespace": null,
+      "key": null,
+      "heuristicScope": "local-only",
+      "reviewed": "The offline restore streams the backed-up blobs into a staged BlobStore under data/.restore-tmp before the swap; the bytes are the restored blob store itself, not new app state (Milestone 847)."
     },
     {
       "source": "apps/hub/src/blobs/blob-fixture.ts",
@@ -1473,6 +1497,48 @@
       "sensitivity": "non-sensitive",
       "note": "single-row sync cursor, floor, pause flag, per-category enablement and first-sync progress; never synced",
       "classificationBasis": "agent-table",
+      "syncConsent": "not granted"
+    },
+    {
+      "source": "apps/hub/src/backup/backup-fixture.ts",
+      "line": 83,
+      "operation": "store.put(bytes)",
+      "namespace": null,
+      "key": null,
+      "storage": "store",
+      "storageLocation": "store.put(bytes)",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "sensitive",
+      "classificationBasis": "regex-heuristic (review flag)",
+      "syncConsent": "not granted"
+    },
+    {
+      "source": "apps/hub/src/backup/master-key.ts",
+      "line": 56,
+      "operation": "store.put(BACKUP_MASTER_KEY_PURPOSE, JSON.stringify({ v: 1, key: Buffer.from(key).toString('base64url') }))",
+      "namespace": null,
+      "key": null,
+      "storage": "store",
+      "storageLocation": "store.put(BACKUP_MASTER_KEY_PURPOSE, JSON.stringify({ v: 1, key: Buffer.from(key).toString('base64url') }))",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "sensitive",
+      "classificationBasis": "regex-heuristic (review flag)",
+      "syncConsent": "not granted"
+    },
+    {
+      "source": "apps/hub/src/backup/restore.ts",
+      "line": 428,
+      "operation": "store.put(reader.readEntry(item), { expectedSha256: item.sha256 })",
+      "namespace": null,
+      "key": null,
+      "storage": "store",
+      "storageLocation": "store.put(reader.readEntry(item), { expectedSha256: item.sha256 })",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "sensitive",
+      "classificationBasis": "regex-heuristic (review flag)",
       "syncConsent": "not granted"
     },
     {

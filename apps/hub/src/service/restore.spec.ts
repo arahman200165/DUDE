@@ -309,3 +309,20 @@ describe('backup restore: error mapping', () => {
     expect(h.previews).toEqual([]);
   });
 });
+
+describe('backup restore: a backup v2 repository folder (Milestone 847)', () => {
+  it('passes the folder and backup id (never a file) to both steps and shows the blob count', async () => {
+    const folder = path.resolve(path.parse(process.cwd()).root, 'dude-backups', 'repository');
+    const backupId = `20261027T000000Z-${'a'.repeat(32)}`;
+    const h = harness({}, { summary: summaryOf({ formatVersion: 2, backupId, blobs: 3, blobBytes: 4096 }) });
+    expect(await h.run({ file: undefined, folder, backupId })).toBe(0);
+    expect(h.previews[0]).toMatchObject({ folder, backupId });
+    expect(h.previews[0]!.file).toBeUndefined();
+    expect(h.err()).toContain(`(backup ${backupId})`);
+    expect(h.err()).toContain('Blobs:      3 (4096 bytes)');
+    expect(await h.run({ file: undefined, folder, backupId, confirm: TOKEN, oldHubGone: RESTORE_PHRASE_OLD_HUB_GONE })).toBe(0);
+    expect(h.applies[0]).toMatchObject({ folder, backupId, confirmToken: TOKEN, oldHubGoneConfirmed: true });
+    expect(h.applies[0]!.file).toBeUndefined();
+    expect(h.err()).toContain('dude-hub provision');
+  });
+});

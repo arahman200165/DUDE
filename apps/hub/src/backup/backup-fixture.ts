@@ -1,17 +1,37 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { mkdtempSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { REPO_OBJECT_NAME, createRepository } from '@dude/hub-backup';
 import type { BackupDeps } from '@dude/hub-backup';
+import { createLocalFolderDestination } from './destinations/local-folder.js';
+import { createLocalBlobStore } from '../blobs/local-blob-store.js';
+import { addBlobRef, recordBlob, removeBlobRef } from '../blobs/registry.js';
+import { openSaveSphereDb } from '../savesphere-db/open.js';
 import { setMeta } from '@dude/sqlite-store';
 import type { Db } from '@dude/sqlite-store';
 import { openHubDb } from '../db/open-hub-db.js';
 import type { HubDb } from '../db/open-hub-db.js';
 import { hubPaths } from '../config/data-dir.js';
 import type { HubPaths } from '../config/data-dir.js';
+import type { MasterKeyStore } from './master-key.js';
 
 /** Test-only helpers for the backup specs (never imported by production code). */
 export const SECRET_MARKER = 'SECRETMARKER-7f3a91c2d4e8';
+
+/** An in-memory backup v2 master-key store (the production one is DPAPI or a 0600 file); `key()` peeks at the stored key. */
+export function memoryMasterKeys(): MasterKeyStore & { key(): Uint8Array | null; saves: number } {
+  let stored: Uint8Array | null = null;
+  const store = {
+    saves: 0,
+    exists: () => stored !== null,
+    load: () => (stored === null ? null : stored.slice()),
+    save: (key: Uint8Array) => { stored = key.slice(); store.saves += 1; },
+    clear: () => { const had = stored !== null; stored = null; return had; },
+    key: () => stored,
+  };
+  return store;
+}
 
 export function tempRoot(label: string): string {
   return mkdtempSync(path.join(os.tmpdir(), `dude-hub-backup-${label}-`));
@@ -28,6 +48,46 @@ export function cheapDeps(now: () => Date = () => new Date('2026-10-04T12:00:00Z
       return new Uint8Array(createHash('sha256').update(`rand-${counter}`).digest()).slice(0, n);
     },
     now,
+  };
+}
+
+/** Like `cheapDeps`, but with real randomness: several writers into one repository never draw the same object id. */
+export function randomCheapDeps(now: () => Date = () => new Date('2026-10-04T12:00:00Z')): BackupDeps {
+  return { ...cheapDeps(now), randomBytes: (n) => new Uint8Array(randomBytes(n)) };
+}
+
+/** Creates a backup v2 repository (`repo` only) in `folder` wrapping `masterKey` (random when absent) under `passphrase`. */
+export async function makeRepositoryFolder(folder: string, options: { passphrase: string; deps: BackupDeps; masterKey?: Uint8Array }): Promise<{ repoId: string; masterKey: Uint8Array }> {
+  const masterKey = options.masterKey ?? new Uint8Array(randomBytes(32));
+  const { repository, object } = await createRepository(options.passphrase, options.deps, undefined, { masterKey });
+  const repoId = repository.repoId;
+  repository.close();
+  const out = await createLocalFolderDestination({ id: 'fixture', label: 'fixture', folder }).sink().create(REPO_OBJECT_NAME);
+  await out.write(object);
+  await out.commit();
+  return { repoId, masterKey };
+}
+
+/** A real `savesphere.db` and blob store under `paths`, with a helper that stores, catalogues and references content. */
+export function openSaveSphereFixture(paths: HubPaths, now: () => number = () => Date.parse('2026-10-04T12:00:00Z')) {
+  const opened = openSaveSphereDb(paths);
+  if (opened.status !== 'ready') throw new Error('expected a ready savesphere.db');
+  const store = createLocalBlobStore(paths);
+  const sdb = opened.store.db;
+  return {
+    sdb,
+    store,
+    close: () => opened.store.close(),
+    /** Stores `bytes`, catalogues them and (unless `ownerId` is null) references them as an attachment; returns the hash. */
+    async add(bytes: Uint8Array, ownerId: string | null = `owner-${randomBytes(4).toString('hex')}`): Promise<string> {
+      const put = await store.put(bytes);
+      recordBlob(sdb, { sha256: put.sha256, size: put.size, now: now(), created: put.created });
+      if (ownerId !== null) addBlobRef(sdb, { sha256: put.sha256, ownerKind: 'attachment', ownerId, now: now() });
+      return put.sha256;
+    },
+    unref(sha256: string, ownerId: string): void {
+      removeBlobRef(sdb, { sha256, ownerKind: 'attachment', ownerId, now: now() });
+    },
   };
 }
 

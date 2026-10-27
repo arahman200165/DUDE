@@ -73,12 +73,20 @@ describe('backup CLI parsing', () => {
   it('rejects an unknown subcommand, an unknown flag and a flag from another action', () => {
     expect(() => parseArgs(['backup'])).toThrow(UsageError);
     expect(() => parseArgs(['backup', 'restore'])).toThrow(/Usage: dude-hub backup restore --file/);
+    expect(() => parseArgs(['backup', 'restore', '--folder', FOLDER, '--backup'])).toThrow(/needs a value/);
+    expect(() => parseArgs(['backup', 'restore', '--file', FILE, '--backup', 'x'])).toThrow(/Usage: dude-hub backup restore/);
+    expect(() => parseArgs(['backup', 'destination'])).toThrow(/Usage: dude-hub backup destination/);
+    expect(() => parseArgs(['backup', 'destination', 'add'])).toThrow(/--folder/);
+    expect(() => parseArgs(['backup', 'destination', 'remove'])).toThrow(/--id/);
+    expect(() => parseArgs(['backup', 'prune'])).toThrow(/--destination/);
+    expect(() => parseArgs(['backup', 'run', '--confirm', 't'])).toThrow(/Unknown flag/);
+    expect(() => parseArgs(['backup', 'rewrap', '--folder', FOLDER])).toThrow(/Unknown flag/);
     expect(() => parseArgs(['backup', 'transfer'])).toThrow(/Usage: dude-hub backup/);
     expect(() => parseArgs(['backup', 'verify', '--file', FILE, '--for-transfer'])).toThrow(/Unknown flag/);
     expect(() => parseArgs(['backup', 'list', '--for-transfer'])).toThrow(/Unknown flag/);
     expect(() => parseArgs(['backup', 'create', '--for-transfer=yes'])).toThrow(/takes no value/);
     expect(() => parseArgs(['backup', 'reactivate', '--folder', FOLDER])).toThrow(/Unknown flag/);
-    expect(() => parseArgs(['backup', 'restore', '--file', FILE, '--folder', FOLDER])).toThrow(/Unknown flag/);
+    expect(() => parseArgs(['backup', 'restore', '--file', FILE, '--folder', FOLDER])).toThrow(/Usage: dude-hub backup restore/);
     expect(() => parseArgs(['backup', 'schedule'])).toThrow(UsageError);
     expect(() => parseArgs(['backup', 'schedule', 'run'])).toThrow(UsageError);
     expect(() => parseArgs(['backup', 'create', '--nope'])).toThrow(/Unknown flag/);
@@ -92,9 +100,23 @@ describe('backup CLI parsing', () => {
     expect(() => parseArgs(['backup', 'create', '--confirm', '--folder', FOLDER])).toThrow(/needs a value/);
     expect(() => parseArgs(['backup', 'verify'])).toThrow(/--file/);
     expect(() => parseArgs(['backup', 'verify', '--file'])).toThrow(/needs a value/);
-    expect(() => parseArgs(['backup', 'schedule', 'set', '--every-hours', '1', '--keep', '1'])).toThrow(/--folder/);
     expect(() => parseArgs(['backup', 'schedule', 'set', '--folder', FOLDER, '--keep', '1'])).toThrow(/--every-hours is required/);
-    expect(() => parseArgs(['backup', 'schedule', 'set', '--folder', FOLDER, '--every-hours', '1'])).toThrow(/--keep is required/);
+    expect(() => parseArgs(['backup', 'schedule', 'set', '--every-hours', '1', '--keep', '0'])).toThrow(/--keep must be an integer/);
+  });
+
+  it('parses the backup v2 commands (Milestone 847): folder-less schedule, destinations, run, prune, rewrap and a folder restore', () => {
+    expect(parseArgs(['backup', 'schedule', 'set', '--every-hours', '24'])).toEqual({ command: 'backup', action: 'schedule-set', everyHours: 24 });
+    expect(parseArgs(['backup', 'schedule', 'set', '--every-hours', '6', '--folder', FOLDER, '--keep', '3'])).toEqual({ command: 'backup', action: 'schedule-set', everyHours: 6, folder: FOLDER, keep: 3 });
+    expect(parseArgs(['backup', 'destination', 'add', '--folder', FOLDER, '--label', 'USB disk'])).toEqual({ command: 'backup', action: 'destination-add', folder: FOLDER, label: 'USB disk' });
+    expect(parseArgs(['backup', 'destination', 'list'])).toEqual({ command: 'backup', action: 'destination-list' });
+    expect(parseArgs(['backup', 'destination', 'remove', '--id', 'd-1', '--confirm', 't'])).toEqual({ command: 'backup', action: 'destination-remove', destination: 'd-1', confirm: 't' });
+    expect(parseArgs(['backup', 'destination', 'verify', '--id', 'd-1', '--backup', 'b'])).toEqual({ command: 'backup', action: 'destination-verify', destination: 'd-1', backupId: 'b' });
+    expect(parseArgs(['backup', 'run'])).toEqual({ command: 'backup', action: 'run' });
+    expect(parseArgs(['backup', 'run', '--destination', 'd-1'])).toEqual({ command: 'backup', action: 'run', destination: 'd-1' });
+    expect(parseArgs(['backup', 'prune', '--destination', 'd-1', '--confirm', 't'])).toEqual({ command: 'backup', action: 'prune', destination: 'd-1', confirm: 't' });
+    expect(parseArgs(['backup', 'rewrap', '--confirm', 't'])).toEqual({ command: 'backup', action: 'rewrap', confirm: 't' });
+    expect(parseArgs(['backup', 'restore', '--folder', FOLDER, '--backup', 'b', '--confirm', 't'])).toEqual({ command: 'backup-restore', folder: FOLDER, backupId: 'b', confirm: 't' });
+    expect(() => parseArgs(['backup', 'destination', 'add', '--folder', FOLDER, '--passphrase', 'x'])).toThrow(/never accepted as a flag/);
   });
 
   it('requires absolute paths', () => {

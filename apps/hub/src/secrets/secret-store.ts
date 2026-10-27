@@ -30,6 +30,8 @@ export const HUB_SECRET_PURPOSES = [
   'backup.s3.credentials',
   'backup.drive.refreshToken',
   'backup.onedrive.refreshToken',
+  /** The backup v2 master key (Milestone 847): unattended runs open every destination repository with it, never with the passphrase. */
+  'backup.masterKey',
 ] as const;
 
 export type HubSecretPurpose = (typeof HUB_SECRET_PURPOSES)[number];

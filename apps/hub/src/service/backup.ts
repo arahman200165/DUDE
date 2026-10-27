@@ -2,10 +2,11 @@ import { AdminCallError, HUB_NOT_RUNNING } from '../admin/admin-client.js';
 import { validateBackupPassphrase } from '../backup/kdf.js';
 import { readPassphrase } from '../cli/passphrase.js';
 import type { ReadPassphraseOptions } from '../cli/passphrase.js';
+import type { BackupCliAction } from '../cli/args.js';
 import { EXIT_FAILURE, EXIT_OK, EXIT_USAGE, json, requireElevated, resolveDeps, serviceDataDir, serviceState, tryAdminStatus } from './common.js';
 import type { ResolvedDeps, ServiceDeps } from './common.js';
 
-export type BackupAction = 'create' | 'list' | 'verify' | 'schedule-set' | 'schedule-off' | 'schedule-status' | 'reactivate';
+export type BackupAction = BackupCliAction;
 
 export interface BackupCommandOptions {
   action: BackupAction;
@@ -15,7 +16,12 @@ export interface BackupCommandOptions {
   /** `backup create --for-transfer`: the Hub is retired once the backup is written and verified. */
   forTransfer?: boolean;
   everyHours?: number;
+  /** 31G `--keep`: accepted, no longer used (retention is 7 daily / 4 weekly / 6 monthly, pruned by `backup prune`). */
   keep?: number;
+  /** A destination id (`--destination` or `--id`). */
+  destination?: string;
+  label?: string;
+  backupId?: string;
   dataDir?: string;
   installDir?: string;
 }
@@ -38,9 +44,17 @@ const WHAT: Record<BackupAction, string> = {
   'schedule-off': 'Turning off scheduled backups',
   'schedule-status': 'Showing the backup schedule',
   reactivate: 'Reactivating the Hub',
+  run: 'Running a backup',
+  prune: 'Pruning backups',
+  rewrap: 'Changing the backup passphrase',
+  'destination-add': 'Adding a backup destination',
+  'destination-list': 'Listing backup destinations',
+  'destination-remove': 'Removing a backup destination',
+  'destination-verify': 'Verifying a backup',
 };
-/** Everything that writes, reads a secret or changes the schedule needs the elevated terminal; list and status only read. */
-const ELEVATED: ReadonlySet<BackupAction> = new Set(['create', 'verify', 'schedule-set', 'schedule-off', 'reactivate']);
+/** Everything that writes, reads a secret or changes the schedule needs the elevated terminal; the lists and the status only read. */
+const ELEVATED: ReadonlySet<BackupAction> = new Set(['create', 'verify', 'schedule-set', 'schedule-off', 'reactivate', 'run', 'prune', 'rewrap', 'destination-add', 'destination-remove', 'destination-verify']);
+const TWO_STEP: Partial<Record<BackupAction, string>> = { prune: 'backup prune', rewrap: 'backup rewrap', 'destination-remove': 'backup destination remove', reactivate: 'backup reactivate' };
 const RETIRE_WARNING = 'This Hub will be RETIRED after the backup is written and verified: it will refuse sign-in, sync and pairing until you run "dude-hub backup reactivate". Restore the backup on the new machine before you retire anything you need.';
 const RETIRED_NOTICE = 'This Hub is now retired (transferred).';
 
@@ -77,6 +91,21 @@ function previewLines(preview: PreviewResult): string {
   return `${lines.join('\n')}\n`;
 }
 
+const RETENTION_TEXT = '7 daily, 4 weekly and 6 monthly';
+const MASTER_KEY_NOTE = 'The Hub keeps a random backup key on this computer, protected by Windows, so scheduled backups run unattended; the passphrase itself is not stored and only wraps that key in each destination.';
+
+/** A readable two-step preview on stderr (whatever plain fields the Hub reports); the token goes to stdout separately. */
+function genericPreviewLines(title: string, preview: PreviewResult): string {
+  const lines = [title];
+  for (const [name, value] of Object.entries(preview.summary ?? {})) {
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') lines.push(`  ${name}: ${String(value)}`);
+    else if (Array.isArray(value)) lines.push(`  ${name}: ${value.length === 0 ? '(none)' : value.map((v) => (typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v))).join(', ')}`);
+  }
+  const classes = (preview as { consequenceClass?: unknown }).consequenceClass;
+  if (Array.isArray(classes)) lines.push(`  consequence: ${classes.join(', ')}`);
+  return `${lines.join('\n')}\n`;
+}
+
 /** The readable reactivate preview on stderr (whatever string and number fields the Hub reports); the token goes to stdout separately. */
 function reactivatePreviewLines(preview: PreviewResult): string {
   const lines = ['Reactivate preview (nothing has been changed)'];
@@ -97,7 +126,7 @@ function failure(d: ResolvedDeps, error: unknown, what: string, action: BackupAc
           : 'The Hub is not running. Backups are made by the running Hub; start it and run this again.\n');
         return EXIT_USAGE;
       case 'confirmation-required':
-        d.err(`The confirmation is missing, expired or already used. Run "dude-hub backup ${action === 'reactivate' ? 'reactivate' : 'create'}" again to get a new token.\n`);
+        d.err(`The confirmation is missing, expired or already used. Run "dude-hub ${TWO_STEP[action] ?? 'backup create'}" again to get a new token.\n`);
         return EXIT_FAILURE;
       case 'timeout':
         d.err(`${what}: the Hub did not answer in time. It may still be working; check "dude-hub backup list" before trying again.\n`);
@@ -222,14 +251,18 @@ export async function runBackup(options: BackupCommandOptions, deps: BackupComma
         return EXIT_OK;
       }
       case 'schedule-set': {
-        if (options.folder === undefined || options.everyHours === undefined || options.keep === undefined) {
-          d.err('Usage: dude-hub backup schedule set --folder <abs dir> --every-hours <n> --keep <n>.\n');
+        if (options.everyHours === undefined) {
+          d.err('Usage: dude-hub backup schedule set --every-hours <n> [--folder <abs dir>].\n');
           return EXIT_USAGE;
         }
-        d.err(`${PASSPHRASE_WARNING}\nA key derived from this passphrase is stored on this computer, protected by Windows, so scheduled backups can run unattended. The passphrase itself is not stored.\n`);
-        const passphrase = await passphraseFor('Backup passphrase (min 12 characters): ', true, true);
-        if (passphrase === null) return EXIT_FAILURE;
-        d.out(json(await callAdminLong('backup.schedule.set', { folder: options.folder, intervalHours: options.everyHours, retention: options.keep, passphrase })));
+        if (options.keep !== undefined) d.err(`--keep is no longer used: every destination keeps ${RETENTION_TEXT} backups, pruned with "dude-hub backup prune".\n`);
+        let passphrase: string | null = null;
+        if (options.folder !== undefined) {
+          d.err(`${PASSPHRASE_WARNING}\n${MASTER_KEY_NOTE}\n`);
+          passphrase = await passphraseFor('Backup passphrase (min 12 characters): ', true, true);
+          if (passphrase === null) return EXIT_FAILURE;
+        }
+        d.out(json(await callAdminLong('backup.schedule.set', { intervalHours: options.everyHours, ...(options.folder !== undefined ? { folder: options.folder } : {}), ...(passphrase !== null ? { passphrase } : {}) })));
         return EXIT_OK;
       }
       case 'schedule-off':
@@ -238,6 +271,69 @@ export async function runBackup(options: BackupCommandOptions, deps: BackupComma
       case 'schedule-status':
         d.out(json(await d.call(dataRoot, 'backup.schedule.status', {})));
         return EXIT_OK;
+      case 'destination-add': {
+        if (options.folder === undefined) {
+          d.err('Usage: dude-hub backup destination add --folder <abs dir> [--label <text>].\n');
+          return EXIT_USAGE;
+        }
+        d.err(`${PASSPHRASE_WARNING}\n${MASTER_KEY_NOTE}\nIf the folder already holds this Hub's backups, give the passphrase they were made with.\n`);
+        const passphrase = await passphraseFor('Backup passphrase (min 12 characters): ', true, true);
+        if (passphrase === null) return EXIT_FAILURE;
+        d.out(json(await callAdminLong('backup.destination.add', { kind: 'local-folder', folder: options.folder, ...(options.label !== undefined ? { label: options.label } : {}), passphrase })));
+        return EXIT_OK;
+      }
+      case 'destination-list':
+        d.out(json(await d.call(dataRoot, 'backup.destination.list', {})));
+        return EXIT_OK;
+      case 'destination-verify':
+        d.out(json(await callAdminLong('backup.destination.verify', { id: options.destination, ...(options.backupId !== undefined ? { backupId: options.backupId } : {}) })));
+        return EXIT_OK;
+      case 'destination-remove': {
+        if (options.confirm === undefined) {
+          const preview = (await d.call(dataRoot, 'backup.destination.remove.preview', { id: options.destination })) as PreviewResult;
+          d.err(genericPreviewLines('Remove destination preview (nothing has been changed)', preview));
+          d.out(`${JSON.stringify({ confirmToken: preview.confirmToken, expiresAt: preview.expiresAt })}\n`);
+          d.err('Nothing has been changed. Re-run with --confirm <confirmToken> within 60 seconds to remove the destination.\n');
+          return EXIT_OK;
+        }
+        d.out(json(await d.call(dataRoot, 'backup.destination.remove.apply', { id: options.destination, confirmToken: options.confirm })));
+        return EXIT_OK;
+      }
+      case 'run': {
+        const result = (await callAdminLong('backup.run', options.destination !== undefined ? { destination: options.destination } : {})) as { ok?: unknown };
+        d.out(json(result));
+        if (result.ok !== true) {
+          d.err('At least one destination failed; see the results above and "dude-hub backup destination list".\n');
+          return EXIT_FAILURE;
+        }
+        return EXIT_OK;
+      }
+      case 'prune': {
+        if (options.confirm === undefined) {
+          const preview = (await callAdminLong('backup.prune.preview', { destination: options.destination })) as PreviewResult;
+          d.err(genericPreviewLines(`Prune preview (nothing has been deleted; retention ${RETENTION_TEXT})`, preview));
+          d.out(`${JSON.stringify({ confirmToken: preview.confirmToken, expiresAt: preview.expiresAt })}\n`);
+          d.err('Nothing has been deleted. Re-run with --confirm <confirmToken> within 60 seconds to delete exactly what is listed.\n');
+          return EXIT_OK;
+        }
+        d.out(json(await callAdminLong('backup.prune.apply', { destination: options.destination, confirmToken: options.confirm })));
+        return EXIT_OK;
+      }
+      case 'rewrap': {
+        if (options.confirm === undefined) {
+          const preview = (await d.call(dataRoot, 'backup.rewrap.preview', {})) as PreviewResult;
+          d.err(genericPreviewLines('Passphrase change preview (nothing has been changed)', preview));
+          d.out(`${JSON.stringify({ confirmToken: preview.confirmToken, expiresAt: preview.expiresAt })}\n`);
+          d.err('Nothing has been changed. Re-run with --confirm <confirmToken> within 60 seconds to be asked for the NEW passphrase.\n');
+          return EXIT_OK;
+        }
+        d.err(`${PASSPHRASE_WARNING}\nEvery destination's backups will open with the new passphrase only.\n`);
+        const passphrase = await passphraseFor('New backup passphrase (min 12 characters): ', true, true);
+        if (passphrase === null) return EXIT_FAILURE;
+        const result = (await callAdminLong('backup.rewrap.apply', { confirmToken: options.confirm, passphrase })) as { ok?: unknown };
+        d.out(json(result));
+        return result.ok === true ? EXIT_OK : EXIT_FAILURE;
+      }
     }
   } catch (error) {
     return failure(d, error, WHAT[options.action], options.action);

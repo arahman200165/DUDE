@@ -11,6 +11,9 @@ const norm = f => f.replaceAll('\\', '/');
 // Heuristic sites that were reviewed by hand. Key: `<source>::<namespace>::<key>` or `<source>::*` (whole file).
 const REVIEWED_HEURISTICS = {
   'apps/hub/src/blobs/blob-fixture.ts::*': 'Test fixture writing bytes to a throwaway BlobStore under a temp directory; not app state.',
+  'apps/hub/src/backup/backup-fixture.ts::*': 'Backup spec fixture writing bytes to a throwaway BlobStore under a temp directory; not app state.',
+  'apps/hub/src/backup/master-key.ts::*': 'Stores the backup v2 master key in the Hub secret store (purpose backup.masterKey, DPAPI LocalMachine or a 0600 file on Linux); machine-bound, never synced, backed up or reported (Milestone 847).',
+  'apps/hub/src/backup/restore.ts::*': 'The offline restore streams the backed-up blobs into a staged BlobStore under data/.restore-tmp before the swap; the bytes are the restored blob store itself, not new app state (Milestone 847).',
   'apps/hub/src/tunnel/tunnel-runtime.ts::*': 'Stores the owner-pasted Cloudflare tunnel connector token in the Hub secret store (DPAPI LocalMachine, per-purpose entropy); machine-bound, never synced, backed up or reported.',
   'apps/hub/src/provisioning/components/blob-store.ts::*': 'Provisioning probe round-trips random bytes through a scratch BlobStore it deletes afterwards; not app state.',
   'apps/web/src/app/core/collab/collab-text-session.ts::*': 'Angular signal writes holding the in-memory collaboration session (Phase 31J); the edited entity persists only through its own store.',

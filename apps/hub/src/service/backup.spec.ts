@@ -300,16 +300,25 @@ describe('backup list, verify and schedule', () => {
     expect(h.output()).not.toContain(PASSPHRASE);
   });
 
-  it('sets a schedule with the passphrase, a long timeout and an explanation of the stored key', async () => {
+  it('sets a schedule with a folder: the passphrase, a long timeout and an explanation of the stored key; --keep is reported as unused', async () => {
     const asked: { prompt: string; confirm: boolean }[] = [];
     const h = harness({}, { readPassphrase: async (o) => { asked.push(o); return PASSPHRASE; } });
     expect(await h.run({ action: 'schedule-set', folder: FOLDER, everyHours: 24, keep: 7 })).toBe(0);
     expect(asked).toEqual([{ prompt: 'Backup passphrase (min 12 characters): ', confirm: true }]);
-    expect(h.backupCalls()).toEqual([{ method: 'backup.schedule.set', params: { folder: FOLDER, intervalHours: 24, retention: 7, passphrase: PASSPHRASE }, timeoutMs: 10 * 60 * 1000 }]);
+    expect(h.backupCalls()).toEqual([{ method: 'backup.schedule.set', params: { intervalHours: 24, folder: FOLDER, passphrase: PASSPHRASE }, timeoutMs: 10 * 60 * 1000 }]);
     const err = h.f.err.join('');
     expect(err).toContain('Losing the passphrase makes the backup unrecoverable.');
-    expect(err).toContain('The passphrase itself is not stored.');
+    expect(err).toContain('the passphrase itself is not stored');
+    expect(err).toContain('--keep is no longer used');
     expect(h.output()).not.toContain(PASSPHRASE);
+  });
+
+  it('sets a folder-less schedule without asking for a passphrase', async () => {
+    let asked = 0;
+    const h = harness({}, { readPassphrase: async () => { asked += 1; return PASSPHRASE; } });
+    expect(await h.run({ action: 'schedule-set', everyHours: 12 })).toBe(0);
+    expect(asked).toBe(0);
+    expect(h.backupCalls()).toEqual([{ method: 'backup.schedule.set', params: { intervalHours: 12 }, timeoutMs: 10 * 60 * 1000 }]);
   });
 
   it('turns the schedule off and shows its status without a passphrase', async () => {

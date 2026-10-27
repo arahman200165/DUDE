@@ -23,7 +23,8 @@ import { runTlsImport, runTlsProxyPin } from '../service/tls-external.js';
 import { runTlsAcme } from '../service/tls-acme.js';
 import { nodeBackupDeps } from '../backup/kdf.js';
 import { BACKUP_SCHEDULER_CHECK_MS, createBackupScheduler } from '../backup/scheduler.js';
-import { defaultScheduleKeyProtector, scheduleKeyExists } from '../backup/schedule-key.js';
+import { defaultScheduleKeyProtector } from '../backup/schedule-key.js';
+import { defaultMasterKeyStore } from '../backup/master-key.js';
 import { ACME_RENEWAL_INTERVAL_MS, createAcmeRenewal } from '../tls/acme/acme-renewal.js';
 import { ADDRESS_WATCH_INTERVAL_MS, addressChangeNotice, createAddressWatch } from '../diagnostics/address-watch.js';
 import { AdminCallError, callAdmin } from '../admin/admin-client.js';
@@ -180,6 +181,8 @@ export async function runCli(argv: readonly string[]): Promise<number> {
       ...(parsed.folder !== undefined ? { folder: parsed.folder } : {}), ...(parsed.file !== undefined ? { file: parsed.file } : {}), ...(parsed.confirm !== undefined ? { confirm: parsed.confirm } : {}),
       ...(parsed.forTransfer ? { forTransfer: true } : {}),
       ...(parsed.everyHours !== undefined ? { everyHours: parsed.everyHours } : {}), ...(parsed.keep !== undefined ? { keep: parsed.keep } : {}),
+      ...(parsed.destination !== undefined ? { destination: parsed.destination } : {}), ...(parsed.label !== undefined ? { label: parsed.label } : {}),
+      ...(parsed.backupId !== undefined ? { backupId: parsed.backupId } : {}),
       ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}),
     });
   }
@@ -192,7 +195,8 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   }
   if (parsed.command === 'backup-restore') {
     return runRestore({
-      file: parsed.file,
+      ...(parsed.file !== undefined ? { file: parsed.file } : {}), ...(parsed.folder !== undefined ? { folder: parsed.folder } : {}),
+      ...(parsed.backupId !== undefined ? { backupId: parsed.backupId } : {}),
       ...(parsed.confirm !== undefined ? { confirm: parsed.confirm } : {}), ...(parsed.replace !== undefined ? { replace: parsed.replace } : {}), ...(parsed.oldHubGone !== undefined ? { oldHubGone: parsed.oldHubGone } : {}),
       ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}),
     });
@@ -265,6 +269,8 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   const caProtector = defaultCaKeyProtector();
   const acmeProtector = defaultAcmeKeyProtector();
   const scheduleKeyProtector = defaultScheduleKeyProtector();
+  // Backup v2 (Milestone 847): the master key unattended runs use; only the backup admin methods and the scheduler read it.
+  const masterKeyStore = defaultMasterKeyStore(paths);
   const hadCa = localCaExists(paths.tlsDir);
   // New Hubs default to the built-in local CA (PD-058); an existing self-signed Hub opts in with "tls ca init".
   const tls = ensureTlsIdentity(paths.tlsDir, { hubInstanceId: hub.hubInstanceId, extraNames: wantedNames, localCa: { protector: caProtector, configuredNames: configuredDnsNames(config) } });
@@ -288,7 +294,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     tls,
     hub: { db: hub.db, hubInstanceId: hub.hubInstanceId },
     hubVersion: hubVersion(),
-    backup: { scheduleKeyPresent: () => scheduleKeyExists(paths.configDir) },
+    backup: { scheduleKeyPresent: () => masterKeyStore.exists() },
     ...(queueRuntime ? { queue: { status: () => queueRuntime.status() } } : {}),
     ...(queueRuntime ? { ingest: { db: queueRuntime.db } } : {}),
     ...(queueRuntime ? { uploads: { service: queueRuntime.uploads } } : {}),
@@ -322,7 +328,8 @@ export async function runCli(argv: readonly string[]): Promise<number> {
         db: hub.db, hubVersion: hubVersion(), hubInstanceId: hub.hubInstanceId, bind: config.bind, getPort: () => port, startedAt, configDir: paths.configDir, configFile: paths.configFile, tlsDir: paths.tlsDir, spkiSha256: tls.spkiSha256,
         onNamesChanged: (names) => server.hostGuard.setNames(names),
         hsts: createHstsPolicy({ db: hub.db, tlsDir: paths.tlsDir, proxy: config.exposure.proxy !== undefined }),
-        caProtector, acmeProtector, paths, scheduleKeyProtector,
+        caProtector, acmeProtector, paths, scheduleKeyProtector, masterKeyStore,
+        saveSphereDb: () => queueRuntime?.db,
         queueRunning: () => queueRuntime !== undefined,
         tunnel: tunnelRuntime,
         onProvisioned: () => provisioning.invalidate(),
@@ -372,10 +379,12 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   });
   server.hubJobs.register('acme-renewal', ACME_RENEWAL_INTERVAL_MS);
   acmeRenewal.start();
-  // Unattended backups (31G): checks every 10 minutes and does nothing unless `backup schedule set` configured one in hub.json.
+  // Unattended backups (31G, backup v2 from Milestone 847): checks every 10 minutes and does nothing unless `backup schedule set`
+  // configured an interval in hub.json; each due destination gets a v2 run with the master key from the secret store.
   const backupScheduler = createBackupScheduler({
     db: hub.db, paths, hubVersion: hubVersion(), hubInstanceId: hub.hubInstanceId,
-    readConfig: () => loadOrCreateHubConfig(paths.configFile), protector: scheduleKeyProtector, deps: nodeBackupDeps(),
+    readConfig: () => loadOrCreateHubConfig(paths.configFile), masterKeys: masterKeyStore, deps: nodeBackupDeps(),
+    saveSphereDb: () => queueRuntime?.db,
     job: server.hubJobs.handle('backup-schedule'),
     onCheck: ({ intervalHours }) => server.hubNotifications.checkBackupOverdue(intervalHours),
     beforeSnapshot: () => server.collab.flushAll(),

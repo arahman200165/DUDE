@@ -9,7 +9,11 @@ import { EXIT_FAILURE, EXIT_OK, EXIT_USAGE, isHubRunning, json, requireElevated,
 import type { ResolvedDeps, ServiceDeps } from './common.js';
 
 export interface RestoreCommandOptions {
-  file: string;
+  /** A `.dudebackup` file (v1 or v2); exactly one of `file` and `folder`. */
+  file?: string;
+  /** A backup v2 repository folder (a `local-folder` destination), with `backupId` (default: the newest backup). */
+  folder?: string;
+  backupId?: string;
   confirm?: string;
   /** The phrase the operator typed for `--replace` (validated exactly here). */
   replace?: string;
@@ -48,13 +52,14 @@ function describeCounts(counts: Record<string, number>): string {
 function previewLines(file: string, dataRoot: string, summary: RestoreSummary): string {
   const lines = [
     'Restore preview (nothing has been changed)',
-    `  Backup:     ${file}`,
+    `  Backup:     ${file}${summary.backupId !== undefined ? ` (backup ${summary.backupId})` : ''}`,
     `  Source:     Hub ${text(summary.source.hubInstanceId)}, authority epoch ${text(summary.source.authorityEpoch)}, DUDE Hub ${text(summary.source.hubVersion)}`,
     `  Created:    ${text(summary.source.createdAt)}`,
     `  New epoch:  ${text(summary.newEpoch)} (a new Hub instance id is generated)`,
   ];
   const counts = describeCounts(summary.counts);
   if (counts.length > 0) lines.push(`  Contents:   ${counts}`);
+  if (summary.blobs !== undefined) lines.push(`  Blobs:      ${summary.blobs} (${summary.blobBytes ?? 0} bytes), restored into storage/blobs`);
   lines.push(`  Transfer:   ${summary.forTransfer ? 'made for transfer (--for-transfer)' : 'not made for transfer'}`);
   lines.push(`  Target:     ${dataRoot} (${summary.targetState === 'existing' ? 'already contains a Hub' : 'empty'})`);
   lines.push('', SENTENCE_RE_PAIR, SENTENCE_TLS);
@@ -166,21 +171,25 @@ export async function runRestore(options: RestoreCommandOptions, deps: RestoreCo
   }
 
   const backupDeps = deps.backupDeps ?? nodeBackupDeps();
+  const source = {
+    ...(options.file !== undefined ? { file: options.file } : {}), ...(options.folder !== undefined ? { folder: options.folder } : {}),
+    ...(options.backupId !== undefined ? { backupId: options.backupId } : {}),
+  };
   try {
     if (options.confirm === undefined) {
-      const preview = await (deps.previewRestore ?? previewRestore)({ file: options.file, passphrase, dataRoot, deps: backupDeps, now: d.now });
-      d.err(previewLines(options.file, dataRoot, preview.summary));
+      const preview = await (deps.previewRestore ?? previewRestore)({ ...source, passphrase, dataRoot, deps: backupDeps, now: d.now });
+      d.err(previewLines(options.file ?? options.folder ?? '', dataRoot, preview.summary));
       d.out(`${JSON.stringify({ confirmToken: preview.confirmToken, expiresAt: preview.expiresAt })}\n`);
       const needed = [...(preview.summary.requiresReplacePhrase ? ['--replace'] : []), ...(preview.summary.requiresOldHubGonePhrase ? ['--old-hub-gone'] : [])];
       d.err(`Nothing has been changed. Re-run with --confirm <confirmToken> within 60 seconds${needed.length > 0 ? ` (adding ${needed.join(' and ')} as listed above)` : ''} to restore.\n`);
       return EXIT_OK;
     }
     const result = await (deps.applyRestore ?? applyRestore)({
-      file: options.file, passphrase, dataRoot, confirmToken: options.confirm, deps: backupDeps, now: d.now,
+      ...source, passphrase, dataRoot, confirmToken: options.confirm, deps: backupDeps, now: d.now,
       replaceExisting: options.replace === RESTORE_PHRASE_REPLACE,
       oldHubGoneConfirmed: options.oldHubGone === RESTORE_PHRASE_OLD_HUB_GONE,
     });
-    d.out(json({ hubInstanceId: result.hubInstanceId, authorityEpoch: result.authorityEpoch, devices: result.devices, replacedDir: result.replacedDir }));
+    d.out(json({ hubInstanceId: result.hubInstanceId, authorityEpoch: result.authorityEpoch, devices: result.devices, replacedDir: result.replacedDir, ...(result.blobs !== undefined ? { blobs: result.blobs } : {}) }));
     d.err([
       'The backup was restored.',
       ...(result.replacedDir !== null ? [`The previous data was moved to ${result.replacedDir}.`] : []),
@@ -188,6 +197,7 @@ export async function runRestore(options: RestoreCommandOptions, deps: RestoreCo
       '  1. Start the Hub ("dude-hub service start", or "dude-hub run").',
       '  2. Sign in with the old owner password.',
       `  3. Pair each device again (${result.devices} ${result.devices === 1 ? 'device needs' : 'devices need'} it); their local data is kept.`,
+      '  4. Run "dude-hub provision" and enter the machine-bound secrets again (tunnel token, Google client secret); add a backup destination again with "dude-hub backup destination add".',
       '',
     ].join('\n'));
     return EXIT_OK;

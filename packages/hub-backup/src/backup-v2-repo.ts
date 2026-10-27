@@ -167,15 +167,24 @@ async function sealRepositoryObject(
   }
 }
 
-/** Creates a repository: a random repo id and master key, wrapped under the passphrase. Write `object` as `repo`. */
+/**
+ * Creates a repository: a random repo id and a master key, wrapped under the passphrase. Write `object` as `repo`.
+ * `options.masterKey` reuses an existing master key (the Hub keeps one key for all of its destinations, so a passphrase
+ * change re-wraps every `repo` and an unattended schedule holds one key); the subkeys still differ per repository because
+ * they are salted by the random repo id. Without it a fresh random key is drawn.
+ */
 export async function createRepository(
   passphrase: string,
   deps: Pick<BackupDeps, 'deriveKey' | 'randomBytes'>,
   kdfParams: KdfParams = DEFAULT_KDF_PARAMS,
+  options: { masterKey?: Uint8Array } = {},
 ): Promise<{ repository: BackupRepository; object: Uint8Array }> {
   const params = checkParams(kdfParams);
+  if (options.masterKey !== undefined && (!(options.masterKey instanceof Uint8Array) || options.masterKey.length !== KEY_BYTES)) {
+    throw new BackupError('bad-input', 'The backup master key is invalid.');
+  }
   const repoId = toHex(random(deps, OBJECT_ID_BYTES));
-  const master = random(deps, KEY_BYTES);
+  const master = options.masterKey !== undefined ? options.masterKey.slice() : random(deps, KEY_BYTES);
   try {
     const { header, object } = await sealRepositoryObject(repoId, master, passphrase, params, deps);
     return { repository: makeRepository(header, master), object };

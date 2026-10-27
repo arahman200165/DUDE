@@ -1,9 +1,10 @@
-import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { openBackup } from '@dude/hub-backup';
+import { openBackupFile } from '@dude/hub-backup';
 import { getMeta } from '@dude/sqlite-store';
-import { cheapDeps, openFixtureHub, seedHubDb, tempRoot } from '../backup/backup-fixture.js';
+import { cheapDeps, memoryMasterKeys, openFixtureHub, seedHubDb, tempRoot } from '../backup/backup-fixture.js';
+import { fileByteSource } from '../backup/create-export.js';
 import type { HubDb } from '../db/open-hub-db.js';
 import { loadOrCreateHubConfig } from '../config/hub-config.js';
 import { ConfirmationStore, CONFIRMATION_TTL_MS } from '../security/confirmation-store.js';
@@ -35,10 +36,11 @@ function fixture() {
   seedHubDb(hub.db);
   let clock = Date.parse('2026-10-04T12:00:00Z');
   const confirmations = new ConfirmationStore();
+  const keys = memoryMasterKeys();
   const methods = buildAdminMethods({
     db: hub.db, hubVersion: '1.2.3', hubInstanceId: hub.hubInstanceId, bind: 'loopback', getPort: () => 1, startedAt: 0,
     configDir: paths.configDir, configFile: paths.configFile, spkiSha256: 'S'.repeat(43), paths,
-    backupDeps: cheapDeps(() => new Date(clock)), scheduleKeyProtector: fakeProtector, now: () => clock, confirmations,
+    backupDeps: cheapDeps(() => new Date(clock)), scheduleKeyProtector: fakeProtector, masterKeyStore: keys, now: () => clock, confirmations,
   });
   const call = async (method: string, params: unknown = {}): Promise<any> => methods[method]!(params);
   const fail = async (method: string, params: unknown = {}): Promise<AdminError> => {
@@ -47,7 +49,7 @@ function fixture() {
   };
   const out = path.join(root, 'out');
   const advance = (ms: number): void => { clock += ms; };
-  return { root, hub, paths, call, fail, out, advance, db: hub.db };
+  return { root, hub, paths, call, fail, out, advance, db: hub.db, keys };
 }
 
 const auditRows = (db: HubDb['db']): Array<{ event: string; outcome: string; detail_json: string | null }> =>
@@ -93,10 +95,18 @@ describe('backup.create preview and apply', () => {
     expect(applied.manifest.files.map((x: { name: string }) => x.name).sort()).toEqual(['dude.db', 'hub.json']);
     expect(JSON.stringify(applied)).not.toContain(PASSPHRASE);
 
-    const opened = await openBackup(new Uint8Array(readFileSync(applied.file)), { passphrase: PASSPHRASE }, cheapDeps());
-    expect(opened.manifest.forTransfer).toBe(false);
-    expect(opened.files.has('dude.db')).toBe(true);
+    // A backup v2 single-file export (Milestone 847) that opens with the passphrase and verifies end to end.
+    const opened = await openBackupFile(fileByteSource(applied.file, statSync(applied.file).size), { passphrase: PASSPHRASE }, cheapDeps());
+    if (opened.formatVersion !== 2) throw new Error('expected a v2 file');
+    expect(opened.reader.head.forTransfer).toBe(false);
+    await opened.reader.verify();
+    const names: string[] = [];
+    for await (const entry of opened.reader.listEntries()) if (entry.kind === 'file') names.push(entry.name);
+    opened.reader.close();
+    expect(names.sort()).toEqual(['dude.db', 'hub.json']);
+    expect(applied.manifest).toMatchObject({ formatVersion: 2, minReaderVersion: 2, blobs: 0 });
     expect(readdirSync(f.out)).toEqual([applied.name]);
+    expect(existsSync(path.join(f.paths.backupsDir, '.tmp')) ? readdirSync(path.join(f.paths.backupsDir, '.tmp')) : []).toEqual([]);
 
     expect(JSON.parse(getMeta(f.db, 'backup_last')!)).toEqual({ at: '2026-10-04T12:00:00.000Z', ok: true, file: applied.name, size: applied.size });
     const created = auditRows(f.db).find((r) => r.event === 'backup.created')!;
@@ -185,7 +195,7 @@ describe('backup.verify and backup.list', () => {
     const rowsBefore = auditRows(f.db).length;
     const verified = await f.call('backup.verify', { file, passphrase: PASSPHRASE });
     expect(verified.ok).toBe(true);
-    expect(verified.manifest).toMatchObject({ formatVersion: 1, hubVersion: '1.2.3', forTransfer: false, source: { hubInstanceId: f.hub.hubInstanceId, authorityEpoch: 3 } });
+    expect(verified.manifest).toMatchObject({ formatVersion: 2, hubVersion: '1.2.3', forTransfer: false, source: { hubInstanceId: f.hub.hubInstanceId, authorityEpoch: 3 } });
     expect(verified.manifest.counts).toMatchObject({ devices: 1 });
     expect(verified.manifest.files).toEqual(expect.arrayContaining([{ name: 'dude.db', size: expect.any(Number) }, { name: 'hub.json', size: expect.any(Number) }]));
     expect(JSON.stringify(verified)).not.toContain(f.root);
@@ -231,40 +241,48 @@ describe('backup.verify and backup.list', () => {
   });
 });
 
-describe('backup schedule', () => {
-  it('sets, reports and turns off a schedule; the key is stored protected and never the passphrase', async () => {
+describe('backup schedule (backup v2, Milestone 847)', () => {
+  it('sets with a folder: the folder becomes a destination, the master key is stored (never the passphrase), then status and off', async () => {
     const f = fixture();
-    expect(await f.call('backup.schedule.status')).toEqual({ configured: false, folder: null, intervalHours: null, retention: null, last: null, keyPresent: false });
+    expect(await f.call('backup.schedule.status')).toEqual({ configured: false, intervalHours: null, destinations: [], retention: { daily: 7, weekly: 4, monthly: 6 }, last: null, keyPresent: false });
 
     const set = await f.call('backup.schedule.set', { folder: f.out, intervalHours: 12, retention: 5, passphrase: PASSPHRASE });
-    expect(set).toEqual({ configured: true, folder: f.out, intervalHours: 12, retention: 5, replaced: false });
-    expect(existsSync(f.out)).toBe(true);
-    expect(loadOrCreateHubConfig(f.paths.configFile).backup).toEqual({ schedule: { folder: f.out, intervalHours: 12, retention: 5 } });
+    expect(set).toMatchObject({ configured: true, intervalHours: 12, replaced: false, retention: { daily: 7, weekly: 4, monthly: 6 } });
+    expect(set.destinations).toHaveLength(1);
+    expect(set.destinationAdded).toBe(set.destinations[0]);
+    expect(existsSync(path.join(f.out, 'repo'))).toBe(true);
+    const backup = loadOrCreateHubConfig(f.paths.configFile).backup!;
+    expect(backup.schedule).toEqual({ intervalHours: 12 });
+    expect(backup.destinations).toEqual([{ id: set.destinations[0], kind: 'local-folder', label: 'Local folder out', folder: f.out }]);
     const raw = readFileSync(f.paths.configFile, 'utf8');
     expect(raw).not.toContain(PASSPHRASE);
-    const keyFile = path.join(f.paths.configDir, 'backup', 'schedule-key.bin');
-    expect(existsSync(keyFile)).toBe(true);
-    expect(readFileSync(keyFile).toString('utf8')).not.toContain(PASSPHRASE);
-    expect(await f.call('backup.schedule.status')).toEqual({ configured: true, folder: f.out, intervalHours: 12, retention: 5, last: null, keyPresent: true });
+    expect(f.keys.key()).toHaveLength(32);
+    expect(existsSync(path.join(f.paths.configDir, 'backup', 'schedule-key.bin'))).toBe(false);
+    expect(await f.call('backup.schedule.status')).toMatchObject({ configured: true, intervalHours: 12, destinations: [{ id: set.destinations[0], kind: 'local-folder' }], keyPresent: true });
 
-    expect((await f.call('backup.schedule.set', { folder: f.out, intervalHours: 6, retention: 2, passphrase: PASSPHRASE })).replaced).toBe(true);
+    // Same folder again: no second destination, no passphrase needed; the interval changes.
+    const again = await f.call('backup.schedule.set', { folder: f.out, intervalHours: 6 });
+    expect(again).toMatchObject({ replaced: true, destinationAdded: null, destinations: set.destinations });
     expect((await f.call('backup.schedule.status')).intervalHours).toBe(6);
+    expect((await f.call('backup.schedule.set', { intervalHours: 3 })).intervalHours).toBe(3);
 
     expect(await f.call('backup.schedule.off')).toEqual({ configured: false, wasConfigured: true });
-    expect(await f.call('backup.schedule.status')).toEqual({ configured: false, folder: null, intervalHours: null, retention: null, last: null, keyPresent: false });
-    expect(existsSync(keyFile)).toBe(false);
-    expect(loadOrCreateHubConfig(f.paths.configFile).backup).toBeUndefined();
+    const off = await f.call('backup.schedule.status');
+    expect(off).toMatchObject({ configured: false, intervalHours: null, keyPresent: true });
+    expect(off.destinations).toHaveLength(1);
+    expect(loadOrCreateHubConfig(f.paths.configFile).backup).toEqual({ destinations: backup.destinations });
     expect(await f.call('backup.schedule.off')).toEqual({ configured: false, wasConfigured: false });
 
     const scheduled = auditRows(f.db).filter((r) => r.event === 'backup.scheduled').map((r) => JSON.parse(r.detail_json!));
-    expect(scheduled).toEqual([{ action: 'set', intervalHours: 12, retention: 5 }, { action: 'set', intervalHours: 6, retention: 2 }, { action: 'off' }]);
+    expect(scheduled).toEqual([{ action: 'set', intervalHours: 12, destinations: 1 }, { action: 'set', intervalHours: 6, destinations: 1 }, { action: 'set', intervalHours: 3, destinations: 1 }, { action: 'off' }]);
+    expect(auditRows(f.db).filter((r) => r.event === 'backup.destination-added').map((r) => JSON.parse(r.detail_json!))).toEqual([{ destination: set.destinations[0], kind: 'local-folder', adopted: false }]);
   });
 
   it('validates every parameter and changes nothing on a refusal', async () => {
     const f = fixture();
     const ok = { folder: f.out, intervalHours: 24, retention: 7, passphrase: PASSPHRASE };
     for (const bad of [
-      { ...ok, folder: undefined }, { ...ok, folder: 'relative' }, { ...ok, folder: f.paths.dataDir }, { ...ok, folder: f.paths.configDir },
+      { ...ok, folder: undefined }, { ...ok, folder: 'relative' }, { ...ok, folder: f.paths.dataDir }, { ...ok, folder: f.paths.configDir }, { ...ok, folder: f.paths.storageDir },
       { ...ok, intervalHours: 0 }, { ...ok, intervalHours: 8761 }, { ...ok, intervalHours: 1.5 }, { ...ok, intervalHours: '24' },
       { ...ok, retention: 0 }, { ...ok, retention: 1001 }, { ...ok, passphrase: 'short' }, { ...ok, passphrase: undefined },
     ]) {
@@ -273,15 +291,27 @@ describe('backup schedule', () => {
       expect(err.message).not.toContain(PASSPHRASE);
     }
     expect((await f.call('backup.schedule.status')).configured).toBe(false);
-    expect(existsSync(path.join(f.paths.configDir, 'backup', 'schedule-key.bin'))).toBe(false);
+    expect(f.keys.key()).toBeNull();
+    expect(loadOrCreateHubConfig(f.paths.configFile).backup).toBeUndefined();
     expect(auditRows(f.db).some((r) => r.event === 'backup.scheduled')).toBe(false);
   });
 
-  it('clears a stale failure when a schedule is set so the first run is not delayed', async () => {
+  it('clears a stale failure and the old 31G derived key when a schedule is set', async () => {
     const f = fixture();
     f.db.prepare("INSERT INTO meta(key, value) VALUES ('backup_last', ?)").run(JSON.stringify({ at: '2026-10-04T11:59:00.000Z', ok: false, error: 'schedule-key-missing' }));
-    await f.call('backup.schedule.set', { folder: f.out, intervalHours: 24, retention: 7, passphrase: PASSPHRASE });
+    const legacy = path.join(f.paths.configDir, 'backup', 'schedule-key.bin');
+    mkdirSync(path.dirname(legacy), { recursive: true });
+    writeFileSync(legacy, 'old derived key');
+    await f.call('backup.schedule.set', { folder: f.out, intervalHours: 24, passphrase: PASSPHRASE });
     expect(getMeta(f.db, 'backup_last')).toBeUndefined();
+    expect(existsSync(legacy)).toBe(false);
+  });
+
+  it('lists the first destination folder by default, else <root>/backups', async () => {
+    const f = fixture();
+    expect((await f.call('backup.list')).folder).toBe(f.paths.backupsDir);
+    await f.call('backup.schedule.set', { folder: f.out, intervalHours: 24, passphrase: PASSPHRASE });
+    expect((await f.call('backup.list')).folder).toBe(f.out);
   });
 });
 
