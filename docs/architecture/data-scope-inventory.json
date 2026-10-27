@@ -190,7 +190,7 @@
     },
     {
       "source": "apps/mobile/src/state/durable-backend.ts",
-      "line": 53,
+      "line": 54,
       "namespace": null,
       "key": null,
       "heuristicScope": "local-only",
@@ -198,7 +198,7 @@
     },
     {
       "source": "apps/mobile/src/state/durable-backend.ts",
-      "line": 62,
+      "line": 63,
       "namespace": null,
       "key": null,
       "heuristicScope": "local-only",
@@ -1997,7 +1997,7 @@
     },
     {
       "source": "apps/mobile/src/state/durable-backend.ts",
-      "line": 62,
+      "line": 63,
       "operation": "this.store.kvRepository((await this.store.activeContext()).id).set(namespace, key, value, meta)",
       "namespace": null,
       "key": null,
@@ -2011,7 +2011,7 @@
     },
     {
       "source": "apps/mobile/src/state/durable-backend.ts",
-      "line": 53,
+      "line": 54,
       "operation": "this.store.kvRepository((await this.store.activeContext()).id).set(RECENTS_NAMESPACE, key, value, { policy: 'session', scope: 'local-only' })",
       "namespace": null,
       "key": null,
