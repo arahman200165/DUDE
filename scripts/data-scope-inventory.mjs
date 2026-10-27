@@ -10,6 +10,8 @@ const norm = f => f.replaceAll('\\', '/');
 
 // Heuristic sites that were reviewed by hand. Key: `<source>::<namespace>::<key>` or `<source>::*` (whole file).
 const REVIEWED_HEURISTICS = {
+  'apps/hub/src/blobs/blob-fixture.ts::*': 'Test fixture writing bytes to a throwaway BlobStore under a temp directory; not app state.',
+  'apps/hub/src/provisioning/components/blob-store.ts::*': 'Provisioning probe round-trips random bytes through a scratch BlobStore it deletes afterwards; not app state.',
   'apps/web/src/app/core/collab/collab-text-session.ts::*': 'Angular signal writes holding the in-memory collaboration session (Phase 31J); the edited entity persists only through its own store.',
   'apps/web/src/app/core/workspace/scratchpad-collab.ts::*': 'Angular signal writes holding the in-memory collaboration session (Phase 31J); the scratchpad itself persists only through ScratchpadService.',
   'apps/mobile/src/state/durable-backend.ts::*': 'Android local Recents under mobile.local with policy session / scope local-only; never journaled, queued or synced.',

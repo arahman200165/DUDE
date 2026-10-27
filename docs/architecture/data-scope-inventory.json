@@ -11,7 +11,7 @@
   ],
   "classificationCounts": {
     "device-doc": 33,
-    "regex-heuristic (review flag)": 61,
+    "regex-heuristic (review flag)": 63,
     "agent-table": 17,
     "hub-table": 30,
     "mobile-table": 8,
@@ -147,6 +147,22 @@
       "key": null,
       "heuristicScope": "local-only",
       "reviewed": "System snapshot files; local-only, unredacted system values."
+    },
+    {
+      "source": "apps/hub/src/blobs/blob-fixture.ts",
+      "line": 26,
+      "namespace": null,
+      "key": null,
+      "heuristicScope": "local-only",
+      "reviewed": "Test fixture writing bytes to a throwaway BlobStore under a temp directory; not app state."
+    },
+    {
+      "source": "apps/hub/src/provisioning/components/blob-store.ts",
+      "line": 23,
+      "namespace": null,
+      "key": null,
+      "heuristicScope": "local-only",
+      "reviewed": "Provisioning probe round-trips random bytes through a scratch BlobStore it deletes afterwards; not app state."
     },
     {
       "source": "apps/mobile/src/share/use-incoming-share.ts",
@@ -1452,6 +1468,20 @@
       "syncConsent": "not granted"
     },
     {
+      "source": "apps/hub/src/blobs/blob-fixture.ts",
+      "line": 26,
+      "operation": "store.put(Buffer.from(text))",
+      "namespace": null,
+      "key": null,
+      "storage": "store",
+      "storageLocation": "store.put(Buffer.from(text))",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "sensitive",
+      "classificationBasis": "regex-heuristic (review flag)",
+      "syncConsent": "not granted"
+    },
+    {
       "source": "apps/hub/src/db/migrations/0001-initial.ts",
       "line": 92,
       "operation": "CREATE TABLE applied_ops",
@@ -1899,6 +1929,20 @@
       "sensitivity": "non-sensitive",
       "note": "short tail of Yjs updates applied since the last compaction of a collaborative document; content, included in backups",
       "classificationBasis": "hub-table",
+      "syncConsent": "not granted"
+    },
+    {
+      "source": "apps/hub/src/provisioning/components/blob-store.ts",
+      "line": 23,
+      "operation": "store.put(bytes)",
+      "namespace": null,
+      "key": null,
+      "storage": "store",
+      "storageLocation": "store.put(bytes)",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "sensitive",
+      "classificationBasis": "regex-heuristic (review flag)",
       "syncConsent": "not granted"
     },
     {
