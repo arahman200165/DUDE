@@ -22,15 +22,19 @@ export interface BackupCommandOptions {
   destination?: string;
   label?: string;
   backupId?: string;
-  /** `destination add`: `local-folder` (default) or `s3`. */
-  kind?: 'local-folder' | 's3';
+  /** `destination add`: `local-folder` (default), `s3` or `drive` (Google Drive, Milestone 856). */
+  kind?: 'local-folder' | 's3' | 'drive';
+  /** `destination add --kind drive`: the owner's OAuth client id, the origin Google redirects to, and an existing Drive destination to reconnect. */
+  clientId?: string;
+  redirectOrigin?: string;
+  reconnect?: string;
   endpoint?: string;
   region?: string;
   bucket?: string;
   prefix?: string;
   forcePathStyle?: boolean;
   allowPrivateNetwork?: boolean;
-  /** `destination add --kind s3`: read the credentials JSON from standard input. */
+  /** `destination add --kind s3|drive`: read the credentials JSON (S3 keys, or the Drive OAuth client secret) from standard input. */
   credentialsStdin?: boolean;
   dataDir?: string;
   installDir?: string;
@@ -68,7 +72,7 @@ const WHAT: Record<BackupAction, string> = {
 };
 /** Everything that writes, reads a secret or changes the schedule needs the elevated terminal; the lists and the status only read. */
 const ELEVATED: ReadonlySet<BackupAction> = new Set(['create', 'verify', 'schedule-set', 'schedule-off', 'reactivate', 'run', 'drill', 'prune', 'rewrap', 'destination-add', 'destination-remove', 'destination-verify', 'destination-probe']);
-const TWO_STEP: Partial<Record<BackupAction, string>> = { prune: 'backup prune', rewrap: 'backup rewrap', 'destination-remove': 'backup destination remove', reactivate: 'backup reactivate' };
+const TWO_STEP: Partial<Record<BackupAction, string>> = { prune: 'backup prune', rewrap: 'backup rewrap', 'destination-remove': 'backup destination remove', reactivate: 'backup reactivate', 'destination-add': 'backup destination add --kind drive' };
 const RETIRE_WARNING = 'This Hub will be RETIRED after the backup is written and verified: it will refuse sign-in, sync and pairing until you run "dude-hub backup reactivate". Restore the backup on the new machine before you retire anything you need.';
 const RETIRED_NOTICE = 'This Hub is now retired (transferred).';
 
@@ -286,6 +290,77 @@ export async function runBackup(options: BackupCommandOptions, deps: BackupComma
         d.out(json(await d.call(dataRoot, 'backup.schedule.status', {})));
         return EXIT_OK;
       case 'destination-add': {
+        if (options.kind === 'drive') {
+          if (options.clientId === undefined) {
+            d.err('Usage: dude-hub backup destination add --kind drive --client-id <OAuth client id> [--redirect-origin <https origin>] [--reconnect <id>] [--label <text>] [--confirm <token>] --credentials-stdin.\n');
+            return EXIT_USAGE;
+          }
+          if (options.credentialsStdin !== true) {
+            d.err('The OAuth client secret is read from standard input (never an argument): pass --credentials-stdin and pipe {"clientSecret","passphrase"?}.\n');
+            return EXIT_USAGE;
+          }
+          let document: Record<string, unknown>;
+          try {
+            const raw = deps.readCredentialsDocument !== undefined
+              ? await deps.readCredentialsDocument()
+              : await readStdinDocument({ stdin: deps.stdin ?? process.stdin }, 16 * 1024, 'Google Drive credentials document');
+            const parsed: unknown = JSON.parse(raw);
+            if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) throw new Error('not an object');
+            document = parsed as Record<string, unknown>;
+          } catch (error) {
+            d.err(error instanceof Error && !(error instanceof SyntaxError) && error.message !== 'not an object' ? `${error.message}\n` : 'The Google Drive credentials document must be a JSON object: {"clientSecret","passphrase"?}.\n');
+            return EXIT_USAGE;
+          }
+          const { clientSecret, passphrase: documentPassphrase } = document;
+          if (typeof clientSecret !== 'string' || clientSecret.length === 0) {
+            d.err('The credentials document needs the OAuth client secret: {"clientSecret","passphrase"?}.\n');
+            return EXIT_USAGE;
+          }
+          const request = {
+            clientId: options.clientId, clientSecret, ...(options.label !== undefined ? { label: options.label } : {}),
+            ...(options.redirectOrigin !== undefined ? { redirectOrigin: options.redirectOrigin } : {}), ...(options.reconnect !== undefined ? { id: options.reconnect } : {}),
+          };
+          if (options.confirm === undefined) {
+            const preview = (await d.call(dataRoot, 'backup.destination.drive.connect.preview', request)) as PreviewResult;
+            d.err(genericPreviewLines('Google Drive connect preview (nothing has been changed)', preview));
+            d.out(`${JSON.stringify({ confirmToken: preview.confirmToken, expiresAt: preview.expiresAt })}\n`);
+            d.err('Nothing has been changed. Register the redirectUri in your OAuth client, then re-run the same command with --confirm <confirmToken> within 60 seconds.\n');
+            return EXIT_OK;
+          }
+          let passphrase: string | null = null;
+          if (options.reconnect === undefined) {
+            d.err(`${PASSPHRASE_WARNING}\n${MASTER_KEY_NOTE}\nThe backups are encrypted before they leave this computer; Google never sees the passphrase or a readable file.\n`);
+            if (typeof documentPassphrase === 'string' && documentPassphrase.length > 0) passphrase = documentPassphrase;
+            else if ((d.env[BACKUP_PASSPHRASE_ENV] ?? '').length > 0) passphrase = d.env[BACKUP_PASSPHRASE_ENV] as string;
+            else if (deps.readPassphrase !== undefined) passphrase = await passphraseFor('Backup passphrase (min 12 characters): ', true, true);
+            else d.err(`The passphrase is needed too: set ${BACKUP_PASSPHRASE_ENV} or add a "passphrase" field to the credentials document (standard input is used up by it).\n`);
+            if (passphrase === null) return EXIT_FAILURE;
+            const problem = validateBackupPassphrase(passphrase);
+            if (problem !== null) {
+              d.err(`${problem}\n`);
+              return EXIT_FAILURE;
+            }
+          }
+          const started = (await d.call(dataRoot, 'backup.destination.drive.connect.apply', { ...request, confirmToken: options.confirm })) as { pendingId?: unknown; authorizationUrl?: unknown; redirectUri?: unknown; expiresAt?: unknown };
+          d.err(`Open this address in a browser signed in to the Google account that should hold the backups and approve access to the Hub's own Drive folder (the drive.file scope only):\n\n  ${text(started.authorizationUrl)}\n\nGoogle redirects back to ${text(started.redirectUri)}. Waiting for your approval (until ${text(started.expiresAt)})...\n`);
+          const deadline = (typeof started.expiresAt === 'string' ? Date.parse(started.expiresAt) : d.now() + 10 * 60_000) + 5_000;
+          for (;;) {
+            const status = (await d.call(dataRoot, 'backup.destination.drive.connect.status', { pendingId: started.pendingId })) as { state?: unknown; reason?: unknown };
+            if (status.state === 'authorized') break;
+            if (status.state === 'failed') {
+              d.err(`Google Drive was not connected (${text(status.reason)}). Nothing was added; start again.\n`);
+              return EXIT_FAILURE;
+            }
+            if (status.state !== 'waiting' || d.now() > deadline) {
+              d.err('The authorization expired before it was approved. Nothing was added; start again.\n');
+              return EXIT_FAILURE;
+            }
+            await d.sleep(2_000);
+          }
+          d.err('Authorization received. Creating the Drive folder and the encrypted repository...\n');
+          d.out(json(await callAdminLong('backup.destination.drive.connect.complete', { pendingId: started.pendingId, ...(passphrase !== null ? { passphrase } : {}) })));
+          return EXIT_OK;
+        }
         if (options.kind === 's3') {
           if (options.endpoint === undefined || options.region === undefined || options.bucket === undefined) {
             d.err('Usage: dude-hub backup destination add --kind s3 --endpoint <https url> --region <region> --bucket <bucket> [--prefix <key prefix>] --credentials-stdin.\n');

@@ -178,6 +178,7 @@ describe.each(['full', 'tunnel'] as const)('route gating, %s Hub', (variant) => 
     // The two WebSocket upgrade routes are among them, and so is the OIDC callback.
     expect([...new Set(fx.routes.filter((r) => r.websocket).map((r) => r.url))].sort()).toEqual(['/api/v1/collab', '/api/v1/realtime']);
     expect([...unique]).toContain('GET /api/v1/auth/oidc/callback');
+    expect([...unique]).toContain('GET /api/v1/backup/drive/callback');
   });
 
   it('every captured route is gated (401 or 403) when probed anonymously, unless it is in the documented allowlist', async () => {
@@ -260,6 +261,13 @@ describe.each(['full', 'tunnel'] as const)('route gating, %s Hub', (variant) => 
     expect(callback.status).toBe(302);
     expect(String(callback.headers['location'])).toMatch(/^\/hub\/sign-in\?/);
     expect(callback.headers['set-cookie']).toBeUndefined();
+
+    // Google Drive backup consent callback (Milestone 856): with no connect waiting it is one plain refusal page, no cookie, nothing written.
+    const driveCallback = await get('/api/v1/backup/drive/callback');
+    expect(driveCallback.status).toBe(400);
+    expect(String(driveCallback.headers['content-type'])).toContain('text/html');
+    expect(driveCallback.headers['set-cookie']).toBeUndefined();
+    expect(driveCallback.body).not.toMatch(/owner|session|csrf|token/i);
 
     // Device routes: an unknown device gets the same well-formed, never-stored nonce as a known one (so ids cannot be enumerated), and that is the
     // only success; a missing pairing code or key proof is a client error, never a token.

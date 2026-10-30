@@ -1,6 +1,6 @@
 # Phase 32-SS1 implementation and acceptance evidence
 
-**Status: implementation complete (Milestones 829–855, closed 2026-10-30); live passes owed.** The Hub platform for SaveSphere is built and its automated exit gate is recorded below. Every pass that needs a real Cloudflare tunnel, a real Google account, a real Windows service, a second machine, a phone or a browser is **owed**: none has been run, and none is claimed. As with 31E–31J, SS1 is declared complete with those passes owed ([PD-154](PHASE32SS1_PLAN.md)), and **32-SS2 is not gated on them**. Google Drive and OneDrive destinations (Milestones 856–857) are not built; they are next and may slip to a named follow-up without reopening this gate ([PD-150](PHASE32SS1_PLAN.md)). Milestone 855 is documentation only: it ran no unit suite, and the consolidated final-gate row below is left for the commit that runs it.
+**Status: implementation complete (Milestones 829–855, closed 2026-10-30); live passes owed.** The Hub platform for SaveSphere is built and its automated exit gate is recorded below. Every pass that needs a real Cloudflare tunnel, a real Google account, a real Windows service, a second machine, a phone or a browser is **owed**: none has been run, and none is claimed. As with 31E–31J, SS1 is declared complete with those passes owed ([PD-154](PHASE32SS1_PLAN.md)), and **32-SS2 is not gated on them**. The Google Drive destination (Milestone 856) was built after this record was closed and adds the may-slip pass S19; OneDrive (Milestone 857) is not built, is next and may slip to a named follow-up without reopening this gate ([PD-150](PHASE32SS1_PLAN.md)). Milestone 855 is documentation only: it ran no unit suite, and the consolidated final-gate row below is left for the commit that runs it.
 
 The decisions are [PD-141–PD-154](PHASE32SS1_PLAN.md), the as-built record is the [SS1 as-built summary](PHASE32SS1_PLAN.md#ss1-as-built-summary), and the per-milestone deviations are in [Deviations and implementation notes](PHASE32SS1_PLAN.md#deviations-and-implementation-notes). The Hub still has one owner and one environment (PD-027).
 
@@ -20,7 +20,8 @@ The decisions are [PD-141–PD-154](PHASE32SS1_PLAN.md), the as-built record is 
 | 851–853 | Power policy; Hub-web Platform status; desktop provisioning wizard |
 | 854 | Exit suites: `70-platform`, the over-512 MiB run, MinIO, the extended Docker smoke |
 | 855 | As-built documentation and this script |
-| 856–857 | Google Drive and OneDrive: not built (may slip) |
+| 856 | Google Drive destination (the narrow `drive.file` consent, resumable uploads, a fake Drive in the Hub vitest project; the real-Drive pass is S19, may slip) |
+| 857 | OneDrive: not built (may slip) |
 
 ## Automated exit gate evidence
 
@@ -353,6 +354,27 @@ Expect `success` for each of: `hub-s3` (MinIO as a service container, `DUDE_TEST
 
 **Result: Pending.**
 
+### S19. Google Drive destination (may-slip: Milestone 856; Drive then OneDrive are the last two SS1 milestones and may carry to a named follow-up)
+
+Sources: Milestone 856. Needs a Google account and a Google Cloud project you own. The passphrase and the client secret never go on a command line. **May slip:** a blocking S11 needs one local and one real S3 provider only; this pass is the evidence for the Google Drive destination and carries to a named follow-up if it is not run before 32-SS2 relies on offsite backups.
+
+1. In Google Cloud Console, in a project you own: enable the **Google Drive API**; configure the OAuth consent screen and **publish it to Production** (a client in Testing issues refresh tokens that expire after seven days, which the Hub reports as `reauth`; record whether you tried it); create an OAuth client of type **Web application** and add the authorized redirect URI `https://notes.example.com/api/v1/backup/drive/callback` (your Hub's public origin, the tunnel domain from S3). Note the client id and secret.
+2. Step one, the preview (nothing is changed or contacted): `'{"clientSecret":"<secret>"}' | dude-hub backup destination add --kind drive --client-id <id> --redirect-origin https://notes.example.com --label "Google Drive" --credentials-stdin`. Expect a preview naming the scope `https://www.googleapis.com/auth/drive.file`, the redirect URI you registered, the consequence `secret-management, remote-write`, and a token on standard output. Confirm `dude-hub backup destination list` still shows no Drive destination.
+3. Step two: set `$env:DUDE_HUB_BACKUP_PASSPHRASE = "<the same passphrase as the other destinations>"` and re-run the same command with `--confirm <token>` within 60 seconds. Expect a consent URL on standard error and "Waiting for your approval". Open it in a browser signed in to the Google account that should hold the backups. Expect Google to ask for access to **only** files the app creates ("See, edit, create and delete only the specific Google Drive files you use with this app"), never "all your Drive files". Approve. Expect the page "Google Drive authorized", the CLI to print "Authorization received" and then the new destination as JSON. In Google Drive expect one new folder `DUDE Hub backups` holding a file `repo`, and **nothing else changed** in your Drive. In `https://myaccount.google.com/permissions` expect the app listed with the narrow access.
+4. Open the same consent URL again after it was used (or a second time in another tab): expect the page "Google Drive was not connected" (a replay), the Hub audit log to show no new row for it, and nothing added. Start a connect and press Cancel at Google: expect the CLI to exit with `declined`, nothing added, and an audit row `backup.drive-authorized` (failure, reason `declined`).
+5. `dude-hub backup run`: expect Drive to complete and verify on write. A first backup larger than 8 MiB uploads in chunks: while it runs, disconnect the network for 30 seconds and reconnect (or throttle the link): expect the run to resume and finish, not restart. Then `dude-hub backup destination verify --id <id>`, `dude-hub backup destination probe --id <id>` (expect `authorized`, `folder`, `write`, `read`, `delete` all true and the storage used and limit of the account), `dude-hub backup drill` (expect `passed`; the drill downloads every pack, so note the time and the API quota used).
+6. In the Drive web UI open `DUDE Hub backups`: expect files named `repo`, `packs/<32 hex>` and `manifests/<stamp>-<32 hex>`, each a binary with no readable content. Confirm the Hub never touched any other folder (the app can only see what it created).
+7. Retention: run `dude-hub backup run` three times in one day, then `dude-hub backup prune --destination <id>` and confirm with `--confirm <token>`. Expect the older same-day manifests and unreferenced packs to be **permanently deleted** (not in the Drive trash) and the newest backup to verify.
+8. Revocation: at `https://myaccount.google.com/permissions` remove the app. Run `dude-hub backup run`: expect the run for this destination to fail with the code `reauth` and a plain message, a **backup failed** notification in the Hub bell naming `reauth` (no token, no path), and `dude-hub backup destination list` showing the last error. Reconnect without a new destination or passphrase: `'{"clientSecret":"<secret>"}' | dude-hub backup destination add --kind drive --client-id <id> --redirect-origin https://notes.example.com --reconnect <id> --credentials-stdin` (two steps), then `dude-hub backup run`: expect success, the same folder, and a **recovered** notification.
+9. A full Drive: fill the account's storage (or use an account near its limit) and run: expect the code `quota`, nothing half-written left in the folder (a failed run removes its own uncommitted objects), and the notification.
+10. Second-machine restore: copy the folder's objects (`repo`, `packs/*`, `manifests/*`) to a local folder keeping those names (download them from Drive), then `dude-hub backup restore --folder <that folder>` on the second machine (S12). On the restored Hub expect the Drive destination to be listed but `unavailable` ("connect it again") and the provisioning status to flag the missing secret, until step 8's reconnect command is run with the same client; expect the reconnect to find the recorded folder only if the same Google account and OAuth client are used.
+11. Disconnect: `dude-hub backup destination remove --id <id>`: expect the preview to name the classes `system-config, secret-management, remote-write` and that the backups are not deleted; confirm with `--confirm <token>`. Expect the app gone from `https://myaccount.google.com/permissions` (revoked) and the `DUDE Hub backups` folder and its files still in Drive. With the network down, repeat on a second connect: expect `revokedAtGoogle: false` and instructions to remove the app at the Google page.
+12. Confirm the secrets stay secret: `Select-String -Path "$env:ProgramData\DUDE\Hub\config\hub.json" -Pattern "<secret>|1//"` finds nothing (only the client id and folder id are there); `%ProgramData%\DUDE\Hub\config\secrets\backup.drive.refreshToken.dpapi` exists and is not readable text; the Hub log and the audit view (Settings > Security) show no secret, token or consent URL.
+
+**Pass criterion:** the consent asks only for `drive.file`; a replayed or declined callback changes nothing; a run uploads and resumes, verifies and drills; prune deletes only after confirmation; a revoked consent is reported as `reauth`, notified and recoverable by reconnect without losing the folder; a full Drive is reported as `quota`; disconnect revokes and never deletes the backups; no secret reaches `hub.json`, a log, the audit trail or the bell. Record: Google account type (personal or Workspace), consent screen status (Testing or Production), the redirect origin, timings and sizes, the chunk behaviour under a network drop, the Drive API quota used by a drill, and every notification timestamp.
+
+**Result: Pending.**
+
 ## Owed items collected from the milestone entries
 
 Nothing is dropped: each owed item of each [plan entry](PHASE32SS1_PLAN.md#deviations-and-implementation-notes) is listed with its source and the pass or follow-up that carries it. "Done later" means a later milestone resolved it (cited).
@@ -385,7 +407,8 @@ Nothing is dropped: each owed item of each [plan entry](PHASE32SS1_PLAN.md#devia
 | 854 | First green CI runs of `hub-s3`, `backup-scale`, the extended `docker-smoke` and Linux `70-platform`; an elevated `check:hub-service`; throughput on a slower runner | S17, S1.4 |
 | 854 | A real Cloudflare tunnel, real Google sign-in, direct Public mode, a second-machine restore and a standby promotion | S3, S6, S8, S12, S13 |
 | 855 | The blob garbage collector has no owner-reachable command | Not runnable; wiring it is a later decision (recorded in the limits) |
-| 856, 857 | Google Drive and OneDrive destinations and the acceptance amendment | Not built; may slip to a named follow-up (PD-150) |
+| 856 | Real Google Drive: the OAuth client and consent screen (Testing versus Production token expiry), connect and the callback through the tunnel domain, a chunked run with a network drop, verify, drill and its API quota, prune, revocation and reconnect, a full Drive, a second-machine restore, disconnect; the 256 KiB acknowledgement granularity on a resumed chunk; the wizard step (not built) | S19 (may slip) |
+| 857 | OneDrive destination and the acceptance amendment | Not built; may slip to a named follow-up (PD-150) |
 
 ## Results
 
@@ -411,6 +434,7 @@ Fill one row per pass in the commit that runs it.
 | S16 Docker parity | May slip (CI runs it) | Pending | | | | |
 | S17 First green CI runs | Yes | Pending | | | | |
 | S18 Vector availability | Yes (with S1) | Pending | | | | |
+| S19 Google Drive destination | May slip | Pending | | | | |
 | Final consolidated automated gate | Yes | Pending | | | | |
 
 **Closing rule.** The owed passes do not gate 32-SS2. A Fail is a defect against Phase 32-SS1 and is fixed as maintenance; a skipped pass stays Pending here, and results are recorded in the commit that runs them. A Blocking pass still Pending when 32-SS5 closes must be run or explicitly waived by a dated decision before the SaveSphere first-release checklist is ticked.

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Value } from 'typebox/value';
 import { HUB_AUDIT_EVENTS } from './audit.js';
-import { BACKUP_V2_RETENTION_DEFAULT, BackupStatusResponse } from './backup.schema.js';
+import { BACKUP_DRIVE_CONNECT_ACTION, BACKUP_DRIVE_CONNECT_CONSEQUENCE_CLASS, BACKUP_DRIVE_SCOPE, BACKUP_V2_RETENTION_DEFAULT, BackupStatusResponse, HUB_BACKUP_DRIVE_PATHS } from './backup.schema.js';
 
 describe('BackupStatusResponse', () => {
   const base = { authority: { epoch: 1, state: 'active' }, lastBackup: null, schedule: { configured: false }, defaultFolder: 'C:\\Hub\\backups', devicesNeedingRePair: 0 };
@@ -23,7 +23,7 @@ describe('BackupStatusResponse', () => {
     const { label: _label, ...unlabelled } = destination;
     expect(Value.Check(BackupStatusResponse, { ...base, destinations: [unlabelled] })).toBe(false);
     expect(BACKUP_V2_RETENTION_DEFAULT).toEqual({ daily: 7, weekly: 4, monthly: 6 });
-    for (const event of ['backup.v2-created', 'backup.v2-failed', 'backup.v2-verified', 'backup.v2-pruned', 'backup.destination-added', 'backup.destination-removed', 'backup.rewrapped', 'backup.drill-passed', 'backup.drill-failed']) {
+    for (const event of ['backup.v2-created', 'backup.v2-failed', 'backup.v2-verified', 'backup.v2-pruned', 'backup.destination-added', 'backup.destination-removed', 'backup.drive-authorized', 'backup.rewrapped', 'backup.drill-passed', 'backup.drill-failed']) {
       expect(HUB_AUDIT_EVENTS).toContain(event);
     }
   });
@@ -48,5 +48,21 @@ describe('BackupStatusResponse', () => {
     expect(Value.Check(BackupStatusResponse, { ...base, devicesNeedingRePair: -1 })).toBe(false);
     const { defaultFolder: _omitted, ...missing } = base;
     expect(Value.Check(BackupStatusResponse, missing)).toBe(false);
+  });
+});
+
+describe('the Google Drive backup destination contract (Milestone 856)', () => {
+  it('names one callback route under the backup namespace, asks only for the drive.file scope and tags the connect action', () => {
+    expect(HUB_BACKUP_DRIVE_PATHS).toEqual({ callback: '/api/v1/backup/drive/callback' });
+    expect(BACKUP_DRIVE_SCOPE).toBe('https://www.googleapis.com/auth/drive.file');
+    expect(BACKUP_DRIVE_CONNECT_ACTION).toBe('backup.destination.drive.connect');
+    expect([...BACKUP_DRIVE_CONNECT_CONSEQUENCE_CLASS]).toEqual(['secret-management', 'remote-write']);
+    expect(HUB_AUDIT_EVENTS).toContain('backup.drive-authorized');
+  });
+
+  it('reports a Drive destination in the status read model by its kind string, like any other', () => {
+    const base = { authority: { epoch: 1, state: 'active' }, lastBackup: null, schedule: { configured: false }, defaultFolder: 'C:\Hub\backups', devicesNeedingRePair: 0 };
+    const destination = { id: 'd-1a2b3c4d', kind: 'drive', label: 'My Drive', lastSuccessAt: null, lastBackupId: null, lastError: 'reauth', lastErrorAt: '2026-10-30T00:00:00.000Z', lastVerifiedAt: null, repoBytes: null, nextDueAt: null };
+    expect(Value.Check(BackupStatusResponse, { ...base, destinations: [destination] })).toBe(true);
   });
 });

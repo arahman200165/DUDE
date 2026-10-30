@@ -62,6 +62,7 @@ import { createProvisioningService } from '../provisioning/service.js';
 import { createTunnelRuntime } from '../tunnel/tunnel-runtime.js';
 import { createOidcSecretSource } from '../secrets/oidc-source.js';
 import { createClientSecretReader } from '../auth/oidc/client-secret.js';
+import { createDriveAuthorizations } from '../hub/drive-authorization.js';
 import type { OidcStatus } from '../auth/oidc/client.js';
 import { runRestore } from '../service/restore.js';
 import { HELP_TEXT, UsageError, parseArgs } from './args.js';
@@ -201,6 +202,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
       ...(parsed.everyHours !== undefined ? { everyHours: parsed.everyHours } : {}), ...(parsed.keep !== undefined ? { keep: parsed.keep } : {}),
       ...(parsed.destination !== undefined ? { destination: parsed.destination } : {}), ...(parsed.label !== undefined ? { label: parsed.label } : {}),
       ...(parsed.backupId !== undefined ? { backupId: parsed.backupId } : {}),
+      ...(parsed.clientId !== undefined ? { clientId: parsed.clientId } : {}), ...(parsed.redirectOrigin !== undefined ? { redirectOrigin: parsed.redirectOrigin } : {}), ...(parsed.reconnect !== undefined ? { reconnect: parsed.reconnect } : {}),
       ...(parsed.kind !== undefined ? { kind: parsed.kind } : {}), ...(parsed.endpoint !== undefined ? { endpoint: parsed.endpoint } : {}), ...(parsed.region !== undefined ? { region: parsed.region } : {}),
       ...(parsed.bucket !== undefined ? { bucket: parsed.bucket } : {}), ...(parsed.prefix !== undefined ? { prefix: parsed.prefix } : {}),
       ...(parsed.forcePathStyle !== undefined ? { forcePathStyle: parsed.forcePathStyle } : {}), ...(parsed.allowPrivateNetwork ? { allowPrivateNetwork: true } : {}),
@@ -299,6 +301,8 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   // 32-SS1 Google sign-in (Milestone 842): the client secret lives only in the machine-bound store; the client is built inside the server, and the
   // provisioning component reads its last known reachability through this late-bound getter.
   const oidcSecret = createOidcSecretSource(paths);
+  // 32-SS1 Google Drive backup consent (Milestone 856): the one in-memory pending authorization the admin pipe's connect methods and the callback route share.
+  const driveAuthorizations = createDriveAuthorizations();
   let oidcStatus: (() => OidcStatus) | undefined;
   // 32-SS1 power policy (Milestone 851): built after the server (it needs the job registry); the provisioning `power` component reads its last check through this late-bound getter.
   let powerPolicy: PowerPolicy | undefined;
@@ -343,6 +347,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     ...(queueRuntime ? { uploads: { service: queueRuntime.uploads } } : {}),
     provisioning: { status: () => provisioning.status() },
     tunnel: { status: () => tunnelRuntime.status(), facts: (candidate) => tunnelRuntime.facts(candidate) },
+    driveAuthorizations,
     oidc: { readClientSecret: createClientSecretReader(oidcSecret), clientSecretPresent: () => oidcSecret.present(), ...(testOidcIdpUrl !== undefined ? { fetch: createForwardingFetch(testOidcIdpUrl) } : {}) },
     logger: hubLoggerOptions(logStream),
     ...testServerOverrides,
@@ -387,6 +392,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
         tunnel: tunnelRuntime,
         power,
         oidc: { putClientSecret: (secret) => oidcSecret.put('oidc.clientSecret', secret) },
+        driveAuth: driveAuthorizations,
         onProvisioned: () => provisioning.invalidate(),
         tls: createTlsRotation({
           db: hub.db, tlsDir: paths.tlsDir, hubInstanceId: hub.hubInstanceId, caProtector,

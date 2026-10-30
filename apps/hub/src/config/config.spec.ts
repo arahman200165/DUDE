@@ -158,6 +158,29 @@ describe('hub config', () => {
     expect(applyBackupConfigChange(scheduled, { schedule: null, destinations: [] }).backup).toBeUndefined();
   });
 
+  it('a Google Drive destination (Milestone 856) keeps only a folder id and the public client id, and no secret key or foreign field is accepted', () => {
+    const drive = { id: 'd-1a2b3c4d', kind: 'drive', label: 'My Drive', folderId: '1AbCdEfGhIjKlMnOpQrStUvWxYz012345', clientId: '123456-abc.apps.googleusercontent.com' };
+    const parsed = parseHubConfig({ backup: { destinations: [drive] } });
+    expect(parsed.backup).toEqual({ destinations: [drive] });
+    const bad = (value: Record<string, unknown>) => () => parseHubConfig({ backup: { destinations: [{ ...drive, ...value }] } });
+    expect(bad({ folderId: undefined })).toThrow(/folderId/);
+    expect(bad({ folderId: 'short' })).toThrow(/folderId/);
+    expect(bad({ folderId: 'has/slash/in/it/0123456789' })).toThrow(/folderId/);
+    expect(bad({ clientId: undefined })).toThrow(/clientId/);
+    expect(bad({ clientId: 'has space' })).toThrow(/clientId/);
+    expect(bad({ clientId: 'x'.repeat(257) })).toThrow(/clientId/);
+    expect(bad({ folder: path.resolve(tmp(), 'repo') })).toThrow(/folder is not allowed on a drive destination/);
+    for (const key of ['endpoint', 'region', 'bucket', 'prefix', 'forcePathStyle', 'allowPrivateNetwork']) expect(bad({ [key]: 'x' }), key).toThrow(/not allowed on a drive destination/);
+    for (const key of ['clientSecret', 'refreshToken', 'accessToken', 'token', 'password']) expect(bad({ [key]: 'x' }), key).toThrow(new RegExp(`unknown key "${key}"`));
+    // The other kinds refuse the Drive fields, and the kind list names all three.
+    const folder = path.resolve(tmp(), 'repo');
+    expect(() => parseHubConfig({ backup: { destinations: [{ id: 'd-1', kind: 'local-folder', label: 'x', folder, folderId: drive.folderId }] } })).toThrow(/folderId is not allowed on a local-folder destination/);
+    expect(() => parseHubConfig({ backup: { destinations: [{ id: 'd-1', kind: 's3', label: 'x', endpoint: 'https://s3.example.com', region: 'us-east-1', bucket: 'my-backups', clientId: 'x' }] } })).toThrow(/clientId is not allowed on an s3 destination/);
+    expect(() => parseHubConfig({ backup: { destinations: [{ ...drive, kind: 'onedrive' }] } })).toThrow(/"local-folder", "s3" or "drive"/);
+    const applied = applyBackupConfigChange(parseHubConfig({}), { destinations: [drive as never] });
+    expect(applied.backup).toEqual({ destinations: [drive] });
+  });
+
   it('maps bind modes to addresses', () => {
     expect(bindAddress({ bind: 'loopback' })).toBe('127.0.0.1');
     expect(bindAddress({ bind: 'lan' })).toBe('0.0.0.0');

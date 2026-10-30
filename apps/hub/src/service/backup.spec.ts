@@ -14,10 +14,11 @@ const FILE = path.join(FOLDER, 'dude-hub-20260101T000000Z.dudebackup');
 interface Call { method: string; params: Record<string, unknown>; timeoutMs: number | undefined }
 
 /** A Hub that answers `status` and the backup methods with canned results (or throws what `fail` returns). */
-function harness(initial: Parameters<typeof fixture>[0] = {}, extra: Partial<BackupCommandDeps> & { fail?: (method: string) => Error | undefined; env?: Record<string, string | undefined>; probe?: Record<string, unknown> } = {}) {
+function harness(initial: Parameters<typeof fixture>[0] = {}, extra: Partial<BackupCommandDeps> & { fail?: (method: string) => Error | undefined; env?: Record<string, string | undefined>; probe?: Record<string, unknown>; driveStatuses?: Array<Record<string, unknown>>; driveExpiresAt?: string } = {}) {
   const f = fixture(initial);
   const calls: Call[] = [];
-  const { fail, env, probe, ...rest } = extra;
+  const { fail, env, probe, driveStatuses, driveExpiresAt, ...rest } = extra;
+  const statuses = [...(driveStatuses ?? [{ state: 'authorized' }])];
   const deps: BackupCommandDeps = {
     ...f.deps,
     ...(env !== undefined ? { env: { ...f.deps.env, ...env } } : {}),
@@ -43,6 +44,12 @@ function harness(initial: Parameters<typeof fixture>[0] = {}, extra: Partial<Bac
         case 'backup.schedule.set': return { configured: true, folder: FOLDER, intervalHours: 24, retention: 7, replaced: false };
         case 'backup.schedule.off': return { configured: false, wasConfigured: true };
         case 'backup.destination.add': return { added: true, adopted: false, destination: { id: 'd-1', kind: (params as { kind?: string }).kind } };
+        case 'backup.destination.drive.connect.preview':
+          return { confirmToken: 'dtok-1', expiresAt: 1_700_000_060_000, consequenceClass: ['secret-management', 'remote-write'], summary: { provider: 'Google Drive', scope: 'https://www.googleapis.com/auth/drive.file', redirectUri: 'https://hub.example.com/api/v1/backup/drive/callback', note: 'Encrypted backups will be copied to your Google account.' } };
+        case 'backup.destination.drive.connect.apply':
+          return { pendingId: 'p'.repeat(32), authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth?state=STATE123', redirectUri: 'https://hub.example.com/api/v1/backup/drive/callback', expiresAt: driveExpiresAt ?? new Date(600_000).toISOString() };
+        case 'backup.destination.drive.connect.status': return statuses.length > 1 ? statuses.shift()! : statuses[0]!;
+        case 'backup.destination.drive.connect.complete': return { added: true, adopted: false, destination: { id: 'd-1', kind: 'drive' } };
         case 'backup.destination.probe': return probe ?? { id: 'd-1', kind: 's3', ok: true, conditionalWrites: 'enforced' };
         case 'backup.schedule.status': return { configured: true, folder: FOLDER, intervalHours: 24, retention: 7, last: null, keyPresent: true };
         default: throw new Error(`unexpected ${method}`);
@@ -453,5 +460,91 @@ describe('backup destination add --kind s3 and probe (Milestone 848)', () => {
     const refused = harness({}, { fail: (m) => (m === 'backup.destination.probe' ? new AdminCallError('not-found', 'Unknown backup destination.') : undefined) });
     expect(await refused.run({ action: 'destination-probe', destination: 'nope' })).toBe(1);
     expect(refused.f.err.join('')).toContain('Unknown backup destination.');
+  });
+});
+
+describe('backup destination add --kind drive (Milestone 856)', () => {
+  const SECRET = 'GOCSPX-example-client-secret-0123';
+  const DRIVE = { action: 'destination-add', kind: 'drive', clientId: 'abc.apps.googleusercontent.com', credentialsStdin: true } as const;
+  const document = (extra: Record<string, unknown> = {}): string => JSON.stringify({ clientSecret: SECRET, ...extra });
+
+  it('step one only previews: the token on stdout, the summary on stderr, the secret only in the admin call, and nothing is started', async () => {
+    const h = harness({}, { readCredentialsDocument: async () => document() });
+    expect(await h.run({ ...DRIVE, redirectOrigin: 'https://hub.example.com', label: 'My Drive' })).toBe(0);
+    expect(h.backupCalls()).toEqual([{
+      method: 'backup.destination.drive.connect.preview', timeoutMs: undefined,
+      params: { clientId: 'abc.apps.googleusercontent.com', clientSecret: SECRET, label: 'My Drive', redirectOrigin: 'https://hub.example.com' },
+    }]);
+    expect(JSON.parse(h.f.out.join(''))).toEqual({ confirmToken: 'dtok-1', expiresAt: 1_700_000_060_000 });
+    const err = h.f.err.join('');
+    expect(err).toContain('Google Drive connect preview (nothing has been changed)');
+    expect(err).toContain('drive.file');
+    expect(err).toContain('consequence: secret-management, remote-write');
+    expect(err).toMatch(/--confirm <confirmToken> within 60 seconds/);
+    expect(h.output()).not.toContain(SECRET);
+  });
+
+  it('step two spends the token, prints the consent URL, waits for the approval, then adds the destination with the passphrase', async () => {
+    const h = harness({}, { ...withEnv, readCredentialsDocument: async () => document(), driveStatuses: [{ state: 'waiting' }, { state: 'waiting' }, { state: 'authorized' }] });
+    expect(await h.run({ ...DRIVE, confirm: 'dtok-1', label: 'My Drive' })).toBe(0);
+    expect(h.backupCalls().map((c) => c.method)).toEqual([
+      'backup.destination.drive.connect.apply', 'backup.destination.drive.connect.status', 'backup.destination.drive.connect.status', 'backup.destination.drive.connect.status', 'backup.destination.drive.connect.complete',
+    ]);
+    expect(h.backupCalls()[0]!.params).toEqual({ clientId: 'abc.apps.googleusercontent.com', clientSecret: SECRET, label: 'My Drive', confirmToken: 'dtok-1' });
+    expect(h.backupCalls()[1]!.params).toEqual({ pendingId: 'p'.repeat(32) });
+    expect(h.backupCalls()[4]).toEqual({ method: 'backup.destination.drive.connect.complete', params: { pendingId: 'p'.repeat(32), passphrase: PASSPHRASE }, timeoutMs: 10 * 60 * 1000 });
+    const err = h.f.err.join('');
+    expect(err).toContain('https://accounts.google.com/o/oauth2/v2/auth?state=STATE123');
+    expect(err).toContain('the drive.file scope only');
+    expect(err).toContain('Losing the passphrase makes the backup unrecoverable.');
+    expect(JSON.parse(h.f.out.join(''))).toEqual({ added: true, adopted: false, destination: { id: 'd-1', kind: 'drive' } });
+    for (const secret of [SECRET, PASSPHRASE]) expect(h.output(), secret).not.toContain(secret);
+  });
+
+  it('takes the passphrase from the document, refuses a short one before starting anything, and needs none to reconnect', async () => {
+    const fromDocument = harness({}, { readCredentialsDocument: async () => document({ passphrase: PASSPHRASE }) });
+    expect(await fromDocument.run({ ...DRIVE, confirm: 't' })).toBe(0);
+    expect(fromDocument.backupCalls().at(-1)!.params).toEqual({ pendingId: 'p'.repeat(32), passphrase: PASSPHRASE });
+    const short = harness({}, { readCredentialsDocument: async () => document({ passphrase: 'short' }) });
+    expect(await short.run({ ...DRIVE, confirm: 't' })).toBe(1);
+    expect(short.backupCalls()).toEqual([]);
+    const missing = harness({}, { readCredentialsDocument: async () => document() });
+    expect(await missing.run({ ...DRIVE, confirm: 't' })).toBe(1);
+    expect(missing.backupCalls()).toEqual([]);
+    const reconnect = harness({}, { readCredentialsDocument: async () => document() });
+    expect(await reconnect.run({ ...DRIVE, confirm: 't', reconnect: 'd-1a2b3c4d' })).toBe(0);
+    expect(reconnect.backupCalls()[0]!.params).toMatchObject({ id: 'd-1a2b3c4d' });
+    expect(reconnect.backupCalls().at(-1)!.params).toEqual({ pendingId: 'p'.repeat(32) });
+  });
+
+  it('exits non-zero without adding anything when the owner declined, the authorization failed or expired, or approval never came', async () => {
+    for (const statuses of [[{ state: 'failed', reason: 'declined' }], [{ state: 'expired' }], [{ state: 'unknown' }]]) {
+      const h = harness({}, { ...withEnv, readCredentialsDocument: async () => document(), driveStatuses: statuses });
+      expect(await h.run({ ...DRIVE, confirm: 't' })).toBe(1);
+      expect(h.backupCalls().some((c) => c.method === 'backup.destination.drive.connect.complete')).toBe(false);
+    }
+    const declined = harness({}, { ...withEnv, readCredentialsDocument: async () => document(), driveStatuses: [{ state: 'failed', reason: 'declined' }] });
+    await declined.run({ ...DRIVE, confirm: 't' });
+    expect(declined.f.err.join('')).toContain('(declined)');
+    const never = harness({}, { ...withEnv, readCredentialsDocument: async () => document(), driveStatuses: [{ state: 'waiting' }], driveExpiresAt: new Date(3_000).toISOString() });
+    expect(await never.run({ ...DRIVE, confirm: 't' })).toBe(1);
+    expect(never.f.err.join('')).toContain('expired before it was approved');
+  });
+
+  it('is a usage error without the client id, the standard-input switch or a client secret in the document', async () => {
+    const h = harness({}, { readCredentialsDocument: async () => document() });
+    expect(await h.run({ action: 'destination-add', kind: 'drive', credentialsStdin: true })).toBe(2);
+    expect(await h.run({ action: 'destination-add', kind: 'drive', clientId: 'abc' })).toBe(2);
+    const noSecret = harness({}, { readCredentialsDocument: async () => JSON.stringify({ passphrase: PASSPHRASE }) });
+    expect(await noSecret.run({ ...DRIVE })).toBe(2);
+    const notJson = harness({}, { readCredentialsDocument: async () => 'not json' });
+    expect(await notJson.run({ ...DRIVE })).toBe(2);
+    expect(h.backupCalls()).toEqual([]);
+  });
+
+  it('reports a spent or expired confirmation with the command to run again', async () => {
+    const h = harness({}, { ...withEnv, readCredentialsDocument: async () => document(), fail: (m) => (m === 'backup.destination.drive.connect.apply' ? new AdminCallError('confirmation-required', 'x') : undefined) });
+    expect(await h.run({ ...DRIVE, confirm: 'old' })).toBe(1);
+    expect(h.f.err.join('')).toContain('backup destination add --kind drive');
   });
 });

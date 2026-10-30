@@ -10,15 +10,45 @@ const CROSS_NAV = { 'sec-fetch-site': 'cross-site', 'sec-fetch-mode': 'navigate'
 const QUERY = '?code=4%2F0AbCdEf&state=abc';
 
 describe('the allowlist constant', () => {
-  it('names exactly one cross-site GET: the OIDC callback, GET only, behind the oidc feature', () => {
-    expect(CROSS_SITE_GET_ALLOWLIST).toHaveLength(1);
+  it('names exactly two cross-site GETs: the OIDC callback and the Google Drive backup callback (Milestone 856), GET only, each behind its feature', () => {
+    expect(CROSS_SITE_GET_ALLOWLIST).toHaveLength(2);
     expect(CROSS_SITE_GET_ALLOWLIST[0]).toMatchObject({ method: 'GET', path: CALLBACK, requires: 'oidc' });
+    expect(CROSS_SITE_GET_ALLOWLIST[1]).toMatchObject({ method: 'GET', path: '/api/v1/backup/drive/callback', requires: 'drive' });
     expect(OIDC_CALLBACK_PATH).toBe(CALLBACK);
     expect(CROSS_SITE_GET_ALLOWLIST[0]!.queryParams).toEqual(expect.arrayContaining(['code', 'state', 'error', 'error_description']));
   });
 
   it('lists no cookie, session or credential-looking parameter', () => {
-    for (const name of CROSS_SITE_GET_ALLOWLIST[0]!.queryParams) expect(name).not.toMatch(/session|cookie|token|csrf|key|auth(?!user)|bearer|password/i);
+    for (const entry of CROSS_SITE_GET_ALLOWLIST) for (const name of entry.queryParams) expect(name).not.toMatch(/session|cookie|token|csrf|key|auth(?!user)|bearer|password/i);
+  });
+});
+
+describe('the Google Drive backup callback exemption (Milestone 856)', () => {
+  const DRIVE_CALLBACK = '/api/v1/backup/drive/callback';
+  const decide = (over: { method?: string; url?: string; headers?: Record<string, string>; drive?: boolean; oidc?: boolean } = {}) =>
+    evaluateCrossSiteGet({ method: over.method ?? 'GET', url: over.url ?? `${DRIVE_CALLBACK}${QUERY}`, headers: over.headers ?? CROSS_NAV, features: { oidc: over.oidc ?? false, drive: over.drive ?? true } });
+
+  it('admits the callback navigation only while a connect waits, strips credentials, and does not depend on OIDC', () => {
+    expect(decide()).toEqual({ action: 'allow-credentialless' });
+    expect(decide({ oidc: true })).toEqual({ action: 'allow-credentialless' });
+    expect(decide({ drive: false })).toMatchObject({ action: 'refuse', status: 403 });
+    expect(evaluateCrossSiteGet({ method: 'GET', url: `${DRIVE_CALLBACK}${QUERY}`, headers: CROSS_NAV, features: { oidc: true } })).toMatchObject({ action: 'refuse', status: 403 });
+    // The OIDC callback is not exempted by it, and the feature flags are independent.
+    expect(decide({ url: `${CALLBACK}${QUERY}` })).toMatchObject({ action: 'refuse', status: 403 });
+    expect(decide({ drive: false, oidc: true, url: `${CALLBACK}${QUERY}` })).toEqual({ action: 'allow-credentialless' });
+  });
+
+  it('is exactly this path and GET: no variants, no other method, only a document navigation, only the named parameters', () => {
+    for (const url of ['/api/v1/backup/drive', '/api/v1/backup/drive/', `${DRIVE_CALLBACK}/`, `${DRIVE_CALLBACK}x`, `${DRIVE_CALLBACK}/x`, '/api/v1/backup/status', '/api/v1/backup/drive/connect', '/api//v1/backup/drive/callback']) {
+      expect([url, decide({ url })]).toEqual([url, { action: 'refuse', status: 403, message: 'Cross-site requests are not allowed.' }]);
+    }
+    expect(decide({ method: 'POST' })).toEqual({ action: 'pass' });
+    expect(decide({ method: 'HEAD' })).toMatchObject({ action: 'refuse', status: 403 });
+    expect(decide({ headers: { ...CROSS_NAV, 'sec-fetch-mode': 'cors' } })).toMatchObject({ action: 'refuse', status: 403 });
+    expect(decide({ headers: { ...CROSS_NAV, 'sec-fetch-dest': 'iframe' } })).toMatchObject({ action: 'refuse', status: 403 });
+    for (const bad of ['?session=abc', '?code=c&code=d', '?access_token=t', '?return_to=/x']) expect(decide({ url: `${DRIVE_CALLBACK}${bad}` })).toMatchObject({ action: 'refuse', status: 400 });
+    expect(decide({ url: `${DRIVE_CALLBACK}?code=c&state=s&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive.file&authuser=0&prompt=consent` }).action).toBe('allow-credentialless');
+    expect(decide({ headers: { ...CROSS_NAV, 'content-length': '5' } })).toMatchObject({ action: 'refuse', status: 400 });
   });
 });
 

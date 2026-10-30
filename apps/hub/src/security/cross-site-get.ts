@@ -1,3 +1,4 @@
+import { HUB_BACKUP_DRIVE_PATHS } from '@dude/contracts/hub';
 import { OIDC_CALLBACK_PATH } from '../auth/oidc/constants.js';
 
 /**
@@ -6,12 +7,13 @@ import { OIDC_CALLBACK_PATH } from '../auth/oidc/constants.js';
  * The session cookie is `SameSite=Strict`, so a request another site causes never carries it; the request guard's CSRF checks cover the
  * mutating methods. This module closes the remaining case defence-in-depth: a top-level cross-site NAVIGATION (`Sec-Fetch-Site:
  * cross-site` with `Sec-Fetch-Mode: navigate`) to anything under `/api` is refused, EXCEPT the exact entries of
- * `CROSS_SITE_GET_ALLOWLIST`. Today that is one: the OIDC provider's redirect back to the Hub, which is by nature a cross-site
- * navigation. Cross-site `cors` fetches stay governed by CORS (the Hub sends no `Access-Control-Allow-Origin`), exactly as before.
+ * `CROSS_SITE_GET_ALLOWLIST`. Today that is two: the OIDC provider's redirect back to the Hub, which is by nature a cross-site
+ * navigation, and (Milestone 856) Google's redirect back after the owner consents to the Drive backup destination, which applies ONLY
+ * while a connect the admin pipe started is waiting. Cross-site `cors` fetches stay governed by CORS (the Hub sends no `Access-Control-Allow-Origin`), exactly as before.
  *
  * The exemption is deliberately narrow:
  * - exactly `GET` (HEAD included in the refusal, never in the exemption) and exactly the path (no prefix, no variants);
- * - only while OIDC is configured;
+ * - only while its feature applies (OIDC configured; a Drive connect waiting for its callback);
  * - only a real navigation to a document (`Sec-Fetch-Mode: navigate`, `Sec-Fetch-Dest: document`) when the metadata says cross-site;
  * - only the named query parameters, each at most once, in at most `QUERY_MAX_CHARS`, with no body;
  * - the request is then treated as CREDENTIAL-LESS: the `Cookie` and `Authorization` headers are removed before any handler runs, so a
@@ -25,7 +27,7 @@ export interface CrossSiteGetEntry {
   /** The query parameters the provider (or the browser) may add; anything else is a bad request. */
   readonly queryParams: readonly string[];
   /** The feature that must be configured for the entry to apply. */
-  readonly requires: 'oidc';
+  readonly requires: 'oidc' | 'drive';
 }
 
 export const QUERY_MAX_CHARS = 4096;
@@ -42,6 +44,12 @@ export const CROSS_SITE_GET_ALLOWLIST: readonly CrossSiteGetEntry[] = [
     queryParams: ['code', 'state', 'error', 'error_description', 'error_uri', 'iss', 'scope', 'authuser', 'prompt', 'hd'],
     requires: 'oidc',
   },
+  {
+    method: 'GET',
+    path: HUB_BACKUP_DRIVE_PATHS.callback,
+    queryParams: ['code', 'state', 'error', 'error_description', 'error_uri', 'iss', 'scope', 'authuser', 'prompt', 'hd'],
+    requires: 'drive',
+  },
 ];
 
 export type CrossSiteGetDecision =
@@ -56,7 +64,7 @@ export interface CrossSiteGetInput {
   url: string;
   headers: Readonly<Record<string, string | string[] | undefined>>;
   /** Whether the optional features named by `requires` are configured. */
-  features: { oidc: boolean };
+  features: { oidc: boolean; drive?: boolean };
 }
 
 const header = (headers: CrossSiteGetInput['headers'], name: string): string | undefined => {
@@ -76,7 +84,7 @@ export function evaluateCrossSiteGet(input: CrossSiteGetInput): CrossSiteGetDeci
   const mode = header(input.headers, 'sec-fetch-mode');
   const entry = CROSS_SITE_GET_ALLOWLIST.find((candidate) => candidate.path === pathname);
 
-  if (entry !== undefined && input.method === 'GET' && input.features[entry.requires]) {
+  if (entry !== undefined && input.method === 'GET' && input.features[entry.requires] === true) {
     const query = queryAt === -1 ? '' : input.url.slice(queryAt + 1);
     if (query.length > QUERY_MAX_CHARS) return { action: 'refuse', status: 400, message: 'The request is not valid.' };
     const seen = new Set<string>();

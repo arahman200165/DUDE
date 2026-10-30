@@ -16,7 +16,7 @@ describe('anonymous-session allowlist fixture', () => {
   it('lists exactly the documented exceptions so far, each with a reason and a declared credential type from the closed list', () => {
     expect(ANONYMOUS_SESSION_ALLOWLIST.map((e) => `${e.method} ${e.path}`)).toEqual([
       'GET /api/v1/hello', 'GET /api/v1/tls/certificates', 'POST /api/v1/bootstrap', 'POST /api/v1/auth/sign-in', 'POST /api/v1/auth/recover', 'POST /api/v1/owner/reset',
-      'GET /api/v1/auth/oidc/status', 'POST /api/v1/auth/oidc/start', 'GET /api/v1/auth/oidc/callback',
+      'GET /api/v1/auth/oidc/status', 'POST /api/v1/auth/oidc/start', 'GET /api/v1/auth/oidc/callback', 'GET /api/v1/backup/drive/callback',
       'POST /api/v1/devices/enroll', 'POST /api/v1/auth/device/challenge', 'POST /api/v1/auth/device/token', '* /api/v1/ingest/',
     ]);
     for (const entry of ANONYMOUS_SESSION_ALLOWLIST) {

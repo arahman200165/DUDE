@@ -11,7 +11,7 @@
   ],
   "classificationCounts": {
     "device-doc": 33,
-    "regex-heuristic (review flag)": 69,
+    "regex-heuristic (review flag)": 71,
     "agent-table": 17,
     "hub-table": 33,
     "mobile-table": 8,
@@ -149,12 +149,28 @@
       "reviewed": "System snapshot files; local-only, unredacted system values."
     },
     {
+      "source": "apps/hub/src/admin/backup-methods.ts",
+      "line": 325,
+      "namespace": null,
+      "key": null,
+      "heuristicScope": "local-only",
+      "reviewed": "The shared add-destination flow stores a destination kind's credentials through that kind's secret-store adapter (S3 and Google Drive) and removes them again when the add fails; machine-bound, never synced, backed up or reported (Milestone 856)."
+    },
+    {
       "source": "apps/hub/src/backup/backup-fixture.ts",
       "line": 83,
       "namespace": null,
       "key": null,
       "heuristicScope": "local-only",
       "reviewed": "Backup spec fixture writing bytes to a throwaway BlobStore under a temp directory; not app state."
+    },
+    {
+      "source": "apps/hub/src/backup/destinations/drive/drive-credentials.ts",
+      "line": 72,
+      "namespace": null,
+      "key": null,
+      "heuristicScope": "local-only",
+      "reviewed": "Stores the Google Drive backup destination client secret and refresh token in the Hub secret store (purpose backup.drive.refreshToken, DPAPI LocalMachine or a 0600 file on Linux); machine-bound, never synced, backed up or reported (Milestone 856)."
     },
     {
       "source": "apps/hub/src/backup/destinations/s3/s3-credentials.ts",
@@ -1516,6 +1532,20 @@
       "syncConsent": "not granted"
     },
     {
+      "source": "apps/hub/src/admin/backup-methods.ts",
+      "line": 325,
+      "operation": "prepared.storeCredentials.put()",
+      "namespace": null,
+      "key": null,
+      "storage": "prepared.storeCredentials",
+      "storageLocation": "prepared.storeCredentials.put()",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "sensitive",
+      "classificationBasis": "regex-heuristic (review flag)",
+      "syncConsent": "not granted"
+    },
+    {
       "source": "apps/hub/src/backup/backup-fixture.ts",
       "line": 83,
       "operation": "store.put(bytes)",
@@ -1523,6 +1553,20 @@
       "key": null,
       "storage": "store",
       "storageLocation": "store.put(bytes)",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "sensitive",
+      "classificationBasis": "regex-heuristic (review flag)",
+      "syncConsent": "not granted"
+    },
+    {
+      "source": "apps/hub/src/backup/destinations/drive/drive-credentials.ts",
+      "line": 72,
+      "operation": "store.put(DRIVE_CREDENTIALS_PURPOSE, JSON.stringify({ v: 1, credentials: map }))",
+      "namespace": null,
+      "key": null,
+      "storage": "store",
+      "storageLocation": "store.put(DRIVE_CREDENTIALS_PURPOSE, JSON.stringify({ v: 1, credentials: map }))",
       "retention": "owned by the referenced backend; no policy change",
       "scope": "local-only",
       "sensitivity": "sensitive",

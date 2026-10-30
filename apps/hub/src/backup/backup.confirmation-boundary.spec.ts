@@ -113,7 +113,7 @@ describe('backup create confirmation boundary', () => {
       const routes = hub.app.printRoutes({ commonPrefix: false });
       // The only backup route is the owner's read-only status model (GET); nothing can create a backup or issue/consume a token.
       expect(routes).toContain('/api/v1/backup/status (GET, HEAD)');
-      expect(routes.replace('/api/v1/backup/status (GET, HEAD)', '')).not.toMatch(/backup/i);
+      expect(routes.replace(/\/api\/v1\/backup\/(?:status|drive\/callback) \(GET, HEAD\)/g, '')).not.toMatch(/backup/i);
     } finally {
       await hub.close();
     }

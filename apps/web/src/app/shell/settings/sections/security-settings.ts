@@ -96,6 +96,7 @@ export const AUDIT_EVENT_LABELS: Readonly<Record<string, string>> = {
   'backup.v2-verified': 'Backup verified',
   'backup.v2-pruned': 'Destination pruned',
   'backup.destination-added': 'Backup destination added',
+  'backup.drive-authorized': 'Google Drive backup authorized',
   'backup.destination-removed': 'Backup destination removed',
   'backup.rewrapped': 'Backup passphrase changed',
   'backup.drill-passed': 'Restore drill passed',

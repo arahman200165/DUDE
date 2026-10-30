@@ -2,7 +2,7 @@ import type { Db } from '@dude/sqlite-store';
 import type { HubBindMode } from '../config/hub-config.js';
 import type { HubPaths } from '../config/data-dir.js';
 import type { BackupDeps } from '@dude/hub-backup';
-import type { BackupDestination, OpenBackupDestinationDeps, S3CredentialStore } from '../backup/destinations/index.js';
+import type { BackupDestination, DriveAuthorizations, DriveCredentialStore, OpenBackupDestinationDeps, S3CredentialStore } from '../backup/destinations/index.js';
 import type { MasterKeyStore } from '../backup/master-key.js';
 import type { RestoreDrillServiceOptions } from '../backup/restore-drill.js';
 import type { RunBackupV2Options } from '../backup/run-backup-v2.js';
@@ -108,6 +108,12 @@ export interface AdminMethodContext {
   s3CredentialStore?: S3CredentialStore;
   /** TEST-ONLY: S3 client transport/clock/part-size seams used by the default opener. */
   s3Test?: NonNullable<OpenBackupDestinationDeps['s3']>;
+  /** Where `drive` destination credentials live (default: the secret store under `paths`, purpose `backup.drive.refreshToken`). TEST seam. */
+  driveCredentialStore?: DriveCredentialStore;
+  /** TEST-ONLY: the Google Drive endpoints, fetch, clock/backoff and chunk-size seams used by the default opener and the connect flow. */
+  driveTest?: NonNullable<OpenBackupDestinationDeps['drive']>;
+  /** The one in-memory pending Google Drive authorization the connect methods and the callback route share (32-SS1, Milestone 856); absent disables `backup.destination.drive.*`. */
+  driveAuth?: DriveAuthorizations;
   /** TEST-ONLY: replaces how a destination definition is opened. */
   openBackupDestination?: (definition: HubBackupDestinationConfig) => BackupDestination;
   /** TEST-ONLY: small chunks and packs, hooks or a fake blob store for `backup.run`. */

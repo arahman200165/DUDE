@@ -212,6 +212,13 @@ describe('Platform status mapping (Milestone 852)', () => {
       expect(row.destinations[0].lines.join(' ')).toMatch(/restore drill passed/);
     });
 
+    it('names each destination kind in plain words (the Google Drive destination reads as Google Drive)', () => {
+      const lines = (kind: string): string => backupRow(backup({ destinations: [destination({ kind })] })).destinations[0].lines[0] ?? '';
+      expect(lines('drive')).toMatch(/^Google Drive,/);
+      expect(lines('s3')).toMatch(/^S3-compatible,/);
+      expect(lines('local-folder')).toMatch(/^Local folder,/);
+    });
+
     it('no destination: off, with the add-destination and schedule commands', () => {
       const row = backupRow(backup({ destinations: [], lastBackup: null, schedule: { configured: false } }));
       expect(row.chip).toBe('off');

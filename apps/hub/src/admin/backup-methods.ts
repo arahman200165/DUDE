@@ -9,8 +9,8 @@ import { BACKUP_LAST_META, backupFailureCode, readBackupLast, writeBackupLast } 
 import { BACKUP_CONSEQUENCE_CLASS, BACKUP_REACTIVATE_CONSEQUENCE_CLASS, BACKUP_TRANSFER_CONSEQUENCE_CLASS } from '../backup/create-backup.js';
 import { createBackupExportFile, fileByteSource } from '../backup/create-export.js';
 import { destinationLockKey, tryLockDestination } from '../backup/destination-lock.js';
-import { DestinationError, MANIFEST_PREFIX, assertSafeLocalFolder, backupIdOfManifest, defaultS3CredentialStore, isInsideFolder, isS3Definition, openBackupDestination, validateS3Credentials } from '../backup/destinations/index.js';
-import type { BackupDestination, S3BackupDestination, S3CredentialStore } from '../backup/destinations/index.js';
+import { DestinationError, MANIFEST_PREFIX, assertSafeLocalFolder, backupIdOfManifest, defaultDriveCredentialStore, defaultS3CredentialStore, isDriveDefinition, isInsideFolder, isS3Definition, openBackupDestination, validateS3Credentials } from '../backup/destinations/index.js';
+import type { BackupDestination, DriveBackupDestination, DriveCredentialStore, S3BackupDestination, S3CredentialStore } from '../backup/destinations/index.js';
 import { nodeBackupDeps, validateBackupPassphrase } from '../backup/kdf.js';
 import { defaultMasterKeyStore } from '../backup/master-key.js';
 import type { MasterKeyStore } from '../backup/master-key.js';
@@ -29,10 +29,17 @@ import { getAuthorityEpoch, getAuthorityState, setAuthority } from '../hub/autho
 import { clearDestinationState, readDestinationState, updateDestinationState } from '../hub/backup-destination-state.js';
 import { evaluateBackupHealth } from '../hub/backup-health.js';
 import { setSecretExpected } from '../provisioning/index.js';
+
+/** The secret-store purposes a destination kind can store credentials under (the closed list lives with the store; request handlers never import it). */
+type SecretPurpose = Parameters<typeof setSecretExpected>[1];
 import { audit } from '../security/audit.js';
 import { ConfirmationStore } from '../security/confirmation-store.js';
 import { AdminError } from './admin-endpoint.js';
 import type { AdminMethod } from './admin-endpoint.js';
+import { buildDriveMethods } from './drive-methods.js';
+import { revokeDriveToken } from '../backup/destinations/index.js';
+import type { DriveEndpoints, DriveFetch } from '../backup/destinations/index.js';
+import { GOOGLE_DRIVE_ENDPOINTS } from '../backup/destinations/index.js';
 import type { AdminMethodContext } from './methods.js';
 
 /** The ConfirmationStore action of `backup create` (also `--for-transfer`). Only the admin pipe can issue or consume it. */
@@ -47,6 +54,8 @@ export { BACKUP_PRUNE_ACTION };
 export const BACKUP_DESTINATION_REMOVE_CONSEQUENCE_CLASS = ['system-config'] as const;
 /** Removing an S3 destination also deletes its stored credentials (Milestone 848). */
 export const BACKUP_DESTINATION_REMOVE_S3_CONSEQUENCE_CLASS = ['system-config', 'secret-management'] as const;
+/** Removing a Google Drive destination also deletes its stored authorization and revokes the token at Google (Milestone 856). */
+export const BACKUP_DESTINATION_REMOVE_DRIVE_CONSEQUENCE_CLASS = ['system-config', 'secret-management', 'remote-write'] as const;
 /** Removing the last destination also deletes the master key from the secret store. */
 export const BACKUP_DESTINATION_REMOVE_LAST_CONSEQUENCE_CLASS = ['system-config', 'secret-management'] as const;
 export const BACKUP_REWRAP_CONSEQUENCE_CLASS = ['secret-management', 'filesystem-write'] as const;
@@ -56,6 +65,7 @@ const REACTIVATE_WARNING = 'If the backup was already restored elsewhere, there 
 const PASSPHRASE_WARNING = 'Losing the passphrase makes the backup unrecoverable.';
 const SAME_MACHINE_WARNING = 'A backup stored on the Hub\'s own machine does not protect against losing that machine. Keep a copy elsewhere.';
 const KEPT_OBJECTS_NOTE = 'Backups already written to this destination are NOT deleted; delete the folder yourself if you no longer need them.';
+const KEPT_DRIVE_OBJECTS_NOTE = 'Backups already written to Google Drive are NOT deleted; delete the folder in Drive yourself if you no longer need them. The stored Google authorization is deleted and, when Google can be reached, revoked.';
 const KEPT_S3_OBJECTS_NOTE = 'Backups already written to this bucket are NOT deleted; delete the objects under the prefix yourself if you no longer need them. The stored S3 credentials are deleted.';
 
 /** The facts about a v1 backup that are safe to show: no keys, no credentials, no paths. */
@@ -91,6 +101,20 @@ export function summarizeHead(head: BackupV2Head, files: Array<{ name: string; s
 const comparable = (value: string, platform: NodeJS.Platform): string => (platform === 'win32' ? path.resolve(value).toLowerCase() : path.resolve(value));
 const equalBytes = (a: Uint8Array, b: Uint8Array): boolean => a.length === b.length && a.every((byte, i) => byte === b[i]);
 
+/** What a destination kind contributes to the shared add flow: its definition and the credentials it keeps in the secret store. */
+export interface PreparedDestination {
+  definition: HubBackupDestinationConfig;
+  /** The already configured destination at the same location, if any. */
+  same: HubBackupDestinationConfig | undefined;
+  /** Called once the add proceeds (a local folder is created). */
+  beforeOpen?: () => void;
+  /** The credentials this kind keeps in the secret store: stored for the duration of the add and removed again when it fails. */
+  storeCredentials?: { purpose: SecretPurpose; put(): void; discard(): void };
+  /** Best-effort cleanup of anything the preparation created elsewhere (a Drive folder) when the add fails. */
+  onFailure?: () => Promise<void>;
+  failureNoun: string;
+}
+
 /** Backup admin methods (PD-074, Milestone 847). Params carrying a passphrase are never logged, audited or echoed in an error. */
 export function buildBackupMethods(context: AdminMethodContext, shared: { now: () => number; confirmations: ConfirmationStore }): Record<string, AdminMethod> {
   const { now, confirmations } = shared;
@@ -106,9 +130,14 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
   const destinationsOf = (): HubBackupDestinationConfig[] => config().backup?.destinations ?? [];
   let s3Store: S3CredentialStore | undefined = context.s3CredentialStore;
   const s3Credentials = (): S3CredentialStore => (s3Store ??= defaultS3CredentialStore(paths()));
+  let driveStore: DriveCredentialStore | undefined = context.driveCredentialStore;
+  const driveCredentials = (): DriveCredentialStore => (driveStore ??= defaultDriveCredentialStore(paths()));
   const openDestination = (definition: HubBackupDestinationConfig): BackupDestination => {
     try {
-      return (context.openBackupDestination ?? ((d) => openBackupDestination(d, paths(), platform, { s3Credentials: s3Credentials(), ...(context.s3Test !== undefined ? { s3: context.s3Test } : {}) })))(definition);
+      return (context.openBackupDestination ?? ((d) => openBackupDestination(d, paths(), platform, {
+        s3Credentials: s3Credentials(), driveCredentials: driveCredentials(),
+        ...(context.s3Test !== undefined ? { s3: context.s3Test } : {}), ...(context.driveTest !== undefined ? { drive: context.driveTest } : {}),
+      })))(definition);
     } catch (error) {
       if (error instanceof DestinationError) throw new AdminError(error.code === 'unavailable' ? 'unavailable' : 'bad-request', error.message);
       throw error;
@@ -116,7 +145,7 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
   };
   /** Where a destination lives, comparable across definitions (a folder, or endpoint, bucket and prefix). */
   const locationOf = (definition: HubBackupDestinationConfig): string =>
-    isS3Definition(definition) ? `s3:${definition.endpoint}|${definition.bucket}|${definition.prefix ?? ''}` : comparable(definition.folder, platform);
+    isS3Definition(definition) ? `s3:${definition.endpoint}|${definition.bucket}|${definition.prefix ?? ''}` : isDriveDefinition(definition) ? `drive:${definition.folderId}` : comparable(definition.folder, platform);
   const record = (params: unknown): Record<string, unknown> => (typeof params === 'object' && params !== null && !Array.isArray(params) ? (params as Record<string, unknown>) : {});
   const saveSphere = (): Db | undefined => context.saveSphereDb?.();
   const lockKey = (id: string): string => destinationLockKey(paths().root, id);
@@ -213,23 +242,12 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
     }
   };
 
-  /** What a destination kind contributes to the shared add flow: its definition and, for S3, the credentials to store. */
-  interface PreparedDestination {
-    definition: HubBackupDestinationConfig;
-    /** The already configured destination at the same location, if any. */
-    same: HubBackupDestinationConfig | undefined;
-    /** Called once the add proceeds (a local folder is created). */
-    beforeOpen?: () => void;
-    credentials?: { accessKeyId: string; secretAccessKey: string; sessionToken?: string };
-    failureNoun: string;
-  }
-
   const prepareLocal = (folderRaw: unknown, labelRaw: unknown): PreparedDestination => {
     const folder = resolveTargetFolder(folderRaw);
     validLabel(labelRaw);
     const existing = destinationsOf();
-    const same = existing.find((d) => !isS3Definition(d) && comparable(d.folder, platform) === comparable(folder, platform));
-    if (same === undefined && existing.some((d) => !isS3Definition(d) && (isInsideFolder(folder, d.folder, platform) || isInsideFolder(d.folder, folder, platform)))) {
+    const same = existing.find((d) => d.kind === 'local-folder' && comparable(d.folder, platform) === comparable(folder, platform));
+    if (same === undefined && existing.some((d) => d.kind === 'local-folder' && (isInsideFolder(folder, d.folder, platform) || isInsideFolder(d.folder, folder, platform)))) {
       throw new AdminError('conflict', 'The folder is inside (or contains) another backup destination.');
     }
     const id = `d-${randomBytes(4).toString('hex')}`;
@@ -279,7 +297,10 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
       id, kind: 's3', label, endpoint: endpoint.origin, region, bucket,
       ...(prefix.prefix !== undefined ? { prefix: prefix.prefix } : {}), ...(forcePathStyle !== undefined ? { forcePathStyle } : {}), ...(allowPrivateNetwork === true ? { allowPrivateNetwork: true } : {}),
     };
-    return { definition, same, credentials, failureNoun: 'bucket' };
+    return {
+      definition, same, failureNoun: 'bucket',
+      storeCredentials: { purpose: 'backup.s3.credentials', put: () => s3Credentials().put(id, credentials), discard: () => { s3Credentials().delete(id); } },
+    };
   };
 
   /**
@@ -300,8 +321,11 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
     const id = definition.id;
     prepared.beforeOpen?.();
     let credentialsStored = false;
-    if (prepared.credentials !== undefined) {
-      try { s3Credentials().put(id, prepared.credentials); credentialsStored = true; } catch { throw new AdminError('unavailable', 'The S3 credentials could not be stored (key protection failed).'); }
+    if (prepared.storeCredentials !== undefined) {
+      try { prepared.storeCredentials.put(); credentialsStored = true; } catch {
+        await prepared.onFailure?.();
+        throw new AdminError('unavailable', 'The credentials could not be stored (key protection failed).');
+      }
     }
     let added = false;
     try {
@@ -364,27 +388,36 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
       const before = config();
       writeHubConfig(paths().configFile, applyBackupConfigChange(before, { destinations: [...(before.backup?.destinations ?? []), definition] }));
       added = true;
-      if (credentialsStored) {
+      if (prepared.storeCredentials !== undefined) {
         const sdb = saveSphere();
-        if (sdb !== undefined) { try { setSecretExpected(sdb, 'backup.s3.credentials'); } catch { /* provisioning status only */ } }
+        if (sdb !== undefined) { try { setSecretExpected(sdb, prepared.storeCredentials.purpose); } catch { /* provisioning status only */ } }
       }
       updateDestinationState(context.db, id, { repoId });
       auditCli('backup.destination-added', 'success', { destination: id, kind: definition.kind, adopted });
       return { definition, added: true, adopted };
     } finally {
-      if (credentialsStored && !added) { try { s3Credentials().delete(id); } catch { /* nothing more to clean */ } }
+      if (!added) {
+        if (credentialsStored) { try { prepared.storeCredentials?.discard(); } catch { /* nothing more to clean */ } }
+        await prepared.onFailure?.();
+      }
     }
   };
 
-  const credentialsStored = (id: string): boolean => { try { return s3Credentials().has(id); } catch { return false; } };
+  const driveFetch = (): DriveFetch => context.driveTest?.client?.fetch ?? ((input, init) => fetch(input, init));
+  const driveEndpoints = (): DriveEndpoints => context.driveTest?.client?.endpoints ?? GOOGLE_DRIVE_ENDPOINTS;
+  const credentialsStored = (definition: HubBackupDestinationConfig): boolean => {
+    try { return isDriveDefinition(definition) ? driveCredentials().has(definition.id) : s3Credentials().has(definition.id); } catch { return false; }
+  };
   /** Non-secret facts about a destination; an S3 destination reports whether its credentials are stored, never the credentials. */
   const describeDestination = (definition: HubBackupDestinationConfig): Record<string, unknown> => isS3Definition(definition)
     ? {
       id: definition.id, kind: definition.kind, label: definition.label, endpoint: definition.endpoint, region: definition.region, bucket: definition.bucket,
       ...(definition.prefix !== undefined ? { prefix: definition.prefix } : {}), ...(definition.forcePathStyle !== undefined ? { forcePathStyle: definition.forcePathStyle } : {}),
-      allowPrivateNetwork: definition.allowPrivateNetwork === true, credentialsStored: credentialsStored(definition.id), state: readDestinationState(context.db, definition.id),
+      allowPrivateNetwork: definition.allowPrivateNetwork === true, credentialsStored: credentialsStored(definition), state: readDestinationState(context.db, definition.id),
     }
-    : { id: definition.id, kind: definition.kind, label: definition.label, folder: definition.folder, state: readDestinationState(context.db, definition.id) };
+    : isDriveDefinition(definition)
+      ? { id: definition.id, kind: definition.kind, label: definition.label, folderId: definition.folderId, clientId: definition.clientId, credentialsStored: credentialsStored(definition), state: readDestinationState(context.db, definition.id) }
+      : { id: definition.id, kind: definition.kind, label: definition.label, folder: definition.folder, state: readDestinationState(context.db, definition.id) };
 
   const runDestinations = async (definitions: HubBackupDestinationConfig[]): Promise<Array<Record<string, unknown>>> => {
     const masterKey = loadMasterKey();
@@ -528,8 +561,8 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
     /** Backup files (`.dudebackup`) in a folder (default: the first local destination, else `<root>/backups`). */
     'backup.list': (params) => {
       const raw = record(params)['folder'];
-      const firstLocal = destinationsOf().find((d) => !isS3Definition(d));
-      const folderRaw = raw === undefined ? (firstLocal !== undefined && !isS3Definition(firstLocal) ? firstLocal.folder : paths().backupsDir) : raw;
+      const firstLocal = destinationsOf().find((d) => d.kind === 'local-folder');
+      const folderRaw = raw === undefined ? (firstLocal !== undefined && firstLocal.kind === 'local-folder' ? firstLocal.folder : paths().backupsDir) : raw;
       if (typeof folderRaw !== 'string' || folderRaw.length === 0 || !path.isAbsolute(folderRaw)) throw new AdminError('bad-request', 'The backup folder must be an absolute path.');
       const folder = path.resolve(folderRaw);
       let backups;
@@ -637,6 +670,7 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
     'backup.destination.add': async (params) => {
       const input = record(params);
       const kind = input['kind'] ?? 'local-folder';
+      if (kind === 'drive') throw new AdminError('bad-request', 'A Google Drive destination is added with the two-step Drive connect (backup.destination.drive.connect.preview), never in one call.');
       if (kind !== 'local-folder' && kind !== 's3') throw new AdminError('bad-request', 'kind must be "local-folder" or "s3".');
       const passphrase = passphraseOf(input);
       const added = await addDestination(kind === 's3' ? prepareS3(input) : prepareLocal(input['folder'], input['label']), passphrase);
@@ -664,6 +698,7 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
       const definition = destinationById(record(params)['id']);
       const destination = openDestination(definition);
       if (destination.kind === 's3') return { id: definition.id, kind: 's3', ...(await (destination as S3BackupDestination).probeDetailed()) };
+      if (destination.kind === 'drive') return { id: definition.id, kind: 'drive', ...(await (destination as DriveBackupDestination).probeDetailed()) };
       const result = await destination.probe();
       return { id: definition.id, kind: destination.kind, ok: result.ok, ...(result.ok ? {} : { reason: result.reason }) };
     },
@@ -707,20 +742,23 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
       const at = now();
       const confirmToken = confirmations.issue({ action: BACKUP_DESTINATION_REMOVE_ACTION, digest: removeDigest(definition), bindingId: ADMIN_BINDING, now: at });
       const s3 = isS3Definition(definition);
+      const drive = isDriveDefinition(definition);
       return {
         confirmToken,
         expiresAt: ConfirmationStore.expiresAt(at),
-        consequenceClass: [...(last ? BACKUP_DESTINATION_REMOVE_LAST_CONSEQUENCE_CLASS : s3 ? BACKUP_DESTINATION_REMOVE_S3_CONSEQUENCE_CLASS : BACKUP_DESTINATION_REMOVE_CONSEQUENCE_CLASS)],
+        consequenceClass: [...(drive ? BACKUP_DESTINATION_REMOVE_DRIVE_CONSEQUENCE_CLASS : last ? BACKUP_DESTINATION_REMOVE_LAST_CONSEQUENCE_CLASS : s3 ? BACKUP_DESTINATION_REMOVE_S3_CONSEQUENCE_CLASS : BACKUP_DESTINATION_REMOVE_CONSEQUENCE_CLASS)],
         summary: {
           id: definition.id, kind: definition.kind, label: definition.label,
           ...(isS3Definition(definition)
             ? { endpoint: definition.endpoint, bucket: definition.bucket, ...(definition.prefix !== undefined ? { prefix: definition.prefix } : {}), removesCredentials: true }
-            : { folder: definition.folder }),
-          last, removesMasterKey: last, turnsOffSchedule: last && config().backup?.schedule !== undefined, note: s3 ? KEPT_S3_OBJECTS_NOTE : KEPT_OBJECTS_NOTE,
+            : isDriveDefinition(definition)
+              ? { folderId: definition.folderId, removesCredentials: true, revokesToken: true }
+              : { folder: definition.folder }),
+          last, removesMasterKey: last, turnsOffSchedule: last && config().backup?.schedule !== undefined, note: drive ? KEPT_DRIVE_OBJECTS_NOTE : s3 ? KEPT_S3_OBJECTS_NOTE : KEPT_OBJECTS_NOTE,
         },
       };
     },
-    'backup.destination.remove.apply': (params) => {
+    'backup.destination.remove.apply': async (params) => {
       const input = record(params);
       const confirmToken = input['confirmToken'];
       if (typeof confirmToken !== 'string' || confirmToken.length === 0) throw new AdminError('bad-request', 'confirmToken is required.');
@@ -740,9 +778,18 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
         let keyRemoved = false;
         if (last) { try { keyRemoved = masterKeys().clear(); } catch { /* reported as not removed */ } }
         let credentialsRemoved = false;
+        let revokedAtGoogle: boolean | undefined;
         if (isS3Definition(definition)) { try { credentialsRemoved = s3Credentials().delete(definition.id); } catch { /* reported as not removed */ } }
-        auditCli('backup.destination-removed', 'success', { destination: definition.id, kind: definition.kind, last, unattendedCleared: keyRemoved, ...(isS3Definition(definition) ? { credentialsCleared: credentialsRemoved } : {}) });
-        return { removed: true, id: definition.id, last, keyRemoved, ...(isS3Definition(definition) ? { credentialsRemoved } : {}), scheduleOff: last && before.backup?.schedule !== undefined };
+        if (isDriveDefinition(definition)) {
+          // The stored authorization goes first (it is the Hub's own secret); the revocation at Google is best effort and reported, never audited with a token.
+          let stored: ReturnType<DriveCredentialStore['get']> = null;
+          try { stored = driveCredentials().get(definition.id); } catch { /* unreadable: nothing to revoke */ }
+          try { credentialsRemoved = driveCredentials().delete(definition.id); } catch { /* reported as not removed */ }
+          revokedAtGoogle = stored === null ? false : await revokeDriveToken({ fetch: driveFetch(), endpoints: driveEndpoints(), refreshToken: stored.refreshToken });
+        }
+        const withCredentials = isS3Definition(definition) || isDriveDefinition(definition);
+        auditCli('backup.destination-removed', 'success', { destination: definition.id, kind: definition.kind, last, unattendedCleared: keyRemoved, ...(withCredentials ? { credentialsCleared: credentialsRemoved } : {}), ...(revokedAtGoogle !== undefined ? { revokedAtGoogle } : {}) });
+        return { removed: true, id: definition.id, last, keyRemoved, ...(withCredentials ? { credentialsRemoved } : {}), ...(revokedAtGoogle !== undefined ? { revokedAtGoogle } : {}), scheduleOff: last && before.backup?.schedule !== undefined };
       } finally {
         lock.release();
       }
@@ -899,5 +946,8 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
         for (const lock of locks) lock.release();
       }
     },
+    ...buildDriveMethods(context, shared, {
+      paths, config, destinationsOf, openDestination, passphraseOf, record, auditCli, validLabel, addDestination, describeDestination, saveSphere, driveCredentials, driveFetch, driveEndpoints, destinationById, ADMIN_BINDING,
+    }),
   };
 }

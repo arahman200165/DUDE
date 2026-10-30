@@ -57,6 +57,8 @@ export interface RequestGuardOptions {
   csrfVerifier?: CsrfVerifier;
   /** Whether OIDC sign-in is configured; the one cross-site GET exemption (`security/cross-site-get.ts`) applies only while it is. Default: off. */
   oidcEnabled?: () => boolean;
+  /** Whether a Google Drive backup connect is waiting for Google's redirect (Milestone 856); the second cross-site GET exemption applies only while it is. Default: off. */
+  driveCallbackWaiting?: () => boolean;
 }
 
 interface Rejection { status: number; code: HubErrorCode; message: string }
@@ -145,7 +147,7 @@ export function registerRequestGuard(app: FastifyInstance, options: RequestGuard
   });
   // Cross-site top-level navigations to the API (GET/HEAD): refused except the exact allowlist (the OIDC callback, session-less).
   app.addHook('onRequest', async (request, reply) => {
-    const decision = evaluateCrossSiteGet({ method: request.method, url: request.url, headers: request.headers, features: { oidc: options.oidcEnabled?.() === true } });
+    const decision = evaluateCrossSiteGet({ method: request.method, url: request.url, headers: request.headers, features: { oidc: options.oidcEnabled?.() === true, drive: options.driveCallbackWaiting?.() === true } });
     if (decision.action === 'pass') return;
     if (decision.action === 'allow-credentialless') {
       // The callback never takes a session as authority: whatever the browser sent, no handler can see it.

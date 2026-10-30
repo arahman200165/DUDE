@@ -12,6 +12,24 @@ export type BackupAuthorityState = (typeof BACKUP_AUTHORITY_STATES)[number];
 /** The backup v2 retention policy (PD-150): grandfather-father-son per destination, pruned only by the two-step `backup prune`. */
 export const BACKUP_V2_RETENTION_DEFAULT = Object.freeze({ daily: 7, weekly: 4, monthly: 6 });
 
+/**
+ * The one HTTP route of the Google Drive backup destination (32-SS1, Milestone 856, PD-154): the browser redirect back from Google's
+ * consent screen. Credential type: none and session-less (`security/cross-site-get.ts` removes every credential header before the
+ * handler runs, and the exemption exists only while a connect the admin pipe started is waiting); the single-use `state` is the
+ * authority. It holds the authorization in memory for the elevated admin pipe to complete and answers a plain page, never JSON and never
+ * a token. Nothing here connects, disconnects or changes a destination: those are admin-pipe methods with a two-step confirmation.
+ */
+export const HUB_BACKUP_DRIVE_PATHS = {
+  callback: '/api/v1/backup/drive/callback',
+} as const;
+
+/** The Drive consent is exactly this scope: the app can see only files and folders it created (never the rest of the owner's Drive). */
+export const BACKUP_DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+
+/** Connecting a Drive destination (an admin-pipe action, two-step): stores a refresh token (`secret-management`) and widens where encrypted backups go (`remote-write`). */
+export const BACKUP_DRIVE_CONNECT_ACTION = 'backup.destination.drive.connect';
+export const BACKUP_DRIVE_CONNECT_CONSEQUENCE_CLASS = ['secret-management', 'remote-write'] as const;
+
 const NullableString = Type.Union([Type.String(), Type.Null()]);
 
 export const BackupDestinationStatus = Type.Object({

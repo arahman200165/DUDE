@@ -220,15 +220,15 @@ describe('secret store import boundary', () => {
   const outside = (pattern: RegExp): string[] =>
     sources().filter((s) => !s.rel.startsWith('secrets/') && pattern.test(s.text)).map((s) => s.rel).sort();
 
-  it('only `run` (for the OIDC client secret source), the backup master-key module (Milestone 847), the provisioning secrets and oidc components, the tunnel supervisor and the tunnel runtime import the store so far; each later importer is added here deliberately (never a request handler)', () => {
-    const allowedImporters: string[] = ['backup/destinations/s3/s3-credentials.ts', 'backup/master-key.ts', 'cli/run.ts', 'provisioning/components/oidc.ts', 'provisioning/components/secrets.ts', 'tunnel/cloudflared.ts', 'tunnel/tunnel-runtime.ts'];
+  it('only `run` (for the OIDC client secret source), the backup master-key module (Milestone 847), the S3 and Google Drive credential stores (Milestones 848 and 856), the provisioning secrets and oidc components, the tunnel supervisor and the tunnel runtime import the store so far; each later importer is added here deliberately (never a request handler)', () => {
+    const allowedImporters: string[] = ['backup/destinations/drive/drive-credentials.ts', 'backup/destinations/s3/s3-credentials.ts', 'backup/master-key.ts', 'cli/run.ts', 'provisioning/components/oidc.ts', 'provisioning/components/secrets.ts', 'tunnel/cloudflared.ts', 'tunnel/tunnel-runtime.ts'];
     expect(outside(/from '(?:\.\.?\/)+secrets\//)).toEqual(allowedImporters);
     for (const rel of allowedImporters) expect(rel).not.toMatch(/^(server|auth|devices|realtime|security|sync)\//);
   });
 
   it('the secrets directory path is resolved only by the layout; backup names it only to refuse it as a target, move it aside on restore (never read) and build the master-key store', () => {
     expect(outside(/secretsDir/)).toEqual([
-      'backup/destinations/index.ts', 'backup/destinations/local-folder.ts', 'backup/destinations/s3/s3-credentials.ts', 'backup/master-key.ts', 'backup/restore.ts',
+      'backup/destinations/drive/drive-credentials.ts', 'backup/destinations/index.ts', 'backup/destinations/local-folder.ts', 'backup/destinations/s3/s3-credentials.ts', 'backup/master-key.ts', 'backup/restore.ts',
       'config/data-dir.ts', 'provisioning/components/oidc.ts', 'provisioning/components/secrets.ts', 'standby/repositories.ts', 'tunnel/tunnel-runtime.ts',
     ]);
   });

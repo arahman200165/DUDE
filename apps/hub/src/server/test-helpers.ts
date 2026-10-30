@@ -71,6 +71,8 @@ export interface TestHubOptions {
   tunnel?: CreateHubServerOptions['tunnel'];
   /** Google (OIDC) sign-in wiring (the client secret reader and the fake provider's `fetch`); pair with `config.oidc`. */
   oidc?: CreateHubServerOptions['oidc'];
+  /** The in-memory pending Google Drive authorization (Milestone 856) shared with the callback route. */
+  driveAuthorizations?: CreateHubServerOptions['driveAuthorizations'];
   /** Serve an existing data root (for example a restored Hub) instead of a fresh temporary one. */
   dataRoot?: string;
 }
