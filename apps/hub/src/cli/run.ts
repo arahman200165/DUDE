@@ -18,6 +18,10 @@ import { runTlsCa } from '../service/tls-ca.js';
 import { canonicalSanName, computeSubjectAltNames, configuredDnsNames, missingSubjectAltNames, operatorCertificateNames } from '../tls/names.js';
 import { runSecurityBlocks } from '../service/security-blocks.js';
 import { runStandby } from '../service/standby.js';
+import { runPower } from '../service/power.js';
+import { POWER_CHECK_MS, createPowerPolicy } from '../power/power-policy.js';
+import type { PowerPolicy } from '../power/power-policy.js';
+import { createPowercfgRunner } from '../power/powercfg.js';
 import { runSecurityAuditIps } from '../service/security-audit-ips.js';
 import { runTlsNames } from '../service/tls-names.js';
 import { runTlsImport, runTlsProxyPin } from '../service/tls-external.js';
@@ -132,6 +136,9 @@ export async function runCli(argv: readonly string[]): Promise<number> {
       action: parsed.action, ...(parsed.deviceId !== undefined ? { deviceId: parsed.deviceId } : {}), ...(parsed.confirm !== undefined ? { confirm: parsed.confirm } : {}),
       ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}),
     });
+  }
+  if (parsed.command === 'power') {
+    return runPower({ action: parsed.action, ...(parsed.confirm !== undefined ? { confirm: parsed.confirm } : {}), ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}) });
   }
   if (parsed.command === 'security-blocks') {
     return runSecurityBlocks({ action: parsed.action, ...(parsed.ip !== undefined ? { ip: parsed.ip } : {}), ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}) });
@@ -270,9 +277,12 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   // provisioning component reads its last known reachability through this late-bound getter.
   const oidcSecret = createOidcSecretSource(paths);
   let oidcStatus: (() => OidcStatus) | undefined;
+  // 32-SS1 power policy (Milestone 851): built after the server (it needs the job registry); the provisioning `power` component reads its last check through this late-bound getter.
+  let powerPolicy: PowerPolicy | undefined;
   const provisioning = createProvisioningService(paths, {
     hubInstanceId: hub.hubInstanceId, queueRunning: queueRuntime !== undefined, tunnel: () => tunnelRuntime.status(),
     oidc: () => oidcStatus?.() ?? { state: 'off', detail: 'Google sign-in is not configured.' },
+    power: () => powerPolicy?.lastStatus(),
   });
   ensureSetupToken(hub.db, paths.configDir, Date.now());
   const wantedNames = computeSubjectAltNames(config);
@@ -318,6 +328,16 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   });
 
   oidcStatus = () => server.oidc.status();
+  // A tunnel or a backup schedule makes the machine staying awake matter: a policy that is not in place is then reported, not just a regression of one that was.
+  const powerNeeded = (): boolean => {
+    try {
+      const wanted = loadOrCreateHubConfig(paths.configFile);
+      return wanted.exposure.tunnel !== undefined || wanted.backup?.schedule !== undefined;
+    } catch { return false; }
+  };
+  const power = createPowerPolicy({ db: hub.db, now: Date.now, platform: process.platform, runner: createPowercfgRunner(), needed: powerNeeded, job: server.hubJobs.handle('power-policy') });
+  powerPolicy = power;
+  server.hubJobs.register('power-policy', POWER_CHECK_MS);
   try {
     await server.listen({ port: config.port, host: bindAddress(config) });
   } catch (error) {
@@ -344,6 +364,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
         saveSphereDb: () => queueRuntime?.db,
         queueRunning: () => queueRuntime !== undefined,
         tunnel: tunnelRuntime,
+        power,
         onProvisioned: () => provisioning.invalidate(),
         tls: createTlsRotation({
           db: hub.db, tlsDir: paths.tlsDir, hubInstanceId: hub.hubInstanceId, caProtector,
@@ -421,6 +442,9 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   });
   server.hubJobs.register('restore-drill', testBackupCheckMs ?? RESTORE_DRILL_CHECK_MS);
   restoreDrill.start();
+  // The machine power policy (Milestone 851, PD-142): checked now and hourly; a regression raises one owner notification per episode. Never changes anything.
+  power.start();
+  void power.runOnce();
   // Detection only (PD-064): records this machine's addresses and audits a change; DNS is never updated and no DNS credential is stored.
   const addressWatch = createAddressWatch({
     db: hub.db,
@@ -464,6 +488,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
         acmeRenewal.stop();
         backupScheduler.stop();
         restoreDrill.stop();
+        power.stop();
         addressWatch.stop();
         try { await queueRuntime?.stop(); } catch { /* best effort */ }
         try { await admin.close(); } catch { /* best effort */ }

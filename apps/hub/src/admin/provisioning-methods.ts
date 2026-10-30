@@ -37,6 +37,7 @@ export function buildProvisioningMethods(context: AdminMethodContext, shared: { 
     ...(context.provisioningTest ?? {}),
     ...(context.queueRunning ? { queueRunning: context.queueRunning() } : {}),
     ...(context.tunnel ? { tunnel: () => context.tunnel!.status() } : {}),
+    ...(context.power ? { power: () => context.power!.lastStatus() } : {}),
   });
   return {
     'provision.run': async (params) => {

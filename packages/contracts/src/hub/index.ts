@@ -26,6 +26,7 @@ export * from './oidc.schema.js';
 export * from './ingest.schema.js';
 export * from './uploads.schema.js';
 export * from './standby.schema.js';
+export * from './power.schema.js';
 export * from './credentials.js';
 export * from './notifications.schema.js';
 export * from './collab.schema.js';

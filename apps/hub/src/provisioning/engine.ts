@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { transaction } from '@dude/sqlite-store';
 import type { Db } from '@dude/sqlite-store';
-import type { HubProvisioningComponent, HubProvisioningResponse, HubTunnelStatusResponse } from '@dude/contracts/hub';
+import type { HubPowerStatus, HubProvisioningComponent, HubProvisioningResponse, HubTunnelStatusResponse } from '@dude/contracts/hub';
 import type { OidcStatus } from '../auth/oidc/client.js';
 import { ensureLayout } from '../config/data-dir.js';
 import type { HubPaths } from '../config/data-dir.js';
@@ -26,6 +26,8 @@ export interface ProvisioningOptions {
   tunnel?: () => HubTunnelStatusResponse;
   /** The OIDC client status of the running Hub (Milestone 841). */
   oidc?: () => OidcStatus;
+  /** The running Hub's last power policy check (Milestone 851); undefined when the caller has none (the CLI engine, specs). */
+  power?: () => HubPowerStatus | undefined;
   now?: () => number;
   platform?: NodeJS.Platform;
   /** Replaces the registry (specs). */
@@ -58,6 +60,7 @@ function buildContext(paths: HubPaths, mode: ProvisioningContext['mode'], store:
     ...(options.queueRunning !== undefined ? { queueRunning: options.queueRunning } : {}),
     ...(options.tunnel !== undefined ? { tunnel: options.tunnel } : {}),
     ...(options.oidc !== undefined ? { oidc: options.oidc } : {}),
+    ...(options.power !== undefined ? { power: options.power } : {}),
   };
 }
 

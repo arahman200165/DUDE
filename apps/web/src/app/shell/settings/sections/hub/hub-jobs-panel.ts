@@ -12,6 +12,7 @@ export const HUB_JOB_NAMES: Readonly<Record<HubJobId, string>> = {
   'acme-renewal': 'Certificate renewal (public)',
   'backup-schedule': 'Scheduled backup',
   'restore-drill': 'Monthly restore drill',
+  'power-policy': 'Power policy check',
   'sync-compaction': 'Sync history compaction',
   'address-watch': 'Address watch',
   'audit-prune': 'Audit log pruning',

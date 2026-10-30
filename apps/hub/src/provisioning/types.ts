@@ -1,4 +1,4 @@
-import type { HubProvisioningComponentId, HubProvisioningComponentState, HubTunnelStatusResponse } from '@dude/contracts/hub';
+import type { HubPowerStatus, HubProvisioningComponentId, HubProvisioningComponentState, HubTunnelStatusResponse } from '@dude/contracts/hub';
 import type { Db } from '@dude/sqlite-store';
 import type { HubPaths } from '../config/data-dir.js';
 import type { SqliteVecState } from '../db/sqlite-vec.js';
@@ -58,6 +58,8 @@ export interface ProvisioningContext {
   tunnel?: () => HubTunnelStatusResponse;
   /** The running Hub's OIDC client status (Milestone 841): offline facts and the last known provider reachability; undefined when the caller has none. */
   oidc?: () => OidcStatus;
+  /** The running Hub's last power policy check (Milestone 851); undefined when the caller has none. */
+  power?: () => HubPowerStatus | undefined;
   probes: ProvisioningProbes;
 }
 

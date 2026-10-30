@@ -43,8 +43,8 @@ describe('checkProvisioning on a Hub that never provisioned', () => {
 
   it('reports only the components that are built (a component that does not exist is absent, never faked)', async () => {
     const report = await checkProvisioning(tempPaths(), engineOptions());
-    expect(report.components.map((c) => c.id)).toEqual(['content-store', 'fts', 'vector', 'blob-store', 'cache', 'queue', 'workers', 'secrets', 'tunnel', 'oidc']);
-    for (const absent of ['power', 'backup']) expect(report.components.some((c) => c.id === absent)).toBe(false);
+    expect(report.components.map((c) => c.id)).toEqual(['content-store', 'fts', 'vector', 'blob-store', 'cache', 'queue', 'workers', 'secrets', 'tunnel', 'oidc', 'power']);
+    for (const absent of ['backup']) expect(report.components.some((c) => c.id === absent)).toBe(false);
   });
 });
 
@@ -58,7 +58,7 @@ describe('provision', () => {
     expect(Value.Check(HubProvisioningResponse, run.report)).toBe(true);
     expect(run.report.lastRun).toEqual({ at: '2026-10-27T12:00:00.000Z', outcome: 'ok' });
     expect(run.report.components.map((c) => [c.id, c.state])).toEqual([
-      ['content-store', 'ready'], ['fts', 'ready'], ['vector', 'unavailable'], ['blob-store', 'ready'], ['cache', 'ready'], ['queue', 'ready'], ['workers', 'ready'], ['secrets', 'not-configured'], ['tunnel', 'unavailable'], ['oidc', 'not-configured'],
+      ['content-store', 'ready'], ['fts', 'ready'], ['vector', 'unavailable'], ['blob-store', 'ready'], ['cache', 'ready'], ['queue', 'ready'], ['workers', 'ready'], ['secrets', 'not-configured'], ['tunnel', 'unavailable'], ['oidc', 'not-configured'], ['power', 'unavailable'],
     ]);
     expect(existsSync(paths.saveSphereDbPath) && existsSync(paths.blobsDir) && existsSync(paths.cacheDir)).toBe(true);
   });
@@ -204,15 +204,15 @@ describe('registerProvisioningComponent', () => {
   it('refuses an id outside the closed list and a duplicate, and an added component joins the report without touching the engine', async () => {
     expect(() => registerProvisioningComponent({ id: 'redis' as never, check: () => ({ state: 'ready', detail: 'x' }) })).toThrow(/Unknown provisioning component/);
     expect(() => registerProvisioningComponent({ id: 'content-store', check: () => ({ state: 'ready', detail: 'x' }) })).toThrow(/already registered/);
-    const remove = registerProvisioningComponent({ id: 'power', check: () => ({ state: 'ready', detail: 'Sleep is off.' }) });
+    const remove = registerProvisioningComponent({ id: 'backup', check: () => ({ state: 'ready', detail: 'Backups run.' }) });
     try {
       const report = await checkProvisioning(tempPaths(), engineOptions());
-      expect(report.components.map((c) => c.id)).toContain('power');
-      expect(report.components.at(-1)).toMatchObject({ id: 'power', state: 'ready' });
+      expect(report.components.map((c) => c.id)).toContain('backup');
+      expect(report.components.at(-1)).toMatchObject({ id: 'backup', state: 'ready' });
     } finally {
       remove();
     }
-    expect(listProvisioningComponents().some((c) => c.id === 'power')).toBe(false);
+    expect(listProvisioningComponents().some((c) => c.id === 'backup')).toBe(false);
   });
 });
 

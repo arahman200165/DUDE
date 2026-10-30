@@ -59,9 +59,10 @@ export const SCRUBBED_META_KEYS = ['csrf_key', 'alerts_seen_seq', 'hub_addresses
  * Meta key prefixes removed from the snapshot copy. The Hub writes `revoked_attempt:<via>:<deviceId>` (devices/revoked-attempts.ts);
  * PD-070 spells it `revoked-attempts`, so both spellings are scrubbed. `job_last:<id>` is a background job's last run (jobs/job-status.ts, PD-112).
  * `backup_dest` (Milestone 847) covers `backup_dest_state:<id>` and `backup_dest_journal:<id>`: the state and in-flight journal of this
- * machine's backup destinations, which a restored Hub does not have.
+ * machine's backup destinations, which a restored Hub does not have. `power_policy` (Milestone 851) is `power_policy_state`: the previous
+ * power-plan values and regression state of THIS computer, which a restored Hub (another computer) must not "revert" to.
  */
-export const SCRUBBED_META_PREFIXES = ['revoked_attempt', 'revoked-attempts', 'job_last:', 'backup_dest'] as const;
+export const SCRUBBED_META_PREFIXES = ['revoked_attempt', 'revoked-attempts', 'job_last:', 'backup_dest', 'power_policy'] as const;
 
 /** Tables whose row counts go into the manifest (those that exist). */
 export const COUNTED_TABLES = ['devices', 'records', 'audit_events', 'change_feed'] as const;

@@ -128,6 +128,10 @@ Instead of opening a port, the Hub can run a pinned `cloudflared` connector that
 3. Apply it, pasting the connector token when asked (it is read from standard input or a hidden prompt, never from the command line): `dude-hub network tunnel on --hostname notes.example.com --accept-unverified-reachability --confirm <token> --type "EXPOSE HUB THROUGH CLOUDFLARE" --token-stdin`. The Hub starts the connector, waits for it to connect, checks readiness again and only then writes the configuration and restarts the service. `www.notes.example.com` redirects to the bare domain.
 4. `dude-hub network tunnel status` shows the state, the restarts and a short redacted log. `dude-hub network tunnel off` (also two steps) stops the connector and removes the tunnel and proxy configuration; add `--forget-token` to delete the stored token, and delete the public hostname in the dashboard so the name stops routing here. A restored Hub needs the token entered again.
 
+### Keeping the Hub computer awake
+
+A computer that sleeps or hibernates drops the tunnel and misses scheduled backups. The Hub checks, when it starts and every hour, that the active power plan never sleeps or hibernates on AC power, and tells you (a notification, and the Power row of the provisioning status) when it can. From an elevated prompt with the Hub running: `dude-hub power status` shows what it found; `dude-hub power apply` previews the exact `powercfg` commands and the commands that undo them, then `dude-hub power apply --confirm <token>` (within 60 seconds) sets the AC sleep and hibernate timeouts to never; `dude-hub power revert` (also two steps) puts the previous values back and stops the reminders. Only the plugged-in timeouts of the active plan change; battery settings, the lid-close action and other plans are left alone. Not available in the Docker image.
+
 ### Dynamic addresses and DNS
 
 If the Hub is reached by a DNS name and your home or office address changes, the name must follow it. DUDE never does this for you: the Hub does not update DNS and stores no DNS credential. It only detects and explains.

@@ -91,6 +91,15 @@ export function notificationForAudit(db: Db, notice: AuditNotice, destinationLab
       return previousBackupFailed(db, notice.seq)
         ? { sourceKey, kind: 'backup-recovered', severity: 'info', title: 'Backups are working again', body: 'A backup was created and verified after an earlier failure.' }
         : null;
+    case 'power.regressed': {
+      // Milestone 851. No new kind: a sleeping Hub misses scheduled backups, so it is delivered as `backup-overdue` (adding a kind would touch the desktop
+      // preferences, the Hub-web preferences panel and the Agent's event allowlist). One audit row per regression episode, so one notification.
+      const never = detail?.['reason'] === 'not-applied';
+      return {
+        sourceKey, kind: 'backup-overdue', severity: 'warning', title: 'The Hub computer may go to sleep',
+        body: `${never ? 'The Hub computer is allowed to sleep or hibernate on AC power' : 'The Hub computer can sleep or hibernate on AC power again'}; while it sleeps the tunnel is down and scheduled backups do not run. On that computer, in an elevated terminal, run "dude-hub power apply".`,
+      };
+    }
     case 'tls.renewed': {
       const raw = detail?.['notAfter'];
       const notAfter = typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}/.test(raw) ? raw.slice(0, 10) : null;

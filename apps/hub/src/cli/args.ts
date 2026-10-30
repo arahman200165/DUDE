@@ -15,6 +15,7 @@ export type ParsedCommand =
   | { command: 'security-blocks'; action: 'list' | 'clear'; ip?: string; dataDir?: string; installDir?: string }
   | { command: 'security-audit-ips'; mode?: 'full' | 'truncated'; dataDir?: string; installDir?: string }
   | { command: 'standby'; action: 'list' | 'grant' | 'revoke'; deviceId?: string; confirm?: string; dataDir?: string; installDir?: string }
+  | { command: 'power'; action: 'status' | 'apply' | 'revert'; confirm?: string; dataDir?: string; installDir?: string }
   | { command: 'tls-names'; action: 'list' | 'add' | 'remove'; name?: string; dataDir?: string; installDir?: string }
   | { command: 'service'; action: 'install' | 'uninstall' | 'start' | 'stop' | 'restart' | 'status' | 'update'; dataDir?: string; installDir?: string; port?: number; lan?: boolean; source?: string; keepData?: boolean }
   | { command: 'network'; action: 'lan-on' | 'lan-off' | 'status' | 'proxy-on' | 'proxy-off' | 'proxy-status' | 'mode-private' | 'mode-public'; trusted?: string[]; publicOrigin?: string; acceptUnverifiedReachability?: boolean; type?: string; dataDir?: string; installDir?: string }
@@ -64,6 +65,8 @@ Usage:
   dude-hub security audit-ips [full|truncated] [--data-dir <dir>] [--install-dir <dir>]   (show or set address privacy for NEW audit rows and sessions; existing rows are not rewritten; elevated, Hub running)
   dude-hub standby list [--data-dir <dir>] [--install-dir <dir>]   (devices granted warm-standby access to the encrypted backup repositories; elevated, Hub running)
   dude-hub standby grant|revoke <deviceId> [--confirm <token>] [--data-dir <dir>] [--install-dir <dir>]   (two steps: lets a paired desktop PULL the encrypted backup objects of the local-folder destinations, or stops it; the device never gets the passphrase; elevated, Hub running)
+  dude-hub power status [--data-dir <dir>] [--install-dir <dir>]   (Windows: whether this computer sleeps or hibernates on AC power; Hub running)
+  dude-hub power apply|revert [--confirm <token>] [--data-dir <dir>] [--install-dir <dir>]   (two steps: set the AC sleep and hibernate timeouts of the active power plan to never so the tunnel and backups keep running, or restore the recorded values; elevated, Hub running)
   dude-hub service install [--install-dir <dir>] [--data-dir <dir>] [--port <n>] [--lan]   (elevated, Windows)
   dude-hub service uninstall [--keep-data] [--install-dir <dir>] [--data-dir <dir>]
   dude-hub service start|stop|restart|status [--install-dir <dir>] [--data-dir <dir>]
@@ -372,6 +375,12 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
     }
     const values = parseFlags(flags, action === 'list' ? ['--data-dir', '--install-dir'] : ['--data-dir', '--install-dir', '--confirm'], []);
     return { command: 'standby', action, ...(deviceId !== undefined ? { deviceId } : {}), ...optional(values, '--confirm', 'confirm'), ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir') };
+  }
+  if (command === 'power') {
+    const action = rest[0];
+    if (action !== 'status' && action !== 'apply' && action !== 'revert') throw new UsageError('Usage: dude-hub power status | apply | revert [--confirm <token>].');
+    const values = parseFlags(rest.slice(1), action === 'status' ? ['--data-dir', '--install-dir'] : ['--data-dir', '--install-dir', '--confirm'], []);
+    return { command: 'power', action, ...optional(values, '--confirm', 'confirm'), ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir') };
   }
   if (command === 'security') {
     if (rest[0] === 'audit-ips') {

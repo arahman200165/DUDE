@@ -31,6 +31,7 @@ export const HUB_AUDIT_EVENTS = [
   'ingest.token-created', 'ingest.token-revoked', 'ingest.auth-failed',
   'upload.created', 'upload.completed', 'upload.aborted', 'upload.failed', 'upload.expired',
   'standby.granted', 'standby.revoked', 'standby.denied', 'standby.pulled',
+  'power.changed', 'power.reverted', 'power.regressed',
 ] as const;
 export type HubAuditEvent = (typeof HUB_AUDIT_EVENTS)[number];
 

@@ -10,9 +10,9 @@ export const HUB_JOBS_PATH = '/api/v1/jobs';
  * `queue-runner` (lease recovery, retention and the scheduled enqueues, reported only when something happened), `blobs-verify`
  * (the scheduled re-hash batch) `blobs-staging-sweep` (the removal of abandoned `.part` files) and `uploads-expire` (the removal of expired resumable-upload sessions, their chunk files and the blob references they held); they are registered only on a
  * Hub whose `savesphere.db` exists and otherwise show as never run with no timer. `restore-drill` (Milestone 850, PD-150) is the hourly check that restores each
- * destination's newest verified backup into a scratch directory when its monthly drill is due.
+ * destination's newest verified backup into a scratch directory when its monthly drill is due. `power-policy` (Milestone 851, PD-142) is the hourly re-check of the Hub machine's AC sleep and hibernate timeouts, which raises an owner notification when a policy that was in place has regressed.
  */
-export const HUB_JOB_IDS = ['leaf-renewal', 'acme-renewal', 'backup-schedule', 'restore-drill', 'sync-compaction', 'address-watch', 'audit-prune', 'collab-history-prune', 'collab-maintenance', 'queue-runner', 'blobs-verify', 'blobs-staging-sweep', 'uploads-expire'] as const;
+export const HUB_JOB_IDS = ['leaf-renewal', 'acme-renewal', 'backup-schedule', 'restore-drill', 'power-policy', 'sync-compaction', 'address-watch', 'audit-prune', 'collab-history-prune', 'collab-maintenance', 'queue-runner', 'blobs-verify', 'blobs-staging-sweep', 'uploads-expire'] as const;
 export type HubJobId = (typeof HUB_JOB_IDS)[number];
 
 export const HUB_JOB_OUTCOMES = ['success', 'skipped', 'failed'] as const;

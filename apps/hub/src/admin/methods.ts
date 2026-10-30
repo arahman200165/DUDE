@@ -11,6 +11,8 @@ import { buildBackupMethods } from './backup-methods.js';
 import { buildProvisioningMethods } from './provisioning-methods.js';
 import { buildTunnelMethods } from './tunnel-methods.js';
 import { buildStandbyMethods } from './standby-methods.js';
+import { buildPowerMethods } from './power-methods.js';
+import type { PowerPolicy } from '../power/power-policy.js';
 import type { TunnelRuntime } from '../tunnel/tunnel-runtime.js';
 import type { ProvisioningOptions } from '../provisioning/index.js';
 import { AdminError } from './admin-endpoint.js';
@@ -125,6 +127,8 @@ export interface AdminMethodContext {
   tunnel?: TunnelRuntime;
   /** TEST-ONLY: how long `network.tunnel.apply` waits for the connector to report ready (default 45 s). */
   tunnelReadyTimeoutMs?: number;
+  /** The machine power policy (32-SS1, Milestone 851); enables the `power.*` methods. */
+  power?: PowerPolicy;
 }
 
 /** Validates the Windows host facts the elevated CLI sends with `network.mode.set`; anything malformed is ignored (treated as not inspected). */
@@ -212,6 +216,7 @@ export function buildAdminMethods(context: AdminMethodContext): Record<string, A
     ...buildTunnelMethods(context, { now, confirmations, parseHostFacts: parseReadinessHostFacts }),
     /** Warm-standby grants (32-SS1, Milestone 849, PD-151): list, and the two-step grant and revoke. */
     ...buildStandbyMethods(context, { now, confirmations }),
+    ...buildPowerMethods(context, { now, confirmations }),
     /** Automatic address blocks (31F): the elevated recovery path for an owner whose own address was blocked. */
     'security.blocks.list': () => ({ blocks: listBlocks(context.db, now()) }),
     'security.blocks.clear': (params) => {

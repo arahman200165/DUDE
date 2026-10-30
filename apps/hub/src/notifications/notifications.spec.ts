@@ -274,6 +274,24 @@ describe('backup health producers (Milestone 850)', () => {
     for (const r of rows(f)) expect(HUB_NOTIFICATION_KINDS).toContain(r.kind);
   });
 
+  it('maps a power policy regression to one backup-overdue notification per audit row and echoes no setting value', () => {
+    const f = setup();
+    system(f, 'power.changed', 'success', { sleepAcBefore: 30, sleepAcAfter: 0 });
+    system(f, 'power.reverted', 'success', { sleepAcAfter: 30 });
+    expect(rows(f)).toEqual([]);
+    system(f, 'power.regressed', 'failure', { reason: 'regressed', sleepAcMinutes: 30, hibernateAcMinutes: 0 });
+    system(f, 'power.regressed', 'failure', { reason: 'not-applied', sleepAcMinutes: 15, hibernateAcMinutes: 0 });
+    expect(rows(f)).toMatchObject([
+      { kind: 'backup-overdue', severity: 'warning', title: 'The Hub computer may go to sleep', body: expect.stringContaining('can sleep or hibernate on AC power again') },
+      { kind: 'backup-overdue', severity: 'warning', body: expect.stringContaining('is allowed to sleep or hibernate on AC power') },
+    ]);
+    for (const r of rows(f)) {
+      expect(r.body).toContain('dude-hub power apply');
+      expect(r.body.length).toBeLessThanOrEqual(HUB_NOTIFICATION_BODY_MAX);
+      expect(HUB_NOTIFICATION_KINDS).toContain(r.kind);
+    }
+  });
+
   it('echoes the destination label from the injected lookup, never a path', () => {
     const hub = open();
     const jobs = createJobRegistry({ db: hub.db, now: () => T0 });
