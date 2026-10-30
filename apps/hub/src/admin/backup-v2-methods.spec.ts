@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -116,6 +116,47 @@ describe('backup run, verify and listing (Milestone 847)', () => {
     const ran = await f.call('backup.run', { destination: id });
     expect(ran).toEqual({ ok: false, results: [{ destination: id, ok: false, error: 'repository-missing' }] });
     expect(JSON.parse(getMeta(f.db, 'backup_last')!)).toMatchObject({ ok: false, error: 'repository-missing' });
+  });
+});
+
+describe('backup drill and backup health (Milestone 850)', () => {
+  it('drills every destination on demand, needs no confirmation, records the verdict and the manual audit rows, and leaves no scratch directory', async () => {
+    const f = open('drill');
+    await f.ss.add(new Uint8Array(randomBytes(40 * 1024)), 'doc');
+    expect((await f.fail('backup.drill')).code).toBe('refused');
+    const id = (await f.call('backup.destination.add', { folder: f.folder('one'), passphrase: V2_PASSPHRASE })).destination.id as string;
+    expect((await f.fail('backup.drill', { destination: 'd-unknown' })).code).toBe('not-found');
+    // No backup yet: nothing to drill, reported as not ok, nothing recorded.
+    expect(await f.call('backup.drill')).toMatchObject({ ok: false, results: [{ destinationId: id, outcome: 'skipped', reason: 'no-backup' }] });
+    const ran = await f.call('backup.run');
+    expect(ran.ok).toBe(true);
+    const drilled = await f.call('backup.drill', { destination: id });
+    expect(drilled).toMatchObject({ ok: true, results: [{ destinationId: id, outcome: 'passed', backupId: ran.results[0].backupId, blobs: 1 }] });
+    expect(readDestinationState(f.db, id)).toMatchObject({ lastDrillOutcome: 'success', lastDrillBackupId: ran.results[0].backupId });
+    expect(f.auditRows().filter((r) => r.event === 'backup.drill-passed')).toMatchObject([{ actor_kind: 'cli', outcome: 'success' }]);
+    expect(existsSync(path.join(f.paths.backupsDir, '.tmp', 'restore-drill')) ? readdirSync(path.join(f.paths.backupsDir, '.tmp', 'restore-drill')) : []).toEqual([]);
+    // Without the master key the drill is refused before anything is opened.
+    f.keys.clear();
+    expect((await f.fail('backup.drill')).code).toBe('refused');
+  });
+
+  it('a corrupted backup fails the drill as a short code, and the schedule status shows health', async () => {
+    const f = open('drill-fail');
+    await f.ss.add(new Uint8Array(randomBytes(40 * 1024)), 'doc');
+    const id = (await f.call('backup.destination.add', { folder: f.folder('one'), passphrase: V2_PASSPHRASE })).destination.id as string;
+    await f.call('backup.run');
+    const packs = readdirSync(path.join(f.folder('one'), 'packs')).filter((n) => !n.endsWith('.part'));
+    const file = path.join(f.folder('one'), 'packs', packs[0]!);
+    const bytes = readFileSync(file);
+    bytes[Math.floor(bytes.length / 2)] ^= 0xff;
+    writeFileSync(file, bytes);
+    const result = await f.call('backup.drill');
+    expect(result.ok).toBe(false);
+    expect(result.results[0]).toMatchObject({ destinationId: id, outcome: 'failed' });
+    expect(result.results[0].reason).toMatch(/^[A-Za-z0-9_.-]{1,40}$/);
+    expect(f.auditRows().filter((r) => r.event === 'backup.drill-failed')).toMatchObject([{ actor_kind: 'cli', outcome: 'failure' }]);
+    const status = await f.call('backup.schedule.status');
+    expect(status.health).toEqual({ destinations: [{ id, label: expect.any(String), overdue: null, failed: null, drillFailed: { code: result.results[0].reason } }], noDestination: null });
   });
 });
 

@@ -57,6 +57,7 @@ const WHAT: Record<BackupAction, string> = {
   'schedule-status': 'Showing the backup schedule',
   reactivate: 'Reactivating the Hub',
   run: 'Running a backup',
+  drill: 'Running a restore drill',
   prune: 'Pruning backups',
   rewrap: 'Changing the backup passphrase',
   'destination-add': 'Adding a backup destination',
@@ -66,7 +67,7 @@ const WHAT: Record<BackupAction, string> = {
   'destination-probe': 'Testing a backup destination',
 };
 /** Everything that writes, reads a secret or changes the schedule needs the elevated terminal; the lists and the status only read. */
-const ELEVATED: ReadonlySet<BackupAction> = new Set(['create', 'verify', 'schedule-set', 'schedule-off', 'reactivate', 'run', 'prune', 'rewrap', 'destination-add', 'destination-remove', 'destination-verify', 'destination-probe']);
+const ELEVATED: ReadonlySet<BackupAction> = new Set(['create', 'verify', 'schedule-set', 'schedule-off', 'reactivate', 'run', 'drill', 'prune', 'rewrap', 'destination-add', 'destination-remove', 'destination-verify', 'destination-probe']);
 const TWO_STEP: Partial<Record<BackupAction, string>> = { prune: 'backup prune', rewrap: 'backup rewrap', 'destination-remove': 'backup destination remove', reactivate: 'backup reactivate' };
 const RETIRE_WARNING = 'This Hub will be RETIRED after the backup is written and verified: it will refuse sign-in, sync and pairing until you run "dude-hub backup reactivate". Restore the backup on the new machine before you retire anything you need.';
 const RETIRED_NOTICE = 'This Hub is now retired (transferred).';
@@ -364,6 +365,16 @@ export async function runBackup(options: BackupCommandOptions, deps: BackupComma
         d.out(json(result));
         if (result.ok !== true) {
           d.err('At least one destination failed; see the results above and "dude-hub backup destination list".\n');
+          return EXIT_FAILURE;
+        }
+        return EXIT_OK;
+      }
+      case 'drill': {
+        // Read-only on the destination and scratch-only on this computer (a fresh folder under backups/.tmp, removed afterwards): no confirmation step.
+        const result = (await callAdminLong('backup.drill', options.destination !== undefined ? { destination: options.destination } : {})) as { ok?: unknown };
+        d.out(json(result));
+        if (result.ok !== true) {
+          d.err('A restore drill failed; see the results above and "dude-hub backup destination list".\n');
           return EXIT_FAILURE;
         }
         return EXIT_OK;

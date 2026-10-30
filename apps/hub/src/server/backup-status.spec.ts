@@ -42,6 +42,7 @@ describe('GET /backup/status', () => {
       destinations: [],
       retention: { daily: 7, weekly: 4, monthly: 6 },
       nextScheduledAt: null,
+      health: { overdue: false, lastRunFailed: false, drillFailed: false, noDestinationSince: null },
     });
     expect(Value.Check(BackupStatusResponse, res.json)).toBe(true);
   });
@@ -99,12 +100,36 @@ describe('GET /backup/status', () => {
     const res = await status();
     expect(Value.Check(BackupStatusResponse, res.json)).toBe(true);
     expect(res.json.destinations).toEqual([
-      { id: 'd-1', kind: 'local-folder', label: 'USB disk', lastSuccessAt: lastAttempt, lastBackupId: `20260301T000000Z-${'a'.repeat(32)}`, lastError: null, lastErrorAt: null, lastVerifiedAt: lastAttempt, repoBytes: 4096, nextDueAt: new Date(Date.parse(lastAttempt) + 24 * 3_600_000).toISOString() },
-      { id: 'd-2', kind: 'local-folder', label: 'NAS', lastSuccessAt: null, lastBackupId: null, lastError: 'repository-missing', lastErrorAt: lastAttempt, lastVerifiedAt: null, repoBytes: null, nextDueAt: new Date(Date.parse(lastAttempt) + 6 * 3_600_000).toISOString() },
+      { id: 'd-1', kind: 'local-folder', label: 'USB disk', lastSuccessAt: lastAttempt, lastBackupId: `20260301T000000Z-${'a'.repeat(32)}`, lastError: null, lastErrorAt: null, lastVerifiedAt: lastAttempt, repoBytes: 4096, nextDueAt: new Date(Date.parse(lastAttempt) + 24 * 3_600_000).toISOString(), overdue: false, lastDrillAt: null, lastDrillOutcome: null, lastDrillBackupId: null, lastDrillError: null, nextDrillDueAt: expect.any(String) },
+      { id: 'd-2', kind: 'local-folder', label: 'NAS', lastSuccessAt: null, lastBackupId: null, lastError: 'repository-missing', lastErrorAt: lastAttempt, lastVerifiedAt: null, repoBytes: null, nextDueAt: new Date(Date.parse(lastAttempt) + 6 * 3_600_000).toISOString(), overdue: false, lastDrillAt: null, lastDrillOutcome: null, lastDrillBackupId: null, lastDrillError: null, nextDrillDueAt: null },
     ]);
+    expect(res.json.health).toEqual({ overdue: false, lastRunFailed: true, drillFailed: false, noDestinationSince: null });
     expect(res.json.nextScheduledAt).toBe(new Date(Date.parse(lastAttempt) + 6 * 3_600_000).toISOString());
     expect(res.json.schedule).toMatchObject({ configured: true, intervalHours: 24 });
     expect(res.raw.body).not.toContain('usb-disk-folder');
+    writeHubConfig(configFile, base);
+    db().prepare("DELETE FROM meta WHERE key LIKE 'backup_dest_state:%'").run();
+  });
+
+  it('reports backup health (Milestone 850): overdue at twice the interval, the last restore drill and a schedule without a destination, codes and times only', async () => {
+    const folder = path.join(tempDir('hub-health-'), 'secret-folder-name');
+    const configFile = h.hub.paths.configFile;
+    const base = loadOrCreateHubConfig(configFile);
+    const old = new Date(Date.now() - 49 * 3_600_000).toISOString();
+    const drillAt = new Date(Date.now() - 3_600_000).toISOString();
+    writeHubConfig(configFile, applyBackupConfigChange(base, { schedule: { intervalHours: 24 }, destinations: [{ id: 'd-1', kind: 'local-folder', label: 'USB disk', folder }] }));
+    updateDestinationState(db(), 'd-1', { lastAttemptAt: old, lastOutcome: 'success', lastSuccessAt: old, lastDrillAt: drillAt, lastDrillOutcome: 'failure', lastDrillError: 'integrity-failed', lastDrillBackupId: `20260301T000000Z-${'b'.repeat(32)}` });
+    const res = await status();
+    expect(Value.Check(BackupStatusResponse, res.json)).toBe(true);
+    expect(res.json.destinations[0]).toMatchObject({
+      overdue: true, lastDrillAt: drillAt, lastDrillOutcome: 'failure', lastDrillError: 'integrity-failed', lastDrillBackupId: `20260301T000000Z-${'b'.repeat(32)}`,
+      nextDrillDueAt: new Date(Date.parse(drillAt) + 24 * 3_600_000).toISOString(),
+    });
+    expect(res.json.health).toEqual({ overdue: true, lastRunFailed: false, drillFailed: true, noDestinationSince: null });
+    expect(res.raw.body).not.toContain('secret-folder-name');
+    // A passed drill clears the failure code from the read model.
+    updateDestinationState(db(), 'd-1', { lastDrillOutcome: 'success', lastDrillAt: drillAt });
+    expect((await status()).json.destinations[0]).toMatchObject({ lastDrillOutcome: 'success', lastDrillError: null });
     writeHubConfig(configFile, base);
     db().prepare("DELETE FROM meta WHERE key LIKE 'backup_dest_state:%'").run();
   });

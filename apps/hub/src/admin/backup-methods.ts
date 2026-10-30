@@ -16,6 +16,7 @@ import { defaultMasterKeyStore } from '../backup/master-key.js';
 import type { MasterKeyStore } from '../backup/master-key.js';
 import { listBackups } from '../backup/retention.js';
 import { BACKUP_PRUNE_ACTION, BACKUP_PRUNE_CONSEQUENCE_CLASS, DEFAULT_RETENTION, PruneError, applyPrunePlan, backupIdTime, planPrune } from '../backup/retention-v2.js';
+import { createRestoreDrillService } from '../backup/restore-drill.js';
 import { BACKUP_JOURNAL_PREFIX, BackupRunError, backupRunFailureCode, runBackupV2 } from '../backup/run-backup-v2.js';
 import type { RunBackupV2Result } from '../backup/run-backup-v2.js';
 import { clearScheduleKey, scheduleKeyExists } from '../backup/schedule-key.js';
@@ -26,6 +27,7 @@ import {
 import type { HubBackupDestinationConfig, HubBackupS3Destination } from '../config/hub-config.js';
 import { getAuthorityEpoch, getAuthorityState, setAuthority } from '../hub/authority.js';
 import { clearDestinationState, readDestinationState, updateDestinationState } from '../hub/backup-destination-state.js';
+import { evaluateBackupHealth } from '../hub/backup-health.js';
 import { setSecretExpected } from '../provisioning/index.js';
 import { audit } from '../security/audit.js';
 import { ConfirmationStore } from '../security/confirmation-store.js';
@@ -626,6 +628,8 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
         retention: { ...DEFAULT_RETENTION },
         last: readBackupLast(context.db),
         keyPresent: masterKeys().exists(),
+        // Backup health (Milestone 850): overdue at twice the interval, last run failed, last restore drill failed; ids, labels, ages and codes only.
+        health: evaluateBackupHealth(context.db, { schedule, destinations: (current.backup?.destinations ?? []).map((d) => ({ id: d.id, label: d.label })) }, now()),
         ...(schedule?.folder !== undefined ? { legacyFolder: schedule.folder } : {}),
       };
     },
@@ -750,6 +754,23 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
       if (definitions.length === 0) throw new AdminError('refused', 'No backup destination is configured.');
       const results = await runDestinations(definitions);
       return { ok: results.every((r) => r['ok'] === true), results };
+    },
+    /**
+     * Restores the newest verified backup of one destination or all of them into a scratch folder and checks it (Milestone 850): the
+     * monthly drill, now. The destination is only read, the live data is never touched and the scratch folder is removed afterwards, so
+     * there is nothing to confirm (the Destructive-Action Contract applies to actions that change existing data). Elevated; audited.
+     */
+    'backup.drill': async (params) => {
+      const raw = record(params)['destination'];
+      const definitions = raw === undefined ? destinationsOf() : [destinationById(raw)];
+      if (definitions.length === 0) throw new AdminError('refused', 'No backup destination is configured.');
+      loadMasterKey().fill(0);
+      const service = createRestoreDrillService({
+        db: context.db, paths: paths(), readConfig: config, masterKeys: masterKeys(), deps: backupDeps(), now, openDestination,
+        ...(context.restoreDrillTest ?? {}),
+      });
+      const { results } = await service.run(definitions.map((d) => d.id), { trigger: 'manual' });
+      return { ok: results.every((r) => r.outcome === 'passed'), results };
     },
     /** Step one of `backup prune`: the read-only retention plan of one destination and a token bound to it. Deletes nothing. */
     'backup.prune.preview': async (params) => {

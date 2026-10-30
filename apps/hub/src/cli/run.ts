@@ -23,6 +23,7 @@ import { runTlsNames } from '../service/tls-names.js';
 import { runTlsImport, runTlsProxyPin } from '../service/tls-external.js';
 import { runTlsAcme } from '../service/tls-acme.js';
 import { nodeBackupDeps } from '../backup/kdf.js';
+import { RESTORE_DRILL_CHECK_MS, createRestoreDrillScheduler, createRestoreDrillService, sweepRestoreDrillScratch } from '../backup/restore-drill.js';
 import { BACKUP_SCHEDULER_CHECK_MS, createBackupScheduler } from '../backup/scheduler.js';
 import { defaultScheduleKeyProtector } from '../backup/schedule-key.js';
 import { defaultMasterKeyStore } from '../backup/master-key.js';
@@ -392,17 +393,34 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   acmeRenewal.start();
   // Unattended backups (31G, backup v2 from Milestone 847): checks every 10 minutes and does nothing unless `backup schedule set`
   // configured an interval in hub.json; each due destination gets a v2 run with the master key from the secret store.
+  // Backup overdue notifications (PD-109, Milestone 850): after each scheduler check and each restore drill verdict.
+  const checkBackupHealth = (): void => {
+    const backup = loadOrCreateHubConfig(paths.configFile).backup;
+    server.hubNotifications.checkBackupHealth({ schedule: backup?.schedule, destinations: (backup?.destinations ?? []).map((d) => ({ id: d.id, label: d.label })) });
+  };
+  const restoreDrillService = createRestoreDrillService({
+    db: hub.db, paths, readConfig: () => loadOrCreateHubConfig(paths.configFile), masterKeys: masterKeyStore, deps: nodeBackupDeps(),
+    onRecorded: () => checkBackupHealth(),
+  });
   const backupScheduler = createBackupScheduler({
     db: hub.db, paths, hubVersion: hubVersion(), hubInstanceId: hub.hubInstanceId,
     readConfig: () => loadOrCreateHubConfig(paths.configFile), masterKeys: masterKeyStore, deps: nodeBackupDeps(),
     saveSphereDb: () => queueRuntime?.db,
     job: server.hubJobs.handle('backup-schedule'),
-    onCheck: ({ intervalHours }) => server.hubNotifications.checkBackupOverdue(intervalHours),
+    onCheck: () => checkBackupHealth(),
     beforeSnapshot: () => server.collab.flushAll(),
     ...(testBackupCheckMs !== undefined ? { checkMs: testBackupCheckMs } : {}),
   });
   server.hubJobs.register('backup-schedule', testBackupCheckMs ?? BACKUP_SCHEDULER_CHECK_MS);
   backupScheduler.start();
+  // The monthly restore drill (Milestone 850, PD-150): restores each destination's newest verified backup into a scratch directory and
+  // checks it, every check period; a scratch directory a killed drill left is removed first. Never touches the live data.
+  try { sweepRestoreDrillScratch(paths); } catch { /* best effort */ }
+  const restoreDrill = createRestoreDrillScheduler({
+    service: restoreDrillService, job: server.hubJobs.handle('restore-drill'), ...(testBackupCheckMs !== undefined ? { checkMs: testBackupCheckMs } : {}),
+  });
+  server.hubJobs.register('restore-drill', testBackupCheckMs ?? RESTORE_DRILL_CHECK_MS);
+  restoreDrill.start();
   // Detection only (PD-064): records this machine's addresses and audits a change; DNS is never updated and no DNS credential is stored.
   const addressWatch = createAddressWatch({
     db: hub.db,
@@ -445,6 +463,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
         renewal.stop();
         acmeRenewal.stop();
         backupScheduler.stop();
+        restoreDrill.stop();
         addressWatch.stop();
         try { await queueRuntime?.stop(); } catch { /* best effort */ }
         try { await admin.close(); } catch { /* best effort */ }

@@ -88,6 +88,8 @@ export interface RestoreSummary {
   backupId?: string;
   blobs?: number;
   blobBytes?: number;
+  /** v2: plaintext bytes of every entry (named files and blobs), what a restore writes (the restore drill's disk check, Milestone 850). */
+  bytes?: number;
 }
 
 /**
@@ -101,9 +103,16 @@ export interface RestoreSourceOptions {
   backupId?: string;
 }
 
-export interface PreviewRestoreOptions extends RestoreSourceOptions {
-  /** Never logged, returned or persisted. */
-  passphrase: string;
+/**
+ * How the backup is opened: the owner's passphrase (the offline CLI), or the Hub's held master key (the restore drill, Milestone 850;
+ * a repository source only, never a single-file export, which has its own key). Exactly one. Neither is logged, returned or persisted.
+ */
+export interface RestoreCredentialOptions {
+  passphrase?: string;
+  masterKey?: Uint8Array;
+}
+
+export interface PreviewRestoreOptions extends RestoreSourceOptions, RestoreCredentialOptions {
   dataRoot: string;
   deps: BackupDeps;
   now: () => number;
@@ -119,9 +128,7 @@ export interface RestorePreview {
   summary: RestoreSummary;
 }
 
-export interface ApplyRestoreOptions extends RestoreSourceOptions {
-  /** Never logged, returned or persisted. */
-  passphrase: string;
+export interface ApplyRestoreOptions extends RestoreSourceOptions, RestoreCredentialOptions {
   dataRoot: string;
   confirmToken: string;
   /** The caller has verified the operator typed RESTORE_PHRASE_REPLACE. */
@@ -203,9 +210,18 @@ function checkSource(options: RestoreSourceOptions): void {
   if (options.backupId !== undefined && hasFile) throw new RestoreError('invalid-backup', 'A backup id selects a backup in a repository folder only.');
 }
 
+function credentialOf(options: RestoreSourceOptions & RestoreCredentialOptions): { passphrase: string } | { masterKey: Uint8Array } {
+  const hasPassphrase = typeof options.passphrase === 'string';
+  const hasKey = options.masterKey instanceof Uint8Array;
+  if (hasPassphrase === hasKey) throw new RestoreError('invalid-backup', 'Give exactly one credential: the backup passphrase or the held master key.');
+  if (hasKey && options.file !== undefined) throw new RestoreError('invalid-backup', 'A single-file backup opens with its passphrase only.');
+  return hasKey ? { masterKey: options.masterKey as Uint8Array } : { passphrase: options.passphrase as string };
+}
+
 /** Opens and validates the backup. Throws BackupError (wrong passphrase, corrupt backup) or RestoreError. */
-async function readAndValidate(options: RestoreSourceOptions & { passphrase: string; deps: BackupDeps }): Promise<Validated> {
+async function readAndValidate(options: RestoreSourceOptions & RestoreCredentialOptions & { deps: BackupDeps }): Promise<Validated> {
   checkSource(options);
+  const credential = credentialOf(options);
   let reader: BackupV2Reader;
   let sourceTag: string;
   if (options.file !== undefined) {
@@ -217,7 +233,7 @@ async function readAndValidate(options: RestoreSourceOptions & { passphrase: str
     } catch {
       throw new RestoreError('invalid-backup', 'The backup file could not be read.');
     }
-    const opened = await openBackupFile(fileByteSource(options.file, size), { passphrase: options.passphrase }, options.deps);
+    const opened = await openBackupFile(fileByteSource(options.file, size), credential as { passphrase: string }, options.deps);
     if (opened.formatVersion === 1) return validateV1(options.file, opened.backup);
     reader = opened.reader;
     sourceTag = `file:${size}`;
@@ -238,7 +254,7 @@ async function readAndValidate(options: RestoreSourceOptions & { passphrase: str
       backupId = newest;
     }
     if ((await destination.stat(`${MANIFEST_PREFIX}${backupId}`)) === null) throw new RestoreError('invalid-backup', 'The repository has no backup with that id.');
-    reader = await openBackupV2(destination.source(), backupId, { passphrase: options.passphrase }, options.deps);
+    reader = await openBackupV2(destination.source(), backupId, credential, options.deps);
     sourceTag = options.destination !== undefined ? 'destination' : 'folder';
   }
   try {
@@ -313,7 +329,9 @@ function summaryOf(validated: Validated, targetState: RestoreTargetState): Resto
     requiresReplacePhrase: targetState === 'existing',
     consequenceClass: RESTORE_CONSEQUENCE_CLASS,
     formatVersion: validated.version,
-    ...(validated.version === 2 ? { backupId: validated.head.backupId, blobs: validated.blobs, blobBytes: validated.blobBytes } : {}),
+    ...(validated.version === 2
+      ? { backupId: validated.head.backupId, blobs: validated.blobs, blobBytes: validated.blobBytes, bytes: facts.files.reduce((sum, f) => sum + f.size, 0) + validated.blobBytes }
+      : {}),
   };
 }
 

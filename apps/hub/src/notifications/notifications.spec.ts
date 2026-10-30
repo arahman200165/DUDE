@@ -5,6 +5,7 @@ import { ensureLayout } from '../config/data-dir.js';
 import { openHubDb } from '../db/open-hub-db.js';
 import type { HubDb } from '../db/open-hub-db.js';
 import { createJobRegistry } from '../jobs/job-status.js';
+import { updateDestinationState } from '../hub/backup-destination-state.js';
 import { audit } from '../security/audit.js';
 import { tempDir } from '../server/test-helpers.js';
 import { startNotificationProducers } from './producers.js';
@@ -167,43 +168,121 @@ describe('notification producers (jobs)', () => {
   });
 });
 
-describe('backup overdue producer', () => {
-  it('stays quiet within twice the interval, then notifies at most once per UTC day', () => {
+describe('backup health producers (Milestone 850)', () => {
+  const schedule = (hours: number) => ({ intervalHours: hours });
+  const dest = [{ id: 'd-1', label: 'USB disk' }];
+  const success = (f: Fixture, id: string, at = f.clock.t): void => {
+    updateDestinationState(f.hub.db, id, { lastSuccessAt: new Date(at).toISOString(), lastOutcome: 'success' });
+  };
+
+  it('stays quiet within twice the interval, notifies exactly at it and then at most once per destination and UTC day', () => {
     const f = setup();
-    system(f, 'backup.created', 'success', { file: 'a.dudebackup', size: 5, trigger: 'schedule' });
+    success(f, 'd-1');
     f.clock.t = T0 + 47 * HOUR;
-    f.producers.checkBackupOverdue(24);
+    f.producers.checkBackupHealth({ schedule: schedule(24), destinations: dest });
     expect(rows(f)).toEqual([]);
-    f.clock.t = T0 + 49 * HOUR;
-    f.producers.checkBackupOverdue(24);
-    f.producers.checkBackupOverdue(24);
-    expect(rows(f)).toMatchObject([{ kind: 'backup-overdue', severity: 'warning', body: 'No backup has completed for 2 days; one is due every 24 hours.' }]);
-    f.clock.t = T0 + 49 * HOUR + 12 * HOUR;
-    f.producers.checkBackupOverdue(24);
+    f.clock.t = T0 + 48 * HOUR - 1;
+    f.producers.checkBackupHealth({ schedule: schedule(24), destinations: dest });
+    expect(rows(f)).toEqual([]);
+    f.clock.t = T0 + 48 * HOUR;
+    f.producers.checkBackupHealth({ schedule: schedule(24), destinations: dest });
+    f.producers.checkBackupHealth({ schedule: schedule(24), destinations: dest });
+    expect(rows(f)).toMatchObject([{ kind: 'backup-overdue', severity: 'warning', body: 'No backup to "USB disk" has completed for 2 days; one is due every 24 hours.' }]);
+    f.clock.t = T0 + 48 * HOUR + 2 * HOUR;
+    f.producers.checkBackupHealth({ schedule: schedule(24), destinations: dest });
     expect(rows(f)).toHaveLength(1);
-    f.clock.t = T0 + 49 * HOUR + 24 * HOUR;
-    f.producers.checkBackupOverdue(24);
-    f.producers.checkBackupOverdue(24);
+    f.clock.t = T0 + 48 * HOUR + 24 * HOUR;
+    f.producers.checkBackupHealth({ schedule: schedule(24), destinations: dest });
     expect(rows(f)).toHaveLength(2);
   });
 
-  it('measures a never-succeeded schedule from when it was set, never fires without a baseline, and clears after a success', () => {
+  it('measures a never-succeeded destination from the schedule or from when it was added (the later), and never fires without a baseline or a schedule', () => {
     const f = setup();
-    f.producers.checkBackupOverdue(1);
+    f.producers.checkBackupHealth({ schedule: schedule(1), destinations: dest });
     expect(rows(f)).toEqual([]);
-    system(f, 'backup.scheduled', 'success', { intervalHours: 1 });
+    system(f, 'backup.scheduled', 'success', { action: 'set', intervalHours: 1, destinations: 1 });
     f.clock.t = T0 + 5 * HOUR;
-    f.producers.checkBackupOverdue(1);
-    expect(rows(f)).toMatchObject([{ kind: 'backup-overdue', body: 'No backup has completed for 5 hours; one is due every 1 hours.' }]);
-    system(f, 'backup.created', 'success', { file: 'a.dudebackup', size: 5, trigger: 'schedule' });
-    f.clock.t += 24 * HOUR;
-    f.producers.checkBackupOverdue(1);
+    f.producers.checkBackupHealth({ schedule: undefined, destinations: dest });
+    expect(rows(f)).toEqual([]);
+    f.producers.checkBackupHealth({ schedule: schedule(1), destinations: dest });
+    expect(rows(f)).toMatchObject([{ kind: 'backup-overdue', body: 'No backup to "USB disk" has completed for 5 hours; one is due every 1 hours.' }]);
+    // A destination added later counts from when it was added.
+    system(f, 'backup.destination-added', 'success', { destination: 'd-2', kind: 'local-folder', adopted: false });
+    f.clock.t += 1 * HOUR;
+    f.producers.checkBackupHealth({ schedule: schedule(1), destinations: [{ id: 'd-2', label: 'Second' }] });
+    expect(rows(f)).toHaveLength(1);
+    f.clock.t += 1 * HOUR;
+    f.producers.checkBackupHealth({ schedule: schedule(1), destinations: [{ id: 'd-2', label: 'Second' }] });
     expect(rows(f)).toHaveLength(2);
-    f.clock.t += 0;
-    system(f, 'backup.created', 'success', { file: 'b.dudebackup', size: 5, trigger: 'schedule' });
-    const before = rows(f).length;
-    f.producers.checkBackupOverdue(1);
-    expect(rows(f)).toHaveLength(before);
+  });
+
+  it('reports a schedule with no destination once a day, from when the schedule was set', () => {
+    const f = setup();
+    system(f, 'backup.scheduled', 'success', { intervalHours: 6 });
+    f.clock.t = T0 + 11 * HOUR;
+    f.producers.checkBackupHealth({ schedule: schedule(6), destinations: [] });
+    expect(rows(f)).toEqual([]);
+    f.clock.t = T0 + 12 * HOUR;
+    f.producers.checkBackupHealth({ schedule: schedule(6), destinations: [] });
+    f.producers.checkBackupHealth({ schedule: schedule(6), destinations: [] });
+    expect(rows(f)).toMatchObject([{ kind: 'backup-overdue', severity: 'warning', body: expect.stringContaining('no backup destination exists') }]);
+  });
+
+  it('notifies only for the destination that is overdue', () => {
+    const f = setup();
+    system(f, 'backup.scheduled', 'success', { action: 'set', intervalHours: 1 });
+    const two = [...dest, { id: 'd-2', label: 'Cloud' }];
+    f.clock.t = T0 + 3 * HOUR;
+    success(f, 'd-2');
+    f.producers.checkBackupHealth({ schedule: schedule(1), destinations: two });
+    expect(rows(f)).toHaveLength(1);
+    expect(rows(f)[0]!.body).toContain('"USB disk"');
+    expect(rows(f)[0]!.body).not.toContain('Cloud');
+  });
+
+  it('maps a failed v2 run once per destination, reason and day, ignores the no-destination record and recovers per destination', () => {
+    const f = setup();
+    system(f, 'backup.v2-failed', 'failure', { reason: 'no-destination', trigger: 'schedule' });
+    expect(rows(f)).toEqual([]);
+    system(f, 'backup.v2-created', 'success', { destination: 'd-1', backupId: 'b0' });
+    system(f, 'backup.v2-failed', 'failure', { destination: 'd-1', reason: 'ENOSPC', trigger: 'schedule' });
+    system(f, 'backup.v2-failed', 'failure', { destination: 'd-1', reason: 'ENOSPC', trigger: 'schedule' });
+    expect(rows(f)).toMatchObject([{ kind: 'backup-failed', severity: 'error', title: 'A backup failed', body: expect.stringContaining('(ENOSPC)') }]);
+    system(f, 'backup.v2-created', 'success', { destination: 'd-2', backupId: 'b1' });
+    expect(rows(f)).toHaveLength(1);
+    system(f, 'backup.v2-created', 'success', { destination: 'd-1', backupId: 'b2' });
+    system(f, 'backup.v2-created', 'success', { destination: 'd-1', backupId: 'b3' });
+    expect(rows(f).map((r) => r.kind)).toEqual(['backup-failed', 'backup-recovered']);
+    f.clock.t += 24 * HOUR;
+    system(f, 'backup.v2-failed', 'failure', { destination: 'd-1', reason: 'ENOSPC', trigger: 'schedule' });
+    expect(rows(f)).toHaveLength(3);
+  });
+
+  it('maps a failed restore drill once a day per destination and echoes only ids and a validated code', () => {
+    const f = setup();
+    system(f, 'backup.drill-passed', 'success', { destination: 'd-1', backupId: 'b0' });
+    expect(rows(f)).toEqual([]);
+    system(f, 'backup.drill-failed', 'failure', { destination: 'd-1', reason: 'integrity-failed', trigger: 'schedule' });
+    system(f, 'backup.drill-failed', 'failure', { destination: 'd-1', reason: 'integrity-failed', trigger: 'manual' });
+    system(f, 'backup.drill-failed', 'failure', { destination: 'd-2', reason: 'C:\\Users\\x\\secret', trigger: 'schedule' });
+    expect(rows(f)).toMatchObject([
+      { kind: 'backup-failed', severity: 'error', title: 'A restore drill failed', body: expect.stringContaining('(integrity-failed)') },
+      { kind: 'backup-failed', title: 'A restore drill failed' },
+    ]);
+    expect(rows(f)).toHaveLength(2);
+    expect(JSON.stringify(rows(f))).not.toContain('secret');
+    for (const r of rows(f)) expect(HUB_NOTIFICATION_KINDS).toContain(r.kind);
+  });
+
+  it('echoes the destination label from the injected lookup, never a path', () => {
+    const hub = open();
+    const jobs = createJobRegistry({ db: hub.db, now: () => T0 });
+    const producers = startNotificationProducers({ db: hub.db, now: () => T0, jobs, emit: () => undefined, destinationLabel: (id) => (id === 'd-1' ? 'USB disk' : null) });
+    stops.push(() => producers.stop());
+    audit(hub.db, { event: 'backup.drill-failed', outcome: 'failure', actorKind: 'system', detail: { destination: 'd-1', reason: 'timeout', folder: 'C:\\secret' }, now: T0 });
+    const body = (hub.db.prepare('SELECT body FROM notifications').get() as { body: string }).body;
+    expect(body).toContain('"USB disk"');
+    expect(body).not.toContain('secret');
   });
 });
 

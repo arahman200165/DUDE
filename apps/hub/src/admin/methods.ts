@@ -4,6 +4,7 @@ import type { HubPaths } from '../config/data-dir.js';
 import type { BackupDeps } from '@dude/hub-backup';
 import type { BackupDestination, OpenBackupDestinationDeps, S3CredentialStore } from '../backup/destinations/index.js';
 import type { MasterKeyStore } from '../backup/master-key.js';
+import type { RestoreDrillServiceOptions } from '../backup/restore-drill.js';
 import type { RunBackupV2Options } from '../backup/run-backup-v2.js';
 import type { HubBackupDestinationConfig } from '../config/hub-config.js';
 import { buildBackupMethods } from './backup-methods.js';
@@ -108,6 +109,8 @@ export interface AdminMethodContext {
   openBackupDestination?: (definition: HubBackupDestinationConfig) => BackupDestination;
   /** TEST-ONLY: small chunks and packs, hooks or a fake blob store for `backup.run`. */
   backupRunTest?: Partial<Pick<RunBackupV2Options, 'chunkSize' | 'packBytes' | 'hooks' | 'blobStore'>>;
+  /** Test seams for the restore drill (free space, failure and crash injection). */
+  restoreDrillTest?: Partial<Pick<RestoreDrillServiceOptions, 'freeSpace' | 'hooks'>>;
   /** Called once after `backup create --for-transfer` retired the Hub (31G): the server closes every realtime socket with code 4004. */
   onTransferred?: () => void;
   /** Writes in-memory collaborative state (buffered Yjs updates, pending materializations) before a backup snapshot (PD-105). */

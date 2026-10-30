@@ -271,6 +271,7 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   // Notifications (PD-109, PD-110): the closed producer list feeds the table; a new row reaches owner sockets and reader-granted device sockets.
   const producers = startNotificationProducers({
     db: options.hub.db, now, jobs,
+    destinationLabel: (id) => currentConfig(options.paths.configFile, { port: 0 }).backup?.destinations?.find((d) => d.id === id)?.label ?? null,
     emit: (n) => {
       app.hubEvents.emit('notification-created', { id: n.id, kind: n.kind, severity: n.severity, title: n.title });
       realtime.notifyOwnerView('notifications');

@@ -1,12 +1,12 @@
 import path from 'node:path';
 
 /**
- * One operation at a time per destination (Milestone 847): a backup run, a prune or a re-wrap. The Hub process is the only writer
+ * One operation at a time per destination (Milestone 847): a backup run, a prune, a re-wrap or (Milestone 850) a restore drill. The Hub process is the only writer
  * of its destinations (the scheduler and the admin methods both run inside it), so an in-process lock is enough and dies with the
  * process; a crashed run's leftovers are handled by the journal, not by the lock. "Prune never runs while a backup holds the
  * destination" is this lock.
  */
-export type DestinationLockHolder = 'backup' | 'prune' | 'rewrap' | 'remove';
+export type DestinationLockHolder = 'backup' | 'prune' | 'rewrap' | 'remove' | 'drill';
 
 const held = new Map<string, DestinationLockHolder>();
 

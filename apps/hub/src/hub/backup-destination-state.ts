@@ -23,9 +23,15 @@ export interface BackupDestinationState {
   repoBytes?: number;
   /** Bytes this destination received in its last successful run (dedupe makes it far smaller than the backup). */
   lastWrittenBytes?: number;
+  /** Restore drill (Milestone 850): when the last drill that reached a verdict finished, its verdict, the backup it restored and a short failure code. */
+  lastDrillAt?: string;
+  lastDrillOutcome?: 'success' | 'failure';
+  lastDrillSuccessAt?: string;
+  lastDrillBackupId?: string;
+  lastDrillError?: string;
 }
 
-const STRING_FIELDS = ['lastAttemptAt', 'lastSuccessAt', 'lastBackupId', 'lastErrorAt', 'lastError', 'lastVerifiedAt', 'repoId'] as const;
+const STRING_FIELDS = ['lastAttemptAt', 'lastSuccessAt', 'lastBackupId', 'lastErrorAt', 'lastError', 'lastVerifiedAt', 'repoId', 'lastDrillAt', 'lastDrillSuccessAt', 'lastDrillBackupId', 'lastDrillError'] as const;
 const NUMBER_FIELDS = ['repoBytes', 'lastWrittenBytes'] as const;
 
 export function readDestinationState(db: Db, id: string): BackupDestinationState {
@@ -37,6 +43,7 @@ export function readDestinationState(db: Db, id: string): BackupDestinationState
     for (const field of STRING_FIELDS) if (typeof parsed[field] === 'string') state[field] = parsed[field];
     for (const field of NUMBER_FIELDS) if (typeof parsed[field] === 'number' && Number.isSafeInteger(parsed[field])) state[field] = parsed[field];
     if (parsed['lastOutcome'] === 'success' || parsed['lastOutcome'] === 'failure') state.lastOutcome = parsed['lastOutcome'];
+    if (parsed['lastDrillOutcome'] === 'success' || parsed['lastDrillOutcome'] === 'failure') state.lastDrillOutcome = parsed['lastDrillOutcome'];
     return state;
   } catch {
     return {};

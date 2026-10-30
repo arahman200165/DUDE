@@ -6,6 +6,7 @@ import type { BackupDestinationStatus } from '@dude/contracts/hub';
 import type { HubBackupConfig } from '../../config/hub-config.js';
 import { getAuthorityEpoch, getAuthorityState } from '../../hub/authority.js';
 import { nextDueAt, readDestinationState } from '../../hub/backup-destination-state.js';
+import { evaluateBackupHealth, nextDrillDueAt } from '../../hub/backup-health.js';
 import { readBackupLast } from '../../hub/backup-last.js';
 import type { createRequireOwner } from '../../auth/owner-auth.js';
 
@@ -25,7 +26,8 @@ export interface BackupRouteOptions {
  * `GET /backup/status`: owner cookie or bearer. A read model for the Hub UI (no mutation, so no CSRF and no audit event): authority
  * epoch and state, the last backup outcome, the schedule, the default folder, how many devices await re-pairing and (backup v2,
  * Milestone 847) each destination's kind, label, last success, last error code, last verification, repository size and next due
- * time, the retention policy and the next scheduled run. Backup creation, scheduling, pruning and restore stay admin-pipe and
+ * time, the retention policy and the next scheduled run; backup health (Milestone 850: per-destination `overdue` at twice the interval, the last restore
+ * drill's verdict and failure code, the next drill, and the Hub-wide `health` flags). Codes and times only. Backup creation, scheduling, pruning and restore stay admin-pipe and
  * offline commands. It never returns a passphrase, a key, a credential, a destination folder or any path other than the 31G
  * schedule folder and the default backups folder (`lastBackup.file` and `lastBackupId` are names).
  */
@@ -43,14 +45,20 @@ export function registerBackupRoutes(app: FastifyInstance, options: BackupRouteO
         .get() as { n: number | bigint };
       const keyPresent = options.scheduleKeyPresent?.();
       const at = now();
+      const health = evaluateBackupHealth(options.db, { schedule, destinations: (backup?.destinations ?? []).map((d) => ({ id: d.id, label: d.label })) }, at);
       const destinations: BackupDestinationStatus[] = (backup?.destinations ?? []).map((d) => {
         const state = readDestinationState(options.db, d.id);
+        const drillDue = nextDrillDueAt(state, at);
         return {
           id: d.id, kind: d.kind, label: d.label,
           lastSuccessAt: state.lastSuccessAt ?? null, lastBackupId: state.lastBackupId ?? null,
           lastError: state.lastOutcome === 'failure' ? state.lastError ?? null : null, lastErrorAt: state.lastErrorAt ?? null,
           lastVerifiedAt: state.lastVerifiedAt ?? null, repoBytes: state.repoBytes ?? null,
           nextDueAt: schedule === undefined ? null : new Date(Math.max(at, nextDueAt(state, schedule.intervalHours, at))).toISOString(),
+          overdue: health.destinations.some((h) => h.id === d.id && h.overdue !== null),
+          lastDrillAt: state.lastDrillAt ?? null, lastDrillOutcome: state.lastDrillOutcome ?? null, lastDrillBackupId: state.lastDrillBackupId ?? null,
+          lastDrillError: state.lastDrillOutcome === 'failure' ? state.lastDrillError ?? null : null,
+          nextDrillDueAt: drillDue === null ? null : new Date(Math.max(at, drillDue)).toISOString(),
         };
       });
       const dueTimes = destinations.map((d) => d.nextDueAt).filter((t): t is string => t !== null).sort();
@@ -69,6 +77,12 @@ export function registerBackupRoutes(app: FastifyInstance, options: BackupRouteO
         destinations,
         retention: { ...BACKUP_V2_RETENTION_DEFAULT },
         nextScheduledAt: dueTimes[0] ?? null,
+        health: {
+          overdue: health.noDestination !== null || health.destinations.some((h) => h.overdue !== null),
+          lastRunFailed: health.destinations.some((h) => h.failed !== null),
+          drillFailed: health.destinations.some((h) => h.drillFailed !== null),
+          noDestinationSince: health.noDestination === null ? null : new Date(health.noDestination.sinceMs).toISOString(),
+        },
       });
     },
   );

@@ -30,7 +30,7 @@ export type ParsedCommand =
 
 export type BackupCliAction =
   | 'create' | 'list' | 'verify' | 'schedule-set' | 'schedule-off' | 'schedule-status' | 'reactivate'
-  | 'run' | 'prune' | 'rewrap' | 'destination-add' | 'destination-list' | 'destination-remove' | 'destination-verify' | 'destination-probe';
+  | 'run' | 'drill' | 'prune' | 'rewrap' | 'destination-add' | 'destination-list' | 'destination-remove' | 'destination-verify' | 'destination-probe';
 
 const BIND_MODES: readonly string[] = ['loopback', 'lan', 'container'];
 
@@ -95,6 +95,7 @@ Usage:
   dude-hub backup destination remove --id <id> [--confirm <token>] [--data-dir <dir>] [--install-dir <dir>]   (two steps; forgets the destination, never deletes its backups; elevated)
   dude-hub backup destination verify --id <id> [--backup <backup id>] [--data-dir <dir>] [--install-dir <dir>]   (decrypts and checks a whole backup at the destination; elevated)
   dude-hub backup run [--destination <id>] [--data-dir <dir>] [--install-dir <dir>]   (a backup v2 into every destination now; verified on write; elevated)
+  dude-hub backup drill [--destination <id>] [--data-dir <dir>] [--install-dir <dir>]   (restores each destination's newest verified backup into a scratch folder and checks it, now; the monthly drill does this on its own; changes nothing; elevated)
   dude-hub backup prune --destination <id> [--confirm <token>] [--data-dir <dir>] [--install-dir <dir>]   (two steps: keeps 7 daily, 4 weekly and 6 monthly backups and deletes the rest and their unreferenced packs; elevated)
   dude-hub backup rewrap [--confirm <token>] [--data-dir <dir>] [--install-dir <dir>]   (two steps: a new passphrase for every destination; asks for it at --confirm; elevated)
   dude-hub backup schedule set --every-hours <n> [--folder <abs dir>] [--data-dir <dir>] [--install-dir <dir>]   (unattended backups into every destination; --folder adds it as a destination first and asks for the passphrase; elevated)
@@ -129,7 +130,7 @@ function parseFlags(flags: readonly string[], allowed: readonly string[], boolea
 
 const optional = (values: Record<string, string>, flag: string, key: string): Record<string, string> => (values[flag] !== undefined ? { [key]: values[flag] } : {});
 
-const BACKUP_USAGE = 'Usage: dude-hub backup create|reactivate|list|verify --file <path>|restore|run|prune|rewrap|destination add|list|remove|verify|schedule set|off|status. Run "dude-hub help".';
+const BACKUP_USAGE = 'Usage: dude-hub backup create|reactivate|list|verify --file <path>|restore|run|drill|prune|rewrap|destination add|list|remove|verify|schedule set|off|status. Run "dude-hub help".';
 
 function absolutePath(values: Record<string, string>, flag: string): string | undefined {
   const value = values[flag];
@@ -165,7 +166,7 @@ function parseBackup(rest: readonly string[]): ParsedCommand {
     flags = flags.slice(1);
     if (sub !== 'add' && sub !== 'list' && sub !== 'remove' && sub !== 'verify' && sub !== 'probe') throw new UsageError('Usage: dude-hub backup destination add --folder <abs dir> [--label <text>] | add --kind s3 ... --credentials-stdin | list | remove --id <id> | verify --id <id> [--backup <id>] | probe --id <id>.');
     action = `destination-${sub}`;
-  } else if (sub === 'create' || sub === 'list' || sub === 'verify' || sub === 'reactivate' || sub === 'run' || sub === 'prune' || sub === 'rewrap') {
+  } else if (sub === 'create' || sub === 'list' || sub === 'verify' || sub === 'reactivate' || sub === 'run' || sub === 'drill' || sub === 'prune' || sub === 'rewrap') {
     action = sub;
   } else if (sub === 'restore') {
     return parseBackupRestore(flags);
@@ -184,6 +185,7 @@ function parseBackup(rest: readonly string[]): ParsedCommand {
     'schedule-off': [],
     'schedule-status': [],
     run: ['--destination'],
+    drill: ['--destination'],
     prune: ['--destination', '--confirm'],
     rewrap: ['--confirm'],
     'destination-add': ['--folder', '--label', '--kind', '--endpoint', '--region', '--bucket', '--prefix', '--force-path-style', '--virtual-hosted', '--allow-private-network', '--credentials-stdin'],

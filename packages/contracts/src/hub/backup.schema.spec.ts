@@ -23,9 +23,23 @@ describe('BackupStatusResponse', () => {
     const { label: _label, ...unlabelled } = destination;
     expect(Value.Check(BackupStatusResponse, { ...base, destinations: [unlabelled] })).toBe(false);
     expect(BACKUP_V2_RETENTION_DEFAULT).toEqual({ daily: 7, weekly: 4, monthly: 6 });
-    for (const event of ['backup.v2-created', 'backup.v2-failed', 'backup.v2-verified', 'backup.v2-pruned', 'backup.destination-added', 'backup.destination-removed', 'backup.rewrapped']) {
+    for (const event of ['backup.v2-created', 'backup.v2-failed', 'backup.v2-verified', 'backup.v2-pruned', 'backup.destination-added', 'backup.destination-removed', 'backup.rewrapped', 'backup.drill-passed', 'backup.drill-failed']) {
       expect(HUB_AUDIT_EVENTS).toContain(event);
     }
+  });
+
+  it('accepts the backup health and restore drill fields, optional so a Hub from before still reads (Milestone 850)', () => {
+    const destination = {
+      id: 'd-1a2b3c4d', kind: 'local-folder', label: 'USB disk', lastSuccessAt: null, lastBackupId: null, lastError: null, lastErrorAt: null, lastVerifiedAt: null, repoBytes: null, nextDueAt: null,
+    };
+    const drilled = { ...destination, overdue: true, lastDrillAt: '2026-10-28T00:00:00.000Z', lastDrillOutcome: 'failure', lastDrillBackupId: 'b', lastDrillError: 'integrity-failed', nextDrillDueAt: '2026-10-29T00:00:00.000Z' };
+    expect(Value.Check(BackupStatusResponse, { ...base, destinations: [destination, drilled, { ...drilled, lastDrillOutcome: null, lastDrillAt: null, nextDrillDueAt: null }] })).toBe(true);
+    expect(Value.Check(BackupStatusResponse, { ...base, destinations: [{ ...drilled, lastDrillOutcome: 'maybe' }] })).toBe(false);
+    expect(Value.Check(BackupStatusResponse, { ...base, destinations: [{ ...drilled, overdue: 'yes' }] })).toBe(false);
+    const health = { overdue: false, lastRunFailed: true, drillFailed: false, noDestinationSince: null };
+    expect(Value.Check(BackupStatusResponse, { ...base, health })).toBe(true);
+    expect(Value.Check(BackupStatusResponse, { ...base, health: { ...health, noDestinationSince: '2026-10-28T00:00:00.000Z' } })).toBe(true);
+    expect(Value.Check(BackupStatusResponse, { ...base, health: { overdue: false } })).toBe(false);
   });
 
   it('rejects a bad epoch, an unknown state, a missing field and a negative count', () => {

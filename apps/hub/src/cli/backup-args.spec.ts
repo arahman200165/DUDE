@@ -113,6 +113,9 @@ describe('backup CLI parsing', () => {
     expect(parseArgs(['backup', 'destination', 'verify', '--id', 'd-1', '--backup', 'b'])).toEqual({ command: 'backup', action: 'destination-verify', destination: 'd-1', backupId: 'b' });
     expect(parseArgs(['backup', 'run'])).toEqual({ command: 'backup', action: 'run' });
     expect(parseArgs(['backup', 'run', '--destination', 'd-1'])).toEqual({ command: 'backup', action: 'run', destination: 'd-1' });
+    expect(parseArgs(['backup', 'drill'])).toEqual({ command: 'backup', action: 'drill' });
+    expect(parseArgs(['backup', 'drill', '--destination', 'd-1'])).toEqual({ command: 'backup', action: 'drill', destination: 'd-1' });
+    expect(() => parseArgs(['backup', 'drill', '--confirm', 't'])).toThrow(/Unknown flag/);
     expect(parseArgs(['backup', 'prune', '--destination', 'd-1', '--confirm', 't'])).toEqual({ command: 'backup', action: 'prune', destination: 'd-1', confirm: 't' });
     expect(parseArgs(['backup', 'rewrap', '--confirm', 't'])).toEqual({ command: 'backup', action: 'rewrap', confirm: 't' });
     expect(parseArgs(['backup', 'restore', '--folder', FOLDER, '--backup', 'b', '--confirm', 't'])).toEqual({ command: 'backup-restore', folder: FOLDER, backupId: 'b', confirm: 't' });

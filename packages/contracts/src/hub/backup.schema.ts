@@ -28,6 +28,15 @@ export const BackupDestinationStatus = Type.Object({
   repoBytes: Type.Union([Type.Integer({ minimum: 0 }), Type.Null()]),
   /** When the schedule next runs for this destination (null without a schedule). */
   nextDueAt: NullableString,
+  /** Backup health (Milestone 850, PD-150): true once no backup succeeded for twice the interval (counted from the schedule or the destination being added when none ever did). Absent on a Hub from before. */
+  overdue: Type.Optional(Type.Boolean()),
+  /** The restore drill (Milestone 850): when the last drill that reached a verdict finished and what it found; a failure carries a short code, never a message. */
+  lastDrillAt: Type.Optional(NullableString),
+  lastDrillOutcome: Type.Optional(Type.Union([Type.Literal('success'), Type.Literal('failure'), Type.Null()])),
+  lastDrillBackupId: Type.Optional(NullableString),
+  lastDrillError: Type.Optional(NullableString),
+  /** When the next monthly drill is due (null until the destination has a verified backup). */
+  nextDrillDueAt: Type.Optional(NullableString),
 });
 export type BackupDestinationStatus = Static<typeof BackupDestinationStatus>;
 
@@ -66,5 +75,12 @@ export const BackupStatusResponse = Type.Object({
   retention: Type.Optional(Type.Object({ daily: Type.Integer({ minimum: 0 }), weekly: Type.Integer({ minimum: 0 }), monthly: Type.Integer({ minimum: 0 }) })),
   /** The earliest time the schedule next runs for any destination, or null without a schedule or destination. */
   nextScheduledAt: Type.Optional(NullableString),
+  /** Backup health across the Hub (Milestone 850): any destination overdue, failed or failing its drill, and since when a schedule has had no destination to run into. */
+  health: Type.Optional(Type.Object({
+    overdue: Type.Boolean(),
+    lastRunFailed: Type.Boolean(),
+    drillFailed: Type.Boolean(),
+    noDestinationSince: NullableString,
+  })),
 });
 export type BackupStatusResponse = Static<typeof BackupStatusResponse>;

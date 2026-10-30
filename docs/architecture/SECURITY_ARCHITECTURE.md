@@ -469,6 +469,13 @@ The Hub writes and restores backup v2 ([PD-150](../delivery/PHASE32SS1_PLAN.md#2
 - **Audit.** `backup.v2-created`, `backup.v2-failed`, `backup.v2-verified`, `backup.v2-pruned`, `backup.destination-added`, `backup.destination-removed` and `backup.rewrapped` carry destination ids, backup ids, counts, sizes and short codes only.
 - **Status.** `GET /api/v1/backup/status` adds each destination's id, kind, label, last success, last backup id, last error code, last verification, repository size and next due time, the retention policy and the next scheduled run. It never returns a destination folder or a key.
 
+### As built in 32-SS1 (restore drill and backup health, Milestone 850)
+
+The monthly restore drill and the overdue, failed-backup and failed-drill notifications ([PD-150](../delivery/PHASE32SS1_PLAN.md#2026-10-29-milestone-850-the-restore-drill-and-the-backup-health-notifications)).
+
+- **The drill never touches live data and needs no confirmation.** For each destination it restores the newest verified backup with the Hub's held master key (the same offline restore engine, under the 31G rules) into a fresh scratch Hub root under `backups/.tmp/restore-drill/`, checks both restored databases and the blob set, records the verdict and removes the scratch directory. The destination is only read (a read-only view whose writers throw), nothing outside the scratch directory is written, and the Hub root is never started. It is therefore not a destructive action under the [Destructive-Action Contract](#destructive-action-contract), which governs actions that change existing data: `dude-hub backup drill` is elevated and audited like `backup run`, with no token. The free-space guard, the sweep of crash-left scratch and the lock shared with backups, prunes and re-wraps are its resource limits.
+- **Audit and notifications carry codes only.** `backup.drill-passed` and `backup.drill-failed` hold destination and backup ids, counts and a short closed code; a notification body echoes only the owner's destination label, a validated code and an age, never a path, folder or credential. No notification kind was added.
+
 ### Planned for SaveSphere (Phases 32-SS1 to 32-SS6)
 
 Nothing in this section is implemented. It records the security contract that the SaveSphere program ([decisions PD-116–PD-140](../delivery/PHASE32SS_PLAN.md), [SaveSphere architecture](../savesphere/SAVESPHERE_ARCHITECTURE.md)) must meet. Until each item ships, the as-built sections above describe the Hub. Every rule above still applies: contract-first routes with a declared credential type, the closed audit list, step-up for owner-impacting changes, the readiness gate and the Destructive-Action Contract.

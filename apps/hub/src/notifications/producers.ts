@@ -1,6 +1,8 @@
 import type { Db } from '@dude/sqlite-store';
 import type { HubNotification } from '@dude/contracts/hub';
 import type { JobFinish, JobRegistry } from '../jobs/job-status.js';
+import { evaluateBackupHealth } from '../hub/backup-health.js';
+import type { BackupHealthInput } from '../hub/backup-health.js';
 import { onAudit } from '../security/audit.js';
 import type { AuditNotice } from '../security/audit.js';
 import { SECURITY_ALERT_EVENTS, deviceName, summarize } from '../server/routes/security-alerts.js';
@@ -9,14 +11,31 @@ import type { NewNotification } from './store.js';
 
 const ALERT_EVENTS: ReadonlySet<string> = new Set(SECURITY_ALERT_EVENTS);
 const HOUR_MS = 3600_000;
-/** A scheduled backup is overdue when the last success is older than this many intervals. */
-export const BACKUP_OVERDUE_INTERVALS = 2;
+export { BACKUP_OVERDUE_INTERVALS } from '../hub/backup-health.js';
 
 /** Only a short code-like reason (`schedule-key-missing`, `ENOSPC`) is ever echoed; anything else is left out. */
 const reasonOf = (detail: Record<string, unknown> | null): string | null => {
   const reason = detail?.['reason'];
   return typeof reason === 'string' && /^[A-Za-z0-9_.-]{1,40}$/.test(reason) ? reason : null;
 };
+
+/** A destination id as the Hub mints it (`d-1a2b3c4d`); anything else is never echoed or used in a source key. */
+const destinationIdOf = (detail: Record<string, unknown> | null): string | null => {
+  const id = detail?.['destination'];
+  return typeof id === 'string' && /^[A-Za-z0-9_.-]{1,40}$/.test(id) ? id : null;
+};
+const dayOf = (at: string): string => at.slice(0, 10);
+const forDestination = (name: string | null, id: string | null): string => (name !== null ? ` to "${name}"` : id !== null ? ` to destination ${id}` : '');
+
+/** Whether the v2 outcome of this destination before `seq` was a failure (a recovery is the first success after one). */
+function previousV2Failed(db: Db, seq: number, destination: string | null): boolean {
+  if (destination === null) return false;
+  const row = db.prepare(
+    `SELECT event FROM audit_events WHERE seq < ? AND event IN ('backup.v2-created', 'backup.v2-failed') AND json_extract(detail_json, '$.destination') = ?
+       AND COALESCE(json_extract(detail_json, '$.reason'), '') != 'no-destination' ORDER BY seq DESC LIMIT 1`,
+  ).get(seq, destination) as { event: string } | undefined;
+  return row?.event === 'backup.v2-failed';
+}
 
 /** Whether the backup outcome before `seq` was a failure; a prune failure after a created backup is not a failed backup run. */
 function previousBackupFailed(db: Db, seq: number): boolean {
@@ -32,10 +51,35 @@ function previousBackupFailed(db: Db, seq: number): boolean {
  * row's sequence number, so an address change (both a job outcome and a security alert) is a single `address-changed` notification and a
  * replayed row inserts nothing. Bodies are fixed short sentences; only code-like reasons and a certificate expiry date are echoed.
  */
-export function notificationForAudit(db: Db, notice: AuditNotice): NewNotification | null {
+export function notificationForAudit(db: Db, notice: AuditNotice, destinationLabel: (id: string) => string | null = () => null): NewNotification | null {
   const sourceKey = `audit:${notice.seq}`;
   const { event, detail } = notice;
   switch (event) {
+    case 'backup.v2-failed': {
+      // Milestone 850. A schedule with no destination is the overdue notification's case, not a failed run (the scheduler records it on every check).
+      const reason = reasonOf(detail);
+      if (reason === 'no-destination') return null;
+      const id = destinationIdOf(detail);
+      // One per destination, reason and UTC day: a destination retried every few hours while it stays broken is one notification a day.
+      return {
+        sourceKey: `backup-failed:${id ?? 'hub'}:${reason ?? 'unknown'}:${dayOf(notice.at)}`, kind: 'backup-failed', severity: 'error', title: 'A backup failed',
+        body: `The backup${forDestination(id === null ? null : destinationLabel(id), id)} could not be completed${reason === null ? '' : ` (${reason})`}. It will be retried; see the backup status.`,
+      };
+    }
+    case 'backup.v2-created': {
+      const id = destinationIdOf(detail);
+      return previousV2Failed(db, notice.seq, id)
+        ? { sourceKey, kind: 'backup-recovered', severity: 'info', title: 'Backups are working again', body: `A backup${forDestination(id === null ? null : destinationLabel(id), id)} was created and verified after an earlier failure.` }
+        : null;
+    }
+    case 'backup.drill-failed': {
+      const reason = reasonOf(detail);
+      const id = destinationIdOf(detail);
+      return {
+        sourceKey: `drill-failed:${id ?? 'hub'}:${dayOf(notice.at)}`, kind: 'backup-failed', severity: 'error', title: 'A restore drill failed',
+        body: `The newest backup${forDestination(id === null ? null : destinationLabel(id), id)} could not be restored into a scratch folder${reason === null ? '' : ` (${reason})`}. It is retried daily; see the backup status.`,
+      };
+    }
     case 'backup.failed': {
       const reason = reasonOf(detail);
       if (reason === 'prune-failed') {
@@ -91,17 +135,22 @@ export interface NotificationProducerOptions {
   jobs: JobRegistry;
   /** Called with each newly stored notification (realtime and the owner view); never throws into a producer. */
   emit: (notification: HubNotification) => void;
+  /** The owner's label for a destination id (from `hub.json`), echoed in a body; null when unknown. */
+  destinationLabel?: (id: string) => string | null;
 }
 
 export interface NotificationProducers {
   /** Stores a notification unless its source key exists, then emits it. */
   notify(input: NewNotification): HubNotification | null;
-  /** The backup scheduler calls this on each check: one `backup-overdue` per UTC day while the last success is older than twice the interval. */
-  checkBackupOverdue(intervalHours: number): void;
+  /**
+   * The backup scheduler calls this on each check (and the restore drill after each verdict): one `backup-overdue` per destination and UTC
+   * day while its last success (or, never having succeeded, its schedule) is twice the interval old, and one for a schedule with no destination.
+   */
+  checkBackupHealth(input: BackupHealthInput): void;
   stop(): void;
 }
 
-/** The closed list of notification producers (PD-109): audit rows, failed jobs and the backup overdue check. Nothing else creates a notification. */
+/** The closed list of notification producers (PD-109): audit rows (backup runs and restore drills included, Milestone 850), failed jobs and the backup health check. Nothing else creates a notification. */
 export function startNotificationProducers(options: NotificationProducerOptions): NotificationProducers {
   const { db, now } = options;
   const notify = (input: NewNotification): HubNotification | null => {
@@ -112,7 +161,7 @@ export function startNotificationProducers(options: NotificationProducerOptions)
     return stored;
   };
   const stopAudit = onAudit(db, (notice) => {
-    const input = notificationForAudit(db, notice);
+    const input = notificationForAudit(db, notice, options.destinationLabel);
     if (input !== null) notify(input);
   });
   options.jobs.onFinish = (run) => {
@@ -122,20 +171,27 @@ export function startNotificationProducers(options: NotificationProducerOptions)
 
   return {
     notify,
-    checkBackupOverdue(intervalHours) {
+    checkBackupHealth(input) {
       try {
-        // The last success is the newest created backup (a v2 destination run counts, Milestone 847); a schedule that has never produced
-        // one is measured from when it was set. Per-destination overdue and v2 failure notifications are Milestone 850.
-        const row = db.prepare("SELECT at FROM audit_events WHERE event IN ('backup.created', 'backup.v2-created', 'backup.scheduled') ORDER BY at DESC LIMIT 1").get() as { at: string } | undefined;
-        if (row === undefined) return;
         const at = now();
-        const age = at - Date.parse(row.at);
-        if (!Number.isFinite(age) || age <= BACKUP_OVERDUE_INTERVALS * intervalHours * HOUR_MS) return;
-        const hours = Math.floor(age / HOUR_MS);
-        notify({
-          sourceKey: `backup-overdue:${new Date(at).toISOString().slice(0, 10)}`, kind: 'backup-overdue', severity: 'warning', title: 'A scheduled backup is overdue',
-          body: `No backup has completed for ${hours >= 48 ? `${Math.floor(hours / 24)} days` : `${hours} hours`}; one is due every ${intervalHours} hours.`,
-        });
+        const day = new Date(at).toISOString().slice(0, 10);
+        const age = (ageMs: number): string => { const hours = Math.floor(ageMs / HOUR_MS); return hours >= 48 ? `${Math.floor(hours / 24)} days` : `${hours} hours`; };
+        const interval = input.schedule?.intervalHours;
+        if (interval === undefined) return;
+        const health = evaluateBackupHealth(db, input, at);
+        for (const d of health.destinations) {
+          if (d.overdue === null) continue;
+          notify({
+            sourceKey: `backup-overdue:${d.id}:${day}`, kind: 'backup-overdue', severity: 'warning', title: 'A scheduled backup is overdue',
+            body: `No backup to "${d.label}" has completed for ${age(d.overdue.ageMs)}; one is due every ${interval} hours.`,
+          });
+        }
+        if (health.noDestination !== null) {
+          notify({
+            sourceKey: `backup-overdue:none:${day}`, kind: 'backup-overdue', severity: 'warning', title: 'A scheduled backup is overdue',
+            body: `Backups are scheduled every ${interval} hours but no backup destination exists, so none has run for ${age(health.noDestination.ageMs)}. Add one with "dude-hub backup destination add".`,
+          });
+        }
       } catch { /* a check failure never fails the scheduler */ }
     },
     stop() {
