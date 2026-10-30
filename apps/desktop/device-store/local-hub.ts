@@ -60,7 +60,7 @@ export interface LocalHubDeps {
   sleep: (ms: number) => Promise<void>;
 }
 
-const ELEVATION_TIMEOUT_MS = 10 * 60_000;
+export const ELEVATION_TIMEOUT_MS = 10 * 60_000;
 
 export const defaultExec: ExecFn = (file, args, options = {}) =>
   new Promise((resolve, reject) => {
@@ -102,11 +102,11 @@ export function isNewerVersion(candidate: string, current: string): boolean {
 }
 
 /** Runs `file args` elevated and waits. Values travel in the environment, never in the script text. Throws a `DeviceStoreError`. */
-export async function runElevated(exec: ExecFn, file: string, args: readonly string[]): Promise<void> {
+export async function runElevated(exec: ExecFn, file: string, args: readonly string[], timeoutMs: number = ELEVATION_TIMEOUT_MS): Promise<void> {
   let result: ExecResult;
   try {
     result = await exec('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', ELEVATE_SCRIPT], {
-      env: { DUDE_ELEVATE_FILE: file, DUDE_ELEVATE_ARGS: JSON.stringify(args) }, timeoutMs: ELEVATION_TIMEOUT_MS,
+      env: { DUDE_ELEVATE_FILE: file, DUDE_ELEVATE_ARGS: JSON.stringify(args) }, timeoutMs,
     });
   } catch {
     throw new DeviceStoreError(LOCAL_HUB_ERRORS.elevationFailed, 'The elevated command could not be started.');

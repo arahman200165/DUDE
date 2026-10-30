@@ -35,7 +35,7 @@ type Handler = (event: { sender: unknown }, ...args: unknown[]) => Promise<any>;
 const call = (channel: string, sender: unknown, ...args: unknown[]) => (mock.handlers.get(channel) as Handler)({ sender }, ...args);
 
 // Every bridge method with a valid argument list; `satisfies` makes tsc fail when the type gains or loses a method.
-const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged' | 'onViewChanged' | 'onNotification' | 'onOpenNotifications'>, { channel: string; args: unknown[]; invalid: unknown[][] }> = {
+const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged' | 'onViewChanged' | 'onNotification' | 'onOpenNotifications' | 'onProvisionProgress'>, { channel: string; args: unknown[]; invalid: unknown[][] }> = {
   status: { channel: 'dude:hub:status', args: [], invalid: [[1]] },
   probeLocal: { channel: 'dude:hub:probeLocal', args: [47600], invalid: [['47600'], [0], [70000], [1.5], [1, 2]] },
   reachabilityEcho: { channel: 'dude:hub:reachabilityEcho', args: ['https://hub.example.com'], invalid: [[], [1], ['http://hub.example.com'], ['https://u:p@hub.example.com'], ['https://hub.example.com/path'], ['https://hub.example.com?x=1'], ['https://hub.example.com#f'], ['https://hub.example.com:0'], ['https://hub.example.com', 'x']] },
@@ -84,6 +84,14 @@ const VALID: Record<Exclude<keyof DesktopHubBridge, 'onStatusChanged' | 'onViewC
       [{ environmentName: 'Home', ownerDisplayName: 'Me', password: 'a long password!', token: 'x' }], [{ environmentName: 'Home', ownerDisplayName: 'Me', password: 'a long password!' }, 1]],
   },
   updateLocalHub: { channel: 'dude:hub:updateLocalHub', args: [], invalid: [[1]] },
+  // The provisioning wizard (Milestone 853): its behaviour and the full request grammar are pinned in hub-provision.spec.ts; here only the channel, the sender check and arity.
+  provisionOpen: { channel: 'dude:hub:provisionOpen', args: [], invalid: [[1], ['x']] },
+  provisionStep: {
+    channel: 'dude:hub:provisionStep', args: [{ step: 'status' }],
+    invalid: [[], [null], ['status'], [{}], [{ step: 'service.uninstall' }], [{ step: 'status', extra: 1 }], [{ step: 'provision', path: 'C:/x' }], [{ step: 'tunnel-preview', hostname: '../x', acceptUnverifiedReachability: false }], [{ step: 'status' }, 1]],
+  },
+  provisionChooseBackupFolder: { channel: 'dude:hub:provisionChooseBackupFolder', args: [], invalid: [[1], ['C:/Backups']] },
+  provisionClose: { channel: 'dude:hub:provisionClose', args: [], invalid: [[1]] },
   openWeb: { channel: 'dude:hub:openWeb', args: [], invalid: [['https://evil.example/'], [1]] },
   rootCertificatePreview: { channel: 'dude:hub:rootCertificate:preview', args: [], invalid: [[1]] },
   installRootCertificate: { channel: 'dude:hub:rootCertificate:install', args: ['abcdefghijklmnop'], invalid: [[], [''], ['short'], ['a b c d e f g h i j k l'], [1], ['abcdefghijklmnop', 'x']] },
@@ -172,7 +180,7 @@ describe('hub bridge', () => {
   });
 
   // The install step needs a token from a preview; its boundary is covered in hub-web-bridge.confirmation-boundary.spec.ts.
-  it.each(Object.entries(VALID).filter(([name]) => name !== 'installRootCertificate'))('%s forwards valid payloads from this window', async (_name, v) => {
+  it.each(Object.entries(VALID).filter(([name]) => name !== 'installRootCertificate' && !name.startsWith('provision')))('%s forwards valid payloads from this window', async (_name, v) => {
     setup((method) => (method === 'hub.status' || method === 'hub.enroll' || method === 'hub.reconnect' ? ENROLLED : method === 'hub.probeLocal' ? { found: true, bootstrapped: true, hubInstanceId: 'h', spkiSha256: 's', compatibility: 'compatible', hubVersion: '0.1.0' }
       : method === 'hub.bootstrapLocal' ? { recoveryCodes: ['A'], status: ENROLLED }
       : method === 'hub.unenroll' ? { ok: true, hubStillListsDevice: false } : method === 'hub.owner.status' || method === 'hub.owner.signIn' ? { signedIn: true, displayName: 'O', expiresAt: null }
@@ -426,13 +434,14 @@ describe('preload hub surface', () => {
 
   it('exposes exactly the DesktopHubBridge methods, each on its own channel, with no generic invoke', () => {
     const keys = [...block.matchAll(/^    (\w+): /gm)].map((m) => m[1]);
-    expect(keys.sort()).toEqual([...Object.keys(VALID), 'onStatusChanged', 'onViewChanged', 'onNotification', 'onOpenNotifications'].sort());
+    expect(keys.sort()).toEqual([...Object.keys(VALID), 'onStatusChanged', 'onViewChanged', 'onNotification', 'onOpenNotifications', 'onProvisionProgress'].sort());
     const channels = [...block.matchAll(/ipcRenderer\.invoke\('(dude:hub:[\w:]+)'/g)].map((m) => m[1]);
     expect(channels.sort()).toEqual(Object.values(VALID).map((v) => v.channel).sort());
     expect(block).toMatch(/ipcRenderer\.on\('dude:hub:statusChanged'/);
     expect(block).toMatch(/ipcRenderer\.on\('dude:hub:viewChanged'/);
     expect(block).toMatch(/ipcRenderer\.on\('dude:hub:openNotifications'/);
     expect(block).toMatch(/ipcRenderer\.on\('dude:hub:notification'/);
+    expect(block).toMatch(/ipcRenderer\.on\('dude:hub:provisionProgress'/);
     expect(block).not.toMatch(/invoke:\s|ipcRenderer\.invoke\([a-z]/);
   });
 });

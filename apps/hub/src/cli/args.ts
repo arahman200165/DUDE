@@ -22,7 +22,7 @@ export type ParsedCommand =
   | { command: 'network-tunnel'; action: 'on' | 'off' | 'status'; hostname?: string; confirm?: string; type?: string; tokenStdin?: boolean; acceptUnverifiedReachability?: boolean; forgetToken?: boolean; dataDir?: string; installDir?: string }
   | { command: 'network-firewall'; target: 'public' | 'acme'; action: 'on' | 'off' | 'status'; force?: boolean; dataDir?: string; installDir?: string }
   | { command: 'doctor'; json?: boolean; dataDir?: string; installDir?: string }
-  | { command: 'provision'; action: 'run' | 'status'; json?: boolean; dataDir?: string; installDir?: string }
+  | { command: 'provision'; action: 'run' | 'status'; json?: boolean; dataDir?: string; installDir?: string; sessionPipe?: string }
   | { command: 'purge'; dataDir?: string; includeBackups?: boolean; confirm?: string; type?: string }
   | { command: 'backup'; action: BackupCliAction; folder?: string; file?: string; confirm?: string; forTransfer?: boolean; everyHours?: number; keep?: number; destination?: string; label?: string; backupId?: string; kind?: 'local-folder' | 's3'; endpoint?: string; region?: string; bucket?: string; prefix?: string; forcePathStyle?: boolean; allowPrivateNetwork?: boolean; credentialsStdin?: boolean; dataDir?: string; installDir?: string }
   | { command: 'backup-restore'; file?: string; folder?: string; backupId?: string; confirm?: string; replace?: string; oldHubGone?: string; dataDir?: string; installDir?: string }
@@ -85,6 +85,7 @@ Usage:
   dude-hub doctor [--json] [--data-dir <dir>] [--install-dir <dir>]   (readiness checklist; --json prints the endpoint diagnostics report)
   dude-hub provision [--json] [--data-dir <dir>] [--install-dir <dir>]   (creates and checks the SaveSphere storage components; additive and safe to re-run; elevated, Hub running; exit 0 = ready or degraded, 1 = needs attention or provisioning, 2 = usage or Hub not running)
   dude-hub provision status [--json] [--data-dir <dir>] [--install-dir <dir>]   (read-only per-component status)
+  dude-hub provision --session-pipe <name> [--data-dir <dir>] [--install-dir <dir>]   (used by the DUDE desktop provisioning wizard: one elevated session over a pipe the app created; secrets never travel as arguments)
   dude-hub purge --data-dir <dir> [--include-backups] [--confirm <token> --type "DELETE HUB DATA"]
   dude-hub backup create [--for-transfer] [--folder <abs dir>] [--data-dir <dir>] [--install-dir <dir>] [--confirm <token>]   (two steps: the preview prints a one-time token, --confirm asks for the passphrase and writes the encrypted backup; --for-transfer then RETIRES this Hub until "backup reactivate"; elevated, Hub running)
   dude-hub backup reactivate [--data-dir <dir>] [--install-dir <dir>] [--confirm <token>]   (two steps: returns a retired (transferred) Hub to service with a new authority epoch; elevated, Hub running)
@@ -519,8 +520,10 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
     const [first, ...tail] = rest;
     const action = first === 'status' ? 'status' : 'run';
     const flags = first === 'status' ? tail : rest;
-    const values = parseFlags(flags, ['--install-dir', '--data-dir', '--json'], ['--json']);
-    return { command: 'provision', action, ...(values['--json'] !== undefined ? { json: true } : {}), ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir') };
+    const values = parseFlags(flags, ['--install-dir', '--data-dir', '--json', '--session-pipe'], ['--json']);
+    // The desktop wizard's elevated session (Milestone 853): a pipe NAME the desktop created, never a secret; the secrets travel over the pipe.
+    if (values['--session-pipe'] !== undefined && (action !== 'run' || values['--json'] !== undefined)) throw new UsageError('--session-pipe is only for "dude-hub provision" without status or --json.');
+    return { command: 'provision', action, ...(values['--json'] !== undefined ? { json: true } : {}), ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir'), ...optional(values, '--session-pipe', 'sessionPipe') };
   }
   if (command === 'doctor') {
     const values = parseFlags(rest, ['--install-dir', '--data-dir', '--json'], ['--json']);

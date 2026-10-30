@@ -140,6 +140,15 @@ const bridge: PlatformBridge = {
     localHubInfo: () => ipcRenderer.invoke('dude:hub:localHubInfo'),
     setupLocalHub: (a) => ipcRenderer.invoke('dude:hub:setupLocalHub', a),
     updateLocalHub: () => ipcRenderer.invoke('dude:hub:updateLocalHub'),
+    provisionOpen: () => ipcRenderer.invoke('dude:hub:provisionOpen'),
+    provisionStep: (a) => ipcRenderer.invoke('dude:hub:provisionStep', a),
+    provisionChooseBackupFolder: () => ipcRenderer.invoke('dude:hub:provisionChooseBackupFolder'),
+    provisionClose: () => ipcRenderer.invoke('dude:hub:provisionClose'),
+    onProvisionProgress: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, progress: Parameters<typeof callback>[0]) => callback(progress);
+      ipcRenderer.on('dude:hub:provisionProgress', listener);
+      return () => ipcRenderer.removeListener('dude:hub:provisionProgress', listener);
+    },
     openWeb: () => ipcRenderer.invoke('dude:hub:openWeb'),
     rootCertificatePreview: () => ipcRenderer.invoke('dude:hub:rootCertificate:preview'),
     installRootCertificate: (a) => ipcRenderer.invoke('dude:hub:rootCertificate:install', a),

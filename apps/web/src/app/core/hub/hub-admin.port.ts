@@ -9,7 +9,7 @@ import type {
 import type { AgentDiagnostics } from '@dude/contracts';
 import type {
   DesktopHubEnrollment, DesktopHubOwnerStatus, DesktopHubProbe, DesktopHubStatus, DesktopLocalHubInfo, DesktopRootCertificatePreview, DesktopLocalHubSetupRequest, DesktopLocalHubSetupResult,
-  DesktopLocalHubUpdateResult,
+  DesktopLocalHubUpdateResult, DesktopProvisionProgress, DesktopProvisionRequest, DesktopProvisionResultMap, DesktopProvisionStatus, DesktopProvisionStepId,
 } from '@dude/contracts/shared/models/platform-bridge.model';
 
 export type {
@@ -17,6 +17,10 @@ export type {
   DesktopLocalHubUpdateResult as LocalHubUpdateResult,
 };
 export type { DesktopRootCertificatePreview as RootCertificatePreview };
+export type {
+  DesktopProvisionProgress as ProvisionProgress, DesktopProvisionRequest as ProvisionRequest, DesktopProvisionResultMap as ProvisionResultMap,
+  DesktopProvisionStatus as ProvisionStatus, DesktopProvisionStepId as ProvisionStepId,
+};
 export type { DesktopHubEnrollment as HubEnrollment, DesktopHubOwnerStatus as HubOwnerStatus, DesktopHubProbe as HubProbe, DesktopHubStatus as HubStatus };
 
 /** Every Hub administration failure, whichever host produced it. `unavailable` means this host cannot administer a Hub at all. */
@@ -137,6 +141,19 @@ export interface HubAdminPort {
   setupLocalHub?(request: DesktopLocalHubSetupRequest): Promise<DesktopLocalHubSetupResult>;
   /** Desktop only: updates the installed Hub from the Hub bundled with the app (UAC prompt; the Hub is briefly down). */
   updateLocalHub?(): Promise<DesktopLocalHubUpdateResult>;
+  /**
+   * Desktop only, Milestone 853: the Hub provisioning wizard. `provisionOpen` opens the ONE elevated session (Windows asks for administrator permission once)
+   * and returns the status; `provisionStep` runs one closed step through it (exposure-widening and machine-setting steps are `*-preview` then `*-apply` with
+   * the preview's confirmToken, the tunnel apply also with the exact typed phrase); `provisionChooseBackupFolder` shows the native folder dialog (main
+   * supplies the path, the renderer never does); `provisionClose` ends the session. A secret in a request is forwarded and never returned.
+   * Codes: `elevation-cancelled`, `elevation-failed`, `session-failed`, `no-session`, `stale-preview`, `refused`, `busy`, `not-installed`, `unsupported-platform`, `not-enrolled`, `timeout`, `bad-request`, and the Hub's own.
+   */
+  provisionOpen?(): Promise<DesktopProvisionStatus>;
+  provisionStep?<S extends DesktopProvisionStepId>(request: Extract<DesktopProvisionRequest, { readonly step: S }>): Promise<DesktopProvisionResultMap[S]>;
+  provisionChooseBackupFolder?(): Promise<{ readonly canceled: boolean; readonly folder: string | null }>;
+  provisionClose?(): Promise<{ readonly closed: boolean }>;
+  /** Desktop only: the wizard's progress pushes (waiting for the administrator prompt, a session that ended by itself). Returns the unsubscribe function. */
+  onProvisionProgress?(callback: (progress: DesktopProvisionProgress) => void): () => void;
   /** Desktop only: opens the enrolled Hub's web page in the default browser. No URL is passed; main resolves it and only opens `https:`. */
   openWeb?(): Promise<{ readonly ok: true }>;
   /** Desktop only, step 1: the Hub's local-CA root fingerprint and a single-use token. `available: false` when the Hub has no local CA or this is not Windows. Changes nothing. */

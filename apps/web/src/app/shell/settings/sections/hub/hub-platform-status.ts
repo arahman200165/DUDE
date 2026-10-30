@@ -111,7 +111,7 @@ export const CMD_STANDBY_GRANT: PlatformCommand = {
 /** Destination ids are lower-case letters, digits and hyphens (1 to 32); anything else never goes into a command the owner will paste. */
 const DESTINATION_ID = /^[a-z0-9][a-z0-9-]{0,31}$/;
 
-const COMPONENT_TITLES: Readonly<Record<HubProvisioningComponentId, string>> = {
+export const COMPONENT_TITLES: Readonly<Record<HubProvisioningComponentId, string>> = {
   'content-store': 'Content store',
   fts: 'Full-text search',
   vector: 'Vector search',

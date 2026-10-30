@@ -8,6 +8,8 @@ import { DeviceStoreError } from './agent-host';
 import type { DeviceStoreHost } from './agent-host';
 import { getDeviceStoreHost } from './store-client';
 import { registerLocalHubHandlers } from './local-hub';
+import { registerProvisionHandlers } from './hub-provision';
+import type { ProvisionDeps } from './hub-provision';
 import { registerHubWebHandlers } from './hub-web-bridge';
 import type { HubWebDeps } from './hub-web-bridge';
 import type { LocalHubDeps } from './local-hub';
@@ -97,7 +99,7 @@ export function nativeHandleString(handle: Buffer): string {
 }
 
 export function registerHubHandlers(
-  window: BrowserWindow, host: () => DeviceStoreHost | null = getDeviceStoreHost, consent: UserConsent = requestUserConsent, localHub: Partial<LocalHubDeps> = {}, hubWeb: Partial<HubWebDeps> = {},
+  window: BrowserWindow, host: () => DeviceStoreHost | null = getDeviceStoreHost, consent: UserConsent = requestUserConsent, localHub: Partial<LocalHubDeps> = {}, hubWeb: Partial<HubWebDeps> = {}, provision: Partial<ProvisionDeps> = {},
 ): void {
   const own = (sender: unknown): boolean => sender === window.webContents;
 
@@ -398,6 +400,7 @@ export function registerHubHandlers(
 
   registerHubWebHandlers(window, host, hubWeb);
   registerLocalHubHandlers(window, host, localHub, { toStatus: toDesktopStatus, scrub: scrubCredentials });
+  registerProvisionHandlers(window, host, { ...localHub, ...provision }, scrubCredentials);
 
   // Status pushes: the agent reports every Hub connection change; the renderer gets the same shape `status()` returns.
   host()?.onEvent?.((frame) => {

@@ -1,5 +1,6 @@
-import type { DesktopHubBridge, DesktopHubOwnerStatus, DesktopLocalHubInfo } from '@dude/contracts/shared/models/platform-bridge.model';
-import type { BackupStatusResponse, CollabDocumentSummary, CollabRoom, DeviceInfo, HubDiagnosticsReport, HubJobStatus, HubNotification, ReachabilityEchoResponse, SessionInfo, SyncSummary } from '@dude/contracts/hub';
+import type { DesktopHubBridge, DesktopHubOwnerStatus, DesktopLocalHubInfo, DesktopProvisionProgress, DesktopProvisionStatus } from '@dude/contracts/shared/models/platform-bridge.model';
+import type { BackupStatusResponse, HubProvisioningResponse, CollabDocumentSummary, CollabRoom, DeviceInfo, HubDiagnosticsReport, HubJobStatus, HubNotification, ReachabilityEchoResponse, SessionInfo, SyncSummary } from '@dude/contracts/hub';
+import { HUB_TUNNEL_PHRASE, hubTunnelDashboard, hubTunnelDashboardLines } from '@dude/contracts/hub';
 import type { AgentDiagnostics } from '@dude/contracts';
 
 export const FAKE_HUB_DEVICE_ID = '0190aaaa-0000-7000-8000-000000000001';
@@ -65,6 +66,21 @@ export const FAKE_AGENT_DIAGNOSTICS: AgentDiagnostics = {
   sync: { cursor: 42, pending: 0, conflicts: 0, quarantined: 0, paused: false }, probeError: null, checkedAt: '2026-10-01T10:00:01.000Z',
 };
 
+/** What the provisioning wizard's status step shows for a Hub whose storage exists but whose tunnel, Google sign-in, power policy and backups are not set up yet. */
+export const FAKE_PROVISION_STATUS: DesktopProvisionStatus = {
+  provisioning: {
+    overall: 'needs-attention', checkedAt: '2026-10-29T10:00:00.000Z', lastRun: null,
+    components: [
+      { id: 'content-store', state: 'ready', detail: 'The content store works.', checkedAt: '2026-10-29T10:00:00.000Z' },
+      { id: 'tunnel', state: 'not-configured', detail: 'No managed tunnel is configured.', checkedAt: '2026-10-29T10:00:00.000Z' },
+      { id: 'oidc', state: 'not-configured', detail: 'Google sign-in is not configured.', checkedAt: '2026-10-29T10:00:00.000Z' },
+      { id: 'power', state: 'needs-attention', detail: 'This computer sleeps on AC power.', checkedAt: '2026-10-29T10:00:00.000Z' },
+    ],
+    secrets: [], commands: ['dude-hub provision'],
+  } satisfies HubProvisioningResponse,
+  tunnel: null, power: null, backup: null, deviceId: FAKE_HUB_DEVICE_ID,
+};
+
 /** Where the local Hub starts: nothing installed, installed but not set up, set up, or set up with a newer Hub bundled in the app. */
 export type FakeLocalHubScenario = 'not-installed' | 'installed-unbootstrapped' | 'bootstrapped' | 'update-available';
 
@@ -72,7 +88,7 @@ export type FakeLocalHubScenario = 'not-installed' | 'installed-unbootstrapped' 
  * In-memory Hub for specs: one owner (default password `correct horse battery`), a device list, sessions and a
  * one-shot confirm-token store, so preview/confirm flows can be driven end to end. `calls` records method names.
  */
-export function fakeHub(options: { password?: string; localHub?: FakeLocalHubScenario } = {}): DesktopHubBridge & { readonly calls: string[] } {
+export function fakeHub(options: { password?: string; localHub?: FakeLocalHubScenario } = {}): DesktopHubBridge & { readonly calls: string[]; emitProvisionProgress(progress: DesktopProvisionProgress): void } {
   const password = options.password ?? 'correct horse battery';
   const calls: string[] = [];
   const scenario = options.localHub ?? 'bootstrapped';
@@ -111,6 +127,7 @@ export function fakeHub(options: { password?: string; localHub?: FakeLocalHubSce
   const notifications = new Map<string, HubNotification>([
     ['n1', { id: 'n1', createdAt: '2026-10-24T01:00:00.000Z', kind: 'backup-failed', severity: 'error', title: 'Backup failed', body: 'The scheduled backup could not be written.', readAt: null, dismissedAt: null }],
   ]);
+  const provisionListeners = new Set<(progress: DesktopProvisionProgress) => void>();
   const rooms = new Map<string, CollabRoom>();
   const keptDocs = new Map<string, CollabDocumentSummary>();
   const fail = (code: string, message: string) => ({ ok: false as const, error: { code, message } });
@@ -283,6 +300,46 @@ export function fakeHub(options: { password?: string; localHub?: FakeLocalHubSce
       local.hubVersion = local.bundled!;
       return ok({ fromVersion, toVersion: local.hubVersion });
     }),
+    provisionOpen: track('provisionOpen', async () => ok(FAKE_PROVISION_STATUS)),
+    provisionStep: track('provisionStep', (async (request: { step: string; confirmToken?: string; acknowledgement?: string; hostname?: string }) => {
+      switch (request.step) {
+        case 'status': return ok(FAKE_PROVISION_STATUS);
+        case 'provision': return ok({ report: FAKE_PROVISION_STATUS.provisioning, created: ['content-store'], restartRequired: false, failed: [] });
+        case 'tunnel-preview': {
+          const issued = issue('tunnel');
+          return ok({
+            ...issued, consequenceClass: ['exposure-widening'], hostname: request.hostname ?? '', requiredPhrase: HUB_TUNNEL_PHRASE,
+            dashboard: hubTunnelDashboard(request.hostname ?? '', 47600),
+            dashboardLines: hubTunnelDashboardLines(hubTunnelDashboard(request.hostname ?? '', 47600)), disclosure: ['Cloudflare can see the traffic to this Hub.'], warnings: [], needsConnectorToken: true,
+          });
+        }
+        case 'tunnel-apply': {
+          if (!consume(request.confirmToken ?? '')) return fail('stale-preview', 'The preview expired.');
+          return ok({ hostname: request.hostname ?? '', warnings: [], restartRequired: true as const });
+        }
+        case 'oidc': return ok({ configured: true, redirectOrigin: null, restartRequired: true });
+        case 'backup': return ok({ configured: true, intervalHours: 24, destinations: 1, destinationAdded: true });
+        case 'power-preview': {
+          const issued = issue('power');
+          return ok({ ...issued, consequenceClass: ['machine-setting'], summary: { scope: 'ac', before: { sleepAcMinutes: 30, hibernateAcMinutes: 60 }, after: { sleepAcMinutes: 0, hibernateAcMinutes: 0 }, commands: ['powercfg /change standby-timeout-ac 0'], why: 'The Hub must stay awake on AC power.', revertWith: 'dude-hub power revert' } });
+        }
+        case 'power-apply': return consume(request.confirmToken ?? '') ? ok({ verdict: 'ok', commands: [] }) : fail('stale-preview', 'The preview expired.');
+        case 'standby-preview': {
+          const issued = issue('standby');
+          return ok({ ...issued, consequenceClass: ['exposure-widening'], summary: { deviceId: FAKE_HUB_DEVICE_ID, displayName: 'This PC', alreadyGranted: false, repositories: 1, serves: 'Encrypted backup files only.' } });
+        }
+        case 'standby-apply': return consume(request.confirmToken ?? '') ? ok({ granted: true, renewed: false }) : fail('stale-preview', 'The preview expired.');
+        case 'restart': return ok({ restarted: true });
+        default: return fail('bad-request', 'Unknown step.');
+      }
+    }) as unknown as DesktopHubBridge['provisionStep']),
+    provisionChooseBackupFolder: track('provisionChooseBackupFolder', async () => ok({ canceled: false, folder: 'D:/DUDE backups' })),
+    provisionClose: track('provisionClose', async () => ok({ closed: true })),
+    onProvisionProgress: (callback: (progress: DesktopProvisionProgress) => void) => {
+      provisionListeners.add(callback);
+      return () => { provisionListeners.delete(callback); };
+    },
+    emitProvisionProgress: (progress: DesktopProvisionProgress) => provisionListeners.forEach((l) => l(progress)),
     openWeb: track('openWeb', async () => ok({ ok: true as const })),
     rootCertificatePreview: track('rootCertificatePreview', async () => ok({ available: false as const, reason: 'not-local-ca' as const })),
     installRootCertificate: track('installRootCertificate', async () => ok({ installed: true as const })),

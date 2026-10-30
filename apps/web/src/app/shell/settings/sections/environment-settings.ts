@@ -14,6 +14,7 @@ import { HubPlatformPanel } from './hub/hub-platform-panel';
 import { HubOwnerSession } from './hub/hub-owner-session.service';
 import { HubStatusBadge } from './hub/hub-status-badge';
 import { HubWebActionsPanel } from './hub/hub-web-actions-panel';
+import { HubProvisioningWizard } from './hub/hub-provisioning-wizard';
 import { LocalHubPanel } from './hub/local-hub-panel';
 import { OwnerGate } from './hub/owner-gate';
 import { SyncSummaryPanel } from './hub/sync-summary-panel';
@@ -50,7 +51,7 @@ function pairingProblemOf(raw: string): string | null {
  */
 @Component({
   selector: 'app-environment-settings',
-  imports: [CopyButton, DesktopNotificationsPanel, Disclosure, HubJobsPanel, HubPlatformPanel, HubStatusBadge, HubWebActionsPanel, LocalHubPanel, NgTemplateOutlet, OwnerGate, OwnerRecoveryPanel, PresenceSharingPanel, RouterLink, SyncSummaryPanel],
+  imports: [CopyButton, DesktopNotificationsPanel, Disclosure, HubJobsPanel, HubPlatformPanel, HubProvisioningWizard, HubStatusBadge, HubWebActionsPanel, LocalHubPanel, NgTemplateOutlet, OwnerGate, OwnerRecoveryPanel, PresenceSharingPanel, RouterLink, SyncSummaryPanel],
   templateUrl: './environment-settings.html',
 })
 export class EnvironmentSettings {

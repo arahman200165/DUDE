@@ -55,6 +55,7 @@ import { runDoctor } from '../service/doctor.js';
 import { runPurge } from '../service/purge.js';
 import { runBackup } from '../service/backup.js';
 import { runProvision } from '../service/provision.js';
+import { runProvisionSession } from '../service/provision-session.js';
 import { createProvisioningService } from '../provisioning/service.js';
 import { createTunnelRuntime } from '../tunnel/tunnel-runtime.js';
 import { createOidcSecretSource } from '../secrets/oidc-source.js';
@@ -206,6 +207,12 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     });
   }
   if (parsed.command === 'provision') {
+    if (parsed.sessionPipe !== undefined) {
+      return runProvisionSession({
+        pipeName: parsed.sessionPipe,
+        ...(parsed.dataDir !== undefined ? { dataDir: parsed.dataDir } : {}), ...(parsed.installDir !== undefined ? { installDir: parsed.installDir } : {}),
+      });
+    }
     return runProvision({
       action: parsed.action,
       ...(parsed.json ? { json: true } : {}),
@@ -365,6 +372,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
         queueRunning: () => queueRuntime !== undefined,
         tunnel: tunnelRuntime,
         power,
+        oidc: { putClientSecret: (secret) => oidcSecret.put('oidc.clientSecret', secret) },
         onProvisioned: () => provisioning.invalidate(),
         tls: createTlsRotation({
           db: hub.db, tlsDir: paths.tlsDir, hubInstanceId: hub.hubInstanceId, caProtector,

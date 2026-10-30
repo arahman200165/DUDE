@@ -119,6 +119,10 @@ A reverse proxy (Caddy, nginx, IIS ARR) can publish the Hub under a name and cer
 3. Devices connect through the proxy, so they must pin the proxy's certificate: `dude-hub tls proxy-pin add <caddy-leaf.pem>`.
 4. Wait until enrolled devices acknowledge the staged pin (`dude-hub tls proxy-pin list`), then `dude-hub tls proxy-pin activate` (preview, then `--confirm <token>`).
 
+### Setting up the platform from the desktop app
+
+After the Hub is set up, Settings > Environment & Hub shows **Set up this Hub's platform**, a wizard that does what the commands below do, with one Windows administrator prompt for the whole session: it creates and checks the SaveSphere storage, turns on the Cloudflare tunnel (it shows the Cloudflare dashboard values, asks for the connector token and makes you type `EXPOSE HUB THROUGH CLOUDFLARE` before anything is published), adds Google sign-in, sets up scheduled backups to a folder you choose (the backup passphrase is not stored and cannot be recovered), applies the never-sleep power policy and lets this PC keep a warm standby copy. Every step can be skipped and the wizard can be run again at any time. Secrets you enter go straight to the Hub over a private pipe and are never put on a command line or in a file. Restart the Hub at the end (the last step does it) for the tunnel and Google sign-in to take effect. The wizard does not turn the tunnel off, revert the power plan or revoke a standby; those stay `dude-hub` commands.
+
 ### Through a Cloudflare Tunnel (Windows service only)
 
 Instead of opening a port, the Hub can run a pinned `cloudflared` connector that dials out to Cloudflare, so your own domain reaches the Hub with no inbound port and no firewall rule. **Cloudflare terminates TLS at its edge and can read the traffic between your devices and the Hub**, and Cloudflare's own terms and limits apply (including its limits on large non-HTML content; DUDE uploads are 8 MiB chunks). If that is not acceptable, use direct Public mode above. You need a Cloudflare account with the domain, a remotely managed tunnel and its connector token.

@@ -10,6 +10,8 @@ import { createSecretStore } from './secret-store.js';
 export interface OidcSecretSource {
   getText(purpose: 'oidc.clientSecret'): string | null;
   present(): boolean;
+  /** Stores the client secret (the elevated `oidc.configure` admin method only); never logged or returned. */
+  put(purpose: 'oidc.clientSecret', value: string): void;
 }
 
 export function createOidcSecretSource(paths: Pick<HubPaths, 'secretsDir'>, options: { platform?: NodeJS.Platform } = {}): OidcSecretSource {
@@ -17,5 +19,6 @@ export function createOidcSecretSource(paths: Pick<HubPaths, 'secretsDir'>, opti
   return {
     getText: (purpose) => store.getText(purpose),
     present: () => store.status()['oidc.clientSecret'].present,
+    put: (purpose, value) => store.put(purpose, value),
   };
 }

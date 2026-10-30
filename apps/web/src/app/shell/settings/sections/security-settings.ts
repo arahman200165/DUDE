@@ -59,6 +59,7 @@ export const AUDIT_EVENT_LABELS: Readonly<Record<string, string>> = {
   'security.audit-ips-changed': 'Audit address recording changed',
   'owner.step-up': 'Owner confirmed with password',
   'session.rotated': 'Session renewed',
+  'oidc.configured': 'Google sign-in configured',
   'oidc.signin': 'Signed in with Google',
   'oidc.signin-failed': 'Google sign-in failed',
   'oidc.refused-account': 'Unlinked Google account refused',

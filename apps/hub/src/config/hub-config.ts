@@ -649,6 +649,11 @@ export function applyTunnelChange(config: HubConfig, change: { hostname: string 
   });
 }
 
+/** Sets (or replaces) the `oidc` block; the strict block validation runs again through `parseHubConfig`. */
+export function applyOidcChange(config: HubConfig, oidc: HubOidcConfig): HubConfig {
+  return parseHubConfig({ ...config, oidc: parseOidcConfig(oidc) });
+}
+
 /** The exposure read model reported by `status` and `network status` (and consumed by diagnostics). Never secrets. */
 export interface ExposureReadModel {
   mode: HubExposureMode;

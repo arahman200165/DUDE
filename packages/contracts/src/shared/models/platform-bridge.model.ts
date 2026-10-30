@@ -10,7 +10,7 @@ import type { InstalledSoftware } from "../../system/software-types.js";
 import type { WindowsCapability, WindowsFeature } from "../../system/feature-types.js";
 import type { SysApplyResult, SysJournalEntry, SysMutationSettings, SysMutResult, SysPlanPreview, SysPlanRequest, SysSnapshot, SysSnapshotHeader, SysSnapshotKind } from "../../system/sys-mutation-types.js";
 import type { AgentAppliedChange, AgentDiagnostics, AgentStandbyStatus, CollabRefusalReason, CollabRelayFrame, CollabRelayState, AgentHistoryRecord, AgentNetworkRun, AgentStandalonePreview, AgentSyncStatus, FirstSyncChoice, FirstSyncPreview, QuarantinedOpExport, QuarantinedOpView, SyncCategoryFlags, SyncConflictChoice, SyncConflictView } from "../../device-store/agent-protocol.js";
-import type { SyncCategory } from "../../hub/index.js";
+import type { HubProvisioningResponse, HubTunnelDashboard, SyncCategory } from "../../hub/index.js";
 import type { DeviceStoreBoot, DeviceStoreDevice, EntityCommit, EntityCommitResult, KvMutation, QuarantinePreviewResult, ResetApplyResult, ResetKind, ResetPreviewOptions, ResetPreviewResult, StoreHealth } from "../../device-store/device-store.model.js";
 import type { NetworkRequest, NetworkJobEvent, NetworkStartResult, NetworkPrepareResult, WatchEntry, WatchSettings, WatchState, WatchResult } from "../../core/platform/network-types.js";
 export interface NativeStat {
@@ -127,6 +127,86 @@ export interface DesktopLocalHubUpdateResult {
 }
 
 /**
+ * The desktop Hub provisioning wizard (32-SS1, Milestone 853, PD-153). Main UAC-elevates ONE `dude-hub provision` session (a named pipe the app
+ * creates, so no secret is ever an argument, an environment variable or a file) and serves the wizard's closed steps through it. The renderer
+ * never supplies a path, a command or an admin method: `provisionStep` takes one of the shapes below and main validates it. Exposure-widening
+ * and machine-setting steps are two steps (`*-preview`, then `*-apply` with the preview's confirmation; the tunnel apply also needs the exact
+ * typed phrase). A secret field (`connectorToken`, `clientSecret`, `passphrase`) is forwarded to the session and dropped; nothing returns it.
+ * Error codes: `unsupported-platform`, `busy`, `not-installed`, `elevation-cancelled`, `elevation-failed`, `session-failed`, `no-session`,
+ * `stale-preview`, `unknown-operation`, `refused`, `bad-request`, `forbidden`, `unavailable`, and the Hub's own codes (`hub-not-running`, ...).
+ */
+export type DesktopProvisionRequest =
+  | { readonly step: 'status' }
+  | { readonly step: 'provision' }
+  | { readonly step: 'tunnel-preview'; readonly hostname: string; readonly acceptUnverifiedReachability: boolean }
+  | { readonly step: 'tunnel-apply'; readonly hostname: string; readonly confirmToken: string; readonly acknowledgement: string; readonly acceptUnverifiedReachability: boolean; readonly connectorToken?: string }
+  | { readonly step: 'oidc'; readonly clientId: string; readonly clientSecret: string; readonly redirectOrigin: string }
+  | { readonly step: 'power-preview' }
+  | { readonly step: 'power-apply'; readonly confirmToken: string }
+  /** The backup folder is the one the user picked in the native dialog (`provisionChooseBackupFolder`); it is never part of a request. */
+  | { readonly step: 'backup'; readonly passphrase: string; readonly intervalHours: number }
+  | { readonly step: 'standby-preview' }
+  | { readonly step: 'standby-apply'; readonly confirmToken: string }
+  | { readonly step: 'restart' };
+export type DesktopProvisionStepId = DesktopProvisionRequest['step'];
+
+export interface DesktopProvisionConfirmation {
+  /** The single-use, 60-second handle of the preview; the matching apply spends it. */
+  readonly confirmToken: string;
+  readonly expiresAt: string;
+  readonly consequenceClass: readonly string[];
+}
+export interface DesktopProvisionStatus {
+  readonly provisioning: HubProvisioningResponse;
+  readonly tunnel: { readonly configured: boolean; readonly hostname: string | null; readonly state: string | null; readonly tokenPresent: boolean; readonly supported: boolean } | null;
+  readonly power: { readonly verdict: string | null; readonly sleepAcMinutes: number | null; readonly hibernateAcMinutes: number | null; readonly applied: boolean } | null;
+  readonly backup: { readonly configured: boolean; readonly intervalHours: number | null; readonly destinations: number; readonly keyPresent: boolean } | null;
+  /** This desktop's own device id (from the Device Agent), for the standby grant; null when this desktop is not enrolled. */
+  readonly deviceId: string | null;
+}
+export interface DesktopProvisionTunnelPreview extends DesktopProvisionConfirmation {
+  readonly hostname: string;
+  /** The exact phrase the user must type before the apply. */
+  readonly requiredPhrase: string;
+  readonly dashboard: HubTunnelDashboard;
+  /** The Cloudflare dashboard values as owner-readable lines (the single source in `@dude/contracts/hub`). */
+  readonly dashboardLines: readonly string[];
+  readonly disclosure: readonly string[];
+  readonly warnings: readonly { readonly id: string; readonly reason: string; readonly fix: string }[];
+  readonly needsConnectorToken: boolean;
+}
+export interface DesktopProvisionPowerPreview extends DesktopProvisionConfirmation {
+  readonly summary: {
+    readonly scope: string;
+    readonly before: { readonly sleepAcMinutes: number | null; readonly hibernateAcMinutes: number | null };
+    readonly after: { readonly sleepAcMinutes: number | null; readonly hibernateAcMinutes: number | null };
+    readonly commands: readonly string[];
+    readonly why: string;
+    readonly revertWith: string | null;
+  };
+}
+export interface DesktopProvisionStandbyPreview extends DesktopProvisionConfirmation {
+  readonly summary: { readonly deviceId: string; readonly displayName: string | null; readonly alreadyGranted: boolean; readonly repositories: number; readonly serves: string };
+}
+export interface DesktopProvisionResultMap {
+  readonly status: DesktopProvisionStatus;
+  readonly provision: { readonly report: HubProvisioningResponse; readonly created: readonly string[]; readonly restartRequired: boolean; readonly failed: readonly string[] };
+  readonly 'tunnel-preview': DesktopProvisionTunnelPreview;
+  readonly 'tunnel-apply': { readonly hostname: string; readonly warnings: readonly string[]; readonly restartRequired: true };
+  readonly oidc: { readonly configured: boolean; readonly redirectOrigin: string | null; readonly restartRequired: boolean };
+  readonly 'power-preview': DesktopProvisionPowerPreview;
+  readonly 'power-apply': { readonly verdict: string | null; readonly commands: readonly string[] };
+  readonly backup: { readonly configured: boolean; readonly intervalHours: number; readonly destinations: number; readonly destinationAdded: boolean };
+  readonly 'standby-preview': DesktopProvisionStandbyPreview;
+  readonly 'standby-apply': { readonly granted: boolean; readonly renewed: boolean };
+  readonly restart: { readonly restarted: boolean };
+}
+/** Pushed by main so the wizard can show the wait for the Windows administrator prompt and a session that ended by itself. */
+export type DesktopProvisionProgress =
+  | { readonly kind: 'session'; readonly state: 'waiting-for-administrator' | 'open' | 'closed'; readonly reason?: 'ended' | 'idle' | 'cancelled' | 'failed' | 'window-closed' }
+  | { readonly kind: 'step'; readonly step: DesktopProvisionStepId; readonly state: 'running' | 'done' | 'failed' };
+
+/**
  * Hub administration from the desktop shell. The main process holds the pinned-TLS transport and the owner
  * bearer session; the renderer never sees a Hub credential. Absent outside the desktop app.
  */
@@ -237,6 +317,19 @@ export interface DesktopHubBridge {
   rootCertificatePreview(): Promise<DesktopHubResult<DesktopRootCertificatePreview>>;
   /** Step 2: adds the previewed root to the CURRENT USER's Trusted Root store (`certutil -user`; Windows shows its own prompt). Codes: `stale-preview`, `expired`, `install-failed`, `unsupported-platform`. */
   installRootCertificate(confirmToken: string): Promise<DesktopHubResult<{ readonly installed: true }>>;
+  /**
+   * Provisioning wizard (Milestone 853): opens the ONE elevated `dude-hub provision` session (Windows asks for administrator permission) and
+   * returns the status it read. Needs an installed, running Hub that has an owner.
+   */
+  provisionOpen(): Promise<DesktopHubResult<DesktopProvisionStatus>>;
+  /** One wizard step through the open session (see `DesktopProvisionRequest`). */
+  provisionStep<S extends DesktopProvisionStepId>(request: Extract<DesktopProvisionRequest, { readonly step: S }>): Promise<DesktopHubResult<DesktopProvisionResultMap[S]>>;
+  /** Shows the native folder dialog for the backup destination; main keeps the path (the renderer only gets it to display). `canceled` keeps the previous choice. */
+  provisionChooseBackupFolder(): Promise<DesktopHubResult<{ readonly canceled: boolean; readonly folder: string | null }>>;
+  /** Ends the elevated session (secrets and pending confirmations are dropped). Safe to call when none is open. */
+  provisionClose(): Promise<DesktopHubResult<{ readonly closed: boolean }>>;
+  /** Progress and session-state pushes of the wizard. Returns the unsubscribe function. */
+  onProvisionProgress(callback: (progress: DesktopProvisionProgress) => void): () => void;
   /** Pushed by main whenever the Device Agent's Hub connection state changes. Returns the unsubscribe function. */
   onStatusChanged(callback: (status: DesktopHubStatus) => void): () => void;
   /**

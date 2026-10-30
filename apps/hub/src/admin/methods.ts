@@ -12,6 +12,7 @@ import { buildProvisioningMethods } from './provisioning-methods.js';
 import { buildTunnelMethods } from './tunnel-methods.js';
 import { buildStandbyMethods } from './standby-methods.js';
 import { buildPowerMethods } from './power-methods.js';
+import { buildOidcMethods } from './oidc-methods.js';
 import type { PowerPolicy } from '../power/power-policy.js';
 import type { TunnelRuntime } from '../tunnel/tunnel-runtime.js';
 import type { ProvisioningOptions } from '../provisioning/index.js';
@@ -129,6 +130,8 @@ export interface AdminMethodContext {
   tunnelReadyTimeoutMs?: number;
   /** The machine power policy (32-SS1, Milestone 851); enables the `power.*` methods. */
   power?: PowerPolicy;
+  /** Where `oidc.configure` stores the Google client secret (32-SS1, Milestone 853); absent disables the method. */
+  oidc?: { putClientSecret(secret: string): void };
 }
 
 /** Validates the Windows host facts the elevated CLI sends with `network.mode.set`; anything malformed is ignored (treated as not inspected). */
@@ -217,6 +220,7 @@ export function buildAdminMethods(context: AdminMethodContext): Record<string, A
     /** Warm-standby grants (32-SS1, Milestone 849, PD-151): list, and the two-step grant and revoke. */
     ...buildStandbyMethods(context, { now, confirmations }),
     ...buildPowerMethods(context, { now, confirmations }),
+    ...buildOidcMethods(context, { now }),
     /** Automatic address blocks (31F): the elevated recovery path for an owner whose own address was blocked. */
     'security.blocks.list': () => ({ blocks: listBlocks(context.db, now()) }),
     'security.blocks.clear': (params) => {

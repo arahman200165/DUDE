@@ -11,7 +11,7 @@
   ],
   "classificationCounts": {
     "device-doc": 33,
-    "regex-heuristic (review flag)": 68,
+    "regex-heuristic (review flag)": 69,
     "agent-table": 17,
     "hub-table": 33,
     "mobile-table": 8,
@@ -195,6 +195,14 @@
       "key": null,
       "heuristicScope": "local-only",
       "reviewed": "Provisioning probe round-trips random bytes through a scratch BlobStore it deletes afterwards; not app state."
+    },
+    {
+      "source": "apps/hub/src/secrets/oidc-source.ts",
+      "line": 22,
+      "namespace": null,
+      "key": null,
+      "heuristicScope": "local-only",
+      "reviewed": "Stores the owner-entered Google OAuth client secret in the Hub secret store (purpose oidc.clientSecret, DPAPI LocalMachine or a 0600 file on Linux), written only by the elevated oidc.configure admin method; machine-bound, never synced, backed up or reported (Milestone 853)."
     },
     {
       "source": "apps/hub/src/tunnel/tunnel-runtime.ts",
@@ -2083,6 +2091,20 @@
       "retention": "owned by the referenced backend; no policy change",
       "scope": "local-only",
       "sensitivity": "sensitive",
+      "classificationBasis": "regex-heuristic (review flag)",
+      "syncConsent": "not granted"
+    },
+    {
+      "source": "apps/hub/src/secrets/oidc-source.ts",
+      "line": 22,
+      "operation": "store.put(purpose, value)",
+      "namespace": null,
+      "key": null,
+      "storage": "store",
+      "storageLocation": "store.put(purpose, value)",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "secret",
       "classificationBasis": "regex-heuristic (review flag)",
       "syncConsent": "not granted"
     },

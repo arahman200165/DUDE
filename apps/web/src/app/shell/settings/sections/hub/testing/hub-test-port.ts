@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import type { DesktopHubStatus } from '@dude/contracts/shared/models/platform-bridge.model';
+import type { DesktopHubStatus, DesktopProvisionProgress } from '@dude/contracts/shared/models/platform-bridge.model';
 import type { DeviceInfo } from '@dude/contracts/hub';
 import { createDesktopHubAdmin } from '../../../../../core/hub/desktop-hub-admin.adapter';
 import { HubAdminPort } from '../../../../../core/hub/hub-admin.port';
@@ -28,7 +28,7 @@ export function device(id: string, displayName: string, extra: Partial<DeviceInf
  * A Hub admin port for component specs: the in-memory fake Hub behind the real desktop adapter, every method wrapped in
  * a `vi.fn` so specs can assert calls, with per-test overrides and a way to push live status events.
  */
-export function createTestPort(overrides: Partial<HubAdminPort> = {}, options: { localHub?: FakeLocalHubScenario } = {}): { readonly port: Spied; emit(status: DesktopHubStatus): void; readonly bridge: ReturnType<typeof fakeHub> } {
+export function createTestPort(overrides: Partial<HubAdminPort> = {}, options: { localHub?: FakeLocalHubScenario } = {}): { readonly port: Spied; emit(status: DesktopHubStatus): void; emitProvision(progress: DesktopProvisionProgress): void; readonly bridge: ReturnType<typeof fakeHub> } {
   const bridge = fakeHub(options.localHub ? { localHub: options.localHub } : {});
   const listeners = new Set<(status: DesktopHubStatus) => void>();
   const base = createDesktopHubAdmin(() => ({
@@ -42,7 +42,7 @@ export function createTestPort(overrides: Partial<HubAdminPort> = {}, options: {
   }));
   const merged: Record<string, unknown> = { ...base, ...overrides };
   const port = Object.fromEntries(Object.entries(merged).map(([key, fn]) => [key, vi.fn(fn as (...args: unknown[]) => unknown)])) as unknown as Spied;
-  return { port, emit: (status) => listeners.forEach((listener) => listener(status)), bridge };
+  return { port, emit: (status) => listeners.forEach((listener) => listener(status)), emitProvision: (progress) => bridge.emitProvisionProgress(progress), bridge };
 }
 
 export function configureHubTest(port: HubAdminPort, hostKind: 'desktop' | 'hub-web' = 'desktop'): void {

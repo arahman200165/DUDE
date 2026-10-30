@@ -27,7 +27,7 @@ export const HUB_AUDIT_EVENTS = [
   'blobs.verify-failed', 'blobs.gc-applied',
   'provisioning.run',
   'tunnel.enabled', 'tunnel.disabled', 'tunnel.token-set', 'tunnel.degraded',
-  'oidc.signin', 'oidc.signin-failed', 'oidc.refused-account', 'oidc.link-started', 'oidc.link', 'oidc.unlink', 'oidc.unreachable',
+  'oidc.configured', 'oidc.signin', 'oidc.signin-failed', 'oidc.refused-account', 'oidc.link-started', 'oidc.link', 'oidc.unlink', 'oidc.unreachable',
   'ingest.token-created', 'ingest.token-revoked', 'ingest.auth-failed',
   'upload.created', 'upload.completed', 'upload.aborted', 'upload.failed', 'upload.expired',
   'standby.granted', 'standby.revoked', 'standby.denied', 'standby.pulled',

@@ -18,6 +18,13 @@ describe('dude-hub provision arguments', () => {
     }
   });
 
+  it('takes the desktop wizard session pipe only on a plain run', () => {
+    expect(parseArgs(['provision', '--session-pipe', 'dude-hub-provision-abc', '--data-dir', 'D:\hub'])).toEqual({ command: 'provision', action: 'run', sessionPipe: 'dude-hub-provision-abc', dataDir: 'D:\hub' });
+    expect(() => parseArgs(['provision', 'status', '--session-pipe', 'x'])).toThrow(UsageError);
+    expect(() => parseArgs(['provision', '--session-pipe', 'x', '--json'])).toThrow(UsageError);
+    expect(HELP_TEXT).toMatch(/provision --session-pipe <name>/);
+  });
+
   it('is documented in the help text with its exit codes', () => {
     expect(HELP_TEXT).toMatch(/dude-hub provision \[--json\]/);
     expect(HELP_TEXT).toMatch(/dude-hub provision status/);

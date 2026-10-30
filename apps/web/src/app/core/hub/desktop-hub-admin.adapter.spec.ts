@@ -45,6 +45,25 @@ describe('desktop Hub admin adapter', () => {
     await expect(refused.setNotificationsAccess(self!.deviceId, true)).rejects.toMatchObject({ code: 'hub-bad-request' });
   });
 
+  it('calls each provisioning channel method and unwraps ok and error results', async () => {
+    const hub = fakeHub();
+    const admin = createDesktopHubAdmin(() => hub);
+    await expect(admin.provisionOpen!()).resolves.toMatchObject({ deviceId: expect.any(String), provisioning: { overall: 'needs-attention' } });
+    const preview = await admin.provisionStep!({ step: 'tunnel-preview', hostname: 'hub.example.com', acceptUnverifiedReachability: true });
+    expect(preview).toMatchObject({ hostname: 'hub.example.com', needsConnectorToken: true });
+    await expect(admin.provisionStep!({ step: 'tunnel-apply', hostname: 'hub.example.com', confirmToken: 'wrong', acknowledgement: 'x', acceptUnverifiedReachability: true }))
+      .rejects.toMatchObject({ name: 'HubAdminError', code: 'stale-preview' });
+    await expect(admin.provisionChooseBackupFolder!()).resolves.toEqual({ canceled: false, folder: 'D:/DUDE backups' });
+    await expect(admin.provisionClose!()).resolves.toEqual({ closed: true });
+    expect(hub.calls).toEqual(['provisionOpen', 'provisionStep', 'provisionStep', 'provisionChooseBackupFolder', 'provisionClose']);
+    const off = vi.fn();
+    const seen = vi.fn();
+    const onProvisionProgress = vi.fn(() => off);
+    expect(createDesktopHubAdmin(() => ({ ...hub, onProvisionProgress })).onProvisionProgress!(seen)).toBe(off);
+    expect(onProvisionProgress).toHaveBeenCalledExactlyOnceWith(seen);
+    await expect(createDesktopHubAdmin(() => undefined).provisionOpen!()).rejects.toMatchObject({ code: 'unavailable' });
+  });
+
   it('subscribes to the open-notifications push only when the bridge has it', () => {
     const hub = fakeHub();
     const off = vi.fn();
