@@ -171,7 +171,7 @@
     "ini": "^7.0.0",
     "isomorphic-git": "^1.42.2",
     "jmespath": "^0.16.0",
-    "jose": "^6.2.12",
+    "jose": "^6.2.13",
     "js-md5": "^0.9.2",
     "js-yaml": "^5.4.2",
     "jsonpath-plus": "^10.4.0",
