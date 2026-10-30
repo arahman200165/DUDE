@@ -25,6 +25,8 @@ import { registerUploadRoutes } from './routes/uploads.js';
 import type { UploadService } from '../uploads/upload-service.js';
 import { createIngestTokenStore } from '../ingest/ingest-tokens.js';
 import { registerNotificationRoutes } from './routes/notifications.js';
+import { registerStandbyRoutes } from './routes/standby.js';
+import { defaultOpenStandbyDestination } from '../standby/repositories.js';
 import { startNotificationProducers } from '../notifications/producers.js';
 import { startNotificationRetention } from '../notifications/retention.js';
 import { createJobRegistry } from '../jobs/job-status.js';
@@ -278,6 +280,12 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   const stopRetention = startNotificationRetention(options.hub.db, now, () => realtime.notifyOwnerView('notifications'));
   app.addHook('onClose', async () => { producers.stop(); stopRetention(); });
   registerNotificationRoutes(app, { db: options.hub.db, now, requireOwner: authOptions.requireOwner, requireDevice, changed: () => realtime.notifyOwnerView('notifications') });
+  // Warm standby pull (32-SS1, Milestone 849, PD-151): device token plus the per-device standby grant; stored ciphertext only.
+  registerStandbyRoutes(app, {
+    db: options.hub.db, now, requireDevice,
+    backupConfig: () => currentConfig(options.paths.configFile, { port: 0 }).backup,
+    openDestination: defaultOpenStandbyDestination(options.paths),
+  });
   const startedAt = now();
   const hostFacts = options.diagnostics?.host ?? createHostFacts({ exec: options.diagnostics?.exec ?? defaultExec, ...(options.diagnostics?.platform ? { platform: options.diagnostics.platform } : {}), now });
   const resolveDns = options.diagnostics?.resolveDns ?? createCachedNameResolver({ now });

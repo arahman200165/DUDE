@@ -9,7 +9,7 @@ import type { StartupProgramsResult } from "../../system/startup-types.js";
 import type { InstalledSoftware } from "../../system/software-types.js";
 import type { WindowsCapability, WindowsFeature } from "../../system/feature-types.js";
 import type { SysApplyResult, SysJournalEntry, SysMutationSettings, SysMutResult, SysPlanPreview, SysPlanRequest, SysSnapshot, SysSnapshotHeader, SysSnapshotKind } from "../../system/sys-mutation-types.js";
-import type { AgentAppliedChange, AgentDiagnostics, CollabRefusalReason, CollabRelayFrame, CollabRelayState, AgentHistoryRecord, AgentNetworkRun, AgentStandalonePreview, AgentSyncStatus, FirstSyncChoice, FirstSyncPreview, QuarantinedOpExport, QuarantinedOpView, SyncCategoryFlags, SyncConflictChoice, SyncConflictView } from "../../device-store/agent-protocol.js";
+import type { AgentAppliedChange, AgentDiagnostics, AgentStandbyStatus, CollabRefusalReason, CollabRelayFrame, CollabRelayState, AgentHistoryRecord, AgentNetworkRun, AgentStandalonePreview, AgentSyncStatus, FirstSyncChoice, FirstSyncPreview, QuarantinedOpExport, QuarantinedOpView, SyncCategoryFlags, SyncConflictChoice, SyncConflictView } from "../../device-store/agent-protocol.js";
 import type { SyncCategory } from "../../hub/index.js";
 import type { DeviceStoreBoot, DeviceStoreDevice, EntityCommit, EntityCommitResult, KvMutation, QuarantinePreviewResult, ResetApplyResult, ResetKind, ResetPreviewOptions, ResetPreviewResult, StoreHealth } from "../../device-store/device-store.model.js";
 import type { NetworkRequest, NetworkJobEvent, NetworkStartResult, NetworkPrepareResult, WatchEntry, WatchSettings, WatchState, WatchResult } from "../../core/platform/network-types.js";
@@ -303,7 +303,22 @@ export interface DesktopCollabHubBridge {
   onState(callback: (state: CollabRelayState) => void): () => void;
 }
 
+/**
+ * Warm standby (32-SS1, Milestone 849, PD-151): this desktop's Device Agent pulls the Hub's ENCRYPTED backup repositories into a folder the user
+ * picks, once the Hub owner granted it (`dude-hub standby grant <deviceId>` on the Hub). The renderer only reads the status, asks for a run now,
+ * and asks main to show the folder dialog (main, not the renderer, supplies the path to the Agent). Codes: `forbidden`, `unavailable`,
+ * `not-configured`, `not-enrolled`, `folder-unavailable`, `invalid-params`.
+ */
+export interface DesktopStandbyBridge {
+  status(): Promise<DesktopHubResult<AgentStandbyStatus>>;
+  pullNow(): Promise<DesktopHubResult<AgentStandbyStatus>>;
+  /** Shows the native folder dialog; `canceled` leaves the configuration as it was. */
+  chooseFolder(): Promise<DesktopHubResult<{ readonly canceled: boolean; readonly status: AgentStandbyStatus }>>;
+}
+
 export interface PlatformBridge {
+  /** Absent on builds that predate the warm standby puller. */
+  readonly standby?: DesktopStandbyBridge;
   /** Absent until the Electron main/preload implementation of Hub administration ships. */
   readonly hub?: DesktopHubBridge;
   /** Absent until the Electron main/preload implementation of sync ships. */

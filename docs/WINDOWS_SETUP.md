@@ -197,6 +197,33 @@ What a restored Hub looks like:
 
 `dude-hub backup reactivate` (elevated, Hub running, two steps like `create`) returns a retired Hub to service with a new authority epoch, for example when the transfer was abandoned. It refuses with a clear message when the Hub is not retired.
 
+#### Keeping a warm standby on a paired desktop
+
+A paired desktop can keep a second copy of the Hub's **encrypted** backups, so losing the Hub machine (or its disks) is not the end of your data. The desktop pulls; the Hub never pushes, and the standby never gets the backup passphrase or the backup key, so it holds only ciphertext it cannot read. Only destinations that are local folders are served (an S3 bucket is already off the machine).
+
+1. On the Hub machine (elevated, Hub running) run `dude-hub standby grant <deviceId>` for the desktop's device id (the `deviceId` of the desktop's standby status, and the Hub's device list). It is two steps like `backup create`: the first run prints a one-time token, then re-run with `--confirm <token>` within 60 seconds. `dude-hub standby list` shows the granted devices and `dude-hub standby revoke <deviceId>` (two steps) stops one. A device that is revoked, unenrolled, re-enrolled or re-paired loses the grant.
+2. On the desktop, choose the standby folder (a folder on another drive or a share is best; the folder dialog is shown by the desktop's main process, never chosen by the web page). The Device Agent then pulls whenever the Hub is online, even with no DUDE window open: the first run about two minutes after it starts, then every hour; packs before manifests (a backup appears in the mirror only once everything it needs has arrived); an interrupted download resumes; what the Hub's retention removed is removed from the mirror. Until the Hub owner grants the device it asks only about once an hour; other failures back off from one minute up to 30 minutes.
+3. The mirror is one backup repository per Hub destination: `<standby folder>\<destination id>\repo`, `packs\` and `manifests\`. Partial downloads live in `<standby folder>\.standby-partial\`. Do not edit or add files inside a destination folder.
+
+#### Promoting the standby after the Hub is lost
+
+This is a manual, deliberate restore; DUDE never fails over by itself. You need the **backup passphrase** (the standby does not have it), a Windows machine with `dude-hub` installed (it can be the standby desktop itself) and an elevated prompt.
+
+1. Make sure the old Hub is really gone or switched off. A standby mirror is never a transfer backup, so the restore asks you to confirm that the old Hub is gone. If it is still reachable, stop it first.
+2. On the new Hub machine stop the Hub (`dude-hub service stop`) if it is installed. Restore from the standby drive or copy the standby's `<destination id>` folder there. The folder you pass is the repository folder (the one that contains `repo`, `packs` and `manifests`), not the standby root.
+3. Preview, then restore (the newest backup unless `--backup <id>` names one; `--data-dir` as usual). Both runs ask for the passphrase; the first changes nothing and prints the one-time token:
+
+   ```
+   dude-hub backup restore --folder "D:\Standby\local-1"
+   dude-hub backup restore --folder "D:\Standby\local-1" --confirm <token> --old-hub-gone "THE OLD HUB IS GONE"
+   ```
+
+   Add `--replace "REPLACE HUB DATA"` to the second command when the data directory already holds a Hub.
+4. Start the Hub (`dude-hub service start`), sign in with the old owner password and re-pair every device with a re-attach code, exactly as in [Restoring a backup](#restoring-a-backup). The restored Hub has a new identity and a higher authority epoch; Public exposure is off until you re-enable it. The standby grants, the schedule, the destinations and the protected secrets are not carried over: run `dude-hub provision`, add a backup destination again and grant the standby again.
+5. The desktop that was the standby is re-paired like any other device (it keeps its local data). To stand by the new Hub, choose a new, empty standby folder (a different folder starts a fresh mirror) and keep the old one until the new Hub has taken its first backup; a restored repository from the old Hub must not be mixed with the new Hub's.
+
+What the standby cannot do: it is only as fresh as its last successful pull (the status shows the last success), it does not replicate the live databases, and it cannot restore anything without the passphrase.
+
 ### Updating the Hub
 
 A DUDE update never touches the Hub. When the desktop notices that the bundled Hub is newer than the installed one, it offers **Update Hub** in the app; that elevates the bundled `<DUDE folder>\resources\DUDE-Hub-Setup.exe /S /UPDATE` (stop, replace, start; data migrates when the service starts; only offered for a per-machine DUDE install). You can also run the newer `DUDE-Hub-Setup.exe` yourself.

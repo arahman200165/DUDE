@@ -44,6 +44,7 @@ import { currentAppInfo, deviceCapabilities, startDeviceAgent } from './device-s
 import { getAgentBackground } from './device-store/agent-background';
 import { registerAgentHandlers } from './device-store/agent-bridge';
 import { registerHubHandlers } from './device-store/hub-bridge';
+import { registerStandbyHandlers } from './device-store/standby-bridge';
 import { installHubNotificationToasts } from './hub-notification-toasts';
 import { registerSyncHandlers } from './device-store/sync-bridge';
 import { registerPresenceHandlers } from './device-store/presence-bridge';
@@ -137,6 +138,7 @@ async function createWindow(wasRestoredAfterCrash: boolean): Promise<void> {
   installHubNotificationToasts(window, getDeviceStoreHost);
   registerSyncHandlers(window);
   registerPresenceHandlers(window);
+  registerStandbyHandlers(window);
   registerCollabHubHandlers(window);
   registerStoreResetHandlers(window, defaultStoreResetDeps(() => app.getPath('userData'), async () => {
     await startDeviceStore();

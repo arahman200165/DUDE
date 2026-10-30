@@ -7,6 +7,12 @@ export interface HubRequest {
    * `content-type` (`application/octet-stream`); a transport sends `Content-Length` and does not add a JSON content type. Mutually exclusive with `body`.
    */
   rawBody?: Uint8Array;
+  /**
+   * `bytes` (32-SS1, Milestone 849): the caller wants a binary answer (the standby object route). A transport that supports it returns a 2xx
+   * `body` as a `Uint8Array` of exactly the received bytes and still parses a non-2xx JSON error envelope; one that does not must leave the body
+   * as it is, and the client then refuses the answer with `HubProtocolError` rather than guessing. Absent means JSON.
+   */
+  responseType?: 'json' | 'bytes';
   headers?: Record<string, string>;
 }
 export interface HubResponse {

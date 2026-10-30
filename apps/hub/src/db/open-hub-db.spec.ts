@@ -33,7 +33,7 @@ describe('openHubDb', () => {
     expect(Object.values(db.prepare('PRAGMA foreign_keys').get() as object)[0]).toBe(1);
     expect(hubInstanceId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-/);
     expect(getMeta(db, 'created_at')).toBeTruthy();
-    expect(getMeta(db, 'schema_version')).toBe('12');
+    expect(getMeta(db, 'schema_version')).toBe('13');
     first.hub.close();
     expect(readdirSync(options.preMigrationDir.replace(/pre-migration$/, '')).includes('pre-migration')).toBe(false);
 
@@ -52,7 +52,7 @@ describe('openHubDb', () => {
     const upgraded = openHubDb(options);
     if (upgraded.status !== 'ready') throw new Error('expected ready');
     const { db } = upgraded.hub;
-    expect(getMeta(db, 'schema_version')).toBe('12');
+    expect(getMeta(db, 'schema_version')).toBe('13');
     expect(getMeta(db, 'min_reader_version')).toBe('10');
     expect(getMeta(db, 'sync_floor')).toBe('0');
     expect(getMeta(db, 'sync_retention_days')).toBe('90');

@@ -11,9 +11,9 @@
   ],
   "classificationCounts": {
     "device-doc": 33,
-    "regex-heuristic (review flag)": 67,
+    "regex-heuristic (review flag)": 68,
     "agent-table": 17,
-    "hub-table": 32,
+    "hub-table": 33,
     "mobile-table": 8,
     "setting-definition": 3,
     "policy-rule": 778,
@@ -157,6 +157,14 @@
       "reviewed": "Backup spec fixture writing bytes to a throwaway BlobStore under a temp directory; not app state."
     },
     {
+      "source": "apps/hub/src/backup/destinations/s3/s3-credentials.ts",
+      "line": 66,
+      "namespace": null,
+      "key": null,
+      "heuristicScope": "local-only",
+      "reviewed": "Stores the S3-compatible backup destination credentials in the Hub secret store (purpose backup.s3.credentials, DPAPI LocalMachine or a 0600 file on Linux); machine-bound, never synced, backed up or reported (Milestone 848)."
+    },
+    {
       "source": "apps/hub/src/backup/master-key.ts",
       "line": 56,
       "namespace": null,
@@ -166,7 +174,7 @@
     },
     {
       "source": "apps/hub/src/backup/restore.ts",
-      "line": 428,
+      "line": 458,
       "namespace": null,
       "key": null,
       "heuristicScope": "local-only",
@@ -1514,6 +1522,20 @@
       "syncConsent": "not granted"
     },
     {
+      "source": "apps/hub/src/backup/destinations/s3/s3-credentials.ts",
+      "line": 66,
+      "operation": "store.put(S3_CREDENTIALS_PURPOSE, JSON.stringify({ v: 1, credentials: map }))",
+      "namespace": null,
+      "key": null,
+      "storage": "store",
+      "storageLocation": "store.put(S3_CREDENTIALS_PURPOSE, JSON.stringify({ v: 1, credentials: map }))",
+      "retention": "owned by the referenced backend; no policy change",
+      "scope": "local-only",
+      "sensitivity": "sensitive",
+      "classificationBasis": "regex-heuristic (review flag)",
+      "syncConsent": "not granted"
+    },
+    {
       "source": "apps/hub/src/backup/master-key.ts",
       "line": 56,
       "operation": "store.put(BACKUP_MASTER_KEY_PURPOSE, JSON.stringify({ v: 1, key: Buffer.from(key).toString('base64url') }))",
@@ -1529,7 +1551,7 @@
     },
     {
       "source": "apps/hub/src/backup/restore.ts",
-      "line": 428,
+      "line": 458,
       "operation": "store.put(reader.readEntry(item), { expectedSha256: item.sha256 })",
       "namespace": null,
       "key": null,
@@ -2032,6 +2054,21 @@
       "scope": "local-only",
       "sensitivity": "sensitive",
       "note": "transient in-flight Google sign-in attempts (hashed state and nonce, the PKCE verifier until the flow is consumed, minutes of lifetime); removed from backups and on restore",
+      "classificationBasis": "hub-table",
+      "syncConsent": "not granted"
+    },
+    {
+      "source": "apps/hub/src/db/migrations/0013-standby-grants.ts",
+      "line": 16,
+      "operation": "CREATE TABLE standby_grants",
+      "namespace": null,
+      "key": "standby_grants",
+      "storage": "Hub database (node:sqlite)",
+      "storageLocation": "data/dude.db table standby_grants",
+      "retention": "existing per-table policy",
+      "scope": "local-only",
+      "sensitivity": "sensitive",
+      "note": "which paired desktops the owner let pull the encrypted backup repositories (a warm standby: device id, the enrollment it was granted to, the grant time; no credential); removed from backups and on restore, so a restored Hub never opens its repository to a device the owner has not granted again",
       "classificationBasis": "hub-table",
       "syncConsent": "not granted"
     },

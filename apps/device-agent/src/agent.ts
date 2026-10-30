@@ -20,6 +20,8 @@ import { createSyncRuntime } from './sync/sync-runtime.js';
 import type { SyncIntervals, SyncRuntime } from './sync/sync-runtime.js';
 import type { HubRuntime, HubRuntimeDeps } from './hub/index.js';
 import type { CollabHolder } from './hub/collab-socket.js';
+import { createStandbyPuller } from './standby/standby-puller.js';
+import type { StandbyPuller, StandbyTimings } from './standby/standby-puller.js';
 
 /** Sent as `ready.boot` on every authenticated connection before any request is served. */
 export type AgentReadyEvent =
@@ -42,6 +44,7 @@ export interface RunAgentOptions {
   hubTimings?: HubRuntimeDeps['timings'];
   hubCreateTransport?: HubRuntimeDeps['createTransport'];
   syncIntervals?: Partial<SyncIntervals>;
+  standbyTimings?: Partial<StandbyTimings>;
 }
 
 export type RunningAgent =
@@ -54,7 +57,7 @@ export type RunningAgent =
   }
   | { status: 'already-running' };
 
-interface Opened { server: RpcServer; store: DeviceStore | null; event: AgentReadyEvent; hub?: HubRuntime; sync?: SyncRuntime }
+interface Opened { server: RpcServer; store: DeviceStore | null; event: AgentReadyEvent; hub?: HubRuntime; sync?: SyncRuntime; standby?: StandbyPuller }
 
 const NO_CONFIG_MESSAGE = 'The agent has not received its configuration from the desktop yet.';
 
@@ -117,12 +120,16 @@ export async function runAgent(options: RunAgentOptions): Promise<RunningAgent> 
       // The Hub connection lives as long as the store is open, with or without a desktop attached; sync rides on it.
       try { hub.manager.start(); } catch { /* the store stays usable; the connection reports its own state */ }
       try { sync.start(); } catch { /* the store stays usable; sync reports its own state */ }
+      // Warm standby (PD-151): pulls the Hub's encrypted backups over this device's token into the user's folder, with or without a desktop.
+      const standby = createStandbyPuller({ db: store.db, now, hub: hub.manager, timings: options.standbyTimings });
+      try { standby.start(); } catch { /* the store stays usable; the puller reports its own state */ }
       return {
-        server: createRpcServer(store, { now, randomBytes: bytes, storeDir: options.storeDir, hub, sync }),
+        server: createRpcServer(store, { now, randomBytes: bytes, storeDir: options.storeDir, hub, sync, standby }),
         store,
         event: { type: 'ready', status: 'ready', health: result.health },
         hub,
         sync,
+        standby,
       };
     }
     return {
@@ -190,6 +197,7 @@ export async function runAgent(options: RunAgentOptions): Promise<RunningAgent> 
   const close = async (): Promise<void> => {
     // Close the store cleanly (checkpoint) unless a shutdown request already did.
     const current = await openPromise?.catch(() => null);
+    current?.standby?.stop();
     current?.hub?.collab.stop();
     current?.sync?.stop();
     current?.hub?.manager.stop();

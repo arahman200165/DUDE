@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
 import { makeCert, startHttps } from '../testing/test-tls.js';
 import type { TestCert } from '../testing/test-tls.js';
-import { HUB_MAX_RESPONSE_BYTES, PIN_MISMATCH_CODE, createPinnedTransport } from './pinned-transport.js';
+import { HUB_MAX_BYTES_RESPONSE_BYTES, HUB_MAX_RESPONSE_BYTES, PIN_MISMATCH_CODE, createPinnedTransport } from './pinned-transport.js';
 import { probeLocalHub, probePin } from './probe.js';
 
 const servers: Array<{ close(): Promise<void> }> = [];
@@ -78,6 +78,57 @@ describe('pinned transport', () => {
     await expect(get(text.port, [a.certPem], [a.spki])).rejects.toMatchObject({ code: 'not-json' });
     const big = track(await startHttps(a, (_req, res) => { res.setHeader('content-type', 'application/json'); res.end(`"${'x'.repeat(HUB_MAX_RESPONSE_BYTES + 10)}"`); }));
     await expect(get(big.port, [a.certPem], [a.spki])).rejects.toBeDefined();
+  });
+});
+
+describe('pinned transport responseType: bytes (Milestone 849)', () => {
+  const bytesGet = (port: number, a: TestCert, headers?: Record<string, string>, max?: number): Promise<{ status: number; headers: Record<string, string>; body: unknown }> =>
+    createPinnedTransport({ host: '127.0.0.1', port, ca: [a.certPem], pins: [a.spki], ...(max === undefined ? {} : { maxBytesResponseBytes: max }) }, 5_000)
+      .request({ method: 'GET', path: '/standby/x', responseType: 'bytes', ...(headers === undefined ? {} : { headers }) });
+
+  it('returns a 2xx body as exactly the received bytes, with the range headers, whatever the content type', async () => {
+    const a = makeCert('a');
+    const payload = Buffer.from([0, 255, 1, 2, 0x7b, 0x22, 128]);
+    const server = track(await startHttps(a, (_req, res) => {
+      res.statusCode = 206;
+      res.setHeader('content-type', 'application/octet-stream');
+      res.setHeader('content-range', 'bytes 10-16/100');
+      res.end(payload);
+    }));
+    const res = await bytesGet(server.port, a, { range: 'bytes=10-16' });
+    expect(res.status).toBe(206);
+    expect(res.headers['content-range']).toBe('bytes 10-16/100');
+    expect(res.body).toBeInstanceOf(Uint8Array);
+    expect([...(res.body as Uint8Array)]).toEqual([...payload]);
+    expect((res.body as Uint8Array).byteLength).toBe(payload.length);
+    expect(server.requests[0]?.headers['accept']).toBe('application/octet-stream, application/json');
+    expect(server.requests[0]?.headers['range']).toBe('bytes=10-16');
+  });
+
+  it('still parses a non-2xx answer as a JSON error envelope', async () => {
+    const a = makeCert('a');
+    const server = track(await startHttps(a, (_req, res) => {
+      res.statusCode = 403;
+      res.setHeader('content-type', 'application/json');
+      res.end('{"error":{"code":"forbidden","message":"no grant"}}');
+    }));
+    await expect(bytesGet(server.port, a)).resolves.toMatchObject({ status: 403, body: { error: { code: 'forbidden' } } });
+  });
+
+  it('caps a bytes body at its own limit (larger than the JSON cap) and refuses more', async () => {
+    const a = makeCert('a');
+    expect(HUB_MAX_BYTES_RESPONSE_BYTES).toBeGreaterThan(HUB_MAX_RESPONSE_BYTES);
+    const over = HUB_MAX_RESPONSE_BYTES + 1024;
+    const server = track(await startHttps(a, (_req, res) => { res.setHeader('content-type', 'application/octet-stream'); res.end(Buffer.alloc(over, 7)); }));
+    const res = await bytesGet(server.port, a);
+    expect((res.body as Uint8Array).byteLength).toBe(over);
+    await expect(bytesGet(server.port, a, undefined, over - 1)).rejects.toBeDefined();
+  });
+
+  it('does not change the JSON path: a plain request still refuses an octet-stream body', async () => {
+    const a = makeCert('a');
+    const server = track(await startHttps(a, (_req, res) => { res.setHeader('content-type', 'application/octet-stream'); res.end(Buffer.from([1, 2, 3])); }));
+    await expect(get(server.port, [a.certPem], [a.spki])).rejects.toMatchObject({ code: 'not-json' });
   });
 });
 

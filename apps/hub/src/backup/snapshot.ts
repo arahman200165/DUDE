@@ -10,9 +10,10 @@ import type { Db } from '@dude/sqlite-store';
  * on restore. `oidc_flows` (32-SS1, Milestone 841) holds in-flight sign-in attempts and PKCE verifiers. `linked_identities` is scrubbed too
  * (PD-145): a restored Hub is a new instance whose OAuth redirect origin and client may differ, so a restored Hub never trusts the
  * old links; the owner signs in with the password or a recovery code and links Google again. `throttle` and `ip_blocks` are kept. `devices.notifications_access` stays: it is a per-device grant, and every desktop
- * must re-pair after a restore anyway.
+ * must re-pair after a restore anyway. `standby_grants` (Milestone 849, PD-151) is scrubbed: a warm-standby grant opens the backup
+ * repository to a device, so a restored Hub (a new instance whose devices all re-pair) never carries one; the owner grants again.
  */
-export const SCRUBBED_TABLES = ['sessions', 'device_tokens', 'challenges', 'pairing_codes', 'setup_state', 'notifications', 'oidc_flows', 'linked_identities'] as const;
+export const SCRUBBED_TABLES = ['sessions', 'device_tokens', 'challenges', 'pairing_codes', 'setup_state', 'notifications', 'oidc_flows', 'linked_identities', 'standby_grants'] as const;
 
 /**
  * Every other `dude.db` table: kept in a backup as is (`meta` and `audit_events` are kept too; `meta` is scrubbed per key below).

@@ -37,6 +37,8 @@ import { withNotificationsCredential } from '../hub/notifications-access.js';
 import { SyncRuntimeError } from '../sync/sync-runtime.js';
 import { convertToStandalone } from '../sync/standalone.js';
 import type { SyncRuntime } from '../sync/sync-runtime.js';
+import { StandbyError } from '../standby/standby-mirror.js';
+import type { StandbyPuller } from '../standby/standby-puller.js';
 
 export interface RpcDeps {
   now: () => Date;
@@ -51,6 +53,8 @@ export interface RpcDeps {
   hub?: HubRuntime;
   /** Sync runtime; absent in tests that do not exercise sync. */
   sync?: SyncRuntime;
+  /** Warm standby puller (PD-151); absent in tests that do not exercise it. */
+  standby?: StandbyPuller;
 }
 
 /** What a request knows about its caller: the desktop connection, for the methods that are bound to one (the collaboration relay, PD-106). */
@@ -173,6 +177,18 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
   const syncRuntime = (): SyncRuntime => {
     if (!deps.sync) throw new RpcError('unavailable', 'Sync support is not available.');
     return deps.sync;
+  };
+  const standbyPuller = (): StandbyPuller => {
+    if (!deps.standby) throw new RpcError('unavailable', 'Standby support is not available.');
+    return deps.standby;
+  };
+  const standbyGuard = async <T>(fn: () => T | Promise<T>): Promise<T> => {
+    try {
+      return await fn();
+    } catch (error) {
+      if (error instanceof StandbyError) throw new RpcError(error.code, error.message);
+      throw error;
+    }
   };
   const collabRelay = (): CollabRelay => {
     if (!deps.hub) throw new RpcError('unavailable', 'Hub support is not available.');
@@ -528,6 +544,14 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
       if (id.length > 64) throw invalid('id must be at most 64 characters.');
       return hubGuard(() => withNotificationsCredential(hubRuntime().manager, (api, t) => api.dismissNotification(t, id)));
     },
+    // Warm standby (PD-151): the folder comes from desktop main's folder dialog, never from the renderer.
+    'standby.status': () => standbyPuller().status(),
+    'standby.pullNow': () => standbyGuard(() => standbyPuller().pullNow()),
+    'standby.setFolder': (p) => {
+      if (p.folder !== null && typeof p.folder !== 'string') throw invalid('folder must be a string or null.');
+      const folder = p.folder;
+      return standbyGuard(() => standbyPuller().setFolder(folder));
+    },
     // The legacy userData import is implemented in M621; until then nothing is imported.
     'legacy.import': () => ({ status: 'none', imported: {}, warnings: [] }),
     'store.cleanExit': (p) => {
@@ -546,6 +570,7 @@ export function createRpcServer(store: DeviceStore | null, deps: RpcDeps): RpcSe
       return { ok: true };
     },
     'store.shutdown': () => {
+      deps.standby?.stop();
       deps.hub?.collab.stop();
       deps.sync?.stop();
       deps.hub?.manager.stop();

@@ -2,6 +2,7 @@ import { Value } from 'typebox/value';
 import Type from 'typebox';
 import type { TSchema, Static } from 'typebox';
 import {
+  HUB_STANDBY_PATHS, StandbyRepositoriesResponse, StandbyObjectsResponse, standbyObjectsPath, standbyObjectPath,
   HUB_UPLOADS_PATH, uploadPath, uploadChunkPath, uploadCompletePath, UPLOAD_CHUNK_HASH_HEADER, UPLOAD_CONTENT_TYPE, UploadSession, UploadChunkResponse, UploadCompleteResponse,
   HUB_API_PREFIX, HUB_OIDC_PATHS, HUB_INGEST_PATHS, ingestRevokePath, ingestRevokePreviewPath, IngestTokenListResponse, IngestTokenCreateResponse, IngestTokenRevokePreview, IngestPingResponse, OidcStatusResponse, OidcStartResponse, OidcLinkCompleteResponse, OidcAccountsResponse, OidcUnlinkPreview, HelloResponse, ErrorEnvelope, checkProtocolCompatibility,
   BootstrapResponse, TlsCertificatesResponse, AuditListResponse, SecurityAlertsResponse, PresenceResponse, HUB_PRESENCE_PATH, HubJobsResponse, HUB_JOBS_PATH, HubQueueStatusResponse, HUB_QUEUE_PATH, HubProvisioningResponse, HUB_PROVISIONING_PATH, HubTunnelStatusResponse, HUB_TUNNEL_PATH, HubNotificationsResponse, HUB_NOTIFICATIONS_PATH, CollabRoom, CollabRoomsResponse, HUB_COLLAB_ROOMS_PATH, KeepCollabRoomResponse, CollabDocumentsResponse, HUB_COLLAB_DOCUMENTS_PATH, CollabHistoryResponse, CollabSnapshotResponse, CollabRestoreResponse, HUB_COLLAB_HISTORY_PATH, HubDiagnosticsReport, ReachabilityEchoResponse, BackupStatusResponse,
@@ -14,7 +15,7 @@ import {
   assertSyncCategories,
 } from '@dude/contracts/hub';
 import type {
-  IngestTokenCreateRequest, UploadCreateRequest, ProtocolCompatibility, MarkNotificationsReadRequest, BootstrapRequest, EnrollRequest, DeviceSelfUpdate, PairingCodeRequest, SyncOp, SyncStateReport, SyncCategory, WebAttachRequest,
+  StandbyObjectPrefix, IngestTokenCreateRequest, UploadCreateRequest, ProtocolCompatibility, MarkNotificationsReadRequest, BootstrapRequest, EnrollRequest, DeviceSelfUpdate, PairingCodeRequest, SyncOp, SyncStateReport, SyncCategory, WebAttachRequest,
 } from '@dude/contracts/hub';
 import type { HubRequest, HubTransport } from './transport.js';
 import { HubApiError, HubProtocolError } from './errors.js';
@@ -31,6 +32,20 @@ export type Bearer = string | undefined;
 export interface SyncPushOptions {
   accept?: readonly 'merged'[];
 }
+
+/** One piece of a standby object: `bytes` covers `start`..`end` (inclusive) of an object of `size` bytes. */
+export interface StandbyObjectPiece {
+  status: 200 | 206;
+  bytes: Uint8Array;
+  start: number;
+  end: number;
+  size: number;
+}
+
+const headerOf = (headers: Record<string, string>, name: string): string | undefined => {
+  for (const [key, value] of Object.entries(headers)) if (key.toLowerCase() === name) return value;
+  return undefined;
+};
 
 const pushBody = (ops: readonly SyncOp[], options: SyncPushOptions | undefined): { ops: readonly SyncOp[]; accept?: readonly 'merged'[] } =>
   options?.accept && options.accept.length > 0 ? { ops, accept: options.accept } : { ops };
@@ -171,6 +186,17 @@ export interface HubClient {
   completeUpload(auth: Bearer, uploadId: string): Promise<UploadCompleteResponse | UploadSession>;
   abortUpload(auth: Bearer, uploadId: string): Promise<OkResponse>;
 
+  /**
+   * Warm standby pull (32-SS1, Milestone 849, PD-151). Device token only (`auth` = the `ddt_` token), and only while the owner's standby grant
+   * for this device is in force (else `HubApiError` 403 `forbidden`). The bytes are the Hub's stored, ENCRYPTED backup repository objects.
+   * `getStandbyObject` fetches one bounded piece (`range`, inclusive; omit `end` for the rest of the object, omit `range` for the whole object);
+   * a puller asks for pieces of at most a few MiB so its memory stays bounded, mirrors packs first and each manifest last, and re-fetches
+   * `repo` whenever its listed size changes. The transport must support `HubRequest.responseType: 'bytes'`.
+   */
+  standbyRepositories(auth: Bearer): Promise<StandbyRepositoriesResponse>;
+  listStandbyObjects(auth: Bearer, destinationId: string, query?: { prefix?: StandbyObjectPrefix; after?: string; limit?: number }): Promise<StandbyObjectsResponse>;
+  getStandbyObject(auth: Bearer, destinationId: string, name: string, range?: { start: number; end?: number }): Promise<StandbyObjectPiece>;
+
   // Synchronization (Phase 31D). Device token required, except summary and the environment clear (owner).
   syncPush(auth: Bearer, ops: readonly SyncOp[], options?: SyncPushOptions): Promise<SyncPushResponse>;
   /** A cursor older than the Hub's retained history rejects with `HubApiError` status 410, code `cursor-expired`. */
@@ -298,6 +324,42 @@ export function createHubClient(transport: HubTransport, opts: HubClientOptions)
       }, auth),
     completeUpload: (auth, id) => call(Type.Union([UploadCompleteResponse, UploadSession]), { method: 'POST', path: uploadCompletePath(id) }, auth),
     abortUpload: (auth, id) => call(OkResponse, { method: 'DELETE', path: uploadPath(id) }, auth),
+
+    standbyRepositories: (auth) => call(StandbyRepositoriesResponse, { method: 'GET', path: HUB_STANDBY_PATHS.repositories }, auth),
+    listStandbyObjects: (auth, destinationId, query) => {
+      const qs = new URLSearchParams();
+      if (query?.prefix !== undefined) qs.set('prefix', query.prefix);
+      if (query?.after !== undefined) qs.set('after', query.after);
+      if (query?.limit !== undefined) qs.set('limit', String(query.limit));
+      const search = qs.toString();
+      return call(StandbyObjectsResponse, { method: 'GET', path: `${standbyObjectsPath(destinationId)}${search === '' ? '' : `?${search}`}` }, auth);
+    },
+    getStandbyObject: async (auth, destinationId, name, range) => {
+      if (range !== undefined && (!Number.isSafeInteger(range.start) || range.start < 0 || (range.end !== undefined && (!Number.isSafeInteger(range.end) || range.end < range.start)))) {
+        throw new RangeError('A standby range needs 0 <= start <= end.');
+      }
+      const req: HubRequest = {
+        method: 'GET', path: standbyObjectPath(destinationId, name), responseType: 'bytes',
+        headers: { ...(range === undefined ? {} : { range: `bytes=${range.start}-${range.end ?? ''}` }), ...(auth === undefined ? {} : { authorization: `Bearer ${auth}` }) },
+      };
+      const res = await transport.request(req);
+      if (res.status < 200 || res.status >= 300) {
+        if (Value.Check(ErrorEnvelope, res.body)) throw new HubApiError(res.status, res.body.error.code, res.body.error.message);
+        throw new HubProtocolError(`Hub returned HTTP ${res.status} without a valid error envelope`, res.status);
+      }
+      if (!(res.body instanceof Uint8Array)) throw new HubProtocolError('The transport did not return the standby object as bytes', res.status);
+      const bytes = res.body;
+      if (res.status === 200) return { status: 200, bytes, start: 0, end: bytes.length - 1, size: bytes.length };
+      const match = res.status === 206 ? /^bytes (\d+)-(\d+)\/(\d+)$/.exec(headerOf(res.headers, 'content-range') ?? '') : null;
+      if (match === null) throw new HubProtocolError('The Hub answered a standby range without a valid Content-Range', res.status);
+      const start = Number(match[1]);
+      const end = Number(match[2]);
+      const size = Number(match[3]);
+      if (end < start || end >= size || bytes.length !== end - start + 1 || (range !== undefined && start !== range.start)) {
+        throw new HubProtocolError('The standby piece does not match its Content-Range', res.status);
+      }
+      return { status: 206, bytes, start, end, size };
+    },
 
     syncPush: (auth, ops, options) => call(SyncPushResponse, { method: 'POST', path: `${P}${SYNC_PATHS.push}`, body: pushBody(ops, options) }, auth),
     syncChanges: async (auth, after, limit, categories) => {

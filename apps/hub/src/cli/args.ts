@@ -14,6 +14,7 @@ export type ParsedCommand =
   | { command: 'tls-proxy-pin'; action: 'add' | 'remove' | 'list' | 'activate'; value?: string; force?: boolean; confirm?: string; dataDir?: string; installDir?: string }
   | { command: 'security-blocks'; action: 'list' | 'clear'; ip?: string; dataDir?: string; installDir?: string }
   | { command: 'security-audit-ips'; mode?: 'full' | 'truncated'; dataDir?: string; installDir?: string }
+  | { command: 'standby'; action: 'list' | 'grant' | 'revoke'; deviceId?: string; confirm?: string; dataDir?: string; installDir?: string }
   | { command: 'tls-names'; action: 'list' | 'add' | 'remove'; name?: string; dataDir?: string; installDir?: string }
   | { command: 'service'; action: 'install' | 'uninstall' | 'start' | 'stop' | 'restart' | 'status' | 'update'; dataDir?: string; installDir?: string; port?: number; lan?: boolean; source?: string; keepData?: boolean }
   | { command: 'network'; action: 'lan-on' | 'lan-off' | 'status' | 'proxy-on' | 'proxy-off' | 'proxy-status' | 'mode-private' | 'mode-public'; trusted?: string[]; publicOrigin?: string; acceptUnverifiedReachability?: boolean; type?: string; dataDir?: string; installDir?: string }
@@ -61,6 +62,8 @@ Usage:
   dude-hub security blocks list [--data-dir <dir>] [--install-dir <dir>]   (addresses blocked after repeated failures; elevated, Hub running)
   dude-hub security blocks clear <address> [--data-dir <dir>] [--install-dir <dir>]
   dude-hub security audit-ips [full|truncated] [--data-dir <dir>] [--install-dir <dir>]   (show or set address privacy for NEW audit rows and sessions; existing rows are not rewritten; elevated, Hub running)
+  dude-hub standby list [--data-dir <dir>] [--install-dir <dir>]   (devices granted warm-standby access to the encrypted backup repositories; elevated, Hub running)
+  dude-hub standby grant|revoke <deviceId> [--confirm <token>] [--data-dir <dir>] [--install-dir <dir>]   (two steps: lets a paired desktop PULL the encrypted backup objects of the local-folder destinations, or stops it; the device never gets the passphrase; elevated, Hub running)
   dude-hub service install [--install-dir <dir>] [--data-dir <dir>] [--port <n>] [--lan]   (elevated, Windows)
   dude-hub service uninstall [--keep-data] [--install-dir <dir>] [--data-dir <dir>]
   dude-hub service start|stop|restart|status [--install-dir <dir>] [--data-dir <dir>]
@@ -354,6 +357,19 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
       command: 'tls-proxy-pin', action, ...(value !== undefined ? { value } : {}), ...(values['--force'] !== undefined ? { force: true } : {}),
       ...optional(values, '--confirm', 'confirm'), ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir'),
     };
+  }
+  if (command === 'standby') {
+    const action = rest[0];
+    if (action !== 'list' && action !== 'grant' && action !== 'revoke') throw new UsageError('Usage: dude-hub standby list | grant <deviceId> | revoke <deviceId> [--confirm <token>].');
+    let deviceId: string | undefined;
+    let flags = rest.slice(1);
+    if (action !== 'list') {
+      deviceId = flags[0];
+      if (deviceId === undefined || deviceId.startsWith('--')) throw new UsageError(`Usage: dude-hub standby ${action} <deviceId> [--confirm <token>].`);
+      flags = flags.slice(1);
+    }
+    const values = parseFlags(flags, action === 'list' ? ['--data-dir', '--install-dir'] : ['--data-dir', '--install-dir', '--confirm'], []);
+    return { command: 'standby', action, ...(deviceId !== undefined ? { deviceId } : {}), ...optional(values, '--confirm', 'confirm'), ...optional(values, '--data-dir', 'dataDir'), ...optional(values, '--install-dir', 'installDir') };
   }
   if (command === 'security') {
     if (rest[0] === 'audit-ips') {

@@ -252,6 +252,36 @@ export function parseAgentEvent(frame: unknown): AgentEvent | null {
 export interface LegacyImportResult { status: 'none' | 'done' | 'partial'; imported: Record<string, number>; warnings: string[] }
 
 /**
+ * Warm standby puller (32-SS1, Milestone 849, PD-151). The Device Agent mirrors the Hub's encrypted backup repositories into a folder the user
+ * chose, by PULLING over its device token (the Hub never pushes). `not-configured`: no folder chosen; `not-enrolled`: no Hub; `waiting-for-hub`:
+ * the Hub connection is not online (the connection manager's own reconnect back-off applies); `no-grant`: the Hub answered 403 (the owner has not
+ * run `dude-hub standby grant <deviceId>`), retried only at the slow interval; `backing-off`: a failure, retried with exponential back-off.
+ */
+export type AgentStandbyPhase = 'not-configured' | 'not-enrolled' | 'waiting-for-hub' | 'idle' | 'pulling' | 'no-grant' | 'backing-off';
+export interface AgentStandbyRepositoryStatus {
+  /** The Hub's destination id; the mirror is `<folder>\<id>` (a backup v2 repository: `repo`, `packs\`, `manifests\`). */
+  id: string; label: string; lastBackupId: string | null; manifests: number; packs: number; bytes: number;
+}
+export interface AgentStandbyStatus {
+  phase: AgentStandbyPhase;
+  /** The user-chosen standby folder (absolute), or null. */
+  folder: string | null;
+  /** This device's id, for the owner's `dude-hub standby grant <deviceId>`; null while the store has none. */
+  deviceId: string | null;
+  /** ISO-8601 times. */
+  lastAttemptAt: string | null; lastSuccessAt: string | null; nextRunAt: string | null;
+  /** When the Hub granted this device (from the last successful listing). */
+  grantedAt: string | null;
+  /** A short code (`no-grant`, `unauthorized`, `rate-limited`, `hub-unreachable`, `folder-unavailable`, `folder-error`, `hostile-listing`, `size-mismatch`, `hub-protocol`, `hub-<code>`) and a message without paths or credentials. */
+  lastError: { code: string; message: string } | null;
+  /** Bytes downloaded by the last completed run, and the total size of what the mirror holds after it. */
+  lastRunBytes: number; mirrorBytes: number;
+  repositories: AgentStandbyRepositoryStatus[];
+  /** Set while `pulling`. */
+  progress: { objectsDone: number; objectsTotal: number; bytesDone: number; bytesTotal: number } | null;
+}
+
+/**
  * Closed method table of the Device Agent RPC (main to agent). Main validates every request against
  * `AGENT_METHODS`; anything else is rejected before it reaches the agent.
  */
@@ -447,6 +477,15 @@ export interface AgentMethodMap {
   'sync.standalone.preview': { params: Record<string, never>; result: AgentStandalonePreview };
   /** Recovery snapshot, fresh environment id, stranded ops dropped, enrollment cleared. Errors: `invalid-token`, `stale-preview`, `not-revoked`. */
   'sync.standalone.apply': { params: { confirmToken: string; digest: string }; result: AgentSyncStatus };
+  /**
+   * Warm standby (PD-151). `standby.status` reads; `standby.pullNow` starts a run now (answers at once with the status; the run continues in the
+   * Agent) and fails `not-configured` without a folder or `not-enrolled` without a Hub; `standby.setFolder` takes an absolute path of an EXISTING
+   * directory chosen by the user in desktop main's folder dialog (or null to stop pulling; files already pulled stay). Only ciphertext is ever written.
+   * Errors: `invalid-params`, `not-configured`, `not-enrolled`, `folder-unavailable`.
+   */
+  'standby.status': { params: Record<string, never>; result: AgentStandbyStatus };
+  'standby.pullNow': { params: Record<string, never>; result: AgentStandbyStatus };
+  'standby.setFolder': { params: { folder: string | null }; result: AgentStandbyStatus };
   /** Implemented by the legacy import (M621). */
   'legacy.import': { params: { legacyDir: string; sources: unknown }; result: LegacyImportResult };
   /**
@@ -498,6 +537,7 @@ export const AGENT_METHODS = [
   'sync.status', 'sync.setCategories', 'sync.setPaused', 'sync.now', 'sync.conflicts.list', 'sync.conflicts.resolve',
   'sync.quarantine.list', 'sync.quarantine.retry', 'sync.quarantine.discardPreview', 'sync.quarantine.discard', 'sync.quarantine.export',
   'sync.firstSync.preview', 'sync.firstSync.apply', 'sync.standalone.preview', 'sync.standalone.apply',
+  'standby.status', 'standby.pullNow', 'standby.setFolder',
   'legacy.import', 'store.cleanExit', 'store.checkpoint', 'store.shutdown', 'store.quarantine',
 ] as const satisfies readonly AgentMethod[];
 

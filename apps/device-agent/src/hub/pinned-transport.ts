@@ -9,6 +9,11 @@ import { isPublicCaDomain } from '@dude/contracts/hub';
 
 export const HUB_REQUEST_TIMEOUT_MS = 15_000;
 export const HUB_MAX_RESPONSE_BYTES = 1024 * 1024;
+/**
+ * Cap for a `responseType: 'bytes'` answer (Milestone 849, the standby object route). The puller asks for pieces of at most
+ * `STANDBY_RANGE_BYTES` (8 MiB), so this bounds memory per request; a JSON error envelope still has the JSON cap.
+ */
+export const HUB_MAX_BYTES_RESPONSE_BYTES = 16 * 1024 * 1024;
 /** Error `code` set when the presented certificate's SPKI is not one of the pins. */
 export const PIN_MISMATCH_CODE = 'DUDE_PIN_MISMATCH';
 /** Error `code` set when a public-CA connection is refused BEFORE any socket opens (host is not the one trusted domain, not a public DNS name). */
@@ -57,6 +62,8 @@ export interface PinnedTarget {
   timeoutMs?: number;
   /** Overrides `HUB_MAX_RESPONSE_BYTES` for `createPinnedTransport`. */
   maxResponseBytes?: number;
+  /** Overrides `HUB_MAX_BYTES_RESPONSE_BYTES` (a 2xx `responseType: 'bytes'` body) for `createPinnedTransport`. */
+  maxBytesResponseBytes?: number;
 }
 
 export const unbracketHost = (host: string): string => (host.startsWith('[') && host.endsWith(']') ? host.slice(1, -1) : host);
@@ -177,29 +184,49 @@ export function pinnedConnectOptions(target: PinnedTarget, timeoutMs = HUB_REQUE
   };
 }
 
-/** A `HubTransport` over node:https with certificate pinning, a 15 s timeout, a 1 MiB cap and JSON-only bodies. */
+/**
+ * A `HubTransport` over node:https with certificate pinning, a 15 s timeout, a 1 MiB cap and JSON bodies. `responseType: 'bytes'`
+ * (Milestone 849) returns a 2xx body as a `Uint8Array` of exactly the received bytes (cap `HUB_MAX_BYTES_RESPONSE_BYTES`, any content type);
+ * a non-2xx answer is still parsed as a JSON error envelope under the JSON cap.
+ */
 export function createPinnedTransport(target: PinnedTarget, timeoutMs = target.timeoutMs ?? HUB_REQUEST_TIMEOUT_MS): HubTransport {
   const maxBytes = target.maxResponseBytes ?? HUB_MAX_RESPONSE_BYTES;
+  const maxBinaryBytes = target.maxBytesResponseBytes ?? HUB_MAX_BYTES_RESPONSE_BYTES;
   const conn = pinnedConnectOptions(target, timeoutMs);
   const host = unbracketHost(target.host);
   return {
     request: (req: HubRequest): Promise<HubResponse> =>
       new Promise<HubResponse>((resolve, reject) => {
         const payload = req.rawBody !== undefined ? Buffer.from(req.rawBody.buffer, req.rawBody.byteOffset, req.rawBody.byteLength) : req.body === undefined ? undefined : Buffer.from(JSON.stringify(req.body), 'utf8');
-        const headers: Record<string, string> = { accept: 'application/json', ...req.headers };
+        const wantsBytes = req.responseType === 'bytes';
+        const headers: Record<string, string> = { accept: wantsBytes ? 'application/octet-stream, application/json' : 'application/json', ...req.headers };
         if (payload) { if (req.rawBody === undefined) headers['content-type'] = 'application/json'; headers['content-length'] = String(payload.length); }
         const request = https.request(
           { host, port: target.port, method: req.method, path: req.path, headers, ...conn },
           (res) => {
+            const status = res.statusCode ?? 0;
+            const binary = wantsBytes && status >= 200 && status < 300;
+            const cap = binary ? maxBinaryBytes : maxBytes;
             const chunks: Buffer[] = [];
             let size = 0;
             res.on('data', (chunk: Buffer) => {
               size += chunk.length;
-              if (size > maxBytes) { request.destroy(new HubTransportError('too-large', 'The Hub response is too large.')); return; }
+              if (size > cap) { request.destroy(new HubTransportError('too-large', 'The Hub response is too large.')); return; }
               chunks.push(chunk);
             });
             res.on('error', reject);
             res.on('end', () => {
+              const out: Record<string, string> = {};
+              for (const [k, v] of Object.entries(res.headers)) {
+                if (typeof v === 'string') out[k] = v;
+                else if (Array.isArray(v)) out[k] = v.join('\n'); // set-cookie: one cookie per line
+              }
+              if (binary) {
+                const all = Buffer.concat(chunks);
+                // A plain Uint8Array view over exactly the received bytes (no copy; `byteLength` is the body length).
+                resolve({ status, headers: out, body: new Uint8Array(all.buffer, all.byteOffset, all.byteLength) });
+                return;
+              }
               const text = Buffer.concat(chunks).toString('utf8');
               const type = String(res.headers['content-type'] ?? '');
               let body: unknown = null;
@@ -207,12 +234,7 @@ export function createPinnedTransport(target: PinnedTarget, timeoutMs = target.t
                 if (!/^application\/json\b/i.test(type)) { reject(new HubTransportError('not-json', 'The Hub returned a non-JSON response.')); return; }
                 try { body = JSON.parse(text); } catch { reject(new HubTransportError('not-json', 'The Hub returned invalid JSON.')); return; }
               }
-              const out: Record<string, string> = {};
-              for (const [k, v] of Object.entries(res.headers)) {
-                if (typeof v === 'string') out[k] = v;
-                else if (Array.isArray(v)) out[k] = v.join('\n'); // set-cookie: one cookie per line
-              }
-              resolve({ status: res.statusCode ?? 0, headers: out, body });
+              resolve({ status, headers: out, body });
             });
           },
         );

@@ -194,6 +194,11 @@ const bridge: PlatformBridge = {
   appearance: {
     setNative: (mode, background) => ipcRenderer.invoke('dude:appearance:set', { mode, background }),
   },
+  standby: {
+    status: () => ipcRenderer.invoke('dude:standby:status'),
+    pullNow: () => ipcRenderer.invoke('dude:standby:pullNow'),
+    chooseFolder: () => ipcRenderer.invoke('dude:standby:chooseFolder'),
+  },
   presence: {
     setActivity: (activity) => ipcRenderer.invoke('dude:presence:setActivity', activity),
   },

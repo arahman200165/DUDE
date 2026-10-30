@@ -35,7 +35,7 @@ describe('migration 0011 oidc', () => {
     const upgraded = openHubDb(options);
     if (upgraded.status !== 'ready') throw new Error('expected ready');
     const { db } = upgraded.hub;
-    expect(getMeta(db, 'schema_version')).toBe('12');
+    expect(getMeta(db, 'schema_version')).toBe('13');
     expect(getMeta(db, 'min_reader_version')).toBe('10');
     const tables = (db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('linked_identities', 'oidc_flows')").all() as Array<{ name: string }>).map((r) => r.name).sort();
     expect(tables).toEqual(['linked_identities', 'oidc_flows']);

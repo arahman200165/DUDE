@@ -53,6 +53,11 @@ describe('backup scrub classification covers every table of both databases', () 
     expect(HUB_KEPT_TABLES).not.toContain('linked_identities');
   });
 
+  it('scrubs the warm-standby grants: a restored Hub never opens its backups to a device the owner has not granted again (PD-151)', () => {
+    expect(SCRUBBED_TABLES).toContain('standby_grants');
+    expect(HUB_KEPT_TABLES).not.toContain('standby_grants');
+  });
+
   it('treats the job queue as transient (scrubbed)', () => {
     expect(SAVESPHERE_SCRUBBED_TABLES).toContain('jobs');
   });

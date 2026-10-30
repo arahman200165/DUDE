@@ -30,6 +30,7 @@ export const HUB_AUDIT_EVENTS = [
   'oidc.signin', 'oidc.signin-failed', 'oidc.refused-account', 'oidc.link-started', 'oidc.link', 'oidc.unlink', 'oidc.unreachable',
   'ingest.token-created', 'ingest.token-revoked', 'ingest.auth-failed',
   'upload.created', 'upload.completed', 'upload.aborted', 'upload.failed', 'upload.expired',
+  'standby.granted', 'standby.revoked', 'standby.denied', 'standby.pulled',
 ] as const;
 export type HubAuditEvent = (typeof HUB_AUDIT_EVENTS)[number];
 

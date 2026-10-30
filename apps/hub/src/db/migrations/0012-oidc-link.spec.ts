@@ -32,7 +32,7 @@ describe('migration 0012 oidc-link', () => {
     const upgraded = openHubDb(options);
     if (upgraded.status !== 'ready') throw new Error('expected ready');
     const { db } = upgraded.hub;
-    expect(getMeta(db, 'schema_version')).toBe('12');
+    expect(getMeta(db, 'schema_version')).toBe('13');
     const columns = (db.prepare("SELECT name FROM pragma_table_info('oidc_flows')").all() as Array<{ name: string }>).map((r) => r.name);
     for (const name of ['verified_sub', 'verified_email', 'verified_issuer', 'link_token_hash', 'link_expires_at', 'link_completed_at']) expect(columns).toContain(name);
     expect(db.prepare('SELECT COUNT(*) AS n FROM oidc_flows').get()).toEqual({ n: 1 });
