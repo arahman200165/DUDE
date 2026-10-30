@@ -10,6 +10,9 @@ import { registerBootstrapRoute } from './routes/bootstrap.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { OIDC_SWEEP_INTERVAL_MS, registerOidcRoutes, startOidcFlowSweep } from './routes/oidc.js';
 import { registerDriveCallbackRoute } from './routes/drive-callback.js';
+import { registerOneDriveCallbackRoute } from './routes/onedrive-callback.js';
+import { createOneDriveAuthorizations } from '../hub/onedrive-authorization.js';
+import type { OneDriveAuthorizations } from '../hub/onedrive-authorization.js';
 import { createDriveAuthorizations } from '../hub/drive-authorization.js';
 import type { DriveAuthorizations } from '../hub/drive-authorization.js';
 import { createOidcClient } from '../auth/oidc/client.js';
@@ -157,6 +160,8 @@ export interface CreateHubServerOptions {
    */
   /** The in-memory pending Google Drive authorization the admin pipe's connect methods share with the callback route (Milestone 856); default: a private one that never has anything waiting. */
   driveAuthorizations?: DriveAuthorizations;
+  /** The in-memory pending OneDrive authorization (Milestone 857) shared with its callback route; default: a private one that never has anything waiting. */
+  onedriveAuthorizations?: OneDriveAuthorizations;
   oidc?: { readClientSecret?: OidcClientOptions['readClientSecret']; clientSecretPresent?: () => boolean; fetch?: FetchLike; flowTtlMs?: number; timeoutMs?: number };
   logger?: boolean | HubLoggerOptions;
   /** Cheaper Argon2 settings for specs only. */
@@ -200,7 +205,8 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   registerHostGuard(app, hostGuard);
   const csrfVerifier: CsrfVerifier = options.csrfVerifier ?? ((cookie, header) => verifyCsrf(options.hub.db, cookie, header, now()));
   const driveAuthorizations = options.driveAuthorizations ?? createDriveAuthorizations();
-  registerRequestGuard(app, { hostGuard, csrfVerifier, oidcEnabled: () => options.config.oidc !== undefined, driveCallbackWaiting: () => driveAuthorizations.waiting() });
+  const onedriveAuthorizations = options.onedriveAuthorizations ?? createOneDriveAuthorizations();
+  registerRequestGuard(app, { hostGuard, csrfVerifier, oidcEnabled: () => options.config.oidc !== undefined, driveCallbackWaiting: () => driveAuthorizations.waiting(), onedriveCallbackWaiting: () => onedriveAuthorizations.waiting() });
   // Read-only job status (PD-112). `run` registers the timers it starts; the two below belong to this server. `onChange` is wired once realtime exists.
   const jobs = createJobRegistry({ db: options.hub.db, now });
   app.decorate('hubJobs', jobs);
@@ -263,6 +269,8 @@ export function createHubServer(options: CreateHubServerOptions): FastifyInstanc
   registerOidcRoutes(app, { ...authOptions, oidc });
   // The Google Drive backup consent's redirect target (Milestone 856): session-less, in-memory only, exempt from the cross-site refusal only while a connect waits.
   registerDriveCallbackRoute(app, { db: options.hub.db, now, drive: driveAuthorizations });
+  // The OneDrive backup consent's redirect target (Milestone 857): the same rules for Microsoft's redirect.
+  registerOneDriveCallbackRoute(app, { db: options.hub.db, now, onedrive: onedriveAuthorizations });
   registerSessionRoutes(app, authOptions);
   registerTlsAuditRoutes(app, { db: options.hub.db, tlsDir: options.paths.tlsDir, requireOwner: authOptions.requireOwner });
   registerSecurityAlertRoutes(app, { db: options.hub.db, now, requireOwner: authOptions.requireOwner });

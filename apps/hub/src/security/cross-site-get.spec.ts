@@ -10,16 +10,22 @@ const CROSS_NAV = { 'sec-fetch-site': 'cross-site', 'sec-fetch-mode': 'navigate'
 const QUERY = '?code=4%2F0AbCdEf&state=abc';
 
 describe('the allowlist constant', () => {
-  it('names exactly two cross-site GETs: the OIDC callback and the Google Drive backup callback (Milestone 856), GET only, each behind its feature', () => {
-    expect(CROSS_SITE_GET_ALLOWLIST).toHaveLength(2);
+  it('names exactly three cross-site GETs: the OIDC callback and the Google Drive and OneDrive backup callbacks (Milestones 856 and 857), GET only, each behind its feature', () => {
+    expect(CROSS_SITE_GET_ALLOWLIST).toHaveLength(3);
     expect(CROSS_SITE_GET_ALLOWLIST[0]).toMatchObject({ method: 'GET', path: CALLBACK, requires: 'oidc' });
     expect(CROSS_SITE_GET_ALLOWLIST[1]).toMatchObject({ method: 'GET', path: '/api/v1/backup/drive/callback', requires: 'drive' });
+    expect(CROSS_SITE_GET_ALLOWLIST[2]).toMatchObject({ method: 'GET', path: '/api/v1/backup/onedrive/callback', requires: 'onedrive' });
     expect(OIDC_CALLBACK_PATH).toBe(CALLBACK);
     expect(CROSS_SITE_GET_ALLOWLIST[0]!.queryParams).toEqual(expect.arrayContaining(['code', 'state', 'error', 'error_description']));
   });
 
-  it('lists no cookie, session or credential-looking parameter', () => {
-    for (const entry of CROSS_SITE_GET_ALLOWLIST) for (const name of entry.queryParams) expect(name).not.toMatch(/session|cookie|token|csrf|key|auth(?!user)|bearer|password/i);
+  it('lists no cookie, session or credential-looking parameter (Microsoft\'s opaque `session_state` is the one named exception, and only on its own callback)', () => {
+    for (const entry of CROSS_SITE_GET_ALLOWLIST) {
+      for (const name of entry.queryParams) {
+        if (name === 'session_state') { expect(entry.path).toBe('/api/v1/backup/onedrive/callback'); continue; }
+        expect(name).not.toMatch(/session|cookie|token|csrf|key|auth(?!user)|bearer|password/i);
+      }
+    }
   });
 });
 
@@ -48,6 +54,37 @@ describe('the Google Drive backup callback exemption (Milestone 856)', () => {
     expect(decide({ headers: { ...CROSS_NAV, 'sec-fetch-dest': 'iframe' } })).toMatchObject({ action: 'refuse', status: 403 });
     for (const bad of ['?session=abc', '?code=c&code=d', '?access_token=t', '?return_to=/x']) expect(decide({ url: `${DRIVE_CALLBACK}${bad}` })).toMatchObject({ action: 'refuse', status: 400 });
     expect(decide({ url: `${DRIVE_CALLBACK}?code=c&state=s&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive.file&authuser=0&prompt=consent` }).action).toBe('allow-credentialless');
+    expect(decide({ headers: { ...CROSS_NAV, 'content-length': '5' } })).toMatchObject({ action: 'refuse', status: 400 });
+  });
+});
+
+describe('the OneDrive backup callback exemption (Milestone 857)', () => {
+  const ONEDRIVE_CALLBACK = '/api/v1/backup/onedrive/callback';
+  const decide = (over: { method?: string; url?: string; headers?: Record<string, string>; onedrive?: boolean; drive?: boolean; oidc?: boolean } = {}) =>
+    evaluateCrossSiteGet({ method: over.method ?? 'GET', url: over.url ?? `${ONEDRIVE_CALLBACK}${QUERY}`, headers: over.headers ?? CROSS_NAV, features: { oidc: over.oidc ?? false, drive: over.drive ?? false, onedrive: over.onedrive ?? true } });
+
+  it('admits the callback navigation only while a OneDrive connect waits, and no other waiting feature admits it', () => {
+    expect(decide()).toEqual({ action: 'allow-credentialless' });
+    expect(decide({ oidc: true, drive: true })).toEqual({ action: 'allow-credentialless' });
+    expect(decide({ onedrive: false })).toMatchObject({ action: 'refuse', status: 403 });
+    expect(decide({ onedrive: false, drive: true, oidc: true })).toMatchObject({ action: 'refuse', status: 403 });
+    expect(evaluateCrossSiteGet({ method: 'GET', url: `${ONEDRIVE_CALLBACK}${QUERY}`, headers: CROSS_NAV, features: { oidc: true } })).toMatchObject({ action: 'refuse', status: 403 });
+    // The other callbacks are not exempted by it: the three feature flags are independent.
+    expect(decide({ url: `${CALLBACK}${QUERY}` })).toMatchObject({ action: 'refuse', status: 403 });
+    expect(decide({ url: `/api/v1/backup/drive/callback${QUERY}` })).toMatchObject({ action: 'refuse', status: 403 });
+    expect(decide({ onedrive: false, drive: true, url: `/api/v1/backup/drive/callback${QUERY}` })).toEqual({ action: 'allow-credentialless' });
+  });
+
+  it('is exactly this path and GET: no variants, no other method, only a document navigation, only the named parameters', () => {
+    for (const url of ['/api/v1/backup/onedrive', '/api/v1/backup/onedrive/', `${ONEDRIVE_CALLBACK}/`, `${ONEDRIVE_CALLBACK}x`, `${ONEDRIVE_CALLBACK}/x`, '/api/v1/backup/onedrive/connect', '/api//v1/backup/onedrive/callback']) {
+      expect([url, decide({ url })]).toEqual([url, { action: 'refuse', status: 403, message: 'Cross-site requests are not allowed.' }]);
+    }
+    expect(decide({ method: 'POST' })).toEqual({ action: 'pass' });
+    expect(decide({ method: 'HEAD' })).toMatchObject({ action: 'refuse', status: 403 });
+    expect(decide({ headers: { ...CROSS_NAV, 'sec-fetch-mode': 'cors' } })).toMatchObject({ action: 'refuse', status: 403 });
+    expect(decide({ headers: { ...CROSS_NAV, 'sec-fetch-dest': 'iframe' } })).toMatchObject({ action: 'refuse', status: 403 });
+    for (const bad of ['?session=abc', '?code=c&code=d', '?access_token=t', '?return_to=/x', '?client_secret=s']) expect(decide({ url: `${ONEDRIVE_CALLBACK}${bad}` })).toMatchObject({ action: 'refuse', status: 400 });
+    expect(decide({ url: `${ONEDRIVE_CALLBACK}?code=M.C506_BAY.2.U.abc&state=s&session_state=0cf5&error=access_denied&error_description=declined` }).action).toBe('allow-credentialless');
     expect(decide({ headers: { ...CROSS_NAV, 'content-length': '5' } })).toMatchObject({ action: 'refuse', status: 400 });
   });
 });

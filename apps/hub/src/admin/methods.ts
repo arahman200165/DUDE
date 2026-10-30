@@ -2,7 +2,7 @@ import type { Db } from '@dude/sqlite-store';
 import type { HubBindMode } from '../config/hub-config.js';
 import type { HubPaths } from '../config/data-dir.js';
 import type { BackupDeps } from '@dude/hub-backup';
-import type { BackupDestination, DriveAuthorizations, DriveCredentialStore, OpenBackupDestinationDeps, S3CredentialStore } from '../backup/destinations/index.js';
+import type { BackupDestination, DriveAuthorizations, DriveCredentialStore, OneDriveAuthorizations, OneDriveCredentialStore, OpenBackupDestinationDeps, S3CredentialStore } from '../backup/destinations/index.js';
 import type { MasterKeyStore } from '../backup/master-key.js';
 import type { RestoreDrillServiceOptions } from '../backup/restore-drill.js';
 import type { RunBackupV2Options } from '../backup/run-backup-v2.js';
@@ -114,6 +114,12 @@ export interface AdminMethodContext {
   driveTest?: NonNullable<OpenBackupDestinationDeps['drive']>;
   /** The one in-memory pending Google Drive authorization the connect methods and the callback route share (32-SS1, Milestone 856); absent disables `backup.destination.drive.*`. */
   driveAuth?: DriveAuthorizations;
+  /** Where `onedrive` destination credentials live (default: the secret store under `paths`, purpose `backup.onedrive.refreshToken`). TEST seam. */
+  onedriveCredentialStore?: OneDriveCredentialStore;
+  /** TEST-ONLY: the Microsoft endpoints, fetch, clock/backoff, fragment-size and staging-directory seams used by the default opener and the connect flow. */
+  onedriveTest?: NonNullable<OpenBackupDestinationDeps['onedrive']>;
+  /** The one in-memory pending OneDrive authorization the connect methods and the callback route share (32-SS1, Milestone 857); absent disables `backup.destination.onedrive.*`. */
+  onedriveAuth?: OneDriveAuthorizations;
   /** TEST-ONLY: replaces how a destination definition is opened. */
   openBackupDestination?: (definition: HubBackupDestinationConfig) => BackupDestination;
   /** TEST-ONLY: small chunks and packs, hooks or a fake blob store for `backup.run`. */

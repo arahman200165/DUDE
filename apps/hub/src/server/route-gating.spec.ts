@@ -179,6 +179,7 @@ describe.each(['full', 'tunnel'] as const)('route gating, %s Hub', (variant) => 
     expect([...new Set(fx.routes.filter((r) => r.websocket).map((r) => r.url))].sort()).toEqual(['/api/v1/collab', '/api/v1/realtime']);
     expect([...unique]).toContain('GET /api/v1/auth/oidc/callback');
     expect([...unique]).toContain('GET /api/v1/backup/drive/callback');
+    expect([...unique]).toContain('GET /api/v1/backup/onedrive/callback');
   });
 
   it('every captured route is gated (401 or 403) when probed anonymously, unless it is in the documented allowlist', async () => {
@@ -268,6 +269,13 @@ describe.each(['full', 'tunnel'] as const)('route gating, %s Hub', (variant) => 
     expect(String(driveCallback.headers['content-type'])).toContain('text/html');
     expect(driveCallback.headers['set-cookie']).toBeUndefined();
     expect(driveCallback.body).not.toMatch(/owner|session|csrf|token/i);
+
+    // OneDrive backup consent callback (Milestone 857): the same, for Microsoft's redirect.
+    const onedriveCallback = await get('/api/v1/backup/onedrive/callback');
+    expect(onedriveCallback.status).toBe(400);
+    expect(String(onedriveCallback.headers['content-type'])).toContain('text/html');
+    expect(onedriveCallback.headers['set-cookie']).toBeUndefined();
+    expect(onedriveCallback.body).not.toMatch(/owner|session|csrf|token/i);
 
     // Device routes: an unknown device gets the same well-formed, never-stored nonce as a known one (so ids cannot be enumerated), and that is the
     // only success; a missing pairing code or key proof is a client error, never a token.

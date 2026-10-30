@@ -1,4 +1,4 @@
-import { HUB_BACKUP_DRIVE_PATHS, HUB_INGEST_PATHS, HUB_OIDC_PATHS, INGEST_PATH_PREFIX } from '@dude/contracts/hub';
+import { HUB_BACKUP_DRIVE_PATHS, HUB_BACKUP_ONEDRIVE_PATHS, HUB_INGEST_PATHS, HUB_OIDC_PATHS, INGEST_PATH_PREFIX } from '@dude/contracts/hub';
 import type { HubCredentialType } from '@dude/contracts/hub';
 
 /**
@@ -13,7 +13,7 @@ import type { HubCredentialType } from '@dude/contracts/hub';
  * `/api/v1/realtime` and `/api/v1/collab` WebSocket upgrades (their own authenticators run BEFORE the upgrade, so a missing credential is a
  * plain 401 and never a socket) and every method but GET/HEAD outside `/api` (404).
  */
-export type GatingCategory = 'hello' | 'sign-in' | 'recovery' | 'setup' | 'oidc' | 'device-enrol' | 'tls-pins' | 'ingest' | 'drive';
+export type GatingCategory = 'hello' | 'sign-in' | 'recovery' | 'setup' | 'oidc' | 'device-enrol' | 'tls-pins' | 'ingest' | 'drive' | 'onedrive';
 
 export interface GatingException {
   /** `*` means every method. */
@@ -41,6 +41,7 @@ export const ANONYMOUS_SESSION_ALLOWLIST: readonly GatingException[] = [
   { method: 'POST', path: HUB_OIDC_PATHS.start, match: 'exact', category: 'oidc', credentials: ['none'], reason: 'Starts a Google sign-in flow (an authorization URL; reveals nothing about any account).' },
   { method: 'GET', path: HUB_OIDC_PATHS.callback, match: 'exact', category: 'oidc', credentials: ['none'], reason: 'The session-less OIDC callback; its credential headers are stripped and it only ever redirects (Milestone 842).' },
   { method: 'GET', path: HUB_BACKUP_DRIVE_PATHS.callback, match: 'exact', category: 'drive', credentials: ['none'], reason: 'The session-less redirect back from Google after the owner consents to the Drive backup destination; it only records an authorization in memory against a single-use state the admin pipe started, and answers a static page (Milestone 856).' },
+  { method: 'GET', path: HUB_BACKUP_ONEDRIVE_PATHS.callback, match: 'exact', category: 'onedrive', credentials: ['none'], reason: 'The session-less redirect back from Microsoft after the owner consents to the OneDrive backup destination; it only records an authorization in memory against a single-use state the admin pipe started, and answers a static page (Milestone 857).' },
   { method: 'POST', path: `${P}/devices/enroll`, match: 'exact', category: 'device-enrol', credentials: ['none'], reason: 'A new device enrols with a single-use pairing code and proof of key possession; no browser session exists for a device.' },
   { method: 'POST', path: `${P}/auth/device/challenge`, match: 'exact', category: 'device-enrol', credentials: ['none'], reason: 'A device asks for a fresh challenge to sign with its enrolled key (step one of the device token exchange).' },
   { method: 'POST', path: `${P}/auth/device/token`, match: 'exact', category: 'device-enrol', credentials: ['none'], reason: 'A device exchanges a signed challenge for a device token (proof of key possession, no session).' },

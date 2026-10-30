@@ -164,7 +164,7 @@ describe('the backup v2 actions are reachable only over the admin pipe', () => {
     const hub = await startTestHub();
     try {
       const routes = hub.app.printRoutes({ commonPrefix: false });
-      expect(routes.replace(/\/api\/v1\/backup\/(?:status|drive\/callback) \(GET, HEAD\)/g, '')).not.toMatch(/backup/i);
+      expect(routes.replace(/\/api\/v1\/backup\/(?:status|drive\/callback|onedrive\/callback) \(GET, HEAD\)/g, '')).not.toMatch(/backup/i);
     } finally {
       await hub.close();
     }

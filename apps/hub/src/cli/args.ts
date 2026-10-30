@@ -24,7 +24,7 @@ export type ParsedCommand =
   | { command: 'doctor'; json?: boolean; dataDir?: string; installDir?: string }
   | { command: 'provision'; action: 'run' | 'status'; json?: boolean; dataDir?: string; installDir?: string; sessionPipe?: string }
   | { command: 'purge'; dataDir?: string; includeBackups?: boolean; confirm?: string; type?: string }
-  | { command: 'backup'; action: BackupCliAction; folder?: string; file?: string; confirm?: string; forTransfer?: boolean; everyHours?: number; keep?: number; destination?: string; label?: string; backupId?: string; kind?: 'local-folder' | 's3' | 'drive'; clientId?: string; redirectOrigin?: string; reconnect?: string; endpoint?: string; region?: string; bucket?: string; prefix?: string; forcePathStyle?: boolean; allowPrivateNetwork?: boolean; credentialsStdin?: boolean; dataDir?: string; installDir?: string }
+  | { command: 'backup'; action: BackupCliAction; folder?: string; file?: string; confirm?: string; forTransfer?: boolean; everyHours?: number; keep?: number; destination?: string; label?: string; backupId?: string; kind?: 'local-folder' | 's3' | 'drive' | 'onedrive'; clientId?: string; redirectOrigin?: string; reconnect?: string; endpoint?: string; region?: string; bucket?: string; prefix?: string; forcePathStyle?: boolean; allowPrivateNetwork?: boolean; credentialsStdin?: boolean; dataDir?: string; installDir?: string }
   | { command: 'backup-restore'; file?: string; folder?: string; backupId?: string; confirm?: string; replace?: string; oldHubGone?: string; dataDir?: string; installDir?: string }
   | { command: 'version' }
   | { command: 'help' };
@@ -95,6 +95,7 @@ Usage:
   dude-hub backup destination add --folder <abs dir> [--label <text>] [--data-dir <dir>] [--install-dir <dir>]   (a backup v2 repository folder; asks for the passphrase; the Hub keeps a protected master key, never the passphrase; elevated)
   dude-hub backup destination add --kind s3 --endpoint <https url> --region <region> --bucket <bucket> [--prefix <key prefix>] [--force-path-style | --virtual-hosted] [--allow-private-network] [--label <text>] --credentials-stdin   (an S3-compatible bucket: AWS S3, Cloudflare R2, Backblaze B2, MinIO; the credentials are a JSON document on standard input, {"accessKeyId","secretAccessKey","sessionToken"?,"passphrase"?}, never an argument; the passphrase comes from DUDE_HUB_BACKUP_PASSPHRASE or that document; elevated)
   dude-hub backup destination add --kind drive --client-id <OAuth client id> [--redirect-origin <https origin>] [--reconnect <id>] [--label <text>] [--confirm <token>] --credentials-stdin   (Google Drive, with your own OAuth client; two steps: the first run previews and prints a token, the second (--confirm) prints the consent URL, waits for you to approve in the browser, then adds the destination; only the drive.file scope is requested; the client secret is {"clientSecret","passphrase"?} on standard input, never an argument; elevated)
+  dude-hub backup destination add --kind onedrive --client-id <application (client) id> [--redirect-origin <https origin>] [--reconnect <id>] [--label <text>] [--confirm <token>] --credentials-stdin   (OneDrive, with your own Microsoft app registration for personal accounts; two steps: the first run previews and prints a token, the second (--confirm) prints the consent URL, waits for you to approve in the browser, then adds the destination; only the Files.ReadWrite.AppFolder scope (and offline_access) is requested; the client secret is {"clientSecret","passphrase"?} on standard input, never an argument; elevated)
   dude-hub backup destination probe --id <id>   (writes, reads, overwrites conditionally and deletes a tiny object and a tiny multipart upload at the destination and reports what the provider supports; elevated)
   dude-hub backup destination list [--data-dir <dir>] [--install-dir <dir>]
   dude-hub backup destination remove --id <id> [--confirm <token>] [--data-dir <dir>] [--install-dir <dir>]   (two steps; forgets the destination, never deletes its backups; elevated)
@@ -169,7 +170,7 @@ function parseBackup(rest: readonly string[]): ParsedCommand {
   } else if (sub === 'destination') {
     sub = flags[0];
     flags = flags.slice(1);
-    if (sub !== 'add' && sub !== 'list' && sub !== 'remove' && sub !== 'verify' && sub !== 'probe') throw new UsageError('Usage: dude-hub backup destination add --folder <abs dir> [--label <text>] | add --kind s3 ... --credentials-stdin | add --kind drive --client-id <id> --credentials-stdin | list | remove --id <id> | verify --id <id> [--backup <id>] | probe --id <id>.');
+    if (sub !== 'add' && sub !== 'list' && sub !== 'remove' && sub !== 'verify' && sub !== 'probe') throw new UsageError('Usage: dude-hub backup destination add --folder <abs dir> [--label <text>] | add --kind s3 ... --credentials-stdin | add --kind drive --client-id <id> --credentials-stdin | add --kind onedrive --client-id <id> --credentials-stdin | list | remove --id <id> | verify --id <id> [--backup <id>] | probe --id <id>.');
     action = `destination-${sub}`;
   } else if (sub === 'create' || sub === 'list' || sub === 'verify' || sub === 'reactivate' || sub === 'run' || sub === 'drill' || sub === 'prune' || sub === 'rewrap') {
     action = sub;
@@ -212,20 +213,20 @@ function parseBackup(rest: readonly string[]): ParsedCommand {
   }
   if (action === 'destination-add') {
     const kind = values['--kind'] ?? 'local-folder';
-    if (kind !== 'local-folder' && kind !== 's3' && kind !== 'drive') throw new UsageError('Flag --kind must be local-folder, s3 or drive.');
-    if (kind === 'drive') {
-      const driveUsage = 'Usage: dude-hub backup destination add --kind drive --client-id <OAuth client id> [--redirect-origin <https origin>] [--reconnect <id>] [--label <text>] [--confirm <token>] --credentials-stdin.';
+    if (kind !== 'local-folder' && kind !== 's3' && kind !== 'drive' && kind !== 'onedrive') throw new UsageError('Flag --kind must be local-folder, s3, drive or onedrive.');
+    if (kind === 'drive' || kind === 'onedrive') {
+      const driveUsage = `Usage: dude-hub backup destination add --kind ${kind} --client-id <OAuth client id> [--redirect-origin <https origin>] [--reconnect <id>] [--label <text>] [--confirm <token>] --credentials-stdin.`;
       if (values['--client-id'] === undefined || values['--credentials-stdin'] === undefined) throw new UsageError(driveUsage);
       for (const flag of ['--folder', '--endpoint', '--region', '--bucket', '--prefix', '--force-path-style', '--virtual-hosted', '--allow-private-network']) {
-        if (values[flag] !== undefined) throw new UsageError(`Flag ${flag} does not belong to --kind drive.`);
+        if (values[flag] !== undefined) throw new UsageError(`Flag ${flag} does not belong to --kind ${kind}.`);
       }
       return {
-        command: 'backup', action, kind: 'drive', clientId: values['--client-id'], credentialsStdin: true,
+        command: 'backup', action, kind, clientId: values['--client-id'], credentialsStdin: true,
         ...optional(values, '--redirect-origin', 'redirectOrigin'), ...optional(values, '--reconnect', 'reconnect'), ...optional(values, '--label', 'label'), ...optional(values, '--confirm', 'confirm'), ...common,
       };
     }
     for (const flag of ['--client-id', '--redirect-origin', '--reconnect', '--confirm']) {
-      if (values[flag] !== undefined) throw new UsageError(`Flag ${flag} belongs to --kind drive.`);
+      if (values[flag] !== undefined) throw new UsageError(`Flag ${flag} belongs to --kind drive or onedrive.`);
     }
     if (kind === 's3') {
       const s3Usage = 'Usage: dude-hub backup destination add --kind s3 --endpoint <https url> --region <region> --bucket <bucket> [--prefix <key prefix>] [--force-path-style | --virtual-hosted] [--allow-private-network] [--label <text>] --credentials-stdin.';

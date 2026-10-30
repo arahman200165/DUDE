@@ -9,8 +9,8 @@ import { BACKUP_LAST_META, backupFailureCode, readBackupLast, writeBackupLast } 
 import { BACKUP_CONSEQUENCE_CLASS, BACKUP_REACTIVATE_CONSEQUENCE_CLASS, BACKUP_TRANSFER_CONSEQUENCE_CLASS } from '../backup/create-backup.js';
 import { createBackupExportFile, fileByteSource } from '../backup/create-export.js';
 import { destinationLockKey, tryLockDestination } from '../backup/destination-lock.js';
-import { DestinationError, MANIFEST_PREFIX, assertSafeLocalFolder, backupIdOfManifest, defaultDriveCredentialStore, defaultS3CredentialStore, isDriveDefinition, isInsideFolder, isS3Definition, openBackupDestination, validateS3Credentials } from '../backup/destinations/index.js';
-import type { BackupDestination, DriveBackupDestination, DriveCredentialStore, S3BackupDestination, S3CredentialStore } from '../backup/destinations/index.js';
+import { DestinationError, MANIFEST_PREFIX, assertSafeLocalFolder, backupIdOfManifest, defaultDriveCredentialStore, defaultOneDriveCredentialStore, defaultS3CredentialStore, isDriveDefinition, isInsideFolder, isOneDriveDefinition, isS3Definition, openBackupDestination, validateS3Credentials } from '../backup/destinations/index.js';
+import type { BackupDestination, DriveBackupDestination, DriveCredentialStore, OneDriveBackupDestination, OneDriveCredentialStore, S3BackupDestination, S3CredentialStore } from '../backup/destinations/index.js';
 import { nodeBackupDeps, validateBackupPassphrase } from '../backup/kdf.js';
 import { defaultMasterKeyStore } from '../backup/master-key.js';
 import type { MasterKeyStore } from '../backup/master-key.js';
@@ -37,6 +37,7 @@ import { ConfirmationStore } from '../security/confirmation-store.js';
 import { AdminError } from './admin-endpoint.js';
 import type { AdminMethod } from './admin-endpoint.js';
 import { buildDriveMethods } from './drive-methods.js';
+import { buildOneDriveMethods } from './onedrive-methods.js';
 import { revokeDriveToken } from '../backup/destinations/index.js';
 import type { DriveEndpoints, DriveFetch } from '../backup/destinations/index.js';
 import { GOOGLE_DRIVE_ENDPOINTS } from '../backup/destinations/index.js';
@@ -56,6 +57,8 @@ export const BACKUP_DESTINATION_REMOVE_CONSEQUENCE_CLASS = ['system-config'] as 
 export const BACKUP_DESTINATION_REMOVE_S3_CONSEQUENCE_CLASS = ['system-config', 'secret-management'] as const;
 /** Removing a Google Drive destination also deletes its stored authorization and revokes the token at Google (Milestone 856). */
 export const BACKUP_DESTINATION_REMOVE_DRIVE_CONSEQUENCE_CLASS = ['system-config', 'secret-management', 'remote-write'] as const;
+/** Removing a OneDrive destination also deletes its stored authorization (Microsoft has no revocation endpoint; the owner removes the app's access at account.microsoft.com) (Milestone 857). */
+export const BACKUP_DESTINATION_REMOVE_ONEDRIVE_CONSEQUENCE_CLASS = ['system-config', 'secret-management'] as const;
 /** Removing the last destination also deletes the master key from the secret store. */
 export const BACKUP_DESTINATION_REMOVE_LAST_CONSEQUENCE_CLASS = ['system-config', 'secret-management'] as const;
 export const BACKUP_REWRAP_CONSEQUENCE_CLASS = ['secret-management', 'filesystem-write'] as const;
@@ -66,6 +69,7 @@ const PASSPHRASE_WARNING = 'Losing the passphrase makes the backup unrecoverable
 const SAME_MACHINE_WARNING = 'A backup stored on the Hub\'s own machine does not protect against losing that machine. Keep a copy elsewhere.';
 const KEPT_OBJECTS_NOTE = 'Backups already written to this destination are NOT deleted; delete the folder yourself if you no longer need them.';
 const KEPT_DRIVE_OBJECTS_NOTE = 'Backups already written to Google Drive are NOT deleted; delete the folder in Drive yourself if you no longer need them. The stored Google authorization is deleted and, when Google can be reached, revoked.';
+const KEPT_ONEDRIVE_OBJECTS_NOTE = 'Backups already written to OneDrive are NOT deleted; delete the folder in OneDrive yourself if you no longer need them. The stored Microsoft authorization is deleted; Microsoft has no revocation call, so remove the app\'s access at account.microsoft.com too.';
 const KEPT_S3_OBJECTS_NOTE = 'Backups already written to this bucket are NOT deleted; delete the objects under the prefix yourself if you no longer need them. The stored S3 credentials are deleted.';
 
 /** The facts about a v1 backup that are safe to show: no keys, no credentials, no paths. */
@@ -132,11 +136,13 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
   const s3Credentials = (): S3CredentialStore => (s3Store ??= defaultS3CredentialStore(paths()));
   let driveStore: DriveCredentialStore | undefined = context.driveCredentialStore;
   const driveCredentials = (): DriveCredentialStore => (driveStore ??= defaultDriveCredentialStore(paths()));
+  let onedriveStore: OneDriveCredentialStore | undefined = context.onedriveCredentialStore;
+  const onedriveCredentials = (): OneDriveCredentialStore => (onedriveStore ??= defaultOneDriveCredentialStore(paths()));
   const openDestination = (definition: HubBackupDestinationConfig): BackupDestination => {
     try {
       return (context.openBackupDestination ?? ((d) => openBackupDestination(d, paths(), platform, {
-        s3Credentials: s3Credentials(), driveCredentials: driveCredentials(),
-        ...(context.s3Test !== undefined ? { s3: context.s3Test } : {}), ...(context.driveTest !== undefined ? { drive: context.driveTest } : {}),
+        s3Credentials: s3Credentials(), driveCredentials: driveCredentials(), onedriveCredentials: onedriveCredentials(),
+        ...(context.s3Test !== undefined ? { s3: context.s3Test } : {}), ...(context.driveTest !== undefined ? { drive: context.driveTest } : {}), ...(context.onedriveTest !== undefined ? { onedrive: context.onedriveTest } : {}),
       })))(definition);
     } catch (error) {
       if (error instanceof DestinationError) throw new AdminError(error.code === 'unavailable' ? 'unavailable' : 'bad-request', error.message);
@@ -145,7 +151,7 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
   };
   /** Where a destination lives, comparable across definitions (a folder, or endpoint, bucket and prefix). */
   const locationOf = (definition: HubBackupDestinationConfig): string =>
-    isS3Definition(definition) ? `s3:${definition.endpoint}|${definition.bucket}|${definition.prefix ?? ''}` : isDriveDefinition(definition) ? `drive:${definition.folderId}` : comparable(definition.folder, platform);
+    isS3Definition(definition) ? `s3:${definition.endpoint}|${definition.bucket}|${definition.prefix ?? ''}` : isDriveDefinition(definition) ? `drive:${definition.folderId}` : isOneDriveDefinition(definition) ? `onedrive:${definition.folderId}` : comparable(definition.folder, platform);
   const record = (params: unknown): Record<string, unknown> => (typeof params === 'object' && params !== null && !Array.isArray(params) ? (params as Record<string, unknown>) : {});
   const saveSphere = (): Db | undefined => context.saveSphereDb?.();
   const lockKey = (id: string): string => destinationLockKey(paths().root, id);
@@ -406,7 +412,7 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
   const driveFetch = (): DriveFetch => context.driveTest?.client?.fetch ?? ((input, init) => fetch(input, init));
   const driveEndpoints = (): DriveEndpoints => context.driveTest?.client?.endpoints ?? GOOGLE_DRIVE_ENDPOINTS;
   const credentialsStored = (definition: HubBackupDestinationConfig): boolean => {
-    try { return isDriveDefinition(definition) ? driveCredentials().has(definition.id) : s3Credentials().has(definition.id); } catch { return false; }
+    try { return isDriveDefinition(definition) ? driveCredentials().has(definition.id) : isOneDriveDefinition(definition) ? onedriveCredentials().has(definition.id) : s3Credentials().has(definition.id); } catch { return false; }
   };
   /** Non-secret facts about a destination; an S3 destination reports whether its credentials are stored, never the credentials. */
   const describeDestination = (definition: HubBackupDestinationConfig): Record<string, unknown> => isS3Definition(definition)
@@ -415,7 +421,7 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
       ...(definition.prefix !== undefined ? { prefix: definition.prefix } : {}), ...(definition.forcePathStyle !== undefined ? { forcePathStyle: definition.forcePathStyle } : {}),
       allowPrivateNetwork: definition.allowPrivateNetwork === true, credentialsStored: credentialsStored(definition), state: readDestinationState(context.db, definition.id),
     }
-    : isDriveDefinition(definition)
+    : isDriveDefinition(definition) || isOneDriveDefinition(definition)
       ? { id: definition.id, kind: definition.kind, label: definition.label, folderId: definition.folderId, clientId: definition.clientId, credentialsStored: credentialsStored(definition), state: readDestinationState(context.db, definition.id) }
       : { id: definition.id, kind: definition.kind, label: definition.label, folder: definition.folder, state: readDestinationState(context.db, definition.id) };
 
@@ -671,6 +677,7 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
       const input = record(params);
       const kind = input['kind'] ?? 'local-folder';
       if (kind === 'drive') throw new AdminError('bad-request', 'A Google Drive destination is added with the two-step Drive connect (backup.destination.drive.connect.preview), never in one call.');
+      if (kind === 'onedrive') throw new AdminError('bad-request', 'A OneDrive destination is added with the two-step OneDrive connect (backup.destination.onedrive.connect.preview), never in one call.');
       if (kind !== 'local-folder' && kind !== 's3') throw new AdminError('bad-request', 'kind must be "local-folder" or "s3".');
       const passphrase = passphraseOf(input);
       const added = await addDestination(kind === 's3' ? prepareS3(input) : prepareLocal(input['folder'], input['label']), passphrase);
@@ -699,6 +706,7 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
       const destination = openDestination(definition);
       if (destination.kind === 's3') return { id: definition.id, kind: 's3', ...(await (destination as S3BackupDestination).probeDetailed()) };
       if (destination.kind === 'drive') return { id: definition.id, kind: 'drive', ...(await (destination as DriveBackupDestination).probeDetailed()) };
+      if (destination.kind === 'onedrive') return { id: definition.id, kind: 'onedrive', ...(await (destination as OneDriveBackupDestination).probeDetailed()) };
       const result = await destination.probe();
       return { id: definition.id, kind: destination.kind, ok: result.ok, ...(result.ok ? {} : { reason: result.reason }) };
     },
@@ -743,18 +751,21 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
       const confirmToken = confirmations.issue({ action: BACKUP_DESTINATION_REMOVE_ACTION, digest: removeDigest(definition), bindingId: ADMIN_BINDING, now: at });
       const s3 = isS3Definition(definition);
       const drive = isDriveDefinition(definition);
+      const onedrive = isOneDriveDefinition(definition);
       return {
         confirmToken,
         expiresAt: ConfirmationStore.expiresAt(at),
-        consequenceClass: [...(drive ? BACKUP_DESTINATION_REMOVE_DRIVE_CONSEQUENCE_CLASS : last ? BACKUP_DESTINATION_REMOVE_LAST_CONSEQUENCE_CLASS : s3 ? BACKUP_DESTINATION_REMOVE_S3_CONSEQUENCE_CLASS : BACKUP_DESTINATION_REMOVE_CONSEQUENCE_CLASS)],
+        consequenceClass: [...(drive ? BACKUP_DESTINATION_REMOVE_DRIVE_CONSEQUENCE_CLASS : last ? BACKUP_DESTINATION_REMOVE_LAST_CONSEQUENCE_CLASS : onedrive ? BACKUP_DESTINATION_REMOVE_ONEDRIVE_CONSEQUENCE_CLASS : s3 ? BACKUP_DESTINATION_REMOVE_S3_CONSEQUENCE_CLASS : BACKUP_DESTINATION_REMOVE_CONSEQUENCE_CLASS)],
         summary: {
           id: definition.id, kind: definition.kind, label: definition.label,
           ...(isS3Definition(definition)
             ? { endpoint: definition.endpoint, bucket: definition.bucket, ...(definition.prefix !== undefined ? { prefix: definition.prefix } : {}), removesCredentials: true }
             : isDriveDefinition(definition)
               ? { folderId: definition.folderId, removesCredentials: true, revokesToken: true }
-              : { folder: definition.folder }),
-          last, removesMasterKey: last, turnsOffSchedule: last && config().backup?.schedule !== undefined, note: drive ? KEPT_DRIVE_OBJECTS_NOTE : s3 ? KEPT_S3_OBJECTS_NOTE : KEPT_OBJECTS_NOTE,
+              : isOneDriveDefinition(definition)
+                ? { folderId: definition.folderId, removesCredentials: true, revokesToken: false }
+                : { folder: definition.folder }),
+          last, removesMasterKey: last, turnsOffSchedule: last && config().backup?.schedule !== undefined, note: drive ? KEPT_DRIVE_OBJECTS_NOTE : onedrive ? KEPT_ONEDRIVE_OBJECTS_NOTE : s3 ? KEPT_S3_OBJECTS_NOTE : KEPT_OBJECTS_NOTE,
         },
       };
     },
@@ -787,7 +798,8 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
           try { credentialsRemoved = driveCredentials().delete(definition.id); } catch { /* reported as not removed */ }
           revokedAtGoogle = stored === null ? false : await revokeDriveToken({ fetch: driveFetch(), endpoints: driveEndpoints(), refreshToken: stored.refreshToken });
         }
-        const withCredentials = isS3Definition(definition) || isDriveDefinition(definition);
+        if (isOneDriveDefinition(definition)) { try { credentialsRemoved = onedriveCredentials().delete(definition.id); } catch { /* reported as not removed */ } }
+        const withCredentials = isS3Definition(definition) || isDriveDefinition(definition) || isOneDriveDefinition(definition);
         auditCli('backup.destination-removed', 'success', { destination: definition.id, kind: definition.kind, last, unattendedCleared: keyRemoved, ...(withCredentials ? { credentialsCleared: credentialsRemoved } : {}), ...(revokedAtGoogle !== undefined ? { revokedAtGoogle } : {}) });
         return { removed: true, id: definition.id, last, keyRemoved, ...(withCredentials ? { credentialsRemoved } : {}), ...(revokedAtGoogle !== undefined ? { revokedAtGoogle } : {}), scheduleOff: last && before.backup?.schedule !== undefined };
       } finally {
@@ -948,6 +960,9 @@ export function buildBackupMethods(context: AdminMethodContext, shared: { now: (
     },
     ...buildDriveMethods(context, shared, {
       paths, config, destinationsOf, openDestination, passphraseOf, record, auditCli, validLabel, addDestination, describeDestination, saveSphere, driveCredentials, driveFetch, driveEndpoints, destinationById, ADMIN_BINDING,
+    }),
+    ...buildOneDriveMethods(context, shared, {
+      paths, config, destinationsOf, openDestination, passphraseOf, record, auditCli, validLabel, addDestination, describeDestination, saveSphere, onedriveCredentials, destinationById, ADMIN_BINDING,
     }),
   };
 }

@@ -1,5 +1,7 @@
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import type { HubPaths } from '../../config/data-dir.js';
-import type { HubBackupDestinationConfig, HubBackupDriveDestination, HubBackupS3Destination } from '../../config/hub-config.js';
+import type { HubBackupDestinationConfig, HubBackupDriveDestination, HubBackupOneDriveDestination, HubBackupS3Destination } from '../../config/hub-config.js';
 import type { BackupDestination } from './destination.js';
 import { DestinationError } from './destination.js';
 import { assertSafeLocalFolder, createLocalFolderDestination } from './local-folder.js';
@@ -11,6 +13,10 @@ import { createDriveDestination } from './drive/drive-destination.js';
 import type { DriveDestinationOptions } from './drive/drive-destination.js';
 import { defaultDriveCredentialStore } from './drive/drive-credentials.js';
 import type { DriveCredentialStore } from './drive/drive-credentials.js';
+import { createOneDriveDestination } from './onedrive/onedrive-destination.js';
+import type { OneDriveDestinationOptions } from './onedrive/onedrive-destination.js';
+import { defaultOneDriveCredentialStore } from './onedrive/onedrive-credentials.js';
+import type { OneDriveCredentialStore } from './onedrive/onedrive-credentials.js';
 
 export * from './destination.js';
 export { assertSafeLocalFolder, createLocalFolderDestination, isInsideFolder } from './local-folder.js';
@@ -26,6 +32,14 @@ export { DRIVE_FILE_SCOPE, GOOGLE_DRIVE_ENDPOINTS, revokeDriveToken } from '../.
 export type { DriveEndpoints, DriveFetch } from '../../hub/drive-oauth.js';
 export { DRIVE_AUTHORIZATION_TTL_MS, createDriveAuthorizations, driveRedirectUri } from '../../hub/drive-authorization.js';
 export type { DriveAuthorizations, DriveAuthorizationStatus, DriveCallbackOutcome } from '../../hub/drive-authorization.js';
+export { ONEDRIVE_CHUNK_BYTES, createOneDriveDestination } from './onedrive/onedrive-destination.js';
+export type { OneDriveBackupDestination, OneDriveProbeReport } from './onedrive/onedrive-destination.js';
+export { ONEDRIVE_CREDENTIALS_PURPOSE, createOneDriveCredentialStore, defaultOneDriveCredentialStore, validateOneDriveClientSecret, validateOneDriveCredentials } from './onedrive/onedrive-credentials.js';
+export type { OneDriveCredentialStore, OneDriveCredentials } from './onedrive/onedrive-credentials.js';
+export { MICROSOFT_ONEDRIVE_ENDPOINTS, ONEDRIVE_SCOPE } from '../../hub/onedrive-oauth.js';
+export type { OneDriveEndpoints, OneDriveFetch } from '../../hub/onedrive-oauth.js';
+export { createOneDriveAuthorizations, onedriveRedirectUri } from '../../hub/onedrive-authorization.js';
+export type { OneDriveAuthorizations } from '../../hub/onedrive-authorization.js';
 
 export type OpenBackupDestination = (definition: HubBackupDestinationConfig) => BackupDestination;
 
@@ -38,6 +52,10 @@ export interface OpenBackupDestinationDeps {
   driveCredentials?: DriveCredentialStore;
   /** Test seams for the Google Drive destination (a loopback fake's endpoints and fetch, the clock and backoff, the chunk size). */
   drive?: Pick<DriveDestinationOptions, 'client' | 'chunkBytes'>;
+  /** Where `onedrive` destinations read their client secret and refresh token (default: the secret store under the paths). */
+  onedriveCredentials?: OneDriveCredentialStore;
+  /** Test seams for the OneDrive destination (a loopback fake's endpoints and fetch, the clock and backoff, the fragment size and the staging directory). */
+  onedrive?: Pick<OneDriveDestinationOptions, 'client' | 'chunkBytes' | 'scratchDir'>;
 }
 
 export function isS3Definition(definition: HubBackupDestinationConfig): definition is HubBackupS3Destination {
@@ -48,13 +66,20 @@ export function isDriveDefinition(definition: HubBackupDestinationConfig): defin
   return definition.kind === 'drive';
 }
 
+export function isOneDriveDefinition(definition: HubBackupDestinationConfig): definition is HubBackupOneDriveDestination {
+  return definition.kind === 'onedrive';
+}
+
+/** Where a OneDrive destination stages an object until its total size is known (inside the backups scratch area, away from every repository). */
+export const oneDriveScratchDir = (paths: Pick<HubPaths, 'backupsDir'>): string => path.join(paths.backupsDir, '.tmp', 'onedrive');
+
 /**
  * Builds the destination for a `hub.json` definition (the non-secret half; the S3 credentials are read from the secret store here,
  * never from the config). The location rules are enforced again at open time, so a hand-edited `hub.json` cannot point a run into
  * the data directory or at a link-local endpoint. A missing credential entry is `unavailable` (re-enter it with
  * `backup destination add`), never a request without credentials.
  */
-export function openBackupDestination(definition: HubBackupDestinationConfig, paths: Pick<HubPaths, 'dataDir' | 'configDir' | 'tlsDir' | 'secretsDir' | 'storageDir'>, platform: NodeJS.Platform = process.platform, deps: OpenBackupDestinationDeps = {}): BackupDestination {
+export function openBackupDestination(definition: HubBackupDestinationConfig, paths: Pick<HubPaths, 'dataDir' | 'configDir' | 'tlsDir' | 'secretsDir' | 'storageDir'> & Partial<Pick<HubPaths, 'backupsDir'>>, platform: NodeJS.Platform = process.platform, deps: OpenBackupDestinationDeps = {}): BackupDestination {
   switch (definition.kind) {
     case 'local-folder':
       return createLocalFolderDestination({ id: definition.id, label: definition.label, folder: assertSafeLocalFolder(definition.folder, paths, platform) });
@@ -77,6 +102,24 @@ export function openBackupDestination(definition: HubBackupDestinationConfig, pa
       }
       if (credentials === null) throw new DestinationError('unavailable', 'No Google Drive authorization is stored for this destination; connect it again (dude-hub backup destination add --kind drive).');
       return createDriveDestination({ definition, credentials, ...deps.drive });
+    }
+    case 'onedrive': {
+      const store = deps.onedriveCredentials ?? defaultOneDriveCredentialStore(paths);
+      let credentials;
+      try {
+        credentials = store.get(definition.id);
+      } catch {
+        throw new DestinationError('unavailable', 'The stored OneDrive authorization is unreadable; connect the OneDrive destination again.');
+      }
+      if (credentials === null) throw new DestinationError('unavailable', 'No OneDrive authorization is stored for this destination; connect it again (dude-hub backup destination add --kind onedrive).');
+      // Microsoft rotates the refresh token on every refresh: the new one is stored (atomically, and only while the destination still has an entry) before the old one is dropped.
+      const id = definition.id;
+      return createOneDriveDestination({
+        definition, credentials, scratchDir: paths.backupsDir !== undefined ? oneDriveScratchDir({ backupsDir: paths.backupsDir }) : path.join(tmpdir(), 'dude-hub-onedrive-stage'),
+        onRefreshToken: (refreshToken) => { store.rotate(id, refreshToken); },
+        latestRefreshToken: () => { try { return store.get(id)?.refreshToken; } catch { return undefined; } },
+        ...deps.onedrive,
+      });
     }
   }
 }

@@ -30,6 +30,22 @@ export const BACKUP_DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 export const BACKUP_DRIVE_CONNECT_ACTION = 'backup.destination.drive.connect';
 export const BACKUP_DRIVE_CONNECT_CONSEQUENCE_CLASS = ['secret-management', 'remote-write'] as const;
 
+/**
+ * The one HTTP route of the OneDrive backup destination (32-SS1, Milestone 857, PD-150): the browser redirect back from Microsoft's
+ * consent screen. Same contract as the Drive callback: credential type none and session-less, exempt from the cross-site refusal only
+ * while a connect the admin pipe started is waiting, holds the authorization in memory only and answers a plain page.
+ */
+export const HUB_BACKUP_ONEDRIVE_PATHS = {
+  callback: '/api/v1/backup/onedrive/callback',
+} as const;
+
+/** The OneDrive consent is exactly these scopes: the app folder only (the special folder `/me/drive/special/approot`) and a refresh token; never the rest of the owner's OneDrive. */
+export const BACKUP_ONEDRIVE_SCOPES = ['Files.ReadWrite.AppFolder', 'offline_access'] as const;
+
+/** Connecting a OneDrive destination (an admin-pipe action, two-step): stores a refresh token (`secret-management`) and widens where encrypted backups go (`remote-write`). */
+export const BACKUP_ONEDRIVE_CONNECT_ACTION = 'backup.destination.onedrive.connect';
+export const BACKUP_ONEDRIVE_CONNECT_CONSEQUENCE_CLASS = ['secret-management', 'remote-write'] as const;
+
 const NullableString = Type.Union([Type.String(), Type.Null()]);
 
 export const BackupDestinationStatus = Type.Object({

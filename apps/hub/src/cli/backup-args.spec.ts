@@ -144,7 +144,7 @@ describe('backup CLI parsing', () => {
     for (const flag of ['--endpoint', '--region', '--bucket', '--credentials-stdin']) expect(() => parseArgs(without(flag)), flag).toThrow(/Usage: dude-hub backup destination add --kind s3/);
     expect(() => parseArgs([...base, '--folder', FOLDER])).toThrow(/--folder belongs to a local-folder/);
     expect(() => parseArgs([...base, '--force-path-style', '--virtual-hosted'])).toThrow(/only one of/);
-    expect(() => parseArgs(['backup', 'destination', 'add', '--kind', 'azure', '--folder', FOLDER])).toThrow(/--kind must be local-folder, s3 or drive/);
+    expect(() => parseArgs(['backup', 'destination', 'add', '--kind', 'azure', '--folder', FOLDER])).toThrow(/--kind must be local-folder, s3, drive or onedrive/);
     for (const flag of ['--endpoint', '--region', '--bucket', '--prefix']) expect(() => parseArgs(['backup', 'destination', 'add', '--folder', FOLDER, flag, 'x']), flag).toThrow(/belongs to --kind s3/);
     for (const flag of ['--force-path-style', '--virtual-hosted', '--allow-private-network', '--credentials-stdin']) expect(() => parseArgs(['backup', 'destination', 'add', '--folder', FOLDER, flag]), flag).toThrow(/belongs to --kind s3/);
     expect(() => parseArgs([...base, '--credentials-stdin=yes'])).toThrow(/takes no value/);
@@ -182,6 +182,25 @@ describe('backup CLI parsing', () => {
     expect(() => parseArgs([...base, '--credentials-stdin=yes'])).toThrow(/takes no value/);
     expect(HELP_TEXT).toContain('backup destination add --kind drive');
     expect(HELP_TEXT).toContain('drive.file');
+  });
+
+  it('parses backup destination add --kind onedrive (Milestone 857): the same flags as Drive, the client secret only from standard input, and the two-step confirmation', () => {
+    const base = ['backup', 'destination', 'add', '--kind', 'onedrive', '--client-id', '11111111-2222-3333-4444-555555555555', '--credentials-stdin'];
+    expect(parseArgs(base)).toEqual({ command: 'backup', action: 'destination-add', kind: 'onedrive', clientId: '11111111-2222-3333-4444-555555555555', credentialsStdin: true });
+    expect(parseArgs([...base, '--redirect-origin', 'https://hub.example.com', '--label', 'My OneDrive', '--confirm', 'tok', '--reconnect', 'd-1a2b3c4d', '--data-dir', 'd'])).toEqual({
+      command: 'backup', action: 'destination-add', kind: 'onedrive', clientId: '11111111-2222-3333-4444-555555555555', credentialsStdin: true,
+      redirectOrigin: 'https://hub.example.com', label: 'My OneDrive', confirm: 'tok', reconnect: 'd-1a2b3c4d', dataDir: 'd',
+    });
+    for (const flag of ['--client-id', '--credentials-stdin']) {
+      const i = base.indexOf(flag);
+      const without = base.filter((_, j) => j !== i && (flag === '--credentials-stdin' || j !== i + 1));
+      expect(() => parseArgs(without), flag).toThrow(/Usage: dude-hub backup destination add --kind onedrive/);
+    }
+    for (const flag of ['--folder', '--endpoint', '--region', '--bucket', '--prefix']) expect(() => parseArgs([...base, flag, FOLDER]), flag).toThrow(/does not belong to --kind onedrive/);
+    for (const secret of ['--client-secret', '--secret', '--refresh-token', '--token', '--passphrase']) expect(() => parseArgs([...base, secret, 'hunter2.hunter2~secret']), secret).toThrow(/Unknown flag|never accepted as a flag/);
+    expect(() => parseArgs([...base, '--credentials-stdin=yes'])).toThrow(/takes no value/);
+    expect(HELP_TEXT).toContain('backup destination add --kind onedrive');
+    expect(HELP_TEXT).toContain('Files.ReadWrite.AppFolder');
   });
 
   it('parses backup destination probe --id and lists the S3 commands in the help text', () => {

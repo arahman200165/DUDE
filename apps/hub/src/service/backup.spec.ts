@@ -50,6 +50,12 @@ function harness(initial: Parameters<typeof fixture>[0] = {}, extra: Partial<Bac
           return { pendingId: 'p'.repeat(32), authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth?state=STATE123', redirectUri: 'https://hub.example.com/api/v1/backup/drive/callback', expiresAt: driveExpiresAt ?? new Date(600_000).toISOString() };
         case 'backup.destination.drive.connect.status': return statuses.length > 1 ? statuses.shift()! : statuses[0]!;
         case 'backup.destination.drive.connect.complete': return { added: true, adopted: false, destination: { id: 'd-1', kind: 'drive' } };
+        case 'backup.destination.onedrive.connect.preview':
+          return { confirmToken: 'otok-1', expiresAt: 1_700_000_060_000, consequenceClass: ['secret-management', 'remote-write'], summary: { provider: 'OneDrive', scope: 'Files.ReadWrite.AppFolder offline_access', redirectUri: 'https://hub.example.com/api/v1/backup/onedrive/callback', note: 'Encrypted backups will be copied to your Microsoft account.' } };
+        case 'backup.destination.onedrive.connect.apply':
+          return { pendingId: 'q'.repeat(32), authorizationUrl: 'https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize?state=STATE123', redirectUri: 'https://hub.example.com/api/v1/backup/onedrive/callback', expiresAt: driveExpiresAt ?? new Date(600_000).toISOString() };
+        case 'backup.destination.onedrive.connect.status': return statuses.length > 1 ? statuses.shift()! : statuses[0]!;
+        case 'backup.destination.onedrive.connect.complete': return { added: true, adopted: false, destination: { id: 'd-2', kind: 'onedrive' } };
         case 'backup.destination.probe': return probe ?? { id: 'd-1', kind: 's3', ok: true, conditionalWrites: 'enforced' };
         case 'backup.schedule.status': return { configured: true, folder: FOLDER, intervalHours: 24, retention: 7, last: null, keyPresent: true };
         default: throw new Error(`unexpected ${method}`);
@@ -546,5 +552,67 @@ describe('backup destination add --kind drive (Milestone 856)', () => {
     const h = harness({}, { ...withEnv, readCredentialsDocument: async () => document(), fail: (m) => (m === 'backup.destination.drive.connect.apply' ? new AdminCallError('confirmation-required', 'x') : undefined) });
     expect(await h.run({ ...DRIVE, confirm: 'old' })).toBe(1);
     expect(h.f.err.join('')).toContain('backup destination add --kind drive');
+  });
+});
+
+describe('backup destination add --kind onedrive (Milestone 857)', () => {
+  const SECRET = 'fake~Client.Secret_Value-0123456789';
+  const ONEDRIVE = { action: 'destination-add', kind: 'onedrive', clientId: '11111111-2222-3333-4444-555555555555', credentialsStdin: true } as const;
+  const document = (extra: Record<string, unknown> = {}): string => JSON.stringify({ clientSecret: SECRET, ...extra });
+
+  it('step one only previews: the token on stdout, the summary on stderr, the secret only in the admin call, and nothing is started', async () => {
+    const h = harness({}, { readCredentialsDocument: async () => document() });
+    expect(await h.run({ ...ONEDRIVE, redirectOrigin: 'https://hub.example.com', label: 'My OneDrive' })).toBe(0);
+    expect(h.backupCalls()).toEqual([{
+      method: 'backup.destination.onedrive.connect.preview', timeoutMs: undefined,
+      params: { clientId: '11111111-2222-3333-4444-555555555555', clientSecret: SECRET, label: 'My OneDrive', redirectOrigin: 'https://hub.example.com' },
+    }]);
+    expect(JSON.parse(h.f.out.join(''))).toEqual({ confirmToken: 'otok-1', expiresAt: 1_700_000_060_000 });
+    const err = h.f.err.join('');
+    expect(err).toContain('OneDrive connect preview (nothing has been changed)');
+    expect(err).toContain('Files.ReadWrite.AppFolder');
+    expect(err).toContain('consequence: secret-management, remote-write');
+    expect(h.output()).not.toContain(SECRET);
+  });
+
+  it('step two spends the token, prints the consent URL, waits for the approval, then adds the destination with the passphrase', async () => {
+    const h = harness({}, { ...withEnv, readCredentialsDocument: async () => document(), driveStatuses: [{ state: 'waiting' }, { state: 'authorized' }] });
+    expect(await h.run({ ...ONEDRIVE, confirm: 'otok-1', label: 'My OneDrive' })).toBe(0);
+    expect(h.backupCalls().map((c) => c.method)).toEqual([
+      'backup.destination.onedrive.connect.apply', 'backup.destination.onedrive.connect.status', 'backup.destination.onedrive.connect.status', 'backup.destination.onedrive.connect.complete',
+    ]);
+    expect(h.backupCalls()[3]).toEqual({ method: 'backup.destination.onedrive.connect.complete', params: { pendingId: 'q'.repeat(32), passphrase: PASSPHRASE }, timeoutMs: 10 * 60 * 1000 });
+    const err = h.f.err.join('');
+    expect(err).toContain('https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize?state=STATE123');
+    expect(err).toContain('the Files.ReadWrite.AppFolder scope only');
+    expect(err).toContain('Microsoft account');
+    expect(err).toContain('Microsoft redirects back to');
+    expect(err).toContain('Creating the OneDrive folder');
+    expect(JSON.parse(h.f.out.join(''))).toEqual({ added: true, adopted: false, destination: { id: 'd-2', kind: 'onedrive' } });
+    for (const secret of [SECRET, PASSPHRASE]) expect(h.output(), secret).not.toContain(secret);
+  });
+
+  it('exits non-zero without adding anything when the owner declined, and reports a spent confirmation with the command to run again', async () => {
+    const declined = harness({}, { ...withEnv, readCredentialsDocument: async () => document(), driveStatuses: [{ state: 'failed', reason: 'declined' }] });
+    expect(await declined.run({ ...ONEDRIVE, confirm: 't' })).toBe(1);
+    expect(declined.backupCalls().some((c) => c.method === 'backup.destination.onedrive.connect.complete')).toBe(false);
+    expect(declined.f.err.join('')).toContain('OneDrive was not connected (declined)');
+    const spent = harness({}, { ...withEnv, readCredentialsDocument: async () => document(), fail: (m) => (m === 'backup.destination.onedrive.connect.apply' ? new AdminCallError('confirmation-required', 'x') : undefined) });
+    expect(await spent.run({ ...ONEDRIVE, confirm: 'old' })).toBe(1);
+    expect(spent.f.err.join('')).toContain('backup destination add --kind drive|onedrive');
+  });
+
+  it('is a usage error without the client id, the standard-input switch or a client secret in the document, and needs no passphrase to reconnect', async () => {
+    const h = harness({}, { readCredentialsDocument: async () => document() });
+    expect(await h.run({ action: 'destination-add', kind: 'onedrive', credentialsStdin: true })).toBe(2);
+    expect(await h.run({ action: 'destination-add', kind: 'onedrive', clientId: 'abc' })).toBe(2);
+    expect(h.f.err.join('')).toContain('--kind onedrive');
+    const noSecret = harness({}, { readCredentialsDocument: async () => JSON.stringify({ passphrase: PASSPHRASE }) });
+    expect(await noSecret.run({ ...ONEDRIVE })).toBe(2);
+    expect(h.backupCalls()).toEqual([]);
+    const reconnect = harness({}, { readCredentialsDocument: async () => document() });
+    expect(await reconnect.run({ ...ONEDRIVE, confirm: 't', reconnect: 'd-1a2b3c4d' })).toBe(0);
+    expect(reconnect.backupCalls()[0]!.params).toMatchObject({ id: 'd-1a2b3c4d' });
+    expect(reconnect.backupCalls().at(-1)!.params).toEqual({ pendingId: 'q'.repeat(32) });
   });
 });

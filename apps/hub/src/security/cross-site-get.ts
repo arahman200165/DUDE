@@ -1,4 +1,4 @@
-import { HUB_BACKUP_DRIVE_PATHS } from '@dude/contracts/hub';
+import { HUB_BACKUP_DRIVE_PATHS, HUB_BACKUP_ONEDRIVE_PATHS } from '@dude/contracts/hub';
 import { OIDC_CALLBACK_PATH } from '../auth/oidc/constants.js';
 
 /**
@@ -7,9 +7,9 @@ import { OIDC_CALLBACK_PATH } from '../auth/oidc/constants.js';
  * The session cookie is `SameSite=Strict`, so a request another site causes never carries it; the request guard's CSRF checks cover the
  * mutating methods. This module closes the remaining case defence-in-depth: a top-level cross-site NAVIGATION (`Sec-Fetch-Site:
  * cross-site` with `Sec-Fetch-Mode: navigate`) to anything under `/api` is refused, EXCEPT the exact entries of
- * `CROSS_SITE_GET_ALLOWLIST`. Today that is two: the OIDC provider's redirect back to the Hub, which is by nature a cross-site
- * navigation, and (Milestone 856) Google's redirect back after the owner consents to the Drive backup destination, which applies ONLY
- * while a connect the admin pipe started is waiting. Cross-site `cors` fetches stay governed by CORS (the Hub sends no `Access-Control-Allow-Origin`), exactly as before.
+ * `CROSS_SITE_GET_ALLOWLIST`. Today that is three: the OIDC provider's redirect back to the Hub, which is by nature a cross-site
+ * navigation, and (Milestones 856 and 857) Google's and Microsoft's redirects back after the owner consents to the Drive or OneDrive
+ * backup destination, each of which applies ONLY while a connect the admin pipe started is waiting. Cross-site `cors` fetches stay governed by CORS (the Hub sends no `Access-Control-Allow-Origin`), exactly as before.
  *
  * The exemption is deliberately narrow:
  * - exactly `GET` (HEAD included in the refusal, never in the exemption) and exactly the path (no prefix, no variants);
@@ -27,7 +27,7 @@ export interface CrossSiteGetEntry {
   /** The query parameters the provider (or the browser) may add; anything else is a bad request. */
   readonly queryParams: readonly string[];
   /** The feature that must be configured for the entry to apply. */
-  readonly requires: 'oidc' | 'drive';
+  readonly requires: 'oidc' | 'drive' | 'onedrive';
 }
 
 export const QUERY_MAX_CHARS = 4096;
@@ -50,6 +50,12 @@ export const CROSS_SITE_GET_ALLOWLIST: readonly CrossSiteGetEntry[] = [
     queryParams: ['code', 'state', 'error', 'error_description', 'error_uri', 'iss', 'scope', 'authuser', 'prompt', 'hd'],
     requires: 'drive',
   },
+  {
+    method: 'GET',
+    path: HUB_BACKUP_ONEDRIVE_PATHS.callback,
+    queryParams: ['code', 'state', 'error', 'error_description', 'error_uri', 'iss', 'scope', 'authuser', 'prompt', 'hd', 'session_state'],
+    requires: 'onedrive',
+  },
 ];
 
 export type CrossSiteGetDecision =
@@ -64,7 +70,7 @@ export interface CrossSiteGetInput {
   url: string;
   headers: Readonly<Record<string, string | string[] | undefined>>;
   /** Whether the optional features named by `requires` are configured. */
-  features: { oidc: boolean; drive?: boolean };
+  features: { oidc: boolean; drive?: boolean; onedrive?: boolean };
 }
 
 const header = (headers: CrossSiteGetInput['headers'], name: string): string | undefined => {

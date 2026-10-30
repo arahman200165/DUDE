@@ -73,6 +73,8 @@ export interface TestHubOptions {
   oidc?: CreateHubServerOptions['oidc'];
   /** The in-memory pending Google Drive authorization (Milestone 856) shared with the callback route. */
   driveAuthorizations?: CreateHubServerOptions['driveAuthorizations'];
+  /** The in-memory pending OneDrive authorization (Milestone 857) shared with its callback route. */
+  onedriveAuthorizations?: CreateHubServerOptions['onedriveAuthorizations'];
   /** Serve an existing data root (for example a restored Hub) instead of a fresh temporary one. */
   dataRoot?: string;
 }

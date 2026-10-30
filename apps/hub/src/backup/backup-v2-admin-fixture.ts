@@ -4,8 +4,8 @@ import type { AdminError } from '../admin/admin-endpoint.js';
 import { buildAdminMethods } from '../admin/methods.js';
 import type { HubDb } from '../db/open-hub-db.js';
 import { ConfirmationStore } from '../security/confirmation-store.js';
-import { createDriveAuthorizations, createDriveCredentialStore, createS3CredentialStore } from './destinations/index.js';
-import type { DriveEndpoints } from './destinations/index.js';
+import { createDriveAuthorizations, createDriveCredentialStore, createOneDriveAuthorizations, createOneDriveCredentialStore, createS3CredentialStore } from './destinations/index.js';
+import type { DriveEndpoints, OneDriveEndpoints } from './destinations/index.js';
 import { memoryMasterKeys, openFixtureHub, openSaveSphereFixture, randomCheapDeps, seedHubDb, tempRoot } from './backup-fixture.js';
 
 /** Spec-only: an in-memory secret store behind the real S3 credential store (the same map format and validation). */
@@ -32,12 +32,26 @@ export function memoryDriveCredentials() {
   return { store, present: (): boolean => values.has('backup.drive.refreshToken') };
 }
 
+/** Spec-only: an in-memory secret store behind the real OneDrive credential store (the same map format and validation). */
+export function memoryOneDriveCredentials() {
+  const values = new Map<string, Buffer>();
+  const store = createOneDriveCredentialStore({
+    get: (purpose) => { const value = values.get(purpose); return value === undefined ? null : Buffer.from(value); },
+    put: (purpose, value) => { values.set(purpose, Buffer.from(value)); },
+    delete: (purpose) => values.delete(purpose),
+    status: () => ({ 'backup.onedrive.refreshToken': { present: values.has('backup.onedrive.refreshToken'), needsReentry: false } }) as never,
+  });
+  return { store, present: (): boolean => values.has('backup.onedrive.refreshToken') };
+}
+
 /** Spec-only: the admin methods of a fixture Hub with `savesphere.db`, an in-memory master-key store and small packs. */
 export const V2_PASSPHRASE = 'backup v2 admin passphrase';
 
 export interface V2AdminFixtureOptions {
   /** Wires the Google Drive destination to a fake Google (its endpoints) with the in-memory credential store and a shared pending authorization. */
   drive?: { endpoints: DriveEndpoints; chunkBytes?: number };
+  /** Wires the OneDrive destination to a fake Microsoft (its endpoints) with the in-memory credential store, a shared pending authorization and a staging directory under the fixture root. */
+  onedrive?: { endpoints: OneDriveEndpoints; chunkBytes?: number };
 }
 
 export function openV2AdminFixture(label: string, fixtureOptions: V2AdminFixtureOptions = {}) {
@@ -53,14 +67,18 @@ export function openV2AdminFixture(label: string, fixtureOptions: V2AdminFixture
   const driveCreds = memoryDriveCredentials();
   const driveClient = { endpoints: fixtureOptions.drive?.endpoints, sleep: async (): Promise<void> => undefined, retry: { attempts: 3, baseMs: 1, maxMs: 2 } };
   const driveAuth = createDriveAuthorizations({ now, ...(fixtureOptions.drive !== undefined ? { endpoints: fixtureOptions.drive.endpoints } : {}) });
+  const onedriveCreds = memoryOneDriveCredentials();
+  const onedriveClient = { sleep: async (): Promise<void> => undefined, retry: { attempts: 3, baseMs: 1, maxMs: 2 } };
+  const onedriveAuth = createOneDriveAuthorizations({ now, ...(fixtureOptions.onedrive !== undefined ? { endpoints: fixtureOptions.onedrive.endpoints } : {}) });
   const confirmations = new ConfirmationStore();
   const deps = randomCheapDeps(() => new Date(clock));
   const methods = buildAdminMethods({
     db: hub.db, hubVersion: '1.2.3', hubInstanceId: hub.hubInstanceId, bind: 'loopback', getPort: () => 1, startedAt: 0,
     configDir: paths.configDir, configFile: paths.configFile, spkiSha256: 'S'.repeat(43), paths,
     backupDeps: deps, masterKeyStore: keys, s3CredentialStore: s3.store, s3Test: { client: { sleep: async () => undefined, retry: { attempts: 3, baseMs: 1, maxMs: 2 } }, partBytes: 64 * 1024, minPartBytes: 1024 }, saveSphereDb: () => ss.sdb, backupRunTest: { chunkSize: 4096, packBytes: 32 * 1024 },
-    driveCredentialStore: driveCreds.store, driveAuth,
+    driveCredentialStore: driveCreds.store, driveAuth, onedriveCredentialStore: onedriveCreds.store, onedriveAuth,
     ...(fixtureOptions.drive !== undefined ? { driveTest: { client: { ...driveClient, endpoints: fixtureOptions.drive.endpoints }, chunkBytes: fixtureOptions.drive.chunkBytes ?? 256 * 1024 } } : {}),
+    ...(fixtureOptions.onedrive !== undefined ? { onedriveTest: { client: { ...onedriveClient, endpoints: fixtureOptions.onedrive.endpoints }, chunkBytes: fixtureOptions.onedrive.chunkBytes ?? 320 * 1024, scratchDir: path.join(root, 'onedrive-stage') } } : {}),
     now, confirmations,
   });
   const call = async (method: string, params: unknown = {}): Promise<any> => methods[method]!(params);
@@ -71,7 +89,7 @@ export function openV2AdminFixture(label: string, fixtureOptions: V2AdminFixture
   const folder = (name: string): string => path.join(root, 'destinations', name);
   cleanup.push(() => ss.close(), () => (hub as HubDb).close(), () => rmSync(root, { recursive: true, force: true }));
   return {
-    root, hub, db: hub.db, paths, ss, keys, s3Credentials: s3.store, s3CredentialsPresent: s3.present, driveCredentials: driveCreds.store, driveCredentialsPresent: driveCreds.present, driveAuth, confirmations, deps, methods, call, fail, folder, now,
+    root, hub, db: hub.db, paths, ss, keys, s3Credentials: s3.store, s3CredentialsPresent: s3.present, driveCredentials: driveCreds.store, driveCredentialsPresent: driveCreds.present, driveAuth, onedriveCredentials: onedriveCreds.store, onedriveCredentialsPresent: onedriveCreds.present, onedriveAuth, confirmations, deps, methods, call, fail, folder, now,
     advance: (ms: number) => { clock += ms; },
     auditRows: (): Array<{ event: string; outcome: string; actor_kind: string; detail_json: string | null }> =>
       hub.db.prepare('SELECT event, outcome, actor_kind, detail_json FROM audit_events ORDER BY seq').all() as never,

@@ -225,7 +225,7 @@ const dateOrRaw = (iso: string): string => (Number.isNaN(Date.parse(iso)) ? iso 
 
 function destinationView(d: BackupDestinationStatus): PlatformDestination {
   const lines: string[] = [];
-  const kind = d.kind === 's3' ? 'S3-compatible' : d.kind === 'drive' ? 'Google Drive' : d.kind === 'local-folder' ? 'Local folder' : d.kind;
+  const kind = d.kind === 's3' ? 'S3-compatible' : d.kind === 'drive' ? 'Google Drive' : d.kind === 'onedrive' ? 'OneDrive' : d.kind === 'local-folder' ? 'Local folder' : d.kind;
   lines.push(`${kind}${d.repoBytes === null ? '' : `, ${formatMiB(d.repoBytes)} stored`}.`);
   lines.push(d.lastSuccessAt === null ? 'No successful backup yet.' : `Last successful backup ${dateOrRaw(d.lastSuccessAt)}.`);
   if (d.lastVerifiedAt !== null) lines.push(`Last verified ${dateOrRaw(d.lastVerifiedAt)}.`);

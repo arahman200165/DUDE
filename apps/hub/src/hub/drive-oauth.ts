@@ -1,4 +1,6 @@
 import { codeChallengeS256 } from '../auth/oidc/pkce.js';
+import { postForm } from './oauth-http.js';
+import type { OAuthFetch } from './oauth-http.js';
 
 /**
  * Google OAuth for the Drive backup destination (32-SS1, Milestone 856, PD-154): authorization code with PKCE (S256) against the
@@ -30,10 +32,7 @@ export const GOOGLE_DRIVE_ENDPOINTS: DriveEndpoints = {
   uploadBase: 'https://www.googleapis.com/upload/drive/v3',
 };
 
-export type DriveFetch = (input: string, init?: RequestInit) => Promise<Response>;
-
-const TOKEN_MAX_BYTES = 64 * 1024;
-const TOKEN_TIMEOUT_MS = 20_000;
+export type DriveFetch = OAuthFetch;
 
 export const DRIVE_OAUTH_ERRORS = ['invalid_request', 'invalid_client', 'invalid_grant', 'unauthorized_client', 'unsupported_grant_type', 'invalid_scope', 'access_denied'] as const;
 export type DriveOAuthError = (typeof DRIVE_OAUTH_ERRORS)[number] | 'unknown';
@@ -51,48 +50,6 @@ export function buildDriveAuthorizationUrl(input: { endpoints: Pick<DriveEndpoin
   url.searchParams.set('access_type', 'offline');
   url.searchParams.set('prompt', 'consent');
   return url.toString();
-}
-
-async function readBounded(response: Response): Promise<string> {
-  const declared = Number(response.headers.get('content-length'));
-  if (Number.isFinite(declared) && declared > TOKEN_MAX_BYTES) { try { await response.body?.cancel(); } catch { /* best effort */ } return ''; }
-  if (response.body === null) return '';
-  const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      total += value.byteLength;
-      if (total > TOKEN_MAX_BYTES) { try { await reader.cancel(); } catch { /* best effort */ } return ''; }
-      chunks.push(value);
-    }
-  } catch {
-    return '';
-  }
-  return Buffer.concat(chunks).toString('utf8');
-}
-
-type PostResult = { status: number; json: Record<string, unknown> | undefined } | 'unreachable';
-
-async function postForm(fetchImpl: DriveFetch, url: string, form: URLSearchParams): Promise<PostResult> {
-  let response: Response;
-  try {
-    response = await fetchImpl(url, {
-      method: 'POST', redirect: 'manual', headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
-      body: form.toString(), signal: AbortSignal.timeout(TOKEN_TIMEOUT_MS),
-    });
-  } catch {
-    return 'unreachable';
-  }
-  const text = await readBounded(response);
-  let json: Record<string, unknown> | undefined;
-  try {
-    const parsed: unknown = JSON.parse(text);
-    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) json = parsed as Record<string, unknown>;
-  } catch { /* not JSON */ }
-  return { status: response.status, json };
 }
 
 const errorName = (json: Record<string, unknown> | undefined): DriveOAuthError => {

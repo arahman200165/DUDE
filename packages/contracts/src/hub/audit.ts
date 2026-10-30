@@ -22,7 +22,7 @@ export const HUB_AUDIT_EVENTS = [
   'backup.create-previewed', 'backup.created', 'backup.failed', 'backup.transferred', 'backup.reactivated',
   'backup.restore-previewed', 'backup.restored', 'backup.scheduled', 'backup.pruned',
   'backup.v2-created', 'backup.v2-failed', 'backup.v2-verified', 'backup.v2-pruned',
-  'backup.destination-added', 'backup.destination-removed', 'backup.drive-authorized', 'backup.rewrapped', 'backup.drill-passed', 'backup.drill-failed',
+  'backup.destination-added', 'backup.destination-removed', 'backup.drive-authorized', 'backup.onedrive-authorized', 'backup.rewrapped', 'backup.drill-passed', 'backup.drill-failed',
   'collab.history-restored', 'collab.document-kept', 'collab.document-deleted',
   'blobs.verify-failed', 'blobs.gc-applied',
   'provisioning.run',

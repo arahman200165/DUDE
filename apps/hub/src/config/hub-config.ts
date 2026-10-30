@@ -127,10 +127,31 @@ export interface HubBackupDriveDestination {
   clientId: string;
 }
 
-export type HubBackupDestinationConfig = HubBackupLocalFolderDestination | HubBackupS3Destination | HubBackupDriveDestination;
+/**
+ * A OneDrive backup destination's non-secret definition (Milestone 857). The repository lives in ONE folder the Hub created itself
+ * inside its own app folder under the narrow `Files.ReadWrite.AppFolder` scope (the app can see only that app folder, never the
+ * owner's other OneDrive content). The OAuth client secret and the refresh token are NEVER here: they live in the secret store (purpose
+ * `backup.onedrive.refreshToken`, a JSON map keyed by destination id). The client id is public and is kept so a reconnect after a
+ * revocation reuses it.
+ */
+export interface HubBackupOneDriveDestination {
+  /** `^[a-z0-9][a-z0-9-]{0,31}$`, assigned by the Hub. */
+  id: string;
+  kind: 'onedrive';
+  /** Display text, 1 to 64 characters. */
+  label: string;
+  /** The OneDrive item id (`[A-Za-z0-9_!.-]{10,200}`) of the folder this app created. */
+  folderId: string;
+  /** The owner's own app registration (client) id (printable, no spaces, at most 256 characters). */
+  clientId: string;
+}
+
+export type HubBackupDestinationConfig = HubBackupLocalFolderDestination | HubBackupS3Destination | HubBackupDriveDestination | HubBackupOneDriveDestination;
 
 export const DRIVE_FOLDER_ID_PATTERN = /^[A-Za-z0-9_-]{10,128}$/;
 export const DRIVE_CLIENT_ID_PATTERN = /^[\x21-\x7e]{1,256}$/;
+export const ONEDRIVE_FOLDER_ID_PATTERN = /^[A-Za-z0-9_!.-]{10,200}$/;
+export const ONEDRIVE_CLIENT_ID_PATTERN = DRIVE_CLIENT_ID_PATTERN;
 
 export interface HubBackupConfig {
   /** Absent means no scheduled backups. */
@@ -180,6 +201,7 @@ const OIDC_KEYS = new Set(['issuer', 'clientId', 'redirectOrigin']);
 const BACKUP_KEYS = new Set(['schedule', 'destinations']);
 const BACKUP_DESTINATION_KEYS = new Set(['id', 'kind', 'label', 'folder', 'endpoint', 'region', 'bucket', 'prefix', 'forcePathStyle', 'allowPrivateNetwork', 'folderId', 'clientId']);
 const S3_ONLY_KEYS = ['endpoint', 'region', 'bucket', 'prefix', 'forcePathStyle', 'allowPrivateNetwork'] as const;
+/** The keys a Google Drive and a OneDrive destination share (and no other kind accepts). */
 const DRIVE_ONLY_KEYS = ['folderId', 'clientId'] as const;
 const S3_REGION_PATTERN = /^[a-z0-9][a-z0-9-]{0,31}$/;
 const S3_BUCKET_PATTERN = /^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/;
@@ -511,6 +533,15 @@ function parseDriveDestination(record: Record<string, unknown>, at: string, base
   return { id: base.id, kind: 'drive', label: base.label, folderId, clientId };
 }
 
+function parseOneDriveDestination(record: Record<string, unknown>, at: string, base: { id: string; label: string }): HubBackupOneDriveDestination {
+  if (record['folder'] !== undefined) throw new Error(`${at}.folder is not allowed on a onedrive destination.`);
+  for (const key of S3_ONLY_KEYS) if (record[key] !== undefined) throw new Error(`${at}.${key} is not allowed on a onedrive destination.`);
+  const { folderId, clientId } = record;
+  if (typeof folderId !== 'string' || !ONEDRIVE_FOLDER_ID_PATTERN.test(folderId)) throw new Error(`${at}.folderId must be a OneDrive folder id.`);
+  if (typeof clientId !== 'string' || !ONEDRIVE_CLIENT_ID_PATTERN.test(clientId)) throw new Error(`${at}.clientId must be the OAuth client id (1 to 256 printable characters, no spaces).`);
+  return { id: base.id, kind: 'onedrive', label: base.label, folderId, clientId };
+}
+
 function parseBackupDestination(raw: unknown, index: number): HubBackupDestinationConfig {
   const at = `Hub config "backup.destinations[${index}]"`;
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) throw new Error(`${at} must be an object.`);
@@ -518,13 +549,14 @@ function parseBackupDestination(raw: unknown, index: number): HubBackupDestinati
   for (const key of Object.keys(record)) if (!BACKUP_DESTINATION_KEYS.has(key)) throw new Error(`${at} has an unknown key "${key}".`);
   const { id, kind, label, folder } = record;
   if (typeof id !== 'string' || !BACKUP_DESTINATION_ID_PATTERN.test(id)) throw new Error(`${at}.id must be 1 to 32 lower-case letters, digits or hyphens.`);
-  if (kind !== 'local-folder' && kind !== 's3' && kind !== 'drive') throw new Error(`${at}.kind must be "local-folder", "s3" or "drive".`);
+  if (kind !== 'local-folder' && kind !== 's3' && kind !== 'drive' && kind !== 'onedrive') throw new Error(`${at}.kind must be "local-folder", "s3", "drive" or "onedrive".`);
   if (typeof label !== 'string' || label.trim().length === 0 || label.length > 64 || /[\u0000-\u001f\u007f]/.test(label)) throw new Error(`${at}.label must be 1 to 64 printable characters.`);
   if (kind === 's3') {
     for (const key of DRIVE_ONLY_KEYS) if (record[key] !== undefined) throw new Error(`${at}.${key} is not allowed on an s3 destination.`);
     return parseS3Destination(record, at, { id, label });
   }
   if (kind === 'drive') return parseDriveDestination(record, at, { id, label });
+  if (kind === 'onedrive') return parseOneDriveDestination(record, at, { id, label });
   for (const key of [...S3_ONLY_KEYS, ...DRIVE_ONLY_KEYS]) if (record[key] !== undefined) throw new Error(`${at}.${key} is not allowed on a local-folder destination.`);
   if (typeof folder !== 'string' || folder.length === 0 || !path.isAbsolute(folder)) throw new Error(`${at}.folder must be a non-empty absolute path.`);
   return { id, kind, label, folder };
