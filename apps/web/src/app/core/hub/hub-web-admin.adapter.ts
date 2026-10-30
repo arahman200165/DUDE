@@ -3,6 +3,7 @@ import type {
   OwnerResetResponse, PairingCodeResponse, PresenceEntry, PresenceResponse, RecoveryCodesResponse, SessionListResponse, SignInResponse,
   HubJobsResponse, HubNotificationsResponse, NotificationEventData, CollabRoom, CollabRoomsResponse, KeepCollabRoomResponse, CollabDocumentsResponse,
   CollabHistoryResponse, CollabSnapshotResponse, CollabRestoreResponse, OidcStatusResponse, OidcStartResponse, OidcLinkCompleteResponse, OidcAccountsResponse, OidcUnlinkPreview,
+  HubProvisioningResponse, HubTunnelStatusResponse,
 } from '@dude/contracts/hub';
 import type { HubClient } from '@dude/api-client';
 import { HUB_ADMIN_UNAVAILABLE, HubAdminError, HubAdminPort, HubEnrollment, HubOwnerStatus, HubProbe, HubStatus } from './hub-admin.port';
@@ -145,6 +146,8 @@ export function createHubWebAdmin(options: HubWebAdminOptions): HubAdminPort {
     getCollabSnapshot: (snapshotId): Promise<CollabSnapshotResponse> => viaClient((c) => c.getCollabSnapshot(undefined, snapshotId)),
     restoreCollabSnapshot: (snapshotId): Promise<CollabRestoreResponse> => viaClient((c) => c.restoreCollabSnapshot(undefined, snapshotId)),
     diagnostics: (): Promise<HubDiagnosticsReport> => viaClient((c) => c.diagnostics(undefined)),
+    provisioningStatus: (): Promise<HubProvisioningResponse> => viaClient((c) => c.provisioningStatus(undefined)),
+    tunnelStatus: (): Promise<HubTunnelStatusResponse> => viaClient((c) => c.tunnelStatus(undefined)),
     reachabilityEcho: (): Promise<ReachabilityEchoResponse> => viaClient((c) => c.reachabilityEcho(undefined)),
     tlsCertificates: (): Promise<TlsCertificatesResponse> => viaClient((c) => c.tlsCertificates()),
     serverDate: async (): Promise<string | null> => {

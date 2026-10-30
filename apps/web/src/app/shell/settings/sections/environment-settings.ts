@@ -10,6 +10,7 @@ import { Disclosure } from '../../../shared/components/disclosure/disclosure';
 import { connectionKind, groupFingerprint, hubErrorText, relativeTime, shortId, HUB_CONNECTION_COPY } from './hub/hub-format';
 import { DesktopNotificationsPanel } from './hub/desktop-notifications-panel';
 import { HubJobsPanel } from './hub/hub-jobs-panel';
+import { HubPlatformPanel } from './hub/hub-platform-panel';
 import { HubOwnerSession } from './hub/hub-owner-session.service';
 import { HubStatusBadge } from './hub/hub-status-badge';
 import { HubWebActionsPanel } from './hub/hub-web-actions-panel';
@@ -49,7 +50,7 @@ function pairingProblemOf(raw: string): string | null {
  */
 @Component({
   selector: 'app-environment-settings',
-  imports: [CopyButton, DesktopNotificationsPanel, Disclosure, HubJobsPanel, HubStatusBadge, HubWebActionsPanel, LocalHubPanel, NgTemplateOutlet, OwnerGate, OwnerRecoveryPanel, PresenceSharingPanel, RouterLink, SyncSummaryPanel],
+  imports: [CopyButton, DesktopNotificationsPanel, Disclosure, HubJobsPanel, HubPlatformPanel, HubStatusBadge, HubWebActionsPanel, LocalHubPanel, NgTemplateOutlet, OwnerGate, OwnerRecoveryPanel, PresenceSharingPanel, RouterLink, SyncSummaryPanel],
   templateUrl: './environment-settings.html',
 })
 export class EnvironmentSettings {

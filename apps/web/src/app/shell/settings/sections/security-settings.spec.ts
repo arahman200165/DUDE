@@ -1,3 +1,4 @@
+import { HUB_AUDIT_EVENTS } from '@dude/contracts/hub';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { HubAdminError } from '../../../core/hub/hub-admin.port';
@@ -29,8 +30,16 @@ describe('Security & Sessions helpers', () => {
     expect(auditEventLabel('something.new')).toBe('something.new');
     expect(auditEventLabel('security.ip-blocked')).toBe('Address blocked');
     expect(auditEventLabel('session.rotated')).toBe('Session renewed');
+    expect(auditEventLabel('standby.granted')).toBe('Warm standby access granted');
+    expect(auditEventLabel('backup.drill-failed')).toBe('Restore drill failed');
+    expect(auditEventLabel('power.regressed')).toBe('Computer may sleep again');
     expect(auditDetailText({ sessionId: 'abc', count: 2, nested: { a: 1 } })).toBe('sessionId=abc count=2 nested={"a":1}');
     expect(auditDetailText(null)).toBe('');
+  });
+
+  it('labels every event the Hub can write, so the audit list never falls back to a raw name', () => {
+    const missing = HUB_AUDIT_EVENTS.filter((event) => auditEventLabel(event) === event);
+    expect(missing).toEqual([]);
   });
 
   it('shortens user agents', () => {

@@ -4,6 +4,7 @@ import type {
   HubJobsResponse, HubNotificationsResponse, MarkNotificationsReadRequest, NotificationEventData,
   CollabRoom, CollabRoomsResponse, KeepCollabRoomResponse, CollabDocumentsResponse, CollabHistoryResponse, CollabSnapshotResponse, CollabRestoreResponse,
   OidcStatusResponse, OidcStartResponse, OidcLinkCompleteResponse, OidcAccountsResponse, OidcUnlinkPreview,
+  HubProvisioningResponse, HubTunnelStatusResponse,
 } from '@dude/contracts/hub';
 import type { AgentDiagnostics } from '@dude/contracts';
 import type {
@@ -173,6 +174,16 @@ export interface HubAdminPort {
   oidcLinkComplete?(linkToken: string): Promise<OidcLinkCompleteResponse>;
   unlinkOidcPreview?(accountId: string): Promise<OidcUnlinkPreview>;
   unlinkOidc?(accountId: string, confirmToken: string): Promise<OkResponse>;
+
+  /**
+   * Platform status (32-SS1, Milestone 852), Hub-served web build only (absent on desktop and the standalone web build, where Settings does not
+   * render the Platform panel). Owner session reads of the Hub's own read-only routes: `provisioningStatus` is `GET /api/v1/provisioning` (per-component
+   * state, secrets to re-enter, the copyable commands) and `tunnelStatus` is `GET /api/v1/tunnel` (connector state and the Cloudflare dashboard values).
+   * There is no write counterpart: turning the tunnel on, the power policy, standby grants and backups are elevated CLI commands, never a port method,
+   * so nothing reachable from a browser session can widen exposure.
+   */
+  provisioningStatus?(): Promise<HubProvisioningResponse>;
+  tunnelStatus?(): Promise<HubTunnelStatusResponse>;
 
   // Hub-served web build only (rejects `unavailable` elsewhere).
   bootstrap(request: BootstrapRequest): Promise<BootstrapResponse>;

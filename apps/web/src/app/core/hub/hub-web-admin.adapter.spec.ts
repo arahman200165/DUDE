@@ -216,6 +216,27 @@ describe('Hub web admin adapter', () => {
     });
   });
 
+  describe('platform status reads (Milestone 852)', () => {
+    const PROVISIONING = { overall: 'ready', checkedAt: '2026-10-29T12:00:00.000Z', lastRun: null, components: [], secrets: [], commands: ['dude-hub provision'] };
+    const TUNNEL = {
+      configured: false, enabled: false, hostname: null, supported: true, state: 'not-configured', ready: false, tokenPresent: false, restarts: 0, lastError: null, startedAt: null, lastReadyAt: null,
+      dashboard: null, disclosure: [], logTail: [],
+    };
+
+    it('reads the provisioning and tunnel routes with plain GETs: no CSRF header, no body, nothing to change', async () => {
+      const { admin, calls } = setup((call) => ({ status: 200, body: call.url === '/api/v1/provisioning' ? PROVISIONING : TUNNEL }));
+      await expect(admin.provisioningStatus?.()).resolves.toMatchObject({ overall: 'ready', commands: ['dude-hub provision'] });
+      await expect(admin.tunnelStatus?.()).resolves.toMatchObject({ configured: false, state: 'not-configured' });
+      expect(calls.map((c) => [c.method, c.url])).toEqual([['GET', '/api/v1/provisioning'], ['GET', '/api/v1/tunnel']]);
+      expect(calls.every((c) => c.body === undefined && c.headers['X-DUDE-CSRF'] === undefined && c.credentials === 'same-origin')).toBe(true);
+    });
+
+    it('normalizes an expired session to a HubAdminError like every other read', async () => {
+      const { admin } = setup(() => ({ status: 401, body: envelope('unauthorized', 'No session.') }));
+      await expect(admin.provisioningStatus?.()).rejects.toMatchObject({ code: 'unauthorized' });
+    });
+  });
+
   describe('notification-reader grant (PD-110)', () => {
     const ID = '0190aaaa-0000-7000-8000-000000000001';
     const DEVICE = { deviceId: ID, displayName: 'd', platform: 'windows', appVersion: '1', protocolVersion: 1, capabilities: [], registeredAt: '2026-01-01T00:00:00.000Z', lastSeenAt: null, revokedAt: null, unenrolledAt: null, recoveryTrusted: false, notificationsAccess: true, online: false, current: false, kind: 'desktop' };
