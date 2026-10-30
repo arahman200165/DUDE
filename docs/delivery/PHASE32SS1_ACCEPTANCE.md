@@ -49,11 +49,18 @@ Run on the Windows 11 development host. The first table is the periodic gate run
 | Docker | The image built from `apps/hub/Dockerfile` and `scripts/docker-smoke-platform.mjs` (8 steps) against it. |
 | `npm run hub:stage` | Passed, `vec0.dll` in the stage and its sums; the staged single-executable Hub provisioned by hand with `content-store`, `fts`, `vector` and `workers` `ready`. |
 
-**Final consolidated gate at the Milestone 855 close-out: not run here (documentation only).** The commit that runs it fills this row.
+**Final consolidated gate: run 2026-10-30 at commit `c096d413` (Milestone 857, after the exit suites, acceptance script and the Google Drive and OneDrive destinations), every gate green on the first run with no fixes.** The Milestone 855 close-out itself was documentation only and ran none.
 
 | Gate | Result |
 |---|---|
-| `npm test`, `npm run lint`, `npm run test:electron`, `npm run test:hub`, `npm run test:high-consequence`, `npm run check:generated`, `npm run check:dockerfiles`, `node scripts/generate-security-doc.mjs` (must leave `SECURITY.md` unchanged) | **Pending** |
+| `npm test` | Packages **716 files / 4,928 tests** passed. Angular **810 files / 8,796 tests** passed. |
+| `npm run lint` | Passed: eslint, boundaries, design tokens **0 violations**, theme contrast **144 combinations / 49,008 checks**, inventories (**2,687** resolved sources, **78** component extractions, **334** registrations; **954** storage declarations classified, 0 unreviewed). |
+| `npm run test:hub` | **201 files** passed and 3 skipped; **2,245 tests** passed and 10 skipped. |
+| `npm run test:electron` | **136 files / 1,549 tests** passed, 1 skipped. |
+| `npm run test:high-consequence` | Passed (suites of 50 files / 187 tests, 8 / 71, 5 / 52, 18 / 143 and 1 / 6). |
+| `npm run test:e2e:hub` | **390 of 390** passed (5.0 min). |
+| `check:dockerfiles`, `check:generated`, `check:desktop` | Passed (16 generator outputs fresh and repeatable). |
+| `node scripts/generate-security-doc.mjs` | Left `SECURITY.md` unchanged. |
 
 ### Exit gate status
 
