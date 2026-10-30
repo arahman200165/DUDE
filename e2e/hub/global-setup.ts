@@ -19,7 +19,8 @@ function run(script: string): Promise<void> {
 /** Builds anything missing, starts one Hub on an ephemeral port with a fresh data dir, and returns the teardown. */
 export default async function globalSetup(): Promise<() => Promise<void>> {
   if (!existsSync(path.join(WEB_ROOT, 'index.html'))) await run('build:hub-web');
-  if (!existsSync(HUB_BUNDLE)) await run('hub:compile:test');
+  // The test build also writes the fake OpenID provider the platform spec (70) runs beside its own Hub; an older build without it is rebuilt.
+  if (!existsSync(HUB_BUNDLE) || !existsSync(path.join(path.dirname(HUB_BUNDLE), 'fake-idp-server.cjs'))) await run('hub:compile:test');
 
   const dataDir = mkdtempSync(path.join(tmpdir(), 'dude-hub-e2e-'));
   const hub: ChildProcess = spawn(process.execPath, [HUB_BUNDLE, 'run', '--data-dir', dataDir, '--port', '0', '--web-root', WEB_ROOT], {

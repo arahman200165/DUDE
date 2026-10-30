@@ -24,8 +24,8 @@ if (process.platform !== 'win32' || !elevated()) {
 }
 
 const stage = path.join(root, 'dist', 'hub-stage');
-if (!['dude-hub.exe', 'DudeHub.exe', 'cloudflared.exe'].every((name) => existsSync(path.join(stage, name)))) {
-  console.error('dist/hub-stage is missing or incomplete (dude-hub.exe, DudeHub.exe, cloudflared.exe). Run "npm run hub:stage" first.');
+if (!['dude-hub.exe', 'DudeHub.exe', 'cloudflared.exe', 'vec0.dll'].every((name) => existsSync(path.join(stage, name)))) {
+  console.error('dist/hub-stage is missing or incomplete (dude-hub.exe, DudeHub.exe, cloudflared.exe, vec0.dll). Run "npm run hub:stage" first.');
   process.exit(1);
 }
 
@@ -137,6 +137,7 @@ async function main() {
   assert(update.updated === true && update.oldHubVersion === OLD_VERSION && update.newHubVersion === currentVersion, `hubVersion changed ${OLD_VERSION} -> ${currentVersion}`);
   const sha256File = (file) => createHash('sha256').update(readFileSync(file)).digest('hex');
   assert(existsSync(path.join(installDir, 'cloudflared.exe')) && sha256File(path.join(installDir, 'cloudflared.exe')) === sha256File(path.join(stage, 'cloudflared.exe')), 'the update installed the staged cloudflared.exe beside dude-hub.exe');
+  assert(existsSync(path.join(installDir, 'vec0.dll')) && sha256File(path.join(installDir, 'vec0.dll')) === sha256File(path.join(stage, 'vec0.dll')), 'the update installed the staged vec0.dll (sqlite-vec) beside dude-hub.exe');
   const afterUpdate = await hello(dataDir, port);
   assert(afterUpdate.hubVersion === currentVersion && afterUpdate.bootstrapped === true && afterUpdate.environmentId === environmentId, 'no data loss across the update');
   const after = json(run(cli, ['status', '--data-dir', dataDir]));
@@ -144,6 +145,17 @@ async function main() {
   const copies = existsSync(preMigration) ? readdirSync(preMigration).filter((f) => f.endsWith('.db')) : [];
   const schemaChanged = before.schemaVersion !== after.schemaVersion;
   assert(schemaChanged ? copies.length > 0 : copies.length === 0, `pre-migration copy exists only when the schema changed (changed=${schemaChanged}, copies=${copies.length})`);
+
+  step('provision SaveSphere storage: the content store, FTS5, a worker re-spawned from the executable and vec0.dll beside it');
+  // 32-SS1 (Milestone 854): the installed single-executable Hub creates its content store, and every platform component that needs the staged payload
+  // reports on it: `workers` runs the re-spawn mode of dude-hub.exe, `vector` loads the pinned vec0.dll from beside the executable, `tunnel` finds cloudflared.exe.
+  const provisioned = run(cli, ['provision', '--json', ...common], { expect: null, label: 'dude-hub provision' });
+  const provisionReport = json(provisioned);
+  const components = (provisionReport.report ?? provisionReport).components;
+  const componentState = (id) => components.find((c) => c.id === id)?.state;
+  for (const id of ['content-store', 'blob-store', 'fts', 'workers']) assert(componentState(id) === 'ready', `${id} is ${componentState(id)} after provisioning the installed Hub, expected ready`);
+  assert(componentState('vector') === 'ready', `vector search is ${componentState('vector')}; vec0.dll beside the installed dude-hub.exe must load`);
+  assert(['ready', 'not-configured'].includes(componentState('tunnel')), `the tunnel component is ${componentState('tunnel')} (cloudflared.exe is staged and no tunnel is configured)`);
 
   step('LAN mode on and off');
   run(cli, ['network', 'lan', 'on', ...common]);

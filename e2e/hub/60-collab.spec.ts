@@ -12,8 +12,9 @@ import { PASSWORD, hubClient, openHubBrowser, signInAsOwner, spawnExtraHub, type
 // It runs on its own Hub (the compiled TEST bundle, a fresh data directory) so the short timings below never touch the shared Hub of
 // specs 10-50. TEST-ONLY knobs (PD-068, ignored by the release bundle): the scheduled-backup check runs every second, and history
 // snapshots are taken 1 s after the last edit with no minimum spacing. The scheduled backup fails for real: its schedule is written to
-// the Hub's config while it runs (the scheduler re-reads it on every check), but no schedule key was ever saved, so the run fails with
-// `schedule-key-missing` and the audited failure reaches the bell through the notification producers.
+// the Hub's config while it runs (the scheduler re-reads it on every check) together with one folder destination, but no master key was ever saved (that
+// is what `backup destination add` does), so the run fails with `master-key-missing` and the audited failure reaches the bell through the notification
+// producers. (Since Milestone 847 a schedule with no destination is a silent no-op, and the unattended key is the v2 master key.)
 test.describe.configure({ mode: 'serial' });
 
 const KNOBS = { DUDE_HUB_TEST_BACKUP_CHECK_MS: '1000', DUDE_HUB_TEST_COLLAB_SNAPSHOT_IDLE_MS: '1000', DUDE_HUB_TEST_COLLAB_SNAPSHOT_MIN_INTERVAL_MS: '0' };
@@ -285,10 +286,13 @@ test('f. the bell receives a backup-failed notification without a reload, and di
     await markNoReload(p);
   }
 
-  // Configure a schedule while the Hub runs (atomically): the next check (within a second) runs it, and it fails without a schedule key.
+  // Configure a schedule while the Hub runs (atomically): the next check (within a second) runs it, and it fails without a master key.
   const configFile = path.join(hub.target.dataDir, 'config', 'hub.json');
   const config = JSON.parse(readFileSync(configFile, 'utf8')) as Record<string, unknown>;
-  config['backup'] = { schedule: { folder: path.join(root, 'scheduled-backups'), intervalHours: 1, retention: 1 } };
+  config['backup'] = {
+    schedule: { intervalHours: 1 },
+    destinations: [{ id: 'e2e-destination', kind: 'local-folder', label: 'Collab spec destination', folder: path.join(root, 'scheduled-backups') }],
+  };
   writeFileSync(`${configFile}.tmp`, `${JSON.stringify(config, null, 2)}\n`);
   renameSync(`${configFile}.tmp`, configFile);
 
@@ -297,7 +301,7 @@ test('f. the bell receives a backup-failed notification without a reload, and di
     await p.getByTestId('notifications-bell').click();
     const item = p.getByTestId('notification-item').filter({ hasText: 'A backup failed' });
     await expect(item).toHaveCount(1, LIVE);
-    await expect(item).toContainText('schedule-key-missing');
+    await expect(item).toContainText('master-key-missing');
     expect(await stillNoReload(p)).toBe(true);
   }
 

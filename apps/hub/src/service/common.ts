@@ -19,6 +19,8 @@ export const WRAPPER_XML = 'DudeHub.xml';
 export const HUB_EXE = 'dude-hub.exe';
 /** The hash-pinned tunnel connector staged beside the Hub (32-SS1, Milestone 836). Optional in a source directory, so an older stage still installs. */
 export const CLOUDFLARED_EXE = 'cloudflared.exe';
+/** The hash-pinned sqlite-vec loadable library staged beside the Hub (32-SS1, Milestone 854); the Hub loads it only from beside its own executable. Optional in a source directory, so an older stage still installs. */
+export const SQLITE_VEC_DLL = 'vec0.dll';
 
 export const EXIT_OK = 0;
 export const EXIT_FAILURE = 1;

@@ -8,7 +8,7 @@ const packageVersion = JSON.parse(readFileSync(path.join(root, 'package.json'), 
 
 /** `DUDE_VERSION_OVERRIDE` bakes a different version into the bundle (used by the service check to build an older "N-1" Hub). */
 /**
- * `testBuild` bakes `__DUDE_HUB_TEST_BUILD__ = true` so the `DUDE_HUB_TEST_*` knobs are honoured (PD-068). The default release
+ * `testBuild` also writes `fake-idp-server.cjs` beside the bundle (the fake OpenID provider, never in a release bundle) and bakes `__DUDE_HUB_TEST_BUILD__ = true` so the `DUDE_HUB_TEST_*` knobs are honoured (PD-068). The default release
  * bundle (SEA, service, Docker) bakes false and ignores them; the test bundle lives in dist/hub-test so it cannot be shipped by accident.
  */
 export async function buildHub({ testBuild = false, outfile = path.join(root, 'dist', testBuild ? 'hub-test' : 'hub', 'dude-hub.cjs'), version = process.env['DUDE_VERSION_OVERRIDE'] || packageVersion } = {}) {
@@ -23,6 +23,18 @@ export async function buildHub({ testBuild = false, outfile = path.join(root, 'd
     define: { __DUDE_VERSION__: JSON.stringify(version), __DUDE_HUB_TEST_BUILD__: JSON.stringify(testBuild) },
     logLevel: 'warning',
   });
+  if (testBuild) {
+    // The fake OpenID provider the platform e2e runs beside a real Hub (32-SS1, Milestone 854). Test builds only: a release bundle never carries it.
+    await build({
+      entryPoints: [path.join(root, 'apps/hub/src/testing/fake-idp-server.ts')],
+      bundle: true,
+      platform: 'node',
+      format: 'cjs',
+      target: 'node24',
+      outfile: path.join(path.dirname(outfile), 'fake-idp-server.cjs'),
+      logLevel: 'warning',
+    });
+  }
   return outfile;
 }
 

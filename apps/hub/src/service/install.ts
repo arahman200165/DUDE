@@ -4,7 +4,7 @@ import { HUB_DEFAULT_PORT } from '@dude/contracts/hub';
 import { ensureLayout } from '../config/data-dir.js';
 import { loadOrCreateHubConfig, writeHubConfig } from '../config/hub-config.js';
 import {
-  CLOUDFLARED_EXE, EXIT_FAILURE, EXIT_OK, EXIT_USAGE, HUB_EXE, SERVICE_ACCOUNT, SERVICE_NAME, WRAPPER_EXE, WRAPPER_XML,
+  CLOUDFLARED_EXE, EXIT_FAILURE, EXIT_OK, EXIT_USAGE, HUB_EXE, SERVICE_ACCOUNT, SERVICE_NAME, SQLITE_VEC_DLL, WRAPPER_EXE, WRAPPER_XML,
   addFirewallRule, defaultInstallDir, json, requireElevated, resolveDeps, serviceDataDir, serviceState, waitForHello,
 } from './common.js';
 import type { ExecResult, ResolvedDeps, ServiceDeps } from './common.js';
@@ -36,6 +36,8 @@ export function copyStagedFiles(sourceDir: string, installDir: string, options: 
   if (options.wrapperToo) replace(WRAPPER_EXE);
   // The tunnel connector is verified against its pin by the Hub before every start (tunnel/cloudflared.ts), so a plain copy is enough here.
   if (existsSync(path.join(source, CLOUDFLARED_EXE))) replace(CLOUDFLARED_EXE);
+  // Vector search: the Hub verifies vec0.dll against its pin before it loads it (db/sqlite-vec.ts), and only from beside dude-hub.exe.
+  if (existsSync(path.join(source, SQLITE_VEC_DLL))) replace(SQLITE_VEC_DLL);
   const web = path.join(source, 'service', 'web');
   if (existsSync(web)) {
     rmSync(path.join(target, 'service', 'web'), { recursive: true, force: true });

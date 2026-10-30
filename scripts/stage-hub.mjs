@@ -1,6 +1,6 @@
 // Assembles dist/hub-stage/ from the built SEA, WinSW and the Hub web build (built on demand; DUDE_SKIP_HUB_WEB=1 makes a missing build fail):
-//   dude-hub.exe, DudeHub.exe (WinSW renamed), cloudflared.exe (the hash-pinned tunnel connector, 32-SS1), service/web/ and SHA256SUMS.
-// Run through `npm run hub:stage`, which builds the SEA and fetches WinSW and cloudflared first.
+//   dude-hub.exe, DudeHub.exe (WinSW renamed), cloudflared.exe (the hash-pinned tunnel connector, 32-SS1), vec0.dll (the hash-pinned sqlite-vec library, 32-SS1), service/web/ and SHA256SUMS.
+// Run through `npm run hub:stage`, which builds the SEA and fetches WinSW, cloudflared and sqlite-vec first.
 import { createHash } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -19,18 +19,20 @@ function listFiles(dir, base = dir) {
   return out.sort();
 }
 
-export function stageHub({ outDir = STAGE_DIR, seaDir = path.join(root, 'dist', 'hub'), winsw = path.join(root, 'build', 'vendor', 'winsw', 'WinSW-x64.exe'), cloudflared = path.join(root, 'build', 'vendor', 'cloudflared', 'cloudflared.exe') } = {}) {
+export function stageHub({ outDir = STAGE_DIR, seaDir = path.join(root, 'dist', 'hub'), winsw = path.join(root, 'build', 'vendor', 'winsw', 'WinSW-x64.exe'), cloudflared = path.join(root, 'build', 'vendor', 'cloudflared', 'cloudflared.exe'), sqliteVec = path.join(root, 'build', 'vendor', 'sqlite-vec', 'vec0.dll') } = {}) {
   const exeName = process.platform === 'win32' ? 'dude-hub.exe' : 'dude-hub';
   const exe = path.join(seaDir, exeName);
   if (!existsSync(exe)) throw new Error(`Missing ${path.relative(root, exe)}. Run "npm run hub:sea" first.`);
   if (!existsSync(winsw)) throw new Error(`Missing ${path.relative(root, winsw)}. Run "npm run hub:winsw" first.`);
   if (!existsSync(cloudflared)) throw new Error(`Missing ${path.relative(root, cloudflared)}. Run "npm run hub:cloudflared" first.`);
+  if (!existsSync(sqliteVec)) throw new Error(`Missing ${path.relative(root, sqliteVec)}. Run "npm run hub:sqlite-vec" first.`);
 
   rmSync(outDir, { recursive: true, force: true });
   mkdirSync(outDir, { recursive: true });
   cpSync(exe, path.join(outDir, exeName));
   cpSync(winsw, path.join(outDir, 'DudeHub.exe'));
   cpSync(cloudflared, path.join(outDir, 'cloudflared.exe'));
+  cpSync(sqliteVec, path.join(outDir, 'vec0.dll'));
   installHubWeb(path.join(outDir, 'service', 'web'));
 
   const sums = listFiles(outDir)

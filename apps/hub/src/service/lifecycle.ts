@@ -3,7 +3,7 @@ import path from 'node:path';
 import { hubPaths } from '../config/data-dir.js';
 import { HUB_DEFAULT_PORT } from '@dude/contracts/hub';
 import {
-  CLOUDFLARED_EXE, EXIT_FAILURE, EXIT_OK, EXIT_USAGE, HUB_EXE, SERVICE_NAME, WRAPPER_EXE, WRAPPER_XML,
+  CLOUDFLARED_EXE, EXIT_FAILURE, EXIT_OK, EXIT_USAGE, HUB_EXE, SERVICE_NAME, SQLITE_VEC_DLL, WRAPPER_EXE, WRAPPER_XML,
   defaultInstallDir, deleteFirewallRule, firewallRuleExists, json, readConfigPort, requireElevated, resolveDeps, serviceDataDir, serviceState,
   tryAdminStatus, waitForHello,
 } from './common.js';
@@ -100,7 +100,7 @@ export async function runServiceStatus(options: LifecycleOptions, deps: ServiceD
 /** Removes the installed binaries. The running executable cannot delete itself on Windows, so it is reported as left over. */
 function removeInstalled(installDir: string): string[] {
   const left: string[] = [];
-  for (const name of [WRAPPER_EXE, WRAPPER_XML, HUB_EXE, CLOUDFLARED_EXE, 'DudeHub.wrapper.log', 'service']) {
+  for (const name of [WRAPPER_EXE, WRAPPER_XML, HUB_EXE, CLOUDFLARED_EXE, SQLITE_VEC_DLL, 'DudeHub.wrapper.log', 'service']) {
     const target = path.join(installDir, name);
     if (!existsSync(target)) continue;
     try { rmSync(target, { recursive: true, force: true }); } catch { left.push(target); }

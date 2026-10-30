@@ -124,6 +124,7 @@ export function fixture(initial: Partial<Pick<FakeSystem, 'state' | 'elevated' |
   writeFileSync(path.join(sourceDir, 'dude-hub.exe'), 'hub-binary');
   writeFileSync(path.join(sourceDir, 'DudeHub.exe'), 'wrapper-binary');
   writeFileSync(path.join(sourceDir, 'cloudflared.exe'), 'cloudflared-binary');
+  writeFileSync(path.join(sourceDir, 'vec0.dll'), 'sqlite-vec-library');
   writeFileSync(path.join(sourceDir, 'service', 'web', 'index.html'), '<html></html>');
   const system = fakeSystem(initial);
   const out: string[] = [];

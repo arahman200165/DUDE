@@ -41,6 +41,7 @@ export function pinnedTransport(target: HubTarget = sharedHub()): HubTransport {
     request: (req: HubRequest) =>
       new Promise<HubResponse>((resolve, reject) => {
         const body = req.body === undefined ? undefined : JSON.stringify(req.body);
+        const raw = req.rawBody === undefined ? undefined : Buffer.from(req.rawBody.buffer, req.rawBody.byteOffset, req.rawBody.byteLength);
         const r = https.request(
           {
             host: '127.0.0.1',
@@ -53,6 +54,7 @@ export function pinnedTransport(target: HubTarget = sharedHub()): HubTransport {
               host: `localhost:${port}`,
               accept: 'application/json',
               ...(body === undefined ? {} : { 'content-type': 'application/json', 'content-length': String(Buffer.byteLength(body)) }),
+              ...(raw === undefined ? {} : { 'content-length': String(raw.byteLength) }),
               ...req.headers,
             },
           },
@@ -73,6 +75,7 @@ export function pinnedTransport(target: HubTarget = sharedHub()): HubTransport {
         );
         r.on('error', reject);
         if (body !== undefined) r.write(body);
+        if (raw !== undefined) r.write(raw);
         r.end();
       }),
   };

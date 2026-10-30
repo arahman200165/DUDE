@@ -194,6 +194,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
       - name: Build relay image
         run: docker build -f apps/collab-relay/Dockerfile -t dude-collab-relay .
 
@@ -250,6 +255,12 @@ jobs:
           cmp cert.pem cert-after.pem
           $CURL $URL/api/v1/hello | jq -e '.bootstrapped == true'
 
+      # 32-SS1 platform (Milestone 854): provision through the real CLI, restart, then storage, the queue, resumable uploads, ingest tokens and backup
+      # v2 (add, run, verify, drill, offline restore) inside the image; the tunnel, the power policy and vector search must report "unavailable" here.
+      # Replay locally with `node scripts/docker-smoke-platform.mjs` against the same container.
+      - name: Platform smoke inside the image
+        run: node scripts/docker-smoke-platform.mjs --container hub --port 47600
+
       - name: Hub logs on failure
         if: failure()
         run: docker logs hub || true
@@ -292,6 +303,85 @@ jobs:
           path: playwright-report-hub
           retention-days: 7
 
+  # 32-SS1 exit gate (Milestone 854): the S3 backup destination against a REAL S3-compatible server. The MinIO organization no longer publishes images,
+  # so the service is the frozen Bitnami mirror of 2025.4.22 (the server build the destination was verified against); MINIO_DEFAULT_BUCKETS creates the
+  # bucket. DUDE_TEST_S3_REQUIRE makes a job that lost its server fail instead of skipping. Local replay: docs/delivery/QUALITY_AND_RELEASE.md.
+  hub-s3:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      minio:
+        image: bitnamilegacy/minio:2025.4.22
+        ports:
+          - 9000:9000
+        env:
+          MINIO_ROOT_USER: dude-ci
+          MINIO_ROOT_PASSWORD: dude-ci-secret-1234
+          MINIO_DEFAULT_BUCKETS: dude-test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Pin npm version
+        run: npm install -g npm@11.19.0
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Wait for MinIO and its bucket
+        run: |
+          for i in $(seq 1 60); do
+            ready=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:9000/minio/health/ready || true)
+            # An unauthenticated HEAD answers 403 for a bucket that exists and 404 for one that does not.
+            bucket=$(curl -s -o /dev/null -w '%{http_code}' -I http://127.0.0.1:9000/dude-test/ || true)
+            echo "ready=$ready bucket=$bucket"
+            [ "$ready" = 200 ] && [ "$bucket" = 403 ] && exit 0
+            sleep 2
+          done
+          exit 1
+
+      - name: S3 destination, backup and restore against MinIO
+        run: npm run test:hub:s3
+        env:
+          DUDE_TEST_S3_REQUIRE: '1'
+          DUDE_TEST_S3_ENDPOINT: http://127.0.0.1:9000
+          DUDE_TEST_S3_BUCKET: dude-test
+          DUDE_TEST_S3_ACCESS_KEY: dude-ci
+          DUDE_TEST_S3_SECRET_KEY: dude-ci-secret-1234
+
+  # 32-SS1 exit gate (Milestone 854): backup at scale. The format at 600 MiB (deterministic memory counters), then the real engine and restore over about
+  # 590 MiB of generated blobs with sampled resident memory, for a repository backup and a transfer export. About 2 GiB of temporary disk.
+  backup-scale:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Pin npm version
+        run: npm install -g npm@11.19.0
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Backup v2 format at 600 MiB
+        run: npm run test:backup-scale
+
+      - name: Backup engine and restore over more than 512 MiB
+        run: npm run test:hub:large
+
   # Windows service lifecycle of the Hub that the desktop installer embeds. Pushes only, as before.
   hub-service:
     if: github.event_name == 'push'
@@ -306,7 +396,7 @@ jobs:
       - run: npm install -g npm@11.19.0
       - run: npm ci
       - run: npm run hub:stage
-      - name: Service lifecycle (install, bootstrap, update, LAN, uninstall)
+      - name: Service lifecycle (install, bootstrap, update, provision, LAN, uninstall)
         run: node scripts/check-hub-service.mjs --require
 
   mobile-checks:
@@ -667,7 +757,7 @@ jobs:
   # The only job that writes releases, so nothing is published unless every gate and the packaging passed. mobile-build and
   # mobile-native may be skipped (see `changes`); a failed or cancelled job anywhere upstream still stops the release.
   publish:
-    needs: [changes, checks, unit, desktop-tests, web, docker-smoke, hub-e2e, hub-service, mobile-checks, mobile-build, mobile-native, package, mobile-package]
+    needs: [changes, checks, unit, desktop-tests, web, docker-smoke, hub-e2e, hub-s3, backup-scale, hub-service, mobile-checks, mobile-build, mobile-native, package, mobile-package]
     if: ${{ !cancelled() && !failure() && github.ref == 'refs/heads/master' && github.event_name == 'push' }}
     runs-on: windows-latest
     permissions:

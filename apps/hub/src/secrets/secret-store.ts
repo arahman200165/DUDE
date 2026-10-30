@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { plainSecretsKnob } from '../cli/test-overrides.js';
 import { createDpapiProtector, createFileProtector, defaultSyncExec } from '../tls/ca-key-protector.js';
 import type { CaKeyProtector, SyncExec } from '../tls/ca-key-protector.js';
 
@@ -78,7 +79,8 @@ function assertPurpose(purpose: unknown): asserts purpose is HubSecretPurpose {
 }
 
 export function createSecretStore(options: SecretStoreOptions): SecretStore {
-  const platform = options.platform ?? process.platform;
+  // TEST-ONLY (PD-068, ignored by a release bundle): the file fallback on every platform, so an e2e can write secrets without DPAPI.
+  const platform = plainSecretsKnob() ? 'linux' : (options.platform ?? process.platform);
   const exec = options.exec ?? defaultSyncExec;
   const protectorFor = (purpose: HubSecretPurpose): CaKeyProtector =>
     platform === 'win32' ? createDpapiProtector(exec, { entropy: secretEntropy(purpose), keyFile: `${purpose}.dpapi` }) : createFileProtector(`${purpose}.secret`);

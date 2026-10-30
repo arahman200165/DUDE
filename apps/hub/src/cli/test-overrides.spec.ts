@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { presentTestKnobs, readHubTestOverrides } from './test-overrides.js';
+import { plainSecretsKnob, presentTestKnobs, readHubTestOverrides } from './test-overrides.js';
 
 describe('readHubTestOverrides', () => {
   it('is empty unless a knob is explicitly set', () => {
@@ -23,6 +23,19 @@ describe('readHubTestOverrides', () => {
     };
     expect(readHubTestOverrides(env, false)).toEqual({});
     expect(presentTestKnobs(env)).toHaveLength(6);
+  });
+  it('reads the platform exit knobs (32-SS1): the fake identity provider on loopback only, the stub connector with a valid edge port, plain secrets', () => {
+    expect(readHubTestOverrides({ DUDE_HUB_TEST_OIDC_IDP_URL: 'http://127.0.0.1:4555' })).toEqual({ oidcIdpUrl: 'http://127.0.0.1:4555' });
+    for (const bad of ['http://example.com:80', 'https://127.0.0.1:4555', 'http://127.0.0.1', 'http://127.0.0.1:4555/x']) expect(readHubTestOverrides({ DUDE_HUB_TEST_OIDC_IDP_URL: bad })).toEqual({});
+    expect(readHubTestOverrides({ DUDE_HUB_TEST_CLOUDFLARED_STUB: '/x/stub.mjs', DUDE_HUB_TEST_CLOUDFLARED_EDGE_PORT: '4556' })).toEqual({ cloudflaredStub: { path: '/x/stub.mjs', edgePort: 4556 } });
+    expect(readHubTestOverrides({ DUDE_HUB_TEST_CLOUDFLARED_STUB: '/x/stub.mjs' })).toEqual({});
+    expect(readHubTestOverrides({ DUDE_HUB_TEST_CLOUDFLARED_STUB: '/x/stub.mjs', DUDE_HUB_TEST_CLOUDFLARED_EDGE_PORT: '0' })).toEqual({});
+    expect(plainSecretsKnob({ DUDE_HUB_TEST_PLAIN_SECRETS: '1' }, true)).toBe(true);
+    expect(plainSecretsKnob({ DUDE_HUB_TEST_PLAIN_SECRETS: '1' }, false)).toBe(false);
+    expect(plainSecretsKnob({}, true)).toBe(false);
+    const env = { DUDE_HUB_TEST_OIDC_IDP_URL: 'http://127.0.0.1:4555', DUDE_HUB_TEST_CLOUDFLARED_STUB: '/x/stub.mjs', DUDE_HUB_TEST_CLOUDFLARED_EDGE_PORT: '4556', DUDE_HUB_TEST_PLAIN_SECRETS: '1' };
+    expect(readHubTestOverrides(env, false)).toEqual({});
+    expect(presentTestKnobs(env)).toHaveLength(4);
   });
   it('reports which knobs are present', () => {
     expect(presentTestKnobs({})).toEqual([]);

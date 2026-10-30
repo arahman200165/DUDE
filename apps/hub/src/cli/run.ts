@@ -6,10 +6,12 @@ import { bindAddress, exposureRefusal, loadOrCreateHubConfig } from '../config/h
 import { openHubDb } from '../db/open-hub-db.js';
 import { drainAuditOutboxAtStart } from '../savesphere-db/audit-outbox.js';
 import { createQueueRuntime } from '../queue/queue-runtime.js';
+import { createForwardingFetch } from '../auth/oidc/test-idp-forward.js';
 import { presentTestKnobs, readHubTestOverrides } from './test-overrides.js';
 import { createHubServer } from '../server/create-server.js';
 import { createLogStream, hubLoggerOptions } from '../server/logger.js';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { ensureTlsIdentity } from '../tls/index.js';
 import { defaultAcmeKeyProtector, defaultCaKeyProtector } from '../tls/ca-key-protector.js';
 import { localCaExists, rootSha256, readCaCertPem } from '../tls/ca-public.js';
@@ -274,8 +276,22 @@ export async function runCli(argv: readonly string[]): Promise<number> {
   // 32-SS1 managed tunnel (Milestone 837): the supervised cloudflared and its connector token. Created always (cheap, nothing runs), started
   // below only when `exposure.tunnel.enabled`; the elevated `network tunnel on` also drives it through the admin pipe.
   let listeningPort = config.port;
+  // TEST-ONLY (PD-068): empty in a release bundle. The backup check period goes to the scheduler, the stub connector to the tunnel runtime, the fake
+  // identity provider to the OIDC client, and the rest to the server.
+  const { backupCheckMs: testBackupCheckMs, oidcIdpUrl: testOidcIdpUrl, cloudflaredStub: testCloudflaredStub, ...testServerOverrides } = readHubTestOverrides();
   const tunnelRuntime = createTunnelRuntime({
     paths, getPort: () => listeningPort,
+    // The 32-SS1 platform exit e2e (Milestone 854): the stub connector, hash-checked like the real binary, with its forwarding edge aimed at this Hub.
+    ...(testCloudflaredStub !== undefined ? {
+      cloudflared: {
+        exePath: testCloudflaredStub.path,
+        expectedSha256: createHash('sha256').update(readFileSync(testCloudflaredStub.path)).digest('hex'),
+        launch: (exe: string, args: string[]) => ({ command: process.execPath, args: [exe, ...args] }),
+        expectedImagePath: process.execPath,
+        extraEnv: { STUB_FORWARD_LISTEN: String(testCloudflaredStub.edgePort), get STUB_FORWARD_TO() { return String(listeningPort); } },
+        supervisor: { readiness: { intervalMs: 100, startTimeoutMs: 20_000, unhealthyAfter: 3 } },
+      },
+    } : {}),
     readConfig: () => { try { return loadOrCreateHubConfig(paths.configFile).exposure.tunnel; } catch { return undefined; } },
     auditDegraded: (detail) => audit(hub.db, { event: 'tunnel.degraded', outcome: 'failure', actorKind: 'system', detail: { ...detail }, now: Date.now() }),
   });
@@ -315,8 +331,6 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     process.stdout.write(`${JSON.stringify({ event: 'tls-names-stale', missing: staleNames, hint: 'Run "dude-hub tls rotate" to stage a certificate that covers them, then "dude-hub tls activate".' })}\n`);
   }
   const logStream = createLogStream(path.join(paths.logsDir, 'hub.log'), { stdout: true });
-  // TEST-ONLY (PD-068): empty in a release bundle. The backup check period goes to the scheduler below, the rest to the server.
-  const { backupCheckMs: testBackupCheckMs, ...testServerOverrides } = readHubTestOverrides();
   const server: FastifyInstance = createHubServer({
     paths,
     config,
@@ -329,7 +343,7 @@ export async function runCli(argv: readonly string[]): Promise<number> {
     ...(queueRuntime ? { uploads: { service: queueRuntime.uploads } } : {}),
     provisioning: { status: () => provisioning.status() },
     tunnel: { status: () => tunnelRuntime.status(), facts: (candidate) => tunnelRuntime.facts(candidate) },
-    oidc: { readClientSecret: createClientSecretReader(oidcSecret), clientSecretPresent: () => oidcSecret.present() },
+    oidc: { readClientSecret: createClientSecretReader(oidcSecret), clientSecretPresent: () => oidcSecret.present(), ...(testOidcIdpUrl !== undefined ? { fetch: createForwardingFetch(testOidcIdpUrl) } : {}) },
     logger: hubLoggerOptions(logStream),
     ...testServerOverrides,
   });
