@@ -143,7 +143,7 @@ describe('hub config', () => {
     expect(parseHubConfig({ backup: { destinations: [] } }).backup).toBeUndefined();
     const bad = (value: Record<string, unknown>) => () => parseHubConfig({ backup: { destinations: [{ ...destination, ...value }] } });
     expect(bad({ id: 'Upper' })).toThrow(/id/);
-    expect(bad({ kind: 's3' })).toThrow(/kind/);
+    expect(bad({ kind: 'ftp' })).toThrow(/kind/);
     expect(bad({ label: '' })).toThrow(/label/);
     expect(bad({ label: 'x'.repeat(65) })).toThrow(/label/);
     expect(bad({ folder: 'relative' })).toThrow(/folder/);

@@ -156,7 +156,7 @@ describe('backup restore confirmation boundary', () => {
       for (const entry of readdirSync(folder, { recursive: true, withFileTypes: true })) {
         if (!entry.isFile() || !entry.name.endsWith('.ts') || /\.spec\.ts$/.test(entry.name) || entry.name === 'test-helpers.ts') continue;
         const full = path.join(entry.parentPath, entry.name);
-        if (/backup\/restore|applyRestore|previewRestore|RESTORE_PHRASE|restoreConfirmFile/.test(readFileSync(full, 'utf8'))) offenders.push(path.relative(srcRoot, full));
+        if (/backup\/restore(?!-drill)|applyRestore|previewRestore|RESTORE_PHRASE|restoreConfirmFile/.test(readFileSync(full, 'utf8'))) offenders.push(path.relative(srcRoot, full));
       }
     }
     expect(offenders).toEqual([]);

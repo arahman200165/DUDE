@@ -244,7 +244,7 @@ describe('backup.verify and backup.list', () => {
 describe('backup schedule (backup v2, Milestone 847)', () => {
   it('sets with a folder: the folder becomes a destination, the master key is stored (never the passphrase), then status and off', async () => {
     const f = fixture();
-    expect(await f.call('backup.schedule.status')).toEqual({ configured: false, intervalHours: null, destinations: [], retention: { daily: 7, weekly: 4, monthly: 6 }, last: null, keyPresent: false });
+    expect(await f.call('backup.schedule.status')).toEqual({ configured: false, intervalHours: null, destinations: [], retention: { daily: 7, weekly: 4, monthly: 6 }, last: null, keyPresent: false, health: { destinations: [], noDestination: null } });
 
     const set = await f.call('backup.schedule.set', { folder: f.out, intervalHours: 12, retention: 5, passphrase: PASSPHRASE });
     expect(set).toMatchObject({ configured: true, intervalHours: 12, replaced: false, retention: { daily: 7, weekly: 4, monthly: 6 } });
