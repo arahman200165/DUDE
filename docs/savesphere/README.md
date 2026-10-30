@@ -2,7 +2,7 @@
 
 SaveSphere is the owner's personal knowledge system inside DUDE: one place to capture, preserve, organize and find anything the owner decides to keep, whatever its source or format. It also replaces Samsung Notes, Evernote and OneNote for everyday typed notes, handwriting, PDF annotation and canvases. It is not a separate product or stack; it runs on the owner's own Hub, is reached over the owner's own domain, and reuses DUDE's Hub, identity, sync, backup, desktop app, Android app and design system.
 
-**Status:** Planned: Phases 32-SS1 to 32-SS6; nothing is implemented yet. Every statement in this folder is a planned requirement, not an as-built claim.
+**Status:** Phase 32-SS1 (the Hub platform) is built, complete at Milestone 855 with its live passes owed ([plan and as-built summary](../delivery/PHASE32SS1_PLAN.md#ss1-as-built-summary), [acceptance](../delivery/PHASE32SS1_ACCEPTANCE.md)); 32-SS2 to 32-SS6 are not implemented. Statements in this folder about the platform describe the plan unless they are marked "as built"; the SS1 as-built summary is the authority where they differ. Everything else in this folder is a planned requirement, not an as-built claim.
 
 Read [the master PRD](../DUDE_PRD.md) first. Product direction and invariants live there; the [SaveSphere program decisions](../delivery/PHASE32SS_PLAN.md) (PD-116–PD-140) govern the program, and the documents in this folder own the detailed SaveSphere contracts within them.
 
@@ -39,7 +39,7 @@ The phases run strictly in order after Phase 31J; Phase 32 begins after 32-SS6. 
 
 | Phase | Delivers |
 |---|---|
-| [32-SS1](../delivery/ROADMAP.md#phase-32-ss1) Hub Platform | Provisioning wizard and embedded storage and services, Google sign-in with linked accounts, bare-domain hosting, managed Cloudflare Tunnel, sign-in gating for the whole domain, resumable chunked uploads, durable job queue, backup v2, the cached Hub-offline state |
+| [32-SS1](../delivery/ROADMAP.md#phase-32-ss1) Hub Platform (**built**; live passes owed) | Provisioning wizard and embedded storage and services, Google sign-in with linked accounts, bare-domain hosting, managed Cloudflare Tunnel, sign-in gating for the whole domain, resumable chunked uploads, durable job queue, backup v2, the cached Hub-offline state |
 | [32-SS2](../delivery/ROADMAP.md#phase-32-ss2) Notes Core | Item model, notebooks, collections, tags, links and backlinks, rich-text editor on Yjs, attachments, tiered history and trash, full-text search, the vault, desktop and Android replicas, web read cache, export, the `/savesphere` destination and Home panels |
 | [32-SS3](../delivery/ROADMAP.md#phase-32-ss3) Capture and Inbox | Every capture channel, the import framework and importers, inbox triage, dedupe, the SSRF-safe link and metadata fetcher, the video archive toggle, watched folders, the Markdown mirror, the external-editor round-trip |
 | [32-SS4](../delivery/ROADMAP.md#phase-32-ss4) Ink and PDF | Pen ink on Android and Windows, hybrid ink and text, PDF viewer and annotation layer, document scanner, infinite canvas, handwriting recognition for search, the Samsung Notes PDF fidelity pass |

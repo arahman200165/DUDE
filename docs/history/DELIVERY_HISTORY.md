@@ -54,7 +54,7 @@ Related: [DUDE — Product Requirements](../DUDE_PRD.md) · [DUDE Roadmap](../de
 
 The original V1 PRD correctly described DUDE at that time as a **static, single-page developer utility deck** whose primary deployment target was the GitHub Pages free tier. That historical description remains relevant to the V1 Definition of Done and the web companion, but it is no longer the correct description of the product as a whole after Phase 8. The previous wording that desktop was merely an additive wrapper or a conceptual “strict superset of the web PWA” is superseded: **DUDE Desktop is the canonical workbench; DUDE Web is the zero-install, browser-safe companion; both reuse the same core wherever platform constraints allow.**
 
-**2026-10-25 (planned, not delivered):** the product owner widened DUDE's positioning beyond the developer environment to include **SaveSphere**, the owner's personal knowledge system. It is served by the owner's own Hub over their own domain and scheduled as Phases 32-SS1 to 32-SS6 ahead of Phase 32 ([decisions PD-116–PD-140](../delivery/PHASE32SS_PLAN.md), [scope record](DECISION_LOG.md#savesphere-program-decision--2026-10-25)). This record will gain delivery entries as those phases ship.
+**2026-10-25 (planned, not delivered):** the product owner widened DUDE's positioning beyond the developer environment to include **SaveSphere**, the owner's personal knowledge system. It is served by the owner's own Hub over their own domain and scheduled as Phases 32-SS1 to 32-SS6 ahead of Phase 32 ([decisions PD-116–PD-140](../delivery/PHASE32SS_PLAN.md), [scope record](DECISION_LOG.md#savesphere-program-decision--2026-10-25)). This record gains delivery entries as those phases ship: [Phase 32-SS1](#phase-32-ss1) shipped at Milestone 855 (2026-10-30), and 32-SS2 to 32-SS6 are still planned.
 
 ## Delivered Baseline through Phase 31
 
@@ -3193,6 +3193,30 @@ Four unnumbered fix commits sit between milestones: the restore spec accepting e
 **What 31J does not deliver.** No named participants, read-only participants or guest permissions (Phase 53; the ephemeral LAN server and BYO relay for Markdown Workspace are unchanged); no remote or privileged job execution, no job queue and no "Run now" (Phase 88); no generic Yjs replication (home panels, pipelines, projects, layouts, settings and favorites keep their record policies); and no `measure:collab`. Known limitations carried forward: two browsers opening the scratchpad drawer at once can raise the ordinary record-conflict dialog because `drawerExpanded` is part of the synced record, and two production-build chunk budget warnings that pre-date 31J remain. The physical and installed passes are owed and recorded as a guided script: two PCs co-editing over the LAN and in public mode, the installed SEA/WinSW Hub and the Docker image, a real scheduled-backup failure reaching the bell and a Windows toast while signed out, NVDA on the editor and bell, cursor colors across themes and contrast modes, a real offline desktop edit and reconnect, restoring collaborative documents onto a second machine, a multi-hour Hub memory watch, and the phone shown as online.
 
 **Outcome (Milestones 787–815):** met, with the manual passes listed in the acceptance evidence owed; see [Phase 31J acceptance](../delivery/PHASE31J_ACCEPTANCE.md).
+
+<a id="phase-32-ss1"></a>
+
+## Phase 32-SS1 — Hub Platform for SaveSphere (Complete; live passes owed)
+
+**Status:** complete. Milestones 829–855 landed between 2026-10-27 and 2026-10-30: 829 recorded the decisions, 830–854 are the implementation and its exit suites, and 855 is the as-built documentation and the acceptance script. Decisions [PD-141–PD-154](../delivery/PHASE32SS1_PLAN.md) and the [as-built summary with its per-milestone deviations](../delivery/PHASE32SS1_PLAN.md#ss1-as-built-summary) record what was decided and what differed; [Phase 32-SS1 acceptance](../delivery/PHASE32SS1_ACCEPTANCE.md) records the automated evidence, the owed live passes as a guided script (S1 to S18, blocking and may-slip marked) and every milestone's owed item. 32-SS2 is not gated on the owed passes (PD-154).
+
+The Hub became the platform SaveSphere will run on, still with one owner and one environment. It gained a secret store, a separate `savesphere.db` with an audit outbox, a content-addressed blob store, a durable queue with isolated workers for Hub-internal work, and an idempotent provisioning engine with a read-only Hub-web status and a desktop wizard that drives one elevated session. The owner's bare domain is served through a managed Cloudflare Tunnel (a hash-pinned `cloudflared`, an owner-pasted connector token, devices trusting the public CA chain for the tunnel domain on the Agent, desktop and Android) or through direct Public mode, behind a route-gating allowlist enforced by an enumerate-and-probe spec and a precached Hub-offline page. Google sign-in with linked accounts sits beside the password, which can never be disabled. Resumable chunked uploads feed the blob store. Backup v2 streams without a size ceiling, covers both databases and every blob, deduplicates, verifies on write and keeps 7 daily, 4 weekly and 6 monthly backups behind a two-step prune; destinations are a local folder and an S3-compatible bucket, a paired desktop can pull the encrypted repository as a warm standby, a monthly restore drill raises notifications, and the Hub checks that its computer does not sleep.
+
+| Milestone | Deliverable |
+|---|---|
+| 829 | Decisions PD-141 to PD-154 |
+| 830 | Feasibility go/no-go: FTS5, `sqlite-vec` in the single-executable Hub, worker re-spawn |
+| 831–835 | Secret store; `savesphere.db`; blob store; queue and workers; provisioning engine |
+| 836–840 | `cloudflared` and the supervisor; managed tunnel mode; public-CA trust for the Agent, desktop and Android; Android emulator acceptance |
+| 841–845 | OIDC core; Google sign-in, link and unlink; ingest scaffold; route gating and the Hub-offline page; resumable uploads |
+| 846–850 | Backup v2 format; engine, local destination and restore; S3 destination; warm-standby pull; restore drill and notifications |
+| 851–853 | Power policy; Hub-web Platform status; desktop provisioning wizard |
+| 854 | Exit suites: `70-platform`, the over-512 MiB run, MinIO, the Docker smoke |
+| 855 | As-built documentation and the acceptance script |
+
+**What 32-SS1 does not deliver.** Google Drive and OneDrive backup destinations (Milestones 856–857, next, may slip); a capture endpoint (32-SS3); an S3 blob tier; a vector table; a command that runs the blob garbage collector; a CLI restore directly from a bucket; a refreshed Backup & Transfer page; and every live pass: a real Cloudflare tunnel, real Google sign-in, direct Public mode on a real domain, a second-machine restore, a standby promotion, the Android device, the elevated Windows service and wizard runs, the first green CI runs of the new jobs and the browser passes.
+
+**Outcome (Milestones 829–855):** met by automated evidence, with the live passes owed; see [Phase 32-SS1 acceptance](../delivery/PHASE32SS1_ACCEPTANCE.md).
 
 ## Historical V1 Definition of Done
 

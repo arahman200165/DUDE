@@ -13,7 +13,7 @@ Related: [DUDE — Product Requirements](../DUDE_PRD.md) · [Quality and Release
 - [Roadmap Direction](#roadmap-direction)
 - [Completed Phases](#completed-phases)
 - [Post-Phase-31 Priority — Self-Hosted Distributed Foundation (Complete)](#near-term-roadmap)
-- [SaveSphere Program — Phases 32-SS1 to 32-SS6 (Planned)](#savesphere-program)
+- [SaveSphere Program — Phases 32-SS1 to 32-SS6 (32-SS1 Complete; the rest Planned)](#savesphere-program)
 - [Core Expansion Roadmap](#core-expansion-roadmap)
 - [Utility Catalog Backlog (Unscheduled)](#utility-catalog-backlog)
 - [Long-Horizon Roadmap](#long-horizon-roadmap)
@@ -34,7 +34,7 @@ Related: [DUDE — Product Requirements](../DUDE_PRD.md) · [Quality and Release
 |---|---|
 | Phases 0–31 | Complete; Phase 31 closed at Milestone 614 |
 | Phases 31A–31J | Distributed foundation and collaboration depth, delivered in order; 31A (Milestone 615) and 31B (Milestones 616–627) and 31C (Milestones 628–648) and 31D (Milestones 649–662) and 31E (Milestones 663–682) and 31F (Milestones 683–699) and 31G (Milestones 700–719) complete, 31H (Milestones 720–728) and 31I (Milestones 729–786) complete; DUDE 2.0 was declared at Milestone 786 on 2026-10-23, with 31H's carried passes recorded in the 31I gate (the missing-Keystore and corrupt/full-storage cases are automated-only under PD-098); 31J (Milestones 787–815) complete on 2026-10-24 ([decisions PD-099–PD-115](PHASE31J_PLAN.md), [acceptance](PHASE31J_ACCEPTANCE.md); its physical and installed passes are owed and do not gate Phase 32) |
-| Phases 32-SS1 to 32-SS6 | Next: the SaveSphere program, planned 2026-10-25 ([decisions PD-116–PD-140](PHASE32SS_PLAN.md), [entries](#savesphere-program)); 32-SS1 is in progress from Milestone 829 ([plan](PHASE32SS1_PLAN.md)); the first SaveSphere release gate closes at the end of 32-SS5 |
+| Phases 32-SS1 to 32-SS6 | Next: the SaveSphere program, planned 2026-10-25 ([decisions PD-116–PD-140](PHASE32SS_PLAN.md), [entries](#savesphere-program)); 32-SS1 (Hub platform) is complete at Milestone 855, with its live passes owed and not gating 32-SS2 ([plan](PHASE32SS1_PLAN.md), [acceptance](PHASE32SS1_ACCEPTANCE.md)); 32-SS2 is next; the first SaveSphere release gate closes at the end of 32-SS5 |
 | Phase 32 | Begins after 32-SS6; every phase from 31A through 31J is complete |
 | Phases 33–100 | Retained long-horizon scope, subject to dependencies and product boundaries |
 
@@ -92,6 +92,7 @@ From Phase 22 onward, the roadmap deliberately stops treating raw tool count as 
 | Phase 31H | ✅ Complete | React Native Android shell with QR/paste enrollment, pinned transport, synchronized favorites/settings and local APK/AAB packaging (Milestones 720–728); its physical/signing/accessibility passes were carried into and recorded in 31I. | [Phase 31H acceptance](PHASE31H_ACCEPTANCE.md) |
 | Phase 31I | ✅ Complete | 40 executable Android tools, Share-to-DUDE, camera scanning, on-device journeys and the DUDE 2.0 declaration (Milestones 729–786). | [Phase 31I acceptance](PHASE31I_ACCEPTANCE.md) |
 | Phase 31J | ✅ Complete | Hub collaboration and realtime depth: protocol 3, presence, live views, read-only job status, Hub notifications with the shell bell and desktop OS notifications, and Hub-persisted Yjs collaboration with history (Milestones 787–815). | [Phase 31J acceptance](PHASE31J_ACCEPTANCE.md) |
+| Phase 32-SS1 | ✅ Complete (live passes owed) | SaveSphere Hub platform: provisioning wizard, embedded storage, queue and blob store, managed Cloudflare Tunnel, Google sign-in, whole-domain gating, resumable uploads, streaming backup v2 with local and S3 destinations, warm standby, restore drills and the power policy (Milestones 829–855; Google Drive and OneDrive, 856–857, are next and may slip). | [Phase 32-SS1 acceptance](PHASE32SS1_ACCEPTANCE.md) |
 
 <a id="near-term-roadmap"></a>
 
@@ -107,7 +108,7 @@ Backup/transfer is deliberately moved ahead of mobile delivery, and security con
 
 - **During 31A–31J (all complete):** one phase at a time, including its full scope and exit gate, before moving to the next lettered phase. Maintenance, regression fixes and security fixes to shipped work remain permitted.
 - **Phase 32 entry gate:** every phase from 31A through 31J is complete (met 2026-10-24) **and** 32-SS1 to 32-SS6 are complete (added 2026-10-25, [PD-117](PHASE32SS_PLAN.md)). All REST Client and request-collection work stays in Phase 32.
-- **After 31J (now):** begin the [SaveSphere program](#savesphere-program) with 32-SS1, one phase at a time, each with its exit gate. Then begin the retained Phase 32 backlog. Local listeners, raw protocols, mTLS, mutation-sensitive features and durable snippet sharing keep their own security/acceptance gates.
+- **After 31J (now):** the [SaveSphere program](#savesphere-program) proceeds one phase at a time, each with its exit gate; 32-SS1 is complete (Milestone 855, live passes owed) and 32-SS2 is next. Then begin the retained Phase 32 backlog. Local listeners, raw protocols, mTLS, mutation-sensitive features and durable snippet sharing keep their own security/acceptance gates.
 
 <a id="phase-31a"></a>
 
@@ -338,17 +339,17 @@ These are relative engineering-effort estimates from planning, not elapsed-time 
 
 <a id="savesphere-program"></a>
 
-## SaveSphere Program — Phases 32-SS1 to 32-SS6 (Planned)
+## SaveSphere Program — Phases 32-SS1 to 32-SS6 (32-SS1 Complete; the rest Planned)
 
-**Decision (2026-10-25):** SaveSphere, the owner's personal knowledge system, is built inside DUDE as six inserted phases, **32-SS1 to 32-SS6**. They run strictly in order after 31J and before Phase 32 ([PD-117](PHASE32SS_PLAN.md)). As with 31A–31J, the inserted identifiers keep every historical Phase 0–31J reference and every retained Phase 32–100 identifier. The decisions are [PD-116–PD-140](PHASE32SS_PLAN.md), the product and design are in [SaveSphere documentation](../savesphere/README.md), and the release checklist is the [SaveSphere First Release Definition of Done](QUALITY_AND_RELEASE.md#savesphere-first-release-definition-of-done--all-planned). Nothing here is implemented. Each phase gets its milestone numbers, a decisions section and an acceptance document when it is planned. Any further capability enters scope only by a dated decision ([PD-140](PHASE32SS_PLAN.md)).
+**Decision (2026-10-25):** SaveSphere, the owner's personal knowledge system, is built inside DUDE as six inserted phases, **32-SS1 to 32-SS6**. They run strictly in order after 31J and before Phase 32 ([PD-117](PHASE32SS_PLAN.md)). As with 31A–31J, the inserted identifiers keep every historical Phase 0–31J reference and every retained Phase 32–100 identifier. The decisions are [PD-116–PD-140](PHASE32SS_PLAN.md), the product and design are in [SaveSphere documentation](../savesphere/README.md), and the release checklist is the [SaveSphere First Release Definition of Done](QUALITY_AND_RELEASE.md#savesphere-first-release-definition-of-done--all-planned). 32-SS1 is built (below); 32-SS2 to 32-SS6 are not implemented. Each phase gets its milestone numbers, a decisions section and an acceptance document when it is planned. Any further capability enters scope only by a dated decision ([PD-140](PHASE32SS_PLAN.md)).
 
-The required sequence is **31J → 32-SS1 → 32-SS2 → 32-SS3 → 32-SS4 → 32-SS5 → 32-SS6 → Phase 32**. The first SaveSphere release gate closes at the end of 32-SS5. Maintenance, regression and security fixes to shipped work remain permitted throughout. The 31J owed passes do not gate 32-SS1.
+The required sequence is **31J → 32-SS1 → 32-SS2 → 32-SS3 → 32-SS4 → 32-SS5 → 32-SS6 → Phase 32**. The first SaveSphere release gate closes at the end of 32-SS5. Maintenance, regression and security fixes to shipped work remain permitted throughout. The 31J owed passes did not gate 32-SS1, and the 32-SS1 owed passes do not gate 32-SS2.
 
 <a id="phase-32-ss1"></a>
 
-### Phase 32-SS1 — Hub Platform for SaveSphere (In progress)
+### Phase 32-SS1 — Hub Platform for SaveSphere (Complete; live passes owed)
 
-**Status:** in progress, started 2026-10-27. Milestones **829–857**, with decisions PD-141–PD-154 and the milestone map in the [Phase 32-SS1 plan](PHASE32SS1_PLAN.md). The scope additions (public-CA trust mode for the Agent, desktop and Android, the standby pull grant, the power-policy change, ingest-token scrub and reissue, the Hub-offline page and the Hub-internal job queue) are the [dated PD-140 entry of 2026-10-27](PHASE32SS_PLAN.md#dated-scope-entries-pd-140). Google Drive and OneDrive destinations (Milestones 856–857) may slip to a named follow-up without blocking the gate ([PD-150](PHASE32SS1_PLAN.md)).
+**Status:** complete at Milestone 855 (started 2026-10-27, closed 2026-10-30), with the live passes owed. Milestones **829–855**, with decisions PD-141–PD-154, the as-built summary and the milestone map in the [Phase 32-SS1 plan](PHASE32SS1_PLAN.md#ss1-as-built-summary) and the automated evidence and the guided owner script (S1 to S18, blocking and may-slip marked) in the [Phase 32-SS1 acceptance](PHASE32SS1_ACCEPTANCE.md). The scope additions (public-CA trust mode for the Agent, desktop and Android, the standby pull grant, the power-policy change, ingest-token scrub and reissue, the Hub-offline page and the Hub-internal job queue) are the [dated PD-140 entry of 2026-10-27](PHASE32SS_PLAN.md#dated-scope-entries-pd-140). **Milestone numbers:** 829 decisions; 830–835 feasibility, secrets, `savesphere.db`, blob store, queue and provisioning; 836–840 tunnel, public-CA trust and Android acceptance; 841–845 Google sign-in, ingest, route gating and uploads; 846–850 backup v2, destinations, standby and the restore drill; 851–853 power policy, Hub-web status and the desktop wizard; 854 exit suites; 855 as-built documentation and the acceptance script; **856–857 Google Drive and OneDrive are next and may slip to a named follow-up without blocking the gate or renumbering earlier milestones** ([PD-150](PHASE32SS1_PLAN.md)). As with 31E–31J, the real Cloudflare, Google, Windows-service, second-machine, standby, Android-device and browser passes are owed and recorded as a guided script; 32-SS2 is not gated on them ([PD-154](PHASE32SS1_PLAN.md)).
 
 **Depends on:** 31C–31J (Hub, sync, web, Internet readiness, backup, collaboration).
 
@@ -359,9 +360,9 @@ The required sequence is **31J → 32-SS1 → 32-SS2 → 32-SS3 → 32-SS4 → 3
 - sign-in for every page and API on the domain (static assets public, the allowlist enforced by a probe spec); the Pages companion unchanged ([PD-122](PHASE32SS_PLAN.md), [PD-144](PHASE32SS1_PLAN.md));
 - power-policy check with a two-step elevated change, the cached Hub-offline page and warm-standby (pull) promotion guidance ([PD-123](PHASE32SS_PLAN.md), [PD-151](PHASE32SS1_PLAN.md), [PD-152](PHASE32SS1_PLAN.md));
 - resumable chunked uploads into the blob store;
-- streaming, chunked backup v2 without the 512 MiB ceiling, covering the blob store, with 7/4/6 retention, verify-on-write and a monthly restore drill, to local, S3-compatible, standby-device and Google Drive/OneDrive destinations ([PD-124](PHASE32SS_PLAN.md), [PD-150](PHASE32SS1_PLAN.md)).
+- streaming, chunked backup v2 without the 512 MiB ceiling, covering the blob store, with 7/4/6 retention, verify-on-write and a monthly restore drill, to local, S3-compatible, standby-device (pull) and, in Milestones 856–857 (not built, may slip), Google Drive/OneDrive destinations ([PD-124](PHASE32SS_PLAN.md), [PD-150](PHASE32SS1_PLAN.md)).
 
-**Exit gate:** a fresh Windows install designated as Hub completes the wizard, and the owner's domain serves the full DUDE web behind Google sign-in through the tunnel and, separately, through direct Public mode. The Hub stays usable with Google unreachable. A backup larger than 512 MiB, including blobs, verifies and restores on a second machine under the 31G authority rules. New routes keep contract-first parity, closed-list audit events and the confirmation-boundary specs.
+**Exit gate:** a fresh Windows install designated as Hub completes the wizard, and the owner's domain serves the full DUDE web behind Google sign-in through the tunnel and, separately, through direct Public mode. The Hub stays usable with Google unreachable. A backup larger than 512 MiB, including blobs, verifies and restores on a second machine under the 31G authority rules. New routes keep contract-first parity, closed-list audit events and the confirmation-boundary specs. **Met by automated evidence at Milestone 855** (the real-process `70-platform` suite with a fake OpenID provider and a stub `cloudflared`, the generated 591 MiB backup and restore with bounded memory, MinIO, the route-gating probe and the crash and fault suites; [acceptance](PHASE32SS1_ACCEPTANCE.md#automated-exit-gate-evidence)); the live passes S1 to S18 are owed.
 
 <a id="phase-32-ss2"></a>
 

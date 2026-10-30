@@ -48,8 +48,8 @@ SaveSphere is Hub-backed environment infrastructure presented as a shell destina
 | Collaboration | `/api/v1/collab`, `collab_docs`/`collab_updates`/`collab_snapshots`/`collab_bases` (migration 0010), closed document kinds in `@dude/collab-doc` | SaveSphere follows the same persistence pattern for its rich documents, ink, canvases and PDF layers |
 | Realtime | `/api/v1/realtime`, JSON-only and nudge-only, never carrying record content | SaveSphere change nudges. Content never travels on this socket |
 | Notifications and bell | `notifications` table (migration 0009) fed by a closed producer list (`apps/hub/src/notifications/producers.ts`); bell (#14); Windows toasts raised by Electron main (`apps/desktop/hub-notification-toasts.ts`) | Reminders, resurfacing and digests are added as deliberate new producers (PD-137) |
-| Job status | Read-only registry of eleven jobs, `HUB_JOB_IDS` (`packages/contracts/src/hub/jobs.schema.ts`): eight timers (PD-112) plus, from Milestone 834 and only on a Hub with `savesphere.db`, `queue-runner`, `blobs-verify` and `blobs-staging-sweep`; `GET /api/v1/jobs`, no run-now | Extended by the durable job queue (see below); `GET /api/v1/queue` is its read model |
-| Backup | `.dudebackup` through `@dude/hub-backup`: whole buffers, 512 MiB plaintext and 32-file ceilings (`MAX_BACKUP_PLAINTEXT_BYTES`, `MAX_BACKUP_FILES` in `packages/hub-backup/src/backup-format.ts`) | Replaced by streaming backup v2 that covers blobs (PD-124) |
+| Job status | Read-only registry of fourteen jobs as built in 32-SS1, `HUB_JOB_IDS` (`packages/contracts/src/hub/jobs.schema.ts`): the eight 31J timers (PD-112), `restore-drill` and `power-policy` (timers), and, only on a Hub with `savesphere.db`, `queue-runner`, `blobs-verify`, `blobs-staging-sweep` and `uploads-expire`; `GET /api/v1/jobs`, no run-now | Extended by the durable job queue (see below); `GET /api/v1/queue` is its read model |
+| Backup | `.dudebackup` through `@dude/hub-backup`: whole buffers, 512 MiB plaintext and 32-file ceilings (`MAX_BACKUP_PLAINTEXT_BYTES`, `MAX_BACKUP_FILES` in `packages/hub-backup/src/backup-format.ts`) | Replaced by streaming backup v2 that covers blobs (PD-124), built in 32-SS1 (Milestones 846–850; the 31G format and its ceilings are the v1 reader only) |
 | Device Agent | Per-user Node process owning the `node:sqlite` Device State Store (device-store migrations 0001 to 0005, `apps/device-agent/src/store/migrations/`), the pinned Hub link and the DPAPI device key; it executes no tools | Holds the desktop replica (PD-126) |
 | Android | Expo app, app-private `expo-sqlite` behind a serial gate, local modules `dude-hub` (pinned HTTPS/WSS client and Keystore identity) and `dude-share` (`apps/mobile/modules/`) | Holds the Android replica and gains Kotlin modules for ink, scanning, PDF and larger share capture (PD-127) |
 | Design tokens | `theme-tokens.json` generates web CSS and portable native token data | Every SaveSphere surface. Ink and canvas colors chosen by the owner are content data, not theme colors |
@@ -384,16 +384,16 @@ This delivers named participants for SaveSphere ahead of [Phase 53](../delivery/
 
 ## Backup v2
 
-**As built** (31G, [data](../architecture/DATA_SYNC_ARCHITECTURE.md#as-built-in-phase-31g-backup-restore-and-transfer), [security](../architecture/SECURITY_ARCHITECTURE.md#as-built-in-phase-31g-backup-restore-and-transfer)):
+**As built in 31G** (superseded for new backups by the as-built v2 below; [data](../architecture/DATA_SYNC_ARCHITECTURE.md#as-built-in-phase-31g-backup-restore-and-transfer), [security](../architecture/SECURITY_ARCHITECTURE.md#as-built-in-phase-31g-backup-restore-and-transfer)):
 
 - one `.dudebackup` file with a plaintext reader header, an XChaCha20-Poly1305 payload in 64 KiB chunks and an Argon2id passphrase key;
 - a scrubbed `VACUUM INTO` copy of `dude.db` plus `hub.json`, held as whole buffers under the 512 MiB and 32-file ceilings;
 - verify-before-rename, a DPAPI-protected derived key for schedules, and an offline elevated restore that assigns a new instance ID and epoch + 1;
 - TLS and DPAPI material never included.
 
-**Planned (PD-124).** Backups become streaming and chunked, with no size cap, and include the blob store, deduplicated against earlier backups so they stay incremental. The destinations are a local or second drive, an S3-compatible bucket, a warm-standby DUDE device, and Google Drive or OneDrive. The key model stays the backup passphrase. Every backup is verified before it counts, a restore drill is scheduled, and an overdue or failed backup raises a notification. Backup v2 is delivered in 32-SS1.
+**Built in 32-SS1 (PD-124; see the [SS1 as-built summary](../delivery/PHASE32SS1_PLAN.md#ss1-as-built-summary)); Google Drive and OneDrive (Milestones 856–857) are not built.** Backups became streaming and chunked, with no size cap, and include the blob store, deduplicated against earlier backups so they stay incremental. The destinations are a local or second drive, an S3-compatible bucket, a warm-standby DUDE device, and Google Drive or OneDrive. The key model stays the backup passphrase. Every backup is verified before it counts, a restore drill is scheduled, and an overdue or failed backup raises a notification. Backup v2 is delivered in 32-SS1.
 
-**Proposed format (32-SS1).**
+**Format as proposed for 32-SS1** (built; where the as-built format differs, [the SS1 entries for Milestones 846–848](../delivery/PHASE32SS1_PLAN.md#deviations-and-implementation-notes) are the authority).
 
 - **Snapshots.** A backup is an encrypted snapshot manifest. It lists streamed `VACUUM INTO` copies of both databases (scrubbed as today, plus queue rows) and the set of referenced blobs.
 - **Pack files.** Blobs live in encrypted pack files under random names. A destination index maps keyed hashes (an HMAC of each SHA-256 under a key derived from the passphrase) to packs, so later backups upload only new blobs and a destination never sees plaintext hashes.
