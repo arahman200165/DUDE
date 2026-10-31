@@ -686,7 +686,7 @@ jobs:
 
       # Built once up front: left to the Hub harness, four parallel workers each compile it on first use and race on the output file.
       - name: Compile the test Hub bundle
-        run: npm run hub:compile:test
+        run: npm run generate:registry && npm run build:packages && npm run hub:compile:test
 
       - name: Run Electron networking tests
         run: npm run test:electron
