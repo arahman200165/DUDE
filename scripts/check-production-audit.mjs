@@ -12,10 +12,6 @@ const FAILING_SEVERITIES = new Set(['high', 'critical']);
 
 // package -> accepted advisory URLs.
 const ACCEPTED = new Map([
-  // RSA PKCS#1 v1.5 DigestAlgorithm parsing; no patched release (forge PR #1152 open). forge's
-  // verify result is informational only (CSR Inspector badge, Certificate Chain Tools "Verify
-  // chain"); desktop trust decisions use node:crypto. Accepted 2026-10-02.
-  ['node-forge', new Set(['https://github.com/advisories/GHSA-86w9-cpqp-85rv'])],
   // Stack exhaustion on deeply nested brace patterns; braces 3.0.3 is the latest release and the
   // advisory covers <=3.0.3. Reached only through expo's Metro file map in the mobile workspace,
   // which globs the developer's own project at build time, never untrusted input or shipped code.
@@ -26,6 +22,12 @@ const ACCEPTED = new Map([
   // during `expo start`, never untrusted input or shipped code. The root zod (via @angular/forms) is on a
   // patched 4.x. Accepted 2026-10-25.
   ['zod', new Set(['https://github.com/advisories/GHSA-mrhx-c7xc-m3w5'])],
+  // Quadratic replacement of percent-encoded runs; fixed only in decode-uri-component 0.5.1, which is
+  // ESM-only, while query-string 7.1.3 (the last 7.x, pinned by expo-router) `require()`s it and calls
+  // the result as a function, so forcing 0.5.1 would break query parsing. Reached only through
+  // expo-router in the mobile workspace; the worst case is a slow query-string parse in the app
+  // process, with no data exposure. Accepted 2026-10-30.
+  ['decode-uri-component', new Set(['https://github.com/advisories/GHSA-qr28-fpjm-wq7f'])],
 ]);
 
 // `npm audit` reports `fixAvailable` as a semver-major object for a package whose only "fix" is

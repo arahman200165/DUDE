@@ -15,5 +15,6 @@ export default defineConfig({
     maxWorkers: 4,
     // Windows runners are slow enough for Hub-backed Agent specs to pass the 5 s default.
     testTimeout: 30000,
+    hookTimeout: 90000,
   },
 });

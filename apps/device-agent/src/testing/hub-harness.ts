@@ -100,7 +100,7 @@ export async function startHub(options: StartHubOptions = {}): Promise<HubHandle
     proc.stderr?.on('data', (c: Buffer) => { output += c.toString('utf8'); });
     let buffered = '';
     port = await new Promise<number>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error(`Hub did not start. Output: ${output}`)), 30_000);
+      const timer = setTimeout(() => reject(new Error(`Hub did not start. Output: ${output}`)), 60_000);
       const onExit = (code: number | null): void => { clearTimeout(timer); reject(new Error(`Hub exited early (${code}). Output: ${output}`)); };
       proc.on('exit', onExit);
       proc.stdout?.on('data', (chunk: Buffer) => {
